@@ -1,0 +1,22 @@
+{
+  "name": "gradient-gen",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "inferno": "^3.1.1",
+    "inferno-compat": "^3.1.1",
+    "inferno-component": "^3.1.1",
+    "polished": "^1.1.1",
+    "styled-components": "^1.4.6"
+  },
+  "devDependencies": {
+    "inferno-devtools": "^3.1.1",
+    "inferno-scripts": "3.0.0"
+  },
+  "scripts": {
+    "start": "inferno-scripts start",
+    "build": "inferno-scripts build",
+    "test": "inferno-scripts test --env=jsdom",
+    "eject": "inferno-scripts eject"
+  }
+}
