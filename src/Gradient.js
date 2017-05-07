@@ -78,7 +78,7 @@ class Gradient extends Component {
             opacity={opacity}
           />
         </Main>
-        <Swatch height='100px' colors={this.getColors()} />
+        <Swatch height={100} colors={this.getColors()} />
       </div>
     )
   }

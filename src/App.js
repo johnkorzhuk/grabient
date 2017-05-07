@@ -38,11 +38,19 @@ const gradients = [
     angle: 180,
     gradient: {
       stop1: {
-        color: '#43e97b',
+        color: '#fad0c4',
         stop: 0
       },
       stop2: {
         color: '#fee140',
+        stop: 25
+      },
+      stop3: {
+        color: '#8ec5fc',
+        stop: 50
+      },
+      stop4: {
+        color: '#43e97b',
         stop: 100
       }
     }
@@ -56,6 +64,10 @@ const gradients = [
       },
       stop2: {
         color: '#c3cfe2',
+        stop: 70
+      },
+      stop3: {
+        color: '#fad0c4',
         stop: 100
       }
     }
