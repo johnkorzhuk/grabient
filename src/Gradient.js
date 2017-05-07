@@ -1,45 +1,35 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
 
+import Swatch from './Swatch'
+
+import { generateLinearGradient } from './utils/gradient'
+
 const TRANSITION_DURATION = 300
 
 const Main = styled.div`
   width: 500px;
   height: 500px;
   border-radius: 50%;
-  position: relative;
   z-index: 10;
   
-  background-image: linear-gradient(
-    180deg,
-    ${props => props.color1} 0%,
-    ${props => props.color2} 100%
-  );
+  background-image: ${({ gradient }) => generateLinearGradient(gradient)}
 `
 
-const Hack = styled.div`
+const TransitionHack = styled.div`
   height: 100%;
   width: 100%;
   border-radius: 50%;
   z-index: -1;
-  position: absolute;
-  top: 0;
-  right: 0;
-  left: 0;
-  bottom: 0;
-  opacity: ${props => props.opacity};
-  background-image: linear-gradient(
-    180deg,
-    ${props => props.color1} 0%,
-    ${props => props.color2} 100%
-  );
+  opacity: ${({ opacity }) => opacity};
+  background-image: ${({ gradient }) => generateLinearGradient(gradient)}
 
-  transition: opacity ${props => props.duration}ms linear;
+  transition: opacity ${({ duration }) => duration}ms linear;
 `
 
 const initState = {
-  nextColors: new Array(2),
-  currColors: new Array(2),
+  nextGradient: null,
+  currGradient: null,
   opacity: 0
 }
 
@@ -48,41 +38,47 @@ class Gradient extends Component {
 
   componentDidMount () {
     this.setState({
-      currColors: [this.props.colors.color1, this.props.colors.color2]
+      currGradient: this.props.gradient
     })
   }
 
   componentWillReceiveProps (nextProps) {
-    if (this.props.colors !== nextProps.colors) {
+    if (this.props.gradient !== nextProps.gradient) {
       this.setState({
-        nextColors: [nextProps.colors.color1, nextProps.colors.color2],
-        currColors: [this.props.colors.color1, this.props.colors.color2],
+        nextGradient: nextProps.gradient,
+        currGradient: this.props.gradient,
         opacity: 1
       })
       setTimeout(
         () =>
           this.setState({
             opacity: 0,
-            currColors: [nextProps.colors.color1, nextProps.colors.color2]
+            currGradient: nextProps.gradient
           }),
         TRANSITION_DURATION
       )
     }
   }
 
-  render () {
-    const { nextColors, currColors, opacity } = this.state
+  getColors () {
+    const { gradient } = this.props.gradient
 
+    return Object.keys(gradient).map(stop => gradient[stop].color)
+  }
+
+  render () {
+    const { nextGradient, currGradient, opacity } = this.state
     return (
+      currGradient &&
       <div>
-        <Main color1={currColors[0]} color2={currColors[1]}>
-          <Hack
-            color1={nextColors[0]}
-            color2={nextColors[1]}
+        <Main gradient={currGradient}>
+          <TransitionHack
+            gradient={nextGradient}
             duration={TRANSITION_DURATION}
             opacity={opacity}
           />
         </Main>
+        <Swatch height='100px' colors={this.getColors()} />
       </div>
     )
   }

@@ -1,29 +1,64 @@
-import { version } from 'inferno'
 import Component from 'inferno-component'
-import styled from 'styled-components'
+// import styled from 'styled-components'
 
 import Gradient from './Gradient'
 
-const Container = styled.div`
-  background-color: red;
-`
-
-const colors = [
+const gradients = [
   {
-    color1: '#fad0c4',
-    color2: '#ffd1ff'
+    angle: 180,
+    gradient: {
+      stop1: {
+        color: '#fad0c4',
+        stop: 0
+      },
+      stop2: {
+        color: '#ffd1ff',
+        stop: 100
+      }
+    }
   },
   {
-    color1: '#e0c3fc',
-    color2: '#8ec5fc'
+    angle: 110,
+    gradient: {
+      stop1: {
+        color: '#e0c3fc',
+        stop: 0
+      },
+      stop2: {
+        color: '#8ec5fc',
+        stop: 50
+      },
+      stop3: {
+        color: '#43e97b',
+        stop: 100
+      }
+    }
   },
   {
-    color1: '#43e97b',
-    color2: '#fee140'
+    angle: 180,
+    gradient: {
+      stop1: {
+        color: '#43e97b',
+        stop: 0
+      },
+      stop2: {
+        color: '#fee140',
+        stop: 100
+      }
+    }
   },
   {
-    color1: '#f5f7fa',
-    color2: '#c3cfe2'
+    angle: 180,
+    gradient: {
+      stop1: {
+        color: '#f5f7fa',
+        stop: 0
+      },
+      stop2: {
+        color: '#c3cfe2',
+        stop: 100
+      }
+    }
   }
 ]
 
@@ -34,7 +69,7 @@ class App extends Component {
 
   _handleClick = () => {
     this.setState(prevState => {
-      if (this.state.index === Object.keys(colors).length - 1) {
+      if (this.state.index === Object.keys(gradients).length - 1) {
         return {
           index: 0
         }
@@ -52,7 +87,7 @@ class App extends Component {
         <button onClick={this._handleClick}>
           New Color
         </button>
-        <Gradient colors={colors[this.state.index]} />
+        <Gradient gradient={gradients[this.state.index]} />
       </div>
     )
   }

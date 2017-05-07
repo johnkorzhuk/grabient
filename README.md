@@ -1,6 +1,4 @@
-#Features
-  - Display gradient
-  - Display their colors
+#Features/todos
   - Customize their colors
   - Output css
   - Add option for prefix

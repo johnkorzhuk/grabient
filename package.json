@@ -10,13 +10,15 @@
     "styled-components": "^1.4.6"
   },
   "devDependencies": {
+    "babel-eslint": "^7.2.3",
     "inferno-devtools": "^3.1.1",
-    "inferno-scripts": "3.0.0"
+    "inferno-scripts": "3.0.0",
+    "standard": "^10.0.2"
   },
   "scripts": {
     "start": "inferno-scripts start",
     "build": "inferno-scripts build",
-    "test": "inferno-scripts test --env=jsdom",
+    "test": "inferno-scripts test --env=node",
     "eject": "inferno-scripts eject"
   }
 }
