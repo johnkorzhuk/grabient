@@ -63,7 +63,7 @@ const SortableList = SortableContainer(({ items, width, height }) => {
   )
 })
 
-class Sortable extends Component {
+class Swatch extends Component {
   state = {
     colors: null
   }
@@ -82,10 +82,15 @@ class Sortable extends Component {
     }
   }
 
-  _onSortEnd = ({ oldIndex, newIndex }) => {
+  _onSortEnd = ({ oldIndex, newIndex, collection }) => {
+    const colors = arrayMove(this.state.colors, oldIndex, newIndex)
+    const { updateColorStop, id } = this.props
+
     this.setState({
-      colors: arrayMove(this.state.colors, oldIndex, newIndex)
+      colors
     })
+
+    updateColorStop(id, colors)
   }
 
   render () {
@@ -106,4 +111,4 @@ class Sortable extends Component {
   }
 }
 
-export default Sortable
+export default Swatch
