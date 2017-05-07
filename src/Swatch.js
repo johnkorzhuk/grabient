@@ -10,12 +10,7 @@ const SwatchContainer = styled(Transition)`
 
 const SwatchItem = styled.div`
   height: ${({ height }) => height + 'px'};
-  width: ${({ width }) => width + 'px'};
   display: inline-block;
-  transform: ${({ translateX }) => translateX + 'px'}
-  background-color: ${({ color }) => color};
-
-  transition: background-color ${TRANSITION_DURATION}ms linear
 `
 
 const Swatch = ({ height, width = height, colors }) => {
@@ -30,7 +25,7 @@ const Swatch = ({ height, width = height, colors }) => {
       })}
       enter={(item, index) => ({
         translate: 0,
-        color: colors[index + 1],
+        color: colors[index - 1],
         width: 0
       })}
       leave={(item, index) => ({
@@ -46,10 +41,12 @@ const Swatch = ({ height, width = height, colors }) => {
             return (
               <SwatchItem
                 key={item.key}
-                color={item.state.color}
-                width={item.state.width}
                 height={height}
-                translateX={item.state.translate * 100}
+                style={{
+                  backgroundColor: item.state.color,
+                  width: item.state.width + 'px',
+                  translateX: item.state.translate * 100 + 'px'
+                }}
               />
             )
           })}
@@ -58,9 +55,5 @@ const Swatch = ({ height, width = height, colors }) => {
     </SwatchContainer>
   )
 }
-
-// {colors.map((color, i) => (
-// <SwatchItem height={height} width={width} color={color} key={i} />
-// ))}
 
 export default Swatch

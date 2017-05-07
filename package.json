@@ -8,6 +8,7 @@
     "inferno-component": "^3.1.1",
     "polished": "^1.1.1",
     "react-move": "^1.1.8",
+    "react-sortable-hoc": "^0.6.3",
     "styled-components": "^1.4.6"
   },
   "devDependencies": {

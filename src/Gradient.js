@@ -1,7 +1,7 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
 
-import Swatch from './Swatch'
+import Sortable from './Sortable'
 
 import { generateLinearGradient } from './utils/gradient'
 
@@ -78,7 +78,7 @@ class Gradient extends Component {
             opacity={opacity}
           />
         </Main>
-        <Swatch height={100} colors={this.getColors()} />
+        <Sortable height={100} colors={this.getColors()} />
       </div>
     )
   }
