@@ -6,9 +6,23 @@ export { generateLinearGradient }
  * @param  {boolean} [prefixed=false] - output gets prefixed
  * @returns {String}
  */
-function generateLinearGradient (gradientSchema, prefixed = false) {
+function generateLinearGradient (
+  gradientSchema,
+  inverse = false,
+  prefixed = false
+) {
   if (gradientSchema) {
-    return `linear-gradient(${gradientSchema.angle}deg, ${generateColorStops(gradientSchema.gradient)})`
+    return `linear-gradient(${generateAngle(gradientSchema.angle, inverse)}, ${generateColorStops(gradientSchema.gradient)})`
+  }
+}
+
+function generateAngle (angle, inverse) {
+  if (!inverse) return `${angle}deg`
+  else {
+    if (angle <= 180) return `${(angle *= 2)}deg`
+    else {
+      return `${angle % 180 / 2}deg`
+    }
   }
 }
 

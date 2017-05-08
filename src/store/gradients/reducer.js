@@ -4,7 +4,7 @@ const INITIAL_STATE = {
   gradientValues: {
     1: {
       id: 1,
-      angle: 180,
+      angle: 310,
       gradient: {
         stop1: {
           color: '#fad0c4',

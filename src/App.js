@@ -7,17 +7,20 @@ import { Swatch } from './containers/index'
 import { updateActiveId } from './store/gradients/actions'
 import { getActiveGradient } from './store/gradients/selectors'
 
-const App = ({ activeGradient, updateActiveId }) => (
+const TRANSITION_DURATION = 400
+
+const App = ({ activeGradient, updateActiveId, activeGradientInverse }) => (
   <div>
     <button onClick={() => updateActiveId()}>
       New Color
     </button>
     <Gradient
-      transitionDuration={400}
+      transitionDuration={TRANSITION_DURATION}
       gradient={activeGradient}
       styles={{ height: '700px', width: '700px', borderRadius: '50%' }}
+      wrapper
     />
-    <Swatch height={100} transitionDuration={400} />
+    <Swatch height={100} transitionDuration={TRANSITION_DURATION} />
   </div>
 )
 

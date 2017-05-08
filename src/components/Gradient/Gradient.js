@@ -3,13 +3,21 @@ import styled from 'styled-components'
 
 import { generateLinearGradient } from './../../utils/gradient'
 
+const MainWrapper = styled.div`
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`
+
 const Main = styled.div`
-  width: ${({ styles }) => styles.width};
-  height: ${({ styles }) => styles.height};
+  position: ${({ wrapper }) => (wrapper ? 'absolute' : 'block')};
+  width: ${({ styles, wrapper }) => (wrapper ? `${parseFloat(styles.width) * 1.01}px` : styles.width)};
+  height: ${({ styles, wrapper }) => (wrapper ? `${parseFloat(styles.height) * 1.01}px` : styles.height)};
   border-radius: ${({ styles }) => styles.borderRadius};
   z-index: 10;
   
-  background-image: ${({ gradient }) => generateLinearGradient(gradient)}
+  background-image: ${({ gradient, wrapper }) => generateLinearGradient(gradient, wrapper)}
 `
 
 const TransitionHack = styled.div`
@@ -18,7 +26,7 @@ const TransitionHack = styled.div`
   border-radius: ${({ styles }) => styles.borderRadius};
   z-index: -1;
   opacity: ${({ opacity }) => opacity};
-  background-image: ${({ gradient }) => generateLinearGradient(gradient)}
+  background-image: ${({ gradient, wrapper }) => generateLinearGradient(gradient, wrapper)}
 
   transition: opacity ${({ duration }) => duration}ms linear;
 `
@@ -58,19 +66,46 @@ class Gradient extends Component {
 
   render () {
     const { nextGradient, currGradient, opacity } = this.state
-    const { styles, transitionDuration } = this.props
+    const { styles, transitionDuration, wrapper } = this.props
 
-    return (
-      currGradient &&
-      <Main gradient={currGradient} styles={styles}>
-        <TransitionHack
-          gradient={nextGradient}
-          duration={transitionDuration}
-          opacity={opacity}
-          styles={styles}
-        />
-      </Main>
-    )
+    if (wrapper) {
+      return (
+        currGradient &&
+        <MainWrapper>
+          <Main gradient={currGradient} styles={styles} wrapper>
+            <TransitionHack
+              gradient={nextGradient}
+              duration={transitionDuration}
+              opacity={opacity}
+              styles={styles}
+              wrapper
+            />
+          </Main>
+          <Main gradient={currGradient} styles={styles}>
+            <TransitionHack
+              gradient={nextGradient}
+              duration={transitionDuration}
+              opacity={opacity}
+              styles={styles}
+            />
+          </Main>
+        </MainWrapper>
+      )
+    } else {
+      return (
+        currGradient &&
+        <MainWrapper>
+          <Main gradient={currGradient} styles={styles}>
+            <TransitionHack
+              gradient={nextGradient}
+              duration={transitionDuration}
+              opacity={opacity}
+              styles={styles}
+            />
+          </Main>
+        </MainWrapper>
+      )
+    }
   }
 }
 
