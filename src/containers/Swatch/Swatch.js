@@ -11,8 +11,6 @@ import {
 import { getColors } from './../../store/gradients/selectors'
 import { updateColorStop } from './../../store/gradients/actions'
 
-const TRANSITION_DURATION = 400
-
 const SwatchContainer = styled(Transition)`
   
 `
@@ -24,52 +22,54 @@ const SwatchItem = styled.div`
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 
-const SortableList = SortableContainer(({ items, width, height }) => {
-  return (
-    <SwatchContainer
-      data={items}
-      getKey={(item, index) => index}
-      update={(item, index) => ({
-        translate: 1,
-        color: items[index],
-        width
-      })}
-      enter={(item, index) => ({
-        translate: 0,
-        color: items[index - 1],
-        width: 0
-      })}
-      leave={(item, index) => ({
-        translate: 0,
-        color: items[index - 1],
-        width: 0
-      })}
-      duration={TRANSITION_DURATION}
-    >
-      {data => (
-        <div>
-          {data.map((item, index) => {
-            return (
-              <SortableItem
-                key={item.key}
-                index={index}
-                height={height}
-                style={{
-                  backgroundColor: item.state.color,
-                  width: item.state.width + 'px'
-                }}
-              />
-            )
-          })}
-        </div>
-      )}
-    </SwatchContainer>
-  )
-})
+const SortableList = SortableContainer(
+  ({ items, width, height, transitionDuration, sorting }) => {
+    return (
+      <SwatchContainer
+        data={items}
+        getKey={(item, index) => index}
+        update={(item, index) => ({
+          color: items[index],
+          width
+        })}
+        enter={(item, index) => ({
+          color: items[index - 1],
+          width: 0
+        })}
+        leave={(item, index) => ({
+          color: items[index - 1],
+          width: 0
+        })}
+        duration={transitionDuration}
+      >
+        {data => (
+          <div>
+            {data.map((item, index) => {
+              return (
+                <SortableItem
+                  key={item.key}
+                  sorting={sorting}
+                  index={index}
+                  height={height}
+                  style={{
+                    // backgroundColor: item.state.color,
+                    backgroundColor: sorting ? items[index] : item.state.color,
+                    width: item.state.width + 'px'
+                  }}
+                />
+              )
+            })}
+          </div>
+        )}
+      </SwatchContainer>
+    )
+  }
+)
 
 class Swatch extends Component {
   state = {
-    colors: null
+    colors: null,
+    sorting: false
   }
 
   componentDidMount () {
@@ -86,9 +86,22 @@ class Swatch extends Component {
     }
   }
 
+  _onSortStart = () => {
+    this.setState({
+      sorting: true
+    })
+  }
+
   _onSortEnd = ({ oldIndex, newIndex, collection }) => {
     const colors = arrayMove(this.state.colors, oldIndex, newIndex)
     const { updateColorStop, id } = this.props
+
+    // hack so that SortableItem's bgc doesn't transition when sorting
+    setTimeout(() => {
+      this.setState({
+        sorting: false
+      })
+    }, 300)
 
     this.setState({
       colors
@@ -98,16 +111,18 @@ class Swatch extends Component {
   }
 
   render () {
-    const { height, width = height } = this.props
+    const { height, width = height, transitionDuration } = this.props
     const { colors } = this.state
     return (
       colors &&
       <SortableList
         axis='x'
         lockAxis='x'
-        transitionDuration={TRANSITION_DURATION}
+        transitionDuration={transitionDuration}
         items={this.state.colors}
+        onSortStart={this._onSortStart}
         onSortEnd={this._onSortEnd}
+        sorting={this.state.sorting}
         width={width}
         height={height}
       />

@@ -15,9 +15,9 @@ const App = ({ activeGradient, updateActiveId }) => (
     <Gradient
       transitionDuration={400}
       gradient={activeGradient}
-      styles={{ height: '300px', width: '300px', borderRadius: '50%' }}
+      styles={{ height: '700px', width: '700px', borderRadius: '50%' }}
     />
-    <Swatch height={50} />
+    <Swatch height={100} transitionDuration={400} />
   </div>
 )
 
