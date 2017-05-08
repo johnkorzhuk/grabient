@@ -1,3 +1,3 @@
-import Swatch from './Swatch/Swatch'
+import Gradient from './Gradient/Gradient'
 
-export { Swatch }
+export { Gradient }

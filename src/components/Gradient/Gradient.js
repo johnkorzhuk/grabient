@@ -39,7 +39,6 @@ class Gradient extends Component {
   }
 
   componentWillReceiveProps (nextProps) {
-    console.log(this.props.gradient, nextProps.gradient)
     if (this.props.gradient !== nextProps.gradient) {
       this.setState({
         nextGradient: nextProps.gradient,

@@ -1,11 +1,15 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
+import { connect } from 'inferno-redux'
 import { Transition } from 'react-move'
 import {
   SortableContainer,
   SortableElement,
   arrayMove
 } from 'react-sortable-hoc'
+
+import { getColors } from './../../store/gradients/selectors'
+import { updateColorStop } from './../../store/gradients/actions'
 
 const TRANSITION_DURATION = 400
 
@@ -111,4 +115,11 @@ class Swatch extends Component {
   }
 }
 
-export default Swatch
+export default connect(
+  state => ({
+    colors: getColors(state)
+  }),
+  {
+    updateColorStop
+  }
+)(Swatch)

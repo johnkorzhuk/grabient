@@ -1,4 +1,4 @@
-import { UPDATE_ANGLE, UPDATE_COLOR_STOP } from './actions'
+import { UPDATE_ANGLE, UPDATE_COLOR_STOP, UPDATE_ACTIVE_ID } from './actions'
 
 const INITIAL_STATE = {
   gradientValues: {
@@ -75,7 +75,7 @@ const INITIAL_STATE = {
       }
     }
   },
-  active: null
+  active: 1
 }
 
 export default (state = INITIAL_STATE, action) => {
@@ -95,8 +95,14 @@ export default (state = INITIAL_STATE, action) => {
         }
       }
 
+    case UPDATE_ACTIVE_ID:
+      return {
+        ...state,
+        active: action.payload.id
+      }
+
     case UPDATE_ANGLE:
-      return
+      return {}
 
     default:
       return state
