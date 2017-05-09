@@ -1,6 +1,5 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
-import { connect } from 'inferno-redux'
 import { Transition } from 'react-move'
 import {
   SortableContainer,
@@ -8,16 +7,14 @@ import {
   arrayMove
 } from 'react-sortable-hoc'
 
-import { getColors } from './../../store/gradients/selectors'
-import { updateColorStop } from './../../store/gradients/actions'
-
-const SwatchContainer = styled(Transition)`
-  
+const SwatchContainer = styled.div`
+  display: flex;
+  flex: 1;
+  height: 100%;
 `
 
 const SwatchItem = styled.div`
-  height: ${({ height }) => height + 'px'};
-  display: inline-block;
+  flex: 1;
 `
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
@@ -25,7 +22,7 @@ const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 const SortableList = SortableContainer(
   ({ items, width, height, transitionDuration, sorting }) => {
     return (
-      <SwatchContainer
+      <Transition
         data={items}
         getKey={(item, index) => index}
         update={(item, index) => ({
@@ -43,7 +40,7 @@ const SortableList = SortableContainer(
         duration={transitionDuration}
       >
         {data => (
-          <div>
+          <SwatchContainer>
             {data.map((item, index) => {
               return (
                 <SortableItem
@@ -59,9 +56,9 @@ const SortableList = SortableContainer(
                 />
               )
             })}
-          </div>
+          </SwatchContainer>
         )}
-      </SwatchContainer>
+      </Transition>
     )
   }
 )
@@ -71,7 +68,6 @@ class Swatch extends Component {
     colors: null,
     sorting: false
   }
-
   componentDidMount () {
     this.setState({
       colors: this.props.colors
@@ -111,7 +107,7 @@ class Swatch extends Component {
   }
 
   render () {
-    const { height, width = height, transitionDuration } = this.props
+    const { transitionDuration } = this.props
     const { colors } = this.state
     return (
       colors &&
@@ -123,18 +119,10 @@ class Swatch extends Component {
         onSortStart={this._onSortStart}
         onSortEnd={this._onSortEnd}
         sorting={this.state.sorting}
-        width={width}
-        height={height}
+        lockToContainerEdges
       />
     )
   }
 }
 
-export default connect(
-  state => ({
-    colors: getColors(state)
-  }),
-  {
-    updateColorStop
-  }
-)(Swatch)
+export default Swatch

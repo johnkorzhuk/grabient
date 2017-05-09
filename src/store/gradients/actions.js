@@ -1,12 +1,10 @@
-import { getActiveGradient } from './selectors'
-
 export const UPDATE_COLOR_STOP = 'gradients/UPDATE_COLOR_STOP'
 export const UPDATE_ANGLE = 'gradients/UPDATE_ANGLE'
 export const UPDATE_ACTIVE_ID = 'gradients/UPDATE_ACTIVE_ID'
 
 export const updateColorStop = (id, colors) => (dispatch, getState) => {
-  const state = getState()
-  const { gradient } = getActiveGradient(state)
+  const { gradients: { gradientValues } } = getState()
+  const { gradient } = gradientValues[id]
   const newGradient = Object.keys(gradient).reduce((aggr, curr, index) => {
     aggr[curr] = {
       ...gradient[curr],
@@ -18,7 +16,7 @@ export const updateColorStop = (id, colors) => (dispatch, getState) => {
   return dispatch({
     type: UPDATE_COLOR_STOP,
     payload: {
-      id: state.gradients.active,
+      id,
       newGradient
     }
   })

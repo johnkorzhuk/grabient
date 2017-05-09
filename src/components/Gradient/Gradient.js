@@ -8,13 +8,14 @@ const MainWrapper = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
+  height: 100%;
 `
 
 const Main = styled.div`
-  position: ${({ wrapper }) => (wrapper ? 'absolute' : 'block')};
+  position: ${({ wrapper }) => (wrapper ? 'absolute' : 'static')};
   width: ${({ styles, wrapper }) => (wrapper ? `${parseFloat(styles.width) * 1.01}px` : styles.width)};
   height: ${({ styles, wrapper }) => (wrapper ? `${parseFloat(styles.height) * 1.01}px` : styles.height)};
-  border-radius: ${({ styles }) => styles.borderRadius};
+  border-radius: ${({ styles }) => styles.borderRadius || 0};
   z-index: 10;
   
   background-image: ${({ gradient, wrapper }) => generateLinearGradient(gradient, wrapper)}
@@ -23,10 +24,10 @@ const Main = styled.div`
 const TransitionHack = styled.div`
   height: 100%;
   width: 100%;
-  border-radius: ${({ styles }) => styles.borderRadius};
+  border-radius: ${({ styles }) => styles.borderRadius || 0};
   z-index: -1;
   opacity: ${({ opacity }) => opacity};
-  background-image: ${({ gradient, wrapper }) => generateLinearGradient(gradient, wrapper)}
+  background-image: ${({ gradient, wrapper }) => generateLinearGradient(gradient, wrapper) || 'none'}
 
   transition: opacity ${({ duration }) => duration}ms linear;
 `
