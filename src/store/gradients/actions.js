@@ -35,3 +35,13 @@ export const updateActiveId = () => (dispatch, getState) => {
     }
   })
 }
+
+export const updateGradientAngle = (id, angle) => dispatch => {
+  dispatch({
+    type: UPDATE_ANGLE,
+    payload: {
+      id,
+      angle
+    }
+  })
+}

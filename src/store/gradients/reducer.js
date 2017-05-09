@@ -102,7 +102,16 @@ export default (state = INITIAL_STATE, action) => {
       }
 
     case UPDATE_ANGLE:
-      return {}
+      return {
+        ...state,
+        gradientValues: {
+          ...state.gradientValues,
+          [action.payload.id]: {
+            ...state.gradientValues[action.payload.id],
+            angle: action.payload.angle
+          }
+        }
+      }
 
     default:
       return state
