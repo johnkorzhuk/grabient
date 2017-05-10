@@ -10,6 +10,8 @@ import {
 
 import { Card, Gradient, Swatch, AngleArrow } from './../../components/index'
 
+import TestGradient from './../../components/Gradient/Test'
+
 const TRANSITION_DURATION = 400
 
 const getColors = ({ gradient }) => {
@@ -44,6 +46,7 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
       let value = angle
       if (angle >= 360) value %= 360
       else if (angle < 0) value += 360
+
       return (
         <Card>
           <GradientContainer>
@@ -70,6 +73,7 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
               colors={getColors(gradient)}
             />
           </SwatchContainer>
+          <TestGradient gradient={gradient} />
         </Card>
       )
     })}
