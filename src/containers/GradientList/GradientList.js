@@ -8,9 +8,8 @@ import {
   updateGradientAngle
 } from './../../store/gradients/actions'
 
-import { Card, Gradient, Swatch, AngleArrow } from './../../components/index'
-
-import TestGradient from './../../components/Gradient/Test'
+import { Card, AngleArrow } from './../../components/index'
+import { Swatch, Gradient } from './../index'
 
 const TRANSITION_DURATION = 400
 
@@ -34,6 +33,24 @@ const InfoContainer = styled.div`
   align-items: center;
 `
 
+const ArrowContainer = styled.div`
+  width: 70px;
+  height: 70px;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`
+
+const ArrowBox = styled.div`
+  filter: opacity(25%);;
+  background-color: white;
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  border-radius: 50%;
+`
+
 const SwatchContainer = styled.div`
   height: 5%;
 `
@@ -43,27 +60,26 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
     {Object.keys(gradients).map(gradientKey => {
       const gradient = gradients[gradientKey]
       const { angle } = gradient
-      let value = angle
-      if (angle >= 360) value %= 360
-      else if (angle < 0) value += 360
+      // let value = angle
+      // if (angle >= 360) value %= 360
+      // else if (angle < 0) value += 360
 
       return (
         <Card>
           <GradientContainer>
             <Gradient
-              transitionDuration={TRANSITION_DURATION}
               gradient={gradient}
-              styles={{ height: '100%', width: '100%' }}
+              transitionDuration={TRANSITION_DURATION}
             />
           </GradientContainer>
           <InfoContainer>
-            <AngleArrow angle={angle} />
-            <input
-              type='number'
-              value={value}
-              onChange={e =>
-                updateGradientAngle(gradientKey, parseInt(e.target.value, 10))}
-            />
+            <ArrowContainer>
+              <ArrowBox />
+              <AngleArrow
+                angle={angle}
+                styles={{ position: 'absolute', right: '50%' }}
+              />
+            </ArrowContainer>
           </InfoContainer>
           <SwatchContainer>
             <Swatch
@@ -73,12 +89,19 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
               colors={getColors(gradient)}
             />
           </SwatchContainer>
-          <TestGradient gradient={gradient} />
+
         </Card>
       )
     })}
   </Container>
 )
+
+// <input
+//               type='number'
+//               value={value}
+//               onChange={e =>
+//                 updateGradientAngle(gradientKey, parseInt(e.target.value, 10))}
+//             />
 
 export default connect(state => ({ gradients: getGradients(state) }), {
   updateColorStop,

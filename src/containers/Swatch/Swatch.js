@@ -1,11 +1,14 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
+import { connect } from 'inferno-redux'
 import { Transition } from 'react-move'
 import {
   SortableContainer,
   SortableElement,
   arrayMove
 } from 'react-sortable-hoc'
+
+import { toggleSorting } from './../../store/swatch/actions'
 
 const SwatchContainer = styled.div`
   display: flex;
@@ -65,8 +68,7 @@ const SortableList = SortableContainer(
 
 class Swatch extends Component {
   state = {
-    colors: null,
-    sorting: false
+    colors: null
   }
   componentDidMount () {
     this.setState({
@@ -83,21 +85,14 @@ class Swatch extends Component {
   }
 
   _onSortStart = () => {
-    this.setState({
-      sorting: true
-    })
+    this.props.toggleSorting()
   }
 
   _onSortEnd = ({ oldIndex, newIndex, collection }) => {
     const colors = arrayMove(this.state.colors, oldIndex, newIndex)
     const { updateColorStop, id } = this.props
 
-    // hack so that SortableItem's bgc doesn't transition when sorting
-    setTimeout(() => {
-      this.setState({
-        sorting: false
-      })
-    }, 300)
+    this.props.toggleSorting(300)
 
     this.setState({
       colors
@@ -107,7 +102,7 @@ class Swatch extends Component {
   }
 
   render () {
-    const { transitionDuration } = this.props
+    const { transitionDuration, sorting } = this.props
     const { colors } = this.state
     return (
       colors &&
@@ -118,11 +113,13 @@ class Swatch extends Component {
         items={this.state.colors}
         onSortStart={this._onSortStart}
         onSortEnd={this._onSortEnd}
-        sorting={this.state.sorting}
+        sorting={sorting}
         lockToContainerEdges
       />
     )
   }
 }
 
-export default Swatch
+export default connect(state => ({ sorting: state.swatch.sorting }), {
+  toggleSorting
+})(Swatch)

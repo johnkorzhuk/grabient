@@ -4,15 +4,16 @@ import ArrowIcon from 'react-icons/lib/md/keyboard-backspace'
 import { Animate } from 'react-move'
 
 const Arrow = styled(ArrowIcon)`
-  width: 40px
-  height: 40px;
-  transform: ${({ angle }) => `rotate(${angle + 90}deg)`};
+  width: 15px
+  height: 15px;
+  transform: ${({ angle }) => `rotate(${angle + 90}deg)`} translate(-20px);
   transform-origin: right center;
+  color: black;
 `
 
-const AngleArrow = ({ angle }) => {
+const AngleArrow = ({ angle, styles }) => {
   if (angle % 360 <= 0) {
-    return <Arrow angle={angle} />
+    return <Arrow angle={angle} style={{ ...styles }} />
   } else {
     return (
       <Animate
@@ -26,8 +27,10 @@ const AngleArrow = ({ angle }) => {
       >
         {data => (
           <Arrow
+            angle={angle}
             style={{
-              transform: `rotate(${data.rotate}deg)`
+              transform: `rotate(${data.rotate}deg) translate(-20px)`,
+              ...styles
             }}
           />
         )}

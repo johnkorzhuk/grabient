@@ -3,20 +3,6 @@ import { UPDATE_ANGLE, UPDATE_COLOR_STOP, UPDATE_ACTIVE_ID } from './actions'
 const INITIAL_STATE = {
   gradientValues: {
     1: {
-      id: 1,
-      angle: 310,
-      gradient: {
-        stop1: {
-          color: '#fad0c4',
-          stop: 0
-        },
-        stop2: {
-          color: '#ffd1ff',
-          stop: 100
-        }
-      }
-    },
-    2: {
       id: 2,
       angle: 110,
       gradient: {
@@ -30,6 +16,20 @@ const INITIAL_STATE = {
         },
         stop3: {
           color: '#43e97b',
+          stop: 100
+        }
+      }
+    },
+    2: {
+      id: 1,
+      angle: 0,
+      gradient: {
+        stop1: {
+          color: '#fad0c4',
+          stop: 0
+        },
+        stop2: {
+          color: '#ffd1ff',
           stop: 100
         }
       }
