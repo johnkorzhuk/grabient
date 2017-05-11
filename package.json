@@ -7,6 +7,7 @@
     "inferno-compat": "^3.1.1",
     "inferno-component": "^3.1.1",
     "inferno-redux": "^3.1.1",
+    "lodash.debounce": "^4.0.8",
     "polished": "^1.1.1",
     "react-icons": "^2.2.5",
     "react-move": "^1.1.8",

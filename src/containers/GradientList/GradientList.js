@@ -8,8 +8,8 @@ import {
   updateGradientAngle
 } from './../../store/gradients/actions'
 
-import { Card, ArrowContainer } from './../../components/index'
-import { Swatch, Gradient } from './../index'
+import { Card } from './../../components/index'
+import { Swatch, Gradient, ArrowContainer } from './../index'
 
 const TRANSITION_DURATION = 400
 
@@ -48,6 +48,7 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
               transitionDuration={TRANSITION_DURATION}
             >
               <ArrowContainer
+                id={gradientKey}
                 angle={angle}
                 transitionDuration={TRANSITION_DURATION}
               />

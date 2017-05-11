@@ -9,6 +9,7 @@ const Arrow = styled(ArrowIcon)`
   transform-origin: right center;
   fill: black;
   fill-opacity: 0.6;
+  z-index: 10;
   cursor: pointer;
 `
 
