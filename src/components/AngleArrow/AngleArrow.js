@@ -6,14 +6,22 @@ import { Animate } from 'react-move'
 const Arrow = styled(ArrowIcon)`
   width: 15px
   height: 15px;
-  transform: ${({ angle }) => `rotate(${angle + 90}deg)`} translate(-20px);
   transform-origin: right center;
-  color: black;
+  fill: black;
+  fill-opacity: 0.6;
+  cursor: pointer;
 `
 
-const AngleArrow = ({ angle, styles }) => {
+const AngleArrow = ({ angle, styles, translateX, transitionDuration }) => {
   if (angle % 360 <= 0) {
-    return <Arrow angle={angle} style={{ ...styles }} />
+    return (
+      <Arrow
+        style={{
+          transform: `rotate(${angle + 90}deg) translateX(${translateX}px)`,
+          ...styles
+        }}
+      />
+    )
   } else {
     return (
       <Animate
@@ -23,13 +31,13 @@ const AngleArrow = ({ angle, styles }) => {
         data={{
           rotate: angle + 90
         }}
-        duration={300}
+        duration={transitionDuration}
       >
         {data => (
           <Arrow
             angle={angle}
             style={{
-              transform: `rotate(${data.rotate}deg) translate(-20px)`,
+              transform: `rotate(${data.rotate}deg) translateX(${translateX}px)`,
               ...styles
             }}
           />

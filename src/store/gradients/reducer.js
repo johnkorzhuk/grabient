@@ -51,7 +51,7 @@ const INITIAL_STATE = {
           stop: 50
         },
         stop4: {
-          color: '#43e97b',
+          color: '#000000',
           stop: 100
         }
       }

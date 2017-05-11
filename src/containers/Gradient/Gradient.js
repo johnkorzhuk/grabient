@@ -5,12 +5,13 @@ import { Animate } from 'react-move'
 
 import { generateGradientFromData } from './../../utils/gradient'
 
-const Container = styled.div`
-  height: 400px;
-  width: 400px;
+const GradientContainer = styled.div`
+  position: relative;
+  height: 100%;
+  width: 100%;
 `
 
-const Gradient = ({ gradient, transitionDuration, sorting }) => {
+const Gradient = ({ gradient, transitionDuration, sorting, children }) => {
   let data = Object.keys(gradient.gradient).reduce((aggr, curr) => {
     aggr[`${curr}Color`] = gradient.gradient[curr].color
     aggr[`${curr}Stop`] = gradient.gradient[curr].stop
@@ -20,33 +21,33 @@ const Gradient = ({ gradient, transitionDuration, sorting }) => {
 
   if (data.angle % 360 <= 0 && !sorting) {
     return (
-      <Container>
-        <div
-          style={{
-            backgroundImage: generateGradientFromData(data),
-            height: '100%',
-            width: '100%'
-          }}
-        />
-      </Container>
+      <GradientContainer
+        style={{
+          backgroundImage: generateGradientFromData(data),
+          height: '100%',
+          width: '100%'
+        }}
+      >
+        {children}
+      </GradientContainer>
     )
   } else {
     return (
-      <Container>
-        <Animate data={data} duration={transitionDuration}>
-          {data => {
-            return (
-              <div
-                style={{
-                  backgroundImage: generateGradientFromData(data),
-                  height: '100%',
-                  width: '100%'
-                }}
-              />
-            )
-          }}
-        </Animate>
-      </Container>
+      <Animate data={data} duration={transitionDuration}>
+        {data => {
+          return (
+            <GradientContainer
+              style={{
+                backgroundImage: generateGradientFromData(data),
+                height: '100%',
+                width: '100%'
+              }}
+            >
+              {children}
+            </GradientContainer>
+          )
+        }}
+      </Animate>
     )
   }
 }
