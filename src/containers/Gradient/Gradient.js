@@ -19,37 +19,55 @@ const Gradient = ({ gradient, transitionDuration, sorting, children }) => {
   }, {})
   data.angle = gradient.angle
 
-  if (data.angle % 360 <= 0 && !sorting) {
-    return (
-      <GradientContainer
-        style={{
-          backgroundImage: generateGradientFromData(data),
-          height: '100%',
-          width: '100%'
-        }}
-      >
-        {children}
-      </GradientContainer>
-    )
-  } else {
-    return (
-      <Animate data={data} duration={transitionDuration}>
-        {data => {
-          return (
-            <GradientContainer
-              style={{
-                backgroundImage: generateGradientFromData(data),
-                height: '100%',
-                width: '100%'
-              }}
-            >
-              {children}
-            </GradientContainer>
-          )
-        }}
-      </Animate>
-    )
-  }
+  return (
+    <Animate data={data} duration={transitionDuration}>
+      {data => {
+        return (
+          <GradientContainer
+            style={{
+              backgroundImage: generateGradientFromData(data),
+              height: '100%',
+              width: '100%'
+            }}
+          >
+            {children}
+          </GradientContainer>
+        )
+      }}
+    </Animate>
+  )
 }
+
+// if (data.angle % 360 <= 0 && !sorting) {
+//     return (
+//       <GradientContainer
+//         style={{
+//           backgroundImage: generateGradientFromData(data),
+//           height: '100%',
+//           width: '100%'
+//         }}
+//       >
+//         {children}
+//       </GradientContainer>
+//     )
+//   } else {
+//     return (
+//       <Animate data={data} duration={transitionDuration}>
+//         {data => {
+//           return (
+//             <GradientContainer
+//               style={{
+//                 backgroundImage: generateGradientFromData(data),
+//                 height: '100%',
+//                 width: '100%'
+//               }}
+//             >
+//               {children}
+//             </GradientContainer>
+//           )
+//         }}
+//       </Animate>
+//     )
+//   }
 
 export default connect(state => ({ sorting: state.swatch.sorting }))(Gradient)

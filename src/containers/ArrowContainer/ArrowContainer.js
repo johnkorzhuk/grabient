@@ -51,6 +51,7 @@ const TextValue = styled.input`
   border: none;
   background: none;
   display: block;
+  z-index: 40;
 
   &::-webkit-inner-spin-button,
   ::-webkit-outer-spin-button {
@@ -82,6 +83,7 @@ class ArrowContainer extends Component {
   arrowClickedContainerOffset = -145
 
   _handleMouseLeave = () => {
+    console.log('_handleMouseLeave')
     this.updateAngle()
     this.setState(() => ({
       hovered: false,
@@ -91,21 +93,26 @@ class ArrowContainer extends Component {
   }
 
   _handleMouseDown = e => {
+    console.log('_handleMouseDown')
     if (this.state.hovered) {
       this.setState(() => ({ arrowClicked: true, updatingText: false }))
     }
   }
 
   _handleMouseUp = () => {
+    console.log('_handleMouseUp')
     this.updateAngle()
     if (this.state.hovered) {
       this.setState(() => ({ updatingText: true }))
     }
 
-    if (this.input) this.input.focus()
+    if (this.input) {
+      this.input.focus()
+    }
   }
 
   _handleMouseMove = e => {
+    console.log('_handleMouseMove')
     const { arrowClicked, updatingText } = this.state
     if (arrowClicked && !updatingText) {
       const angle = this.checkCommonAngles(this.getAngle(e.offsetX, e.offsetY))
@@ -116,6 +123,7 @@ class ArrowContainer extends Component {
   }
 
   _handleArrowClick = () => {
+    console.log('_handleArrowClick')
     this.setState(() => ({ hovered: true, arrowClicked: true }))
   }
 
@@ -145,7 +153,6 @@ class ArrowContainer extends Component {
         angle: ''
       })
     } else {
-      // console.log(angle)
       this.setState({
         angle: this._handleInputChange.lastValid || this.props.angle
       })
@@ -153,9 +160,12 @@ class ArrowContainer extends Component {
   }
 
   updateAngle () {
-    const { updateGradientAngle, id, angle } = this.props
-    const newAngle = this.state.angle || angle
-    updateGradientAngle(id, newAngle)
+    const { angle, hovered } = this.state
+    const { updateGradientAngle, id } = this.props
+    if (hovered) {
+      const newAngle = isNaN(angle) ? this.props.angle : angle
+      updateGradientAngle(id, newAngle)
+    }
   }
 
   checkCommonAngles (angle) {
@@ -265,6 +275,7 @@ class ArrowContainer extends Component {
             >
               <Deg>°</Deg>
               <TextValue
+                onFocus={e => e.target.select()}
                 onKeyDown={this._handleKeyEnter}
                 innerRef={node => {
                   this.input = node
