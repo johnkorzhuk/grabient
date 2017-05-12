@@ -9,43 +9,59 @@ const Arrow = styled(ArrowIcon)`
   transform-origin: right center;
   fill: black;
   fill-opacity: 0.6;
-  z-index: 10;
   cursor: pointer;
 `
 
-const AngleArrow = ({ angle, styles, translateX, transitionDuration }) => {
-  if (angle % 360 <= 0) {
-    return (
-      <Arrow
-        style={{
-          transform: `rotate(${angle + 90}deg) translateX(${translateX}px)`,
-          ...styles
-        }}
-      />
-    )
-  } else {
-    return (
-      <Animate
-        default={{
-          rotate: angle + 90
-        }}
-        data={{
-          rotate: angle + 90
-        }}
-        duration={transitionDuration}
-      >
-        {data => (
-          <Arrow
-            angle={angle}
-            style={{
-              transform: `rotate(${data.rotate}deg) translateX(${translateX}px)`,
-              ...styles
-            }}
-          />
-        )}
-      </Animate>
-    )
-  }
+const AngleArrow = ({
+  angle,
+  styles,
+  translateX,
+  transitionDuration,
+  clicked,
+  onClick
+}) => {
+  return (
+    <Arrow
+      onClick={onClick}
+      style={{
+        transform: `rotate(${angle + 90}deg) translateX(${translateX}px)`,
+        zIndex: clicked ? 5 : 15,
+        ...styles
+      }}
+    />
+  )
 }
 
 export default AngleArrow
+// if (angle % 360 <= 0) {
+//     return (
+//       <Arrow
+//         style={{
+//           transform: `rotate(${angle + 90}deg) translateX(${translateX}px)`,
+//           ...styles
+//         }}
+//       />
+//     )
+//   } else {
+//     return (
+//       <Animate
+//         default={{
+//           rotate: angle + 90
+//         }}
+//         data={{
+//           rotate: angle + 90
+//         }}
+//         duration={transitionDuration}
+//       >
+//         {data => (
+//           <Arrow
+//             angle={angle}
+//             style={{
+//               transform: `rotate(${data.rotate}deg) translateX(${translateX}px)`,
+//               ...styles
+//             }}
+//           />
+//         )}
+//       </Animate>
+//     )
+//   }
