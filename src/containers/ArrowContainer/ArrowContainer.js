@@ -79,11 +79,7 @@ class ArrowContainer extends Component {
     updatingText: false
   }
 
-  arrowClickedContainerWidth = 400
-  arrowClickedContainerOffset = -145
-
   _handleMouseLeave = () => {
-    console.log('_handleMouseLeave')
     this.updateAngle()
     this.setState(() => ({
       hovered: false,
@@ -93,14 +89,12 @@ class ArrowContainer extends Component {
   }
 
   _handleMouseDown = e => {
-    console.log('_handleMouseDown')
     if (this.state.hovered) {
       this.setState(() => ({ arrowClicked: true, updatingText: false }))
     }
   }
 
   _handleMouseUp = () => {
-    console.log('_handleMouseUp')
     this.updateAngle()
     if (this.state.hovered) {
       this.setState(() => ({ updatingText: true }))
@@ -112,7 +106,6 @@ class ArrowContainer extends Component {
   }
 
   _handleMouseMove = e => {
-    console.log('_handleMouseMove')
     const { arrowClicked, updatingText } = this.state
     if (arrowClicked && !updatingText) {
       const angle = this.checkCommonAngles(this.getAngle(e.offsetX, e.offsetY))
@@ -123,7 +116,6 @@ class ArrowContainer extends Component {
   }
 
   _handleArrowClick = () => {
-    console.log('_handleArrowClick')
     this.setState(() => ({ hovered: true, arrowClicked: true }))
   }
 
@@ -181,17 +173,16 @@ class ArrowContainer extends Component {
     return angle
   }
 
-  getAngle (pageX, pageY) {
+  getAngle (offsetX, offsetY) {
     if (!this.getAngle.boxCenter) {
       this.getAngle.boxCenter = this.getBoxCenter()
     }
     let angle =
       Math.atan2(
-        pageX - this.getAngle.boxCenter[0],
-        -(pageY - this.getAngle.boxCenter[1])
+        offsetX - this.getAngle.boxCenter[0],
+        -(offsetY - this.getAngle.boxCenter[1])
       ) *
       (180 / Math.PI)
-
     if (angle < 0) angle += 360
     return Math.round(angle)
   }
@@ -232,18 +223,10 @@ class ArrowContainer extends Component {
           <AreaContainer
             onMouseLeave={this._handleMouseLeave}
             style={{
-              width: arrowClicked
-                ? this.arrowClickedContainerWidth
-                : data.containerWidth,
-              height: arrowClicked
-                ? this.arrowClickedContainerWidth
-                : data.containerWidth,
-              bottom: arrowClicked
-                ? this.arrowClickedContainerOffset
-                : data.containerOffset,
-              left: arrowClicked
-                ? this.arrowClickedContainerOffset
-                : data.containerOffset
+              width: arrowClicked ? 400 : data.containerWidth,
+              height: arrowClicked ? 400 : data.containerWidth,
+              bottom: arrowClicked ? -145 : data.containerOffset,
+              left: arrowClicked ? -145 : data.containerOffset
             }}
           >
             <Container
