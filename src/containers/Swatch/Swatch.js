@@ -11,13 +11,20 @@ import {
 import { toggleSorting } from './../../store/swatch/actions'
 
 const SwatchContainer = styled.div`
+  height: 50px;
+  width: 100%;
+  margin-top: 20px;
+  padding-right: 40px;
   display: flex;
-  flex: 1;
-  height: 100%;
+  z-index: 40;
+  justify-content: flex-end;
 `
 
 const SwatchItem = styled.div`
-  flex: 1;
+  height: 25px;
+  width: 25px;
+  border-radius: 50%;
+  margin-left: 10px;
 `
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
@@ -50,7 +57,6 @@ const SortableList = SortableContainer(
                   key={item.key}
                   sorting={sorting}
                   index={index}
-                  height={height}
                   style={{
                     // backgroundColor: item.state.color,
                     backgroundColor: sorting ? items[index] : item.state.color,
@@ -114,6 +120,7 @@ class Swatch extends Component {
         onSortStart={this._onSortStart}
         onSortEnd={this._onSortEnd}
         sorting={sorting}
+        width={25}
         lockToContainerEdges
       />
     )

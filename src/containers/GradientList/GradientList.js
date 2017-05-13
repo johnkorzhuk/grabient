@@ -9,7 +9,7 @@ import {
   updateGradientAngle
 } from './../../store/gradients/actions'
 
-import { Gradient } from './../../components/index'
+import { GradientCard } from './../../components/index'
 import { Swatch, ArrowContainer } from './../index'
 
 const TRANSITION_DURATION = 400
@@ -32,7 +32,16 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
   <Container>
     {Object.keys(gradients).map(gradientKey => {
       const gradient = gradients[gradientKey]
-      return <Gradient gradient={gradient} width='33.33%' />
+      return (
+        <GradientCard gradient={gradient} width='33.33%'>
+          <Swatch
+            id={gradientKey}
+            updateColorStop={updateColorStop}
+            transitionDuration={TRANSITION_DURATION}
+            colors={getColors(gradient)}
+          />
+        </GradientCard>
+      )
     })}
   </Container>
 )
