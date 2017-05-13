@@ -11,7 +11,7 @@ const Z_INDEXES = {
   AreaContainer: 1,
   Container: 13,
   TextValue: 40,
-  AngleArrow: [5, 15]
+  AngleArrow: [1, 15]
 }
 
 const AreaContainer = styled.div`
@@ -37,7 +37,7 @@ const AngleRef = styled.div`
 `
 
 const AngleBox = styled.div`
-  filter: ${({ hovered }) => `blur(${hovered ? '1px' : '3px'})`};
+  filter: ${({ active }) => `blur(${active ? '1px' : '3px'})`};
   position: absolute;
   border-radius: 50%;
 `
@@ -76,36 +76,30 @@ const Deg = styled.span`
 
 class ArrowContainer extends Component {
   state = {
-    hovered: false,
+    active: false,
     cursorUpdatingAngle: false,
     updatingText: false,
     angle: this.props.angle
   }
 
+  shouldComponentUpdate (nextProps, nextState) {
+    if (this.state.angle !== nextState.angle) return true
+    if (this.state.cursorUpdatingAngle !== nextState.cursorUpdatingAngle) {
+      return true
+    }
+    if (this.state.active !== nextState.active) {
+      return true
+    }
+    return false
+  }
+
   _handleMouseLeave = () => {
     this.updateAngle()
     this.setState(() => ({
-      hovered: false,
+      active: false,
       cursorUpdatingAngle: false,
       updatingText: false
     }))
-  }
-
-  _handleMouseDown = e => {
-    if (this.state.hovered) {
-      this.setState(() => ({ cursorUpdatingAngle: true, updatingText: false }))
-    }
-  }
-
-  _handleMouseUp = () => {
-    this.updateAngle()
-    if (this.state.hovered) {
-      this.setState(() => ({ updatingText: true }))
-    }
-
-    if (this.input) {
-      this.input.focus()
-    }
   }
 
   _handleMouseMove = e => {
@@ -123,7 +117,7 @@ class ArrowContainer extends Component {
       const { angle } = this.props
       this.updateAngle()
       this.setState(prevState => ({
-        hovered: false,
+        active: false,
         cursorUpdatingAngle: false,
         angle: prevState.angle || angle
       }))
@@ -150,14 +144,38 @@ class ArrowContainer extends Component {
     }
   }
 
+  _handleInputClick = () => {
+    this.setState(() => ({ cursorUpdatingAngle: false }))
+  }
+
+  _handleClick = e => {
+    const { active, cursorUpdatingAngle } = this.state
+    if (active) {
+      if (cursorUpdatingAngle) {
+        this.updateAngle()
+        this.setState(() => ({
+          active: false,
+          cursorUpdatingAngle: false,
+          updatingText: false
+        }))
+      }
+    } else {
+      this.setState(() => ({ active: true }))
+
+      if (this.input) {
+        this.input.focus()
+      }
+    }
+  }
+
   _handleArrowClick = () => {
-    this.setState(() => ({ hovered: true, cursorUpdatingAngle: true }))
+    this.setState(() => ({ cursorUpdatingAngle: true }))
   }
 
   updateAngle () {
-    const { angle, hovered } = this.state
+    const { angle, active } = this.state
     const { updateGradientAngle, id } = this.props
-    if (hovered) {
+    if (active) {
       const newAngle = isNaN(angle) ? this.props.angle : angle
       updateGradientAngle(id, newAngle)
     }
@@ -201,24 +219,24 @@ class ArrowContainer extends Component {
     const length = angle.toString().length
 
     if (length === 2) return 20
-    else if (length === 3) return 27
+    else if (length === 3) return 30
     else return 11
   }
 
   render () {
     const { transitionDuration } = this.props
-    const { hovered, cursorUpdatingAngle, angle } = this.state
+    const { active, cursorUpdatingAngle, angle } = this.state
     return (
       <Animate
         data={{
-          containerWidth: hovered ? 110 : 30,
-          containerOffset: hovered ? 0 : 20,
-          boxOpacity: hovered ? 1 : 0.3,
-          boxWidth: hovered ? 75 : 30,
-          boxColor: hovered ? '#f1f1f1' : 'white',
-          arrowTranslateX: hovered ? -22 : 8,
-          arrowOpacity: hovered ? 1 : 0.6,
-          textOpacity: hovered ? 1 : 0
+          containerWidth: active ? 110 : 30,
+          containerOffset: active ? 0 : 20,
+          boxOpacity: active ? 1 : 0.3,
+          boxWidth: active ? 75 : 30,
+          boxColor: active ? '#f1f1f1' : 'white',
+          arrowTranslateX: active ? -22 : 8,
+          arrowOpacity: active ? 1 : 0.6,
+          textOpacity: active ? 1 : 0
         }}
         duration={transitionDuration}
       >
@@ -234,14 +252,14 @@ class ArrowContainer extends Component {
             }}
           >
             <Container
-              onMouseDown={this._handleMouseDown}
-              onMouseUp={this._handleMouseUp}
+              onClick={this._handleClick}
               onMouseMove={this._handleMouseMove}
               innerRef={node => {
                 this.container = node
               }}
               style={{
-                zIndex: Z_INDEXES.Container
+                zIndex: Z_INDEXES.Container,
+                cursor: active ? 'default' : 'pointer'
               }}
             />
             <AngleRef
@@ -250,7 +268,7 @@ class ArrowContainer extends Component {
               }}
             />
             <AngleBox
-              hovered={hovered}
+              active={active}
               style={{
                 backgroundColor: data.boxColor,
                 width: data.boxWidth,
@@ -260,12 +278,16 @@ class ArrowContainer extends Component {
             />
             <TextContainer
               style={{
-                opacity: hovered ? data.textOpacity : 0
+                opacity: active ? data.textOpacity : 0
               }}
             >
               <Deg>°</Deg>
               <TextValue
-                onFocus={e => e.target.select()}
+                onFocus={e =>
+                  setTimeout(function () {
+                    e.target.select()
+                  }, transitionDuration)}
+                onClick={this._handleInputClick}
                 onKeyDown={this._handleKeyEnter}
                 innerRef={node => {
                   this.input = node
@@ -288,9 +310,11 @@ class ArrowContainer extends Component {
                 position: 'absolute',
                 right: '50%',
                 fillOpacity: data.arrowOpacity,
-                zIndex: cursorUpdatingAngle
-                  ? Z_INDEXES.AngleArrow[0]
-                  : Z_INDEXES.AngleArrow[1]
+                zIndex: active
+                  ? cursorUpdatingAngle
+                      ? Z_INDEXES.AngleArrow[0]
+                      : Z_INDEXES.AngleArrow[1]
+                  : Z_INDEXES.AngleArrow[0]
               }}
               translateX={data.arrowTranslateX}
               transitionDuration={transitionDuration}
