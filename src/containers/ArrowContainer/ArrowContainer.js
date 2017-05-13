@@ -7,12 +7,18 @@ import { AngleArrow } from './../../components/index'
 
 import { updateGradientAngle } from './../../store/gradients/actions'
 
+const Z_INDEXES = {
+  AreaContainer: 1,
+  Container: 13,
+  TextValue: 40,
+  AngleArrow: [5, 15]
+}
+
 const AreaContainer = styled.div`
   position: absolute;
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1;
 `
 
 const Container = styled.div`
@@ -22,7 +28,6 @@ const Container = styled.div`
   align-items: center;
   height: 100%;
   width: 100%;
-  z-index: 13;
 `
 
 const AngleRef = styled.div`
@@ -51,7 +56,6 @@ const TextValue = styled.input`
   border: none;
   background: none;
   display: block;
-  z-index: 40;
 
   &::-webkit-inner-spin-button,
   ::-webkit-outer-spin-button {
@@ -67,30 +71,29 @@ const TextValue = styled.input`
 const Deg = styled.span`
   color: black;
   font-size: 1.4rem;
-  z-index: 1;
   display: block;
 `
 
 class ArrowContainer extends Component {
   state = {
     hovered: false,
-    arrowClicked: false,
-    angle: this.props.angle,
-    updatingText: false
+    cursorUpdatingAngle: false,
+    updatingText: false,
+    angle: this.props.angle
   }
 
   _handleMouseLeave = () => {
     this.updateAngle()
     this.setState(() => ({
       hovered: false,
-      arrowClicked: false,
+      cursorUpdatingAngle: false,
       updatingText: false
     }))
   }
 
   _handleMouseDown = e => {
     if (this.state.hovered) {
-      this.setState(() => ({ arrowClicked: true, updatingText: false }))
+      this.setState(() => ({ cursorUpdatingAngle: true, updatingText: false }))
     }
   }
 
@@ -106,17 +109,13 @@ class ArrowContainer extends Component {
   }
 
   _handleMouseMove = e => {
-    const { arrowClicked, updatingText } = this.state
-    if (arrowClicked && !updatingText) {
+    const { cursorUpdatingAngle, updatingText } = this.state
+    if (cursorUpdatingAngle && !updatingText) {
       const angle = this.checkCommonAngles(this.getAngle(e.offsetX, e.offsetY))
       this.setState({
         angle
       })
     }
-  }
-
-  _handleArrowClick = () => {
-    this.setState(() => ({ hovered: true, arrowClicked: true }))
   }
 
   _handleKeyEnter = e => {
@@ -125,7 +124,7 @@ class ArrowContainer extends Component {
       this.updateAngle()
       this.setState(prevState => ({
         hovered: false,
-        arrowClicked: false,
+        cursorUpdatingAngle: false,
         angle: prevState.angle || angle
       }))
     }
@@ -149,6 +148,10 @@ class ArrowContainer extends Component {
         angle: this._handleInputChange.lastValid || this.props.angle
       })
     }
+  }
+
+  _handleArrowClick = () => {
+    this.setState(() => ({ hovered: true, cursorUpdatingAngle: true }))
   }
 
   updateAngle () {
@@ -204,7 +207,7 @@ class ArrowContainer extends Component {
 
   render () {
     const { transitionDuration } = this.props
-    const { hovered, arrowClicked, angle } = this.state
+    const { hovered, cursorUpdatingAngle, angle } = this.state
     return (
       <Animate
         data={{
@@ -223,10 +226,11 @@ class ArrowContainer extends Component {
           <AreaContainer
             onMouseLeave={this._handleMouseLeave}
             style={{
-              width: arrowClicked ? 400 : data.containerWidth,
-              height: arrowClicked ? 400 : data.containerWidth,
-              bottom: arrowClicked ? -145 : data.containerOffset,
-              left: arrowClicked ? -145 : data.containerOffset
+              width: cursorUpdatingAngle ? 400 : data.containerWidth,
+              height: cursorUpdatingAngle ? 400 : data.containerWidth,
+              bottom: cursorUpdatingAngle ? -145 : data.containerOffset,
+              left: cursorUpdatingAngle ? -145 : data.containerOffset,
+              zIndex: Z_INDEXES.AreaContainer
             }}
           >
             <Container
@@ -235,6 +239,9 @@ class ArrowContainer extends Component {
               onMouseMove={this._handleMouseMove}
               innerRef={node => {
                 this.container = node
+              }}
+              style={{
+                zIndex: Z_INDEXES.Container
               }}
             />
             <AngleRef
@@ -267,7 +274,8 @@ class ArrowContainer extends Component {
                 value={angle}
                 onChange={this._handleInputChange}
                 style={{
-                  width: this.getWidth(angle)
+                  width: this.getWidth(angle),
+                  zIndex: Z_INDEXES.TextValue
                 }}
               />
 
@@ -275,12 +283,14 @@ class ArrowContainer extends Component {
 
             <AngleArrow
               onClick={this._handleArrowClick}
-              clicked={arrowClicked}
               angle={angle}
               styles={{
                 position: 'absolute',
                 right: '50%',
-                fillOpacity: data.arrowOpacity
+                fillOpacity: data.arrowOpacity,
+                zIndex: cursorUpdatingAngle
+                  ? Z_INDEXES.AngleArrow[0]
+                  : Z_INDEXES.AngleArrow[1]
               }}
               translateX={data.arrowTranslateX}
               transitionDuration={transitionDuration}

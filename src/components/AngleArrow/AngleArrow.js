@@ -1,7 +1,6 @@
 import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 import styled from 'styled-components'
 import ArrowIcon from 'react-icons/lib/md/keyboard-backspace'
-import { Animate } from 'react-move'
 
 const Arrow = styled(ArrowIcon)`
   width: 15px
@@ -17,7 +16,6 @@ const AngleArrow = ({
   styles,
   translateX,
   transitionDuration,
-  clicked,
   onClick
 }) => {
   return (
@@ -25,7 +23,6 @@ const AngleArrow = ({
       onClick={onClick}
       style={{
         transform: `rotate(${angle + 90}deg) translateX(${translateX}px)`,
-        zIndex: clicked ? 5 : 15,
         ...styles
       }}
     />
