@@ -4,7 +4,7 @@ const INITIAL_STATE = {
   gradientValues: {
     1: {
       id: 2,
-      angle: 10,
+      angle: 45,
       gradient: {
         stop1: {
           color: '#e0c3fc',
@@ -39,11 +39,11 @@ const INITIAL_STATE = {
       angle: 90,
       gradient: {
         stop1: {
-          color: '#fad0c4',
+          color: '#00253C',
           stop: 0
         },
         stop2: {
-          color: '#fee140',
+          color: '#086B3C',
           stop: 25
         },
         stop3: {

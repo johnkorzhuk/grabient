@@ -15,16 +15,6 @@ const App = ({ activeGradient, updateActiveId, activeGradientInverse }) => (
   </GradientDisplay>
 )
 
-// <button onClick={() => updateActiveId()}>
-//       New Color
-//     </button>
-//     <Gradient
-//       transitionDuration={TRANSITION_DURATION}
-//       gradient={activeGradient}
-//       styles={{ height: '700px', width: '700px', borderRadius: '50%' }}
-//     />
-//     <Swatch height={100} transitionDuration={TRANSITION_DURATION} />
-
 export default connect(
   state => ({
     activeGradient: getActiveGradient(state)
