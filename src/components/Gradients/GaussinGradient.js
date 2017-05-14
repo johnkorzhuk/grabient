@@ -5,7 +5,7 @@ const Svg = styled.svg`
   width: 100%;
   height: 100%;
   position: absolute;
-  padding: ${({ padding }) => `${padding} ${padding}  100px ${padding}`};
+  padding: ${({ padding }) => `40px ${padding} 80px  ${padding}`};
 `
 
 const GuassinGradient = ({ padding, opacity, lines, stops }) => {
@@ -42,7 +42,7 @@ const GuassinGradient = ({ padding, opacity, lines, stops }) => {
             filter='url(#filter-2)'
             width='100%'
             height='100%'
-            rx='10'
+            rx='15'
           />
         </g>
       </g>

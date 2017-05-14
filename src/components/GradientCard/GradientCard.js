@@ -5,13 +5,13 @@ import { angleToLines } from './../../utils/angle'
 
 import MainGradient from './../Gradients/MainGradient'
 import GaussinGradient from './../Gradients/GaussinGradient'
-import { AddColor } from './../index'
+import { AddColor, AnglePreview } from './../index'
 
 const padding = '50px'
 
 const Container = styled.div`
   width: 33.33%;
-  height: 500px;
+  height: 450px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -22,6 +22,18 @@ const Container = styled.div`
 
 const SwatchContainer = styled.div`
   position: relative;
+  margin-top: 30px;
+  width: 100%;
+  align-self: flex-end;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+`
+
+const IconContainer = styled.div`
+  height: 25px;
+  margin-left: 15px;
+  cursor: pointer;
 `
 
 const StopKeys = ({ gradient }) => {
@@ -48,17 +60,14 @@ const GradientCard = ({ gradient: { gradient, angle }, children }) => {
         opacity={0.7}
         lines={lines}
       />
+      <SwatchContainer>
+        <AnglePreview angle={angle} />
+        {children}
+        <IconContainer>
+          <AddColor />
+        </IconContainer>
+      </SwatchContainer>
 
-      {children}
-      <div
-        style={{
-          position: 'relative',
-          width: 15,
-          height: 15
-        }}
-      >
-        <AddColor />
-      </div>
     </Container>
   )
 }

@@ -9,6 +9,7 @@ const Svg = styled.svg`
 
 const MainGradient = ({ lines, stops }) => {
   const { x1, y1, x2, y2 } = lines
+  console.log(x1, y1, x2, y2)
   return (
     <Svg>
       <defs>
@@ -24,7 +25,7 @@ const MainGradient = ({ lines, stops }) => {
         fill-rule='evenodd'
       >
         <g id='Desktop-HD' fill='url(#linearGradient-1)'>
-          <rect id='Rectangle-Copy' width='100%' height='100%' rx='10' />
+          <rect id='Rectangle-Copy' width='100%' height='100%' rx='15' />
         </g>
       </g>
     </Svg>

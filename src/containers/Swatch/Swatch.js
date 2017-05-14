@@ -11,12 +11,7 @@ import {
 import { toggleSorting } from './../../store/swatch/actions'
 
 const SwatchContainer = styled.div`
-  height: 50px;
-  width: 100%;
-  margin-top: 20px;
-  padding-right: 40px;
   display: flex;
-  z-index: 40;
   justify-content: flex-end;
 `
 
@@ -25,6 +20,7 @@ const SwatchItem = styled.div`
   width: 25px;
   border-radius: 50%;
   margin-left: 10px;
+  cursor: pointer;
 `
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
