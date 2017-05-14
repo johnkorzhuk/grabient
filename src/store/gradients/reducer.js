@@ -73,6 +73,24 @@ const INITIAL_STATE = {
           stop: 100
         }
       }
+    },
+    5: {
+      id: 5,
+      angle: 270,
+      gradient: {
+        stop1: {
+          color: '#8ec5fc',
+          stop: 0
+        },
+        stop2: {
+          color: '#c3cfe2',
+          stop: 70
+        },
+        stop3: {
+          color: '#43e97b',
+          stop: 100
+        }
+      }
     }
   },
   active: 1

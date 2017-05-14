@@ -33,7 +33,7 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
     {Object.keys(gradients).map(gradientKey => {
       const gradient = gradients[gradientKey]
       return (
-        <GradientCard gradient={gradient} width='33.33%'>
+        <GradientCard gradient={gradient} width='33.33%' id={gradientKey}>
           <Swatch
             id={gradientKey}
             updateColorStop={updateColorStop}

@@ -2,7 +2,6 @@ import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 import { Animate } from 'react-move'
 
 const AddColor = ({ duration, hovered }) => {
-  console.log(hovered)
   return (
     <Animate
       data={{

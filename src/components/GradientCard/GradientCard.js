@@ -38,6 +38,7 @@ const SwatchContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  z-index: 10;
 `
 
 const AddColorContainer = styled.div`
@@ -61,18 +62,18 @@ class GradientCard extends Component {
   state = {
     hovered: {
       arrowPrev: false,
-      addColor: false
+      addColor: false,
+      main: false
     }
   }
 
-  _handleMouseEnter = el => {
+  _handleMouseEnter = (e, el) => {
     const newState = { ...this.state }
     newState.hovered[el] = true
-
     this.setState(newState)
   }
 
-  _handleMouseLeave = el => {
+  _handleMouseLeave = (e, el) => {
     const newState = { ...this.state }
     newState.hovered[el] = false
 
@@ -80,20 +81,37 @@ class GradientCard extends Component {
   }
 
   render () {
-    const { hovered: { arrowPrev, addColor } } = this.state
-    const { gradient: { gradient, angle }, children } = this.props
+    const { hovered: { arrowPrev, addColor, main } } = this.state
+    const { gradient: { gradient, angle }, children, id } = this.props
     const lines = angleToLines(angle)
     const Stops = StopKeys({ gradient })
     return (
-      <Container>
-        <MainGradient stops={Stops} lines={lines} />
+      <Container onMouseMove={e => e}>
 
-        <GaussinGradient stops={Stops} opacity={0.7} lines={lines} />
+        <MainGradient
+          duration={ANIMATION_DURATION}
+          stops={Stops}
+          lines={lines}
+          hovered={main}
+          id={id}
+          onMouseEnter={e => this._handleMouseEnter(e, 'main')}
+          onMouseLeave={e => this._handleMouseLeave(e, 'main')}
+        />
+
+        <GaussinGradient
+          innerRef={node => {
+            this.container = node
+          }}
+          stops={Stops}
+          opacity={0.7}
+          lines={lines}
+          id={id}
+        />
+
         <SwatchContainer>
-
           <ArrowContainer
-            onMouseEnter={() => this._handleMouseEnter('arrowPrev')}
-            onMouseLeave={() => this._handleMouseLeave('arrowPrev')}
+            onMouseEnter={e => this._handleMouseEnter(e, 'arrowPrev')}
+            onMouseLeave={e => this._handleMouseLeave(e, 'arrowPrev')}
           >
             <AnglePreview
               angle={angle}
@@ -105,14 +123,12 @@ class GradientCard extends Component {
           {children}
 
           <AddColorContainer
-            onMouseEnter={() => this._handleMouseEnter('addColor')}
-            onMouseLeave={() => this._handleMouseLeave('addColor')}
+            onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
+            onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
           >
             <AddColor duration={ANIMATION_DURATION} hovered={addColor} />
           </AddColorContainer>
-
         </SwatchContainer>
-
       </Container>
     )
   }

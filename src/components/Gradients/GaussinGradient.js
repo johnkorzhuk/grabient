@@ -8,13 +8,14 @@ const Svg = styled.svg`
   padding: 40px 50px 60px 50px
 `
 
-const GuassinGradient = ({ opacity, lines, stops }) => {
+const GuassinGradient = ({ opacity, lines, stops, id }) => {
   const { x1, y1, x2, y2 } = lines
+  const gradientId = `linearGradient-${id}`
 
   return (
     <Svg>
       <defs>
-        <linearGradient x1={x1} y1={y1} x2={x2} y2={y2} id='linearGradient-1'>
+        <linearGradient x1={x1} y1={y1} x2={x2} y2={y2} id={gradientId}>
           {stops}
         </linearGradient>
         <filter
@@ -36,7 +37,7 @@ const GuassinGradient = ({ opacity, lines, stops }) => {
         fill-rule='evenodd'
         opacity={opacity}
       >
-        <g id='Desktop-HD' fill='url(#linearGradient-1)'>
+        <g id='Desktop-HD' fill={`url(#${gradientId})`}>
           <rect
             id='Rectangle'
             filter='url(#filter-2)'
