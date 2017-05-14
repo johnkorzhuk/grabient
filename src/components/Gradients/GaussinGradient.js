@@ -5,14 +5,14 @@ const Svg = styled.svg`
   width: 100%;
   height: 100%;
   position: absolute;
-  padding: ${({ padding }) => `40px ${padding} 80px  ${padding}`};
+  padding: 40px 50px 60px 50px
 `
 
-const GuassinGradient = ({ padding, opacity, lines, stops }) => {
+const GuassinGradient = ({ opacity, lines, stops }) => {
   const { x1, y1, x2, y2 } = lines
 
   return (
-    <Svg padding={padding}>
+    <Svg>
       <defs>
         <linearGradient x1={x1} y1={y1} x2={x2} y2={y2} id='linearGradient-1'>
           {stops}

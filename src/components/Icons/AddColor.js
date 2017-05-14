@@ -1,6 +1,6 @@
 import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 
-const AddColor = ({ width, height = width }) => {
+const AddColor = () => {
   return (
     <svg
       width='25'

@@ -9,7 +9,6 @@ const Svg = styled.svg`
 
 const MainGradient = ({ lines, stops }) => {
   const { x1, y1, x2, y2 } = lines
-  console.log(x1, y1, x2, y2)
   return (
     <Svg>
       <defs>
