@@ -5,7 +5,7 @@ const Svg = styled.svg`
   width: 100%;
   height: 100%;
   position: absolute;
-  padding: 40px 50px 60px 50px
+  padding: 50px 50px 80px 50px
 `
 
 const GuassinGradient = ({ opacity, lines, stops, id }) => {

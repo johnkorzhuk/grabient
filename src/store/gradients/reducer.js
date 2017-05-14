@@ -34,28 +34,7 @@ const INITIAL_STATE = {
         }
       }
     },
-    3: {
-      id: 3,
-      angle: 90,
-      gradient: {
-        stop1: {
-          color: '#00253C',
-          stop: 0
-        },
-        stop2: {
-          color: '#086B3C',
-          stop: 25
-        },
-        stop3: {
-          color: '#8ec5fc',
-          stop: 50
-        },
-        stop4: {
-          color: '#000000',
-          stop: 100
-        }
-      }
-    },
+
     4: {
       id: 4,
       angle: 270,
@@ -74,8 +53,8 @@ const INITIAL_STATE = {
         }
       }
     },
-    5: {
-      id: 5,
+    3: {
+      id: 3,
       angle: 270,
       gradient: {
         stop1: {
@@ -88,6 +67,28 @@ const INITIAL_STATE = {
         },
         stop3: {
           color: '#43e97b',
+          stop: 100
+        }
+      }
+    },
+    5: {
+      id: 5,
+      angle: 0,
+      gradient: {
+        stop1: {
+          color: '#00253C',
+          stop: 0
+        },
+        stop2: {
+          color: '#086B3C',
+          stop: 25
+        },
+        stop3: {
+          color: '#8ec5fc',
+          stop: 50
+        },
+        stop4: {
+          color: '#000000',
           stop: 100
         }
       }

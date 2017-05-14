@@ -17,17 +17,23 @@ const Container = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 33.33px;
+  padding: 45px 33.33px;
   position: relative;
 `
 
-const ArrowContainer = styled.div`
+const AngleContainer = styled.div`
   position: absolute;
   left: 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   cursor: pointer;
+`
+
+const AngleText = styled.div`
+  font-size: 1.6rem;
+  color: #AFAFAF;
+  padding-left: 10px;
 `
 
 const SwatchContainer = styled.div`
@@ -109,7 +115,7 @@ class GradientCard extends Component {
         />
 
         <SwatchContainer>
-          <ArrowContainer
+          <AngleContainer
             onMouseEnter={e => this._handleMouseEnter(e, 'arrowPrev')}
             onMouseLeave={e => this._handleMouseLeave(e, 'arrowPrev')}
           >
@@ -118,7 +124,8 @@ class GradientCard extends Component {
               duration={ANIMATION_DURATION}
               hovered={arrowPrev}
             />
-          </ArrowContainer>
+            <AngleText>{angle}°</AngleText>
+          </AngleContainer>
 
           {children}
 
