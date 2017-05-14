@@ -40,7 +40,7 @@ const SwatchContainer = styled.div`
   justify-content: flex-end;
 `
 
-const IconContainer = styled.div`
+const AddColorContainer = styled.div`
   height: 25px;
   margin-left: 15px;
   cursor: pointer;
@@ -90,47 +90,26 @@ class GradientCard extends Component {
 
         <GaussinGradient stops={Stops} opacity={0.7} lines={lines} />
         <SwatchContainer>
-          <Animate
-            data={{
-              scale: arrowPrev ? 1.2 : 1
-            }}
-            duration={ANIMATION_DURATION}
+
+          <ArrowContainer
+            onMouseEnter={() => this._handleMouseEnter('arrowPrev')}
+            onMouseLeave={() => this._handleMouseLeave('arrowPrev')}
           >
-            {data => {
-              return (
-                <ArrowContainer
-                  onMouseEnter={() => this._handleMouseEnter('arrowPrev')}
-                  onMouseLeave={() => this._handleMouseLeave('arrowPrev')}
-                  style={{
-                    transform: `rotate(${angle}deg) scale(${data.scale})`
-                  }}
-                >
-                  <AnglePreview angle={angle} />
-                </ArrowContainer>
-              )
-            }}
-          </Animate>
+            <AnglePreview
+              angle={angle}
+              duration={ANIMATION_DURATION}
+              hovered={arrowPrev}
+            />
+          </ArrowContainer>
+
           {children}
-          <Animate
-            data={{
-              scale: addColor ? 1.2 : 1
-            }}
-            duration={ANIMATION_DURATION}
+
+          <AddColorContainer
+            onMouseEnter={() => this._handleMouseEnter('addColor')}
+            onMouseLeave={() => this._handleMouseLeave('addColor')}
           >
-            {data => {
-              return (
-                <IconContainer
-                  onMouseEnter={() => this._handleMouseEnter('addColor')}
-                  onMouseLeave={() => this._handleMouseLeave('addColor')}
-                  style={{
-                    transform: `scale(${data.scale})`
-                  }}
-                >
-                  <AddColor />
-                </IconContainer>
-              )
-            }}
-          </Animate>
+            <AddColor duration={ANIMATION_DURATION} hovered={addColor} />
+          </AddColorContainer>
 
         </SwatchContainer>
 
