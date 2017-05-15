@@ -248,7 +248,7 @@ class AngleWheel extends Component {
 
   render () {
     const { cursorUpdatingAngle, angle } = this.state
-    const { transitionDuration, editing } = this.props
+    const { transitionDuration, editing, id } = this.props
     return (
       <Animate
         data={{
@@ -259,6 +259,7 @@ class AngleWheel extends Component {
         {data => {
           return (
             <AreaContainer
+              id={`gradient-${id}`}
               style={{
                 opacity: data.opacity,
                 zIndex: editing ? 15 : 1

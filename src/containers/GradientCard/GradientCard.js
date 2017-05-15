@@ -13,6 +13,8 @@ import { AnglePreview } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
 import { AngleWheel } from './../index'
 
+import { generateLinearGradientFromSchema } from './../../utils/gradient'
+
 const ANIMATION_DURATION = 200
 
 const Container = styled.div`
@@ -113,7 +115,7 @@ class GradientCard extends Component {
     const lines = angleToLines(angle)
     const Stops = StopKeys({ gradient })
     return (
-      <Container onMouseMove={e => e}>
+      <Container>
 
         <MainGradient
           duration={ANIMATION_DURATION}

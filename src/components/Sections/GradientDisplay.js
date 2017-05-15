@@ -7,12 +7,14 @@ const Section = styled.section`
   background-color: #f1f1f1;
 `
 
-const GradientDisplay = ({ children }) => (
-  <Section>
-    <Container>
-      {children}
-    </Container>
-  </Section>
-)
+const GradientDisplay = ({ children }) => {
+  return (
+    <Section>
+      <Container>
+        {children}
+      </Container>
+    </Section>
+  )
+}
 
 export default GradientDisplay

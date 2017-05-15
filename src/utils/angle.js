@@ -25,17 +25,18 @@ export const angleToLines = direction => {
   if (endPoint.y <= 0 || Math.abs(endPoint.y) <= eps) endPoint.y = 0
 
   // orig. seems to be wrong
-  return {
-    x1: convertToPerc(startPoint.x),
-    y1: convertToPerc(startPoint.y),
-    x2: convertToPerc(endPoint.x),
-    y2: convertToPerc(endPoint.y)
-  }
 
   // return {
-  //   x1: convertToPerc(endPoint.y),
-  //   y1: convertToPerc(endPoint.x),
-  //   x2: convertToPerc(startPoint.y),
-  //   y2: convertToPerc(startPoint.x)
+  //   x1: convertToPerc(startPoint.x),
+  //   y1: convertToPerc(startPoint.y),
+  //   x2: convertToPerc(endPoint.x),
+  //   y2: convertToPerc(endPoint.y)
   // }
+
+  return {
+    x1: convertToPerc(endPoint.y),
+    y1: convertToPerc(endPoint.x),
+    x2: convertToPerc(startPoint.y),
+    y2: convertToPerc(startPoint.x)
+  }
 }
