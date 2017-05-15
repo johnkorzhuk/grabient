@@ -1,24 +1,32 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
+import Component from 'inferno-component'
 import { connect } from 'inferno-redux'
 
 import { GradientDisplay } from './components/index'
 import { GradientList } from './containers/index'
 
-import { updateActiveId } from './store/gradients/actions'
-import { getActiveGradient } from './store/gradients/selectors'
+import { toggleEditing } from './store/gradients/actions'
 
-const App = ({ activeGradient, updateActiveId, activeGradientInverse }) => (
-  <GradientDisplay>
-    <GradientList />
-
-  </GradientDisplay>
-)
-
-export default connect(
-  state => ({
-    activeGradient: getActiveGradient(state)
-  }),
-  {
-    updateActiveId
+class App extends Component {
+  componentDidMount () {
+    document.addEventListener('keydown', this._handleKeyDown)
   }
-)(App)
+
+  _handleKeyDown = e => {
+    if (e.which === 27) {
+      this.props.toggleEditing(null)
+    }
+  }
+
+  render () {
+    return (
+      <GradientDisplay>
+        <GradientList />
+
+      </GradientDisplay>
+    )
+  }
+}
+
+export default connect(undefined, {
+  toggleEditing
+})(App)

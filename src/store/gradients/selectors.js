@@ -12,7 +12,3 @@ export const getColors = createSelector([getActiveGradient], activeGradient => {
   const { gradient } = activeGradient
   return Object.keys(gradient).map(stop => gradient[stop].color)
 })
-
-export const getGradientEditingState = (state, id) => {
-  return getGradients(state)[id].editing
-}

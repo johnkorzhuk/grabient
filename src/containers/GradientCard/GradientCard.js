@@ -80,9 +80,9 @@ class GradientCard extends Component {
   }
 
   componentWillReceiveProps (nextProps) {
-    const { gradient } = this.props
-    if (gradient.editing !== nextProps.gradient.editing) {
-      this.setState({ wasEditing: !nextProps.gradient.editing })
+    const { editing } = this.props
+    if (editing !== nextProps.editing) {
+      this.setState({ wasEditing: !nextProps.editing })
     }
   }
 
@@ -175,4 +175,9 @@ class GradientCard extends Component {
   }
 }
 
-export default connect(undefined, { toggleEditing })(GradientCard)
+export default connect(
+  ({ gradients: { editing } }, { id }) => ({
+    editing: id == editing
+  }),
+  { toggleEditing }
+)(GradientCard)

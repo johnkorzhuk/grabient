@@ -185,6 +185,13 @@ class AngleWheel extends Component {
     this.setState(() => ({ cursorUpdatingAngle: true }))
   }
 
+  _handleClose = () => {
+    this.setState({
+      angle: this.props.angle
+    })
+    this.toggleEditing()
+  }
+
   toggleEditing () {
     const { id, toggleEditing } = this.props
     toggleEditing(id)
@@ -241,7 +248,7 @@ class AngleWheel extends Component {
 
   render () {
     const { cursorUpdatingAngle, angle } = this.state
-    const { transitionDuration, editing, toggleEditing, id } = this.props
+    const { transitionDuration, editing } = this.props
     return (
       <Animate
         data={{
@@ -273,7 +280,7 @@ class AngleWheel extends Component {
               </Container>
 
               <Close
-                onClick={() => toggleEditing(id)}
+                onClick={this._handleClose}
                 color='white'
                 size={25}
                 style={{
@@ -323,7 +330,7 @@ class AngleWheel extends Component {
 }
 
 export default connect(
-  (state, { id }) => ({ editing: getGradientEditingState(state, id) }),
+  ({ gradients: { editing } }, { id }) => ({ editing: id == editing }),
   {
     updateGradientAngle,
     toggleEditing
