@@ -87,9 +87,11 @@ class GradientCard extends Component {
   }
 
   _handleMouseEnter = (e, el) => {
-    const newState = { ...this.state }
-    newState.hovered[el] = true
-    this.setState(newState)
+    if (!this.state.wasEditing) {
+      const newState = { ...this.state }
+      newState.hovered[el] = true
+      this.setState(newState)
+    }
   }
 
   _handleMouseLeave = (e, el) => {

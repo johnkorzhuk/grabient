@@ -54,11 +54,7 @@ const MainGradient = ({
               </g>
 
               <use
-                fill-opacity={
-                  hovered
-                    ? wasEditing ? 0.5 : data.opacity
-                    : wasEditing ? 0.5 : data.opacity
-                }
+                fill-opacity={wasEditing ? 0 : data.opacity}
                 fill='#000'
                 xlink:href='#a'
                 fill-rule='evenodd'
