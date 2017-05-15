@@ -1,9 +1,15 @@
-import { UPDATE_ANGLE, UPDATE_COLOR_STOP, UPDATE_ACTIVE_ID } from './actions'
+import {
+  UPDATE_ANGLE,
+  UPDATE_COLOR_STOP,
+  UPDATE_ACTIVE_ID,
+  TOGGLE_EDITING
+} from './actions'
 
 const INITIAL_STATE = {
   gradientValues: {
     1: {
       id: 2,
+      editing: false,
       angle: 60,
       gradient: {
         stop1: {
@@ -22,6 +28,7 @@ const INITIAL_STATE = {
     },
     2: {
       id: 1,
+      editing: false,
       angle: 0,
       gradient: {
         stop1: {
@@ -37,6 +44,7 @@ const INITIAL_STATE = {
 
     4: {
       id: 4,
+      editing: false,
       angle: 270,
       gradient: {
         stop1: {
@@ -55,6 +63,7 @@ const INITIAL_STATE = {
     },
     3: {
       id: 3,
+      editing: false,
       angle: 270,
       gradient: {
         stop1: {
@@ -73,6 +82,7 @@ const INITIAL_STATE = {
     },
     5: {
       id: 5,
+      editing: false,
       angle: 220,
       gradient: {
         stop1: {
@@ -128,6 +138,18 @@ export default (state = INITIAL_STATE, action) => {
           [action.payload.id]: {
             ...state.gradientValues[action.payload.id],
             angle: action.payload.angle
+          }
+        }
+      }
+
+    case TOGGLE_EDITING:
+      return {
+        ...state,
+        gradientValues: {
+          ...state.gradientValues,
+          [action.payload.id]: {
+            ...state.gradientValues[action.payload.id],
+            editing: !state.gradientValues[action.payload.id].editing
           }
         }
       }

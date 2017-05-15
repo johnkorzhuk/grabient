@@ -1,34 +1,33 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
-// import { Animate } from 'react-move'
+import { Animate } from 'react-move'
 import { connect } from 'inferno-redux'
+import Wheelpng from './../../wheel.png'
 
-import { Arrow } from './../../components/Icons/index'
+import { Arrow, Close } from './../../components/Icons/index'
 
-import { updateGradientAngle } from './../../store/gradients/actions'
-
-import Wheel from './Wheel'
-// import ArrowContainer from './ArrowContainer_old'
-
-const Z_INDEXES = {
-  AreaContainer: 1,
-  Container: 13,
-  TextValue: 40,
-  AngleArrow: [1, 15]
-}
+import {
+  updateGradientAngle,
+  toggleEditing
+} from './../../store/gradients/actions'
+import { getGradientEditingState } from './../../store/gradients/selectors'
 
 const AreaContainer = styled.div`
-  padding: 45px 0;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   position: absolute;
   width: calc(100% - 68px);
   top: 45px;
   bottom: 87px;
   left: 34px;
   background-color: #000;
+  opacity: 0.5;
   border-radius: 15px;
+  background-image: url(${Wheelpng});
+  background-size: 65%;
+  background-repeat: no-repeat;
+  background-position: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `
 
 const Container = styled.div`
@@ -46,12 +45,6 @@ const AngleRef = styled.div`
   width: 2px;
 `
 
-const AngleBox = styled.div`
-  filter: ${({ active }) => `blur(${active ? '1px' : '3px'})`};
-  position: absolute;
-  border-radius: 50%;
-`
-
 const TextContainer = styled.div`
   position: absolute;
   display: flex;
@@ -59,8 +52,8 @@ const TextContainer = styled.div`
 `
 
 const TextValue = styled.input`
-  color: black;
-  font-size: 1.4rem;
+  color: white;
+  font-size: 1.8rem;
   cursor: default;
   text-align: center;
   border: none;
@@ -79,22 +72,27 @@ const TextValue = styled.input`
 `
 
 const Deg = styled.span`
-  color: black;
-  font-size: 1.4rem;
+  color: white;
+  font-size: 1.8rem;
   display: block;
 `
 
 const ArrowContainer = styled.div`
   position: absolute;
-  transform: translateY(-118px);
+  cursor: pointer;
 `
 
 class AngleWheel extends Component {
   state = {
-    active: false,
-    cursorUpdatingAngle: false,
+    cursorUpdatingAngle: this.props.editing,
     updatingText: false,
     angle: this.props.angle
+  }
+
+  componentWillReceiveProps (nextProps) {
+    if (nextProps.editing) {
+      setTimeout(() => this.input.focus(), 250)
+    }
   }
 
   shouldComponentUpdate (nextProps, nextState) {
@@ -102,19 +100,20 @@ class AngleWheel extends Component {
     if (this.state.cursorUpdatingAngle !== nextState.cursorUpdatingAngle) {
       return true
     }
-    if (this.state.active !== nextState.active) {
+    if (this.props.editing !== nextProps.editing) {
       return true
     }
     return false
   }
 
   _handleMouseLeave = () => {
-    // this.updateAngle()
-    // this.setState(() => ({
-    //   active: false,
-    //   cursorUpdatingAngle: false,
-    //   updatingText: false
-    // }))
+    const { toggleEditing, id } = this.props
+    this.updateAngle()
+    toggleEditing(id)
+    this.setState(() => ({
+      cursorUpdatingAngle: false,
+      updatingText: false
+    }))
   }
 
   _handleMouseMove = e => {
@@ -131,8 +130,8 @@ class AngleWheel extends Component {
     if (e.which === 13) {
       const { angle } = this.props
       this.updateAngle()
+      this.toggleEditing()
       this.setState(prevState => ({
-        active: false,
         cursorUpdatingAngle: false,
         angle: prevState.angle || angle
       }))
@@ -164,22 +163,21 @@ class AngleWheel extends Component {
   }
 
   _handleClick = e => {
-    const { active, cursorUpdatingAngle } = this.state
-    if (active) {
-      if (cursorUpdatingAngle) {
-        this.updateAngle()
-        this.setState(() => ({
-          active: false,
-          cursorUpdatingAngle: false,
-          updatingText: false
-        }))
-      }
-    } else {
-      this.setState(() => ({ active: true }))
+    const { cursorUpdatingAngle } = this.state
 
-      if (this.input) {
-        this.input.focus()
-      }
+    if (cursorUpdatingAngle) {
+      this.updateAngle()
+      this.toggleEditing()
+      this.setState(() => ({
+        cursorUpdatingAngle: false,
+        updatingText: false
+      }))
+    } else {
+      const angle = this.getAngle(e.offsetX, e.offsetY)
+
+      this.setState({
+        angle
+      })
     }
   }
 
@@ -187,13 +185,16 @@ class AngleWheel extends Component {
     this.setState(() => ({ cursorUpdatingAngle: true }))
   }
 
+  toggleEditing () {
+    const { id, toggleEditing } = this.props
+    toggleEditing(id)
+  }
+
   updateAngle () {
-    const { angle, active } = this.state
+    const { angle } = this.state
     const { updateGradientAngle, id } = this.props
-    if (active) {
-      const newAngle = isNaN(angle) ? this.props.angle : angle
-      updateGradientAngle(id, newAngle)
-    }
+    const newAngle = isNaN(angle) ? this.props.angle : angle
+    updateGradientAngle(id, newAngle)
   }
 
   checkCommonAngles (angle) {
@@ -233,30 +234,98 @@ class AngleWheel extends Component {
   getWidth (angle) {
     const length = angle.toString().length
 
-    if (length === 2) return 20
-    else if (length === 3) return 30
-    else return 11
+    if (length === 2) return 25
+    else if (length === 3) return 35
+    else return 15
   }
 
   render () {
-    const { active, cursorUpdatingAngle, angle } = this.state
+    const { cursorUpdatingAngle, angle } = this.state
+    const { transitionDuration, editing, toggleEditing, id } = this.props
     return (
-      <AreaContainer
-        style={{
-          zIndex: active ? 30 : 0,
-          opacity: active ? 0.5 : 0
+      <Animate
+        data={{
+          opacity: editing ? 0.5 : 0
         }}
+        duration={transitionDuration}
       >
-        <Wheel />
-        <AngleRef
-          innerRef={node => {
-            this.box = node
-          }}
-        />
-        <ArrowContainer><Arrow /></ArrowContainer>
-      </AreaContainer>
+        {data => {
+          return (
+            <AreaContainer
+              style={{
+                opacity: data.opacity,
+                zIndex: editing ? 15 : 1
+              }}
+            >
+              <Container
+                onClick={this._handleClick}
+                onMouseMove={this._handleMouseMove}
+                style={{
+                  zIndex: cursorUpdatingAngle ? 17 : 15
+                }}
+              >
+                <AngleRef
+                  innerRef={node => {
+                    this.box = node
+                  }}
+                />
+
+              </Container>
+
+              <Close
+                onClick={() => toggleEditing(id)}
+                color='white'
+                size={25}
+                style={{
+                  position: 'absolute',
+                  top: 15,
+                  right: 15,
+                  cursor: 'pointer',
+                  zIndex: cursorUpdatingAngle ? 15 : 17
+                }}
+              />
+
+              <TextContainer>
+                <TextValue
+                  autoFocus
+                  innerRef={node => {
+                    this.input = node
+                  }}
+                  onFocus={e => e.target.select()}
+                  onClick={this._handleInputClick}
+                  onKeyDown={this._handleKeyEnter}
+                  type='number'
+                  value={angle}
+                  onChange={this._handleInputChange}
+                  style={{
+                    width: this.getWidth(angle),
+                    zIndex: cursorUpdatingAngle ? 15 : 17
+                  }}
+                />
+                <Deg>°</Deg>
+              </TextContainer>
+
+              <ArrowContainer
+                onClick={this._handleArrowClick}
+                style={{
+                  transform: `rotate(${angle}deg) translateY(-118px)`,
+                  zIndex: cursorUpdatingAngle ? 14 : 16
+                }}
+              >
+                <Arrow />
+              </ArrowContainer>
+            </AreaContainer>
+          )
+        }}
+      </Animate>
     )
   }
 }
 
-export default connect(undefined, { updateGradientAngle })(AngleWheel)
+export default connect(
+  (state, { id }) => ({ editing: getGradientEditingState(state, id) }),
+  {
+    updateGradientAngle,
+    toggleEditing
+  }
+)(AngleWheel)

@@ -1,14 +1,17 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
+import { connect } from 'inferno-redux'
 // import { Animate } from 'react-move'
 
 import { angleToLines } from './../../utils/angle'
 
-import MainGradient from './../Gradients/MainGradient'
-import GaussinGradient from './../Gradients/GaussinGradient'
-import { AnglePreview } from './../index'
-import { AddColor } from './../Icons/index'
-import { AngleWheel } from './../../containers/index'
+import { toggleEditing } from './../../store/gradients/actions'
+
+import MainGradient from './../../components/Gradients/MainGradient'
+import GaussinGradient from './../../components/Gradients/GaussinGradient'
+import { AnglePreview } from './../../components/index'
+import { AddColor } from './../../components/Icons/index'
+import { AngleWheel } from './../index'
 
 const ANIMATION_DURATION = 200
 
@@ -72,6 +75,14 @@ class GradientCard extends Component {
       arrowPrev: false,
       addColor: false,
       main: false
+    },
+    wasEditing: false
+  }
+
+  componentWillReceiveProps (nextProps) {
+    const { gradient } = this.props
+    if (gradient.editing !== nextProps.gradient.editing) {
+      this.setState({ wasEditing: !nextProps.gradient.editing })
     }
   }
 
@@ -84,13 +95,19 @@ class GradientCard extends Component {
   _handleMouseLeave = (e, el) => {
     const newState = { ...this.state }
     newState.hovered[el] = false
+    newState.wasEditing = false
 
     this.setState(newState)
   }
 
   render () {
-    const { hovered: { arrowPrev, addColor, main } } = this.state
-    const { gradient: { gradient, angle }, children, id } = this.props
+    const { hovered: { arrowPrev, addColor, main }, wasEditing } = this.state
+    const {
+      gradient: { gradient, angle },
+      children,
+      id,
+      toggleEditing
+    } = this.props
     const lines = angleToLines(angle)
     const Stops = StopKeys({ gradient })
     return (
@@ -102,12 +119,17 @@ class GradientCard extends Component {
           lines={lines}
           hovered={main}
           id={id}
+          wasEditing={wasEditing}
           angle={angle}
           onMouseEnter={e => this._handleMouseEnter(e, 'main')}
           onMouseLeave={e => this._handleMouseLeave(e, 'main')}
         />
 
-        <AngleWheel angle={angle} id={id} />
+        <AngleWheel
+          angle={angle}
+          id={id}
+          transitionDuration={ANIMATION_DURATION}
+        />
 
         <GaussinGradient
           innerRef={node => {
@@ -121,6 +143,7 @@ class GradientCard extends Component {
 
         <SwatchContainer>
           <AngleContainer
+            onClick={() => toggleEditing(id)}
             onMouseEnter={e => this._handleMouseEnter(e, 'arrowPrev')}
             onMouseLeave={e => this._handleMouseLeave(e, 'arrowPrev')}
           >
@@ -150,4 +173,4 @@ class GradientCard extends Component {
   }
 }
 
-export default GradientCard
+export default connect(undefined, { toggleEditing })(GradientCard)

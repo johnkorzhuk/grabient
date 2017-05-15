@@ -1,8 +1,9 @@
 import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 
-const Wheel = ({ angle, scale, color }) => {
+const Wheel = ({ angle, scale, color, styles }) => {
   return (
     <svg
+      style={{ ...styles }}
       width='210'
       height='210'
       viewBox='0 0 210 210'

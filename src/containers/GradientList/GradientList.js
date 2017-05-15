@@ -8,8 +8,7 @@ import {
   updateGradientAngle
 } from './../../store/gradients/actions'
 
-import { GradientCard } from './../../components/index'
-import { Swatch } from './../index'
+import { Swatch, GradientCard } from './../index'
 
 const TRANSITION_DURATION = 400
 

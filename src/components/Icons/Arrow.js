@@ -5,9 +5,10 @@ const Svg = styled.svg`
   transform: rotate(-45deg)
 `
 
-const AnglePrev = () => {
+const AnglePrev = props => {
   return (
     <Svg
+      {...props}
       width='16'
       height='16'
       viewBox='0 0 16 16'

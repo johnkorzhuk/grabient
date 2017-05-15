@@ -1,6 +1,7 @@
 export const UPDATE_COLOR_STOP = 'gradients/UPDATE_COLOR_STOP'
 export const UPDATE_ANGLE = 'gradients/UPDATE_ANGLE'
 export const UPDATE_ACTIVE_ID = 'gradients/UPDATE_ACTIVE_ID'
+export const TOGGLE_EDITING = 'gradients/TOGGLE_EDITING'
 
 export const updateColorStop = (id, colors) => (dispatch, getState) => {
   const { gradients: { gradientValues } } = getState()
@@ -42,6 +43,15 @@ export const updateGradientAngle = (id, angle) => dispatch => {
     payload: {
       id,
       angle
+    }
+  })
+}
+
+export const toggleEditing = id => dispatch => {
+  return dispatch({
+    type: TOGGLE_EDITING,
+    payload: {
+      id
     }
   })
 }
