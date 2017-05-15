@@ -73,7 +73,7 @@ const INITIAL_STATE = {
     },
     5: {
       id: 5,
-      angle: 0,
+      angle: 220,
       gradient: {
         stop1: {
           color: '#00253C',

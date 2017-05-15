@@ -1,5 +1,5 @@
 import GradientList from './GradientList/GradientList'
 import Swatch from './Swatch/Swatch'
-import ArrowContainer from './ArrowContainer/ArrowContainer'
+import AngleWheel from './AngleWheel/AngleWheel'
 
-export { GradientList, Swatch, ArrowContainer }
+export { GradientList, Swatch, AngleWheel }

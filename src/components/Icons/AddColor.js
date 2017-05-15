@@ -1,7 +1,7 @@
 import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 import { Animate } from 'react-move'
 
-const AddColor = ({ duration, hovered }) => {
+const AddColor = ({ duration, hovered, color }) => {
   return (
     <Animate
       data={{
@@ -22,7 +22,7 @@ const AddColor = ({ duration, hovered }) => {
           >
             <g fill='none' fill-rule='evenodd'>
               <circle
-                stroke='#AFAFAF'
+                stroke={color}
                 stroke-width='2.5'
                 cx='12.5'
                 cy='12.5'
@@ -30,7 +30,7 @@ const AddColor = ({ duration, hovered }) => {
               />
               <path
                 d='M13.75 11.25V7.5h-2.5v3.75H7.5v2.5h3.75v3.75h2.5v-3.75h3.75v-2.5h-3.75z'
-                fill='#AFAFAF'
+                fill={color}
               />
             </g>
           </svg>

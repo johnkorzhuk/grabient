@@ -1,12 +1,14 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
-import { Animate } from 'react-move'
+// import { Animate } from 'react-move'
 
 import { angleToLines } from './../../utils/angle'
 
 import MainGradient from './../Gradients/MainGradient'
 import GaussinGradient from './../Gradients/GaussinGradient'
-import { AddColor, AnglePreview } from './../index'
+import { AnglePreview } from './../index'
+import { AddColor } from './../Icons/index'
+import { AngleWheel } from './../../containers/index'
 
 const ANIMATION_DURATION = 200
 
@@ -100,9 +102,12 @@ class GradientCard extends Component {
           lines={lines}
           hovered={main}
           id={id}
+          angle={angle}
           onMouseEnter={e => this._handleMouseEnter(e, 'main')}
           onMouseLeave={e => this._handleMouseLeave(e, 'main')}
         />
+
+        <AngleWheel angle={angle} id={id} />
 
         <GaussinGradient
           innerRef={node => {
@@ -133,7 +138,11 @@ class GradientCard extends Component {
             onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
           >
-            <AddColor duration={ANIMATION_DURATION} hovered={addColor} />
+            <AddColor
+              duration={ANIMATION_DURATION}
+              hovered={addColor}
+              color='#AFAFAF'
+            />
           </AddColorContainer>
         </SwatchContainer>
       </Container>

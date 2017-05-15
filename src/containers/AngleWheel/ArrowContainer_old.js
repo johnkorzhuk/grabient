@@ -94,12 +94,12 @@ class ArrowContainer extends Component {
   }
 
   _handleMouseLeave = () => {
-    this.updateAngle()
-    this.setState(() => ({
-      active: false,
-      cursorUpdatingAngle: false,
-      updatingText: false
-    }))
+    // this.updateAngle()
+    // this.setState(() => ({
+    //   active: false,
+    //   cursorUpdatingAngle: false,
+    //   updatingText: false
+    // }))
   }
 
   _handleMouseMove = e => {

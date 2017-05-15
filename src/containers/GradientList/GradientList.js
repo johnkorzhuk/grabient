@@ -2,7 +2,6 @@ import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 import { connect } from 'inferno-redux'
 import styled from 'styled-components'
 
-import { generateGradientFromData } from './../../utils/gradient'
 import { getGradients } from './../../store/gradients/selectors'
 import {
   updateColorStop,
@@ -10,7 +9,7 @@ import {
 } from './../../store/gradients/actions'
 
 import { GradientCard } from './../../components/index'
-import { Swatch, ArrowContainer } from './../index'
+import { Swatch } from './../index'
 
 const TRANSITION_DURATION = 400
 
@@ -22,10 +21,6 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-`
-
-const GradientContainer = styled.div`
-  height: 95%;
 `
 
 const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
