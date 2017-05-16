@@ -8,16 +8,15 @@ import { Arrow, Close } from './../../components/Icons/index'
 
 import {
   updateGradientAngle,
-  toggleEditing
+  toggleEditing,
+  updateEditingAngle
 } from './../../store/gradients/actions'
-import { getGradientEditingState } from './../../store/gradients/selectors'
 
 const AreaContainer = styled.div`
   position: absolute;
-  width: calc(100% - 68px);
-  top: 45px;
-  bottom: 87px;
-  left: 34px;
+  width: 99%;
+  height: 89%;
+  top: 2px;
   background-color: #000;
   opacity: 0.5;
   border-radius: 15px;
@@ -82,21 +81,24 @@ const ArrowContainer = styled.div`
   cursor: pointer;
 `
 
+const origState = {
+  cursorUpdatingAngle: false,
+  updatingText: false,
+  cursorUpdatingAngleAccurately: false
+}
 class AngleWheel extends Component {
-  state = {
-    cursorUpdatingAngle: this.props.editing,
-    updatingText: false,
-    angle: this.props.angle
-  }
+  state = origState
 
   componentWillReceiveProps (nextProps) {
     if (nextProps.editing) {
-      setTimeout(() => this.input.focus(), 250)
+      setTimeout(() => this.input.focus(), this.props.transitionDuration + 50)
+    } else if (!nextProps.editing) {
+      this.setState(origState)
     }
   }
 
   shouldComponentUpdate (nextProps, nextState) {
-    if (this.state.angle !== nextState.angle) return true
+    if (this.props.angle !== nextProps.angle) return true
     if (this.state.cursorUpdatingAngle !== nextState.cursorUpdatingAngle) {
       return true
     }
@@ -108,7 +110,7 @@ class AngleWheel extends Component {
 
   _handleMouseLeave = () => {
     const { toggleEditing, id } = this.props
-    this.updateAngle()
+    this.updateActualAngle()
     toggleEditing(id)
     this.setState(() => ({
       cursorUpdatingAngle: false,
@@ -117,23 +119,26 @@ class AngleWheel extends Component {
   }
 
   _handleMouseMove = e => {
-    const { cursorUpdatingAngle, updatingText } = this.state
+    const {
+      cursorUpdatingAngle,
+      updatingText,
+      cursorUpdatingAngleAccurately
+    } = this.state
+    const { updateEditingAngle } = this.props
     if (cursorUpdatingAngle && !updatingText) {
-      const angle = this.checkCommonAngles(this.getAngle(e.offsetX, e.offsetY))
-      this.setState({
-        angle
-      })
+      let angle = this.getAngle(e.offsetX, e.offsetY)
+      if (!cursorUpdatingAngleAccurately) angle = this.checkCommonAngles(angle)
+      if (angle === 360) angle = 0
+      updateEditingAngle(angle)
     }
   }
 
   _handleKeyEnter = e => {
     if (e.which === 13) {
-      const { angle } = this.props
-      this.updateAngle()
+      this.updateActualAngle()
       this.toggleEditing()
       this.setState(prevState => ({
-        cursorUpdatingAngle: false,
-        angle: prevState.angle || angle
+        cursorUpdatingAngle: false
       }))
     }
   }
@@ -141,20 +146,17 @@ class AngleWheel extends Component {
   _handleInputChange = e => {
     let angle = parseInt(e.target.value, 10)
     if (!isNaN(angle)) {
-      if (angle > 359) angle -= 360
-      if (angle < 0) angle += 360
+      if (angle > 359) {
+        angle = 0
+        this.input.value = angle
+      }
+      if (angle < 0) angle = 360 - Math.abs(angle % 360)
       this._handleInputChange.lastValid = angle
-      this.setState({
-        angle
-      })
-    } else if (e.target.value === '') {
-      this.setState({
-        angle: ''
-      })
+      this.updateEditingAngle(angle)
     } else {
-      this.setState({
-        angle: this._handleInputChange.lastValid || this.props.angle
-      })
+      const value = this._handleInputChange.lastValid || this.props.origAngle
+      this.input.value = ''
+      this.updateEditingAngle(value)
     }
   }
 
@@ -166,18 +168,11 @@ class AngleWheel extends Component {
     const { cursorUpdatingAngle } = this.state
 
     if (cursorUpdatingAngle) {
-      this.updateAngle()
+      this.updateActualAngle()
       this.toggleEditing()
-      this.setState(() => ({
-        cursorUpdatingAngle: false,
-        updatingText: false
-      }))
+      this.setState(origState)
     } else {
-      const angle = this.getAngle(e.offsetX, e.offsetY)
-
-      this.setState({
-        angle
-      })
+      this.updateEditingAngle(this.getAngle(e.offsetX, e.offsetY))
     }
   }
 
@@ -186,10 +181,16 @@ class AngleWheel extends Component {
   }
 
   _handleClose = () => {
-    this.setState({
-      angle: this.props.angle
-    })
     this.toggleEditing()
+  }
+
+  _handleMouseDown = () => {
+    const { cursorUpdatingAngle } = this.state
+    if (cursorUpdatingAngle) {
+      this.setState({
+        cursorUpdatingAngleAccurately: true
+      })
+    }
   }
 
   toggleEditing () {
@@ -197,15 +198,19 @@ class AngleWheel extends Component {
     toggleEditing(id)
   }
 
-  updateAngle () {
-    const { angle } = this.state
-    const { updateGradientAngle, id } = this.props
-    const newAngle = isNaN(angle) ? this.props.angle : angle
+  updateEditingAngle (angle) {
+    const { updateEditingAngle } = this.props
+    updateEditingAngle(angle)
+  }
+
+  updateActualAngle () {
+    const { updateGradientAngle, id, angle, origAngle } = this.props
+    const newAngle = isNaN(angle) ? origAngle : angle
     updateGradientAngle(id, newAngle)
   }
 
   checkCommonAngles (angle) {
-    if (angle <= 10) return 0
+    if (angle <= 10 || angle >= 350) return 0
     else if (angle >= 35 && angle <= 55) return 45
     else if (angle >= 80 && angle <= 100) return 90
     else if (angle >= 125 && angle <= 145) return 135
@@ -213,7 +218,6 @@ class AngleWheel extends Component {
     else if (angle >= 215 && angle <= 235) return 225
     else if (angle >= 260 && angle <= 280) return 270
     else if (angle >= 305 && angle <= 325) return 315
-    else if (angle >= 350) return 0
     return angle
   }
 
@@ -247,8 +251,8 @@ class AngleWheel extends Component {
   }
 
   render () {
-    const { cursorUpdatingAngle, angle } = this.state
-    const { transitionDuration, editing, id } = this.props
+    const { cursorUpdatingAngle } = this.state
+    const { transitionDuration, editing, id, angle } = this.props
     return (
       <Animate
         data={{
@@ -259,7 +263,6 @@ class AngleWheel extends Component {
         {data => {
           return (
             <AreaContainer
-              id={`gradient-${id}`}
               style={{
                 opacity: data.opacity,
                 zIndex: editing ? 15 : 1
@@ -267,6 +270,7 @@ class AngleWheel extends Component {
             >
               <Container
                 onClick={this._handleClick}
+                onMouseDown={this._handleMouseDown}
                 onMouseMove={this._handleMouseMove}
                 style={{
                   zIndex: cursorUpdatingAngle ? 17 : 15
@@ -331,9 +335,16 @@ class AngleWheel extends Component {
 }
 
 export default connect(
-  ({ gradients: { editing } }, { id }) => ({ editing: id == editing }),
+  ({ gradients: { editingAngle } }, { id, angle }) => ({
+    editing: id == editingAngle.id,
+    angle: !isNaN(editingAngle.angle)
+      ? editingAngle.angle === null ? angle : editingAngle.angle
+      : angle,
+    origAngle: angle
+  }),
   {
     updateGradientAngle,
-    toggleEditing
+    toggleEditing,
+    updateEditingAngle
   }
 )(AngleWheel)

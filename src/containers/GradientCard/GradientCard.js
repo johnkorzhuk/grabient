@@ -1,30 +1,28 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
 import { connect } from 'inferno-redux'
-// import { Animate } from 'react-move'
 
 import { angleToLines } from './../../utils/angle'
 
 import { toggleEditing } from './../../store/gradients/actions'
 
-import MainGradient from './../../components/Gradients/MainGradient'
-import GaussinGradient from './../../components/Gradients/GaussinGradient'
-import { AnglePreview } from './../../components/index'
+import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
-import { AngleWheel } from './../index'
 
-import { generateLinearGradientFromSchema } from './../../utils/gradient'
-
-const ANIMATION_DURATION = 200
+const GRADIENT_ANIMATION_DURATION = 500
+const ANGLE_WHEEL_ANIMATION_DURATION = 300
+const ANGLE_PREVIEW_ANIMATION_DURATION = 200
+const SWATCH_ANIMATION_DURATION = 300
 
 const Container = styled.div`
   width: 33.33%;
-  height: 450px;
+  height: 35vw;
+  max-height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 45px 33.33px;
+  padding: 30px 3% 10px;
   position: relative;
 `
 
@@ -45,13 +43,13 @@ const AngleText = styled.div`
 
 const SwatchContainer = styled.div`
   position: relative;
-  margin-top: 20px;
   width: 100%;
   align-self: flex-end;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   z-index: 10;
+  bottom: 15px;
 `
 
 const AddColorContainer = styled.div`
@@ -107,42 +105,22 @@ class GradientCard extends Component {
   render () {
     const { hovered: { arrowPrev, addColor, main }, wasEditing } = this.state
     const {
-      gradient: { gradient, angle },
+      gradient: { gradient },
       children,
       id,
-      toggleEditing
+      toggleEditing,
+      angle
     } = this.props
     const lines = angleToLines(angle)
     const Stops = StopKeys({ gradient })
     return (
       <Container>
-
-        <MainGradient
-          duration={ANIMATION_DURATION}
-          stops={Stops}
-          lines={lines}
-          hovered={main}
+        <GradientContainer
+          gradientAnimationDuration={GRADIENT_ANIMATION_DURATION}
+          wheelAnimationDuration={ANGLE_WHEEL_ANIMATION_DURATION}
           id={id}
-          wasEditing={wasEditing}
+          gradient={this.props.gradient}
           angle={angle}
-          onMouseEnter={e => this._handleMouseEnter(e, 'main')}
-          onMouseLeave={e => this._handleMouseLeave(e, 'main')}
-        />
-
-        <AngleWheel
-          angle={angle}
-          id={id}
-          transitionDuration={ANIMATION_DURATION}
-        />
-
-        <GaussinGradient
-          innerRef={node => {
-            this.container = node
-          }}
-          stops={Stops}
-          opacity={0.7}
-          lines={lines}
-          id={id}
         />
 
         <SwatchContainer>
@@ -153,7 +131,7 @@ class GradientCard extends Component {
           >
             <AnglePreview
               angle={angle}
-              duration={ANIMATION_DURATION}
+              animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
               hovered={arrowPrev}
             />
             <AngleText>{angle}°</AngleText>
@@ -166,7 +144,7 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
           >
             <AddColor
-              duration={ANIMATION_DURATION}
+              anmationDuration={SWATCH_ANIMATION_DURATION}
               hovered={addColor}
               color='#AFAFAF'
             />
@@ -178,8 +156,11 @@ class GradientCard extends Component {
 }
 
 export default connect(
-  ({ gradients: { editing } }, { id }) => ({
-    editing: id == editing
+  ({ gradients: { editingAngle } }, { id, gradient }) => ({
+    editing: id == editingAngle.id,
+    angle: id == editingAngle.id
+      ? editingAngle.angle === null ? gradient.angle : editingAngle.angle
+      : gradient.angle
   }),
   { toggleEditing }
 )(GradientCard)

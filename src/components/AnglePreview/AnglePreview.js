@@ -7,9 +7,8 @@ const AnglePreview = ({
   angle,
   styles,
   translateX,
-  transitionDuration,
   onClick,
-  duration,
+  animationDuration,
   hovered
 }) => {
   return (
@@ -17,7 +16,7 @@ const AnglePreview = ({
       data={{
         scale: hovered ? 1.2 : 1
       }}
-      duration={duration}
+      duration={animationDuration}
     >
       {data => {
         return <AnglePrev color='#AFAFAF' scale={data.scale} angle={angle} />

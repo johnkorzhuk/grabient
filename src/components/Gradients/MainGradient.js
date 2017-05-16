@@ -35,31 +35,17 @@ const MainGradient = ({
         return (
           <Svg {...props}>
             <defs>
-              <linearGradient x1={x1} y1={y1} x2={x2} y2={y2} id={gradientId}>
-                {stops}
-              </linearGradient>
 
               <rect id='a' width='100%' height='100%' rx='15' />
             </defs>
 
-            <g
-              id={group1Id}
-              stroke='none'
-              stroke-width='1'
-              fill='none'
+            <use
+              fill-opacity={wasEditing ? 0 : data.opacity}
+              fill='#000'
+              xlink:href='#a'
               fill-rule='evenodd'
-            >
-              <g id={group2Id} fill={`url(#${gradientId})`}>
-                <rect id={rectId} width='100%' height='100%' rx='15' />
-              </g>
+            />
 
-              <use
-                fill-opacity={wasEditing ? 0 : data.opacity}
-                fill='#000'
-                xlink:href='#a'
-                fill-rule='evenodd'
-              />
-            </g>
           </Svg>
         )
       }}

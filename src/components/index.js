@@ -1,6 +1,7 @@
 import GradientDisplay from './Sections/GradientDisplay'
 import Container from './Common/Container'
-import AngleArrow from './AngleArrow/AngleArrow'
 import AnglePreview from './AnglePreview/AnglePreview'
+import Gradient from './Gradient/Gradient'
+import GradientContainer from './GradientContainer/GradientContainer'
 
-export { GradientDisplay, Container, AngleArrow, AnglePreview }
+export { GradientDisplay, Container, AnglePreview, Gradient, GradientContainer }

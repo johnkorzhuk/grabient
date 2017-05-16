@@ -2,7 +2,8 @@ import {
   UPDATE_ANGLE,
   UPDATE_COLOR_STOP,
   UPDATE_ACTIVE_ID,
-  TOGGLE_EDITING
+  TOGGLE_EDITING,
+  UPDATE_EDITING_ANGLE
 } from './actions'
 
 const INITIAL_STATE = {
@@ -100,7 +101,10 @@ const INITIAL_STATE = {
     }
   },
   active: 1,
-  editing: null
+  editingAngle: {
+    id: null,
+    angle: null
+  }
 }
 
 export default (state = INITIAL_STATE, action) => {
@@ -141,10 +145,23 @@ export default (state = INITIAL_STATE, action) => {
     case TOGGLE_EDITING:
       return {
         ...state,
-        editing: state.editing === action.payload.id ||
-          action.payload.id === null
-          ? null
-          : action.payload.id
+        editingAngle: {
+          ...state.editingAngle,
+          id: state.editingAngle.id === action.payload.id ||
+            action.payload.id === null
+            ? null
+            : action.payload.id,
+          angle: null
+        }
+      }
+
+    case UPDATE_EDITING_ANGLE:
+      return {
+        ...state,
+        editingAngle: {
+          ...state.editingAngle,
+          angle: action.payload.angle
+        }
       }
 
     default:

@@ -1,13 +1,13 @@
 import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 import { Animate } from 'react-move'
 
-const AddColor = ({ duration, hovered, color }) => {
+const AddColor = ({ anmationDuration, hovered, color }) => {
   return (
     <Animate
       data={{
         scale: hovered ? 1.2 : 1
       }}
-      duration={duration}
+      duration={anmationDuration}
     >
       {data => {
         return (
