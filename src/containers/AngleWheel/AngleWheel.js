@@ -82,7 +82,6 @@ const Deg = styled.span`
   color: white;
   font-size: 1.8rem;
   display: block;
-  cursor: default;
 `
 
 const ArrowContainer = styled.div`
@@ -147,9 +146,7 @@ class AngleWheel extends Component {
     if (e.which === 13) {
       this.updateActualAngle()
       this.toggleEditing()
-      this.setState(prevState => ({
-        cursorUpdatingAngle: false
-      }))
+      this.setState(origState)
     }
   }
 
@@ -308,6 +305,7 @@ class AngleWheel extends Component {
               />
 
               <TextContainer
+                onClick={() => this.input.select()}
                 style={{
                   zIndex: 17
                 }}

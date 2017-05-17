@@ -89,8 +89,8 @@ class GradientCard extends Component {
   }
 
   render () {
-    const { hovered: { arrowPrev, addColor, main }, wasEditing } = this.state
-    const { gradient, children, id, toggleEditing, angle } = this.props
+    const { hovered: { arrowPrev, addColor, main } } = this.state
+    const { gradient, children, id, toggleEditing, angle, editing } = this.props
 
     return (
       <Container>
@@ -103,6 +103,7 @@ class GradientCard extends Component {
           gradient={gradient}
           angle={angle}
           hovered={main}
+          editing={editing}
         />
 
         <SwatchContainer>
