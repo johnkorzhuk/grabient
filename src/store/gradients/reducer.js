@@ -14,7 +14,7 @@ const INITIAL_STATE = {
       gradient: {
         stop1: {
           color: '#e0c3fc',
-          stop: 0
+          stop: -20
         },
         stop2: {
           color: '#8ec5fc',
