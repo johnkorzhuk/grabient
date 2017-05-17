@@ -28,7 +28,7 @@ const INITIAL_STATE = {
     },
     2: {
       id: 1,
-      angle: 0,
+      angle: 10,
       gradient: {
         stop1: {
           color: '#fad0c4',
@@ -43,7 +43,7 @@ const INITIAL_STATE = {
 
     4: {
       id: 4,
-      angle: 270,
+      angle: 180,
       gradient: {
         stop1: {
           color: '#f5f7fa',
@@ -61,7 +61,7 @@ const INITIAL_STATE = {
     },
     3: {
       id: 3,
-      angle: 270,
+      angle: 0,
       gradient: {
         stop1: {
           color: '#8ec5fc',

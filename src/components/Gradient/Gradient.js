@@ -12,7 +12,6 @@ const Container = styled.div`
 `
 
 const Gradient = ({ gradient, transitionDuration, data, angle, children }) => {
-  console.log(data)
   return (
     <Animate data={data} duration={transitionDuration}>
       {data => {

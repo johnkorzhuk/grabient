@@ -27,18 +27,17 @@ const Container = styled.div`
 `
 
 const AngleContainer = styled.div`
-  position: absolute;
-  left: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  margin-right: auto;
+  position: relative;
   cursor: pointer;
 `
 
-const AngleText = styled.div`
+const AngleText = styled.span`
   font-size: 1.6rem;
   color: #AFAFAF;
   padding-left: 10px;
+  position: absolute;
+  top: 2px;
 `
 
 const SwatchContainer = styled.div`
