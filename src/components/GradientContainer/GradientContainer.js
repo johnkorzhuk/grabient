@@ -1,12 +1,9 @@
 import Component from 'inferno-component'
 import styled from 'styled-components'
 import deepEqual from 'deep-equal'
-import { Animate } from 'react-move'
 
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'
-
-const BLACKGROUND_FILTER_ANIMATION_DURATION = 300
 
 const Container = styled.div`
   position: relative;
@@ -17,16 +14,7 @@ const Container = styled.div`
   align-items: center;
 `
 
-const BlackgroundFilter = styled.div`
-  height: 90%;
-  width: 100%;
-  z-index: 15;
-  background-color: #000;
-  position: absolute;
-  border-radius: 15px;
-`
-
-const NotBlurr = styled.div`
+const NoBlur = styled.div`
   height: 90%;
   width: 100%;
   z-index: 14;
@@ -88,35 +76,20 @@ class GradientContainer extends Component {
     } = this.props
     return (
       <Container>
-        <Animate
-          data={{
-            opacity: hovered ? 0.2 : 0
+
+        <NoBlur
+          onMouseEnter={e => onMouseEnter(e, 'main')}
+          onMouseLeave={e => onMouseLeave(e, 'main')}
+          style={{
+            backgroundColor: '#00000'
           }}
-          duration={BLACKGROUND_FILTER_ANIMATION_DURATION}
         >
-          {data => {
-            return (
-              <NotBlurr
-                onMouseEnter={e => onMouseEnter(e, 'main')}
-                onMouseLeave={e => onMouseLeave(e, 'main')}
-                style={{
-                  backgroundColor: '#00000'
-                }}
-              >
-                <BlackgroundFilter
-                  style={{
-                    opacity: data.opacity
-                  }}
-                />
-                <Gradient
-                  angle={angle}
-                  data={this.data}
-                  transitionDuration={gradientAnimationDuration}
-                />
-              </NotBlurr>
-            )
-          }}
-        </Animate>
+          <Gradient
+            angle={angle}
+            data={this.data}
+            transitionDuration={gradientAnimationDuration}
+          />
+        </NoBlur>
 
         <Blurred>
           <Gradient

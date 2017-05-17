@@ -100,7 +100,11 @@ class AngleWheel extends Component {
 
   componentWillReceiveProps (nextProps) {
     if (nextProps.editing) {
-      setTimeout(() => this.input.focus(), this.props.transitionDuration + 50)
+      setTimeout(() => {
+        if (this.input) {
+          this.input.focus()
+        }
+      }, this.props.transitionDuration + 50)
     } else if (!nextProps.editing) {
       this.setState(origState)
     }
@@ -269,12 +273,14 @@ class AngleWheel extends Component {
       >
         {data => {
           return (
+            editing &&
             <AreaContainer
               style={{
                 zIndex: editing ? 15 : 1
               }}
             >
               <Background style={{ opacity: data.opacity }} />
+
               <Container
                 onClick={this._handleClick}
                 onMouseDown={this._handleMouseDown}
@@ -347,6 +353,7 @@ class AngleWheel extends Component {
 
 export default connect(
   ({ gradients: { editingAngle } }, { id, angle }) => ({
+    // eslint-disable-next-line eqeqeq
     editing: id == editingAngle.id,
     angle: !isNaN(editingAngle.angle)
       ? editingAngle.angle === null ? angle : editingAngle.angle

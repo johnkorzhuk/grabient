@@ -22,6 +22,11 @@ const SwatchItem = styled.div`
   margin-left: 10px;
   cursor: pointer;
   border: 1px solid rgba(0, 0, 0, 0.1);
+  position: relative;
+
+  &:hover {
+    box-shadow: 1px 2px 10px 0px rgba(0, 0, 0, 0.2);
+  }
 `
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
@@ -50,16 +55,19 @@ const SortableList = SortableContainer(
           <SwatchContainer>
             {data.map((item, index) => {
               return (
-                <SortableItem
-                  key={item.key}
-                  sorting={sorting}
-                  index={index}
-                  style={{
-                    // backgroundColor: item.state.color,
-                    backgroundColor: sorting ? items[index] : item.state.color,
-                    width: item.state.width + 'px'
-                  }}
-                />
+                <div onClick={e => console.log(e)}>
+                  <SortableItem
+                    key={item.key}
+                    sorting={sorting}
+                    index={index}
+                    style={{
+                      backgroundColor: sorting
+                        ? items[index]
+                        : item.state.color,
+                      width: item.state.width
+                    }}
+                  />
+                </div>
               )
             })}
           </SwatchContainer>

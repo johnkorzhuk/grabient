@@ -140,7 +140,9 @@ class GradientCard extends Component {
 
 export default connect(
   ({ gradients: { editingAngle } }, { id, gradient }) => ({
+    // eslint-disable-next-line eqeqeq
     editing: id == editingAngle.id,
+    // eslint-disable-next-line eqeqeq
     angle: id == editingAngle.id
       ? editingAngle.angle === null ? gradient.angle : editingAngle.angle
       : gradient.angle

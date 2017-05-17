@@ -9,6 +9,7 @@
     "inferno-component": "^3.1.1",
     "inferno-redux": "^3.1.1",
     "polished": "^1.1.1",
+    "react-color": "^2.11.7",
     "react-icons": "^2.2.5",
     "react-move": "^1.1.8",
     "react-sortable-hoc": "^0.6.3",
