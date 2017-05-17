@@ -46,8 +46,8 @@ const INITIAL_STATE = {
       angle: 180,
       gradient: {
         stop1: {
-          color: '#f5f7fa',
-          stop: 0
+          color: '#ffffff',
+          stop: 50
         },
         stop2: {
           color: '#c3cfe2',

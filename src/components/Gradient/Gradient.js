@@ -11,16 +11,28 @@ const Container = styled.div`
   border-radius: 15px;
 `
 
-const Gradient = ({ gradient, transitionDuration, data, angle, children }) => {
+const Gradient = ({
+  gradient,
+  transitionDuration,
+  data,
+  angle,
+  opacity,
+  children
+}) => {
+  let newData = { ...data }
+  const hasOpacity = !isNaN(opacity)
+  if (hasOpacity) {
+    newData.opacity = opacity
+  }
+
   return (
-    <Animate data={data} duration={transitionDuration}>
+    <Animate data={newData} duration={transitionDuration}>
       {data => {
         return (
           <Container
             style={{
               backgroundImage: `linear-gradient(${angle}deg, ${generateColorStopsFromData(data)})`,
-              height: '100%',
-              width: '100%'
+              opacity: hasOpacity ? data.opacity : 1
             }}
           >
             {children}

@@ -17,13 +17,6 @@ const AreaContainer = styled.div`
   width: 99%;
   height: 89%;
   top: 2px;
-  background-color: #000;
-  opacity: 0.5;
-  border-radius: 15px;
-  background-image: url(${Wheelpng});
-  background-size: 65%;
-  background-repeat: no-repeat;
-  background-position: center;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -36,6 +29,18 @@ const Container = styled.div`
   align-items: center;
   height: 100%;
   width: 100%;
+  background-image: url(${Wheelpng});
+  background-size: 65%;
+  background-repeat: no-repeat;
+  background-position: center;
+`
+
+const Background = styled.div`
+  height: 100%;
+  border-radius: 15px;
+  position: absolute;
+  width: 100%;
+  background-color: #000;
 `
 
 const AngleRef = styled.div`
@@ -47,13 +52,16 @@ const AngleRef = styled.div`
 const TextContainer = styled.div`
   position: absolute;
   display: flex;
+  cursor: text;
   align-items: center;
+  justify-content: center;
+  height: 85px;
+  width: 85px;
 `
 
 const TextValue = styled.input`
   color: white;
   font-size: 1.8rem;
-  cursor: default;
   text-align: center;
   border: none;
   background: none;
@@ -74,6 +82,7 @@ const Deg = styled.span`
   color: white;
   font-size: 1.8rem;
   display: block;
+  cursor: default;
 `
 
 const ArrowContainer = styled.div`
@@ -82,10 +91,11 @@ const ArrowContainer = styled.div`
 `
 
 const origState = {
-  cursorUpdatingAngle: false,
+  cursorUpdatingAngle: true,
   updatingText: false,
   cursorUpdatingAngleAccurately: false
 }
+
 class AngleWheel extends Component {
   state = origState
 
@@ -252,11 +262,11 @@ class AngleWheel extends Component {
 
   render () {
     const { cursorUpdatingAngle } = this.state
-    const { transitionDuration, editing, id, angle } = this.props
+    const { transitionDuration, editing, angle } = this.props
     return (
       <Animate
         data={{
-          opacity: editing ? 0.5 : 0
+          opacity: editing ? 0.1 : 0
         }}
         duration={transitionDuration}
       >
@@ -264,10 +274,10 @@ class AngleWheel extends Component {
           return (
             <AreaContainer
               style={{
-                opacity: data.opacity,
                 zIndex: editing ? 15 : 1
               }}
             >
+              <Background style={{ opacity: data.opacity }} />
               <Container
                 onClick={this._handleClick}
                 onMouseDown={this._handleMouseDown}
@@ -293,11 +303,15 @@ class AngleWheel extends Component {
                   top: 15,
                   right: 15,
                   cursor: 'pointer',
-                  zIndex: cursorUpdatingAngle ? 15 : 17
+                  zIndex: 17
                 }}
               />
 
-              <TextContainer>
+              <TextContainer
+                style={{
+                  zIndex: 17
+                }}
+              >
                 <TextValue
                   autoFocus
                   innerRef={node => {
@@ -310,8 +324,7 @@ class AngleWheel extends Component {
                   value={angle}
                   onChange={this._handleInputChange}
                   style={{
-                    width: this.getWidth(angle),
-                    zIndex: cursorUpdatingAngle ? 15 : 17
+                    width: this.getWidth(angle)
                   }}
                 />
                 <Deg>°</Deg>

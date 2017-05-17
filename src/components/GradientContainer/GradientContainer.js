@@ -7,16 +7,17 @@ import { AngleWheel } from './../../containers/index'
 
 const Blurred = styled.div`
   filter: blur(20px);
-  height: 92%;
-  width: 100%;
+  height: 95%;
+  width: 92%;
   position: absolute;
-  opacity: 0.7;
 `
 
 const NotBlurr = styled.div`
   height: 90%;
   width: 100%;
   z-index: 14;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 15px;
 `
 
 const Container = styled.div`
@@ -54,7 +55,8 @@ class GradientContainer extends Component {
   shouldComponentUpdate (nextProps, nextState) {
     return (
       this.props.gradient !== nextProps.gradient ||
-      this.props.angle !== nextProps.angle
+      this.props.angle !== nextProps.angle ||
+      this.props.hovered !== nextProps.hovered
     )
   }
 
@@ -64,12 +66,17 @@ class GradientContainer extends Component {
       wheelAnimationDuration,
       id,
       gradient,
-      angle
+      angle,
+      hovered,
+      onMouseEnter,
+      onMouseLeave
     } = this.props
-
     return (
       <Container>
-        <NotBlurr>
+        <NotBlurr
+          onMouseEnter={e => onMouseEnter(e, 'main')}
+          onMouseLeave={e => onMouseLeave(e, 'main')}
+        >
           <Gradient
             angle={angle}
             data={this.data}
@@ -79,6 +86,7 @@ class GradientContainer extends Component {
 
         <Blurred>
           <Gradient
+            opacity={hovered ? 0.8 : 0}
             angle={angle}
             data={this.data}
             transitionDuration={gradientAnimationDuration}

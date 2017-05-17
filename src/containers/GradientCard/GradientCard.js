@@ -2,8 +2,6 @@ import Component from 'inferno-component'
 import styled from 'styled-components'
 import { connect } from 'inferno-redux'
 
-import { angleToLines } from './../../utils/angle'
-
 import { toggleEditing } from './../../store/gradients/actions'
 
 import { AnglePreview, GradientContainer } from './../../components/index'
@@ -57,17 +55,6 @@ const AddColorContainer = styled.div`
   cursor: pointer;
 `
 
-const StopKeys = ({ gradient }) => {
-  const stopKeys = Object.keys(gradient)
-  return stopKeys.map(stopKey => (
-    <stop
-      key={stopKey}
-      stop-color={gradient[stopKey].color}
-      offset={gradient[stopKey].stop + '%'}
-    />
-  ))
-}
-
 class GradientCard extends Component {
   state = {
     hovered: {
@@ -103,23 +90,19 @@ class GradientCard extends Component {
 
   render () {
     const { hovered: { arrowPrev, addColor, main }, wasEditing } = this.state
-    const {
-      gradient: { gradient },
-      children,
-      id,
-      toggleEditing,
-      angle
-    } = this.props
-    const lines = angleToLines(angle)
-    const Stops = StopKeys({ gradient })
+    const { gradient, children, id, toggleEditing, angle } = this.props
+
     return (
       <Container>
         <GradientContainer
+          onMouseEnter={this._handleMouseEnter}
+          onMouseLeave={this._handleMouseLeave}
           gradientAnimationDuration={GRADIENT_ANIMATION_DURATION}
           wheelAnimationDuration={ANGLE_WHEEL_ANIMATION_DURATION}
           id={id}
-          gradient={this.props.gradient}
+          gradient={gradient}
           angle={angle}
+          hovered={main}
         />
 
         <SwatchContainer>

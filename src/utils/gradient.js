@@ -21,6 +21,8 @@ function generateLinearGradientFromSchema (
 }
 
 function generateGradientFromData (data, prefixed = false, inverse = false) {
+  let newData = { ...data }
+  delete newData.angle
   let stop = 1
 
   const gradient = Object.keys(data).reduce((aggr, curr, index) => {
@@ -37,14 +39,14 @@ function generateGradientFromData (data, prefixed = false, inverse = false) {
     }
     return aggr
   }, {})
-
   return `linear-gradient(${generateAngle(data.angle, inverse)}, ${generateColorStops(gradient)})`
 }
 
 function generateColorStopsFromData (data, prefixed = false, inverse = false) {
-  let newData = { ...data }
-  delete newData.angle
   let stop = 1
+  let newData = { ...data }
+
+  if (newData.opacity) delete newData.opacity
 
   const gradient = Object.keys(newData).reduce((aggr, curr, index) => {
     if (index % 2 === 0) {

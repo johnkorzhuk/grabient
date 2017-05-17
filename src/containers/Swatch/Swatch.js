@@ -21,6 +21,7 @@ const SwatchItem = styled.div`
   border-radius: 50%;
   margin-left: 10px;
   cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 `
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
