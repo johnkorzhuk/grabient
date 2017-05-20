@@ -17,7 +17,7 @@ const Container = styled.div`
 const NoBlur = styled.div`
   height: 90%;
   width: 100%;
-  z-index: 14;
+  z-index: 10;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 15px;
 `

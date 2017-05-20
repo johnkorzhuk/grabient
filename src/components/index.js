@@ -3,13 +3,5 @@ import Container from './Common/Container'
 import AnglePreview from './AnglePreview/AnglePreview'
 import Gradient from './Gradient/Gradient'
 import GradientContainer from './GradientContainer/GradientContainer'
-import ColorPicker from './ColorPicker/ColorPicker'
 
-export {
-  GradientDisplay,
-  Container,
-  AnglePreview,
-  Gradient,
-  GradientContainer,
-  ColorPicker
-}
+export { GradientDisplay, Container, AnglePreview, Gradient, GradientContainer }

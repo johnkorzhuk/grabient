@@ -2,10 +2,11 @@ import Component from 'inferno-component'
 import styled from 'styled-components'
 import { connect } from 'inferno-redux'
 
-import { toggleEditing } from './../../store/gradients/actions'
+import { toggleEditing, updateColorStop } from './../../store/gradients/actions'
 
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
+import { Slider, Swatch } from './../index'
 
 const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
@@ -41,6 +42,7 @@ const AngleText = styled.span`
 const SwatchContainer = styled.div`
   position: relative;
   width: 100%;
+  height: 25px;
   align-self: flex-end;
   display: flex;
   align-items: center;
@@ -90,10 +92,22 @@ class GradientCard extends Component {
 
   render () {
     const { hovered: { arrowPrev, addColor, main } } = this.state
-    const { gradient, children, id, toggleEditing, angle, editing } = this.props
+    const {
+      gradient,
+      id,
+      toggleEditing,
+      updateColorStop,
+      angle,
+      editing,
+      index
+    } = this.props
 
     return (
-      <Container>
+      <Container
+        style={{
+          order: index
+        }}
+      >
         <GradientContainer
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}
@@ -120,7 +134,12 @@ class GradientCard extends Component {
             <AngleText>{angle}°</AngleText>
           </AngleContainer>
 
-          {children}
+          <Swatch
+            id={id}
+            updateColorStop={updateColorStop}
+            transitionDuration={SWATCH_ANIMATION_DURATION}
+            gradient={gradient.gradient}
+          />
 
           <AddColorContainer
             onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
@@ -133,6 +152,7 @@ class GradientCard extends Component {
             />
           </AddColorContainer>
         </SwatchContainer>
+        <Slider id={id} />
       </Container>
     )
   }
@@ -147,5 +167,5 @@ export default connect(
       ? editingAngle.angle === null ? gradient.angle : editingAngle.angle
       : gradient.angle
   }),
-  { toggleEditing }
+  { toggleEditing, updateColorStop }
 )(GradientCard)

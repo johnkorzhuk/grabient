@@ -8,8 +8,8 @@ import {
 
 const INITIAL_STATE = {
   gradientValues: {
-    1: {
-      id: 2,
+    '2a': {
+      id: '2a',
       angle: 60,
       gradient: {
         stop1: {
@@ -26,8 +26,8 @@ const INITIAL_STATE = {
         }
       }
     },
-    2: {
-      id: 1,
+    '1a': {
+      id: '1a',
       angle: 10,
       gradient: {
         stop1: {
@@ -36,13 +36,12 @@ const INITIAL_STATE = {
         },
         stop2: {
           color: '#ffd1ff',
-          stop: 100
+          stop: 50
         }
       }
     },
-
-    4: {
-      id: 4,
+    '4a': {
+      id: '4a',
       angle: 180,
       gradient: {
         stop1: {
@@ -59,8 +58,8 @@ const INITIAL_STATE = {
         }
       }
     },
-    3: {
-      id: 3,
+    '3a': {
+      id: '3a',
       angle: 0,
       gradient: {
         stop1: {
@@ -77,8 +76,8 @@ const INITIAL_STATE = {
         }
       }
     },
-    5: {
-      id: 5,
+    '5a': {
+      id: '5a',
       angle: 220,
       gradient: {
         stop1: {
@@ -106,6 +105,67 @@ const INITIAL_STATE = {
     angle: null
   }
 }
+
+// const INITIAL_STATE = {
+//   gradientValues: {
+//     '2a': {
+//       id: '2a',
+//       angle: 60,
+//       gradient: {
+//         stop1: {
+//           color: '#e0c3fc',
+//           stop: -20
+//         },
+//         stop2: {
+//           color: '#8ec5fc',
+//           stop: 50
+//         },
+//         stop3: {
+//           color: '#43e97b',
+//           stop: 100
+//         }
+//       }
+//     },
+//     '1a': {
+//       id: '1a',
+//       angle: 10,
+//       gradient: {
+//         stop1: {
+//           color: '#fad0c4',
+//           stop: 0
+//         },
+//         stop2: {
+//           color: '#ffd1ff',
+//           stop: 50
+//         }
+//       }
+//     },
+
+//     '4a': {
+//       id: '4a',
+//       angle: 180,
+//       gradient: {
+//         stop1: {
+//           color: '#ffffff',
+//           stop: 50
+//         },
+//         stop2: {
+//           color: '#c3cfe2',
+//           stop: 70
+//         },
+//         stop3: {
+//           color: '#fad0c4',
+//           stop: 100
+//         }
+//       }
+//     }
+//   },
+//   active: 1,
+//   editingAngle: {
+//     id: null,
+//     angle: null
+//   }
+// }
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {

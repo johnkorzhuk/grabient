@@ -1,7 +1,7 @@
 import Component from 'inferno-component'
 import { connect } from 'inferno-redux'
 
-import { GradientDisplay, ColorPicker } from './components/index'
+import { GradientDisplay } from './components/index'
 import { GradientList } from './containers/index'
 
 import { toggleEditing } from './store/gradients/actions'
@@ -21,7 +21,6 @@ class App extends Component {
     return (
       <GradientDisplay>
         <GradientList />
-        <ColorPicker />
       </GradientDisplay>
     )
   }

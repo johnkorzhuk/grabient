@@ -14,7 +14,7 @@ import {
 
 const AreaContainer = styled.div`
   position: absolute;
-  width: 99%;
+  width: 100%;
   height: 89%;
   top: 2px;
   display: flex;
@@ -30,7 +30,7 @@ const Container = styled.div`
   height: 100%;
   width: 100%;
   background-image: url(${Wheelpng});
-  background-size: 65%;
+  background-size: 14vw;
   background-repeat: no-repeat;
   background-position: center;
 `
@@ -94,7 +94,6 @@ const origState = {
   updatingText: false,
   cursorUpdatingAngleAccurately: false
 }
-
 class AngleWheel extends Component {
   state = origState
 
@@ -204,6 +203,10 @@ class AngleWheel extends Component {
     }
   }
 
+  _handleTextContainerClick = () => {
+    this.input.select()
+  }
+
   toggleEditing () {
     const { id, toggleEditing } = this.props
     toggleEditing(id)
@@ -311,7 +314,7 @@ class AngleWheel extends Component {
               />
 
               <TextContainer
-                onClick={() => this.input.select()}
+                onClick={this._handleTextContainerClick}
                 style={{
                   zIndex: 17
                 }}
@@ -337,7 +340,7 @@ class AngleWheel extends Component {
               <ArrowContainer
                 onClick={this._handleArrowClick}
                 style={{
-                  transform: `rotate(${angle}deg) translateY(-118px)`,
+                  transform: `rotate(${angle}deg) translateY(-8vw)`,
                   zIndex: cursorUpdatingAngle ? 14 : 16
                 }}
               >

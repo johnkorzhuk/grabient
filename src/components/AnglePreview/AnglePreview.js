@@ -25,12 +25,4 @@ const AnglePreview = ({
   )
 }
 
-//  <Arrow
-//       onClick={onClick}
-//       style={{
-//         transform: `rotate(${angle + 90}deg) translateX(${translateX}px)`,
-//         ...styles
-//       }}
-//     />
-
 export default AnglePreview

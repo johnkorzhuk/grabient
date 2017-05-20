@@ -3,18 +3,8 @@ import { connect } from 'inferno-redux'
 import styled from 'styled-components'
 
 import { getGradients } from './../../store/gradients/selectors'
-import {
-  updateColorStop,
-  updateGradientAngle
-} from './../../store/gradients/actions'
 
-import { Swatch, GradientCard } from './../index'
-
-const TRANSITION_DURATION = 400
-
-const getColors = ({ gradient }) => {
-  return Object.keys(gradient).map(stop => gradient[stop].color)
-}
+import { GradientCard } from './../index'
 
 const Container = styled.div`
   display: flex;
@@ -24,23 +14,21 @@ const Container = styled.div`
 
 const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
   <Container>
-    {Object.keys(gradients).map(gradientKey => {
+    {Object.keys(gradients).map((gradientKey, index) => {
       const gradient = gradients[gradientKey]
       return (
-        <GradientCard gradient={gradient} width='33.33%' id={gradientKey}>
-          <Swatch
-            id={gradientKey}
-            updateColorStop={updateColorStop}
-            transitionDuration={TRANSITION_DURATION}
-            colors={getColors(gradient)}
-          />
-        </GradientCard>
+        <GradientCard
+          index={index}
+          gradient={gradient}
+          width='33.33%'
+          id={gradientKey}
+          key={gradientKey}
+        />
       )
     })}
   </Container>
 )
 
-export default connect(state => ({ gradients: getGradients(state) }), {
-  updateColorStop,
-  updateGradientAngle
-})(GradientList)
+export default connect(state => ({ gradients: getGradients(state) }))(
+  GradientList
+)

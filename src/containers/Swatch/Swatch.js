@@ -1,6 +1,6 @@
 import Component from 'inferno-component'
-import styled from 'styled-components'
 import { connect } from 'inferno-redux'
+import styled from 'styled-components'
 import { Transition } from 'react-move'
 import {
   SortableContainer,
@@ -8,45 +8,42 @@ import {
   arrayMove
 } from 'react-sortable-hoc'
 
-import { toggleSorting } from './../../store/swatch/actions'
+import { editStop } from './../../store/stops/actions'
+
+import SwatchItem from './SwatchItem'
 
 const SwatchContainer = styled.div`
   display: flex;
   justify-content: flex-end;
 `
 
-const SwatchItem = styled.div`
-  height: 25px;
-  width: 25px;
-  border-radius: 50%;
-  margin-left: 10px;
-  cursor: pointer;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  position: relative;
-
-  &:hover {
-    box-shadow: 1px 2px 10px 0px rgba(0, 0, 0, 0.2);
-  }
-`
+const getColors = gradient => {
+  return Object.keys(gradient).map(stop => gradient[stop].color)
+}
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 
 const SortableList = SortableContainer(
-  ({ items, width, height, transitionDuration, sorting }) => {
+  ({
+    items,
+    width,
+    height,
+    transitionDuration,
+    sorting,
+    onSortItemClick,
+    pickingColor
+  }) => {
     return (
       <Transition
         data={items}
         getKey={(item, index) => index}
         update={(item, index) => ({
-          color: items[index],
           width
         })}
         enter={(item, index) => ({
-          color: items[index - 1],
           width: 0
         })}
         leave={(item, index) => ({
-          color: items[index - 1],
           width: 0
         })}
         duration={transitionDuration}
@@ -55,19 +52,18 @@ const SortableList = SortableContainer(
           <SwatchContainer>
             {data.map((item, index) => {
               return (
-                <div onClick={e => console.log(e)}>
-                  <SortableItem
-                    key={item.key}
-                    sorting={sorting}
-                    index={index}
-                    style={{
-                      backgroundColor: sorting
-                        ? items[index]
-                        : item.state.color,
-                      width: item.state.width
-                    }}
-                  />
-                </div>
+                <SortableItem
+                  disabled={pickingColor}
+                  onSortItemClick={onSortItemClick}
+                  key={item.key}
+                  sorting={sorting}
+                  index={index}
+                  color={items[index]}
+                  style={{
+                    backgroundColor: items[index],
+                    width: item.state.width
+                  }}
+                />
               )
             })}
           </SwatchContainer>
@@ -81,30 +77,28 @@ class Swatch extends Component {
   state = {
     colors: null
   }
+
   componentDidMount () {
     this.setState({
-      colors: this.props.colors
+      colors: getColors(this.props.gradient)
     })
   }
 
   componentWillReceiveProps (nextProps) {
-    if (this.props.colors !== nextProps.colors) {
+    // update state.colors when a gradient stop is added
+    if (
+      Object.keys(this.props.gradient).length !==
+      Object.keys(nextProps.gradient).length
+    ) {
       this.setState({
-        colors: nextProps.colors
+        colors: getColors(nextProps.gradient)
       })
     }
   }
 
-  _onSortStart = () => {
-    this.props.toggleSorting()
-  }
-
-  _onSortEnd = ({ oldIndex, newIndex, collection }) => {
+  _onSortEnd = ({ oldIndex, newIndex }) => {
     const colors = arrayMove(this.state.colors, oldIndex, newIndex)
     const { updateColorStop, id } = this.props
-
-    this.props.toggleSorting(300)
-
     this.setState({
       colors
     })
@@ -112,26 +106,33 @@ class Swatch extends Component {
     updateColorStop(id, colors)
   }
 
+  _handleSortItemClick = () => {
+    this.props.editStop(this.props.id)
+  }
+
   render () {
-    const { transitionDuration, sorting } = this.props
-    const { colors } = this.state
+    const { transitionDuration, editing } = this.props
+    const { colors, pickingColor } = this.state
     return (
       colors &&
       <SortableList
         axis='x'
         lockAxis='x'
+        pickingColor={pickingColor}
         transitionDuration={transitionDuration}
         items={this.state.colors}
+        onSortItemClick={this._handleSortItemClick}
         onSortStart={this._onSortStart}
         onSortEnd={this._onSortEnd}
-        sorting={sorting}
         width={25}
+        distance={5}
         lockToContainerEdges
       />
     )
   }
 }
 
-export default connect(state => ({ sorting: state.swatch.sorting }), {
-  toggleSorting
-})(Swatch)
+export default connect(
+  (state, { id }) => ({ editing: state.stops.editing === id }),
+  { editStop }
+)(Swatch)

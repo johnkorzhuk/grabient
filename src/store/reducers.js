@@ -1,8 +1,8 @@
 import { combineReducers } from 'redux'
 import gradients from './gradients/reducer'
-import swatch from './swatch/reducer'
+import stops from './stops/reducer'
 
 export default combineReducers({
   gradients,
-  swatch
+  stops
 })
