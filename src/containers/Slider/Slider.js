@@ -43,10 +43,10 @@ const getAnimationData = (stops, isMounted) => {
   }, {})
 
   if (isMounted) {
-    data.size = 15
+    data.scale = 0.7
     data.barOpacity = 1
   } else {
-    data.size = 25
+    data.scale = 1
     data.barOpacity = 0
   }
 
