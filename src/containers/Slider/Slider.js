@@ -6,7 +6,7 @@ import { Animate } from 'react-move'
 // ms
 const ANIMATION_DURATION = 300
 // rem
-const SLIDER_ITEM_SIZE = 2
+// const SLIDER_ITEM_SIZE = 2
 
 const Container = styled.div`
   position: relative;

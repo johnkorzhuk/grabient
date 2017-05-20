@@ -47,6 +47,7 @@ function generateColorStopsFromData (data, prefixed = false, inverse = false) {
   delete newData.opacity
   const dataKeys = Object.keys(newData)
 
+  // This function relies on the order of stops / colors defined in flattenGradientData in /GradientContainer.js
   return dataKeys
     .map((key, index) => {
       const item = newData[key]

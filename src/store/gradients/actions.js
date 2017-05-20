@@ -1,28 +1,7 @@
-export const UPDATE_COLOR_STOP = 'gradients/UPDATE_COLOR_STOP'
 export const UPDATE_ANGLE = 'gradients/UPDATE_ANGLE'
 export const UPDATE_ACTIVE_ID = 'gradients/UPDATE_ACTIVE_ID'
 export const TOGGLE_EDITING = 'gradients/TOGGLE_EDITING'
 export const UPDATE_EDITING_ANGLE = 'gradients/UPDATE_EDITING_ANGLE'
-
-export const updateColorStop = (id, colors) => (dispatch, getState) => {
-  const { gradients: { gradientValues } } = getState()
-  const { gradient } = gradientValues[id]
-  const newGradient = Object.keys(gradient).reduce((aggr, curr, index) => {
-    aggr[curr] = {
-      ...gradient[curr],
-      color: colors[index]
-    }
-    return aggr
-  }, {})
-
-  return dispatch({
-    type: UPDATE_COLOR_STOP,
-    payload: {
-      id,
-      newGradient
-    }
-  })
-}
 
 export const updateActiveId = () => (dispatch, getState) => {
   const { gradients: { active, gradientValues } } = getState()

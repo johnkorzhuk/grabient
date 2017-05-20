@@ -1,6 +1,5 @@
 import {
   UPDATE_ANGLE,
-  UPDATE_COLOR_STOP,
   UPDATE_ACTIVE_ID,
   TOGGLE_EDITING,
   UPDATE_EDITING_ANGLE
@@ -38,21 +37,6 @@ const INITIAL_STATE = {
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
-    case UPDATE_COLOR_STOP:
-      return {
-        ...state,
-        gradientValues: {
-          ...state.gradientValues,
-          [action.payload.id]: {
-            ...state.gradientValues[action.payload.id],
-            gradient: {
-              ...[action.payload.id].gradient,
-              ...action.payload.newGradient
-            }
-          }
-        }
-      }
-
     case UPDATE_ACTIVE_ID:
       return {
         ...state,
