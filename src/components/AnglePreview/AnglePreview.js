@@ -5,21 +5,31 @@ import { AnglePrev } from './../Icons/index'
 
 const AnglePreview = ({
   angle,
-  styles,
-  translateX,
-  onClick,
   animationDuration,
-  hovered
+  hovered,
+  editingStop,
+  children
 }) => {
   return (
     <Animate
       data={{
-        scale: hovered ? 1.2 : 1
+        translateX: editingStop ? -60 : 0,
+        opacity: editingStop ? 0 : 1
       }}
-      duration={animationDuration}
+      duration={300}
     >
       {data => {
-        return <AnglePrev color='#AFAFAF' scale={data.scale} angle={angle} />
+        return (
+          <div
+            style={{
+              transform: `translateX(${data.translateX}px)`,
+              opacity: data.opacity
+            }}
+          >
+            <AnglePrev color='#AFAFAF' angle={angle} />
+            {children}
+          </div>
+        )
       }}
     </Animate>
   )

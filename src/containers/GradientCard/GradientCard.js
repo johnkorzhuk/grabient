@@ -53,15 +53,6 @@ const InfoContainer = styled.div`
   bottom: 15px;
 `
 
-const SwatchSliderContainer = styled.div`
-  display: relative;
-`
-
-const SwatchContainer = styled.div`
-  position: absolute;
-  width: 100%;
-`
-
 const AddColorContainer = styled.div`
   height: 25px;
   cursor: pointer;
@@ -148,11 +139,14 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, 'arrowPrev')}
           >
             <AnglePreview
+              editingStop={editingStop}
               angle={angle}
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
               hovered={arrowPrev}
-            />
-            <AngleText>{angle}°</AngleText>
+            >
+
+              <AngleText>{angle}°</AngleText>
+            </AnglePreview>
           </AngleContainer>
 
           <SwatchSlider

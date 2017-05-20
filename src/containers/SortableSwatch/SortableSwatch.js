@@ -20,7 +20,7 @@ const SortableList = SortableContainer(
     items,
     width,
     height,
-    transitionDuration,
+    transitionDuration = 100,
     sorting,
     onSortItemClick,
     pickingColor,
@@ -90,7 +90,6 @@ class Swatch extends Component {
   render () {
     const { transitionDuration, style } = this.props
     const { pickingColor, colors } = this.state
-
     return (
       colors &&
       <SortableList

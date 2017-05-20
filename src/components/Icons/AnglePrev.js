@@ -1,12 +1,12 @@
 import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 
-const AnglePrev = ({ angle, scale, color }) => {
+const AnglePrev = ({ angle, color }) => {
   return (
     <svg
       width='20'
       height='20'
       style={{
-        transform: `rotate(${angle}deg) scale(${scale})`
+        transform: `rotate(${angle}deg)`
       }}
       viewBox='0 0 20 20'
       xmlns='http://www.w3.org/2000/svg'
