@@ -1,4 +1,5 @@
 import { createSelector } from 'reselect'
+import { getStops } from './../stops/selectors'
 
 export const getActiveId = state => state.gradients.active
 export const getGradients = state => state.gradients.gradientValues
@@ -8,7 +9,12 @@ export const getActiveGradient = createSelector(
   (activeId, gradients) => gradients[activeId]
 )
 
-export const getColors = createSelector([getActiveGradient], activeGradient => {
-  const { gradient } = activeGradient
-  return Object.keys(gradient).map(stop => gradient[stop].color)
-})
+export const getGradientById = id =>
+  createSelector([getStops, getGradients], (stops, gradients) => {
+    return {
+      ...gradients[id],
+      gradient: {
+        ...stops[id]
+      }
+    }
+  })

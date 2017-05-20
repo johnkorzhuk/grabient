@@ -10,162 +10,31 @@ const INITIAL_STATE = {
   gradientValues: {
     '2a': {
       id: '2a',
-      angle: 60,
-      gradient: {
-        stop1: {
-          color: '#e0c3fc',
-          stop: -20
-        },
-        stop2: {
-          color: '#8ec5fc',
-          stop: 50
-        },
-        stop3: {
-          color: '#43e97b',
-          stop: 100
-        }
-      }
+      angle: 60
     },
     '1a': {
       id: '1a',
-      angle: 10,
-      gradient: {
-        stop1: {
-          color: '#fad0c4',
-          stop: 0
-        },
-        stop2: {
-          color: '#ffd1ff',
-          stop: 50
-        }
-      }
+      angle: 10
     },
     '4a': {
       id: '4a',
-      angle: 180,
-      gradient: {
-        stop1: {
-          color: '#ffffff',
-          stop: 50
-        },
-        stop2: {
-          color: '#c3cfe2',
-          stop: 70
-        },
-        stop3: {
-          color: '#fad0c4',
-          stop: 100
-        }
-      }
+      angle: 180
     },
     '3a': {
       id: '3a',
-      angle: 0,
-      gradient: {
-        stop1: {
-          color: '#8ec5fc',
-          stop: 0
-        },
-        stop2: {
-          color: '#c3cfe2',
-          stop: 70
-        },
-        stop3: {
-          color: '#43e97b',
-          stop: 100
-        }
-      }
+      angle: 0
     },
     '5a': {
       id: '5a',
-      angle: 220,
-      gradient: {
-        stop1: {
-          color: '#00253C',
-          stop: 0
-        },
-        stop2: {
-          color: '#086B3C',
-          stop: 25
-        },
-        stop3: {
-          color: '#8ec5fc',
-          stop: 50
-        },
-        stop4: {
-          color: '#000000',
-          stop: 100
-        }
-      }
+      angle: 220
     }
   },
-  active: 1,
+  // active: 1,
   editingAngle: {
     id: null,
     angle: null
   }
 }
-
-// const INITIAL_STATE = {
-//   gradientValues: {
-//     '2a': {
-//       id: '2a',
-//       angle: 60,
-//       gradient: {
-//         stop1: {
-//           color: '#e0c3fc',
-//           stop: -20
-//         },
-//         stop2: {
-//           color: '#8ec5fc',
-//           stop: 50
-//         },
-//         stop3: {
-//           color: '#43e97b',
-//           stop: 100
-//         }
-//       }
-//     },
-//     '1a': {
-//       id: '1a',
-//       angle: 10,
-//       gradient: {
-//         stop1: {
-//           color: '#fad0c4',
-//           stop: 0
-//         },
-//         stop2: {
-//           color: '#ffd1ff',
-//           stop: 50
-//         }
-//       }
-//     },
-
-//     '4a': {
-//       id: '4a',
-//       angle: 180,
-//       gradient: {
-//         stop1: {
-//           color: '#ffffff',
-//           stop: 50
-//         },
-//         stop2: {
-//           color: '#c3cfe2',
-//           stop: 70
-//         },
-//         stop3: {
-//           color: '#fad0c4',
-//           stop: 100
-//         }
-//       }
-//     }
-//   },
-//   active: 1,
-//   editingAngle: {
-//     id: null,
-//     angle: null
-//   }
-// }
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {

@@ -8,7 +8,8 @@ import {
   arrayMove
 } from 'react-sortable-hoc'
 
-import { editStop } from './../../store/stops/actions'
+import { editStop, swapStopsColors } from './../../store/stops/actions'
+import { getStopsById, getStopColors } from './../../store/stops/selectors'
 
 import SwatchItem from './SwatchItem'
 
@@ -16,10 +17,6 @@ const SwatchContainer = styled.div`
   display: flex;
   justify-content: flex-end;
 `
-
-const getColors = gradient => {
-  return Object.keys(gradient).map(stop => gradient[stop].color)
-}
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 
@@ -80,30 +77,27 @@ class Swatch extends Component {
 
   componentDidMount () {
     this.setState({
-      colors: getColors(this.props.gradient)
+      colors: this.props.colors
     })
   }
 
   componentWillReceiveProps (nextProps) {
     // update state.colors when a gradient stop is added
-    if (
-      Object.keys(this.props.gradient).length !==
-      Object.keys(nextProps.gradient).length
-    ) {
+    if (this.props.colors.length !== nextProps.colors.length) {
       this.setState({
-        colors: getColors(nextProps.gradient)
+        colors: nextProps.colors
       })
     }
   }
 
   _onSortEnd = ({ oldIndex, newIndex }) => {
     const colors = arrayMove(this.state.colors, oldIndex, newIndex)
-    const { updateColorStop, id } = this.props
+    const { swapStopsColors, id } = this.props
     this.setState({
       colors
     })
 
-    updateColorStop(id, colors)
+    swapStopsColors(id, colors)
   }
 
   _handleSortItemClick = () => {
@@ -111,8 +105,9 @@ class Swatch extends Component {
   }
 
   render () {
-    const { transitionDuration, editing } = this.props
-    const { colors, pickingColor } = this.state
+    const { transitionDuration } = this.props
+    const { pickingColor, colors } = this.state
+
     return (
       colors &&
       <SortableList
@@ -133,6 +128,10 @@ class Swatch extends Component {
 }
 
 export default connect(
-  (state, { id }) => ({ editing: state.stops.editing === id }),
-  { editStop }
+  (state, { id }) => ({
+    editing: state.stops.editing === id,
+    stops: getStopsById(state, id),
+    colors: getStopColors(id)(state)
+  }),
+  { editStop, swapStopsColors }
 )(Swatch)

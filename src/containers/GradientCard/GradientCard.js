@@ -2,12 +2,14 @@ import Component from 'inferno-component'
 import styled from 'styled-components'
 import { connect } from 'inferno-redux'
 
-import { toggleEditing, updateColorStop } from './../../store/gradients/actions'
+import { toggleEditing } from './../../store/gradients/actions'
+import { getGradientById } from './../../store/gradients/selectors'
 
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
 import { Slider, Swatch } from './../index'
 
+// units = ms
 const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
@@ -92,15 +94,7 @@ class GradientCard extends Component {
 
   render () {
     const { hovered: { arrowPrev, addColor, main } } = this.state
-    const {
-      gradient,
-      id,
-      toggleEditing,
-      updateColorStop,
-      angle,
-      editing,
-      index
-    } = this.props
+    const { gradient, id, toggleEditing, angle, editing, index } = this.props
 
     return (
       <Container
@@ -115,7 +109,6 @@ class GradientCard extends Component {
           wheelAnimationDuration={ANGLE_WHEEL_ANIMATION_DURATION}
           id={id}
           gradient={gradient}
-          angle={angle}
           hovered={main}
           editing={editing}
         />
@@ -134,12 +127,7 @@ class GradientCard extends Component {
             <AngleText>{angle}°</AngleText>
           </AngleContainer>
 
-          <Swatch
-            id={id}
-            updateColorStop={updateColorStop}
-            transitionDuration={SWATCH_ANIMATION_DURATION}
-            gradient={gradient.gradient}
-          />
+          <Swatch id={id} transitionDuration={SWATCH_ANIMATION_DURATION} />
 
           <AddColorContainer
             onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
@@ -158,14 +146,19 @@ class GradientCard extends Component {
   }
 }
 
-export default connect(
-  ({ gradients: { editingAngle } }, { id, gradient }) => ({
+const mapStateToProps = (state, { id }) => {
+  const gradient = getGradientById(id)(state)
+  return {
+    gradient,
     // eslint-disable-next-line eqeqeq
-    editing: id == editingAngle.id,
+    editing: id == state.gradients.editingAngle.id,
     // eslint-disable-next-line eqeqeq
-    angle: id == editingAngle.id
-      ? editingAngle.angle === null ? gradient.angle : editingAngle.angle
+    angle: id == state.gradients.editingAngle.id
+      ? state.gradients.editingAngle.angle === null
+          ? gradient.angle
+          : state.gradients.editingAngle.angle
       : gradient.angle
-  }),
-  { toggleEditing, updateColorStop }
-)(GradientCard)
+  }
+}
+
+export default connect(mapStateToProps, { toggleEditing })(GradientCard)

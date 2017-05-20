@@ -1,4 +1,4 @@
-import { EDIT_STOP, UPDATE_STOP } from './actions'
+import { EDIT_STOP, SWAP_STOP_COLORS } from './actions'
 
 const INITIAL_STATE = {
   values: {
@@ -37,6 +37,15 @@ export default (state = INITIAL_STATE, action) => {
       return {
         ...state,
         editing: action.payload.id
+      }
+
+    case SWAP_STOP_COLORS:
+      return {
+        ...state,
+        values: {
+          ...state.values,
+          [action.payload.id]: action.payload.updatedStop
+        }
       }
     default:
       return state

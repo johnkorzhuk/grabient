@@ -16,6 +16,7 @@ const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => (
   <Container>
     {Object.keys(gradients).map((gradientKey, index) => {
       const gradient = gradients[gradientKey]
+
       return (
         <GradientCard
           index={index}

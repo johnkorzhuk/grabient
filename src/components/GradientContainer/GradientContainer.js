@@ -30,26 +30,27 @@ const Blurred = styled.div`
   border-radius: 15px;
 `
 
+const flattenGradientData = gradient => {
+  return Object.keys(gradient).reduce((aggr, curr) => {
+    // order matters! Check generateColorStopsFromData in ./utils/gradient.js
+    aggr[`${curr}Color`] = gradient[curr]
+    aggr[`${curr}Stop`] = parseInt(curr, 10)
+    return aggr
+  }, {})
+}
+
 class GradientContainer extends Component {
   componentWillMount () {
     const { gradient } = this.props.gradient
-    this.data = Object.keys(gradient).reduce((aggr, curr) => {
-      aggr[`${curr}Color`] = gradient[curr].color
-      aggr[`${curr}Stop`] = gradient[curr].stop
-      return aggr
-    }, {})
+
+    this.data = flattenGradientData(gradient)
   }
 
   componentWillReceiveProps (nextProps) {
     const { gradient } = this.props.gradient
+
     if (!deepEqual(gradient, nextProps.gradient.gradient)) {
-      this.data = Object.keys(
-        nextProps.gradient.gradient
-      ).reduce((aggr, curr) => {
-        aggr[`${curr}Color`] = nextProps.gradient.gradient[curr].color
-        aggr[`${curr}Stop`] = nextProps.gradient.gradient[curr].stop
-        return aggr
-      }, {})
+      this.data = flattenGradientData(nextProps.gradient.gradient)
     }
   }
 
@@ -67,22 +68,19 @@ class GradientContainer extends Component {
       gradientAnimationDuration,
       wheelAnimationDuration,
       id,
-      gradient,
-      angle,
+      gradient: { angle },
       hovered,
       onMouseEnter,
       onMouseLeave,
       editing
     } = this.props
+
     return (
       <Container>
 
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, 'main')}
           onMouseLeave={e => onMouseLeave(e, 'main')}
-          style={{
-            backgroundColor: '#00000'
-          }}
         >
           <Gradient
             angle={angle}
@@ -101,7 +99,7 @@ class GradientContainer extends Component {
         </Blurred>
 
         <AngleWheel
-          angle={gradient.angle}
+          angle={angle}
           id={id}
           transitionDuration={wheelAnimationDuration}
         />

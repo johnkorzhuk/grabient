@@ -3,7 +3,10 @@ import { connect } from 'inferno-redux'
 import styled from 'styled-components'
 import { Animate } from 'react-move'
 
+// ms
 const ANIMATION_DURATION = 300
+// rem
+const SLIDER_ITEM_SIZE = 2
 
 const Container = styled.div`
   position: relative;

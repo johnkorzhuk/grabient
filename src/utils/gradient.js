@@ -43,27 +43,25 @@ function generateGradientFromData (data, prefixed = false, inverse = false) {
 }
 
 function generateColorStopsFromData (data, prefixed = false, inverse = false) {
-  let stop = 1
   let newData = { ...data }
+  delete newData.opacity
+  const dataKeys = Object.keys(newData)
 
-  if (newData.opacity) delete newData.opacity
+  return dataKeys
+    .map((key, index) => {
+      const item = newData[key]
 
-  const gradient = Object.keys(newData).reduce((aggr, curr, index) => {
-    if (index % 2 === 0) {
-      aggr[`stop${stop}`] = {
-        color: data[curr]
+      if (index % 2 === 0) {
+        return item
+      } else {
+        if (index === dataKeys.length - 1) {
+          return `${item}%`
+        } else {
+          return `${item}%,`
+        }
       }
-    } else {
-      aggr[`stop${stop}`] = {
-        ...aggr[`stop${stop}`],
-        stop: data[curr]
-      }
-      stop++
-    }
-    return aggr
-  }, {})
-
-  return generateColorStops(gradient)
+    })
+    .join(' ')
 }
 
 function generateAngle (angle, inverse) {
