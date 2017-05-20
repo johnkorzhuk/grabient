@@ -2,7 +2,14 @@ import GradientList from './GradientList/GradientList'
 import AngleWheel from './AngleWheel/AngleWheel'
 import GradientCard from './GradientCard/GradientCard'
 import ColorPicker from './ColorPicker/ColorPicker'
-import Slider from './Slider/Slider'
-import Swatch from './Swatch/Swatch'
+import SwatchSlider from './SwatchSlider/SwatchSlider'
+import SortableSwatch from './SortableSwatch/SortableSwatch'
 
-export { GradientList, AngleWheel, GradientCard, ColorPicker, Slider, Swatch }
+export {
+  GradientList,
+  AngleWheel,
+  GradientCard,
+  ColorPicker,
+  SwatchSlider,
+  SortableSwatch
+}

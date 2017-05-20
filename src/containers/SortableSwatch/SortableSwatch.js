@@ -1,7 +1,6 @@
 import Component from 'inferno-component'
 import { connect } from 'inferno-redux'
 import styled from 'styled-components'
-import { Transition } from 'react-move'
 import {
   SortableContainer,
   SortableElement,
@@ -11,12 +10,8 @@ import {
 import { editStop, swapStopsColors } from './../../store/stops/actions'
 import { getStopsById, getStopColors } from './../../store/stops/selectors'
 
-import SwatchItem from './SwatchItem'
-
-const SwatchContainer = styled.div`
-  display: flex;
-  justify-content: flex-end;
-`
+import { SwatchItem } from './../../components/index'
+import SwatchContainer from './../../components/SwatchItem/Container'
 
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 
@@ -28,44 +23,32 @@ const SortableList = SortableContainer(
     transitionDuration,
     sorting,
     onSortItemClick,
-    pickingColor
+    pickingColor,
+    style
   }) => {
     return (
-      <Transition
-        data={items}
-        getKey={(item, index) => index}
-        update={(item, index) => ({
-          width
-        })}
-        enter={(item, index) => ({
-          width: 0
-        })}
-        leave={(item, index) => ({
-          width: 0
-        })}
+      <SwatchContainer
+        stops={items.length}
         duration={transitionDuration}
+        style={style}
       >
-        {data => (
-          <SwatchContainer>
-            {data.map((item, index) => {
-              return (
-                <SortableItem
-                  disabled={pickingColor}
-                  onSortItemClick={onSortItemClick}
-                  key={item.key}
-                  sorting={sorting}
-                  index={index}
-                  color={items[index]}
-                  style={{
-                    backgroundColor: items[index],
-                    width: item.state.width
-                  }}
-                />
-              )
-            })}
-          </SwatchContainer>
-        )}
-      </Transition>
+        {items.map((item, index) => {
+          return (
+            <SortableItem
+              disabled={pickingColor}
+              onClick={onSortItemClick}
+              key={item.key}
+              sorting={sorting}
+              index={index}
+              color={items[index]}
+              style={{
+                backgroundColor: items[index],
+                left: `${index / items.length * 100}%`
+              }}
+            />
+          )
+        })}
+      </SwatchContainer>
     )
   }
 )
@@ -105,7 +88,7 @@ class Swatch extends Component {
   }
 
   render () {
-    const { transitionDuration } = this.props
+    const { transitionDuration, style } = this.props
     const { pickingColor, colors } = this.state
 
     return (
@@ -119,6 +102,7 @@ class Swatch extends Component {
         onSortItemClick={this._handleSortItemClick}
         onSortStart={this._onSortStart}
         onSortEnd={this._onSortEnd}
+        style={style}
         width={25}
         distance={5}
         lockToContainerEdges

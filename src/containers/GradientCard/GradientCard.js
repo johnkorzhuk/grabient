@@ -7,13 +7,13 @@ import { getGradientById } from './../../store/gradients/selectors'
 
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
-import { Slider, Swatch } from './../index'
+import { SwatchSlider, SortableSwatch } from './../index'
 
 // units = ms
 const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
-const SWATCH_ANIMATION_DURATION = 300
+const SLIDER_ANIMATION_DURATION = 300
 
 const Container = styled.div`
   width: 33.33%;
@@ -41,7 +41,7 @@ const AngleText = styled.span`
   top: 2px;
 `
 
-const SwatchContainer = styled.div`
+const InfoContainer = styled.div`
   position: relative;
   width: 100%;
   height: 25px;
@@ -53,9 +53,17 @@ const SwatchContainer = styled.div`
   bottom: 15px;
 `
 
+const SwatchSliderContainer = styled.div`
+  display: relative;
+`
+
+const SwatchContainer = styled.div`
+  position: absolute;
+  width: 100%;
+`
+
 const AddColorContainer = styled.div`
   height: 25px;
-  margin-left: 15px;
   cursor: pointer;
 `
 
@@ -66,13 +74,22 @@ class GradientCard extends Component {
       addColor: false,
       main: false
     },
-    wasEditing: false
+    wasEditing: false,
+    editingStops: false
   }
 
   componentWillReceiveProps (nextProps) {
-    const { editing } = this.props
-    if (editing !== nextProps.editing) {
-      this.setState({ wasEditing: !nextProps.editing })
+    const { editingAngle, editingStop } = this.props
+    if (editingAngle !== nextProps.editingAngle) {
+      this.setState({ wasEditing: !nextProps.editingAngle })
+    }
+
+    if (editingStop !== nextProps.editingStop) {
+      setTimeout(() => {
+        this.setState(prevState => ({
+          editingStops: !prevState.editingStops
+        }))
+      }, SLIDER_ANIMATION_DURATION + 100)
     }
   }
 
@@ -93,8 +110,19 @@ class GradientCard extends Component {
   }
 
   render () {
-    const { hovered: { arrowPrev, addColor, main } } = this.state
-    const { gradient, id, toggleEditing, angle, editing, index } = this.props
+    const { hovered: { arrowPrev, addColor, main }, editingStops } = this.state
+    const {
+      gradient,
+      id,
+      toggleEditing,
+      angle,
+      editingAngle,
+      editingStop,
+      index
+    } = this.props
+
+    const shouldRenderSortableSwatch =
+      !editingStop || (editingStops && !editingStop)
 
     return (
       <Container
@@ -110,10 +138,10 @@ class GradientCard extends Component {
           id={id}
           gradient={gradient}
           hovered={main}
-          editing={editing}
+          editing={editingAngle}
         />
 
-        <SwatchContainer>
+        <InfoContainer>
           <AngleContainer
             onClick={() => toggleEditing(id)}
             onMouseEnter={e => this._handleMouseEnter(e, 'arrowPrev')}
@@ -127,20 +155,33 @@ class GradientCard extends Component {
             <AngleText>{angle}°</AngleText>
           </AngleContainer>
 
-          <Swatch id={id} transitionDuration={SWATCH_ANIMATION_DURATION} />
+          <SwatchSlider
+            style={{
+              opacity: editingStop ? 1 : editingStops ? 1 : 0
+            }}
+            id={id}
+            transitionDuration={SLIDER_ANIMATION_DURATION}
+          />
+          {shouldRenderSortableSwatch &&
+            <SortableSwatch
+              style={{
+                opacity: editingStop ? 0 : editingStops ? 0 : 1
+              }}
+              id={id}
+              transitionDuration={SLIDER_ANIMATION_DURATION}
+            />}
 
           <AddColorContainer
             onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
           >
             <AddColor
-              anmationDuration={SWATCH_ANIMATION_DURATION}
+              anmationDuration={SLIDER_ANIMATION_DURATION}
               hovered={addColor}
               color='#AFAFAF'
             />
           </AddColorContainer>
-        </SwatchContainer>
-        <Slider id={id} />
+        </InfoContainer>
       </Container>
     )
   }
@@ -151,7 +192,9 @@ const mapStateToProps = (state, { id }) => {
   return {
     gradient,
     // eslint-disable-next-line eqeqeq
-    editing: id == state.gradients.editingAngle.id,
+    editingAngle: id == state.gradients.editingAngle.id,
+    // eslint-disable-next-line eqeqeq
+    editingStop: id == state.stops.editing,
     // eslint-disable-next-line eqeqeq
     angle: id == state.gradients.editingAngle.id
       ? state.gradients.editingAngle.angle === null
@@ -162,3 +205,9 @@ const mapStateToProps = (state, { id }) => {
 }
 
 export default connect(mapStateToProps, { toggleEditing })(GradientCard)
+//  <SwatchSliderContainer>
+//             <SwatchContainer><Slider id={id} /></SwatchContainer>
+//             <SwatchContainer>
+//               <Swatch id={id} transitionDuration={SWATCH_ANIMATION_DURATION} />
+//             </SwatchContainer>
+//           </SwatchSliderContainer>

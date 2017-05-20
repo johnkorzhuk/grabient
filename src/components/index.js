@@ -3,5 +3,13 @@ import Container from './Common/Container'
 import AnglePreview from './AnglePreview/AnglePreview'
 import Gradient from './Gradient/Gradient'
 import GradientContainer from './GradientContainer/GradientContainer'
+import SwatchItem from './SwatchItem/SwatchItem'
 
-export { GradientDisplay, Container, AnglePreview, Gradient, GradientContainer }
+export {
+  GradientDisplay,
+  Container,
+  AnglePreview,
+  Gradient,
+  GradientContainer,
+  SwatchItem
+}

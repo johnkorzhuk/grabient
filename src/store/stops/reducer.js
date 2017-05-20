@@ -28,7 +28,7 @@ const INITIAL_STATE = {
       100: '#000000'
     }
   },
-  editing: '2a'
+  editing: null
 }
 
 export default (state = INITIAL_STATE, action) => {
