@@ -8,6 +8,7 @@ const SwatchContainer = styled.div`
   align-items: center;
   transition: ${({ duration }) => `width ${duration}ms linear`};
   width: ${({ isMounted, stops }) => (isMounted ? 'calc(100% - 30px)' : `${stops * 30}px`)};
+  height: 40px;
 `
 
 export default SwatchContainer

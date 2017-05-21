@@ -35,7 +35,6 @@ const getAnimationData = (stops, isMounted) => {
   return data
 }
 
-// right: 65px for container
 class Slider extends Component {
   render () {
     const { stopsMap, editing, transitionDuration, style } = this.props
@@ -46,39 +45,36 @@ class Slider extends Component {
       <Animate data={data} duration={transitionDuration}>
         {data => {
           return (
-            // when active this width = 100% - 30px
-            (
-              <SwatchContainer
-                isMounted={editing}
-                duration={transitionDuration}
-                stops={stopsMapKeys.length}
-                style={style}
-              >
-                <SlideBar
-                  style={{
-                    opacity: data.barOpacity
-                  }}
-                />
-                {stopsMapKeys.map((stop, index) => {
-                  const color = stopsMap[stop]
-                  let left = `${data[stop]}%`
-                  if (stop === '100') {
-                    left = `calc(100% - ${SLIDER_ITEM_SIZE}rem)`
-                  }
+            <SwatchContainer
+              isMounted={editing}
+              duration={transitionDuration}
+              stops={stopsMapKeys.length}
+              style={style}
+            >
+              <SlideBar
+                style={{
+                  opacity: data.barOpacity
+                }}
+              />
+              {stopsMapKeys.map((stop, index) => {
+                const color = stopsMap[stop]
+                let left = `${data[stop]}%`
+                if (stop === '100') {
+                  left = `calc(100% - ${SLIDER_ITEM_SIZE}rem)`
+                }
 
-                  return (
-                    <SwatchItem
-                      style={{
-                        left,
-                        backgroundColor: `${color}`,
-                        marginLeft: 0,
-                        position: 'absolute'
-                      }}
-                    />
-                  )
-                })}
-              </SwatchContainer>
-            )
+                return (
+                  <SwatchItem
+                    style={{
+                      left,
+                      backgroundColor: `${color}`,
+                      marginLeft: 0,
+                      position: 'absolute'
+                    }}
+                  />
+                )
+              })}
+            </SwatchContainer>
           )
         }}
       </Animate>
@@ -90,39 +86,3 @@ export default connect((state, { id }) => ({
   stopsMap: state.stops.values[id],
   editing: state.stops.editing === id
 }))(Slider)
-
-// <Animate data={data} duration={ANIMATION_DURATION}>
-//         {data => {
-//           return (
-//             <Container
-//               isMounted={editing}
-//               duration={ANIMATION_DURATION}
-//               stops={stopsMapKeys.length}
-//             >
-//               <SlideBar
-//                 style={{
-//                   opacity: data.barOpacity
-//                 }}
-//               />
-//               {stopsMapKeys.map((stop, index) => {
-//                 const color = stopsMap[stop]
-
-//                 return (
-//                   <SwatchItem
-//                     style={{
-//                       left: stop === '100'
-//                         ? editing
-//                             ? `calc(100% - ${SLIDER_ITEM_SIZE}rem)`
-//                             : `${data[stop]}%`
-//                         : `${data[stop]}%`,
-//                       backgroundColor: `${color}`,
-//                       marginLeft: 0,
-//                       position: 'absolute'
-//                     }}
-//                   />
-//                 )
-//               })}
-//             </Container>
-//           )
-//         }}
-//       </Animate>

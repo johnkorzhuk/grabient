@@ -31,6 +31,11 @@ const AngleContainer = styled.div`
   margin-right: auto;
   position: relative;
   cursor: pointer;
+  height: 40px;
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 `
 
 const AngleText = styled.span`
@@ -51,8 +56,12 @@ const InfoContainer = styled.div`
 `
 
 const AddColorContainer = styled.div`
-  height: 20px;
+  height: 40px;
+  width: 25px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
 `
 
 class GradientCard extends Component {
