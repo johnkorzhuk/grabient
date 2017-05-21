@@ -44,17 +44,14 @@ const AngleText = styled.span`
 const InfoContainer = styled.div`
   position: relative;
   width: 100%;
-  height: 25px;
-  align-self: flex-end;
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   z-index: 10;
   bottom: 15px;
 `
 
 const AddColorContainer = styled.div`
-  height: 25px;
+  height: 20px;
   cursor: pointer;
 `
 
@@ -139,6 +136,7 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, 'arrowPrev')}
           >
             <AnglePreview
+              editingAngle={editingAngle}
               editingStop={editingStop}
               angle={angle}
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}

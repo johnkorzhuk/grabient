@@ -2,13 +2,12 @@ import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 import styled from 'styled-components'
 
 const SwatchContainer = styled.div`
-  right: 25px;
+  right: 30px;
   position: absolute;
-  height: 25px;
   display: flex;
   align-items: center;
   transition: ${({ duration }) => `width ${duration}ms linear`};
-  width: ${({ isMounted, stops }) => (isMounted ? 'calc(100% - 25px)' : `${stops * 35}px`)};
+  width: ${({ isMounted, stops }) => (isMounted ? 'calc(100% - 30px)' : `${stops * 30}px`)};
 `
 
 export default SwatchContainer

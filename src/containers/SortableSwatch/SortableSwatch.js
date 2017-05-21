@@ -1,6 +1,6 @@
 import Component from 'inferno-component'
 import { connect } from 'inferno-redux'
-import styled from 'styled-components'
+
 import {
   SortableContainer,
   SortableElement,

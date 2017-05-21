@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import { Animate } from 'react-move'
 
 import { SwatchItem } from './../../components/index'
+
 import SwatchContainer from './../../components/SwatchItem/Container'
 
 // rem

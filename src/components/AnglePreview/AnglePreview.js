@@ -8,6 +8,7 @@ const AnglePreview = ({
   animationDuration,
   hovered,
   editingStop,
+  editingAngle,
   children
 }) => {
   return (
@@ -20,13 +21,20 @@ const AnglePreview = ({
     >
       {data => {
         return (
+          data.opacity !== 0 &&
           <div
             style={{
               transform: `translateX(${data.translateX}px)`,
-              opacity: data.opacity
+              opacity: data.opacity,
+              height: 20
             }}
           >
-            <AnglePrev color='#AFAFAF' angle={angle} />
+            <AnglePrev
+              color='#AFAFAF'
+              angle={angle}
+              hovered={hovered}
+              editingAngle={editingAngle}
+            />
             {children}
           </div>
         )

@@ -1,23 +1,41 @@
 import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 
-const AnglePrev = ({ angle, color }) => {
-  return (
-    <svg
-      width='20'
-      height='20'
-      style={{
-        transform: `rotate(${angle}deg)`
-      }}
-      viewBox='0 0 20 20'
-      xmlns='http://www.w3.org/2000/svg'
-    >
-      <path
-        d='M7 .4578v2.12372C4.06817 3.7683 2 6.64262 2 10c0 4.41828 3.58172 8 8 8s8-3.58172 8-8c0-3.35738-2.06817-6.2317-5-7.41848V.4578C17.0571 1.73207 20 5.52236 20 10c0 5.52285-4.47715 10-10 10S0 15.52285 0 10C0 5.52236 2.9429 1.73207 7 .4578zM9 0h2v9H9V0z'
-        fill-rule='nonzero'
-        fill={color}
-      />
-    </svg>
-  )
+const AnglePrev = ({ angle, color, hovered, editingAngle }) => {
+  if (hovered || editingAngle) {
+    return (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 20 20'
+        style={{
+          transform: `rotate(${angle}deg)`
+        }}
+      >
+        <path
+          d='M10 20C4.47715 20 0 15.52285 0 10S4.47715 0 10 0s10 4.47715 10 10-4.47715 10-10 10zm1-18H9v7h2V2z'
+          fill-rule='nonzero'
+          fill={color}
+        />
+      </svg>
+    )
+  } else {
+    return (
+      <svg
+        width='20'
+        height='20'
+        viewBox='0 0 20 20'
+        style={{
+          transform: `rotate(${angle}deg)`
+        }}
+      >
+        <path
+          d='M9 2.0619C5.0537 2.554 2 5.92037 2 10c0 4.41828 3.58172 8 8 8s8-3.58172 8-8c0-4.07962-3.0537-7.446-7-7.9381V9H9V2.0619zM10 20C4.47715 20 0 15.52285 0 10S4.47715 0 10 0s10 4.47715 10 10-4.47715 10-10 10z'
+          fill-rule='nonzero'
+          fill={color}
+        />
+      </svg>
+    )
+  }
 }
 
 export default AnglePrev
