@@ -46,7 +46,7 @@ class Slider extends Component {
       <Animate data={data} duration={transitionDuration}>
         {data => {
           return (
-            // when active this width = 100% -25px
+            // when active this width = 100% - 30px
             (
               <SwatchContainer
                 isMounted={editing}
@@ -61,15 +61,15 @@ class Slider extends Component {
                 />
                 {stopsMapKeys.map((stop, index) => {
                   const color = stopsMap[stop]
+                  let left = `${data[stop]}%`
+                  if (stop === '100') {
+                    left = `calc(100% - ${SLIDER_ITEM_SIZE}rem)`
+                  }
 
                   return (
                     <SwatchItem
                       style={{
-                        left: stop === '100'
-                          ? editing
-                              ? `calc(100% - ${SLIDER_ITEM_SIZE}rem)`
-                              : `${data[stop]}%`
-                          : `${data[stop]}%`,
+                        left,
                         backgroundColor: `${color}`,
                         marginLeft: 0,
                         position: 'absolute'
