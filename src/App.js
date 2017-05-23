@@ -55,7 +55,6 @@ class App extends Component {
 
   _handleDocumentMouseUp = e => {
     if (this.props.editingStop) {
-      this._handleNoop(e)
       if (this.props.editingStop && this.props.draggingItemMousePos) {
         this.props.updateDraggedItemXPos(null)
       }

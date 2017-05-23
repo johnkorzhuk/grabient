@@ -6,14 +6,18 @@ import { mix } from 'polished'
 const SLIDER_ITEM_SIZE = 2
 
 const Item = styled.div`
-  height: 20px;
-  width: 20px;
+  height: 2rem;
+  width: 2rem;
   border-radius: 50%;
   cursor: pointer;
   position: absolute;
+  border: ${({ mixedColor }) => `1px solid ${mixedColor}`};
+  background-color: ${({ color }) => color};
 
-  &:hover {
-    boxShadow: ${({ color }) => '0px 3px 10px 1px' + color};
+  &:hover,
+  &:active {
+    z-index: 1000;
+    boxShadow: ${({ mixedColor }) => '0px 3px 10px 1px' + mixedColor};
   }
 `
 
@@ -23,11 +27,10 @@ const SwatchItem = ({ color, left, ...props }) => {
   return (
     <Item
       {...props}
-      color={mixed}
+      mixedColor={mixed}
+      color={color}
       style={{
-        border: `1px solid ${mixed}`,
-        left: `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`,
-        backgroundColor: color
+        left: `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
       }}
     />
   )

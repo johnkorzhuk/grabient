@@ -37,6 +37,7 @@ const AngleContainer = styled.div`
   display: flex;
   align-items: center;
   justify-content: flex-start;
+  z-index: 10;
 `
 
 const AngleText = styled.span`
@@ -190,6 +191,7 @@ class GradientCard extends Component {
                 transitionDuration={SLIDER_ANIMATION_DURATION}
               />}
           </SwatchSliderContainer>
+
           <AddColorContainer
             onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}

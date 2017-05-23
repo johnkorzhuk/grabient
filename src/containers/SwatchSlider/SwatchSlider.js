@@ -42,38 +42,39 @@ class Slider extends Component {
     left: null
   }
 
-  componentDidMount () {}
-
   componentWillReceiveProps (nextProps) {
     const { updateStopPos, stopsMap, id, draggingItemMousePos } = this.props
-
     const { editing } = this.state
-    if (editing && draggingItemMousePos !== nextProps.draggingItemMousePos) {
+    if (
+      editing !== null &&
+      draggingItemMousePos !== nextProps.draggingItemMousePos
+    ) {
       if (nextProps.draggingItemMousePos !== null) {
         const { left, right } = this.getContainerEdges(this.container)
-        // const halfItemWidth = this.getItemWidth(this.item) / 2
         const fromLeft = nextProps.draggingItemMousePos - left
         const total = right - left
         let perc = (fromLeft / total * 100).toFixed(1)
 
         if (perc < 0) perc = 0
         else if (perc > 100) perc = 100
-        // console.log(perc)
+
         this.setState({
           left: perc
         })
-        // updateStopPos(this.state.editing, perc, stopsMap, id)
       }
     }
-    if (this.props.editing !== nextProps.editing && !nextProps.editing) {
-      this.setState({
-        editing: null,
-        left: null
-      })
+
+    if (
+      (this.props.editing !== nextProps.editing && !nextProps.editing) ||
+      (this.props.editing && nextProps.draggingItemMousePos === null)
+    ) {
+      const { editing, left } = this.state
+      if (this.props.draggingItemMousePos) {
+        updateStopPos(editing, left, stopsMap, id)
+        this.clearState()
+      }
     }
   }
-
-  componentWillUpdate (nextProps, nextState) {}
 
   componentDidUpdate (prevProps) {
     if (this.props.editing !== prevProps.editing) {
@@ -87,6 +88,13 @@ class Slider extends Component {
     })
 
     this.props.updateDraggedItemXPos(e.x)
+  }
+
+  clearState () {
+    this.setState({
+      editing: null,
+      left: null
+    })
   }
 
   getContainerEdges (node) {
@@ -109,7 +117,7 @@ class Slider extends Component {
     const { stopsMap, editing, transitionDuration, style } = this.props
     const stopsMapKeys = Object.keys(stopsMap)
 
-    if (this.state.editing) {
+    if (this.state.editing !== null) {
       return (
         <SwatchContainer
           innerRef={node => (this.container = node)}
@@ -131,6 +139,7 @@ class Slider extends Component {
 
             return (
               <SwatchItem
+                key={stop}
                 innerRef={node => (this.item = node)}
                 left={left}
                 color={color}
@@ -166,6 +175,7 @@ class Slider extends Component {
 
                   return (
                     <SwatchItem
+                      key={stop}
                       onMouseDown={e => this._handleEditInit(e, stop)}
                       color={color}
                       left={left}
