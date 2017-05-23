@@ -8,6 +8,8 @@
     "inferno-compat": "^3.1.1",
     "inferno-component": "^3.1.1",
     "inferno-redux": "^3.1.1",
+    "lodash": "^4.17.4",
+    "lodash.throttle": "^4.1.1",
     "polished": "^1.1.1",
     "react-color": "^2.11.7",
     "react-icons": "^2.2.5",

@@ -4,7 +4,7 @@
   - Add option for prefix
 
 # important
-  - stlyed component shouldn't handle gradient transition. It's too slow
+
 
 # ideas
 

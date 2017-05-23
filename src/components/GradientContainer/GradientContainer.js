@@ -68,7 +68,7 @@ class GradientContainer extends Component {
       gradientAnimationDuration,
       wheelAnimationDuration,
       id,
-      gradient: { angle },
+      angle,
       hovered,
       onMouseEnter,
       onMouseLeave,
@@ -77,7 +77,6 @@ class GradientContainer extends Component {
 
     return (
       <Container>
-
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, 'main')}
           onMouseLeave={e => onMouseLeave(e, 'main')}

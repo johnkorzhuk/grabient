@@ -1,4 +1,9 @@
-import { EDIT_STOP, SWAP_STOP_COLORS } from './actions'
+import {
+  EDIT_STOP,
+  SWAP_STOP_COLORS,
+  UPDATE_DRAGGED_ITEM_POS,
+  UPDATE_STOP_POS
+} from './actions'
 
 const INITIAL_STATE = {
   values: {
@@ -28,7 +33,8 @@ const INITIAL_STATE = {
       100: '#000000'
     }
   },
-  editing: null
+  editing: null,
+  draggingItemMousePos: null
 }
 
 export default (state = INITIAL_STATE, action) => {
@@ -47,6 +53,23 @@ export default (state = INITIAL_STATE, action) => {
           [action.payload.id]: action.payload.updatedStop
         }
       }
+
+    case UPDATE_DRAGGED_ITEM_POS:
+      return {
+        ...state,
+        draggingItemMousePos: action.payload.xPos
+      }
+
+    case UPDATE_STOP_POS:
+      // console.log(action.payload.newValues)
+      return {
+        ...state,
+        values: {
+          ...state.values,
+          [action.payload.id]: action.payload.newValues
+        }
+      }
+
     default:
       return state
   }

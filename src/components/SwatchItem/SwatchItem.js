@@ -2,6 +2,9 @@ import Inferno from 'inferno' // eslint-disable-line no-unused-vars
 import styled from 'styled-components'
 import { mix } from 'polished'
 
+// rem
+const SLIDER_ITEM_SIZE = 2
+
 const Item = styled.div`
   height: 20px;
   width: 20px;
@@ -14,17 +17,18 @@ const Item = styled.div`
   }
 `
 
-const SwatchItem = ({ style, onClick }) => {
-  const mixed = mix(0.5, style.backgroundColor, '#AFAFAF')
+const SwatchItem = ({ color, left, ...props }) => {
+  const mixed = mix(0.5, color, '#AFAFAF')
 
   return (
     <Item
+      {...props}
       color={mixed}
       style={{
-        ...style,
-        border: `1px solid ${mixed}`
+        border: `1px solid ${mixed}`,
+        left: `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`,
+        backgroundColor: color
       }}
-      onClick={onClick}
     />
   )
 }

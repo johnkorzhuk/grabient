@@ -33,7 +33,7 @@ const SortableList = SortableContainer(
         style={style}
       >
         {items.map((item, index) => {
-          const stop = index / items.length * 100
+          const stop = (index + 1) / items.length * 100
           return (
             <SortableItem
               disabled={pickingColor}
@@ -42,11 +42,7 @@ const SortableList = SortableContainer(
               sorting={sorting}
               index={index}
               color={items[index]}
-              style={{
-                backgroundColor: items[index],
-                left: `${stop}%`,
-                marginLeft: 10
-              }}
+              left={stop}
             />
           )
         })}

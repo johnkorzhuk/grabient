@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import { connect } from 'inferno-redux'
 
 import { toggleEditing } from './../../store/gradients/actions'
+
 import { getGradientById } from './../../store/gradients/selectors'
 
 import { AnglePreview, GradientContainer } from './../../components/index'
@@ -29,7 +30,7 @@ const Container = styled.div`
 
 const AngleContainer = styled.div`
   margin-right: auto;
-  position: relative;
+  position: absolute;
   cursor: pointer;
   height: 40px;
   width: 60px;
@@ -55,7 +56,19 @@ const InfoContainer = styled.div`
   bottom: 15px;
 `
 
+const SwatchSliderContainer = styled.div`
+  position: relative;
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  height: 40px;
+  margin: 0 4rem 0 1rem;
+`
+
 const AddColorContainer = styled.div`
+  position: absolute;
+  right: 0;
   height: 40px;
   width: 25px;
   cursor: pointer;
@@ -128,6 +141,7 @@ class GradientCard extends Component {
         }}
       >
         <GradientContainer
+          angle={angle}
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}
           gradientAnimationDuration={GRADIENT_ANIMATION_DURATION}
@@ -139,6 +153,7 @@ class GradientCard extends Component {
         />
 
         <InfoContainer>
+
           <AngleContainer
             onClick={() => toggleEditing(id)}
             onMouseEnter={e => this._handleMouseEnter(e, 'arrowPrev')}
@@ -156,22 +171,25 @@ class GradientCard extends Component {
             </AnglePreview>
           </AngleContainer>
 
-          <SwatchSlider
-            style={{
-              opacity: editingStop ? 1 : editingStops ? 1 : 0
-            }}
-            id={id}
-            transitionDuration={SLIDER_ANIMATION_DURATION}
-          />
-          {shouldRenderSortableSwatch &&
-            <SortableSwatch
+          <SwatchSliderContainer>
+            <SwatchSlider
               style={{
-                opacity: editingStop ? 0 : editingStops ? 0 : 1
+                opacity: editingStop ? 1 : editingStops ? 1 : 0
               }}
               id={id}
               transitionDuration={SLIDER_ANIMATION_DURATION}
-            />}
+            />
 
+            {shouldRenderSortableSwatch &&
+              <SortableSwatch
+                style={{
+                  opacity: editingStop ? 0 : editingStops ? 0 : 1,
+                  zIndex: 1000
+                }}
+                id={id}
+                transitionDuration={SLIDER_ANIMATION_DURATION}
+              />}
+          </SwatchSliderContainer>
           <AddColorContainer
             onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
@@ -190,7 +208,9 @@ class GradientCard extends Component {
 
 const mapStateToProps = (state, { id }) => {
   const gradient = getGradientById(id)(state)
+
   return {
+    draggingItemMousePos: state.stops.draggingItemMousePos,
     gradient,
     // eslint-disable-next-line eqeqeq
     editingAngle: id == state.gradients.editingAngle.id,
@@ -205,10 +225,6 @@ const mapStateToProps = (state, { id }) => {
   }
 }
 
-export default connect(mapStateToProps, { toggleEditing })(GradientCard)
-//  <SwatchSliderContainer>
-//             <SwatchContainer><Slider id={id} /></SwatchContainer>
-//             <SwatchContainer>
-//               <Swatch id={id} transitionDuration={SWATCH_ANIMATION_DURATION} />
-//             </SwatchContainer>
-//           </SwatchSliderContainer>
+export default connect(mapStateToProps, {
+  toggleEditing
+})(GradientCard)
