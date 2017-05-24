@@ -8,6 +8,8 @@ import {
   updateStopPos
 } from './../../store/stops/actions'
 
+import { getStopsData } from './../../store/stops/selectors'
+
 import { SwatchItem } from './../../components/index'
 import SwatchContainer from './../../components/SwatchItem/Container'
 
@@ -17,30 +19,11 @@ const SlideBar = styled.div`
   background-color: #AFAFAF;
 `
 
-const getAnimationData = (stops, isMounted) => {
-  let data = stops.reduce((aggr, curr, index) => {
-    if (isMounted) {
-      if (isNaN(parseFloat(curr, 10))) console.log('yo')
-      aggr[curr] = parseFloat(curr, 10)
-    } else {
-      aggr[curr] = parseInt((index + 1) / stops.length * 100, 10)
-    }
-    return aggr
-  }, {})
-
-  if (isMounted) {
-    data.barOpacity = 1
-  } else {
-    data.barOpacity = 0
-  }
-
-  return data
-}
-
 class Slider extends Component {
   state = {
     editing: null,
-    left: null
+    left: null,
+    data: this.props.data
   }
 
   componentWillReceiveProps (nextProps) {
@@ -59,8 +42,14 @@ class Slider extends Component {
         if (perc < 0) perc = 0
         else if (perc > 100) perc = 100
 
+        let data = { ...this.props.data }
+        delete data[this.state.editing]
+        const val = Math.round(perc)
+        data[val] = val
+
         this.setState({
-          left: perc
+          left: perc,
+          data
         })
       }
     }
@@ -75,10 +64,18 @@ class Slider extends Component {
         this.clearState()
       }
     }
+
+    if (this.props.editing !== nextProps.editing) {
+      let data = { ...nextProps.data }
+      data['barOpacity'] = nextProps.editing === false ? 0 : 1
+      this.setState({
+        data
+      })
+    }
   }
 
   componentDidUpdate (prevProps) {
-    if (this.props.editing !== prevProps.editing) {
+    if (this.props.editing !== prevProps.editing && !this.props.editing) {
       this.props.updateDraggedItemXPos(null)
     }
   }
@@ -135,12 +132,8 @@ class Slider extends Component {
         </SwatchContainer>
       )
     } else {
-      const data = getAnimationData(stopsMapKeys, editing)
-
-      console.log(data)
-
       return (
-        <Animate data={data} duration={transitionDuration}>
+        <Animate data={this.state.data} duration={transitionDuration}>
           {data => {
             return (
               <SwatchContainer
@@ -159,20 +152,10 @@ class Slider extends Component {
                 />
                 {stopsMapKeys.map((stop, index) => {
                   const color = stopsMap[stop]
-                  // console.log(data)
-                  let left = editing
-                    ? parseInt(data[stop], 10) !== parseInt(stop, 10)
-                        ? data[stop]
-                        : stop
-                    : data[stop]
-
-                  // let left = parseInt(data[stop], 10) !== parseInt(stop, 10)
-                  //   ? stop
-                  //   : editing ? stop : data[stop]
+                  let left = data[stop]
 
                   return (
                     <SwatchItem
-                      animating
                       key={stop}
                       onMouseDown={e => this._handleEditInit(e, stop)}
                       color={color}
@@ -192,6 +175,7 @@ class Slider extends Component {
 export default connect(
   (state, { id }) => {
     return {
+      data: getStopsData(id)(state),
       stopsMap: state.stops.values[id],
       editing: state.stops.editing === id,
       draggingItemMousePos: state.stops.draggingItemMousePos

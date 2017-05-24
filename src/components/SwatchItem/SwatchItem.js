@@ -23,7 +23,7 @@ const Item = styled.div`
 
 const SwatchItem = ({ color, left, animating, ...props }) => {
   const mixed = mix(0.5, color, '#AFAFAF')
-  // left = animating ? `${left}%` : `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
+  // console.log(`calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`)
   left = `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
   // if (animating) console.log(left)
   return (

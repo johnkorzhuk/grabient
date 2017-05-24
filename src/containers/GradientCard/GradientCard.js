@@ -14,7 +14,7 @@ import { SwatchSlider, SortableSwatch } from './../index'
 const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
-const SLIDER_ANIMATION_DURATION = 500
+const SLIDER_ANIMATION_DURATION = 300
 
 const Container = styled.div`
   width: 33.33%;
@@ -65,8 +65,6 @@ const SwatchSliderContainer = styled.div`
   align-items: center;
   height: 40px;
   margin: 0 4rem 0 1rem;
-
-  border: 1px solid red;
 `
 
 const AddColorContainer = styled.div`

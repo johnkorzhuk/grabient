@@ -22,7 +22,6 @@ export const updateStopPos = (origStop, newStop, stopsMap, id) => dispatch => {
     return aggr
   }, {})
 
-  // console.log(newStop)
   return dispatch({
     type: UPDATE_STOP_POS,
     payload: {
