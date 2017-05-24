@@ -1,6 +1,6 @@
-import Component from 'inferno-component'
+import React, { Component } from 'react'
+import { connect } from 'react-redux'
 import styled from 'styled-components'
-import { connect } from 'inferno-redux'
 
 import { toggleEditing } from './../../store/gradients/actions'
 
@@ -14,7 +14,7 @@ import { SwatchSlider, SortableSwatch } from './../index'
 const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
-const SLIDER_ANIMATION_DURATION = 300
+const SLIDER_ANIMATION_DURATION = 500
 
 const Container = styled.div`
   width: 33.33%;
@@ -65,6 +65,8 @@ const SwatchSliderContainer = styled.div`
   align-items: center;
   height: 40px;
   margin: 0 4rem 0 1rem;
+
+  border: 1px solid red;
 `
 
 const AddColorContainer = styled.div`
@@ -100,7 +102,7 @@ class GradientCard extends Component {
         this.setState(prevState => ({
           editingStops: !prevState.editingStops
         }))
-      }, SLIDER_ANIMATION_DURATION + 100)
+      }, SLIDER_ANIMATION_DURATION + 200)
     }
   }
 

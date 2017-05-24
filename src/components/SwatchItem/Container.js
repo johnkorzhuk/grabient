@@ -1,4 +1,4 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
+import React from 'react' // eslint-disable-line
 import styled from 'styled-components'
 
 const SwatchContainer = styled.div`

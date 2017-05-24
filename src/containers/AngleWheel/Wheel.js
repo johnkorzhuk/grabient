@@ -1,4 +1,4 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
+import React from 'react'
 
 const Wheel = ({ angle, scale, color, styles }) => {
   return (
@@ -22,7 +22,7 @@ const Wheel = ({ angle, scale, color, styles }) => {
         stroke='#FFF'
         stroke-width='40'
         fill='none'
-        fill-rule='evenodd'
+        fillRule='evenodd'
         stroke-dasharray='1.200000047683716,3'
       />
     </svg>

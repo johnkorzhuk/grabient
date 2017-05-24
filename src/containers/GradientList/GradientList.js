@@ -1,5 +1,5 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
-import { connect } from 'inferno-redux'
+import React from 'react'
+import { connect } from 'react-redux'
 import styled from 'styled-components'
 
 import { getGradients } from './../../store/gradients/selectors'

@@ -1,15 +1,12 @@
 {
-  "name": "gradient-gen",
+  "name": "gradient-test",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
     "deep-equal": "^1.0.1",
-    "inferno": "^3.1.1",
-    "inferno-compat": "^3.1.1",
-    "inferno-component": "^3.1.1",
-    "inferno-redux": "^3.1.1",
-    "lodash": "^4.17.4",
-    "lodash.throttle": "^4.1.1",
+    "react": "^15.5.4",
+    "react-dom": "^15.5.4",
+    "react-redux": "^5.0.5",
     "polished": "^1.1.1",
     "react-color": "^2.11.7",
     "react-icons": "^2.2.5",
@@ -21,22 +18,15 @@
     "styled-components": "^1.4.6"
   },
   "devDependencies": {
-    "babel-eslint": "^7.2.3",
-    "babel-preset-flow": "^6.23.0",
-    "eslint": "^3.19.0",
-    "eslint-config-airbnb": "^14.1.0",
-    "eslint-plugin-import": "^2.2.0",
-    "eslint-plugin-jsx-a11y": "^4.0.0",
-    "eslint-plugin-react": "^6.10.3",
-    "inferno-devtools": "^3.2.2",
-    "inferno-scripts": "3.0.0",
+    "react-scripts": "1.0.5",
     "redux-logger": "^3.0.1",
-    "standard": "^10.0.2"
+    "standard": "^10.0.2",
+    "babel-eslint": "^7.2.3"
   },
   "scripts": {
-    "start": "inferno-scripts start",
-    "build": "inferno-scripts build",
-    "test": "inferno-scripts test --env=node",
-    "eject": "inferno-scripts eject"
+    "start": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject"
   }
 }

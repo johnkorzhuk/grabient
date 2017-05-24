@@ -1,6 +1,6 @@
-import { render } from 'inferno'
-import 'inferno-devtools'
-import { Provider } from 'inferno-redux'
+import React from 'react'
+import { render } from 'react-dom'
+import { Provider } from 'react-redux'
 
 import './index.css'
 
@@ -9,5 +9,5 @@ import App from './App'
 
 render(
   <Provider store={store}><App /></Provider>,
-  document.getElementById('app')
+  document.getElementById('root')
 )

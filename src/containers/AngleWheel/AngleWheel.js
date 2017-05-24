@@ -1,7 +1,7 @@
-import Component from 'inferno-component'
+import React, { Component } from 'react'
+import { connect } from 'react-redux'
 import styled from 'styled-components'
 import { Animate } from 'react-move'
-import { connect } from 'inferno-redux'
 import Wheelpng from './../../wheel.png'
 
 import { Arrow, Close } from './../../components/Icons/index'
@@ -138,7 +138,7 @@ class AngleWheel extends Component {
     } = this.state
     const { updateEditingAngle } = this.props
     if (cursorUpdatingAngle && !updatingText) {
-      let angle = this.getAngle(e.offsetX, e.offsetY)
+      let angle = this.getAngle(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
       if (!cursorUpdatingAngleAccurately) angle = this.checkCommonAngles(angle)
       if (angle === 360) angle = 0
       updateEditingAngle(angle)

@@ -58,6 +58,7 @@ export const swapStopsColors = (id, colors) => (dispatch, getState) => {
 }
 
 export const updateDraggedItemXPos = xPos => dispatch => {
+  // console.log(xPos)
   return dispatch({
     type: UPDATE_DRAGGED_ITEM_POS,
     payload: {

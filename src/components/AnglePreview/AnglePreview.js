@@ -1,4 +1,4 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
+import React from 'react'
 import { Animate } from 'react-move'
 
 import { AnglePrev } from './../Icons/index'

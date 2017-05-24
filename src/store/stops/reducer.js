@@ -9,7 +9,7 @@ const INITIAL_STATE = {
   values: {
     '2a': {
       0: '#e0c3fc',
-      10: '#8ec5fc',
+      50: '#8ec5fc',
       90: '#43e97b'
     }
   },

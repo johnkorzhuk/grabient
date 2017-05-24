@@ -1,5 +1,5 @@
-import Component from 'inferno-component'
-import { connect } from 'inferno-redux'
+import React, { Component } from 'react'
+import { connect } from 'react-redux'
 import styled from 'styled-components'
 import { Animate } from 'react-move'
 
@@ -20,7 +20,8 @@ const SlideBar = styled.div`
 const getAnimationData = (stops, isMounted) => {
   let data = stops.reduce((aggr, curr, index) => {
     if (isMounted) {
-      aggr[curr] = parseInt(curr, 10)
+      if (isNaN(parseFloat(curr, 10))) console.log('yo')
+      aggr[curr] = parseFloat(curr, 10)
     } else {
       aggr[curr] = parseInt((index + 1) / stops.length * 100, 10)
     }
@@ -51,7 +52,7 @@ class Slider extends Component {
     ) {
       if (nextProps.draggingItemMousePos !== null) {
         const { left, right } = this.getContainerEdges(this.container)
-        const fromLeft = nextProps.draggingItemMousePos - left
+        const fromLeft = parseInt(nextProps.draggingItemMousePos, 10) - left
         const total = right - left
         let perc = (fromLeft / total * 100).toFixed(1)
 
@@ -87,7 +88,7 @@ class Slider extends Component {
       editing: parseInt(stop, 10)
     })
 
-    this.props.updateDraggedItemXPos(e.x)
+    this.props.updateDraggedItemXPos(e.nativeEvent.x)
   }
 
   clearState () {
@@ -102,14 +103,6 @@ class Slider extends Component {
     return {
       left: node.getClientRects()[0].left,
       right: node.getClientRects()[0].right
-    }
-  }
-
-  getItemWidth (node) {
-    if (!this.getItemWidth.width) {
-      return (this.getItemWidth.width = node.getClientRects()[0].width)
-    } else {
-      return this.getItemWidth.width
     }
   }
 
@@ -137,19 +130,14 @@ class Slider extends Component {
               ? this.state.left
               : parsedStop
 
-            return (
-              <SwatchItem
-                key={stop}
-                innerRef={node => (this.item = node)}
-                left={left}
-                color={color}
-              />
-            )
+            return <SwatchItem key={stop} left={left} color={color} />
           })}
         </SwatchContainer>
       )
     } else {
       const data = getAnimationData(stopsMapKeys, editing)
+
+      console.log(data)
 
       return (
         <Animate data={data} duration={transitionDuration}>
@@ -171,10 +159,20 @@ class Slider extends Component {
                 />
                 {stopsMapKeys.map((stop, index) => {
                   const color = stopsMap[stop]
-                  let left = stop
+                  // console.log(data)
+                  let left = editing
+                    ? parseInt(data[stop], 10) !== parseInt(stop, 10)
+                        ? data[stop]
+                        : stop
+                    : data[stop]
+
+                  // let left = parseInt(data[stop], 10) !== parseInt(stop, 10)
+                  //   ? stop
+                  //   : editing ? stop : data[stop]
 
                   return (
                     <SwatchItem
+                      animating
                       key={stop}
                       onMouseDown={e => this._handleEditInit(e, stop)}
                       color={color}

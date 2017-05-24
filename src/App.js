@@ -1,5 +1,5 @@
-import Component from 'inferno-component'
-import { connect } from 'inferno-redux'
+import React, { Component } from 'react'
+import { connect } from 'react-redux'
 import styled from 'styled-components'
 
 import { editStop, updateDraggedItemXPos } from './store/stops/actions'

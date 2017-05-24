@@ -1,4 +1,4 @@
-import Component from 'inferno-component'
+import React, { Component } from 'react'
 import styled from 'styled-components'
 import deepEqual from 'deep-equal'
 

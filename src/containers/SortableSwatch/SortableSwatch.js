@@ -1,5 +1,5 @@
-import Component from 'inferno-component'
-import { connect } from 'inferno-redux'
+import React, { Component } from 'react'
+import { connect } from 'react-redux'
 
 import {
   SortableContainer,
@@ -38,7 +38,7 @@ const SortableList = SortableContainer(
             <SortableItem
               disabled={pickingColor}
               onClick={onSortItemClick}
-              key={`${index}-${item}`}
+              key={index}
               sorting={sorting}
               index={index}
               color={items[index]}

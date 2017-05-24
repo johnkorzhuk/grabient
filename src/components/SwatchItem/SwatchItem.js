@@ -1,4 +1,4 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
+import React from 'react'
 import styled from 'styled-components'
 import { mix } from 'polished'
 
@@ -21,16 +21,18 @@ const Item = styled.div`
   }
 `
 
-const SwatchItem = ({ color, left, ...props }) => {
+const SwatchItem = ({ color, left, animating, ...props }) => {
   const mixed = mix(0.5, color, '#AFAFAF')
-
+  // left = animating ? `${left}%` : `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
+  left = `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
+  // if (animating) console.log(left)
   return (
     <Item
       {...props}
       mixedColor={mixed}
       color={color}
       style={{
-        left: `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
+        left
       }}
     />
   )
