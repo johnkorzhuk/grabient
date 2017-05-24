@@ -5,8 +5,7 @@ const SwatchContainer = styled.div`
   position: absolute;
   display: flex;
   align-items: center;
-  transition: ${({ duration }) => `width ${duration}ms linear`};
-  width: ${({ isMounted, stops }) => (isMounted ? '100%' : `${stops * 30}px`)};
+  width: ${({ isMounted, stops }) => (stops ? `${stops * 30}px` : 'auto')};
   height: 100%;
 `
 

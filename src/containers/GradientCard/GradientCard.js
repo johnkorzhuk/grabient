@@ -14,7 +14,7 @@ import { SwatchSlider, SortableSwatch } from './../index'
 const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
-const SLIDER_ANIMATION_DURATION = 300
+const SLIDER_ANIMATION_DURATION = 200
 
 const Container = styled.div`
   width: 33.33%;
@@ -86,7 +86,14 @@ class GradientCard extends Component {
       main: false
     },
     wasEditing: false,
-    editingStops: false
+    editingStops: false,
+    sliderContainer: null
+  }
+
+  componentDidMount () {
+    this.setState({
+      sliderContainer: this.sliderContainer.getClientRects()[0]
+    })
   }
 
   componentWillReceiveProps (nextProps) {
@@ -100,7 +107,7 @@ class GradientCard extends Component {
         this.setState(prevState => ({
           editingStops: !prevState.editingStops
         }))
-      }, SLIDER_ANIMATION_DURATION + 200)
+      }, SLIDER_ANIMATION_DURATION)
     }
   }
 
@@ -121,7 +128,11 @@ class GradientCard extends Component {
   }
 
   render () {
-    const { hovered: { arrowPrev, addColor, main }, editingStops } = this.state
+    const {
+      hovered: { arrowPrev, addColor, main },
+      editingStops,
+      sliderContainer
+    } = this.state
     const {
       gradient,
       id,
@@ -172,24 +183,15 @@ class GradientCard extends Component {
             </AnglePreview>
           </AngleContainer>
 
-          <SwatchSliderContainer>
-            <SwatchSlider
-              style={{
-                opacity: editingStop ? 1 : editingStops ? 1 : 0
-              }}
+          <SwatchSliderContainer
+            innerRef={node => (this.sliderContainer = node)}
+          >
+
+            <SortableSwatch
+              containerDimenions={sliderContainer}
               id={id}
               transitionDuration={SLIDER_ANIMATION_DURATION}
             />
-
-            {shouldRenderSortableSwatch &&
-              <SortableSwatch
-                style={{
-                  opacity: editingStop ? 0 : editingStops ? 0 : 1,
-                  zIndex: 1000
-                }}
-                id={id}
-                transitionDuration={SLIDER_ANIMATION_DURATION}
-              />}
           </SwatchSliderContainer>
 
           <AddColorContainer
@@ -207,6 +209,28 @@ class GradientCard extends Component {
     )
   }
 }
+
+// {sliderContainer &&
+//               <SwatchSlider
+//                 containerDimenions={sliderContainer}
+//                 style={{
+//                   opacity: editingStop ? 1 : editingStops ? 1 : 0
+//                 }}
+//                 id={id}
+//                 transitionDuration={SLIDER_ANIMATION_DURATION}
+//               />}
+
+//             {!editingStop &&
+//               !editingStops &&
+//               <SortableSwatch
+//                 containerDimenions={sliderContainer}
+//                 style={{
+//                   opacity: editingStops ? 0 : editingStop ? 0 : 1,
+//                   zIndex: 1000
+//                 }}
+//                 id={id}
+//                 transitionDuration={SLIDER_ANIMATION_DURATION}
+//               />}
 
 const mapStateToProps = (state, { id }) => {
   const gradient = getGradientById(id)(state)

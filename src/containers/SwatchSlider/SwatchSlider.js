@@ -34,7 +34,7 @@ class Slider extends Component {
       draggingItemMousePos !== nextProps.draggingItemMousePos
     ) {
       if (nextProps.draggingItemMousePos !== null) {
-        const { left, right } = this.getContainerEdges(this.container)
+        const { left, right } = this.props.containerDimenions
         const fromLeft = parseInt(nextProps.draggingItemMousePos, 10) - left
         const total = right - left
         let perc = (fromLeft / total * 100).toFixed(1)
@@ -95,28 +95,25 @@ class Slider extends Component {
     })
   }
 
-  getContainerEdges (node) {
-    // should memoize this, container is dynamic due to animation
-    return {
-      left: node.getClientRects()[0].left,
-      right: node.getClientRects()[0].right
-    }
-  }
-
   render () {
-    const { stopsMap, editing, transitionDuration, style } = this.props
+    const {
+      stopsMap,
+      editing,
+      transitionDuration,
+      style,
+      containerDimenions
+    } = this.props
     const stopsMapKeys = Object.keys(stopsMap)
 
     if (this.state.editing !== null) {
       return (
         <SwatchContainer
-          innerRef={node => (this.container = node)}
           isMounted={editing}
-          duration={transitionDuration}
           stops={stopsMapKeys.length}
           style={{
             ...style,
-            zIndex: editing ? 10 : 0
+            zIndex: editing ? 10 : 0,
+            width: containerDimenions.width
           }}
         >
           <SlideBar />
@@ -137,12 +134,10 @@ class Slider extends Component {
           {data => {
             return (
               <SwatchContainer
-                isMounted={editing}
-                duration={transitionDuration}
-                stops={stopsMapKeys.length}
                 style={{
                   ...style,
-                  zIndex: editing ? 10 : 0
+                  zIndex: editing ? 10 : 0,
+                  width: data.width
                 }}
               >
                 <SlideBar
@@ -173,9 +168,9 @@ class Slider extends Component {
 }
 
 export default connect(
-  (state, { id }) => {
+  (state, { id, containerDimenions }) => {
     return {
-      data: getStopsData(id)(state),
+      data: getStopsData(id, containerDimenions)(state),
       stopsMap: state.stops.values[id],
       editing: state.stops.editing === id,
       draggingItemMousePos: state.stops.draggingItemMousePos
