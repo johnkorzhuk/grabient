@@ -1,4 +1,4 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
+import React from 'react'
 import styled from 'styled-components'
 
 const Svg = styled.svg`
@@ -17,7 +17,7 @@ const AnglePrev = props => {
       <path
         d='M.6295 15.40916l14.84925-4.94974-9.8995-9.8995'
         fill='#FFF'
-        fill-rule='evenodd'
+        fillRule='evenodd'
       />
     </Svg>
   )

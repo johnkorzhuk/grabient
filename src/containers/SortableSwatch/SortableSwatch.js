@@ -38,7 +38,7 @@ const SortableList = SortableContainer(
             <SortableItem
               disabled={pickingColor}
               onClick={onSortItemClick}
-              key={item.key}
+              key={`${index}-${item}`}
               sorting={sorting}
               index={index}
               color={items[index]}

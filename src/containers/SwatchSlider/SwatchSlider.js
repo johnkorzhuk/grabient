@@ -22,7 +22,7 @@ const getAnimationData = (stops, isMounted) => {
     if (isMounted) {
       aggr[curr] = parseInt(curr, 10)
     } else {
-      aggr[curr] = (index + 1) / stops.length * 100
+      aggr[curr] = parseInt((index + 1) / stops.length * 100, 10)
     }
     return aggr
   }, {})
@@ -171,7 +171,7 @@ class Slider extends Component {
                 />
                 {stopsMapKeys.map((stop, index) => {
                   const color = stopsMap[stop]
-                  let left = data[stop]
+                  let left = stop
 
                   return (
                     <SwatchItem

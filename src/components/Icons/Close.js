@@ -1,4 +1,4 @@
-import Inferno from 'inferno' // eslint-disable-line no-unused-vars
+import React from 'react'
 import CloseIcon from 'react-icons/lib/md/clear'
 
 const Close = ({ color, size, ...props }) => {

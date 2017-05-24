@@ -28,7 +28,7 @@
     "eslint-plugin-import": "^2.2.0",
     "eslint-plugin-jsx-a11y": "^4.0.0",
     "eslint-plugin-react": "^6.10.3",
-    "inferno-devtools": "^3.1.1",
+    "inferno-devtools": "^3.2.2",
     "inferno-scripts": "3.0.0",
     "redux-logger": "^3.0.1",
     "standard": "^10.0.2"
