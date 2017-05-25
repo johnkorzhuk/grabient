@@ -79,6 +79,8 @@ const AddColorContainer = styled.div`
   justify-content: flex-end;
 `
 
+// todo slider container's dimnestions needs to be regrabbed on resize / width change
+
 class GradientCard extends Component {
   state = {
     hovered: {
@@ -167,15 +169,15 @@ class GradientCard extends Component {
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
               hovered={arrowPrev}
             >
-
               <AngleText>{angle}°</AngleText>
             </AnglePreview>
           </AngleContainer>
 
           <SwatchSliderContainer
-            innerRef={node => (this.sliderContainer = node)}
+            innerRef={node => {
+              this.sliderContainer = node
+            }}
           >
-
             <SortableSwatch
               containerDimenions={sliderContainer}
               id={id}

@@ -2,7 +2,6 @@ import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import { Animate } from 'react-move'
 import styled from 'styled-components'
-
 import {
   SortableContainer,
   SortableElement,
@@ -115,10 +114,12 @@ class Swatch extends Component {
         else if (perc > 100) perc = 100
         // todo: if newStop === origStop dont dispatch or else the value becomes null and bad shit happens
         let data = { ...this.props.data }
+
         delete data[this.state.editing]
         const val = Math.round(perc)
         data[val] = val
 
+        // updateStopPos(editing, perc, stopsMap, id)
         this.setState({
           left: perc,
           data
@@ -132,13 +133,15 @@ class Swatch extends Component {
     ) {
       const { editing, left } = this.state
       if (this.props.draggingItemMousePos) {
+        // console.log('done')
         updateStopPos(editing, left, stopsMap, id)
-        this.clearState()
+        this.resetEditingState()
       }
     }
 
     if (this.props.editing !== nextProps.editing) {
       let data = { ...nextProps.data }
+
       data['barOpacity'] = nextProps.editing === false ? 0 : 1
       this.setState({
         data
@@ -169,6 +172,7 @@ class Swatch extends Component {
   _onSortEnd = ({ oldIndex, newIndex }) => {
     const colors = arrayMove(this.state.colors, oldIndex, newIndex)
     const { swapStopsColors, id } = this.props
+
     this.setState({
       colors
     })
@@ -184,7 +188,7 @@ class Swatch extends Component {
     }
   }
 
-  clearState () {
+  resetEditingState () {
     this.setState({
       editing: null,
       left: null
@@ -201,6 +205,7 @@ class Swatch extends Component {
     } = this.props
     const stopsMapKeys = Object.keys(stopsMap)
     const { pickingColor, colors } = this.state
+
     if (this.state.editing !== null) {
       return (
         <SwatchContainer
