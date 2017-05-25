@@ -15,8 +15,12 @@ function generateLinearGradientFromSchema (
   inverse = false,
   prefixed = false
 ) {
+  let gradient = { ...gradientSchema }
+  delete gradient.angle
+  delete gradient.id
+
   if (gradientSchema) {
-    return `${generateColorStops(gradientSchema.gradient)}`
+    return `${generateAngle(gradientSchema.angle)}, ${generateColorStops(gradient.gradient)}`
   }
 }
 
@@ -46,7 +50,6 @@ function generateColorStopsFromData (data, prefixed = false, inverse = false) {
   let newData = { ...data }
   delete newData.opacity
   const dataKeys = Object.keys(newData)
-
   // This function relies on the order of stops / colors defined in flattenGradientData in /GradientContainer.js
   return dataKeys
     .map((key, index) => {
@@ -77,8 +80,12 @@ function generateAngle (angle, inverse) {
 
 function generateColorStops (gradient) {
   return Object.keys(gradient)
-    .map(
-      colorStop => `${gradient[colorStop].color} ${gradient[colorStop].stop}%`
-    )
+    .map(colorStop => {
+      if (gradient[colorStop].color) {
+        return `${gradient[colorStop].color} ${gradient[colorStop].stop}%`
+      } else {
+        return `${gradient[colorStop]} ${colorStop}%`
+      }
+    })
     .join(', ')
 }

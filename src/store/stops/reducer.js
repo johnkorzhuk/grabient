@@ -61,8 +61,6 @@ export default (state = INITIAL_STATE, action) => {
       }
 
     case UPDATE_STOP_POS:
-      // return state
-      // console.log(action.payload.newValues)
       return {
         ...state,
         values: {

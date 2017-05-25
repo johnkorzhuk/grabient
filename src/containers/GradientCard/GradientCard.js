@@ -8,7 +8,7 @@ import { getGradientById } from './../../store/gradients/selectors'
 
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
-import { SwatchSlider, SortableSwatch } from './../index'
+import { SortableSwatch } from './../index'
 
 // units = ms
 const GRADIENT_ANIMATION_DURATION = 500
@@ -86,7 +86,6 @@ class GradientCard extends Component {
       main: false
     },
     wasEditing: false,
-    editingStops: false,
     sliderContainer: null
   }
 
@@ -97,17 +96,9 @@ class GradientCard extends Component {
   }
 
   componentWillReceiveProps (nextProps) {
-    const { editingAngle, editingStop } = this.props
+    const { editingAngle } = this.props
     if (editingAngle !== nextProps.editingAngle) {
       this.setState({ wasEditing: !nextProps.editingAngle })
-    }
-
-    if (editingStop !== nextProps.editingStop) {
-      setTimeout(() => {
-        this.setState(prevState => ({
-          editingStops: !prevState.editingStops
-        }))
-      }, SLIDER_ANIMATION_DURATION)
     }
   }
 
@@ -130,7 +121,6 @@ class GradientCard extends Component {
   render () {
     const {
       hovered: { arrowPrev, addColor, main },
-      editingStops,
       sliderContainer
     } = this.state
     const {
@@ -142,9 +132,6 @@ class GradientCard extends Component {
       editingStop,
       index
     } = this.props
-
-    const shouldRenderSortableSwatch =
-      !editingStop || (editingStops && !editingStop)
 
     return (
       <Container
@@ -161,7 +148,8 @@ class GradientCard extends Component {
           id={id}
           gradient={gradient}
           hovered={main}
-          editing={editingAngle}
+          editingAngle={editingAngle}
+          editingStop={editingStop}
         />
 
         <InfoContainer>
@@ -209,28 +197,6 @@ class GradientCard extends Component {
     )
   }
 }
-
-// {sliderContainer &&
-//               <SwatchSlider
-//                 containerDimenions={sliderContainer}
-//                 style={{
-//                   opacity: editingStop ? 1 : editingStops ? 1 : 0
-//                 }}
-//                 id={id}
-//                 transitionDuration={SLIDER_ANIMATION_DURATION}
-//               />}
-
-//             {!editingStop &&
-//               !editingStops &&
-//               <SortableSwatch
-//                 containerDimenions={sliderContainer}
-//                 style={{
-//                   opacity: editingStops ? 0 : editingStop ? 0 : 1,
-//                   zIndex: 1000
-//                 }}
-//                 id={id}
-//                 transitionDuration={SLIDER_ANIMATION_DURATION}
-//               />}
 
 const mapStateToProps = (state, { id }) => {
   const gradient = getGradientById(id)(state)

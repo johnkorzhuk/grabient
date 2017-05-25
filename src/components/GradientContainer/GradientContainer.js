@@ -59,7 +59,8 @@ class GradientContainer extends Component {
       this.props.gradient !== nextProps.gradient ||
       this.props.angle !== nextProps.angle ||
       this.props.hovered !== nextProps.hovered ||
-      this.props.editing !== nextProps.editing
+      this.props.editingAngle !== nextProps.editingAngle ||
+      this.props.editingStop !== nextProps.editingStop
     )
   }
 
@@ -72,9 +73,10 @@ class GradientContainer extends Component {
       hovered,
       onMouseEnter,
       onMouseLeave,
-      editing
+      editingAngle,
+      editingStop,
+      gradient
     } = this.props
-
     return (
       <Container>
         <NoBlur
@@ -82,6 +84,8 @@ class GradientContainer extends Component {
           onMouseLeave={e => onMouseLeave(e, 'main')}
         >
           <Gradient
+            gradient={gradient}
+            editingStop={editingStop}
             angle={angle}
             data={this.data}
             transitionDuration={gradientAnimationDuration}
@@ -90,7 +94,9 @@ class GradientContainer extends Component {
 
         <Blurred>
           <Gradient
-            opacity={hovered || editing ? 0.8 : 0}
+            gradient={gradient}
+            editingStop={editingStop}
+            opacity={hovered || editingAngle ? 0.8 : 0}
             angle={angle}
             data={this.data}
             transitionDuration={gradientAnimationDuration}
