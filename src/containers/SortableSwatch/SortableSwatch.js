@@ -113,7 +113,7 @@ class Swatch extends Component {
 
         if (perc < 0) perc = 0
         else if (perc > 100) perc = 100
-
+        // todo: if newStop === origStop dont dispatch or else the value becomes null and bad shit happens
         let data = { ...this.props.data }
         delete data[this.state.editing]
         const val = Math.round(perc)
@@ -144,7 +144,7 @@ class Swatch extends Component {
         data
       })
     }
-    // update state.colors when a gradient stop is added
+    // todo: update state.colors when a gradient stop is added
     if (this.props.colors.length !== nextProps.colors.length) {
       this.setState({
         colors: nextProps.colors

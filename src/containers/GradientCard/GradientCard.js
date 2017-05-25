@@ -5,6 +5,7 @@ import styled from 'styled-components'
 import { toggleEditing } from './../../store/gradients/actions'
 
 import { getGradientById } from './../../store/gradients/selectors'
+import { getStopsById } from './../../store/stops/selectors'
 
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
@@ -130,7 +131,8 @@ class GradientCard extends Component {
       angle,
       editingAngle,
       editingStop,
-      index
+      index,
+      stopData
     } = this.props
 
     return (
@@ -140,6 +142,7 @@ class GradientCard extends Component {
         }}
       >
         <GradientContainer
+          stopData={stopData}
           angle={angle}
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}
@@ -202,6 +205,7 @@ const mapStateToProps = (state, { id }) => {
   const gradient = getGradientById(id)(state)
 
   return {
+    stopData: getStopsById(state, id),
     draggingItemMousePos: state.stops.draggingItemMousePos,
     gradient,
     // eslint-disable-next-line eqeqeq

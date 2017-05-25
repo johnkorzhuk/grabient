@@ -30,33 +30,19 @@ const Blurred = styled.div`
   border-radius: 15px;
 `
 
-const flattenGradientData = gradient => {
-  return Object.keys(gradient).reduce((aggr, curr) => {
-    // order matters! Check generateColorStopsFromData in ./utils/gradient.js
-    aggr[`${curr}Color`] = gradient[curr]
-    aggr[`${curr}Stop`] = parseInt(curr, 10)
-    return aggr
-  }, {})
-}
+// const flattenGradientColorData = gradient => {
+//   return Object.keys(gradient).reduce((aggr, curr) => {
+//     // order matters! Check generateColorStopsFromData in ./utils/gradient.js
+//     aggr[`${curr}Color`] = gradient[curr]
+//     aggr[`${curr}Stop`] = parseInt(curr, 10)
+//     return aggr
+//   }, {})
+// }
 
 class GradientContainer extends Component {
-  componentWillMount () {
-    const { gradient } = this.props.gradient
-
-    this.data = flattenGradientData(gradient)
-  }
-
-  componentWillReceiveProps (nextProps) {
-    const { gradient } = this.props.gradient
-
-    if (!deepEqual(gradient, nextProps.gradient.gradient)) {
-      this.data = flattenGradientData(nextProps.gradient.gradient)
-    }
-  }
-
   shouldComponentUpdate (nextProps, nextState) {
     return (
-      this.props.gradient !== nextProps.gradient ||
+      this.props.stopData !== nextProps.stopData ||
       this.props.angle !== nextProps.angle ||
       this.props.hovered !== nextProps.hovered ||
       this.props.editingAngle !== nextProps.editingAngle ||
@@ -75,8 +61,10 @@ class GradientContainer extends Component {
       onMouseLeave,
       editingAngle,
       editingStop,
-      gradient
+      stopData
     } = this.props
+
+    const editing = editingAngle || editingStop
     return (
       <Container>
         <NoBlur
@@ -84,7 +72,7 @@ class GradientContainer extends Component {
           onMouseLeave={e => onMouseLeave(e, 'main')}
         >
           <Gradient
-            gradient={gradient}
+            stopData={stopData}
             editingStop={editingStop}
             angle={angle}
             data={this.data}
@@ -94,9 +82,9 @@ class GradientContainer extends Component {
 
         <Blurred>
           <Gradient
-            gradient={gradient}
+            stopData={stopData}
             editingStop={editingStop}
-            opacity={hovered || editingAngle ? 0.8 : 0}
+            opacity={hovered || editing ? 0.8 : 0}
             angle={angle}
             data={this.data}
             transitionDuration={gradientAnimationDuration}

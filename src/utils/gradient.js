@@ -50,22 +50,14 @@ function generateColorStopsFromData (data, prefixed = false, inverse = false) {
   let newData = { ...data }
   delete newData.opacity
   const dataKeys = Object.keys(newData)
-  // This function relies on the order of stops / colors defined in flattenGradientData in /GradientContainer.js
-  return dataKeys
-    .map((key, index) => {
-      const item = newData[key]
+  let gradientStops = []
 
-      if (index % 2 === 0) {
-        return item
-      } else {
-        if (index === dataKeys.length - 1) {
-          return `${item}%`
-        } else {
-          return `${item}%,`
-        }
-      }
-    })
-    .join(' ')
+  dataKeys.forEach((stop, index) => {
+    gradientStops.push(newData[stop])
+    gradientStops.push(index === dataKeys.length - 1 ? `${stop}%` : `${stop}%,`)
+  })
+
+  return gradientStops.join(' ')
 }
 
 function generateAngle (angle, inverse) {
