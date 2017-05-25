@@ -2,10 +2,7 @@ import React from 'react'
 import styled from 'styled-components'
 import { Animate } from 'react-move'
 
-import {
-  generateColorStopsFromData
-  // generateLinearGradientFromSchema
-} from './../../utils/gradient'
+import { generateColorStopsFromData } from './../../utils/gradient'
 
 const Container = styled.div`
   position: relative;
@@ -20,8 +17,7 @@ const Gradient = ({
   data,
   angle,
   opacity,
-  children,
-  editingStop
+  children
 }) => {
   let newData = { ...stopData }
   const hasOpacity = !isNaN(opacity)

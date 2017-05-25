@@ -1,6 +1,5 @@
-import React, { Component } from 'react'
+import React, { PureComponent } from 'react'
 import styled from 'styled-components'
-import deepEqual from 'deep-equal'
 
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'
@@ -30,16 +29,7 @@ const Blurred = styled.div`
   border-radius: 15px;
 `
 
-// const flattenGradientColorData = gradient => {
-//   return Object.keys(gradient).reduce((aggr, curr) => {
-//     // order matters! Check generateColorStopsFromData in ./utils/gradient.js
-//     aggr[`${curr}Color`] = gradient[curr]
-//     aggr[`${curr}Stop`] = parseInt(curr, 10)
-//     return aggr
-//   }, {})
-// }
-
-class GradientContainer extends Component {
+class GradientContainer extends PureComponent {
   shouldComponentUpdate (nextProps, nextState) {
     return (
       this.props.stopData !== nextProps.stopData ||
@@ -73,7 +63,6 @@ class GradientContainer extends Component {
         >
           <Gradient
             stopData={stopData}
-            editingStop={editingStop}
             angle={angle}
             data={this.data}
             transitionDuration={gradientAnimationDuration}
@@ -83,7 +72,6 @@ class GradientContainer extends Component {
         <Blurred>
           <Gradient
             stopData={stopData}
-            editingStop={editingStop}
             opacity={hovered || editing ? 0.8 : 0}
             angle={angle}
             data={this.data}

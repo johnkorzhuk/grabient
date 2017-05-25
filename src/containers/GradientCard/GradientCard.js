@@ -125,7 +125,6 @@ class GradientCard extends Component {
       sliderContainer
     } = this.state
     const {
-      gradient,
       id,
       toggleEditing,
       angle,
@@ -149,7 +148,6 @@ class GradientCard extends Component {
           gradientAnimationDuration={GRADIENT_ANIMATION_DURATION}
           wheelAnimationDuration={ANGLE_WHEEL_ANIMATION_DURATION}
           id={id}
-          gradient={gradient}
           hovered={main}
           editingAngle={editingAngle}
           editingStop={editingStop}
@@ -207,7 +205,6 @@ const mapStateToProps = (state, { id }) => {
   return {
     stopData: getStopsById(state, id),
     draggingItemMousePos: state.stops.draggingItemMousePos,
-    gradient,
     // eslint-disable-next-line eqeqeq
     editingAngle: id == state.gradients.editingAngle.id,
     // eslint-disable-next-line eqeqeq
