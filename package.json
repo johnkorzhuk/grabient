@@ -4,24 +4,24 @@
   "private": true,
   "dependencies": {
     "deep-equal": "^1.0.1",
-    "react": "^15.5.4",
-    "react-dom": "^15.5.4",
-    "react-redux": "^5.0.5",
     "polished": "^1.1.1",
+    "react": "^15.5.4",
     "react-color": "^2.11.7",
+    "react-dom": "^15.5.4",
     "react-icons": "^2.2.5",
     "react-move": "^1.1.8",
+    "react-redux": "^5.0.5",
     "react-sortable-hoc": "^0.6.3",
     "redux": "^3.6.0",
     "redux-thunk": "^2.2.0",
     "reselect": "^3.0.0",
-    "styled-components": "^1.4.6"
+    "styled-components": "^2.0.0"
   },
   "devDependencies": {
+    "babel-eslint": "^7.2.3",
     "react-scripts": "1.0.5",
     "redux-logger": "^3.0.1",
-    "standard": "^10.0.2",
-    "babel-eslint": "^7.2.3"
+    "standard": "^10.0.2"
   },
   "scripts": {
     "start": "react-scripts start",

@@ -2,7 +2,10 @@ import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import styled from 'styled-components'
 
-import { toggleEditing } from './../../store/gradients/actions'
+import {
+  toggleEditing,
+  updateEditingAngle
+} from './../../store/gradients/actions'
 import { editStop } from './../../store/stops/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
@@ -129,6 +132,12 @@ class GradientCard extends Component {
       editStop(null)
     }
   }
+  _handleAngleEditToggle = () => {
+    const { toggleEditing, updateEditingAngle, id, angle } = this.props
+
+    toggleEditing(id)
+    updateEditingAngle(angle)
+  }
 
   render () {
     const {
@@ -137,13 +146,14 @@ class GradientCard extends Component {
     } = this.state
     const {
       id,
-      toggleEditing,
       angle,
-      editingAngle,
+      editingAngleData,
       editingStop,
       index,
       stopData
     } = this.props
+    const editingAngle = id === editingAngleData.id
+    const actualAngle = editingAngle ? editingAngleData.angle : angle
 
     return (
       <Container
@@ -153,7 +163,7 @@ class GradientCard extends Component {
       >
         <GradientContainer
           stopData={stopData}
-          angle={angle}
+          actualAngle={actualAngle}
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}
           gradientAnimationDuration={GRADIENT_ANIMATION_DURATION}
@@ -167,14 +177,14 @@ class GradientCard extends Component {
         <InfoContainer>
 
           <AngleContainer
-            onClick={() => toggleEditing(id)}
+            onClick={this._handleAngleEditToggle}
             onMouseEnter={e => this._handleMouseEnter(e, 'arrowPrev')}
             onMouseLeave={e => this._handleMouseLeave(e, 'arrowPrev')}
           >
             <AnglePreview
               editingAngle={editingAngle}
               editingStop={editingStop}
-              angle={angle}
+              angle={actualAngle}
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
               iconAnimationDuration={SLIDER_ANIMATION_DURATION}
               hovered={arrowPrev}
@@ -220,19 +230,16 @@ const mapStateToProps = (state, { id }) => {
     stopData: getStopsById(state, id),
     draggingItemMousePos: state.stops.draggingItemMousePos,
     // eslint-disable-next-line eqeqeq
-    editingAngle: id == state.gradients.editingAngle.id,
+    editingAngleData: state.gradients.editingAngle,
     // eslint-disable-next-line eqeqeq
     editingStop: id == state.stops.editing,
     // eslint-disable-next-line eqeqeq
-    angle: id == state.gradients.editingAngle.id
-      ? state.gradients.editingAngle.angle === null
-          ? gradient.angle
-          : state.gradients.editingAngle.angle
-      : gradient.angle
+    angle: gradient.angle
   }
 }
 
 export default connect(mapStateToProps, {
   toggleEditing,
-  editStop
+  editStop,
+  updateEditingAngle
 })(GradientCard)

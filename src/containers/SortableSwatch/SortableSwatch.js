@@ -29,6 +29,27 @@ const SlideBar = styled.div`
   background-color: #AFAFAF;
 `
 
+// const adjustStops = (stop, stops, adjustment = 1) => {
+//   if (isNaN(stops[stop])) {
+//     stops[stop] = stop
+//     return stops
+//   } else {
+
+//   }
+
+// console.log(stop, stops, adjustment)
+// const all = { ...stops }
+// delete all[stop]
+// let adjusted = stop
+// if (adjusted + adjustment > 100) adjusted -= adjustment
+// else adjusted += adjustment
+// if (isNaN(stops[adjusted])) {
+//   all[adjusted] = adjusted
+//   return all
+// }
+// adjustStop(adjusted, all, adjustment + 1)
+// }
+
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 
 const SortableList = SortableContainer(
@@ -62,6 +83,7 @@ const SortableList = SortableContainer(
               {stopsMapKeys.map((stop, index) => {
                 const color = stopsMap[stop]
                 let left = data[stop]
+                // console.log(data, stop)
                 return (
                   <SortableItem
                     {...props}
@@ -117,9 +139,15 @@ class Swatch extends Component {
 
         delete data[this.state.editing]
         const val = Math.round(perc)
+
+        // data = adjustStops(val, data)
+        // if (!isNaN(data[val])) {
+        //   data = adjustStop(data[val], data, 1)
+        //   // console.log(data)
+        // }
+
         data[val] = val
 
-        // updateStopPos(editing, perc, stopsMap, id)
         this.setState({
           left: perc,
           data
@@ -133,7 +161,15 @@ class Swatch extends Component {
     ) {
       const { editing, left } = this.state
       if (this.props.draggingItemMousePos) {
-        updateStopPos(editing, left, stopsMap, id)
+        const rounded = Math.round(left)
+
+        if (!stopsMap[rounded]) {
+          updateStopPos(editing, rounded, stopsMap, id)
+        } else if (this.state.editing !== rounded) {
+          updateStopPos(editing, rounded, stopsMap, id)
+        }
+
+        // console.log()
         this.resetEditingState()
       }
     }
@@ -180,10 +216,15 @@ class Swatch extends Component {
   }
 
   _handleSortItemClick = (e, stop, editing) => {
-    if (editing && e.type === 'mousedown') {
-      this._handleEditInit(e, stop)
+    if (e.type === 'mousedown') {
+      if (editing) {
+        this._handleEditInit(e, stop)
+      }
     } else if (e.type === 'mouseup') {
-      this.props.editStop(this.props.id)
+      const { editStop, id } = this.props
+      if (!editing) {
+        editStop(id)
+      }
     }
   }
 
@@ -261,5 +302,10 @@ export default connect(
     stopsMap: state.stops.values[id],
     draggingItemMousePos: state.stops.draggingItemMousePos
   }),
-  { editStop, swapStopsColors, updateDraggedItemXPos, updateStopPos }
+  {
+    editStop,
+    swapStopsColors,
+    updateDraggedItemXPos,
+    updateStopPos
+  }
 )(Swatch)

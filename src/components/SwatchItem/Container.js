@@ -7,6 +7,7 @@ const SwatchContainer = styled.div`
   align-items: center;
   width: ${({ isMounted, stops }) => (stops ? `${stops * 30}px` : 'auto')};
   height: 100%;
+  justify-content: center;
 `
 
 export default SwatchContainer

@@ -4,17 +4,16 @@ export const UPDATE_DRAGGED_ITEM_POS = 'stops/UPDATE_DRAGGED_ITEM_POS'
 export const UPDATE_STOP_POS = 'stops/UPDATE_STOP_POS'
 
 export const updateStopPos = (origStop, newStop, stopsMap, id) => dispatch => {
-  const rounded = Math.round(newStop)
   const newValues = Object.keys(stopsMap).reduce((aggr, curr) => {
     let current = parseInt(curr, 10)
 
-    if (current === rounded) {
+    if (current === newStop) {
       let adjusted = current
       if (current + 1 > 100) adjusted -= 1
       else adjusted += 1
       aggr[adjusted] = stopsMap[current]
     } else if (current === origStop) {
-      aggr[rounded] = stopsMap[origStop]
+      aggr[newStop] = stopsMap[origStop]
     } else {
       aggr[curr] = stopsMap[curr]
     }

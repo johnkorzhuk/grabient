@@ -1,5 +1,6 @@
 import React, { PureComponent } from 'react'
 import styled from 'styled-components'
+import { Animate } from 'react-move'
 
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'
@@ -36,7 +37,9 @@ class GradientContainer extends PureComponent {
       this.props.angle !== nextProps.angle ||
       this.props.hovered !== nextProps.hovered ||
       this.props.editingAngle !== nextProps.editingAngle ||
-      this.props.editingStop !== nextProps.editingStop
+      this.props.editingStop !== nextProps.editingStop ||
+      this.props.editingAngleVal !== nextProps.editingAngleVal ||
+      this.props.actualAngle !== nextProps.actualAngle
     )
   }
 
@@ -45,7 +48,7 @@ class GradientContainer extends PureComponent {
       gradientAnimationDuration,
       wheelAnimationDuration,
       id,
-      angle,
+      actualAngle,
       hovered,
       onMouseEnter,
       onMouseLeave,
@@ -53,8 +56,8 @@ class GradientContainer extends PureComponent {
       editingStop,
       stopData
     } = this.props
-
     const editing = editingAngle || editingStop
+
     return (
       <Container>
         <NoBlur
@@ -63,8 +66,7 @@ class GradientContainer extends PureComponent {
         >
           <Gradient
             stopData={stopData}
-            angle={angle}
-            data={this.data}
+            angle={actualAngle}
             transitionDuration={gradientAnimationDuration}
           />
         </NoBlur>
@@ -72,15 +74,17 @@ class GradientContainer extends PureComponent {
         <Blurred>
           <Gradient
             stopData={stopData}
-            opacity={hovered || editing ? 0.8 : 0}
-            angle={angle}
-            data={this.data}
+            hasOpacity
+            editing={editing}
+            hovered={hovered}
+            opacity={0.8}
+            angle={actualAngle}
             transitionDuration={gradientAnimationDuration}
           />
         </Blurred>
 
         <AngleWheel
-          angle={angle}
+          angle={actualAngle}
           id={id}
           transitionDuration={wheelAnimationDuration}
         />

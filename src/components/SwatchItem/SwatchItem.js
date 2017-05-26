@@ -17,15 +17,14 @@ const Item = styled.div`
   &:hover,
   &:active {
     z-index: 1000;
-    boxShadow: ${({ mixedColor }) => '0px 3px 10px 1px' + mixedColor};
+    box-shadow: ${({ mixedColor }) => '0px 3px 10px 1px ' + mixedColor};
   }
 `
 
 const SwatchItem = ({ color, left, animating, ...props }) => {
   const mixed = mix(0.5, color, '#AFAFAF')
-  // console.log(`calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`)
   left = `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
-  // if (animating) console.log(left)
+  // console.log(left)
   return (
     <Item
       {...props}

@@ -1,5 +1,4 @@
 import React from 'react'
-import { connect } from 'react-redux'
 import styled from 'styled-components'
 import { ChromePicker } from 'react-color'
 
@@ -18,4 +17,4 @@ const ColorPicker = ({ color }) => {
   )
 }
 
-export default connect()(ColorPicker)
+export default ColorPicker
