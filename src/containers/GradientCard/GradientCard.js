@@ -3,7 +3,7 @@ import { connect } from 'react-redux'
 import styled from 'styled-components'
 
 import { toggleEditing } from './../../store/gradients/actions'
-
+import { editStop } from './../../store/stops/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
 
@@ -122,6 +122,14 @@ class GradientCard extends Component {
     this.setState(newState)
   }
 
+  _handleAddCancelColorStop = () => {
+    const { editingStop, editStop } = this.props
+
+    if (editingStop) {
+      editStop(null)
+    }
+  }
+
   render () {
     const {
       hovered: { arrowPrev, addColor, main },
@@ -190,6 +198,7 @@ class GradientCard extends Component {
           <AddColorContainer
             onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
+            onClick={this._handleAddCancelColorStop}
           >
             <AddColor
               editingStop={editingStop}
@@ -224,5 +233,6 @@ const mapStateToProps = (state, { id }) => {
 }
 
 export default connect(mapStateToProps, {
-  toggleEditing
+  toggleEditing,
+  editStop
 })(GradientCard)

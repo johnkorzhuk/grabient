@@ -133,7 +133,6 @@ class Swatch extends Component {
     ) {
       const { editing, left } = this.state
       if (this.props.draggingItemMousePos) {
-        // console.log('done')
         updateStopPos(editing, left, stopsMap, id)
         this.resetEditingState()
       }
