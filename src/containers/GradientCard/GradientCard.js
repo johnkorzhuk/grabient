@@ -15,6 +15,7 @@ import { SortableSwatch } from './../index'
 const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
+// also used for icon opacity transition duration
 const SLIDER_ANIMATION_DURATION = 200
 
 const Container = styled.div`
@@ -167,6 +168,7 @@ class GradientCard extends Component {
               editingStop={editingStop}
               angle={angle}
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
+              iconAnimationDuration={SLIDER_ANIMATION_DURATION}
               hovered={arrowPrev}
             >
               <AngleText>{angle}°</AngleText>
@@ -190,9 +192,8 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
           >
             <AddColor
-              animationDuration={SLIDER_ANIMATION_DURATION}
               editingStop={editingStop}
-              anmationDuration={SLIDER_ANIMATION_DURATION}
+              animationDuration={SLIDER_ANIMATION_DURATION}
               hovered={addColor}
               color='#AFAFAF'
             />

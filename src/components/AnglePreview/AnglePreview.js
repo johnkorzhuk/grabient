@@ -6,6 +6,7 @@ import { AnglePrev } from './../Icons/index'
 const AnglePreview = ({
   angle,
   animationDuration,
+  iconAnimationDuration,
   hovered,
   editingStop,
   editingAngle,
@@ -30,6 +31,7 @@ const AnglePreview = ({
             }}
           >
             <AnglePrev
+              animationDuration={iconAnimationDuration}
               color='#AFAFAF'
               angle={angle}
               hovered={hovered}

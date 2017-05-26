@@ -1,13 +1,7 @@
 import React from 'react'
 import { Animate } from 'react-move'
 
-const AddColor = ({
-  anmationDuration,
-  hovered,
-  color,
-  editingStop,
-  animationDuration
-}) => {
+const AddColor = ({ hovered, color, editingStop, animationDuration }) => {
   return (
     <Animate
       duration={animationDuration}
