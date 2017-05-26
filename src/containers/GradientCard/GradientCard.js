@@ -190,6 +190,8 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
           >
             <AddColor
+              animationDuration={SLIDER_ANIMATION_DURATION}
+              editingStop={editingStop}
               anmationDuration={SLIDER_ANIMATION_DURATION}
               hovered={addColor}
               color='#AFAFAF'
