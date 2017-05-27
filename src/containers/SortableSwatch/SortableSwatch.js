@@ -63,19 +63,29 @@ const SortableList = SortableContainer(
                 const color = stops[stop]
                 let left = data[stop]
 
+                const style = editing
+                  ? {
+                    transitionDuration: 0,
+                    transform: 'none'
+                  }
+                  : {}
+                if (editing) {
+                  console.log(left, stop)
+                }
                 return (
                   <SortableItem
                     {...props}
                     disabled={editing}
                     style={{
-                      zIndex: updating === data[stop] ? 1000 : 0
+                      zIndex: updating === data[stop] ? 1000 : 0,
+                      ...style
                     }}
                     key={stop}
                     index={index}
                     onMouseDown={e => onSortItemClick(e, stop, editing)}
                     onMouseUp={e => onSortItemClick(e, stop, editing)}
                     color={color}
-                    left={left}
+                    left={isNaN(left) ? stop : left}
                   />
                 )
               })}
