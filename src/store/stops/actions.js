@@ -1,3 +1,5 @@
+import { shiftConflictedStops } from './utils'
+
 export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
 export const EDIT_STOP = 'stops/EDIT_STOP'
 export const UPDATE_DRAGGED_ITEM_POS = 'stops/UPDATE_DRAGGED_ITEM_POS'
@@ -50,6 +52,13 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
     else if (updatedStop > 100) updatedStop = 100
 
     delete updatedStopValues[stop]
+    if (updatedStopValues[updatedStop] !== undefined) {
+      updatedStopValues = shiftConflictedStops(
+        updatedStopValues,
+        updatedStop,
+        stop > updatedStop
+      )
+    }
     updatedStopValues[updatedStop] = origUnchanged[stop]
 
     return dispatch({

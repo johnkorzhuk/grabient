@@ -15,11 +15,6 @@ const INITIAL_STATE = {
     '1a': {
       '0': '#fad0c4',
       '100': '#ffd1ff'
-    },
-    '4a': {
-      '9': '#ffffff',
-      '70': '#c3cfe2',
-      '100': '#fad0c4'
     }
   },
   editing: null,
@@ -28,7 +23,11 @@ const INITIAL_STATE = {
     stop: null
   }
 }
-
+// '4a': {
+//     '9': '#ffffff',
+//     '70': '#c3cfe2',
+//     '100': '#fad0c4'
+//   },
 // '3a': {
 //   0: '#8ec5fc',
 //   70: '#c3cfe2',

@@ -43,7 +43,7 @@ const SortableList = SortableContainer(
       <Animate
         data={data}
         duration={transitionDuration}
-        ignore={updating ? stopKeys : []}
+        ignore={updating !== null ? stopKeys : []}
       >
         {data => {
           return (
@@ -67,6 +67,9 @@ const SortableList = SortableContainer(
                   <SortableItem
                     {...props}
                     disabled={editing}
+                    style={{
+                      zIndex: updating === data[stop] ? 1000 : 0
+                    }}
                     key={stop}
                     index={index}
                     onMouseDown={e => onSortItemClick(e, stop, editing)}
@@ -103,6 +106,7 @@ class Swatch extends Component {
 
   _handleEditInit = (e, stop) => {
     const { updateDraggedStopPos, updateUpdatingStop } = this.props
+
     updateUpdatingStop(stop)
     updateDraggedStopPos(e.nativeEvent.x)
   }
@@ -162,8 +166,7 @@ class Swatch extends Component {
 
 const mapStateToProps = (state, { id }) => {
   const stops = getStopsById(state, id)
-  const updating = state.stops.updating.stop !== null
-  const draggingItemMousePos = state.stops.draggingItemMousePos
+  const updating = state.stops.updating.stop
   const stopKeys = Object.keys(stops)
   const editing = state.stops.editing === id
   const containerDimenions = state.dimensions.swatch
@@ -172,7 +175,6 @@ const mapStateToProps = (state, { id }) => {
     stops,
     stopKeys,
     editing,
-    draggingItemMousePos,
     updating,
     colors: Object.values(stops),
     data: getStopsData(stopKeys, editing, containerDimenions)
