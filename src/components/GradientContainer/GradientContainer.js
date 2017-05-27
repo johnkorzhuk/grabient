@@ -1,6 +1,5 @@
 import React, { PureComponent } from 'react'
 import styled from 'styled-components'
-import { Animate } from 'react-move'
 
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'

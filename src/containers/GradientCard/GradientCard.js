@@ -9,7 +9,7 @@ import {
 import { editStop } from './../../store/stops/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
-
+import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
 import { SortableSwatch } from './../index'
@@ -92,20 +92,21 @@ class GradientCard extends Component {
       addColor: false,
       main: false
     },
-    wasEditing: false,
-    sliderContainer: null
-  }
-
-  componentDidMount () {
-    this.setState({
-      sliderContainer: this.sliderContainer.getClientRects()[0]
-    })
+    wasEditing: false
   }
 
   componentWillReceiveProps (nextProps) {
-    const { editingAngle } = this.props
+    const { editingAngle, editingStop } = this.props
     if (editingAngle !== nextProps.editingAngle) {
       this.setState({ wasEditing: !nextProps.editingAngle })
+    }
+
+    if (editingStop !== nextProps.editingStop) {
+      if (nextProps.editingStop) {
+        this.props.updateSwatchDimensions(this.sliderContainer.getClientRects())
+      } else {
+        this.props.updateSwatchDimensions(null, true)
+      }
     }
   }
 
@@ -132,6 +133,7 @@ class GradientCard extends Component {
       editStop(null)
     }
   }
+
   _handleAngleEditToggle = () => {
     const { toggleEditing, updateEditingAngle, id, angle } = this.props
 
@@ -140,10 +142,7 @@ class GradientCard extends Component {
   }
 
   render () {
-    const {
-      hovered: { arrowPrev, addColor, main },
-      sliderContainer
-    } = this.state
+    const { hovered: { arrowPrev, addColor, main } } = this.state
     const {
       id,
       angle,
@@ -199,7 +198,6 @@ class GradientCard extends Component {
             }}
           >
             <SortableSwatch
-              containerDimenions={sliderContainer}
               id={id}
               transitionDuration={SLIDER_ANIMATION_DURATION}
             />
@@ -241,5 +239,6 @@ const mapStateToProps = (state, { id }) => {
 export default connect(mapStateToProps, {
   toggleEditing,
   editStop,
-  updateEditingAngle
+  updateEditingAngle,
+  updateSwatchDimensions
 })(GradientCard)

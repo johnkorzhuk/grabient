@@ -10,6 +10,14 @@ const INITIAL_STATE = {
     '2a': {
       id: '2a',
       angle: 60
+    },
+    '1a': {
+      id: '1a',
+      angle: 10
+    },
+    '4a': {
+      id: '4a',
+      angle: 180
     }
   },
   // active: 1,
@@ -19,14 +27,6 @@ const INITIAL_STATE = {
   }
 }
 
-// '1a': {
-//   id: '1a',
-//   angle: 10
-// },
-// '4a': {
-//   id: '4a',
-//   angle: 180
-// },
 // '3a': {
 //   id: '3a',
 //   angle: 0

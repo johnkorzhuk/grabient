@@ -2,7 +2,11 @@ import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import styled from 'styled-components'
 
-import { editStop, updateDraggedItemXPos } from './store/stops/actions'
+import {
+  editStop,
+  updateDraggedStopPos,
+  updateUpdatingStop
+} from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
 
 import { GradientDisplay } from './components/index'
@@ -46,17 +50,18 @@ class App extends Component {
   _handleDocumentMouseMove = e => {
     if (this.props.editingStop) {
       this._handleNoop(e)
-      if (this.props.editingStop && this.props.draggingItemMousePos) {
+      if (this.props.editingStop && this.props.updating) {
         const { x } = e
-        this.props.updateDraggedItemXPos(x)
+        this.props.updateDraggedStopPos(x)
       }
     }
   }
 
   _handleDocumentMouseUp = e => {
     if (this.props.editingStop) {
-      if (this.props.editingStop && this.props.draggingItemMousePos) {
-        this.props.updateDraggedItemXPos(null)
+      if (this.props.editingStop && this.props.updating) {
+        this.props.updateUpdatingStop(null)
+        this.props.updateDraggedStopPos(null)
       }
     }
   }
@@ -77,11 +82,12 @@ export default connect(
   state => ({
     editingAngle: state.gradients.editingAngle.id !== null,
     editingStop: state.stops.editing !== null,
-    draggingItemMousePos: state.stops.draggingItemMousePos
+    updating: state.stops.updating.stop !== null
   }),
   {
     toggleEditing,
     editStop,
-    updateDraggedItemXPos
+    updateDraggedStopPos,
+    updateUpdatingStop
   }
 )(App)

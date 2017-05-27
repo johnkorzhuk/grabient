@@ -11,14 +11,10 @@ import {
 import {
   editStop,
   swapStopsColors,
-  updateDraggedItemXPos,
-  updateStopPos
+  updateDraggedStopPos,
+  updateUpdatingStop
 } from './../../store/stops/actions'
-import {
-  getStopsById,
-  getStopColors,
-  getStopsData
-} from './../../store/stops/selectors'
+import { getStopsById, getStopsData } from './../../store/stops/selectors'
 
 import { SwatchItem } from './../../components/index'
 import SwatchContainer from './../../components/SwatchItem/Container'
@@ -29,43 +25,26 @@ const SlideBar = styled.div`
   background-color: #AFAFAF;
 `
 
-// const adjustStops = (stop, stops, adjustment = 1) => {
-//   if (isNaN(stops[stop])) {
-//     stops[stop] = stop
-//     return stops
-//   } else {
-
-//   }
-
-// console.log(stop, stops, adjustment)
-// const all = { ...stops }
-// delete all[stop]
-// let adjusted = stop
-// if (adjusted + adjustment > 100) adjusted -= adjustment
-// else adjusted += adjustment
-// if (isNaN(stops[adjusted])) {
-//   all[adjusted] = adjusted
-//   return all
-// }
-// adjustStop(adjusted, all, adjustment + 1)
-// }
-
 const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 
 const SortableList = SortableContainer(
   ({
     transitionDuration,
     onSortItemClick,
-    pickingColor,
     style,
-    stopsMapKeys,
+    stopKeys,
     editing,
-    stopsMap,
+    updating,
+    stops,
     data,
     ...props
   }) => {
     return (
-      <Animate data={data} duration={transitionDuration}>
+      <Animate
+        data={data}
+        duration={transitionDuration}
+        ignore={updating ? stopKeys : []}
+      >
         {data => {
           return (
             <SwatchContainer
@@ -80,14 +59,14 @@ const SortableList = SortableContainer(
                   opacity: data.barOpacity
                 }}
               />
-              {stopsMapKeys.map((stop, index) => {
-                const color = stopsMap[stop]
+              {stopKeys.map((stop, index) => {
+                const color = stops[stop]
                 let left = data[stop]
-                // console.log(data, stop)
+
                 return (
                   <SortableItem
                     {...props}
-                    disabled={pickingColor || editing}
+                    disabled={editing}
                     key={stop}
                     index={index}
                     onMouseDown={e => onSortItemClick(e, stop, editing)}
@@ -106,113 +85,33 @@ const SortableList = SortableContainer(
 )
 
 class Swatch extends Component {
-  state = {
-    colors: null,
-    editing: null,
-    left: null,
-    data: this.props.data
-  }
-
-  componentDidMount () {
-    this.setState({
-      colors: this.props.colors
-    })
-  }
-
-  componentWillReceiveProps (nextProps) {
-    const { updateStopPos, stopsMap, id, draggingItemMousePos } = this.props
-    const { editing } = this.state
-    if (
-      editing !== null &&
-      draggingItemMousePos !== nextProps.draggingItemMousePos
-    ) {
-      if (nextProps.draggingItemMousePos !== null) {
-        const { left, right } = this.props.containerDimenions
-        const fromLeft = parseInt(nextProps.draggingItemMousePos, 10) - left
-        const total = right - left
-        let perc = (fromLeft / total * 100).toFixed(1)
-
-        if (perc < 0) perc = 0
-        else if (perc > 100) perc = 100
-        // todo: if newStop === origStop dont dispatch or else the value becomes null and bad shit happens
-        let data = { ...this.props.data }
-
-        delete data[this.state.editing]
-        const val = Math.round(perc)
-
-        // data = adjustStops(val, data)
-        // if (!isNaN(data[val])) {
-        //   data = adjustStop(data[val], data, 1)
-        //   // console.log(data)
-        // }
-
-        data[val] = val
-
-        this.setState({
-          left: perc,
-          data
-        })
-      }
-    }
-
-    if (
-      (this.props.editing !== nextProps.editing && !nextProps.editing) ||
-      (this.props.editing && nextProps.draggingItemMousePos === null)
-    ) {
-      const { editing, left } = this.state
-      if (this.props.draggingItemMousePos) {
-        const rounded = Math.round(left)
-
-        if (!stopsMap[rounded]) {
-          updateStopPos(editing, rounded, stopsMap, id)
-        } else if (this.state.editing !== rounded) {
-          updateStopPos(editing, rounded, stopsMap, id)
-        }
-
-        // console.log()
-        this.resetEditingState()
-      }
-    }
-
-    if (this.props.editing !== nextProps.editing) {
-      let data = { ...nextProps.data }
-
-      data['barOpacity'] = nextProps.editing === false ? 0 : 1
-      this.setState({
-        data
-      })
-    }
-    // todo: update state.colors when a gradient stop is added
-    if (this.props.colors.length !== nextProps.colors.length) {
-      this.setState({
-        colors: nextProps.colors
-      })
-    }
+  shouldComponentUpdate (nextProps, nextState) {
+    return (
+      this.props.colors !== nextProps.colors ||
+      this.props.data !== nextProps.data ||
+      this.props.editing !== nextProps.editing ||
+      this.props.draggingItemMousePos !== nextProps.draggingItemMousePos ||
+      this.props.stops !== nextProps.stops
+    )
   }
 
   componentDidUpdate (prevProps) {
     if (this.props.editing !== prevProps.editing && !this.props.editing) {
-      this.props.updateDraggedItemXPos(null)
+      this.props.updateUpdatingStop(null)
     }
   }
 
   _handleEditInit = (e, stop) => {
-    this.setState({
-      editing: parseInt(stop, 10)
-    })
-
-    this.props.updateDraggedItemXPos(e.nativeEvent.x)
+    const { updateDraggedStopPos, updateUpdatingStop } = this.props
+    updateUpdatingStop(stop)
+    updateDraggedStopPos(e.nativeEvent.x)
   }
 
-  _onSortEnd = ({ oldIndex, newIndex }) => {
-    const colors = arrayMove(this.state.colors, oldIndex, newIndex)
-    const { swapStopsColors, id } = this.props
+  _handleSortEnd = ({ oldIndex, newIndex }) => {
+    const { swapStopsColors, id, colors } = this.props
+    const newColorOrder = arrayMove(colors, oldIndex, newIndex)
 
-    this.setState({
-      colors
-    })
-
-    swapStopsColors(id, colors)
+    swapStopsColors(id, newColorOrder)
   }
 
   _handleSortItemClick = (e, stop, editing) => {
@@ -228,84 +127,61 @@ class Swatch extends Component {
     }
   }
 
-  resetEditingState () {
-    this.setState({
-      editing: null,
-      left: null
-    })
-  }
-
   render () {
     const {
-      stopsMap,
+      stops,
       editing,
       transitionDuration,
       style,
-      containerDimenions
+      data,
+      updating,
+      colors,
+      stopKeys
     } = this.props
-    const stopsMapKeys = Object.keys(stopsMap)
-    const { pickingColor, colors } = this.state
 
-    if (this.state.editing !== null) {
-      return (
-        <SwatchContainer
-          isMounted={editing}
-          stops={stopsMapKeys.length}
-          style={{
-            ...style,
-            zIndex: editing ? 10 : 0,
-            width: containerDimenions.width
-          }}
-        >
-          <SlideBar />
-          {stopsMapKeys.map((stop, index) => {
-            const color = stopsMap[stop]
-            const parsedStop = parseFloat(stop, 10)
-            let left = parsedStop === this.state.editing
-              ? this.state.left
-              : parsedStop
-
-            return <SwatchItem key={stop} left={left} color={color} />
-          })}
-        </SwatchContainer>
-      )
-    } else {
-      return (
-        colors &&
-        <SortableList
-          axis='x'
-          data={this.state.data}
-          lockAxis='x'
-          pickingColor={pickingColor}
-          transitionDuration={transitionDuration}
-          onSortItemClick={this._handleSortItemClick}
-          onSortStart={this._onSortStart}
-          onSortEnd={this._onSortEnd}
-          style={style}
-          distance={5}
-          lockToContainerEdges
-          stopsMapKeys={stopsMapKeys}
-          editing={editing}
-          stopsMap={stopsMap}
-        />
-      )
-    }
+    return (
+      colors &&
+      <SortableList
+        axis='x'
+        lockAxis='x'
+        onSortEnd={this._handleSortEnd}
+        distance={5}
+        lockToContainerEdges
+        transitionDuration={transitionDuration}
+        data={data}
+        onSortItemClick={this._handleSortItemClick}
+        style={style}
+        stopKeys={stopKeys}
+        editing={editing}
+        stops={stops}
+        updating={updating}
+      />
+    )
   }
 }
 
-export default connect(
-  (state, { id, containerDimenions }) => ({
-    editing: state.stops.editing === id,
-    stops: getStopsById(state, id),
-    colors: getStopColors(id)(state),
-    data: getStopsData(id, containerDimenions)(state),
-    stopsMap: state.stops.values[id],
-    draggingItemMousePos: state.stops.draggingItemMousePos
-  }),
-  {
-    editStop,
-    swapStopsColors,
-    updateDraggedItemXPos,
-    updateStopPos
+const mapStateToProps = (state, { id }) => {
+  const stops = getStopsById(state, id)
+  const updating = state.stops.updating.stop !== null
+  const draggingItemMousePos = state.stops.draggingItemMousePos
+  const stopKeys = Object.keys(stops)
+  const editing = state.stops.editing === id
+  const containerDimenions = state.dimensions.swatch
+
+  return {
+    stops,
+    stopKeys,
+    editing,
+    draggingItemMousePos,
+    updating,
+    colors: Object.values(stops),
+    data: getStopsData(stopKeys, editing, containerDimenions)
   }
-)(Swatch)
+}
+
+export default connect(mapStateToProps, {
+  editStop,
+  swapStopsColors,
+  updateDraggedStopPos,
+  updateUpdatingStop
+})(Swatch)

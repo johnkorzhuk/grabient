@@ -1,30 +1,13 @@
 export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
 export const EDIT_STOP = 'stops/EDIT_STOP'
 export const UPDATE_DRAGGED_ITEM_POS = 'stops/UPDATE_DRAGGED_ITEM_POS'
-export const UPDATE_STOP_POS = 'stops/UPDATE_STOP_POS'
+export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
 
-export const updateStopPos = (origStop, newStop, stopsMap, id) => dispatch => {
-  const newValues = Object.keys(stopsMap).reduce((aggr, curr) => {
-    let current = parseInt(curr, 10)
-
-    if (current === newStop) {
-      let adjusted = current
-      if (current + 1 > 100) adjusted -= 1
-      else adjusted += 1
-      aggr[adjusted] = stopsMap[current]
-    } else if (current === origStop) {
-      aggr[newStop] = stopsMap[origStop]
-    } else {
-      aggr[curr] = stopsMap[curr]
-    }
-
-    return aggr
-  }, {})
+export const updateUpdatingStop = stop => dispatch => {
   return dispatch({
-    type: UPDATE_STOP_POS,
+    type: UPDATE_UPDATING_STOP,
     payload: {
-      id,
-      newValues
+      stop
     }
   })
 }
@@ -54,12 +37,28 @@ export const swapStopsColors = (id, colors) => (dispatch, getState) => {
   })
 }
 
-export const updateDraggedItemXPos = xPos => dispatch => {
-  // console.log(xPos)
-  return dispatch({
-    type: UPDATE_DRAGGED_ITEM_POS,
-    payload: {
-      xPos
-    }
-  })
+export const updateDraggedStopPos = xPos => (dispatch, getState) => {
+  const {
+    stops: { updating: { stop, origUnchanged }, editing },
+    dimensions: { swatch: { left, width } }
+  } = getState()
+
+  if (stop !== null) {
+    let updatedStopValues = { ...origUnchanged }
+    let updatedStop = Math.round((xPos - left) / width * 100)
+    if (updatedStop < 0) updatedStop = 0
+    else if (updatedStop > 100) updatedStop = 100
+
+    delete updatedStopValues[stop]
+    updatedStopValues[updatedStop] = origUnchanged[stop]
+
+    return dispatch({
+      type: UPDATE_DRAGGED_ITEM_POS,
+      payload: {
+        editing,
+        updatedStopValues,
+        updatedStop
+      }
+    })
+  }
 }
