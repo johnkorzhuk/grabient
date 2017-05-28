@@ -14,7 +14,11 @@ import {
   updateDraggedStopPos,
   updateUpdatingStop
 } from './../../store/stops/actions'
-import { getStopsById, getStopsData } from './../../store/stops/selectors'
+import {
+  getStopsById,
+  getStopData,
+  getEditingState
+} from './../../store/stops/selectors'
 
 import { SwatchItem } from './../../components/index'
 import SwatchContainer from './../../components/SwatchItem/Container'
@@ -29,7 +33,7 @@ const SortableItem = SortableElement(props => <SwatchItem {...props} />)
 
 const SortableList = SortableContainer(
   ({
-    transitionDuration,
+    animationDuration,
     onSortItemClick,
     style,
     stopKeys,
@@ -37,12 +41,13 @@ const SortableList = SortableContainer(
     updating,
     stops,
     data,
+    sorting,
     ...props
   }) => {
     return (
       <Animate
         data={data}
-        duration={transitionDuration}
+        duration={animationDuration}
         ignore={updating !== null ? stopKeys : []}
       >
         {data => {
@@ -62,16 +67,24 @@ const SortableList = SortableContainer(
               {stopKeys.map((stop, index) => {
                 const color = stops[stop]
                 let left = data[stop]
-
-                const style = editing
-                  ? {
-                    transitionDuration: 0,
-                    transform: 'none'
+                // bug with react-sortable-hoc
+                const style = sorting
+                  ? {}
+                  : {
+                    transform: 'none',
+                    transitionDuration: '0ms'
                   }
-                  : {}
-                if (editing) {
-                  console.log(left, stop)
+                // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
+                // To force it to happen: spam click the stop when editing and have cursor off the stop on mouse up. Weird!
+                if (isNaN(left)) {
+                  editing
+                    ? (left = stop)
+                    : (left = parseFloat(
+                        (index + 1) / stopKeys.length * 100,
+                        10
+                      ))
                 }
+
                 return (
                   <SortableItem
                     {...props}
@@ -85,7 +98,7 @@ const SortableList = SortableContainer(
                     onMouseDown={e => onSortItemClick(e, stop, editing)}
                     onMouseUp={e => onSortItemClick(e, stop, editing)}
                     color={color}
-                    left={isNaN(left) ? stop : left}
+                    left={left}
                   />
                 )
               })}
@@ -98,6 +111,10 @@ const SortableList = SortableContainer(
 )
 
 class Swatch extends Component {
+  state = {
+    sorting: false
+  }
+
   shouldComponentUpdate (nextProps, nextState) {
     return (
       this.props.colors !== nextProps.colors ||
@@ -121,11 +138,21 @@ class Swatch extends Component {
     updateDraggedStopPos(e.nativeEvent.x)
   }
 
+  _handleSortStart = () => {
+    this.setState({
+      sorting: true
+    })
+  }
+
   _handleSortEnd = ({ oldIndex, newIndex }) => {
     const { swapStopsColors, id, colors } = this.props
     const newColorOrder = arrayMove(colors, oldIndex, newIndex)
 
     swapStopsColors(id, newColorOrder)
+
+    this.setState({
+      sorting: false
+    })
   }
 
   _handleSortItemClick = (e, stop, editing) => {
@@ -152,16 +179,21 @@ class Swatch extends Component {
       colors,
       stopKeys
     } = this.props
+    const { sorting } = this.state
 
     return (
       colors &&
       <SortableList
+        transitionDuration={300}
         axis='x'
         lockAxis='x'
+        onSortStart={this._handleSortStart}
         onSortEnd={this._handleSortEnd}
+        shouldCancelStart={() => editing || updating !== null}
         distance={5}
         lockToContainerEdges
-        transitionDuration={transitionDuration}
+        sorting={sorting}
+        animationDuration={transitionDuration}
         data={data}
         onSortItemClick={this._handleSortItemClick}
         style={style}
@@ -174,12 +206,11 @@ class Swatch extends Component {
   }
 }
 
-const mapStateToProps = (state, { id }) => {
-  const stops = getStopsById(state, id)
+const mapStateToProps = (state, props) => {
+  const stops = getStopsById(state, props)
   const updating = state.stops.updating.stop
   const stopKeys = Object.keys(stops)
-  const editing = state.stops.editing === id
-  const containerDimenions = state.dimensions.swatch
+  const editing = getEditingState(state, props)
 
   return {
     stops,
@@ -187,7 +218,7 @@ const mapStateToProps = (state, { id }) => {
     editing,
     updating,
     colors: Object.values(stops),
-    data: getStopsData(stopKeys, editing, containerDimenions)
+    data: getStopData(state, props)
   }
 }
 

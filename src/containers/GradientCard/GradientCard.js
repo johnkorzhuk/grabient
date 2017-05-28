@@ -19,7 +19,7 @@ const GRADIENT_ANIMATION_DURATION = 500
 const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
 // also used for icon opacity transition duration
-const SLIDER_ANIMATION_DURATION = 200
+const SLIDER_ANIMATION_DURATION = 300
 
 const Container = styled.div`
   width: 33.33%;
@@ -221,16 +221,16 @@ class GradientCard extends Component {
   }
 }
 
-const mapStateToProps = (state, { id }) => {
-  const gradient = getGradientById(id)(state)
+const mapStateToProps = (state, props) => {
+  const gradient = getGradientById(props.id)(state)
 
   return {
-    stopData: getStopsById(state, id),
+    stopData: getStopsById(state, props),
     draggingItemMousePos: state.stops.draggingItemMousePos,
     // eslint-disable-next-line eqeqeq
     editingAngleData: state.gradients.editingAngle,
     // eslint-disable-next-line eqeqeq
-    editingStop: id == state.stops.editing,
+    editingStop: props.id == state.stops.editing,
     // eslint-disable-next-line eqeqeq
     angle: gradient.angle
   }
