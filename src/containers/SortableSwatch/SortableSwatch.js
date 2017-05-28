@@ -23,6 +23,8 @@ import {
 import { SwatchItem } from './../../components/index'
 import SwatchContainer from './../../components/SwatchItem/Container'
 
+const UPDATE_STOP_THRESHOLD = 5
+
 const SlideBar = styled.div`
   height: 2px;
   width: 100%;
@@ -112,7 +114,8 @@ const SortableList = SortableContainer(
 
 class Swatch extends Component {
   state = {
-    sorting: false
+    sorting: false,
+    enableUpdateStop: false
   }
 
   shouldComponentUpdate (nextProps, nextState) {
@@ -121,7 +124,9 @@ class Swatch extends Component {
       this.props.data !== nextProps.data ||
       this.props.editing !== nextProps.editing ||
       this.props.draggingItemMousePos !== nextProps.draggingItemMousePos ||
-      this.props.stops !== nextProps.stops
+      this.props.stops !== nextProps.stops ||
+      this.state.sorting !== nextState.sorting ||
+      this.state.enableUpdateStop !== nextState.enableUpdateStop
     )
   }
 
@@ -129,13 +134,6 @@ class Swatch extends Component {
     if (this.props.editing !== prevProps.editing && !this.props.editing) {
       this.props.updateUpdatingStop(null)
     }
-  }
-
-  _handleEditInit = (e, stop) => {
-    const { updateDraggedStopPos, updateUpdatingStop } = this.props
-
-    updateUpdatingStop(stop)
-    updateDraggedStopPos(e.nativeEvent.x)
   }
 
   _handleSortStart = () => {
@@ -153,6 +151,13 @@ class Swatch extends Component {
     this.setState({
       sorting: false
     })
+  }
+
+  _handleEditInit = (e, stop) => {
+    const { updateDraggedStopPos, updateUpdatingStop } = this.props
+
+    updateUpdatingStop(stop, e.nativeEvent.x)
+    updateDraggedStopPos(e.nativeEvent.x)
   }
 
   _handleSortItemClick = (e, stop, editing) => {

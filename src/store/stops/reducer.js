@@ -20,8 +20,10 @@ const INITIAL_STATE = {
   editing: null,
   updating: {
     origUnchanged: {},
-    stop: null
-  }
+    stop: null,
+    passThreshold: false
+  },
+  updatingStopXPos: null
 }
 // '4a': {
 //     '9': '#ffffff',
@@ -59,11 +61,7 @@ export default (state = INITIAL_STATE, action) => {
           [action.payload.id]: action.payload.updatedStop
         }
       }
-    // case UPDATE_DRAGGED_ITEM_POS:
-    //   return {
-    //     ...state,
-    //     draggingItemMousePos: action.payload.xPos
-    //   }
+
     case UPDATE_DRAGGED_ITEM_POS:
       return {
         ...state,
@@ -74,7 +72,10 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           origUnchanged: action.payload.updatedStopValues,
-          stop: action.payload.updatedStop
+          stop: action.payload.updatedStop,
+          passThreshold: action.payload.passThreshold
+            ? action.payload.passThreshold
+            : state.updating.passThreshold
         }
       }
 
@@ -83,8 +84,10 @@ export default (state = INITIAL_STATE, action) => {
         ...state,
         updating: {
           ...state.updating,
-          stop: action.payload.stop
-        }
+          stop: action.payload.stop,
+          passThreshold: action.payload.stop === null
+        },
+        updatingStopXPos: action.payload.xPos
       }
     // case UPDATE_STOP_POS:
     //   return {
