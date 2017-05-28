@@ -4,6 +4,7 @@ export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
 export const EDIT_STOP = 'stops/EDIT_STOP'
 export const UPDATE_DRAGGED_ITEM_POS = 'stops/UPDATE_DRAGGED_ITEM_POS'
 export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
+export const UPDATING_STOP_THRESHOLD = 5
 
 export const updateUpdatingStop = (stop, xPos) => dispatch => {
   return dispatch({
@@ -49,7 +50,6 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
     },
     dimensions: { swatch: { left, width } }
   } = getState()
-  const updatingStopThreshold = 5
 
   if (stop !== null) {
     let updatedStopValues = { ...origUnchanged }
@@ -67,7 +67,7 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
     }
     updatedStopValues[updatedStop] = origUnchanged[stop]
 
-    if (Math.abs(updatingStopXPos - xPos) >= updatingStopThreshold) {
+    if (Math.abs(updatingStopXPos - xPos) >= UPDATING_STOP_THRESHOLD) {
       return dispatch({
         type: UPDATE_DRAGGED_ITEM_POS,
         payload: {

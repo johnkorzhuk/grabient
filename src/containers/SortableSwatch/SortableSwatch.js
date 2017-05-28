@@ -20,10 +20,10 @@ import {
   getEditingState
 } from './../../store/stops/selectors'
 
+import { ColorPicker } from './../index'
+
 import { SwatchItem } from './../../components/index'
 import SwatchContainer from './../../components/SwatchItem/Container'
-
-const UPDATE_STOP_THRESHOLD = 5
 
 const SlideBar = styled.div`
   height: 2px;
@@ -40,17 +40,18 @@ const SortableList = SortableContainer(
     style,
     stopKeys,
     editing,
-    updating,
+    updatingValue,
     stops,
     data,
     sorting,
     ...props
   }) => {
+    const isUpdating = updatingValue !== null
     return (
       <Animate
         data={data}
         duration={animationDuration}
-        ignore={updating !== null ? stopKeys : []}
+        ignore={isUpdating ? stopKeys : []}
       >
         {data => {
           return (
@@ -70,12 +71,21 @@ const SortableList = SortableContainer(
                 const color = stops[stop]
                 let left = data[stop]
                 // bug with react-sortable-hoc
-                const style = sorting
+                let style = sorting
                   ? {}
                   : {
                     transform: 'none',
                     transitionDuration: '0ms'
                   }
+                style = updatingValue === data[stop]
+                  ? {
+                    ...style,
+                    zIndex: 100
+                  }
+                  : {
+                    ...style
+                  }
+
                 // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
                 // To force it to happen: spam click the stop when editing and have cursor off the stop on mouse up. Weird!
                 if (isNaN(left)) {
@@ -91,14 +101,13 @@ const SortableList = SortableContainer(
                   <SortableItem
                     {...props}
                     disabled={editing}
-                    style={{
-                      zIndex: updating === data[stop] ? 1000 : 0,
-                      ...style
-                    }}
+                    style={style}
+                    isUpdating={isUpdating}
                     key={stop}
                     index={index}
-                    onMouseDown={e => onSortItemClick(e, stop, editing)}
-                    onMouseUp={e => onSortItemClick(e, stop, editing)}
+                    onMouseDown={e =>
+                      onSortItemClick(e, stop, editing, sorting)}
+                    onMouseUp={e => onSortItemClick(e, stop, editing, sorting)}
                     color={color}
                     left={left}
                   />
@@ -155,19 +164,18 @@ class Swatch extends Component {
 
   _handleEditInit = (e, stop) => {
     const { updateDraggedStopPos, updateUpdatingStop } = this.props
-
     updateUpdatingStop(stop, e.nativeEvent.x)
     updateDraggedStopPos(e.nativeEvent.x)
   }
 
-  _handleSortItemClick = (e, stop, editing) => {
+  _handleSortItemClick = (e, stop, editing, sorting) => {
     if (e.type === 'mousedown') {
       if (editing) {
         this._handleEditInit(e, stop)
       }
     } else if (e.type === 'mouseup') {
       const { editStop, id } = this.props
-      if (!editing) {
+      if (!editing && !sorting) {
         editStop(id)
       }
     }
@@ -180,7 +188,7 @@ class Swatch extends Component {
       transitionDuration,
       style,
       data,
-      updating,
+      updatingValue,
       colors,
       stopKeys
     } = this.props
@@ -194,7 +202,7 @@ class Swatch extends Component {
         lockAxis='x'
         onSortStart={this._handleSortStart}
         onSortEnd={this._handleSortEnd}
-        shouldCancelStart={() => editing || updating !== null}
+        shouldCancelStart={() => editing || updatingValue !== null}
         distance={5}
         lockToContainerEdges
         sorting={sorting}
@@ -205,7 +213,7 @@ class Swatch extends Component {
         stopKeys={stopKeys}
         editing={editing}
         stops={stops}
-        updating={updating}
+        updatingValue={updatingValue}
       />
     )
   }
@@ -213,7 +221,7 @@ class Swatch extends Component {
 
 const mapStateToProps = (state, props) => {
   const stops = getStopsById(state, props)
-  const updating = state.stops.updating.stop
+  const updatingValue = state.stops.updating.stop
   const stopKeys = Object.keys(stops)
   const editing = getEditingState(state, props)
 
@@ -221,7 +229,7 @@ const mapStateToProps = (state, props) => {
     stops,
     stopKeys,
     editing,
-    updating,
+    updatingValue,
     colors: Object.values(stops),
     data: getStopData(state, props)
   }

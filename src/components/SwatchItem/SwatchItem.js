@@ -21,7 +21,14 @@ const Item = styled.div`
   }
 `
 
-const SwatchItem = ({ color, left, animating, style, ...props }) => {
+const SwatchItem = ({
+  color,
+  left,
+  animating,
+  style,
+  isUpdating,
+  ...props
+}) => {
   const mixed = mix(0.5, color, '#AFAFAF')
   left = `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
 

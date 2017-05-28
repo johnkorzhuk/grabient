@@ -85,18 +85,11 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           stop: action.payload.stop,
-          passThreshold: action.payload.stop === null
+          passThreshold: action.payload.stop === null &&
+            state.updatingStopXPos !== action.payload.xPos
         },
         updatingStopXPos: action.payload.xPos
       }
-    // case UPDATE_STOP_POS:
-    //   return {
-    //     ...state,
-    //     values: {
-    //       ...state.values,
-    //       [action.payload.id]: action.payload.newValues
-    //     }
-    //   }
 
     default:
       return state

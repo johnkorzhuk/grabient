@@ -10,6 +10,7 @@ import { editStop } from './../../store/stops/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
+
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
 import { SortableSwatch } from './../index'
@@ -104,8 +105,6 @@ class GradientCard extends Component {
     if (editingStop !== nextProps.editingStop) {
       if (nextProps.editingStop) {
         this.props.updateSwatchDimensions(this.sliderContainer.getClientRects())
-      } else {
-        this.props.updateSwatchDimensions(null, true)
       }
     }
   }
