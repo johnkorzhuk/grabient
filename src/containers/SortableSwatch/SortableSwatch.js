@@ -194,6 +194,7 @@ class Swatch extends Component {
       <SortableList
         transitionDuration={300}
         axis='x'
+        useWindowAsScrollContainer
         lockAxis='x'
         onSortStart={this._handleSortStart}
         onSortEnd={this._handleSortEnd}

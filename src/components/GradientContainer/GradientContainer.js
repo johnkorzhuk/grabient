@@ -60,7 +60,7 @@ class GradientContainer extends PureComponent {
     return (
       <Container
         style={{
-          zIndex: pickingColorStop ? 4 : 20
+          zIndex: pickingColorStop ? 4 : 9
         }}
       >
         <NoBlur
