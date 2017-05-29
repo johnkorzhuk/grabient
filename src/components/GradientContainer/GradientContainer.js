@@ -16,7 +16,6 @@ const Container = styled.div`
 const NoBlur = styled.div`
   height: 90%;
   width: 100%;
-  z-index: 10;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 15px;
 `
@@ -38,7 +37,8 @@ class GradientContainer extends PureComponent {
       this.props.editingAngle !== nextProps.editingAngle ||
       this.props.editingStop !== nextProps.editingStop ||
       this.props.editingAngleVal !== nextProps.editingAngleVal ||
-      this.props.actualAngle !== nextProps.actualAngle
+      this.props.actualAngle !== nextProps.actualAngle ||
+      this.props.pickingColorStop !== nextProps.pickingColorStop
     )
   }
 
@@ -53,12 +53,16 @@ class GradientContainer extends PureComponent {
       onMouseLeave,
       editingAngle,
       editingStop,
-      stopData
+      stopData,
+      pickingColorStop
     } = this.props
     const editing = editingAngle || editingStop
-
     return (
-      <Container>
+      <Container
+        style={{
+          zIndex: pickingColorStop ? 4 : 20
+        }}
+      >
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, 'main')}
           onMouseLeave={e => onMouseLeave(e, 'main')}

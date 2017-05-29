@@ -1,13 +1,15 @@
-import React from 'react'
+import React, { Component } from 'react'
 import styled from 'styled-components'
 import { mix } from 'polished'
+
+import { ColorPicker } from './../../containers/index'
 
 // rem
 const SLIDER_ITEM_SIZE = 2
 
 const Item = styled.div`
-  height: 2rem;
-  width: 2rem;
+  height: ${SLIDER_ITEM_SIZE}rem;
+  width: ${SLIDER_ITEM_SIZE}rem;
   border-radius: 50%;
   cursor: pointer;
   position: absolute;
@@ -21,28 +23,56 @@ const Item = styled.div`
   }
 `
 
-const SwatchItem = ({
-  color,
-  left,
-  animating,
-  style,
-  isUpdating,
-  ...props
-}) => {
-  const mixed = mix(0.5, color, '#AFAFAF')
-  left = `calc(${left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
+const Container = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: flex-end;
+  position: absolute;
+  height: ${SLIDER_ITEM_SIZE}rem;
+  width: ${SLIDER_ITEM_SIZE}rem;
+  bottom: 10px;
+  z-index: 0;
+`
 
-  return (
-    <Item
-      {...props}
-      mixedColor={mixed}
-      color={color}
-      style={{
-        ...style,
-        left
-      }}
-    />
-  )
+class SwatchItem extends Component {
+  _handleClick = () => {
+    this.props.toggleEditing(null)
+    this.setState(prevState => ({
+      pickingColor: !prevState.pickingColor
+    }))
+  }
+
+  render () {
+    const {
+      color,
+      left,
+      animating,
+      style,
+      isUpdating,
+      pickingColorStop,
+      editing,
+      stop,
+      ...props
+    } = this.props
+
+    const shouldRenderColorPicker =
+      pickingColorStop === stop && editing && !isUpdating
+    const mixed = mix(0.5, color, '#AFAFAF')
+    const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
+
+    return (
+      <Container
+        mixedColor={mixed}
+        color={color}
+        style={{
+          right
+        }}
+      >
+        {shouldRenderColorPicker && <ColorPicker color={color} />}
+        <Item mixedColor={mixed} color={color} style={style} {...props} />
+      </Container>
+    )
+  }
 }
 
 export default SwatchItem

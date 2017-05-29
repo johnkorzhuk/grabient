@@ -1,10 +1,12 @@
 import { shiftConflictedStops } from './utils'
 
-export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
-export const EDIT_STOP = 'stops/EDIT_STOP'
-export const UPDATE_DRAGGED_ITEM_POS = 'stops/UPDATE_DRAGGED_ITEM_POS'
+const UPDATING_STOP_THRESHOLD = 5
+// actions
 export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
-export const UPDATING_STOP_THRESHOLD = 5
+export const EDIT_STOP = 'stops/EDIT_STOP'
+export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
+export const UPDATE_DRAGGED_ITEM_POS = 'stops/UPDATE_DRAGGED_ITEM_POS'
+export const TOGGLE_ACTIVE_COLOR_PICKER = 'stops/TOGGLE_ACTIVE_COLOR_PICKER'
 
 export const updateUpdatingStop = (stop, xPos) => dispatch => {
   return dispatch({
@@ -73,7 +75,7 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
         payload: {
           editing,
           updatedStopValues,
-          updatedStop,
+          updatedStop: updatedStop.toString(),
           passThreshold: true
         }
       })
@@ -83,9 +85,27 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
         payload: {
           editing,
           updatedStopValues,
-          updatedStop
+          updatedStop: updatedStop.toString()
         }
       })
     }
+  }
+}
+
+export const updateActiveColorPicker = (stop, currActive) => dispatch => {
+  if (stop === currActive || stop === null) {
+    return dispatch({
+      type: TOGGLE_ACTIVE_COLOR_PICKER,
+      payload: {
+        stop: null
+      }
+    })
+  } else {
+    return dispatch({
+      type: TOGGLE_ACTIVE_COLOR_PICKER,
+      payload: {
+        stop
+      }
+    })
   }
 }

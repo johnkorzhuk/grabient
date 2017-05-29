@@ -6,7 +6,7 @@ const Container = styled.div`
   position: absolute;
   z-index: 1000;
   bottom: 30px;
-  right: 11px;
+  right: 1rem;
 `
 
 const ColorPicker = ({ color }) => {

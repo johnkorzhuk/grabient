@@ -27,7 +27,6 @@ function getStopsData (stops, editing, containerDimenions) {
   if (editing) {
     data.barOpacity = 1
     data.width = containerDimenions.width
-    console.log(containerDimenions.width)
   } else {
     data.width = stopKeys.length * 30
     data.barOpacity = 0

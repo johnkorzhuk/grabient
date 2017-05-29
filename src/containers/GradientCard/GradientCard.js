@@ -6,7 +6,7 @@ import {
   toggleEditing,
   updateEditingAngle
 } from './../../store/gradients/actions'
-import { editStop } from './../../store/stops/actions'
+import { editStop, updateActiveColorPicker } from './../../store/stops/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
@@ -126,10 +126,11 @@ class GradientCard extends Component {
   }
 
   _handleAddCancelColorStop = () => {
-    const { editingStop, editStop } = this.props
+    const { editingStop, editStop, updateActiveColorPicker } = this.props
 
     if (editingStop) {
       editStop(null)
+      updateActiveColorPicker(null)
     }
   }
 
@@ -148,7 +149,8 @@ class GradientCard extends Component {
       editingAngleData,
       editingStop,
       index,
-      stopData
+      stopData,
+      pickingColorStop
     } = this.props
     const editingAngle = id === editingAngleData.id
     const actualAngle = editingAngle ? editingAngleData.angle : angle
@@ -170,6 +172,7 @@ class GradientCard extends Component {
           hovered={main}
           editingAngle={editingAngle}
           editingStop={editingStop}
+          pickingColorStop={pickingColorStop}
         />
 
         <InfoContainer>
@@ -198,7 +201,7 @@ class GradientCard extends Component {
           >
             <SortableSwatch
               id={id}
-              transitionDuration={SLIDER_ANIMATION_DURATION}
+              animationDuration={SLIDER_ANIMATION_DURATION}
             />
           </SwatchSliderContainer>
 
@@ -231,7 +234,8 @@ const mapStateToProps = (state, props) => {
     // eslint-disable-next-line eqeqeq
     editingStop: props.id == state.stops.editing,
     // eslint-disable-next-line eqeqeq
-    angle: gradient.angle
+    angle: gradient.angle,
+    pickingColorStop: state.stops.updating.pickingColorStop !== null
   }
 }
 
@@ -239,5 +243,6 @@ export default connect(mapStateToProps, {
   toggleEditing,
   editStop,
   updateEditingAngle,
-  updateSwatchDimensions
+  updateSwatchDimensions,
+  updateActiveColorPicker
 })(GradientCard)

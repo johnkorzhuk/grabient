@@ -2,7 +2,8 @@ import {
   EDIT_STOP,
   SWAP_STOP_COLORS,
   UPDATE_DRAGGED_ITEM_POS,
-  UPDATE_UPDATING_STOP
+  UPDATE_UPDATING_STOP,
+  TOGGLE_ACTIVE_COLOR_PICKER
 } from './actions'
 
 const INITIAL_STATE = {
@@ -21,7 +22,8 @@ const INITIAL_STATE = {
   updating: {
     origUnchanged: {},
     stop: null,
-    passThreshold: false
+    passThreshold: false,
+    pickingColorStop: null
   },
   updatingStopXPos: null
 }
@@ -89,6 +91,15 @@ export default (state = INITIAL_STATE, action) => {
             state.updatingStopXPos !== action.payload.xPos
         },
         updatingStopXPos: action.payload.xPos
+      }
+
+    case TOGGLE_ACTIVE_COLOR_PICKER:
+      return {
+        ...state,
+        updating: {
+          ...state.updating,
+          pickingColorStop: action.payload.stop
+        }
       }
 
     default:

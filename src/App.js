@@ -5,7 +5,8 @@ import styled from 'styled-components'
 import {
   editStop,
   updateDraggedStopPos,
-  updateUpdatingStop
+  updateUpdatingStop,
+  updateActiveColorPicker
 } from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
 
@@ -42,14 +43,17 @@ class App extends Component {
   _handleCancelEdits = e => {
     if ((e.type === 'keydown' && e.which === 27) || e.type === 'click') {
       this._handleNoop(e)
-      this.props.toggleEditing(null)
-      this.props.editStop(null)
+      if (this.props.pickingColorStop) {
+        this.props.updateActiveColorPicker(null)
+      } else {
+        this.props.toggleEditing(null)
+        this.props.editStop(null)
+      }
     }
   }
 
   _handleDocumentMouseMove = e => {
     if (this.props.editingStop) {
-      this._handleNoop(e)
       if (this.props.editingStop && this.props.updating) {
         const { x } = e
         this.props.updateDraggedStopPos(x)
@@ -82,12 +86,14 @@ export default connect(
   state => ({
     editingAngle: state.gradients.editingAngle.id !== null,
     editingStop: state.stops.editing !== null,
-    updating: state.stops.updating.stop !== null
+    updating: state.stops.updating.stop !== null,
+    pickingColorStop: state.stops.updating.pickingColorStop !== null
   }),
   {
     toggleEditing,
     editStop,
     updateDraggedStopPos,
-    updateUpdatingStop
+    updateUpdatingStop,
+    updateActiveColorPicker
   }
 )(App)

@@ -8,19 +8,19 @@ import {
   arrayMove
 } from 'react-sortable-hoc'
 
+import { toggleEditing } from './../../store/gradients/actions'
 import {
   editStop,
   swapStopsColors,
   updateDraggedStopPos,
-  updateUpdatingStop
+  updateUpdatingStop,
+  updateActiveColorPicker
 } from './../../store/stops/actions'
 import {
   getStopsById,
   getStopData,
   getEditingState
 } from './../../store/stops/selectors'
-
-import { ColorPicker } from './../index'
 
 import { SwatchItem } from './../../components/index'
 import SwatchContainer from './../../components/SwatchItem/Container'
@@ -41,9 +41,12 @@ const SortableList = SortableContainer(
     stopKeys,
     editing,
     updatingValue,
+    editingAngle,
     stops,
     data,
     sorting,
+    pickingColorStop,
+    passThreshold,
     ...props
   }) => {
     const isUpdating = updatingValue !== null
@@ -83,7 +86,8 @@ const SortableList = SortableContainer(
                     zIndex: 100
                   }
                   : {
-                    ...style
+                    ...style,
+                    zIndex: 10
                   }
 
                 // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
@@ -96,17 +100,27 @@ const SortableList = SortableContainer(
                         10
                       ))
                 }
-
                 return (
                   <SortableItem
                     {...props}
                     disabled={editing}
-                    style={style}
+                    editing={editing}
+                    stop={stop}
+                    pickingColorStop={pickingColorStop}
+                    style={{
+                      ...style
+                    }}
                     isUpdating={isUpdating}
                     key={stop}
                     index={index}
                     onMouseDown={e =>
-                      onSortItemClick(e, stop, editing, sorting)}
+                      onSortItemClick(
+                        e,
+                        stop,
+                        editing,
+                        sorting,
+                        pickingColorStop
+                      )}
                     onMouseUp={e => onSortItemClick(e, stop, editing, sorting)}
                     color={color}
                     left={left}
@@ -123,8 +137,7 @@ const SortableList = SortableContainer(
 
 class Swatch extends Component {
   state = {
-    sorting: false,
-    enableUpdateStop: false
+    sorting: false
   }
 
   shouldComponentUpdate (nextProps, nextState) {
@@ -134,8 +147,7 @@ class Swatch extends Component {
       this.props.editing !== nextProps.editing ||
       this.props.draggingItemMousePos !== nextProps.draggingItemMousePos ||
       this.props.stops !== nextProps.stops ||
-      this.state.sorting !== nextState.sorting ||
-      this.state.enableUpdateStop !== nextState.enableUpdateStop
+      this.state.sorting !== nextState.sorting
     )
   }
 
@@ -168,8 +180,9 @@ class Swatch extends Component {
     updateDraggedStopPos(e.nativeEvent.x)
   }
 
-  _handleSortItemClick = (e, stop, editing, sorting) => {
+  _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mousedown') {
+      this.props.updateActiveColorPicker(stop, pickingColorStop)
       if (editing) {
         this._handleEditInit(e, stop)
       }
@@ -182,16 +195,7 @@ class Swatch extends Component {
   }
 
   render () {
-    const {
-      stops,
-      editing,
-      transitionDuration,
-      style,
-      data,
-      updatingValue,
-      colors,
-      stopKeys
-    } = this.props
+    const { stops, editing, updatingValue, colors, ...props } = this.props
     const { sorting } = this.state
 
     return (
@@ -206,14 +210,11 @@ class Swatch extends Component {
         distance={5}
         lockToContainerEdges
         sorting={sorting}
-        animationDuration={transitionDuration}
-        data={data}
         onSortItemClick={this._handleSortItemClick}
-        style={style}
-        stopKeys={stopKeys}
         editing={editing}
         stops={stops}
         updatingValue={updatingValue}
+        {...props}
       />
     )
   }
@@ -223,15 +224,19 @@ const mapStateToProps = (state, props) => {
   const stops = getStopsById(state, props)
   const updatingValue = state.stops.updating.stop
   const stopKeys = Object.keys(stops)
+  const colors = Object.values(stops)
   const editing = getEditingState(state, props)
 
   return {
     stops,
-    stopKeys,
-    editing,
     updatingValue,
-    colors: Object.values(stops),
-    data: getStopData(state, props)
+    stopKeys,
+    colors,
+    editing,
+    editingAngle: state.gradients.editingAngle.id !== null,
+    data: getStopData(state, props),
+    pickingColorStop: state.stops.updating.pickingColorStop,
+    passThreshold: state.stops.updating.passThreshold
   }
 }
 
@@ -239,5 +244,7 @@ export default connect(mapStateToProps, {
   editStop,
   swapStopsColors,
   updateDraggedStopPos,
-  updateUpdatingStop
+  updateUpdatingStop,
+  toggleEditing,
+  updateActiveColorPicker
 })(Swatch)
