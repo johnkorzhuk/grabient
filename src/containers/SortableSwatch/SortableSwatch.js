@@ -80,15 +80,6 @@ const SortableList = SortableContainer(
                     transform: 'none',
                     transitionDuration: '0ms'
                   }
-                style = updatingValue === data[stop]
-                  ? {
-                    ...style,
-                    zIndex: 100
-                  }
-                  : {
-                    ...style,
-                    zIndex: 10
-                  }
 
                 // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
                 // To force it to happen: spam click the stop when editing and have cursor off the stop on mouse up. Weird!

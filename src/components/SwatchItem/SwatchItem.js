@@ -18,7 +18,7 @@ const Item = styled.div`
 
   &:hover,
   &:active {
-    z-index: 1000;
+    z-index: 99;
     box-shadow: ${({ mixedColor }) => '0px 3px 10px 1px ' + mixedColor};
   }
 `
@@ -31,7 +31,6 @@ const Container = styled.div`
   height: ${SLIDER_ITEM_SIZE}rem;
   width: ${SLIDER_ITEM_SIZE}rem;
   bottom: 10px;
-  z-index: 0;
 `
 
 class SwatchItem extends Component {
