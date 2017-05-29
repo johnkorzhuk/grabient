@@ -5,8 +5,10 @@ const UPDATING_STOP_THRESHOLD = 5
 export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
 export const EDIT_STOP = 'stops/EDIT_STOP'
 export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
-export const UPDATE_DRAGGED_ITEM_POS = 'stops/UPDATE_DRAGGED_ITEM_POS'
+export const UPDATE_DRAGGED_STOP_POS = 'stops/UPDATE_DRAGGED_STOP_POS'
 export const TOGGLE_ACTIVE_COLOR_PICKER = 'stops/TOGGLE_ACTIVE_COLOR_PICKER'
+export const UPDATE_STOP_COLOR = 'stops/UPDATE_STOP_COLOR'
+export const UPDATE_ACTIVE_STOP = 'stops/UPDATE_ACTIVE_STOP'
 
 export const updateUpdatingStop = (stop, xPos) => dispatch => {
   return dispatch({
@@ -71,7 +73,7 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
 
     if (Math.abs(updatingStopXPos - xPos) >= UPDATING_STOP_THRESHOLD) {
       return dispatch({
-        type: UPDATE_DRAGGED_ITEM_POS,
+        type: UPDATE_DRAGGED_STOP_POS,
         payload: {
           editing,
           updatedStopValues,
@@ -81,7 +83,7 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
       })
     } else if (passThreshold) {
       return dispatch({
-        type: UPDATE_DRAGGED_ITEM_POS,
+        type: UPDATE_DRAGGED_STOP_POS,
         payload: {
           editing,
           updatedStopValues,
@@ -108,4 +110,24 @@ export const updateActiveColorPicker = (stop, currActive) => dispatch => {
       }
     })
   }
+}
+
+export const updateStopColor = (stop, color, id) => dispatch => {
+  return dispatch({
+    type: UPDATE_STOP_COLOR,
+    payload: {
+      stop,
+      color,
+      id
+    }
+  })
+}
+
+export const updateActiveStop = stop => dispatch => {
+  return dispatch({
+    type: UPDATE_ACTIVE_STOP,
+    payload: {
+      stop
+    }
+  })
 }

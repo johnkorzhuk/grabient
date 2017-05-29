@@ -58,14 +58,13 @@ class GradientContainer extends PureComponent {
     } = this.props
     const editing = editingAngle || editingStop
     return (
-      <Container
-        style={{
-          zIndex: pickingColorStop ? 4 : 9
-        }}
-      >
+      <Container>
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, 'main')}
           onMouseLeave={e => onMouseLeave(e, 'main')}
+          style={{
+            zIndex: pickingColorStop ? 4 : 9
+          }}
         >
           <Gradient
             stopData={stopData}

@@ -14,7 +14,8 @@ import {
   swapStopsColors,
   updateDraggedStopPos,
   updateUpdatingStop,
-  updateActiveColorPicker
+  updateActiveColorPicker,
+  updateActiveStop
 } from './../../store/stops/actions'
 import {
   getStopsById,
@@ -47,9 +48,11 @@ const SortableList = SortableContainer(
     sorting,
     pickingColorStop,
     passThreshold,
+    active,
     ...props
   }) => {
     const isUpdating = updatingValue !== null
+
     return (
       <Animate
         data={data}
@@ -115,6 +118,7 @@ const SortableList = SortableContainer(
                     onMouseUp={e => onSortItemClick(e, stop, editing, sorting)}
                     color={color}
                     left={left}
+                    active={active}
                   />
                 )
               })}
@@ -174,6 +178,7 @@ class Swatch extends Component {
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mousedown') {
       this.props.updateActiveColorPicker(stop, pickingColorStop)
+      this.props.updateActiveStop(stop)
       if (editing) {
         this._handleEditInit(e, stop)
       }
@@ -228,7 +233,8 @@ const mapStateToProps = (state, props) => {
     editingAngle: state.gradients.editingAngle.id !== null,
     data: getStopData(state, props),
     pickingColorStop: state.stops.updating.pickingColorStop,
-    passThreshold: state.stops.updating.passThreshold
+    passThreshold: state.stops.updating.passThreshold,
+    active: state.stops.updating.active
   }
 }
 
@@ -238,5 +244,6 @@ export default connect(mapStateToProps, {
   updateDraggedStopPos,
   updateUpdatingStop,
   toggleEditing,
-  updateActiveColorPicker
+  updateActiveColorPicker,
+  updateActiveStop
 })(Swatch)

@@ -85,7 +85,6 @@ const AddColorContainer = styled.div`
 `
 
 // todo slider container's dimnestions needs to be regrabbed on resize / width change
-
 class GradientCard extends Component {
   state = {
     hovered: {

@@ -1,9 +1,11 @@
 import {
   EDIT_STOP,
   SWAP_STOP_COLORS,
-  UPDATE_DRAGGED_ITEM_POS,
+  UPDATE_DRAGGED_STOP_POS,
   UPDATE_UPDATING_STOP,
-  TOGGLE_ACTIVE_COLOR_PICKER
+  TOGGLE_ACTIVE_COLOR_PICKER,
+  UPDATE_STOP_COLOR,
+  UPDATE_ACTIVE_STOP
 } from './actions'
 
 const INITIAL_STATE = {
@@ -23,7 +25,8 @@ const INITIAL_STATE = {
     origUnchanged: {},
     stop: null,
     passThreshold: false,
-    pickingColorStop: null
+    pickingColorStop: null,
+    active: null
   },
   updatingStopXPos: null
 }
@@ -64,7 +67,7 @@ export default (state = INITIAL_STATE, action) => {
         }
       }
 
-    case UPDATE_DRAGGED_ITEM_POS:
+    case UPDATE_DRAGGED_STOP_POS:
       return {
         ...state,
         values: {
@@ -77,7 +80,9 @@ export default (state = INITIAL_STATE, action) => {
           stop: action.payload.updatedStop,
           passThreshold: action.payload.passThreshold
             ? action.payload.passThreshold
-            : state.updating.passThreshold
+            : state.updating.passThreshold,
+          pickingColorStop: null,
+          active: action.payload.updatedStop
         }
       }
 
@@ -99,6 +104,34 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           pickingColorStop: action.payload.stop
+        }
+      }
+
+    case UPDATE_STOP_COLOR:
+      return {
+        ...state,
+        values: {
+          ...state.values,
+          [action.payload.id]: {
+            ...state.values[action.payload.id],
+            [action.payload.stop]: action.payload.color
+          }
+        },
+        updating: {
+          ...state.updating,
+          origUnchanged: {
+            ...state.updating.origUnchanged,
+            [action.payload.stop]: action.payload.color
+          }
+        }
+      }
+
+    case UPDATE_ACTIVE_STOP:
+      return {
+        ...state,
+        updating: {
+          ...state.updating,
+          active: action.payload.stop
         }
       }
 

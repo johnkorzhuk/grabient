@@ -8,7 +8,7 @@ let middleware = [thunk]
 // import logger from 'redux-logger'
 // import thunk from 'redux-thunk'
 // import rootReducer from './reducers'
-
+//
 // let middleware = [thunk]
 
 // if (process.env.NODE_ENV !== 'production') {
