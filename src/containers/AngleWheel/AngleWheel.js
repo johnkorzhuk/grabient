@@ -302,7 +302,7 @@ class AngleWheel extends Component {
               <Close
                 onClick={this._handleClose}
                 color='white'
-                size={25}
+                size={15}
                 style={{
                   position: 'absolute',
                   top: 15,

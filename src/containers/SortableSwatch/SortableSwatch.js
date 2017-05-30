@@ -195,19 +195,6 @@ class Swatch extends Component {
         this._handleEditInit(e, stop)
       }
     }
-
-    // if (e.type === 'mousedown') {
-    //   this.props.updateActiveColorPicker(stop, pickingColorStop)
-    //   this.props.updateActiveStop(stop)
-    //   if (editing) {
-    //     this._handleEditInit(e, stop)
-    //   }
-    // } else if (e.type === 'mouseup') {
-    //   const { editStop, id } = this.props
-    //   if (!editing && !sorting) {
-    //     editStop(id)
-    //   }
-    // }
   }
 
   render () {
