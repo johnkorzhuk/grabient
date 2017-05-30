@@ -211,7 +211,14 @@ class Swatch extends Component {
   }
 
   render () {
-    const { stops, editing, updatingValue, colors, ...props } = this.props
+    const {
+      stops,
+      editing,
+      updatingValue,
+      colors,
+      pickingColorStop,
+      ...props
+    } = this.props
     const { sorting } = this.state
 
     return (
@@ -223,12 +230,14 @@ class Swatch extends Component {
         lockAxis='x'
         onSortStart={this._handleSortStart}
         onSortEnd={this._handleSortEnd}
-        shouldCancelStart={() => editing || updatingValue !== null}
+        shouldCancelStart={() =>
+          editing || updatingValue !== null || pickingColorStop !== null}
         distance={5}
         lockToContainerEdges
         sorting={sorting}
         onSortItemClick={this._handleSortItemClick}
         editing={editing}
+        pickingColorStop={pickingColorStop}
         stops={stops}
         updatingValue={updatingValue}
         {...props}
