@@ -9,6 +9,7 @@ export const UPDATE_DRAGGED_STOP_POS = 'stops/UPDATE_DRAGGED_STOP_POS'
 export const TOGGLE_ACTIVE_COLOR_PICKER = 'stops/TOGGLE_ACTIVE_COLOR_PICKER'
 export const UPDATE_STOP_COLOR = 'stops/UPDATE_STOP_COLOR'
 export const UPDATE_ACTIVE_STOP = 'stops/UPDATE_ACTIVE_STOP'
+export const DELETE_ACTIVE_STOP = 'stops/DELETE_ACTIVE_STOP'
 
 export const updateUpdatingStop = (stop, xPos) => dispatch => {
   return dispatch({
@@ -130,4 +131,21 @@ export const updateActiveStop = stop => dispatch => {
       stop
     }
   })
+}
+
+export const deleteActiveStop = () => (dispatch, getState) => {
+  const { stops: { values, updating, editing } } = getState()
+
+  const newValues = { ...values[editing] }
+  if (Object.keys(newValues).length > 2) {
+    delete newValues[updating.active]
+
+    return dispatch({
+      type: DELETE_ACTIVE_STOP,
+      payload: {
+        editing,
+        newValues
+      }
+    })
+  }
 }

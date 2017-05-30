@@ -5,7 +5,8 @@ import {
   UPDATE_UPDATING_STOP,
   TOGGLE_ACTIVE_COLOR_PICKER,
   UPDATE_STOP_COLOR,
-  UPDATE_ACTIVE_STOP
+  UPDATE_ACTIVE_STOP,
+  DELETE_ACTIVE_STOP
 } from './actions'
 
 const INITIAL_STATE = {
@@ -132,6 +133,19 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           active: action.payload.stop
+        }
+      }
+
+    case DELETE_ACTIVE_STOP:
+      return {
+        ...state,
+        values: {
+          ...state.values,
+          [action.payload.editing]: action.payload.newValues
+        },
+        updating: {
+          ...state.updating,
+          origUnchanged: action.payload.newValues
         }
       }
 

@@ -56,13 +56,6 @@ class SwatchItem extends Component {
     )
   }
 
-  _handleClick = () => {
-    this.props.toggleEditing(null)
-    this.setState(prevState => ({
-      pickingColor: !prevState.pickingColor
-    }))
-  }
-
   _handleMouseEnter = () => {
     this.setState({
       hovered: true
@@ -107,7 +100,7 @@ class SwatchItem extends Component {
         }}
       >
         {shouldRenderColorPicker &&
-          <ColorPicker color={color} stop={stop} id={id} />}
+          <ColorPicker color={color} stop={stop} id={id} left={left} />}
         {shouldRenderPopover && <Popover color={color} />}
         <Item
           onMouseEnter={this._handleMouseEnter}

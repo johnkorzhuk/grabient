@@ -42,7 +42,8 @@ class Gradient extends PureComponent {
             <Container
               style={{
                 backgroundImage: `linear-gradient(${angle}deg, ${generateColorStopsFromData(data)})`,
-                opacity: data.opacity
+                opacity: data.opacity,
+                zIndex: hasOpacity ? -1 : 'auto'
               }}
             />
           )

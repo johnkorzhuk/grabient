@@ -7,7 +7,8 @@ import {
   updateDraggedStopPos,
   updateUpdatingStop,
   updateActiveColorPicker,
-  updateActiveStop
+  updateActiveStop,
+  deleteActiveStop
 } from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
 
@@ -37,15 +38,26 @@ class App extends Component {
   }
 
   _handleCancelEdits = e => {
+    const {
+      updateActiveColorPicker,
+      toggleEditing,
+      editStop,
+      updateActiveStop,
+      deleteActiveStop,
+      pickingColorStop
+    } = this.props
+
     if ((e.type === 'keydown' && e.which === 27) || e.type === 'click') {
       this.handleNoop(e)
-      if (this.props.pickingColorStop) {
-        this.props.updateActiveColorPicker(null)
+      if (pickingColorStop) {
+        updateActiveColorPicker(null)
       } else {
-        this.props.toggleEditing(null)
-        this.props.editStop(null)
-        this.props.updateActiveStop(null)
+        toggleEditing(null)
+        editStop(null)
+        updateActiveStop(null)
       }
+    } else if ((e.which === 46 && e.metaKey) || (e.which === 8 && e.metaKey)) {
+      deleteActiveStop()
     }
   }
 
@@ -97,6 +109,7 @@ export default connect(
     updateDraggedStopPos,
     updateUpdatingStop,
     updateActiveColorPicker,
-    updateActiveStop
+    updateActiveStop,
+    deleteActiveStop
   }
 )(App)

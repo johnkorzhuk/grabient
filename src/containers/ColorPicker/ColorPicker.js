@@ -1,4 +1,4 @@
-import React, { PureComponent } from 'react'
+import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import styled from 'styled-components'
 import { ChromePicker } from 'react-color'
@@ -14,13 +14,41 @@ const Container = styled.div`
   position: absolute;
   z-index: 1000;
   bottom: 30px;
-  right: 1rem;
+  ${({ right }) => (right ? 'left: 1rem;' : 'right: 1rem;')}
 `
 
-class ColorPicker extends PureComponent {
-  shouldComponentUpdate (nextProps) {
+class ColorPicker extends Component {
+  state = {
+    renderRight: false
+  }
+
+  componentDidMount () {
+    if (this.container.getClientRects()[0].left < 0) {
+      this.setState({
+        renderRight: true
+      })
+    }
+  }
+
+  componentWillReceiveProps (nextProps) {
+    if (
+      // eslint-disable-next-line eqeqeq
+      nextProps.left == nextProps.stop &&
+      this.container.getClientRects()[0].left < 0
+    ) {
+      this.setState({
+        renderRight: true
+      })
+    }
+  }
+
+  shouldComponentUpdate (nextProps, nextState) {
     return (
-      this.props.color !== nextProps.color || this.props.stop !== nextProps.stop
+      this.props.color !== nextProps.color ||
+      this.props.stop !== nextProps.stop ||
+      this.props.left !== nextProps.left ||
+      this.props.left === nextProps.left ||
+      this.state.renderRight !== nextState.renderRight
     )
   }
 
@@ -38,15 +66,24 @@ class ColorPicker extends PureComponent {
 
   render () {
     const { color } = this.props
+    const { renderRight } = this.state
 
     return (
-      <Container onKeyDown={this._handleKeyEnter}>
+      <Container
+        right={renderRight}
+        onKeyDown={this._handleKeyEnter}
+        innerRef={node => {
+          if (node) {
+            this.container = node
+          }
+        }}
+      >
         <ChromePicker
           disableAlpha
           color={color}
           onChange={this._handleColorChange}
         />
-        <Triangle right />
+        <Triangle right={!renderRight} />
       </Container>
     )
   }

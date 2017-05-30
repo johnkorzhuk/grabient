@@ -177,6 +177,7 @@ class Swatch extends Component {
 
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mousedown') {
+      this.props.toggleEditing(null)
       this.props.updateActiveColorPicker(stop, pickingColorStop)
       this.props.updateActiveStop(stop)
       if (editing) {
