@@ -17,7 +17,7 @@ const INITIAL_STATE = {
     },
     '1a': {
       '0': '#fad0c4',
-      '100': '#ffd1ff'
+      '100': '#d1ffe7'
     }
   },
   editing: null,

@@ -18,8 +18,9 @@ const Container = styled.div`
 `
 
 const Text = styled.span`
-  font-size: 1.4rem;
+  font-size: 1.2rem;
   color: #454545;
+  text-transform: uppercase;
 `
 
 const Popover = ({ color, bgc, left, shadowColor }) => {
