@@ -107,6 +107,7 @@ const SortableList = SortableContainer(
                     isUpdating={isUpdating}
                     key={stop}
                     index={index}
+                    sorting={sorting}
                     onMouseDown={e =>
                       onSortItemClick(
                         e,
@@ -161,7 +162,7 @@ class Swatch extends Component {
   _handleSortEnd = ({ oldIndex, newIndex }) => {
     const { swapStopsColors, id, colors } = this.props
     const newColorOrder = arrayMove(colors, oldIndex, newIndex)
-
+    this.props.updateActiveStop(null)
     swapStopsColors(id, newColorOrder)
 
     this.setState({

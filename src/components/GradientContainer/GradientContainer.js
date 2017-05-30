@@ -57,6 +57,7 @@ class GradientContainer extends PureComponent {
       pickingColorStop
     } = this.props
     const editing = editingAngle || editingStop
+
     return (
       <Container>
         <NoBlur

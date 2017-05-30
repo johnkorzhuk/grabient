@@ -1,7 +1,8 @@
-import React, { PureComponent } from 'react'
+import React, { Component } from 'react'
 import styled from 'styled-components'
 import { mix, transparentize } from 'polished'
 
+import { Popover } from './../index'
 import { ColorPicker } from './../../containers/index'
 
 // rem
@@ -15,13 +16,13 @@ const Item = styled.div`
   position: absolute;
   border: ${({ mixedColor }) => `1px solid ${mixedColor}`};
   background-color: ${({ color }) => color};
-  box-shadow: ${({ mixedColor, active }) => (active ? '0px 3px 10px 1px ' + transparentize(0.2, mixedColor) : '0px 0px 0px 0px ' + mixedColor)};
+  box-shadow: ${({ mixedTransparentized, active }) => (active ? '0px 3px 10px 1px ' + mixedTransparentized : '0px 0px 0px 0px ' + mixedTransparentized)};
   z-index: ${({ active }) => (active ? 99 : 'auto')};
 
   &:hover,
   &:active {
     z-index: 99;
-    box-shadow: ${({ mixedColor }) => '0px 3px 10px 1px ' + transparentize(0.2, mixedColor)};
+    box-shadow: ${({ mixedTransparentized }) => '0px 3px 10px 1px ' + mixedTransparentized};
   }
 `
 
@@ -35,8 +36,12 @@ const Container = styled.div`
   bottom: 10px;
 `
 
-class SwatchItem extends PureComponent {
-  shouldComponentUpdate (nextProps) {
+class SwatchItem extends Component {
+  state = {
+    hovered: false
+  }
+
+  shouldComponentUpdate (nextProps, nextState) {
     return (
       this.props.color !== nextProps.color ||
       this.props.left !== nextProps.left ||
@@ -45,7 +50,9 @@ class SwatchItem extends PureComponent {
       this.props.pickingColorStop !== nextProps.pickingColorStop ||
       this.props.editing !== nextProps.editing ||
       this.props.stop !== nextProps.stop ||
-      this.props.active !== nextProps.active
+      this.props.active !== nextProps.active ||
+      this.props.sorting !== nextProps.sorting ||
+      this.state.hovered !== nextState.hovered
     )
   }
 
@@ -54,6 +61,18 @@ class SwatchItem extends PureComponent {
     this.setState(prevState => ({
       pickingColor: !prevState.pickingColor
     }))
+  }
+
+  _handleMouseEnter = () => {
+    this.setState({
+      hovered: true
+    })
+  }
+
+  _handleMouseLeave = () => {
+    this.setState({
+      hovered: false
+    })
   }
 
   render () {
@@ -67,25 +86,34 @@ class SwatchItem extends PureComponent {
       stop,
       id,
       active,
+      sorting,
       ...props
     } = this.props
+
+    const { hovered } = this.state
     const shouldRenderColorPicker =
       pickingColorStop === stop && editing && !isUpdating
+    const shouldRenderPopover = hovered && !active
+    // const shouldRenderPopover = true
     const mixed = mix(0.5, color, '#AFAFAF')
+    const mixedTransparentized = transparentize(0.2, mix(0.5, color, '#AFAFAF'))
     const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
 
     return (
       <Container
-        mixedColor={mixed}
-        color={color}
         style={{
           right
         }}
       >
         {shouldRenderColorPicker &&
           <ColorPicker color={color} stop={stop} id={id} />}
+        {shouldRenderPopover &&
+          <Popover shadowColor={mixedTransparentized} color={color} />}
         <Item
+          onMouseEnter={this._handleMouseEnter}
+          onMouseLeave={this._handleMouseLeave}
           mixedColor={mixed}
+          mixedTransparentized={mixedTransparentized}
           color={color}
           style={style}
           active={active === stop && editing}

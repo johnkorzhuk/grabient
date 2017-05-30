@@ -6,7 +6,8 @@ import {
   editStop,
   updateDraggedStopPos,
   updateUpdatingStop,
-  updateActiveColorPicker
+  updateActiveColorPicker,
+  updateActiveStop
 } from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
 
@@ -35,19 +36,15 @@ class App extends Component {
     document.removeEventListener('mouseup')
   }
 
-  _handleNoop = e => {
-    e.stopPropagation()
-    e.preventDefault()
-  }
-
   _handleCancelEdits = e => {
     if ((e.type === 'keydown' && e.which === 27) || e.type === 'click') {
-      this._handleNoop(e)
+      this.handleNoop(e)
       if (this.props.pickingColorStop) {
         this.props.updateActiveColorPicker(null)
       } else {
         this.props.toggleEditing(null)
         this.props.editStop(null)
+        this.props.updateActiveStop(null)
       }
     }
   }
@@ -68,6 +65,11 @@ class App extends Component {
         this.props.updateDraggedStopPos(null)
       }
     }
+  }
+
+  handleNoop (e) {
+    e.stopPropagation()
+    e.preventDefault()
   }
 
   render () {
@@ -94,6 +96,7 @@ export default connect(
     editStop,
     updateDraggedStopPos,
     updateUpdatingStop,
-    updateActiveColorPicker
+    updateActiveColorPicker,
+    updateActiveStop
   }
 )(App)

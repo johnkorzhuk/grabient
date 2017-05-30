@@ -4,6 +4,7 @@ import AnglePreview from './AnglePreview/AnglePreview'
 import Gradient from './Gradient/Gradient'
 import GradientContainer from './GradientContainer/GradientContainer'
 import SwatchItem from './SwatchItem/SwatchItem'
+import Popover from './Popover/Popover'
 
 export {
   GradientDisplay,
@@ -11,5 +12,6 @@ export {
   AnglePreview,
   Gradient,
   GradientContainer,
-  SwatchItem
+  SwatchItem,
+  Popover
 }
