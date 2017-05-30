@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { PureComponent } from 'react'
 import styled from 'styled-components'
 import { mix, transparentize } from 'polished'
 
@@ -23,17 +23,22 @@ const Text = styled.span`
   text-transform: uppercase;
 `
 
-const Popover = ({ color, bgc, left, shadowColor }) => {
-  return (
-    <Container
-      className='target-el'
-      left={left}
-      shadowColor={transparentize(0.5, mix(0.7, shadowColor, '#AFAFAF'))}
-    >
-      <Text>{color}</Text>
-      <Triangle />
-    </Container>
-  )
+class Popover extends PureComponent {
+  shouldComponentUpdate (nextProps) {
+    return this.props.color !== nextProps.color
+  }
+
+  render () {
+    const { color, left } = this.props
+    const mixed = transparentize(0.4, mix(0.2, color, '#AFAFAF'))
+
+    return (
+      <Container className='target-el' left={left} shadowColor={mixed}>
+        <Text>{color}</Text>
+        <Triangle />
+      </Container>
+    )
+  }
 }
 
 export default Popover

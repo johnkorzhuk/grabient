@@ -3,7 +3,10 @@ import { connect } from 'react-redux'
 import styled from 'styled-components'
 import { ChromePicker } from 'react-color'
 
-import { updateStopColor } from './../../store/stops/actions'
+import {
+  updateStopColor,
+  updateActiveColorPicker
+} from './../../store/stops/actions'
 
 import { Triangle } from './../../components/Common/index'
 
@@ -27,11 +30,17 @@ class ColorPicker extends PureComponent {
     updateStopColor(stop, hex, id)
   }
 
+  _handleKeyEnter = e => {
+    if (e.which === 13) {
+      this.props.updateActiveColorPicker(null)
+    }
+  }
+
   render () {
     const { color } = this.props
 
     return (
-      <Container>
+      <Container onKeyDown={this._handleKeyEnter}>
         <ChromePicker
           disableAlpha
           color={color}
@@ -43,4 +52,6 @@ class ColorPicker extends PureComponent {
   }
 }
 
-export default connect(undefined, { updateStopColor })(ColorPicker)
+export default connect(undefined, { updateStopColor, updateActiveColorPicker })(
+  ColorPicker
+)
