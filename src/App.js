@@ -49,12 +49,12 @@ class App extends Component {
 
     if ((e.type === 'keydown' && e.which === 27) || e.type === 'click') {
       this.handleNoop(e)
+      updateActiveStop(null)
       if (pickingColorStop) {
         updateActiveColorPicker(null)
       } else {
         toggleEditing(null)
         editStop(null)
-        updateActiveStop(null)
       }
     } else if ((e.which === 46 && e.metaKey) || (e.which === 8 && e.metaKey)) {
       deleteActiveStop()
@@ -85,8 +85,8 @@ class App extends Component {
   }
 
   render () {
-    const { editingAngle, editingStop } = this.props
-    const editing = editingAngle || editingStop
+    const { editingAngle, editingStop, pickingColorStop } = this.props
+    const editing = editingAngle || editingStop || pickingColorStop
     return (
       <GradientDisplay>
         <GradientList />

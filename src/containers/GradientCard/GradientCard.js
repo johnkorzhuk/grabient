@@ -125,17 +125,28 @@ class GradientCard extends Component {
   }
 
   _handleAddCancelColorStop = () => {
-    const { editingStop, editStop, updateActiveColorPicker } = this.props
+    const { editingStop, editStop, updateActiveColorPicker, id } = this.props
 
     if (editingStop) {
       editStop(null)
       updateActiveColorPicker(null)
+    } else {
+      editStop(id)
     }
   }
 
   _handleAngleEditToggle = () => {
-    const { toggleEditing, updateEditingAngle, id, angle } = this.props
-
+    const {
+      toggleEditing,
+      updateEditingAngle,
+      updateActiveColorPicker,
+      pickingColorStop,
+      id,
+      angle
+    } = this.props
+    if (pickingColorStop) {
+      updateActiveColorPicker(null)
+    }
     toggleEditing(id)
     updateEditingAngle(angle)
   }

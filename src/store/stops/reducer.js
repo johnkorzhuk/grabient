@@ -1,12 +1,14 @@
 import {
   EDIT_STOP,
+  EDIT_STOP_COLOR,
   SWAP_STOP_COLORS,
   UPDATE_DRAGGED_STOP_POS,
   UPDATE_UPDATING_STOP,
   TOGGLE_ACTIVE_COLOR_PICKER,
   UPDATE_STOP_COLOR,
   UPDATE_ACTIVE_STOP,
-  DELETE_ACTIVE_STOP
+  DELETE_ACTIVE_STOP,
+  ADD_COLOR_STOP
 } from './actions'
 
 const INITIAL_STATE = {
@@ -22,6 +24,7 @@ const INITIAL_STATE = {
     }
   },
   editing: null,
+  editingColor: null,
   updating: {
     origUnchanged: {},
     stop: null,
@@ -57,6 +60,12 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           origUnchanged: state.values[action.payload.id]
         }
+      }
+
+    case EDIT_STOP_COLOR:
+      return {
+        ...state,
+        editingColor: action.payload.id
       }
 
     case SWAP_STOP_COLORS:
@@ -149,6 +158,15 @@ export default (state = INITIAL_STATE, action) => {
           passThreshold: false,
           pickingColorStop: null,
           active: null
+        }
+      }
+
+    case ADD_COLOR_STOP:
+      return {
+        ...state,
+        values: {
+          ...state.values,
+          [action.payload.editing]: action.payload.newValues
         }
       }
 

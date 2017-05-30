@@ -4,12 +4,14 @@ const UPDATING_STOP_THRESHOLD = 5
 // actions
 export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
 export const EDIT_STOP = 'stops/EDIT_STOP'
+export const EDIT_STOP_COLOR = 'stops/EDIT_STOP_COLOR'
 export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
 export const UPDATE_DRAGGED_STOP_POS = 'stops/UPDATE_DRAGGED_STOP_POS'
 export const TOGGLE_ACTIVE_COLOR_PICKER = 'stops/TOGGLE_ACTIVE_COLOR_PICKER'
 export const UPDATE_STOP_COLOR = 'stops/UPDATE_STOP_COLOR'
 export const UPDATE_ACTIVE_STOP = 'stops/UPDATE_ACTIVE_STOP'
 export const DELETE_ACTIVE_STOP = 'stops/DELETE_ACTIVE_STOP'
+export const ADD_COLOR_STOP = 'stops/ADD_COLOR_STOP'
 
 export const updateUpdatingStop = (stop, xPos) => dispatch => {
   return dispatch({
@@ -24,6 +26,15 @@ export const updateUpdatingStop = (stop, xPos) => dispatch => {
 export const editStop = id => dispatch => {
   return dispatch({
     type: EDIT_STOP,
+    payload: {
+      id
+    }
+  })
+}
+
+export const editStopColor = id => dispatch => {
+  return dispatch({
+    type: EDIT_STOP_COLOR,
     payload: {
       id
     }
@@ -149,3 +160,15 @@ export const deleteActiveStop = () => (dispatch, getState) => {
     })
   }
 }
+
+// export const addColorStop = id => (dispatch, getState) => {
+//   const { stops: { values, editing } } = getState()
+//   const newValues = { ...values[editing] }
+
+//   return dispatch({
+//     type: ADD_COLOR_STOP,
+//     payload: {
+//       editing
+//     }
+//   })
+// }

@@ -15,8 +15,7 @@ import {
 const AreaContainer = styled.div`
   position: absolute;
   width: 100%;
-  height: 89%;
-  top: 2px;
+  height: 90%;
   display: flex;
   justify-content: center;
   align-items: center;

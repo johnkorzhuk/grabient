@@ -10,7 +10,7 @@ import {
 
 import { toggleEditing } from './../../store/gradients/actions'
 import {
-  editStop,
+  editStopColor,
   swapStopsColors,
   updateDraggedStopPos,
   updateUpdatingStop,
@@ -40,6 +40,7 @@ const SortableList = SortableContainer(
     style,
     stopKeys,
     editing,
+    editingColor,
     updatingValue,
     editingAngle,
     stops,
@@ -96,8 +97,9 @@ const SortableList = SortableContainer(
                 return (
                   <SortableItem
                     {...props}
-                    disabled={editing}
+                    disabled={editing || pickingColorStop === stop}
                     editing={editing}
+                    editingColor={editingColor}
                     stop={stop}
                     pickingColorStop={pickingColorStop}
                     style={{
@@ -107,6 +109,14 @@ const SortableList = SortableContainer(
                     key={stop}
                     index={index}
                     sorting={sorting}
+                    onMouseUp={e =>
+                      onSortItemClick(
+                        e,
+                        stop,
+                        editing,
+                        sorting,
+                        pickingColorStop
+                      )}
                     onMouseDown={e =>
                       onSortItemClick(
                         e,
@@ -115,7 +125,6 @@ const SortableList = SortableContainer(
                         sorting,
                         pickingColorStop
                       )}
-                    onMouseUp={e => onSortItemClick(e, stop, editing, sorting)}
                     color={color}
                     left={left}
                     active={active}
@@ -176,19 +185,29 @@ class Swatch extends Component {
   }
 
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
-    if (e.type === 'mousedown') {
+    if (e.type === 'mouseup') {
       this.props.toggleEditing(null)
       this.props.updateActiveColorPicker(stop, pickingColorStop)
+    } else if (e.type === 'mousedown') {
+      this.props.editStopColor(this.props.id)
       this.props.updateActiveStop(stop)
       if (editing) {
         this._handleEditInit(e, stop)
       }
-    } else if (e.type === 'mouseup') {
-      const { editStop, id } = this.props
-      if (!editing && !sorting) {
-        editStop(id)
-      }
     }
+
+    // if (e.type === 'mousedown') {
+    //   this.props.updateActiveColorPicker(stop, pickingColorStop)
+    //   this.props.updateActiveStop(stop)
+    //   if (editing) {
+    //     this._handleEditInit(e, stop)
+    //   }
+    // } else if (e.type === 'mouseup') {
+    //   const { editStop, id } = this.props
+    //   if (!editing && !sorting) {
+    //     editStop(id)
+    //   }
+    // }
   }
 
   render () {
@@ -224,6 +243,7 @@ const mapStateToProps = (state, props) => {
   const stopKeys = Object.keys(stops)
   const colors = Object.values(stops)
   const editing = getEditingState(state, props)
+  const editingColor = state.stops.editingColor
 
   return {
     stops,
@@ -231,6 +251,7 @@ const mapStateToProps = (state, props) => {
     stopKeys,
     colors,
     editing,
+    editingColor,
     editingAngle: state.gradients.editingAngle.id !== null,
     data: getStopData(state, props),
     pickingColorStop: state.stops.updating.pickingColorStop,
@@ -240,7 +261,7 @@ const mapStateToProps = (state, props) => {
 }
 
 export default connect(mapStateToProps, {
-  editStop,
+  editStopColor,
   swapStopsColors,
   updateDraggedStopPos,
   updateUpdatingStop,
