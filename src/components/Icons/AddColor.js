@@ -16,9 +16,9 @@ class AddColor extends PureComponent {
       <Animate
         duration={animationDuration}
         data={{
-          exitOpacity: editingStop ? hovered ? 0 : 1 : hovered ? 1 : 0,
-          addOpacity: editingStop ? hovered ? 1 : 0 : hovered ? 0 : 1,
-          rotation: editingStop ? 135 : 0
+          exitOpacity: hovered ? 1 : 0,
+          addOpacity: hovered ? 0 : 1,
+          rotation: editingStop ? 45 : 0
         }}
       >
         {data => {

@@ -11,20 +11,14 @@ class AnglePrev extends PureComponent {
   }
 
   render () {
-    const {
-      angle,
-      color,
-      hovered,
-      editingAngle,
-      animationDuration
-    } = this.props
+    const { angle, color, hovered, animationDuration } = this.props
 
     return (
       <Animate
         duration={animationDuration}
         data={{
-          activeOpacity: editingAngle ? hovered ? 0 : 1 : hovered ? 1 : 0,
-          inactiveOpacity: editingAngle ? hovered ? 1 : 0 : hovered ? 0 : 1
+          activeOpacity: hovered ? 1 : 0,
+          inactiveOpacity: hovered ? 0 : 1
         }}
       >
         {data => {
