@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Container } from './../index'
+import { Container } from './../Common/index'
 
 const GradientDisplay = ({ children }) => {
   return (

@@ -5,19 +5,14 @@ import { ChromePicker } from 'react-color'
 
 import { updateStopColor } from './../../store/stops/actions'
 
+import { Triangle } from './../../components/Common/index'
+
 const Container = styled.div`
   position: absolute;
   z-index: 1000;
   bottom: 30px;
   right: 1rem;
 `
-
-// const Container = styled.div`
-//   position: absolute;
-//   z-index: 1000;
-//   top: 30px;
-//   right: -100px;
-// `
 
 class ColorPicker extends PureComponent {
   shouldComponentUpdate (nextProps) {
@@ -42,6 +37,7 @@ class ColorPicker extends PureComponent {
           color={color}
           onChange={this._handleColorChange}
         />
+        <Triangle right />
       </Container>
     )
   }

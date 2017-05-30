@@ -91,8 +91,9 @@ class SwatchItem extends Component {
     } = this.props
 
     const { hovered } = this.state
-    const shouldRenderColorPicker =
-      pickingColorStop === stop && editing && !isUpdating
+    const shouldRenderColorPicker = true
+    // const shouldRenderColorPicker =
+    //   pickingColorStop === stop && editing && !isUpdating
     const shouldRenderPopover = hovered && !active
     // const shouldRenderPopover = true
     const mixed = mix(0.5, color, '#AFAFAF')

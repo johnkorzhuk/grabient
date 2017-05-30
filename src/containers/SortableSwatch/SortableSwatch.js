@@ -23,8 +23,7 @@ import {
   getEditingState
 } from './../../store/stops/selectors'
 
-import { SwatchItem } from './../../components/index'
-import SwatchContainer from './../../components/SwatchItem/Container'
+import { SwatchItem, SwatchContainer } from './../../components/Swatch/index'
 
 const SlideBar = styled.div`
   height: 2px;
