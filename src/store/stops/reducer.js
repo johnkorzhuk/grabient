@@ -144,8 +144,11 @@ export default (state = INITIAL_STATE, action) => {
           [action.payload.editing]: action.payload.newValues
         },
         updating: {
-          ...state.updating,
-          origUnchanged: action.payload.newValues
+          origUnchanged: action.payload.newValues,
+          stop: null,
+          passThreshold: false,
+          pickingColorStop: null,
+          active: null
         }
       }
 
