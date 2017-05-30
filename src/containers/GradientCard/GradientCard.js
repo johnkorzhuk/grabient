@@ -189,7 +189,7 @@ class GradientCard extends Component {
               iconAnimationDuration={SLIDER_ANIMATION_DURATION}
               hovered={arrowPrev}
             >
-              <AngleText>{angle}°</AngleText>
+              <AngleText>{actualAngle}°</AngleText>
             </AnglePreview>
           </AngleContainer>
 
