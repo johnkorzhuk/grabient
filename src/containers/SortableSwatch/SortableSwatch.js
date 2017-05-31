@@ -26,6 +26,7 @@ import {
 import { SwatchItem, SwatchContainer } from './../../components/Swatch/index'
 
 const SlideBar = styled.div`
+  margin-left: -1rem;
   height: 2px;
   width: 100%;
   background-color: #AFAFAF;

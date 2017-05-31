@@ -3,8 +3,8 @@ import React from 'react'
 import { Container } from './../Common/index'
 
 const GradientDisplayContainer = Container.extend`
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: 30px;
+  margin-bottom: 30px;
 `
 
 const GradientDisplay = ({ children }) => {

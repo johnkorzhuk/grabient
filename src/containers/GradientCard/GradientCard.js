@@ -24,7 +24,7 @@ const ANGLE_PREVIEW_ANIMATION_DURATION = 200
 const SLIDER_ANIMATION_DURATION = 300
 
 const Container = styled.div`
-  width: 100%;
+  width: 85%;
   height: 380px;
   display: flex;
   flex-direction: column;
@@ -33,7 +33,11 @@ const Container = styled.div`
   padding: 10px 2%;
   position: relative;
 
-  @media (min-width: 750px) {
+  @media (min-width: 420px) {
+    width: 100%;
+  }
+
+  @media (min-width: 680px) {
     width: 50%;
     max-width: 350px;
   }
@@ -78,7 +82,8 @@ const SwatchSliderContainer = styled.div`
   justify-content: flex-end;
   align-items: center;
   height: 40px;
-  margin: 0 4rem 0 1rem;
+  margin-right: 4rem;
+  margin-left: 1rem;
 `
 
 const AddColorContainer = Button.extend`

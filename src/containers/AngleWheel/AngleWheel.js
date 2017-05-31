@@ -243,14 +243,9 @@ class AngleWheel extends Component {
   }
 
   getAngle (offsetX, offsetY) {
-    if (!this.getAngle.boxCenter) {
-      this.getAngle.boxCenter = this.getBoxCenter()
-    }
+    const boxCenter = this.getBoxCenter()
     let angle =
-      Math.atan2(
-        offsetX - this.getAngle.boxCenter[0],
-        -(offsetY - this.getAngle.boxCenter[1])
-      ) *
+      Math.atan2(offsetX - boxCenter[0], -(offsetY - boxCenter[1])) *
       (180 / Math.PI)
     if (angle < 0) angle += 360
     return Math.round(angle)
