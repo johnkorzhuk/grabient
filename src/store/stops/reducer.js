@@ -21,6 +21,22 @@ const INITIAL_STATE = {
     '1a': {
       '0': '#fad0c4',
       '100': '#d1ffe7'
+    },
+    '4a': {
+      '9': '#ffffff',
+      '70': '#c3cfe2',
+      '100': '#fad0c4'
+    },
+    '3a': {
+      0: '#8ec5fc',
+      70: '#c3cfe2',
+      100: '#43e97b'
+    },
+    '5a': {
+      0: '#00253C',
+      25: '#086B3C',
+      50: '#8ec5fc',
+      100: '#000000'
     }
   },
   editing: null,
@@ -34,22 +50,7 @@ const INITIAL_STATE = {
   },
   updatingStopXPos: null
 }
-// '4a': {
-//     '9': '#ffffff',
-//     '70': '#c3cfe2',
-//     '100': '#fad0c4'
-//   },
-// '3a': {
-//   0: '#8ec5fc',
-//   70: '#c3cfe2',
-//   100: '#43e97b'
-// },
-// '5a': {
-//   0: '#00253C',
-//   25: '#086B3C',
-//   50: '#8ec5fc',
-//   100: '#000000'
-// }
+
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
     case EDIT_STOP:

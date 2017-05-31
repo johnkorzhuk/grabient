@@ -8,6 +8,11 @@ const Container = Button.extend`
   top: 16px;
   right: 16px;
   position: absolute;
+  display: none;
+
+  @media (min-width: 750px) {
+    display: block;
+  }
 `
 
 const ExpandContractSVG = ({ color, d, ...props }) => {

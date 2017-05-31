@@ -27,10 +27,10 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  height: 99%;
   width: 100%;
   background-image: url(${Wheelpng});
-  background-size: 14vw;
+  background-size: 220px auto;
   background-repeat: no-repeat;
   background-position: center;
 `
@@ -338,7 +338,7 @@ class AngleWheel extends Component {
               <ArrowContainer
                 onClick={this._handleArrowClick}
                 style={{
-                  transform: `rotate(${angle}deg) translateY(-8vw)`,
+                  transform: `rotate(${angle}deg) translateY(-123px)`,
                   zIndex: cursorUpdatingAngle ? 14 : 16
                 }}
               >

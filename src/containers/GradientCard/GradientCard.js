@@ -24,15 +24,23 @@ const ANGLE_PREVIEW_ANIMATION_DURATION = 200
 const SLIDER_ANIMATION_DURATION = 300
 
 const Container = styled.div`
-  width: 33.33%;
-  height: 35vw;
-  max-height: 420px;
+  width: 100%;
+  height: 380px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 30px 3% 10px;
+  padding: 10px 2%;
   position: relative;
+
+  @media (min-width: 750px) {
+    width: 50%;
+    max-width: 350px;
+  }
+
+  @media (min-width: 970px) {
+    width: 33.33%;
+  }
 `
 
 const AngleContainer = Button.extend`
@@ -47,7 +55,7 @@ const AngleContainer = Button.extend`
 `
 
 const AngleText = styled.span`
-  font-size: 1.6rem;
+  font-size: 1.4rem;
   color: #AFAFAF;
   padding-left: 10px;
   position: absolute;

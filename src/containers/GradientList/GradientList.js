@@ -10,6 +10,10 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
+  
+  @media (min-width: 970px) {
+    margin: 0;
+  }
 `
 
 const GradientList = ({ gradients, updateColorStop, updateGradientAngle }) => {
