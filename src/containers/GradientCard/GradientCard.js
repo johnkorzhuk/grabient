@@ -25,7 +25,7 @@ const SLIDER_ANIMATION_DURATION = 300
 
 const Container = styled.div`
   width: 85%;
-  height: 380px;
+  min-height: 380px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -39,7 +39,6 @@ const Container = styled.div`
 
   @media (min-width: 680px) {
     width: 50%;
-    max-width: 350px;
   }
 
   @media (min-width: 970px) {

@@ -11,9 +11,10 @@ import {
   deleteActiveStop
 } from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
+import { getGradients } from './store/gradients/selectors'
 
 import { GradientDisplay } from './components/index'
-import { GradientList } from './containers/index'
+import { GradientCard } from './containers/index'
 
 const Overlay = styled.div`
   position: absolute;
@@ -85,11 +86,27 @@ class App extends Component {
   }
 
   render () {
-    const { editingAngle, editingStop, pickingColorStop } = this.props
+    const {
+      editingAngle,
+      editingStop,
+      pickingColorStop,
+      gradients
+    } = this.props
     const editing = editingAngle || editingStop || pickingColorStop
     return (
       <GradientDisplay>
-        <GradientList />
+        {Object.keys(gradients).map((gradientKey, index) => {
+          const gradient = gradients[gradientKey]
+          return (
+            <GradientCard
+              gradient={gradient}
+              index={index}
+              width='33.33%'
+              id={gradientKey}
+              key={gradientKey}
+            />
+          )
+        })}
         {editing && <Overlay onClick={this._handleCancelEdits} />}
       </GradientDisplay>
     )
@@ -101,7 +118,8 @@ export default connect(
     editingAngle: state.gradients.editingAngle.id !== null,
     editingStop: state.stops.editing !== null,
     updating: state.stops.updating.stop !== null,
-    pickingColorStop: state.stops.updating.pickingColorStop !== null
+    pickingColorStop: state.stops.updating.pickingColorStop !== null,
+    gradients: getGradients(state)
   }),
   {
     toggleEditing,
