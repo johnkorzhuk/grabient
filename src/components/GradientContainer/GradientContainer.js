@@ -3,6 +3,7 @@ import styled from 'styled-components'
 
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'
+import { ExpandContract } from './../Icons/index'
 
 const Container = styled.div`
   position: relative;
@@ -61,9 +62,13 @@ class GradientContainer extends PureComponent {
 
     return (
       <Container>
+        <ExpandContract
+          onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
+          onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
+        />
         <NoBlur
-          onMouseEnter={e => onMouseEnter(e, 'main')}
-          onMouseLeave={e => onMouseLeave(e, 'main')}
+          onMouseEnter={e => onMouseEnter(e, ['main'])}
+          onMouseLeave={e => onMouseLeave(e, ['main'])}
           style={{
             zIndex: pickingColorStop ? 4 : 9
           }}

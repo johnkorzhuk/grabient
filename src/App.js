@@ -8,8 +8,7 @@ import {
   updateUpdatingStop,
   updateActiveColorPicker,
   updateActiveStop,
-  deleteActiveStop,
-  editStopColor
+  deleteActiveStop
 } from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
 

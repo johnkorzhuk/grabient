@@ -190,7 +190,7 @@ class AngleWheel extends Component {
   }
 
   _handleClose = () => {
-    this.toggleEditing()
+    this.toggleEditing(null)
   }
 
   _handleMouseDown = () => {
@@ -305,8 +305,8 @@ class AngleWheel extends Component {
                 size={15}
                 style={{
                   position: 'absolute',
-                  top: 15,
-                  right: 15,
+                  top: 18,
+                  right: 18,
                   cursor: 'pointer',
                   zIndex: 17
                 }}

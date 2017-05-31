@@ -90,7 +90,8 @@ class GradientCard extends Component {
     hovered: {
       arrowPrev: false,
       addColor: false,
-      main: false
+      main: false,
+      expandContract: false
     },
     wasEditing: false
   }
@@ -108,20 +109,14 @@ class GradientCard extends Component {
     }
   }
 
-  _handleMouseEnter = (e, el) => {
+  _handleMouseEnter = (e, items) => {
     if (!this.state.wasEditing) {
-      const newState = { ...this.state }
-      newState.hovered[el] = true
-      this.setState(newState)
+      this.setItemHoveredState(items, true, false)
     }
   }
 
-  _handleMouseLeave = (e, el) => {
-    const newState = { ...this.state }
-    newState.hovered[el] = false
-    newState.wasEditing = false
-
-    this.setState(newState)
+  _handleMouseLeave = (e, items) => {
+    this.setItemHoveredState(items, false, true)
   }
 
   _handleAddCancelColorStop = () => {
@@ -149,6 +144,17 @@ class GradientCard extends Component {
     }
     toggleEditing(id)
     updateEditingAngle(angle)
+  }
+
+  setItemHoveredState (items, hovered, resetWasEditing) {
+    const newState = { ...this.state }
+    items.forEach(item => {
+      newState.hovered[item] = hovered
+    })
+
+    if (resetWasEditing) newState.wasEditing = false
+
+    this.setState(newState)
   }
 
   render () {
@@ -189,8 +195,8 @@ class GradientCard extends Component {
 
           <AngleContainer
             onClick={this._handleAngleEditToggle}
-            onMouseEnter={e => this._handleMouseEnter(e, 'arrowPrev')}
-            onMouseLeave={e => this._handleMouseLeave(e, 'arrowPrev')}
+            onMouseEnter={e => this._handleMouseEnter(e, ['arrowPrev'])}
+            onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
           >
             <AnglePreview
               editingAngle={editingAngle}
@@ -216,8 +222,8 @@ class GradientCard extends Component {
           </SwatchSliderContainer>
 
           <AddColorContainer
-            onMouseEnter={e => this._handleMouseEnter(e, 'addColor')}
-            onMouseLeave={e => this._handleMouseLeave(e, 'addColor')}
+            onMouseEnter={e => this._handleMouseEnter(e, ['addColor'])}
+            onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
             onClick={this._handleAddCancelColorStop}
           >
             <AddColor
