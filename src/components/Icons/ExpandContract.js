@@ -1,13 +1,13 @@
 import React, { Component } from 'react'
-import styled from 'styled-components'
 import { Animate } from 'react-move'
 
-const Container = styled.div`
+import { Button } from './../Common/index'
+
+const Container = Button.extend`
   z-index: 1000;
   top: 16px;
   right: 16px;
   position: absolute;
-  cursor: pointer;
 `
 
 const ExpandContractSVG = ({ color, d, ...props }) => {
@@ -77,7 +77,7 @@ class ExpandContract extends Component {
         : 'M9 8h6V2H9v6zM7 0h10v10H7V0zM18 1.5022L19.38618 0 24 5l-4.61382 5L18 8.4978 21.22763 5M6 1.5022L4.61382 0 0 5l4.61382 5L6 8.4978 2.77237 5'
     }
     return (
-      <Animate data={data} duration={200}>
+      <Animate data={data} duration={300}>
         {data => {
           return (
             <Container onClick={this._handleClick} {...props}>

@@ -14,6 +14,7 @@ import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { AnglePreview, GradientContainer } from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
 import { SortableSwatch } from './../index'
+import { Button } from './../../components/Common/index'
 
 // units = ms
 const GRADIENT_ANIMATION_DURATION = 500
@@ -34,10 +35,9 @@ const Container = styled.div`
   position: relative;
 `
 
-const AngleContainer = styled.div`
+const AngleContainer = Button.extend`
   margin-right: auto;
   position: absolute;
-  cursor: pointer;
   height: 40px;
   width: 60px;
   display: flex;
@@ -73,15 +73,14 @@ const SwatchSliderContainer = styled.div`
   margin: 0 4rem 0 1rem;
 `
 
-const AddColorContainer = styled.div`
+const AddColorContainer = Button.extend`
   position: absolute;
   right: 0;
-  height: 40px;
-  width: 25px;
-  cursor: pointer;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  width: 25px;
 `
 
 // todo slider container's dimnestions needs to be regrabbed on resize / width change

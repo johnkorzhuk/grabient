@@ -5,6 +5,7 @@ import { Animate } from 'react-move'
 import Wheelpng from './../../wheel.png'
 
 import { Arrow, Close } from './../../components/Icons/index'
+import { Button } from './../../components/Common/index'
 
 import {
   updateGradientAngle,
@@ -81,6 +82,13 @@ const Deg = styled.span`
   color: white;
   font-size: 1.8rem;
   display: block;
+`
+
+const CloseButton = Button.extend`
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  z-index: 17;
 `
 
 const ArrowContainer = styled.div`
@@ -299,18 +307,9 @@ class AngleWheel extends Component {
 
               </Container>
 
-              <Close
-                onClick={this._handleClose}
-                color='white'
-                size={15}
-                style={{
-                  position: 'absolute',
-                  top: 18,
-                  right: 18,
-                  cursor: 'pointer',
-                  zIndex: 17
-                }}
-              />
+              <CloseButton onClick={this._handleClose}>
+                <Close color='white' size={15} />
+              </CloseButton>
 
               <TextContainer
                 onClick={this._handleTextContainerClick}
