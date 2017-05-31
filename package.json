@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "deep-equal": "^1.0.1",
+    "lodash": "^4.17.4",
     "polished": "^1.1.1",
     "react": "^15.5.4",
     "react-color": "^2.11.7",

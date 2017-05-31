@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import styled from 'styled-components'
+import debounce from 'lodash/debounce'
 
 import {
   toggleEditing,
@@ -95,6 +96,17 @@ const AddColorContainer = Button.extend`
   width: 25px;
 `
 
+const addEvent = function (object, type, callback) {
+  if (object == null || typeof object === 'undefined') return
+  if (object.addEventListener) {
+    object.addEventListener(type, debounce(callback, 100), false)
+  } else if (object.attachEvent) {
+    object.attachEvent('on' + type, debounce(callback, 100))
+  } else {
+    object['on' + type] = debounce(callback, 100)
+  }
+}
+
 // todo slider container's dimnestions needs to be regrabbed on resize / width change
 class GradientCard extends Component {
   state = {
@@ -107,6 +119,14 @@ class GradientCard extends Component {
     wasEditing: false
   }
 
+  componentDidMount () {
+    addEvent(window, 'resize', this._handleWindowResize)
+  }
+
+  componentWillUnmount () {
+    window.removeEventListener('resize')
+  }
+
   componentWillReceiveProps (nextProps) {
     const { editingAngle, editingStop } = this.props
     if (editingAngle !== nextProps.editingAngle) {
@@ -117,6 +137,12 @@ class GradientCard extends Component {
       if (nextProps.editingStop) {
         this.props.updateSwatchDimensions(this.sliderContainer.getClientRects())
       }
+    }
+  }
+
+  _handleWindowResize = e => {
+    if (this.props.editingStop) {
+      this.props.updateSwatchDimensions(this.sliderContainer.getClientRects())
     }
   }
 
