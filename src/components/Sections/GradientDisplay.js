@@ -6,8 +6,12 @@ const GradientDisplayContainer = Container.extend`
   margin-top: 30px;
   margin-bottom: 30px;
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: wrap;
+
+  @media (min-width: 680px) {
+    justify-content: flex-start;
+  }
 
   @media (min-width: 820px) {
     margin-left: 40px;
@@ -20,13 +24,13 @@ const GradientDisplayContainer = Container.extend`
   }
 `
 
+const Section = GradientDisplayContainer.withComponent('section')
+
 const GradientDisplay = ({ children }) => {
   return (
-    <section>
-      <GradientDisplayContainer>
-        {children}
-      </GradientDisplayContainer>
-    </section>
+    <Section>
+      {children}
+    </Section>
   )
 }
 

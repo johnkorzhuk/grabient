@@ -141,15 +141,13 @@ class GradientCard extends Component {
   }
 
   componentWillReceiveProps (nextProps) {
-    const { editingAngle, editingStop } = this.props
+    const { editingAngle, editingStop, updateSwatchDimensions } = this.props
     if (editingAngle !== nextProps.editingAngle) {
       this.setState({ wasEditing: !nextProps.editingAngle })
     }
 
     if (editingStop !== nextProps.editingStop) {
-      if (nextProps.editingStop) {
-        this.props.updateSwatchDimensions(this.sliderContainer.getClientRects())
-      }
+      updateSwatchDimensions(this.sliderContainer.getClientRects())
     }
   }
 
