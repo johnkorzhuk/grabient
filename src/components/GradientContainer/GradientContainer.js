@@ -62,11 +62,12 @@ class GradientContainer extends PureComponent {
 
     return (
       <Container>
-        <ExpandContract
-          id={id}
-          onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
-          onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
-        />
+        {hovered &&
+          <ExpandContract
+            id={id}
+            onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
+            onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
+          />}
 
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, ['main'])}

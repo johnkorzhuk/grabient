@@ -6,7 +6,7 @@ const GradientDisplayContainer = Container.extend`
   margin-top: 30px;
   margin-bottom: 30px;
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: wrap;
 
   @media (min-width: 820px) {

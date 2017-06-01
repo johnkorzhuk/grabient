@@ -40,7 +40,6 @@ const Container = styled.div`
   align-items: center;
   padding: 0 2% 15px;
   position: relative;
-
   transition: width 400ms linear;
 
   @media (min-width: 420px) {

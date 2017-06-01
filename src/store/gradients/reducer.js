@@ -37,7 +37,7 @@ const INITIAL_STATE = {
       angle: 220
     }
   },
-  expanded: '7a',
+  expanded: null,
   editingAngle: {
     id: null,
     angle: null
