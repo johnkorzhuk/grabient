@@ -24,6 +24,13 @@ const ANGLE_PREVIEW_ANIMATION_DURATION = 200
 // also used for icon opacity transition duration
 const SLIDER_ANIMATION_DURATION = 300
 
+const getOrder = (index, columns) => {
+  if (index % columns === 0) return index
+  if (index % columns === 1) return index - 2
+  if (index % columns === 2) return index - 3
+  return index
+}
+
 const Container = styled.div`
   width: 85%;
   min-height: 380px;
@@ -31,19 +38,27 @@ const Container = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 10px 2%;
+  padding: 0 2% 15px;
   position: relative;
+
+  transition: width 400ms linear;
 
   @media (min-width: 420px) {
     width: 100%;
   }
+`
+
+const OrderedContainer = Container.extend`
+  order: ${({ index }) => index};
 
   @media (min-width: 680px) {
-    width: 50%;
+    width: ${({ expanded }) => (expanded ? '100%' : '50%')};
+    order: ${({ index, expanded }) => (expanded ? getOrder(index, 2) : index)};
   }
 
   @media (min-width: 970px) {
-    width: 33.33%;
+    width: ${({ expanded }) => (expanded ? '100%' : '33.33%')};
+    order: ${({ index, expanded }) => (expanded ? getOrder(index, 3) : index)};
   }
 `
 
@@ -107,7 +122,6 @@ const addEvent = function (object, type, callback) {
   }
 }
 
-// todo slider container's dimnestions needs to be regrabbed on resize / width change
 class GradientCard extends Component {
   state = {
     hovered: {
@@ -203,17 +217,15 @@ class GradientCard extends Component {
       editingStop,
       index,
       stopData,
-      pickingColorStop
+      pickingColorStop,
+      expanded
     } = this.props
+
     const editingAngle = id === editingAngleData.id
     const actualAngle = editingAngle ? editingAngleData.angle : angle
 
     return (
-      <Container
-        style={{
-          order: index
-        }}
-      >
+      <OrderedContainer index={index} expanded={expanded}>
         <GradientContainer
           stopData={stopData}
           actualAngle={actualAngle}
@@ -271,7 +283,7 @@ class GradientCard extends Component {
             />
           </AddColorContainer>
         </InfoContainer>
-      </Container>
+      </OrderedContainer>
     )
   }
 }
@@ -288,7 +300,8 @@ const mapStateToProps = (state, props) => {
     editingStop: props.id == state.stops.editing,
     // eslint-disable-next-line eqeqeq
     angle: gradient.angle,
-    pickingColorStop: state.stops.updating.pickingColorStop !== null
+    pickingColorStop: state.stops.updating.pickingColorStop !== null,
+    expanded: state.gradients.expanded === props.id
   }
 }
 

@@ -1,7 +1,10 @@
-import React, { Component } from 'react'
+import React from 'react'
+import { connect } from 'react-redux'
 import { Animate } from 'react-move'
 
-import { Button } from './../Common/index'
+import { updateExpanded } from './../../store/gradients/actions'
+
+import { Button } from './../../components/Common/index'
 
 const Container = Button.extend`
   z-index: 1000;
@@ -62,37 +65,37 @@ const ExpandContractSVG = ({ color, d, ...props }) => {
   )
 }
 
-class ExpandContract extends Component {
-  state = {
-    expanded: false
+const ExpandContract = ({
+  color = 'white',
+  expanded,
+  updateExpanded,
+  id,
+  ...props
+}) => {
+  const data = {
+    d: expanded
+      ? 'M9 8h6V2H9v6zM7 0h10v10H7V0zM24 1.5022L22.61382 0 18 5l4.61382 5L24 8.4978 20.77237 5M0 1.5022L1.38618 0 6 5l-4.61382 5L0 8.4978 3.22763 5'
+      : 'M9 8h6V2H9v6zM7 0h10v10H7V0zM18 1.5022L19.38618 0 24 5l-4.61382 5L18 8.4978 21.22763 5M6 1.5022L4.61382 0 0 5l4.61382 5L6 8.4978 2.77237 5'
   }
-
-  _handleClick = () => {
-    this.setState(prevState => ({
-      expanded: !prevState.expanded
-    }))
-  }
-
-  render () {
-    const { color = 'white', ...props } = this.props
-    const { expanded } = this.state
-    const data = {
-      d: expanded
-        ? 'M9 8h6V2H9v6zM7 0h10v10H7V0zM24 1.5022L22.61382 0 18 5l4.61382 5L24 8.4978 20.77237 5M0 1.5022L1.38618 0 6 5l-4.61382 5L0 8.4978 3.22763 5'
-        : 'M9 8h6V2H9v6zM7 0h10v10H7V0zM18 1.5022L19.38618 0 24 5l-4.61382 5L18 8.4978 21.22763 5M6 1.5022L4.61382 0 0 5l4.61382 5L6 8.4978 2.77237 5'
-    }
-    return (
-      <Animate data={data} duration={300}>
-        {data => {
-          return (
-            <Container onClick={this._handleClick} {...props}>
-              <ExpandContractSVG d={data.d} color={color} />
-            </Container>
-          )
-        }}
-      </Animate>
-    )
-  }
+  return (
+    <Animate data={data} duration={300}>
+      {data => {
+        return (
+          <Container
+            onClick={() => updateExpanded(expanded ? null : id)}
+            {...props}
+          >
+            <ExpandContractSVG d={data.d} color={color} />
+          </Container>
+        )
+      }}
+    </Animate>
+  )
 }
 
-export default ExpandContract
+export default connect(
+  (state, props) => ({
+    expanded: state.gradients.expanded === props.id
+  }),
+  { updateExpanded }
+)(ExpandContract)

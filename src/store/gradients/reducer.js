@@ -2,7 +2,8 @@ import {
   UPDATE_ANGLE,
   UPDATE_ACTIVE_ID,
   TOGGLE_EDITING,
-  UPDATE_EDITING_ANGLE
+  UPDATE_EDITING_ANGLE,
+  UPDATE_EXPANDED
 } from './actions'
 
 const INITIAL_STATE = {
@@ -26,9 +27,17 @@ const INITIAL_STATE = {
     '5a': {
       id: '5a',
       angle: 220
+    },
+    '6a': {
+      id: '5a',
+      angle: 220
+    },
+    '7a': {
+      id: '5a',
+      angle: 220
     }
   },
-  // active: 1,
+  expanded: '7a',
   editingAngle: {
     id: null,
     angle: null
@@ -75,6 +84,12 @@ export default (state = INITIAL_STATE, action) => {
           ...state.editingAngle,
           angle: action.payload.angle
         }
+      }
+
+    case UPDATE_EXPANDED:
+      return {
+        ...state,
+        expanded: action.payload.id
       }
 
     default:

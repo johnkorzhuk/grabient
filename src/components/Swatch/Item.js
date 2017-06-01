@@ -84,9 +84,12 @@ class SwatchItem extends Component {
       ...props
     } = this.props
     const { hovered } = this.state
-    // const shouldRenderColorPicker = true
+    const isPickingColor = pickingColorStop === stop
+    // const shouldRenderColorPicker = false
     const shouldRenderColorPicker =
-      pickingColorStop === stop && editingColor === id && !isUpdating
+      isPickingColor && editingColor === id && !isUpdating
+
+    // const shouldRenderPopover = true
     const shouldRenderPopover =
       hovered && !shouldRenderColorPicker && !sorting && !editing && !active
 
@@ -103,7 +106,8 @@ class SwatchItem extends Component {
       >
         {shouldRenderColorPicker &&
           <ColorPicker color={color} stop={stop} id={id} left={left} />}
-        {shouldRenderPopover && <Popover color={color} />}
+        {shouldRenderPopover &&
+          <Popover color={color} isPickingColor={isPickingColor} />}
         <Item
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}

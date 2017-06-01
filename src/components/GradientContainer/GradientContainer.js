@@ -2,8 +2,7 @@ import React, { PureComponent } from 'react'
 import styled from 'styled-components'
 
 import Gradient from './../Gradient/Gradient'
-import { AngleWheel } from './../../containers/index'
-import { ExpandContract } from './../Icons/index'
+import { AngleWheel, ExpandContract } from './../../containers/index'
 
 const Container = styled.div`
   position: relative;
@@ -40,7 +39,8 @@ class GradientContainer extends PureComponent {
       this.props.editingStop !== nextProps.editingStop ||
       this.props.editingAngleVal !== nextProps.editingAngleVal ||
       this.props.actualAngle !== nextProps.actualAngle ||
-      this.props.pickingColorStop !== nextProps.pickingColorStop
+      this.props.pickingColorStop !== nextProps.pickingColorStop ||
+      this.props.expanded !== nextProps.expanded
     )
   }
 
@@ -63,9 +63,11 @@ class GradientContainer extends PureComponent {
     return (
       <Container>
         <ExpandContract
+          id={id}
           onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
           onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
         />
+
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, ['main'])}
           onMouseLeave={e => onMouseLeave(e, ['main'])}

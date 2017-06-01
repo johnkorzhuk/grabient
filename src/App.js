@@ -93,9 +93,10 @@ class App extends Component {
       gradients
     } = this.props
     const editing = editingAngle || editingStop || pickingColorStop
+    const gradientKeys = Object.keys(gradients)
     return (
       <GradientDisplay>
-        {Object.keys(gradients).map((gradientKey, index) => {
+        {gradientKeys.map((gradientKey, index) => {
           const gradient = gradients[gradientKey]
           return (
             <GradientCard

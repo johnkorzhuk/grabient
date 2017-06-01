@@ -1,4 +1,4 @@
-import React, { PureComponent } from 'react'
+import React, { Component } from 'react'
 import styled from 'styled-components'
 import { mix, transparentize } from 'polished'
 
@@ -7,12 +7,12 @@ import { Triangle } from './../Common/index'
 const Container = styled.div`
   padding: 6px 10px;
   position: absolute;
-  left: 50%;
+  right: 50%;
   bottom: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 5px 5px 5px 0;
+  border-radius: 5px 5px 0 5px;
   background-color: white;
   box-shadow: ${({ shadowColor }) => `0px 3px 10px 0px ${shadowColor}`};
   z-index: 100;
@@ -24,19 +24,27 @@ const Text = styled.span`
   text-transform: uppercase;
 `
 
-class Popover extends PureComponent {
+class Popover extends Component {
   shouldComponentUpdate (nextProps) {
-    return this.props.color !== nextProps.color
+    return (
+      this.props.color !== nextProps.color ||
+      this.props.isPickingColor !== nextProps.isPickingColor
+    )
   }
 
   render () {
-    const { color, left } = this.props
+    const { color, left, isPickingColor } = this.props
     const mixed = transparentize(0.4, mix(0.2, color, '#AFAFAF'))
 
     return (
-      <Container className='target-el' left={left} shadowColor={mixed}>
+      <Container
+        className='target-el'
+        left={left}
+        shadowColor={mixed}
+        isPickingColor={isPickingColor}
+      >
         <Text>{color}</Text>
-        <Triangle />
+        <Triangle right />
       </Container>
     )
   }
