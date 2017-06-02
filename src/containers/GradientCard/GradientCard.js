@@ -33,7 +33,6 @@ const getOrder = (index, columns) => {
 
 const Container = styled.div`
   width: 85%;
-  min-height: 380px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -86,7 +85,7 @@ const InfoContainer = styled.div`
   display: flex;
   align-items: center;
   z-index: 10;
-  bottom: 15px;
+  margin-top: 15px;
 `
 
 const SwatchSliderContainer = styled.div`

@@ -14,20 +14,17 @@ import {
 } from './../../store/gradients/actions'
 
 const AreaContainer = styled.div`
-  position: absolute;
   width: 100%;
-  height: 90%;
+  height: 100%;
   display: flex;
   justify-content: center;
   align-items: center;
+  margin-top: -298px;
 `
 
 const Container = styled.div`
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 99%;
+  height: 100%;
   width: 100%;
   background-image: url(${Wheelpng});
   background-size: 220px auto;
@@ -40,32 +37,40 @@ const Background = styled.div`
   border-radius: 15px;
   position: absolute;
   width: 100%;
+  border: 1px solid  #000;
   background-color: #000;
 `
 
 const AngleRef = styled.div`
   position: absolute;
+  top: 50%;
+  left: 50%;
   height: 2px;
   width: 2px;
 `
 
 const TextContainer = styled.div`
-  position: absolute;
   display: flex;
-  cursor: text;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  cursor: text;
+
   height: 85px;
   width: 85px;
 `
 
 const TextValue = styled.input`
   color: white;
-  font-size: 1.8rem;
+  display: inline-block;
+  font-size: 2.2rem;
   text-align: center;
   border: none;
   background: none;
-  display: block;
+  width: 100%;
 
   &::-webkit-inner-spin-button,
   ::-webkit-outer-spin-button {
@@ -78,12 +83,6 @@ const TextValue = styled.input`
   }
 `
 
-const Deg = styled.span`
-  color: white;
-  font-size: 1.8rem;
-  display: block;
-`
-
 const CloseButton = Button.extend`
   position: absolute;
   top: 18px;
@@ -93,6 +92,11 @@ const CloseButton = Button.extend`
 
 const ArrowContainer = styled.div`
   position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  left: 47.8%;
+  top: 47.8%;
   cursor: pointer;
 `
 
@@ -161,7 +165,7 @@ class AngleWheel extends Component {
   }
 
   _handleInputChange = e => {
-    let angle = parseInt(e.target.value, 10)
+    let angle = parseInt(e.target.value.replace(/[^0-9.]/g, ''), 10)
     if (!isNaN(angle)) {
       if (angle > 359) {
         angle = 0
@@ -171,9 +175,7 @@ class AngleWheel extends Component {
       this._handleInputChange.lastValid = angle
       this.updateEditingAngle(angle)
     } else {
-      const value = this._handleInputChange.lastValid || this.props.origAngle
-      this.input.value = ''
-      this.updateEditingAngle(value)
+      this.updateEditingAngle('')
     }
   }
 
@@ -189,7 +191,9 @@ class AngleWheel extends Component {
       this.toggleEditing()
       this.setState(origState)
     } else {
-      this.updateEditingAngle(this.getAngle(e.offsetX, e.offsetY))
+      this.updateEditingAngle(
+        this.getAngle(e.nativeEvent.offsetX, e.nativeEvent.offsetY)
+      )
     }
   }
 
@@ -313,6 +317,7 @@ class AngleWheel extends Component {
                 }}
               >
                 <TextValue
+                  className='TextValue'
                   autoFocus
                   innerRef={node => {
                     this.input = node
@@ -323,11 +328,7 @@ class AngleWheel extends Component {
                   type='number'
                   value={angle}
                   onChange={this._handleInputChange}
-                  style={{
-                    width: this.getWidth(angle)
-                  }}
                 />
-                <Deg>°</Deg>
               </TextContainer>
 
               <ArrowContainer

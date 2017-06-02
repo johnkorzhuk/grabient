@@ -63,9 +63,9 @@ const SortableList = SortableContainer(
         {data => {
           return (
             <SwatchContainer
+              editing={editing}
               style={{
                 ...style,
-                zIndex: editing ? 10 : 0,
                 width: data.width
               }}
             >

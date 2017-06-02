@@ -4,6 +4,11 @@ export const TOGGLE_EDITING = 'gradients/TOGGLE_EDITING'
 export const UPDATE_EDITING_ANGLE = 'gradients/UPDATE_EDITING_ANGLE'
 export const UPDATE_EXPANDED = 'gradients/UPDATE_EXPANDED'
 
+const checkIfNaN = num => {
+  if (typeof num !== 'number') num = parseInt(num, 10)
+  return isNaN(num) ? 0 : num
+}
+
 export const updateActiveId = () => (dispatch, getState) => {
   const { gradients: { active, gradientValues } } = getState()
   const gradientKeys = Object.keys(gradientValues)
@@ -23,7 +28,7 @@ export const updateGradientAngle = (id, angle) => dispatch => {
     type: UPDATE_ANGLE,
     payload: {
       id,
-      angle
+      angle: checkIfNaN(angle)
     }
   })
 }

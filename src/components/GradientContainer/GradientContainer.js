@@ -4,9 +4,11 @@ import styled from 'styled-components'
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel, ExpandContract } from './../../containers/index'
 
+const GRADIENT_HEIGHT = 300
+
 const Container = styled.div`
   position: relative;
-  height: 100%;
+  height: ${GRADIENT_HEIGHT}px;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -15,7 +17,7 @@ const Container = styled.div`
 `
 
 const NoBlur = styled.div`
-  height: 90%;
+  height: 100%;
   width: 100%;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 15px;
@@ -23,10 +25,10 @@ const NoBlur = styled.div`
 
 const Blurred = styled.div`
   filter: blur(20px);
-  height: 92%;
+  height: 100%;
   width: 98%;
-  position: absolute;
   border-radius: 15px;
+  margin-top: -${GRADIENT_HEIGHT}px;
 `
 
 class GradientContainer extends PureComponent {

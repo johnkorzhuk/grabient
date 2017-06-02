@@ -10,6 +10,7 @@ const Container = styled.div`
   width: 100%;
   border-radius: 15px;
 `
+// background-image: linear-gradient(90deg, #000000 0%, #ffffff 100%);
 
 class Gradient extends PureComponent {
   shouldComponentUpdate (nextProps) {
@@ -42,8 +43,7 @@ class Gradient extends PureComponent {
             <Container
               style={{
                 backgroundImage: `linear-gradient(${angle}deg, ${generateColorStopsFromData(data)})`,
-                opacity: data.opacity,
-                zIndex: hasOpacity ? -1 : 'auto'
+                opacity: data.opacity
               }}
             />
           )
