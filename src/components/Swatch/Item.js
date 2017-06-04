@@ -14,6 +14,7 @@ const Item = styled.div`
   border-radius: 50%;
   cursor: pointer;
   position: absolute;
+  right: 0;
   border: ${({ mixedColor }) => `1px solid ${mixedColor}`};
   background-color: ${({ color }) => color};
   box-shadow: ${({ mixedTransparentized, active }) => (active ? '0px 3px 10px 1px ' + mixedTransparentized : '0px 0px 0px 0px ' + mixedTransparentized)};

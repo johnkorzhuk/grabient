@@ -2,7 +2,8 @@ import React from 'react' // eslint-disable-line
 import styled from 'styled-components'
 
 const SwatchContainer = styled.div`
-  position: absolute;
+  position: relative;
+  right: 0;
   display: flex;
   align-items: center;
   height: 100%;
