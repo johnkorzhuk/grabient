@@ -12,7 +12,7 @@ import { Triangle } from './../../components/Common/index'
 
 const Container = styled.div`
   position: absolute;
-  z-index: 10;
+  z-index: 25;
   bottom: 30px;
   ${({ right }) => (right ? 'left: 1rem;' : 'right: 1rem;')}
 `

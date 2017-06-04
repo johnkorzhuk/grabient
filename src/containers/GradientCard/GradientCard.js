@@ -48,6 +48,7 @@ const Container = styled.div`
 
 const OrderedContainer = Container.extend`
   order: ${({ index }) => index};
+  z-index: ${({ editing }) => (editing ? 21 : 'auto')};
 
   @media (min-width: 680px) {
     width: ${({ expanded }) => (expanded ? '100%' : '50%')};
@@ -214,14 +215,16 @@ class GradientCard extends Component {
       index,
       stopData,
       pickingColorStop,
-      expanded
+      expanded,
+      editingColor
     } = this.props
 
     const editingAngle = id === editingAngleData.id
+    const editing = editingStop || editingAngle || editingColor
     const actualAngle = editingAngle ? editingAngleData.angle : angle
 
     return (
-      <OrderedContainer index={index} expanded={expanded}>
+      <OrderedContainer index={index} expanded={expanded} editing={editing}>
         <GradientContainer
           stopData={stopData}
           actualAngle={actualAngle}
@@ -297,6 +300,7 @@ const mapStateToProps = (state, props) => {
     // eslint-disable-next-line eqeqeq
     angle: gradient.angle,
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
+    editingColor: props.id === state.stops.editingColor,
     expanded: state.gradients.expanded === props.id
   }
 }

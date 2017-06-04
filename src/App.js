@@ -18,7 +18,7 @@ import { GradientCard } from './containers/index'
 
 const Overlay = styled.div`
   position: absolute;
-  z-index: 5;
+  z-index: 20;
   top: 0;
   right: 0;
   left: 0;
