@@ -26,7 +26,6 @@ import {
 import { SwatchItem, SwatchContainer } from './../../components/Swatch/index'
 
 const SlideBar = styled.div`
-  margin-left: -1rem;
   height: 2px;
   width: 100%;
   background-color: #AFAFAF;
@@ -110,6 +109,30 @@ const SortableList = SortableContainer(
                     key={stop}
                     index={index}
                     sorting={sorting}
+                    onTouchStart={e =>
+                      onSortItemClick(
+                        e,
+                        stop,
+                        editing,
+                        sorting,
+                        pickingColorStop
+                      )}
+                    onTouchMove={e =>
+                      onSortItemClick(
+                        e,
+                        stop,
+                        editing,
+                        sorting,
+                        pickingColorStop
+                      )}
+                    onTouchEnd={e =>
+                      onSortItemClick(
+                        e,
+                        stop,
+                        editing,
+                        sorting,
+                        pickingColorStop
+                      )}
                     onMouseUp={e =>
                       onSortItemClick(
                         e,
@@ -179,25 +202,43 @@ class Swatch extends Component {
     })
   }
 
-  _handleEditInit = (e, stop) => {
+  _handleEditInit = (pageX, stop) => {
     const { updateDraggedStopPos, updateUpdatingStop } = this.props
-    updateUpdatingStop(stop, e.nativeEvent.x)
-    updateDraggedStopPos(e.nativeEvent.x)
+
+    updateUpdatingStop(stop, pageX)
+    updateDraggedStopPos(pageX)
   }
 
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
-    if (e.type === 'mouseup') {
+    if (e.type === 'mouseup' || e.type === 'touchend') {
       this.props.toggleEditing(null)
-      if (!sorting) {
+
+      if (!sorting && !editing) {
         this.props.updateActiveColorPicker(stop, pickingColorStop)
       }
-    } else if (e.type === 'mousedown') {
+
+      if (e.type === 'touchend') {
+        this.props.updateUpdatingStop(null)
+        this.props.updateDraggedStopPos(null)
+      }
+    } else if (e.type === 'mousedown' || e.type === 'touchstart') {
       this.props.editStopColor(this.props.id)
       this.props.updateActiveStop(stop)
+
       if (editing) {
-        this._handleEditInit(e, stop)
+        if (e.type === 'mousedown') {
+          this._handleEditInit(e.nativeEvent.pageX, stop)
+          this.props.updateActiveColorPicker(stop, pickingColorStop)
+        } else this._handleEditInit(e.nativeEvent.touches[0].pageX, stop)
       }
     }
+    // todo: figure out why updateDraggedStopPos(pageX) wont work on touchmove
+    // else if (e.type === 'touchmove') {
+    //   const { pageX } = e.nativeEvent.touches[0]
+    //   if (pageX >= 0) {
+    //     updateDraggedStopPos(pageX)
+    //   }
+    // }
   }
 
   render () {
