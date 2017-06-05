@@ -178,6 +178,10 @@ export default (state = INITIAL_STATE, action) => {
         values: {
           ...state.values,
           [action.payload.editing]: action.payload.newValues
+        },
+        updating: {
+          ...state.updating,
+          origUnchanged: action.payload.newValues
         }
       }
 

@@ -16,7 +16,8 @@ class AddColor extends PureComponent {
       color,
       editingStop,
       pickingColorStop,
-      animationDuration
+      animationDuration,
+      ...props
     } = this.props
 
     return (
@@ -31,6 +32,7 @@ class AddColor extends PureComponent {
         {data => {
           return (
             <svg
+              {...props}
               width='20'
               height='20'
               style={{

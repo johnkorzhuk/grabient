@@ -70,6 +70,7 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
   if (stop !== null) {
     let updatedStopValues = { ...origUnchanged }
     let updatedStop = Math.round((xPos - left) / width * 100)
+    console.log(updatedStop)
     if (updatedStop < 0) updatedStop = 0
     else if (updatedStop > 100) updatedStop = 100
 
@@ -161,14 +162,22 @@ export const deleteActiveStop = () => (dispatch, getState) => {
   }
 }
 
-// export const addColorStop = id => (dispatch, getState) => {
-//   const { stops: { values, editing } } = getState()
-//   const newValues = { ...values[editing] }
-
-//   return dispatch({
-//     type: ADD_COLOR_STOP,
-//     payload: {
-//       editing
-//     }
-//   })
-// }
+export const addColorStop = id => (dispatch, getState) => {
+  const { stops: { values, editing } } = getState()
+  let newValues = { ...values[editing] }
+  for (let i = 0; i <= 100; i += 2) {
+    if (
+      typeof newValues[i] === 'undefined' &&
+      Object.keys(newValues).length < 7
+    ) {
+      newValues[i] = '#ffffff'
+      return dispatch({
+        type: ADD_COLOR_STOP,
+        payload: {
+          editing,
+          newValues
+        }
+      })
+    }
+  }
+}

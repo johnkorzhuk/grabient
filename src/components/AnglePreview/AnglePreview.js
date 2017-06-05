@@ -1,7 +1,19 @@
 import React from 'react'
-import { Animate } from 'react-move'
+import styled from 'styled-components'
 
 import { AnglePrev } from './../Icons/index'
+
+const Container = styled.div`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`
+
+const AngleText = styled.span`
+  font-size: 1.4rem;
+  color: ${({ color }) => color};
+  padding-left: 10px;
+`
 
 const AnglePreview = ({
   angle,
@@ -10,38 +22,23 @@ const AnglePreview = ({
   hovered,
   editingStop,
   editingAngle,
-  children
+  color
 }) => {
   return (
-    <Animate
-      data={{
-        translateX: editingStop ? -60 : 0,
-        opacity: editingStop ? 0 : 1
-      }}
-      duration={300}
-    >
-      {data => {
-        return (
-          data.opacity !== 0 &&
-          <div
-            style={{
-              transform: `translateX(${data.translateX}px)`,
-              opacity: data.opacity,
-              height: 20
-            }}
-          >
-            <AnglePrev
-              animationDuration={iconAnimationDuration}
-              color='#AFAFAF'
-              angle={angle}
-              hovered={hovered}
-              editingAngle={editingAngle}
-            />
-            {children}
-          </div>
-        )
-      }}
-    </Animate>
+    !editingStop &&
+    <Container>
+      <AnglePrev
+        animationDuration={iconAnimationDuration}
+        color={color}
+        angle={angle}
+        hovered={hovered}
+        editingAngle={editingAngle}
+      />
+
+      <AngleText color={color}>
+        {angle}°
+      </AngleText>
+    </Container>
   )
 }
 

@@ -7,12 +7,20 @@ import {
   toggleEditing,
   updateEditingAngle
 } from './../../store/gradients/actions'
-import { editStop, updateActiveColorPicker } from './../../store/stops/actions'
+import {
+  editStop,
+  updateActiveColorPicker,
+  addColorStop
+} from './../../store/stops/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
 
-import { AnglePreview, GradientContainer } from './../../components/index'
+import {
+  AnglePreview,
+  GradientContainer,
+  AddDeleteStop
+} from './../../components/index'
 import { AddColor } from './../../components/Icons/index'
 import { SortableSwatch } from './../index'
 import { Button } from './../../components/Common/index'
@@ -23,6 +31,8 @@ const ANGLE_WHEEL_ANIMATION_DURATION = 300
 const ANGLE_PREVIEW_ANIMATION_DURATION = 200
 // also used for icon opacity transition duration
 const SLIDER_ANIMATION_DURATION = 300
+
+const ICON_COLOR = '#afafaf'
 
 const getOrder = (index, columns) => {
   if (index % columns === 0) return index
@@ -72,14 +82,6 @@ const AngleContainer = Button.extend`
   z-index: 10;
 `
 
-const AngleText = styled.span`
-  font-size: 1.4rem;
-  color: #AFAFAF;
-  padding-left: 10px;
-  position: absolute;
-  top: 2px;
-`
-
 const InfoContainer = styled.div`
   position: relative;
   width: 100%;
@@ -97,7 +99,7 @@ const SwatchSliderContainer = styled.div`
   align-items: center;
   height: 40px;
   margin-right: 4rem;
-  margin-left: 1rem;
+  margin-left: 4rem;
 `
 
 const AddColorContainer = Button.extend`
@@ -175,32 +177,37 @@ class GradientCard extends Component {
       id,
       pickingColorStop
     } = this.props
+    if (pickingColorStop) {
+      return updateActiveColorPicker(null)
+    }
 
     if (editingStop) {
-      if (pickingColorStop) {
-        updateActiveColorPicker(null)
-      } else {
-        editStop(null)
-      }
-    } else {
+      editStop(null)
+    } else if (!pickingColorStop) {
       editStop(id)
     }
   }
 
-  _handleAngleEditToggle = () => {
+  _handleLeftIconClick = () => {
     const {
       toggleEditing,
       updateEditingAngle,
       updateActiveColorPicker,
       pickingColorStop,
       id,
-      angle
+      angle,
+      editingStop,
+      addColorStop
     } = this.props
-    if (pickingColorStop) {
-      updateActiveColorPicker(null)
+    if (!editingStop) {
+      if (pickingColorStop) {
+        updateActiveColorPicker(null)
+      }
+      toggleEditing(id)
+      updateEditingAngle(angle)
+    } else {
+      addColorStop(id)
     }
-    toggleEditing(id)
-    updateEditingAngle(angle)
   }
 
   setItemHoveredState (items, hovered, resetWasEditing) {
@@ -251,10 +258,16 @@ class GradientCard extends Component {
         <InfoContainer>
 
           <AngleContainer
-            onClick={this._handleAngleEditToggle}
+            onClick={this._handleLeftIconClick}
             onMouseEnter={e => this._handleMouseEnter(e, ['arrowPrev'])}
             onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
           >
+            <AddDeleteStop
+              editingStop={editingStop}
+              animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
+              hovered={arrowPrev}
+              color={ICON_COLOR}
+            />
             <AnglePreview
               editingAngle={editingAngle}
               editingStop={editingStop}
@@ -262,9 +275,8 @@ class GradientCard extends Component {
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
               iconAnimationDuration={SLIDER_ANIMATION_DURATION}
               hovered={arrowPrev}
-            >
-              <AngleText>{actualAngle}°</AngleText>
-            </AnglePreview>
+              color={ICON_COLOR}
+            />
           </AngleContainer>
 
           <SwatchSliderContainer
@@ -288,7 +300,7 @@ class GradientCard extends Component {
               editingStop={editingStop}
               animationDuration={SLIDER_ANIMATION_DURATION}
               hovered={addColor}
-              color='#AFAFAF'
+              color={ICON_COLOR}
             />
           </AddColorContainer>
         </InfoContainer>
@@ -320,5 +332,6 @@ export default connect(mapStateToProps, {
   editStop,
   updateEditingAngle,
   updateSwatchDimensions,
-  updateActiveColorPicker
+  updateActiveColorPicker,
+  addColorStop
 })(GradientCard)
