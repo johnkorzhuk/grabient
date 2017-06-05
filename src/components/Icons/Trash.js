@@ -2,37 +2,53 @@ import React, { PureComponent } from 'react'
 import TrashIconO from 'react-icons/lib/fa/trash-o'
 import TrashIcon from 'react-icons/lib/fa/trash'
 import { Animate } from 'react-move'
+import styled from 'styled-components'
+
+const Container = styled.div`
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+`
 
 class Trash extends PureComponent {
   shouldComponentUpdate (nextProps) {
-    return this.props.active !== nextProps.active
+    return this.props.inverted !== nextProps.inverted
   }
 
   render () {
-    const { color, active, animationDuration } = this.props
+    const { color, inverted, animationDuration, deleteActiveStop } = this.props
 
     return (
       <Animate
         duration={animationDuration}
         data={{
-          activeOpacity: active ? 1 : 0,
-          inactiveOpacity: active ? 0 : 1
+          default: inverted ? 1 : 0,
+          inverted: inverted ? 0 : 1
         }}
       >
         {data => {
           return (
-            <div>
+            <Container onMouseUp={() => deleteActiveStop()}>
               <TrashIcon
                 size={20}
                 color={color}
-                fillOpacity={data.activeOpacity}
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  opacity: data.default
+                }}
               />
               <TrashIconO
                 size={20}
                 color={color}
-                fillOpacity={data.inactiveOpacity}
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  opacity: data.inverted
+                }}
               />
-            </div>
+            </Container>
           )
         }}
       </Animate>

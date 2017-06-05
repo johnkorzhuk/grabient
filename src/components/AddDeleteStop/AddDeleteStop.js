@@ -11,13 +11,22 @@ const AddStopContainer = styled.div`
 
 const AddDeleteStop = ({
   renderDelete,
+  renderDeleteInverted,
+  deleteActiveStop,
   editingStop,
   animationDuration,
   hovered,
   color
 }) => {
   if (renderDelete) {
-    return <Trash color={color} />
+    return (
+      <Trash
+        deleteActiveStop={deleteActiveStop}
+        color={color}
+        inverted={renderDeleteInverted}
+        animationDuration={animationDuration}
+      />
+    )
   } else if (editingStop) {
     return (
       <AddStopContainer>

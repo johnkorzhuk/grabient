@@ -11,6 +11,7 @@ import {
   deleteActiveStop
 } from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
+import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
 import { GradientDisplay } from './components/index'
@@ -78,6 +79,10 @@ class App extends Component {
         this.props.updateDraggedStopPos(null)
       }
     }
+
+    if (this.props.renderDelete) {
+      this.props.toggleTrashIcon()
+    }
   }
 
   handleNoop (e) {
@@ -120,7 +125,8 @@ export default connect(
     editingStop: state.stops.editing !== null,
     updating: state.stops.updating.stop !== null,
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
-    gradients: getGradients(state)
+    gradients: getGradients(state),
+    renderDelete: state.icons.deleteStop.render
   }),
   {
     toggleEditing,
@@ -129,6 +135,7 @@ export default connect(
     updateUpdatingStop,
     updateActiveColorPicker,
     updateActiveStop,
-    deleteActiveStop
+    deleteActiveStop,
+    toggleTrashIcon
   }
 )(App)

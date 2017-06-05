@@ -10,11 +10,12 @@ import {
 import {
   editStop,
   updateActiveColorPicker,
-  addColorStop
+  addColorStop,
+  deleteActiveStop
 } from './../../store/stops/actions'
+import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
-import { updateSwatchDimensions } from './../../store/dimensions/actions'
 
 import {
   AnglePreview,
@@ -232,7 +233,10 @@ class GradientCard extends Component {
       stopData,
       pickingColorStop,
       expanded,
-      editingColor
+      editingColor,
+      renderDelete,
+      renderDeleteInverted,
+      deleteActiveStop
     } = this.props
 
     const editingAngle = id === editingAngleData.id
@@ -263,10 +267,13 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
           >
             <AddDeleteStop
+              deleteActiveStop={deleteActiveStop}
               editingStop={editingStop}
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
               hovered={arrowPrev}
               color={ICON_COLOR}
+              renderDelete={renderDelete}
+              renderDeleteInverted={renderDeleteInverted}
             />
             <AnglePreview
               editingAngle={editingAngle}
@@ -311,19 +318,25 @@ class GradientCard extends Component {
 
 const mapStateToProps = (state, props) => {
   const gradient = getGradientById(props.id)(state)
+  // eslint-disable-next-line eqeqeq
+  const editingStop = props.id == state.stops.editing
+  const stopData = getStopsById(state, props)
 
   return {
-    stopData: getStopsById(state, props),
+    stopData,
     draggingItemMousePos: state.stops.draggingItemMousePos,
     // eslint-disable-next-line eqeqeq
     editingAngleData: state.gradients.editingAngle,
-    // eslint-disable-next-line eqeqeq
-    editingStop: props.id == state.stops.editing,
+    editingStop,
     // eslint-disable-next-line eqeqeq
     angle: gradient.angle,
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     editingColor: props.id === state.stops.editingColor,
-    expanded: state.gradients.expanded === props.id
+    expanded: state.gradients.expanded === props.id,
+    renderDelete: state.icons.deleteStop.render &&
+      editingStop &&
+      Object.keys(stopData).length > 2,
+    renderDeleteInverted: state.icons.deleteStop.inverted
   }
 }
 
@@ -333,5 +346,6 @@ export default connect(mapStateToProps, {
   updateEditingAngle,
   updateSwatchDimensions,
   updateActiveColorPicker,
-  addColorStop
+  addColorStop,
+  deleteActiveStop
 })(GradientCard)

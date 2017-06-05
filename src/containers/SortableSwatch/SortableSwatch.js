@@ -17,6 +17,7 @@ import {
   updateActiveColorPicker,
   updateActiveStop
 } from './../../store/stops/actions'
+import { toggleTrashIcon } from './../../store/icons/actions'
 import {
   getStopsById,
   getStopData,
@@ -212,6 +213,7 @@ class Swatch extends Component {
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mouseup' || e.type === 'touchend') {
       this.props.toggleEditing(null)
+      this.props.toggleTrashIcon()
 
       if (!sorting && !editing) {
         this.props.updateActiveColorPicker(stop, pickingColorStop)
@@ -307,5 +309,6 @@ export default connect(mapStateToProps, {
   updateUpdatingStop,
   toggleEditing,
   updateActiveColorPicker,
-  updateActiveStop
+  updateActiveStop,
+  toggleTrashIcon
 })(Swatch)
