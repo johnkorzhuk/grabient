@@ -81,7 +81,11 @@ class App extends Component {
     }
 
     if (this.props.renderDelete) {
-      this.props.toggleTrashIcon()
+      if (this.props.renderDeleteInverted) {
+        this.props.deleteActiveStop()
+      } else {
+        this.props.toggleTrashIcon()
+      }
     }
   }
 
@@ -126,7 +130,8 @@ export default connect(
     updating: state.stops.updating.stop !== null,
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     gradients: getGradients(state),
-    renderDelete: state.icons.deleteStop.render
+    renderDelete: state.icons.deleteStop.render,
+    renderDeleteInverted: state.icons.deleteStop.inverted
   }),
   {
     toggleEditing,

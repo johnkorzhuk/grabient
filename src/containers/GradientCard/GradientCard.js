@@ -10,8 +10,7 @@ import {
 import {
   editStop,
   updateActiveColorPicker,
-  addColorStop,
-  deleteActiveStop
+  addColorStop
 } from './../../store/stops/actions'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { getGradientById } from './../../store/gradients/selectors'
@@ -235,8 +234,7 @@ class GradientCard extends Component {
       expanded,
       editingColor,
       renderDelete,
-      renderDeleteInverted,
-      deleteActiveStop
+      renderDeleteInverted
     } = this.props
 
     const editingAngle = id === editingAngleData.id
@@ -267,7 +265,6 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
           >
             <AddDeleteStop
-              deleteActiveStop={deleteActiveStop}
               editingStop={editingStop}
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
               hovered={arrowPrev}
@@ -346,6 +343,5 @@ export default connect(mapStateToProps, {
   updateEditingAngle,
   updateSwatchDimensions,
   updateActiveColorPicker,
-  addColorStop,
-  deleteActiveStop
+  addColorStop
 })(GradientCard)

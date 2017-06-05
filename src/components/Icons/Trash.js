@@ -29,7 +29,7 @@ class Trash extends PureComponent {
       >
         {data => {
           return (
-            <Container onMouseUp={() => deleteActiveStop()}>
+            <Container>
               <TrashIcon
                 size={20}
                 color={color}

@@ -12,7 +12,6 @@ const AddStopContainer = styled.div`
 const AddDeleteStop = ({
   renderDelete,
   renderDeleteInverted,
-  deleteActiveStop,
   editingStop,
   animationDuration,
   hovered,
@@ -21,7 +20,6 @@ const AddDeleteStop = ({
   if (renderDelete) {
     return (
       <Trash
-        deleteActiveStop={deleteActiveStop}
         color={color}
         inverted={renderDeleteInverted}
         animationDuration={animationDuration}

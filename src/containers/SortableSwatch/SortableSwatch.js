@@ -224,6 +224,7 @@ class Swatch extends Component {
         this.props.updateDraggedStopPos(null)
       }
     } else if (e.type === 'mousedown' || e.type === 'touchstart') {
+      e.preventDefault()
       this.props.editStopColor(this.props.id)
       this.props.updateActiveStop(stop)
 
