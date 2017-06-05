@@ -5,12 +5,19 @@ class AddColor extends PureComponent {
   shouldComponentUpdate (nextProps) {
     return (
       this.props.hovered !== nextProps.hovered ||
-      this.props.editingStop !== nextProps.editingStop
+      this.props.editingStop !== nextProps.editingStop ||
+      this.props.pickingColorStop !== nextProps.pickingColorStop
     )
   }
 
   render () {
-    const { hovered, color, editingStop, animationDuration } = this.props
+    const {
+      hovered,
+      color,
+      editingStop,
+      pickingColorStop,
+      animationDuration
+    } = this.props
 
     return (
       <Animate
@@ -18,7 +25,7 @@ class AddColor extends PureComponent {
         data={{
           exitOpacity: hovered ? 1 : 0,
           addOpacity: hovered ? 0 : 1,
-          rotation: editingStop ? 45 : 0
+          rotation: editingStop || pickingColorStop ? 45 : 0
         }}
       >
         {data => {

@@ -168,11 +168,20 @@ class GradientCard extends Component {
   }
 
   _handleAddCancelColorStop = () => {
-    const { editingStop, editStop, updateActiveColorPicker, id } = this.props
+    const {
+      editingStop,
+      editStop,
+      updateActiveColorPicker,
+      id,
+      pickingColorStop
+    } = this.props
 
     if (editingStop) {
-      editStop(null)
-      updateActiveColorPicker(null)
+      if (pickingColorStop) {
+        updateActiveColorPicker(null)
+      } else {
+        editStop(null)
+      }
     } else {
       editStop(id)
     }
@@ -275,6 +284,7 @@ class GradientCard extends Component {
             onClick={this._handleAddCancelColorStop}
           >
             <AddColor
+              pickingColorStop={pickingColorStop}
               editingStop={editingStop}
               animationDuration={SLIDER_ANIMATION_DURATION}
               hovered={addColor}
