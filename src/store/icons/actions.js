@@ -28,5 +28,5 @@ export const copyCSS = (angle, stopData) => dispatch => {
     return dispatch({
       type: TOGGLE_CSS_COPIED
     })
-  }, 2000)
+  }, 1000)
 }

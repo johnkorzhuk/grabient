@@ -1,10 +1,15 @@
-import { TOGGLE_TRASH_ICON, INVERT_TRASH_ICON } from './actions'
+import {
+  TOGGLE_TRASH_ICON,
+  INVERT_TRASH_ICON,
+  TOGGLE_CSS_COPIED
+} from './actions'
 
 const INITAL_STATE = {
   deleteStop: {
     render: false,
     inverted: false
-  }
+  },
+  copied: false
 }
 
 export default (state = INITAL_STATE, action) => {
@@ -26,6 +31,12 @@ export default (state = INITAL_STATE, action) => {
           ...state.deleteStop,
           inverted: !state.deleteStop.inverted
         }
+      }
+
+    case TOGGLE_CSS_COPIED:
+      return {
+        ...state,
+        copied: !state.copied
       }
 
     default:
