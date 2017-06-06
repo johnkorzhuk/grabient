@@ -125,6 +125,12 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
 
 export const updateActiveColorPicker = (stop, currActive) => dispatch => {
   if (stop === currActive || stop === null) {
+    // dispatch({
+    //   type: EDIT_STOP_COLOR,
+    //   payload: {
+    //     id: null
+    //   }
+    // })
     return dispatch({
       type: TOGGLE_ACTIVE_COLOR_PICKER,
       payload: {

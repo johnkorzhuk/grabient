@@ -8,7 +8,8 @@ import {
   updateUpdatingStop,
   updateActiveColorPicker,
   updateActiveStop,
-  deleteActiveStop
+  deleteActiveStop,
+  editStopColor
 } from './store/stops/actions'
 import { toggleEditing } from './store/gradients/actions'
 import { toggleTrashIcon } from './store/icons/actions'
@@ -46,12 +47,14 @@ class App extends Component {
       editStop,
       updateActiveStop,
       deleteActiveStop,
-      pickingColorStop
+      pickingColorStop,
+      editStopColor
     } = this.props
 
     if ((e.type === 'keydown' && e.which === 27) || e.type === 'click') {
       this.handleNoop(e)
       updateActiveStop(null)
+      editStopColor(null)
       if (pickingColorStop) {
         updateActiveColorPicker(null)
       } else {
@@ -141,6 +144,7 @@ export default connect(
     updateActiveColorPicker,
     updateActiveStop,
     deleteActiveStop,
-    toggleTrashIcon
+    toggleTrashIcon,
+    editStopColor
   }
 )(App)

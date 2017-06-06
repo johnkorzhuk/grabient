@@ -56,6 +56,7 @@ class GradientContainer extends PureComponent {
       this.props.hovered !== nextProps.hovered ||
       this.props.editingAngle !== nextProps.editingAngle ||
       this.props.editingStop !== nextProps.editingStop ||
+      this.props.editingColor !== nextProps.editingColor ||
       this.props.editingAngleVal !== nextProps.editingAngleVal ||
       this.props.actualAngle !== nextProps.actualAngle ||
       this.props.pickingColorStop !== nextProps.pickingColorStop ||
@@ -74,19 +75,12 @@ class GradientContainer extends PureComponent {
       onMouseLeave,
       editingAngle,
       editingStop,
+      editingColor,
       stopData,
       pickingColorStop,
       onCopyCSS
     } = this.props
     const editing = editingAngle || editingStop
-    // <CopyCSSButon
-    //   title='Copy CSS'
-    //   onClick={() => generateLinearGradient(actualAngle, stopData)}
-    //   onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
-    //   onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
-    // >
-    //   <Copy color={'white'} />
-    // </CopyCSSButon>
 
     return (
       <Container>
@@ -108,6 +102,7 @@ class GradientContainer extends PureComponent {
           }}
         >
           <Gradient
+            editingColor={editingColor}
             stopData={stopData}
             angle={actualAngle}
             transitionDuration={gradientAnimationDuration}
@@ -116,6 +111,7 @@ class GradientContainer extends PureComponent {
 
         <Blurred>
           <Gradient
+            editingColor={editingColor}
             stopData={stopData}
             hasOpacity
             editing={editing}

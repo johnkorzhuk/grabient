@@ -17,8 +17,8 @@ function generateColorStopsFromData (data) {
 function generateLinearGradient (
   angle,
   stopData,
-  prefixed = true,
-  fallback = true
+  prefixed = false,
+  fallback = false
 ) {
   return generateLinProperties(
     prefix(generateLinValue(angle, generateLinData(stopData)), prefixed),

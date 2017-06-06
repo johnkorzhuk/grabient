@@ -24,7 +24,7 @@ a {
 }
 
 .sortable-helper {
-  box-shadow: 1px 2px 7px 1px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
 }
 
 .chrome-picker {

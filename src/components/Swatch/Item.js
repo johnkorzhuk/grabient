@@ -92,7 +92,7 @@ class SwatchItem extends Component {
 
     // const shouldRenderPopover = true
     const shouldRenderPopover =
-      hovered && !shouldRenderColorPicker && !sorting && !editing && !active
+      hovered && !shouldRenderColorPicker && !sorting && !editing
 
     // const shouldRenderPopover = true
     const mixed = mix(0.5, color, '#AFAFAF')

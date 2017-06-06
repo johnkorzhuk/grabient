@@ -10,7 +10,8 @@ import {
 import {
   editStop,
   updateActiveColorPicker,
-  addColorStop
+  addColorStop,
+  editStopColor
 } from './../../store/stops/actions'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { copyCSS } from './../../store/icons/actions'
@@ -176,9 +177,11 @@ class GradientCard extends Component {
       editStop,
       updateActiveColorPicker,
       id,
-      pickingColorStop
+      pickingColorStop,
+      editStopColor
     } = this.props
     if (pickingColorStop) {
+      editStopColor(null)
       return updateActiveColorPicker(null)
     }
 
@@ -257,6 +260,7 @@ class GradientCard extends Component {
           hovered={main}
           editingAngle={editingAngle}
           editingStop={editingStop}
+          editingColor={editingColor}
           pickingColorStop={pickingColorStop}
         />
 
@@ -348,6 +352,7 @@ const mapStateToProps = (state, props) => {
 export default connect(mapStateToProps, {
   toggleEditing,
   editStop,
+  editStopColor,
   updateEditingAngle,
   updateSwatchDimensions,
   updateActiveColorPicker,

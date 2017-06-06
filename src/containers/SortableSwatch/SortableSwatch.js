@@ -214,9 +214,11 @@ class Swatch extends Component {
     if (e.type === 'mouseup' || e.type === 'touchend') {
       this.props.toggleEditing(null)
       this.props.toggleTrashIcon()
-
-      if (!sorting && !editing) {
-        this.props.updateActiveColorPicker(stop, pickingColorStop)
+      if (!sorting) {
+        this.props.editStopColor(this.props.id)
+        if (!editing) {
+          this.props.updateActiveColorPicker(stop, pickingColorStop)
+        }
       }
 
       if (e.type === 'touchend') {
@@ -225,7 +227,6 @@ class Swatch extends Component {
       }
     } else if (e.type === 'mousedown' || e.type === 'touchstart') {
       e.preventDefault()
-      this.props.editStopColor(this.props.id)
       this.props.updateActiveStop(stop)
 
       if (editing) {
@@ -272,6 +273,7 @@ class Swatch extends Component {
         onSortItemClick={this._handleSortItemClick}
         editing={editing}
         pickingColorStop={pickingColorStop}
+        helperClass='sortable-helper'
         stops={stops}
         updatingValue={updatingValue}
         {...props}

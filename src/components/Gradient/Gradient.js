@@ -10,7 +10,6 @@ const Container = styled.div`
   width: 100%;
   border-radius: 15px;
 `
-// background-image: linear-gradient(90deg, #000000 0%, #ffffff 100%);
 
 class Gradient extends PureComponent {
   shouldComponentUpdate (nextProps) {
@@ -18,6 +17,7 @@ class Gradient extends PureComponent {
       this.props.stopData !== nextProps.stopData ||
       this.props.angle !== nextProps.angle ||
       this.props.hovered !== nextProps.hovered ||
+      this.props.editingColor !== nextProps.editingColor ||
       this.props.editing !== nextProps.editing
     )
   }
@@ -30,6 +30,7 @@ class Gradient extends PureComponent {
       opacity,
       hasOpacity,
       hovered,
+      editingColor,
       editing
     } = this.props
 
@@ -37,7 +38,11 @@ class Gradient extends PureComponent {
     if (hasOpacity) newData.opacity = hovered || editing ? opacity : 0
 
     return (
-      <Animate data={newData} duration={transitionDuration}>
+      <Animate
+        data={newData}
+        duration={transitionDuration}
+        ignore={editingColor ? Object.keys(newData) : []}
+      >
         {data => {
           return (
             <Container
