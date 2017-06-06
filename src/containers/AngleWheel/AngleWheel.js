@@ -205,7 +205,8 @@ class AngleWheel extends Component {
     this.toggleEditing(null)
   }
 
-  _handleMouseDown = () => {
+  _handleMouseDown = e => {
+    e.preventDefault()
     const { cursorUpdatingAngle } = this.state
     if (cursorUpdatingAngle) {
       this.setState({

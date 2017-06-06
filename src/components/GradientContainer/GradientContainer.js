@@ -3,6 +3,7 @@ import styled from 'styled-components'
 
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'
+import { Button } from './../Common/index'
 
 const GRADIENT_HEIGHT = 300
 
@@ -14,6 +15,9 @@ const Container = styled.div`
   flex-direction: column;
   align-items: center;
   z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 `
 
 const NoBlur = styled.div`
@@ -29,6 +33,23 @@ const Blurred = styled.div`
   width: 98%;
   border-radius: 15px;
   margin-top: -${GRADIENT_HEIGHT}px;
+`
+
+const CopyCSSButon = Button.extend`
+  z-index: 20;
+  position: absolute;
+`
+
+const CopyCSSText = styled.span`
+  color: white;
+  font-size: 1.8rem;
+  text-transform: uppercase;
+  text-shadow: 0 2px 3px rgba(0,0,0,0.25);
+  transition: text-shadow 100ms linear;
+
+  &:hover {
+    text-shadow: 0 2px 3px rgba(0,0,0,0.35);
+  }
 `
 
 class GradientContainer extends PureComponent {
@@ -64,6 +85,14 @@ class GradientContainer extends PureComponent {
 
     return (
       <Container>
+        {hovered &&
+          <CopyCSSButon
+            onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
+            onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
+          >
+            <CopyCSSText>Copy CSS</CopyCSSText>
+          </CopyCSSButon>}
+
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, ['main'])}
           onMouseLeave={e => onMouseLeave(e, ['main'])}
