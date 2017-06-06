@@ -2,7 +2,7 @@ import React, { PureComponent } from 'react'
 import styled from 'styled-components'
 
 import Gradient from './../Gradient/Gradient'
-import { AngleWheel, ExpandContract } from './../../containers/index'
+import { AngleWheel } from './../../containers/index'
 
 const GRADIENT_HEIGHT = 300
 
@@ -64,13 +64,6 @@ class GradientContainer extends PureComponent {
 
     return (
       <Container>
-        {hovered &&
-          <ExpandContract
-            id={id}
-            onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
-            onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
-          />}
-
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, ['main'])}
           onMouseLeave={e => onMouseLeave(e, ['main'])}

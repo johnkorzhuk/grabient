@@ -168,12 +168,16 @@ export const deleteActiveStop = () => (dispatch, getState) => {
   if (Object.keys(newValues).length > 2) {
     delete newValues[updating.active]
 
-    return dispatch({
+    dispatch({
       type: DELETE_ACTIVE_STOP,
       payload: {
         editing,
         newValues
       }
+    })
+
+    return dispatch({
+      type: TOGGLE_TRASH_ICON
     })
   }
 }
