@@ -15,11 +15,13 @@ const AddDeleteStop = ({
   editingStop,
   animationDuration,
   hovered,
-  color
+  color,
+  title
 }) => {
   if (renderDelete) {
     return (
       <Trash
+        title={title}
         color={color}
         inverted={renderDeleteInverted}
         animationDuration={animationDuration}
@@ -27,7 +29,7 @@ const AddDeleteStop = ({
     )
   } else if (editingStop) {
     return (
-      <AddStopContainer>
+      <AddStopContainer title={title}>
         <AddColor color={color} hovered={hovered} />
       </AddStopContainer>
     )

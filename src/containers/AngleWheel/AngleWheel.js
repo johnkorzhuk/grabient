@@ -307,7 +307,7 @@ class AngleWheel extends Component {
 
               </Container>
 
-              <CloseButton onClick={this._handleClose}>
+              <CloseButton onClick={this._handleClose} title='Exit'>
                 <Close color='white' size={15} />
               </CloseButton>
 

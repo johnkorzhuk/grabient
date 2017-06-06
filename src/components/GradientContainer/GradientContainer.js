@@ -4,6 +4,7 @@ import styled from 'styled-components'
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'
 import { Button } from './../Common/index'
+import { Copy } from './../Icons/index'
 
 const GRADIENT_HEIGHT = 300
 
@@ -15,9 +16,6 @@ const Container = styled.div`
   flex-direction: column;
   align-items: center;
   z-index: 10;
-  display: flex;
-  justify-content: center;
-  align-items: center;
 `
 
 const NoBlur = styled.div`
@@ -38,17 +36,15 @@ const Blurred = styled.div`
 const CopyCSSButon = Button.extend`
   z-index: 20;
   position: absolute;
-`
-
-const CopyCSSText = styled.span`
-  color: white;
-  font-size: 1.8rem;
-  text-transform: uppercase;
-  text-shadow: 0 2px 3px rgba(0,0,0,0.25);
-  transition: text-shadow 100ms linear;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0,0,0,0.15);
+  padding: 3px;
+  border-radius: 3px;
+  transition: background-color 100ms linear;
 
   &:hover {
-    text-shadow: 0 2px 3px rgba(0,0,0,0.35);
+    background-color: rgba(0,0,0,0.25);
   }
 `
 
@@ -79,18 +75,29 @@ class GradientContainer extends PureComponent {
       editingAngle,
       editingStop,
       stopData,
-      pickingColorStop
+      pickingColorStop,
+      onCopyCSS
     } = this.props
     const editing = editingAngle || editingStop
+    // <CopyCSSButon
+    //   title='Copy CSS'
+    //   onClick={() => generateLinearGradient(actualAngle, stopData)}
+    //   onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
+    //   onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
+    // >
+    //   <Copy color={'white'} />
+    // </CopyCSSButon>
 
     return (
       <Container>
         {hovered &&
           <CopyCSSButon
+            title='Copy CSS'
+            onClick={() => onCopyCSS(actualAngle, stopData)}
             onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
             onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
           >
-            <CopyCSSText>Copy CSS</CopyCSSText>
+            <Copy color={'white'} />
           </CopyCSSButon>}
 
         <NoBlur

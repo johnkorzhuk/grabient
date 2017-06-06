@@ -13,6 +13,7 @@ import {
   addColorStop
 } from './../../store/stops/actions'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
+import { copyCSS } from './../../store/icons/actions'
 import { getGradientById } from './../../store/gradients/selectors'
 import { getStopsById } from './../../store/stops/selectors'
 
@@ -102,7 +103,7 @@ const SwatchSliderContainer = styled.div`
   margin-left: 4rem;
 `
 
-const AddColorContainer = Button.extend`
+const AddColorButton = Button.extend`
   position: absolute;
   right: 0;
   height: 100%;
@@ -234,7 +235,8 @@ class GradientCard extends Component {
       expanded,
       editingColor,
       renderDelete,
-      renderDeleteInverted
+      renderDeleteInverted,
+      copyCSS
     } = this.props
 
     const editingAngle = id === editingAngleData.id
@@ -244,6 +246,7 @@ class GradientCard extends Component {
     return (
       <OrderedContainer index={index} expanded={expanded} editing={editing}>
         <GradientContainer
+          onCopyCSS={copyCSS}
           stopData={stopData}
           actualAngle={actualAngle}
           onMouseEnter={this._handleMouseEnter}
@@ -258,8 +261,12 @@ class GradientCard extends Component {
         />
 
         <InfoContainer>
-
           <AngleContainer
+            title={
+              editingStop
+                ? renderDelete ? 'Delete' : 'Add'
+                : editingAngle ? 'Exit' : 'Edit Angle'
+            }
             onClick={this._handleLeftIconClick}
             onMouseEnter={e => this._handleMouseEnter(e, ['arrowPrev'])}
             onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
@@ -294,7 +301,8 @@ class GradientCard extends Component {
             />
           </SwatchSliderContainer>
 
-          <AddColorContainer
+          <AddColorButton
+            title={editing ? 'Exit' : 'Edit'}
             onMouseEnter={e => this._handleMouseEnter(e, ['addColor'])}
             onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
             onClick={this._handleAddCancelColorStop}
@@ -306,7 +314,7 @@ class GradientCard extends Component {
               hovered={addColor}
               color={ICON_COLOR}
             />
-          </AddColorContainer>
+          </AddColorButton>
         </InfoContainer>
       </OrderedContainer>
     )
@@ -343,5 +351,6 @@ export default connect(mapStateToProps, {
   updateEditingAngle,
   updateSwatchDimensions,
   updateActiveColorPicker,
-  addColorStop
+  addColorStop,
+  copyCSS
 })(GradientCard)
