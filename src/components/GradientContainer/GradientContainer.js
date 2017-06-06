@@ -80,11 +80,12 @@ class GradientContainer extends PureComponent {
       pickingColorStop,
       onCopyCSS
     } = this.props
-    const editing = editingAngle || editingStop
+    const editing = editingAngle || editingStop || editingColor
+    const renderCopyCssButton = hovered && !editingAngle
 
     return (
       <Container>
-        {hovered &&
+        {renderCopyCssButton &&
           <CopyCSSButon
             title='Copy CSS'
             onClick={() => onCopyCSS(actualAngle, stopData)}
@@ -123,6 +124,8 @@ class GradientContainer extends PureComponent {
         </Blurred>
 
         <AngleWheel
+          onMouseEnter={e => onMouseEnter(e, ['main'])}
+          onMouseLeave={e => onMouseLeave(e, ['main'])}
           angle={actualAngle}
           id={id}
           transitionDuration={wheelAnimationDuration}
