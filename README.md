@@ -1,12 +1,8 @@
-# Features/todos
-  - Customize their colors
-  - Output css
-  - Add option for prefix
+# Grabient
 
-# important
+Generate UI to generate linear gradient
 
-
-# ideas
-
-
-This project was bootstrapped with [Create Inferno App](https://github.com/infernojs/create-inferno-app).
+## Installation
+  1. Clone the repo
+  2. run `npm install or yarn install`
+  3. run `npm run start or yarn start` for a developement `npm run build or yarn build` for a production build
