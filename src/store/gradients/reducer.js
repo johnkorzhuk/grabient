@@ -41,7 +41,9 @@ const INITIAL_STATE = {
   editingAngle: {
     id: null,
     angle: null
-  }
+  },
+  // 'hex', 'rgb', 'hsl'
+  colors: 'hex'
 }
 
 export default (state = INITIAL_STATE, action) => {

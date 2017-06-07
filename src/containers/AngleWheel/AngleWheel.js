@@ -165,7 +165,7 @@ class AngleWheel extends Component {
   }
 
   _handleInputChange = e => {
-    let angle = parseInt(e.target.value.replace(/[^0-9.]/g, ''), 10)
+    let angle = e.target.value
     if (!isNaN(angle)) {
       if (angle > 359) {
         angle = 0

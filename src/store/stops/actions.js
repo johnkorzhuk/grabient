@@ -1,4 +1,4 @@
-import { shiftConflictedStops } from './utils'
+import { shiftConflictedStops, shiftStops } from './utils'
 import { INVERT_TRASH_ICON, TOGGLE_TRASH_ICON } from './../icons/actions'
 
 const UPDATING_STOP_THRESHOLD = 5
@@ -190,20 +190,15 @@ export const deleteActiveStop = () => (dispatch, getState) => {
 
 export const addColorStop = id => (dispatch, getState) => {
   const { stops: { values, editing } } = getState()
-  let newValues = { ...values[editing] }
-  for (let i = 0; i <= 100; i += 2) {
-    if (
-      typeof newValues[i] === 'undefined' &&
-      Object.keys(newValues).length < 7
-    ) {
-      newValues[i] = '#ffffff'
-      return dispatch({
-        type: ADD_COLOR_STOP,
-        payload: {
-          editing,
-          newValues
-        }
-      })
-    }
+  const newValues = shiftStops(values[editing])
+
+  if (Object.keys(newValues).length < 7) {
+    return dispatch({
+      type: ADD_COLOR_STOP,
+      payload: {
+        editing,
+        newValues
+      }
+    })
   }
 }

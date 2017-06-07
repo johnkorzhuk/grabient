@@ -1,4 +1,4 @@
-export { shiftConflictedStops }
+export { shiftConflictedStops, shiftStops }
 
 function shiftConflictedStops (stops, stopConflict, tryUpFirst) {
   let newStops = { ...stops }
@@ -48,5 +48,21 @@ function shiftConflictedStops (stops, stopConflict, tryUpFirst) {
 
   tryUpFirst ? adjustUp() : adjustDown()
 
+  return newStops
+}
+
+function shiftStops (stops) {
+  const stopKeys = Object.keys(stops)
+
+  let newStops = stopKeys
+    .map(stop => {
+      stop = parseInt(stop, 10)
+      return Math.floor(stop - stop / stopKeys.length)
+    })
+    .reduce((aggr, curr, index) => {
+      aggr[curr] = stops[stopKeys[index]]
+      return aggr
+    }, {})
+  newStops[100] = '#ffffff'
   return newStops
 }
