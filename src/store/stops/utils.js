@@ -64,5 +64,6 @@ function shiftStops (stops) {
       return aggr
     }, {})
   newStops[100] = '#ffffff'
+
   return newStops
 }

@@ -49,7 +49,7 @@ const Container = styled.div`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 2% 15px;
+  padding: 0 2% 30px;
   position: relative;
   transition: width 400ms linear;
 
