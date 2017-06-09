@@ -1,7 +1,6 @@
 import React, { Component } from 'react'
 import { connect } from 'react-redux'
 import styled from 'styled-components'
-import Waypoint from 'react-waypoint'
 
 import {
   editStop,
@@ -17,8 +16,6 @@ import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
 import { GradientDisplay, GradientList } from './components/index'
-
-const LIST_ANIMATION_DURATION = 500
 
 const Overlay = styled.div`
   position: absolute;
@@ -111,24 +108,15 @@ class App extends Component {
       editingAngle,
       editingStop,
       pickingColorStop,
-      gradients: allGradients,
-      gradientsToRender
+      gradients: allGradients
     } = this.props
     const editing = editingAngle || editingStop || pickingColorStop
     const all = Object.values(allGradients)
-    const gradients = all.slice(0, gradientsToRender)
 
     return (
       <GradientDisplay>
-        <GradientList
-          gradients={gradients}
-          animationDuration={LIST_ANIMATION_DURATION}
-        />
+        <GradientList gradients={all} />
         {editing && <Overlay onClick={this._handleCancelEdits} />}
-        <Waypoint
-          onEnter={() =>
-            this._handleWayPointEnter(gradients.length !== all.length)}
-        />
       </GradientDisplay>
     )
   }
@@ -142,8 +130,7 @@ export default connect(
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     gradients: getGradients(state),
     renderDelete: state.icons.deleteStop.render,
-    renderDeleteInverted: state.icons.deleteStop.inverted,
-    gradientsToRender: state.gradients.gradientsToRender
+    renderDeleteInverted: state.icons.deleteStop.inverted
   }),
   {
     toggleEditing,
@@ -154,7 +141,6 @@ export default connect(
     updateActiveStop,
     deleteActiveStop,
     toggleTrashIcon,
-    editStopColor,
-    renderMoreGradients
+    editStopColor
   }
 )(App)

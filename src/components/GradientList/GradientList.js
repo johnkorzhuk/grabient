@@ -1,6 +1,5 @@
-import React, { Component } from 'react'
+import React from 'react'
 import styled from 'styled-components'
-import { Transition } from 'react-move'
 
 import { GradientCard } from './../../containers/index'
 
@@ -14,66 +13,22 @@ const Container = styled.ul`
   }
 `
 
-class GradientList extends Component {
-  state = {
-    loaded: false
-  }
-
-  componentDidMount () {
-    this.setState({
-      loaded: true
-    })
-  }
-
-  shouldComponentUpdate (nextProps, nextState) {
-    return (
-      this.props.gradients !== nextProps.gradients ||
-      this.state.loaded !== nextState.loaded
-    )
-  }
-
-  render () {
-    const { gradients, animationDuration } = this.props
-    const { loaded } = this.state
-
-    return (
-      <Transition
-        data={gradients}
-        getKey={item => item.id}
-        update={item => ({
-          translate: 0,
-          opacity: 1
-        })}
-        enter={item => ({
-          translate: 250,
-          opacity: 0
-        })}
-        stagger={loaded ? 100 : 0}
-        duration={animationDuration}
-        onRest={item => console.log(item)}
-      >
-        {data => (
-          <Container>
-            {data.map(({ data, key, state }, index) => {
-              return (
-                <GradientCard
-                  gradient={data}
-                  index={index}
-                  width='33.33%'
-                  id={key}
-                  key={key}
-                  style={{
-                    opacity: state.opacity,
-                    transform: `translateY(${state.translate}px)`
-                  }}
-                />
-              )
-            })}
-          </Container>
-        )}
-      </Transition>
-    )
-  }
+const GradientList = ({ gradients }) => {
+  return (
+    <Container>
+      {gradients.map((gradient, index) => {
+        return (
+          <GradientCard
+            gradient={gradient}
+            index={index}
+            width='33.33%'
+            id={gradient.id}
+            key={gradient.id}
+          />
+        )
+      })}
+    </Container>
+  )
 }
 
 export default GradientList
