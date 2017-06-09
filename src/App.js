@@ -92,6 +92,12 @@ class App extends Component {
     }
   }
 
+  _handleWayPointEnter = render => {
+    if (render) {
+      this.props.renderMoreGradients(6)
+    }
+  }
+
   handleNoop (e) {
     e.stopPropagation()
     e.preventDefault()
@@ -103,17 +109,20 @@ class App extends Component {
       editingStop,
       pickingColorStop,
       gradients: allGradients,
-      renderMoreGradients,
       gradientsToRender
     } = this.props
     const editing = editingAngle || editingStop || pickingColorStop
-    const gradients = Object.values(allGradients).slice(0, gradientsToRender)
+    const all = Object.values(allGradients)
+    const gradients = all.slice(0, gradientsToRender)
 
     return (
       <GradientDisplay>
         <GradientList gradients={gradients} />
         {editing && <Overlay onClick={this._handleCancelEdits} />}
-        <Waypoint onEnter={() => renderMoreGradients(6)} />
+        <Waypoint
+          onEnter={() =>
+            this._handleWayPointEnter(gradients.length !== all.length)}
+        />
       </GradientDisplay>
     )
   }
