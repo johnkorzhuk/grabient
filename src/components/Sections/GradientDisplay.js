@@ -5,13 +5,6 @@ import { Container } from './../Common/index'
 const GradientDisplayContainer = Container.extend`
   margin-top: 30px;
   margin-bottom: 30px;
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-
-  @media (min-width: 680px) {
-    justify-content: flex-start;
-  }
 
   @media (min-width: 820px) {
     margin-left: 40px;

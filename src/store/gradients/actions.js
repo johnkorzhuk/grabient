@@ -3,6 +3,7 @@ export const UPDATE_ACTIVE_ID = 'gradients/UPDATE_ACTIVE_ID'
 export const TOGGLE_EDITING = 'gradients/TOGGLE_EDITING'
 export const UPDATE_EDITING_ANGLE = 'gradients/UPDATE_EDITING_ANGLE'
 export const UPDATE_EXPANDED = 'gradients/UPDATE_EXPANDED'
+export const RENDER_MORE_GRADIENTS = 'gradients/RENDER_MORE_GRADIENTS'
 
 const checkIfNaN = num => {
   if (typeof num !== 'number') num = parseInt(num, 10)
@@ -56,6 +57,15 @@ export const updateExpanded = id => dispatch => {
     type: UPDATE_EXPANDED,
     payload: {
       id
+    }
+  })
+}
+
+export const renderMoreGradients = amount => dispatch => {
+  return dispatch({
+    type: RENDER_MORE_GRADIENTS,
+    payload: {
+      amount
     }
   })
 }

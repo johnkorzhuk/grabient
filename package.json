@@ -13,6 +13,7 @@
     "react-move": "^1.1.8",
     "react-redux": "^5.0.5",
     "react-sortable-hoc": "^0.6.3",
+    "react-waypoint": "^7.0.3",
     "redux": "^3.6.0",
     "redux-thunk": "^2.2.0",
     "reselect": "^3.0.0",

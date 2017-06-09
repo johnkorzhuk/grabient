@@ -43,7 +43,7 @@ const getOrder = (index, columns) => {
   return index
 }
 
-const Container = styled.div`
+const Container = styled.li`
   width: 85%;
   display: flex;
   flex-direction: column;
@@ -58,7 +58,7 @@ const Container = styled.div`
   }
 `
 
-const OrderedContainer = Container.extend`
+const GradientItem = Container.extend`
   order: ${({ index }) => index};
   z-index: ${({ editing }) => (editing ? 21 : 'auto')};
 
@@ -239,7 +239,8 @@ class GradientCard extends Component {
       editingColor,
       renderDelete,
       renderDeleteInverted,
-      copyCSS
+      copyCSS,
+      style
     } = this.props
 
     const editingAngle = id === editingAngleData.id
@@ -247,7 +248,12 @@ class GradientCard extends Component {
     const actualAngle = editingAngle ? editingAngleData.angle : angle
 
     return (
-      <OrderedContainer index={index} expanded={expanded} editing={editing}>
+      <GradientItem
+        index={index}
+        expanded={expanded}
+        editing={editing}
+        style={style}
+      >
         <GradientContainer
           onCopyCSS={copyCSS}
           stopData={stopData}
@@ -320,7 +326,7 @@ class GradientCard extends Component {
             />
           </AddColorButton>
         </InfoContainer>
-      </OrderedContainer>
+      </GradientItem>
     )
   }
 }
