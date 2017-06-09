@@ -33,7 +33,7 @@ class GradientList extends Component {
   }
 
   render () {
-    const { gradients } = this.props
+    const { gradients, animationDuration } = this.props
     const { loaded } = this.state
 
     return (
@@ -49,7 +49,8 @@ class GradientList extends Component {
           opacity: 0
         })}
         stagger={loaded ? 100 : 0}
-        duration={500}
+        duration={animationDuration}
+        onRest={item => console.log(item)}
       >
         {data => (
           <Container>

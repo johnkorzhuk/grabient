@@ -18,6 +18,8 @@ import { getGradients } from './store/gradients/selectors'
 
 import { GradientDisplay, GradientList } from './components/index'
 
+const LIST_ANIMATION_DURATION = 500
+
 const Overlay = styled.div`
   position: absolute;
   z-index: 20;
@@ -87,6 +89,7 @@ class App extends Component {
       if (this.props.renderDeleteInverted) {
         this.props.deleteActiveStop()
       } else {
+        e.stopPropagation()
         this.props.toggleTrashIcon()
       }
     }
@@ -94,7 +97,7 @@ class App extends Component {
 
   _handleWayPointEnter = render => {
     if (render) {
-      this.props.renderMoreGradients(6)
+      this.props.renderMoreGradients(3)
     }
   }
 
@@ -117,7 +120,10 @@ class App extends Component {
 
     return (
       <GradientDisplay>
-        <GradientList gradients={gradients} />
+        <GradientList
+          gradients={gradients}
+          animationDuration={LIST_ANIMATION_DURATION}
+        />
         {editing && <Overlay onClick={this._handleCancelEdits} />}
         <Waypoint
           onEnter={() =>
