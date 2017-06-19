@@ -48,6 +48,12 @@ const CopyCSSButon = Button.extend`
   }
 `
 
+const CopiedText = styled.span`
+  color: white;
+  padding-right: 3px;
+  padding-left: 3px;
+`
+
 class GradientContainer extends PureComponent {
   shouldComponentUpdate (nextProps, nextState) {
     return (
@@ -60,7 +66,8 @@ class GradientContainer extends PureComponent {
       this.props.editingAngleVal !== nextProps.editingAngleVal ||
       this.props.actualAngle !== nextProps.actualAngle ||
       this.props.pickingColorStop !== nextProps.pickingColorStop ||
-      this.props.expanded !== nextProps.expanded
+      this.props.expanded !== nextProps.expanded ||
+      this.props.renderCheckIcon !== nextProps.renderCheckIcon
     )
   }
 
@@ -78,7 +85,8 @@ class GradientContainer extends PureComponent {
       editingColor,
       stopData,
       pickingColorStop,
-      onCopyCSS
+      onCopyCSS,
+      renderCheckIcon
     } = this.props
     const editing = editingAngle || editingStop || editingColor
     const renderCopyCssButton = hovered && !editingAngle
@@ -92,7 +100,9 @@ class GradientContainer extends PureComponent {
             onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
             onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
           >
+            {renderCheckIcon && <CopiedText>copied</CopiedText>}
             <Copy color={'white'} />
+
           </CopyCSSButon>}
 
         <NoBlur

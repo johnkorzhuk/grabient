@@ -240,7 +240,8 @@ class GradientCard extends Component {
       renderDelete,
       renderDeleteInverted,
       copyCSS,
-      style
+      style,
+      renderCheckIcon
     } = this.props
 
     const editingAngle = id === editingAngleData.id
@@ -268,6 +269,7 @@ class GradientCard extends Component {
           editingStop={editingStop}
           editingColor={editingColor}
           pickingColorStop={pickingColorStop}
+          renderCheckIcon={renderCheckIcon}
         />
 
         <InfoContainer>
@@ -351,7 +353,8 @@ const mapStateToProps = (state, props) => {
     renderDelete: state.icons.deleteStop.render &&
       editingStop &&
       Object.keys(stopData).length > 2,
-    renderDeleteInverted: state.icons.deleteStop.inverted
+    renderDeleteInverted: state.icons.deleteStop.inverted,
+    renderCheckIcon: state.icons.copied
   }
 }
 
