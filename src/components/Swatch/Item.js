@@ -48,42 +48,7 @@ const StopText = styled.span`
 
 class SwatchItem extends Component {
   state = {
-    hovered: false,
-    renderStopText: false
-  }
-
-  componentWillReceiveProps (nextProps) {
-    // console.log(this.props.stop, nextProps)
-    if (this.props.left !== nextProps.left && this.props.isUpdating) {
-      this.setState({
-        renderStopText: true
-      })
-
-      if (!this.props.isBeingEdited) {
-        setTimeout(() => {
-          this.setState({
-            renderStopText: false
-          })
-        }, 1000)
-      }
-    }
-
-    if (
-      this.props.isUpdating !== nextProps.isUpdating &&
-      !nextProps.isUpdating
-    ) {
-      setTimeout(() => {
-        this.setState({
-          renderStopText: false
-        })
-      }, 1000)
-    }
-
-    if (!nextProps.editing) {
-      this.setState({
-        renderStopText: false
-      })
-    }
+    hovered: false
   }
 
   shouldComponentUpdate (nextProps, nextState) {
@@ -97,9 +62,7 @@ class SwatchItem extends Component {
       this.props.stop !== nextProps.stop ||
       this.props.active !== nextProps.active ||
       this.props.sorting !== nextProps.sorting ||
-      this.state.hovered !== nextState.hovered ||
-      this.state.renderStopText !== nextState.renderStopText ||
-      this.props.isBeingEdited !== nextProps.isBeingEdited
+      this.state.hovered !== nextState.hovered
     )
   }
 
@@ -130,7 +93,7 @@ class SwatchItem extends Component {
       sorting,
       ...props
     } = this.props
-    const { hovered, renderStopText } = this.state
+    const { hovered } = this.state
     const isPickingColor = pickingColorStop === stop
     // const shouldRenderColorPicker = false
     const shouldRenderColorPicker =
@@ -144,15 +107,14 @@ class SwatchItem extends Component {
     const mixed = mix(0.5, color, '#AFAFAF')
     const mixedTransparentized = transparentize(0.2, mix(0.5, color, '#AFAFAF'))
     const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
-    const shouldRenderStopText = renderStopText || hovered
-    console.log(editing)
+
     return (
       <Container
         style={{
           right
         }}
       >
-        <StopText showText={shouldRenderStopText && editing}>{stop}%</StopText>
+        <StopText showText={hovered && editing}>{stop}%</StopText>
         {shouldRenderColorPicker &&
           <ColorPicker color={color} stop={stop} id={id} left={left} />}
         {shouldRenderPopover &&
