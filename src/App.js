@@ -11,7 +11,7 @@ import {
   deleteActiveStop,
   editStopColor
 } from './store/stops/actions'
-import { toggleEditing, renderMoreGradients } from './store/gradients/actions'
+import { toggleEditing } from './store/gradients/actions'
 import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
