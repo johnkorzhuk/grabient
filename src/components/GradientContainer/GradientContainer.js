@@ -71,6 +71,14 @@ class GradientContainer extends PureComponent {
     )
   }
 
+  _handleCopyCSs = () => {
+    const { renderCheckIcon, onCopyCSS, actualAngle, stopData } = this.props
+
+    if (!renderCheckIcon) {
+      onCopyCSS(actualAngle, stopData)
+    }
+  }
+
   render () {
     const {
       gradientAnimationDuration,
@@ -85,7 +93,6 @@ class GradientContainer extends PureComponent {
       editingColor,
       stopData,
       pickingColorStop,
-      onCopyCSS,
       renderCheckIcon
     } = this.props
     const editing = editingAngle || editingStop || editingColor
@@ -96,7 +103,7 @@ class GradientContainer extends PureComponent {
         {renderCopyCssButton &&
           <CopyCSSButon
             title='Copy CSS'
-            onClick={() => onCopyCSS(actualAngle, stopData)}
+            onClick={this._handleCopyCSs}
             onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
             onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
           >
