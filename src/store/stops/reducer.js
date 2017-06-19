@@ -212,7 +212,8 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           pickingColorStop: action.payload.stop
-        }
+        },
+        editingColor: action.payload.stop ? state.editingColor : null
       }
 
     case UPDATE_STOP_COLOR:
