@@ -95,6 +95,7 @@ const SortableList = SortableContainer(
                         10
                       ))
                 }
+
                 return (
                   <SortableItem
                     {...props}
@@ -107,8 +108,9 @@ const SortableList = SortableContainer(
                       ...style
                     }}
                     isUpdating={isUpdating}
-                    key={stop}
+                    key={index}
                     index={index}
+                    isBeingEdited={active === stop}
                     sorting={sorting}
                     onTouchStart={e =>
                       onSortItemClick(
@@ -213,7 +215,9 @@ class Swatch extends Component {
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mouseup' || e.type === 'touchend') {
       this.props.toggleEditing(null)
-
+      this.setState({
+        editing: null
+      })
       if (!sorting) {
         this.props.editStopColor(this.props.id)
         if (!editing) {
@@ -255,7 +259,6 @@ class Swatch extends Component {
       ...props
     } = this.props
     const { sorting } = this.state
-
     return (
       colors &&
       <SortableList

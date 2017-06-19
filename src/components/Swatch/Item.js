@@ -29,17 +29,61 @@ const Item = styled.div`
 
 const Container = styled.div`
   display: flex;
-  justify-content: flex-end;
-  align-items: flex-end;
+  justify-content: center;
   position: absolute;
   height: ${SLIDER_ITEM_SIZE}rem;
   width: ${SLIDER_ITEM_SIZE}rem;
   bottom: 10px;
 `
 
+const StopText = styled.span`
+  position: absolute;
+  color: #afafaf;
+  top: -15px;
+  font-size: 1.2rem;
+
+  transition: opacity 100ms linear;
+  opacity: ${({ showText }) => (showText ? '1' : '0')};
+`
+
 class SwatchItem extends Component {
   state = {
-    hovered: false
+    hovered: false,
+    renderStopText: false
+  }
+
+  componentWillReceiveProps (nextProps) {
+    // console.log(this.props.stop, nextProps)
+    if (this.props.left !== nextProps.left && this.props.isUpdating) {
+      this.setState({
+        renderStopText: true
+      })
+
+      if (!this.props.isBeingEdited) {
+        setTimeout(() => {
+          this.setState({
+            renderStopText: false
+          })
+        }, 1000)
+      }
+    }
+
+    if (
+      this.props.isUpdating !== nextProps.isUpdating &&
+      !nextProps.isUpdating
+    ) {
+      setTimeout(() => {
+        this.setState({
+          renderStopText: false
+        })
+      }, 1000)
+    }
+
+    if (!nextProps.editing) {
+      this.setState({
+        renderStopText: false
+      })
+    }
   }
 
   shouldComponentUpdate (nextProps, nextState) {
@@ -53,7 +97,9 @@ class SwatchItem extends Component {
       this.props.stop !== nextProps.stop ||
       this.props.active !== nextProps.active ||
       this.props.sorting !== nextProps.sorting ||
-      this.state.hovered !== nextState.hovered
+      this.state.hovered !== nextState.hovered ||
+      this.state.renderStopText !== nextState.renderStopText ||
+      this.props.isBeingEdited !== nextProps.isBeingEdited
     )
   }
 
@@ -84,7 +130,7 @@ class SwatchItem extends Component {
       sorting,
       ...props
     } = this.props
-    const { hovered } = this.state
+    const { hovered, renderStopText } = this.state
     const isPickingColor = pickingColorStop === stop
     // const shouldRenderColorPicker = false
     const shouldRenderColorPicker =
@@ -105,6 +151,7 @@ class SwatchItem extends Component {
           right
         }}
       >
+        <StopText showText={renderStopText}>{stop}%</StopText>
         {shouldRenderColorPicker &&
           <ColorPicker color={color} stop={stop} id={id} left={left} />}
         {shouldRenderPopover &&
