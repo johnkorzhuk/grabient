@@ -33,11 +33,9 @@ const Blurred = styled.div`
   margin-top: -${GRADIENT_HEIGHT}px;
 `
 
-const CopyCSSButon = Button.extend`
+const GradientButton = Button.extend`
   z-index: 20;
   position: absolute;
-  top: 20px;
-  right: 20px;
   background-color: rgba(0,0,0,0.15);
   padding: 3px;
   border-radius: 3px;
@@ -50,8 +48,17 @@ const CopyCSSButon = Button.extend`
 
 const CopiedText = styled.span`
   color: white;
+  font-size: 1.1rem;
   padding-right: 3px;
   padding-left: 2px;
+`
+
+const ResetText = styled.span`
+  position: relative;
+  padding: 0 1px;
+  font-size: 1.2rem;
+  bottom: 1px;
+  color: white;
 `
 
 class GradientContainer extends PureComponent {
@@ -67,7 +74,8 @@ class GradientContainer extends PureComponent {
       this.props.actualAngle !== nextProps.actualAngle ||
       this.props.pickingColorStop !== nextProps.pickingColorStop ||
       this.props.expanded !== nextProps.expanded ||
-      this.props.copiedId !== nextProps.copiedId
+      this.props.copiedId !== nextProps.copiedId ||
+      this.props.edited !== nextProps.edited
     )
   }
 
@@ -92,24 +100,41 @@ class GradientContainer extends PureComponent {
       editingColor,
       stopData,
       pickingColorStop,
-      copiedId
+      copiedId,
+      edited
     } = this.props
     const editing = editingAngle || editingStop || editingColor
-    const renderCopyCssButton = hovered && !editingAngle
+    const renderButtons = hovered && !editingAngle
 
     return (
       <Container>
-        {renderCopyCssButton &&
-          <CopyCSSButon
+        {renderButtons &&
+          <GradientButton
+            style={{
+              top: 20,
+              right: 20
+            }}
             title='Copy CSS'
             onClick={this._handleCopyCSs}
-            onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
-            onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
+            onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
+            onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
           >
             {copiedId === id && <CopiedText>copied</CopiedText>}
             <Copy color={'white'} />
-
-          </CopyCSSButon>}
+          </GradientButton>}
+        {renderButtons &&
+          edited &&
+          <GradientButton
+            style={{
+              top: 20,
+              left: 20
+            }}
+            title='Reset'
+            onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
+            onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
+          >
+            <ResetText>reset</ResetText>
+          </GradientButton>}
 
         <NoBlur
           onMouseEnter={e => onMouseEnter(e, ['main'])}

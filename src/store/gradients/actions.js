@@ -1,6 +1,6 @@
 export const UPDATE_ANGLE = 'gradients/UPDATE_ANGLE'
 export const UPDATE_ACTIVE_ID = 'gradients/UPDATE_ACTIVE_ID'
-export const TOGGLE_EDITING = 'gradients/TOGGLE_EDITING'
+export const TOGGLE_EDITING_ANGLE = 'gradients/TOGGLE_EDITING_ANGLE'
 export const UPDATE_EDITING_ANGLE = 'gradients/UPDATE_EDITING_ANGLE'
 export const UPDATE_EXPANDED = 'gradients/UPDATE_EXPANDED'
 export const RENDER_MORE_GRADIENTS = 'gradients/RENDER_MORE_GRADIENTS'
@@ -36,7 +36,7 @@ export const updateGradientAngle = (id, angle) => dispatch => {
 
 export const toggleEditing = id => dispatch => {
   return dispatch({
-    type: TOGGLE_EDITING,
+    type: TOGGLE_EDITING_ANGLE,
     payload: {
       id
     }

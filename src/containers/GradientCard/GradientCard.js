@@ -131,7 +131,7 @@ class GradientCard extends Component {
       arrowPrev: false,
       addColor: false,
       main: false,
-      expandContract: false
+      gradientButton: false
     },
     wasEditing: false
   }
@@ -241,7 +241,8 @@ class GradientCard extends Component {
       renderDeleteInverted,
       copyCSS,
       style,
-      copiedId
+      copiedId,
+      edited
     } = this.props
 
     const editingAngle = id === editingAngleData.id
@@ -270,6 +271,7 @@ class GradientCard extends Component {
           editingColor={editingColor}
           pickingColorStop={pickingColorStop}
           copiedId={copiedId}
+          edited={edited}
         />
 
         <InfoContainer>
@@ -354,7 +356,8 @@ const mapStateToProps = (state, props) => {
       editingStop &&
       Object.keys(stopData).length > 2,
     renderDeleteInverted: state.icons.deleteStop.inverted,
-    copiedId: state.icons.copied
+    copiedId: state.icons.copied,
+    edited: gradient.edited
   }
 }
 
