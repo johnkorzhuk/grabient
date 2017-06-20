@@ -11,6 +11,7 @@ export const TOGGLE_EDITING_ANGLE = 'gradients/TOGGLE_EDITING_ANGLE'
 export const UPDATE_EDITING_ANGLE = 'gradients/UPDATE_EDITING_ANGLE'
 export const UPDATE_EXPANDED = 'gradients/UPDATE_EXPANDED'
 export const RENDER_MORE_GRADIENTS = 'gradients/RENDER_MORE_GRADIENTS'
+export const RESET_GRADIENT_ANGLE = 'gradients/RESET_GRADIENT_ANGLE'
 
 const checkIfNaN = num => {
   if (typeof num !== 'number') num = parseInt(num, 10)
@@ -86,6 +87,15 @@ export const renderMoreGradients = amount => dispatch => {
     type: RENDER_MORE_GRADIENTS,
     payload: {
       amount
+    }
+  })
+}
+
+export const resetGradientAngle = id => dispatch => {
+  return dispatch({
+    type: RESET_GRADIENT_ANGLE,
+    payload: {
+      id
     }
   })
 }

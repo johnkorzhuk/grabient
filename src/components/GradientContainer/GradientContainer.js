@@ -1,4 +1,4 @@
-import React, { PureComponent } from 'react'
+import React from 'react'
 import styled from 'styled-components'
 
 import Gradient from './../Gradient/Gradient'
@@ -61,119 +61,103 @@ const ResetText = styled.span`
   color: white;
 `
 
-class GradientContainer extends PureComponent {
-  shouldComponentUpdate (nextProps, nextState) {
-    return (
-      this.props.stopData !== nextProps.stopData ||
-      this.props.angle !== nextProps.angle ||
-      this.props.hovered !== nextProps.hovered ||
-      this.props.editingAngle !== nextProps.editingAngle ||
-      this.props.editingStop !== nextProps.editingStop ||
-      this.props.editingColor !== nextProps.editingColor ||
-      this.props.editingAngleVal !== nextProps.editingAngleVal ||
-      this.props.actualAngle !== nextProps.actualAngle ||
-      this.props.pickingColorStop !== nextProps.pickingColorStop ||
-      this.props.expanded !== nextProps.expanded ||
-      this.props.copiedId !== nextProps.copiedId ||
-      this.props.edited !== nextProps.edited
-    )
-  }
+const GradientContainer = ({
+  gradientAnimationDuration,
+  wheelAnimationDuration,
+  id,
+  actualAngle,
+  hovered,
+  onMouseEnter,
+  onMouseLeave,
+  editingAngle,
+  editingStop,
+  editingColor,
+  stopData,
+  pickingColorStop,
+  copiedId,
+  onCopyCSS,
+  edited,
+  resetGradientAngle,
+  resetColorStop
+}) => {
+  const editing = editingAngle || editingStop || editingColor
+  const renderButtons = hovered && !editingAngle
 
-  _handleCopyCSs = () => {
-    const { copiedId, onCopyCSS, actualAngle, stopData, id } = this.props
-    if (!copiedId || id !== copiedId) {
-      onCopyCSS(actualAngle, stopData, id)
-    }
-  }
-
-  render () {
-    const {
-      gradientAnimationDuration,
-      wheelAnimationDuration,
-      id,
-      actualAngle,
-      hovered,
-      onMouseEnter,
-      onMouseLeave,
-      editingAngle,
-      editingStop,
-      editingColor,
-      stopData,
-      pickingColorStop,
-      copiedId,
-      edited
-    } = this.props
-    const editing = editingAngle || editingStop || editingColor
-    const renderButtons = hovered && !editingAngle
-
-    return (
-      <Container>
-        {renderButtons &&
-          <GradientButton
-            style={{
-              top: 20,
-              right: 20
-            }}
-            title='Copy CSS'
-            onClick={this._handleCopyCSs}
-            onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
-            onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
-          >
-            {copiedId === id && <CopiedText>copied</CopiedText>}
-            <Copy color={'white'} />
-          </GradientButton>}
-        {renderButtons &&
-          edited &&
-          <GradientButton
-            style={{
-              top: 20,
-              left: 20
-            }}
-            title='Reset'
-            onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
-            onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
-          >
-            <ResetText>reset</ResetText>
-          </GradientButton>}
-
-        <NoBlur
-          onMouseEnter={e => onMouseEnter(e, ['main'])}
-          onMouseLeave={e => onMouseLeave(e, ['main'])}
+  return (
+    <Container>
+      {renderButtons &&
+        <GradientButton
           style={{
-            zIndex: pickingColorStop ? 4 : 9
+            top: 20,
+            right: 20
           }}
+          title='Copy CSS'
+          onClick={() => {
+            if (!copiedId || id !== copiedId) {
+              onCopyCSS(actualAngle, stopData, id)
+            }
+          }}
+          onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
+          onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
         >
-          <Gradient
-            editingColor={editingColor}
-            stopData={stopData}
-            angle={actualAngle}
-            transitionDuration={gradientAnimationDuration}
-          />
-        </NoBlur>
+          {copiedId === id && <CopiedText>copied</CopiedText>}
+          <Copy color={'white'} />
+        </GradientButton>}
+      {renderButtons &&
+        edited &&
+        <GradientButton
+          style={{
+            top: 20,
+            left: 20
+          }}
+          title='Reset'
+          onClick={() => {
+            resetGradientAngle(id)
+            resetColorStop(id)
+          }}
+          onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
+          onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
+        >
+          <ResetText>reset</ResetText>
+        </GradientButton>}
 
-        <Blurred>
-          <Gradient
-            editingColor={editingColor}
-            stopData={stopData}
-            hasOpacity
-            editing={editing}
-            hovered={hovered}
-            opacity={0.8}
-            angle={actualAngle}
-            transitionDuration={gradientAnimationDuration}
-          />
-        </Blurred>
-
-        <AngleWheel
-          onMouseEnter={e => onMouseEnter(e, ['main'])}
-          onMouseLeave={e => onMouseLeave(e, ['main'])}
+      <NoBlur
+        onMouseEnter={e => onMouseEnter(e, ['main'])}
+        onMouseLeave={e => onMouseLeave(e, ['main'])}
+        style={{
+          zIndex: pickingColorStop ? 4 : 9
+        }}
+      >
+        <Gradient
+          editingColor={editingColor}
+          stopData={stopData}
           angle={actualAngle}
-          id={id}
-          transitionDuration={wheelAnimationDuration}
+          transitionDuration={gradientAnimationDuration}
         />
-      </Container>
-    )
-  }
+      </NoBlur>
+
+      <Blurred>
+        <Gradient
+          editingColor={editingColor}
+          stopData={stopData}
+          hasOpacity
+          editing={editing}
+          hovered={hovered}
+          opacity={0.8}
+          angle={actualAngle}
+          transitionDuration={gradientAnimationDuration}
+        />
+      </Blurred>
+
+      <AngleWheel
+        onMouseEnter={e => onMouseEnter(e, ['main'])}
+        onMouseLeave={e => onMouseLeave(e, ['main'])}
+        angle={actualAngle}
+        id={id}
+        transitionDuration={wheelAnimationDuration}
+      />
+    </Container>
+  )
 }
 
 export default GradientContainer

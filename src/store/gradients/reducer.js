@@ -5,7 +5,8 @@ import {
   UPDATE_EDITING_ANGLE,
   UPDATE_EXPANDED,
   RENDER_MORE_GRADIENTS,
-  UPDATE_EDITED_STATE
+  UPDATE_EDITED_STATE,
+  RESET_GRADIENT_ANGLE
 } from './actions'
 
 export const INITIAL_STATE = {
@@ -158,6 +159,15 @@ export default (state = INITIAL_STATE, action) => {
             ...state.gradientValues[action.payload.id],
             edited: action.payload.edited
           }
+        }
+      }
+
+    case RESET_GRADIENT_ANGLE:
+      return {
+        ...state,
+        gradientValues: {
+          ...state.gradientValues,
+          [action.payload.id]: INITIAL_STATE.gradientValues[action.payload.id]
         }
       }
 

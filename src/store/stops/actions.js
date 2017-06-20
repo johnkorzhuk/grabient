@@ -19,6 +19,7 @@ export const UPDATE_STOP_COLOR = 'stops/UPDATE_STOP_COLOR'
 export const UPDATE_ACTIVE_STOP = 'stops/UPDATE_ACTIVE_STOP'
 export const DELETE_ACTIVE_STOP = 'stops/DELETE_ACTIVE_STOP'
 export const ADD_COLOR_STOP = 'stops/ADD_COLOR_STOP'
+export const RESET_COLOR_STOP = 'stops/RESET_COLOR_STOP'
 
 export const updateUpdatingStop = (stop, xPos) => dispatch => {
   return dispatch({
@@ -257,4 +258,13 @@ export const addColorStop = id => (dispatch, getState) => {
       }
     })
   }
+}
+
+export const resetColorStop = id => dispatch => {
+  dispatch({
+    type: RESET_COLOR_STOP,
+    payload: {
+      id
+    }
+  })
 }

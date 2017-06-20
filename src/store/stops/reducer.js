@@ -8,7 +8,8 @@ import {
   UPDATE_STOP_COLOR,
   UPDATE_ACTIVE_STOP,
   DELETE_ACTIVE_STOP,
-  ADD_COLOR_STOP
+  ADD_COLOR_STOP,
+  RESET_COLOR_STOP
 } from './actions'
 
 export const INITIAL_STATE = {
@@ -163,7 +164,7 @@ export default (state = INITIAL_STATE, action) => {
     case EDIT_STOP_COLOR:
       return {
         ...state,
-        editingColor: action.payload.id
+        editingColor: state.editingColor ? null : action.payload.id
       }
 
     case SWAP_STOP_COLORS:
@@ -212,8 +213,7 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           pickingColorStop: action.payload.stop
-        },
-        editingColor: action.payload.stop ? state.editingColor : null
+        }
       }
 
     case UPDATE_STOP_COLOR:
@@ -270,6 +270,19 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           origUnchanged: action.payload.newValues
+        }
+      }
+
+    case RESET_COLOR_STOP:
+      return {
+        ...state,
+        values: {
+          ...state.values,
+          [action.payload.id]: INITIAL_STATE.values[action.payload.id]
+        },
+        updating: {
+          ...INITIAL_STATE.updating,
+          origUnchanged: INITIAL_STATE.values[action.payload.id]
         }
       }
 

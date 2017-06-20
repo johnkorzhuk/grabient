@@ -5,13 +5,15 @@ import debounce from 'lodash/debounce'
 
 import {
   toggleEditing,
-  updateEditingAngle
+  updateEditingAngle,
+  resetGradientAngle
 } from './../../store/gradients/actions'
 import {
   editStop,
   updateActiveColorPicker,
   addColorStop,
-  editStopColor
+  editStopColor,
+  resetColorStop
 } from './../../store/stops/actions'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { copyCSS } from './../../store/icons/actions'
@@ -242,7 +244,9 @@ class GradientCard extends Component {
       copyCSS,
       style,
       copiedId,
-      edited
+      edited,
+      resetGradientAngle,
+      resetColorStop
     } = this.props
 
     const editingAngle = id === editingAngleData.id
@@ -257,6 +261,8 @@ class GradientCard extends Component {
         style={style}
       >
         <GradientContainer
+          resetColorStop={resetColorStop}
+          resetGradientAngle={resetGradientAngle}
           onCopyCSS={copyCSS}
           stopData={stopData}
           actualAngle={actualAngle}
@@ -340,7 +346,6 @@ const mapStateToProps = (state, props) => {
   // eslint-disable-next-line eqeqeq
   const editingStop = props.id == state.stops.editing
   const stopData = getStopsById(state, props)
-
   return {
     stopData,
     draggingItemMousePos: state.stops.draggingItemMousePos,
@@ -369,5 +374,7 @@ export default connect(mapStateToProps, {
   updateSwatchDimensions,
   updateActiveColorPicker,
   addColorStop,
-  copyCSS
+  copyCSS,
+  resetGradientAngle,
+  resetColorStop
 })(GradientCard)
