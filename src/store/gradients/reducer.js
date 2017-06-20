@@ -4,10 +4,11 @@ import {
   TOGGLE_EDITING_ANGLE,
   UPDATE_EDITING_ANGLE,
   UPDATE_EXPANDED,
-  RENDER_MORE_GRADIENTS
+  RENDER_MORE_GRADIENTS,
+  UPDATE_EDITED_STATE
 } from './actions'
 
-const INITIAL_STATE = {
+export const INITIAL_STATE = {
   gradientValues: {
     '2a': {
       id: '2a',
@@ -148,6 +149,18 @@ export default (state = INITIAL_STATE, action) => {
         active: action.payload.id
       }
 
+    case UPDATE_EDITED_STATE:
+      return {
+        ...state,
+        gradientValues: {
+          ...state.gradientValues,
+          [action.payload.id]: {
+            ...state.gradientValues[action.payload.id],
+            edited: action.payload.edited
+          }
+        }
+      }
+
     case UPDATE_ANGLE:
       return {
         ...state,
@@ -155,9 +168,7 @@ export default (state = INITIAL_STATE, action) => {
           ...state.gradientValues,
           [action.payload.id]: {
             ...state.gradientValues[action.payload.id],
-            angle: action.payload.angle,
-            edited: action.payload.angle !==
-              INITIAL_STATE.gradientValues[action.payload.id].angle
+            angle: action.payload.angle
           }
         }
       }

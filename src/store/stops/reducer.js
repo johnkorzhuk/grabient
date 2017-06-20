@@ -11,7 +11,7 @@ import {
   ADD_COLOR_STOP
 } from './actions'
 
-const INITIAL_STATE = {
+export const INITIAL_STATE = {
   values: {
     '2a': {
       '0': '#e0c3fc',

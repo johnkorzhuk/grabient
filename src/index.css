@@ -25,6 +25,7 @@ a {
 
 .sortable-helper {
   z-index: 1000;
+  cursor: grab;
 }
 
 .chrome-picker {

@@ -12,3 +12,10 @@ export const getGradientById = id =>
   createSelector([getGradients], gradients => {
     return gradients[id]
   })
+
+export const getGradientData = (id, gradients, stops) => {
+  return {
+    angle: gradients.gradientValues[id].angle,
+    stops: stops.values[id]
+  }
+}

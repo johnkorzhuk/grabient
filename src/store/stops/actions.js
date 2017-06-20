@@ -1,5 +1,11 @@
+import deepEqual from 'deep-equal'
+
 import { shiftConflictedStops, shiftStops } from './utils'
 import { INVERT_TRASH_ICON, TOGGLE_TRASH_ICON } from './../icons/actions'
+import { UPDATE_EDITED_STATE } from './../gradients/actions'
+import { INITIAL_STATE as initStops } from './reducer'
+import { INITIAL_STATE as initGradients } from './../gradients/reducer'
+import { getGradientData } from '././../gradients/selectors'
 
 const UPDATING_STOP_THRESHOLD = 5
 // actions
@@ -43,11 +49,24 @@ export const editStopColor = id => dispatch => {
 }
 
 export const swapStopsColors = (id, colors) => (dispatch, getState) => {
-  const { values } = getState().stops
-  const updatedStop = Object.keys(values[id]).reduce((aggr, curr, index) => {
+  const { stops, gradients } = getState()
+  const updatedStop = Object.keys(
+    stops.values[id]
+  ).reduce((aggr, curr, index) => {
     aggr[curr] = colors[index]
     return aggr
   }, {})
+  const orig = getGradientData(id, initGradients, initStops)
+  let newdata = getGradientData(id, gradients, stops)
+  newdata['stops'] = updatedStop
+
+  dispatch({
+    type: UPDATE_EDITED_STATE,
+    payload: {
+      edited: !deepEqual(orig, newdata),
+      id
+    }
+  })
 
   return dispatch({
     type: SWAP_STOP_COLORS,
@@ -101,6 +120,14 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
         })
       }
 
+      dispatch({
+        type: UPDATE_EDITED_STATE,
+        payload: {
+          edited: true,
+          id: editing
+        }
+      })
+
       return dispatch({
         type: UPDATE_DRAGGED_STOP_POS,
         payload: {
@@ -141,7 +168,20 @@ export const updateActiveColorPicker = (stop, currActive) => dispatch => {
   }
 }
 
-export const updateStopColor = (stop, color, id) => dispatch => {
+export const updateStopColor = (stop, color, id) => (dispatch, getState) => {
+  const { stops, gradients } = getState()
+  const orig = getGradientData(id, initGradients, initStops)
+  let newdata = getGradientData(id, gradients, stops)
+  newdata['stops'][stop] = color
+
+  dispatch({
+    type: UPDATE_EDITED_STATE,
+    payload: {
+      edited: !deepEqual(orig, newdata),
+      id
+    }
+  })
+
   return dispatch({
     type: UPDATE_STOP_COLOR,
     payload: {
@@ -162,16 +202,26 @@ export const updateActiveStop = stop => dispatch => {
 }
 
 export const deleteActiveStop = () => (dispatch, getState) => {
-  const { stops: { values, updating, editing } } = getState()
+  const { stops, gradients } = getState()
+  const orig = getGradientData(stops.editing, initGradients, initStops)
+  let newdata = getGradientData(stops.editing, gradients, stops)
 
-  const newValues = { ...values[editing] }
+  dispatch({
+    type: UPDATE_EDITED_STATE,
+    payload: {
+      edited: !deepEqual(orig, newdata),
+      id: stops.editing
+    }
+  })
+
+  const newValues = { ...stops.values[stops.editing] }
   if (Object.keys(newValues).length > 2) {
-    delete newValues[updating.active]
+    delete newValues[stops.updating.active]
 
     dispatch({
       type: DELETE_ACTIVE_STOP,
       payload: {
-        editing,
+        editing: stops.editing,
         newValues
       }
     })
@@ -183,14 +233,26 @@ export const deleteActiveStop = () => (dispatch, getState) => {
 }
 
 export const addColorStop = id => (dispatch, getState) => {
-  const { stops: { values, editing } } = getState()
-  const newValues = shiftStops(values[editing])
+  const { stops, gradients } = getState()
+  const newValues = shiftStops(stops.values[stops.editing])
 
   if (Object.keys(newValues).length < 7) {
+    const orig = getGradientData(id, initGradients, initStops)
+    let newdata = getGradientData(id, gradients, stops)
+    newdata['stops'] = newValues
+
+    dispatch({
+      type: UPDATE_EDITED_STATE,
+      payload: {
+        edited: !deepEqual(orig, newdata),
+        id
+      }
+    })
+
     return dispatch({
       type: ADD_COLOR_STOP,
       payload: {
-        editing,
+        editing: stops.editing,
         newValues
       }
     })

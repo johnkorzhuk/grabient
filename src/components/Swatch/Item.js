@@ -12,7 +12,7 @@ const Item = styled.div`
   height: ${SLIDER_ITEM_SIZE}rem;
   width: ${SLIDER_ITEM_SIZE}rem;
   border-radius: 50%;
-  cursor: pointer;
+  cursor: grab;
   position: absolute;
   right: 0;
   border: ${({ mixedColor }) => `1px solid ${mixedColor}`};

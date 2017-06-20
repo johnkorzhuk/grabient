@@ -1,5 +1,12 @@
+import deepEqual from 'deep-equal'
+
+import { INITIAL_STATE as initGradients } from './reducer'
+import { INITIAL_STATE as initStops } from './../stops/reducer'
+import { getGradientData } from './selectors'
+
 export const UPDATE_ANGLE = 'gradients/UPDATE_ANGLE'
 export const UPDATE_ACTIVE_ID = 'gradients/UPDATE_ACTIVE_ID'
+export const UPDATE_EDITED_STATE = 'gradients/UPDATE_EDITED_STATE'
 export const TOGGLE_EDITING_ANGLE = 'gradients/TOGGLE_EDITING_ANGLE'
 export const UPDATE_EDITING_ANGLE = 'gradients/UPDATE_EDITING_ANGLE'
 export const UPDATE_EXPANDED = 'gradients/UPDATE_EXPANDED'
@@ -24,7 +31,20 @@ export const updateActiveId = () => (dispatch, getState) => {
   })
 }
 
-export const updateGradientAngle = (id, angle) => dispatch => {
+export const updateGradientAngle = (id, angle) => (dispatch, getState) => {
+  const { gradients, stops } = getState()
+  const orig = getGradientData(id, initGradients, initStops)
+  let newdata = getGradientData(id, gradients, stops)
+  newdata.angle = angle
+
+  dispatch({
+    type: UPDATE_EDITED_STATE,
+    payload: {
+      edited: !deepEqual(orig, newdata),
+      id
+    }
+  })
+
   return dispatch({
     type: UPDATE_ANGLE,
     payload: {
