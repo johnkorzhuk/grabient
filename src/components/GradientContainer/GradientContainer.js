@@ -73,7 +73,7 @@ class GradientContainer extends PureComponent {
 
   _handleCopyCSs = () => {
     const { copiedId, onCopyCSS, actualAngle, stopData, id } = this.props
-    if (!copiedId) {
+    if (!copiedId || id !== copiedId) {
       onCopyCSS(actualAngle, stopData, id)
     }
   }
