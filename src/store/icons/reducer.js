@@ -9,7 +9,7 @@ const INITAL_STATE = {
     render: false,
     inverted: false
   },
-  copied: false
+  copied: null
 }
 
 export default (state = INITAL_STATE, action) => {
@@ -36,7 +36,7 @@ export default (state = INITAL_STATE, action) => {
     case TOGGLE_CSS_COPIED:
       return {
         ...state,
-        copied: !state.copied
+        copied: action.payload.id
       }
 
     default:

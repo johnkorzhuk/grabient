@@ -17,16 +17,22 @@ export const invertTrashIcon = () => dispatch => {
   })
 }
 
-export const copyCSS = (angle, stopData) => dispatch => {
+export const copyCSS = (angle, stopData, id) => dispatch => {
   const css = generateLinearGradient(angle, stopData)
   copyTextToClipboard(css)
   dispatch({
-    type: TOGGLE_CSS_COPIED
+    type: TOGGLE_CSS_COPIED,
+    payload: {
+      id
+    }
   })
 
   setTimeout(() => {
     return dispatch({
-      type: TOGGLE_CSS_COPIED
+      type: TOGGLE_CSS_COPIED,
+      payload: {
+        id: null
+      }
     })
-  }, 1000)
+  }, 2000)
 }

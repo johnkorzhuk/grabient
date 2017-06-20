@@ -51,7 +51,7 @@ const CopyCSSButon = Button.extend`
 const CopiedText = styled.span`
   color: white;
   padding-right: 3px;
-  padding-left: 3px;
+  padding-left: 2px;
 `
 
 class GradientContainer extends PureComponent {
@@ -67,15 +67,14 @@ class GradientContainer extends PureComponent {
       this.props.actualAngle !== nextProps.actualAngle ||
       this.props.pickingColorStop !== nextProps.pickingColorStop ||
       this.props.expanded !== nextProps.expanded ||
-      this.props.renderCheckIcon !== nextProps.renderCheckIcon
+      this.props.copiedId !== nextProps.copiedId
     )
   }
 
   _handleCopyCSs = () => {
-    const { renderCheckIcon, onCopyCSS, actualAngle, stopData } = this.props
-
-    if (!renderCheckIcon) {
-      onCopyCSS(actualAngle, stopData)
+    const { copiedId, onCopyCSS, actualAngle, stopData, id } = this.props
+    if (!copiedId) {
+      onCopyCSS(actualAngle, stopData, id)
     }
   }
 
@@ -93,7 +92,7 @@ class GradientContainer extends PureComponent {
       editingColor,
       stopData,
       pickingColorStop,
-      renderCheckIcon
+      copiedId
     } = this.props
     const editing = editingAngle || editingStop || editingColor
     const renderCopyCssButton = hovered && !editingAngle
@@ -107,7 +106,7 @@ class GradientContainer extends PureComponent {
             onMouseEnter={e => onMouseEnter(e, ['main', 'expandContract'])}
             onMouseLeave={e => onMouseLeave(e, ['main', 'expandContract'])}
           >
-            {renderCheckIcon && <CopiedText>copied</CopiedText>}
+            {copiedId === id && <CopiedText>copied</CopiedText>}
             <Copy color={'white'} />
 
           </CopyCSSButon>}
