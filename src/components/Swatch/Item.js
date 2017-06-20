@@ -18,7 +18,7 @@ const Item = styled.div`
   border: ${({ mixedColor }) => `1px solid ${mixedColor}`};
   background-color: ${({ color }) => color};
   box-shadow: ${({ mixedTransparentized, active }) => (active ? '0px 3px 10px 1px ' + mixedTransparentized : '0px 0px 0px 0px ' + mixedTransparentized)};
-  z-index: ${({ active }) => (active ? 99 : 'auto')};
+  z-index: ${({ active }) => (active ? 999 : 'auto')};
 
   &:hover,
   &:active {
@@ -38,7 +38,7 @@ const Container = styled.div`
 
 const StopText = styled.span`
   position: absolute;
-  color: #afafaf;
+  color: #606060;
   top: -15px;
   font-size: 1.2rem;
 
