@@ -25,7 +25,7 @@ import {
   GradientContainer,
   AddDeleteStop
 } from './../../components/index'
-import { ExpandEdit } from './../../components/Icons/index'
+import { ExpandEdit, Edit } from './../../components/Icons/index'
 import { SortableSwatch } from './../index'
 import { Button } from './../../components/Common/index'
 
@@ -140,6 +140,16 @@ class GradientCard extends Component {
 
   componentDidMount () {
     addEvent(window, 'resize', this._handleWindowResize)
+  }
+
+  shouldComponentUpdate (nextProps, nextState) {
+    const willEdit =
+      this.props.id === nextProps.editingAngleData.id ||
+      nextProps.editingStop ||
+      nextProps.editingColor
+    if (!willEdit) return true
+    else if (willEdit || this.state !== nextState) return true
+    else return false
   }
 
   componentWillUnmount () {
@@ -327,7 +337,7 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
             onClick={this._handleAddCancelColorStop}
           >
-            <ExpandEdit
+            <Edit
               pickingColorStop={pickingColorStop}
               editingStop={editingStop}
               animationDuration={SLIDER_ANIMATION_DURATION}
