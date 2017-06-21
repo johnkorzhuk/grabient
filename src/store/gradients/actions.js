@@ -4,6 +4,8 @@ import { INITIAL_STATE as initGradients } from './reducer'
 import { INITIAL_STATE as initStops } from './../stops/reducer'
 import { getGradientData } from './selectors'
 
+import { TOGGLE_CSS_COPIED } from './../icons/actions'
+
 export const UPDATE_ANGLE = 'gradients/UPDATE_ANGLE'
 export const UPDATE_ACTIVE_ID = 'gradients/UPDATE_ACTIVE_ID'
 export const UPDATE_EDITED_STATE = 'gradients/UPDATE_EDITED_STATE'
@@ -92,6 +94,13 @@ export const renderMoreGradients = amount => dispatch => {
 }
 
 export const resetGradientAngle = id => dispatch => {
+  dispatch({
+    type: TOGGLE_CSS_COPIED,
+    payload: {
+      id: null
+    }
+  })
+
   return dispatch({
     type: RESET_GRADIENT_ANGLE,
     payload: {
