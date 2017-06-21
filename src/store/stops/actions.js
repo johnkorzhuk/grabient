@@ -180,15 +180,10 @@ export const updateActiveColorPicker = (stop, currActive) => dispatch => {
 }
 
 export const updateStopColor = (stop, color, id) => (dispatch, getState) => {
-  const { stops, gradients } = getState()
-  const orig = getGradientData(id, initGradients, initStops)
-  let newdata = getGradientData(id, gradients, stops)
-  newdata['stops'][stop] = color
-
   dispatch({
     type: UPDATE_EDITED_STATE,
     payload: {
-      edited: !deepEqual(orig, newdata),
+      edited: true,
       id
     }
   })

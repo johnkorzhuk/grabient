@@ -15,17 +15,17 @@ export const INITIAL_STATE = {
       id: '2a',
       angle: 60,
       edited: false
-    },
-    '1a': {
-      id: '1a',
-      angle: 10,
-      edited: false
-    },
-    '4a': {
-      id: '4a',
-      angle: 180,
-      edited: false
     }
+    // '1a': {
+    //   id: '1a',
+    //   angle: 10,
+    //   edited: false
+    // },
+    // '4a': {
+    //   id: '4a',
+    //   angle: 180,
+    //   edited: false
+    // }
     // '3a': {
     //   id: '3a',
     //   angle: 0,
