@@ -8,6 +8,7 @@ import { INITIAL_STATE as initGradients } from './../gradients/reducer'
 import { getGradientData } from '././../gradients/selectors'
 
 const UPDATING_STOP_THRESHOLD = 5
+export const STOP_LIMIT = 7
 // actions
 export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
 export const EDIT_STOP = 'stops/EDIT_STOP'
@@ -240,9 +241,9 @@ export const deleteActiveStop = () => (dispatch, getState) => {
 
 export const addColorStop = id => (dispatch, getState) => {
   const { stops, gradients } = getState()
-  const newValues = shiftStops(stops.values[stops.editing])
 
-  if (Object.keys(newValues).length < 7) {
+  const newValues = shiftStops(stops.values[id])
+  if (Object.keys(newValues).length < STOP_LIMIT) {
     const orig = getGradientData(id, initGradients, initStops)
     let newdata = getGradientData(id, gradients, stops)
     newdata['stops'] = newValues
@@ -258,7 +259,7 @@ export const addColorStop = id => (dispatch, getState) => {
     return dispatch({
       type: ADD_COLOR_STOP,
       payload: {
-        editing: stops.editing,
+        editing: id,
         newValues
       }
     })

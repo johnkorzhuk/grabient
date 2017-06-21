@@ -12,7 +12,6 @@ const AddStopContainer = styled.div`
 const AddDeleteStop = ({
   renderDelete,
   renderDeleteInverted,
-  editingStop,
   animationDuration,
   hovered,
   color,
@@ -27,13 +26,13 @@ const AddDeleteStop = ({
         animationDuration={animationDuration}
       />
     )
-  } else if (editingStop) {
+  } else {
     return (
       <AddStopContainer title={title}>
         <ExpandEdit color={color} hovered={hovered} />
       </AddStopContainer>
     )
-  } else return null
+  }
 }
 
 export default AddDeleteStop

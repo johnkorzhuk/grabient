@@ -13,7 +13,8 @@ import {
   updateActiveColorPicker,
   addColorStop,
   editStopColor,
-  resetColorStop
+  resetColorStop,
+  STOP_LIMIT
 } from './../../store/stops/actions'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { copyCSS } from './../../store/icons/actions'
@@ -25,7 +26,7 @@ import {
   GradientContainer,
   AddDeleteStop
 } from './../../components/index'
-import { ExpandEdit, Edit } from './../../components/Icons/index'
+import { Edit } from './../../components/Icons/index'
 import { SortableSwatch } from './../index'
 import { Button } from './../../components/Common/index'
 
@@ -102,11 +103,22 @@ const SwatchSliderContainer = styled.div`
   justify-content: flex-end;
   align-items: center;
   height: 40px;
-  margin-right: 4rem;
-  margin-left: 4rem;
+  margin-right: 6rem;
+  margin-left: 1rem;
 `
 
-const AddColorButton = Button.extend`
+const AddDeleteButtonContainer = Button.extend`
+  position: absolute;
+  right: 20px;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 25px;
+  cursor: ${({ atStopLimit }) => (atStopLimit ? 'not-allowed' : 'pointer')};
+`
+
+const EditExitButtonContainer = Button.extend`
   position: absolute;
   right: 0;
   height: 100%;
@@ -133,7 +145,8 @@ class GradientCard extends Component {
       arrowPrev: false,
       addColor: false,
       main: false,
-      gradientButton: false
+      gradientButton: false,
+      edit: false
     },
     wasEditing: false
   }
@@ -205,25 +218,14 @@ class GradientCard extends Component {
   }
 
   _handleLeftIconClick = () => {
-    const {
-      toggleEditing,
-      updateEditingAngle,
-      updateActiveColorPicker,
-      pickingColorStop,
-      id,
-      angle,
-      editingStop,
-      addColorStop
-    } = this.props
-    if (!editingStop) {
-      if (pickingColorStop) {
-        updateActiveColorPicker(null)
-      }
-      toggleEditing(id)
-      updateEditingAngle(angle)
-    } else {
-      addColorStop(id)
-    }
+    const { toggleEditing, updateEditingAngle, id, angle } = this.props
+    toggleEditing(id)
+    updateEditingAngle(angle)
+  }
+
+  _handleAddColor = () => {
+    const { id, addColorStop } = this.props
+    addColorStop(id)
   }
 
   setItemHoveredState (items, hovered, resetWasEditing) {
@@ -238,7 +240,7 @@ class GradientCard extends Component {
   }
 
   render () {
-    const { hovered: { arrowPrev, addColor, main } } = this.state
+    const { hovered: { arrowPrev, addColor, main, edit } } = this.state
     const {
       id,
       angle,
@@ -258,6 +260,7 @@ class GradientCard extends Component {
       resetGradientAngle,
       resetColorStop
     } = this.props
+    const atStopLimit = Object.keys(stopData).length >= STOP_LIMIT - 1
 
     const editingAngle = id === editingAngleData.id
     const editing = editingStop || editingAngle || editingColor
@@ -292,23 +295,11 @@ class GradientCard extends Component {
 
         <InfoContainer>
           <AngleContainer
-            title={
-              editingStop
-                ? renderDelete ? 'Delete' : 'Add'
-                : editingAngle ? 'Exit' : 'Edit Angle'
-            }
+            title='Edit Angle'
             onClick={this._handleLeftIconClick}
             onMouseEnter={e => this._handleMouseEnter(e, ['arrowPrev'])}
             onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
           >
-            <AddDeleteStop
-              editingStop={editingStop}
-              animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
-              hovered={arrowPrev}
-              color={ICON_COLOR}
-              renderDelete={renderDelete}
-              renderDeleteInverted={renderDeleteInverted}
-            />
             <AnglePreview
               editingAngle={editingAngle}
               editingStop={editingStop}
@@ -331,20 +322,36 @@ class GradientCard extends Component {
             />
           </SwatchSliderContainer>
 
-          <AddColorButton
-            title={editing ? 'Exit' : 'Edit'}
+          <AddDeleteButtonContainer
+            title={renderDelete ? 'Delete' : 'Add'}
             onMouseEnter={e => this._handleMouseEnter(e, ['addColor'])}
             onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
+            onClick={this._handleAddColor}
+            atStopLimit={atStopLimit}
+          >
+            <AddDeleteStop
+              animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
+              hovered={!atStopLimit && addColor}
+              color={!atStopLimit ? ICON_COLOR : '#e1e1e1'}
+              renderDelete={renderDelete}
+              renderDeleteInverted={renderDeleteInverted}
+            />
+          </AddDeleteButtonContainer>
+
+          <EditExitButtonContainer
+            title={editingStop || editingColor ? 'Exit' : 'Edit'}
+            onMouseEnter={e => this._handleMouseEnter(e, ['edit'])}
+            onMouseLeave={e => this._handleMouseLeave(e, ['edit'])}
             onClick={this._handleAddCancelColorStop}
           >
             <Edit
               pickingColorStop={pickingColorStop}
-              editingStop={editingStop}
+              editing={editingStop || editingColor}
               animationDuration={SLIDER_ANIMATION_DURATION}
-              hovered={addColor}
+              hovered={edit}
               color={ICON_COLOR}
             />
-          </AddColorButton>
+          </EditExitButtonContainer>
         </InfoContainer>
       </GradientItem>
     )
@@ -353,16 +360,13 @@ class GradientCard extends Component {
 
 const mapStateToProps = (state, props) => {
   const gradient = getGradientById(props.id)(state)
-  // eslint-disable-next-line eqeqeq
-  const editingStop = props.id == state.stops.editing
+  const editingStop = props.id === state.stops.editing
   const stopData = getStopsById(state, props)
   return {
     stopData,
     draggingItemMousePos: state.stops.draggingItemMousePos,
-    // eslint-disable-next-line eqeqeq
     editingAngleData: state.gradients.editingAngle,
     editingStop,
-    // eslint-disable-next-line eqeqeq
     angle: gradient.angle,
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     editingColor: props.id === state.stops.editingColor,
