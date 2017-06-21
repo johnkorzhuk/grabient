@@ -274,7 +274,6 @@ export default (state = INITIAL_STATE, action) => {
       }
 
     case RESET_COLOR_STOP:
-      // console.log(INITIAL_STATE.values[action.payload.id])
       return {
         ...state,
         values: {
@@ -284,7 +283,8 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...INITIAL_STATE.updating,
           origUnchanged: INITIAL_STATE.values[action.payload.id]
-        }
+        },
+        editingColor: INITIAL_STATE.editingColor
       }
 
     default:
