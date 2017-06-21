@@ -1,7 +1,7 @@
 import React, { PureComponent } from 'react'
 import { Animate } from 'react-move'
 
-class AddColor extends PureComponent {
+class ExpandEdit extends PureComponent {
   shouldComponentUpdate (nextProps) {
     return (
       this.props.hovered !== nextProps.hovered ||
@@ -19,7 +19,6 @@ class AddColor extends PureComponent {
       animationDuration,
       ...props
     } = this.props
-
     return (
       <Animate
         duration={animationDuration}
@@ -61,4 +60,4 @@ class AddColor extends PureComponent {
   }
 }
 
-export default AddColor
+export default ExpandEdit

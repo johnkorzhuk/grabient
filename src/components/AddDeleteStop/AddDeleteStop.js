@@ -1,7 +1,7 @@
 import React from 'react'
 import styled from 'styled-components'
 
-import { AddColor, Trash } from './../Icons/index'
+import { ExpandEdit, Trash } from './../Icons/index'
 
 const AddStopContainer = styled.div`
   position: absolute;
@@ -30,7 +30,7 @@ const AddDeleteStop = ({
   } else if (editingStop) {
     return (
       <AddStopContainer title={title}>
-        <AddColor color={color} hovered={hovered} />
+        <ExpandEdit color={color} hovered={hovered} />
       </AddStopContainer>
     )
   } else return null

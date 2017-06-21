@@ -15,16 +15,7 @@ const Item = styled.div`
   cursor: grab;
   position: absolute;
   right: 0;
-  border: ${({ mixedColor }) => `1px solid ${mixedColor}`};
-  background-color: ${({ color }) => color};
-  box-shadow: ${({ mixedTransparentized, active }) => (active ? '0px 3px 10px 1px ' + mixedTransparentized : '0px 0px 0px 0px ' + mixedTransparentized)};
   z-index: ${({ active }) => (active ? 999 : 'auto')};
-
-  &:hover,
-  &:active {
-    z-index: 99;
-    box-shadow: ${({ mixedTransparentized }) => '0px 3px 10px 1px ' + mixedTransparentized};
-  }
 `
 
 const Container = styled.div`
@@ -95,26 +86,23 @@ class SwatchItem extends Component {
     } = this.props
     const { hovered } = this.state
     const isPickingColor = pickingColorStop === stop
-    // const shouldRenderColorPicker = false
-    const shouldRenderColorPicker =
-      isPickingColor && editingColor === id && !isUpdating
-
-    // const shouldRenderPopover = true
+    const shouldRenderColorPicker = isPickingColor && editingColor === id
     const shouldRenderPopover =
       hovered && !shouldRenderColorPicker && !sorting && !editing
-
-    // const shouldRenderPopover = true
     const mixed = mix(0.5, color, '#AFAFAF')
     const mixedTransparentized = transparentize(0.2, mix(0.5, color, '#AFAFAF'))
     const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
-
+    if (active === stop) {
+      // console.log(editingColor)
+    }
     return (
       <Container
         style={{
           right
         }}
       >
-        <StopText showText={hovered && editing}>{stop}%</StopText>
+        {!editingColor &&
+          <StopText showText={hovered && editing}>{stop}%</StopText>}
         {shouldRenderColorPicker &&
           <ColorPicker color={color} stop={stop} id={id} left={left} />}
         {shouldRenderPopover &&
@@ -122,10 +110,13 @@ class SwatchItem extends Component {
         <Item
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}
-          mixedColor={mixed}
           mixedTransparentized={mixedTransparentized}
           color={color}
-          style={style}
+          style={{
+            ...style,
+            border: `1px solid ${mixed}`,
+            backgroundColor: color
+          }}
           active={active === stop && editing}
           {...props}
         />

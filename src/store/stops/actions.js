@@ -83,7 +83,8 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
     stops: {
       updating: { stop, origUnchanged, passThreshold },
       editing,
-      updatingStopXPos
+      updatingStopXPos,
+      editingColor
     },
     dimensions: { swatch: { left, width } },
     icons: { deleteStop: { render, inverted } }
@@ -128,6 +129,15 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
           id: editing
         }
       })
+
+      if (editingColor) {
+        dispatch({
+          type: EDIT_STOP_COLOR,
+          payload: {
+            id: editing
+          }
+        })
+      }
 
       return dispatch({
         type: UPDATE_DRAGGED_STOP_POS,

@@ -217,7 +217,7 @@ export default (state = INITIAL_STATE, action) => {
       }
 
     case UPDATE_STOP_COLOR:
-      return {
+      const newState = {
         ...state,
         values: {
           ...state.values,
@@ -234,6 +234,7 @@ export default (state = INITIAL_STATE, action) => {
           }
         }
       }
+      return newState
 
     case UPDATE_ACTIVE_STOP:
       return {

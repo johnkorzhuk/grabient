@@ -25,7 +25,7 @@ import {
   GradientContainer,
   AddDeleteStop
 } from './../../components/index'
-import { AddColor } from './../../components/Icons/index'
+import { ExpandEdit } from './../../components/Icons/index'
 import { SortableSwatch } from './../index'
 import { Button } from './../../components/Common/index'
 
@@ -327,7 +327,7 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
             onClick={this._handleAddCancelColorStop}
           >
-            <AddColor
+            <ExpandEdit
               pickingColorStop={pickingColorStop}
               editingStop={editingStop}
               animationDuration={SLIDER_ANIMATION_DURATION}

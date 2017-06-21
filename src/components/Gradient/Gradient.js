@@ -33,7 +33,6 @@ class Gradient extends PureComponent {
       editingColor,
       editing
     } = this.props
-
     let newData = { ...stopData }
     if (hasOpacity) newData.opacity = hovered || editing ? opacity : 0
 

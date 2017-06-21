@@ -215,14 +215,10 @@ class Swatch extends Component {
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mouseup' || e.type === 'touchend') {
       this.props.toggleEditing(null)
-      this.setState({
-        editing: null
-      })
+      // console.log(!this.props.passThreshold)
       if (!sorting && !this.props.passThreshold) {
         this.props.editStopColor(this.props.id)
-        if (!editing) {
-          this.props.updateActiveColorPicker(stop, pickingColorStop)
-        }
+        this.props.updateActiveColorPicker(stop, pickingColorStop)
       }
 
       if (e.type === 'touchend') {
@@ -236,7 +232,6 @@ class Swatch extends Component {
       if (editing) {
         if (e.type === 'mousedown') {
           this._handleEditInit(e.nativeEvent.pageX, stop)
-          this.props.updateActiveColorPicker(stop, pickingColorStop)
         } else this._handleEditInit(e.nativeEvent.touches[0].pageX, stop)
       }
     }
