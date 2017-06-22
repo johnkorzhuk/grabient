@@ -91,7 +91,6 @@ class Edit extends PureComponent {
                     cy={data.b1yc1x}
                     r={data.r}
                   />
-
                   {!editing &&
                     <use
                       fill='#fff'

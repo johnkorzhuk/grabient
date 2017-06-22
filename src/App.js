@@ -81,15 +81,6 @@ class App extends Component {
         this.props.updateDraggedStopPos(null)
       }
     }
-
-    if (this.props.renderDelete) {
-      if (this.props.renderDeleteInverted) {
-        this.props.deleteActiveStop()
-      } else {
-        e.stopPropagation()
-        this.props.toggleTrashIcon()
-      }
-    }
   }
 
   _handleWayPointEnter = render => {
@@ -129,8 +120,7 @@ export default connect(
     updating: state.stops.updating.stop !== null,
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     gradients: getGradients(state),
-    renderDelete: state.icons.deleteStop.render,
-    renderDeleteInverted: state.icons.deleteStop.inverted
+    renderDelete: state.icons.deleteStop.render
   }),
   {
     toggleEditing,

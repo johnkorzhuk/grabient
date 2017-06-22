@@ -1,7 +1,7 @@
 import deepEqual from 'deep-equal'
 
 import { shiftConflictedStops, shiftStops } from './utils'
-import { INVERT_TRASH_ICON, TOGGLE_TRASH_ICON } from './../icons/actions'
+import { TOGGLE_TRASH_ICON } from './../icons/actions'
 import { UPDATE_EDITED_STATE } from './../gradients/actions'
 import { INITIAL_STATE as initStops } from './reducer'
 import { INITIAL_STATE as initGradients } from './../gradients/reducer'
@@ -88,21 +88,13 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
       editingColor
     },
     dimensions: { swatch: { left, width } },
-    icons: { deleteStop: { render, inverted } }
+    icons: { deleteStop: { render } }
   } = getState()
 
   if (stop !== null) {
     let updatedStopValues = { ...origUnchanged }
     let updatedStop = Math.round((xPos - left) / width * 100)
-    if (updatedStop <= -10 && render && !inverted) {
-      dispatch({
-        type: INVERT_TRASH_ICON
-      })
-    } else if (updatedStop > -10 && inverted) {
-      dispatch({
-        type: INVERT_TRASH_ICON
-      })
-    }
+
     if (updatedStop < 0) updatedStop = 0
     else if (updatedStop > 100) updatedStop = 100
 

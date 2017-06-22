@@ -30,6 +30,7 @@ const Container = styled.div`
 const StopText = styled.span`
   position: absolute;
   color: #606060;
+  cursor: default;
   top: -15px;
   font-size: 1.2rem;
 

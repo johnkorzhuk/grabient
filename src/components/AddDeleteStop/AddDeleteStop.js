@@ -3,15 +3,17 @@ import styled from 'styled-components'
 
 import { ExpandEdit, Trash } from './../Icons/index'
 
-const AddStopContainer = styled.div`
+const Container = styled.div`
   position: absolute;
   left: 0;
+`
+
+const AddStopContainer = Container.extend`
   top: 10px;
 `
 
 const AddDeleteStop = ({
   renderDelete,
-  renderDeleteInverted,
   animationDuration,
   hovered,
   color,
@@ -19,12 +21,14 @@ const AddDeleteStop = ({
 }) => {
   if (renderDelete) {
     return (
-      <Trash
-        title={title}
-        color={color}
-        inverted={renderDeleteInverted}
-        animationDuration={animationDuration}
-      />
+      <Container>
+        <Trash
+          title={title}
+          color={color}
+          inverted={hovered}
+          animationDuration={animationDuration}
+        />
+      </Container>
     )
   } else {
     return (

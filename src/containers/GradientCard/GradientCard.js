@@ -14,7 +14,8 @@ import {
   addColorStop,
   editStopColor,
   resetColorStop,
-  STOP_LIMIT
+  STOP_LIMIT,
+  deleteActiveStop
 } from './../../store/stops/actions'
 import { updateSwatchDimensions } from './../../store/dimensions/actions'
 import { copyCSS } from './../../store/icons/actions'
@@ -103,13 +104,13 @@ const SwatchSliderContainer = styled.div`
   justify-content: flex-end;
   align-items: center;
   height: 40px;
-  margin-right: 6rem;
+  margin-right: 7rem;
   margin-left: 1rem;
 `
 
 const AddDeleteButtonContainer = Button.extend`
   position: absolute;
-  right: 20px;
+  right: 25px;
   height: 100%;
   display: flex;
   align-items: center;
@@ -228,6 +229,13 @@ class GradientCard extends Component {
     addColorStop(id)
   }
 
+  _handleDelete = () => {
+    const { hovered: addColor } = this.state
+    const { deleteActiveStop, renderDelete } = this.props
+
+    if (addColor && renderDelete) deleteActiveStop()
+  }
+
   setItemHoveredState (items, hovered, resetWasEditing) {
     const newState = { ...this.state }
     items.forEach(item => {
@@ -252,7 +260,6 @@ class GradientCard extends Component {
       expanded,
       editingColor,
       renderDelete,
-      renderDeleteInverted,
       copyCSS,
       style,
       copiedId,
@@ -261,7 +268,6 @@ class GradientCard extends Component {
       resetColorStop
     } = this.props
     const atStopLimit = Object.keys(stopData).length >= STOP_LIMIT - 1
-
     const editingAngle = id === editingAngleData.id
     const editing = editingStop || editingAngle || editingColor
     const actualAngle = editingAngle ? editingAngleData.angle : angle
@@ -326,6 +332,7 @@ class GradientCard extends Component {
             title={renderDelete ? 'Delete' : 'Add'}
             onMouseEnter={e => this._handleMouseEnter(e, ['addColor'])}
             onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
+            onMouseUp={this._handleDelete}
             onClick={this._handleAddColor}
             atStopLimit={atStopLimit}
           >
@@ -334,7 +341,6 @@ class GradientCard extends Component {
               hovered={!atStopLimit && addColor}
               color={!atStopLimit ? ICON_COLOR : '#e1e1e1'}
               renderDelete={renderDelete}
-              renderDeleteInverted={renderDeleteInverted}
             />
           </AddDeleteButtonContainer>
 
@@ -374,7 +380,6 @@ const mapStateToProps = (state, props) => {
     renderDelete: state.icons.deleteStop.render &&
       editingStop &&
       Object.keys(stopData).length > 2,
-    renderDeleteInverted: state.icons.deleteStop.inverted,
     copiedId: state.icons.copied,
     edited: gradient.edited
   }
@@ -390,5 +395,6 @@ export default connect(mapStateToProps, {
   addColorStop,
   copyCSS,
   resetGradientAngle,
-  resetColorStop
+  resetColorStop,
+  deleteActiveStop
 })(GradientCard)
