@@ -231,9 +231,9 @@ class GradientCard extends Component {
 
   _handleDelete = () => {
     const { hovered: addColor } = this.state
-    const { deleteActiveStop, renderDelete } = this.props
+    const { deleteActiveStop, renderDelete, id } = this.props
 
-    if (addColor && renderDelete) deleteActiveStop()
+    if (addColor && renderDelete) deleteActiveStop(id)
   }
 
   setItemHoveredState (items, hovered, resetWasEditing) {
@@ -324,6 +324,7 @@ class GradientCard extends Component {
           >
             <SortableSwatch
               id={id}
+              deleteStop={addColor}
               animationDuration={SLIDER_ANIMATION_DURATION}
             />
           </SwatchSliderContainer>
@@ -368,7 +369,6 @@ const mapStateToProps = (state, props) => {
   const gradient = getGradientById(props.id)(state)
   const editingStop = props.id === state.stops.editing
   const stopData = getStopsById(state, props)
-  // console.log(state.icons.deleteStop.render)
   return {
     stopData,
     draggingItemMousePos: state.stops.draggingItemMousePos,
@@ -379,7 +379,6 @@ const mapStateToProps = (state, props) => {
     editingColor: props.id === state.stops.editingColor,
     expanded: state.gradients.expanded === props.id,
     renderDelete: state.icons.deleteStop.render &&
-      editingStop &&
       Object.keys(stopData).length > 2,
     copiedId: state.icons.copied,
     edited: gradient.edited

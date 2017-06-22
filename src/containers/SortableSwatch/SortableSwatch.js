@@ -194,11 +194,28 @@ class Swatch extends Component {
     })
   }
 
+  _handleSortMove = () => {
+    const { toggleTrashIcon, renderDelete } = this.props
+
+    if (!renderDelete) toggleTrashIcon()
+  }
+
   _handleSortEnd = ({ oldIndex, newIndex }) => {
-    const { swapStopsColors, id, colors } = this.props
+    const {
+      swapStopsColors,
+      id,
+      colors,
+      toggleTrashIcon,
+      renderDelete,
+      deleteStop
+    } = this.props
     const newColorOrder = arrayMove(colors, oldIndex, newIndex)
     this.props.updateActiveStop(null)
-    swapStopsColors(id, newColorOrder)
+    if (!deleteStop) {
+      swapStopsColors(id, newColorOrder)
+    }
+
+    if (renderDelete) toggleTrashIcon()
 
     this.setState({
       sorting: false
@@ -221,18 +238,19 @@ class Swatch extends Component {
         this.props.updateActiveColorPicker(stop, pickingColorStop)
       }
 
-      if (e.type === 'touchend') {
-        this.props.updateUpdatingStop(null)
-        this.props.updateDraggedStopPos(null)
-      }
+      // if (e.type === 'touchend') {
+      //   this.props.updateUpdatingStop(null)
+      //   this.props.updateDraggedStopPos(null)
+      // }
     } else if (e.type === 'mousedown' || e.type === 'touchstart') {
       e.preventDefault()
       this.props.updateActiveStop(stop)
 
       if (editing) {
-        if (e.type === 'mousedown') {
-          this._handleEditInit(e.nativeEvent.pageX, stop)
-        } else this._handleEditInit(e.nativeEvent.touches[0].pageX, stop)
+        this._handleEditInit(e.nativeEvent.pageX, stop)
+        // if (e.type === 'mousedown') {
+        //   this._handleEditInit(e.nativeEvent.pageX, stop)
+        // } else this._handleEditInit(e.nativeEvent.touches[0].pageX, stop)
       }
     }
     // todo: figure out why updateDraggedStopPos(pageX) wont work on touchmove
@@ -254,6 +272,7 @@ class Swatch extends Component {
       ...props
     } = this.props
     const { sorting } = this.state
+
     return (
       colors &&
       <SortableList
@@ -262,6 +281,7 @@ class Swatch extends Component {
         useWindowAsScrollContainer
         lockAxis='x'
         onSortStart={this._handleSortStart}
+        onSortMove={this._handleSortMove}
         onSortEnd={this._handleSortEnd}
         shouldCancelStart={() =>
           editing || updatingValue !== null || pickingColorStop !== null}
@@ -287,7 +307,6 @@ const mapStateToProps = (state, props) => {
   const colors = Object.values(stops)
   const editing = getEditingState(state, props)
   const editingColor = state.stops.editingColor
-
   return {
     stops,
     updatingValue,
@@ -299,7 +318,9 @@ const mapStateToProps = (state, props) => {
     data: getStopData(state, props),
     pickingColorStop: state.stops.updating.pickingColorStop,
     passThreshold: state.stops.updating.passThreshold,
-    active: state.stops.updating.active
+    active: state.stops.updating.active,
+    renderDelete: state.icons.deleteStop.render &&
+      Object.keys(stops).length > 2
   }
 }
 

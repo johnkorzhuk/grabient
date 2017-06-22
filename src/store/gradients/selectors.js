@@ -16,6 +16,6 @@ export const getGradientById = id =>
 export const getGradientData = (id, gradients, stops) => {
   return {
     angle: gradients.gradientValues[id].angle,
-    stops: stops.values[id]
+    stops: { ...stops.values[id] }
   }
 }

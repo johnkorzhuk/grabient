@@ -13,7 +13,7 @@ export const STOP_LIMIT = 7
 export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
 export const EDIT_STOP = 'stops/EDIT_STOP'
 export const EDIT_STOP_COLOR = 'stops/EDIT_STOP_COLOR'
-export const SWAP_STOP_COLORS = 'stops/UPDATE_STOPS_COLORS'
+export const SWAP_STOP_COLORS = 'stops/SWAP_STOP_COLORS'
 export const UPDATE_DRAGGED_STOP_POS = 'stops/UPDATE_DRAGGED_STOP_POS'
 export const TOGGLE_ACTIVE_COLOR_PICKER = 'stops/TOGGLE_ACTIVE_COLOR_PICKER'
 export const UPDATE_STOP_COLOR = 'stops/UPDATE_STOP_COLOR'
@@ -200,27 +200,28 @@ export const updateActiveStop = stop => dispatch => {
   })
 }
 
-export const deleteActiveStop = () => (dispatch, getState) => {
+export const deleteActiveStop = id => (dispatch, getState) => {
   const { stops, gradients } = getState()
-  const orig = getGradientData(stops.editing, initGradients, initStops)
-  let newdata = getGradientData(stops.editing, gradients, stops)
+  const orig = getGradientData(id, initGradients, initStops)
+  let newdata = getGradientData(id, gradients, stops)
+  delete newdata.stops[stops.updating.active]
 
   dispatch({
     type: UPDATE_EDITED_STATE,
     payload: {
       edited: !deepEqual(orig, newdata),
-      id: stops.editing
+      id
     }
   })
 
-  const newValues = { ...stops.values[stops.editing] }
+  const newValues = { ...stops.values[id] }
   if (Object.keys(newValues).length > 2) {
     delete newValues[stops.updating.active]
 
     dispatch({
       type: DELETE_ACTIVE_STOP,
       payload: {
-        editing: stops.editing,
+        editing: id,
         newValues
       }
     })

@@ -5,7 +5,6 @@ export const TOGGLE_TRASH_ICON = 'icons/TOGGLE_TRASH_ICON'
 export const TOGGLE_CSS_COPIED = 'icons/TOGGLE_CSS_COPIED'
 
 export const toggleTrashIcon = () => (dispatch, getState) => {
-  console.log('yo')
   return dispatch({
     type: TOGGLE_TRASH_ICON
   })
