@@ -88,7 +88,7 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
       editingColor
     },
     dimensions: { swatch: { left, width } },
-    icons: { deleteStop: { render } }
+    icons: { deleteStop }
   } = getState()
 
   if (stop !== null) {
@@ -109,9 +109,12 @@ export const updateDraggedStopPos = xPos => (dispatch, getState) => {
     updatedStopValues[updatedStop] = origUnchanged[stop]
 
     if (Math.abs(updatingStopXPos - xPos) >= UPDATING_STOP_THRESHOLD) {
-      if (!render) {
+      if (!deleteStop) {
         dispatch({
-          type: TOGGLE_TRASH_ICON
+          type: TOGGLE_TRASH_ICON,
+          payload: {
+            id: editing
+          }
         })
       }
 
@@ -227,7 +230,10 @@ export const deleteActiveStop = id => (dispatch, getState) => {
     })
 
     return dispatch({
-      type: TOGGLE_TRASH_ICON
+      type: TOGGLE_TRASH_ICON,
+      payload: {
+        id: null
+      }
     })
   }
 }

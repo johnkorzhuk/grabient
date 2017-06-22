@@ -4,9 +4,12 @@ import { copyTextToClipboard } from './utils'
 export const TOGGLE_TRASH_ICON = 'icons/TOGGLE_TRASH_ICON'
 export const TOGGLE_CSS_COPIED = 'icons/TOGGLE_CSS_COPIED'
 
-export const toggleTrashIcon = () => (dispatch, getState) => {
+export const toggleTrashIcon = id => (dispatch, getState) => {
   return dispatch({
-    type: TOGGLE_TRASH_ICON
+    type: TOGGLE_TRASH_ICON,
+    payload: {
+      id
+    }
   })
 }
 

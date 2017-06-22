@@ -195,9 +195,9 @@ class Swatch extends Component {
   }
 
   _handleSortMove = () => {
-    const { toggleTrashIcon, renderDelete } = this.props
+    const { toggleTrashIcon, renderDelete, id } = this.props
 
-    if (!renderDelete) toggleTrashIcon()
+    if (!renderDelete) toggleTrashIcon(id)
   }
 
   _handleSortEnd = ({ oldIndex, newIndex }) => {
@@ -206,7 +206,6 @@ class Swatch extends Component {
       id,
       colors,
       toggleTrashIcon,
-      renderDelete,
       deleteStop
     } = this.props
     const newColorOrder = arrayMove(colors, oldIndex, newIndex)
@@ -215,8 +214,7 @@ class Swatch extends Component {
       swapStopsColors(id, newColorOrder)
     }
 
-    if (renderDelete) toggleTrashIcon()
-
+    toggleTrashIcon(null)
     this.setState({
       sorting: false
     })
@@ -319,7 +317,7 @@ const mapStateToProps = (state, props) => {
     pickingColorStop: state.stops.updating.pickingColorStop,
     passThreshold: state.stops.updating.passThreshold,
     active: state.stops.updating.active,
-    renderDelete: state.icons.deleteStop.render &&
+    renderDelete: state.icons.deleteStop === props.id &&
       Object.keys(stops).length > 2
   }
 }

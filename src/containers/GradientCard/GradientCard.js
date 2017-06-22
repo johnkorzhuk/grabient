@@ -232,7 +232,6 @@ class GradientCard extends Component {
   _handleDelete = () => {
     const { hovered: addColor } = this.state
     const { deleteActiveStop, renderDelete, id } = this.props
-
     if (addColor && renderDelete) deleteActiveStop(id)
   }
 
@@ -271,7 +270,7 @@ class GradientCard extends Component {
     const editingAngle = id === editingAngleData.id
     const editing = editingStop || editingAngle || editingColor
     const actualAngle = editingAngle ? editingAngleData.angle : angle
-
+    // console.log(renderDelete)
     return (
       <GradientItem
         index={index}
@@ -378,7 +377,7 @@ const mapStateToProps = (state, props) => {
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     editingColor: props.id === state.stops.editingColor,
     expanded: state.gradients.expanded === props.id,
-    renderDelete: state.icons.deleteStop.render &&
+    renderDelete: state.icons.deleteStop === props.id &&
       Object.keys(stopData).length > 2,
     copiedId: state.icons.copied,
     edited: gradient.edited

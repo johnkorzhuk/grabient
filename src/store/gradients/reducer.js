@@ -15,37 +15,37 @@ export const INITIAL_STATE = {
       id: '2a',
       angle: 60,
       edited: false
+    },
+    '1a': {
+      id: '1a',
+      angle: 10,
+      edited: false
+    },
+    '4a': {
+      id: '4a',
+      angle: 180,
+      edited: false
+    },
+    '3a': {
+      id: '3a',
+      angle: 0,
+      edited: false
+    },
+    '5a': {
+      id: '5a',
+      angle: 60,
+      edited: false
+    },
+    '6a': {
+      id: '6a',
+      angle: 220,
+      edited: false
+    },
+    '7a': {
+      id: '7a',
+      angle: 220,
+      edited: false
     }
-    // '1a': {
-    //   id: '1a',
-    //   angle: 10,
-    //   edited: false
-    // },
-    // '4a': {
-    //   id: '4a',
-    //   angle: 180,
-    //   edited: false
-    // },
-    // '3a': {
-    //   id: '3a',
-    //   angle: 0,
-    //   edited: false
-    // },
-    // '5a': {
-    //   id: '5a',
-    //   angle: 60,
-    //   edited: false
-    // },
-    // '6a': {
-    //   id: '6a',
-    //   angle: 220,
-    //   edited: false
-    // },
-    // '7a': {
-    //   id: '7a',
-    //   angle: 220,
-    //   edited: false
-    // },
     // '8a': {
     //   id: '8a',
     //   angle: 180,
