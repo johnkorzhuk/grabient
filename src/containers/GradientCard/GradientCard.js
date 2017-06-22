@@ -368,6 +368,7 @@ const mapStateToProps = (state, props) => {
   const gradient = getGradientById(props.id)(state)
   const editingStop = props.id === state.stops.editing
   const stopData = getStopsById(state, props)
+  // console.log(state.icons.deleteStop.render)
   return {
     stopData,
     draggingItemMousePos: state.stops.draggingItemMousePos,

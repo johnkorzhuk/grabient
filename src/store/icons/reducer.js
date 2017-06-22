@@ -13,9 +13,7 @@ export default (state = INITAL_STATE, action) => {
       return {
         ...state,
         deleteStop: {
-          ...state.deleteStop,
-          render: !state.deleteStop.render,
-          inverted: false
+          render: !state.deleteStop.render
         }
       }
 
