@@ -9,7 +9,7 @@ class Edit extends PureComponent {
       this.props.pickingColorStop !== nextProps.pickingColorStop
     )
   }
-  // 'M0 2h20v2H0V2zm0 12h20v2H0v-2zm0-6h20v2H0V8z'
+
   render () {
     const {
       hovered = true,

@@ -270,7 +270,7 @@ class GradientCard extends Component {
     const editingAngle = id === editingAngleData.id
     const editing = editingStop || editingAngle || editingColor
     const actualAngle = editingAngle ? editingAngleData.angle : angle
-    // console.log(renderDelete)
+
     return (
       <GradientItem
         index={index}

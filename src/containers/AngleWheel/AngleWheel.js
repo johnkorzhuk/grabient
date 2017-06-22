@@ -83,6 +83,12 @@ const TextValue = styled.input`
   }
 `
 
+const Degree = styled.span`
+  color: white;
+  font-size: 2.2rem;
+  position: absolute
+`
+
 const CloseButton = Button.extend`
   position: absolute;
   top: 18px;
@@ -263,12 +269,13 @@ class AngleWheel extends Component {
     ]
   }
 
-  getWidth (angle) {
+  getLeft (angle) {
     const length = angle.toString().length
+    console.log(length)
 
-    if (length === 2) return 25
-    else if (length === 3) return 35
-    else return 15
+    if (length === 3) return 63
+    else if (length === 2) return 58
+    else return 50
   }
 
   render () {
@@ -305,7 +312,6 @@ class AngleWheel extends Component {
                     this.box = node
                   }}
                 />
-
               </Container>
 
               <CloseButton onClick={this._handleClose} title='Exit'>
@@ -330,7 +336,13 @@ class AngleWheel extends Component {
                   type='number'
                   value={angle}
                   onChange={this._handleInputChange}
-                />
+                /><Degree
+                  style={{
+                    left: this.getLeft(angle)
+                  }}
+                >
+                  °
+                </Degree>
               </TextContainer>
 
               <ArrowContainer
