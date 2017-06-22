@@ -271,7 +271,6 @@ class AngleWheel extends Component {
 
   getLeft (angle) {
     const length = angle.toString().length
-    console.log(length)
 
     if (length === 3) return 63
     else if (length === 2) return 58

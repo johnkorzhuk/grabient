@@ -15,7 +15,7 @@ import { toggleEditing } from './store/gradients/actions'
 import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
-import { GradientDisplay, GradientList } from './components/index'
+import { GradientDisplay, GradientList, Hero } from './components/index'
 
 const Overlay = styled.div`
   position: absolute;
@@ -108,10 +108,13 @@ class App extends Component {
     const all = Object.values(allGradients)
 
     return (
-      <GradientDisplay>
-        <GradientList gradients={all} />
-        {editing && <Overlay onClick={this._handleCancelEdits} />}
-      </GradientDisplay>
+      <main>
+        <Hero />
+        <GradientDisplay>
+          <GradientList gradients={all} />
+          {editing && <Overlay onClick={this._handleCancelEdits} />}
+        </GradientDisplay>
+      </main>
     )
   }
 }

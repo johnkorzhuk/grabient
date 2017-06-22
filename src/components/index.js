@@ -5,6 +5,7 @@ import GradientContainer from './GradientContainer/GradientContainer'
 import GradientList from './GradientList/GradientList'
 import Popover from './Popover/Popover'
 import AddDeleteStop from './AddDeleteStop/AddDeleteStop'
+import Hero from './Sections/Hero'
 
 export {
   GradientDisplay,
@@ -13,5 +14,6 @@ export {
   GradientContainer,
   GradientList,
   Popover,
-  AddDeleteStop
+  AddDeleteStop,
+  Hero
 }
