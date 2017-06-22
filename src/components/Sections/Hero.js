@@ -20,6 +20,7 @@ const Hero = () => {
     <Section>
       <Heading>Grabient</Heading>
       <iframe
+        title='github'
         src='https://ghbtns.com/github-btn.html?user=johnkorzhuk&repo=grabient&type=star&count=true'
         frameBorder='0'
         scrolling='0'
