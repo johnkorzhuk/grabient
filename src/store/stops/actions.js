@@ -8,7 +8,7 @@ import { INITIAL_STATE as initGradients } from './../gradients/reducer'
 import { getGradientData } from '././../gradients/selectors'
 
 const UPDATING_STOP_THRESHOLD = 5
-export const STOP_LIMIT = 7
+export const STOP_LIMIT = 8
 // actions
 export const UPDATE_UPDATING_STOP = 'stops/UPDATE_UPDATING_STOP'
 export const EDIT_STOP = 'stops/EDIT_STOP'

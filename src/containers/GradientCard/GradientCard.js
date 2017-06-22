@@ -334,12 +334,12 @@ class GradientCard extends Component {
             onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
             onMouseUp={this._handleDelete}
             onClick={this._handleAddColor}
-            atStopLimit={atStopLimit}
+            atStopLimit={atStopLimit && !renderDelete}
           >
             <AddDeleteStop
               animationDuration={ANGLE_PREVIEW_ANIMATION_DURATION}
-              hovered={!atStopLimit && addColor}
-              color={!atStopLimit ? ICON_COLOR : '#e1e1e1'}
+              hovered={(!atStopLimit && addColor) || (renderDelete && addColor)}
+              color={!atStopLimit || renderDelete ? ICON_COLOR : '#e1e1e1'}
               renderDelete={renderDelete}
             />
           </AddDeleteButtonContainer>
