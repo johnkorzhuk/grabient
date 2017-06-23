@@ -81,7 +81,6 @@ const GradientContainer = ({
 }) => {
   const editing = editingAngle || editingStop || editingColor
   const renderButtons = hovered && !editingAngle
-  console.log(hovered)
   return (
     <Container>
       {renderButtons &&
