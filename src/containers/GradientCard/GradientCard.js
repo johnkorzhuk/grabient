@@ -65,7 +65,6 @@ const Container = styled.li`
 const GradientItem = Container.extend`
   order: ${({ index }) => index};
   z-index: ${({ editing }) => (editing ? 21 : 'auto')};
-
   @media (min-width: 680px) {
     width: ${({ expanded }) => (expanded ? '100%' : '50%')};
     order: ${({ index, expanded }) => (expanded ? getOrder(index, 2) : index)};
@@ -89,11 +88,11 @@ const AngleContainer = Button.extend`
 `
 
 const InfoContainer = styled.div`
+  z-index: ${({ editing }) => (editing ? 22 : 'auto')};
   position: relative;
   width: 100%;
   display: flex;
   align-items: center;
-  z-index: 10;
   margin-top: 15px;
 `
 
@@ -275,7 +274,7 @@ class GradientCard extends Component {
       <GradientItem
         index={index}
         expanded={expanded}
-        editing={editing}
+        editing={editingAngle}
         style={style}
       >
         <GradientContainer
@@ -298,7 +297,7 @@ class GradientCard extends Component {
           edited={edited}
         />
 
-        <InfoContainer>
+        <InfoContainer editing={editing}>
           <AngleContainer
             title='Edit Angle'
             onClick={this._handleLeftIconClick}

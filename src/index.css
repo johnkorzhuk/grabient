@@ -32,3 +32,9 @@ a {
   box-shadow: 0px 0px 2px rgba(0, 0, 0, 0.1),
               0px 4px 8px rgba(0, 0, 0, 0.1) !important;
 }
+
+.flexbox-fix input {
+  font-size: 1.2rem !important;
+  padding-top: 3px !important;
+  font-family: 'Poppins', sans-serif !important;
+}

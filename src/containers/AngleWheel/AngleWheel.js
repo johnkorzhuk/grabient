@@ -4,14 +4,15 @@ import styled from 'styled-components'
 import { Animate } from 'react-move'
 import Wheelpng from './../../wheel.png'
 
-import { Arrow, Close } from './../../components/Icons/index'
-import { Button } from './../../components/Common/index'
-
 import {
   updateGradientAngle,
   toggleEditing,
   updateEditingAngle
 } from './../../store/gradients/actions'
+
+import { Arrow, Close } from './../../components/Icons/index'
+import { Button } from './../../components/Common/index'
+import { TextLG } from './../../components/Common/Typography'
 
 const AreaContainer = styled.div`
   width: 100%;
@@ -63,14 +64,14 @@ const TextContainer = styled.div`
   width: 85px;
 `
 
-const TextValue = styled.input`
+const TextValue = TextLG.extend`
   color: white;
   display: inline-block;
-  font-size: 2.2rem;
   text-align: center;
   border: none;
   background: none;
   width: 100%;
+  height: 29px;
 
   &::-webkit-inner-spin-button,
   ::-webkit-outer-spin-button {
@@ -81,11 +82,10 @@ const TextValue = styled.input`
   &:focus {
     outline: none;
   }
-`
+`.withComponent('input')
 
-const Degree = styled.span`
+const Degree = TextLG.extend`
   color: white;
-  font-size: 2.2rem;
   position: absolute
 `
 
@@ -272,8 +272,8 @@ class AngleWheel extends Component {
   getLeft (angle) {
     const length = angle.toString().length
 
-    if (length === 3) return 63
-    else if (length === 2) return 58
+    if (length === 3) return 65
+    else if (length === 2) return 59
     else return 50
   }
 

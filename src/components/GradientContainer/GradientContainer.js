@@ -15,7 +15,6 @@ const Container = styled.div`
   display: flex;
   flex-direction: column;
   align-items: center;
-  z-index: 10;
 `
 
 const NoBlur = styled.div`
@@ -82,7 +81,7 @@ const GradientContainer = ({
 }) => {
   const editing = editingAngle || editingStop || editingColor
   const renderButtons = hovered && !editingAngle
-
+  console.log(hovered)
   return (
     <Container>
       {renderButtons &&
@@ -121,33 +120,40 @@ const GradientContainer = ({
           <ResetText>reset</ResetText>
         </GradientButton>}
 
-      <NoBlur
+      <div
         onMouseEnter={e => onMouseEnter(e, ['main'])}
         onMouseLeave={e => onMouseLeave(e, ['main'])}
         style={{
-          zIndex: pickingColorStop ? 4 : 9
+          height: '100%',
+          width: '100%'
         }}
       >
-        <Gradient
-          editingColor={editingColor}
-          stopData={stopData}
-          angle={actualAngle}
-          transitionDuration={gradientAnimationDuration}
-        />
-      </NoBlur>
+        <NoBlur
+          style={{
+            zIndex: hovered ? pickingColorStop ? 4 : 9 : 'auto'
+          }}
+        >
+          <Gradient
+            editingColor={editingColor}
+            stopData={stopData}
+            angle={actualAngle}
+            transitionDuration={gradientAnimationDuration}
+          />
+        </NoBlur>
 
-      <Blurred>
-        <Gradient
-          editingColor={editingColor}
-          stopData={stopData}
-          hasOpacity
-          editing={editing}
-          hovered={hovered}
-          opacity={0.8}
-          angle={actualAngle}
-          transitionDuration={gradientAnimationDuration}
-        />
-      </Blurred>
+        <Blurred>
+          <Gradient
+            editingColor={editingColor}
+            stopData={stopData}
+            hasOpacity
+            editing={editing}
+            hovered={hovered}
+            opacity={0.8}
+            angle={actualAngle}
+            transitionDuration={gradientAnimationDuration}
+          />
+        </Blurred>
+      </div>
 
       <AngleWheel
         onMouseEnter={e => onMouseEnter(e, ['main'])}

@@ -2,6 +2,7 @@ import React from 'react'
 import styled from 'styled-components'
 
 import { AnglePrev } from './../Icons/index'
+import { TextMD } from './../Common/Typography'
 
 const Container = styled.div`
   display: flex;
@@ -9,10 +10,9 @@ const Container = styled.div`
   align-items: center;
 `
 
-const AngleText = styled.span`
-  font-size: 1.4rem;
-  color: ${({ color }) => color};
+const AngleText = TextMD.extend`
   padding-left: 10px;
+  padding-top: 3px;
 `
 
 const AnglePreview = ({
@@ -35,7 +35,11 @@ const AnglePreview = ({
         editingAngle={editingAngle}
       />
 
-      <AngleText color={color}>
+      <AngleText
+        style={{
+          color
+        }}
+      >
         {angle}°
       </AngleText>
     </Container>

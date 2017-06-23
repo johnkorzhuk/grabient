@@ -93,9 +93,7 @@ class SwatchItem extends Component {
     const mixed = mix(0.5, color, '#AFAFAF')
     const mixedTransparentized = transparentize(0.2, mix(0.5, color, '#AFAFAF'))
     const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
-    if (active === stop) {
-      // console.log(editingColor)
-    }
+
     return (
       <Container
         style={{

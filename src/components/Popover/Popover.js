@@ -3,9 +3,10 @@ import styled from 'styled-components'
 import { mix, transparentize } from 'polished'
 
 import { Triangle } from './../Common/index'
+import { TextSM } from './../Common/Typography'
 
 const Container = styled.div`
-  padding: 6px 10px;
+  padding: 3px 8px 2px;
   position: absolute;
   right: 50%;
   bottom: 30px;
@@ -15,11 +16,9 @@ const Container = styled.div`
   border-radius: 5px 5px 0 5px;
   background-color: white;
   box-shadow: ${({ shadowColor }) => `0px 3px 10px 0px ${shadowColor}`};
-  z-index: 100;
 `
 
-const Text = styled.span`
-  font-size: 1.2rem;
+const Text = TextSM.extend`
   color: #454545;
   text-transform: uppercase;
 `

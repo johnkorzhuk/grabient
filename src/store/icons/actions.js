@@ -13,8 +13,9 @@ export const toggleTrashIcon = id => (dispatch, getState) => {
   })
 }
 
-export const copyCSS = (angle, stopData, id) => dispatch => {
-  const css = generateLinearGradient(angle, stopData)
+export const copyCSS = (angle, stopData, id) => (dispatch, getState) => {
+  const { settings: { prefixes, fallback } } = getState()
+  const css = generateLinearGradient(angle, stopData, prefixes, fallback)
   copyTextToClipboard(css)
   dispatch({
     type: TOGGLE_CSS_COPIED,

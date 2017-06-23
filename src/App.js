@@ -16,9 +16,10 @@ import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
 import { GradientDisplay, GradientList, Hero } from './components/index'
+import { Settings } from './containers/index'
 
 const Overlay = styled.div`
-  position: absolute;
+  position: fixed;
   z-index: 20;
   top: 0;
   right: 0;
@@ -110,6 +111,7 @@ class App extends Component {
     return (
       <main>
         <Hero />
+        <Settings />
         <GradientDisplay>
           <GradientList gradients={all} />
           {editing && <Overlay onClick={this._handleCancelEdits} />}
