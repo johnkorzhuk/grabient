@@ -5,6 +5,9 @@ import styled from 'styled-components'
 import { togglePrefixes, toggleFallback } from './../../store/settings/actions'
 
 import { TextMD } from './../../components/Common/Typography'
+import { Checkbox } from './../../components/Common/index'
+import { ActionGroupItem } from './../../components/index'
+import { Sketch } from './../../components/Icons/index'
 
 const Container = styled.section`
   margin: 0 auto 80px;
@@ -14,41 +17,52 @@ const Container = styled.section`
   align-items: center;
 `
 
-const InputContainer = styled.div`
-  margin: 0 10px;
-`
-
 const Label = TextMD.withComponent('label')
 
 const Input = styled.input`
-  position: relative;
-  top: 7px;
-  left: 5px;
-  width: 20px;
-  height: 20px;
 `
 
-const Settings = ({ prefixes, fallback, togglePrefixes, toggleFallback }) => {
+const ActionsGroup = ({
+  prefixes,
+  fallback,
+  togglePrefixes,
+  toggleFallback
+}) => {
   return (
     <Container>
-      <InputContainer>
-        <Label htmlFor='prefix'>prefixes</Label>
+      <ActionGroupItem
+        style={{
+          cursor: 'pointer'
+        }}
+        ml={15}
+        itemStyle={{
+          marginTop: 4
+        }}
+      >
+        <TextMD>Download Sketch</TextMD>
+        <Sketch />
+      </ActionGroupItem>
+
+      <ActionGroupItem id='prefix'>
+        <Label htmlFor='prefix'>Prefixes</Label>
         <Input
           id='prefix'
           type='checkbox'
           checked={prefixes}
           onChange={togglePrefixes}
         />
-      </InputContainer>
-      <InputContainer>
-        <Label htmlFor='fallback'>fallback bgc</Label>
+      </ActionGroupItem>
+
+      <ActionGroupItem id='fallback'>
+        <Label htmlFor='fallback'>Fallback BGC</Label>
         <Input
           id='fallback'
           type='checkbox'
           checked={fallback}
           onChange={toggleFallback}
         />
-      </InputContainer>
+      </ActionGroupItem>
+
     </Container>
   )
 }
@@ -62,4 +76,4 @@ export default connect(
     togglePrefixes,
     toggleFallback
   }
-)(Settings)
+)(ActionsGroup)

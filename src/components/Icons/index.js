@@ -6,5 +6,6 @@ import Trash from './Trash'
 import Copy from './Copy'
 import Check from './Check'
 import Edit from './Edit'
+import Sketch from './Sketch'
 
-export { ExpandEdit, AnglePrev, Arrow, Close, Trash, Copy, Check, Edit }
+export { ExpandEdit, AnglePrev, Arrow, Close, Trash, Copy, Check, Edit, Sketch }

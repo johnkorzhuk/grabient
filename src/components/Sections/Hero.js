@@ -1,11 +1,14 @@
 import React from 'react'
-// import styled from 'styled-components'
+import styled from 'styled-components'
 
-import { Container } from './../Common/index'
-import { Heading1 } from './../Common/Typography'
+import { Container, Logo } from './../Common/index'
+
+const LogoContainer = styled.div`
+  margin-bottom: 40px;
+`
 
 const GradientDisplayContainer = Container.extend`
-  margin-top: 30px;
+  margin-top: 55px;
   margin-bottom: 30px;
   text-align: center;
 `
@@ -15,7 +18,9 @@ const Section = GradientDisplayContainer.withComponent('section')
 const Hero = () => {
   return (
     <Section>
-      <Heading1>Grabient</Heading1>
+      <LogoContainer>
+        <Logo />
+      </LogoContainer>
       <iframe
         title='github'
         src='https://ghbtns.com/github-btn.html?user=johnkorzhuk&repo=grabient&type=star&count=true'

@@ -16,7 +16,8 @@ import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
 import { GradientDisplay, GradientList, Hero } from './components/index'
-import { Settings } from './containers/index'
+import { ActionsGroup } from './containers/index'
+import { DashedBar } from './components/Common/index'
 
 const Overlay = styled.div`
   position: fixed;
@@ -111,7 +112,8 @@ class App extends Component {
     return (
       <main>
         <Hero />
-        <Settings />
+        <DashedBar />
+        <ActionsGroup />
         <GradientDisplay>
           <GradientList gradients={all} />
           {editing && <Overlay onClick={this._handleCancelEdits} />}
