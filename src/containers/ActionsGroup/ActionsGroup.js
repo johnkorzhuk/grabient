@@ -15,7 +15,7 @@ import {
 } from './../../components/Sections/GradientDisplay'
 
 const Container = GradientDisplayContainer.extend`
-  margin: 0 auto 80px;
+  margin: 0 auto 30px;
   padding: 0 20px;
   max-width: 1100px;
   display: flex;
