@@ -12,6 +12,7 @@
     "react-icons": "^2.2.5",
     "react-move": "^1.1.8",
     "react-redux": "^5.0.5",
+    "react-share": "^1.15.0",
     "react-sortable-hoc": "^0.6.3",
     "redux": "^3.6.0",
     "redux-thunk": "^2.2.0",

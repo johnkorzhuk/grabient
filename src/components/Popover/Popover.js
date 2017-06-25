@@ -16,6 +16,7 @@ const Container = styled.div`
   border-radius: 5px 5px 0 5px;
   background-color: white;
   box-shadow: ${({ shadowColor }) => `0px 3px 10px 0px ${shadowColor}`};
+  z-index: 100;
 `
 
 const Text = TextSM.extend`

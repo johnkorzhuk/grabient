@@ -5,6 +5,7 @@ import styled from 'styled-components'
 import { togglePrefixes, toggleFallback } from './../../store/settings/actions'
 import john from './../../assets/john.png'
 import eddie from './../../assets/eddie.png'
+import file from './../../assets/Eddies Fridays (1).sketch'
 
 import { TextSM } from './../../components/Common/Typography'
 import { Checkbox } from './../../components/Common/index'
@@ -97,6 +98,8 @@ const ActionsGroup = ({
 
       <GroupContainer>
         <ActionGroupItem
+          href={file}
+          download='grabients.sketch'
           style={{
             cursor: 'pointer'
           }}
