@@ -53,7 +53,7 @@ const Container = styled.li`
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 2% 30px;
+  padding: 0 20px 30px;
   position: relative;
   transition: width 400ms linear;
 

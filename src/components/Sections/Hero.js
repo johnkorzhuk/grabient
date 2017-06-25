@@ -1,23 +1,21 @@
 import React from 'react'
 import styled from 'styled-components'
 
-import { Container, Logo } from './../Common/index'
+import { Logo } from './../Common/index'
 
 const LogoContainer = styled.div`
   margin-bottom: 40px;
 `
 
-const GradientDisplayContainer = Container.extend`
-  margin-top: 55px;
-  margin-bottom: 30px;
+const GradientDisplayContainer = styled.section`
+  max-width: 1100px;
+  margin: 55px auto 30px;
   text-align: center;
 `
 
-const Section = GradientDisplayContainer.withComponent('section')
-
 const Hero = () => {
   return (
-    <Section>
+    <GradientDisplayContainer>
       <LogoContainer>
         <Logo />
       </LogoContainer>
@@ -29,7 +27,7 @@ const Hero = () => {
         width='80px'
         height='20px'
       />
-    </Section>
+    </GradientDisplayContainer>
   )
 }
 

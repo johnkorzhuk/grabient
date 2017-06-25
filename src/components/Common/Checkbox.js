@@ -1,13 +1,4 @@
 import React from 'react'
-import styled from 'styled-components'
-
-const Container = styled.div`
-
-`
-
-const Input = styled.input`
-  display: none;
-`
 
 const Unchecked = ({ color }) => (
   <svg
@@ -19,7 +10,7 @@ const Unchecked = ({ color }) => (
     <path
       d='M3 1c-1.1045695 0-2 .8954305-2 2v8c0 1.1045695.8954305 2 2 2h8c1.1045695 0 2-.8954305 2-2V3c0-1.1045695-.8954305-2-2-2H3z'
       stroke={color}
-      stroke-width='2'
+      strokeWidth='2'
       fill='none'
       fillRule='evenodd'
     />
@@ -41,13 +32,8 @@ const Checked = ({ color }) => (
   </svg>
 )
 
-const Checkbox = ({ checked, color, id }) => {
-  return (
-    <Container>
-      <Input />
-
-    </Container>
-  )
+const Checkbox = ({ checked, color }) => {
+  return checked ? <Checked color={color} /> : <Unchecked color={color} />
 }
 
 export default Checkbox

@@ -1,10 +1,9 @@
 import React from 'react'
+import styled from 'styled-components'
 
-import { Container } from './../Common/index'
-
-const GradientDisplayContainer = Container.extend`
-  margin-top: 30px;
-  margin-bottom: 30px;
+export const GradientDisplayContainer = styled.section`
+  max-width: 1100px;
+  margin: 30px auto;
 
   @media (min-width: 820px) {
     margin-left: 40px;
@@ -17,13 +16,11 @@ const GradientDisplayContainer = Container.extend`
   }
 `
 
-const Section = GradientDisplayContainer.withComponent('section')
-
 const GradientDisplay = ({ children }) => {
   return (
-    <Section>
+    <GradientDisplayContainer>
       {children}
-    </Section>
+    </GradientDisplayContainer>
   )
 }
 

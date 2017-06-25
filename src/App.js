@@ -28,6 +28,11 @@ const Overlay = styled.div`
   bottom: 0;
 `
 
+const Dashed = DashedBar.extend`
+  margin: 0 auto;
+  max-width: 1060px;
+`
+
 class App extends Component {
   componentDidMount () {
     document.addEventListener('keydown', this._handleCancelEdits)
@@ -112,7 +117,7 @@ class App extends Component {
     return (
       <main>
         <Hero />
-        <DashedBar />
+        <Dashed />
         <ActionsGroup />
         <GradientDisplay>
           <GradientList gradients={all} />
