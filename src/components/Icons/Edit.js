@@ -12,11 +12,12 @@ class Edit extends PureComponent {
 
   render () {
     const {
-      hovered = true,
+      hovered,
       color = '#afafaf',
       editing,
       pickingColorStop,
       animationDuration = 2000,
+      id,
       ...props
     } = this.props
 
@@ -47,9 +48,9 @@ class Edit extends PureComponent {
               xmlnsXlink='http://www.w3.org/1999/xlink'
             >
               <defs>
-                <circle id='a1' cx={data.a1x} cy={data.a1y} r={data.r} />
-                <circle id='b1' cx='9' cy={data.b1yc1x} r={data.r} />
-                <circle id='c1' cx={data.b1yc1x} cy='9' r={data.r} />
+                <circle id={`${id}a1`} cx={data.a1x} cy={data.a1y} r={data.r} />
+                <circle id={`${id}b1`} cx='9' cy={data.b1yc1x} r={data.r} />
+                <circle id={`${id}c1`} cx={data.b1yc1x} cy='9' r={data.r} />
               </defs>
               <g fill='none' fillRule='evenodd'>
                 <path
@@ -68,7 +69,7 @@ class Edit extends PureComponent {
                   {!editing &&
                     <use
                       fill='#fff'
-                      xlinkHref='#a1'
+                      xlinkHref={`#${id}a1`}
                       fillOpacity={data.hoveredOpacity}
                     />}
                   <circle
@@ -81,7 +82,7 @@ class Edit extends PureComponent {
                   {!editing &&
                     <use
                       fill='#fff'
-                      xlinkHref='#b1'
+                      xlinkHref={`#${id}b1`}
                       fillOpacity={data.hoveredOpacity}
                     />}
                   <circle
@@ -94,7 +95,7 @@ class Edit extends PureComponent {
                   {!editing &&
                     <use
                       fill='#fff'
-                      xlinkHref='#c1'
+                      xlinkHref={`#${id}c1`}
                       fillOpacity={data.hoveredOpacity}
                     />}
                   <circle

@@ -355,6 +355,7 @@ class GradientCard extends Component {
             onClick={this._handleAddCancelColorStop}
           >
             <Edit
+              id={id}
               pickingColorStop={pickingColorStop}
               editing={editingStop || editingColor}
               animationDuration={SLIDER_ANIMATION_DURATION}
