@@ -99,6 +99,7 @@ const ActionsGroup = ({
       <GroupContainer>
         <ActionGroupItem
           href={file}
+          type='button'
           download='grabients.sketch'
           style={{
             cursor: 'pointer'

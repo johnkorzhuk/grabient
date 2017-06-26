@@ -4,7 +4,8 @@ import styled from 'styled-components'
 import Gradient from './../Gradient/Gradient'
 import { AngleWheel } from './../../containers/index'
 import { Button } from './../Common/index'
-import { Copy } from './../Icons/index'
+import { Copy, Reset } from './../Icons/index'
+import { TextXS } from './../Common/Typography'
 
 const GRADIENT_HEIGHT = 300
 
@@ -35,29 +36,24 @@ const Blurred = styled.div`
 const GradientButton = Button.extend`
   z-index: 20;
   position: absolute;
-  background-color: rgba(0,0,0,0.15);
   padding: 3px;
   border-radius: 3px;
-  transition: background-color 100ms linear;
-
-  &:hover {
-    background-color: rgba(0,0,0,0.25);
-  }
+  display: flex;
+  align-items: center;
 `
 
-const CopiedText = styled.span`
+const CopiedText = TextXS.extend`
   color: white;
-  font-size: 1.1rem;
-  padding-right: 3px;
-  padding-left: 2px;
+  padding-left: 5px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  text-transform: uppercase;
 `
 
-const ResetText = styled.span`
-  position: relative;
-  padding: 0 1px;
-  font-size: 1.2rem;
-  bottom: 1px;
+const ResetText = TextXS.extend`
   color: white;
+  padding-right: 5px;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  text-transform: uppercase;
 `
 
 const GradientContainer = ({
@@ -77,7 +73,9 @@ const GradientContainer = ({
   onCopyCSS,
   edited,
   resetGradientAngle,
-  resetColorStop
+  resetColorStop,
+  copyHovered,
+  resetHovered
 }) => {
   const editing = editingAngle || editingStop || editingColor
   const renderButtons = hovered && !editingAngle
@@ -87,7 +85,7 @@ const GradientContainer = ({
         <GradientButton
           style={{
             top: 20,
-            right: 20
+            left: 20
           }}
           title='Copy CSS'
           onClick={() => {
@@ -95,28 +93,30 @@ const GradientContainer = ({
               onCopyCSS(actualAngle, stopData, id)
             }
           }}
-          onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
-          onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
+          onMouseEnter={e => onMouseEnter(e, ['main', 'copy'])}
+          onMouseLeave={e => onMouseLeave(e, ['main', 'copy'])}
         >
-          {copiedId === id && <CopiedText>copied</CopiedText>}
           <Copy color={'white'} />
+          {copyHovered &&
+            <CopiedText>{copiedId === id ? 'copied' : 'copy css'}</CopiedText>}
         </GradientButton>}
       {renderButtons &&
         edited &&
         <GradientButton
           style={{
-            top: 20,
-            left: 20
+            top: 15,
+            right: 15
           }}
           title='Reset'
           onClick={() => {
             resetGradientAngle(id)
             resetColorStop(id)
           }}
-          onMouseEnter={e => onMouseEnter(e, ['main', 'gradientButton'])}
-          onMouseLeave={e => onMouseLeave(e, ['main', 'gradientButton'])}
+          onMouseEnter={e => onMouseEnter(e, ['main', 'reset'])}
+          onMouseLeave={e => onMouseLeave(e, ['main', 'reset'])}
         >
-          <ResetText>reset</ResetText>
+          {resetHovered && <ResetText>Reset</ResetText>}
+          <Reset color='white' />
         </GradientButton>}
 
       <div

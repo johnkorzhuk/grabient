@@ -145,7 +145,8 @@ class GradientCard extends Component {
       arrowPrev: false,
       addColor: false,
       main: false,
-      gradientButton: false,
+      reset: false,
+      copy: false,
       edit: false
     },
     wasEditing: false
@@ -246,7 +247,9 @@ class GradientCard extends Component {
   }
 
   render () {
-    const { hovered: { arrowPrev, addColor, main, edit } } = this.state
+    const {
+      hovered: { arrowPrev, addColor, main, edit, copy, reset }
+    } = this.state
     const {
       id,
       angle,
@@ -295,6 +298,8 @@ class GradientCard extends Component {
           pickingColorStop={pickingColorStop}
           copiedId={copiedId}
           edited={edited}
+          copyHovered={copy}
+          resetHovered={reset}
         />
 
         <InfoContainer editing={editing}>

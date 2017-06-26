@@ -22,4 +22,9 @@ const TextSM = styled.span`
   font-family: 'Poppins', sans-serif;
 `
 
-export { Heading1, TextLG, TextMD, TextSM }
+const TextXS = styled.span`
+  font-size: 1rem;
+  font-family: 'Poppins', sans-serif;
+`
+
+export { Heading1, TextLG, TextMD, TextSM, TextXS }
