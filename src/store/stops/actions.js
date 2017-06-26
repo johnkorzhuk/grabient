@@ -43,7 +43,7 @@ export const editStop = id => dispatch => {
 
 export const editStopColor = (id, stop) => (dispatch, getState) => {
   const { stops: { updating: { pickingColorStop }, editingColor } } = getState()
-  if (editingColor === id && stop === pickingColorStop) {
+  if ((editingColor === id && stop === pickingColorStop) || id === null) {
     return dispatch({
       type: EDIT_STOP_COLOR,
       payload: {

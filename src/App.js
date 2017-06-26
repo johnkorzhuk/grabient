@@ -56,7 +56,6 @@ class App extends Component {
       pickingColorStop,
       editStopColor
     } = this.props
-
     if ((e.type === 'keydown' && e.which === 27) || e.type === 'click') {
       this.handleNoop(e)
       updateActiveStop(null)

@@ -5,7 +5,8 @@ import { ChromePicker } from 'react-color'
 
 import {
   updateStopColor,
-  updateActiveColorPicker
+  updateActiveColorPicker,
+  editStopColor
 } from './../../store/stops/actions'
 
 import { Triangle } from './../../components/Common/index'
@@ -61,6 +62,7 @@ class ColorPicker extends Component {
   _handleKeyEnter = e => {
     if (e.which === 13) {
       this.props.updateActiveColorPicker(null)
+      this.props.editStopColor(null)
     }
   }
 
@@ -89,6 +91,8 @@ class ColorPicker extends Component {
   }
 }
 
-export default connect(undefined, { updateStopColor, updateActiveColorPicker })(
-  ColorPicker
-)
+export default connect(undefined, {
+  updateStopColor,
+  updateActiveColorPicker,
+  editStopColor
+})(ColorPicker)
