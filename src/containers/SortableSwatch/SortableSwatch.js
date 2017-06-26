@@ -232,7 +232,7 @@ class Swatch extends Component {
       this.props.toggleEditing(null)
 
       if (!sorting && !this.props.passThreshold) {
-        this.props.editStopColor(this.props.id)
+        this.props.editStopColor(this.props.id, stop)
         this.props.updateActiveColorPicker(stop, pickingColorStop)
       }
 

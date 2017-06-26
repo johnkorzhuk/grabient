@@ -164,7 +164,7 @@ export default (state = INITIAL_STATE, action) => {
     case EDIT_STOP_COLOR:
       return {
         ...state,
-        editingColor: state.editingColor ? null : action.payload.id
+        editingColor: action.payload.id
       }
 
     case SWAP_STOP_COLORS:
