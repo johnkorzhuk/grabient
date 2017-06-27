@@ -16,7 +16,7 @@ import {
 } from './../../components/Sections/GradientDisplay'
 
 const Container = GradientDisplayContainer.extend`
-  margin: 0 auto 30px;
+  margin: 0 auto 20px;
   padding: 0 20px;
   max-width: 1100px;
   display: flex;
@@ -25,7 +25,7 @@ const Container = GradientDisplayContainer.extend`
   align-items: center;
   flex-wrap: wrap;
 
-  @media (min-width: 860px) {
+  @media (min-width: 924px) {
     justify-content: space-between;
   }
 `

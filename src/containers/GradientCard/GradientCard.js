@@ -167,7 +167,7 @@ class GradientCard extends Component {
   }
 
   componentWillUnmount () {
-    window.removeEventListener('resize')
+    window.removeEventListener('resize', this._handleWindowResize)
   }
 
   componentWillReceiveProps (nextProps) {

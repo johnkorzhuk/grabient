@@ -13,7 +13,7 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: 25px auto 0;
+  margin: ${({ bottom }) => (bottom ? 0 : 0)} auto ${({ bottom }) => (bottom ? '25px' : 0)};
   max-width: 150px;
   height: 40px;
 `
@@ -124,7 +124,7 @@ class Pagination extends Component {
   }
 
   render () {
-    const { total, perPage } = this.props
+    const { total, perPage, bottom = false } = this.props
     const { activeItem, itemWidth, hovered: { left, right } } = this.state
     const totalItems = Math.ceil(total / perPage)
 
@@ -141,6 +141,7 @@ class Pagination extends Component {
         {data => {
           return (
             <Container
+              bottom={bottom}
               total={totalItems}
               onMouseLeave={this.handleContanerMouseLeave}
             >

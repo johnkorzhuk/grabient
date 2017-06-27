@@ -11,13 +11,15 @@ import {
   deleteActiveStop,
   editStopColor
 } from './store/stops/actions'
-import { toggleEditing } from './store/gradients/actions'
+import { toggleEditing, updatePage } from './store/gradients/actions'
 import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
 import { GradientDisplay, GradientList, Hero } from './components/index' // eslint-disable-line
 import { ActionsGroup, Pagination } from './containers/index'
 import { DashedBar } from './components/Common/index'
+
+const ITEMS_PER_PAGE = 6
 
 const Overlay = styled.div`
   position: fixed;
@@ -54,20 +56,53 @@ class App extends Component {
       updateActiveStop,
       deleteActiveStop,
       pickingColorStop,
-      editStopColor
+      editStopColor,
+      gradients,
+      updatePage,
+      currPage
     } = this.props
-    if ((e.type === 'keydown' && e.which === 27) || e.type === 'click') {
-      this.handleNoop(e)
-      updateActiveStop(null)
-      editStopColor(null)
-      if (pickingColorStop) {
-        updateActiveColorPicker(null)
-      } else {
-        toggleEditing(null)
-        editStop(null)
+
+    if (e.type === 'keydown' || e.type === 'click') {
+      const total = Math.ceil(Object.keys(gradients).length / ITEMS_PER_PAGE)
+
+      if (e.which === 39) {
+        const newPage = currPage + 1
+        if (newPage <= total) {
+          updateActiveStop(null)
+          editStopColor(null)
+          updateActiveColorPicker(null)
+          toggleEditing(null)
+          editStop(null)
+          updatePage(newPage)
+        }
       }
-    } else if ((e.which === 46 && e.metaKey) || (e.which === 8 && e.metaKey)) {
-      deleteActiveStop()
+
+      if (e.which === 37) {
+        const newPage = currPage - 1
+        if (newPage >= 1) {
+          updateActiveStop(null)
+          editStopColor(null)
+          updateActiveColorPicker(null)
+          toggleEditing(null)
+          editStop(null)
+          updatePage(newPage)
+        }
+      }
+
+      if (e.which === 27) {
+        this.handleNoop(e)
+        updateActiveStop(null)
+        editStopColor(null)
+        if (pickingColorStop) {
+          updateActiveColorPicker(null)
+        } else {
+          toggleEditing(null)
+          editStop(null)
+        }
+      }
+      if ((e.which === 46 && e.metaKey) || (e.which === 8 && e.metaKey)) {
+        deleteActiveStop()
+      }
     }
   }
 
@@ -108,21 +143,26 @@ class App extends Component {
       editingAngle,
       editingStop,
       pickingColorStop,
-      gradients: allGradients
+      gradients: allGradients,
+      currPage
     } = this.props
     const editing = editingAngle || editingStop || pickingColorStop
-    const all = Object.values(allGradients)
-    // <Hero />
+    const start = (currPage - 1) * ITEMS_PER_PAGE
+    const end = start + ITEMS_PER_PAGE
+
+    const currGradients = Object.values(allGradients).slice(start, end)
+
     return (
       <main>
-
+        <Hero />
         <Dashed />
-        <Pagination perPage={6} />
         <ActionsGroup />
+        <Pagination perPage={ITEMS_PER_PAGE} />
         <GradientDisplay>
-          <GradientList gradients={all} />
+          <GradientList gradients={currGradients} />
           {editing && <Overlay onClick={this._handleCancelEdits} />}
         </GradientDisplay>
+        <Pagination perPage={ITEMS_PER_PAGE} bottom />
       </main>
     )
   }
@@ -136,9 +176,11 @@ export default connect(
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     gradients: getGradients(state),
     renderDelete: state.icons.deleteStop,
-    passThreshold: state.stops.updating.passThreshold
+    passThreshold: state.stops.updating.passThreshold,
+    currPage: state.gradients.page
   }),
   {
+    updatePage,
     toggleEditing,
     editStop,
     updateDraggedStopPos,

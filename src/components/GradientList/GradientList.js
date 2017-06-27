@@ -4,7 +4,7 @@ import styled from 'styled-components'
 import { GradientCard } from './../../containers/index'
 
 const Container = styled.ul`
-  display: flex;
+   display: flex;
   justify-content: center;
   flex-wrap: wrap;
 
@@ -16,14 +16,14 @@ const Container = styled.ul`
 const GradientList = ({ gradients }) => {
   return (
     <Container>
-      {gradients.map((gradient, index) => {
+      {gradients.map((item, index) => {
         return (
           <GradientCard
-            gradient={gradient}
+            key={item.id}
+            gradient={item}
             index={index}
-            width='33.33%'
-            id={gradient.id}
-            key={gradient.id}
+            width='100%'
+            id={item.id}
           />
         )
       })}

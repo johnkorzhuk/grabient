@@ -3,7 +3,7 @@ import styled from 'styled-components'
 
 export const GradientDisplayContainer = styled.section`
   max-width: 1100px;
-  margin: 30px auto;
+  margin: 15px auto 0;
 
   @media (min-width: 820px) {
     margin-left: 40px;
