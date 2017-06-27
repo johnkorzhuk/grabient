@@ -4,6 +4,7 @@ import SortableSwatch from './SortableSwatch/SortableSwatch'
 import ColorPicker from './ColorPicker/ColorPicker'
 import ExpandContract from './ExpandContract/ExpandContract'
 import ActionsGroup from './ActionsGroup/ActionsGroup'
+import Pagination from './Pagination/Pagination'
 
 export {
   AngleWheel,
@@ -11,5 +12,6 @@ export {
   SortableSwatch,
   ColorPicker,
   ExpandContract,
-  ActionsGroup
+  ActionsGroup,
+  Pagination
 }

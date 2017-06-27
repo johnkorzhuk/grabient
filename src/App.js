@@ -15,8 +15,8 @@ import { toggleEditing } from './store/gradients/actions'
 import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
-import { GradientDisplay, GradientList, Hero } from './components/index'
-import { ActionsGroup } from './containers/index'
+import { GradientDisplay, GradientList, Hero } from './components/index' // eslint-disable-line
+import { ActionsGroup, Pagination } from './containers/index'
 import { DashedBar } from './components/Common/index'
 
 const Overlay = styled.div`
@@ -112,11 +112,12 @@ class App extends Component {
     } = this.props
     const editing = editingAngle || editingStop || pickingColorStop
     const all = Object.values(allGradients)
-
+    // <Hero />
     return (
       <main>
-        <Hero />
+
         <Dashed />
+        <Pagination perPage={6} />
         <ActionsGroup />
         <GradientDisplay>
           <GradientList gradients={all} />

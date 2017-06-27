@@ -4,9 +4,9 @@ import {
   TOGGLE_EDITING_ANGLE,
   UPDATE_EDITING_ANGLE,
   UPDATE_EXPANDED,
-  RENDER_MORE_GRADIENTS,
   UPDATE_EDITED_STATE,
-  RESET_GRADIENT_ANGLE
+  RESET_GRADIENT_ANGLE,
+  UPDATE_PAGE
 } from './actions'
 
 export const INITIAL_STATE = {
@@ -122,9 +122,7 @@ export const INITIAL_STATE = {
     id: null,
     angle: null
   },
-  // 'hex', 'rgb', 'hsl'
-  colors: 'hex',
-  gradientsToRender: 9
+  page: 1
 }
 
 export default (state = INITIAL_STATE, action) => {
@@ -196,10 +194,10 @@ export default (state = INITIAL_STATE, action) => {
         expanded: action.payload.id
       }
 
-    case RENDER_MORE_GRADIENTS:
+    case UPDATE_PAGE:
       return {
         ...state,
-        gradientsToRender: (state.gradientsToRender += action.payload.amount)
+        page: action.payload.page
       }
 
     default:

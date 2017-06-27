@@ -12,12 +12,12 @@ export const UPDATE_EDITED_STATE = 'gradients/UPDATE_EDITED_STATE'
 export const TOGGLE_EDITING_ANGLE = 'gradients/TOGGLE_EDITING_ANGLE'
 export const UPDATE_EDITING_ANGLE = 'gradients/UPDATE_EDITING_ANGLE'
 export const UPDATE_EXPANDED = 'gradients/UPDATE_EXPANDED'
-export const RENDER_MORE_GRADIENTS = 'gradients/RENDER_MORE_GRADIENTS'
 export const RESET_GRADIENT_ANGLE = 'gradients/RESET_GRADIENT_ANGLE'
+export const UPDATE_PAGE = 'gradients/UPDATE_PAGE'
 
 const checkIfNaN = num => {
   if (typeof num !== 'number') num = parseInt(num, 10)
-  return isNaN(num) ? 0 : num
+  return Number.isNaN(num) ? 0 : num
 }
 
 export const updateActiveId = () => (dispatch, getState) => {
@@ -84,15 +84,6 @@ export const updateExpanded = id => dispatch => {
   })
 }
 
-export const renderMoreGradients = amount => dispatch => {
-  return dispatch({
-    type: RENDER_MORE_GRADIENTS,
-    payload: {
-      amount
-    }
-  })
-}
-
 export const resetGradientAngle = id => dispatch => {
   dispatch({
     type: TOGGLE_CSS_COPIED,
@@ -105,6 +96,15 @@ export const resetGradientAngle = id => dispatch => {
     type: RESET_GRADIENT_ANGLE,
     payload: {
       id
+    }
+  })
+}
+
+export const updatePage = page => dispatch => {
+  return dispatch({
+    type: UPDATE_PAGE,
+    payload: {
+      page
     }
   })
 }

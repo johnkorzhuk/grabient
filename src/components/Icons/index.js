@@ -8,6 +8,7 @@ import Check from './Check'
 import Edit from './Edit'
 import Sketch from './Sketch'
 import Reset from './Reset'
+import PaginationArrow from './PaginationArrow'
 
 export {
   ExpandEdit,
@@ -19,5 +20,6 @@ export {
   Check,
   Edit,
   Sketch,
-  Reset
+  Reset,
+  PaginationArrow
 }
