@@ -13,7 +13,7 @@ const Container = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${({ bottom }) => (bottom ? 0 : 0)} auto ${({ bottom }) => (bottom ? '25px' : 0)};
+  margin: ${({ bottom }) => (bottom ? '-20px' : 0)} auto ${({ bottom }) => (bottom ? '25px' : 0)};
   max-width: 150px;
   height: 40px;
 `
