@@ -29,7 +29,7 @@ const Hero = () => {
 
       <iframe
         title='facebook'
-        src='https://www.facebook.com/plugins/share_button.php?href=http%3A%2F%2Fgrabient.netlify.com%2F&layout=button_count&size=small&mobile_iframe=true&width=69&height=20&appId'
+        src='https://www.facebook.com/plugins/share_button.php?href=http%3A%2F%2Fgrabient.com%2F&layout=button_count&size=small&mobile_iframe=true&width=69&height=20&appId'
         width='69'
         height='20'
         scrolling='no'
@@ -38,7 +38,7 @@ const Hero = () => {
       />
 
       <iframe
-        src='https://platform.twitter.com/widgets/tweet_button.html?size=s&url=http%3A%2F%2Fwww.grabient.com&via=johnkorzhuk&related=twitterapi%2Ctwitter&text=Grab%20and%20customize%20yourself%20a%20web%20gradient!%20%23css%20%23gradients%20%23webdesign%20%23webdevelopment'
+        src='https://platform.twitter.com/widgets/tweet_button.html?size=s&url=https%3A%2F%2Fwww.grabient.com&via=johnkorzhuk&related=twitterapi%2Ctwitter&text=Grab%20and%20customize%20yourself%20a%20web%20gradient!%20%23css%20%23gradients%20%23webdesign%20%23webdevelopment'
         width='61px'
         height='20px'
         scrolling='no'
