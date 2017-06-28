@@ -61,10 +61,20 @@ class App extends Component {
       updatePage,
       currPage
     } = this.props
-
-    if (e.type === 'keydown' || e.type === 'click') {
+    if (e.type === 'click') {
+      this.handleNoop(e)
+      updateActiveStop(null)
+      editStopColor(null)
+      if (pickingColorStop) {
+        updateActiveColorPicker(null)
+      } else {
+        toggleEditing(null)
+        editStop(null)
+      }
+    }
+    if (e.type === 'keydown') {
       const total = Math.ceil(Object.keys(gradients).length / ITEMS_PER_PAGE)
-
+      this.handleNoop(e)
       if (e.which === 39) {
         const newPage = currPage + 1
         if (newPage <= total) {
@@ -90,7 +100,6 @@ class App extends Component {
       }
 
       if (e.which === 27) {
-        this.handleNoop(e)
         updateActiveStop(null)
         editStopColor(null)
         if (pickingColorStop) {
