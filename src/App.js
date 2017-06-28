@@ -15,7 +15,7 @@ import { toggleEditing, updatePage } from './store/gradients/actions'
 import { toggleTrashIcon } from './store/icons/actions'
 import { getGradients } from './store/gradients/selectors'
 
-import { GradientDisplay, GradientList, Hero } from './components/index' // eslint-disable-line
+import { GradientDisplay, GradientList, Hero } from './components/index'
 import { ActionsGroup, Pagination } from './containers/index'
 import { DashedBar } from './components/Common/index'
 
