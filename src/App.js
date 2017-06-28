@@ -43,9 +43,9 @@ class App extends Component {
   }
 
   componentWillUnmount () {
-    document.removeEventListener('keydown')
-    document.removeEventListener('mousemove')
-    document.removeEventListener('mouseup')
+    document.removeEventListener('keydown', this._handleCancelEdits)
+    document.removeEventListener('mousemove', this._handleDocumentMouseMove)
+    document.removeEventListener('mouseup', this._handleDocumentMouseUp)
   }
 
   _handleCancelEdits = e => {
@@ -74,8 +74,8 @@ class App extends Component {
     }
     if (e.type === 'keydown') {
       const total = Math.ceil(Object.keys(gradients).length / ITEMS_PER_PAGE)
-      this.handleNoop(e)
       if (e.which === 39) {
+        this.handleNoop(e)
         const newPage = currPage + 1
         if (newPage <= total) {
           updateActiveStop(null)
@@ -88,6 +88,7 @@ class App extends Component {
       }
 
       if (e.which === 37) {
+        this.handleNoop(e)
         const newPage = currPage - 1
         if (newPage >= 1) {
           updateActiveStop(null)
@@ -100,6 +101,7 @@ class App extends Component {
       }
 
       if (e.which === 27) {
+        this.handleNoop(e)
         updateActiveStop(null)
         editStopColor(null)
         if (pickingColorStop) {
@@ -110,6 +112,7 @@ class App extends Component {
         }
       }
       if ((e.which === 46 && e.metaKey) || (e.which === 8 && e.metaKey)) {
+        this.handleNoop(e)
         deleteActiveStop()
       }
     }
@@ -158,7 +161,6 @@ class App extends Component {
     const editing = editingAngle || editingStop || pickingColorStop
     const start = (currPage - 1) * ITEMS_PER_PAGE
     const end = start + ITEMS_PER_PAGE
-
     const currGradients = Object.values(allGradients).slice(start, end)
 
     return (
