@@ -1,9 +1,8 @@
-import React, { Component } from 'react'
-import styled from 'styled-components'
-import { mix, transparentize } from 'polished'
+import React, { Component } from 'react';
+import styled from 'styled-components';
 
-import { Triangle } from './../Common/index'
-import { TextSM } from './../Common/Typography'
+import { Triangle } from './../Common/index';
+import { TextSM } from './../Common/Typography';
 
 const Container = styled.div`
   padding: 3px 8px 2px;
@@ -17,37 +16,30 @@ const Container = styled.div`
   background-color: white;
   box-shadow: ${({ shadowColor }) => `0px 3px 10px 0px ${shadowColor}`};
   z-index: 100;
-`
+`;
 
 const Text = TextSM.extend`
   color: #454545;
   text-transform: uppercase;
-`
+`;
 
 class Popover extends Component {
-  shouldComponentUpdate (nextProps) {
-    return (
-      this.props.color !== nextProps.color ||
-      this.props.isPickingColor !== nextProps.isPickingColor
-    )
+  shouldComponentUpdate(nextProps) {
+    return this.props.value !== nextProps.value || this.props.isPickingColor !== nextProps.isPickingColor;
   }
 
-  render () {
-    const { color, left, isPickingColor } = this.props
-    const mixed = transparentize(0.4, mix(0.2, color, '#AFAFAF'))
+  render() {
+    const { value, left, isPickingColor, shadow } = this.props;
 
     return (
-      <Container
-        className='target-el'
-        left={left}
-        shadowColor={mixed}
-        isPickingColor={isPickingColor}
-      >
-        <Text>{color}</Text>
+      <Container className="target-el" left={left} shadowColor={shadow} isPickingColor={isPickingColor}>
+        <Text>
+          {value}
+        </Text>
         <Triangle right />
       </Container>
-    )
+    );
   }
 }
 
-export default Popover
+export default Popover;

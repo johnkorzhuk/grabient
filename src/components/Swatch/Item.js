@@ -1,12 +1,12 @@
-import React, { Component } from 'react'
-import styled from 'styled-components'
-import { mix, transparentize } from 'polished'
+import React, { Component } from 'react';
+import styled from 'styled-components';
+import { mix, transparentize } from 'polished';
 
-import { Popover } from './../index'
-import { ColorPicker } from './../../containers/index'
+import { Popover } from './../index';
+import { ColorPicker } from './../../containers/index';
 
 // rem
-const SLIDER_ITEM_SIZE = 2
+const SLIDER_ITEM_SIZE = 2;
 
 const Item = styled.div`
   height: ${SLIDER_ITEM_SIZE}rem;
@@ -16,7 +16,7 @@ const Item = styled.div`
   position: absolute;
   right: 0;
   z-index: ${({ active }) => (active ? 999 : 'auto')};
-`
+`;
 
 const Container = styled.div`
   display: flex;
@@ -25,26 +25,26 @@ const Container = styled.div`
   height: ${SLIDER_ITEM_SIZE}rem;
   width: ${SLIDER_ITEM_SIZE}rem;
   bottom: 10px;
-`
+`;
 
-const StopText = styled.span`
-  position: absolute;
-  color: #606060;
-  cursor: default;
-  top: -15px;
-  font-size: 1.2rem;
-  user-select: none;
+// const StopText = styled.span`
+//   position: absolute;
+//   color: #606060;
+//   cursor: default;
+//   top: -15px;
+//   font-size: 1.2rem;
+//   user-select: none;
 
-  transition: opacity 100ms linear;
-  opacity: ${({ showText }) => (showText ? '1' : '0')};
-`
+//   transition: opacity 100ms linear;
+//   opacity: ${({ showText }) => (showText ? '1' : '0')};
+// `;
 
 class SwatchItem extends Component {
   state = {
     hovered: false
-  }
+  };
 
-  shouldComponentUpdate (nextProps, nextState) {
+  shouldComponentUpdate(nextProps, nextState) {
     return (
       this.props.color !== nextProps.color ||
       this.props.left !== nextProps.left ||
@@ -56,22 +56,22 @@ class SwatchItem extends Component {
       this.props.active !== nextProps.active ||
       this.props.sorting !== nextProps.sorting ||
       this.state.hovered !== nextState.hovered
-    )
+    );
   }
 
   _handleMouseEnter = () => {
     this.setState({
       hovered: true
-    })
-  }
+    });
+  };
 
   _handleMouseLeave = () => {
     this.setState({
       hovered: false
-    })
-  }
+    });
+  };
 
-  render () {
+  render() {
     const {
       color,
       left,
@@ -85,33 +85,33 @@ class SwatchItem extends Component {
       active,
       sorting,
       ...props
-    } = this.props
-    const { hovered } = this.state
-    const isPickingColor = pickingColorStop === stop
-    const shouldRenderColorPicker = isPickingColor && editingColor === id
-    const shouldRenderPopover =
-      hovered && !shouldRenderColorPicker && !sorting && !editing
-    const mixed = mix(0.5, color, '#AFAFAF')
-    const mixedTransparentized = transparentize(0.2, mix(0.5, color, '#AFAFAF'))
-    const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`
-
+    } = this.props;
+    const { hovered } = this.state;
+    const isPickingColor = pickingColorStop === stop;
+    const shouldRenderColorPicker = isPickingColor && editingColor === id;
+    const popover = hovered && !shouldRenderColorPicker && !sorting;
+    const shouldRenderPopoverColor = popover && !editing;
+    const shouldRenderPopoverStop = popover && editing;
+    const mixed = mix(0.5, color, '#AFAFAF');
+    const popoverShadow = transparentize(0.4, mix(0.2, color, '#AFAFAF'));
+    const mixedTransparentized = transparentize(0.2, mix(0.5, color, '#AFAFAF'));
+    const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`;
+    // <StopText showText={hovered && editing}>{stop}%</StopText>
+    // console.log(hovered, !shouldRenderColorPicker, !sorting, !editing, shouldRenderPopoverColor);
     return (
       <Container
         style={{
           right
         }}
       >
-        {!editingColor &&
-          <StopText showText={hovered && editing}>{stop}%</StopText>}
-        {shouldRenderColorPicker &&
-          <ColorPicker color={color} stop={stop} id={id} left={left} />}
-        {shouldRenderPopover &&
-          <Popover color={color} isPickingColor={isPickingColor} />}
+        {shouldRenderPopoverStop && <Popover value={`${stop}%`} shadow={popoverShadow} />}
+        {shouldRenderColorPicker && <ColorPicker color={color} stop={stop} id={id} left={left} />}
+        {shouldRenderPopoverColor && <Popover value={color} isPickingColor={isPickingColor} shadow={popoverShadow} />}
         <Item
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}
           mixedTransparentized={mixedTransparentized}
-          color={color}
+          value={color}
           style={{
             ...style,
             border: `1px solid ${mixed}`,
@@ -121,8 +121,8 @@ class SwatchItem extends Component {
           {...props}
         />
       </Container>
-    )
+    );
   }
 }
 
-export default SwatchItem
+export default SwatchItem;
