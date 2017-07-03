@@ -1,22 +1,22 @@
-import React, { Component } from 'react'
-import { connect } from 'react-redux'
-import styled from 'styled-components'
-import { Animate } from 'react-move'
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import styled from 'styled-components';
+import { Animate } from 'react-move';
 
-import { updatePage } from './../../store/gradients/actions'
+import { updatePage } from './../../store/gradients/actions';
 
-import Item from './Item'
-import { PaginationArrow } from './../../components/Icons/index'
+import Item from './Item';
+import { PaginationArrow } from './../../components/Icons/index';
 
 const Container = styled.div`
   position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin: ${({ bottom }) => (bottom ? '-20px' : 0)} auto ${({ bottom }) => (bottom ? '25px' : 0)};
-  max-width: 150px;
+  margin: 25px auto;
+  width: ${({ total }) => total * 35 + 'px'};
   height: 40px;
-`
+`;
 
 const Uderline = styled.span`
   width: 16px;
@@ -24,15 +24,15 @@ const Uderline = styled.span`
   position: absolute;
   bottom: 10px;
   border-bottom: 1px solid black;
-`
+`;
 
-const ArrowContainer = styled.a`
+const ArrowContainer = styled.span`
   position: absolute;
   display: inline-block;
   cursor: pointer;
   padding: 10px;
   ${({ position }) => `${position}: -25px`};
-`
+`;
 
 class Pagination extends Component {
   state = {
@@ -42,33 +42,33 @@ class Pagination extends Component {
       left: false,
       right: false
     }
-  }
+  };
 
-  componentWillReceiveProps (nextProps) {
+  componentWillReceiveProps(nextProps) {
     if (this.props.currPage !== nextProps.currPage) {
       this.setState({
         activeItem: nextProps.currPage
-      })
+      });
     }
   }
 
   getWidth = width => {
     this.setState({
       itemWidth: width
-    })
-  }
+    });
+  };
 
   handleItemMouseEnter = item => {
     this.setState({
       activeItem: item
-    })
-  }
+    });
+  };
 
   handleContanerMouseLeave = () => {
     this.setState({
       activeItem: this.props.currPage
-    })
-  }
+    });
+  };
 
   handleArrowMouseEnter = position => {
     const newState = {
@@ -78,9 +78,9 @@ class Pagination extends Component {
         ...this.state.hovered,
         [position]: true
       }
-    }
-    this.setState(newState)
-  }
+    };
+    this.setState(newState);
+  };
 
   handleArrowMouseLeave = position => {
     const newState = {
@@ -89,24 +89,24 @@ class Pagination extends Component {
         ...this.state.hovered,
         [position]: false
       }
-    }
-    this.setState(newState)
-  }
+    };
+    this.setState(newState);
+  };
 
   handleArrowClick = (e, change) => {
-    e.preventDefault()
-    const { total, currPage, updatePage, perPage } = this.props
-    const totalItem = Math.ceil(total / perPage)
-    const newPage = currPage + change
+    e.preventDefault();
+    const { total, currPage, updatePage, perPage } = this.props;
+    const totalItem = Math.ceil(total / perPage);
+    const newPage = currPage + change;
     if (newPage >= 1 && newPage <= totalItem) {
-      updatePage(newPage)
+      updatePage(newPage);
     }
-  }
+  };
 
-  renderItems (total) {
-    let items = []
+  renderItems(total) {
+    let items = [];
     for (let i = 1; i <= total; i++) {
-      const left = `${(i - 1) / total * 100}%`
+      const left = `${(i - 1) / total * 100}%`;
       items.push(
         <Item
           onMouseEnter={this.handleItemMouseEnter}
@@ -118,15 +118,15 @@ class Pagination extends Component {
           key={i}
           getWidth={this.getWidth}
         />
-      )
+      );
     }
-    return items
+    return items;
   }
 
-  render () {
-    const { total, perPage, bottom = false } = this.props
-    const { activeItem, itemWidth, hovered: { left, right } } = this.state
-    const totalItems = Math.ceil(total / perPage)
+  render() {
+    const { total, perPage } = this.props;
+    const { activeItem, itemWidth, hovered: { left, right } } = this.state;
+    const totalItems = Math.ceil(total / perPage);
 
     return (
       <Animate
@@ -140,13 +140,9 @@ class Pagination extends Component {
       >
         {data => {
           return (
-            <Container
-              bottom={bottom}
-              total={totalItems}
-              onMouseLeave={this.handleContanerMouseLeave}
-            >
+            <Container total={totalItems} onMouseLeave={this.handleContanerMouseLeave}>
               <ArrowContainer
-                position='left'
+                position="left"
                 onMouseEnter={() => this.handleArrowMouseEnter('left')}
                 onMouseLeave={() => this.handleArrowMouseLeave('left')}
                 onClick={e => this.handleArrowClick(e, -1)}
@@ -157,7 +153,7 @@ class Pagination extends Component {
               {this.renderItems(totalItems)}
 
               <ArrowContainer
-                position='right'
+                position="right"
                 onMouseEnter={() => this.handleArrowMouseEnter('right')}
                 onMouseLeave={() => this.handleArrowMouseLeave('right')}
                 onClick={e => this.handleArrowClick(e, 1)}
@@ -171,12 +167,11 @@ class Pagination extends Component {
                   width: data.itemWidth
                 }}
               />
-
             </Container>
-          )
+          );
         }}
       </Animate>
-    )
+    );
   }
 }
 
@@ -186,4 +181,4 @@ export default connect(
     total: Object.keys(state.gradients.gradientValues).length
   }),
   { updatePage }
-)(Pagination)
+)(Pagination);

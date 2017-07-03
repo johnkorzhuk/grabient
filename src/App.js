@@ -166,6 +166,7 @@ class App extends Component {
           <GradientList gradients={currGradients} />
           {editing && <Overlay onClick={this._handleCancelEdits} />}
         </GradientDisplay>
+        <Dashed />
         <Pagination perPage={ITEMS_PER_PAGE} bottom />
       </main>
     );

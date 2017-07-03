@@ -1,8 +1,8 @@
 import { TOGGLE_PREFIXES, TOGGLE_FALLBACK } from './actions';
 
 const INITIAL_STATE = {
-  prefixes: true,
-  fallback: false
+  prefixes: false,
+  fallback: true
 };
 
 export default (state = INITIAL_STATE, action) => {

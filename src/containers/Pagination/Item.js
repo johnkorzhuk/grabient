@@ -1,25 +1,24 @@
-import React, { Component } from 'react'
-import { Animate } from 'react-move'
-import { TextSM } from './../../components/Common/Typography'
+import React, { Component } from 'react';
+import { Animate } from 'react-move';
+import { TextSM } from './../../components/Common/Typography';
 
-const Item = TextSM.extend`
+const ItemLink = TextSM.extend`
   padding: 2px 5px;
   position: absolute;
   border-bottom: 1px solid transparent;
   user-select: none;
-`
-
-const ItemLink = Item.withComponent('a')
+  cursor: pointer;
+`;
 
 class PaginationItem extends Component {
-  componentWillReceiveProps (nextProps) {
+  componentWillReceiveProps(nextProps) {
     if (this.props.hovered !== nextProps.hovered && nextProps.hovered) {
-      this.props.getWidth(this.item.getClientRects()[0].width)
+      this.props.getWidth(this.item.getClientRects()[0].width);
     }
   }
 
-  render () {
-    const { left, item, active, hovered, onClick, onMouseEnter } = this.props
+  render() {
+    const { left, item, active, hovered, onClick, onMouseEnter } = this.props;
 
     return (
       <Animate
@@ -31,29 +30,29 @@ class PaginationItem extends Component {
           return (
             <ItemLink
               innerRef={node => {
-                this.item = node
+                this.item = node;
               }}
               active={active || hovered}
-              href='#'
+              href="#"
               style={{
                 left: `calc(${left} + 10px)`,
                 color: data.color
               }}
               onMouseEnter={() => {
-                onMouseEnter(item)
+                onMouseEnter(item);
               }}
               onClick={e => {
-                e.preventDefault()
-                onClick(item)
+                e.preventDefault();
+                onClick(item);
               }}
             >
               {item}
             </ItemLink>
-          )
+          );
         }}
       </Animate>
-    )
+    );
   }
 }
 
-export default PaginationItem
+export default PaginationItem;

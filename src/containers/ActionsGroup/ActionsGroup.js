@@ -14,7 +14,7 @@ import { Sketch } from './../../components/Icons/index';
 import { GradientDisplayContainer } from './../../components/Sections/GradientDisplay';
 
 const Container = GradientDisplayContainer.extend`
-  margin: 0 auto 20px;
+  margin: 0 auto 30px;
   padding: 0 20px;
   max-width: 1100px;
   display: flex;
