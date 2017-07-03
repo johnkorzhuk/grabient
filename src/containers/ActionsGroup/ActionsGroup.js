@@ -1,19 +1,17 @@
-import React from 'react'
-import { connect } from 'react-redux'
-import styled from 'styled-components'
+import React from 'react';
+import { connect } from 'react-redux';
+import styled from 'styled-components';
 
-import { togglePrefixes, toggleFallback } from './../../store/settings/actions'
-import john from './../../assets/john.png'
-import eddie from './../../assets/eddie.png'
-import file from './../../assets/Eddies Fridays (1).sketch'
+import { togglePrefixes, toggleFallback } from './../../store/settings/actions';
+import john from './../../assets/john.png';
+import eddie from './../../assets/eddie.png';
+import file from './../../assets/Eddies Fridays (1).sketch';
 
-import { TextSM } from './../../components/Common/Typography'
-import { Checkbox } from './../../components/Common/index'
-import { ActionGroupItem } from './../../components/index'
-import { Sketch } from './../../components/Icons/index'
-import {
-  GradientDisplayContainer
-} from './../../components/Sections/GradientDisplay'
+import { TextSM } from './../../components/Common/Typography';
+import { Checkbox } from './../../components/Common/index';
+import { ActionGroupItem } from './../../components/index';
+import { Sketch } from './../../components/Icons/index';
+import { GradientDisplayContainer } from './../../components/Sections/GradientDisplay';
 
 const Container = GradientDisplayContainer.extend`
   margin: 0 auto 20px;
@@ -21,14 +19,14 @@ const Container = GradientDisplayContainer.extend`
   max-width: 1100px;
   display: flex;
   justify-content: center;
-  
+
   align-items: center;
   flex-wrap: wrap;
 
   @media (min-width: 924px) {
     justify-content: space-between;
   }
-`
+`;
 
 const GroupContainer = styled.div`
   margin-top: 25px;
@@ -40,17 +38,15 @@ const GroupContainer = styled.div`
   &:last-child {
     margin-right: 0;
   }
-`
+`;
 
-const PhotoText = TextSM.extend`
-  margin-left: 7px;
-`
+const PhotoText = TextSM.extend`margin-left: 7px;`;
 
 const John = () => {
   return (
     <ActionGroupItem
-      pretext='Development:'
-      href='https://twitter.com/johnkorzhuk'
+      pretext="Development:"
+      href="https://twitter.com/johnkorzhuk"
       itemStyle={{
         order: -1
       }}
@@ -59,16 +55,16 @@ const John = () => {
       }}
     >
       <PhotoText>@johnkorzhuk</PhotoText>
-      <img src={john} alt='john' />
+      <img src={john} alt="john" />
     </ActionGroupItem>
-  )
-}
+  );
+};
 
 const Eddie = () => {
   return (
     <ActionGroupItem
-      pretext='Design:'
-      href='https://twitter.com/lobanovskiy'
+      pretext="Design:"
+      href="https://twitter.com/lobanovskiy"
       itemStyle={{
         order: -1
       }}
@@ -77,17 +73,12 @@ const Eddie = () => {
       }}
     >
       <PhotoText>@lobanovskiy</PhotoText>
-      <img src={eddie} alt='eddie' />
+      <img src={eddie} alt="eddie" />
     </ActionGroupItem>
-  )
-}
+  );
+};
 
-const ActionsGroup = ({
-  prefixes,
-  fallback,
-  togglePrefixes,
-  toggleFallback
-}) => {
+const ActionsGroup = ({ prefixes, fallback, togglePrefixes, toggleFallback }) => {
   return (
     <Container>
       <GroupContainer>
@@ -99,8 +90,8 @@ const ActionsGroup = ({
       <GroupContainer>
         <ActionGroupItem
           href={file}
-          type='button'
-          download='grabients.sketch'
+          type="button"
+          download="grabients.sketch"
           style={{
             cursor: 'pointer'
           }}
@@ -114,6 +105,7 @@ const ActionsGroup = ({
         </ActionGroupItem>
 
         <ActionGroupItem
+          checked={prefixes}
           style={{
             cursor: 'pointer'
           }}
@@ -122,11 +114,12 @@ const ActionsGroup = ({
             marginTop: 2
           }}
         >
-          <TextSM htmlFor='prefix'>Prefixes</TextSM>
+          <TextSM htmlFor="prefix">Prefixes</TextSM>
           <Checkbox checked={prefixes} />
         </ActionGroupItem>
 
         <ActionGroupItem
+          checked={fallback}
           style={{
             cursor: 'pointer'
           }}
@@ -140,8 +133,8 @@ const ActionsGroup = ({
         </ActionGroupItem>
       </GroupContainer>
     </Container>
-  )
-}
+  );
+};
 
 export default connect(
   state => ({
@@ -152,4 +145,4 @@ export default connect(
     togglePrefixes,
     toggleFallback
   }
-)(ActionsGroup)
+)(ActionsGroup);

@@ -1,8 +1,8 @@
-import React, { Component, cloneElement } from 'react'
-import styled from 'styled-components'
-import { Animate } from 'react-move'
+import React, { Component, cloneElement } from 'react';
+import styled from 'styled-components';
+import { Animate } from 'react-move';
 
-import { TextSM } from './../Common/Typography'
+import { TextSM } from './../Common/Typography';
 
 const Container = styled.div`
   display: flex;
@@ -19,7 +19,7 @@ const Container = styled.div`
     flex-direction: column;
     justify-content: center;
   }
-`
+`;
 
 const Pretext = TextSM.extend`
   color: #afafaf;
@@ -28,9 +28,9 @@ const Pretext = TextSM.extend`
   @media (max-width: 550px) {
     margin-bottom: 5px;
   }
-`
+`;
 
-const LinkContainer = Container.withComponent('a')
+const LinkContainer = Container.withComponent('a');
 
 const ItemContainer = styled.div`
   margin-left: ${({ ml }) => ml + 'px'};
@@ -38,42 +38,33 @@ const ItemContainer = styled.div`
   @media (max-width: 550px) {
     margin-left: 0;
   }
-`
+`;
 
 class ActionGroupItem extends Component {
   state = {
     hovered: false
-  }
+  };
 
   _handleMouseEnter = () => {
     this.setState({
       hovered: true
-    })
-  }
+    });
+  };
 
   _handleMouseLeave = () => {
     this.setState({
       hovered: false
-    })
-  }
+    });
+  };
 
-  render () {
-    const {
-      children,
-      ml = 10,
-      itemStyle,
-      style,
-      id,
-      href,
-      pretext,
-      ...props
-    } = this.props
-    const { hovered } = this.state
+  render() {
+    const { children, ml = 10, itemStyle, style, id, href, pretext, checked, ...props } = this.props;
+    const { hovered } = this.state;
 
     return (
       <Animate
         data={{
-          color: hovered ? '#2A2A2A' : '#AFAFAF'
+          color: hovered || checked ? '#2A2A2A' : '#AFAFAF'
         }}
       >
         {data => {
@@ -82,12 +73,16 @@ class ActionGroupItem extends Component {
               <LinkContainer
                 {...props}
                 href={href}
-                target='_blank'
+                target="_blank"
                 onMouseEnter={this._handleMouseEnter}
                 onMouseLeave={this._handleMouseLeave}
                 style={style}
               >
-                {pretext ? <Pretext>{pretext}</Pretext> : null}
+                {pretext
+                  ? <Pretext>
+                      {pretext}
+                    </Pretext>
+                  : null}
                 {cloneElement(children[0], {
                   style: {
                     color: data.color
@@ -100,7 +95,7 @@ class ActionGroupItem extends Component {
                   })}
                 </ItemContainer>
               </LinkContainer>
-            )
+            );
           } else {
             return (
               <Container
@@ -121,12 +116,12 @@ class ActionGroupItem extends Component {
                   })}
                 </ItemContainer>
               </Container>
-            )
+            );
           }
         }}
       </Animate>
-    )
+    );
   }
 }
 
-export default ActionGroupItem
+export default ActionGroupItem;

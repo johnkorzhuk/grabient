@@ -1,9 +1,9 @@
-import { TOGGLE_PREFIXES, TOGGLE_FALLBACK } from './actions'
+import { TOGGLE_PREFIXES, TOGGLE_FALLBACK } from './actions';
 
 const INITIAL_STATE = {
   prefixes: true,
-  fallback: true
-}
+  fallback: false
+};
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
@@ -11,15 +11,15 @@ export default (state = INITIAL_STATE, action) => {
       return {
         ...state,
         prefixes: !state.prefixes
-      }
+      };
 
     case TOGGLE_FALLBACK:
       return {
         ...state,
         fallback: !state.fallback
-      }
+      };
 
     default:
-      return state
+      return state;
   }
-}
+};
