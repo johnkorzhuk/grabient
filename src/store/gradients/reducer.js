@@ -7,7 +7,7 @@ import {
   UPDATE_EDITED_STATE,
   RESET_GRADIENT_ANGLE,
   UPDATE_PAGE
-} from './actions'
+} from './actions';
 
 export const INITIAL_STATE = {
   gradientValues: {
@@ -123,7 +123,7 @@ export const INITIAL_STATE = {
     angle: null
   },
   page: 1
-}
+};
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
@@ -131,7 +131,7 @@ export default (state = INITIAL_STATE, action) => {
       return {
         ...state,
         active: action.payload.id
-      }
+      };
 
     case UPDATE_EDITED_STATE:
       return {
@@ -143,7 +143,7 @@ export default (state = INITIAL_STATE, action) => {
             edited: action.payload.edited
           }
         }
-      }
+      };
 
     case RESET_GRADIENT_ANGLE:
       return {
@@ -152,7 +152,7 @@ export default (state = INITIAL_STATE, action) => {
           ...state.gradientValues,
           [action.payload.id]: INITIAL_STATE.gradientValues[action.payload.id]
         }
-      }
+      };
 
     case UPDATE_ANGLE:
       return {
@@ -164,20 +164,17 @@ export default (state = INITIAL_STATE, action) => {
             angle: action.payload.angle
           }
         }
-      }
+      };
 
     case TOGGLE_EDITING_ANGLE:
       return {
         ...state,
         editingAngle: {
           ...state.editingAngle,
-          id: state.editingAngle.id === action.payload.id ||
-            action.payload.id === null
-            ? null
-            : action.payload.id,
+          id: state.editingAngle.id === action.payload.id || action.payload.id === null ? null : action.payload.id,
           angle: null
         }
-      }
+      };
 
     case UPDATE_EDITING_ANGLE:
       return {
@@ -186,21 +183,21 @@ export default (state = INITIAL_STATE, action) => {
           ...state.editingAngle,
           angle: action.payload.angle
         }
-      }
+      };
 
     case UPDATE_EXPANDED:
       return {
         ...state,
         expanded: action.payload.id
-      }
+      };
 
     case UPDATE_PAGE:
       return {
         ...state,
         page: action.payload.page
-      }
+      };
 
     default:
-      return state
+      return state;
   }
-}
+};

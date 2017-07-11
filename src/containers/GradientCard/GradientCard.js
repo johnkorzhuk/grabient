@@ -1,13 +1,9 @@
-import React, { Component } from 'react'
-import { connect } from 'react-redux'
-import styled from 'styled-components'
-import debounce from 'lodash/debounce'
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import styled from 'styled-components';
+import debounce from 'lodash/debounce';
 
-import {
-  toggleEditing,
-  updateEditingAngle,
-  resetGradientAngle
-} from './../../store/gradients/actions'
+import { toggleEditing, updateEditingAngle, resetGradientAngle } from './../../store/gradients/actions';
 import {
   editStop,
   updateActiveColorPicker,
@@ -16,36 +12,32 @@ import {
   resetColorStop,
   STOP_LIMIT,
   deleteActiveStop
-} from './../../store/stops/actions'
-import { updateSwatchDimensions } from './../../store/dimensions/actions'
-import { copyCSS } from './../../store/icons/actions'
-import { getGradientById } from './../../store/gradients/selectors'
-import { getStopsById } from './../../store/stops/selectors'
+} from './../../store/stops/actions';
+import { updateSwatchDimensions } from './../../store/dimensions/actions';
+import { copyCSS } from './../../store/icons/actions';
+import { getGradientById } from './../../store/gradients/selectors';
+import { getStopsById } from './../../store/stops/selectors';
 
-import {
-  AnglePreview,
-  GradientContainer,
-  AddDeleteStop
-} from './../../components/index'
-import { Edit } from './../../components/Icons/index'
-import { SortableSwatch } from './../index'
-import { Button } from './../../components/Common/index'
+import { AnglePreview, GradientContainer, AddDeleteStop } from './../../components/index';
+import { Edit } from './../../components/Icons/index';
+import { SortableSwatch } from './../index';
+import { Button } from './../../components/Common/index';
 
 // units = ms
-const GRADIENT_ANIMATION_DURATION = 500
-const ANGLE_WHEEL_ANIMATION_DURATION = 300
-const ANGLE_PREVIEW_ANIMATION_DURATION = 200
+const GRADIENT_ANIMATION_DURATION = 500;
+const ANGLE_WHEEL_ANIMATION_DURATION = 300;
+const ANGLE_PREVIEW_ANIMATION_DURATION = 200;
 // also used for icon opacity transition duration
-const SLIDER_ANIMATION_DURATION = 300
+const SLIDER_ANIMATION_DURATION = 300;
 
-const ICON_COLOR = '#afafaf'
+const ICON_COLOR = '#afafaf';
 
 const getOrder = (index, columns) => {
-  if (index % columns === 0) return index
-  if (index % columns === 1) return index - 2
-  if (index % columns === 2) return index - 3
-  return index
-}
+  if (index % columns === 0) return index;
+  if (index % columns === 1) return index - 2;
+  if (index % columns === 2) return index - 3;
+  return index;
+};
 
 const Container = styled.li`
   width: 85%;
@@ -60,10 +52,9 @@ const Container = styled.li`
   @media (min-width: 420px) {
     width: 100%;
   }
-`
+`;
 
 const GradientItem = Container.extend`
-  order: ${({ index }) => index};
   z-index: ${({ editing }) => (editing ? 21 : 'auto')};
   @media (min-width: 680px) {
     width: ${({ expanded }) => (expanded ? '100%' : '50%')};
@@ -74,7 +65,7 @@ const GradientItem = Container.extend`
     width: ${({ expanded }) => (expanded ? '100%' : '33.33%')};
     order: ${({ index, expanded }) => (expanded ? getOrder(index, 3) : index)};
   }
-`
+`;
 
 const AngleContainer = Button.extend`
   margin-right: auto;
@@ -85,7 +76,7 @@ const AngleContainer = Button.extend`
   align-items: center;
   justify-content: flex-start;
   z-index: 10;
-`
+`;
 
 const InfoContainer = styled.div`
   z-index: ${({ editing }) => (editing ? 22 : 'auto')};
@@ -94,7 +85,7 @@ const InfoContainer = styled.div`
   display: flex;
   align-items: center;
   margin-top: 15px;
-`
+`;
 
 const SwatchSliderContainer = styled.div`
   position: relative;
@@ -105,7 +96,7 @@ const SwatchSliderContainer = styled.div`
   height: 40px;
   margin-right: 7rem;
   margin-left: 1rem;
-`
+`;
 
 const AddDeleteButtonContainer = Button.extend`
   position: absolute;
@@ -116,7 +107,7 @@ const AddDeleteButtonContainer = Button.extend`
   justify-content: flex-end;
   width: 25px;
   cursor: ${({ atStopLimit }) => (atStopLimit ? 'not-allowed' : 'pointer')};
-`
+`;
 
 const EditExitButtonContainer = Button.extend`
   position: absolute;
@@ -126,18 +117,18 @@ const EditExitButtonContainer = Button.extend`
   align-items: center;
   justify-content: flex-end;
   width: 25px;
-`
+`;
 
-const addEvent = function (object, type, callback) {
-  if (object == null || typeof object === 'undefined') return
+const addEvent = function(object, type, callback) {
+  if (object == null || typeof object === 'undefined') return;
   if (object.addEventListener) {
-    object.addEventListener(type, debounce(callback, 100), false)
+    object.addEventListener(type, debounce(callback, 100), false);
   } else if (object.attachEvent) {
-    object.attachEvent('on' + type, debounce(callback, 100))
+    object.attachEvent('on' + type, debounce(callback, 100));
   } else {
-    object['on' + type] = debounce(callback, 100)
+    object['on' + type] = debounce(callback, 100);
   }
-}
+};
 
 class GradientCard extends Component {
   state = {
@@ -150,106 +141,94 @@ class GradientCard extends Component {
       edit: false
     },
     wasEditing: false
+  };
+
+  componentDidMount() {
+    addEvent(window, 'resize', this._handleWindowResize);
   }
 
-  componentDidMount () {
-    addEvent(window, 'resize', this._handleWindowResize)
+  shouldComponentUpdate(nextProps, nextState) {
+    const willEdit = this.props.id === nextProps.editingAngleData.id || nextProps.editingStop || nextProps.editingColor;
+    if (!willEdit) return true;
+    else if (willEdit || this.state !== nextState) return true;
+    return false;
   }
 
-  shouldComponentUpdate (nextProps, nextState) {
-    const willEdit =
-      this.props.id === nextProps.editingAngleData.id ||
-      nextProps.editingStop ||
-      nextProps.editingColor
-    if (!willEdit) return true
-    else if (willEdit || this.state !== nextState) return true
-    else return false
+  componentWillUnmount() {
+    window.removeEventListener('resize', this._handleWindowResize);
   }
 
-  componentWillUnmount () {
-    window.removeEventListener('resize', this._handleWindowResize)
-  }
-
-  componentWillReceiveProps (nextProps) {
-    const { editingAngle, editingStop, updateSwatchDimensions } = this.props
+  componentWillReceiveProps(nextProps) {
+    const { editingAngle, editingStop, updateSwatchDimensions } = this.props;
     if (editingAngle !== nextProps.editingAngle) {
-      this.setState({ wasEditing: !nextProps.editingAngle })
+      this.setState({ wasEditing: !nextProps.editingAngle });
     }
 
     if (editingStop !== nextProps.editingStop) {
-      updateSwatchDimensions(this.sliderContainer.getClientRects())
+      updateSwatchDimensions(this.sliderContainer.getClientRects());
     }
   }
 
   _handleWindowResize = e => {
     if (this.props.editingStop) {
-      this.props.updateSwatchDimensions(this.sliderContainer.getClientRects())
+      this.props.updateSwatchDimensions(this.sliderContainer.getClientRects());
     }
-  }
+  };
 
   _handleMouseEnter = (e, items) => {
     if (!this.state.wasEditing) {
-      this.setItemHoveredState(items, true, false)
+      this.setItemHoveredState(items, true, false);
     }
-  }
+  };
 
   _handleMouseLeave = (e, items) => {
-    this.setItemHoveredState(items, false, true)
-  }
+    this.setItemHoveredState(items, false, true);
+  };
 
   _handleAddCancelColorStop = () => {
-    const {
-      editingStop,
-      editStop,
-      updateActiveColorPicker,
-      id,
-      pickingColorStop,
-      editStopColor
-    } = this.props
+    const { editingStop, editStop, updateActiveColorPicker, id, pickingColorStop, editStopColor } = this.props;
     if (pickingColorStop) {
-      editStopColor(null)
-      return updateActiveColorPicker(null)
+      editStopColor(null);
+      return updateActiveColorPicker(null);
     }
 
     if (editingStop) {
-      editStop(null)
+      editStop(null);
     } else if (!pickingColorStop) {
-      editStop(id)
+      editStop(id);
     }
-  }
+  };
 
   _handleLeftIconClick = () => {
-    const { toggleEditing, updateEditingAngle, id, angle } = this.props
-    toggleEditing(id)
-    updateEditingAngle(angle)
-  }
+    const { toggleEditing, updateEditingAngle, id, angle } = this.props;
+    toggleEditing(id);
+    updateEditingAngle(angle);
+  };
 
   _handleAddColor = () => {
-    const { id, addColorStop } = this.props
-    addColorStop(id)
-  }
+    const { id, addColorStop } = this.props;
+    addColorStop(id);
+  };
 
   _handleDelete = () => {
-    const { hovered: addColor } = this.state
-    const { deleteActiveStop, renderDelete, id } = this.props
-    if (addColor && renderDelete) deleteActiveStop(id)
-  }
+    const { hovered: addColor } = this.state;
+    const { deleteActiveStop, renderDelete, id } = this.props;
+    if (addColor && renderDelete) deleteActiveStop(id);
+  };
 
-  setItemHoveredState (items, hovered, resetWasEditing) {
-    const newState = { ...this.state }
+  setItemHoveredState(items, hovered, resetWasEditing) {
+    const newState = { ...this.state };
     items.forEach(item => {
-      newState.hovered[item] = hovered
-    })
+      newState.hovered[item] = hovered;
+    });
 
-    if (resetWasEditing) newState.wasEditing = false
+    if (resetWasEditing) newState.wasEditing = false;
 
-    this.setState(newState)
+    this.setState(newState);
   }
 
-  render () {
-    const {
-      hovered: { arrowPrev, addColor, main, edit, copy, reset }
-    } = this.state
+  render() {
+    const { hovered: { arrowPrev, addColor, main, edit, copy, reset } } = this.state;
     const {
       id,
       angle,
@@ -267,19 +246,14 @@ class GradientCard extends Component {
       edited,
       resetGradientAngle,
       resetColorStop
-    } = this.props
-    const atStopLimit = Object.keys(stopData).length >= STOP_LIMIT - 1
-    const editingAngle = id === editingAngleData.id
-    const editing = editingStop || editingAngle || editingColor
-    const actualAngle = editingAngle ? editingAngleData.angle : angle
+    } = this.props;
+    const atStopLimit = Object.keys(stopData).length >= STOP_LIMIT - 1;
+    const editingAngle = id === editingAngleData.id;
+    const editing = editingStop || editingAngle || editingColor;
+    const actualAngle = editingAngle ? editingAngleData.angle : angle;
 
     return (
-      <GradientItem
-        index={index}
-        expanded={expanded}
-        editing={editingAngle}
-        style={style}
-      >
+      <GradientItem index={index} expanded={expanded} editing={editingAngle} style={style}>
         <GradientContainer
           resetColorStop={resetColorStop}
           resetGradientAngle={resetGradientAngle}
@@ -304,7 +278,7 @@ class GradientCard extends Component {
 
         <InfoContainer editing={editing}>
           <AngleContainer
-            title='Edit Angle'
+            title="Edit Angle"
             onClick={this._handleLeftIconClick}
             onMouseEnter={e => this._handleMouseEnter(e, ['arrowPrev'])}
             onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
@@ -322,14 +296,10 @@ class GradientCard extends Component {
 
           <SwatchSliderContainer
             innerRef={node => {
-              this.sliderContainer = node
+              this.sliderContainer = node;
             }}
           >
-            <SortableSwatch
-              id={id}
-              deleteStop={addColor}
-              animationDuration={SLIDER_ANIMATION_DURATION}
-            />
+            <SortableSwatch id={id} deleteStop={addColor} animationDuration={SLIDER_ANIMATION_DURATION} />
           </SwatchSliderContainer>
 
           <AddDeleteButtonContainer
@@ -365,14 +335,14 @@ class GradientCard extends Component {
           </EditExitButtonContainer>
         </InfoContainer>
       </GradientItem>
-    )
+    );
   }
 }
 
 const mapStateToProps = (state, props) => {
-  const gradient = getGradientById(props.id)(state)
-  const editingStop = props.id === state.stops.editing
-  const stopData = getStopsById(state, props)
+  const gradient = getGradientById(props.id)(state);
+  const editingStop = props.id === state.stops.editing;
+  const stopData = getStopsById(state, props);
   return {
     stopData,
     draggingItemMousePos: state.stops.draggingItemMousePos,
@@ -382,12 +352,11 @@ const mapStateToProps = (state, props) => {
     pickingColorStop: state.stops.updating.pickingColorStop !== null,
     editingColor: props.id === state.stops.editingColor,
     expanded: state.gradients.expanded === props.id,
-    renderDelete: state.icons.deleteStop === props.id &&
-      Object.keys(stopData).length > 2,
+    renderDelete: state.icons.deleteStop === props.id && Object.keys(stopData).length > 2,
     copiedId: state.icons.copied,
     edited: gradient.edited
-  }
-}
+  };
+};
 
 export default connect(mapStateToProps, {
   toggleEditing,
@@ -401,4 +370,4 @@ export default connect(mapStateToProps, {
   resetGradientAngle,
   resetColorStop,
   deleteActiveStop
-})(GradientCard)
+})(GradientCard);

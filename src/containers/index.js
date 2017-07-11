@@ -1,17 +1,8 @@
-import AngleWheel from './AngleWheel/AngleWheel'
-import GradientCard from './GradientCard/GradientCard'
-import SortableSwatch from './SortableSwatch/SortableSwatch'
-import ColorPicker from './ColorPicker/ColorPicker'
-import ExpandContract from './ExpandContract/ExpandContract'
-import ActionsGroup from './ActionsGroup/ActionsGroup'
-import Pagination from './Pagination/Pagination'
+import AngleWheel from './AngleWheel/AngleWheel';
+import GradientCard from './GradientCard/GradientCard';
+import SortableSwatch from './SortableSwatch/SortableSwatch';
+import ColorPicker from './ColorPicker/ColorPicker';
+import ActionsGroup from './ActionsGroup/ActionsGroup';
+import Pagination from './Pagination/Pagination';
 
-export {
-  AngleWheel,
-  GradientCard,
-  SortableSwatch,
-  ColorPicker,
-  ExpandContract,
-  ActionsGroup,
-  Pagination
-}
+export { AngleWheel, GradientCard, SortableSwatch, ColorPicker, ActionsGroup, Pagination };

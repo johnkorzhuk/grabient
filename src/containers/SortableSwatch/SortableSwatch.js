@@ -1,14 +1,10 @@
-import React, { Component } from 'react'
-import { connect } from 'react-redux'
-import { Animate } from 'react-move'
-import styled from 'styled-components'
-import {
-  SortableContainer,
-  SortableElement,
-  arrayMove
-} from 'react-sortable-hoc'
+import React, { Component } from 'react';
+import { connect } from 'react-redux';
+import { Animate } from 'react-move';
+import styled from 'styled-components';
+import { SortableContainer, SortableElement, arrayMove } from 'react-sortable-hoc';
 
-import { toggleEditing } from './../../store/gradients/actions'
+import { toggleEditing } from './../../store/gradients/actions';
 import {
   editStopColor,
   swapStopsColors,
@@ -16,23 +12,19 @@ import {
   updateUpdatingStop,
   updateActiveColorPicker,
   updateActiveStop
-} from './../../store/stops/actions'
-import { toggleTrashIcon } from './../../store/icons/actions'
-import {
-  getStopsById,
-  getStopData,
-  getEditingState
-} from './../../store/stops/selectors'
+} from './../../store/stops/actions';
+import { toggleTrashIcon } from './../../store/icons/actions';
+import { getStopsById, getStopData, getEditingState } from './../../store/stops/selectors';
 
-import { SwatchItem, SwatchContainer } from './../../components/Swatch/index'
+import { SwatchItem, SwatchContainer } from './../../components/Swatch/index';
 
 const SlideBar = styled.div`
   height: 2px;
   width: 100%;
-  background-color: #AFAFAF;
-`
+  background-color: #afafaf;
+`;
 
-const SortableItem = SortableElement(props => <SwatchItem {...props} />)
+const SortableItem = SortableElement(props => <SwatchItem {...props} />);
 
 const SortableList = SortableContainer(
   ({
@@ -52,14 +44,10 @@ const SortableList = SortableContainer(
     active,
     ...props
   }) => {
-    const isUpdating = updatingValue !== null
+    const isUpdating = updatingValue !== null;
 
     return (
-      <Animate
-        data={data}
-        duration={animationDuration}
-        ignore={isUpdating ? stopKeys : []}
-      >
+      <Animate data={data} duration={animationDuration} ignore={isUpdating ? stopKeys : []}>
         {data => {
           return (
             <SwatchContainer
@@ -75,25 +63,20 @@ const SortableList = SortableContainer(
                 }}
               />
               {stopKeys.map((stop, index) => {
-                const color = stops[stop]
-                let left = data[stop]
+                const color = stops[stop];
+                let left = data[stop];
                 // bug with react-sortable-hoc
                 let style = sorting
                   ? {}
                   : {
-                    transform: 'none',
-                    transitionDuration: '0ms'
-                  }
+                      transform: 'none',
+                      transitionDuration: '0ms'
+                    };
 
                 // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
                 // To force it to happen: spam click the stop when editing and have cursor off the stop on mouse up. Weird!
                 if (isNaN(left)) {
-                  editing
-                    ? (left = stop)
-                    : (left = parseFloat(
-                        (index + 1) / stopKeys.length * 100,
-                        10
-                      ))
+                  editing ? (left = stop) : (left = parseFloat((index + 1) / stopKeys.length * 100, 10));
                 }
 
                 return (
@@ -112,66 +95,31 @@ const SortableList = SortableContainer(
                     index={index}
                     isBeingEdited={active === stop}
                     sorting={sorting}
-                    onTouchStart={e =>
-                      onSortItemClick(
-                        e,
-                        stop,
-                        editing,
-                        sorting,
-                        pickingColorStop
-                      )}
-                    onTouchMove={e =>
-                      onSortItemClick(
-                        e,
-                        stop,
-                        editing,
-                        sorting,
-                        pickingColorStop
-                      )}
-                    onTouchEnd={e =>
-                      onSortItemClick(
-                        e,
-                        stop,
-                        editing,
-                        sorting,
-                        pickingColorStop
-                      )}
-                    onMouseUp={e =>
-                      onSortItemClick(
-                        e,
-                        stop,
-                        editing,
-                        sorting,
-                        pickingColorStop
-                      )}
-                    onMouseDown={e =>
-                      onSortItemClick(
-                        e,
-                        stop,
-                        editing,
-                        sorting,
-                        pickingColorStop
-                      )}
+                    onTouchStart={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                    onTouchMove={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                    onTouchEnd={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                    onMouseUp={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                    onMouseDown={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
                     color={color}
                     left={left}
                     active={active}
                   />
-                )
+                );
               })}
             </SwatchContainer>
-          )
+          );
         }}
       </Animate>
-    )
+    );
   }
-)
+);
 
 class Swatch extends Component {
   state = {
     sorting: false
-  }
+  };
 
-  shouldComponentUpdate (nextProps, nextState) {
+  shouldComponentUpdate(nextProps, nextState) {
     return (
       this.props.colors !== nextProps.colors ||
       this.props.data !== nextProps.data ||
@@ -179,61 +127,55 @@ class Swatch extends Component {
       this.props.draggingItemMousePos !== nextProps.draggingItemMousePos ||
       this.props.stops !== nextProps.stops ||
       this.state.sorting !== nextState.sorting
-    )
+    );
   }
 
-  componentDidUpdate (prevProps) {
+  componentDidUpdate(prevProps) {
     if (this.props.editing !== prevProps.editing && !this.props.editing) {
-      this.props.updateUpdatingStop(null)
+      this.props.updateUpdatingStop(null);
     }
   }
 
   _handleSortStart = () => {
     this.setState({
       sorting: true
-    })
-  }
+    });
+  };
 
   _handleSortMove = () => {
-    const { toggleTrashIcon, renderDelete, id } = this.props
+    const { toggleTrashIcon, renderDelete, id } = this.props;
 
-    if (!renderDelete) toggleTrashIcon(id)
-  }
+    if (!renderDelete) toggleTrashIcon(id);
+  };
 
   _handleSortEnd = ({ oldIndex, newIndex }) => {
-    const {
-      swapStopsColors,
-      id,
-      colors,
-      toggleTrashIcon,
-      deleteStop
-    } = this.props
-    const newColorOrder = arrayMove(colors, oldIndex, newIndex)
-    this.props.updateActiveStop(null)
+    const { swapStopsColors, id, colors, toggleTrashIcon, deleteStop } = this.props;
+    const newColorOrder = arrayMove(colors, oldIndex, newIndex);
+    this.props.updateActiveStop(null);
     if (!deleteStop) {
-      swapStopsColors(id, newColorOrder)
+      swapStopsColors(id, newColorOrder);
     }
 
-    toggleTrashIcon(null)
+    toggleTrashIcon(null);
     this.setState({
       sorting: false
-    })
-  }
+    });
+  };
 
   _handleEditInit = (pageX, stop) => {
-    const { updateDraggedStopPos, updateUpdatingStop } = this.props
+    const { updateDraggedStopPos, updateUpdatingStop } = this.props;
 
-    updateUpdatingStop(stop, pageX)
-    updateDraggedStopPos(pageX)
-  }
+    updateUpdatingStop(stop, pageX);
+    updateDraggedStopPos(pageX);
+  };
 
   _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mouseup' || e.type === 'touchend') {
-      this.props.toggleEditing(null)
+      this.props.toggleEditing(null);
 
       if (!sorting && !this.props.passThreshold) {
-        this.props.editStopColor(this.props.id, stop)
-        this.props.updateActiveColorPicker(stop, pickingColorStop)
+        this.props.editStopColor(this.props.id, stop);
+        this.props.updateActiveColorPicker(stop, pickingColorStop);
       }
 
       // if (e.type === 'touchend') {
@@ -241,11 +183,11 @@ class Swatch extends Component {
       //   this.props.updateDraggedStopPos(null)
       // }
     } else if (e.type === 'mousedown' || e.type === 'touchstart') {
-      e.preventDefault()
-      this.props.updateActiveStop(stop)
+      e.preventDefault();
+      this.props.updateActiveStop(stop);
 
       if (editing) {
-        this._handleEditInit(e.nativeEvent.pageX, stop)
+        this._handleEditInit(e.nativeEvent.pageX, stop);
         // if (e.type === 'mousedown') {
         //   this._handleEditInit(e.nativeEvent.pageX, stop)
         // } else this._handleEditInit(e.nativeEvent.touches[0].pageX, stop)
@@ -258,53 +200,45 @@ class Swatch extends Component {
     //     updateDraggedStopPos(pageX)
     //   }
     // }
-  }
+  };
 
-  render () {
-    const {
-      stops,
-      editing,
-      updatingValue,
-      colors,
-      pickingColorStop,
-      ...props
-    } = this.props
-    const { sorting } = this.state
+  render() {
+    const { stops, editing, updatingValue, colors, pickingColorStop, ...props } = this.props;
+    const { sorting } = this.state;
 
     return (
       colors &&
       <SortableList
         transitionDuration={300}
-        axis='x'
+        axis="x"
         useWindowAsScrollContainer
-        lockAxis='x'
+        lockAxis="x"
         onSortStart={this._handleSortStart}
         onSortMove={this._handleSortMove}
         onSortEnd={this._handleSortEnd}
-        shouldCancelStart={() =>
-          editing || updatingValue !== null || pickingColorStop !== null}
+        shouldCancelStart={() => editing || updatingValue !== null || pickingColorStop !== null}
         distance={5}
         lockToContainerEdges
         sorting={sorting}
         onSortItemClick={this._handleSortItemClick}
         editing={editing}
         pickingColorStop={pickingColorStop}
-        helperClass='sortable-helper'
+        helperClass="sortable-helper"
         stops={stops}
         updatingValue={updatingValue}
         {...props}
       />
-    )
+    );
   }
 }
 
 const mapStateToProps = (state, props) => {
-  const stops = getStopsById(state, props)
-  const updatingValue = state.stops.updating.stop
-  const stopKeys = Object.keys(stops)
-  const colors = Object.values(stops)
-  const editing = getEditingState(state, props)
-  const editingColor = state.stops.editingColor
+  const stops = getStopsById(state, props);
+  const updatingValue = state.stops.updating.stop;
+  const stopKeys = Object.keys(stops);
+  const colors = Object.values(stops);
+  const editing = getEditingState(state, props);
+  const editingColor = state.stops.editingColor;
   return {
     stops,
     updatingValue,
@@ -317,10 +251,9 @@ const mapStateToProps = (state, props) => {
     pickingColorStop: state.stops.updating.pickingColorStop,
     passThreshold: state.stops.updating.passThreshold,
     active: state.stops.updating.active,
-    renderDelete: state.icons.deleteStop === props.id &&
-      Object.keys(stops).length > 2
-  }
-}
+    renderDelete: state.icons.deleteStop === props.id && Object.keys(stops).length > 2
+  };
+};
 
 export default connect(mapStateToProps, {
   editStopColor,
@@ -331,4 +264,4 @@ export default connect(mapStateToProps, {
   updateActiveColorPicker,
   updateActiveStop,
   toggleTrashIcon
-})(Swatch)
+})(Swatch);
