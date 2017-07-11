@@ -1,7 +1,7 @@
-import React from 'react'
-import styled from 'styled-components'
+import React from 'react';
+import styled from 'styled-components';
 
-export const GradientDisplayContainer = styled.section`
+export const GradientDisplayContainer = styled.main`
   max-width: 1100px;
   margin: 15px auto 0;
 
@@ -14,14 +14,14 @@ export const GradientDisplayContainer = styled.section`
     margin-left: auto;
     margin-right: auto;
   }
-`
+`;
 
 const GradientDisplay = ({ children }) => {
   return (
     <GradientDisplayContainer>
       {children}
     </GradientDisplayContainer>
-  )
-}
+  );
+};
 
-export default GradientDisplay
+export default GradientDisplay;

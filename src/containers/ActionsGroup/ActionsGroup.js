@@ -3,13 +3,11 @@ import { connect } from 'react-redux';
 import styled from 'styled-components';
 
 import { togglePrefixes, toggleFallback } from './../../store/settings/actions';
-import john from './../../assets/john.png';
-import eddie from './../../assets/eddie.png';
 import file from './../../assets/Eddies Fridays (1).sketch';
 
-import { TextSM } from './../../components/Common/Typography';
-import { Checkbox } from './../../components/Common/index';
-import { ActionGroupItem } from './../../components/index';
+import { TextSM, TextXS } from './../../components/Common/Typography';
+import { Checkbox, UnfoldLogo } from './../../components/Common/index';
+import { ActionGroupItem, ActionGroupItemContainer } from './../../components/index';
 import { Sketch } from './../../components/Icons/index';
 import { GradientDisplayContainer } from './../../components/Sections/GradientDisplay';
 
@@ -18,76 +16,65 @@ const Container = GradientDisplayContainer.extend`
   padding: 0 20px;
   max-width: 1100px;
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
 
   align-items: center;
   flex-wrap: wrap;
 
-  @media (min-width: 924px) {
-    justify-content: space-between;
+  @media (max-width: 620px) {
+    flex-direction: column;
   }
 `;
 
-const GroupContainer = styled.div`
-  margin-top: 25px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-right: 0;
+const CreditText = TextXS.extend`@media (max-width: 550px) {margin-bottom: 2px;}`;
 
-  &:last-child {
-    margin-right: 0;
-  }
-`;
+// const PhotoText = TextSM.extend`margin-left: 7px;`;
 
-const PhotoText = TextSM.extend`margin-left: 7px;`;
+// const John = () => {
+//   return (
+//     <ActionGroupItem
+//       pretext="Development:"
+//       href="https://twitter.com/johnkorzhuk"
+//       itemStyle={{
+//         order: -1
+//       }}
+//       style={{
+//         cursor: 'pointer'
+//       }}
+//     >
+//       <PhotoText>@johnkorzhuk</PhotoText>
+//       <img src={john} alt="john" />
+//     </ActionGroupItem>
+//   );
+// };
 
-const John = () => {
-  return (
-    <ActionGroupItem
-      pretext="Development:"
-      href="https://twitter.com/johnkorzhuk"
-      itemStyle={{
-        order: -1
-      }}
-      style={{
-        cursor: 'pointer'
-      }}
-    >
-      <PhotoText>@johnkorzhuk</PhotoText>
-      <img src={john} alt="john" />
-    </ActionGroupItem>
-  );
-};
+// const Eddie = () => {
+//   return (
+//     <ActionGroupItem
+//       pretext="Design:"
+//       href="https://twitter.com/lobanovskiy"
+//       itemStyle={{
+//         order: -1
+//       }}
+//       style={{
+//         cursor: 'pointer'
+//       }}
+//     >
+//       <PhotoText>@lobanovskiy</PhotoText>
+//       <img src={eddie} alt="eddie" />
+//     </ActionGroupItem>
+//   );
+// };
 
-const Eddie = () => {
-  return (
-    <ActionGroupItem
-      pretext="Design:"
-      href="https://twitter.com/lobanovskiy"
-      itemStyle={{
-        order: -1
-      }}
-      style={{
-        cursor: 'pointer'
-      }}
-    >
-      <PhotoText>@lobanovskiy</PhotoText>
-      <img src={eddie} alt="eddie" />
-    </ActionGroupItem>
-  );
-};
+// <ActionGroupItemContainer>
+//   <John />
+//   <Eddie />
+// </ActionGroupItemContainer>
 
 const ActionsGroup = ({ prefixes, fallback, togglePrefixes, toggleFallback }) => {
   return (
     <Container>
-      <GroupContainer>
-        <John />
-
-        <Eddie />
-      </GroupContainer>
-
-      <GroupContainer>
+      <ActionGroupItemContainer>
         <ActionGroupItem
           href={file}
           type="button"
@@ -131,7 +118,32 @@ const ActionsGroup = ({ prefixes, fallback, togglePrefixes, toggleFallback }) =>
           <TextSM>Fallback BGC</TextSM>
           <Checkbox checked={fallback} />
         </ActionGroupItem>
-      </GroupContainer>
+      </ActionGroupItemContainer>
+
+      <ActionGroupItemContainer orderSM={-1}>
+        <ActionGroupItem
+          href="https://www.unfold.co"
+          style={{
+            cursor: 'pointer'
+          }}
+          ml={12}
+        >
+          <CreditText>
+            Crafted with{' '}
+            <span role="img" aria-label="Heart">
+              ♥
+            </span>
+            <span
+              style={{
+                paddingLeft: 3
+              }}
+            >
+              by
+            </span>
+          </CreditText>
+          <UnfoldLogo />
+        </ActionGroupItem>
+      </ActionGroupItemContainer>
     </Container>
   );
 };
