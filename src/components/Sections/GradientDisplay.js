@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-export const GradientDisplayContainer = styled.main`
+export const GradientDisplayContainer = styled.div`
   max-width: 1100px;
   margin: 15px auto 0;
 

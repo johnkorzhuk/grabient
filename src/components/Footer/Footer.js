@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import john from './../../assets/john.png';
 import eddie from './../../assets/eddie.png';
 
-import { TextSM } from './../Common/Typography';
+import { TextXS, TextSM } from './../Common/Typography';
 import { UnfoldLogo } from './../Common/index';
 import { ActionGroupItem, ActionGroupItemContainer } from './../index';
 
@@ -71,9 +71,9 @@ const Footer = () => {
 
       <ActionGroupItemContainer>
         <ActionGroupItem href="https://www.unfold.co">
-          <TextSM>
+          <TextXS>
             ©{new Date().getFullYear()} Grabient by
-          </TextSM>
+          </TextXS>
           <UnfoldLogo />
         </ActionGroupItem>
       </ActionGroupItemContainer>

@@ -1,6 +1,5 @@
 import React from 'react';
 import { connect } from 'react-redux';
-import styled from 'styled-components';
 
 import { togglePrefixes, toggleFallback } from './../../store/settings/actions';
 import file from './../../assets/Eddies Fridays (1).sketch';
@@ -27,49 +26,6 @@ const Container = GradientDisplayContainer.extend`
 `;
 
 const CreditText = TextXS.extend`@media (max-width: 550px) {margin-bottom: 2px;}`;
-
-// const PhotoText = TextSM.extend`margin-left: 7px;`;
-
-// const John = () => {
-//   return (
-//     <ActionGroupItem
-//       pretext="Development:"
-//       href="https://twitter.com/johnkorzhuk"
-//       itemStyle={{
-//         order: -1
-//       }}
-//       style={{
-//         cursor: 'pointer'
-//       }}
-//     >
-//       <PhotoText>@johnkorzhuk</PhotoText>
-//       <img src={john} alt="john" />
-//     </ActionGroupItem>
-//   );
-// };
-
-// const Eddie = () => {
-//   return (
-//     <ActionGroupItem
-//       pretext="Design:"
-//       href="https://twitter.com/lobanovskiy"
-//       itemStyle={{
-//         order: -1
-//       }}
-//       style={{
-//         cursor: 'pointer'
-//       }}
-//     >
-//       <PhotoText>@lobanovskiy</PhotoText>
-//       <img src={eddie} alt="eddie" />
-//     </ActionGroupItem>
-//   );
-// };
-
-// <ActionGroupItemContainer>
-//   <John />
-//   <Eddie />
-// </ActionGroupItemContainer>
 
 const ActionsGroup = ({ prefixes, fallback, togglePrefixes, toggleFallback }) => {
   return (
