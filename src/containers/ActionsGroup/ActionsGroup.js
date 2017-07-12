@@ -2,7 +2,7 @@ import React from 'react';
 import { connect } from 'react-redux';
 
 import { togglePrefixes, toggleFallback } from './../../store/settings/actions';
-import file from './../../assets/Eddies Fridays (1).sketch';
+import grabients from './../../assets/grabients.sketch';
 
 import { TextSM, TextXS } from './../../components/Common/Typography';
 import { Checkbox, UnfoldLogo } from './../../components/Common/index';
@@ -32,7 +32,7 @@ const ActionsGroup = ({ prefixes, fallback, togglePrefixes, toggleFallback }) =>
     <Container>
       <ActionGroupItemContainer>
         <ActionGroupItem
-          href={file}
+          href={grabients}
           type="button"
           download="grabients.sketch"
           style={{
