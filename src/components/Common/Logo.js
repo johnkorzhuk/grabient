@@ -21,7 +21,7 @@ class Logo extends Component {
   };
 
   componentDidMount() {
-    this.interval = setInterval(this.updateColor, 5000);
+    this.interval = setInterval(this.updateColor, 1500);
   }
 
   componentWillUnmount() {
@@ -29,9 +29,17 @@ class Logo extends Component {
   }
 
   updateColor = () => {
-    const randomIndex = Math.floor(Math.random() * newValues.length);
+    const colorSet1 = Object.values(newValues[Math.floor(Math.random() * newValues.length)]);
+    const colorSet2 = Object.values(newValues[Math.floor(Math.random() * newValues.length)]);
+    const color1 = colorSet1[Math.floor(Math.random() * colorSet1.length)];
+    const color2 = colorSet2[Math.floor(Math.random() * colorSet2.length)];
+
+    const newColors = {
+      '0': color1,
+      '100': color2
+    };
     this.setState({
-      colors: newValues[randomIndex]
+      colors: newColors
     });
   };
 
@@ -39,15 +47,15 @@ class Logo extends Component {
     const { colors } = this.state;
 
     return (
-      <Animate data={{ colors }}>
+      <Animate data={{ colors }} duration={1300}>
         {data => {
           return (
             <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <linearGradient x1="0%" y1="0%" x2="118.333333%" y2="375%" id="a7">
-                  {Object.keys(data.colors).map(stop =>
-                    <stop key={stop} stopColor={data.colors[stop]} offset={`${stop}%`} />
-                  )}
+                <linearGradient x1="0%" y1="0%" y2="0%" id="a7">
+                  {Object.keys(data.colors)
+                    .slice(0, 2)
+                    .map(stop => <stop key={stop} stopColor={data.colors[stop]} offset={`${stop}%`} />)}
                 </linearGradient>
               </defs>
               <g fill="none" fillRule="evenodd">
