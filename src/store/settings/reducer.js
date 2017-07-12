@@ -10,13 +10,13 @@ export default (state = INITIAL_STATE, action) => {
     case TOGGLE_PREFIXES:
       return {
         ...state,
-        prefixes: !state.prefixes
+        prefixes: action.payload.prefixes
       };
 
     case TOGGLE_FALLBACK:
       return {
         ...state,
-        fallback: !state.fallback
+        fallback: action.payload.fallback
       };
 
     default:
