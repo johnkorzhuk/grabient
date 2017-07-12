@@ -6,7 +6,3 @@ Generate UI to generate linear gradient
   1. Clone the repo
   2. run `npm install or yarn install`
   3. run `npm run start or yarn start` for a developement `npm run build or yarn build` for a production build
-
-# Todos
-  - [x] Add local storage for settings
-  - [ ] Adjust amount of gradients based on viewport width on initial render`

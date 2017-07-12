@@ -19,8 +19,6 @@ import { GradientDisplay, GradientList, Hero, Footer } from './components/index'
 import { ActionsGroup, Pagination } from './containers/index';
 import { DashedBar } from './components/Common/index';
 
-const ITEMS_PER_PAGE = 9;
-
 const Overlay = styled.div`
   position: fixed;
   z-index: 20;
@@ -36,10 +34,18 @@ const Dashed = DashedBar.extend`
 `;
 
 class App extends Component {
+  state = {
+    items: 9
+  };
+
   componentDidMount() {
     document.addEventListener('keydown', this._handleCancelEdits);
     document.addEventListener('mousemove', this._handleDocumentMouseMove);
     document.addEventListener('mouseup', this._handleDocumentMouseUp);
+
+    this.setState({
+      items: window.outerWidth <= 970 ? 6 : 9
+    });
   }
 
   componentWillUnmount() {
@@ -73,7 +79,7 @@ class App extends Component {
       }
     }
     if (e.type === 'keydown') {
-      const total = Math.ceil(Object.keys(gradients).length / ITEMS_PER_PAGE);
+      const total = Math.ceil(Object.keys(gradients).length / this.state.items);
       if (e.which === 39) {
         this.handleNoop(e);
         const newPage = currPage + 1;
@@ -152,9 +158,10 @@ class App extends Component {
 
   render() {
     const { editingAngle, editingStop, pickingColorStop, gradients: allGradients, currPage } = this.props;
+    const { items } = this.state;
     const editing = editingAngle || editingStop || pickingColorStop;
-    const start = (currPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
+    const start = (currPage - 1) * items;
+    const end = start + items;
     const currGradients = Object.values(allGradients).slice(start, end);
 
     return (
@@ -167,7 +174,7 @@ class App extends Component {
           {editing && <Overlay onClick={this._handleCancelEdits} />}
         </GradientDisplay>
         <Dashed />
-        <Pagination perPage={ITEMS_PER_PAGE} bottom />
+        <Pagination perPage={items} bottom />
         <Footer />
       </div>
     );
