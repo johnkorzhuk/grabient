@@ -47,7 +47,7 @@ class Logo extends Component {
     const { colors } = this.state;
 
     return (
-      <Animate data={{ colors }} duration={1300}>
+      <Animate data={{ colors }} duration={1450}>
         {data => {
           return (
             <svg width="220" height="50" viewBox="0 0 220 50" xmlns="http://www.w3.org/2000/svg">
