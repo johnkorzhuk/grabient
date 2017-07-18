@@ -96,8 +96,7 @@ class SwatchItem extends Component {
     const popoverShadow = transparentize(0.4, mix(0.2, color, '#AFAFAF'));
     const mixedTransparentized = transparentize(0.2, mix(0.5, color, '#AFAFAF'));
     const right = `calc(${100 - left}% - ${SLIDER_ITEM_SIZE / 2}rem)`;
-    // <StopText showText={hovered && editing}>{stop}%</StopText>
-    // console.log(hovered, !shouldRenderColorPicker, !sorting, !editing, shouldRenderPopoverColor);
+
     return (
       <Container
         style={{
