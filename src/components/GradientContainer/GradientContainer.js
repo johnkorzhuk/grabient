@@ -1,4 +1,4 @@
-import React, { cloneElement } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 import { Animate } from 'react-move';
 
@@ -30,7 +30,7 @@ const NoBlur = styled.div`
 const Blurred = styled.div`
   filter: blur(20px);
   height: 100%;
-  width: 98%;
+  width: 100%;
   border-radius: 15px;
   margin-top: -${GRADIENT_HEIGHT}px;
 `;
@@ -49,32 +49,6 @@ const ButtonText = TextXS.extend`
   ${({ left }) => (left ? 'padding-left: 5px;' : 'padding-right: 5px;')} text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   text-transform: uppercase;
 `;
-
-const ButtonContainer = ({ left = false, text, hovered, mainHovered, style, icon, ...props }) => {
-  return (
-    <Animate
-      duration={COPY_RESET_ANIMATION_DURATION}
-      data={{
-        opacity: mainHovered ? 1 : 0
-      }}
-    >
-      {data => {
-        return (
-          <GradientButton
-            {...props}
-            style={{
-              ...style,
-              opacity: data.opacity
-            }}
-          >
-            {left ? cloneElement(icon) : <ButtonTextContainer left={left} text={text} hovered={hovered} />}
-            {left ? <ButtonTextContainer left={left} text={text} hovered={hovered} /> : cloneElement(icon)}
-          </GradientButton>
-        );
-      }}
-    </Animate>
-  );
-};
 
 const ButtonTextContainer = ({ left = false, text, hovered }) => {
   return (
@@ -122,11 +96,11 @@ const GradientContainer = ({
   resetHovered
 }) => {
   const editing = editingAngle || editingStop || editingColor;
-
+  const renderButton = hovered && !editingAngle;
   return (
     <Container>
-      {!editingAngle &&
-        <ButtonContainer
+      {renderButton &&
+        <GradientButton
           style={{
             top: 15,
             left: 15
@@ -139,15 +113,17 @@ const GradientContainer = ({
           }}
           onMouseEnter={e => onMouseEnter(e, ['main', 'copy'])}
           onMouseLeave={e => onMouseLeave(e, ['main', 'copy'])}
-          left
-          hovered={copyHovered}
-          mainHovered={hovered}
-          text={copyHovered ? (copiedId === id ? 'copied' : 'copy css') : ' '}
-          icon={<Copy color={'white'} hovered={hovered} animationDuration={COPY_RESET_ANIMATION_DURATION} />}
-        />}
-      {!editingAngle &&
+        >
+          <Copy color={'white'} hovered={copyHovered} animationDuration={COPY_RESET_ANIMATION_DURATION} />
+          <ButtonTextContainer
+            left
+            text={copyHovered ? (copiedId === id ? 'copied' : 'copy css') : ' '}
+            hovered={copyHovered}
+          />
+        </GradientButton>}
+      {renderButton &&
         edited &&
-        <ButtonContainer
+        <GradientButton
           style={{
             top: 15,
             right: 15
@@ -159,11 +135,11 @@ const GradientContainer = ({
           }}
           onMouseEnter={e => onMouseEnter(e, ['main', 'reset'])}
           onMouseLeave={e => onMouseLeave(e, ['main', 'reset'])}
-          mainHovered={hovered}
-          hovered={resetHovered}
-          text={resetHovered ? 'Reset' : ' '}
-          icon={<Reset color="white" hovered={resetHovered} animationDuration={COPY_RESET_ANIMATION_DURATION} />}
-        />}
+        >
+          <ButtonTextContainer text={resetHovered ? 'Reset' : ' '} hovered={resetHovered} />
+
+          <Reset color="white" hovered={resetHovered} animationDuration={COPY_RESET_ANIMATION_DURATION} />
+        </GradientButton>}
 
       <div
         onMouseEnter={e => onMouseEnter(e, ['main'])}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Animate } from 'react-move';
 
 const Copy = ({ color, hovered, animationDuration }) => {
+  console.log(hovered);
   return (
     <Animate
       duration={animationDuration}

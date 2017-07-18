@@ -113,7 +113,7 @@ class SwatchItem extends Component {
           value={color}
           style={{
             ...style,
-            border: `1px solid ${mixed}`,
+            border: `2px solid ${mixed}`,
             backgroundColor: color
           }}
           active={active === stop && editing}
