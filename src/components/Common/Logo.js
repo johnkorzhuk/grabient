@@ -12,11 +12,18 @@ const newValues = [
   }
 ];
 
+const getRandomColor = length => {
+  return Array.from({ length }).map(() => {
+    const colorSet = Object.values(newValues[Math.floor(Math.random() * newValues.length)]);
+    return colorSet[Math.floor(Math.random() * colorSet.length)];
+  });
+};
+
 class Logo extends Component {
   state = {
     colors: {
-      '0': '#00E8F3',
-      '100': '#96EA00'
+      '0': getRandomColor(1)[0],
+      '100': getRandomColor(1)[0]
     }
   };
 
@@ -29,10 +36,7 @@ class Logo extends Component {
   }
 
   updateColor = () => {
-    const colorSet1 = Object.values(newValues[Math.floor(Math.random() * newValues.length)]);
-    const colorSet2 = Object.values(newValues[Math.floor(Math.random() * newValues.length)]);
-    const color1 = colorSet1[Math.floor(Math.random() * colorSet1.length)];
-    const color2 = colorSet2[Math.floor(Math.random() * colorSet2.length)];
+    const [color1, color2] = getRandomColor(2);
 
     const newColors = {
       '0': color1,
