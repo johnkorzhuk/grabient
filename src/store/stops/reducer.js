@@ -10,7 +10,7 @@ import {
   DELETE_ACTIVE_STOP,
   ADD_COLOR_STOP,
   RESET_COLOR_STOP
-} from './actions'
+} from './actions';
 
 export const INITIAL_STATE = {
   values: {
@@ -113,7 +113,7 @@ export const INITIAL_STATE = {
     active: null
   },
   updatingStopXPos: null
-}
+};
 
 export default (state = INITIAL_STATE, action) => {
   switch (action.type) {
@@ -125,13 +125,13 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           origUnchanged: state.values[action.payload.id]
         }
-      }
+      };
 
     case EDIT_STOP_COLOR:
       return {
         ...state,
         editingColor: action.payload.id
-      }
+      };
 
     case SWAP_STOP_COLORS:
       return {
@@ -140,7 +140,7 @@ export default (state = INITIAL_STATE, action) => {
           ...state.values,
           [action.payload.id]: action.payload.updatedStop
         }
-      }
+      };
 
     case UPDATE_DRAGGED_STOP_POS:
       return {
@@ -153,13 +153,11 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           origUnchanged: action.payload.updatedStopValues,
           stop: action.payload.updatedStop,
-          passThreshold: action.payload.passThreshold
-            ? action.payload.passThreshold
-            : state.updating.passThreshold,
+          passThreshold: action.payload.passThreshold ? action.payload.passThreshold : state.updating.passThreshold,
           pickingColorStop: null,
           active: action.payload.updatedStop
         }
-      }
+      };
 
     case UPDATE_UPDATING_STOP:
       return {
@@ -167,11 +165,11 @@ export default (state = INITIAL_STATE, action) => {
         updating: {
           ...state.updating,
           stop: action.payload.stop,
-          passThreshold: action.payload.stop === null &&
-            state.updatingStopXPos !== action.payload.xPos
+          passThreshold:
+            action.payload.stop === null && state.updatingStopXPos !== action.payload.xPos && state.editing !== null
         },
         updatingStopXPos: action.payload.xPos
-      }
+      };
 
     case TOGGLE_ACTIVE_COLOR_PICKER:
       return {
@@ -180,7 +178,7 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           pickingColorStop: action.payload.stop
         }
-      }
+      };
 
     case UPDATE_STOP_COLOR:
       return {
@@ -199,7 +197,7 @@ export default (state = INITIAL_STATE, action) => {
             [action.payload.stop]: action.payload.color
           }
         }
-      }
+      };
 
     case UPDATE_ACTIVE_STOP:
       return {
@@ -208,7 +206,7 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           active: action.payload.stop
         }
-      }
+      };
 
     case DELETE_ACTIVE_STOP:
       return {
@@ -224,7 +222,7 @@ export default (state = INITIAL_STATE, action) => {
           pickingColorStop: null,
           active: null
         }
-      }
+      };
 
     case ADD_COLOR_STOP:
       return {
@@ -237,7 +235,7 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           origUnchanged: action.payload.newValues
         }
-      }
+      };
 
     case RESET_COLOR_STOP:
       return {
@@ -251,9 +249,9 @@ export default (state = INITIAL_STATE, action) => {
           origUnchanged: INITIAL_STATE.values[action.payload.id]
         }
         // editingColor: INITIAL_STATE.editingColor
-      }
+      };
 
     default:
-      return state
+      return state;
   }
-}
+};

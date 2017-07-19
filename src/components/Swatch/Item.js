@@ -27,18 +27,6 @@ const Container = styled.div`
   bottom: 10px;
 `;
 
-// const StopText = styled.span`
-//   position: absolute;
-//   color: #606060;
-//   cursor: default;
-//   top: -15px;
-//   font-size: 1.2rem;
-//   user-select: none;
-
-//   transition: opacity 100ms linear;
-//   opacity: ${({ showText }) => (showText ? '1' : '0')};
-// `;
-
 class SwatchItem extends Component {
   state = {
     hovered: false
