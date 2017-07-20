@@ -77,7 +77,7 @@ class SwatchItem extends Component {
     const { hovered } = this.state;
     const isPickingColor = pickingColorStop === stop;
     const shouldRenderColorPicker = isPickingColor && editingColor === id;
-    const popover = hovered && !shouldRenderColorPicker && !sorting;
+    const popover = !shouldRenderColorPicker && !sorting;
     const shouldRenderPopoverColor = popover && !editing;
     const shouldRenderPopoverStop = popover && editing;
     const mixed = mix(0.5, color, '#AFAFAF');
@@ -91,9 +91,10 @@ class SwatchItem extends Component {
           right
         }}
       >
-        {shouldRenderPopoverStop && <Popover value={`${stop}%`} shadow={popoverShadow} />}
         {shouldRenderColorPicker && <ColorPicker color={color} stop={stop} id={id} left={left} />}
-        {shouldRenderPopoverColor && <Popover value={color} isPickingColor={isPickingColor} shadow={popoverShadow} />}
+        {shouldRenderPopoverStop && <Popover value={`${stop}%`} shadow={popoverShadow} hovered={hovered} />}
+        {shouldRenderPopoverColor &&
+          <Popover value={color} isPickingColor={isPickingColor} shadow={popoverShadow} hovered={hovered} />}
         <Item
           title="Edit stop"
           onMouseEnter={this._handleMouseEnter}
