@@ -95,6 +95,7 @@ class SwatchItem extends Component {
         {shouldRenderColorPicker && <ColorPicker color={color} stop={stop} id={id} left={left} />}
         {shouldRenderPopoverColor && <Popover value={color} isPickingColor={isPickingColor} shadow={popoverShadow} />}
         <Item
+          title="Edit stop"
           onMouseEnter={this._handleMouseEnter}
           onMouseLeave={this._handleMouseLeave}
           mixedTransparentized={mixedTransparentized}
