@@ -41,13 +41,13 @@ const GradientButton = Button.extend`
   padding: 3px;
   border-radius: 3px;
   display: flex;
-  align-items: center;
 `;
 
 const ButtonText = TextXS.extend`
   color: white;
   ${({ left }) => (left ? 'padding-left: 5px;' : 'padding-right: 5px;')} text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   text-transform: uppercase;
+  padding-top: 6px;
 `;
 
 const ButtonTextContainer = ({ left = false, text, hovered }) => {
@@ -55,7 +55,7 @@ const ButtonTextContainer = ({ left = false, text, hovered }) => {
     <Animate
       duration={COPY_RESET_ANIMATION_DURATION}
       data={{
-        opacity: hovered ? 1 : 0
+        opacity: hovered ? 1 : 1
       }}
     >
       {data => {
