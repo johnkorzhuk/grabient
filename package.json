@@ -1,6 +1,10 @@
 {
-  "name": "gradient-test",
+  "name": "Grabient",
   "version": "0.1.0",
+  "description": "UI to generate web gradients",
+  "keywords": ["gradients", "react", "redux"],
+  "repository": "johnkorzhuk/grabient",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "deep-equal": "^1.0.1",
