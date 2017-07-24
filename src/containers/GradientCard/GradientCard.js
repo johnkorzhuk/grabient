@@ -100,11 +100,9 @@ const SwatchSliderContainer = styled.div`
 
 const AddDeleteButtonContainer = Button.extend`
   position: absolute;
-  right: 25px;
+  right: 28px;
+  top: 1px;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
   width: 25px;
   cursor: ${({ atStopLimit }) => (atStopLimit ? 'not-allowed' : 'pointer')};
 `;
