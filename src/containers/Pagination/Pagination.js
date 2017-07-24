@@ -10,19 +10,16 @@ import { PaginationArrow } from './../../components/Icons/index';
 
 const Container = styled.div`
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
   margin: 25px auto;
   width: ${({ total }) => total * 35 + 'px'};
-  height: 40px;
+  height: 10px;
 `;
 
 const Uderline = styled.span`
   width: 16px;
   height: 1px;
   position: absolute;
-  bottom: 10px;
+  top: 25px;
   border-bottom: 1px solid black;
 `;
 

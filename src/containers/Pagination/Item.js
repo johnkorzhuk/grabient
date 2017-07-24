@@ -3,7 +3,7 @@ import { Animate } from 'react-move';
 import { TextSM } from './../../components/Common/Typography';
 
 const ItemLink = TextSM.extend`
-  padding: 2px 5px;
+  padding: 3px 5px 5px;
   position: absolute;
   border-bottom: 1px solid transparent;
   user-select: none;
