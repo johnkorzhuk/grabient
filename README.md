@@ -2,6 +2,9 @@
 
 Generate UI to generate linear gradient
 
+## To dos
+  - [ ] fix es-lint rules
+
 ## Installation
   1. Clone the repo
   2. run `npm install or yarn install`
