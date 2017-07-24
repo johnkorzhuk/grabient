@@ -67,7 +67,7 @@ const TextValue = TextLG.extend`
   border: none;
   background: none;
   width: 100%;
-  height: 29px;
+  line-height: 29px;
 
   &::-webkit-inner-spin-button,
   ::-webkit-outer-spin-button {
@@ -83,6 +83,7 @@ const TextValue = TextLG.extend`
 const Degree = TextLG.extend`
   color: white;
   position: absolute;
+  top: 23px;
 `;
 
 const CloseButton = Button.extend`
@@ -254,12 +255,12 @@ class AngleWheel extends Component {
     return [this.box.offsetLeft + this.box.offsetWidth / 2, this.box.offsetTop + this.box.offsetHeight / 2];
   }
 
-  getLeft(angle) {
+  getRight(angle) {
     const length = angle.toString().length;
 
-    if (length === 3) return 65;
-    else if (length === 2) return 59;
-    else return 50;
+    if (length === 3) return 10;
+    else if (length === 2) return 15;
+    else return 22;
   }
 
   render() {
@@ -323,7 +324,7 @@ class AngleWheel extends Component {
                 />
                 <Degree
                   style={{
-                    left: this.getLeft(angle)
+                    right: this.getRight(angle)
                   }}
                 >
                   °
