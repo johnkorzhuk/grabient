@@ -30,14 +30,14 @@ const Hero = () => {
           src="https://ghbtns.com/github-btn.html?user=johnkorzhuk&repo=grabient&type=star&count=true"
           frameBorder="0"
           scrolling="0"
-          width="85px"
+          width="91px"
           height="20px"
         />
 
         <iframe
           title="facebook"
           src="https://www.facebook.com/plugins/share_button.php?href=http%3A%2F%2Fgrabient.com%2F&layout=button_count&size=small&mobile_iframe=true&width=69&height=20&appId"
-          width="75"
+          width="80"
           height="20"
           scrolling="no"
           frameBorder="0"
