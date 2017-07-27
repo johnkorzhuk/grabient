@@ -3,7 +3,7 @@
 Generate UI to generate linear gradient
 
 ## To dos
-  - [ ] fix es-lint rules
+  - [ ] add prop validation with flow
 
 ## Installation
   1. Clone the repo
