@@ -1,6 +1,6 @@
 # Grabient
 
-Generate UI to generate linear gradient
+UI to generate linear web gradient
 
 ## To dos
   - [ ] add prop validation with flow
