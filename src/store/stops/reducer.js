@@ -14,6 +14,10 @@ import {
 
 export const INITIAL_STATE = {
   values: {
+    'b6338b88-5ae9-4484-b57c-29b97bb4df00': {
+      '0': '#FAD961',
+      '99': '#F76B1C'
+    },
     '8de97c99-10e8-4200-9bca-f01ad3dac544': {
       '0': '#FA8BFF',
       '52': '#2BD2FF',

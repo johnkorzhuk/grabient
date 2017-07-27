@@ -2,13 +2,18 @@
   "name": "Grabient",
   "version": "1.0.0",
   "description": "UI to generate web gradients",
-  "keywords": ["gradients", "react", "redux"],
+  "keywords": [
+    "gradients",
+    "react",
+    "redux"
+  ],
   "repository": "johnkorzhuk/grabient",
   "license": "MIT",
   "private": true,
   "dependencies": {
     "deep-equal": "^1.0.1",
     "lodash": "^4.17.4",
+    "next": "^2.4.8",
     "polished": "^1.1.1",
     "react": "^15.5.4",
     "react-color": "^2.11.7",
@@ -76,9 +81,16 @@
     "test": "node scripts/test.js --env=jsdom"
   },
   "jest": {
-    "collectCoverageFrom": ["src/**/*.{js,jsx}"],
-    "setupFiles": ["<rootDir>/config/polyfills.js"],
-    "testMatch": ["<rootDir>/src/**/__tests__/**/*.js?(x)", "<rootDir>/src/**/?(*.)(spec|test).js?(x)"],
+    "collectCoverageFrom": [
+      "src/**/*.{js,jsx}"
+    ],
+    "setupFiles": [
+      "<rootDir>/config/polyfills.js"
+    ],
+    "testMatch": [
+      "<rootDir>/src/**/__tests__/**/*.js?(x)",
+      "<rootDir>/src/**/?(*.)(spec|test).js?(x)"
+    ],
     "testEnvironment": "node",
     "testURL": "http://localhost",
     "transform": {
@@ -86,13 +98,17 @@
       "^.+\\.css$": "<rootDir>/config/jest/cssTransform.js",
       "^(?!.*\\.(js|jsx|css|json)$)": "<rootDir>/config/jest/fileTransform.js"
     },
-    "transformIgnorePatterns": ["[/\\\\]node_modules[/\\\\].+\\.(js|jsx)$"],
+    "transformIgnorePatterns": [
+      "[/\\\\]node_modules[/\\\\].+\\.(js|jsx)$"
+    ],
     "moduleNameMapper": {
       "^react-native$": "react-native-web"
     }
   },
   "babel": {
-    "presets": ["react-app"]
+    "presets": [
+      "react-app"
+    ]
   },
   "eslintConfig": {
     "extends": "react-app"

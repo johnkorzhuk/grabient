@@ -11,6 +11,11 @@ import {
 
 export const INITIAL_STATE = {
   gradientValues: {
+    'b6338b88-5ae9-4484-b57c-29b97bb4df00': {
+      id: 'b6338b88-5ae9-4484-b57c-29b97bb4df00',
+      angle: 270,
+      editied: false
+    },
     '8de97c99-10e8-4200-9bca-f01ad3dac544': {
       id: '8de97c99-10e8-4200-9bca-f01ad3dac544',
       angle: 45,
