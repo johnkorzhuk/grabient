@@ -1,3 +1,5 @@
+// @flow
+
 import React from 'react';
 import styled from 'styled-components';
 import { Animate } from 'react-move';
@@ -11,7 +13,25 @@ const Container = styled.div`
   border-radius: 15px;
 `;
 
-const Gradient = ({ stopData, transitionDuration, angle, opacity, hasOpacity, hovered, editingColor, editing }) => {
+const Gradient = ({
+  stopData,
+  transitionDuration,
+  angle,
+  opacity,
+  hasOpacity,
+  hovered,
+  editingColor,
+  editing
+}: {
+  stopData: StopData,
+  transitionDuration: number,
+  angle: number,
+  opacity: number,
+  hasOpacity: boolean,
+  hovered: boolean,
+  editingColor: boolean,
+  editing: boolean
+}) => {
   const newData = { ...stopData };
   if (hasOpacity) newData.opacity = hovered || editing ? opacity : 0;
 

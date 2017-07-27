@@ -2,12 +2,12 @@
   "extends": ["plugin:flowtype/recommended", "airbnb", "prettier", "prettier/react"],
   "rules": {
     "react/jsx-filename-extension": ["error", { "extensions": [".js", ".jsx"] }],
-    "react/prop-types": 0,
     "no-shadow": 0,
     "jsx-a11y/no-autofocus": 0,
     "consistent-return": 0,
     "react/no-did-mount-set-state": 0,
-    "no-plusplus": 0
+    "no-plusplus": 0,
+    "react/prop-types": 1
   },
   "plugins": ["flowtype", "prettier"],
   "parser": "babel-eslint",
