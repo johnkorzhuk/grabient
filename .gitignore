@@ -2,7 +2,7 @@
 
 # dependencies
 /node_modules
-/files
+/files/source.sketch
 
 # testing
 /coverage
