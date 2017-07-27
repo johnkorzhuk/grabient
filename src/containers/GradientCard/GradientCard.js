@@ -117,7 +117,7 @@ const EditExitButtonContainer = Button.extend`
   width: 25px;
 `;
 
-const addEvent = function(object, type, callback) {
+const addEvent = (object, type, callback) => {
   const newObject = { ...object };
   if (newObject == null || typeof newObject === 'undefined') return;
   if (newObject.addEventListener) {

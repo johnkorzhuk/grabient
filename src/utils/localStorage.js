@@ -17,6 +17,7 @@ export const saveState = state => {
     });
     localStorage.setItem('grabientSettings', serializedState);
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error('failed to save to local storage');
   }
 };

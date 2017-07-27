@@ -48,6 +48,7 @@ export function copyTextToClipboard(text) {
   try {
     document.execCommand('copy');
   } catch (err) {
+    // eslint-disable-next-line no-console
     console.error('Unable to copy text');
   }
 
