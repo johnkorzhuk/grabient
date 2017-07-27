@@ -1,8 +1,6 @@
-import React from 'react'
-import CheckIcon from 'react-icons/lib/md/check'
+import React from 'react';
+import CheckIcon from 'react-icons/lib/md/check';
 
-const Copy = ({ color, size = 15, ...props }) => {
-  return <CheckIcon color={color} size={size} {...props} />
-}
+const Copy = ({ color, size = 15, ...props }) => <CheckIcon color={color} size={size} {...props} />;
 
-export default Copy
+export default Copy;

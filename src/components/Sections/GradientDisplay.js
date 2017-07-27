@@ -1,3 +1,6 @@
+// @flow
+import type { Children } from 'react';
+
 import React from 'react';
 import styled from 'styled-components';
 
@@ -16,12 +19,9 @@ export const GradientDisplayContainer = styled.div`
   }
 `;
 
-const GradientDisplay = ({ children }) => {
-  return (
-    <GradientDisplayContainer>
-      {children}
-    </GradientDisplayContainer>
-  );
-};
+const GradientDisplay = ({ children }: { children: Children }) =>
+  <GradientDisplayContainer>
+    {children}
+  </GradientDisplayContainer>;
 
 export default GradientDisplay;

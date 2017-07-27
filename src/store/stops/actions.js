@@ -22,24 +22,22 @@ export const DELETE_ACTIVE_STOP = 'stops/DELETE_ACTIVE_STOP';
 export const ADD_COLOR_STOP = 'stops/ADD_COLOR_STOP';
 export const RESET_COLOR_STOP = 'stops/RESET_COLOR_STOP';
 
-export const updateUpdatingStop = (stop, xPos) => dispatch => {
-  return dispatch({
+export const updateUpdatingStop = (stop, xPos) => dispatch =>
+  dispatch({
     type: UPDATE_UPDATING_STOP,
     payload: {
       stop,
       xPos
     }
   });
-};
 
-export const editStop = id => dispatch => {
-  return dispatch({
+export const editStop = id => dispatch =>
+  dispatch({
     type: EDIT_STOP,
     payload: {
       id
     }
   });
-};
 
 export const editStopColor = (id, stop) => (dispatch, getState) => {
   const { stops: { updating: { pickingColorStop }, editingColor } } = getState();
@@ -50,25 +48,30 @@ export const editStopColor = (id, stop) => (dispatch, getState) => {
         id: null
       }
     });
-  } else {
-    return dispatch({
-      type: EDIT_STOP_COLOR,
-      payload: {
-        id
-      }
-    });
   }
+  return dispatch({
+    type: EDIT_STOP_COLOR,
+    payload: {
+      id
+    }
+  });
 };
 
 export const swapStopsColors = (id, colors) => (dispatch, getState) => {
   const { stops, gradients } = getState();
+  // const updatedStop = Object.keys(stops.values[id]).reduce((aggr, curr, index) => {
+  //   aggr[curr] = colors[index];
+  //   return aggr;
+  // }, {});
+
   const updatedStop = Object.keys(stops.values[id]).reduce((aggr, curr, index) => {
-    aggr[curr] = colors[index];
-    return aggr;
+    const newAggr = { ...aggr };
+    newAggr[curr] = colors[index];
+    return newAggr;
   }, {});
   const orig = getGradientData(id, initGradients, initStops);
-  let newdata = getGradientData(id, gradients, stops);
-  newdata['stops'] = updatedStop;
+  const newdata = getGradientData(id, gradients, stops);
+  newdata.stops = updatedStop;
 
   dispatch({
     type: UPDATE_EDITED_STATE,
@@ -87,6 +90,7 @@ export const swapStopsColors = (id, colors) => (dispatch, getState) => {
   });
 };
 
+// eslint-disable-next-line consistent-return
 export const updateDraggedStopPos = xPos => (dispatch, getState) => {
   const {
     stops: { updating: { stop, origUnchanged, passThreshold }, editing, updatingStopXPos, editingColor },
@@ -164,17 +168,16 @@ export const updateActiveColorPicker = (stop, currActive) => dispatch => {
         stop: null
       }
     });
-  } else {
-    return dispatch({
-      type: TOGGLE_ACTIVE_COLOR_PICKER,
-      payload: {
-        stop
-      }
-    });
   }
+  return dispatch({
+    type: TOGGLE_ACTIVE_COLOR_PICKER,
+    payload: {
+      stop
+    }
+  });
 };
 
-export const updateStopColor = (stop, color, id) => (dispatch, getState) => {
+export const updateStopColor = (stop, color, id) => dispatch => {
   dispatch({
     type: UPDATE_EDITED_STATE,
     payload: {
@@ -193,19 +196,19 @@ export const updateStopColor = (stop, color, id) => (dispatch, getState) => {
   });
 };
 
-export const updateActiveStop = stop => dispatch => {
-  return dispatch({
+export const updateActiveStop = stop => dispatch =>
+  dispatch({
     type: UPDATE_ACTIVE_STOP,
     payload: {
       stop
     }
   });
-};
 
+// eslint-disable-next-line consistent-return
 export const deleteActiveStop = id => (dispatch, getState) => {
   const { stops, gradients } = getState();
   const orig = getGradientData(id, initGradients, initStops);
-  let newdata = getGradientData(id, gradients, stops);
+  const newdata = getGradientData(id, gradients, stops);
   delete newdata.stops[stops.updating.active];
 
   dispatch({
@@ -237,14 +240,15 @@ export const deleteActiveStop = id => (dispatch, getState) => {
   }
 };
 
+// eslint-disable-next-line consistent-return
 export const addColorStop = id => (dispatch, getState) => {
   const { stops, gradients } = getState();
 
   const newValues = shiftStops(stops.values[id]);
   if (Object.keys(newValues).length < STOP_LIMIT) {
     const orig = getGradientData(id, initGradients, initStops);
-    let newdata = getGradientData(id, gradients, stops);
-    newdata['stops'] = newValues;
+    const newdata = getGradientData(id, gradients, stops);
+    newdata.stops = newValues;
 
     dispatch({
       type: UPDATE_EDITED_STATE,
@@ -264,11 +268,10 @@ export const addColorStop = id => (dispatch, getState) => {
   }
 };
 
-export const resetColorStop = id => dispatch => {
+export const resetColorStop = id => dispatch =>
   dispatch({
     type: RESET_COLOR_STOP,
     payload: {
       id
     }
   });
-};

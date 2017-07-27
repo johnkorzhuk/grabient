@@ -47,13 +47,13 @@ class SwatchItem extends Component {
     );
   }
 
-  _handleMouseEnter = () => {
+  handleMouseEnter = () => {
     this.setState({
       hovered: true
     });
   };
 
-  _handleMouseLeave = () => {
+  handleMouseLeave = () => {
     this.setState({
       hovered: false
     });
@@ -97,8 +97,8 @@ class SwatchItem extends Component {
           <Popover value={color} isPickingColor={isPickingColor} shadow={popoverShadow} hovered={hovered} />}
         <Item
           title="Edit stop"
-          onMouseEnter={this._handleMouseEnter}
-          onMouseLeave={this._handleMouseLeave}
+          onMouseEnter={this.handleMouseEnter}
+          onMouseLeave={this.handleMouseLeave}
           mixedTransparentized={mixedTransparentized}
           value={color}
           style={{

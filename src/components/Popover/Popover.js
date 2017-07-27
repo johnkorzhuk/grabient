@@ -46,26 +46,23 @@ class Popover extends Component {
           opacity: hovered ? 1 : 0
         }}
       >
-        {data => {
-          return (
-            <Container
-              className="target-el"
-              left={left}
-              shadowColor={shadow}
-              isPickingColor={isPickingColor}
-              style={{
-                opacity: data.opacity,
-                bottom: data.bottom
-              }}
-              {...props}
-            >
-              <Text>
-                {value}
-              </Text>
-              <Triangle right />
-            </Container>
-          );
-        }}
+        {data =>
+          <Container
+            className="target-el"
+            left={left}
+            shadowColor={shadow}
+            isPickingColor={isPickingColor}
+            style={{
+              opacity: data.opacity,
+              bottom: data.bottom
+            }}
+            {...props}
+          >
+            <Text>
+              {value}
+            </Text>
+            <Triangle right />
+          </Container>}
       </Animate>
     );
   }

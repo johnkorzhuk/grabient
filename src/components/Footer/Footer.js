@@ -25,60 +25,51 @@ const Container = styled.footer`
   }
 `;
 
-const John = () => {
-  return (
-    <ActionGroupItem
-      pretext="Development:"
-      href="https://twitter.com/johnkorzhuk"
-      itemStyle={{
-        order: -1
-      }}
-      style={{
-        cursor: 'pointer'
-      }}
-    >
-      <PhotoText>@johnkorzhuk</PhotoText>
-      <img src={john} alt="john" />
-    </ActionGroupItem>
-  );
-};
+const John = () =>
+  <ActionGroupItem
+    pretext="Development:"
+    href="https://twitter.com/johnkorzhuk"
+    itemStyle={{
+      order: -1
+    }}
+    style={{
+      cursor: 'pointer'
+    }}
+  >
+    <PhotoText>@johnkorzhuk</PhotoText>
+    <img src={john} alt="john" />
+  </ActionGroupItem>;
 
-const Eddie = () => {
-  return (
-    <ActionGroupItem
-      pretext="Design:"
-      href="https://twitter.com/lobanovskiy"
-      itemStyle={{
-        order: -1
-      }}
-      style={{
-        cursor: 'pointer'
-      }}
-    >
-      <PhotoText>@lobanovskiy</PhotoText>
-      <img src={eddie} alt="eddie" />
-    </ActionGroupItem>
-  );
-};
+const Eddie = () =>
+  <ActionGroupItem
+    pretext="Design:"
+    href="https://twitter.com/lobanovskiy"
+    itemStyle={{
+      order: -1
+    }}
+    style={{
+      cursor: 'pointer'
+    }}
+  >
+    <PhotoText>@lobanovskiy</PhotoText>
+    <img src={eddie} alt="eddie" />
+  </ActionGroupItem>;
 
-const Footer = () => {
-  return (
-    <Container>
-      <ActionGroupItemContainer>
-        <John />
-        <Eddie />
-      </ActionGroupItemContainer>
+const Footer = () =>
+  <Container>
+    <ActionGroupItemContainer>
+      <John />
+      <Eddie />
+    </ActionGroupItemContainer>
 
-      <ActionGroupItemContainer>
-        <ActionGroupItem href="https://www.unfold.co">
-          <TextXS>
-            ©{new Date().getFullYear()} Grabient by
-          </TextXS>
-          <UnfoldLogo />
-        </ActionGroupItem>
-      </ActionGroupItemContainer>
-    </Container>
-  );
-};
+    <ActionGroupItemContainer>
+      <ActionGroupItem href="https://www.unfold.co">
+        <TextXS>
+          ©{new Date().getFullYear()} Grabient by
+        </TextXS>
+        <UnfoldLogo />
+      </ActionGroupItem>
+    </ActionGroupItemContainer>
+  </Container>;
 
 export default Footer;

@@ -33,7 +33,7 @@ const Pretext = TextSM.extend`
 const LinkContainer = Container.withComponent('a');
 
 const ItemContainer = styled.div`
-  margin-left: ${({ ml }) => ml + 'px'};
+  margin-left: ${({ ml }) => `${ml}px`};
 
   @media (max-width: 550px) {
     margin-left: 0;
@@ -45,13 +45,13 @@ class ActionGroupItem extends Component {
     hovered: false
   };
 
-  _handleMouseEnter = () => {
+  handleMouseEnter = () => {
     this.setState({
       hovered: true
     });
   };
 
-  _handleMouseLeave = () => {
+  handleMouseLeave = () => {
     this.setState({
       hovered: false
     });
@@ -74,8 +74,8 @@ class ActionGroupItem extends Component {
                 {...props}
                 href={href}
                 target="_blank"
-                onMouseEnter={this._handleMouseEnter}
-                onMouseLeave={this._handleMouseLeave}
+                onMouseEnter={this.handleMouseEnter}
+                onMouseLeave={this.handleMouseLeave}
                 style={style}
               >
                 {pretext
@@ -96,28 +96,27 @@ class ActionGroupItem extends Component {
                 </ItemContainer>
               </LinkContainer>
             );
-          } else {
-            return (
-              <Container
-                {...props}
-                onMouseEnter={this._handleMouseEnter}
-                onMouseLeave={this._handleMouseLeave}
-                style={style}
-              >
-                {cloneElement(children[0], {
-                  style: {
-                    color: data.color
-                  }
-                })}
-                <ItemContainer ml={ml} style={itemStyle}>
-                  {cloneElement(children[1], {
-                    color: data.color,
-                    id
-                  })}
-                </ItemContainer>
-              </Container>
-            );
           }
+          return (
+            <Container
+              {...props}
+              onMouseEnter={this.handleMouseEnter}
+              onMouseLeave={this.handleMouseLeave}
+              style={style}
+            >
+              {cloneElement(children[0], {
+                style: {
+                  color: data.color
+                }
+              })}
+              <ItemContainer ml={ml} style={itemStyle}>
+                {cloneElement(children[1], {
+                  color: data.color,
+                  id
+                })}
+              </ItemContainer>
+            </Container>
+          );
         }}
       </Animate>
     );

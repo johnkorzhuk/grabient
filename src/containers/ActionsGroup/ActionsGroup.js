@@ -27,82 +27,79 @@ const Container = GradientDisplayContainer.extend`
 
 const CreditText = TextXS.extend`@media (max-width: 550px) {margin-bottom: 2px;}`;
 
-const ActionsGroup = ({ prefixes, fallback, togglePrefixes, toggleFallback }) => {
-  return (
-    <Container>
-      <ActionGroupItemContainer>
-        <ActionGroupItem
-          href={grabients}
-          type="button"
-          download="grabients.sketch"
-          style={{
-            cursor: 'pointer'
-          }}
-          ml={15}
-          itemStyle={{
-            marginTop: 2
-          }}
-        >
-          <TextSM>Download Sketch</TextSM>
-          <Sketch />
-        </ActionGroupItem>
+const ActionsGroup = ({ prefixes, fallback, togglePrefixes, toggleFallback }) =>
+  <Container>
+    <ActionGroupItemContainer>
+      <ActionGroupItem
+        href={grabients}
+        type="button"
+        download="grabients.sketch"
+        style={{
+          cursor: 'pointer'
+        }}
+        ml={15}
+        itemStyle={{
+          marginTop: 2
+        }}
+      >
+        <TextSM>Download Sketch</TextSM>
+        <Sketch />
+      </ActionGroupItem>
 
-        <ActionGroupItem
-          checked={prefixes}
-          style={{
-            cursor: 'pointer'
-          }}
-          onClick={togglePrefixes}
-          itemStyle={{
-            marginTop: 2
-          }}
-        >
-          <TextSM htmlFor="prefix">Prefixes</TextSM>
-          <Checkbox checked={prefixes} />
-        </ActionGroupItem>
+      <ActionGroupItem
+        checked={prefixes}
+        style={{
+          cursor: 'pointer'
+        }}
+        onClick={togglePrefixes}
+        itemStyle={{
+          marginTop: 2
+        }}
+      >
+        <TextSM htmlFor="prefix">Prefixes</TextSM>
+        <Checkbox checked={prefixes} />
+      </ActionGroupItem>
 
-        <ActionGroupItem
-          checked={fallback}
-          style={{
-            cursor: 'pointer'
-          }}
-          onClick={toggleFallback}
-          itemStyle={{
-            marginTop: 2
-          }}
-        >
-          <TextSM>Fallback BGC</TextSM>
-          <Checkbox checked={fallback} />
-        </ActionGroupItem>
-      </ActionGroupItemContainer>
+      <ActionGroupItem
+        checked={fallback}
+        style={{
+          cursor: 'pointer'
+        }}
+        onClick={toggleFallback}
+        itemStyle={{
+          marginTop: 2
+        }}
+      >
+        <TextSM>Fallback BGC</TextSM>
+        <Checkbox checked={fallback} />
+      </ActionGroupItem>
+    </ActionGroupItemContainer>
 
-      <ActionGroupItemContainer orderSM={-1}>
-        <ActionGroupItem
-          href="https://www.unfold.co"
-          style={{
-            cursor: 'pointer'
-          }}
-          ml={12}
-        >
-          <CreditText>
-            Crafted with{' '}
-            <span role="img" aria-label="Heart">
-              ♥
-            </span>
-            <span
-              style={{
-                paddingLeft: 3
-              }}
-            >
-              by
-            </span>
-          </CreditText>
-          <UnfoldLogo />
-        </ActionGroupItem>
-      </ActionGroupItemContainer>
-    </Container>
-  );
-};
+    <ActionGroupItemContainer orderSM={-1}>
+      <ActionGroupItem
+        href="https://www.unfold.co"
+        style={{
+          cursor: 'pointer'
+        }}
+        ml={12}
+      >
+        <CreditText>
+          Crafted with{' '}
+          <span role="img" aria-label="Heart">
+            ♥
+          </span>
+          <span
+            style={{
+              paddingLeft: 3
+            }}
+          >
+            by
+          </span>
+        </CreditText>
+        <UnfoldLogo />
+      </ActionGroupItem>
+    </ActionGroupItemContainer>
+  </Container>;
 
 export default connect(
   state => ({

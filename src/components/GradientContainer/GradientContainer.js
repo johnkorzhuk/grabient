@@ -50,29 +50,23 @@ const ButtonText = TextXS.extend`
   padding-top: 6px;
 `;
 
-const ButtonTextContainer = ({ left = false, text, hovered }) => {
-  return (
-    <Animate
-      duration={COPY_RESET_ANIMATION_DURATION}
-      data={{
-        opacity: hovered ? 1 : 1
-      }}
-    >
-      {data => {
-        return (
-          <ButtonText
-            left={left}
-            style={{
-              opacity: data.opacity
-            }}
-          >
-            {text}
-          </ButtonText>
-        );
-      }}
-    </Animate>
-  );
-};
+const ButtonTextContainer = ({ left = false, text, hovered }) =>
+  <Animate
+    duration={COPY_RESET_ANIMATION_DURATION}
+    data={{
+      opacity: hovered ? 1 : 1
+    }}
+  >
+    {data =>
+      <ButtonText
+        left={left}
+        style={{
+          opacity: data.opacity
+        }}
+      >
+        {text}
+      </ButtonText>}
+  </Animate>;
 
 const GradientContainer = ({
   gradientAnimationDuration,
@@ -97,7 +91,8 @@ const GradientContainer = ({
 }) => {
   const editing = editingAngle || editingStop || editingColor;
   const renderButton = hovered && !editingAngle;
-
+  const text = copiedId === id ? 'copied' : 'copy css';
+  const zIndex = pickingColorStop ? 4 : 9;
   return (
     <Container>
       {renderButton &&
@@ -116,11 +111,7 @@ const GradientContainer = ({
           onMouseLeave={e => onMouseLeave(e, ['main', 'copy'])}
         >
           <Copy color={'white'} hovered={copyHovered} animationDuration={COPY_RESET_ANIMATION_DURATION} />
-          <ButtonTextContainer
-            left
-            text={copyHovered ? (copiedId === id ? 'copied' : 'copy css') : ' '}
-            hovered={copyHovered}
-          />
+          <ButtonTextContainer left text={copyHovered ? text : ' '} hovered={copyHovered} />
         </GradientButton>}
       {renderButton &&
         edited &&
@@ -152,7 +143,7 @@ const GradientContainer = ({
       >
         <NoBlur
           style={{
-            zIndex: hovered ? (pickingColorStop ? 4 : 9) : 'auto'
+            zIndex: hovered ? zIndex : 'auto'
           }}
         >
           <Gradient

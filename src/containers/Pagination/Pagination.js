@@ -11,7 +11,7 @@ import { PaginationArrow } from './../../components/Icons/index';
 const Container = styled.div`
   position: relative;
   margin: 25px auto;
-  width: ${({ total }) => total * 35 + 'px'};
+  width: ${({ total }) => `${total * 35}px`};
   height: 10px;
 `;
 
@@ -101,7 +101,7 @@ class Pagination extends Component {
   };
 
   renderItems(total) {
-    let items = [];
+    const items = [];
     for (let i = 1; i <= total; i++) {
       const left = `${(i - 1) / total * 100}%`;
       items.push(
@@ -135,38 +135,35 @@ class Pagination extends Component {
           rightArrowColor: right ? '#000000' : '#AFAFAF'
         }}
       >
-        {data => {
-          return (
-            <Container total={totalItems} onMouseLeave={this.handleContanerMouseLeave}>
-              <ArrowContainer
-                position="left"
-                onMouseEnter={() => this.handleArrowMouseEnter('left')}
-                onMouseLeave={() => this.handleArrowMouseLeave('left')}
-                onClick={e => this.handleArrowClick(e, -1)}
-              >
-                <PaginationArrow color={data.leftArrowColor} />
-              </ArrowContainer>
+        {data =>
+          <Container total={totalItems} onMouseLeave={this.handleContanerMouseLeave}>
+            <ArrowContainer
+              position="left"
+              onMouseEnter={() => this.handleArrowMouseEnter('left')}
+              onMouseLeave={() => this.handleArrowMouseLeave('left')}
+              onClick={e => this.handleArrowClick(e, -1)}
+            >
+              <PaginationArrow color={data.leftArrowColor} />
+            </ArrowContainer>
 
-              {this.renderItems(totalItems)}
+            {this.renderItems(totalItems)}
 
-              <ArrowContainer
-                position="right"
-                onMouseEnter={() => this.handleArrowMouseEnter('right')}
-                onMouseLeave={() => this.handleArrowMouseLeave('right')}
-                onClick={e => this.handleArrowClick(e, 1)}
-              >
-                <PaginationArrow right color={data.rightArrowColor} />
-              </ArrowContainer>
+            <ArrowContainer
+              position="right"
+              onMouseEnter={() => this.handleArrowMouseEnter('right')}
+              onMouseLeave={() => this.handleArrowMouseLeave('right')}
+              onClick={e => this.handleArrowClick(e, 1)}
+            >
+              <PaginationArrow right color={data.rightArrowColor} />
+            </ArrowContainer>
 
-              <Uderline
-                style={{
-                  left: `calc(${data.left * 100}% + 10px)`,
-                  width: data.itemWidth
-                }}
-              />
-            </Container>
-          );
-        }}
+            <Uderline
+              style={{
+                left: `calc(${data.left * 100}% + 10px)`,
+                width: data.itemWidth
+              }}
+            />
+          </Container>}
       </Animate>
     );
   }

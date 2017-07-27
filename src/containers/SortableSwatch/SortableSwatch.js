@@ -1,3 +1,5 @@
+/* eslint-disable react/no-array-index-key */
+
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
 import { Animate } from 'react-move';
@@ -48,67 +50,65 @@ const SortableList = SortableContainer(
 
     return (
       <Animate data={data} duration={animationDuration} ignore={isUpdating ? stopKeys : []}>
-        {data => {
-          return (
-            <SwatchContainer
-              editing={editing}
+        {data =>
+          <SwatchContainer
+            editing={editing}
+            style={{
+              ...style,
+              width: data.width
+            }}
+          >
+            <SlideBar
               style={{
-                ...style,
-                width: data.width
+                opacity: data.barOpacity
               }}
-            >
-              <SlideBar
-                style={{
-                  opacity: data.barOpacity
-                }}
-              />
-              {stopKeys.map((stop, index) => {
-                const color = stops[stop];
-                let left = data[stop];
-                // bug with react-sortable-hoc
-                let style = sorting
-                  ? {}
-                  : {
-                      transform: 'none',
-                      transitionDuration: '0ms'
-                    };
+            />
+            {stopKeys.map((stop, index) => {
+              const color = stops[stop];
+              let left = data[stop];
+              // bug with react-sortable-hoc
+              const style = sorting
+                ? {}
+                : {
+                    transform: 'none',
+                    transitionDuration: '0ms'
+                  };
 
-                // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
-                // To force it to happen: spam click the stop when editing and have cursor off the stop on mouse up. Weird!
-                if (isNaN(left)) {
-                  editing ? (left = stop) : (left = parseFloat((index + 1) / stopKeys.length * 100, 10));
-                }
+              // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
+              // To force it to happen: spam click the stop when editing and have cursor off the stop on mouse up. Weird!
+              if (isNaN(left)) {
+                // eslint-disable-next-line no-unused-expressions
+                editing ? (left = stop) : (left = parseFloat((index + 1) / stopKeys.length * 100, 10));
+              }
 
-                return (
-                  <SortableItem
-                    {...props}
-                    disabled={editing || pickingColorStop === stop}
-                    editing={editing}
-                    editingColor={editingColor}
-                    stop={stop}
-                    pickingColorStop={pickingColorStop}
-                    style={{
-                      ...style
-                    }}
-                    isUpdating={isUpdating}
-                    key={index}
-                    index={index}
-                    isBeingEdited={active === stop}
-                    sorting={sorting}
-                    onTouchStart={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                    onTouchMove={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                    onTouchEnd={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                    onMouseUp={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                    onMouseDown={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                    color={color}
-                    left={left}
-                    active={active}
-                  />
-                );
-              })}
-            </SwatchContainer>
-          );
-        }}
+              return (
+                <SortableItem
+                  {...props}
+                  disabled={editing || pickingColorStop === stop}
+                  editing={editing}
+                  editingColor={editingColor}
+                  stop={stop}
+                  pickingColorStop={pickingColorStop}
+                  style={{
+                    ...style
+                  }}
+                  isUpdating={isUpdating}
+                  key={index}
+                  index={index}
+                  isBeingEdited={active === stop}
+                  sorting={sorting}
+                  onTouchStart={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                  onTouchMove={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                  onTouchEnd={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                  onMouseUp={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                  onMouseDown={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                  color={color}
+                  left={left}
+                  active={active}
+                />
+              );
+            })}
+          </SwatchContainer>}
       </Animate>
     );
   }
@@ -136,19 +136,19 @@ class Swatch extends Component {
     }
   }
 
-  _handleSortStart = () => {
+  handleSortStart = () => {
     this.setState({
       sorting: true
     });
   };
 
-  _handleSortMove = () => {
+  handleSortMove = () => {
     const { toggleTrashIcon, renderDelete, id } = this.props;
 
     if (!renderDelete) toggleTrashIcon(id);
   };
 
-  _handleSortEnd = ({ oldIndex, newIndex }) => {
+  handleSortEnd = ({ oldIndex, newIndex }) => {
     const { swapStopsColors, id, colors, toggleTrashIcon, deleteStop } = this.props;
     const newColorOrder = arrayMove(colors, oldIndex, newIndex);
     this.props.updateActiveStop(null);
@@ -162,14 +162,14 @@ class Swatch extends Component {
     });
   };
 
-  _handleEditInit = (pageX, stop) => {
+  handleEditInit = (pageX, stop) => {
     const { updateDraggedStopPos, updateUpdatingStop } = this.props;
 
     updateUpdatingStop(stop, pageX);
     updateDraggedStopPos(pageX);
   };
 
-  _handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
+  handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
     if (e.type === 'mouseup' || e.type === 'touchend') {
       this.props.toggleEditing(null);
 
@@ -187,10 +187,10 @@ class Swatch extends Component {
       this.props.updateActiveStop(stop);
 
       if (editing) {
-        this._handleEditInit(e.nativeEvent.pageX, stop);
+        this.handleEditInit(e.nativeEvent.pageX, stop);
         // if (e.type === 'mousedown') {
-        //   this._handleEditInit(e.nativeEvent.pageX, stop)
-        // } else this._handleEditInit(e.nativeEvent.touches[0].pageX, stop)
+        //   this.handleEditInit(e.nativeEvent.pageX, stop)
+        // } else this.handleEditInit(e.nativeEvent.touches[0].pageX, stop)
       }
     }
     // todo: figure out why updateDraggedStopPos(pageX) wont work on touchmove
@@ -213,14 +213,14 @@ class Swatch extends Component {
         axis="x"
         useWindowAsScrollContainer
         lockAxis="x"
-        onSortStart={this._handleSortStart}
-        onSortMove={this._handleSortMove}
-        onSortEnd={this._handleSortEnd}
+        onSortStart={this.handleSortStart}
+        onSortMove={this.handleSortMove}
+        onSortEnd={this.handleSortEnd}
         shouldCancelStart={() => editing || updatingValue !== null || pickingColorStop !== null}
         distance={5}
         lockToContainerEdges
         sorting={sorting}
-        onSortItemClick={this._handleSortItemClick}
+        onSortItemClick={this.handleSortItemClick}
         editing={editing}
         pickingColorStop={pickingColorStop}
         helperClass="sortable-helper"

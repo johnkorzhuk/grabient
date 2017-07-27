@@ -118,13 +118,14 @@ const EditExitButtonContainer = Button.extend`
 `;
 
 const addEvent = function(object, type, callback) {
-  if (object == null || typeof object === 'undefined') return;
-  if (object.addEventListener) {
-    object.addEventListener(type, debounce(callback, 100), false);
-  } else if (object.attachEvent) {
-    object.attachEvent('on' + type, debounce(callback, 100));
+  const newObject = { ...object };
+  if (newObject == null || typeof newObject === 'undefined') return;
+  if (newObject.addEventListener) {
+    newObject.addEventListener(type, debounce(callback, 100), false);
+  } else if (newObject.attachEvent) {
+    newObject.attachEvent(`on${type}`, debounce(callback, 100));
   } else {
-    object['on' + type] = debounce(callback, 100);
+    newObject[`on${type}`] = debounce(callback, 100);
   }
 };
 
@@ -142,18 +143,7 @@ class GradientCard extends Component {
   };
 
   componentDidMount() {
-    addEvent(window, 'resize', this._handleWindowResize);
-  }
-
-  shouldComponentUpdate(nextProps, nextState) {
-    const willEdit = this.props.id === nextProps.editingAngleData.id || nextProps.editingStop || nextProps.editingColor;
-    if (!willEdit) return true;
-    else if (willEdit || this.state !== nextState) return true;
-    return false;
-  }
-
-  componentWillUnmount() {
-    window.removeEventListener('resize', this._handleWindowResize);
+    addEvent(window, 'resize', this.handleWindowResize);
   }
 
   componentWillReceiveProps(nextProps) {
@@ -167,23 +157,46 @@ class GradientCard extends Component {
     }
   }
 
-  _handleWindowResize = e => {
-    if (this.props.editingStop) {
-      this.props.updateSwatchDimensions(this.sliderContainer.getClientRects());
-    }
+  shouldComponentUpdate(nextProps, nextState) {
+    const willEdit = this.props.id === nextProps.editingAngleData.id || nextProps.editingStop || nextProps.editingColor;
+    if (!willEdit) return true;
+    else if (willEdit || this.state !== nextState) return true;
+    return false;
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this.handleWindowResize);
+  }
+
+  setItemHoveredState(items, hovered, resetWasEditing) {
+    const newState = { ...this.state };
+    items.forEach(item => {
+      newState.hovered[item] = hovered;
+    });
+
+    if (resetWasEditing) newState.wasEditing = false;
+
+    this.setState(newState);
+  }
+
+  handleDelete = () => {
+    const { hovered: addColor } = this.state;
+    const { deleteActiveStop, renderDelete, id } = this.props;
+    if (addColor && renderDelete) deleteActiveStop(id);
   };
 
-  _handleMouseEnter = (e, items) => {
-    if (!this.state.wasEditing) {
-      this.setItemHoveredState(items, true, false);
-    }
+  handleAddColor = () => {
+    const { id, addColorStop } = this.props;
+    addColorStop(id);
   };
 
-  _handleMouseLeave = (e, items) => {
-    this.setItemHoveredState(items, false, true);
+  handleLeftIconClick = () => {
+    const { toggleEditing, updateEditingAngle, id, angle } = this.props;
+    toggleEditing(id);
+    updateEditingAngle(angle);
   };
 
-  _handleAddCancelColorStop = () => {
+  handleAddCancelColorStop = () => {
     const { editingStop, editStop, updateActiveColorPicker, id, pickingColorStop, editStopColor } = this.props;
     if (pickingColorStop) {
       editStopColor(null);
@@ -197,33 +210,21 @@ class GradientCard extends Component {
     }
   };
 
-  _handleLeftIconClick = () => {
-    const { toggleEditing, updateEditingAngle, id, angle } = this.props;
-    toggleEditing(id);
-    updateEditingAngle(angle);
+  handleMouseLeave = (e, items) => {
+    this.setItemHoveredState(items, false, true);
   };
 
-  _handleAddColor = () => {
-    const { id, addColorStop } = this.props;
-    addColorStop(id);
+  handleMouseEnter = (e, items) => {
+    if (!this.state.wasEditing) {
+      this.setItemHoveredState(items, true, false);
+    }
   };
 
-  _handleDelete = () => {
-    const { hovered: addColor } = this.state;
-    const { deleteActiveStop, renderDelete, id } = this.props;
-    if (addColor && renderDelete) deleteActiveStop(id);
+  handleWindowResize = () => {
+    if (this.props.editingStop) {
+      this.props.updateSwatchDimensions(this.sliderContainer.getClientRects());
+    }
   };
-
-  setItemHoveredState(items, hovered, resetWasEditing) {
-    const newState = { ...this.state };
-    items.forEach(item => {
-      newState.hovered[item] = hovered;
-    });
-
-    if (resetWasEditing) newState.wasEditing = false;
-
-    this.setState(newState);
-  }
 
   render() {
     const { hovered: { arrowPrev, addColor, main, edit, copy, reset } } = this.state;
@@ -258,8 +259,8 @@ class GradientCard extends Component {
           onCopyCSS={copyCSS}
           stopData={stopData}
           actualAngle={actualAngle}
-          onMouseEnter={this._handleMouseEnter}
-          onMouseLeave={this._handleMouseLeave}
+          onMouseEnter={this.handleMouseEnter}
+          onMouseLeave={this.handleMouseLeave}
           gradientAnimationDuration={GRADIENT_ANIMATION_DURATION}
           wheelAnimationDuration={ANGLE_WHEEL_ANIMATION_DURATION}
           id={id}
@@ -277,9 +278,9 @@ class GradientCard extends Component {
         <InfoContainer editing={editing}>
           <AngleContainer
             title="Edit Angle"
-            onClick={this._handleLeftIconClick}
-            onMouseEnter={e => this._handleMouseEnter(e, ['arrowPrev'])}
-            onMouseLeave={e => this._handleMouseLeave(e, ['arrowPrev'])}
+            onClick={this.handleLeftIconClick}
+            onMouseEnter={e => this.handleMouseEnter(e, ['arrowPrev'])}
+            onMouseLeave={e => this.handleMouseLeave(e, ['arrowPrev'])}
           >
             <AnglePreview
               editingAngle={editingAngle}
@@ -302,10 +303,10 @@ class GradientCard extends Component {
 
           <AddDeleteButtonContainer
             title={renderDelete ? 'Delete' : 'Add'}
-            onMouseEnter={e => this._handleMouseEnter(e, ['addColor'])}
-            onMouseLeave={e => this._handleMouseLeave(e, ['addColor'])}
-            onMouseUp={this._handleDelete}
-            onClick={this._handleAddColor}
+            onMouseEnter={e => this.handleMouseEnter(e, ['addColor'])}
+            onMouseLeave={e => this.handleMouseLeave(e, ['addColor'])}
+            onMouseUp={this.handleDelete}
+            onClick={this.handleAddColor}
             atStopLimit={atStopLimit && !renderDelete}
           >
             <AddDeleteStop
@@ -318,9 +319,9 @@ class GradientCard extends Component {
 
           <EditExitButtonContainer
             title={editingStop || editingColor ? 'Exit' : 'Edit'}
-            onMouseEnter={e => this._handleMouseEnter(e, ['edit'])}
-            onMouseLeave={e => this._handleMouseLeave(e, ['edit'])}
-            onClick={this._handleAddCancelColorStop}
+            onMouseEnter={e => this.handleMouseEnter(e, ['edit'])}
+            onMouseLeave={e => this.handleMouseLeave(e, ['edit'])}
+            onClick={this.handleAddCancelColorStop}
           >
             <Edit
               id={id}

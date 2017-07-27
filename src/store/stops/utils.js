@@ -1,69 +1,75 @@
-export { shiftConflictedStops, shiftStops }
-
-function shiftConflictedStops (stops, stopConflict, tryUpFirst) {
-  let newStops = { ...stops }
-  let conflicts = [stopConflict]
-  let canShiftUp = false
-  let canShiftDown = false
+export function shiftConflictedStops(stops, stopConflict, tryUpFirst) {
+  const newStops = { ...stops };
+  let conflicts = [stopConflict];
+  let canShiftUp = false;
+  let canShiftDown = false;
 
   const adjustUp = () => {
+    // eslint-disable-next-line no-plusplus
     for (let adjustment = 1; stopConflict + adjustment <= 100; adjustment++) {
       if (!newStops[stopConflict + adjustment]) {
-        canShiftUp = true
-        break
+        canShiftUp = true;
+        break;
       } else {
-        conflicts.push(stopConflict + adjustment)
+        conflicts.push(stopConflict + adjustment);
       }
     }
 
     if (canShiftUp) {
       conflicts.forEach(conflict => {
-        newStops[conflict + 1] = stops[conflict]
-      })
-      delete newStops[stopConflict]
+        newStops[conflict + 1] = stops[conflict];
+      });
+      delete newStops[stopConflict];
     } else {
-      conflicts = [stopConflict]
+      conflicts = [stopConflict];
     }
-  }
+  };
 
   const adjustDown = () => {
+    // eslint-disable-next-line no-plusplus
     for (let adjustment = 1; stopConflict - adjustment >= 0; adjustment++) {
       if (!newStops[stopConflict - adjustment]) {
-        canShiftDown = true
-        break
+        canShiftDown = true;
+        break;
       } else {
-        conflicts.push(stopConflict - adjustment)
+        conflicts.push(stopConflict - adjustment);
       }
     }
 
     if (canShiftDown) {
       conflicts.forEach(conflict => {
-        newStops[conflict - 1] = stops[conflict]
-      })
-      delete newStops[stopConflict]
+        newStops[conflict - 1] = stops[conflict];
+      });
+      delete newStops[stopConflict];
     } else {
-      conflicts = [stopConflict]
+      conflicts = [stopConflict];
     }
+  };
+
+  if (tryUpFirst) {
+    adjustUp();
+  } else {
+    adjustDown();
   }
 
-  tryUpFirst ? adjustUp() : adjustDown()
-
-  return newStops
+  return newStops;
 }
 
-function shiftStops (stops) {
-  const stopKeys = Object.keys(stops)
+export function shiftStops(stops) {
+  const stopKeys = Object.keys(stops);
 
-  let newStops = stopKeys
+  const newStops = stopKeys
     .map(stop => {
-      stop = parseInt(stop, 10)
-      return Math.floor(stop - stop / stopKeys.length)
+      let s = stop;
+      s = parseInt(s, 10);
+      return Math.floor(s - s / stopKeys.length);
     })
     .reduce((aggr, curr, index) => {
-      aggr[curr] = stops[stopKeys[index]]
-      return aggr
-    }, {})
-  newStops[100] = '#ffffff'
+      const newAggr = { ...aggr };
+      newAggr[curr] = stops[stopKeys[index]];
+      return newAggr;
+    }, {});
+  newStops[100] = '#ffffff';
 
-  return newStops
+  return newStops;
 }

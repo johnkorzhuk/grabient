@@ -26,30 +26,27 @@ class PaginationItem extends Component {
           color: active || hovered ? '#000000' : '#afafaf'
         }}
       >
-        {data => {
-          return (
-            <ItemLink
-              innerRef={node => {
-                this.item = node;
-              }}
-              active={active || hovered}
-              href="#"
-              style={{
-                left: `calc(${left} + 10px)`,
-                color: data.color
-              }}
-              onMouseEnter={() => {
-                onMouseEnter(item);
-              }}
-              onClick={e => {
-                e.preventDefault();
-                onClick(item);
-              }}
-            >
-              {item}
-            </ItemLink>
-          );
-        }}
+        {data =>
+          <ItemLink
+            innerRef={node => {
+              this.item = node;
+            }}
+            active={active || hovered}
+            href="#"
+            style={{
+              left: `calc(${left} + 10px)`,
+              color: data.color
+            }}
+            onMouseEnter={() => {
+              onMouseEnter(item);
+            }}
+            onClick={e => {
+              e.preventDefault();
+              onClick(item);
+            }}
+          >
+            {item}
+          </ItemLink>}
       </Animate>
     );
   }
