@@ -13,5 +13,5 @@ Generate UI to generate linear gradient
 ## Special thanks to BrowserStack for providing the very much needed browser testing
 
 <a href="https://www.browserstack.com">
-  <img src="./files/browserstack.svg" width=800 height=250>
+  <img src="./files/browserstack.png" width=800 height=250>
 </a>
