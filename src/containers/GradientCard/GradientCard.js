@@ -25,8 +25,8 @@ import { Button } from './../../components/Common/index';
 
 // units = ms
 const GRADIENT_ANIMATION_DURATION = 500;
-const ANGLE_WHEEL_ANIMATION_DURATION = 300;
-const ANGLE_PREVIEW_ANIMATION_DURATION = 200;
+const ANGLE_WHEEL_ANIMATION_DURATION = 400;
+const ANGLE_PREVIEW_ANIMATION_DURATION = 300;
 // also used for icon opacity transition duration
 const SLIDER_ANIMATION_DURATION = 300;
 

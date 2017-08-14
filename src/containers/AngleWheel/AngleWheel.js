@@ -134,16 +134,6 @@ class AngleWheel extends Component {
     return false;
   }
 
-  // _handleMouseLeave = () => {
-  //   const { toggleEditing, id } = this.props;
-  //   this.updateActualAngle();
-  //   toggleEditing(id);
-  //   this.setState(() => ({
-  //     cursorUpdatingAngle: false,
-  //     updatingText: false
-  //   }));
-  // };
-
   getAngle(offsetX, offsetY) {
     const boxCenter = this.getBoxCenter();
     let angle = Math.atan2(offsetX - boxCenter[0], -(offsetY - boxCenter[1])) * (180 / Math.PI);
@@ -269,7 +259,8 @@ class AngleWheel extends Component {
     return (
       <Animate
         data={{
-          opacity: editing ? 0.1 : 0
+          opacity: editing ? 0.1 : 0,
+          mainOpacity: editing ? 1 : 0
         }}
         duration={transitionDuration}
       >
@@ -278,7 +269,8 @@ class AngleWheel extends Component {
           <AreaContainer
             {...props}
             style={{
-              zIndex: editing ? 15 : 1
+              zIndex: editing ? 15 : 1,
+              opacity: data.mainOpacity
             }}
           >
             <Background style={{ opacity: data.opacity }} />
