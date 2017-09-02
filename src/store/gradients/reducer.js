@@ -11,6 +11,21 @@ import {
 
 export const INITIAL_STATE = {
   gradientValues: {
+    '27e6a30f-f404-4c8f-8936-c34303883f24': {
+      id: '27e6a30f-f404-4c8f-8936-c34303883f24',
+      angle: 180,
+      edited: false
+    },
+    '75618255-3439-4e4e-9686-d57a1a4aec7b': {
+      id: '75618255-3439-4e4e-9686-d57a1a4aec7b',
+      angle: 180,
+      edited: false
+    },
+    '84ed77f3-b1c8-42be-af91-f177728b063a': {
+      id: '84ed77f3-b1c8-42be-af91-f177728b063a',
+      angle: 147,
+      edited: false
+    },
     'b4da6cdd-c43e-4796-bd35-960d07d0e956': {
       id: 'b4da6cdd-c43e-4796-bd35-960d07d0e956',
       angle: 19,
@@ -73,7 +88,7 @@ export const INITIAL_STATE = {
     },
     'b6338b88-5ae9-4484-b57c-29b97bb4df00': {
       id: 'b6338b88-5ae9-4484-b57c-29b97bb4df00',
-      angle: 270,
+      angle: 90,
       editied: false
     },
     '8de97c99-10e8-4200-9bca-f01ad3dac544': {
@@ -176,7 +191,10 @@ export default (state = INITIAL_STATE, action) => {
         ...state,
         editingAngle: {
           ...state.editingAngle,
-          id: state.editingAngle.id === action.payload.id || action.payload.id === null ? null : action.payload.id,
+          id:
+            state.editingAngle.id === action.payload.id || action.payload.id === null
+              ? null
+              : action.payload.id,
           angle: null
         }
       };

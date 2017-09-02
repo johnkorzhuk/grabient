@@ -14,6 +14,19 @@ import {
 
 export const INITIAL_STATE = {
   values: {
+    '27e6a30f-f404-4c8f-8936-c34303883f24': {
+      '0': '#FFFFFF',
+      '50': '#6284FF',
+      '100': '#FF0000'
+    },
+    '75618255-3439-4e4e-9686-d57a1a4aec7b': {
+      '25': '#52ACFF',
+      '100': '#FFE32C'
+    },
+    '84ed77f3-b1c8-42be-af91-f177728b063a': {
+      '0': '#FFE53B',
+      '74': '#FF2525'
+    },
     'b4da6cdd-c43e-4796-bd35-960d07d0e956': {
       '0': '#FAACA8',
       '100': '#DDD6F3'
@@ -65,7 +78,7 @@ export const INITIAL_STATE = {
     },
     'b6338b88-5ae9-4484-b57c-29b97bb4df00': {
       '0': '#FAD961',
-      '99': '#F76B1C'
+      '100': '#F76B1C'
     },
     '8de97c99-10e8-4200-9bca-f01ad3dac544': {
       '0': '#FA8BFF',
@@ -157,7 +170,9 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           origUnchanged: action.payload.updatedStopValues,
           stop: action.payload.updatedStop,
-          passThreshold: action.payload.passThreshold ? action.payload.passThreshold : state.updating.passThreshold,
+          passThreshold: action.payload.passThreshold
+            ? action.payload.passThreshold
+            : state.updating.passThreshold,
           pickingColorStop: null,
           active: action.payload.updatedStop
         }
@@ -170,7 +185,9 @@ export default (state = INITIAL_STATE, action) => {
           ...state.updating,
           stop: action.payload.stop,
           passThreshold:
-            action.payload.stop === null && state.updatingStopXPos !== action.payload.xPos && state.editing !== null
+            action.payload.stop === null &&
+            state.updatingStopXPos !== action.payload.xPos &&
+            state.editing !== null
         },
         updatingStopXPos: action.payload.xPos
       };
