@@ -1,6 +1,6 @@
-import React from 'react';
-import styled from 'styled-components';
-import { Logo } from './../Common/index';
+import React from "react";
+import styled from "styled-components";
+import { Logo } from "./../Common/index";
 
 const GradientDisplayContainer = styled.section`
   max-width: 1100px;
@@ -16,7 +16,11 @@ const GradientDisplayContainer = styled.section`
   }
 `;
 
-const LogoContainer = styled.h1`@media (max-width: 550px) {margin-bottom: 10px;}`;
+const LogoContainer = styled.h1`
+  @media (max-width: 550px) {
+    margin-bottom: 10px;
+  }
+`;
 
 const Hero = () =>
   <GradientDisplayContainer>
@@ -36,7 +40,7 @@ const Hero = () =>
       <iframe
         title="facebook"
         src="https://www.facebook.com/plugins/share_button.php?href=http%3A%2F%2Fgrabient.com%2F&layout=button_count&size=small&mobile_iframe=true&width=69&height=20&appId"
-        width="82"
+        width="77"
         height="20"
         scrolling="no"
         frameBorder="0"
@@ -51,8 +55,8 @@ const Hero = () =>
         frameBorder="0"
         title="Twitter Tweet Button"
         style={{
-          bordeR: 'none',
-          overflow: 'hidden',
+          bordeR: "none",
+          overflow: "hidden",
           marginLeft: 7
         }}
       />
