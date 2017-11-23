@@ -44,7 +44,6 @@ const Hero = () =>
         height="20"
         scrolling="no"
         frameBorder="0"
-        allowTransparency="true"
       />
 
       <iframe

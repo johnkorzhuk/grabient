@@ -1,7 +1,7 @@
-import React, { PureComponent } from 'react';
-import { Animate } from 'react-move';
+import React, { Component } from "react";
+import { Animate } from "react-move";
 
-class ExpandEdit extends PureComponent {
+class ExpandEdit extends Component {
   shouldComponentUpdate(nextProps) {
     return (
       this.props.hovered !== nextProps.hovered ||
@@ -11,7 +11,14 @@ class ExpandEdit extends PureComponent {
   }
 
   render() {
-    const { hovered, color, editingStop, pickingColorStop, animationDuration, ...props } = this.props;
+    const {
+      hovered,
+      color,
+      editingStop,
+      pickingColorStop,
+      animationDuration,
+      ...props
+    } = this.props;
     return (
       <Animate
         duration={animationDuration}

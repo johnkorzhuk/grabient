@@ -1,7 +1,7 @@
-import React, { PureComponent } from 'react';
-import { Animate } from 'react-move';
+import React, { Component } from "react";
+import { Animate } from "react-move";
 
-class Edit extends PureComponent {
+class Edit extends Component {
   shouldComponentUpdate(nextProps) {
     return (
       this.props.hovered !== nextProps.hovered ||
@@ -13,7 +13,7 @@ class Edit extends PureComponent {
   render() {
     const {
       hovered,
-      color = '#afafaf',
+      color = "#afafaf",
       editing,
       pickingColorStop,
       animationDuration = 2000,
@@ -26,7 +26,7 @@ class Edit extends PureComponent {
         duration={animationDuration}
         data={{
           hoveredOpacity: hovered ? 0 : 1,
-          d12: editing ? 'M0 2h20v2H0V2z' : 'M0 14h20v2H0V2z',
+          d12: editing ? "M0 2h20v2H0V2z" : "M0 14h20v2H0V2z",
           d12x: editing ? 1 : 0,
           d12y: editing ? 14 : 0,
           d2x: editing ? 5 : 0,
@@ -52,7 +52,11 @@ class Edit extends PureComponent {
               <circle id={`${id}c1`} cx={data.b1yc1x} cy="9" r={data.r} />
             </defs>
             <g fill="none" fillRule="evenodd">
-              <path d="M0 2h20v2H0V2z" fill={color} transform={`translate(${data.d2x}) rotate(${data.rotation})`} />
+              <path
+                d="M0 2h20v2H0V2z"
+                fill={color}
+                transform={`translate(${data.d2x}) rotate(${data.rotation})`}
+              />
               {!editing && <path d="M0 8h20v2H0V2z" fill={color} />}
               <path
                 d={data.d12}
@@ -61,12 +65,45 @@ class Edit extends PureComponent {
               />
 
               <g>
-                {!editing && <use fill="#fff" xlinkHref={`#${id}a1`} fillOpacity={data.hoveredOpacity} />}
-                <circle stroke={color} strokeWidth="2" cx={data.a1x} cy={data.a1y} r={data.r} />
-                {!editing && <use fill="#fff" xlinkHref={`#${id}b1`} fillOpacity={data.hoveredOpacity} />}
-                <circle stroke={color} strokeWidth="2" cx="9" cy={data.b1yc1x} r={data.r} />
-                {!editing && <use fill="#fff" xlinkHref={`#${id}c1`} fillOpacity={data.hoveredOpacity} />}
-                <circle stroke={color} strokeWidth="2" cx={data.b1yc1x} cy="9" r={data.r} />
+                {!editing &&
+                  <use
+                    fill="#fff"
+                    xlinkHref={`#${id}a1`}
+                    fillOpacity={data.hoveredOpacity}
+                  />}
+                <circle
+                  stroke={color}
+                  strokeWidth="2"
+                  cx={data.a1x}
+                  cy={data.a1y}
+                  r={data.r}
+                />
+                {!editing &&
+                  <use
+                    fill="#fff"
+                    xlinkHref={`#${id}b1`}
+                    fillOpacity={data.hoveredOpacity}
+                  />}
+                <circle
+                  stroke={color}
+                  strokeWidth="2"
+                  cx="9"
+                  cy={data.b1yc1x}
+                  r={data.r}
+                />
+                {!editing &&
+                  <use
+                    fill="#fff"
+                    xlinkHref={`#${id}c1`}
+                    fillOpacity={data.hoveredOpacity}
+                  />}
+                <circle
+                  stroke={color}
+                  strokeWidth="2"
+                  cx={data.b1yc1x}
+                  cy="9"
+                  r={data.r}
+                />
               </g>
             </g>
           </svg>}

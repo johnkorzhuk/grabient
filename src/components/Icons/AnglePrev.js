@@ -1,7 +1,7 @@
-import React, { PureComponent } from 'react';
-import { Animate } from 'react-move';
+import React, { Component } from "react";
+import { Animate } from "react-move";
 
-class AnglePrev extends PureComponent {
+class AnglePrev extends Component {
   shouldComponentUpdate(nextProps) {
     return (
       this.props.angle !== nextProps.angle ||
