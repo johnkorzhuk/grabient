@@ -1,10 +1,10 @@
 // @flow
 
-import React from 'react';
-import styled from 'styled-components';
-import { Animate } from 'react-move';
+import React from "react";
+import styled from "styled-components";
+import { Animate } from "react-move";
 
-import { generateColorStopsFromData } from './../../utils/gradient';
+import { generateColorStopsFromData } from "./../../utils/gradient";
 
 const Container = styled.div`
   position: relative;
@@ -36,11 +36,17 @@ const Gradient = ({
   if (hasOpacity) newData.opacity = hovered || editing ? opacity : 0;
 
   return (
-    <Animate data={newData} duration={transitionDuration} ignore={editingColor ? Object.keys(newData) : []}>
+    <Animate
+      data={newData}
+      duration={transitionDuration}
+      ignore={editingColor ? Object.keys(newData) : []}
+    >
       {data =>
         <Container
           style={{
-            backgroundImage: `linear-gradient(${angle}deg, ${generateColorStopsFromData(data)})`,
+            backgroundImage: `linear-gradient(${angle}deg, ${generateColorStopsFromData(
+              data
+            )})`,
             opacity: data.opacity
           }}
         />}

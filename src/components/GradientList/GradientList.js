@@ -1,7 +1,7 @@
-import React from 'react';
-import styled from 'styled-components';
+import React from "react";
+import styled from "styled-components";
 
-import { GradientCard } from './../../containers/index';
+import { GradientCard } from "./../../containers/index";
 
 const Container = styled.ul`
   display: flex;
@@ -16,7 +16,13 @@ const Container = styled.ul`
 const GradientList = ({ gradients }) =>
   <Container>
     {gradients.map((item, index) =>
-      <GradientCard key={item.id} gradient={item} index={index} width="100%" id={item.id} />
+      <GradientCard
+        key={item.id}
+        gradient={item}
+        index={index}
+        width="100%"
+        id={item.id}
+      />
     )}
   </Container>;
 
