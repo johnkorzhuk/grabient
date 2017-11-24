@@ -1,12 +1,16 @@
 /* eslint-disable react/no-array-index-key */
 
-import React, { Component } from 'react';
-import { connect } from 'react-redux';
-import { Animate } from 'react-move';
-import styled from 'styled-components';
-import { SortableContainer, SortableElement, arrayMove } from 'react-sortable-hoc';
+import React, { Component } from "react";
+import { connect } from "react-redux";
+import { Animate } from "react-move";
+import styled from "styled-components";
+import {
+  SortableContainer,
+  SortableElement,
+  arrayMove
+} from "react-sortable-hoc";
 
-import { toggleEditing } from './../../store/gradients/actions';
+import { toggleEditing } from "./../../store/gradients/actions";
 import {
   editStopColor,
   swapStopsColors,
@@ -14,11 +18,15 @@ import {
   updateUpdatingStop,
   updateActiveColorPicker,
   updateActiveStop
-} from './../../store/stops/actions';
-import { toggleTrashIcon } from './../../store/icons/actions';
-import { getStopsById, getStopData, getEditingState } from './../../store/stops/selectors';
+} from "./../../store/stops/actions";
+import { toggleTrashIcon } from "./../../store/icons/actions";
+import {
+  getStopsById,
+  getStopData,
+  getEditingState
+} from "./../../store/stops/selectors";
 
-import { SwatchItem, SwatchContainer } from './../../components/Swatch/index';
+import { SwatchItem, SwatchContainer } from "./../../components/Swatch/index";
 
 const SlideBar = styled.div`
   height: 2px;
@@ -49,7 +57,11 @@ const SortableList = SortableContainer(
     const isUpdating = updatingValue !== null;
 
     return (
-      <Animate data={data} duration={animationDuration} ignore={isUpdating ? stopKeys : []}>
+      <Animate
+        data={data}
+        duration={animationDuration}
+        ignore={isUpdating ? stopKeys : []}
+      >
         {data =>
           <SwatchContainer
             editing={editing}
@@ -70,15 +82,20 @@ const SortableList = SortableContainer(
               const style = sorting
                 ? {}
                 : {
-                    transform: 'none',
-                    transitionDuration: '0ms'
+                    transform: "none",
+                    transitionDuration: "0ms"
                   };
 
               // handling bug where data[stop] = NaN best way I know how to. A transition wont happen, the stop will just jump if the bug occurs.
               // To force it to happen: spam click the stop when editing and have cursor off the stop on mouse up. Weird!
               if (isNaN(left)) {
                 // eslint-disable-next-line no-unused-expressions
-                editing ? (left = stop) : (left = parseFloat((index + 1) / stopKeys.length * 100, 10));
+                editing
+                  ? (left = stop)
+                  : (left = parseFloat(
+                      (index + 1) / stopKeys.length * 100,
+                      10
+                    ));
               }
 
               return (
@@ -97,11 +114,46 @@ const SortableList = SortableContainer(
                   index={index}
                   isBeingEdited={active === stop}
                   sorting={sorting}
-                  onTouchStart={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                  onTouchMove={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                  onTouchEnd={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                  onMouseUp={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
-                  onMouseDown={e => onSortItemClick(e, stop, editing, sorting, pickingColorStop)}
+                  onTouchStart={e =>
+                    onSortItemClick(
+                      e,
+                      stop,
+                      editing,
+                      sorting,
+                      pickingColorStop
+                    )}
+                  onTouchMove={e =>
+                    onSortItemClick(
+                      e,
+                      stop,
+                      editing,
+                      sorting,
+                      pickingColorStop
+                    )}
+                  onTouchEnd={e =>
+                    onSortItemClick(
+                      e,
+                      stop,
+                      editing,
+                      sorting,
+                      pickingColorStop
+                    )}
+                  onMouseUp={e =>
+                    onSortItemClick(
+                      e,
+                      stop,
+                      editing,
+                      sorting,
+                      pickingColorStop
+                    )}
+                  onMouseDown={e =>
+                    onSortItemClick(
+                      e,
+                      stop,
+                      editing,
+                      sorting,
+                      pickingColorStop
+                    )}
                   color={color}
                   left={left}
                   active={active}
@@ -149,7 +201,13 @@ class Swatch extends Component {
   };
 
   handleSortEnd = ({ oldIndex, newIndex }) => {
-    const { swapStopsColors, id, colors, toggleTrashIcon, deleteStop } = this.props;
+    const {
+      swapStopsColors,
+      id,
+      colors,
+      toggleTrashIcon,
+      deleteStop
+    } = this.props;
     const newColorOrder = arrayMove(colors, oldIndex, newIndex);
     this.props.updateActiveStop(null);
     if (!deleteStop) {
@@ -170,7 +228,7 @@ class Swatch extends Component {
   };
 
   handleSortItemClick = (e, stop, editing, sorting, pickingColorStop) => {
-    if (e.type === 'mouseup' || e.type === 'touchend') {
+    if (e.type === "mouseup" || e.type === "touchend") {
       this.props.toggleEditing(null);
 
       if (!sorting && !this.props.passThreshold) {
@@ -182,7 +240,7 @@ class Swatch extends Component {
       //   this.props.updateUpdatingStop(null)
       //   this.props.updateDraggedStopPos(null)
       // }
-    } else if (e.type === 'mousedown' || e.type === 'touchstart') {
+    } else if (e.type === "mousedown" || e.type === "touchstart") {
       e.preventDefault();
       this.props.updateActiveStop(stop);
 
@@ -203,7 +261,14 @@ class Swatch extends Component {
   };
 
   render() {
-    const { stops, editing, updatingValue, colors, pickingColorStop, ...props } = this.props;
+    const {
+      stops,
+      editing,
+      updatingValue,
+      colors,
+      pickingColorStop,
+      ...props
+    } = this.props;
     const { sorting } = this.state;
 
     return (
@@ -216,7 +281,8 @@ class Swatch extends Component {
         onSortStart={this.handleSortStart}
         onSortMove={this.handleSortMove}
         onSortEnd={this.handleSortEnd}
-        shouldCancelStart={() => editing || updatingValue !== null || pickingColorStop !== null}
+        shouldCancelStart={() =>
+          editing || updatingValue !== null || pickingColorStop !== null}
         distance={5}
         lockToContainerEdges
         sorting={sorting}
@@ -233,8 +299,9 @@ class Swatch extends Component {
 }
 
 const mapStateToProps = (state, props) => {
-  const stops = getStopsById(state, props);
+  const stops = getStopsById(state, props) || {};
   const updatingValue = state.stops.updating.stop;
+
   const stopKeys = Object.keys(stops);
   const colors = Object.values(stops);
   const editing = getEditingState(state, props);
@@ -251,7 +318,8 @@ const mapStateToProps = (state, props) => {
     pickingColorStop: state.stops.updating.pickingColorStop,
     passThreshold: state.stops.updating.passThreshold,
     active: state.stops.updating.active,
-    renderDelete: state.icons.deleteStop === props.id && Object.keys(stops).length > 2
+    renderDelete:
+      state.icons.deleteStop === props.id && Object.keys(stops).length > 2
   };
 };
 
