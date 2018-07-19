@@ -1,6 +1,6 @@
-import React from "react";
-import styled from "styled-components";
-import { Logo } from "./../Common/index";
+import React from "react"
+import styled from "styled-components"
+import { Logo } from "./../Common/index"
 
 const GradientDisplayContainer = styled.section`
   max-width: 1100px;
@@ -14,15 +14,15 @@ const GradientDisplayContainer = styled.section`
   @media (max-width: 620px) {
     flex-direction: column;
   }
-`;
+`
 
 const LogoContainer = styled.h1`
   @media (max-width: 550px) {
     margin-bottom: 10px;
   }
-`;
+`
 
-const Hero = () =>
+const Hero = () => (
   <GradientDisplayContainer>
     <LogoContainer>
       <Logo />
@@ -33,14 +33,14 @@ const Hero = () =>
         src="https://ghbtns.com/github-btn.html?user=johnkorzhuk&repo=grabient&type=star&count=true"
         frameBorder="0"
         scrolling="0"
-        width="92px"
+        width="100px"
         height="20px"
       />
 
       <iframe
         title="facebook"
         src="https://www.facebook.com/plugins/share_button.php?href=http%3A%2F%2Fgrabient.com%2F&layout=button_count&size=small&mobile_iframe=true&width=69&height=20&appId"
-        width="77"
+        width="86"
         height="20"
         scrolling="no"
         frameBorder="0"
@@ -56,10 +56,11 @@ const Hero = () =>
         style={{
           bordeR: "none",
           overflow: "hidden",
-          marginLeft: 7
+          marginLeft: 7,
         }}
       />
     </div>
-  </GradientDisplayContainer>;
+  </GradientDisplayContainer>
+)
 
-export default Hero;
+export default Hero
