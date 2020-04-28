@@ -134,11 +134,11 @@ acorn@^5.0.0, acorn@^5.2.1:
   version "5.3.0"
   resolved "https://registry.yarnpkg.com/acorn/-/acorn-5.3.0.tgz#7446d39459c54fb49a80e6ee6478149b940ec822"
 
-address@1.0.1, address@^1.0.1:
+address@1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/address/-/address-1.0.1.tgz#363f5d3f2be26d0655d8afd5a9562e4fc2194537"
 
-address@1.0.2:
+address@1.0.2, address@^1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/address/-/address-1.0.2.tgz#480081e82b587ba319459fef512f516fe03d58af"
 
@@ -5495,9 +5495,9 @@ react-color@^2.11.7:
     reactcss "^1.2.0"
     tinycolor2 "^1.4.1"
 
-react-dev-utils@^2.0.0:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/react-dev-utils/-/react-dev-utils-2.0.1.tgz#5843504d89f038f046258a871fc26071775fc065"
+react-dev-utils@^2.0.2:
+  version "2.0.2"
+  resolved "https://registry.yarnpkg.com/react-dev-utils/-/react-dev-utils-2.0.2.tgz#4f27828c46b4b740db8637a047c2fd2420ec238e"
   dependencies:
     "@timer/detect-port" "1.1.3"
     address "1.0.1"
