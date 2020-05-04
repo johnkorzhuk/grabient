@@ -12,7 +12,6 @@
   "private": true,
   "dependencies": {
     "deep-equal": "^1.0.1",
-    "firebase": "^4.6.2",
     "lodash": "^4.17.4",
     "polished": "^1.1.1",
     "react": "^16.1.1",
