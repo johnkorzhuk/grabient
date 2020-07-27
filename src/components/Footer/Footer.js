@@ -95,7 +95,7 @@ const Footer = () => (
         src="//cdn.carbonads.com/carbon.js?serve=CE7IK53E&placement=wwwgrabientcom"
         id="_carbonads_js"
       />
-      <CarbonAd id="carbonads"></CarbonAd>
+      <CarbonAd id="carbonads" />
     </AdContainer>
   </PrimaryContainer>
 );
