@@ -54,6 +54,8 @@ class App extends Component {
     document.addEventListener("mousemove", this._handleDocumentMouseMove);
     document.addEventListener("mouseup", this._handleDocumentMouseUp);
 
+
+    console.log('test')
     this.setState({
       items: window.outerWidth <= 970 ? 6 : 9
     });
