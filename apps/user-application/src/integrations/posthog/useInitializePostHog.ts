@@ -1,25 +1,21 @@
 import { useEffect, useRef, useState } from "react";
-import { useStore } from "@tanstack/react-store";
-import { consentStore } from "@/stores/consent-store";
 import {
     getPostHogInstance,
     initializePostHog,
     isPostHogInitialized,
 } from "./posthogConfig";
+import { getConsent, onConsentChange } from "@/integrations/cookieyes/consent";
 
-// Timeout for requestIdleCallback fallback (ms)
 const IDLE_TIMEOUT = 5000;
 
 export function useInitializePostHog() {
     const [isClient, setIsClient] = useState(false);
     const hasInitialized = useRef(false);
-    const consent = useStore(consentStore);
 
     useEffect(() => {
         setIsClient(true);
     }, []);
 
-    // Lazy load PostHog - either after delay or on first user interaction
     useEffect(() => {
         if (!isClient || hasInitialized.current) {
             return;
@@ -43,8 +39,8 @@ export function useInitializePostHog() {
 
             await initializePostHog();
 
-            // Apply consent settings after initialization
-            applyConsentSettings(consent.categories.analytics, consent.categories.sessionReplay);
+            const consent = getConsent();
+            applyConsentSettings(consent.analytics, consent.sessionReplay);
         };
 
         const handleInteraction = () => {
@@ -61,14 +57,12 @@ export function useInitializePostHog() {
             document.removeEventListener("keydown", handleInteraction);
         };
 
-        // Initialize on user interaction
         document.addEventListener("scroll", handleInteraction, { once: true, passive: true });
         document.addEventListener("mousemove", handleInteraction, { once: true, passive: true });
         document.addEventListener("touchstart", handleInteraction, { once: true, passive: true });
         document.addEventListener("click", handleInteraction, { once: true });
         document.addEventListener("keydown", handleInteraction, { once: true });
 
-        // Or when browser is idle (lowest priority)
         const scheduleIdleInit = () => {
             doInit();
             removeListeners();
@@ -77,7 +71,6 @@ export function useInitializePostHog() {
         if ("requestIdleCallback" in window) {
             idleCallbackId = window.requestIdleCallback(scheduleIdleInit, { timeout: IDLE_TIMEOUT });
         } else {
-            // Fallback for Safari - use setTimeout with 0 delay after load
             window.addEventListener("load", () => {
                 setTimeout(scheduleIdleInit, 0);
             }, { once: true });
@@ -90,14 +83,18 @@ export function useInitializePostHog() {
         };
     }, [isClient]);
 
-    // Update consent settings when they change (after initialization)
+    // Listen for consent changes from CookieYes
     useEffect(() => {
-        if (!isClient || !isPostHogInitialized()) {
-            return;
-        }
+        if (!isClient) return;
 
-        applyConsentSettings(consent.categories.analytics, consent.categories.sessionReplay);
-    }, [isClient, consent.categories.analytics, consent.categories.sessionReplay]);
+        const unsubscribe = onConsentChange((consent) => {
+            if (isPostHogInitialized()) {
+                applyConsentSettings(consent.analytics, consent.sessionReplay);
+            }
+        });
+
+        return unsubscribe;
+    }, [isClient]);
 }
 
 function applyConsentSettings(analytics: boolean, sessionReplay: boolean) {
