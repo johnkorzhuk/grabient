@@ -49,7 +49,6 @@ function generateAngularGradientSvg(
     const totalSegments = (hexColors.length - 1) * segmentsPerColor;
     const segmentAngle = 360 / totalSegments;
 
-    let defs = "";
     let paths = "";
 
     for (let i = 0; i < totalSegments; i++) {
@@ -57,8 +56,8 @@ function generateAngularGradientSvg(
         const colorPairIndex = Math.floor(i / segmentsPerColor);
         const progressInPair = (i % segmentsPerColor) / segmentsPerColor;
 
-        const color1 = hexColors[colorPairIndex];
-        const color2 = hexColors[Math.min(colorPairIndex + 1, hexColors.length - 1)];
+        const color1 = hexColors[colorPairIndex] ?? "#000000";
+        const color2 = hexColors[Math.min(colorPairIndex + 1, hexColors.length - 1)] ?? "#000000";
 
         // Interpolate between colors for smooth gradient
         const r1 = parseInt(color1.slice(1, 3), 16);
