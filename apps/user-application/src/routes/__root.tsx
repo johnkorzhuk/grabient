@@ -30,6 +30,7 @@ import {
 } from "@/lib/sentry";
 import { useInitializePostHog } from "@/integrations/posthog/useInitializePostHog";
 import { useInitializeGA4 } from "@/integrations/ga4/useInitializeGA4";
+import { getCookieYesHeadScript } from "@/integrations/cookieyes/CookieYesScript";
 
 function BreakpointIndicator() {
     return (
@@ -41,7 +42,8 @@ export const Route = createRootRouteWithContext<{
     queryClient: QueryClient;
 }>()({
     head: () => {
-        // GTM script is now loaded lazily via setupLazyGTMLoading() in useInitializeGA4
+        const cookieYesScript = getCookieYesHeadScript();
+
         return {
             meta: [
                 {
@@ -88,6 +90,7 @@ export const Route = createRootRouteWithContext<{
                 { rel: "manifest", href: "/site.webmanifest", color: "#fffff" },
                 { rel: "icon", href: "/favicon.ico" },
             ],
+            scripts: cookieYesScript ? [cookieYesScript] : [],
         };
     },
     errorComponent: (props) => {
