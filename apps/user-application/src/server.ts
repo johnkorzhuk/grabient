@@ -129,15 +129,6 @@ export default {
                 drizzleDb: db,
                 provider: "sqlite",
             },
-            // R2 config for lazy avatar migration (Clerk -> R2)
-            r2Config: {
-                accountId: env.R2_ACCOUNT_ID,
-                accessKeyId: env.R2_ACCESS_KEY_ID,
-                secretAccessKey: env.R2_SECRET_ACCESS_KEY,
-                bucketName: env.R2_BUCKET_NAME,
-                publicUrl: env.R2_PUBLIC_URL,
-            },
-            drizzleDb: db,
             sendMagicLink: async (data) => {
                 try {
                     const response = await fetch(
