@@ -18,6 +18,7 @@ import { Route as SeedRouteRouteImport } from './routes/$seed.route'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as PaletteListIndexRouteImport } from './routes/_paletteList/index'
 import { Route as SeedIndexRouteImport } from './routes/$seed/index'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
 import { Route as PaletteListNewestRouteImport } from './routes/_paletteList/newest'
@@ -70,6 +71,11 @@ const SeedIndexRoute = SeedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SeedRouteRoute,
 } as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PaletteListSavedRoute = PaletteListSavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
+  '/api/og': typeof ApiOgRoute
   '/$seed/': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -131,6 +138,7 @@ export interface FileRoutesByTo {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
+  '/api/og': typeof ApiOgRoute
   '/$seed': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/_paletteList/newest': typeof PaletteListNewestRoute
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
+  '/api/og': typeof ApiOgRoute
   '/$seed/': typeof SeedIndexRoute
   '/_paletteList/': typeof PaletteListIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/newest'
     | '/oldest'
     | '/saved'
+    | '/api/og'
     | '/$seed/'
     | '/'
     | '/settings'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/newest'
     | '/oldest'
     | '/saved'
+    | '/api/og'
     | '/$seed'
     | '/'
     | '/settings'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/_paletteList/newest'
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
+    | '/api/og'
     | '/$seed/'
     | '/_paletteList/'
     | '/settings/'
@@ -219,6 +231,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  ApiOgRoute: typeof ApiOgRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AppPolarPortalRoute: typeof AppPolarPortalRoute
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$seed/'
       preLoaderRoute: typeof SeedIndexRouteImport
       parentRoute: typeof SeedRouteRoute
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_paletteList/saved': {
       id: '/_paletteList/saved'
@@ -380,6 +400,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  ApiOgRoute: ApiOgRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AppPolarPortalRoute: AppPolarPortalRoute,

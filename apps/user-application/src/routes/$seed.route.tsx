@@ -108,6 +108,39 @@ export const Route = createFileRoute("/$seed")({
         // Cloudflare CDN: Cache for 1 hour, stale-while-revalidate for 2 hours
         "cdn-cache-control": "max-age=3600, stale-while-revalidate=7200",
     }),
+    head: ({ params }) => {
+        const ogUrl = new URL("/api/og", "https://grabient.com");
+        ogUrl.searchParams.set("seed", params.seed);
+
+        return {
+            meta: [
+                { title: "Grabient - CSS Gradient Generator" },
+                {
+                    name: "description",
+                    content:
+                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
+                },
+                { name: "og:type", content: "website" },
+                { name: "og:title", content: "Grabient - CSS Gradient Generator" },
+                {
+                    name: "og:description",
+                    content:
+                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
+                },
+                { name: "og:image", content: ogUrl.toString() },
+                { name: "og:image:width", content: "1200" },
+                { name: "og:image:height", content: "630" },
+                { name: "twitter:card", content: "summary_large_image" },
+                { name: "twitter:title", content: "Grabient - CSS Gradient Generator" },
+                {
+                    name: "twitter:description",
+                    content:
+                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
+                },
+                { name: "twitter:image", content: ogUrl.toString() },
+            ],
+        };
+    },
     beforeLoad: ({ params }) => {
         try {
             v.parse(seedValidator, params.seed);
