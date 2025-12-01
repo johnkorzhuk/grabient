@@ -21,9 +21,9 @@ import * as v from "valibot";
 type GradientStyle = v.InferOutput<typeof paletteStyleValidator>;
 
 const ogParamsSchema = v.object({
-    style: v.fallback(paletteStyleValidator, DEFAULT_STYLE),
-    steps: v.fallback(stepsValidator, DEFAULT_STEPS),
-    angle: v.fallback(angleValidator, DEFAULT_ANGLE),
+    style: v.fallback(v.nullable(paletteStyleValidator), DEFAULT_STYLE),
+    steps: v.fallback(v.optional(stepsValidator), DEFAULT_STEPS),
+    angle: v.fallback(v.optional(angleValidator), DEFAULT_ANGLE),
 });
 
 const LOGO_PATH =
@@ -49,11 +49,17 @@ export const Route = createFileRoute("/api/og")({
 
                 const seed = seedParam || DEFAULT_SEED;
 
+                // Parse numeric params - use undefined for invalid/missing values so fallback kicks in
+                const stepsParam = url.searchParams.get("steps");
+                const angleParam = url.searchParams.get("angle");
+                const parsedSteps = stepsParam ? parseInt(stepsParam) : undefined;
+                const parsedAngle = angleParam ? parseInt(angleParam) : undefined;
+
                 // Parse other params with fallback to defaults using v.parse + v.fallback
                 const { style, steps, angle } = v.parse(ogParamsSchema, {
                     style: url.searchParams.get("style"),
-                    steps: parseInt(url.searchParams.get("steps") || ""),
-                    angle: parseInt(url.searchParams.get("angle") || ""),
+                    steps: Number.isNaN(parsedSteps) ? undefined : parsedSteps,
+                    angle: Number.isNaN(parsedAngle) ? undefined : parsedAngle,
                 });
 
                 try {
