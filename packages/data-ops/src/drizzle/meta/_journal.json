@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1763039437929,
+      "tag": "0000_secret_thing",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1763042391364,
+      "tag": "0001_condemned_excalibur",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1763043758683,
+      "tag": "0002_perpetual_whistler",
+      "breakpoints": true
+    }
+  ]
+}

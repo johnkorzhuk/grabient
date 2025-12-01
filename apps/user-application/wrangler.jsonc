@@ -1,0 +1,85 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "grabient3",
+	"compatibility_date": "2025-09-02",
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "./src/server.ts",
+
+	// Migrations for Durable Objects (shared across environments)
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": ["RateLimiter"]
+		}
+	],
+
+	// Default environment (staging) - used by `wrangler deploy` and `wrangler dev`
+	"vars": {
+		"EMAIL_FROM": "noreply@grabient.com",
+		"R2_PUBLIC_URL": "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev",
+		"R2_ACCOUNT_ID": "f846204052f664d57da7acde8f6803cd",
+		"R2_BUCKET_NAME": "grabient-uploads-dev",
+		"VITE_SENTRY_DSN": "https://c729528778730d962b0343db87d28416@o4508445794959360.ingest.us.sentry.io/4509076183449600"
+	},
+	"r2_buckets": [
+		{
+			"binding": "UPLOADS",
+			"bucket_name": "grabient-uploads-dev"
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "RATE_LIMITER",
+				"class_name": "RateLimiter",
+				"script_name": "grabient3"
+			}
+		]
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "grabient",
+			"database_id": "acb5748b-2b55-404e-8a15-2718a8524b86",
+			"migrations_dir": "../../packages/data-ops/src/drizzle"
+		}
+	],
+
+	// Production environment - used by `wrangler deploy --env production`
+	"env": {
+		"production": {
+			"name": "grabient-production",
+			"workers_dev": true,
+			"vars": {
+				"EMAIL_FROM": "noreply@grabient.com",
+				"R2_PUBLIC_URL": "https://pub-f6df953a27f148e3996ab995736c8522.r2.dev",
+				"R2_ACCOUNT_ID": "f846204052f664d57da7acde8f6803cd",
+				"R2_BUCKET_NAME": "grabient-uploads",
+				"VITE_SENTRY_DSN": "https://c729528778730d962b0343db87d28416@o4508445794959360.ingest.us.sentry.io/4509076183449600"
+			},
+			"r2_buckets": [
+				{
+					"binding": "UPLOADS",
+					"bucket_name": "grabient-uploads"
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "RATE_LIMITER",
+						"class_name": "RateLimiter",
+						"script_name": "grabient-production"
+					}
+				]
+			},
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "grabient-prod",
+					"database_id": "8902a4a8-cca3-4a34-b456-7b35ad021985",
+					"migrations_dir": "../../packages/data-ops/src/drizzle"
+				}
+			]
+		}
+	}
+}

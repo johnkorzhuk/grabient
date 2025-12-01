@@ -1,0 +1,145 @@
+import { useLocation, useRouter } from "@tanstack/react-router";
+import {
+    Command,
+    CommandGroup,
+    CommandItem,
+    CommandList,
+} from "@/components/ui/command";
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from "@/components/ui/popover";
+import { ChevronsUpDown } from "lucide-react";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { useFocusTrap } from "@mantine/hooks";
+
+interface NavigationSelectProps {
+    className?: string;
+    popoverClassName?: string;
+}
+
+type NavigationItem = {
+    id: string;
+    label: string;
+    path: string;
+};
+
+const BASE_NAVIGATION_ITEMS: NavigationItem[] = [
+    { id: "popular", label: "Popular", path: "/" },
+    { id: "saved", label: "Saved", path: "/saved" },
+];
+
+const TIME_NAVIGATION_ITEMS: Record<"newest" | "oldest", NavigationItem> = {
+    newest: { id: "newest", label: "Newest", path: "/newest" },
+    oldest: { id: "oldest", label: "Oldest", path: "/oldest" },
+};
+
+export function NavigationSelect({
+    className,
+    popoverClassName,
+}: NavigationSelectProps) {
+    const location = useLocation();
+    const router = useRouter();
+    const [open, setOpen] = useState(false);
+    const focusTrapRef = useFocusTrap(open);
+
+    const currentPath =
+        location.pathname === "/" ? "popular" : location.pathname.substring(1);
+
+    const isTimeRoute = currentPath === "newest" || currentPath === "oldest";
+
+    const oppositeTimeRoute =
+        currentPath === "newest"
+            ? TIME_NAVIGATION_ITEMS.oldest
+            : TIME_NAVIGATION_ITEMS.newest;
+
+    const navigationItems = [
+        isTimeRoute ? oppositeTimeRoute : TIME_NAVIGATION_ITEMS.newest,
+        ...BASE_NAVIGATION_ITEMS,
+    ];
+
+    const currentItem = isTimeRoute
+        ? TIME_NAVIGATION_ITEMS[currentPath as "newest" | "oldest"]
+        : (navigationItems.find((item) => item.id === currentPath) ??
+              navigationItems[0])!;
+
+    const handleNavigate = async (path: string) => {
+        await router.preloadRoute({ to: path });
+        setOpen(false);
+        await router.navigate({
+            to: path,
+            search: (prev) => ({ ...prev, page: 1 }),
+        });
+    };
+
+    return (
+        <Popover open={open} onOpenChange={setOpen} modal={false}>
+            <PopoverTrigger asChild>
+                <button
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-haspopup="listbox"
+                    aria-label="Navigation"
+                    style={{ backgroundColor: "var(--background)" }}
+                    className={cn(
+                        "disable-animation-on-theme-change",
+                        "inline-flex items-center justify-center rounded-md",
+                        "w-auto min-w-[110px] md:min-w-[130px] justify-between",
+                        "text-xs md:text-sm h-8.5 px-2 md:px-3 border border-solid",
+                        "transition-colors duration-200 cursor-pointer",
+                        "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                        open
+                            ? "border-muted-foreground/30 bg-background/60 text-foreground"
+                            : "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground",
+                        className,
+                    )}
+                    suppressHydrationWarning
+                >
+                    <span className="font-system font-semibold">
+                        {currentItem.label}
+                    </span>
+                    <ChevronsUpDown
+                        className="ml-1.5 md:ml-2 h-3.5 w-3.5 md:h-4 md:w-4 shrink-0"
+                        style={{ color: "currentColor" }}
+                    />
+                </button>
+            </PopoverTrigger>
+            <PopoverContent
+                ref={focusTrapRef}
+                className={cn(
+                    "disable-animation-on-theme-change",
+                    "p-0 w-(--radix-popover-trigger-width) bg-background/80 backdrop-blur-sm border border-solid border-input rounded-md",
+                    popoverClassName,
+                )}
+                sideOffset={8}
+            >
+                <Command
+                    className="border-0 rounded-md w-full bg-transparent [&_[cmdk-item]]:px-3 [&_[cmdk-item]]:py-2 [&_[cmdk-item]]:font-system [&_[cmdk-item]]:font-medium [&_[cmdk-item]]:text-sm"
+                    loop
+                >
+                    <CommandGroup>
+                        <CommandList>
+                            {navigationItems.map((item) => {
+                                return (
+                                    <CommandItem
+                                        key={item.id}
+                                        value={item.id}
+                                        onSelect={() =>
+                                            handleNavigate(item.path)
+                                        }
+                                        aria-label={`Navigate to ${item.label}`}
+                                        className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 [&:hover]:bg-[var(--background)] data-[selected=true]:bg-[var(--background)] data-[selected=true]:text-foreground aria-[selected=true]:bg-[var(--background)] aria-[selected=true]:text-foreground"
+                                    >
+                                        {item.label}
+                                    </CommandItem>
+                                );
+                            })}
+                        </CommandList>
+                    </CommandGroup>
+                </Command>
+            </PopoverContent>
+        </Popover>
+    );
+}

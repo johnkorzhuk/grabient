@@ -1,0 +1,355 @@
+Starter Kit Setup Guide
+Overview
+A full-stack template featuring:
+
+Authentication with Better Auth
+Payments/subscriptions with Polar
+Drizzle ORM (bring your own relational database)
+Deploys to Cloudflare
+Monorepo setup using PNPM workspaces
+Modular, scalable project structure
+
+
+Step 1: Initial Setup
+
+Create the project
+
+Run the CLI command (from description) or fork the GitHub repo
+Open project in your IDE
+
+
+Install dependencies
+
+bash   pnpm run setup
+
+Installs all dependencies for packages and apps
+Builds the data-ops package
+
+
+Start development server
+
+bash   pnpm run dev:user-application
+
+Starts the TanStack Start app
+UI acts as documentation for setup
+
+
+Step 2: Deploy to Cloudflare
+
+Deploy immediately (optional but motivating)
+
+bash   pnpm run deploy:user-application
+
+Deploys to Cloudflare Workers
+Cloudflare provides a URL to view deployment
+
+
+Customize worker name (optional)
+
+Edit name in wrangler.json file
+Add custom domain routes if desired
+
+
+
+
+Step 3: Database Setup
+Choose a Database Provider
+Important: Select a provider with HTTP proxy support for edge deployments
+Options:
+
+PlanetScale (recommended) - MySQL and Postgres
+Supabase - Postgres with free tier
+Neon - Postgres with free tier
+Turso - SQLite
+Cloudflare D1 - SQLite (keeps everything in Cloudflare)
+
+Configure Database (Using Neon as example)
+
+Create database on Neon
+Set up environment variables
+
+Navigate to data-ops package
+Create .env file in package root
+Paste dummy environment variables
+Collect connection string from Neon (password, username, host)
+
+
+Configure Drizzle
+
+Find drizzle.config file in data-ops package
+Copy drizzle config from docs
+CD into data-ops package
+
+
+Pull database schema
+
+bash   pnpm run pull
+
+Verifies configuration
+Reads public tables and creates Drizzle schemas
+Initially empty since no tables exist yet
+
+
+Build database client
+
+Create reusable database initializer and getter
+Takes connection details and creates Drizzle client
+Instantiates after Cloudflare worker is invoked
+Use getDB() wherever running server-side code
+
+
+Connect to user application
+
+Build data-ops package
+Navigate to server.ts in user application
+Create .env file in user application root
+Run pnpm run cf-typegen in user application
+Type file is generated
+Instantiate database and pass credentials using Cloudflare environment
+
+
+Test connection
+
+Run user application
+Test database connection by querying tables
+
+
+
+
+Step 4: Authentication Setup (Better Auth)
+Understanding Better Auth Architecture
+Three Core Layers:
+
+Authentication Layer - Handles OAuth flow for social providers
+API Layer - Provides session and user information for middleware/access control
+Client Layer - React hooks for sign-in flow and conditional rendering
+
+Configure Google Sign-In
+
+Create Google Cloud Console project (free)
+
+Set up OAuth credentials
+Configure callbacks as specified in Better Auth docs
+
+
+Set environment variables
+
+Copy dummy environment variables
+Generate BETTER_AUTH_SECRET using OpenSSL for JWT signing
+Create client credentials in Google Cloud Console
+Copy redirect URL from Better Auth docs
+Add your domain as authorized redirect URL
+Collect client ID and secret
+
+
+Configure Better Auth CLI
+
+Copy Better Auth CLI code into auth.ts in config folder
+CLI generates Drizzle schemas for auth tables
+Uses helper functions from data-ops package
+
+
+Generate schemas
+
+bash   better-auth generate
+
+Generates Drizzle schemas for Better Auth tables
+
+
+Generate migrations
+
+bash   drizzle generate
+
+If error occurs, delete meta folder and SQL file, then retry
+New SQL file created with table create queries
+
+
+Create tables
+
+bash   drizzle migrate
+
+Alternatively, copy SQL and run in SQL editor
+
+
+Integrate with user application
+
+Build data-ops package
+Paste environment variables into user application .env
+Run cf-typegen
+Add setAuth method in server.ts fetch handler
+Implement auth handlers in $auth API route (generic Better Auth path)
+
+
+Test authentication
+
+React components already included for sign-on flow
+Test Google sign-in flow
+Visit /app (protected route requiring sign-in)
+Verify redirect to dashboard after authentication
+
+
+
+
+Step 5: UI Customization
+Template uses shadcn/ui
+
+Use Tweak.cn for themes
+
+Browse pre-built themes
+Copy/paste CSS or run command for automatic setup
+Theme updates seamlessly
+
+
+Customize as needed
+
+Delete documentation pages after setup:
+
+Delete kit-content folder
+Delete files in static route
+
+
+
+
+
+
+Step 6: Build Business Logic - Polar Subscriptions
+About Polar
+
+Merchant of Record - handles regional tax compliance
+Lower fees than competing merchants of record
+Excellent developer experience
+Specify your system's user ID (avoids ID mapping issues)
+Provides usage-based billing APIs
+Credit system for AI products
+
+Create Subscription Schema
+
+Create subscriptions table
+
+bash   cd data-ops
+   pnpm run pull
+
+Subscription schema now appears in schema file
+
+
+Create queries
+
+updateSubscription - inserts/updates based on user ID
+getSubscription - retrieves by user ID
+Build data-ops package
+
+
+
+Configure Polar
+
+Create Polar account
+
+Use sandbox account for development
+
+
+Configure settings
+
+Allow price changes (users manage subscriptions)
+Choose proration strategy
+Create test products with prices
+
+
+
+Implement Server Functions
+Located in server/functions/payments file
+
+Base function with middleware:
+
+protected - collects Better Auth info, throws error if not signed in
+polar - creates Polar client with access token
+
+
+Environment setup:
+
+Add Polar secret to .env
+Run cf-typegen
+Use sandbox for development, environment variable for production
+
+
+Server functions:
+
+getProducts - queries Polar API for non-archived products
+createPaymentLink - creates custom checkout session
+validatePayment - checks if checkout is successful
+collectSubscription - finds and saves valid subscription
+
+
+
+Payment Flow
+
+User selects product
+Checkout link generated
+User pays and redirects to success page
+Checkout session validated
+If successful, subscription saved
+Webhook listener for subscription events (backup)
+
+Subscription Management
+Options:
+
+Build custom experience with Polar APIs
+Generate portal link for users (uses Polar's UI)
+Configure webhook for subscription events
+Update subscription table on webhook receipt
+
+
+Step 7: Data Service (Optional)
+Purpose: Processing data and long-running background tasks
+Typical Components:
+
+Queue consumer
+Durable objects
+Workflows
+Container-based workflows (Cloudflare containers)
+
+Example Use Case - Email Management:
+
+Move Polar webhook receiver to data service
+Listen for checkout session events
+Store user ID in durable object with 20-hour alarm
+After 20 hours, check for purchase completion
+Send email using React Email and Resend
+
+
+Next Steps
+
+Template actively maintained with ongoing enhancements
+Delete documentation UI after setup complete
+Customize authentication flow
+Implement custom business logic
+Consider deep dives into:
+
+Advanced payment flows
+Advanced authentication patterns
+TanStack tutorials
+Cloudflare deep dives
+Advanced systems architecture
+
+
+
+
+Key Commands Reference
+bash# Initial setup
+pnpm run setup
+
+# Development
+pnpm run dev:user-application
+
+# Deploy
+pnpm run deploy:user-application
+
+# Database
+pnpm run pull        # Pull schema
+drizzle generate     # Generate migrations
+drizzle migrate      # Run migrations
+
+# Auth
+better-auth generate # Generate auth schemas
+
+# Cloudflare
+pnpm run cf-typegen  # Generate types
