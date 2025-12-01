@@ -147,13 +147,14 @@ export function setupLazyGTMLoading(): void {
         idleCallbackId = window.requestIdleCallback(scheduleIdleInit, { timeout: IDLE_TIMEOUT });
     } else {
         // Fallback for Safari - use setTimeout with 0 delay after load
-        window.addEventListener("load", () => {
+        const win = window as Window;
+        win.addEventListener("load", () => {
             setTimeout(scheduleIdleInit, 0);
         }, { once: true });
     }
 }
 
-export function updateGA4Consent(analyticsConsent: boolean): void {
+export function updateGA4Consent(analyticsConsent: boolean, advertisingConsent: boolean): void {
     if (!ga4Initialized) {
         return;
     }
@@ -164,11 +165,10 @@ export function updateGA4Consent(analyticsConsent: boolean): void {
 
     window.gtag("consent", "update", {
         analytics_storage: analyticsConsent ? "granted" : "denied",
-        ad_storage: "denied",
-        ad_user_data: "denied",
-        ad_personalization: "denied",
+        ad_storage: advertisingConsent ? "granted" : "denied",
+        ad_user_data: advertisingConsent ? "granted" : "denied",
+        ad_personalization: advertisingConsent ? "granted" : "denied",
     });
-
 }
 
 export function isGA4Initialized(): boolean {

@@ -1,6 +1,6 @@
 // See: https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/
 
-import { getConsent } from "@/integrations/cookieyes/consent";
+import { consentStore } from "@/stores/consent-store";
 
 const IDLE_TIMEOUT = 5000;
 
@@ -34,10 +34,11 @@ export async function initializeSentry(): Promise<void> {
             const Sentry = await import("@sentry/react");
             sentryModule = Sentry;
 
-            const consent = getConsent();
-            currentAnalyticsConsent = consent.analytics;
+            const state = consentStore.state;
+            currentAnalyticsConsent = state.categories.analytics;
+            const sessionReplayConsent = state.categories.sessionReplay;
 
-            if (consent.sessionReplay) {
+            if (sessionReplayConsent) {
                 replayIntegration = Sentry.replayIntegration({
                     maskAllText: true,
                     maskAllInputs: true,
@@ -51,10 +52,10 @@ export async function initializeSentry(): Promise<void> {
                     Sentry.browserTracingIntegration(),
                     ...(replayIntegration ? [replayIntegration] : []),
                 ],
-                sendDefaultPii: consent.analytics,
+                sendDefaultPii: currentAnalyticsConsent,
                 tracesSampleRate: import.meta.env.DEV ? 0.1 : 1.0,
-                replaysSessionSampleRate: consent.sessionReplay ? (import.meta.env.DEV ? 0.01 : 0.1) : 0,
-                replaysOnErrorSampleRate: consent.sessionReplay ? 1.0 : 0,
+                replaysSessionSampleRate: sessionReplayConsent ? (import.meta.env.DEV ? 0.01 : 0.1) : 0,
+                replaysOnErrorSampleRate: sessionReplayConsent ? 1.0 : 0,
                 debug: false,
             });
 
@@ -139,7 +140,8 @@ export function setupLazySentryLoading(): void {
     if ("requestIdleCallback" in window) {
         idleCallbackId = window.requestIdleCallback(scheduleIdleInit, { timeout: IDLE_TIMEOUT });
     } else {
-        window.addEventListener("load", () => {
+        const win = window as Window;
+        win.addEventListener("load", () => {
             setTimeout(scheduleIdleInit, 0);
         }, { once: true });
     }
@@ -150,9 +152,9 @@ export function updateSentryConsent(): void {
         return;
     }
 
-    const consent = getConsent();
+    const state = consentStore.state;
 
-    if (consent.analytics !== currentAnalyticsConsent) {
+    if (state.categories.analytics !== currentAnalyticsConsent) {
         console.warn(
             "Analytics consent changed. Cookie settings (sendDefaultPii) cannot be updated at runtime. " +
             "Sentry was initialized with sendDefaultPii=" + currentAnalyticsConsent + ". " +
@@ -160,7 +162,7 @@ export function updateSentryConsent(): void {
         );
     }
 
-    if (consent.sessionReplay) {
+    if (state.categories.sessionReplay) {
         replayIntegration.start();
     } else {
         replayIntegration.stop();

@@ -14,16 +14,16 @@ function RouteComponent() {
 }
 
 function TermsOfService() {
-    const lastUpdated = "November 30, 2025";
+    const lastUpdated = "December 1, 2025";
 
     return (
-        <div className="container mx-auto px-5 lg:px-14 py-8 max-w-4xl">
-            <div className="space-y-8">
+        <div className="container mx-auto px-5 lg:px-14 pb-16 max-w-4xl">
+            <div className="space-y-10">
                 <div className="space-y-3">
                     <h1 className="text-3xl font-poppins-bold text-foreground">
                         Terms of Service
                     </h1>
-                    <p className="text-muted-foreground font-poppins">
+                    <p className="text-muted-foreground font-system">
                         Last updated: {lastUpdated}
                     </p>
                 </div>
@@ -248,21 +248,52 @@ function TermsOfService() {
 
                     <section className="space-y-4">
                         <h2 className="text-xl font-poppins-bold text-foreground">
-                            8. Source Code
+                            8. Cookies and Consent
                         </h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            Grabient is source-available. The source code is
-                            available at{" "}
+                            We use cookies and similar technologies to operate
+                            our Service, analyze usage, and serve personalized
+                            advertising. We use{" "}
                             <a
-                                href="https://github.com/johnkorzhuk/grabient"
+                                href="https://www.cookieyes.com"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-foreground underline hover:text-muted-foreground"
                             >
-                                github.com/johnkorzhuk/grabient
+                                CookieYes
                             </a>{" "}
-                            under the FSL-1.1-ALv2 license. See the repository
-                            for license details.
+                            as our Consent Management Platform (CMP) to manage
+                            cookie consent in compliance with applicable privacy
+                            laws.
+                        </p>
+                        <p className="text-muted-foreground leading-relaxed">
+                            By using our Service, you acknowledge that:
+                        </p>
+                        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                            <li>
+                                We may display a cookie consent banner based on
+                                your geographic location
+                            </li>
+                            <li>
+                                Your consent preferences are stored and honored
+                                across sessions
+                            </li>
+                            <li>
+                                You can change your cookie preferences at any
+                                time through the cookie icon or in your account
+                                settings
+                            </li>
+                        </ul>
+                        <p className="text-muted-foreground leading-relaxed">
+                            For full details about our cookie practices, please
+                            see our{" "}
+                            <Link
+                                to="/privacy"
+                                className="text-foreground underline hover:text-muted-foreground"
+                            >
+                                Privacy Policy
+                            </Link>
+                            .
                         </p>
                     </section>
 
