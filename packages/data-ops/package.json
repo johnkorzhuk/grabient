@@ -63,9 +63,7 @@
     "drizzle:pull": "drizzle-kit pull --config drizzle.config.ts",
     "db:studio": "drizzle-kit studio --config drizzle.config.local.ts",
     "db:seed": "tsx src/scripts/seed.ts",
-    "db:seed:prod": "tsx src/scripts/seed-production.ts",
-    "migrate:clerk-users": "tsx src/scripts/migrate-clerk-users.ts",
-    "migrate:avatars": "tsx src/scripts/migrate-avatars.ts"
+    "db:seed:prod": "tsx src/scripts/seed-production.ts"
   },
   "keywords": [],
   "author": "",
