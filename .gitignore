@@ -158,6 +158,3 @@ packages/data-ops/src/data/prod-*.jsonl
 packages/data-ops/src/data/clerk-to-betterauth-id-map.json
 snapshot.zip
 .seed-production.sql
-
-# Dev images (screenshots for Claude sessions)
-dev_images/

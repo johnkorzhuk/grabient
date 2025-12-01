@@ -212,8 +212,8 @@ export function generateSvgGradient(
         }
 
         case "angularGradient": {
-            let colorStops: string[] = [];
-
+            // Build color stops for CSS conic-gradient
+            const colorStops: string[] = [];
             hexColors.forEach((color, index) => {
                 const position = (
                     (index / (hexColors.length - 1)) *
@@ -229,17 +229,33 @@ export function generateSvgGradient(
                 colorStops.push(`rgba(${rgbString}, ${alpha}) ${position}deg`);
             });
 
-            const conicGradient = `conic-gradient(from ${angle}deg,${colorStops.join(",")})`;
-
             const centerX = width / 2;
             const centerY = height / 2;
-            const diagonal = Math.sqrt(width * width + height * height);
-            // Figma uses diagonal * 1.5 for the foreignObject size
-            const canvasSize = diagonal * 1.5;
-            const canvasHalf = canvasSize / 2;
-            const canvasX = centerX - canvasHalf;
-            const canvasY = centerY - canvasHalf;
 
+            // Figma uses a large foreignObject (~5.66x the max dimension) centered at origin
+            // then scales it down to fit
+            const maxDim = Math.max(width, height);
+            const foreignObjectSize = maxDim * 5.66;
+            const foreignObjectHalf = foreignObjectSize / 2;
+
+            // Scale factor: how much to shrink the foreignObject to fit the target area
+            const scale = maxDim / foreignObjectSize;
+
+            // Rotation: angle 90° = no rotation (top), 0° = rotated -90° (right), etc.
+            const rotationDeg = angle - 90;
+            const rotationRad = (rotationDeg * Math.PI) / 180;
+            const cos = Math.cos(rotationRad);
+            const sin = Math.sin(rotationRad);
+
+            // SVG transform matrix: matrix(a, b, c, d, e, f)
+            const a = scale * cos;
+            const b = scale * sin;
+            const c = -scale * sin;
+            const d = scale * cos;
+            const e = centerX;
+            const f = centerY;
+
+            // Build Figma gradient metadata for data-figma-gradient-fill attribute
             const gradientStops = hexColors
                 .map((color, index) => {
                     const position = index / (hexColors.length - 1);
@@ -256,40 +272,22 @@ export function generateSvgGradient(
                 })
                 .join(",");
 
-            const figmaAngle = angle - 90;
-            const angleRad = (figmaAngle * Math.PI) / 180;
-            const cos = Math.cos(angleRad);
-            const sin = Math.sin(angleRad);
-            const scale = Math.max(width, height) * 0.5;
-            const m00 = scale * cos;
-            const m01 = -scale * sin;
+            // Figma transform for data attribute
+            const figmaScale = maxDim;
+            const m00 = figmaScale * cos;
+            const m01 = -figmaScale * sin;
             const m02 = centerX;
-            const m10 = scale * sin;
-            const m11 = scale * cos;
+            const m10 = figmaScale * sin;
+            const m11 = figmaScale * cos;
             const m12 = centerY;
 
             const gradientFillData = `{&quot;type&quot;:&quot;GRADIENT_ANGULAR&quot;,&quot;stops&quot;:[${gradientStops}],&quot;stopsVar&quot;:[${gradientStops}],&quot;transform&quot;:{&quot;m00&quot;:${m00.toFixed(6)},&quot;m01&quot;:${m01.toFixed(6)},&quot;m02&quot;:${m02.toFixed(6)},&quot;m10&quot;:${m10.toFixed(6)},&quot;m11&quot;:${m11.toFixed(6)},&quot;m12&quot;:${m12.toFixed(6)}},&quot;opacity&quot;:1.0,&quot;blendMode&quot;:&quot;NORMAL&quot;,&quot;visible&quot;:true}`;
-
-            // Calculate transform matrix for SVG rendering (matches Figma's approach)
-            // SVG matrix format: matrix(a b c d e f) = matrix(m00 m10 m01 m11 m02 m12)
-            // The transform rotates and scales the gradient to fit the canvas
-            const rotationRad = ((angle - 90) * Math.PI) / 180;
-            // Scale factor based on canvas dimensions relative to foreignObject size
-            const scaleFactor = diagonal / canvasSize;
-            const cosTheta = Math.cos(rotationRad);
-            const sinTheta = Math.sin(rotationRad);
-            const a = scaleFactor * cosTheta;
-            const b = scaleFactor * sinTheta;
-            const c = -scaleFactor * sinTheta;
-            const d = scaleFactor * cosTheta;
-            const e = centerX;
-            const f = centerY;
 
             const clipPathId = getUniqueId("paint0_angular_clip_path");
 
             return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg">
 ${creditComment}
-<g clip-path="url(#${clipPathId})" data-figma-skip-parse="true"><g transform="matrix(${a.toFixed(6)} ${b.toFixed(6)} ${c.toFixed(6)} ${d.toFixed(6)} ${e.toFixed(6)} ${f.toFixed(6)})"><foreignObject x="${-canvasHalf}" y="${-canvasHalf}" width="${canvasSize}" height="${canvasSize}"><div xmlns="http://www.w3.org/1999/xhtml" style="background:conic-gradient(from 90deg,${colorStops.join(",")});height:100%;width:100%;opacity:1"></div></foreignObject></g></g><rect width="${width}" height="${height}" data-figma-gradient-fill="${gradientFillData}"/>
+<g clip-path="url(#${clipPathId})" data-figma-skip-parse="true"><g transform="matrix(${a.toFixed(6)} ${b.toFixed(6)} ${c.toFixed(6)} ${d.toFixed(6)} ${e.toFixed(6)} ${f.toFixed(6)})"><foreignObject x="${-foreignObjectHalf}" y="${-foreignObjectHalf}" width="${foreignObjectSize}" height="${foreignObjectSize}"><div xmlns="http://www.w3.org/1999/xhtml" style="background:conic-gradient(from 90deg,${colorStops.join(",")});height:100%;width:100%;opacity:1"></div></foreignObject></g></g><rect width="${width}" height="${height}" data-figma-gradient-fill="${gradientFillData}"/>
 <defs>
 <clipPath id="${clipPathId}"><rect width="${width}" height="${height}"/></clipPath>
 </defs>
