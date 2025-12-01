@@ -1,0 +1,32 @@
+{
+  "file_scan_exclusions": [
+    "**/.git",
+    "**/.svn",
+    "**/.hg",
+    "**/CVS",
+    "**/.DS_Store",
+    "**/Thumbs.db",
+    "**/.classpath",
+    "**/.settings",
+    "**/node_modules",
+    "**/reference-repos"
+  ],
+  "lsp": {
+    "typescript-language-server": {
+      "initialization_options": {
+        "preferences": {
+          "excludeDirectories": [
+            "**/reference-repos"
+          ]
+        }
+      }
+    }
+  },
+  "formatter": "prettier",
+  "format_on_save": "on",
+  "prettier": {
+    "allowed": true
+  },
+  "tab_size": 4,
+  "hard_tabs": false
+}

@@ -1,0 +1,41 @@
+# Environment Variables Example
+# For local development: Copy to .dev.vars
+# For production: Set as Cloudflare Workers secrets via `wrangler secret put <KEY>`
+# NOTE: No quotes needed around values in .dev.vars
+
+# Better Auth Configuration
+# Generate with: openssl rand -base64 32
+# DEV: Use a development secret
+# PROD: Generate a NEW secret, never reuse dev secret
+BETTER_AUTH_SECRET=your-secret-key-here-generate-with-openssl-rand-base64-32
+
+# Google OAuth Configuration
+# Get these from: https://console.cloud.google.com/apis/credentials
+# DEV: Create OAuth credentials with callback: http://localhost:3000/api/auth/callback/google
+# PROD: Create separate OAuth credentials with callback: https://yourdomain.com/api/auth/callback/google
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-your-google-client-secret
+
+# Email Service (Resend)
+# Get from: https://resend.com/api-keys
+# DEV: Can use same key as production or create a separate test key
+# PROD: Verify your domain in Resend first
+RESEND_API_KEY=re_your_resend_api_key
+EMAIL_FROM=noreply@yourdomain.com
+
+# Cloudflare R2 Configuration
+# Get from: Cloudflare Dashboard → R2 → Manage R2 API Tokens
+# DEV: Can use same credentials as production
+# PROD: Consider using separate buckets for dev/prod
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+
+# R2 Bucket Name
+# DEV/PROD: The name of your R2 bucket for storing user uploads (avatars, files, etc.)
+R2_BUCKET_NAME=grabient-uploads
+
+# R2 Public URL
+# DEV: Use your R2 public URL (e.g., https://pub-xxxxxxxxx.r2.dev)
+# PROD: Use custom domain if configured (e.g., https://cdn.yourdomain.com)
+R2_PUBLIC_URL=https://pub-xxxxxxxxx.r2.dev

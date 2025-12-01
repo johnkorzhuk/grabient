@@ -1,3 +1,5 @@
 {
-  "standard.enable": true
+    "files.exclude": {
+        "reference-repos": true
+    }
 }

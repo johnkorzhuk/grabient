@@ -1,0 +1,101 @@
+{
+  "name": "@repo/data-ops",
+  "version": "1.0.0",
+  "description": "Manage auth, database, schemas, and queries",
+  "exports": {
+    "./auth/*": {
+      "default": "./dist/auth/*.js",
+      "types": "./dist/auth/*.d.ts"
+    },
+    "./database/*": {
+      "default": "./dist/database/*.js",
+      "types": "./dist/database/*.d.ts"
+    },
+    "./valibot-schema/*": {
+      "default": "./dist/valibot-schema/*.js",
+      "types": "./dist/valibot-schema/*.d.ts"
+    },
+    "./queries/*": {
+      "default": "./dist/queries/*.js",
+      "types": "./dist/queries/*.d.ts"
+    },
+    "./queries/palettes": {
+      "default": "./dist/queries/palettes.js",
+      "types": "./dist/queries/palettes.d.ts"
+    },
+    "./valibot-schema/grabient": {
+      "default": "./dist/valibot-schema/grabient.js",
+      "types": "./dist/valibot-schema/grabient.d.ts"
+    },
+    "./valibot-schema/auth": {
+      "default": "./dist/valibot-schema/auth.js",
+      "types": "./dist/valibot-schema/auth.d.ts"
+    },
+    "./serialization": {
+      "default": "./dist/serialization.js",
+      "types": "./dist/serialization.d.ts"
+    },
+    "./drizzle/*": {
+      "default": "./dist/drizzle/*.js",
+      "types": "./dist/drizzle/*.d.ts"
+    },
+    "./gradient-gen": {
+      "default": "./dist/gradient-gen/index.js",
+      "types": "./dist/gradient-gen/index.d.ts"
+    },
+    "./gradient-gen/*": {
+      "default": "./dist/gradient-gen/*.js",
+      "types": "./dist/gradient-gen/*.d.ts"
+    },
+    "./scripts/*": {
+      "default": "./dist/scripts/*.js",
+      "types": "./dist/scripts/*.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json --outDir ./dist && tsc-alias",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "better-auth:generate": "mkdir -p src/drizzle && npx @better-auth/cli@latest generate --config ./config/auth.ts --output ./src/drizzle/auth-schema.ts",
+    "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "drizzle:migrate": "drizzle-kit migrate --config drizzle.config.ts",
+    "drizzle:pull": "drizzle-kit pull --config drizzle.config.ts",
+    "db:studio": "drizzle-kit studio --config drizzle.config.local.ts",
+    "db:seed": "tsx src/scripts/seed.ts",
+    "db:seed:prod": "tsx src/scripts/seed-production.ts",
+    "migrate:clerk-users": "tsx src/scripts/migrate-clerk-users.ts",
+    "migrate:avatars": "tsx src/scripts/migrate-avatars.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.14.0",
+  "dependencies": {
+    "aws4fetch": "^1.0.20",
+    "@neondatabase/serverless": "^1.0.1",
+    "@planetscale/database": "^1.19.0",
+    "@polar-sh/better-auth": "^1.1.0",
+    "@polar-sh/sdk": "^0.34.13",
+    "better-auth": "^1.3.7",
+    "better-sqlite3": "^12.2.0",
+    "drizzle-orm": "^0.44.5",
+    "dotenv": "^16.4.5",
+    "lz-string": "^1.5.0",
+    "valibot": "^1.1.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250823.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/lz-string": "^1.5.0",
+    "@vitest/coverage-v8": "^2.1.8",
+    "drizzle-kit": "^0.31.4",
+    "mysql2": "^3.14.3",
+    "postgres": "^3.4.7",
+    "tsc-alias": "^1.8.16",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2",
+    "vitest": "^2.1.8"
+  }
+}
