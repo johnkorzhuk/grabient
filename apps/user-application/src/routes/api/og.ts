@@ -73,10 +73,15 @@ export const Route = createFileRoute("/api/og")({
                         rgbToHex(r, g, b),
                     );
 
-                    // 4. Determine effective style (handle deepFlow fallback)
-                    const effectiveStyle = (
-                        style === "deepFlow" ? "linearSwatches" : style
-                    ) as GradientStyle;
+                    // 4. Determine effective style (handle unsupported styles)
+                    // - deepFlow: falls back to linearSwatches
+                    // - angularGradient: falls back to angularSwatches (CSS conic-gradient doesn't work with resvg)
+                    let effectiveStyle: GradientStyle = style;
+                    if (style === "deepFlow") {
+                        effectiveStyle = "linearSwatches";
+                    } else if (style === "angularGradient") {
+                        effectiveStyle = "angularSwatches";
+                    }
 
                     // 5. Generate the base gradient SVG using existing utility
                     const baseSvgString = generateSvgGradient(
