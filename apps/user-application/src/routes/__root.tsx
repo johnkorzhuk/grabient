@@ -51,6 +51,10 @@ export const Route = createRootRouteWithContext<{
                     name: "viewport",
                     content: "width=device-width, initial-scale=1",
                 },
+                {
+                    name: "google-adsense-account",
+                    content: "ca-pub-2436216252635443",
+                },
                 ...seo({
                     title: "Grabient - CSS Gradient Generator",
                     description: `Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.`,

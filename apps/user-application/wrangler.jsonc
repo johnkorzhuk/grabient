@@ -52,7 +52,7 @@
 			"workers_dev": true,
 			"vars": {
 				"EMAIL_FROM": "noreply@grabient.com",
-				"R2_PUBLIC_URL": "https://pub-f6df953a27f148e3996ab995736c8522.r2.dev",
+				"R2_PUBLIC_URL": "https://cdn.grabient.com",
 				"R2_ACCOUNT_ID": "f846204052f664d57da7acde8f6803cd",
 				"R2_BUCKET_NAME": "grabient-uploads",
 				"VITE_SENTRY_DSN": "https://c729528778730d962b0343db87d28416@o4508445794959360.ingest.us.sentry.io/4509076183449600"
