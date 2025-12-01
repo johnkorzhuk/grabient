@@ -30,7 +30,8 @@ import {
 import { useInitializePostHog } from "@/integrations/posthog/useInitializePostHog";
 import { useInitializeGA4 } from "@/integrations/ga4/useInitializeGA4";
 import { getCookieYesHeadScript } from "@/integrations/cookieyes/CookieYesScript";
-import { onConsentChange } from "@/integrations/cookieyes/consent";
+import { useCookieYesSync } from "@/integrations/cookieyes/useCookieYesSync";
+import { consentStore } from "@/stores/consent-store";
 
 function BreakpointIndicator() {
     return (
@@ -150,6 +151,7 @@ function RootComponent() {
             shouldDisableScrollLock={shouldDisableScroll}
         >
             <ThemeProvider>
+                <CookieYesSyncInitializer />
                 <SentryInitializer />
                 <PostHogInitializer />
                 <GA4Initializer />
@@ -168,6 +170,11 @@ function ThemeHotkeys() {
     return null;
 }
 
+function CookieYesSyncInitializer() {
+    useCookieYesSync();
+    return null;
+}
+
 function SentryInitializer() {
     const [isClient, setIsClient] = useState(false);
     const hasSetupLazyLoading = React.useRef(false);
@@ -182,11 +189,11 @@ function SentryInitializer() {
         hasSetupLazyLoading.current = true;
     }, [isClient]);
 
-    // Listen for consent changes from CookieYes
+    // Listen for consent changes from consent store
     useEffect(() => {
         if (!isClient) return;
 
-        const unsubscribe = onConsentChange(() => {
+        const unsubscribe = consentStore.subscribe(() => {
             if (isSentryInitialized()) {
                 updateSentryConsent();
             }

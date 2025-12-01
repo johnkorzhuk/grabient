@@ -4,7 +4,7 @@ import {
     initializePostHog,
     isPostHogInitialized,
 } from "./posthogConfig";
-import { getConsent, onConsentChange } from "@/integrations/cookieyes/consent";
+import { consentStore } from "@/stores/consent-store";
 
 const IDLE_TIMEOUT = 5000;
 
@@ -39,8 +39,8 @@ export function useInitializePostHog() {
 
             await initializePostHog();
 
-            const consent = getConsent();
-            applyConsentSettings(consent.analytics, consent.sessionReplay);
+            const state = consentStore.state;
+            applyConsentSettings(state.categories.analytics, state.categories.sessionReplay);
         };
 
         const handleInteraction = () => {
@@ -71,7 +71,8 @@ export function useInitializePostHog() {
         if ("requestIdleCallback" in window) {
             idleCallbackId = window.requestIdleCallback(scheduleIdleInit, { timeout: IDLE_TIMEOUT });
         } else {
-            window.addEventListener("load", () => {
+            const win = window as Window;
+            win.addEventListener("load", () => {
                 setTimeout(scheduleIdleInit, 0);
             }, { once: true });
         }
@@ -83,13 +84,14 @@ export function useInitializePostHog() {
         };
     }, [isClient]);
 
-    // Listen for consent changes from CookieYes
+    // Listen for consent changes from consent store
     useEffect(() => {
         if (!isClient) return;
 
-        const unsubscribe = onConsentChange((consent) => {
+        const unsubscribe = consentStore.subscribe(() => {
             if (isPostHogInitialized()) {
-                applyConsentSettings(consent.analytics, consent.sessionReplay);
+                const state = consentStore.state;
+                applyConsentSettings(state.categories.analytics, state.categories.sessionReplay);
             }
         });
 

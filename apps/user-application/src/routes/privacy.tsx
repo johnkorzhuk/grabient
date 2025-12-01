@@ -14,16 +14,16 @@ function RouteComponent() {
 }
 
 function PrivacyPolicy() {
-    const lastUpdated = "November 30, 2025";
+    const lastUpdated = "December 1, 2025";
 
     return (
-        <div className="container mx-auto px-5 lg:px-14 py-8 max-w-4xl">
-            <div className="space-y-8">
+        <div className="container mx-auto px-5 lg:px-14 pb-16 max-w-4xl">
+            <div className="space-y-10">
                 <div className="space-y-3">
                     <h1 className="text-3xl font-poppins-bold text-foreground">
                         Privacy Policy
                     </h1>
-                    <p className="text-muted-foreground font-poppins">
+                    <p className="text-muted-foreground font-system">
                         Last updated: {lastUpdated}
                     </p>
                 </div>
@@ -135,9 +135,7 @@ function PrivacyPolicy() {
                             We use the information we collect to:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                            <li>
-                                Provide, maintain, and improve our Service
-                            </li>
+                            <li>Provide, maintain, and improve our Service</li>
                             <li>
                                 Create and manage your account, including
                                 authentication
@@ -162,9 +160,7 @@ function PrivacyPolicy() {
                                 Monitor and prevent fraud, abuse, and security
                                 issues
                             </li>
-                            <li>
-                                Comply with legal obligations
-                            </li>
+                            <li>Comply with legal obligations</li>
                         </ul>
                     </section>
 
@@ -361,7 +357,35 @@ function PrivacyPolicy() {
                         </p>
 
                         <h3 className="text-lg font-poppins-bold text-foreground">
-                            5.1 Essential Cookies
+                            5.1 Cookie Consent Management
+                        </h3>
+                        <p className="text-muted-foreground leading-relaxed">
+                            We use{" "}
+                            <a
+                                href="https://www.cookieyes.com"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-foreground underline hover:text-muted-foreground"
+                            >
+                                CookieYes
+                            </a>{" "}
+                            as our Consent Management Platform (CMP) to manage
+                            cookie consent in compliance with GDPR, CCPA, and
+                            other privacy regulations. CookieYes is a
+                            Google-certified CMP that supports IAB TCF v2.2 and
+                            Google Consent Mode v2. Learn more:{" "}
+                            <a
+                                href="https://www.cookieyes.com/privacy-policy/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-foreground underline hover:text-muted-foreground"
+                            >
+                                CookieYes Privacy Policy
+                            </a>
+                        </p>
+
+                        <h3 className="text-lg font-poppins-bold text-foreground">
+                            5.2 Essential Cookies
                         </h3>
                         <p className="text-muted-foreground leading-relaxed">
                             These cookies are necessary for the Service to
@@ -377,10 +401,9 @@ function PrivacyPolicy() {
                             </li>
                             <li>
                                 <strong className="text-foreground">
-                                    Consent preferences:
+                                    CookieYes consent cookies:
                                 </strong>{" "}
-                                Stored in localStorage to remember your privacy
-                                choices
+                                Used to remember your cookie preferences
                             </li>
                             <li>
                                 <strong className="text-foreground">
@@ -392,7 +415,7 @@ function PrivacyPolicy() {
                         </ul>
 
                         <h3 className="text-lg font-poppins-bold text-foreground">
-                            5.2 Analytics Cookies (Consent Required)
+                            5.3 Analytics Cookies (Consent Required)
                         </h3>
                         <p className="text-muted-foreground leading-relaxed">
                             With your consent, we use analytics cookies from:
@@ -400,30 +423,82 @@ function PrivacyPolicy() {
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                             <li>PostHog (product analytics)</li>
                             <li>Google Analytics 4 (web analytics)</li>
-                            <li>Google AdSense (advertising)</li>
                             <li>Sentry (error tracking)</li>
                         </ul>
+
+                        <h3 className="text-lg font-poppins-bold text-foreground">
+                            5.4 Advertising Cookies (Consent Required)
+                        </h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            These cookies are{" "}
-                            <strong className="text-foreground">
-                                disabled by default
-                            </strong>{" "}
-                            and only activated if you provide consent.
+                            With your consent, we use advertising cookies from:
+                        </p>
+                        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                            <li>Google AdSense (personalized advertising)</li>
+                        </ul>
+                        <p className="text-muted-foreground leading-relaxed">
+                            These cookies enable personalized ads based on your
+                            browsing activity. You can opt out of personalized
+                            advertising at any time through our cookie consent
+                            banner or in your{" "}
+                            <Link
+                                to="/settings"
+                                className="text-foreground underline hover:text-muted-foreground"
+                            >
+                                account settings
+                            </Link>
+                            .
                         </p>
 
                         <h3 className="text-lg font-poppins-bold text-foreground">
-                            5.3 Session Recording (Consent Required)
+                            5.5 Regional Consent Behavior
                         </h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            With your explicit consent, we may record your
-                            session to understand how users interact with our
-                            Service and identify usability issues. Session
-                            recordings:
+                            Our consent behavior varies by region:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                            <li>Automatically mask text inputs and form data</li>
+                            <li>
+                                <strong className="text-foreground">
+                                    EEA, UK, Switzerland (GDPR):
+                                </strong>{" "}
+                                A consent banner is displayed. All non-essential
+                                cookies are disabled by default until you
+                                provide consent.
+                            </li>
+                            <li>
+                                <strong className="text-foreground">
+                                    California (CCPA):
+                                </strong>{" "}
+                                A consent banner is displayed with options to
+                                opt-out of data sharing.
+                            </li>
+                            <li>
+                                <strong className="text-foreground">
+                                    Other regions:
+                                </strong>{" "}
+                                Analytics and advertising are enabled by
+                                default. You can opt-out at any time in your
+                                settings.
+                            </li>
+                        </ul>
+
+                        <h3 className="text-lg font-poppins-bold text-foreground">
+                            5.6 Session Recording (Consent Required)
+                        </h3>
+                        <p className="text-muted-foreground leading-relaxed">
+                            With your explicit consent to analytics, we may
+                            record your session to understand how users interact
+                            with our Service and identify usability issues.
+                            Session recordings:
+                        </p>
+                        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                            <li>
+                                Automatically mask text inputs and form data
+                            </li>
                             <li>Block media and images from being recorded</li>
-                            <li>Are disabled by default (opt-in only)</li>
+                            <li>
+                                Are only enabled when analytics consent is
+                                granted
+                            </li>
                         </ul>
                     </section>
 
@@ -436,18 +511,34 @@ function PrivacyPolicy() {
                             6.1 Consent Management
                         </h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            You can manage your privacy preferences at any time.
-                            Analytics and session recording are{" "}
-                            <strong className="text-foreground">
-                                opt-out by default
-                            </strong>
-                            . You can choose to:
+                            You can manage your cookie preferences at any time
+                            by:
+                        </p>
+                        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
+                            <li>
+                                Clicking the cookie icon in the bottom corner of
+                                any page to reopen the consent banner
+                            </li>
+                            <li>
+                                Visiting your{" "}
+                                <Link
+                                    to="/settings"
+                                    className="text-foreground underline hover:text-muted-foreground"
+                                >
+                                    account settings
+                                </Link>{" "}
+                                and clicking "Manage cookie preferences"
+                            </li>
+                        </ul>
+                        <p className="text-muted-foreground leading-relaxed">
+                            You can choose to:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                             <li>Accept all cookies and tracking</li>
                             <li>Reject all non-essential cookies</li>
                             <li>
                                 Customize your preferences for each category
+                                (analytics, advertising, etc.)
                             </li>
                         </ul>
 
@@ -543,21 +634,11 @@ function PrivacyPolicy() {
                             <li>
                                 All data is encrypted in transit using TLS/HTTPS
                             </li>
-                            <li>
-                                All data is encrypted at rest (AES-256)
-                            </li>
-                            <li>
-                                Passwords are hashed using scrypt algorithm
-                            </li>
-                            <li>
-                                Session cookies are HTTP-only and secure
-                            </li>
-                            <li>
-                                Rate limiting protects against abuse
-                            </li>
-                            <li>
-                                CSRF protection is enabled on all forms
-                            </li>
+                            <li>All data is encrypted at rest (AES-256)</li>
+                            <li>Passwords are hashed using scrypt algorithm</li>
+                            <li>Session cookies are HTTP-only and secure</li>
+                            <li>Rate limiting protects against abuse</li>
+                            <li>CSRF protection is enabled on all forms</li>
                         </ul>
                         <p className="text-muted-foreground leading-relaxed">
                             While we strive to protect your information, no
@@ -608,15 +689,9 @@ function PrivacyPolicy() {
                                 Access the personal information we hold about
                                 you
                             </li>
-                            <li>
-                                Correct inaccurate personal information
-                            </li>
-                            <li>
-                                Delete your account and associated data
-                            </li>
-                            <li>
-                                Withdraw consent for analytics and tracking
-                            </li>
+                            <li>Correct inaccurate personal information</li>
+                            <li>Delete your account and associated data</li>
+                            <li>Withdraw consent for analytics and tracking</li>
                         </ul>
 
                         <h3 className="text-lg font-poppins-bold text-foreground">
