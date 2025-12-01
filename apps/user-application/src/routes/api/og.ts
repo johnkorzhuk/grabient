@@ -45,7 +45,7 @@ function generateAngularGradientSvg(
     const startingAngle = angle - 90;
 
     // Number of segments per color transition for smooth gradient
-    const segmentsPerColor = 12;
+    const segmentsPerColor = 24;
     const totalSegments = (hexColors.length - 1) * segmentsPerColor;
     const segmentAngle = 360 / totalSegments;
 
