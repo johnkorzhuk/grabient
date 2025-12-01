@@ -19,7 +19,6 @@ import { useEyeDropperHotkey } from "@/hooks/useEyeDropperHotkey";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
-import { consentStore } from "@/stores/consent-store";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { shouldDisableScrollLock } from "@/lib/deviceDetection";
@@ -31,6 +30,7 @@ import {
 import { useInitializePostHog } from "@/integrations/posthog/useInitializePostHog";
 import { useInitializeGA4 } from "@/integrations/ga4/useInitializeGA4";
 import { getCookieYesHeadScript } from "@/integrations/cookieyes/CookieYesScript";
+import { onConsentChange } from "@/integrations/cookieyes/consent";
 
 function BreakpointIndicator() {
     return (
@@ -171,7 +171,6 @@ function ThemeHotkeys() {
 function SentryInitializer() {
     const [isClient, setIsClient] = useState(false);
     const hasSetupLazyLoading = React.useRef(false);
-    const consent = useStore(consentStore);
 
     useEffect(() => {
         setIsClient(true);
@@ -183,14 +182,18 @@ function SentryInitializer() {
         hasSetupLazyLoading.current = true;
     }, [isClient]);
 
+    // Listen for consent changes from CookieYes
     useEffect(() => {
-        if (!isClient || !isSentryInitialized()) return;
-        updateSentryConsent();
-    }, [
-        isClient,
-        consent.categories.analytics,
-        consent.categories.sessionReplay,
-    ]);
+        if (!isClient) return;
+
+        const unsubscribe = onConsentChange(() => {
+            if (isSentryInitialized()) {
+                updateSentryConsent();
+            }
+        });
+
+        return unsubscribe;
+    }, [isClient]);
 
     return null;
 }

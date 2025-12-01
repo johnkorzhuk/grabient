@@ -1,8 +1,7 @@
 // See: https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/
 
-import { consentStore } from "@/stores/consent-store";
+import { getConsent } from "@/integrations/cookieyes/consent";
 
-// Timeout for requestIdleCallback fallback (ms)
 const IDLE_TIMEOUT = 5000;
 
 let sentryInitialized = false;
@@ -32,14 +31,13 @@ export async function initializeSentry(): Promise<void> {
 
     initPromise = (async () => {
         try {
-            // Dynamic import - only loads @sentry/react when this function is called
             const Sentry = await import("@sentry/react");
             sentryModule = Sentry;
 
-            const consent = consentStore.state;
-            currentAnalyticsConsent = consent.categories.analytics;
+            const consent = getConsent();
+            currentAnalyticsConsent = consent.analytics;
 
-            if (consent.categories.sessionReplay) {
+            if (consent.sessionReplay) {
                 replayIntegration = Sentry.replayIntegration({
                     maskAllText: true,
                     maskAllInputs: true,
@@ -53,10 +51,10 @@ export async function initializeSentry(): Promise<void> {
                     Sentry.browserTracingIntegration(),
                     ...(replayIntegration ? [replayIntegration] : []),
                 ],
-                sendDefaultPii: consent.categories.analytics,
+                sendDefaultPii: consent.analytics,
                 tracesSampleRate: import.meta.env.DEV ? 0.1 : 1.0,
-                replaysSessionSampleRate: consent.categories.sessionReplay ? (import.meta.env.DEV ? 0.01 : 0.1) : 0,
-                replaysOnErrorSampleRate: consent.categories.sessionReplay ? 1.0 : 0,
+                replaysSessionSampleRate: consent.sessionReplay ? (import.meta.env.DEV ? 0.01 : 0.1) : 0,
+                replaysOnErrorSampleRate: consent.sessionReplay ? 1.0 : 0,
                 debug: false,
             });
 
@@ -102,7 +100,6 @@ export function setupLazySentryLoading(): void {
         removeListeners();
     };
 
-    // Also capture errors immediately, even before Sentry is fully loaded
     const handleError = () => {
         cancelIdleCallback();
         doInit();
@@ -134,7 +131,6 @@ export function setupLazySentryLoading(): void {
     window.addEventListener("error", handleError, { once: true });
     window.addEventListener("unhandledrejection", handleUnhandledRejection, { once: true });
 
-    // Or when browser is idle (lowest priority)
     const scheduleIdleInit = () => {
         doInit();
         removeListeners();
@@ -143,7 +139,6 @@ export function setupLazySentryLoading(): void {
     if ("requestIdleCallback" in window) {
         idleCallbackId = window.requestIdleCallback(scheduleIdleInit, { timeout: IDLE_TIMEOUT });
     } else {
-        // Fallback for Safari - use setTimeout with 0 delay after load
         window.addEventListener("load", () => {
             setTimeout(scheduleIdleInit, 0);
         }, { once: true });
@@ -155,9 +150,9 @@ export function updateSentryConsent(): void {
         return;
     }
 
-    const consent = consentStore.state;
+    const consent = getConsent();
 
-    if (consent.categories.analytics !== currentAnalyticsConsent) {
+    if (consent.analytics !== currentAnalyticsConsent) {
         console.warn(
             "Analytics consent changed. Cookie settings (sendDefaultPii) cannot be updated at runtime. " +
             "Sentry was initialized with sendDefaultPii=" + currentAnalyticsConsent + ". " +
@@ -165,7 +160,7 @@ export function updateSentryConsent(): void {
         );
     }
 
-    if (consent.categories.sessionReplay) {
+    if (consent.sessionReplay) {
         replayIntegration.start();
     } else {
         replayIntegration.stop();

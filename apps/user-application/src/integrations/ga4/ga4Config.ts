@@ -44,13 +44,18 @@ export function initializeGA4Consent(): void {
         window.dataLayer?.push(arguments);
     };
 
-    window.gtag("consent", "default", {
-        analytics_storage: "denied",
-        ad_storage: "denied",
-        ad_user_data: "denied",
-        ad_personalization: "denied",
-        wait_for_update: 500,
-    });
+    // CookieYes handles consent defaults via Google Consent Mode v2
+    // Only set defaults if CookieYes isn't configured
+    const cookieYesConfigured = !!import.meta.env.VITE_COOKIEYES_SITE_KEY;
+    if (!cookieYesConfigured) {
+        window.gtag("consent", "default", {
+            analytics_storage: "denied",
+            ad_storage: "denied",
+            ad_user_data: "denied",
+            ad_personalization: "denied",
+            wait_for_update: 500,
+        });
+    }
 
     window.gtag("set", "ads_data_redaction", true);
     window.gtag("set", "url_passthrough", true);
