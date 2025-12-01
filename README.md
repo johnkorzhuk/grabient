@@ -57,15 +57,8 @@ pnpm db:seed remote --db=grabient
 
 ### Seeding Production
 
-Production seeding includes full user migration from Clerk:
-
 ```bash
 cd packages/data-ops
-
-# 1. Migrate users from Clerk (requires CLERK_SECRET_KEY env var)
-CLERK_SECRET_KEY=sk_live_xxx pnpm migrate:clerk-users
-
-# 2. Seed production database with users, palettes, and likes
 pnpm db:seed:prod --db=grabient-prod
 ```
 
