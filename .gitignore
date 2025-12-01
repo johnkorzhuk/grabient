@@ -6,6 +6,7 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
@@ -157,3 +158,6 @@ packages/data-ops/src/data/prod-*.jsonl
 packages/data-ops/src/data/clerk-to-betterauth-id-map.json
 snapshot.zip
 .seed-production.sql
+
+# Development images (screenshots, etc.)
+dev_images/

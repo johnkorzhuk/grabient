@@ -33,7 +33,7 @@ dotenv.config({ path: DEV_VARS_PATH });
 const PROD_R2_CONFIG = {
   accountId: 'f846204052f664d57da7acde8f6803cd',
   bucketName: 'grabient-uploads',
-  publicUrl: 'https://pub-f6df953a27f148e3996ab995736c8522.r2.dev',
+  publicUrl: 'https://cdn.grabient.com',
 };
 
 interface User {
