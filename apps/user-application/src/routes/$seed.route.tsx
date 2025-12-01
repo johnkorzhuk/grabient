@@ -382,7 +382,13 @@ function RouteComponent() {
         setLivePaletteData({ coeffs: newCoeffs, globals: newGlobals });
         const newSeed = serializeCoeffs(newCoeffs, newGlobals);
         setCustomCoeffs(newSeed, newCoeffs);
-        debouncedNavigate(newSeed);
+        // Use replace since taring doesn't change the visual palette, just redistributes values
+        navigate({
+            to: "/$seed",
+            params: { seed: newSeed },
+            search: (search) => search,
+            replace: true,
+        });
     };
 
     const buildQueryString = () => {
