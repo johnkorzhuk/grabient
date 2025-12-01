@@ -108,39 +108,6 @@ export const Route = createFileRoute("/$seed")({
         // Cloudflare CDN: Cache for 1 hour, stale-while-revalidate for 2 hours
         "cdn-cache-control": "max-age=3600, stale-while-revalidate=7200",
     }),
-    head: ({ params }) => {
-        const ogUrl = new URL("/api/og", "https://grabient.com");
-        ogUrl.searchParams.set("seed", params.seed);
-
-        return {
-            meta: [
-                { title: "Grabient - CSS Gradient Generator" },
-                {
-                    name: "description",
-                    content:
-                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
-                },
-                { name: "og:type", content: "website" },
-                { name: "og:title", content: "Grabient - CSS Gradient Generator" },
-                {
-                    name: "og:description",
-                    content:
-                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
-                },
-                { name: "og:image", content: ogUrl.toString() },
-                { name: "og:image:width", content: "1200" },
-                { name: "og:image:height", content: "630" },
-                { name: "twitter:card", content: "summary_large_image" },
-                { name: "twitter:title", content: "Grabient - CSS Gradient Generator" },
-                {
-                    name: "twitter:description",
-                    content:
-                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
-                },
-                { name: "twitter:image", content: ogUrl.toString() },
-            ],
-        };
-    },
     beforeLoad: ({ params }) => {
         try {
             v.parse(seedValidator, params.seed);
@@ -155,6 +122,66 @@ export const Route = createFileRoute("/$seed")({
         );
         context.queryClient.prefetchQuery(userLikedSeedsQueryOptions());
     },
+    head: (ctx) => {
+        // ctx has: params, loaderData, match (which contains search)
+        const { params, match } = ctx;
+        const ogUrl = new URL("/api/og", "https://grabient.com");
+        ogUrl.searchParams.set("seed", params.seed);
+
+        // Add search params to OG URL if they exist
+        if (match?.search) {
+            const search = match.search as {
+                style?: string | "auto";
+                steps?: number | "auto";
+                angle?: number | "auto";
+            };
+            if (search.style && search.style !== "auto") {
+                ogUrl.searchParams.set("style", search.style);
+            }
+            if (search.steps !== undefined && search.steps !== "auto") {
+                ogUrl.searchParams.set("steps", String(search.steps));
+            }
+            if (search.angle !== undefined && search.angle !== "auto") {
+                ogUrl.searchParams.set("angle", String(search.angle));
+            }
+        }
+
+        return {
+            meta: [
+                { title: "Grabient - CSS Gradient Generator" },
+                {
+                    name: "description",
+                    content:
+                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
+                },
+                { name: "og:type", content: "website" },
+                {
+                    name: "og:title",
+                    content: "Grabient - CSS Gradient Generator",
+                },
+                {
+                    name: "og:description",
+                    content:
+                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
+                },
+                { name: "og:image", content: ogUrl.toString() },
+                { name: "og:image:width", content: "1200" },
+                { name: "og:image:height", content: "630" },
+                { name: "twitter:card", content: "summary_large_image" },
+                {
+                    name: "twitter:title",
+                    content: "Grabient - CSS Gradient Generator",
+                },
+                {
+                    name: "twitter:description",
+                    content:
+                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
+                },
+                { name: "twitter:image", content: ogUrl.toString() },
+            ],
+        };
+    },
+
     component: RouteComponent,
 });
 
@@ -380,14 +407,8 @@ function RouteComponent() {
     const creditSearchString = buildQueryString();
 
     // Calculate actual dimensions for SVG export
-    const svgWidth =
-        size === "auto"
-            ? containerDimensions.width
-            : size[0];
-    const svgHeight =
-        size === "auto"
-            ? containerDimensions.height
-            : size[1];
+    const svgWidth = size === "auto" ? containerDimensions.width : size[0];
+    const svgHeight = size === "auto" ? containerDimensions.height : size[1];
 
     const { cssString, gradientString } = generateCssGradient(
         hexColors,
