@@ -122,28 +122,20 @@ export const Route = createFileRoute("/$seed")({
         );
         context.queryClient.prefetchQuery(userLikedSeedsQueryOptions());
     },
-    head: (ctx) => {
-        // ctx has: params, loaderData, match (which contains search)
-        const { params, match } = ctx;
+    head: ({ params, match }) => {
         const ogUrl = new URL("/api/og", "https://grabient.com");
         ogUrl.searchParams.set("seed", params.seed);
 
-        // Add search params to OG URL if they exist
-        if (match?.search) {
-            const search = match.search as {
-                style?: string | "auto";
-                steps?: number | "auto";
-                angle?: number | "auto";
-            };
-            if (search.style && search.style !== "auto") {
-                ogUrl.searchParams.set("style", search.style);
-            }
-            if (search.steps !== undefined && search.steps !== "auto") {
-                ogUrl.searchParams.set("steps", String(search.steps));
-            }
-            if (search.angle !== undefined && search.angle !== "auto") {
-                ogUrl.searchParams.set("angle", String(search.angle));
-            }
+        // Add search params to OG URL if they differ from defaults
+        const { style, steps, angle } = match.search;
+        if (style && style !== "auto") {
+            ogUrl.searchParams.set("style", style);
+        }
+        if (steps !== undefined && steps !== "auto") {
+            ogUrl.searchParams.set("steps", String(steps));
+        }
+        if (angle !== undefined && angle !== "auto") {
+            ogUrl.searchParams.set("angle", String(angle));
         }
 
         return {
