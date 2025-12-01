@@ -155,6 +155,5 @@ vite.config.ts.timestamp-*
 
 # Production migration data (sensitive user data - not for repo)
 packages/data-ops/src/data/prod-*.jsonl
-packages/data-ops/src/data/clerk-to-betterauth-id-map.json
 snapshot.zip
 .seed-production.sql
