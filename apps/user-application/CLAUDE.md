@@ -241,3 +241,6 @@ className={cn(
 - Wait for user confirmation before running git commit commands
 - The user will decide when changes are ready to be committed
 - Exception: Only commit without asking if the user explicitly says "commit this" or "commit these changes"
+- **NEVER add "Generated with Claude Code" or similar attribution** to commit messages
+- **NEVER add Co-Authored-By lines** to commit messages
+- Keep commit messages clean and focused on the change itself
