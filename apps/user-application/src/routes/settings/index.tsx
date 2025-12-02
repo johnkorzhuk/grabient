@@ -98,7 +98,7 @@ function SettingsPage() {
     }, [usernameForm.state.values.username]);
 
     useEffect(() => {
-        if (search.token) {
+        if (search.token && user) {
             const dangerZone = document.getElementById("danger-zone");
             if (dangerZone) {
                 dangerZone.scrollIntoView({
@@ -107,7 +107,7 @@ function SettingsPage() {
                 });
             }
         }
-    }, [search.token]);
+    }, [search.token, user]);
 
     if (isPending) {
         return null;
@@ -124,9 +124,8 @@ function SettingsPage() {
             if (search.token) {
                 setVerifying(true);
                 await deleteAccount({ data: { token: search.token } });
-                setTimeout(() => {
-                    router.navigate({ to: "/" });
-                }, 2000);
+                await authClient.signOut();
+                await router.invalidate();
             } else {
                 const response = await authClient.deleteUser();
                 if (response.error) {

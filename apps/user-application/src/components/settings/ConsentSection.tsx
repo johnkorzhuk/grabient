@@ -38,14 +38,17 @@ export function ConsentSection() {
                     const consent = getCkyConsent();
                     setIsRegulated(isConsentRequiredRegion(consent.activeLaw));
                     setIsReady(true);
+                    return true;
                 } catch {
                     setIsRegulated(false);
                     setIsReady(true);
+                    return true;
                 }
             }
+            return false;
         };
 
-        checkCookieYes();
+        if (checkCookieYes()) return;
 
         const handleBannerLoad = () => {
             checkCookieYes();
@@ -53,8 +56,17 @@ export function ConsentSection() {
 
         document.addEventListener("cookieyes_banner_load", handleBannerLoad);
 
+        // Fallback: if CookieYes doesn't load within 3 seconds, show non-regulated UI
+        const timeout = setTimeout(() => {
+            if (!isReady) {
+                setIsRegulated(false);
+                setIsReady(true);
+            }
+        }, 3000);
+
         return () => {
             document.removeEventListener("cookieyes_banner_load", handleBannerLoad);
+            clearTimeout(timeout);
         };
     }, [cookieYesEnabled]);
 
