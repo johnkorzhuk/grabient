@@ -203,6 +203,7 @@ function SettingsPage() {
                                         name="username"
                                         validators={{
                                             onChange: ({ value }) => {
+                                                if (!value) return undefined;
                                                 const result = v.safeParse(
                                                     usernameSchema,
                                                     value,
