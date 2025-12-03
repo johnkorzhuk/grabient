@@ -47,6 +47,12 @@ export const createBetterAuth = (config: {
           type: "string",
           required: false,
         },
+        role: {
+          type: "string",
+          required: false,
+          defaultValue: "user",
+          input: false,
+        },
       },
       deleteUser: {
         enabled: true,
