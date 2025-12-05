@@ -1,4 +1,39 @@
-## Setup
+# Grabient
+
+A beautiful, performant gradient generator built with TanStack Start, React 19, and Cloudflare Workers.
+
+Color gradient generation inspired by [Inigo Quilez's cosine gradient technique](https://iquilezles.org/articles/palettes/) and [thi-ng/cgg](https://github.com/thi-ng/cgg).
+
+---
+
+## 🚀 Quick Start
+
+**Want to run Grabient locally in under 10 minutes?**
+
+Check out the **[Quick Start Guide](./QUICK_START.md)** for:
+- ⚡ Setup without authentication (perfect for contributors!)
+- 🎨 100+ pre-seeded sample gradients
+- 🛠️ Troubleshooting common issues
+- 🪟 Windows/WSL2 setup instructions
+
+```bash
+# Quick Start (3 commands)
+pnpm run setup:quick
+pnpm run dev:user-application  # Wait for server to start
+pnpm run db:seed                # In new terminal
+```
+
+Then open http://localhost:3000/
+
+**👉 For detailed instructions, see [QUICK_START.md](./QUICK_START.md)**
+
+---
+
+## 📖 Full Setup
+
+For production deployment with authentication and full features:
+
+### Setup
 
 ```bash
 pnpm run setup
@@ -6,11 +41,13 @@ pnpm run setup
 
 This installs all dependencies and builds required packages.
 
-## Development
+### Development
 
 ```bash
 pnpm run dev:user-application
 ```
+
+See [SETUP_GUIDE.txt](./SETUP_GUIDE.txt) for complete configuration instructions.
 
 ## Deployment
 
@@ -86,8 +123,6 @@ pnpm wrangler d1 migrations apply grabient-prod --remote
 ## Acknowledgments
 
 Built using [saas-kit](https://github.com/backpine/saas-kit) by blackpine (ISC License).
-
-Color gradient generation inspired by [Inigo Quilez's cosine gradient technique](https://iquilezles.org/articles/palettes/) and [thi-ng/cgg](https://github.com/thi-ng/cgg).
 
 ## License
 

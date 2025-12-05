@@ -34,8 +34,9 @@ export function setAuth(
 }
 
 export function getAuth() {
-  if (!betterAuth) {
-    throw new Error("Auth not initialized");
-  }
-  return betterAuth;
+  return betterAuth ?? null;
+}
+
+export function isAuthInitialized(): boolean {
+  return !!betterAuth;
 }
