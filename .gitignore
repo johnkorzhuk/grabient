@@ -5,6 +5,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+journal/
 
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
@@ -71,6 +72,11 @@ web_modules/
 !.env.example
 !apps/user-application/.env
 .dev.vars
+
+# Claude Code local configuration
+.claude/settings.local.json
+.claude/commands/
+.claude/docs/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

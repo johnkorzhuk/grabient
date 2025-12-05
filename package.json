@@ -4,6 +4,7 @@
     "description": "",
     "scripts": {
         "setup": "pnpm i && pnpm run build:data-ops",
+        "setup:quick": "pnpm i && pnpm run build:data-ops && echo '\n✅ Quick Start setup complete!' && echo '\n📖 Next steps:' && echo '   1. pnpm run dev:user-application' && echo '   2. Wait for server to start' && echo '   3. In a new terminal: pnpm run db:seed' && echo '   4. Open http://localhost:3000\n' && echo '📚 For detailed instructions, see QUICK_START.md\n'",
         "build:data-ops": "pnpm run --filter data-ops build",
         "test": "pnpm run --filter data-ops test",
         "test:watch": "pnpm run --filter data-ops test:watch",

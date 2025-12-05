@@ -117,19 +117,22 @@ export default {
     fetch(request: Request, env: Env) {
         const db = initDatabase(env.DB);
 
-        setAuth({
-            secret: env.BETTER_AUTH_SECRET,
-            socialProviders: {
-                google: {
-                    clientId: env.GOOGLE_CLIENT_ID,
-                    clientSecret: env.GOOGLE_CLIENT_SECRET,
+        // Quick Start Mode: Make auth optional for local development
+        // If BETTER_AUTH_SECRET is not set, skip auth configuration
+        if (env.BETTER_AUTH_SECRET) {
+            setAuth({
+                secret: env.BETTER_AUTH_SECRET,
+                socialProviders: {
+                    google: {
+                        clientId: env.GOOGLE_CLIENT_ID,
+                        clientSecret: env.GOOGLE_CLIENT_SECRET,
+                    },
                 },
-            },
-            adapter: {
-                drizzleDb: db,
-                provider: "sqlite",
-            },
-            sendMagicLink: async (data) => {
+                adapter: {
+                    drizzleDb: db,
+                    provider: "sqlite",
+                },
+                sendMagicLink: async (data) => {
                 try {
                     const response = await fetch(
                         "https://api.resend.com/emails",
@@ -220,6 +223,11 @@ export default {
                 }
             },
         });
+        } else {
+            console.log("[Quick Start Mode] Authentication disabled - BETTER_AUTH_SECRET not configured");
+            console.log("[Quick Start Mode] To enable auth, create .dev.vars with required environment variables");
+        }
+
         return handler.fetch(request, {
             context: {
                 db,

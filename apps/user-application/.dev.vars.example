@@ -1,0 +1,30 @@
+# Server-side secrets for local development
+# Copy this to .dev.vars and fill in your values
+# NEVER commit .dev.vars to git
+
+# ⚡ QUICK START MODE
+# All variables below are OPTIONAL for basic gradient functionality
+# The app will run without authentication if these are not set
+# Leave blank to use Quick Start mode without auth
+
+# Better Auth - Required only for authentication features
+# Generate with: openssl rand -base64 32
+# Leave blank for Quick Start mode (auth will be disabled)
+BETTER_AUTH_SECRET=
+
+# Google OAuth - Required only for Google sign-in
+# Get from: https://console.cloud.google.com/
+# Leave blank for Quick Start mode (Google OAuth will be disabled)
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Email service - Required only for magic link sign-in
+# Get from: https://resend.com/
+# Leave blank for Quick Start mode (email features will be disabled)
+RESEND_API_KEY=
+
+# R2 Storage - Optional even for full setup
+# Get from: Cloudflare Dashboard > R2
+# Leave blank for most local development
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=

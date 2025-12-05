@@ -6,6 +6,13 @@ export const protectedFunctionMiddleware = createMiddleware({
     type: "function",
 }).server(async ({ next }) => {
     const auth = getAuth();
+
+    // Quick Start Mode: No auth available
+    if (!auth) {
+        setResponseStatus(401);
+        throw new Error("Auth not configured - enable authentication in .dev.vars");
+    }
+
     const session = await auth.api.getSession({
         headers: getRequest().headers,
         query: {
@@ -31,6 +38,13 @@ export const protectedRequestMiddleware = createMiddleware({
     type: "request",
 }).server(async ({ next }) => {
     const auth = getAuth();
+
+    // Quick Start Mode: No auth available
+    if (!auth) {
+        setResponseStatus(401);
+        throw new Error("Auth not configured - enable authentication in .dev.vars");
+    }
+
     const session = await auth.api.getSession({
         headers: getRequest().headers,
         query: {
@@ -56,6 +70,18 @@ export const optionalAuthFunctionMiddleware = createMiddleware({
     type: "function",
 }).server(async ({ next }) => {
     const auth = getAuth();
+
+    // Quick Start Mode: Skip auth if not initialized
+    if (!auth) {
+        return next({
+            context: {
+                auth: null,
+                userId: null,
+                email: null,
+            },
+        });
+    }
+
     const session = await auth.api.getSession({
         headers: getRequest().headers,
         query: {
