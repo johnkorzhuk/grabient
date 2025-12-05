@@ -6,7 +6,8 @@ import {
 import { getDb } from "@repo/data-ops/database/setup";
 import * as v from "valibot";
 import { desc, asc, sql, eq } from "drizzle-orm";
-import { palettes, likes } from "@repo/data-ops/drizzle/app-schema";
+import { palettes, likes, paletteTags } from "@repo/data-ops/drizzle/app-schema";
+import { auth_user } from "@repo/data-ops/drizzle/auth-schema";
 import {
     optionalAuthFunctionMiddleware,
     protectedFunctionMiddleware,
@@ -235,5 +236,80 @@ export const getPaletteLikeInfo = basePaletteLikeInfoFunction
         return {
             likesCount,
             isLiked,
+        };
+    });
+
+const paletteTagsSchema = v.object({
+    seed: seedValidator,
+    promptVersion: v.optional(v.string()),
+});
+
+const baseAdminFunction = createServerFn({ method: "GET" }).middleware([
+    protectedFunctionMiddleware,
+]);
+
+export const getPaletteTagsForSeed = baseAdminFunction
+    .inputValidator((input) => v.parse(paletteTagsSchema, input))
+    .handler(async (ctx) => {
+        const { seed, promptVersion } = ctx.data;
+        const userId = ctx.context.userId;
+        const db = getDb();
+
+        if (!userId) {
+            throw new Error("Unauthorized");
+        }
+
+        // Check if user is admin
+        const user = await db
+            .select({ role: auth_user.role })
+            .from(auth_user)
+            .where(eq(auth_user.id, userId))
+            .limit(1);
+
+        if (!user[0] || user[0].role !== "admin") {
+            throw new Error("Unauthorized: Admin access required");
+        }
+
+        // Build query with optional prompt version filter
+        const { and } = await import("drizzle-orm");
+        const whereConditions = promptVersion
+            ? and(eq(paletteTags.seed, seed), eq(paletteTags.promptVersion, promptVersion))
+            : eq(paletteTags.seed, seed);
+
+        // Fetch all tags for this seed
+        const tags = await db
+            .select()
+            .from(paletteTags)
+            .where(whereConditions)
+            .orderBy(desc(paletteTags.runNumber), asc(paletteTags.provider));
+
+        // Get unique prompt versions for filter dropdown, ordered by most recent first
+        const versionsResult = await db
+            .select({
+                promptVersion: paletteTags.promptVersion,
+                maxCreatedAt: sql<number>`MAX(${paletteTags.createdAt})`.as("max_created_at"),
+            })
+            .from(paletteTags)
+            .where(eq(paletteTags.seed, seed))
+            .groupBy(paletteTags.promptVersion)
+            .orderBy(desc(sql`max_created_at`));
+
+        const availableVersions = versionsResult
+            .map((v) => v.promptVersion)
+            .filter((v): v is string => v !== null);
+
+        return {
+            tags: tags.map((t) => ({
+                id: t.id,
+                seed: t.seed,
+                provider: t.provider,
+                model: t.model,
+                runNumber: t.runNumber,
+                promptVersion: t.promptVersion,
+                tags: t.tags ? JSON.parse(t.tags) : null,
+                error: t.error,
+                createdAt: t.createdAt,
+            })),
+            availableVersions,
         };
     });
