@@ -1,4 +1,4 @@
-import { action, internalMutation, query } from "./_generated/server";
+import { action, internalMutation, internalQuery, query } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Resvg, initWasm } from "@resvg/resvg-wasm";
@@ -61,6 +61,20 @@ async function svgToPng(svgString: string): Promise<Uint8Array> {
   const pngData = resvg.render();
   return pngData.asPng();
 }
+
+/**
+ * Check if a palette exists in the database
+ */
+export const paletteExists = internalQuery({
+  args: { seed: v.string() },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("palettes")
+      .withIndex("by_seed", (q) => q.eq("seed", args.seed))
+      .first();
+    return !!existing;
+  },
+});
 
 /**
  * Insert a palette with its image URL (internal use)
@@ -224,6 +238,13 @@ export const importFromD1 = action({
 
       for (const seed of batch) {
         try {
+          // Check if palette already exists in Convex
+          const exists = await ctx.runQuery(internal.seed.paletteExists, { seed });
+          if (exists) {
+            totalSkipped++;
+            continue;
+          }
+
           // Generate image
           const svg = generatePaletteSvg(seed);
           const pngData = await svgToPng(svg);
@@ -235,16 +256,12 @@ export const importFromD1 = action({
           const imageUrl = `${r2PublicUrl}/${key}`;
 
           // Insert palette with image URL
-          const result = await ctx.runMutation(internal.seed.insertPalette, {
+          await ctx.runMutation(internal.seed.insertPalette, {
             seed,
             imageUrl,
           });
 
-          if (result.inserted) {
-            totalInserted++;
-          } else {
-            totalSkipped++;
-          }
+          totalInserted++;
         } catch (error) {
           console.error(`Failed to process ${seed}:`, error);
           totalFailed++;

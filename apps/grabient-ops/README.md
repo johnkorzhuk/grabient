@@ -47,7 +47,7 @@ Set these in **Convex Dashboard → Settings → Environment Variables**:
 |----------|-------------|
 | `OPENAI_API_KEY` | OpenAI API key |
 | `ANTHROPIC_API_KEY` | Anthropic API key |
-| `GOOGLE_API_KEY` | Google AI API key |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Google AI (Gemini) API key |
 | `GROQ_API_KEY` | Groq API key |
 
 ### 4. Create R2 API Token
