@@ -1,74 +1,85 @@
-export const TAGGING_SYSTEM_PROMPT = `You are a color palette analyzer. Given color data, output ONLY valid JSON matching this exact schema.
+export const TAGGING_SYSTEM_PROMPT = `Analyze a color palette and generate descriptive tags for search.
 
-REQUIRED OUTPUT FORMAT (all fields required):
+Use common, recognizable terms that designers and artists would actually search for.
+
+Judge the palette as a whole - consider how all the colors work together, not each color individually.
+
+INPUT: Hex color codes with RGB, HSL, and LCH values.
+
+OUTPUT: Valid JSON only:
 {
-  "mood": ["string", "string"],
-  "style": ["string"],
-  "dominant_colors": ["string"],
-  "temperature": "warm" | "cool" | "neutral" | "cool-warm",
-  "contrast": "high" | "medium" | "low",
-  "brightness": "dark" | "medium" | "light" | "varied",
-  "saturation": "vibrant" | "muted" | "mixed",
+  "mood": [],
+  "style": [],
+  "dominant_colors": [],
+  "temperature": "",
+  "contrast": "",
+  "brightness": "",
+  "saturation": "",
   "seasonal": [],
-  "associations": ["string", "string"]
+  "associations": []
 }
 
-FIELD DEFINITIONS:
+CATEGORIES:
 
-mood (array of 2-3 strings): Emotional qualities.
-Examples: calm, serene, playful, energetic, dreamy, mysterious, contemplative, romantic, intense, dramatic, melancholic, peaceful, bold, sophisticated, nostalgic, whimsical, ethereal, grounded, luxurious, cozy
+mood (2-5 tags): Emotional qualities this palette communicates.
+DO NOT use: warm, cool, neutral, vibrant, muted, bright, dark, light, high, medium, low (these are covered by temperature/contrast/brightness/saturation)
 
-style (array of 1-3 strings): Design aesthetics.
-Examples: modern, minimalist, vintage, retro, organic, rustic, bohemian, gothic, art nouveau, industrial, futuristic, scandinavian, art deco, coastal, tropical, urban, farmhouse, mid-century, japanese, mediterranean
+style (1-5 tags): Design movements, eras, or aesthetics this palette fits.
+DO NOT use: warm, cool, neutral, vibrant, muted, bright, dark, light, high, medium, low (these are covered by temperature/contrast/brightness/saturation)
 
-dominant_colors (array of 1-4 strings): ONLY use these exact values:
+dominant_colors (1-4 tags): Primary colors present in the palette. Use ONLY from this list:
 white, gray, black, brown, red, orange, yellow, lime, green, teal, cyan, blue, navy, purple, magenta, pink
 
-temperature (string - MUST be exactly one of these 4 values):
-- "warm" (hues 0-60° or 300-360°)
-- "cool" (hues 150-270°)
-- "neutral" (grays/browns, low saturation)
-- "cool-warm" (both warm and cool present)
+temperature (exactly one of: "warm", "cool", "neutral", "cool-warm"):
+- "warm": Hues 0-60° or 300-360°
+- "cool": Hues 150-270°
+- "neutral": Grays/browns or saturation < 15%
+- "cool-warm": Both warm and cool hues present
 
-contrast (string - MUST be exactly one of these 3 values):
-- "high" (L range > 50)
-- "medium" (L range 25-50)
-- "low" (L range < 25)
+contrast (exactly one of: "high", "medium", "low"):
+- "high": L range > 50
+- "medium": L range 25-50
+- "low": L range < 25
 
-brightness (string - MUST be exactly one of these 4 values):
-- "dark" (average L < 35)
-- "medium" (average L 35-65)
-- "light" (average L > 65)
-- "varied" (some L < 35 AND some L > 65)
+brightness (exactly one of: "dark", "medium", "light", "varied"):
+- "dark": Average L < 35
+- "medium": Average L 35-65
+- "light": Average L > 65
+- "varied": Some L < 35 AND some L > 65
 
-saturation (string - MUST be exactly one of these 3 values):
-- "vibrant" (most S > 50%)
-- "muted" (most S < 40%)
-- "mixed" (both high and low saturation)
+saturation (exactly one of: "vibrant", "muted", "mixed"):
+- "vibrant": Most S > 50%
+- "muted": Most S < 40%
+- "mixed": Both high and low saturation present
 
-seasonal (array of 0-4 strings): spring, summer, autumn, winter, christmas, halloween, etc. Empty array [] if none.
+seasonal (0-4 tags): Time of year, season, or holiday associations. Use ONLY from this list:
+Seasons: early spring, spring, late spring, summer, late summer, autumn, late autumn, winter
+Holidays: christmas, halloween, easter, valentines, thanksgiving, new year, hanukkah, diwali, lunar new year, st patricks, independence day, mardi gras, cinco de mayo, oktoberfest, holi, carnival, day of the dead, kwanzaa, passover, rosh hashanah songkran, nowruz, vesak, baisakhi, obon, chuseok, canada day, australia day, chinese new year, labor day, memorial day, veterans day, mothers day, fathers day, earth day
+Leave empty if no clear seasonal association.
 
-associations (array of 2-6 strings): Concrete objects/places/materials this evokes.
-Examples: cherry blossom, marble, ocean wave, desert sand, neon sign
+associations (2-6 tags): Specific objects, places, subjects, materials, or experiences this palette evokes.
+Be specific and concrete - prefer "cherry blossom" over "flower", "marble" over "stone", "thunderstorm" over "weather".
+Ask yourself what might an artist use this palette for?
 
 RULES:
-- All strings lowercase
-- All arrays must be arrays, even if empty: []
-- Do NOT output anything except the JSON object
-- No markdown, no explanations, no \`\`\`
-- Singular form (not "colors" but "color")
+- Lowercase only
+- Singular form
+- 1-2 words per tag
+- Leave arrays empty if nothing fits
 
-Return ONLY the JSON object.`;
+NEVER USE: gradient, palette, color, scheme, blend, nice, beautiful, pretty, amazing, rgb, hex, hsl, vibe, inspired, feeling or other overly generic terms similar to the examples listed.
+
+Return ONLY VALID JSON.`
 
 function hashString(str: string): string {
-  let hash = 0;
+  let hash = 0
   for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = (hash << 5) - hash + char;
-    hash = hash & hash;
+    const char = str.charCodeAt(i)
+    hash = (hash << 5) - hash + char
+    hash = hash & hash
   }
-  const hex = Math.abs(hash).toString(16).padStart(8, "0");
-  return hex + hex.slice(0, 4);
+  const hex = Math.abs(hash).toString(16).padStart(8, '0')
+  return hex + hex.slice(0, 4)
 }
 
-export const CURRENT_PROMPT_VERSION = hashString(TAGGING_SYSTEM_PROMPT);
+export const CURRENT_PROMPT_VERSION = hashString(TAGGING_SYSTEM_PROMPT)

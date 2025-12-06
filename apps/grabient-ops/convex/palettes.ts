@@ -79,10 +79,23 @@ export const getPaletteWithTags = query({
       .withIndex("by_seed", (q) => q.eq("seed", args.seed))
       .first();
 
+    // Get unique prompt versions, sorted by most recent first
+    const versionMap = new Map<string, number>();
+    for (const tag of rawTags) {
+      if (tag.promptVersion) {
+        const existing = versionMap.get(tag.promptVersion) ?? 0;
+        versionMap.set(tag.promptVersion, Math.max(existing, tag._creationTime));
+      }
+    }
+    const availableVersions = Array.from(versionMap.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([version]) => version);
+
     return {
       ...palette,
       rawTags,
       refinedTags: refined,
+      availableVersions,
     };
   },
 });

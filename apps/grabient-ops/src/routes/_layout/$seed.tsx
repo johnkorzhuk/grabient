@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { convexQuery } from "@convex-dev/react-query";
 import { api } from "../../../convex/_generated/api";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "~/lib/utils";
 import {
   Tag,
@@ -74,7 +74,7 @@ function SeedDetailPage() {
             <p className="text-sm text-muted-foreground">Palette not found</p>
           </div>
         ) : (
-          <ProviderTagsContent seed={seed} rawTags={palette.rawTags} />
+          <ProviderTagsContent seed={seed} rawTags={palette.rawTags} availableVersions={palette.availableVersions} />
         )}
       </div>
 
@@ -96,22 +96,67 @@ function SeedDetailPage() {
 
 function ProviderTagsContent({
   rawTags,
+  availableVersions,
 }: {
   seed: string;
   rawTags: Array<{
     provider: string;
     model: string;
+    promptVersion: string;
     analysisIndex?: number;
     runNumber?: number;
     tags: unknown;
     error?: string;
     usage?: { inputTokens: number; outputTokens: number };
   }>;
+  availableVersions: string[];
 }) {
   const [view, setView] = useState<"summary" | "providers">("summary");
+  const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
+  const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
+  const versionDropdownRef = useRef<HTMLDivElement>(null);
 
-  const errorCount = rawTags.filter((t) => t.error).length;
-  const successCount = rawTags.filter((t) => !t.error).length;
+  const latestVersion = availableVersions[0];
+
+  // Set default to latest version on first load
+  useEffect(() => {
+    if (latestVersion && selectedVersions.size === 0) {
+      setSelectedVersions(new Set([latestVersion]));
+    }
+  }, [latestVersion]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (versionDropdownRef.current && !versionDropdownRef.current.contains(event.target as Node)) {
+        setVersionDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Filter tags by selected versions
+  const filteredTags = rawTags.filter(t =>
+    selectedVersions.size === 0 || selectedVersions.has(t.promptVersion)
+  );
+
+  const errorCount = filteredTags.filter((t) => t.error).length;
+  const successCount = filteredTags.filter((t) => !t.error).length;
+
+  // Toggle version selection
+  const toggleVersion = (version: string) => {
+    const newSet = new Set(selectedVersions);
+    if (newSet.has(version)) {
+      newSet.delete(version);
+    } else {
+      newSet.add(version);
+    }
+    setSelectedVersions(newSet);
+  };
+
+  const selectAllVersions = () => setSelectedVersions(new Set(availableVersions));
+  const selectLatestVersion = () => setSelectedVersions(latestVersion ? new Set([latestVersion]) : new Set());
 
   return (
     <>
@@ -119,7 +164,7 @@ function ProviderTagsContent({
         <div className="flex items-center gap-2">
           <Tag className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Provider Tags</h3>
-          {rawTags.length > 0 && (
+          {filteredTags.length > 0 && (
             <span className="text-xs text-muted-foreground">
               ({successCount} successful, {errorCount} errors)
             </span>
@@ -127,7 +172,86 @@ function ProviderTagsContent({
         </div>
 
         <div className="flex items-center gap-2">
-          {rawTags.length > 0 && (
+          {/* Version dropdown */}
+          {availableVersions.length > 0 && (
+            <div className="relative" ref={versionDropdownRef}>
+              <button
+                onClick={() => setVersionDropdownOpen(!versionDropdownOpen)}
+                className={cn(
+                  "text-xs px-2 py-1 rounded border border-input bg-background",
+                  "text-muted-foreground hover:text-foreground",
+                  "outline-none focus:ring-2 focus:ring-ring/70",
+                  "flex items-center gap-1.5 min-w-[100px]",
+                  versionDropdownOpen && "border-muted-foreground/30 text-foreground"
+                )}
+              >
+                <span>
+                  {selectedVersions.size === availableVersions.length
+                    ? "All versions"
+                    : selectedVersions.size === 1 && selectedVersions.has(latestVersion ?? "")
+                    ? "Latest"
+                    : `${selectedVersions.size} version${selectedVersions.size > 1 ? "s" : ""}`}
+                </span>
+                <ChevronDown
+                  className={cn("w-3 h-3 transition-transform", versionDropdownOpen && "rotate-180")}
+                />
+              </button>
+              {versionDropdownOpen && (
+                <div className="absolute z-50 top-full mt-1 right-0 bg-background/95 backdrop-blur-sm border border-input rounded-md shadow-lg min-w-[140px] max-h-[300px] overflow-y-auto">
+                  <div className="p-1.5 border-b border-input flex gap-1">
+                    <button
+                      onClick={selectLatestVersion}
+                      className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-muted-foreground"
+                    >
+                      Latest
+                    </button>
+                    <button
+                      onClick={selectAllVersions}
+                      className="text-[10px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-muted-foreground"
+                    >
+                      All
+                    </button>
+                  </div>
+                  <div className="p-1">
+                    {availableVersions.map((version) => {
+                      const isSelected = selectedVersions.has(version);
+                      const isLatest = version === latestVersion;
+                      return (
+                        <button
+                          key={version}
+                          onClick={() => toggleVersion(version)}
+                          className={cn(
+                            "w-full text-left text-xs px-2 py-1.5 rounded flex items-center gap-2",
+                            "hover:bg-muted transition-colors",
+                            isSelected ? "text-foreground" : "text-muted-foreground"
+                          )}
+                        >
+                          <span className={cn(
+                            "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
+                            isSelected
+                              ? "bg-primary border-primary"
+                              : "border-input"
+                          )}>
+                            {isSelected && (
+                              <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                            )}
+                          </span>
+                          <span className="font-mono">{version.slice(0, 8)}</span>
+                          {isLatest && (
+                            <span className="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary ml-auto">
+                              latest
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {filteredTags.length > 0 && (
             <div className="flex rounded border border-input overflow-hidden">
               <button
                 onClick={() => setView("summary")}
@@ -156,18 +280,22 @@ function ProviderTagsContent({
         </div>
       </div>
 
-      {rawTags.length === 0 ? (
+      {filteredTags.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-6 text-center">
           <Tag className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No tags generated yet</p>
+          <p className="text-sm text-muted-foreground">
+            {rawTags.length === 0 ? "No tags generated yet" : "No tags for selected version"}
+          </p>
           <p className="text-xs text-muted-foreground mt-1">
-            Use the Dashboard to start a backfill for all palettes
+            {rawTags.length === 0
+              ? "Use the Dashboard to start a backfill for all palettes"
+              : "Try selecting a different version"}
           </p>
         </div>
       ) : view === "summary" ? (
-        <ConsensusView rawTags={rawTags} />
+        <ConsensusView rawTags={filteredTags} />
       ) : (
-        <ProviderListView rawTags={rawTags} />
+        <ProviderListView rawTags={filteredTags} />
       )}
     </>
   );

@@ -4,16 +4,38 @@ import { z } from 'zod'
 // Tag Response Schema - used by batch actions to validate responses
 // ============================================================================
 
+// Accept string, array, null, or undefined - be maximally tolerant
+const flexibleString = z.union([z.string(), z.array(z.any()), z.null(), z.undefined()]).transform(val => {
+  if (val === null || val === undefined) return '';
+  if (Array.isArray(val)) {
+    // Flatten and get first string
+    const flat = val.flat(2).filter((v): v is string => typeof v === 'string');
+    return flat[0] ?? '';
+  }
+  return val;
+});
+
+// Accept string, array (possibly nested), null, or undefined
+const flexibleArray = z.union([z.string(), z.array(z.any()), z.null(), z.undefined()]).transform(val => {
+  if (val === null || val === undefined) return [];
+  if (typeof val === 'string') return [val]; // Handle string -> array
+  if (Array.isArray(val)) {
+    // Flatten nested arrays and keep only strings
+    return val.flat(2).filter((v): v is string => typeof v === 'string');
+  }
+  return [];
+});
+
 export const tagResponseSchema = z.object({
-  mood: z.array(z.string()),
-  style: z.array(z.string()),
-  dominant_colors: z.array(z.string()),
-  temperature: z.string(),
-  contrast: z.string(),
-  brightness: z.string(),
-  saturation: z.string(),
-  seasonal: z.array(z.string()),
-  associations: z.array(z.string()),
+  mood: flexibleArray,
+  style: flexibleArray,
+  dominant_colors: flexibleArray,
+  temperature: flexibleString,
+  contrast: flexibleString,
+  brightness: flexibleString,
+  saturation: flexibleString,
+  seasonal: flexibleArray,
+  associations: flexibleArray,
 })
 
 export type TagResponse = z.infer<typeof tagResponseSchema>
