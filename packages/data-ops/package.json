@@ -4,52 +4,52 @@
   "description": "Manage auth, database, schemas, and queries",
   "exports": {
     "./auth/*": {
-      "default": "./dist/auth/*.js",
-      "types": "./dist/auth/*.d.ts"
+      "types": "./dist/auth/*.d.ts",
+      "default": "./dist/auth/*.js"
     },
     "./database/*": {
-      "default": "./dist/database/*.js",
-      "types": "./dist/database/*.d.ts"
+      "types": "./dist/database/*.d.ts",
+      "default": "./dist/database/*.js"
     },
     "./valibot-schema/*": {
-      "default": "./dist/valibot-schema/*.js",
-      "types": "./dist/valibot-schema/*.d.ts"
+      "types": "./dist/valibot-schema/*.d.ts",
+      "default": "./dist/valibot-schema/*.js"
     },
     "./queries/*": {
-      "default": "./dist/queries/*.js",
-      "types": "./dist/queries/*.d.ts"
+      "types": "./dist/queries/*.d.ts",
+      "default": "./dist/queries/*.js"
     },
     "./queries/palettes": {
-      "default": "./dist/queries/palettes.js",
-      "types": "./dist/queries/palettes.d.ts"
+      "types": "./dist/queries/palettes.d.ts",
+      "default": "./dist/queries/palettes.js"
     },
     "./valibot-schema/grabient": {
-      "default": "./dist/valibot-schema/grabient.js",
-      "types": "./dist/valibot-schema/grabient.d.ts"
+      "types": "./dist/valibot-schema/grabient.d.ts",
+      "default": "./dist/valibot-schema/grabient.js"
     },
     "./valibot-schema/auth": {
-      "default": "./dist/valibot-schema/auth.js",
-      "types": "./dist/valibot-schema/auth.d.ts"
+      "types": "./dist/valibot-schema/auth.d.ts",
+      "default": "./dist/valibot-schema/auth.js"
     },
     "./serialization": {
-      "default": "./dist/serialization.js",
-      "types": "./dist/serialization.d.ts"
+      "types": "./dist/serialization.d.ts",
+      "default": "./dist/serialization.js"
     },
     "./drizzle/*": {
-      "default": "./dist/drizzle/*.js",
-      "types": "./dist/drizzle/*.d.ts"
+      "types": "./dist/drizzle/*.d.ts",
+      "default": "./dist/drizzle/*.js"
     },
     "./gradient-gen": {
-      "default": "./dist/gradient-gen/index.js",
-      "types": "./dist/gradient-gen/index.d.ts"
+      "types": "./dist/gradient-gen/index.d.ts",
+      "default": "./dist/gradient-gen/index.js"
     },
     "./gradient-gen/*": {
-      "default": "./dist/gradient-gen/*.js",
-      "types": "./dist/gradient-gen/*.d.ts"
+      "types": "./dist/gradient-gen/*.d.ts",
+      "default": "./dist/gradient-gen/*.js"
     },
     "./scripts/*": {
-      "default": "./dist/scripts/*.js",
-      "types": "./dist/scripts/*.d.ts"
+      "types": "./dist/scripts/*.d.ts",
+      "default": "./dist/scripts/*.js"
     }
   },
   "scripts": {

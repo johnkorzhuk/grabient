@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+@layer base {
+  html,
+  body {
+    @apply text-gray-900 bg-gray-50 dark:bg-gray-950 dark:text-gray-200;
+  }
+
+  .using-mouse * {
+    outline: none !important;
+  }
+}

@@ -1,0 +1,12 @@
+.nitro/
+.output/
+.prettierrc
+.tanstack/
+**/api
+**/build
+**/public
+**/public
+convex/_generated/
+convex/README.md
+pnpm-lock.yaml
+routeTree.gen.ts
