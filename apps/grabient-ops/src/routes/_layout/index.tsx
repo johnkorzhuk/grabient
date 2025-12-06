@@ -235,7 +235,7 @@ function BatchesSection() {
   const cancelBatch = useAction(api.backfillActions.cancelBatch);
   const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(null);
 
-  const handleCancel = async (provider: string, batchId: string, model: string) => {
+  const handleCancel = async (provider: "anthropic" | "openai" | "groq" | "google", batchId: string, model: string) => {
     setCancellingBatchId(batchId);
     try {
       await cancelBatch({ provider, batchId, model });

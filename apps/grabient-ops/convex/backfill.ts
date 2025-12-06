@@ -1,5 +1,6 @@
 import { query, mutation, internalMutation, internalQuery } from './_generated/server'
 import { v } from 'convex/values'
+import { vProvider, vBatchStatus } from './lib/providers.types'
 
 // ============================================================================
 // Cycle Management
@@ -42,7 +43,7 @@ export const getNextCycle = internalQuery({
 export const createBatch = internalMutation({
   args: {
     cycle: v.number(),
-    provider: v.string(),
+    provider: vProvider,
     model: v.string(),
     batchId: v.string(),
     requestCount: v.number(),
@@ -69,12 +70,7 @@ export const createBatch = internalMutation({
 export const updateBatchStatus = internalMutation({
   args: {
     batchId: v.string(),
-    status: v.union(
-      v.literal('pending'),
-      v.literal('processing'),
-      v.literal('completed'),
-      v.literal('failed'),
-    ),
+    status: vBatchStatus,
     completedCount: v.optional(v.number()),
     failedCount: v.optional(v.number()),
     error: v.optional(v.string()),
@@ -107,7 +103,7 @@ export const updateBatchStatus = internalMutation({
 export const storeTagResult = internalMutation({
   args: {
     seed: v.string(),
-    provider: v.string(),
+    provider: vProvider,
     model: v.string(),
     analysisIndex: v.number(),
     promptVersion: v.string(),
@@ -149,7 +145,7 @@ export const storeTagResult = internalMutation({
  */
 export const getPalettesForNewCycle = query({
   args: {
-    provider: v.string(),
+    provider: vProvider,
     model: v.string(),
     analysisCount: v.number(),
   },

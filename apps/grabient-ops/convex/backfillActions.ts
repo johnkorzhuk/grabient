@@ -11,29 +11,13 @@ import { GoogleGenAI } from '@google/genai'
 import { generateColorDataFromSeed, type ColorData } from './lib/colorData'
 import { TAGGING_SYSTEM_PROMPT, CURRENT_PROMPT_VERSION } from './lib/prompts'
 import { tagResponseSchema, normalizeTagResponse } from './lib/providers'
-
-// ============================================================================
-// Provider Configurations
-// ============================================================================
-
-const PROVIDER_CONFIGS = {
-  anthropic: [{ name: 'anthropic', model: 'claude-3-5-haiku-20241022' }],
-  openai: [
-    { name: 'openai', model: 'gpt-4o-mini' },
-    { name: 'openai', model: 'gpt-5-nano' },
-  ],
-  groq: [
-    { name: 'groq', model: 'llama-3.3-70b-versatile' },
-    { name: 'groq', model: 'meta-llama/llama-4-scout-17b-16e-instruct' },
-    { name: 'groq', model: 'qwen/qwen3-32b' },
-    { name: 'groq', model: 'openai/gpt-oss-120b' },
-    { name: 'groq', model: 'openai/gpt-oss-20b' },
-  ],
-  google: [
-    { name: 'google', model: 'gemini-2.0-flash' },
-    { name: 'google', model: 'gemini-2.5-flash-lite' },
-  ],
-} as const
+import {
+  PROVIDERS,
+  PROVIDER_MODELS,
+  vProvider,
+  type Provider,
+  type Model,
+} from './lib/providers.types'
 
 // ============================================================================
 // Batch Request Builders
@@ -1110,7 +1094,7 @@ export const startBackfill = action({
     cycle: number
     batchesCreated: number
     totalRequests: number
-    results: Array<{ provider: string; model: string; batchId: string | null; requestCount: number }>
+    results: Array<{ provider: Provider; model: Model; batchId: string | null; requestCount: number }>
   }> => {
     // Get next cycle number
     const cycle: number = await ctx.runQuery(internal.backfill.getNextCycle, {})
@@ -1119,54 +1103,38 @@ export const startBackfill = action({
     // Helper to check if a model should be included
     const shouldInclude = (model: string) => !selectedModels || selectedModels.includes(model)
 
-    const results: Array<{ provider: string; model: string; batchId: string | null; requestCount: number }> = []
+    const results: Array<{ provider: Provider; model: Model; batchId: string | null; requestCount: number }> = []
 
-    // Submit Anthropic batches
-    for (const { model } of PROVIDER_CONFIGS.anthropic) {
-      if (!shouldInclude(model)) continue
-      const result = await ctx.runAction(internal.backfillActions.submitAnthropicBatch, { model, cycle })
-      results.push({
-        provider: 'anthropic',
-        model,
-        batchId: result?.batchId ?? null,
-        requestCount: result?.requestCount ?? 0,
-      })
-    }
+    // Submit batches for each provider
+    for (const provider of PROVIDERS) {
+      const models = PROVIDER_MODELS[provider]
+      for (const model of models) {
+        if (!shouldInclude(model)) continue
 
-    // Submit OpenAI batches
-    for (const { model } of PROVIDER_CONFIGS.openai) {
-      if (!shouldInclude(model)) continue
-      const result = await ctx.runAction(internal.backfillActions.submitOpenAIBatch, { model, cycle })
-      results.push({
-        provider: 'openai',
-        model,
-        batchId: result?.batchId ?? null,
-        requestCount: result?.requestCount ?? 0,
-      })
-    }
+        let result: { batchId: string; requestCount: number } | null = null
 
-    // Submit Groq batches
-    for (const { model } of PROVIDER_CONFIGS.groq) {
-      if (!shouldInclude(model)) continue
-      const result = await ctx.runAction(internal.backfillActions.submitGroqBatch, { model, cycle })
-      results.push({
-        provider: 'groq',
-        model,
-        batchId: result?.batchId ?? null,
-        requestCount: result?.requestCount ?? 0,
-      })
-    }
+        switch (provider) {
+          case 'anthropic':
+            result = await ctx.runAction(internal.backfillActions.submitAnthropicBatch, { model, cycle })
+            break
+          case 'openai':
+            result = await ctx.runAction(internal.backfillActions.submitOpenAIBatch, { model, cycle })
+            break
+          case 'groq':
+            result = await ctx.runAction(internal.backfillActions.submitGroqBatch, { model, cycle })
+            break
+          case 'google':
+            result = await ctx.runAction(internal.backfillActions.submitGoogleBatch, { model, cycle })
+            break
+        }
 
-    // Submit Google batches
-    for (const { model } of PROVIDER_CONFIGS.google) {
-      if (!shouldInclude(model)) continue
-      const result = await ctx.runAction(internal.backfillActions.submitGoogleBatch, { model, cycle })
-      results.push({
-        provider: 'google',
-        model,
-        batchId: result?.batchId ?? null,
-        requestCount: result?.requestCount ?? 0,
-      })
+        results.push({
+          provider,
+          model: model as Model,
+          batchId: result?.batchId ?? null,
+          requestCount: result?.requestCount ?? 0,
+        })
+      }
     }
 
     const totalRequests = results.reduce((sum, r) => sum + r.requestCount, 0)
@@ -1186,7 +1154,7 @@ export const startBackfill = action({
  */
 export const cancelBatch = action({
   args: {
-    provider: v.string(),
+    provider: vProvider,
     batchId: v.string(),
     model: v.optional(v.string()),
   },
@@ -1201,8 +1169,6 @@ export const cancelBatch = action({
         return await ctx.runAction(internal.backfillActions.cancelGroqBatch, { batchId, model })
       case 'google':
         return await ctx.runAction(internal.backfillActions.cancelGoogleBatch, { batchId, model })
-      default:
-        throw new Error(`Unknown provider: ${provider}`)
     }
   },
 })

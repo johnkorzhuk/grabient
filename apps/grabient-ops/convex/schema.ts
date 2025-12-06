@@ -1,6 +1,7 @@
 import { defineSchema } from 'convex/server'
 import { v } from 'convex/values'
 import { Table } from 'convex-helpers/server'
+import { vProvider, vBatchStatus } from './lib/providers.types'
 
 // ============================================================================
 // Config - singleton table for global settings
@@ -24,8 +25,8 @@ export const Palettes = Table('palettes', {
 // ============================================================================
 export const PaletteTags = Table('palette_tags', {
   seed: v.string(),
-  provider: v.string(), // e.g., "groq", "openai", "anthropic", "google"
-  model: v.string(), // e.g., "llama-3.3-70b", "gpt-4o-mini"
+  provider: vProvider,
+  model: v.string(), // Model names vary by provider, validated at runtime
   // analysisIndex: which iteration (0 to tagAnalysisCount-1)
   // runNumber: legacy field from old schema (will be migrated to analysisIndex)
   analysisIndex: v.optional(v.number()),
@@ -46,15 +47,10 @@ export const PaletteTags = Table('palette_tags', {
 // ============================================================================
 export const TagBatches = Table('tag_batches', {
   cycle: v.optional(v.number()), // Which generation cycle this batch belongs to (optional for legacy data)
-  provider: v.string(), // "groq", "openai", "anthropic", "google"
-  model: v.optional(v.string()), // e.g., "llama-3.3-70b-versatile", "gpt-4o-mini"
+  provider: vProvider,
+  model: v.optional(v.string()), // Model names vary by provider
   batchId: v.string(), // Provider's batch ID
-  status: v.union(
-    v.literal('pending'),
-    v.literal('processing'),
-    v.literal('completed'),
-    v.literal('failed'),
-  ),
+  status: vBatchStatus,
   requestCount: v.number(), // How many requests in this batch
   completedCount: v.number(), // How many have completed
   failedCount: v.number(),
