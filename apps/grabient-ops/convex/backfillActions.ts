@@ -7,6 +7,7 @@ import type { Id } from './_generated/dataModel'
 import Anthropic from '@anthropic-ai/sdk'
 import OpenAI from 'openai'
 import Groq from 'groq-sdk'
+import { GoogleGenAI } from '@google/genai'
 import { generateColorDataFromSeed, type ColorData } from './lib/colorData'
 import { TAGGING_SYSTEM_PROMPT, CURRENT_PROMPT_VERSION } from './lib/prompts'
 import { tagResponseSchema, normalizeTagResponse } from './lib/providers'
@@ -790,20 +791,305 @@ export const pollGroqBatch = internalAction({
 })
 
 // ============================================================================
-// Google Batch API (uses different SDK approach)
+// Google Batch API (uses @google/genai SDK)
 // ============================================================================
 
-// Google's batch API is different - it uses inline requests or file uploads
-// For simplicity, we'll use parallel sync calls with rate limiting for Google
-// TODO: Implement proper Google batch API when needed
+// Google batch uses file-based approach with JSONL for key correlation
+// Each line in the JSONL file has format: { "key": "...", "request": { ... } }
+// Results are returned in the same order and can be correlated by key
 
 export const submitGoogleBatch = internalAction({
-  args: { model: v.string() },
-  handler: async (_ctx, { model }): Promise<{ batchId: string; requestCount: number } | null> => {
-    // Google's batch API is more complex - for now, use parallel sync calls
-    // This can be improved later with proper batch API integration
-    console.log(`Google batch API not yet implemented for ${model}, using sync calls`)
-    return null
+  args: { model: v.string(), cycle: v.number() },
+  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+    const config = await ctx.runQuery(api.config.get, {})
+
+    const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
+      provider: 'google',
+      model,
+      analysisCount: config.tagAnalysisCount,
+    })
+
+    if (palettesForCycle.length === 0) {
+      console.log(`No palettes for cycle ${cycle} google:${model}`)
+      return null
+    }
+
+    const requests = buildBatchRequests(palettesForCycle)
+    console.log(`Submitting ${requests.length} requests to Google batch API (cycle ${cycle})`)
+
+    const ai = new GoogleGenAI({ apiKey })
+
+    // Build JSONL content with key for correlation (similar to OpenAI format)
+    // Google's file-based batch uses: { "key": "...", "request": { ... } }
+    const jsonlLines = requests.map((req) =>
+      JSON.stringify({
+        key: req.customId,
+        request: {
+          systemInstruction: { parts: [{ text: TAGGING_SYSTEM_PROMPT }] },
+          contents: [
+            {
+              role: 'user',
+              parts: [{ text: JSON.stringify(req.colorData, null, 2) }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.7,
+            responseMimeType: 'application/json',
+          },
+        },
+      }),
+    )
+
+    // Upload the JSONL file
+    const jsonlContent = jsonlLines.join('\n')
+    const uploadedFile = await ai.files.upload({
+      file: new Blob([jsonlContent], { type: 'application/jsonl' }),
+      config: { mimeType: 'application/jsonl' },
+    })
+
+    if (!uploadedFile.name) {
+      throw new Error('Failed to upload batch input file to Google')
+    }
+
+    // Create batch job with file reference
+    const batchJob = await ai.batches.create({
+      model,
+      src: uploadedFile.name,
+      config: {
+        displayName: `grabient-tags-cycle-${cycle}-${model}`,
+      },
+    })
+
+    if (!batchJob.name) {
+      throw new Error('Failed to create Google batch - no name returned')
+    }
+
+    // Record batch in database
+    await ctx.runMutation(internal.backfill.createBatch, {
+      cycle,
+      provider: 'google',
+      model,
+      batchId: batchJob.name,
+      requestCount: requests.length,
+    })
+
+    console.log(`Created Google batch: ${batchJob.name} (cycle ${cycle})`)
+    return { batchId: batchJob.name, requestCount: requests.length }
+  },
+})
+
+export const cancelGoogleBatch = internalAction({
+  args: { batchId: v.string(), model: v.optional(v.string()) },
+  returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
+  handler: async (ctx, { batchId, model }) => {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+    const ai = new GoogleGenAI({ apiKey })
+
+    try {
+      await ai.batches.cancel({ name: batchId })
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: 'Cancelled by user',
+      })
+      return { success: true }
+    } catch (e) {
+      // If batch is already completed, process it properly
+      const batch = await ai.batches.get({ name: batchId })
+      if (batch.state === 'JOB_STATE_SUCCEEDED' && model) {
+        // Batch completed - poll to process results
+        await ctx.runAction(internal.backfillActions.pollGoogleBatch, { batchId, model })
+        return { success: true, actualStatus: 'completed' }
+      } else {
+        await ctx.runMutation(internal.backfill.updateBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: `Batch ${batch.state}`,
+        })
+        return { success: true, actualStatus: batch.state }
+      }
+    }
+  },
+})
+
+export const pollGoogleBatch = internalAction({
+  args: { batchId: v.string(), model: v.string() },
+  handler: async (ctx, { batchId, model }) => {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+    const ai = new GoogleGenAI({ apiKey })
+    const batch = await ai.batches.get({ name: batchId })
+
+    console.log(`Google batch ${batchId} status: ${batch.state}`)
+
+    // Processing states
+    if (batch.state === 'JOB_STATE_PENDING' || batch.state === 'JOB_STATE_RUNNING') {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'processing',
+        completedCount: parseInt(batch.completionStats?.successfulCount ?? '0', 10),
+        failedCount: parseInt(batch.completionStats?.failedCount ?? '0', 10),
+      })
+      return { status: 'processing' as const }
+    }
+
+    if (batch.state === 'JOB_STATE_SUCCEEDED') {
+      let successCount = 0
+      let failCount = 0
+
+      // For file-based batches, results are in a file
+      // The dest.fileName contains the output file name
+      const outputFileName = batch.dest?.fileName
+      if (!outputFileName) {
+        console.error('No output file in Google batch result')
+        await ctx.runMutation(internal.backfill.updateBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: 'No output file in completed batch',
+        })
+        return { status: 'failed' as const }
+      }
+
+      // Download the results file
+      // The file is JSONL with each line: { "key": "...", "response": { ... } } or { "key": "...", "error": { ... } }
+      const fileInfo = await ai.files.get({ name: outputFileName })
+      if (!fileInfo.uri) {
+        console.error('No URI for output file')
+        await ctx.runMutation(internal.backfill.updateBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: 'No URI for output file',
+        })
+        return { status: 'failed' as const }
+      }
+
+      // Fetch the file content
+      const response = await fetch(fileInfo.uri, {
+        headers: { 'x-goog-api-key': apiKey },
+      })
+      if (!response.ok) {
+        throw new Error(`Failed to download results file: ${response.status}`)
+      }
+      const content = await response.text()
+      const lines = content.trim().split('\n')
+      console.log(`Google batch ${batchId} processing ${lines.length} results`)
+
+      for (const line of lines) {
+        if (!line.trim()) continue
+
+        try {
+          const result = JSON.parse(line)
+          const customId = result.key
+          if (!customId) {
+            console.error('Missing key in Google batch response line')
+            failCount++
+            continue
+          }
+
+          const { paletteId, analysisIndex } = parseCustomId(customId)
+
+          // Look up the palette to get the seed
+          const palette = await ctx.runQuery(internal.palettes.getById, { id: paletteId })
+          if (!palette) {
+            console.error(`Palette not found for id ${paletteId}`)
+            failCount++
+            continue
+          }
+          const seed = palette.seed
+
+          // Check for error response
+          if (result.error) {
+            await ctx.runMutation(internal.backfill.storeTagResult, {
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: JSON.stringify(result.error),
+            })
+            failCount++
+            continue
+          }
+
+          // Extract text from response
+          const responseData = result.response
+          if (!responseData) {
+            await ctx.runMutation(internal.backfill.storeTagResult, {
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: 'No response in batch result',
+            })
+            failCount++
+            continue
+          }
+
+          // Extract text from candidates
+          const text =
+            responseData.candidates?.[0]?.content?.parts?.[0]?.text ?? responseData.text ?? ''
+          const jsonText = extractJson(text)
+          const parsed = JSON.parse(jsonText)
+          const normalized = normalizeTagResponse(parsed)
+          const tags = tagResponseSchema.parse(normalized)
+
+          // Extract usage if available
+          const usageMetadata = responseData.usageMetadata
+          await ctx.runMutation(internal.backfill.storeTagResult, {
+            seed,
+            provider: 'google',
+            model,
+            analysisIndex,
+            promptVersion: CURRENT_PROMPT_VERSION,
+            tags,
+            usage: usageMetadata
+              ? {
+                  inputTokens: usageMetadata.promptTokenCount ?? 0,
+                  outputTokens: usageMetadata.candidatesTokenCount ?? 0,
+                }
+              : undefined,
+          })
+          successCount++
+        } catch (e) {
+          console.error(`Error processing Google batch line:`, e)
+          failCount++
+        }
+      }
+
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'completed',
+        completedCount: successCount,
+        failedCount: failCount,
+      })
+
+      return { status: 'completed' as const, successCount, failCount }
+    }
+
+    // Failed/cancelled/expired states
+    if (
+      batch.state === 'JOB_STATE_FAILED' ||
+      batch.state === 'JOB_STATE_CANCELLED' ||
+      batch.state === 'JOB_STATE_EXPIRED'
+    ) {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: batch.state,
+      })
+      return { status: 'failed' as const }
+    }
+
+    return { status: batch.state ?? 'unknown' }
   },
 })
 
@@ -812,12 +1098,15 @@ export const submitGoogleBatch = internalAction({
 // ============================================================================
 
 /**
- * Start backfill for all providers.
+ * Start backfill for selected providers/models.
  * Creates a new cycle - all existing tag data is preserved, new tags are added with incremented indices.
+ * @param selectedModels - Optional array of model names to run. If not provided, runs all models.
  */
 export const startBackfill = action({
-  args: {},
-  handler: async (ctx): Promise<{
+  args: {
+    selectedModels: v.optional(v.array(v.string())),
+  },
+  handler: async (ctx, { selectedModels }): Promise<{
     cycle: number
     batchesCreated: number
     totalRequests: number
@@ -827,10 +1116,14 @@ export const startBackfill = action({
     const cycle: number = await ctx.runQuery(internal.backfill.getNextCycle, {})
     console.log(`Starting new backfill cycle: ${cycle}`)
 
+    // Helper to check if a model should be included
+    const shouldInclude = (model: string) => !selectedModels || selectedModels.includes(model)
+
     const results: Array<{ provider: string; model: string; batchId: string | null; requestCount: number }> = []
 
     // Submit Anthropic batches
     for (const { model } of PROVIDER_CONFIGS.anthropic) {
+      if (!shouldInclude(model)) continue
       const result = await ctx.runAction(internal.backfillActions.submitAnthropicBatch, { model, cycle })
       results.push({
         provider: 'anthropic',
@@ -842,6 +1135,7 @@ export const startBackfill = action({
 
     // Submit OpenAI batches
     for (const { model } of PROVIDER_CONFIGS.openai) {
+      if (!shouldInclude(model)) continue
       const result = await ctx.runAction(internal.backfillActions.submitOpenAIBatch, { model, cycle })
       results.push({
         provider: 'openai',
@@ -853,6 +1147,7 @@ export const startBackfill = action({
 
     // Submit Groq batches
     for (const { model } of PROVIDER_CONFIGS.groq) {
+      if (!shouldInclude(model)) continue
       const result = await ctx.runAction(internal.backfillActions.submitGroqBatch, { model, cycle })
       results.push({
         provider: 'groq',
@@ -862,13 +1157,15 @@ export const startBackfill = action({
       })
     }
 
-    // Google - for now skip or use sync
+    // Submit Google batches
     for (const { model } of PROVIDER_CONFIGS.google) {
+      if (!shouldInclude(model)) continue
+      const result = await ctx.runAction(internal.backfillActions.submitGoogleBatch, { model, cycle })
       results.push({
         provider: 'google',
         model,
-        batchId: null,
-        requestCount: 0,
+        batchId: result?.batchId ?? null,
+        requestCount: result?.requestCount ?? 0,
       })
     }
 
@@ -902,6 +1199,8 @@ export const cancelBatch = action({
         return await ctx.runAction(internal.backfillActions.cancelOpenAIBatch, { batchId, model })
       case 'groq':
         return await ctx.runAction(internal.backfillActions.cancelGroqBatch, { batchId, model })
+      case 'google':
+        return await ctx.runAction(internal.backfillActions.cancelGoogleBatch, { batchId, model })
       default:
         throw new Error(`Unknown provider: ${provider}`)
     }
@@ -939,6 +1238,12 @@ export const pollActiveBatches = action({
             break
           case 'groq':
             pollResult = await ctx.runAction(internal.backfillActions.pollGroqBatch, {
+              batchId: batch.batchId,
+              model,
+            })
+            break
+          case 'google':
+            pollResult = await ctx.runAction(internal.backfillActions.pollGoogleBatch, {
               batchId: batch.batchId,
               model,
             })
@@ -1016,6 +1321,12 @@ export const pollActiveBatchesInternal = internalAction({
             break
           case 'groq':
             pollResult = await ctx.runAction(internal.backfillActions.pollGroqBatch, {
+              batchId: batch.batchId,
+              model,
+            })
+            break
+          case 'google':
+            pollResult = await ctx.runAction(internal.backfillActions.pollGoogleBatch, {
               batchId: batch.batchId,
               model,
             })

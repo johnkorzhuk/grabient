@@ -15,6 +15,8 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  Plus,
+  ArrowLeft,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_layout/")({
@@ -550,17 +552,28 @@ function ErrorsSection() {
 function BackfillControlPanel() {
   const status = useQuery(api.backfill.getBackfillStatus, {});
   const currentCycle = useQuery(api.backfill.getCurrentCycle, {});
+  const providerModels = useQuery(api.config.getProviderModels, {});
   const startBackfill = useAction(api.backfillActions.startBackfill);
   const pollBatches = useAction(api.backfillActions.pollActiveBatches);
 
   const [isStarting, setIsStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const [isNewJobMode, setIsNewJobMode] = useState(false);
+  const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set());
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
 
   // Auto-poll when there are active batches
   const hasActiveBatches = status && status.activeBatches > 0;
+
+  // Initialize selected models when entering new job mode
+  useEffect(() => {
+    if (isNewJobMode && providerModels && selectedModels.size === 0) {
+      // Select all models by default
+      setSelectedModels(new Set(providerModels.models.map((m) => m.model)));
+    }
+  }, [isNewJobMode, providerModels, selectedModels.size]);
 
   useEffect(() => {
     if (hasActiveBatches && !pollIntervalRef.current) {
@@ -601,10 +614,14 @@ function BackfillControlPanel() {
     setLastResult(null);
 
     try {
-      const result = await startBackfill({});
+      const modelsToRun = selectedModels.size > 0 ? Array.from(selectedModels) : undefined;
+      const result = await startBackfill({ selectedModels: modelsToRun });
       setLastResult(
         `Cycle ${result.cycle}: Started ${result.batchesCreated} batches with ${result.totalRequests.toLocaleString()} requests`
       );
+      // Exit new job mode and reset selection after starting
+      setIsNewJobMode(false);
+      setSelectedModels(new Set());
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -612,8 +629,180 @@ function BackfillControlPanel() {
     }
   };
 
+  const toggleModel = (model: string) => {
+    const newSet = new Set(selectedModels);
+    if (newSet.has(model)) {
+      newSet.delete(model);
+    } else {
+      newSet.add(model);
+    }
+    setSelectedModels(newSet);
+  };
+
+  const toggleProvider = (provider: string) => {
+    if (!providerModels) return;
+    const providerModelNames = providerModels.models
+      .filter((m) => m.provider === provider)
+      .map((m) => m.model);
+    const allSelected = providerModelNames.every((m) => selectedModels.has(m));
+
+    const newSet = new Set(selectedModels);
+    if (allSelected) {
+      // Deselect all from this provider
+      providerModelNames.forEach((m) => newSet.delete(m));
+    } else {
+      // Select all from this provider
+      providerModelNames.forEach((m) => newSet.add(m));
+    }
+    setSelectedModels(newSet);
+  };
+
+  const selectAll = () => {
+    if (!providerModels) return;
+    setSelectedModels(new Set(providerModels.models.map((m) => m.model)));
+  };
+
+  const selectNone = () => {
+    setSelectedModels(new Set());
+  };
+
   const isLoading = status === undefined;
 
+  // New Job Mode UI
+  if (isNewJobMode) {
+    const modelsByProvider: Record<string, Array<{ provider: string; model: string }>> = {};
+    if (providerModels) {
+      for (const m of providerModels.models) {
+        if (!modelsByProvider[m.provider]) {
+          modelsByProvider[m.provider] = [];
+        }
+        modelsByProvider[m.provider].push(m);
+      }
+    }
+
+    const getModelShortName = (model: string) => {
+      if (model.includes("/")) return model.split("/").pop() ?? model;
+      return model.replace("-20241022", "").replace("-versatile", "");
+    };
+
+    return (
+      <div className="rounded-lg border border-border bg-card p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setIsNewJobMode(false);
+                setSelectedModels(new Set());
+                setError(null);
+              }}
+              className="p-1 rounded hover:bg-muted transition-colors"
+            >
+              <ArrowLeft className="h-4 w-4 text-muted-foreground" />
+            </button>
+            <Database className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-foreground">New Job</h3>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <button
+              onClick={selectAll}
+              className="text-primary hover:underline"
+            >
+              All
+            </button>
+            <span className="text-muted-foreground">/</span>
+            <button
+              onClick={selectNone}
+              className="text-primary hover:underline"
+            >
+              None
+            </button>
+          </div>
+        </div>
+
+        {/* Config */}
+        <ConfigPanel />
+
+        {/* Model Selection */}
+        <div className="space-y-3 mb-4">
+          {Object.entries(modelsByProvider).map(([provider, models]) => {
+            const allSelected = models.every((m) => selectedModels.has(m.model));
+            const someSelected = models.some((m) => selectedModels.has(m.model));
+
+            return (
+              <div key={provider} className="p-3 rounded-md bg-muted/50">
+                <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected && !allSelected;
+                    }}
+                    onChange={() => toggleProvider(provider)}
+                    className="rounded border-input"
+                  />
+                  <span className="text-sm font-medium capitalize">{provider}</span>
+                  <span className="text-xs text-muted-foreground">
+                    ({models.filter((m) => selectedModels.has(m.model)).length}/{models.length})
+                  </span>
+                </label>
+                <div className="ml-6 space-y-1">
+                  {models.map((m) => (
+                    <label
+                      key={m.model}
+                      className="flex items-center gap-2 cursor-pointer text-xs"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedModels.has(m.model)}
+                        onChange={() => toggleModel(m.model)}
+                        className="rounded border-input"
+                      />
+                      <span className="text-muted-foreground">
+                        {getModelShortName(m.model)}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Start Button */}
+        <button
+          onClick={handleStartBackfill}
+          disabled={isStarting || selectedModels.size === 0}
+          className={cn(
+            "w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2",
+            "bg-primary text-primary-foreground hover:bg-primary/90",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+          )}
+        >
+          {isStarting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Starting...
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4" />
+              Start Job ({selectedModels.size} models)
+            </>
+          )}
+        </button>
+
+        {/* Error display */}
+        {error && (
+          <div className="mt-3 p-2 rounded bg-destructive/10 text-destructive text-xs">
+            {error}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Normal Mode UI
   return (
     <div className="rounded-lg border border-border bg-card p-6">
       <div className="flex items-center justify-between mb-4">
@@ -626,12 +815,27 @@ function BackfillControlPanel() {
             </span>
           )}
         </div>
-        {hasActiveBatches && (
-          <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-            {status.activeBatches} active
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {hasActiveBatches && (
+            <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+              {status.activeBatches} active
+            </span>
+          )}
+          <button
+            onClick={() => setIsNewJobMode(true)}
+            disabled={hasActiveBatches}
+            className={cn(
+              "px-2 py-1 rounded text-xs font-medium flex items-center gap-1",
+              "border border-input bg-background hover:bg-accent",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+            )}
+          >
+            <Plus className="h-3 w-3" />
+            New Job
+          </button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -642,35 +846,8 @@ function BackfillControlPanel() {
         </div>
       ) : (
         <>
-          {/* Config */}
-          <ConfigPanel />
-
           {/* Batches */}
           <BatchesSection />
-
-          {/* Controls */}
-          <button
-            onClick={handleStartBackfill}
-            disabled={isStarting || hasActiveBatches}
-            className={cn(
-              "w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2",
-              "bg-primary text-primary-foreground hover:bg-primary/90",
-              "disabled:opacity-50 disabled:cursor-not-allowed",
-              "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
-            )}
-          >
-            {isStarting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Starting...
-              </>
-            ) : (
-              <>
-                <Play className="h-4 w-4" />
-                Start Backfill
-              </>
-            )}
-          </button>
 
           {/* Result/Error display */}
           {lastResult && (

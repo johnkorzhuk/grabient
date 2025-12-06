@@ -23,6 +23,7 @@
     "@convex-dev/r2": "^0.8.1",
     "@convex-dev/react-query": "^0.0.0-alpha.11",
     "@convex-dev/workflow": "^0.3.3",
+    "@google/genai": "^1.31.0",
     "@google/generative-ai": "^0.24.1",
     "@mantine/hooks": "^8.3.7",
     "@repo/data-ops": "workspace:^",
