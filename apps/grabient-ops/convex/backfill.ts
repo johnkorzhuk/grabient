@@ -1,5 +1,36 @@
-import { query, mutation, internalMutation } from './_generated/server'
+import { query, mutation, internalMutation, internalQuery } from './_generated/server'
 import { v } from 'convex/values'
+
+// ============================================================================
+// Cycle Management
+// ============================================================================
+
+/**
+ * Get the current (latest) cycle number from tag_batches.
+ * Returns 0 if no batches exist yet.
+ * Legacy batches without cycle field are treated as cycle 1.
+ */
+export const getCurrentCycle = query({
+  args: {},
+  handler: async (ctx) => {
+    const batches = await ctx.db.query('tag_batches').collect()
+    if (batches.length === 0) return 0
+    return Math.max(...batches.map((b) => b.cycle ?? 1))
+  },
+})
+
+/**
+ * Get the next cycle number (current + 1)
+ * Legacy batches without cycle field are treated as cycle 1.
+ */
+export const getNextCycle = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const batches = await ctx.db.query('tag_batches').collect()
+    if (batches.length === 0) return 1
+    return Math.max(...batches.map((b) => b.cycle ?? 1)) + 1
+  },
+})
 
 // ============================================================================
 // Batch Management
@@ -10,14 +41,16 @@ import { v } from 'convex/values'
  */
 export const createBatch = internalMutation({
   args: {
+    cycle: v.number(),
     provider: v.string(),
     model: v.string(),
     batchId: v.string(),
     requestCount: v.number(),
   },
   returns: v.id('tag_batches'),
-  handler: async (ctx, { provider, model, batchId, requestCount }) => {
+  handler: async (ctx, { cycle, provider, model, batchId, requestCount }) => {
     return await ctx.db.insert('tag_batches', {
+      cycle,
       provider,
       model,
       batchId,
@@ -110,9 +143,11 @@ export const storeTagResult = internalMutation({
 // ============================================================================
 
 /**
- * Get all palettes that need tagging for a given provider and analysis count
+ * Get all palettes for a new tagging cycle.
+ * Each cycle adds `analysisCount` new tags per palette, starting from the next available index.
+ * Previous cycle data is preserved - we always add new rows, never overwrite.
  */
-export const getPalettesNeedingTags = query({
+export const getPalettesForNewCycle = query({
   args: {
     provider: v.string(),
     model: v.string(),
@@ -122,7 +157,7 @@ export const getPalettesNeedingTags = query({
     // Get all palettes
     const palettes = await ctx.db.query('palettes').collect()
 
-    // Get existing tags for this provider/model
+    // Get existing tags for this provider/model to find max index per seed
     const existingTags = await ctx.db
       .query('palette_tags')
       .withIndex('by_provider', (q) => q.eq('provider', provider))
@@ -131,58 +166,52 @@ export const getPalettesNeedingTags = query({
     // Filter to only those matching our model
     const tagsForModel = existingTags.filter((t) => t.model === model)
 
-    // Group by seed - handle both analysisIndex (new) and runNumber (legacy)
-    const tagsBySeed = new Map<string, Set<number>>()
+    // Find max analysisIndex per seed (regardless of success/error - we're moving forward)
+    const maxIndexBySeed = new Map<string, number>()
     for (const tag of tagsForModel) {
-      if (!tag.error) {
-        // Only count successful tags
-        // Use analysisIndex if available, otherwise fall back to runNumber - 1 (0-indexed)
-        const index = tag.analysisIndex ?? (tag.runNumber !== undefined ? tag.runNumber - 1 : 0)
-        const indices = tagsBySeed.get(tag.seed) ?? new Set()
-        indices.add(index)
-        tagsBySeed.set(tag.seed, indices)
+      const index = tag.analysisIndex ?? (tag.runNumber !== undefined ? tag.runNumber - 1 : 0)
+      const currentMax = maxIndexBySeed.get(tag.seed) ?? -1
+      if (index > currentMax) {
+        maxIndexBySeed.set(tag.seed, index)
       }
     }
 
-    // Find palettes that need more tags
-    const needsTags: Array<{ _id: string; seed: string; missingIndices: number[] }> = []
+    // Build list with new indices for this cycle
+    const palettesForCycle: Array<{ _id: string; seed: string; newIndices: number[] }> = []
 
     for (const palette of palettes) {
-      const existingIndices = tagsBySeed.get(palette.seed) ?? new Set()
-      const missingIndices: number[] = []
+      const maxExisting = maxIndexBySeed.get(palette.seed) ?? -1
+      const startIndex = maxExisting + 1
+      const newIndices: number[] = []
 
       for (let i = 0; i < analysisCount; i++) {
-        if (!existingIndices.has(i)) {
-          missingIndices.push(i)
-        }
+        newIndices.push(startIndex + i)
       }
 
-      if (missingIndices.length > 0) {
-        needsTags.push({ _id: palette._id, seed: palette.seed, missingIndices })
-      }
+      palettesForCycle.push({ _id: palette._id, seed: palette.seed, newIndices })
     }
 
-    return needsTags
+    return palettesForCycle
   },
 })
 
 /**
- * Get active/pending batches
+ * Get active/pending batches for the current cycle
  */
 export const getActiveBatches = query({
   args: {},
   handler: async (ctx) => {
-    const pending = await ctx.db
-      .query('tag_batches')
-      .withIndex('by_status', (q) => q.eq('status', 'pending'))
-      .collect()
+    // Get current cycle
+    const batches = await ctx.db.query('tag_batches').collect()
+    if (batches.length === 0) return []
+    const currentCycle = Math.max(...batches.map((b) => b.cycle ?? 1))
 
-    const processing = await ctx.db
-      .query('tag_batches')
-      .withIndex('by_status', (q) => q.eq('status', 'processing'))
-      .collect()
+    // Filter to current cycle and active status
+    const activeBatches = batches.filter(
+      (b) => (b.cycle ?? 1) === currentCycle && (b.status === 'pending' || b.status === 'processing')
+    )
 
-    return [...pending, ...processing]
+    return activeBatches
   },
 })
 
@@ -200,15 +229,26 @@ export const getBatchByBatchId = query({
 })
 
 /**
- * Get recent batches (all statuses) for UI display
+ * Get batches for the current cycle (UI display)
  */
 export const getRecentBatches = query({
   args: { limit: v.optional(v.number()) },
   handler: async (ctx, { limit = 20 }) => {
-    const batches = await ctx.db.query('tag_batches').order('desc').take(limit)
+    // Get all batches to find current cycle
+    const allBatches = await ctx.db.query('tag_batches').collect()
+    if (allBatches.length === 0) return []
 
-    return batches.map((batch) => ({
+    const currentCycle = Math.max(...allBatches.map((b) => b.cycle ?? 1))
+
+    // Filter to current cycle and sort by createdAt desc
+    const currentCycleBatches = allBatches
+      .filter((b) => (b.cycle ?? 1) === currentCycle)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit)
+
+    return currentCycleBatches.map((batch) => ({
       _id: batch._id,
+      cycle: batch.cycle ?? 1,
       provider: batch.provider,
       model: batch.model ?? 'unknown',
       batchId: batch.batchId,
@@ -292,13 +332,59 @@ export const getBackfillStatus = query({
 })
 
 /**
- * Get errors grouped by provider/model
+ * Get which cycles have errors (for dropdown filter).
+ * Returns array of cycle numbers that have at least one error.
  */
-export const getErrorsByModel = query({
+export const getCyclesWithErrors = query({
   args: {},
   handler: async (ctx) => {
     const tags = await ctx.db.query('palette_tags').collect()
+    const config = await ctx.db.query('config').first()
+    const analysisCount = config?.tagAnalysisCount ?? 1
+
     const errorTags = tags.filter((t) => t.error)
+    if (errorTags.length === 0) return []
+
+    // Find which cycles have errors based on analysisIndex
+    const cyclesWithErrors = new Set<number>()
+    for (const tag of errorTags) {
+      const idx = tag.analysisIndex ?? 0
+      const cycle = Math.floor(idx / analysisCount) + 1
+      cyclesWithErrors.add(cycle)
+    }
+
+    // Return sorted array
+    return Array.from(cyclesWithErrors).sort((a, b) => b - a) // Most recent first
+  },
+})
+
+/**
+ * Get errors grouped by provider/model for a specific cycle.
+ * Uses analysisIndex ranges to determine which cycle a tag belongs to.
+ */
+export const getErrorsByModel = query({
+  args: {
+    cycle: v.optional(v.number()),
+  },
+  handler: async (ctx, { cycle }) => {
+    const tags = await ctx.db.query('palette_tags').collect()
+    const config = await ctx.db.query('config').first()
+    const analysisCount = config?.tagAnalysisCount ?? 1
+
+    // If cycle specified, filter tags by analysisIndex range
+    // Cycle 1: indices 0 to analysisCount-1
+    // Cycle 2: indices analysisCount to 2*analysisCount-1
+    // etc.
+    let errorTags = tags.filter((t) => t.error)
+
+    if (cycle !== undefined && cycle > 0) {
+      const startIndex = (cycle - 1) * analysisCount
+      const endIndex = cycle * analysisCount - 1
+      errorTags = errorTags.filter((t) => {
+        const idx = t.analysisIndex ?? 0
+        return idx >= startIndex && idx <= endIndex
+      })
+    }
 
     // Group by provider/model
     const errorsByModel = new Map<string, Array<{ seed: string; analysisIndex: number; error: string }>>()

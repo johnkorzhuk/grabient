@@ -45,6 +45,7 @@ export const PaletteTags = Table('palette_tags', {
 // TagBatches - tracks batch API submissions per provider
 // ============================================================================
 export const TagBatches = Table('tag_batches', {
+  cycle: v.optional(v.number()), // Which generation cycle this batch belongs to (optional for legacy data)
   provider: v.string(), // "groq", "openai", "anthropic", "google"
   model: v.optional(v.string()), // e.g., "llama-3.3-70b-versatile", "gpt-4o-mini"
   batchId: v.string(), // Provider's batch ID
@@ -84,6 +85,7 @@ export default defineSchema({
     .index('by_seed_provider', ['seed', 'provider', 'model'])
     .index('by_provider', ['provider']),
   tag_batches: TagBatches.table
+    .index('by_cycle', ['cycle'])
     .index('by_provider', ['provider'])
     .index('by_status', ['status'])
     .index('by_batch_id', ['batchId']),

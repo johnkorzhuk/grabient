@@ -220,10 +220,10 @@ function BatchesSection() {
   const cancelBatch = useAction(api.backfillActions.cancelBatch);
   const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(null);
 
-  const handleCancel = async (provider: string, batchId: string) => {
+  const handleCancel = async (provider: string, batchId: string, model: string) => {
     setCancellingBatchId(batchId);
     try {
-      await cancelBatch({ provider, batchId });
+      await cancelBatch({ provider, batchId, model });
     } catch (err) {
       console.error("Failed to cancel batch:", err);
     } finally {
@@ -292,7 +292,7 @@ function BatchesSection() {
                       )}
                     </span>
                     <button
-                      onClick={() => handleCancel(batch.provider, batch.batchId)}
+                      onClick={() => handleCancel(batch.provider, batch.batchId, batch.model)}
                       disabled={cancellingBatchId === batch.batchId}
                       className={cn(
                         "p-1 rounded hover:bg-red-500/20 text-red-500",
@@ -374,10 +374,17 @@ function BatchesSection() {
 // --- Errors Display ---
 
 function ErrorsSection() {
-  const errorsByModel = useQuery(api.backfill.getErrorsByModel, {});
+  const cyclesWithErrors = useQuery(api.backfill.getCyclesWithErrors, {});
+  const [selectedCycle, setSelectedCycle] = useState<number | undefined>(undefined);
+  const errorsByModel = useQuery(
+    api.backfill.getErrorsByModel,
+    selectedCycle !== undefined ? { cycle: selectedCycle } : {}
+  );
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const [copiedModel, setCopiedModel] = useState<string | null>(null);
 
+  // Don't render if no cycles with errors
+  if (!cyclesWithErrors || cyclesWithErrors.length === 0) return null;
   if (!errorsByModel || errorsByModel.length === 0) return null;
 
   const totalErrors = errorsByModel.reduce((sum, m) => sum + m.errorCount, 0);
@@ -387,7 +394,8 @@ function ErrorsSection() {
       .map((e) => `seed: ${e.seed}, index: ${e.analysisIndex}, error: ${e.error}`)
       .join("\n");
 
-    const fullText = `Errors for ${model} (${errors.length} total):\n\n${text}`;
+    const cycleLabel = selectedCycle !== undefined ? ` (Cycle ${selectedCycle})` : "";
+    const fullText = `Errors for ${model}${cycleLabel} (${errors.length} total):\n\n${text}`;
 
     await navigator.clipboard.writeText(fullText);
     setCopiedModel(model);
@@ -402,7 +410,8 @@ function ErrorsSection() {
       return `${m.model} (${m.errorCount} errors):\n${errorLines}`;
     });
 
-    const fullText = `All Errors (${totalErrors} total):\n\n${sections.join("\n\n")}`;
+    const cycleLabel = selectedCycle !== undefined ? ` (Cycle ${selectedCycle})` : "";
+    const fullText = `All Errors${cycleLabel} (${totalErrors} total):\n\n${sections.join("\n\n")}`;
 
     await navigator.clipboard.writeText(fullText);
     setCopiedModel("all");
@@ -410,13 +419,36 @@ function ErrorsSection() {
   };
 
   return (
-    <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20">
+    <div className="p-3 rounded-md bg-red-500/10 border border-red-500/20 mb-3">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <AlertTriangle className="h-4 w-4 text-red-500" />
           <span className="text-sm font-medium text-red-700 dark:text-red-400">
             {totalErrors} Errors ({errorsByModel.length} models)
           </span>
+          {cyclesWithErrors.length > 1 && (
+            <select
+              value={selectedCycle ?? ""}
+              onChange={(e) => setSelectedCycle(e.target.value ? Number(e.target.value) : undefined)}
+              className={cn(
+                "px-1.5 py-0.5 text-xs rounded border border-red-500/30 bg-transparent",
+                "text-red-700 dark:text-red-400",
+                "focus:outline-none focus:ring-1 focus:ring-red-500/50"
+              )}
+            >
+              <option value="">All Cycles</option>
+              {cyclesWithErrors.map((c) => (
+                <option key={c} value={c}>
+                  Cycle {c}
+                </option>
+              ))}
+            </select>
+          )}
+          {cyclesWithErrors.length === 1 && (
+            <span className="text-xs text-red-600/60 dark:text-red-400/60">
+              Cycle {cyclesWithErrors[0]}
+            </span>
+          )}
         </div>
         <button
           onClick={handleCopyAll}
@@ -574,6 +606,7 @@ function SeedingPanel() {
 
 function BackfillControlPanel() {
   const status = useQuery(api.backfill.getBackfillStatus, {});
+  const currentCycle = useQuery(api.backfill.getCurrentCycle, {});
   const startBackfill = useAction(api.backfillActions.startBackfill);
   const pollBatches = useAction(api.backfillActions.pollActiveBatches);
 
@@ -590,7 +623,7 @@ function BackfillControlPanel() {
     try {
       const result = await startBackfill({});
       setLastResult(
-        `Started ${result.batchesCreated} batches with ${result.totalRequests.toLocaleString()} total requests`
+        `Cycle ${result.cycle}: Started ${result.batchesCreated} batches with ${result.totalRequests.toLocaleString()} requests`
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -624,6 +657,11 @@ function BackfillControlPanel() {
         <div className="flex items-center gap-2">
           <Database className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-foreground">Backfill Tags</h3>
+          {currentCycle !== undefined && currentCycle > 0 && (
+            <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+              Cycle {currentCycle}
+            </span>
+          )}
         </div>
         {hasActiveBatches && (
           <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">

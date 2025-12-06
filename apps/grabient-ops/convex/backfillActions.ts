@@ -9,7 +9,7 @@ import OpenAI from 'openai'
 import Groq from 'groq-sdk'
 import { generateColorDataFromSeed, type ColorData } from './lib/colorData'
 import { TAGGING_SYSTEM_PROMPT, CURRENT_PROMPT_VERSION } from './lib/prompts'
-import { tagResponseSchema } from './lib/providers'
+import { tagResponseSchema, normalizeTagResponse } from './lib/providers'
 
 // ============================================================================
 // Provider Configurations
@@ -51,14 +51,14 @@ interface BatchRequest {
 // We use Convex palette _id + analysisIndex as custom_id for direct lookup on poll
 
 function buildBatchRequests(
-  palettesNeedingTags: Array<{ _id: string; seed: string; missingIndices: number[] }>,
+  palettesForCycle: Array<{ _id: string; seed: string; newIndices: number[] }>,
 ): BatchRequest[] {
   const requests: BatchRequest[] = []
 
-  for (const { _id, seed, missingIndices } of palettesNeedingTags) {
+  for (const { _id, seed, newIndices } of palettesForCycle) {
     const colorData = generateColorDataFromSeed(seed)
 
-    for (const analysisIndex of missingIndices) {
+    for (const analysisIndex of newIndices) {
       requests.push({
         customId: `${_id}_${analysisIndex}`, // e.g., "jd7czbkfa6bxn3sg42hcpqs1ph7wran2_0"
         seed,
@@ -90,28 +90,28 @@ function parseCustomId(customId: string): { paletteId: Id<'palettes'>; analysisI
 // ============================================================================
 
 export const submitAnthropicBatch = internalAction({
-  args: { model: v.string() },
-  handler: async (ctx, { model }): Promise<{ batchId: string; requestCount: number } | null> => {
+  args: { model: v.string(), cycle: v.number() },
+  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
 
     // Get config
     const config = await ctx.runQuery(api.config.get, {})
 
-    // Get palettes needing tags
-    const palettesNeedingTags = await ctx.runQuery(api.backfill.getPalettesNeedingTags, {
+    // Get palettes for this cycle
+    const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
       provider: 'anthropic',
       model,
       analysisCount: config.tagAnalysisCount,
     })
 
-    if (palettesNeedingTags.length === 0) {
-      console.log(`No palettes need tagging for anthropic:${model}`)
+    if (palettesForCycle.length === 0) {
+      console.log(`No palettes for cycle ${cycle} anthropic:${model}`)
       return null
     }
 
-    const requests = buildBatchRequests(palettesNeedingTags)
-    console.log(`Submitting ${requests.length} requests to Anthropic batch API`)
+    const requests = buildBatchRequests(palettesForCycle)
+    console.log(`Submitting ${requests.length} requests to Anthropic batch API (cycle ${cycle})`)
 
     const anthropic = new Anthropic({ apiKey })
 
@@ -139,34 +139,55 @@ export const submitAnthropicBatch = internalAction({
 
     // Record batch in database
     await ctx.runMutation(internal.backfill.createBatch, {
+      cycle,
       provider: 'anthropic',
       model,
       batchId: batch.id,
       requestCount: requests.length,
     })
 
-    console.log(`Created Anthropic batch: ${batch.id}`)
+    console.log(`Created Anthropic batch: ${batch.id} (cycle ${cycle})`)
     return { batchId: batch.id, requestCount: requests.length }
   },
 })
 
 export const cancelAnthropicBatch = internalAction({
-  args: { batchId: v.string() },
-  returns: v.object({ success: v.boolean() }),
-  handler: async (ctx, { batchId }) => {
+  args: { batchId: v.string(), model: v.optional(v.string()) },
+  returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
+  handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
 
     const anthropic = new Anthropic({ apiKey })
-    await anthropic.messages.batches.cancel(batchId)
 
-    await ctx.runMutation(internal.backfill.updateBatchStatus, {
-      batchId,
-      status: 'failed',
-      error: 'Cancelled by user',
-    })
-
-    return { success: true }
+    try {
+      await anthropic.messages.batches.cancel(batchId)
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: 'Cancelled by user',
+      })
+      return { success: true }
+    } catch (e) {
+      // If batch is already ended, process it properly
+      if (e instanceof Error && (e.message.includes('409') || e.message.includes('ended'))) {
+        const batch = await anthropic.messages.batches.retrieve(batchId)
+        if (batch.processing_status === 'ended' && model) {
+          // Batch completed - poll to process results
+          await ctx.runAction(internal.backfillActions.pollAnthropicBatch, { batchId, model })
+          return { success: true, actualStatus: 'completed' }
+        } else {
+          await ctx.runMutation(internal.backfill.updateBatchStatus, {
+            batchId,
+            status: 'failed',
+            error: `Batch ${batch.processing_status}`,
+          })
+          return { success: true, actualStatus: batch.processing_status }
+        }
+      } else {
+        throw e
+      }
+    }
   },
 })
 
@@ -219,7 +240,8 @@ export const pollAnthropicBatch = internalAction({
             try {
               const jsonText = extractJson(textContent.text)
               const parsed = JSON.parse(jsonText)
-              const tags = tagResponseSchema.parse(parsed)
+              const normalized = normalizeTagResponse(parsed)
+              const tags = tagResponseSchema.parse(normalized)
 
               await ctx.runMutation(internal.backfill.storeTagResult, {
                 seed,
@@ -283,29 +305,35 @@ export const pollAnthropicBatch = internalAction({
 // OpenAI Batch API
 // ============================================================================
 
+// Models that only support temperature=1 (no customization)
+const OPENAI_TEMP_1_ONLY_MODELS = ['gpt-5-nano']
+
 export const submitOpenAIBatch = internalAction({
-  args: { model: v.string() },
-  handler: async (ctx, { model }): Promise<{ batchId: string; requestCount: number } | null> => {
+  args: { model: v.string(), cycle: v.number() },
+  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) throw new Error('OPENAI_API_KEY not set')
 
     const config = await ctx.runQuery(api.config.get, {})
 
-    const palettesNeedingTags = await ctx.runQuery(api.backfill.getPalettesNeedingTags, {
+    const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
       provider: 'openai',
       model,
       analysisCount: config.tagAnalysisCount,
     })
 
-    if (palettesNeedingTags.length === 0) {
-      console.log(`No palettes need tagging for openai:${model}`)
+    if (palettesForCycle.length === 0) {
+      console.log(`No palettes for cycle ${cycle} openai:${model}`)
       return null
     }
 
-    const requests = buildBatchRequests(palettesNeedingTags)
-    console.log(`Submitting ${requests.length} requests to OpenAI batch API`)
+    const requests = buildBatchRequests(palettesForCycle)
+    console.log(`Submitting ${requests.length} requests to OpenAI batch API (cycle ${cycle})`)
 
     const openai = new OpenAI({ apiKey })
+
+    // gpt-5-nano only supports temperature=1
+    const temperature = OPENAI_TEMP_1_ONLY_MODELS.includes(model) ? 1 : 1.4
 
     // Build JSONL content
     const jsonlLines = requests.map((req) =>
@@ -315,7 +343,7 @@ export const submitOpenAIBatch = internalAction({
         url: '/v1/chat/completions',
         body: {
           model,
-          temperature: 1.4,
+          temperature,
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: TAGGING_SYSTEM_PROMPT },
@@ -341,34 +369,55 @@ export const submitOpenAIBatch = internalAction({
 
     // Record batch in database
     await ctx.runMutation(internal.backfill.createBatch, {
+      cycle,
       provider: 'openai',
       model,
       batchId: batch.id,
       requestCount: requests.length,
     })
 
-    console.log(`Created OpenAI batch: ${batch.id}`)
+    console.log(`Created OpenAI batch: ${batch.id} (cycle ${cycle})`)
     return { batchId: batch.id, requestCount: requests.length }
   },
 })
 
 export const cancelOpenAIBatch = internalAction({
-  args: { batchId: v.string() },
-  returns: v.object({ success: v.boolean() }),
-  handler: async (ctx, { batchId }) => {
+  args: { batchId: v.string(), model: v.optional(v.string()) },
+  returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
+  handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) throw new Error('OPENAI_API_KEY not set')
 
     const openai = new OpenAI({ apiKey })
-    await openai.batches.cancel(batchId)
 
-    await ctx.runMutation(internal.backfill.updateBatchStatus, {
-      batchId,
-      status: 'failed',
-      error: 'Cancelled by user',
-    })
-
-    return { success: true }
+    try {
+      await openai.batches.cancel(batchId)
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: 'Cancelled by user',
+      })
+      return { success: true }
+    } catch (e) {
+      // If batch is already completed/failed, process it properly
+      if (e instanceof Error && e.message.includes('409')) {
+        const batch = await openai.batches.retrieve(batchId)
+        if (batch.status === 'completed' && model) {
+          // Batch completed - poll to process results
+          await ctx.runAction(internal.backfillActions.pollOpenAIBatch, { batchId, model })
+          return { success: true, actualStatus: 'completed' }
+        } else {
+          await ctx.runMutation(internal.backfill.updateBatchStatus, {
+            batchId,
+            status: 'failed',
+            error: `Batch ${batch.status}`,
+          })
+          return { success: true, actualStatus: batch.status }
+        }
+      } else {
+        throw e
+      }
+    }
   },
 })
 
@@ -395,9 +444,11 @@ export const pollOpenAIBatch = internalAction({
 
     if (batch.status === 'completed' && batch.output_file_id) {
       // Download results
+      console.log(`OpenAI batch ${batchId} downloading results from ${batch.output_file_id}`)
       const fileResponse = await openai.files.content(batch.output_file_id)
       const content = await fileResponse.text()
       const lines = content.trim().split('\n')
+      console.log(`OpenAI batch ${batchId} processing ${lines.length} results`)
 
       let successCount = 0
       let failCount = 0
@@ -456,12 +507,13 @@ export const pollOpenAIBatch = internalAction({
             analysisIndex,
             promptVersion: CURRENT_PROMPT_VERSION,
             tags: null,
-            error: result.error?.message ?? 'Unknown error',
+            error: result.response?.body?.error?.message ?? result.error?.message ?? 'Unknown error',
           })
           failCount++
         }
       }
 
+      console.log(`OpenAI batch ${batchId} updating status to completed: ${successCount} success, ${failCount} failed`)
       await ctx.runMutation(internal.backfill.updateBatchStatus, {
         batchId,
         status: 'completed',
@@ -470,6 +522,17 @@ export const pollOpenAIBatch = internalAction({
       })
 
       return { status: 'completed' as const, successCount, failCount }
+    }
+
+    if (batch.status === 'completed' && !batch.output_file_id) {
+      // Batch completed but no output file - mark as failed
+      console.log(`OpenAI batch ${batchId} completed but no output_file_id`)
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: 'Batch completed but no output file',
+      })
+      return { status: 'failed' as const }
     }
 
     if (batch.status === 'failed' || batch.status === 'expired' || batch.status === 'cancelled') {
@@ -485,31 +548,33 @@ export const pollOpenAIBatch = internalAction({
   },
 })
 
+// OpenAI poll function ends here
+
 // ============================================================================
 // Groq Batch API
 // ============================================================================
 
 export const submitGroqBatch = internalAction({
-  args: { model: v.string() },
-  handler: async (ctx, { model }): Promise<{ batchId: string; requestCount: number } | null> => {
+  args: { model: v.string(), cycle: v.number() },
+  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) throw new Error('GROQ_API_KEY not set')
 
     const config = await ctx.runQuery(api.config.get, {})
 
-    const palettesNeedingTags = await ctx.runQuery(api.backfill.getPalettesNeedingTags, {
+    const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
       provider: 'groq',
       model,
       analysisCount: config.tagAnalysisCount,
     })
 
-    if (palettesNeedingTags.length === 0) {
-      console.log(`No palettes need tagging for groq:${model}`)
+    if (palettesForCycle.length === 0) {
+      console.log(`No palettes for cycle ${cycle} groq:${model}`)
       return null
     }
 
-    const requests = buildBatchRequests(palettesNeedingTags)
-    console.log(`Submitting ${requests.length} requests to Groq batch API`)
+    const requests = buildBatchRequests(palettesForCycle)
+    console.log(`Submitting ${requests.length} requests to Groq batch API (cycle ${cycle})`)
 
     const groq = new Groq({ apiKey })
 
@@ -555,34 +620,55 @@ export const submitGroqBatch = internalAction({
     }
     // Record batch in database
     await ctx.runMutation(internal.backfill.createBatch, {
+      cycle,
       provider: 'groq',
       model,
       batchId: groqBatchId,
       requestCount: requests.length,
     })
 
-    console.log(`Created Groq batch: ${groqBatchId}`)
+    console.log(`Created Groq batch: ${groqBatchId} (cycle ${cycle})`)
     return { batchId: groqBatchId, requestCount: requests.length }
   },
 })
 
 export const cancelGroqBatch = internalAction({
-  args: { batchId: v.string() },
-  returns: v.object({ success: v.boolean() }),
-  handler: async (ctx, { batchId }) => {
+  args: { batchId: v.string(), model: v.optional(v.string()) },
+  returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
+  handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) throw new Error('GROQ_API_KEY not set')
 
     const groq = new Groq({ apiKey })
-    await groq.batches.cancel(batchId)
 
-    await ctx.runMutation(internal.backfill.updateBatchStatus, {
-      batchId,
-      status: 'failed',
-      error: 'Cancelled by user',
-    })
-
-    return { success: true }
+    try {
+      await groq.batches.cancel(batchId)
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: 'Cancelled by user',
+      })
+      return { success: true }
+    } catch (e) {
+      // If batch is already completed/failed, process it properly
+      if (e instanceof Error && e.message.includes('409')) {
+        const batch = await groq.batches.retrieve(batchId)
+        if (batch.status === 'completed' && model) {
+          // Batch completed - poll to process results
+          await ctx.runAction(internal.backfillActions.pollGroqBatch, { batchId, model })
+          return { success: true, actualStatus: 'completed' }
+        } else {
+          await ctx.runMutation(internal.backfill.updateBatchStatus, {
+            batchId,
+            status: 'failed',
+            error: `Batch ${batch.status}`,
+          })
+          return { success: true, actualStatus: batch.status }
+        }
+      } else {
+        throw e
+      }
+    }
   },
 })
 
@@ -726,17 +812,26 @@ export const submitGoogleBatch = internalAction({
 // ============================================================================
 
 /**
- * Start backfill for all providers
- * This submits batch requests to each provider
+ * Start backfill for all providers.
+ * Creates a new cycle - all existing tag data is preserved, new tags are added with incremented indices.
  */
 export const startBackfill = action({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<{
+    cycle: number
+    batchesCreated: number
+    totalRequests: number
+    results: Array<{ provider: string; model: string; batchId: string | null; requestCount: number }>
+  }> => {
+    // Get next cycle number
+    const cycle: number = await ctx.runQuery(internal.backfill.getNextCycle, {})
+    console.log(`Starting new backfill cycle: ${cycle}`)
+
     const results: Array<{ provider: string; model: string; batchId: string | null; requestCount: number }> = []
 
     // Submit Anthropic batches
     for (const { model } of PROVIDER_CONFIGS.anthropic) {
-      const result = await ctx.runAction(internal.backfillActions.submitAnthropicBatch, { model })
+      const result = await ctx.runAction(internal.backfillActions.submitAnthropicBatch, { model, cycle })
       results.push({
         provider: 'anthropic',
         model,
@@ -747,7 +842,7 @@ export const startBackfill = action({
 
     // Submit OpenAI batches
     for (const { model } of PROVIDER_CONFIGS.openai) {
-      const result = await ctx.runAction(internal.backfillActions.submitOpenAIBatch, { model })
+      const result = await ctx.runAction(internal.backfillActions.submitOpenAIBatch, { model, cycle })
       results.push({
         provider: 'openai',
         model,
@@ -758,7 +853,7 @@ export const startBackfill = action({
 
     // Submit Groq batches
     for (const { model } of PROVIDER_CONFIGS.groq) {
-      const result = await ctx.runAction(internal.backfillActions.submitGroqBatch, { model })
+      const result = await ctx.runAction(internal.backfillActions.submitGroqBatch, { model, cycle })
       results.push({
         provider: 'groq',
         model,
@@ -781,6 +876,7 @@ export const startBackfill = action({
     const batchesCreated = results.filter((r) => r.batchId).length
 
     return {
+      cycle,
       batchesCreated,
       totalRequests,
       results,
@@ -795,16 +891,17 @@ export const cancelBatch = action({
   args: {
     provider: v.string(),
     batchId: v.string(),
+    model: v.optional(v.string()),
   },
-  returns: v.object({ success: v.boolean() }),
-  handler: async (ctx, { provider, batchId }): Promise<{ success: boolean }> => {
+  returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
+  handler: async (ctx, { provider, batchId, model }): Promise<{ success: boolean; actualStatus?: string }> => {
     switch (provider) {
       case 'anthropic':
-        return await ctx.runAction(internal.backfillActions.cancelAnthropicBatch, { batchId })
+        return await ctx.runAction(internal.backfillActions.cancelAnthropicBatch, { batchId, model })
       case 'openai':
-        return await ctx.runAction(internal.backfillActions.cancelOpenAIBatch, { batchId })
+        return await ctx.runAction(internal.backfillActions.cancelOpenAIBatch, { batchId, model })
       case 'groq':
-        return await ctx.runAction(internal.backfillActions.cancelGroqBatch, { batchId })
+        return await ctx.runAction(internal.backfillActions.cancelGroqBatch, { batchId, model })
       default:
         throw new Error(`Unknown provider: ${provider}`)
     }
