@@ -1,16 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useAction, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { cn } from "~/lib/utils";
 import {
-  Activity,
   Sparkles,
-  Upload,
   Database,
   Loader2,
   Play,
-  RefreshCw,
   Settings,
   X,
   AlertTriangle,
@@ -27,63 +24,79 @@ export const Route = createFileRoute("/_layout/")({
 function Dashboard() {
   return (
     <div className="p-6 max-w-4xl">
-      <h2 className="text-lg font-semibold text-foreground mb-6">Dashboard</h2>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BackfillStatusPanel />
-        <RefinementStatusPanel />
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
+        <SeedButton />
       </div>
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <SeedingPanel />
+      <div className="grid gap-6 lg:grid-cols-2">
         <BackfillControlPanel />
+        <RefinementStatusPanel />
       </div>
     </div>
   );
 }
 
-function BackfillStatusPanel() {
-  const status = useQuery(api.backfill.getBackfillStatus, {});
+function SeedButton() {
+  const paletteCount = useQuery(api.seed.getPaletteCount, {});
+  const importFromD1 = useAction(api.seed.importFromD1);
+  const [isImporting, setIsImporting] = useState(false);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const handleImport = async () => {
+    setIsImporting(true);
+    setMessage(null);
+    try {
+      const result = await importFromD1({});
+      if (result.imported > 0) {
+        setMessage({ type: "success", text: `Added ${result.imported} palettes` });
+      } else {
+        setMessage({ type: "success", text: "No new palettes" });
+      }
+      setTimeout(() => setMessage(null), 3000);
+    } catch (err) {
+      setMessage({ type: "error", text: err instanceof Error ? err.message : "Import failed" });
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2">
-          <Activity className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Tagging Status</h3>
-        </div>
-        <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          Live
+    <div className="flex items-center gap-3">
+      {message && (
+        <span className={cn(
+          "text-xs",
+          message.type === "success" ? "text-green-600 dark:text-green-400" : "text-destructive"
+        )}>
+          {message.text}
         </span>
-      </div>
-
-      {status === undefined ? (
-        <div className="space-y-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-6 bg-muted animate-pulse rounded" />
-          ))}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <StatusRow label="Palettes" value={status.palettes} />
-          <StatusRow
-            label="Palettes Tagged"
-            value={`${status.palettesWithTags} / ${status.palettes}`}
-            highlight={status.palettesWithTags === status.palettes ? "green" : undefined}
-          />
-          <StatusRow label="Providers" value={status.uniqueProviders} />
-          <StatusRow label="Total Tags" value={status.totalTags.toLocaleString()} highlight="green" />
-          <StatusRow
-            label="Errors"
-            value={status.totalErrors}
-            highlight={status.totalErrors > 0 ? "red" : undefined}
-          />
-          <StatusRow
-            label="Active Batches"
-            value={status.activeBatches}
-            highlight={status.activeBatches > 0 ? "yellow" : undefined}
-          />
-        </div>
       )}
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-muted-foreground">
+          {paletteCount?.count ?? "..."} palettes
+        </span>
+        <button
+          onClick={handleImport}
+          disabled={isImporting}
+          className={cn(
+            "px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5",
+            "border border-input bg-background hover:bg-accent",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+          )}
+        >
+          {isImporting ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Syncing...
+            </>
+          ) : (
+            <>
+              <Database className="h-3 w-3" />
+              Sync D1
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }
@@ -374,17 +387,23 @@ function BatchesSection() {
 // --- Errors Display ---
 
 function ErrorsSection() {
+  const currentCycle = useQuery(api.backfill.getCurrentCycle, {});
   const cyclesWithErrors = useQuery(api.backfill.getCyclesWithErrors, {});
   const [selectedCycle, setSelectedCycle] = useState<number | undefined>(undefined);
+
+  // Auto-select current cycle when it has errors
+  const currentCycleHasErrors = cyclesWithErrors?.includes(currentCycle ?? 0) ?? false;
+  const effectiveCycle = selectedCycle ?? (currentCycleHasErrors ? currentCycle : undefined);
+
   const errorsByModel = useQuery(
     api.backfill.getErrorsByModel,
-    selectedCycle !== undefined ? { cycle: selectedCycle } : {}
+    effectiveCycle !== undefined ? { cycle: effectiveCycle } : { cycle: currentCycle ?? 1 }
   );
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const [copiedModel, setCopiedModel] = useState<string | null>(null);
 
-  // Don't render if no cycles with errors
-  if (!cyclesWithErrors || cyclesWithErrors.length === 0) return null;
+  // Don't render if current cycle has no errors or data not loaded
+  if (!cyclesWithErrors || !currentCycleHasErrors) return null;
   if (!errorsByModel || errorsByModel.length === 0) return null;
 
   const totalErrors = errorsByModel.reduce((sum, m) => sum + m.errorCount, 0);
@@ -394,7 +413,7 @@ function ErrorsSection() {
       .map((e) => `seed: ${e.seed}, index: ${e.analysisIndex}, error: ${e.error}`)
       .join("\n");
 
-    const cycleLabel = selectedCycle !== undefined ? ` (Cycle ${selectedCycle})` : "";
+    const cycleLabel = effectiveCycle !== undefined ? ` (Cycle ${effectiveCycle})` : "";
     const fullText = `Errors for ${model}${cycleLabel} (${errors.length} total):\n\n${text}`;
 
     await navigator.clipboard.writeText(fullText);
@@ -410,7 +429,7 @@ function ErrorsSection() {
       return `${m.model} (${m.errorCount} errors):\n${errorLines}`;
     });
 
-    const cycleLabel = selectedCycle !== undefined ? ` (Cycle ${selectedCycle})` : "";
+    const cycleLabel = effectiveCycle !== undefined ? ` (Cycle ${effectiveCycle})` : "";
     const fullText = `All Errors${cycleLabel} (${totalErrors} total):\n\n${sections.join("\n\n")}`;
 
     await navigator.clipboard.writeText(fullText);
@@ -428,7 +447,7 @@ function ErrorsSection() {
           </span>
           {cyclesWithErrors.length > 1 && (
             <select
-              value={selectedCycle ?? ""}
+              value={effectiveCycle ?? ""}
               onChange={(e) => setSelectedCycle(e.target.value ? Number(e.target.value) : undefined)}
               className={cn(
                 "px-1.5 py-0.5 text-xs rounded border border-red-500/30 bg-transparent",
@@ -436,7 +455,6 @@ function ErrorsSection() {
                 "focus:outline-none focus:ring-1 focus:ring-red-500/50"
               )}
             >
-              <option value="">All Cycles</option>
               {cyclesWithErrors.map((c) => (
                 <option key={c} value={c}>
                   Cycle {c}
@@ -529,81 +547,6 @@ function ErrorsSection() {
   );
 }
 
-function SeedingPanel() {
-  const paletteCount = useQuery(api.seed.getPaletteCount, {});
-  const importFromD1 = useAction(api.seed.importFromD1);
-  const [isImporting, setIsImporting] = useState(false);
-  const [logs, setLogs] = useState<string[]>([]);
-
-  const handleImport = async () => {
-    setIsImporting(true);
-    setLogs(["Starting import from D1..."]);
-    try {
-      const result = await importFromD1({ batchSize: 10 });
-      setLogs((prev) => [
-        ...prev,
-        `Imported: ${result.imported}, Skipped: ${result.skipped}, Failed: ${result.failed}`,
-        `Total: ${result.total} seeds`,
-      ]);
-    } catch (error) {
-      setLogs((prev) => [...prev, `Error: ${error}`]);
-    } finally {
-      setIsImporting(false);
-    }
-  };
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Upload className="h-5 w-5 text-primary" />
-        <h3 className="font-semibold text-foreground">Seeding</h3>
-      </div>
-
-      <p className="text-sm text-muted-foreground mb-4">
-        Import palettes from D1 and generate images. Current count:{" "}
-        <span className="font-medium text-foreground">
-          {paletteCount?.count ?? "..."}
-        </span>
-      </p>
-
-      <button
-        onClick={handleImport}
-        disabled={isImporting}
-        className={cn(
-          "w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2",
-          "bg-primary text-primary-foreground hover:bg-primary/90",
-          "disabled:opacity-50 disabled:cursor-not-allowed",
-          "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
-        )}
-      >
-        {isImporting ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Importing...
-          </>
-        ) : (
-          <>
-            <Play className="h-4 w-4" />
-            Import from D1
-          </>
-        )}
-      </button>
-
-      {logs.length > 0 && (
-        <div className="mt-4 p-3 bg-muted/50 rounded-md">
-          <div className="space-y-1 font-mono text-xs">
-            {logs.map((log, i) => (
-              <div key={i} className="text-muted-foreground">
-                {log}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function BackfillControlPanel() {
   const status = useQuery(api.backfill.getBackfillStatus, {});
   const currentCycle = useQuery(api.backfill.getCurrentCycle, {});
@@ -611,9 +554,46 @@ function BackfillControlPanel() {
   const pollBatches = useAction(api.backfillActions.pollActiveBatches);
 
   const [isStarting, setIsStarting] = useState(false);
-  const [isPolling, setIsPolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<string | null>(null);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const isPollingRef = useRef(false);
+
+  // Auto-poll when there are active batches
+  const hasActiveBatches = status && status.activeBatches > 0;
+
+  useEffect(() => {
+    if (hasActiveBatches && !pollIntervalRef.current) {
+      // Poll every 10 seconds when there are active batches
+      const poll = async () => {
+        if (isPollingRef.current) return;
+        isPollingRef.current = true;
+        try {
+          await pollBatches({});
+        } catch (err) {
+          console.error("Auto-poll error:", err);
+        } finally {
+          isPollingRef.current = false;
+        }
+      };
+
+      // Initial poll after short delay
+      setTimeout(poll, 1000);
+
+      // Set up interval
+      pollIntervalRef.current = setInterval(poll, 10000);
+    } else if (!hasActiveBatches && pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+    };
+  }, [hasActiveBatches, pollBatches]);
 
   const handleStartBackfill = async () => {
     setIsStarting(true);
@@ -632,24 +612,7 @@ function BackfillControlPanel() {
     }
   };
 
-  const handlePollBatches = async () => {
-    setIsPolling(true);
-    setError(null);
-
-    try {
-      const results = await pollBatches({});
-      const completed = results.filter((r) => r.status === "completed").length;
-      const processing = results.filter((r) => r.status === "processing").length;
-      setLastResult(`Polled ${results.length} batches: ${completed} completed, ${processing} processing`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-    } finally {
-      setIsPolling(false);
-    }
-  };
-
   const isLoading = status === undefined;
-  const hasActiveBatches = status && status.activeBatches > 0;
 
   return (
     <div className="rounded-lg border border-border bg-card p-6">
@@ -686,50 +649,28 @@ function BackfillControlPanel() {
           <BatchesSection />
 
           {/* Controls */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleStartBackfill}
-              disabled={isStarting || hasActiveBatches}
-              className={cn(
-                "flex-1 px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
-              )}
-            >
-              {isStarting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Starting...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4" />
-                  Start Backfill
-                </>
-              )}
-            </button>
-
-            {hasActiveBatches && (
-              <button
-                onClick={handlePollBatches}
-                disabled={isPolling}
-                className={cn(
-                  "px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2",
-                  "border border-input bg-background hover:bg-accent",
-                  "disabled:opacity-50 disabled:cursor-not-allowed",
-                  "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
-                )}
-              >
-                {isPolling ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Poll
-              </button>
+          <button
+            onClick={handleStartBackfill}
+            disabled={isStarting || hasActiveBatches}
+            className={cn(
+              "w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2",
+              "bg-primary text-primary-foreground hover:bg-primary/90",
+              "disabled:opacity-50 disabled:cursor-not-allowed",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
             )}
-          </div>
+          >
+            {isStarting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Start Backfill
+              </>
+            )}
+          </button>
 
           {/* Result/Error display */}
           {lastResult && (

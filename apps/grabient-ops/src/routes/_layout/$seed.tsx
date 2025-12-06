@@ -15,16 +15,27 @@ import {
 } from "lucide-react";
 
 // Type for the structured tag response from providers
+// Some fields can be string or array depending on model output
 interface StructuredTags {
   mood: string[];
   style: string[];
   dominant_colors: string[];
-  temperature: string;
-  contrast: string;
-  brightness: string;
-  saturation: string;
+  temperature: string | string[];
+  contrast: string | string[];
+  brightness: string | string[];
+  saturation: string | string[];
   seasonal: string[];
   associations: string[];
+}
+
+// Helper to extract string from field that might be array
+function asString(value: string | string[]): string {
+  return Array.isArray(value) ? value[0] ?? "" : value;
+}
+
+// Helper to get all values as array for aggregation
+function asStringArray(value: string | string[]): string[] {
+  return Array.isArray(value) ? value : [value];
 }
 
 export const Route = createFileRoute("/_layout/$seed")({
@@ -171,23 +182,23 @@ function isStructuredTags(tags: unknown): tags is StructuredTags {
   );
 }
 
-// Track which providers generated each tag value
-type TagWithProviders = {
+// Track which models generated each tag value
+type TagWithModels = {
   count: number;
-  providers: string[];
+  models: string[];
 };
 
 function ConsensusView({
   rawTags,
 }: {
-  rawTags: Array<{ tags: unknown; error?: string; provider: string }>;
+  rawTags: Array<{ tags: unknown; error?: string; provider: string; model: string }>;
 }) {
   // Filter to only successful structured tags
   const validTags = rawTags.filter(
     (t) => !t.error && isStructuredTags(t.tags)
-  ) as Array<{ tags: StructuredTags; provider: string }>;
+  ) as Array<{ tags: StructuredTags; provider: string; model: string }>;
 
-  const totalProviders = validTags.length;
+  const totalModels = validTags.length;
   const errorCount = rawTags.filter((t) => t.error).length;
 
   if (validTags.length === 0) {
@@ -197,15 +208,15 @@ function ConsensusView({
         <p className="text-sm text-muted-foreground">No valid tags yet</p>
         {errorCount > 0 && (
           <p className="text-xs text-destructive mt-1">
-            {errorCount} provider(s) failed
+            {errorCount} model(s) failed
           </p>
         )}
       </div>
     );
   }
 
-  // Aggregate by category with provider tracking
-  const categories: Record<string, Map<string, TagWithProviders>> = {
+  // Aggregate by category with model tracking
+  const categories: Record<string, Map<string, TagWithModels>> = {
     mood: new Map(),
     style: new Map(),
     dominant_colors: new Map(),
@@ -217,62 +228,62 @@ function ConsensusView({
     associations: new Map(),
   };
 
-  const addTag = (category: string, value: string, provider: string) => {
+  const addTag = (category: string, value: string, model: string) => {
     const key = value.toLowerCase();
     const existing = categories[category].get(key);
     if (existing) {
       existing.count++;
-      existing.providers.push(provider);
+      if (!existing.models.includes(model)) {
+        existing.models.push(model);
+      }
     } else {
-      categories[category].set(key, { count: 1, providers: [provider] });
+      categories[category].set(key, { count: 1, models: [model] });
     }
   };
 
-  for (const { tags, provider } of validTags) {
-    const shortProvider = provider.replace("groq-", "").replace("google-", "").replace("openai-", "").replace("anthropic-", "");
+  // Get short model name for display
+  const getShortModel = (model: string) => {
+    return model.split("/").pop()?.replace("-versatile", "").replace("-20241022", "") ?? model;
+  };
+
+  for (const { tags, model } of validTags) {
+    const shortModel = getShortModel(model);
 
     // Array fields
-    for (const mood of tags.mood) addTag("mood", mood, shortProvider);
-    for (const style of tags.style) addTag("style", style, shortProvider);
-    for (const color of tags.dominant_colors) addTag("dominant_colors", color, shortProvider);
-    for (const season of tags.seasonal) addTag("seasonal", season, shortProvider);
-    for (const assoc of tags.associations) addTag("associations", assoc, shortProvider);
+    for (const mood of tags.mood) addTag("mood", mood, shortModel);
+    for (const style of tags.style) addTag("style", style, shortModel);
+    for (const color of tags.dominant_colors) addTag("dominant_colors", color, shortModel);
+    for (const season of tags.seasonal) addTag("seasonal", season, shortModel);
+    for (const assoc of tags.associations) addTag("associations", assoc, shortModel);
 
-    // Enum fields
-    addTag("temperature", tags.temperature, shortProvider);
-    addTag("contrast", tags.contrast, shortProvider);
-    addTag("brightness", tags.brightness, shortProvider);
-    addTag("saturation", tags.saturation, shortProvider);
+    // Property fields (can be string or array)
+    for (const temp of asStringArray(tags.temperature)) addTag("temperature", temp, shortModel);
+    for (const contrast of asStringArray(tags.contrast)) addTag("contrast", contrast, shortModel);
+    for (const brightness of asStringArray(tags.brightness)) addTag("brightness", brightness, shortModel);
+    for (const saturation of asStringArray(tags.saturation)) addTag("saturation", saturation, shortModel);
   }
 
   return (
     <div className="space-y-4">
-      {errorCount > 0 && (
-        <div className="text-xs text-destructive flex items-center gap-1">
-          <AlertCircle className="h-3 w-3" />
-          {errorCount} provider(s) failed - showing {totalProviders} results
-        </div>
-      )}
-
       {/* Properties row */}
       <div className="rounded-lg border border-border bg-card p-4">
         <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
           Properties
         </h4>
         <div className="grid grid-cols-2 gap-3">
-          <PropertyConsensus label="Temperature" values={categories.temperature} total={totalProviders} />
-          <PropertyConsensus label="Contrast" values={categories.contrast} total={totalProviders} />
-          <PropertyConsensus label="Brightness" values={categories.brightness} total={totalProviders} />
-          <PropertyConsensus label="Saturation" values={categories.saturation} total={totalProviders} />
+          <PropertyConsensus label="Temperature" values={categories.temperature} total={totalModels} />
+          <PropertyConsensus label="Contrast" values={categories.contrast} total={totalModels} />
+          <PropertyConsensus label="Brightness" values={categories.brightness} total={totalModels} />
+          <PropertyConsensus label="Saturation" values={categories.saturation} total={totalModels} />
         </div>
       </div>
 
       {/* Tags by category */}
-      <CategoryConsensus label="Mood" values={categories.mood} total={totalProviders} />
-      <CategoryConsensus label="Style" values={categories.style} total={totalProviders} />
-      <CategoryConsensus label="Dominant Colors" values={categories.dominant_colors} total={totalProviders} />
-      <CategoryConsensus label="Seasonal" values={categories.seasonal} total={totalProviders} />
-      <CategoryConsensus label="Associations" values={categories.associations} total={totalProviders} />
+      <CategoryConsensus label="Mood" values={categories.mood} total={totalModels} />
+      <CategoryConsensus label="Style" values={categories.style} total={totalModels} />
+      <CategoryConsensus label="Dominant Colors" values={categories.dominant_colors} total={totalModels} />
+      <CategoryConsensus label="Seasonal" values={categories.seasonal} total={totalModels} />
+      <CategoryConsensus label="Associations" values={categories.associations} total={totalModels} />
     </div>
   );
 }
@@ -283,7 +294,7 @@ function PropertyConsensus({
   total,
 }: {
   label: string;
-  values: Map<string, TagWithProviders>;
+  values: Map<string, TagWithModels>;
   total: number;
 }) {
   const sorted = Array.from(values.entries()).sort((a, b) => b[1].count - a[1].count);
@@ -298,7 +309,7 @@ function PropertyConsensus({
       <span className="text-xs text-muted-foreground">{label}</span>
       <div className="flex items-center gap-1.5">
         <span
-          title={`Providers: ${winner[1].providers.join(", ")}`}
+          title={winner[1].models.join("\n")}
           className={cn(
             "text-xs font-medium px-1.5 py-0.5 rounded cursor-help",
             percentage >= 70
@@ -324,7 +335,7 @@ function CategoryConsensus({
   total,
 }: {
   label: string;
-  values: Map<string, TagWithProviders>;
+  values: Map<string, TagWithModels>;
   total: number;
 }) {
   const [showAll, setShowAll] = useState(false);
@@ -348,7 +359,7 @@ function CategoryConsensus({
         {highConsensus.map(([tag, data]) => (
           <span
             key={tag}
-            title={`Providers: ${data.providers.join(", ")}`}
+            title={data.models.join("\n")}
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-green-500/15 text-green-700 dark:text-green-400 cursor-help"
           >
             {tag}
@@ -360,7 +371,7 @@ function CategoryConsensus({
         {medConsensus.map(([tag, data]) => (
           <span
             key={tag}
-            title={`Providers: ${data.providers.join(", ")}`}
+            title={data.models.join("\n")}
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 cursor-help"
           >
             {tag}
@@ -372,7 +383,7 @@ function CategoryConsensus({
         {visibleLowConsensus.map(([tag, data]) => (
           <span
             key={tag}
-            title={`Providers: ${data.providers.join(", ")}`}
+            title={data.models.join("\n")}
             className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs bg-muted text-muted-foreground cursor-help"
           >
             {tag}
@@ -407,85 +418,97 @@ function ProviderListView({
     usage?: { inputTokens: number; outputTokens: number };
   }>;
 }) {
-  const [expandedProviders, setExpandedProviders] = useState<Set<number>>(new Set());
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
 
-  const toggleExpanded = (index: number) => {
-    setExpandedProviders((prev) => {
-      const next = new Set(prev);
-      if (next.has(index)) {
-        next.delete(index);
-      } else {
-        next.add(index);
-      }
-      return next;
-    });
-  };
+  // Group by model and aggregate
+  const modelGroups = new Map<string, typeof rawTags>();
+  for (const tag of rawTags) {
+    const model = tag.model.split("/").pop() ?? tag.model;
+    const existing = modelGroups.get(model) ?? [];
+    existing.push(tag);
+    modelGroups.set(model, existing);
+  }
+
+  const sortedModels = Array.from(modelGroups.entries()).sort((a, b) =>
+    a[0].localeCompare(b[0])
+  );
 
   return (
-    <div className="space-y-2">
-      {rawTags.map((tag, i) => {
-        const isExpanded = expandedProviders.has(i);
-        const hasError = !!tag.error;
-        const hasValidTags = isStructuredTags(tag.tags);
+    <div className="rounded-lg border border-border overflow-hidden">
+      <table className="w-full text-xs">
+        <thead className="bg-muted/50">
+          <tr>
+            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Model</th>
+            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Runs</th>
+            <th className="text-right px-3 py-2 font-medium text-muted-foreground">Tokens</th>
+            <th className="text-center px-3 py-2 font-medium text-muted-foreground w-12">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {sortedModels.map(([model, tags], groupIdx) => {
+            const successCount = tags.filter(t => !t.error && isStructuredTags(t.tags)).length;
+            const errorCount = tags.filter(t => t.error).length;
+            const totalTokens = tags.reduce((sum, t) => sum + (t.usage?.inputTokens ?? 0) + (t.usage?.outputTokens ?? 0), 0);
+            const isExpanded = expandedIndex === groupIdx;
 
-        return (
-          <div
-            key={i}
-            className={cn(
-              "rounded-lg border bg-card overflow-hidden",
-              hasError ? "border-destructive/50" : "border-border"
-            )}
-          >
-            {/* Header - always visible */}
-            <button
-              onClick={() => toggleExpanded(i)}
-              className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors"
-            >
-              <div className="flex items-center gap-2">
-                {isExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            return (
+              <tr
+                key={model}
+                onClick={() => setExpandedIndex(isExpanded ? null : groupIdx)}
+                className={cn(
+                  "cursor-pointer transition-colors",
+                  isExpanded ? "bg-muted/30" : "hover:bg-muted/20",
+                  errorCount > 0 && successCount === 0 && "bg-destructive/5"
                 )}
-                <span className="text-sm font-medium text-foreground">
-                  {tag.provider.replace("groq-", "").replace("google-", "").replace("openai-", "").replace("anthropic-", "")}
-                </span>
-                {hasError && (
-                  <AlertCircle className="h-3.5 w-3.5 text-destructive" />
-                )}
-                {hasValidTags && (
-                  <Check className="h-3.5 w-3.5 text-green-500" />
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {tag.usage && (
-                  <span className="text-[10px] text-muted-foreground">
-                    {tag.usage.inputTokens + tag.usage.outputTokens} tokens
-                  </span>
-                )}
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                  {tag.model.split("/").pop()?.slice(0, 20)}
-                </span>
-              </div>
-            </button>
-
-            {/* Expanded content */}
-            {isExpanded && (
-              <div className="px-3 pb-3 pt-0 border-t border-border">
-                {tag.error ? (
-                  <p className="text-sm text-destructive mt-2">{tag.error}</p>
-                ) : hasValidTags ? (
-                  <StructuredTagDisplay tags={tag.tags as StructuredTags} />
-                ) : (
-                  <pre className="text-xs text-foreground bg-muted p-2 rounded-md overflow-auto max-h-40 mt-2">
-                    {JSON.stringify(tag.tags, null, 2)}
-                  </pre>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+              >
+                <td className="px-3 py-2">
+                  <div className="flex items-center gap-2">
+                    {isExpanded ? (
+                      <ChevronDown className="h-3 w-3 text-muted-foreground shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" />
+                    )}
+                    <span className="font-medium text-foreground truncate">
+                      {model.replace("-versatile", "").replace("-20241022", "")}
+                    </span>
+                  </div>
+                  {isExpanded && tags.length > 0 && (
+                    <div className="mt-2 ml-5 space-y-1">
+                      {tags.map((tag, i) => (
+                        <div key={i} className="text-[10px] text-muted-foreground">
+                          {tag.error ? (
+                            <span className="text-destructive">Error: {tag.error.slice(0, 50)}...</span>
+                          ) : isStructuredTags(tag.tags) ? (
+                            <StructuredTagDisplay tags={tag.tags as StructuredTags} />
+                          ) : (
+                            <span>Invalid format</span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-right text-muted-foreground align-top">
+                  {tags.length}
+                </td>
+                <td className="px-3 py-2 text-right text-muted-foreground align-top">
+                  {totalTokens.toLocaleString()}
+                </td>
+                <td className="px-3 py-2 text-center align-top">
+                  {errorCount > 0 ? (
+                    <span className="inline-flex items-center gap-0.5 text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      {errorCount > 1 && <span>{errorCount}</span>}
+                    </span>
+                  ) : successCount > 0 ? (
+                    <Check className="h-3 w-3 text-green-500 mx-auto" />
+                  ) : null}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -496,16 +519,16 @@ function StructuredTagDisplay({ tags }: { tags: StructuredTags }) {
       {/* Properties row */}
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-700 dark:text-blue-400">
-          {tags.temperature}
+          {asString(tags.temperature)}
         </span>
         <span className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-400">
-          {tags.contrast} contrast
+          {asString(tags.contrast)} contrast
         </span>
         <span className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400">
-          {tags.brightness}
+          {asString(tags.brightness)}
         </span>
         <span className="px-1.5 py-0.5 rounded bg-pink-500/15 text-pink-700 dark:text-pink-400">
-          {tags.saturation}
+          {asString(tags.saturation)}
         </span>
       </div>
 
