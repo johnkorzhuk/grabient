@@ -5,7 +5,6 @@ import {
     getUserLikedPalettes,
     getUserLikedSeeds,
     getPaletteLikeInfo,
-    getPaletteTagsForSeed,
 } from "@/server-functions/palettes";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
@@ -111,42 +110,3 @@ export const paletteLikeInfoQueryOptions = (seed: string) =>
         staleTime: 1000 * 60 * 5,
     });
 
-export type PaletteTagResult = {
-    id: string;
-    seed: string;
-    provider: string;
-    model: string;
-    runNumber: number;
-    promptVersion: string | null;
-    tags: {
-        mood: string[];
-        style: string[];
-        dominant_colors: string[];
-        /** @deprecated Use dominant_colors instead */
-        color_family?: string[];
-        temperature: "warm" | "cool" | "neutral" | "cool-warm";
-        contrast: "high" | "medium" | "low";
-        brightness: "dark" | "light" | "medium" | "varied";
-        saturation: "vibrant" | "muted" | "mixed";
-        seasonal: string[];
-        associations: string[];
-    } | null;
-    error: string | null;
-    createdAt: Date;
-};
-
-export type PaletteTagsResponse = {
-    tags: PaletteTagResult[];
-    availableVersions: string[];
-};
-
-export const paletteTagsQueryOptions = (seed: string, promptVersion?: string) =>
-    queryOptions({
-        queryKey: ["palette-tags", seed, promptVersion],
-        queryFn: async () => {
-            const result = await getPaletteTagsForSeed({ data: { seed, promptVersion } });
-            return result as PaletteTagsResponse;
-        },
-        staleTime: 1000 * 60 * 10,
-        retry: false,
-    });

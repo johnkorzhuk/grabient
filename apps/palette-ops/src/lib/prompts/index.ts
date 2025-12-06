@@ -77,14 +77,14 @@ Return ONLY JSON.`;
  * This is computed at build time, so we use a sync hash function.
  */
 function hashString(str: string): string {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = (hash << 5) - hash + char;
-        hash = hash & hash;
-    }
-    const hex = Math.abs(hash).toString(16).padStart(8, "0");
-    return hex + hex.slice(0, 4);
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash;
+  }
+  const hex = Math.abs(hash).toString(16).padStart(8, "0");
+  return hex + hex.slice(0, 4);
 }
 
 /**

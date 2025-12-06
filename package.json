@@ -9,6 +9,7 @@
         "test:watch": "pnpm run --filter data-ops test:watch",
         "test:coverage": "pnpm run --filter data-ops test:coverage",
         "dev:user-application": "pnpm run --filter user-application dev",
+        "dev:palette-ops": "pnpm run --filter palette-ops dev",
         "deploy:staging": "pnpm run build:data-ops && pnpm run --filter user-application deploy",
         "deploy:production": "pnpm run build:data-ops && pnpm run --filter user-application deploy:production",
         "dev:data-service": "pnpm run --filter data-service dev",

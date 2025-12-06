@@ -63,7 +63,6 @@ import {
     userLikedSeedsQueryOptions,
 } from "@/queries/palettes";
 import { useQuery } from "@tanstack/react-query";
-import { PaletteTagsPanel } from "@/components/palettes/palette-tags-panel";
 
 const SEARCH_DEFAULTS = {
     style: "auto" as const,
@@ -535,9 +534,6 @@ function RouteComponent() {
                     </div>
                 </div>
 
-                <div className="hidden lg:block px-14 pb-8">
-                    <PaletteTagsPanel seed={seed} />
-                </div>
             </main>
 
             <Footer />

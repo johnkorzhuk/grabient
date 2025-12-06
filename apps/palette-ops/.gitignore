@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Local development
+.dev.vars
+.wrangler/
+
+# Build output
+dist/
+.vinxi/
+.output/
+
+# IDE
+.vscode/
+.idea/
+
+# TanStack
+.routeTree.gen.ts
+routeTree.gen.ts
+
+# Misc
+.DS_Store
+*.log
+
+# Data exports
+data-export/
