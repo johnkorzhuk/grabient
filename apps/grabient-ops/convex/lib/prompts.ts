@@ -57,8 +57,9 @@ Seasons: early spring, spring, late spring, summer, late summer, autumn, late au
 Holidays: christmas, halloween, easter, valentines, thanksgiving, new year, hanukkah, diwali, lunar new year, st patricks, independence day, mardi gras, cinco de mayo, oktoberfest, holi, carnival, day of the dead, kwanzaa, passover, rosh hashanah songkran, nowruz, vesak, baisakhi, obon, chuseok, canada day, australia day, chinese new year, labor day, memorial day, veterans day, mothers day, fathers day, earth day
 Leave empty if no clear seasonal association.
 
-associations (2-6 tags): Specific objects, places, subjects, materials, or experiences this palette evokes.
+associations (2-7 tags): Specific objects, places, materials, textures, environments, industries, time periods, activities, foods, natural phenomena, or cultures this palette evokes.
 Be specific and concrete - prefer "cherry blossom" over "flower", "marble" over "stone", "thunderstorm" over "weather".
+Examples: "cherry blossom", "art deco", "espresso", "nordic", "cyberpunk", "terracotta"
 Ask yourself what might an artist use this palette for?
 
 RULES:

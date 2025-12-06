@@ -15,6 +15,7 @@ import {
   PROVIDERS,
   PROVIDER_MODELS,
   vProvider,
+  vModel,
   type Provider,
   type Model,
 } from './lib/providers.types'
@@ -75,19 +76,16 @@ function parseCustomId(customId: string): { paletteId: Id<'palettes'>; analysisI
 // ============================================================================
 
 export const submitAnthropicBatch = internalAction({
-  args: { model: v.string(), cycle: v.number() },
-  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
+  args: { model: vModel, cycle: v.number(), analysisCount: v.number() },
+  handler: async (ctx, { model, cycle, analysisCount }): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
-
-    // Get config
-    const config = await ctx.runQuery(api.config.get, {})
 
     // Get palettes for this cycle
     const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
       provider: 'anthropic',
       model,
-      analysisCount: config.tagAnalysisCount,
+      analysisCount,
     })
 
     if (palettesForCycle.length === 0) {
@@ -111,7 +109,7 @@ export const submitAnthropicBatch = internalAction({
         messages: [
           {
             role: 'user',
-            content: JSON.stringify(req.colorData, null, 2),
+            content: JSON.stringify(req.colorData),
           },
         ],
       },
@@ -128,6 +126,7 @@ export const submitAnthropicBatch = internalAction({
       provider: 'anthropic',
       model,
       batchId: batch.id,
+      analysisCount,
       requestCount: requests.length,
     })
 
@@ -137,7 +136,7 @@ export const submitAnthropicBatch = internalAction({
 })
 
 export const cancelAnthropicBatch = internalAction({
-  args: { batchId: v.string(), model: v.optional(v.string()) },
+  args: { batchId: v.string(), model: v.optional(vModel) },
   returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY
@@ -177,7 +176,7 @@ export const cancelAnthropicBatch = internalAction({
 })
 
 export const pollAnthropicBatch = internalAction({
-  args: { batchId: v.string(), model: v.string() },
+  args: { batchId: v.string(), model: vModel },
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
@@ -294,17 +293,15 @@ export const pollAnthropicBatch = internalAction({
 const OPENAI_TEMP_1_ONLY_MODELS = ['gpt-5-nano']
 
 export const submitOpenAIBatch = internalAction({
-  args: { model: v.string(), cycle: v.number() },
-  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
+  args: { model: vModel, cycle: v.number(), analysisCount: v.number() },
+  handler: async (ctx, { model, cycle, analysisCount }): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) throw new Error('OPENAI_API_KEY not set')
-
-    const config = await ctx.runQuery(api.config.get, {})
 
     const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
       provider: 'openai',
       model,
-      analysisCount: config.tagAnalysisCount,
+      analysisCount,
     })
 
     if (palettesForCycle.length === 0) {
@@ -332,7 +329,7 @@ export const submitOpenAIBatch = internalAction({
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: TAGGING_SYSTEM_PROMPT },
-            { role: 'user', content: JSON.stringify(req.colorData, null, 2) },
+            { role: 'user', content: JSON.stringify(req.colorData) },
           ],
         },
       }),
@@ -358,6 +355,7 @@ export const submitOpenAIBatch = internalAction({
       provider: 'openai',
       model,
       batchId: batch.id,
+      analysisCount,
       requestCount: requests.length,
     })
 
@@ -367,7 +365,7 @@ export const submitOpenAIBatch = internalAction({
 })
 
 export const cancelOpenAIBatch = internalAction({
-  args: { batchId: v.string(), model: v.optional(v.string()) },
+  args: { batchId: v.string(), model: v.optional(vModel) },
   returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.OPENAI_API_KEY
@@ -407,7 +405,7 @@ export const cancelOpenAIBatch = internalAction({
 })
 
 export const pollOpenAIBatch = internalAction({
-  args: { batchId: v.string(), model: v.string() },
+  args: { batchId: v.string(), model: vModel },
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) throw new Error('OPENAI_API_KEY not set')
@@ -540,17 +538,15 @@ export const pollOpenAIBatch = internalAction({
 // ============================================================================
 
 export const submitGroqBatch = internalAction({
-  args: { model: v.string(), cycle: v.number() },
-  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
+  args: { model: vModel, cycle: v.number(), analysisCount: v.number() },
+  handler: async (ctx, { model, cycle, analysisCount }): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) throw new Error('GROQ_API_KEY not set')
-
-    const config = await ctx.runQuery(api.config.get, {})
 
     const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
       provider: 'groq',
       model,
-      analysisCount: config.tagAnalysisCount,
+      analysisCount,
     })
 
     if (palettesForCycle.length === 0) {
@@ -575,7 +571,7 @@ export const submitGroqBatch = internalAction({
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: TAGGING_SYSTEM_PROMPT },
-            { role: 'user', content: JSON.stringify(req.colorData, null, 2) },
+            { role: 'user', content: JSON.stringify(req.colorData) },
           ],
         },
       }),
@@ -609,6 +605,7 @@ export const submitGroqBatch = internalAction({
       provider: 'groq',
       model,
       batchId: groqBatchId,
+      analysisCount,
       requestCount: requests.length,
     })
 
@@ -618,7 +615,7 @@ export const submitGroqBatch = internalAction({
 })
 
 export const cancelGroqBatch = internalAction({
-  args: { batchId: v.string(), model: v.optional(v.string()) },
+  args: { batchId: v.string(), model: v.optional(vModel) },
   returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.GROQ_API_KEY
@@ -658,7 +655,7 @@ export const cancelGroqBatch = internalAction({
 })
 
 export const pollGroqBatch = internalAction({
-  args: { batchId: v.string(), model: v.string() },
+  args: { batchId: v.string(), model: vModel },
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) throw new Error('GROQ_API_KEY not set')
@@ -783,17 +780,15 @@ export const pollGroqBatch = internalAction({
 // Results are returned in the same order and can be correlated by key
 
 export const submitGoogleBatch = internalAction({
-  args: { model: v.string(), cycle: v.number() },
-  handler: async (ctx, { model, cycle }): Promise<{ batchId: string; requestCount: number } | null> => {
+  args: { model: vModel, cycle: v.number(), analysisCount: v.number() },
+  handler: async (ctx, { model, cycle, analysisCount }): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
     if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
-
-    const config = await ctx.runQuery(api.config.get, {})
 
     const palettesForCycle = await ctx.runQuery(api.backfill.getPalettesForNewCycle, {
       provider: 'google',
       model,
-      analysisCount: config.tagAnalysisCount,
+      analysisCount,
     })
 
     if (palettesForCycle.length === 0) {
@@ -806,42 +801,27 @@ export const submitGoogleBatch = internalAction({
 
     const ai = new GoogleGenAI({ apiKey })
 
-    // Build JSONL content with key for correlation (similar to OpenAI format)
-    // Google's file-based batch uses: { "key": "...", "request": { ... } }
-    const jsonlLines = requests.map((req) =>
-      JSON.stringify({
-        key: req.customId,
-        request: {
-          systemInstruction: { parts: [{ text: TAGGING_SYSTEM_PROMPT }] },
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: JSON.stringify(req.colorData, null, 2) }],
-            },
-          ],
-          generationConfig: {
-            temperature: 0.7,
-            responseMimeType: 'application/json',
-          },
+    // Build inline requests for Google batch API
+    // Using inline requests avoids file upload/download complexity
+    const inlinedRequests = requests.map((req) => ({
+      metadata: { key: req.customId },
+      contents: [
+        {
+          role: 'user' as const,
+          parts: [{ text: JSON.stringify(req.colorData) }],
         },
-      }),
-    )
+      ],
+      config: {
+        systemInstruction: TAGGING_SYSTEM_PROMPT,
+        temperature: 0.7,
+        responseMimeType: 'application/json',
+      },
+    }))
 
-    // Upload the JSONL file
-    const jsonlContent = jsonlLines.join('\n')
-    const uploadedFile = await ai.files.upload({
-      file: new Blob([jsonlContent], { type: 'application/jsonl' }),
-      config: { mimeType: 'application/jsonl' },
-    })
-
-    if (!uploadedFile.name) {
-      throw new Error('Failed to upload batch input file to Google')
-    }
-
-    // Create batch job with file reference
+    // Create batch job with inline requests
     const batchJob = await ai.batches.create({
       model,
-      src: uploadedFile.name,
+      src: inlinedRequests,
       config: {
         displayName: `grabient-tags-cycle-${cycle}-${model}`,
       },
@@ -851,12 +831,19 @@ export const submitGoogleBatch = internalAction({
       throw new Error('Failed to create Google batch - no name returned')
     }
 
+    console.log(`Google batch job created:`, {
+      name: batchJob.name,
+      state: batchJob.state,
+      model: batchJob.model,
+    })
+
     // Record batch in database
     await ctx.runMutation(internal.backfill.createBatch, {
       cycle,
       provider: 'google',
       model,
       batchId: batchJob.name,
+      analysisCount,
       requestCount: requests.length,
     })
 
@@ -866,7 +853,7 @@ export const submitGoogleBatch = internalAction({
 })
 
 export const cancelGoogleBatch = internalAction({
-  args: { batchId: v.string(), model: v.optional(v.string()) },
+  args: { batchId: v.string(), model: v.optional(vModel) },
   returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
@@ -901,8 +888,18 @@ export const cancelGoogleBatch = internalAction({
   },
 })
 
-export const pollGoogleBatch = internalAction({
-  args: { batchId: v.string(), model: v.string() },
+/**
+ * Recheck a cancelled Google batch and retrieve any partial results.
+ * Cancelled batches may still have completed responses that can be processed.
+ */
+export const recheckCancelledGoogleBatch = internalAction({
+  args: { batchId: v.string(), model: vModel },
+  returns: v.object({
+    status: v.string(),
+    successCount: v.optional(v.number()),
+    failCount: v.optional(v.number()),
+    totalResponses: v.optional(v.number()),
+  }),
   handler: async (ctx, { batchId, model }) => {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
     if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
@@ -910,68 +907,219 @@ export const pollGoogleBatch = internalAction({
     const ai = new GoogleGenAI({ apiKey })
     const batch = await ai.batches.get({ name: batchId })
 
-    console.log(`Google batch ${batchId} status: ${batch.state}`)
+    const stats = batch.completionStats
+    console.log(`Rechecking cancelled Google batch ${batchId}:`, {
+      state: batch.state,
+      successfulCount: stats?.successfulCount,
+      failedCount: stats?.failedCount,
+      incompleteCount: stats?.incompleteCount,
+    })
+
+    // Check for any inline responses (partial results)
+    const inlinedResponses = batch.dest?.inlinedResponses
+
+    if (!inlinedResponses || inlinedResponses.length === 0) {
+      console.log(`No partial results available for cancelled batch ${batchId}`)
+      return { status: 'no_results', totalResponses: 0 }
+    }
+
+    console.log(`Found ${inlinedResponses.length} partial responses to process`)
+
+    let successCount = 0
+    let failCount = 0
+
+    // Get source requests to match responses with customIds
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const batchWithSource = batch as any
+
+    for (let i = 0; i < inlinedResponses.length; i++) {
+      const inlinedResponse = inlinedResponses[i]
+
+      try {
+        const responseData = inlinedResponse.response
+        const errorData = inlinedResponse.error
+
+        // Get customId from batch source
+        let customId: string | undefined
+        if (batchWithSource.src?.inlinedRequests?.[i]?.metadata?.key) {
+          customId = batchWithSource.src.inlinedRequests[i].metadata.key
+        }
+
+        if (!customId) {
+          console.error(`No customId for response at index ${i}`)
+          failCount++
+          continue
+        }
+
+        const { paletteId, analysisIndex } = parseCustomId(customId)
+
+        // Look up the palette to get the seed
+        const palette = await ctx.runQuery(internal.palettes.getById, { id: paletteId })
+        if (!palette) {
+          console.error(`Palette not found for id ${paletteId}`)
+          failCount++
+          continue
+        }
+        const seed = palette.seed
+
+        // Check for error response
+        if (errorData) {
+          await ctx.runMutation(internal.backfill.storeTagResult, {
+            seed,
+            provider: 'google',
+            model,
+            analysisIndex,
+            promptVersion: CURRENT_PROMPT_VERSION,
+            tags: null,
+            error: JSON.stringify(errorData),
+          })
+          failCount++
+          continue
+        }
+
+        if (!responseData) {
+          // No response yet - this request wasn't processed before cancellation
+          // Don't store an error, just skip
+          continue
+        }
+
+        // Extract text from candidates
+        const text = responseData.text ?? ''
+        const jsonText = extractJson(text)
+        const parsed = JSON.parse(jsonText)
+        const normalized = normalizeTagResponse(parsed)
+        const tags = tagResponseSchema.parse(normalized)
+
+        // Extract usage if available
+        const usageMetadata = responseData.usageMetadata
+        await ctx.runMutation(internal.backfill.storeTagResult, {
+          seed,
+          provider: 'google',
+          model,
+          analysisIndex,
+          promptVersion: CURRENT_PROMPT_VERSION,
+          tags,
+          usage: usageMetadata
+            ? {
+                inputTokens: usageMetadata.promptTokenCount ?? 0,
+                outputTokens: usageMetadata.candidatesTokenCount ?? 0,
+              }
+            : undefined,
+        })
+        successCount++
+      } catch (e) {
+        console.error(`Error processing partial response:`, e)
+        failCount++
+      }
+    }
+
+    // Update batch status with partial results count
+    await ctx.runMutation(internal.backfill.updateBatchStatus, {
+      batchId,
+      status: 'completed',
+      completedCount: successCount,
+      failedCount: failCount,
+      error: `Partial results from cancelled batch`,
+    })
+
+    console.log(`Processed ${successCount} successful, ${failCount} failed from cancelled batch`)
+    return {
+      status: 'partial_results',
+      successCount,
+      failCount,
+      totalResponses: inlinedResponses.length,
+    }
+  },
+})
+
+export const pollGoogleBatch = internalAction({
+  args: { batchId: v.string(), model: vModel },
+  handler: async (ctx, { batchId, model }) => {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+    const ai = new GoogleGenAI({ apiKey })
+    const batch = await ai.batches.get({ name: batchId })
+
+    // Log full batch info for debugging
+    const stats = batch.completionStats
+    console.log(`Google batch ${batchId}:`, {
+      state: batch.state,
+      successfulCount: stats?.successfulCount,
+      failedCount: stats?.failedCount,
+      incompleteCount: stats?.incompleteCount,
+      createTime: batch.createTime,
+      updateTime: batch.updateTime,
+    })
 
     // Processing states
     if (batch.state === 'JOB_STATE_PENDING' || batch.state === 'JOB_STATE_RUNNING') {
+      const completedCount = parseInt(stats?.successfulCount ?? '0', 10)
+      const failedCount = parseInt(stats?.failedCount ?? '0', 10)
+
       await ctx.runMutation(internal.backfill.updateBatchStatus, {
         batchId,
         status: 'processing',
-        completedCount: parseInt(batch.completionStats?.successfulCount ?? '0', 10),
-        failedCount: parseInt(batch.completionStats?.failedCount ?? '0', 10),
+        completedCount,
+        failedCount,
       })
-      return { status: 'processing' as const }
+      return { status: 'processing' as const, completedCount, failedCount }
     }
 
     if (batch.state === 'JOB_STATE_SUCCEEDED') {
       let successCount = 0
       let failCount = 0
 
-      // For file-based batches, results are in a file
-      // The dest.fileName contains the output file name
-      const outputFileName = batch.dest?.fileName
-      if (!outputFileName) {
-        console.error('No output file in Google batch result')
+      // For inline batches, results are in dest.inlinedResponses
+      const inlinedResponses = batch.dest?.inlinedResponses
+      console.log(`Google batch ${batchId} completed with ${inlinedResponses?.length ?? 0} responses`)
+
+      if (!inlinedResponses || inlinedResponses.length === 0) {
+        console.error('No inlined responses in Google batch result')
         await ctx.runMutation(internal.backfill.updateBatchStatus, {
           batchId,
           status: 'failed',
-          error: 'No output file in completed batch',
+          error: 'No inlined responses in completed batch',
         })
         return { status: 'failed' as const }
       }
 
-      // Download the results file
-      // The file is JSONL with each line: { "key": "...", "response": { ... } } or { "key": "...", "error": { ... } }
-      const fileInfo = await ai.files.get({ name: outputFileName })
-      if (!fileInfo.uri) {
-        console.error('No URI for output file')
-        await ctx.runMutation(internal.backfill.updateBatchStatus, {
-          batchId,
-          status: 'failed',
-          error: 'No URI for output file',
-        })
-        return { status: 'failed' as const }
-      }
+      // We need to get the original request metadata to correlate responses
+      // The responses are in the same order as the input requests
+      // But we need the metadata (customId) from the source
+      // For now, we'll need to re-fetch the batch to get source info
+      // or store the request order in our database
 
-      // Fetch the file content
-      const response = await fetch(fileInfo.uri, {
-        headers: { 'x-goog-api-key': apiKey },
-      })
-      if (!response.ok) {
-        throw new Error(`Failed to download results file: ${response.status}`)
-      }
-      const content = await response.text()
-      const lines = content.trim().split('\n')
-      console.log(`Google batch ${batchId} processing ${lines.length} results`)
-
-      for (const line of lines) {
-        if (!line.trim()) continue
+      // Actually, looking at the SDK, inlinedResponses should have metadata
+      // Let's process them directly
+      for (let i = 0; i < inlinedResponses.length; i++) {
+        const inlinedResponse = inlinedResponses[i]
 
         try {
-          const result = JSON.parse(line)
-          const customId = result.key
+          // The response object from InlinedResponse
+          const responseData = inlinedResponse.response
+          const errorData = inlinedResponse.error
+
+          // We need to get the customId from the original request
+          // Since responses are in order, we need to track request order
+          // For now, let's see if there's metadata in the response
+
+          // Actually, looking at the batch source, we stored metadata with key
+          // But inlinedResponses don't have the metadata - they're just responses in order
+          // We need to refetch the batch with source to get the order
+
+          // Let's check if the batch has source info
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const batchWithSource = batch as any
+
+          // Try to get customId from batch source if available
+          let customId: string | undefined
+          if (batchWithSource.src?.inlinedRequests?.[i]?.metadata?.key) {
+            customId = batchWithSource.src.inlinedRequests[i].metadata.key
+          }
+
           if (!customId) {
-            console.error('Missing key in Google batch response line')
+            console.error(`No customId for response at index ${i}`)
             failCount++
             continue
           }
@@ -988,7 +1136,7 @@ export const pollGoogleBatch = internalAction({
           const seed = palette.seed
 
           // Check for error response
-          if (result.error) {
+          if (errorData) {
             await ctx.runMutation(internal.backfill.storeTagResult, {
               seed,
               provider: 'google',
@@ -996,14 +1144,12 @@ export const pollGoogleBatch = internalAction({
               analysisIndex,
               promptVersion: CURRENT_PROMPT_VERSION,
               tags: null,
-              error: JSON.stringify(result.error),
+              error: JSON.stringify(errorData),
             })
             failCount++
             continue
           }
 
-          // Extract text from response
-          const responseData = result.response
           if (!responseData) {
             await ctx.runMutation(internal.backfill.storeTagResult, {
               seed,
@@ -1019,8 +1165,7 @@ export const pollGoogleBatch = internalAction({
           }
 
           // Extract text from candidates
-          const text =
-            responseData.candidates?.[0]?.content?.parts?.[0]?.text ?? responseData.text ?? ''
+          const text = responseData.text ?? ''
           const jsonText = extractJson(text)
           const parsed = JSON.parse(jsonText)
           const normalized = normalizeTagResponse(parsed)
@@ -1085,20 +1230,27 @@ export const pollGoogleBatch = internalAction({
  * Start backfill for selected providers/models.
  * Creates a new cycle - all existing tag data is preserved, new tags are added with incremented indices.
  * @param selectedModels - Optional array of model names to run. If not provided, runs all models.
+ * @param analysisCount - How many times each palette should be tagged by each model. Defaults to 1.
  */
 export const startBackfill = action({
   args: {
     selectedModels: v.optional(v.array(v.string())),
+    analysisCount: v.optional(v.number()),
   },
-  handler: async (ctx, { selectedModels }): Promise<{
+  handler: async (ctx, { selectedModels, analysisCount = 1 }): Promise<{
     cycle: number
     batchesCreated: number
     totalRequests: number
     results: Array<{ provider: Provider; model: Model; batchId: string | null; requestCount: number }>
   }> => {
+    // Validate analysisCount
+    if (analysisCount < 1 || analysisCount > 20) {
+      throw new Error('analysisCount must be between 1 and 20')
+    }
+
     // Get next cycle number
     const cycle: number = await ctx.runQuery(internal.backfill.getNextCycle, {})
-    console.log(`Starting new backfill cycle: ${cycle}`)
+    console.log(`Starting new backfill cycle: ${cycle} (analysisCount: ${analysisCount})`)
 
     // Helper to check if a model should be included
     const shouldInclude = (model: string) => !selectedModels || selectedModels.includes(model)
@@ -1115,16 +1267,16 @@ export const startBackfill = action({
 
         switch (provider) {
           case 'anthropic':
-            result = await ctx.runAction(internal.backfillActions.submitAnthropicBatch, { model, cycle })
+            result = await ctx.runAction(internal.backfillActions.submitAnthropicBatch, { model, cycle, analysisCount })
             break
           case 'openai':
-            result = await ctx.runAction(internal.backfillActions.submitOpenAIBatch, { model, cycle })
+            result = await ctx.runAction(internal.backfillActions.submitOpenAIBatch, { model, cycle, analysisCount })
             break
           case 'groq':
-            result = await ctx.runAction(internal.backfillActions.submitGroqBatch, { model, cycle })
+            result = await ctx.runAction(internal.backfillActions.submitGroqBatch, { model, cycle, analysisCount })
             break
           case 'google':
-            result = await ctx.runAction(internal.backfillActions.submitGoogleBatch, { model, cycle })
+            result = await ctx.runAction(internal.backfillActions.submitGoogleBatch, { model, cycle, analysisCount })
             break
         }
 
@@ -1156,7 +1308,7 @@ export const cancelBatch = action({
   args: {
     provider: vProvider,
     batchId: v.string(),
-    model: v.optional(v.string()),
+    model: v.optional(vModel),
   },
   returns: v.object({ success: v.boolean(), actualStatus: v.optional(v.string()) }),
   handler: async (ctx, { provider, batchId, model }): Promise<{ success: boolean; actualStatus?: string }> => {
@@ -1174,6 +1326,42 @@ export const cancelBatch = action({
 })
 
 /**
+ * Recheck a cancelled batch to retrieve any partial results that completed before cancellation.
+ * Currently only supports Google batches (other providers don't provide partial results).
+ */
+export const recheckCancelledBatch = action({
+  args: {
+    provider: vProvider,
+    batchId: v.string(),
+    model: vModel,
+  },
+  returns: v.object({
+    status: v.string(),
+    successCount: v.optional(v.number()),
+    failCount: v.optional(v.number()),
+    totalResponses: v.optional(v.number()),
+    message: v.optional(v.string()),
+  }),
+  handler: async (ctx, { provider, batchId, model }): Promise<{
+    status: string;
+    successCount?: number;
+    failCount?: number;
+    totalResponses?: number;
+    message?: string;
+  }> => {
+    switch (provider) {
+      case 'google':
+        return await ctx.runAction(internal.backfillActions.recheckCancelledGoogleBatch, { batchId, model })
+      default:
+        return {
+          status: 'unsupported',
+          message: `Recheck is not supported for ${provider} batches. Only Google provides partial results for cancelled batches.`,
+        }
+    }
+  },
+})
+
+/**
  * Poll all active batches
  * Call this periodically to check batch status and fetch results
  */
@@ -1182,10 +1370,15 @@ export const pollActiveBatches = action({
   handler: async (ctx) => {
     const activeBatches = await ctx.runQuery(api.backfill.getActiveBatches, {})
 
-    const results: Array<{ batchId: string; provider: string; model: string; status: string }> = []
+    const results: Array<{ batchId: string; provider: Provider; model: Model; status: string }> = []
 
     for (const batch of activeBatches) {
-      const model = batch.model ?? 'unknown'
+      // Skip legacy batches without model - they can't be processed
+      if (!batch.model) {
+        console.warn(`Skipping batch ${batch.batchId} - no model specified (legacy batch)`)
+        continue
+      }
+
       try {
         let pollResult: { status: string }
 
@@ -1193,25 +1386,25 @@ export const pollActiveBatches = action({
           case 'anthropic':
             pollResult = await ctx.runAction(internal.backfillActions.pollAnthropicBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           case 'openai':
             pollResult = await ctx.runAction(internal.backfillActions.pollOpenAIBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           case 'groq':
             pollResult = await ctx.runAction(internal.backfillActions.pollGroqBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           case 'google':
             pollResult = await ctx.runAction(internal.backfillActions.pollGoogleBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           default:
@@ -1221,7 +1414,7 @@ export const pollActiveBatches = action({
         results.push({
           batchId: batch.batchId,
           provider: batch.provider,
-          model,
+          model: batch.model,
           status: pollResult.status,
         })
       } catch (e) {
@@ -1229,7 +1422,7 @@ export const pollActiveBatches = action({
         results.push({
           batchId: batch.batchId,
           provider: batch.provider,
-          model,
+          model: batch.model,
           status: 'error',
         })
       }
@@ -1248,13 +1441,8 @@ export const pollActiveBatches = action({
  */
 export const pollActiveBatchesInternal = internalAction({
   args: {},
-  handler: async (ctx): Promise<{ polled: number; completed?: number; processing?: number; errors?: number }> => {
-    const activeBatches = await ctx.runQuery(api.backfill.getActiveBatches, {}) as Array<{
-      batchId: string
-      provider: string
-      model?: string
-      status: string
-    }>
+  handler: async (ctx): Promise<{ polled: number; completed?: number; processing?: number; errors?: number; skipped?: number }> => {
+    const activeBatches = await ctx.runQuery(api.backfill.getActiveBatches, {})
 
     if (activeBatches.length === 0) {
       console.log('No active batches to poll')
@@ -1266,9 +1454,16 @@ export const pollActiveBatchesInternal = internalAction({
     let completed = 0
     let processing = 0
     let errors = 0
+    let skipped = 0
 
     for (const batch of activeBatches) {
-      const model = batch.model ?? 'unknown'
+      // Skip legacy batches without model - they can't be processed
+      if (!batch.model) {
+        console.warn(`Skipping batch ${batch.batchId} - no model specified (legacy batch)`)
+        skipped++
+        continue
+      }
+
       try {
         let pollResult: { status: string }
 
@@ -1276,25 +1471,25 @@ export const pollActiveBatchesInternal = internalAction({
           case 'anthropic':
             pollResult = await ctx.runAction(internal.backfillActions.pollAnthropicBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           case 'openai':
             pollResult = await ctx.runAction(internal.backfillActions.pollOpenAIBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           case 'groq':
             pollResult = await ctx.runAction(internal.backfillActions.pollGroqBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           case 'google':
             pollResult = await ctx.runAction(internal.backfillActions.pollGoogleBatch, {
               batchId: batch.batchId,
-              model,
+              model: batch.model,
             })
             break
           default:
@@ -1309,8 +1504,8 @@ export const pollActiveBatchesInternal = internalAction({
       }
     }
 
-    console.log(`Poll results: ${completed} completed, ${processing} processing, ${errors} errors`)
-    return { polled: activeBatches.length, completed, processing, errors }
+    console.log(`Poll results: ${completed} completed, ${processing} processing, ${errors} errors, ${skipped} skipped`)
+    return { polled: activeBatches.length - skipped, completed, processing, errors, skipped }
   },
 })
 

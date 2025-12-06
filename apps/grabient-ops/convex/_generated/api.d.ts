@@ -10,7 +10,6 @@
 
 import type * as backfill from "../backfill.js";
 import type * as backfillActions from "../backfillActions.js";
-import type * as config from "../config.js";
 import type * as crons from "../crons.js";
 import type * as lib_colorData from "../lib/colorData.js";
 import type * as lib_prompts from "../lib/prompts.js";
@@ -29,7 +28,6 @@ import type {
 declare const fullApi: ApiFromModules<{
   backfill: typeof backfill;
   backfillActions: typeof backfillActions;
-  config: typeof config;
   crons: typeof crons;
   "lib/colorData": typeof lib_colorData;
   "lib/prompts": typeof lib_prompts;

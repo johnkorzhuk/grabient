@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery, useAction, useMutation } from "convex/react";
+import { useQuery, useAction } from "convex/react";
 import { api } from "../../../convex/_generated/api";
+import type { Model, Provider } from "../../../convex/lib/providers.types";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "~/lib/utils";
 import {
@@ -17,6 +18,7 @@ import {
   ChevronRight,
   Plus,
   ArrowLeft,
+  RefreshCw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_layout/")({
@@ -170,25 +172,13 @@ function StatusRow({
 
 // --- Config Panel ---
 
-function ConfigPanel() {
-  const config = useQuery(api.config.get, {});
-  const setAnalysisCount = useMutation(api.config.setTagAnalysisCount);
-  const [localCount, setLocalCount] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (config && localCount === null) {
-      setLocalCount(config.tagAnalysisCount);
-    }
-  }, [config, localCount]);
-
-  const handleSave = async () => {
-    if (localCount !== null) {
-      await setAnalysisCount({ count: localCount });
-    }
-  };
-
-  const hasChanges = config && localCount !== config.tagAnalysisCount;
-
+function AnalysisCountSelector({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (count: number) => void;
+}) {
   return (
     <div className="mb-4 p-3 rounded-md bg-muted/50">
       <div className="flex items-center justify-between">
@@ -196,33 +186,23 @@ function ConfigPanel() {
           <Settings className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm text-muted-foreground">Analysis Count</span>
         </div>
-        <div className="flex items-center gap-2">
-          <select
-            value={localCount ?? 1}
-            onChange={(e) => setLocalCount(Number(e.target.value))}
-            className={cn(
-              "px-2 py-1 text-sm rounded border border-input bg-background",
-              "focus:outline-none focus:ring-2 focus:ring-ring/70"
-            )}
-          >
-            {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20].map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
-          {hasChanges && (
-            <button
-              onClick={handleSave}
-              className="px-2 py-1 text-xs rounded bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              Save
-            </button>
+        <select
+          value={value}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className={cn(
+            "px-2 py-1 text-sm rounded border border-input bg-background",
+            "focus:outline-none focus:ring-2 focus:ring-ring/70"
           )}
-        </div>
+        >
+          {[1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
       </div>
       <p className="text-xs text-muted-foreground mt-1">
-        Each palette will be tagged {localCount ?? 1}× per provider
+        Each palette will be tagged {value}× per model
       </p>
     </div>
   );
@@ -231,11 +211,24 @@ function ConfigPanel() {
 // --- Batches Display ---
 
 function BatchesSection() {
-  const recentBatches = useQuery(api.backfill.getRecentBatches, { limit: 15 });
-  const cancelBatch = useAction(api.backfillActions.cancelBatch);
-  const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(null);
+  const allCycles = useQuery(api.backfill.getAllCycles, {});
+  const currentCycle = useQuery(api.backfill.getCurrentCycle, {});
+  const [selectedCycle, setSelectedCycle] = useState<number | undefined>(undefined);
 
-  const handleCancel = async (provider: "anthropic" | "openai" | "groq" | "google", batchId: string, model: string) => {
+  // Use selected cycle or default to current
+  const effectiveCycle = selectedCycle ?? currentCycle;
+
+  const recentBatches = useQuery(api.backfill.getRecentBatches, {
+    limit: 15,
+    cycle: effectiveCycle,
+  });
+  const cancelBatch = useAction(api.backfillActions.cancelBatch);
+  const recheckBatch = useAction(api.backfillActions.recheckCancelledBatch);
+  const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(null);
+  const [recheckingBatchId, setRecheckingBatchId] = useState<string | null>(null);
+  const [recheckResult, setRecheckResult] = useState<{ batchId: string; message: string } | null>(null);
+
+  const handleCancel = async (provider: Provider, batchId: string, model?: Model) => {
     setCancellingBatchId(batchId);
     try {
       await cancelBatch({ provider, batchId, model });
@@ -246,7 +239,48 @@ function BatchesSection() {
     }
   };
 
-  if (!recentBatches || recentBatches.length === 0) return null;
+  const handleRecheck = async (provider: Provider, batchId: string, model: Model) => {
+    setRecheckingBatchId(batchId);
+    setRecheckResult(null);
+    try {
+      const result = await recheckBatch({ provider, batchId, model });
+      if (result.status === "partial_results") {
+        setRecheckResult({
+          batchId,
+          message: `Retrieved ${result.successCount} results (${result.failCount} failed)`,
+        });
+      } else if (result.status === "no_results") {
+        setRecheckResult({ batchId, message: "No partial results available" });
+      } else if (result.message) {
+        setRecheckResult({ batchId, message: result.message });
+      }
+      setTimeout(() => setRecheckResult(null), 5000);
+    } catch (err) {
+      console.error("Failed to recheck batch:", err);
+      setRecheckResult({ batchId, message: `Error: ${err instanceof Error ? err.message : String(err)}` });
+    } finally {
+      setRecheckingBatchId(null);
+    }
+  };
+
+  if (!recentBatches || recentBatches.length === 0) {
+    // Still show cycle selector even if no batches in selected cycle
+    if (allCycles && allCycles.length > 1) {
+      return (
+        <div className="mb-4">
+          <CycleSelector
+            cycles={allCycles}
+            selectedCycle={effectiveCycle}
+            onSelectCycle={setSelectedCycle}
+          />
+          <div className="p-3 rounded-md bg-muted/50 text-center text-sm text-muted-foreground">
+            No batches in this cycle
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
 
   const activeBatches = recentBatches.filter(
     (b) => b.status === "pending" || b.status === "processing"
@@ -268,8 +302,9 @@ function BatchesSection() {
     }
   };
 
-  const getModelShortName = (model: string) => {
+  const getModelShortName = (model?: string) => {
     // Shorten model names for display
+    if (!model) return "unknown";
     if (model.includes("/")) return model.split("/").pop() ?? model;
     return model.replace("-20241022", "").replace("-versatile", "");
   };
@@ -281,6 +316,15 @@ function BatchesSection() {
 
   return (
     <div className="mb-4">
+      {/* Cycle selector */}
+      {allCycles && allCycles.length > 1 && (
+        <CycleSelector
+          cycles={allCycles}
+          selectedCycle={effectiveCycle}
+          onSelectCycle={setSelectedCycle}
+        />
+      )}
+
       {/* Active batches */}
       {activeBatches.length > 0 && (
         <div className="p-3 rounded-md bg-blue-500/10 border border-blue-500/20 mb-3">
@@ -372,16 +416,117 @@ function BatchesSection() {
                       ? `${batch.completedCount} done${batch.failedCount > 0 ? `, ${batch.failedCount} failed` : ""}`
                       : batch.error ?? "Failed"}
                   </span>
-                  <span className="text-muted-foreground">
-                    {batch.completedAt
-                      ? formatTime(batch.completedAt)
-                      : formatTime(batch.createdAt)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-muted-foreground">
+                      {batch.completedAt
+                        ? formatTime(batch.completedAt)
+                        : formatTime(batch.createdAt)}
+                    </span>
+                    {/* Recheck button for failed Google batches */}
+                    {batch.status === "failed" && batch.provider === "google" && batch.model && (
+                      <button
+                        onClick={() => handleRecheck(batch.provider, batch.batchId, batch.model!)}
+                        disabled={recheckingBatchId === batch.batchId}
+                        className={cn(
+                          "p-1 rounded hover:bg-primary/20 text-primary",
+                          "disabled:opacity-50 disabled:cursor-not-allowed",
+                          "transition-colors"
+                        )}
+                        title="Recheck for partial results"
+                      >
+                        {recheckingBatchId === batch.batchId ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <RefreshCw className="h-3 w-3" />
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
           </div>
+          {/* Recheck result message */}
+          {recheckResult && (
+            <div className="mt-2 p-2 rounded bg-primary/10 text-primary text-xs">
+              {recheckResult.message}
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// --- Cycle Selector ---
+
+function CycleSelector({
+  cycles,
+  selectedCycle,
+  onSelectCycle,
+}: {
+  cycles: number[];
+  selectedCycle: number | undefined;
+  onSelectCycle: (cycle: number | undefined) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const currentCycle = cycles[0]; // cycles are sorted descending
+
+  return (
+    <div className="mb-3" ref={dropdownRef}>
+      <div className="relative">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className={cn(
+            "w-full px-3 py-2 rounded-md text-sm flex items-center justify-between",
+            "border border-input bg-background hover:bg-accent",
+            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
+          )}
+        >
+          <span>
+            Cycle {selectedCycle ?? currentCycle}
+            {(selectedCycle ?? currentCycle) === currentCycle && (
+              <span className="ml-1 text-xs text-muted-foreground">(latest)</span>
+            )}
+          </span>
+          <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
+        </button>
+
+        {isOpen && (
+          <div className="absolute z-10 mt-1 w-full rounded-md border border-input bg-background shadow-lg max-h-48 overflow-y-auto">
+            {cycles.map((cycle) => (
+              <button
+                key={cycle}
+                onClick={() => {
+                  onSelectCycle(cycle === currentCycle ? undefined : cycle);
+                  setIsOpen(false);
+                }}
+                className={cn(
+                  "w-full px-3 py-2 text-sm text-left hover:bg-accent flex items-center justify-between",
+                  (selectedCycle ?? currentCycle) === cycle && "bg-accent"
+                )}
+              >
+                <span>Cycle {cycle}</span>
+                {cycle === currentCycle && (
+                  <span className="text-xs text-muted-foreground">latest</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -552,7 +697,7 @@ function ErrorsSection() {
 function BackfillControlPanel() {
   const status = useQuery(api.backfill.getBackfillStatus, {});
   const currentCycle = useQuery(api.backfill.getCurrentCycle, {});
-  const providerModels = useQuery(api.config.getProviderModels, {});
+  const providerModels = useQuery(api.backfill.getProviderModels, {});
   const startBackfill = useAction(api.backfillActions.startBackfill);
   const pollBatches = useAction(api.backfillActions.pollActiveBatches);
 
@@ -561,6 +706,7 @@ function BackfillControlPanel() {
   const [lastResult, setLastResult] = useState<string | null>(null);
   const [isNewJobMode, setIsNewJobMode] = useState(false);
   const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set());
+  const [analysisCount, setAnalysisCount] = useState(1);
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const isPollingRef = useRef(false);
 
@@ -615,13 +761,14 @@ function BackfillControlPanel() {
 
     try {
       const modelsToRun = selectedModels.size > 0 ? Array.from(selectedModels) : undefined;
-      const result = await startBackfill({ selectedModels: modelsToRun });
+      const result = await startBackfill({ selectedModels: modelsToRun, analysisCount });
       setLastResult(
         `Cycle ${result.cycle}: Started ${result.batchesCreated} batches with ${result.totalRequests.toLocaleString()} requests`
       );
       // Exit new job mode and reset selection after starting
       setIsNewJobMode(false);
       setSelectedModels(new Set());
+      setAnalysisCount(1); // Reset to default
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -719,8 +866,8 @@ function BackfillControlPanel() {
           </div>
         </div>
 
-        {/* Config */}
-        <ConfigPanel />
+        {/* Analysis Count */}
+        <AnalysisCountSelector value={analysisCount} onChange={setAnalysisCount} />
 
         {/* Model Selection */}
         <div className="space-y-3 mb-4">

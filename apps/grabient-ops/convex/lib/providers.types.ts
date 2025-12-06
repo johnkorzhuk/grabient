@@ -11,25 +11,46 @@ export const PROVIDERS = ['anthropic', 'openai', 'groq', 'google'] as const
 export type Provider = (typeof PROVIDERS)[number]
 
 /**
- * Models by provider - the source of truth for all model configurations
+ * Model definitions by provider
  */
-export const PROVIDER_MODELS = {
-  anthropic: ['claude-3-5-haiku-20241022'],
-  openai: ['gpt-4o-mini', 'gpt-5-nano'],
-  groq: [
-    'llama-3.3-70b-versatile',
-    'meta-llama/llama-4-scout-17b-16e-instruct',
-    'qwen/qwen3-32b',
-    'openai/gpt-oss-120b',
-    'openai/gpt-oss-20b',
-  ],
-  google: ['gemini-2.0-flash', 'gemini-2.5-flash-lite'],
-} as const satisfies Record<Provider, readonly string[]>
+export const ANTHROPIC_MODELS = ['claude-3-5-haiku-20241022'] as const
+export const OPENAI_MODELS = ['gpt-4o-mini', 'gpt-5-nano'] as const
+export const GROQ_MODELS = [
+  'llama-3.3-70b-versatile',
+  'meta-llama/llama-4-scout-17b-16e-instruct',
+  'qwen/qwen3-32b',
+  'openai/gpt-oss-120b',
+  'openai/gpt-oss-20b',
+] as const
+export const GOOGLE_MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash-lite'] as const
+
+/**
+ * Model union types by provider
+ */
+export type AnthropicModel = (typeof ANTHROPIC_MODELS)[number]
+export type OpenAIModel = (typeof OPENAI_MODELS)[number]
+export type GroqModel = (typeof GROQ_MODELS)[number]
+export type GoogleModel = (typeof GOOGLE_MODELS)[number]
 
 /**
  * All model names as a union type
  */
-export type Model = (typeof PROVIDER_MODELS)[Provider][number]
+export type Model = AnthropicModel | OpenAIModel | GroqModel | GoogleModel
+
+/**
+ * Models by provider - the source of truth for all model configurations
+ */
+export const PROVIDER_MODELS: {
+  anthropic: readonly AnthropicModel[]
+  openai: readonly OpenAIModel[]
+  groq: readonly GroqModel[]
+  google: readonly GoogleModel[]
+} = {
+  anthropic: ANTHROPIC_MODELS,
+  openai: OPENAI_MODELS,
+  groq: GROQ_MODELS,
+  google: GOOGLE_MODELS,
+}
 
 /**
  * Get all models as a flat array with provider info
@@ -82,11 +103,34 @@ export const vProvider = v.union(
 )
 
 /**
- * Convex validator for all possible model values
- * Note: This is a string validator since models vary by provider
- * Use runtime validation with isValidModel() for stricter checks
+ * All valid model names as a flat array
  */
-export const vModel = v.string()
+export const ALL_MODELS = [
+  ...PROVIDER_MODELS.anthropic,
+  ...PROVIDER_MODELS.openai,
+  ...PROVIDER_MODELS.groq,
+  ...PROVIDER_MODELS.google,
+] as const
+
+/**
+ * Convex validator for all possible model values
+ */
+export const vModel = v.union(
+  // Anthropic
+  v.literal('claude-3-5-haiku-20241022'),
+  // OpenAI
+  v.literal('gpt-4o-mini'),
+  v.literal('gpt-5-nano'),
+  // Groq
+  v.literal('llama-3.3-70b-versatile'),
+  v.literal('meta-llama/llama-4-scout-17b-16e-instruct'),
+  v.literal('qwen/qwen3-32b'),
+  v.literal('openai/gpt-oss-120b'),
+  v.literal('openai/gpt-oss-20b'),
+  // Google
+  v.literal('gemini-2.0-flash'),
+  v.literal('gemini-2.5-flash-lite'),
+)
 
 /**
  * Convex validator for batch status

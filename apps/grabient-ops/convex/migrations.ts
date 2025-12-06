@@ -1,7 +1,7 @@
 import { Migrations } from '@convex-dev/migrations'
 import { components } from './_generated/api'
 import type { DataModel } from './_generated/dataModel'
-import { PROVIDERS, type Provider } from './lib/providers.types'
+import { PROVIDERS, ALL_MODELS, type Provider, type Model } from './lib/providers.types'
 
 // Initialize migrations component
 export const migrations = new Migrations<DataModel>(components.migrations)
@@ -39,11 +39,18 @@ function extractProvider(providerValue: string): Provider | null {
 }
 
 /**
+ * Check if a model string is a valid Model type
+ */
+function isValidModel(model: string): model is Model {
+  return (ALL_MODELS as readonly string[]).includes(model)
+}
+
+/**
  * Fix invalid provider values in palette_tags
  * Legacy data may have provider values like "groq-gpt-oss-20b" instead of "groq"
  * This extracts the correct provider and updates the model field if needed
  *
- * Run via: npx convex run migrations:run '{"name": "fixInvalidProviders"}'
+ * Run via: npx convex run migrations:run '{"fn": "migrations:fixInvalidProviders"}'
  */
 export const fixInvalidProviders = migrations.define({
   table: 'palette_tags',
@@ -60,11 +67,11 @@ export const fixInvalidProviders = migrations.define({
 
     if (correctProvider) {
       // If provider was like "groq-gpt-oss-20b", extract model too
-      let newModel = doc.model
+      let newModel: Model = doc.model as Model
       for (const provider of PROVIDERS) {
         if (doc.provider.startsWith(`${provider}-`)) {
           const extractedModel = doc.provider.substring(provider.length + 1)
-          if (extractedModel) {
+          if (extractedModel && isValidModel(extractedModel)) {
             newModel = extractedModel
           }
           break
@@ -80,6 +87,49 @@ export const fixInvalidProviders = migrations.define({
       console.log(`Deleting record with unknown provider: ${doc.provider}`)
       await ctx.db.delete(doc._id)
     }
+  },
+})
+
+// ============================================================================
+// Model Fix Migration
+// ============================================================================
+
+/**
+ * Map of malformed model values to correct values
+ */
+const MODEL_FIXES: Record<string, Model> = {
+  // Groq models without prefix
+  'gpt-oss-20b': 'openai/gpt-oss-20b',
+  'gpt-oss-120b': 'openai/gpt-oss-120b',
+  'llama-4-scout-17b-16e-instruct': 'meta-llama/llama-4-scout-17b-16e-instruct',
+  'qwen3-32b': 'qwen/qwen3-32b',
+}
+
+/**
+ * Fix invalid model values in palette_tags
+ * Legacy data may have model values like "gpt-oss-20b" instead of "openai/gpt-oss-20b"
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:fixInvalidModels"}'
+ */
+export const fixInvalidModels = migrations.define({
+  table: 'palette_tags',
+  migrateOne: async (ctx, doc) => {
+    // Skip if model is already valid
+    if (isValidModel(doc.model)) {
+      return
+    }
+
+    // Check if we have a fix for this model
+    const fixedModel = MODEL_FIXES[doc.model]
+    if (fixedModel) {
+      console.log(`Fixing model: ${doc.model} -> ${fixedModel}`)
+      await ctx.db.patch(doc._id, { model: fixedModel })
+      return
+    }
+
+    // Unknown model - log and delete
+    console.log(`Deleting record with unknown model: ${doc.model}`)
+    await ctx.db.delete(doc._id)
   },
 })
 

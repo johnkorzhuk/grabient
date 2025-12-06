@@ -1,16 +1,7 @@
 import { defineSchema } from 'convex/server'
 import { v } from 'convex/values'
 import { Table } from 'convex-helpers/server'
-import { vProvider, vBatchStatus } from './lib/providers.types'
-
-// ============================================================================
-// Config - singleton table for global settings
-// ============================================================================
-export const Config = Table('config', {
-  // How many times each palette should be tagged per provider
-  // e.g., tagAnalysisCount=8 with 182 palettes = 1456 requests per provider
-  tagAnalysisCount: v.number(),
-})
+import { vProvider, vModel, vBatchStatus } from './lib/providers.types'
 
 // ============================================================================
 // Palettes - seeded from D1
@@ -26,7 +17,7 @@ export const Palettes = Table('palettes', {
 export const PaletteTags = Table('palette_tags', {
   seed: v.string(),
   provider: vProvider,
-  model: v.string(), // Model names vary by provider, validated at runtime
+  model: vModel,
   // analysisIndex: which iteration (0 to tagAnalysisCount-1)
   // runNumber: legacy field from old schema (will be migrated to analysisIndex)
   analysisIndex: v.optional(v.number()),
@@ -48,9 +39,10 @@ export const PaletteTags = Table('palette_tags', {
 export const TagBatches = Table('tag_batches', {
   cycle: v.optional(v.number()), // Which generation cycle this batch belongs to (optional for legacy data)
   provider: vProvider,
-  model: v.optional(v.string()), // Model names vary by provider
+  model: v.optional(vModel),
   batchId: v.string(), // Provider's batch ID
   status: vBatchStatus,
+  analysisCount: v.optional(v.number()), // How many times each palette is tagged in this batch (optional for legacy)
   requestCount: v.number(), // How many requests in this batch
   completedCount: v.number(), // How many have completed
   failedCount: v.number(),
@@ -75,7 +67,6 @@ export const PaletteTagRefined = Table('palette_tag_refined', {
 })
 
 export default defineSchema({
-  config: Config.table,
   palettes: Palettes.table.index('by_seed', ['seed']),
   palette_tags: PaletteTags.table
     .index('by_seed_provider', ['seed', 'provider', 'model'])

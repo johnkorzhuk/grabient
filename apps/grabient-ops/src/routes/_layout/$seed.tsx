@@ -113,10 +113,25 @@ function ProviderTagsContent({
 }) {
   const [view, setView] = useState<"summary" | "providers">("summary");
   const [selectedVersions, setSelectedVersions] = useState<Set<string>>(new Set());
+  const [selectedModels, setSelectedModels] = useState<Set<string>>(new Set());
   const [versionDropdownOpen, setVersionDropdownOpen] = useState(false);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const versionDropdownRef = useRef<HTMLDivElement>(null);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
 
   const latestVersion = availableVersions[0];
+
+  // Get unique models from rawTags, grouped by provider
+  const modelsByProvider = rawTags.reduce((acc, t) => {
+    if (!acc.has(t.provider)) {
+      acc.set(t.provider, new Set());
+    }
+    acc.get(t.provider)!.add(t.model);
+    return acc;
+  }, new Map<string, Set<string>>());
+
+  const allModelKeys = rawTags.map(t => `${t.provider}/${t.model}`);
+  const uniqueModelKeys = [...new Set(allModelKeys)].sort();
 
   // Set default to latest version on first load
   useEffect(() => {
@@ -125,21 +140,34 @@ function ProviderTagsContent({
     }
   }, [latestVersion]);
 
-  // Close dropdown when clicking outside
+  // Set default to all models on first load
+  useEffect(() => {
+    if (uniqueModelKeys.length > 0 && selectedModels.size === 0) {
+      setSelectedModels(new Set(uniqueModelKeys));
+    }
+  }, [uniqueModelKeys.length]);
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (versionDropdownRef.current && !versionDropdownRef.current.contains(event.target as Node)) {
         setVersionDropdownOpen(false);
+      }
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target as Node)) {
+        setModelDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter tags by selected versions
-  const filteredTags = rawTags.filter(t =>
-    selectedVersions.size === 0 || selectedVersions.has(t.promptVersion)
-  );
+  // Filter tags by selected versions and models
+  const filteredTags = rawTags.filter(t => {
+    const versionMatch = selectedVersions.size === 0 || selectedVersions.has(t.promptVersion);
+    const modelKey = `${t.provider}/${t.model}`;
+    const modelMatch = selectedModels.size === 0 || selectedModels.has(modelKey);
+    return versionMatch && modelMatch;
+  });
 
   const errorCount = filteredTags.filter((t) => t.error).length;
   const successCount = filteredTags.filter((t) => !t.error).length;
@@ -157,6 +185,43 @@ function ProviderTagsContent({
 
   const selectAllVersions = () => setSelectedVersions(new Set(availableVersions));
   const selectLatestVersion = () => setSelectedVersions(latestVersion ? new Set([latestVersion]) : new Set());
+
+  // Toggle model selection
+  const toggleModel = (modelKey: string) => {
+    const newSet = new Set(selectedModels);
+    if (newSet.has(modelKey)) {
+      newSet.delete(modelKey);
+    } else {
+      newSet.add(modelKey);
+    }
+    setSelectedModels(newSet);
+  };
+
+  // Toggle all models for a provider
+  const toggleProvider = (provider: string) => {
+    const providerModels = modelsByProvider.get(provider);
+    if (!providerModels) return;
+
+    const providerModelKeys = [...providerModels].map(m => `${provider}/${m}`);
+    const allSelected = providerModelKeys.every(k => selectedModels.has(k));
+
+    const newSet = new Set(selectedModels);
+    if (allSelected) {
+      // Deselect all models for this provider
+      providerModelKeys.forEach(k => newSet.delete(k));
+    } else {
+      // Select all models for this provider
+      providerModelKeys.forEach(k => newSet.add(k));
+    }
+    setSelectedModels(newSet);
+  };
+
+  // Helper to get short model name for display
+  const getModelShortName = (modelKey: string) => {
+    const model = modelKey.split("/").pop() ?? modelKey;
+    if (model.includes("/")) return model.split("/").pop() ?? model;
+    return model.replace("-20241022", "").replace("-versatile", "");
+  };
 
   return (
     <>
@@ -251,6 +316,105 @@ function ProviderTagsContent({
             </div>
           )}
 
+          {/* Model/Provider dropdown */}
+          {uniqueModelKeys.length > 0 && (
+            <div className="relative" ref={modelDropdownRef}>
+              <button
+                onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                className={cn(
+                  "text-xs px-2 py-1 rounded border border-input bg-background",
+                  "text-muted-foreground hover:text-foreground",
+                  "outline-none focus:ring-2 focus:ring-ring/70",
+                  "flex items-center gap-1.5 min-w-[100px]",
+                  modelDropdownOpen && "border-muted-foreground/30 text-foreground"
+                )}
+              >
+                <span>
+                  {selectedModels.size === uniqueModelKeys.length
+                    ? "All models"
+                    : selectedModels.size === 0
+                    ? "No models"
+                    : `${selectedModels.size} model${selectedModels.size > 1 ? "s" : ""}`}
+                </span>
+                <ChevronDown
+                  className={cn("w-3 h-3 transition-transform", modelDropdownOpen && "rotate-180")}
+                />
+              </button>
+              {modelDropdownOpen && (
+                <div className="absolute z-50 top-full mt-1 right-0 bg-background/95 backdrop-blur-sm border border-input rounded-md shadow-lg min-w-[200px] max-h-[400px] overflow-y-auto">
+                  <div className="p-1">
+                    {[...modelsByProvider.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([provider, models]) => {
+                      const providerModelKeys = [...models].map(m => `${provider}/${m}`);
+                      const allSelected = providerModelKeys.every(k => selectedModels.has(k));
+                      const someSelected = providerModelKeys.some(k => selectedModels.has(k));
+
+                      return (
+                        <div key={provider} className="mb-1">
+                          {/* Provider header */}
+                          <button
+                            onClick={() => toggleProvider(provider)}
+                            className={cn(
+                              "w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2",
+                              "hover:bg-muted transition-colors font-medium",
+                              allSelected || someSelected ? "text-foreground" : "text-muted-foreground"
+                            )}
+                          >
+                            <span className={cn(
+                              "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
+                              allSelected
+                                ? "bg-primary border-primary"
+                                : someSelected
+                                ? "bg-primary/50 border-primary"
+                                : "border-input"
+                            )}>
+                              {(allSelected || someSelected) && (
+                                <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                              )}
+                            </span>
+                            <span className="capitalize">{provider}</span>
+                            <span className="text-[10px] text-muted-foreground ml-auto">
+                              {providerModelKeys.filter(k => selectedModels.has(k)).length}/{models.size}
+                            </span>
+                          </button>
+                          {/* Models under provider */}
+                          <div className="ml-4">
+                            {[...models].sort().map((model) => {
+                              const modelKey = `${provider}/${model}`;
+                              const isSelected = selectedModels.has(modelKey);
+                              return (
+                                <button
+                                  key={modelKey}
+                                  onClick={() => toggleModel(modelKey)}
+                                  className={cn(
+                                    "w-full text-left text-xs px-2 py-1 rounded flex items-center gap-2",
+                                    "hover:bg-muted transition-colors",
+                                    isSelected ? "text-foreground" : "text-muted-foreground"
+                                  )}
+                                >
+                                  <span className={cn(
+                                    "w-3 h-3 rounded border flex items-center justify-center shrink-0",
+                                    isSelected
+                                      ? "bg-primary border-primary"
+                                      : "border-input"
+                                  )}>
+                                    {isSelected && (
+                                      <Check className="w-2 h-2 text-primary-foreground" />
+                                    )}
+                                  </span>
+                                  <span className="font-mono text-[11px]">{getModelShortName(model)}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {filteredTags.length > 0 && (
             <div className="flex rounded border border-input overflow-hidden">
               <button
@@ -284,12 +448,12 @@ function ProviderTagsContent({
         <div className="rounded-lg border border-border bg-card p-6 text-center">
           <Tag className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
-            {rawTags.length === 0 ? "No tags generated yet" : "No tags for selected version"}
+            {rawTags.length === 0 ? "No tags generated yet" : "No tags for selected filters"}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             {rawTags.length === 0
               ? "Use the Dashboard to start a backfill for all palettes"
-              : "Try selecting a different version"}
+              : "Try adjusting version or model filters"}
           </p>
         </div>
       ) : view === "summary" ? (

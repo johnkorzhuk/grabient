@@ -1,6 +1,22 @@
 import { query, mutation, internalMutation, internalQuery } from './_generated/server'
 import { v } from 'convex/values'
-import { vProvider, vBatchStatus } from './lib/providers.types'
+import { vProvider, vModel, vBatchStatus, getAllModels } from './lib/providers.types'
+
+// ============================================================================
+// Provider/Model Configuration
+// ============================================================================
+
+/**
+ * Get all available provider/model combinations
+ */
+export const getProviderModels = query({
+  args: {},
+  handler: async () => {
+    return {
+      models: getAllModels(),
+    }
+  },
+})
 
 // ============================================================================
 // Cycle Management
@@ -17,6 +33,19 @@ export const getCurrentCycle = query({
     const batches = await ctx.db.query('tag_batches').collect()
     if (batches.length === 0) return 0
     return Math.max(...batches.map((b) => b.cycle ?? 1))
+  },
+})
+
+/**
+ * Get all cycle numbers that have batches, sorted descending (newest first)
+ */
+export const getAllCycles = query({
+  args: {},
+  handler: async (ctx) => {
+    const batches = await ctx.db.query('tag_batches').collect()
+    if (batches.length === 0) return []
+    const cycles = new Set(batches.map((b) => b.cycle ?? 1))
+    return Array.from(cycles).sort((a, b) => b - a)
   },
 })
 
@@ -44,18 +73,20 @@ export const createBatch = internalMutation({
   args: {
     cycle: v.number(),
     provider: vProvider,
-    model: v.string(),
+    model: vModel,
     batchId: v.string(),
+    analysisCount: v.number(),
     requestCount: v.number(),
   },
   returns: v.id('tag_batches'),
-  handler: async (ctx, { cycle, provider, model, batchId, requestCount }) => {
+  handler: async (ctx, { cycle, provider, model, batchId, analysisCount, requestCount }) => {
     return await ctx.db.insert('tag_batches', {
       cycle,
       provider,
       model,
       batchId,
       status: 'pending',
+      analysisCount,
       requestCount,
       completedCount: 0,
       failedCount: 0,
@@ -104,7 +135,7 @@ export const storeTagResult = internalMutation({
   args: {
     seed: v.string(),
     provider: vProvider,
-    model: v.string(),
+    model: vModel,
     analysisIndex: v.number(),
     promptVersion: v.string(),
     tags: v.any(),
@@ -146,7 +177,7 @@ export const storeTagResult = internalMutation({
 export const getPalettesForNewCycle = query({
   args: {
     provider: vProvider,
-    model: v.string(),
+    model: vModel,
     analysisCount: v.number(),
   },
   handler: async (ctx, { provider, model, analysisCount }) => {
@@ -225,28 +256,30 @@ export const getBatchByBatchId = query({
 })
 
 /**
- * Get batches for the current cycle (UI display)
+ * Get batches for a specific cycle (UI display)
+ * If no cycle is specified, returns batches for the current (latest) cycle
  */
 export const getRecentBatches = query({
-  args: { limit: v.optional(v.number()) },
-  handler: async (ctx, { limit = 20 }) => {
-    // Get all batches to find current cycle
+  args: { limit: v.optional(v.number()), cycle: v.optional(v.number()) },
+  handler: async (ctx, { limit = 20, cycle }) => {
+    // Get all batches
     const allBatches = await ctx.db.query('tag_batches').collect()
     if (allBatches.length === 0) return []
 
-    const currentCycle = Math.max(...allBatches.map((b) => b.cycle ?? 1))
+    // Determine which cycle to show
+    const targetCycle = cycle ?? Math.max(...allBatches.map((b) => b.cycle ?? 1))
 
-    // Filter to current cycle and sort by createdAt desc
-    const currentCycleBatches = allBatches
-      .filter((b) => (b.cycle ?? 1) === currentCycle)
+    // Filter to target cycle and sort by createdAt desc
+    const cycleBatches = allBatches
+      .filter((b) => (b.cycle ?? 1) === targetCycle)
       .sort((a, b) => b.createdAt - a.createdAt)
       .slice(0, limit)
 
-    return currentCycleBatches.map((batch) => ({
+    return cycleBatches.map((batch) => ({
       _id: batch._id,
       cycle: batch.cycle ?? 1,
       provider: batch.provider,
-      model: batch.model ?? 'unknown',
+      model: batch.model,
       batchId: batch.batchId,
       status: batch.status,
       requestCount: batch.requestCount,
@@ -265,9 +298,6 @@ export const getRecentBatches = query({
 export const getBackfillStatus = query({
   args: {},
   handler: async (ctx) => {
-    const config = await ctx.db.query('config').first()
-    const analysisCount = config?.tagAnalysisCount ?? 1
-
     const palettes = await ctx.db.query('palettes').collect()
     const tags = await ctx.db.query('palette_tags').collect()
     const batches = await ctx.db.query('tag_batches').collect()
@@ -301,7 +331,7 @@ export const getBackfillStatus = query({
         provider,
         model: sampleTag?.model ?? 'unknown',
         completed: count,
-        expected: palettes.length * analysisCount,
+        expected: palettes.length, // Expected per model depends on analysisCount from each batch
       })
     }
 
@@ -317,7 +347,6 @@ export const getBackfillStatus = query({
     return {
       palettes: palettes.length,
       palettesWithTags: seedsWithTags.size,
-      analysisCount,
       uniqueProviders: providerCounts.size,
       totalTags: successfulTags.length,
       totalErrors,
@@ -329,24 +358,19 @@ export const getBackfillStatus = query({
 
 /**
  * Get which cycles have errors (for dropdown filter).
- * Returns array of cycle numbers that have at least one error.
+ * Returns array of cycle numbers that have at least one failed batch.
  */
 export const getCyclesWithErrors = query({
   args: {},
   handler: async (ctx) => {
-    const tags = await ctx.db.query('palette_tags').collect()
-    const config = await ctx.db.query('config').first()
-    const analysisCount = config?.tagAnalysisCount ?? 1
+    const batches = await ctx.db.query('tag_batches').collect()
 
-    const errorTags = tags.filter((t) => t.error)
-    if (errorTags.length === 0) return []
-
-    // Find which cycles have errors based on analysisIndex
+    // Find cycles with failed batches (failedCount > 0)
     const cyclesWithErrors = new Set<number>()
-    for (const tag of errorTags) {
-      const idx = tag.analysisIndex ?? 0
-      const cycle = Math.floor(idx / analysisCount) + 1
-      cyclesWithErrors.add(cycle)
+    for (const batch of batches) {
+      if (batch.failedCount > 0 && batch.cycle) {
+        cyclesWithErrors.add(batch.cycle)
+      }
     }
 
     // Return sorted array
@@ -356,7 +380,7 @@ export const getCyclesWithErrors = query({
 
 /**
  * Get errors grouped by provider/model for a specific cycle.
- * Uses analysisIndex ranges to determine which cycle a tag belongs to.
+ * Looks up errors from tags that were stored during batch processing.
  */
 export const getErrorsByModel = query({
   args: {
@@ -364,22 +388,24 @@ export const getErrorsByModel = query({
   },
   handler: async (ctx, { cycle }) => {
     const tags = await ctx.db.query('palette_tags').collect()
-    const config = await ctx.db.query('config').first()
-    const analysisCount = config?.tagAnalysisCount ?? 1
+    const batches = await ctx.db.query('tag_batches').collect()
 
-    // If cycle specified, filter tags by analysisIndex range
-    // Cycle 1: indices 0 to analysisCount-1
-    // Cycle 2: indices analysisCount to 2*analysisCount-1
-    // etc.
+    // If cycle is specified, find the analysisIndex ranges for that cycle's batches
     let errorTags = tags.filter((t) => t.error)
 
     if (cycle !== undefined && cycle > 0) {
-      const startIndex = (cycle - 1) * analysisCount
-      const endIndex = cycle * analysisCount - 1
-      errorTags = errorTags.filter((t) => {
-        const idx = t.analysisIndex ?? 0
-        return idx >= startIndex && idx <= endIndex
-      })
+      // Find batches for this cycle to get their analysisCount
+      const cycleBatches = batches.filter((b) => (b.cycle ?? 1) === cycle)
+      if (cycleBatches.length > 0) {
+        // Get the analysisCount from the first batch (should be same for all in cycle)
+        const analysisCount = cycleBatches[0].analysisCount ?? 1
+        const startIndex = (cycle - 1) * analysisCount
+        const endIndex = cycle * analysisCount - 1
+        errorTags = errorTags.filter((t) => {
+          const idx = t.analysisIndex ?? 0
+          return idx >= startIndex && idx <= endIndex
+        })
+      }
     }
 
     // Group by provider/model
