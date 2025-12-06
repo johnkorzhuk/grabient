@@ -20,6 +20,7 @@
     "@ai-sdk/openai": "^2.0.76",
     "@anthropic-ai/sdk": "^0.71.1",
     "@cf-wasm/resvg": "^0.3.2",
+    "@convex-dev/migrations": "^0.3.1",
     "@convex-dev/r2": "^0.8.1",
     "@convex-dev/react-query": "^0.0.0-alpha.11",
     "@convex-dev/workflow": "^0.3.3",

@@ -25,7 +25,9 @@ export const Palettes = Table('palettes', {
 // ============================================================================
 export const PaletteTags = Table('palette_tags', {
   seed: v.string(),
-  provider: vProvider,
+  // Using v.string() temporarily to support migration from legacy data
+  // Legacy data may have provider values like "groq-gpt-oss-20b" that need fixing
+  provider: v.string(),
   model: v.string(), // Model names vary by provider, validated at runtime
   // analysisIndex: which iteration (0 to tagAnalysisCount-1)
   // runNumber: legacy field from old schema (will be migrated to analysisIndex)

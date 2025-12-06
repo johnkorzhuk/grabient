@@ -63,6 +63,9 @@ importers:
       '@cf-wasm/resvg':
         specifier: ^0.3.2
         version: 0.3.2
+      '@convex-dev/migrations':
+        specifier: ^0.3.1
+        version: 0.3.1(convex@1.30.0(react@19.2.1))
       '@convex-dev/r2':
         specifier: ^0.8.1
         version: 0.8.1(@standard-schema/spec@1.0.0)(convex-svelte@0.0.11(convex@1.30.0(react@19.2.1))(svelte@5.45.5))(convex@1.30.0(react@19.2.1))(hono@4.9.8)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(svelte@5.45.5)(typescript@5.9.3)(zod@4.1.13)
@@ -1269,6 +1272,11 @@ packages:
 
   '@convex-dev/eslint-plugin@1.0.0':
     resolution: {integrity: sha512-ublJRBKcLCioNaf1ylkCHD2KzAqWE2RIQ6DA/UgXAXQW5qg4vZSWY8wy+EK11yJkSSxcGfFXDWaE1+cHaWJvNA==}
+
+  '@convex-dev/migrations@0.3.1':
+    resolution: {integrity: sha512-dGiN82vWMN415/AGMcVooDOJk8iTousZahBBs27uA03pL74Uo3ksucUW3CiCfPx75rv+x9UnenEakimQYYNIrA==}
+    peerDependencies:
+      convex: ^1.24.8
 
   '@convex-dev/r2@0.8.1':
     resolution: {integrity: sha512-a+eP+9Tk4m9w0G3qnSUv297ye05AtSio6nxvF9gsp1tfHuZg+6ch3vZa5iDnYIfWQXv5CCNW+CdoAQqmizPnQA==}
@@ -8786,6 +8794,10 @@ snapshots:
       - eslint
       - supports-color
       - typescript
+
+  '@convex-dev/migrations@0.3.1(convex@1.30.0(react@19.2.1))':
+    dependencies:
+      convex: 1.30.0(react@19.2.1)
 
   '@convex-dev/r2@0.8.1(@standard-schema/spec@1.0.0)(convex-svelte@0.0.11(convex@1.30.0(react@19.2.1))(svelte@5.45.5))(convex@1.30.0(react@19.2.1))(hono@4.9.8)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(svelte@5.45.5)(typescript@5.9.3)(zod@4.1.13)':
     dependencies:
