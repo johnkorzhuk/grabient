@@ -812,7 +812,7 @@ export const submitGoogleBatch = internalAction({
         },
       ],
       config: {
-        systemInstruction: TAGGING_SYSTEM_PROMPT,
+        systemInstruction: { parts: [{ text: TAGGING_SYSTEM_PROMPT }] },
         temperature: 0.7,
         responseMimeType: 'application/json',
       },
@@ -837,7 +837,8 @@ export const submitGoogleBatch = internalAction({
       model: batchJob.model,
     })
 
-    // Record batch in database
+    // Record batch in database with request order for response mapping
+    const requestOrder = requests.map((req) => req.customId)
     await ctx.runMutation(internal.backfill.createBatch, {
       cycle,
       provider: 'google',
@@ -845,6 +846,7 @@ export const submitGoogleBatch = internalAction({
       batchId: batchJob.name,
       analysisCount,
       requestCount: requests.length,
+      requestOrder,
     })
 
     console.log(`Created Google batch: ${batchJob.name} (cycle ${cycle})`)
@@ -884,150 +886,6 @@ export const cancelGoogleBatch = internalAction({
         })
         return { success: true, actualStatus: batch.state }
       }
-    }
-  },
-})
-
-/**
- * Recheck a cancelled Google batch and retrieve any partial results.
- * Cancelled batches may still have completed responses that can be processed.
- */
-export const recheckCancelledGoogleBatch = internalAction({
-  args: { batchId: v.string(), model: vModel },
-  returns: v.object({
-    status: v.string(),
-    successCount: v.optional(v.number()),
-    failCount: v.optional(v.number()),
-    totalResponses: v.optional(v.number()),
-  }),
-  handler: async (ctx, { batchId, model }) => {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
-    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
-
-    const ai = new GoogleGenAI({ apiKey })
-    const batch = await ai.batches.get({ name: batchId })
-
-    const stats = batch.completionStats
-    console.log(`Rechecking cancelled Google batch ${batchId}:`, {
-      state: batch.state,
-      successfulCount: stats?.successfulCount,
-      failedCount: stats?.failedCount,
-      incompleteCount: stats?.incompleteCount,
-    })
-
-    // Check for any inline responses (partial results)
-    const inlinedResponses = batch.dest?.inlinedResponses
-
-    if (!inlinedResponses || inlinedResponses.length === 0) {
-      console.log(`No partial results available for cancelled batch ${batchId}`)
-      return { status: 'no_results', totalResponses: 0 }
-    }
-
-    console.log(`Found ${inlinedResponses.length} partial responses to process`)
-
-    let successCount = 0
-    let failCount = 0
-
-    // Get source requests to match responses with customIds
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const batchWithSource = batch as any
-
-    for (let i = 0; i < inlinedResponses.length; i++) {
-      const inlinedResponse = inlinedResponses[i]
-
-      try {
-        const responseData = inlinedResponse.response
-        const errorData = inlinedResponse.error
-
-        // Get customId from batch source
-        let customId: string | undefined
-        if (batchWithSource.src?.inlinedRequests?.[i]?.metadata?.key) {
-          customId = batchWithSource.src.inlinedRequests[i].metadata.key
-        }
-
-        if (!customId) {
-          console.error(`No customId for response at index ${i}`)
-          failCount++
-          continue
-        }
-
-        const { paletteId, analysisIndex } = parseCustomId(customId)
-
-        // Look up the palette to get the seed
-        const palette = await ctx.runQuery(internal.palettes.getById, { id: paletteId })
-        if (!palette) {
-          console.error(`Palette not found for id ${paletteId}`)
-          failCount++
-          continue
-        }
-        const seed = palette.seed
-
-        // Check for error response
-        if (errorData) {
-          await ctx.runMutation(internal.backfill.storeTagResult, {
-            seed,
-            provider: 'google',
-            model,
-            analysisIndex,
-            promptVersion: CURRENT_PROMPT_VERSION,
-            tags: null,
-            error: JSON.stringify(errorData),
-          })
-          failCount++
-          continue
-        }
-
-        if (!responseData) {
-          // No response yet - this request wasn't processed before cancellation
-          // Don't store an error, just skip
-          continue
-        }
-
-        // Extract text from candidates
-        const text = responseData.text ?? ''
-        const jsonText = extractJson(text)
-        const parsed = JSON.parse(jsonText)
-        const normalized = normalizeTagResponse(parsed)
-        const tags = tagResponseSchema.parse(normalized)
-
-        // Extract usage if available
-        const usageMetadata = responseData.usageMetadata
-        await ctx.runMutation(internal.backfill.storeTagResult, {
-          seed,
-          provider: 'google',
-          model,
-          analysisIndex,
-          promptVersion: CURRENT_PROMPT_VERSION,
-          tags,
-          usage: usageMetadata
-            ? {
-                inputTokens: usageMetadata.promptTokenCount ?? 0,
-                outputTokens: usageMetadata.candidatesTokenCount ?? 0,
-              }
-            : undefined,
-        })
-        successCount++
-      } catch (e) {
-        console.error(`Error processing partial response:`, e)
-        failCount++
-      }
-    }
-
-    // Update batch status with partial results count
-    await ctx.runMutation(internal.backfill.updateBatchStatus, {
-      batchId,
-      status: 'completed',
-      completedCount: successCount,
-      failedCount: failCount,
-      error: `Partial results from cancelled batch`,
-    })
-
-    console.log(`Processed ${successCount} successful, ${failCount} failed from cancelled batch`)
-    return {
-      status: 'partial_results',
-      successCount,
-      failCount,
-      totalResponses: inlinedResponses.length,
     }
   },
 })
@@ -1084,39 +942,35 @@ export const pollGoogleBatch = internalAction({
         return { status: 'failed' as const }
       }
 
-      // We need to get the original request metadata to correlate responses
-      // The responses are in the same order as the input requests
-      // But we need the metadata (customId) from the source
-      // For now, we'll need to re-fetch the batch to get source info
-      // or store the request order in our database
+      // Get the stored request order from our database
+      // Google SDK doesn't return metadata in responses, so we need our stored order
+      const batchRecord = await ctx.runQuery(internal.backfill.getBatchByBatchIdInternal, { batchId })
+      const requestOrder = batchRecord?.requestOrder
 
-      // Actually, looking at the SDK, inlinedResponses should have metadata
-      // Let's process them directly
+      if (!requestOrder || requestOrder.length === 0) {
+        console.error(`No requestOrder stored for batch ${batchId}`)
+        await ctx.runMutation(internal.backfill.updateBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: 'No request order stored - cannot map responses',
+        })
+        return { status: 'failed' as const }
+      }
+
+      if (requestOrder.length !== inlinedResponses.length) {
+        console.error(`Request order length (${requestOrder.length}) doesn't match responses (${inlinedResponses.length})`)
+      }
+
+      // Process responses using stored request order
       for (let i = 0; i < inlinedResponses.length; i++) {
         const inlinedResponse = inlinedResponses[i]
 
         try {
-          // The response object from InlinedResponse
           const responseData = inlinedResponse.response
           const errorData = inlinedResponse.error
 
-          // We need to get the customId from the original request
-          // Since responses are in order, we need to track request order
-          // For now, let's see if there's metadata in the response
-
-          // Actually, looking at the batch source, we stored metadata with key
-          // But inlinedResponses don't have the metadata - they're just responses in order
-          // We need to refetch the batch with source to get the order
-
-          // Let's check if the batch has source info
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const batchWithSource = batch as any
-
-          // Try to get customId from batch source if available
-          let customId: string | undefined
-          if (batchWithSource.src?.inlinedRequests?.[i]?.metadata?.key) {
-            customId = batchWithSource.src.inlinedRequests[i].metadata.key
-          }
+          // Get customId from our stored request order
+          const customId = requestOrder[i]
 
           if (!customId) {
             console.error(`No customId for response at index ${i}`)
@@ -1165,8 +1019,52 @@ export const pollGoogleBatch = internalAction({
           }
 
           // Extract text from candidates
-          const text = responseData.text ?? ''
+          // Debug: log the response structure to understand what we're getting
+          console.log(`Response ${i} structure:`, {
+            hasText: !!responseData.text,
+            hasCandidates: !!responseData.candidates,
+            candidatesLength: responseData.candidates?.length,
+            firstCandidateKeys: responseData.candidates?.[0] ? Object.keys(responseData.candidates[0]) : [],
+          })
+
+          // Try multiple ways to get the text
+          let text = responseData.text ?? ''
+
+          // Fallback: try to extract from candidates directly
+          if (!text && responseData.candidates?.[0]?.content?.parts?.[0]?.text) {
+            text = responseData.candidates[0].content.parts[0].text
+          }
+
+          if (!text) {
+            await ctx.runMutation(internal.backfill.storeTagResult, {
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: 'Empty response text from model',
+            })
+            failCount++
+            continue
+          }
+
           const jsonText = extractJson(text)
+
+          if (!jsonText) {
+            await ctx.runMutation(internal.backfill.storeTagResult, {
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: `Could not extract JSON from response: ${text.substring(0, 200)}`,
+            })
+            failCount++
+            continue
+          }
+
           const parsed = JSON.parse(jsonText)
           const normalized = normalizeTagResponse(parsed)
           const tags = tagResponseSchema.parse(normalized)
@@ -1189,7 +1087,31 @@ export const pollGoogleBatch = internalAction({
           })
           successCount++
         } catch (e) {
-          console.error(`Error processing Google batch line:`, e)
+          // Try to store the error with the seed if we have it
+          const errorMsg = e instanceof Error ? e.message : String(e)
+          console.error(`Error processing Google batch response at index ${i}:`, errorMsg)
+
+          // Try to get seed for error storage
+          try {
+            const customId = requestOrder[i]
+            if (customId) {
+              const { paletteId, analysisIndex } = parseCustomId(customId)
+              const palette = await ctx.runQuery(internal.palettes.getById, { id: paletteId })
+              if (palette) {
+                await ctx.runMutation(internal.backfill.storeTagResult, {
+                  seed: palette.seed,
+                  provider: 'google',
+                  model,
+                  analysisIndex,
+                  promptVersion: CURRENT_PROMPT_VERSION,
+                  tags: null,
+                  error: `Parse error: ${errorMsg}`,
+                })
+              }
+            }
+          } catch {
+            // Couldn't store error with seed, just count it
+          }
           failCount++
         }
       }
@@ -1221,6 +1143,7 @@ export const pollGoogleBatch = internalAction({
     return { status: batch.state ?? 'unknown' }
   },
 })
+
 
 // ============================================================================
 // Main Backfill Action
@@ -1260,6 +1183,7 @@ export const startBackfill = action({
     // Submit batches for each provider
     for (const provider of PROVIDERS) {
       const models = PROVIDER_MODELS[provider]
+
       for (const model of models) {
         if (!shouldInclude(model)) continue
 
@@ -1321,42 +1245,6 @@ export const cancelBatch = action({
         return await ctx.runAction(internal.backfillActions.cancelGroqBatch, { batchId, model })
       case 'google':
         return await ctx.runAction(internal.backfillActions.cancelGoogleBatch, { batchId, model })
-    }
-  },
-})
-
-/**
- * Recheck a cancelled batch to retrieve any partial results that completed before cancellation.
- * Currently only supports Google batches (other providers don't provide partial results).
- */
-export const recheckCancelledBatch = action({
-  args: {
-    provider: vProvider,
-    batchId: v.string(),
-    model: vModel,
-  },
-  returns: v.object({
-    status: v.string(),
-    successCount: v.optional(v.number()),
-    failCount: v.optional(v.number()),
-    totalResponses: v.optional(v.number()),
-    message: v.optional(v.string()),
-  }),
-  handler: async (ctx, { provider, batchId, model }): Promise<{
-    status: string;
-    successCount?: number;
-    failCount?: number;
-    totalResponses?: number;
-    message?: string;
-  }> => {
-    switch (provider) {
-      case 'google':
-        return await ctx.runAction(internal.backfillActions.recheckCancelledGoogleBatch, { batchId, model })
-      default:
-        return {
-          status: 'unsupported',
-          message: `Recheck is not supported for ${provider} batches. Only Google provides partial results for cancelled batches.`,
-        }
     }
   },
 })

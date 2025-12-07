@@ -18,7 +18,6 @@ import {
   ChevronRight,
   Plus,
   ArrowLeft,
-  RefreshCw,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_layout/")({
@@ -214,6 +213,18 @@ function BatchesSection() {
   const allCycles = useQuery(api.backfill.getAllCycles, {});
   const currentCycle = useQuery(api.backfill.getCurrentCycle, {});
   const [selectedCycle, setSelectedCycle] = useState<number | undefined>(undefined);
+  const prevCycleRef = useRef<number | undefined>(undefined);
+
+  // Auto-switch to latest cycle when a new cycle is created
+  useEffect(() => {
+    if (currentCycle !== undefined && prevCycleRef.current !== undefined) {
+      // A new cycle was created - switch to it automatically
+      if (currentCycle > prevCycleRef.current) {
+        setSelectedCycle(undefined); // Reset to show latest
+      }
+    }
+    prevCycleRef.current = currentCycle;
+  }, [currentCycle]);
 
   // Use selected cycle or default to current
   const effectiveCycle = selectedCycle ?? currentCycle;
@@ -223,10 +234,7 @@ function BatchesSection() {
     cycle: effectiveCycle,
   });
   const cancelBatch = useAction(api.backfillActions.cancelBatch);
-  const recheckBatch = useAction(api.backfillActions.recheckCancelledBatch);
   const [cancellingBatchId, setCancellingBatchId] = useState<string | null>(null);
-  const [recheckingBatchId, setRecheckingBatchId] = useState<string | null>(null);
-  const [recheckResult, setRecheckResult] = useState<{ batchId: string; message: string } | null>(null);
 
   const handleCancel = async (provider: Provider, batchId: string, model?: Model) => {
     setCancellingBatchId(batchId);
@@ -236,30 +244,6 @@ function BatchesSection() {
       console.error("Failed to cancel batch:", err);
     } finally {
       setCancellingBatchId(null);
-    }
-  };
-
-  const handleRecheck = async (provider: Provider, batchId: string, model: Model) => {
-    setRecheckingBatchId(batchId);
-    setRecheckResult(null);
-    try {
-      const result = await recheckBatch({ provider, batchId, model });
-      if (result.status === "partial_results") {
-        setRecheckResult({
-          batchId,
-          message: `Retrieved ${result.successCount} results (${result.failCount} failed)`,
-        });
-      } else if (result.status === "no_results") {
-        setRecheckResult({ batchId, message: "No partial results available" });
-      } else if (result.message) {
-        setRecheckResult({ batchId, message: result.message });
-      }
-      setTimeout(() => setRecheckResult(null), 5000);
-    } catch (err) {
-      console.error("Failed to recheck batch:", err);
-      setRecheckResult({ batchId, message: `Error: ${err instanceof Error ? err.message : String(err)}` });
-    } finally {
-      setRecheckingBatchId(null);
     }
   };
 
@@ -416,41 +400,14 @@ function BatchesSection() {
                       ? `${batch.completedCount} done${batch.failedCount > 0 ? `, ${batch.failedCount} failed` : ""}`
                       : batch.error ?? "Failed"}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-muted-foreground">
-                      {batch.completedAt
-                        ? formatTime(batch.completedAt)
-                        : formatTime(batch.createdAt)}
-                    </span>
-                    {/* Recheck button for failed Google batches */}
-                    {batch.status === "failed" && batch.provider === "google" && batch.model && (
-                      <button
-                        onClick={() => handleRecheck(batch.provider, batch.batchId, batch.model!)}
-                        disabled={recheckingBatchId === batch.batchId}
-                        className={cn(
-                          "p-1 rounded hover:bg-primary/20 text-primary",
-                          "disabled:opacity-50 disabled:cursor-not-allowed",
-                          "transition-colors"
-                        )}
-                        title="Recheck for partial results"
-                      >
-                        {recheckingBatchId === batch.batchId ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-3 w-3" />
-                        )}
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-muted-foreground">
+                    {batch.completedAt
+                      ? formatTime(batch.completedAt)
+                      : formatTime(batch.createdAt)}
+                  </span>
                 </div>
               ))}
           </div>
-          {/* Recheck result message */}
-          {recheckResult && (
-            <div className="mt-2 p-2 rounded bg-primary/10 text-primary text-xs">
-              {recheckResult.message}
-            </div>
-          )}
         </div>
       )}
     </div>

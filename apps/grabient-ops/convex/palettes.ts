@@ -107,18 +107,10 @@ export const listPalettesWithStatus = query({
   args: {
     limit: v.optional(v.number()),
     offset: v.optional(v.number()),
-    filter: v.optional(
-      v.union(
-        v.literal("all"),
-        v.literal("needs_tags"),
-        v.literal("needs_refinement")
-      )
-    ),
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
     const offset = args.offset ?? 0;
-    const filter = args.filter ?? "all";
 
     // Get all palettes
     const allPalettes = await ctx.db.query("palettes").order("desc").collect();
@@ -135,26 +127,15 @@ export const listPalettesWithStatus = query({
 
     const refinedSeeds = new Set(allRefined.map((r) => r.seed));
 
-    // Attach tag info to all palettes first
+    // Attach tag info to all palettes
     const allPalettesWithStatus = allPalettes.map((p) => ({
       ...p,
       tagCount: tagCounts.get(p.seed) ?? 0,
       isRefined: refinedSeeds.has(p.seed),
     }));
 
-    // Apply filter
-    let filteredPalettes = allPalettesWithStatus;
-    if (filter === "needs_tags") {
-      // "Tagged" filter - show palettes that have tags
-      filteredPalettes = allPalettesWithStatus.filter((p) => p.tagCount > 0);
-    } else if (filter === "needs_refinement") {
-      filteredPalettes = allPalettesWithStatus.filter(
-        (p) => p.tagCount > 0 && !p.isRefined
-      );
-    }
-
-    const total = filteredPalettes.length;
-    const palettes = filteredPalettes.slice(offset, offset + limit);
+    const total = allPalettesWithStatus.length;
+    const palettes = allPalettesWithStatus.slice(offset, offset + limit);
 
     return {
       palettes,

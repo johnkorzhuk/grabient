@@ -62,22 +62,18 @@ function Header() {
   );
 }
 
-type FilterType = "all" | "needs_tags" | "needs_refinement";
-
 function Sidebar() {
   const params = useParams({ strict: false });
   const selectedSeed = (params as { seed?: string }).seed ?? null;
 
   const [page, setPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filter, setFilter] = useState<FilterType>("all");
   const limit = 30;
   const offset = (page - 1) * limit;
 
   const paletteList = useQuery(api.palettes.listPalettesWithStatus, {
     limit,
     offset,
-    filter,
   });
 
   const totalPages = paletteList ? Math.ceil(paletteList.total / limit) : 1;
@@ -86,12 +82,6 @@ function Sidebar() {
   const filteredPalettes = paletteList?.palettes.filter((p) =>
     searchQuery ? p.seed.toLowerCase().includes(searchQuery.toLowerCase()) : true
   );
-
-  // Reset page when filter changes
-  const handleFilterChange = (newFilter: FilterType) => {
-    setFilter(newFilter);
-    setPage(1);
-  };
 
   return (
     <aside className="w-72 border-r border-border flex flex-col overflow-hidden shrink-0">
@@ -105,42 +95,6 @@ function Sidebar() {
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring/70"
           />
-        </div>
-
-        <div className="flex rounded border border-input overflow-hidden">
-          <button
-            onClick={() => handleFilterChange("all")}
-            className={cn(
-              "flex-1 text-xs px-2 py-1.5 transition-colors",
-              filter === "all"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:text-foreground"
-            )}
-          >
-            All
-          </button>
-          <button
-            onClick={() => handleFilterChange("needs_tags")}
-            className={cn(
-              "flex-1 text-xs px-2 py-1.5 transition-colors border-l border-input",
-              filter === "needs_tags"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Tagged
-          </button>
-          <button
-            onClick={() => handleFilterChange("needs_refinement")}
-            className={cn(
-              "flex-1 text-xs px-2 py-1.5 transition-colors border-l border-input",
-              filter === "needs_refinement"
-                ? "bg-primary text-primary-foreground"
-                : "bg-background text-muted-foreground hover:text-foreground"
-            )}
-          >
-            Unrefined
-          </button>
         </div>
 
         {paletteList && (
