@@ -4,65 +4,89 @@ import { v } from 'convex/values'
 import { vBatchStatus, vRefinementModel, vRefinementProvider } from './lib/providers.types'
 import { generateColorDataFromSeed } from './lib/colorData'
 import type { TagSummary } from './lib/refinement'
-import { refinedSeedsAggregate } from './lib/aggregates'
+import { refinedSeedsAggregate, paletteTagsAggregate } from './lib/aggregates'
 
 // ============================================================================
 // Prompt Version Discovery
 // ============================================================================
 
 /**
- * Get all available prompt versions from palette_tags with counts.
- * Uses pagination to avoid the 16MB read limit.
+ * Get available prompt versions for refinement UI.
+ * Returns versions with a 'version' property (not 'promptVersion') for frontend compatibility.
+ *
+ * This is an alias for getAvailableTagCycles with normalized property names.
  */
 export const getAvailablePromptVersions = query({
   args: {},
   handler: async (ctx) => {
-    // Count tags by prompt version using pagination
-    const versionData = new Map<string, {
-      total: number
-      uniqueSeeds: Set<string>
-      earliestCreation: number
-      latestCreation: number
-    }>()
+    // Get registered tagging prompt versions
+    const promptVersions = await ctx.db
+      .query('prompt_versions')
+      .withIndex('by_type', (q) => q.eq('type', 'tagging'))
+      .collect()
 
-    let isDone = false
-    let cursor: string | null = null
-
-    while (!isDone) {
-      const page = await ctx.db
-        .query('palette_tags')
-        .paginate({ cursor, numItems: 1000 })
-
-      for (const tag of page.page) {
-        if (tag.error) continue // Skip error tags
-
-        const version = tag.promptVersion
-        const existing = versionData.get(version) ?? {
-          total: 0,
-          uniqueSeeds: new Set(),
-          earliestCreation: Infinity,
-          latestCreation: 0,
-        }
-        existing.total++
-        existing.uniqueSeeds.add(tag.seed)
-        const creationTime = tag._creationTime
-        existing.earliestCreation = Math.min(existing.earliestCreation, creationTime)
-        existing.latestCreation = Math.max(existing.latestCreation, creationTime)
-        versionData.set(version, existing)
-      }
-
-      isDone = page.isDone
-      cursor = page.continueCursor
+    if (promptVersions.length === 0) {
+      return []
     }
 
-    // Convert to array and sort by latest creation time (most recent first)
-    const versions = Array.from(versionData.entries())
-      .map(([version, data]) => ({
-        version,
-        tagCount: data.total,
-        paletteCount: data.uniqueSeeds.size,
-        createdAt: data.latestCreation,
-      }))
+    // Sample individual palette_tags to get version distribution
+    const halfSample = 5000
+    const oldestTags = await ctx.db.query('palette_tags').take(halfSample)
+    const newestTags = await ctx.db.query('palette_tags').order('desc').take(halfSample)
+
+    // Count tags per version from both samples
+    const versionCounts = new Map<string, number>()
+    for (const tag of oldestTags) {
+      if (tag.promptVersion) {
+        const count = versionCounts.get(tag.promptVersion) ?? 0
+        versionCounts.set(tag.promptVersion, count + 1)
+      }
+    }
+    for (const tag of newestTags) {
+      if (tag.promptVersion) {
+        const count = versionCounts.get(tag.promptVersion) ?? 0
+        versionCounts.set(tag.promptVersion, count + 1)
+      }
+    }
+    const tagsSample = [...oldestTags, ...newestTags]
+
+    // Get total tags count from aggregate (accurate)
+    const totalTags = await paletteTagsAggregate.count(ctx)
+
+    // Scale up sample counts to estimate actual counts
+    const scaleFactor = tagsSample.length > 0 ? totalTags / tagsSample.length : 1
+
+    // Also check tag_batches for cycle information (newer batches have promptVersion)
+    const batches = await ctx.db.query('tag_batches').collect()
+    const cyclesByVersion = new Map<string, Set<number>>()
+    for (const batch of batches) {
+      if (batch.promptVersion) {
+        const cycles = cyclesByVersion.get(batch.promptVersion) ?? new Set()
+        cycles.add(batch.cycle ?? 1)
+        cyclesByVersion.set(batch.promptVersion, cycles)
+      }
+    }
+
+    // Build result from registered prompt versions
+    // Use 'version' instead of 'promptVersion' for frontend compatibility
+    const versions = promptVersions
+      .map((pv) => {
+        const sampleCount = versionCounts.get(pv.version) ?? 0
+        const estimatedCount = Math.round(sampleCount * scaleFactor)
+        const cycles = cyclesByVersion.get(pv.version)
+
+        return {
+          version: pv.version, // Frontend expects 'version', not 'promptVersion'
+          cycles: cycles ? Array.from(cycles).sort((a, b) => b - a) : [],
+          tagCount: estimatedCount,
+          paletteCount: 0,
+          createdAt: pv._creationTime,
+          message: pv.message,
+        }
+      })
+      // Filter out versions with no data
+      .filter((v) => v.tagCount > 0)
+      // Sort by creation time descending (most recent first)
       .sort((a, b) => b.createdAt - a.createdAt)
 
     return versions
@@ -99,148 +123,21 @@ export const getNextRefinementCycle = internalQuery({
 })
 
 // ============================================================================
-// Tag Aggregation for Refinement
+// Refinement Queries
 // ============================================================================
-
-/**
- * Sanitize a string to be ASCII-safe for use as object keys in Convex.
- * Convex doesn't allow non-ASCII characters or control characters in field names.
- * This converts accented characters to their ASCII equivalents and removes invalid chars.
- */
-function sanitizeKey(key: string): string {
-  // Use normalize to decompose accented characters, then remove diacritics
-  return key
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '') // Remove combining diacritical marks
-    .replace(/[^\x20-\x7E]/g, '') // Keep only printable ASCII (space to tilde)
-    .trim() // Remove leading/trailing whitespace
-}
-
-/**
- * Sanitize all keys in a Record to be ASCII-safe.
- * Skips invalid keys (empty, too long, or corrupted data).
- */
-function sanitizeRecordKeys(record: Record<string, number>): Record<string, number> {
-  const result: Record<string, number> = {}
-  for (const [key, value] of Object.entries(record)) {
-    const sanitizedKey = sanitizeKey(key)
-    // Skip empty keys or keys that look like corrupted data
-    if (!sanitizedKey || sanitizedKey.length > 100 || sanitizedKey.includes('"')) {
-      continue
-    }
-    // Merge values if sanitization causes key collision
-    result[sanitizedKey] = (result[sanitizedKey] ?? 0) + value
-  }
-  return result
-}
-
-/**
- * Aggregate tag results for a single palette into a TagSummary.
- * This summarizes the consensus from all models for refinement.
- */
-function aggregateTagsForSeed(
-  tags: Array<{
-    seed: string
-    provider: string
-    model: string
-    tags: Record<string, unknown> | null
-    promptVersion: string
-  }>,
-  palette: { _id: string; seed: string; imageUrl: string },
-): TagSummary | null {
-  // Filter to only successful tags
-  const validTags = tags.filter((t) => t.tags !== null)
-  if (validTags.length === 0) return null
-
-  const colorData = generateColorDataFromSeed(palette.seed)
-  const totalModels = validTags.length
-
-  // Get the most common prompt version (source)
-  const versionCounts = new Map<string, number>()
-  for (const tag of validTags) {
-    versionCounts.set(tag.promptVersion, (versionCounts.get(tag.promptVersion) ?? 0) + 1)
-  }
-  const sourcePromptVersion =
-    Array.from(versionCounts.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'unknown'
-
-  // Initialize frequency counters
-  const categorical = {
-    temperature: {} as Record<string, number>,
-    contrast: {} as Record<string, number>,
-    brightness: {} as Record<string, number>,
-    saturation: {} as Record<string, number>,
-  }
-
-  const tagFrequencies = {
-    mood: {} as Record<string, number>,
-    style: {} as Record<string, number>,
-    dominant_colors: {} as Record<string, number>,
-    seasonal: {} as Record<string, number>,
-    associations: {} as Record<string, number>,
-  }
-
-  // Count frequencies
-  for (const tag of validTags) {
-    const data = tag.tags as Record<string, unknown>
-
-    // Categorical attributes (single values)
-    for (const cat of ['temperature', 'contrast', 'brightness', 'saturation'] as const) {
-      const value = data[cat]
-      if (typeof value === 'string' && value) {
-        const lower = value.toLowerCase().trim()
-        categorical[cat][lower] = (categorical[cat][lower] ?? 0) + 1
-      }
-    }
-
-    // Tag arrays
-    for (const tagType of ['mood', 'style', 'dominant_colors', 'seasonal', 'associations'] as const) {
-      const values = data[tagType]
-      if (Array.isArray(values)) {
-        for (const val of values) {
-          if (typeof val === 'string' && val) {
-            const lower = val.toLowerCase().trim()
-            tagFrequencies[tagType][lower] = (tagFrequencies[tagType][lower] ?? 0) + 1
-          }
-        }
-      }
-    }
-  }
-
-  // Sanitize all keys to be ASCII-safe for Convex serialization
-  return {
-    seed: palette.seed,
-    paletteId: palette._id,
-    colorData,
-    imageUrl: palette.imageUrl,
-    totalModels,
-    sourcePromptVersion,
-    categorical: {
-      temperature: sanitizeRecordKeys(categorical.temperature),
-      contrast: sanitizeRecordKeys(categorical.contrast),
-      brightness: sanitizeRecordKeys(categorical.brightness),
-      saturation: sanitizeRecordKeys(categorical.saturation),
-    },
-    tags: {
-      mood: sanitizeRecordKeys(tagFrequencies.mood),
-      style: sanitizeRecordKeys(tagFrequencies.style),
-      dominant_colors: sanitizeRecordKeys(tagFrequencies.dominant_colors),
-      seasonal: sanitizeRecordKeys(tagFrequencies.seasonal),
-      associations: sanitizeRecordKeys(tagFrequencies.associations),
-    },
-  }
-}
 
 /**
  * Get palettes that need refinement for a specific model and cycle.
  * A palette needs refinement if:
- * 1. It has tag data from any of the specified prompt versions
+ * 1. It has consensus data from any of the specified prompt versions
  * 2. It doesn't already have a successful refinement from this specific model+cycle
  *
- * This allows running multiple refinement cycles with the same model (like tag analysis).
+ * OPTIMIZED: Uses palette_tag_consensus table instead of scanning palette_tags.
+ * This reduces reads from O(tags_per_seed × num_seeds) to O(consensus_docs).
  *
  * @param model - The refinement model to check against
  * @param cycle - The refinement cycle number
- * @param sourcePromptVersions - Array of prompt versions to include (defaults to all available)
+ * @param sourcePromptVersions - Array of prompt versions to include (defaults to all)
  */
 export const getPalettesForRefinement = query({
   args: {
@@ -261,14 +158,55 @@ export const getPalettesForRefinement = query({
         .map((r) => r.seed)
     )
 
-    // Determine which prompt versions to use
+    // Determine which prompt versions to filter by
     const targetVersions = sourcePromptVersions && sourcePromptVersions.length > 0
       ? new Set(sourcePromptVersions)
       : null // null means all versions
 
-    // Get palettes with their tag counts efficiently
-    // We'll process in batches to avoid memory issues
-    const palettes = await ctx.db.query('palettes').collect()
+    // OPTIMIZED: Query palette_tag_consensus instead of scanning palette_tags
+    // Each consensus doc is per seed+promptVersion, much smaller than palette_tags
+    // Use pagination to avoid hitting memory limits with large datasets
+    const PAGE_SIZE = 500
+    let cursor: string | null = null
+    const seedsWithConsensus = new Map<string, { totalModels: number; promptVersions: Set<string> }>()
+
+    // Paginate through consensus docs
+    while (true) {
+      const page = await ctx.db
+        .query('palette_tag_consensus')
+        .paginate({ cursor, numItems: PAGE_SIZE })
+
+      for (const doc of page.page) {
+        // Filter by target prompt versions if specified
+        if (targetVersions !== null && (!doc.promptVersion || !targetVersions.has(doc.promptVersion))) {
+          continue
+        }
+
+        // Skip if already refined for this model+cycle
+        if (refinedSeeds.has(doc.seed)) continue
+
+        // Accumulate consensus data per seed
+        const existing = seedsWithConsensus.get(doc.seed)
+        if (existing) {
+          existing.totalModels += doc.totalModels
+          if (doc.promptVersion) {
+            existing.promptVersions.add(doc.promptVersion)
+          }
+        } else {
+          seedsWithConsensus.set(doc.seed, {
+            totalModels: doc.totalModels,
+            promptVersions: new Set(doc.promptVersion ? [doc.promptVersion] : []),
+          })
+        }
+      }
+
+      if (page.isDone) break
+      cursor = page.continueCursor
+    }
+
+    // Get palette info for seeds with consensus (we need imageUrl and _id)
+    // Only fetch palettes for seeds we care about
+    const seedsToFetch = Array.from(seedsWithConsensus.keys()).slice(0, limit * 2) // Fetch extras in case some don't exist
 
     const palettesNeedingRefinement: Array<{
       seed: string
@@ -277,29 +215,20 @@ export const getPalettesForRefinement = query({
       tagCount: number
     }> = []
 
-    // Process each palette - check tags using index
-    for (const palette of palettes) {
-      // Skip if already refined for this model+cycle
-      if (refinedSeeds.has(palette.seed)) continue
+    for (const seed of seedsToFetch) {
+      const palette = await ctx.db
+        .query('palettes')
+        .withIndex('by_seed', (q) => q.eq('seed', seed))
+        .first()
 
-      // Get tags for this seed using index
-      const tags = await ctx.db
-        .query('palette_tags')
-        .withIndex('by_seed_provider', (q) => q.eq('seed', palette.seed))
-        .collect()
+      if (!palette) continue
 
-      // Filter to valid tags with target versions
-      const validTags = tags.filter(
-        (t) => t.tags !== null && (targetVersions === null || targetVersions.has(t.promptVersion)),
-      )
-
-      if (validTags.length === 0) continue
-
+      const consensusInfo = seedsWithConsensus.get(seed)!
       palettesNeedingRefinement.push({
         _id: palette._id,
         seed: palette.seed,
         imageUrl: palette.imageUrl,
-        tagCount: validTags.length,
+        tagCount: consensusInfo.totalModels,
       })
 
       // Early exit if we have enough
@@ -315,12 +244,15 @@ export const getPalettesForRefinement = query({
 
 /**
  * Build TagSummaries for palettes ready for refinement.
- * This aggregates all tag data from multiple models into consensus summaries.
  *
- * Uses seeds array instead of paletteIds to query tags by seed directly,
- * avoiding the need to batch-fetch all tags at once.
+ * OPTIMIZED: Reads exclusively from the pre-computed palette_tag_consensus table.
+ * Seeds without consensus data are skipped (getPalettesForRefinement ensures
+ * only seeds with consensus are passed here).
  *
- * @param sourcePromptVersions - Array of prompt versions to include (all versions if empty/undefined)
+ * This reduces reads from O(tags_per_seed × num_seeds) to O(num_seeds × num_versions).
+ * With 4 prompt versions, that's ~4 reads per seed vs ~130 reads per seed.
+ *
+ * @param sourcePromptVersions - Array of prompt versions to include (all versions if empty)
  */
 export const buildTagSummaries = internalQuery({
   args: {
@@ -329,7 +261,11 @@ export const buildTagSummaries = internalQuery({
   },
   handler: async (ctx, { seeds, sourcePromptVersions }) => {
     const summaries: TagSummary[] = []
-    const targetVersions = sourcePromptVersions.length > 0 ? new Set(sourcePromptVersions) : null
+
+    // Build set of target prompt versions for efficient lookup
+    const targetVersions = sourcePromptVersions.length > 0
+      ? new Set(sourcePromptVersions)
+      : null // null means all versions
 
     for (const seed of seeds) {
       // Fetch palette by seed
@@ -340,37 +276,101 @@ export const buildTagSummaries = internalQuery({
 
       if (!palette) continue
 
-      // Fetch tags for this specific seed using the index
-      // This queries by seed prefix which is efficient
-      const tags = await ctx.db
-        .query('palette_tags')
-        .withIndex('by_seed_provider', (q) => q.eq('seed', seed))
+      // Get all consensus docs for this seed (one per prompt version)
+      const consensusDocs = await ctx.db
+        .query('palette_tag_consensus')
+        .withIndex('by_seed', (q) => q.eq('seed', seed))
         .collect()
 
-      // Filter to target prompt versions (or all if not specified)
-      const filteredTags = tags.filter(
-        (t) => t.tags !== null && (targetVersions === null || targetVersions.has(t.promptVersion)),
-      )
-
-      const summary = aggregateTagsForSeed(
-        filteredTags.map((t) => ({
-          seed: t.seed,
-          provider: t.provider,
-          model: t.model,
-          tags: t.tags,
-          promptVersion: t.promptVersion,
-        })),
-        { _id: palette._id, seed: palette.seed, imageUrl: palette.imageUrl },
-      )
-
-      if (summary) {
-        summaries.push(summary)
+      // Skip seeds without consensus data
+      // (getPalettesForRefinement ensures only seeds with consensus are returned)
+      if (consensusDocs.length === 0) {
+        console.warn(`Skipping seed ${seed}: no consensus data found`)
+        continue
       }
+
+      // Filter by target prompt versions if specified
+      const filteredDocs = targetVersions
+        ? consensusDocs.filter((c) => c.promptVersion && targetVersions.has(c.promptVersion))
+        : consensusDocs
+
+      if (filteredDocs.length === 0) {
+        console.warn(`Skipping seed ${seed}: no consensus for target versions`)
+        continue
+      }
+
+      // Merge consensus from matching versions
+      const merged = mergeConsensusDocsForSummary(filteredDocs)
+
+      const colorData = generateColorDataFromSeed(palette.seed)
+
+      // Use the first matching version as the "source" (for display purposes)
+      const sourcePromptVersion = filteredDocs[0].promptVersion ?? 'unknown'
+
+      summaries.push({
+        seed: palette.seed,
+        paletteId: palette._id,
+        colorData,
+        imageUrl: palette.imageUrl,
+        totalModels: merged.totalModels,
+        sourcePromptVersion,
+        categorical: merged.categorical,
+        tags: merged.tags,
+      })
     }
 
     return summaries
   },
 })
+
+/**
+ * Helper to merge multiple consensus docs into a single summary.
+ * Used when aggregating across prompt versions.
+ */
+function mergeConsensusDocsForSummary(
+  docs: Array<{
+    totalModels: number
+    categorical: TagSummary['categorical']
+    tags: TagSummary['tags']
+  }>
+): { totalModels: number; categorical: TagSummary['categorical']; tags: TagSummary['tags'] } {
+  const result = {
+    totalModels: 0,
+    categorical: {
+      temperature: {} as Record<string, number>,
+      contrast: {} as Record<string, number>,
+      brightness: {} as Record<string, number>,
+      saturation: {} as Record<string, number>,
+    },
+    tags: {
+      mood: {} as Record<string, number>,
+      style: {} as Record<string, number>,
+      dominant_colors: {} as Record<string, number>,
+      seasonal: {} as Record<string, number>,
+      associations: {} as Record<string, number>,
+    },
+  }
+
+  for (const doc of docs) {
+    result.totalModels += doc.totalModels
+
+    // Merge categorical
+    for (const cat of ['temperature', 'contrast', 'brightness', 'saturation'] as const) {
+      for (const [key, count] of Object.entries(doc.categorical[cat])) {
+        result.categorical[cat][key] = (result.categorical[cat][key] ?? 0) + count
+      }
+    }
+
+    // Merge tags
+    for (const tagType of ['mood', 'style', 'dominant_colors', 'seasonal', 'associations'] as const) {
+      for (const [key, count] of Object.entries(doc.tags[tagType])) {
+        result.tags[tagType][key] = (result.tags[tagType][key] ?? 0) + count
+      }
+    }
+  }
+
+  return result
+}
 
 // ============================================================================
 // Refinement Batch Management
@@ -612,7 +612,9 @@ export const getRefinementStatus = query({
  * Refresh the refinement status cache for palette/tag counts only.
  * Refined counts now come from aggregates in real-time.
  *
- * Uses pagination to avoid the 16MB read limit on palette_tags.
+ * Uses paletteTagsAggregate to get tag counts without full table scan.
+ * For palettesWithTags, we use an approximation: if we have successful tags,
+ * assume all palettes have been tagged at least once (since batches cover all palettes).
  */
 export const refreshRefinementStatusCache = internalMutation({
   args: {},
@@ -620,29 +622,16 @@ export const refreshRefinementStatusCache = internalMutation({
     // Count palettes (small table, safe to collect)
     const palettes = await ctx.db.query('palettes').collect()
 
-    // Count unique seeds with valid tags using pagination to avoid 16MB limit
-    const seedsWithTags = new Set<string>()
-    let isDone = false
-    let cursor: string | null = null
+    // Use aggregate to check if any successful tags exist
+    const successfulTagCount = await paletteTagsAggregate.sum(ctx)
 
-    while (!isDone) {
-      const page = await ctx.db
-        .query('palette_tags')
-        .paginate({ cursor, numItems: 1000 })
-
-      for (const tag of page.page) {
-        if (tag.tags !== null) {
-          seedsWithTags.add(tag.seed)
-        }
-      }
-
-      isDone = page.isDone
-      cursor = page.continueCursor
-    }
+    // If we have successful tags, all palettes have been tagged
+    // (since batch jobs process all palettes together)
+    const palettesWithTags = successfulTagCount > 0 ? palettes.length : 0
 
     const stats = {
       totalPalettes: palettes.length,
-      palettesWithTags: seedsWithTags.size,
+      palettesWithTags,
     }
 
     // Upsert cache

@@ -400,7 +400,7 @@ function SeedButton() {
 }
 
 function RefinementStatusPanel({
-  selectedPromptVersions,
+  selectedPromptVersions: _selectedPromptVersions,
 }: {
   selectedPromptVersions: Set<string>
 }) {
