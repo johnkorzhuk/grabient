@@ -34,15 +34,288 @@ export const Route = createFileRoute('/_layout/')({
 })
 
 function Dashboard() {
+  // Shared state for selected prompt versions - controls both refinement and consensus
+  const availableVersions = useQuery(api.refinement.getAvailablePromptVersions, {})
+  const [selectedPromptVersions, setSelectedPromptVersions] = useState<Set<string>>(new Set())
+
+  // Initialize with latest prompt version when data loads
+  useEffect(() => {
+    if (availableVersions && availableVersions.length > 0 && selectedPromptVersions.size === 0) {
+      setSelectedPromptVersions(new Set([availableVersions[0].version]))
+    }
+  }, [availableVersions, selectedPromptVersions.size])
+
+  const togglePromptVersion = (version: string) => {
+    const newSet = new Set(selectedPromptVersions)
+    if (newSet.has(version)) {
+      newSet.delete(version)
+    } else {
+      newSet.add(version)
+    }
+    setSelectedPromptVersions(newSet)
+  }
+
+  const selectAllPromptVersions = () => {
+    if (availableVersions) {
+      setSelectedPromptVersions(new Set(availableVersions.map(v => v.version)))
+    }
+  }
+
+  const selectNoPromptVersions = () => {
+    setSelectedPromptVersions(new Set())
+  }
+
   return (
-    <div className="p-6 max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
-        <SeedButton />
+    <div className="h-full flex flex-col overflow-hidden">
+      {/* Header bar with prompt version selector */}
+      <div className="shrink-0 px-6 py-3 border-b border-border">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-foreground">Dashboard</h2>
+          <SeedButton />
+        </div>
+
+        {/* Tag Analysis Prompts Selector */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">Tag Analysis Prompts:</span>
+            <div className="flex items-center gap-1 text-xs">
+              <button
+                onClick={selectAllPromptVersions}
+                className="text-primary hover:underline"
+              >
+                All
+              </button>
+              <span className="text-muted-foreground">/</span>
+              <button
+                onClick={selectNoPromptVersions}
+                className="text-primary hover:underline"
+              >
+                None
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {availableVersions?.map((v, idx) => (
+              <label
+                key={v.version}
+                className={cn(
+                  'flex items-center gap-2 px-2 py-1 rounded-md cursor-pointer text-xs transition-colors',
+                  selectedPromptVersions.has(v.version)
+                    ? 'bg-primary/10 border border-primary/30'
+                    : 'bg-muted/50 border border-transparent hover:bg-muted'
+                )}
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedPromptVersions.has(v.version)}
+                  onChange={() => togglePromptVersion(v.version)}
+                  className="rounded border-input h-3 w-3"
+                />
+                <span className="font-mono text-muted-foreground">
+                  {v.version.slice(0, 8)}
+                </span>
+                {idx === 0 && (
+                  <span className="px-1 py-0.5 text-[10px] font-medium bg-primary/20 text-primary rounded">
+                    latest
+                  </span>
+                )}
+                <span className="text-muted-foreground/60">
+                  {v.tagCount.toLocaleString()}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
-        <BackfillControlPanel />
-        <RefinementStatusPanel />
+
+      {/* Main content - split horizontally */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        {/* Left column: Tag Analysis + Tag Refinement */}
+        <div className="w-1/2 flex flex-col min-h-0 border-r border-border overflow-hidden">
+          {/* Top: Tag Analysis */}
+          <div className="flex-1 min-h-0 border-b border-border p-6 overflow-hidden">
+            <BackfillControlPanel />
+          </div>
+
+          {/* Bottom: Tag Refinement */}
+          <div className="flex-1 min-h-0 p-6 overflow-hidden">
+            <RefinementStatusPanel
+              selectedPromptVersions={selectedPromptVersions}
+            />
+          </div>
+        </div>
+
+        {/* Right column: Consensus Analysis */}
+        <div className="w-1/2 min-h-0 p-6 overflow-hidden">
+          <ConsensusAnalysisPanel
+            selectedPromptVersions={Array.from(selectedPromptVersions)}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConsensusAnalysisPanel({
+  selectedPromptVersions,
+}: {
+  selectedPromptVersions: string[]
+}) {
+  const consensusData = useQuery(
+    api.consensus.getConsensusPreview,
+    selectedPromptVersions.length > 0 ? { promptVersions: selectedPromptVersions } : 'skip'
+  )
+
+  return (
+    <div className="h-full rounded-lg border border-border bg-card p-6 flex flex-col overflow-hidden">
+      <div className="flex items-center gap-2 mb-4 shrink-0">
+        <Database className="h-5 w-5 text-primary" />
+        <h3 className="font-semibold text-foreground">Consensus Analysis</h3>
+        {selectedPromptVersions.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            ({selectedPromptVersions.length} prompt{selectedPromptVersions.length !== 1 ? 's' : ''})
+          </span>
+        )}
+      </div>
+
+      {selectedPromptVersions.length === 0 ? (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          Select prompt versions above to see consensus data
+        </div>
+      ) : consensusData === undefined ? (
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      ) : consensusData === null ? (
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          No consensus data for selected versions
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
+          {/* Stats */}
+          <div className="p-3 rounded-md bg-muted/50">
+            <div className="grid grid-cols-3 gap-2 text-xs">
+              <div>
+                <span className="text-muted-foreground">Seeds:</span>{' '}
+                <span className="font-medium">{consensusData.totalSeeds}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Records:</span>{' '}
+                <span className="font-medium">{consensusData.totalModels.toLocaleString()}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Versions:</span>{' '}
+                <span className="font-medium">{consensusData.promptVersions.length}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Categorical Properties */}
+          <div className="space-y-2">
+            <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Properties
+            </h4>
+            <div className="grid grid-cols-2 gap-2">
+              {(['temperature', 'contrast', 'brightness', 'saturation'] as const).map((cat) => {
+                const items = consensusData.categorical[cat]
+                const winner = items[0]
+                if (!winner) return null
+                const percentage = Math.round((winner.count / consensusData.totalModels) * 100)
+                return (
+                  <div key={cat} className="p-2 rounded bg-muted/30">
+                    <div className="text-[10px] text-muted-foreground uppercase mb-1">{cat}</div>
+                    <div className="flex flex-wrap gap-1">
+                      <span
+                        className={cn(
+                          'text-xs px-1.5 py-0.5 rounded',
+                          percentage >= 70
+                            ? 'bg-green-500/15 text-green-700 dark:text-green-400'
+                            : percentage >= 50
+                              ? 'bg-yellow-500/15 text-yellow-700 dark:text-yellow-400'
+                              : 'bg-primary/10 text-primary'
+                        )}
+                      >
+                        {winner.value}
+                        <span className="text-[10px] ml-1 opacity-60">{percentage}%</span>
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Tags */}
+          {(['mood', 'style', 'dominant_colors', 'seasonal'] as const).map((tagType) => (
+            <ConsensusTagSection
+              key={tagType}
+              label={tagType.replace('_', ' ')}
+              items={consensusData.tags[tagType]}
+              totalModels={consensusData.totalModels}
+            />
+          ))}
+
+          {/* Associations */}
+          <ConsensusTagSection
+            label="Associations"
+            items={consensusData.tags.associations}
+            totalModels={consensusData.totalModels}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ConsensusTagSection({
+  label,
+  items,
+  totalModels,
+}: {
+  label: string
+  items: Array<{ value: string; count: number }>
+  totalModels: number
+}) {
+  const [showAll, setShowAll] = useState(false)
+
+  if (!items || items.length === 0) return null
+
+  const visibleItems = showAll ? items : items.slice(0, 12)
+  const hiddenCount = items.length - 12
+
+  return (
+    <div>
+      <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
+        {label}
+      </h4>
+      <div className="flex flex-wrap gap-1">
+        {visibleItems.map((item) => {
+          const percentage = Math.round((item.count / totalModels) * 100)
+          return (
+            <span
+              key={item.value}
+              className={cn(
+                'text-xs px-1.5 py-0.5 rounded',
+                percentage >= 30
+                  ? 'bg-green-500/15 text-green-700 dark:text-green-400'
+                  : percentage >= 15
+                    ? 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400'
+                    : 'bg-muted text-muted-foreground'
+              )}
+            >
+              {item.value}
+              <span className="text-[10px] ml-1 opacity-60">{percentage}%</span>
+            </span>
+          )
+        })}
+        {hiddenCount > 0 && (
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="text-xs text-primary hover:text-primary/80 px-1.5 py-0.5 hover:bg-primary/10 rounded transition-colors"
+          >
+            {showAll ? 'Show less' : `+${hiddenCount} more`}
+          </button>
+        )}
       </div>
     </div>
   )
@@ -126,7 +399,11 @@ function SeedButton() {
   )
 }
 
-function RefinementStatusPanel() {
+function RefinementStatusPanel({
+  selectedPromptVersions,
+}: {
+  selectedPromptVersions: Set<string>
+}) {
   const status = useQuery(api.refinement.getRefinementStatus, {})
   const currentCycle = useQuery(api.refinement.getCurrentRefinementCycle, {})
   const recentBatches = useQuery(api.refinement.getRecentRefinementBatches, {
@@ -396,8 +673,8 @@ function RefinementStatusPanel() {
   // New Job Mode UI
   if (isNewJobMode) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="h-full flex flex-col rounded-lg border border-border bg-card p-6 overflow-hidden">
+        <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-2">
             <button
               onClick={() => {
@@ -417,188 +694,193 @@ function RefinementStatusPanel() {
           </div>
         </div>
 
-        {/* Tag Analysis Versions Selection */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">Tag Analysis Versions</span>
-            <div className="flex items-center gap-2 text-xs">
-              <button
-                onClick={selectAllVersions}
-                className="text-primary hover:underline"
-              >
-                All
-              </button>
-              <span className="text-muted-foreground">/</span>
-              <button
-                onClick={selectNoVersions}
-                className="text-primary hover:underline"
-              >
-                None
-              </button>
-            </div>
-          </div>
-          <div className="p-3 rounded-md bg-muted/50 space-y-1.5 max-h-40 overflow-y-auto">
-            {availableVersions && availableVersions.length > 0 ? (
-              availableVersions.map((v, idx) => (
-                <label
-                  key={v.version}
-                  className="flex items-center justify-between gap-2 cursor-pointer text-xs"
+        {/* Scrollable content area */}
+        <div className="flex-1 min-h-0 overflow-y-auto space-y-4">
+          {/* Tag Analysis Versions Selection */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-foreground">Tag Analysis Versions</span>
+              <div className="flex items-center gap-2 text-xs">
+                <button
+                  onClick={selectAllVersions}
+                  className="text-primary hover:underline"
                 >
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={selectedVersions.has(v.version)}
-                      onChange={() => toggleVersion(v.version)}
-                      className="rounded border-input"
-                    />
-                    <span className="font-mono text-muted-foreground">
-                      {v.version.slice(0, 12)}...
-                    </span>
-                    {idx === 0 && (
-                      <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded">
-                        latest
+                  All
+                </button>
+                <span className="text-muted-foreground">/</span>
+                <button
+                  onClick={selectNoVersions}
+                  className="text-primary hover:underline"
+                >
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="p-3 rounded-md bg-muted/50 space-y-1.5">
+              {availableVersions && availableVersions.length > 0 ? (
+                availableVersions.map((v, idx) => (
+                  <label
+                    key={v.version}
+                    className="flex items-center justify-between gap-2 cursor-pointer text-xs"
+                  >
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedVersions.has(v.version)}
+                        onChange={() => toggleVersion(v.version)}
+                        className="rounded border-input"
+                      />
+                      <span className="font-mono text-muted-foreground">
+                        {v.version.slice(0, 12)}...
                       </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <span>{new Date(v.createdAt).toLocaleDateString()}</span>
-                    <span className="text-muted-foreground/60">·</span>
-                    <span>{v.tagCount.toLocaleString()} tags</span>
-                  </div>
-                </label>
-              ))
-            ) : (
-              <span className="text-xs text-muted-foreground">No tag analysis data available</span>
-            )}
-          </div>
-        </div>
-
-        {/* Model Selection */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-medium text-foreground">Refinement Models</span>
-            <div className="flex items-center gap-2 text-xs">
-              <button
-                onClick={selectAllModels}
-                className="text-primary hover:underline"
-              >
-                All
-              </button>
-              <span className="text-muted-foreground">/</span>
-              <button
-                onClick={selectNoModels}
-                className="text-primary hover:underline"
-              >
-                None
-              </button>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {(['anthropic', 'openai', 'groq', 'google'] as const).map((provider) => {
-              const providerModelsList = REFINEMENT_MODELS.filter(
-                (m) => REFINEMENT_MODEL_PROVIDER[m] === provider,
-              )
-              if (providerModelsList.length === 0) return null
-
-              const allSelected = providerModelsList.every((m) =>
-                selectedModels.has(m),
-              )
-              const someSelected = providerModelsList.some((m) =>
-                selectedModels.has(m),
-              )
-
-              return (
-                <div key={provider} className="p-3 rounded-md bg-muted/50">
-                  <label className="flex items-center gap-2 mb-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      ref={(el) => {
-                        if (el) el.indeterminate = someSelected && !allSelected
-                      }}
-                      onChange={() => toggleProvider(provider)}
-                      className="rounded border-input"
-                    />
-                    <span className="text-sm font-medium capitalize">
-                      {provider}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      (
-                      {
-                        providerModelsList.filter((m) => selectedModels.has(m))
-                          .length
-                      }
-                      /{providerModelsList.length})
-                    </span>
-                  </label>
-                  <div className="ml-6 space-y-1">
-                    {providerModelsList.map((model) => (
-                      <label
-                        key={model}
-                        className="flex items-center gap-2 cursor-pointer text-xs"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={selectedModels.has(model)}
-                          onChange={() => toggleModel(model)}
-                          className="rounded border-input"
-                        />
-                        <span className="text-muted-foreground">
-                          {getModelShortName(model)}
+                      {idx === 0 && (
+                        <span className="px-1.5 py-0.5 text-[10px] font-medium bg-primary/10 text-primary rounded">
+                          latest
                         </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Pending count */}
-        {status && (
-          <div className="mb-4 p-3 rounded-md bg-yellow-500/10 border border-yellow-500/20">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-yellow-700 dark:text-yellow-400">
-                Palettes pending refinement
-              </span>
-              <span className="font-medium text-yellow-700 dark:text-yellow-400">
-                {status.pending}
-              </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <span>{new Date(v.createdAt).toLocaleDateString()}</span>
+                      <span className="text-muted-foreground/60">·</span>
+                      <span>{v.tagCount.toLocaleString()} tags</span>
+                    </div>
+                  </label>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">No tag analysis data available</span>
+              )}
             </div>
           </div>
-        )}
 
-        {/* Start Button */}
-        <button
-          onClick={handleStartRefinement}
-          disabled={isStarting || selectedModels.size === 0 || selectedVersions.size === 0}
-          className={cn(
-            'w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2',
-            'bg-primary text-primary-foreground hover:bg-primary/90',
-            'disabled:opacity-50 disabled:cursor-not-allowed',
-            'outline-none focus-visible:ring-2 focus-visible:ring-ring/70',
-          )}
-        >
-          {isStarting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Starting...
-            </>
-          ) : (
-            <>
-              <Play className="h-4 w-4" />
-              Start Refinement ({selectedModels.size} model{selectedModels.size !== 1 ? 's' : ''}, {selectedVersions.size} version{selectedVersions.size !== 1 ? 's' : ''})
-            </>
-          )}
-        </button>
+          {/* Model Selection */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-foreground">Refinement Models</span>
+              <div className="flex items-center gap-2 text-xs">
+                <button
+                  onClick={selectAllModels}
+                  className="text-primary hover:underline"
+                >
+                  All
+                </button>
+                <span className="text-muted-foreground">/</span>
+                <button
+                  onClick={selectNoModels}
+                  className="text-primary hover:underline"
+                >
+                  None
+                </button>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {(['anthropic', 'openai', 'groq', 'google'] as const).map((provider) => {
+                const providerModelsList = REFINEMENT_MODELS.filter(
+                  (m) => REFINEMENT_MODEL_PROVIDER[m] === provider,
+                )
+                if (providerModelsList.length === 0) return null
 
-        {/* Error display */}
-        {error && (
-          <div className="mt-3 p-2 rounded bg-destructive/10 text-destructive text-xs">
-            {error}
+                const allSelected = providerModelsList.every((m) =>
+                  selectedModels.has(m),
+                )
+                const someSelected = providerModelsList.some((m) =>
+                  selectedModels.has(m),
+                )
+
+                return (
+                  <div key={provider} className="p-3 rounded-md bg-muted/50">
+                    <label className="flex items-center gap-2 mb-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someSelected && !allSelected
+                        }}
+                        onChange={() => toggleProvider(provider)}
+                        className="rounded border-input"
+                      />
+                      <span className="text-sm font-medium capitalize">
+                        {provider}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        (
+                        {
+                          providerModelsList.filter((m) => selectedModels.has(m))
+                            .length
+                        }
+                        /{providerModelsList.length})
+                      </span>
+                    </label>
+                    <div className="ml-6 space-y-1">
+                      {providerModelsList.map((model) => (
+                        <label
+                          key={model}
+                          className="flex items-center gap-2 cursor-pointer text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedModels.has(model)}
+                            onChange={() => toggleModel(model)}
+                            className="rounded border-input"
+                          />
+                          <span className="text-muted-foreground">
+                            {getModelShortName(model)}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        )}
+
+          {/* Pending count */}
+          {status && (
+            <div className="p-3 rounded-md bg-yellow-500/10 border border-yellow-500/20">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-yellow-700 dark:text-yellow-400">
+                  Palettes pending refinement
+                </span>
+                <span className="font-medium text-yellow-700 dark:text-yellow-400">
+                  {status.pending}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Fixed footer with button and error */}
+        <div className="shrink-0 pt-4">
+          <button
+            onClick={handleStartRefinement}
+            disabled={isStarting || selectedModels.size === 0 || selectedVersions.size === 0}
+            className={cn(
+              'w-full px-4 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-2',
+              'bg-primary text-primary-foreground hover:bg-primary/90',
+              'disabled:opacity-50 disabled:cursor-not-allowed',
+              'outline-none focus-visible:ring-2 focus-visible:ring-ring/70',
+            )}
+          >
+            {isStarting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              <>
+                <Play className="h-4 w-4" />
+                Start Refinement ({selectedModels.size} model{selectedModels.size !== 1 ? 's' : ''}, {selectedVersions.size} version{selectedVersions.size !== 1 ? 's' : ''})
+              </>
+            )}
+          </button>
+
+          {/* Error display */}
+          {error && (
+            <div className="mt-3 p-2 rounded bg-destructive/10 text-destructive text-xs">
+              {error}
+            </div>
+          )}
+        </div>
       </div>
     )
   }
