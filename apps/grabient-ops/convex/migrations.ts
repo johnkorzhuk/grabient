@@ -180,3 +180,105 @@ export const clearLegacyRunNumber = migrations.define({
     }
   },
 })
+
+// ============================================================================
+// Refinement Schema Migration
+// ============================================================================
+
+/**
+ * Migrate legacy refinement records to new schema:
+ * - Add cycle: 0 for existing records
+ * - Convert sourcePromptVersion to sourcePromptVersions array
+ * - Remove sourcePromptVersion field
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:migrateRefinementSchema"}'
+ */
+export const migrateRefinementSchema = migrations.define({
+  table: 'palette_tag_refined',
+  migrateOne: async (ctx, doc) => {
+    const updates: Record<string, unknown> = {}
+
+    // Add cycle if missing
+    if ((doc as any).cycle === undefined) {
+      updates.cycle = 0
+    }
+
+    // Convert sourcePromptVersion to sourcePromptVersions array
+    if ((doc as any).sourcePromptVersions === undefined) {
+      const legacyVersion = (doc as any).sourcePromptVersion
+      updates.sourcePromptVersions = legacyVersion ? [legacyVersion] : []
+    }
+
+    // Clear legacy field
+    if ((doc as any).sourcePromptVersion !== undefined) {
+      updates.sourcePromptVersion = undefined
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(doc._id, updates)
+    }
+  },
+})
+
+/**
+ * Migrate legacy refinement batch records:
+ * - Convert sourcePromptVersion to sourcePromptVersions array
+ * - Make requestOrder required (use empty array as fallback)
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:migrateRefinementBatchSchema"}'
+ */
+export const migrateRefinementBatchSchema = migrations.define({
+  table: 'refinement_batches',
+  migrateOne: async (ctx, doc) => {
+    const updates: Record<string, unknown> = {}
+
+    // Convert sourcePromptVersion to sourcePromptVersions array
+    if ((doc as any).sourcePromptVersions === undefined) {
+      const legacyVersion = (doc as any).sourcePromptVersion
+      updates.sourcePromptVersions = legacyVersion ? [legacyVersion] : []
+    }
+
+    // Clear legacy field
+    if ((doc as any).sourcePromptVersion !== undefined) {
+      updates.sourcePromptVersion = undefined
+    }
+
+    // Ensure requestOrder exists
+    if ((doc as any).requestOrder === undefined) {
+      updates.requestOrder = []
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await ctx.db.patch(doc._id, updates)
+    }
+  },
+})
+
+/**
+ * Delete all refinement records with errors
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:deleteRefinementErrors"}'
+ */
+export const deleteRefinementErrors = migrations.define({
+  table: 'palette_tag_refined',
+  migrateOne: async (ctx, doc) => {
+    if (doc.error) {
+      await ctx.db.delete(doc._id)
+    }
+  },
+})
+
+/**
+ * Delete all failed refinement batches
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:deleteFailedBatches"}'
+ */
+export const deleteFailedBatches = migrations.define({
+  table: 'refinement_batches',
+  migrateOne: async (ctx, doc) => {
+    if (doc.status === 'failed') {
+      await ctx.db.delete(doc._id)
+    }
+  },
+})
+

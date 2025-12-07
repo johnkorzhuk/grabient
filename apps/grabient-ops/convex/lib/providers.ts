@@ -30,6 +30,7 @@ export const tagResponseSchema = z.object({
   mood: flexibleArray,
   style: flexibleArray,
   dominant_colors: flexibleArray,
+  harmony: flexibleArray,
   temperature: flexibleString,
   contrast: flexibleString,
   brightness: flexibleString,
@@ -146,6 +147,9 @@ export function normalizeTagResponse(raw: Record<string, unknown>): Record<strin
   }
   if (normalized.dominant_colors === undefined || normalized.dominant_colors === null) {
     normalized.dominant_colors = []
+  }
+  if (normalized.harmony === undefined || normalized.harmony === null) {
+    normalized.harmony = []
   }
 
   return normalized

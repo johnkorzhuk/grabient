@@ -9,24 +9,27 @@ export const refinementStatus = query({
     const palettes = await ctx.db.query('palettes').collect()
     const tags = await ctx.db.query('palette_tags').collect()
     const refined = await ctx.db.query('palette_tag_refined').collect()
+    const batches = await ctx.db.query('refinement_batches').collect()
 
-    // Seeds that have at least one tag
-    const taggedSeeds = new Set(tags.map((t) => t.seed))
+    // Seeds that have at least one successful tag
+    const taggedSeeds = new Set(tags.filter((t) => t.tags !== null).map((t) => t.seed))
 
-    // Seeds that have been refined
-    const refinedSeeds = new Set(refined.map((r) => r.seed))
+    // Seeds that have been successfully refined (no error)
+    const refinedSeeds = new Set(refined.filter((r) => !r.error).map((r) => r.seed))
 
     // Seeds with errors (have error field set)
-    const errorSeeds = new Set(
-      refined.filter((r) => r.tags === null || r.embedText === '').map((r) => r.seed),
-    )
+    const errorSeeds = new Set(refined.filter((r) => r.error).map((r) => r.seed))
+
+    // Active batches
+    const activeBatches = batches.filter((b) => b.status === 'pending' || b.status === 'processing')
 
     return {
       totalPalettes: palettes.length,
       totalTagged: taggedSeeds.size,
       refined: refinedSeeds.size,
-      pending: taggedSeeds.size - refinedSeeds.size,
+      pending: taggedSeeds.size - refinedSeeds.size - errorSeeds.size,
       errors: errorSeeds.size,
+      activeBatches: activeBatches.length,
     }
   },
 })

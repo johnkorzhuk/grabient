@@ -77,9 +77,10 @@ export const createBatch = internalMutation({
     batchId: v.string(),
     analysisCount: v.number(),
     requestCount: v.number(),
+    requestOrder: v.optional(v.array(v.string())), // For Google batches: customIds in order
   },
   returns: v.id('tag_batches'),
-  handler: async (ctx, { cycle, provider, model, batchId, analysisCount, requestCount }) => {
+  handler: async (ctx, { cycle, provider, model, batchId, analysisCount, requestCount, requestOrder }) => {
     return await ctx.db.insert('tag_batches', {
       cycle,
       provider,
@@ -91,6 +92,7 @@ export const createBatch = internalMutation({
       completedCount: 0,
       failedCount: 0,
       createdAt: Date.now(),
+      requestOrder,
     })
   },
 })
@@ -246,6 +248,19 @@ export const getActiveBatches = query({
  * Get batch by provider batch ID
  */
 export const getBatchByBatchId = query({
+  args: { batchId: v.string() },
+  handler: async (ctx, { batchId }) => {
+    return await ctx.db
+      .query('tag_batches')
+      .withIndex('by_batch_id', (q) => q.eq('batchId', batchId))
+      .first()
+  },
+})
+
+/**
+ * Get batch by provider batch ID (internal version for actions)
+ */
+export const getBatchByBatchIdInternal = internalQuery({
   args: { batchId: v.string() },
   handler: async (ctx, { batchId }) => {
     return await ctx.db

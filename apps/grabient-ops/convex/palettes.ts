@@ -73,11 +73,11 @@ export const getPaletteWithTags = query({
       .filter((q) => q.eq(q.field("seed"), args.seed))
       .collect();
 
-    // Get refined tags
-    const refined = await ctx.db
+    // Get ALL refined tags (multiple models can refine same palette)
+    const allRefinedTags = await ctx.db
       .query("palette_tag_refined")
       .withIndex("by_seed", (q) => q.eq("seed", args.seed))
-      .first();
+      .collect();
 
     // Get unique prompt versions, sorted by most recent first
     const versionMap = new Map<string, number>();
@@ -91,17 +91,29 @@ export const getPaletteWithTags = query({
       .sort((a, b) => b[1] - a[1])
       .map(([version]) => version);
 
+    // Get unique refinement models, sorted by most recent first
+    const availableRefinementModels = [...new Set(allRefinedTags.map(r => r.model))]
+      .sort((a, b) => {
+        const aTime = allRefinedTags.find(r => r.model === a)?._creationTime ?? 0;
+        const bTime = allRefinedTags.find(r => r.model === b)?._creationTime ?? 0;
+        return bTime - aTime;
+      });
+
     return {
       ...palette,
       rawTags,
-      refinedTags: refined,
+      allRefinedTags,
+      // Keep for backward compatibility - first refinement (latest)
+      refinedTags: allRefinedTags.length > 0 ? allRefinedTags.sort((a, b) => b._creationTime - a._creationTime)[0] : null,
       availableVersions,
+      availableRefinementModels,
     };
   },
 });
 
 /**
- * Get all palettes with tag counts
+ * Get palettes with tag counts (paginated, efficient)
+ * Uses take() for efficient pagination - only reads what's needed
  */
 export const listPalettesWithStatus = query({
   args: {
@@ -112,33 +124,64 @@ export const listPalettesWithStatus = query({
     const limit = args.limit ?? 20;
     const offset = args.offset ?? 0;
 
-    // Get all palettes
-    const allPalettes = await ctx.db.query("palettes").order("desc").collect();
+    // Get total count from cache
+    const cached = await ctx.db
+      .query("stats_cache")
+      .withIndex("by_key", (q) => q.eq("key", "refinement_status"))
+      .first();
+    const total = cached?.data?.totalPalettes ?? 0;
 
-    // Get tag counts and refined status
-    const allTags = await ctx.db.query("palette_tags").collect();
-    const allRefined = await ctx.db.query("palette_tag_refined").collect();
-
-    // Create lookup maps
-    const tagCounts = new Map<string, number>();
-    for (const tag of allTags) {
-      tagCounts.set(tag.seed, (tagCounts.get(tag.seed) ?? 0) + 1);
+    // For first page, use efficient take()
+    // For later pages, we need to skip - this is less efficient but rare
+    let pageData;
+    if (offset === 0) {
+      pageData = await ctx.db
+        .query("palettes")
+        .order("desc")
+        .take(limit);
+    } else {
+      // For offset > 0, we need to skip items
+      // This is less efficient but pagination beyond page 1 is less common
+      const allUpToLimit = await ctx.db
+        .query("palettes")
+        .order("desc")
+        .take(offset + limit);
+      pageData = allUpToLimit.slice(offset);
     }
 
-    const refinedSeeds = new Set(allRefined.map((r) => r.seed));
+    if (pageData.length === 0) {
+      return {
+        palettes: [],
+        total,
+        hasMore: false,
+      };
+    }
 
-    // Attach tag info to all palettes
-    const allPalettesWithStatus = allPalettes.map((p) => ({
-      ...p,
-      tagCount: tagCounts.get(p.seed) ?? 0,
-      isRefined: refinedSeeds.has(p.seed),
-    }));
+    // Only look up status for the palettes on this page
+    const palettesWithStatus = await Promise.all(
+      pageData.map(async (p) => {
+        // Count tags for this seed using index
+        const tags = await ctx.db
+          .query("palette_tags")
+          .withIndex("by_seed_provider", (q) => q.eq("seed", p.seed))
+          .collect();
 
-    const total = allPalettesWithStatus.length;
-    const palettes = allPalettesWithStatus.slice(offset, offset + limit);
+        // Check if refined
+        const refined = await ctx.db
+          .query("palette_tag_refined")
+          .withIndex("by_seed", (q) => q.eq("seed", p.seed))
+          .first();
+
+        return {
+          ...p,
+          tagCount: tags.length,
+          isRefined: !!refined,
+        };
+      })
+    );
 
     return {
-      palettes,
+      palettes: palettesWithStatus,
       total,
       hasMore: offset + limit < total,
     };

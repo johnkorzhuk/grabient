@@ -20,6 +20,7 @@ interface StructuredTags {
   mood: string[];
   style: string[];
   dominant_colors: string[];
+  harmony: string[];
   temperature: string | string[];
   contrast: string | string[];
   brightness: string | string[];
@@ -87,7 +88,10 @@ function SeedDetailPage() {
         ) : notFound ? (
           <div className="h-full flex items-center justify-center" />
         ) : (
-          <RefinementContent refinedTags={palette.refinedTags} />
+          <RefinementContent
+            allRefinedTags={palette.allRefinedTags}
+            availableModels={palette.availableRefinementModels}
+          />
         )}
       </div>
     </div>
@@ -512,6 +516,7 @@ function ConsensusView({
     mood: new Map(),
     style: new Map(),
     dominant_colors: new Map(),
+    harmony: new Map(),
     temperature: new Map(),
     contrast: new Map(),
     brightness: new Map(),
@@ -545,6 +550,7 @@ function ConsensusView({
     for (const mood of tags.mood) addTag("mood", mood, shortModel);
     for (const style of tags.style) addTag("style", style, shortModel);
     for (const color of tags.dominant_colors) addTag("dominant_colors", color, shortModel);
+    for (const harmony of tags.harmony ?? []) addTag("harmony", harmony, shortModel);
     for (const season of tags.seasonal) addTag("seasonal", season, shortModel);
     for (const assoc of tags.associations) addTag("associations", assoc, shortModel);
 
@@ -574,6 +580,7 @@ function ConsensusView({
       <CategoryConsensus label="Mood" values={categories.mood} total={totalModels} />
       <CategoryConsensus label="Style" values={categories.style} total={totalModels} />
       <CategoryConsensus label="Dominant Colors" values={categories.dominant_colors} total={totalModels} />
+      <CategoryConsensus label="Harmony" values={categories.harmony} total={totalModels} />
       <CategoryConsensus label="Seasonal" values={categories.seasonal} total={totalModels} />
       <CategoryConsensus label="Associations" values={categories.associations} total={totalModels} />
     </div>
@@ -835,6 +842,9 @@ function StructuredTagDisplay({ tags }: { tags: StructuredTags }) {
         {tags.dominant_colors.length > 0 && (
           <TagRow label="Colors" tags={tags.dominant_colors} />
         )}
+        {(tags.harmony?.length ?? 0) > 0 && (
+          <TagRow label="Harmony" tags={tags.harmony} />
+        )}
         {tags.seasonal.length > 0 && (
           <TagRow label="Season" tags={tags.seasonal} />
         )}
@@ -864,99 +874,326 @@ function TagRow({ label, tags }: { label: string; tags: string[] }) {
   );
 }
 
-function RefinementContent({
-  refinedTags,
-}: {
-  refinedTags: {
-    tags: unknown;
-    embedText: string;
-    usage?: { inputTokens: number; outputTokens: number };
-  } | null;
-}) {
-  return (
-    <>
-      <div className="flex items-center gap-2 mb-4">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <h3 className="text-sm font-semibold text-foreground">Refinement</h3>
-      </div>
+// Type for refined tags structure
+interface RefinedTagsData {
+  temperature: string;
+  contrast: string;
+  brightness: string;
+  saturation: string;
+  harmony: string[];
+  mood: string[];
+  style: string[];
+  dominant_colors: string[];
+  seasonal: string[];
+  associations: string[];
+  mappings?: Record<string, string[]>;
+  embed_text: string;
+}
 
-      {refinedTags === null ? (
+function isRefinedTags(tags: unknown): tags is RefinedTagsData {
+  return (
+    typeof tags === "object" &&
+    tags !== null &&
+    "temperature" in tags &&
+    "mood" in tags &&
+    "embed_text" in tags
+  );
+}
+
+type RefinedTagRecord = {
+  model: string;
+  cycle: number;
+  promptVersion: string;
+  sourcePromptVersions: string[];
+  tags: unknown;
+  embedText: string;
+  error?: string;
+  usage?: { inputTokens: number; outputTokens: number };
+  _creationTime: number;
+};
+
+function RefinementContent({
+  allRefinedTags,
+  availableModels,
+}: {
+  allRefinedTags: RefinedTagRecord[];
+  availableModels: string[];
+}) {
+  const [selectedModel, setSelectedModel] = useState<string | null>(null);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Default to latest model on first load
+  useEffect(() => {
+    if (availableModels.length > 0 && selectedModel === null) {
+      setSelectedModel(availableModels[0]);
+    }
+  }, [availableModels, selectedModel]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target as Node)) {
+        setModelDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Get short model name helper
+  const getModelShortName = (model: string) => {
+    return model
+      .replace("claude-opus-4-5-20251101", "opus-4.5")
+      .replace("gpt-4.1-mini", "gpt-4.1-mini")
+      .replace("gpt-5-mini", "gpt-5-mini")
+      .replace("qwen/qwen3-32b", "qwen3-32b")
+      .replace("openai/gpt-oss-120b", "gpt-oss-120b")
+      .replace("moonshotai/kimi-k2-instruct", "kimi-k2");
+  };
+
+  if (allRefinedTags.length === 0) {
+    return (
+      <>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Refinement</h3>
+        </div>
         <div className="rounded-lg border border-border bg-card p-6 text-center">
           <Sparkles className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">Not yet refined</p>
           <p className="text-xs text-muted-foreground mt-1">
-            Refinement uses Opus 4.5 to consolidate provider tags
+            Use the Dashboard to start refinement
           </p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {/* Refined Tags */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Check className="h-4 w-4 text-green-500" />
-              <h4 className="text-xs font-medium text-foreground">Canonical Tags</h4>
+      </>
+    );
+  }
+
+  // Find the selected refinement
+  const refinedTags = selectedModel
+    ? allRefinedTags.find(r => r.model === selectedModel) ?? allRefinedTags[0]
+    : allRefinedTags[0];
+
+  const hasError = !!refinedTags.error;
+  const tags = isRefinedTags(refinedTags.tags) ? refinedTags.tags : null;
+
+  // Count successes and errors
+  const successCount = allRefinedTags.filter(r => !r.error).length;
+  const errorCount = allRefinedTags.filter(r => r.error).length;
+
+  return (
+    <>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h3 className="text-sm font-semibold text-foreground">Refinement</h3>
+          {allRefinedTags.length > 0 && (
+            <span className="text-xs text-muted-foreground">
+              ({successCount} successful{errorCount > 0 ? `, ${errorCount} errors` : ""})
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          {/* Model dropdown */}
+          {availableModels.length > 0 && (
+            <div className="relative" ref={modelDropdownRef}>
+              <button
+                onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
+                className={cn(
+                  "text-xs px-2 py-1 rounded border border-input bg-background",
+                  "text-muted-foreground hover:text-foreground",
+                  "outline-none focus:ring-2 focus:ring-ring/70",
+                  "flex items-center gap-1.5 min-w-[100px]",
+                  modelDropdownOpen && "border-muted-foreground/30 text-foreground"
+                )}
+              >
+                <span>
+                  {selectedModel ? getModelShortName(selectedModel) : "Select model"}
+                </span>
+                <ChevronDown
+                  className={cn("w-3 h-3 transition-transform", modelDropdownOpen && "rotate-180")}
+                />
+              </button>
+              {modelDropdownOpen && (
+                <div className="absolute z-50 top-full mt-1 right-0 bg-background/95 backdrop-blur-sm border border-input rounded-md shadow-lg min-w-[160px] max-h-[300px] overflow-y-auto">
+                  <div className="p-1">
+                    {availableModels.map((model, idx) => {
+                      const isSelected = model === selectedModel;
+                      const refinement = allRefinedTags.find(r => r.model === model);
+                      const hasErr = refinement?.error;
+                      const isLatest = idx === 0;
+                      return (
+                        <button
+                          key={model}
+                          onClick={() => {
+                            setSelectedModel(model);
+                            setModelDropdownOpen(false);
+                          }}
+                          className={cn(
+                            "w-full text-left text-xs px-2 py-1.5 rounded flex items-center gap-2",
+                            "hover:bg-muted transition-colors",
+                            isSelected ? "text-foreground bg-muted/50" : "text-muted-foreground"
+                          )}
+                        >
+                          <span className={cn(
+                            "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
+                            isSelected
+                              ? "bg-primary border-primary"
+                              : "border-input"
+                          )}>
+                            {isSelected && (
+                              <Check className="w-2.5 h-2.5 text-primary-foreground" />
+                            )}
+                          </span>
+                          <span className="flex-1">{getModelShortName(model)}</span>
+                          {hasErr && (
+                            <AlertCircle className="w-3 h-3 text-destructive" />
+                          )}
+                          {isLatest && !hasErr && (
+                            <span className="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">
+                              latest
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <TagDisplay tags={refinedTags.tags} variant="refined" />
+          )}
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{new Date(refinedTags._creationTime).toLocaleDateString()}</span>
+            {refinedTags.usage && (
+              <>
+                <span className="text-muted-foreground/50">·</span>
+                <span>{(refinedTags.usage.inputTokens + refinedTags.usage.outputTokens).toLocaleString()} tokens</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {hasError ? (
+        <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="h-4 w-4 text-destructive" />
+            <h4 className="text-xs font-medium text-destructive">Refinement Failed</h4>
+          </div>
+          <p className="text-xs text-destructive/80">{refinedTags.error}</p>
+        </div>
+      ) : tags ? (
+        <div className="space-y-4">
+          {/* Properties */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+              Properties
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <RefinedProperty label="Temperature" value={tags.temperature} />
+              <RefinedProperty label="Contrast" value={tags.contrast} />
+              <RefinedProperty label="Brightness" value={tags.brightness} />
+              <RefinedProperty label="Saturation" value={tags.saturation} />
+            </div>
           </div>
 
+          {/* Tags by category */}
+          <RefinedCategory label="Mood" tags={tags.mood} />
+          <RefinedCategory label="Style" tags={tags.style} />
+          <RefinedCategory label="Dominant Colors" tags={tags.dominant_colors} />
+          <RefinedCategory label="Harmony" tags={tags.harmony ?? []} />
+          <RefinedCategory label="Seasonal" tags={tags.seasonal} />
+          <RefinedCategory label="Associations" tags={tags.associations} />
+
           {/* Embed Text */}
-          {refinedTags.embedText && (
+          {tags.embed_text && (
             <div className="rounded-lg border border-border bg-card p-4">
               <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
                 Embedding Text
               </h4>
               <p className="text-sm text-foreground leading-relaxed">
-                {refinedTags.embedText}
+                {tags.embed_text}
               </p>
             </div>
           )}
 
-          {/* Usage */}
-          {refinedTags.usage && (
-            <div className="text-xs text-muted-foreground">
-              Refinement: {refinedTags.usage.inputTokens.toLocaleString()} in / {refinedTags.usage.outputTokens.toLocaleString()} out
-            </div>
+          {/* Mappings (if present) */}
+          {tags.mappings && Object.keys(tags.mappings).length > 0 && (
+            <RefinedMappings mappings={tags.mappings} />
           )}
+
+          {/* Source versions */}
+          <div className="text-xs text-muted-foreground">
+            Source versions: {refinedTags.sourcePromptVersions.map(v => v.slice(0, 8)).join(", ")}
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-border bg-card p-4">
+          <h4 className="text-xs font-medium text-muted-foreground mb-2">Raw Output</h4>
+          <pre className="text-xs text-foreground bg-muted p-2 rounded-md overflow-auto max-h-60">
+            {JSON.stringify(refinedTags.tags, null, 2)}
+          </pre>
         </div>
       )}
     </>
   );
 }
 
-function TagDisplay({ tags, variant = "raw" }: { tags: unknown; variant?: "refined" | "raw" }) {
-  if (!tags) return null;
+function RefinedProperty({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-xs text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+        {value}
+      </span>
+    </div>
+  );
+}
 
-  if (typeof tags === "string") {
-    return <p className="text-sm text-foreground">{tags}</p>;
-  }
+function RefinedCategory({ label, tags }: { label: string; tags: string[] }) {
+  if (tags.length === 0) return null;
 
-  if (Array.isArray(tags)) {
-    return (
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+        {label}
+      </h4>
       <div className="flex flex-wrap gap-1.5">
         {tags.map((tag, i) => (
           <span
             key={i}
-            className={cn(
-              "inline-block px-2 py-1 text-xs rounded-md",
-              variant === "refined"
-                ? "bg-primary/10 text-primary"
-                : "bg-muted text-muted-foreground"
-            )}
+            className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary"
           >
-            {typeof tag === "string" ? tag : JSON.stringify(tag)}
+            {tag}
           </span>
         ))}
       </div>
-    );
-  }
-
-  if (typeof tags === "object") {
-    return (
-      <pre className="text-xs text-foreground bg-muted p-2 rounded-md overflow-auto max-h-40">
-        {JSON.stringify(tags, null, 2)}
-      </pre>
-    );
-  }
-
-  return <p className="text-sm text-foreground">{String(tags)}</p>;
+    </div>
+  );
 }
+
+function RefinedMappings({ mappings }: { mappings: Record<string, string[]> }) {
+  const entries = Object.entries(mappings).filter(([, variants]) => variants.length > 0);
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+        Synonym Mappings
+      </h4>
+      <div className="space-y-2">
+        {entries.map(([canonical, variants]) => (
+          <div key={canonical} className="flex items-start gap-2 text-xs">
+            <span className="font-medium text-primary shrink-0">{canonical}</span>
+            <span className="text-muted-foreground">←</span>
+            <span className="text-muted-foreground">{variants.join(", ")}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+

@@ -63,6 +63,9 @@ importers:
       '@cf-wasm/resvg':
         specifier: ^0.3.2
         version: 0.3.2
+      '@convex-dev/aggregate':
+        specifier: ^0.2.0
+        version: 0.2.0(convex@1.30.0(react@19.2.1))
       '@convex-dev/migrations':
         specifier: ^0.3.1
         version: 0.3.1(convex@1.30.0(react@19.2.1))
@@ -1256,6 +1259,11 @@ packages:
 
   '@convex-dev/action-retrier@0.3.0':
     resolution: {integrity: sha512-opBNsgOPSuVY3qSARNub98XqPzSpSS7Jga0oGeWFhO+DcWBMt2gD3ssUeEA1Gi7wTNiZBX+T6OBfBnqMfv6Tuw==}
+    peerDependencies:
+      convex: ^1.24.8
+
+  '@convex-dev/aggregate@0.2.0':
+    resolution: {integrity: sha512-AKHa6SilQ9w1gnqBghCbQj77sdE2SJSZ8n3FHH/0PX/MSHsvmDT6Z+ZzIVK6EnmqItwxyRAIfA2E+znnHQVvOQ==}
     peerDependencies:
       convex: ^1.24.8
 
@@ -8768,6 +8776,10 @@ snapshots:
   '@cloudflare/workers-types@4.20251202.0': {}
 
   '@convex-dev/action-retrier@0.3.0(convex@1.30.0(react@19.2.1))':
+    dependencies:
+      convex: 1.30.0(react@19.2.1)
+
+  '@convex-dev/aggregate@0.2.0(convex@1.30.0(react@19.2.1))':
     dependencies:
       convex: 1.30.0(react@19.2.1)
 
