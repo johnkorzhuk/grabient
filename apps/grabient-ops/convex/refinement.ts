@@ -12,14 +12,12 @@ import { refinedSeedsAggregate } from './lib/aggregates'
 
 /**
  * Get all available prompt versions from palette_tags with counts.
- * Useful for selecting which tag analysis versions to include in refinement.
+ * Uses pagination to avoid the 16MB read limit.
  */
 export const getAvailablePromptVersions = query({
   args: {},
   handler: async (ctx) => {
-    const tags = await ctx.db.query('palette_tags').collect()
-
-    // Count tags by prompt version (only successful ones) and track earliest/latest dates
+    // Count tags by prompt version using pagination
     const versionData = new Map<string, {
       total: number
       uniqueSeeds: Set<string>
@@ -27,23 +25,34 @@ export const getAvailablePromptVersions = query({
       latestCreation: number
     }>()
 
-    for (const tag of tags) {
-      if (tag.error) continue // Skip error tags
+    let isDone = false
+    let cursor: string | null = null
 
-      const version = tag.promptVersion
-      const existing = versionData.get(version) ?? {
-        total: 0,
-        uniqueSeeds: new Set(),
-        earliestCreation: Infinity,
-        latestCreation: 0,
+    while (!isDone) {
+      const page = await ctx.db
+        .query('palette_tags')
+        .paginate({ cursor, numItems: 1000 })
+
+      for (const tag of page.page) {
+        if (tag.error) continue // Skip error tags
+
+        const version = tag.promptVersion
+        const existing = versionData.get(version) ?? {
+          total: 0,
+          uniqueSeeds: new Set(),
+          earliestCreation: Infinity,
+          latestCreation: 0,
+        }
+        existing.total++
+        existing.uniqueSeeds.add(tag.seed)
+        const creationTime = tag._creationTime
+        existing.earliestCreation = Math.min(existing.earliestCreation, creationTime)
+        existing.latestCreation = Math.max(existing.latestCreation, creationTime)
+        versionData.set(version, existing)
       }
-      existing.total++
-      existing.uniqueSeeds.add(tag.seed)
-      // Use _creationTime from Convex document
-      const creationTime = tag._creationTime
-      existing.earliestCreation = Math.min(existing.earliestCreation, creationTime)
-      existing.latestCreation = Math.max(existing.latestCreation, creationTime)
-      versionData.set(version, existing)
+
+      isDone = page.isDone
+      cursor = page.continueCursor
     }
 
     // Convert to array and sort by latest creation time (most recent first)

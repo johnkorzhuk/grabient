@@ -308,27 +308,46 @@ export const getRecentBatches = query({
 })
 
 /**
- * Get overall backfill status
+ * Get overall backfill status.
+ * Uses pagination to avoid the 16MB read limit on palette_tags.
  */
 export const getBackfillStatus = query({
   args: {},
   handler: async (ctx) => {
     const palettes = await ctx.db.query('palettes').collect()
-    const tags = await ctx.db.query('palette_tags').collect()
     const batches = await ctx.db.query('tag_batches').collect()
 
-    // Group tags by seed to count unique palettes tagged
+    // Process palette_tags with pagination to avoid 16MB limit
     const seedsWithTags = new Set<string>()
-    const successfulTags = tags.filter((t) => !t.error)
-    for (const tag of successfulTags) {
-      seedsWithTags.add(tag.seed)
-    }
-
-    // Count by unique provider (the provider field in old data is like "groq-llama3")
     const providerCounts = new Map<string, number>()
-    for (const tag of successfulTags) {
-      const count = providerCounts.get(tag.provider) ?? 0
-      providerCounts.set(tag.provider, count + 1)
+    const providerModels = new Map<string, string>() // Track one model per provider
+    let totalSuccessful = 0
+    let totalErrors = 0
+
+    let isDone = false
+    let cursor: string | null = null
+
+    while (!isDone) {
+      const page = await ctx.db
+        .query('palette_tags')
+        .paginate({ cursor, numItems: 1000 })
+
+      for (const tag of page.page) {
+        if (tag.error) {
+          totalErrors++
+        } else {
+          totalSuccessful++
+          seedsWithTags.add(tag.seed)
+          const count = providerCounts.get(tag.provider) ?? 0
+          providerCounts.set(tag.provider, count + 1)
+          if (!providerModels.has(tag.provider)) {
+            providerModels.set(tag.provider, tag.model)
+          }
+        }
+      }
+
+      isDone = page.isDone
+      cursor = page.continueCursor
     }
 
     // Build provider stats from actual data
@@ -340,20 +359,16 @@ export const getBackfillStatus = query({
     }> = []
 
     for (const [provider, count] of providerCounts) {
-      // Find one tag to get the model
-      const sampleTag = successfulTags.find((t) => t.provider === provider)
       providerStats.push({
         provider,
-        model: sampleTag?.model ?? 'unknown',
+        model: providerModels.get(provider) ?? 'unknown',
         completed: count,
-        expected: palettes.length, // Expected per model depends on analysisCount from each batch
+        expected: palettes.length,
       })
     }
 
     // Sort by provider name
     providerStats.sort((a, b) => a.provider.localeCompare(b.provider))
-
-    const totalErrors = tags.filter((t) => t.error).length
 
     const activeBatches = batches.filter(
       (b) => b.status === 'pending' || b.status === 'processing',
@@ -363,7 +378,7 @@ export const getBackfillStatus = query({
       palettes: palettes.length,
       palettesWithTags: seedsWithTags.size,
       uniqueProviders: providerCounts.size,
-      totalTags: successfulTags.length,
+      totalTags: totalSuccessful,
       totalErrors,
       activeBatches: activeBatches.length,
       providerStats,
@@ -395,46 +410,59 @@ export const getCyclesWithErrors = query({
 
 /**
  * Get errors grouped by provider/model for a specific cycle.
- * Looks up errors from tags that were stored during batch processing.
+ * Uses pagination to avoid the 16MB read limit on palette_tags.
  */
 export const getErrorsByModel = query({
   args: {
     cycle: v.optional(v.number()),
   },
   handler: async (ctx, { cycle }) => {
-    const tags = await ctx.db.query('palette_tags').collect()
     const batches = await ctx.db.query('tag_batches').collect()
 
-    // If cycle is specified, find the analysisIndex ranges for that cycle's batches
-    let errorTags = tags.filter((t) => t.error)
-
+    // Determine index range for cycle filtering
+    let startIndex = 0
+    let endIndex = Infinity
     if (cycle !== undefined && cycle > 0) {
-      // Find batches for this cycle to get their analysisCount
       const cycleBatches = batches.filter((b) => (b.cycle ?? 1) === cycle)
       if (cycleBatches.length > 0) {
-        // Get the analysisCount from the first batch (should be same for all in cycle)
         const analysisCount = cycleBatches[0].analysisCount ?? 1
-        const startIndex = (cycle - 1) * analysisCount
-        const endIndex = cycle * analysisCount - 1
-        errorTags = errorTags.filter((t) => {
-          const idx = t.analysisIndex ?? 0
-          return idx >= startIndex && idx <= endIndex
-        })
+        startIndex = (cycle - 1) * analysisCount
+        endIndex = cycle * analysisCount - 1
       }
     }
 
-    // Group by provider/model
+    // Process palette_tags with pagination
     const errorsByModel = new Map<string, Array<{ seed: string; analysisIndex: number; error: string }>>()
 
-    for (const tag of errorTags) {
-      const key = `${tag.provider}/${tag.model}`
-      const errors = errorsByModel.get(key) ?? []
-      errors.push({
-        seed: tag.seed,
-        analysisIndex: tag.analysisIndex ?? 0,
-        error: tag.error ?? 'Unknown error',
-      })
-      errorsByModel.set(key, errors)
+    let isDone = false
+    let cursor: string | null = null
+
+    while (!isDone) {
+      const page = await ctx.db
+        .query('palette_tags')
+        .paginate({ cursor, numItems: 1000 })
+
+      for (const tag of page.page) {
+        if (!tag.error) continue
+
+        // Apply cycle filter if specified
+        if (cycle !== undefined && cycle > 0) {
+          const idx = tag.analysisIndex ?? 0
+          if (idx < startIndex || idx > endIndex) continue
+        }
+
+        const key = `${tag.provider}/${tag.model}`
+        const errors = errorsByModel.get(key) ?? []
+        errors.push({
+          seed: tag.seed,
+          analysisIndex: tag.analysisIndex ?? 0,
+          error: tag.error ?? 'Unknown error',
+        })
+        errorsByModel.set(key, errors)
+      }
+
+      isDone = page.isDone
+      cursor = page.continueCursor
     }
 
     // Convert to array format
