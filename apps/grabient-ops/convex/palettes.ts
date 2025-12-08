@@ -67,10 +67,10 @@ export const getPaletteWithTags = query({
       return null;
     }
 
-    // Get raw tags from all providers
+    // Get raw tags from all providers using index
     const rawTags = await ctx.db
       .query("palette_tags")
-      .filter((q) => q.eq(q.field("seed"), args.seed))
+      .withIndex("by_seed_provider", (q) => q.eq("seed", args.seed))
       .collect();
 
     // Get ALL refined tags (multiple models can refine same palette)
@@ -91,6 +91,20 @@ export const getPaletteWithTags = query({
       .sort((a, b) => b[1] - a[1])
       .map(([version]) => version);
 
+    // Look up prompt version metadata
+    const promptVersionsData: Record<string, { createdAt: number }> = {};
+    for (const version of availableVersions) {
+      const promptDoc = await ctx.db
+        .query("prompt_versions")
+        .withIndex("by_version", (q) => q.eq("version", version))
+        .first();
+      if (promptDoc) {
+        promptVersionsData[version] = {
+          createdAt: promptDoc._creationTime,
+        };
+      }
+    }
+
     // Get unique refinement models, sorted by most recent first
     const availableRefinementModels = [...new Set(allRefinedTags.map(r => r.model))]
       .sort((a, b) => {
@@ -106,6 +120,7 @@ export const getPaletteWithTags = query({
       // Keep for backward compatibility - first refinement (latest)
       refinedTags: allRefinedTags.length > 0 ? allRefinedTags.sort((a, b) => b._creationTime - a._creationTime)[0] : null,
       availableVersions,
+      promptVersionsData,
       availableRefinementModels,
     };
   },

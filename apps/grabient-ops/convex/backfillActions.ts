@@ -9,7 +9,7 @@ import OpenAI from 'openai'
 import Groq from 'groq-sdk'
 import { GoogleGenAI } from '@google/genai'
 import { generateColorDataFromSeed, type ColorData } from './lib/colorData'
-import { TAGGING_SYSTEM_PROMPT, CURRENT_PROMPT_VERSION } from './lib/prompts'
+import { TAGGING_SYSTEM_PROMPT, CURRENT_PROMPT_VERSION, TAGGING_PROMPT_MESSAGE } from './lib/prompts'
 import { tagResponseSchema, normalizeTagResponse } from './lib/providers'
 import {
   PROVIDERS,
@@ -19,6 +19,9 @@ import {
   type Provider,
   type Model,
 } from './lib/providers.types'
+
+// Helper to add delay between mutations to avoid OCC conflicts on aggregates
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // ============================================================================
 // Batch Request Builders
@@ -120,6 +123,14 @@ export const submitAnthropicBatch = internalAction({
       requests: batchRequests,
     })
 
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
     // Record batch in database
     await ctx.runMutation(internal.backfill.createBatch, {
       cycle,
@@ -127,6 +138,7 @@ export const submitAnthropicBatch = internalAction({
       model,
       batchId: batch.id,
       analysisCount,
+      promptVersion: CURRENT_PROMPT_VERSION,
       requestCount: requests.length,
     })
 
@@ -239,6 +251,7 @@ export const pollAnthropicBatch = internalAction({
                   outputTokens: result.result.message.usage.output_tokens,
                 },
               })
+              await sleep(50) // Prevent OCC conflicts on aggregate
               successCount++
             } catch (e) {
               await ctx.runMutation(internal.backfill.storeTagResult, {
@@ -250,6 +263,7 @@ export const pollAnthropicBatch = internalAction({
                 tags: null,
                 error: `Parse error: ${e instanceof Error ? e.message : String(e)}`,
               })
+              await sleep(50) // Prevent OCC conflicts on aggregate
               failCount++
             }
           }
@@ -267,6 +281,7 @@ export const pollAnthropicBatch = internalAction({
             tags: null,
             error: errorMsg,
           })
+          await sleep(50) // Prevent OCC conflicts on aggregate
           failCount++
         }
       }
@@ -317,6 +332,9 @@ export const submitOpenAIBatch = internalAction({
     // gpt-5-nano only supports temperature=1
     const temperature = OPENAI_TEMP_1_ONLY_MODELS.includes(model) ? 1 : 1.4
 
+    // Newer OpenAI models (gpt-5-*, gpt-4.1-*) require max_completion_tokens instead of max_tokens
+    const useNewTokenParam = model.startsWith('gpt-5') || model.startsWith('gpt-4.1')
+
     // Build JSONL content
     const jsonlLines = requests.map((req) =>
       JSON.stringify({
@@ -326,6 +344,7 @@ export const submitOpenAIBatch = internalAction({
         body: {
           model,
           temperature,
+          ...(useNewTokenParam ? { max_completion_tokens: 1024 } : { max_tokens: 1024 }),
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: TAGGING_SYSTEM_PROMPT },
@@ -349,6 +368,14 @@ export const submitOpenAIBatch = internalAction({
       completion_window: '24h',
     })
 
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
     // Record batch in database
     await ctx.runMutation(internal.backfill.createBatch, {
       cycle,
@@ -356,6 +383,7 @@ export const submitOpenAIBatch = internalAction({
       model,
       batchId: batch.id,
       analysisCount,
+      promptVersion: CURRENT_PROMPT_VERSION,
       requestCount: requests.length,
     })
 
@@ -469,6 +497,7 @@ export const pollOpenAIBatch = internalAction({
                 outputTokens: result.response.body.usage?.completion_tokens ?? 0,
               },
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             successCount++
           } catch (e) {
             await ctx.runMutation(internal.backfill.storeTagResult, {
@@ -480,6 +509,7 @@ export const pollOpenAIBatch = internalAction({
               tags: null,
               error: `Parse error: ${e instanceof Error ? e.message : String(e)}`,
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             failCount++
           }
         } else {
@@ -492,6 +522,7 @@ export const pollOpenAIBatch = internalAction({
             tags: null,
             error: result.response?.body?.error?.message ?? result.error?.message ?? 'Unknown error',
           })
+          await sleep(50) // Prevent OCC conflicts on aggregate
           failCount++
         }
       }
@@ -599,6 +630,15 @@ export const submitGroqBatch = internalAction({
     if (!groqBatchId) {
       throw new Error('Failed to create Groq batch')
     }
+
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
     // Record batch in database
     await ctx.runMutation(internal.backfill.createBatch, {
       cycle,
@@ -606,6 +646,7 @@ export const submitGroqBatch = internalAction({
       model,
       batchId: groqBatchId,
       analysisCount,
+      promptVersion: CURRENT_PROMPT_VERSION,
       requestCount: requests.length,
     })
 
@@ -721,6 +762,7 @@ export const pollGroqBatch = internalAction({
                 outputTokens: result.response.body.usage?.completion_tokens ?? 0,
               },
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             successCount++
           } catch (e) {
             await ctx.runMutation(internal.backfill.storeTagResult, {
@@ -732,6 +774,7 @@ export const pollGroqBatch = internalAction({
               tags: null,
               error: `Parse error: ${e instanceof Error ? e.message : String(e)}`,
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             failCount++
           }
         } else {
@@ -744,6 +787,7 @@ export const pollGroqBatch = internalAction({
             tags: null,
             error: result.error?.message ?? 'Unknown error',
           })
+          await sleep(50) // Prevent OCC conflicts on aggregate
           failCount++
         }
       }
@@ -837,6 +881,14 @@ export const submitGoogleBatch = internalAction({
       model: batchJob.model,
     })
 
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
     // Record batch in database with request order for response mapping
     const requestOrder = requests.map((req) => req.customId)
     await ctx.runMutation(internal.backfill.createBatch, {
@@ -845,6 +897,7 @@ export const submitGoogleBatch = internalAction({
       model,
       batchId: batchJob.name,
       analysisCount,
+      promptVersion: CURRENT_PROMPT_VERSION,
       requestCount: requests.length,
       requestOrder,
     })
@@ -1000,6 +1053,7 @@ export const pollGoogleBatch = internalAction({
               tags: null,
               error: JSON.stringify(errorData),
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             failCount++
             continue
           }
@@ -1014,6 +1068,7 @@ export const pollGoogleBatch = internalAction({
               tags: null,
               error: 'No response in batch result',
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             failCount++
             continue
           }
@@ -1045,6 +1100,7 @@ export const pollGoogleBatch = internalAction({
               tags: null,
               error: 'Empty response text from model',
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             failCount++
             continue
           }
@@ -1061,6 +1117,7 @@ export const pollGoogleBatch = internalAction({
               tags: null,
               error: `Could not extract JSON from response: ${text.substring(0, 200)}`,
             })
+            await sleep(50) // Prevent OCC conflicts on aggregate
             failCount++
             continue
           }
@@ -1085,6 +1142,7 @@ export const pollGoogleBatch = internalAction({
                 }
               : undefined,
           })
+          await sleep(50) // Prevent OCC conflicts on aggregate
           successCount++
         } catch (e) {
           // Try to store the error with the seed if we have it
@@ -1107,6 +1165,7 @@ export const pollGoogleBatch = internalAction({
                   tags: null,
                   error: `Parse error: ${errorMsg}`,
                 })
+                await sleep(50) // Prevent OCC conflicts on aggregate
               }
             }
           } catch {
@@ -1401,15 +1460,67 @@ export const pollActiveBatchesInternal = internalAction({
 // Helpers
 // ============================================================================
 
+/**
+ * Extract JSON from LLM response text.
+ * Handles various formats: markdown code blocks, raw JSON, thinking tags.
+ * Uses balanced brace matching to avoid grabbing malformed partial JSON.
+ */
 function extractJson(text: string): string {
   let cleaned = text.trim()
+
+  // Remove thinking tags (DeepSeek, etc.)
   cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/g, '').trim()
 
-  const match = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
-  if (match && match[1]) {
-    return match[1].trim()
+  // Try markdown code block first (most reliable)
+  const codeBlockMatch = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/)
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    const extracted = codeBlockMatch[1].trim()
+    // Validate it looks like JSON before returning
+    if (extracted.startsWith('{') && extracted.endsWith('}')) {
+      return extracted
+    }
   }
 
+  // Find JSON object with balanced braces
+  const jsonStart = cleaned.indexOf('{')
+  if (jsonStart === -1) return cleaned
+
+  // Count braces to find matching closing brace
+  let depth = 0
+  let inString = false
+  let escape = false
+
+  for (let i = jsonStart; i < cleaned.length; i++) {
+    const char = cleaned[i]
+
+    if (escape) {
+      escape = false
+      continue
+    }
+
+    if (char === '\\' && inString) {
+      escape = true
+      continue
+    }
+
+    if (char === '"' && !escape) {
+      inString = !inString
+      continue
+    }
+
+    if (!inString) {
+      if (char === '{') depth++
+      else if (char === '}') {
+        depth--
+        if (depth === 0) {
+          // Found matching closing brace
+          return cleaned.substring(jsonStart, i + 1)
+        }
+      }
+    }
+  }
+
+  // Fallback: try the greedy match but it's less reliable
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/)
   if (jsonMatch) {
     return jsonMatch[0]

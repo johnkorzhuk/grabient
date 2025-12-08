@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useParams, useSearch } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useMemo } from "react";
@@ -25,11 +25,11 @@ export const Route = createFileRoute("/_layout")({
 
 function LayoutComponent() {
   return (
-    <div className="bg-background flex flex-col">
+    <div className="bg-background flex flex-col h-dvh overflow-hidden">
       <Header />
-      <div className="flex h-[calc(100dvh-57px)]">
+      <div className="flex flex-1 min-h-0">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-hidden">
           <Outlet />
         </main>
       </div>
@@ -64,6 +64,7 @@ function Header() {
 
 function Sidebar() {
   const params = useParams({ strict: false });
+  const search = useSearch({ strict: false }) as { refinementModel?: string };
   const selectedSeed = (params as { seed?: string }).seed ?? null;
 
   const [page, setPage] = useState(1);
@@ -122,6 +123,7 @@ function Sidebar() {
                 key={palette._id}
                 palette={palette}
                 isSelected={selectedSeed === palette.seed}
+                searchParams={search.refinementModel ? { refinementModel: search.refinementModel } : undefined}
               />
             ))}
           </div>
@@ -185,6 +187,7 @@ function getGradientStyle(seed: string): string {
 function PaletteListItem({
   palette,
   isSelected,
+  searchParams,
 }: {
   palette: {
     _id: string;
@@ -194,6 +197,7 @@ function PaletteListItem({
     isRefined: boolean;
   };
   isSelected: boolean;
+  searchParams?: { refinementModel?: string };
 }) {
   const grabientUrl = `https://grabient.com/${palette.seed}`;
   const gradientStyle = useMemo(() => getGradientStyle(palette.seed), [palette.seed]);
@@ -208,6 +212,7 @@ function PaletteListItem({
       <Link
         to="/$seed"
         params={{ seed: palette.seed }}
+        search={searchParams}
         className="block"
       >
         {/* Full-width gradient swatch rendered with CSS */}

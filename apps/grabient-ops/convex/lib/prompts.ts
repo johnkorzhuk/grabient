@@ -15,7 +15,7 @@ OUTPUT: Valid JSON only:
   "mood": [],
   "style": [],
   "dominant_colors": [],
-  "harmony": [],
+  "harmony": ["<REQUIRED>"],
   "temperature": "",
   "contrast": "",
   "brightness": "",
@@ -35,7 +35,7 @@ industry contexts this palette fits.
 dominant_colors (1-4 tags): Primary colors present in the palette. Use ONLY from this list:
 white, gray, black, brown, red, orange, yellow, lime, green, teal, cyan, blue, navy, purple, magenta, pink
 
-harmony (1-2 tags): The color harmony of the palette based on hue relationships. Only add a second tag if it clearly applies. Choose from:
+harmony (REQUIRED, 1-2 tags): The color harmony of the palette based on hue relationships. You MUST provide at least one harmony tag. Only add a second tag if it clearly applies. Choose from:
 monochromatic, analogous, complementary, split-complementary, double-complementary, triadic, tetradic, square, achromatic, neutral, accented-analogous, near-complementary, clash, polychromatic
 
 temperature (exactly one of: "warm", "cool", "neutral", "cool-warm"):
@@ -159,6 +159,16 @@ RULES:
 - Promote outliers and add new tags when color theory supports it
 
 Return ONLY valid JSON, no markdown.`
+
+// ============================================================================
+// Prompt Change Messages
+// ============================================================================
+// Update these when you modify the prompts above.
+// These messages help track what changed between versions.
+
+export const TAGGING_PROMPT_MESSAGE = 'Make harmony field required with clearer instructions'
+
+export const REFINEMENT_PROMPT_MESSAGE = 'Initial refinement prompt with normalization rules'
 
 // ============================================================================
 // Version Hashing

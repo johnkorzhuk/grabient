@@ -7,7 +7,8 @@ const app = defineApp();
 app.use(r2);
 app.use(migrations);
 
-// Aggregate for efficient refinement counting without full table scans
+// Aggregates for efficient counting without full table scans
 app.use(aggregate, { name: "refinedSeedsAggregate" });
+app.use(aggregate, { name: "paletteTagsAggregate" });
 
 export default app;

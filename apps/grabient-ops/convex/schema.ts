@@ -49,6 +49,7 @@ export const TagBatches = Table('tag_batches', {
   batchId: v.string(), // Provider's batch ID
   status: vBatchStatus,
   analysisCount: v.optional(v.number()), // How many times each palette is tagged in this batch (optional for legacy)
+  promptVersion: v.optional(v.string()), // Prompt version used for this batch
   requestCount: v.number(), // How many requests in this batch
   completedCount: v.number(), // How many have completed
   failedCount: v.number(),
@@ -67,7 +68,9 @@ export const PaletteTagRefined = Table('palette_tag_refined', {
   model: vRefinementModel,
   cycle: v.number(),
   promptVersion: v.string(),
-  sourcePromptVersions: v.array(v.string()),
+  sourceCycles: v.optional(v.array(v.number())), // Which tag analysis cycles were used as input
+  // Legacy field - kept for migration, will be removed after migration completes
+  sourcePromptVersions: v.optional(v.array(v.string())),
   tags: v.any(),
   embedText: v.string(),
   inputSummary: v.optional(v.any()),
@@ -89,13 +92,16 @@ export const RefinementBatches = Table('refinement_batches', {
   model: vRefinementModel,
   batchId: v.string(),
   status: vBatchStatus,
-  sourcePromptVersions: v.array(v.string()),
+  sourceCycles: v.optional(v.array(v.number())), // Which tag analysis cycles were used as input
+  // Legacy field - kept for migration, will be removed after migration completes
+  sourcePromptVersions: v.optional(v.array(v.string())),
   requestCount: v.number(),
   completedCount: v.number(),
   failedCount: v.number(),
   createdAt: v.number(),
   completedAt: v.optional(v.number()),
   error: v.optional(v.string()),
+  retryCount: v.optional(v.number()), // Number of retry attempts (0 = original, 1+ = retries)
   requestOrder: v.array(v.string()),
 })
 
@@ -105,6 +111,52 @@ export const RefinementBatches = Table('refinement_batches', {
 export const StatsCache = Table('stats_cache', {
   key: v.string(), // 'refinement_status' etc.
   data: v.any(), // Cached stats object
+  updatedAt: v.number(),
+})
+
+// ============================================================================
+// PromptVersions - stores prompt content with version hashes
+// ============================================================================
+export const PromptVersions = Table('prompt_versions', {
+  version: v.string(), // Hash of the prompt content
+  type: v.union(v.literal('tagging'), v.literal('refinement')),
+  content: v.string(), // Full prompt text
+  message: v.optional(v.string()), // Optional commit message describing changes
+})
+
+// ============================================================================
+// PaletteTagConsensus - pre-aggregated tag frequency counts per seed + prompt version
+// Updated via triggers when palette_tags change. One doc per seed+promptVersion combo.
+// This avoids expensive full-table scans when building tag summaries for refinement.
+// Storing per-version allows filtering by specific prompt versions at query time.
+//
+// IMPORTANT: We use arrays instead of records to avoid Convex field name restrictions.
+// Convex only allows ASCII printable characters in field names, but AI-generated tags
+// may contain non-ASCII characters (Chinese, emoji, etc.). Using arrays with {key, value}
+// objects bypasses this restriction since the tag strings are values, not field names.
+// ============================================================================
+const vFrequencyEntry = v.object({ key: v.string(), value: v.number() })
+const vFrequencyArray = v.array(vFrequencyEntry)
+
+export const PaletteTagConsensus = Table('palette_tag_consensus', {
+  seed: v.string(),
+  promptVersion: v.optional(v.string()), // Each doc is for ONE prompt version (optional for migration)
+  promptVersions: v.optional(v.array(v.string())), // Legacy field - will be removed after migration
+  totalModels: v.number(), // Number of tag records from this version that contributed
+  categorical: v.object({
+    temperature: vFrequencyArray,
+    contrast: vFrequencyArray,
+    brightness: vFrequencyArray,
+    saturation: vFrequencyArray,
+  }),
+  tags: v.object({
+    harmony: vFrequencyArray,
+    mood: vFrequencyArray,
+    style: vFrequencyArray,
+    dominant_colors: vFrequencyArray,
+    seasonal: vFrequencyArray,
+    associations: vFrequencyArray,
+  }),
   updatedAt: v.number(),
 })
 
@@ -127,4 +179,11 @@ export default defineSchema({
     .index('by_status', ['status'])
     .index('by_batch_id', ['batchId']),
   stats_cache: StatsCache.table.index('by_key', ['key']),
+  prompt_versions: PromptVersions.table
+    .index('by_version', ['version'])
+    .index('by_type', ['type']),
+  palette_tag_consensus: PaletteTagConsensus.table
+    .index('by_seed', ['seed'])
+    .index('by_seed_version', ['seed', 'promptVersion'])
+    .index('by_prompt_version', ['promptVersion']),
 })

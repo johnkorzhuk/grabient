@@ -2,6 +2,7 @@ import { Migrations } from '@convex-dev/migrations'
 import { components } from './_generated/api'
 import type { DataModel } from './_generated/dataModel'
 import { PROVIDERS, ALL_MODELS, type Provider, type Model } from './lib/providers.types'
+import { CURRENT_PROMPT_VERSION } from './lib/prompts'
 
 // Initialize migrations component
 export const migrations = new Migrations<DataModel>(components.migrations)
@@ -186,32 +187,34 @@ export const clearLegacyRunNumber = migrations.define({
 // ============================================================================
 
 /**
- * Migrate legacy refinement records to new schema:
- * - Add cycle: 0 for existing records
- * - Convert sourcePromptVersion to sourcePromptVersions array
- * - Remove sourcePromptVersion field
+ * Migrate refinement records to use sourceCycles instead of sourcePromptVersions.
+ * - Convert sourcePromptVersions (string[]) to sourceCycles (number[])
+ * - For existing data, set sourceCycles to empty array (meaning "used all available cycles")
  *
- * Run via: npx convex run migrations:run '{"fn": "migrations:migrateRefinementSchema"}'
+ * Run via: npx convex run migrations:run '{"fn": "migrations:migrateRefinementToSourceCycles"}'
  */
-export const migrateRefinementSchema = migrations.define({
+export const migrateRefinementToSourceCycles = migrations.define({
   table: 'palette_tag_refined',
   migrateOne: async (ctx, doc) => {
     const updates: Record<string, unknown> = {}
 
+    // Convert sourcePromptVersions to sourceCycles
+    if ((doc as any).sourceCycles === undefined) {
+      // For legacy data, we don't know which cycles were used, so set to empty (all cycles)
+      updates.sourceCycles = []
+    }
+
+    // Clear legacy fields
+    if ((doc as any).sourcePromptVersions !== undefined) {
+      updates.sourcePromptVersions = undefined
+    }
+    if ((doc as any).sourcePromptVersion !== undefined) {
+      updates.sourcePromptVersion = undefined
+    }
+
     // Add cycle if missing
     if ((doc as any).cycle === undefined) {
       updates.cycle = 0
-    }
-
-    // Convert sourcePromptVersion to sourcePromptVersions array
-    if ((doc as any).sourcePromptVersions === undefined) {
-      const legacyVersion = (doc as any).sourcePromptVersion
-      updates.sourcePromptVersions = legacyVersion ? [legacyVersion] : []
-    }
-
-    // Clear legacy field
-    if ((doc as any).sourcePromptVersion !== undefined) {
-      updates.sourcePromptVersion = undefined
     }
 
     if (Object.keys(updates).length > 0) {
@@ -221,24 +224,25 @@ export const migrateRefinementSchema = migrations.define({
 })
 
 /**
- * Migrate legacy refinement batch records:
- * - Convert sourcePromptVersion to sourcePromptVersions array
- * - Make requestOrder required (use empty array as fallback)
+ * Migrate refinement batch records to use sourceCycles instead of sourcePromptVersions.
  *
- * Run via: npx convex run migrations:run '{"fn": "migrations:migrateRefinementBatchSchema"}'
+ * Run via: npx convex run migrations:run '{"fn": "migrations:migrateRefinementBatchToSourceCycles"}'
  */
-export const migrateRefinementBatchSchema = migrations.define({
+export const migrateRefinementBatchToSourceCycles = migrations.define({
   table: 'refinement_batches',
   migrateOne: async (ctx, doc) => {
     const updates: Record<string, unknown> = {}
 
-    // Convert sourcePromptVersion to sourcePromptVersions array
-    if ((doc as any).sourcePromptVersions === undefined) {
-      const legacyVersion = (doc as any).sourcePromptVersion
-      updates.sourcePromptVersions = legacyVersion ? [legacyVersion] : []
+    // Convert sourcePromptVersions to sourceCycles
+    if ((doc as any).sourceCycles === undefined) {
+      // For legacy data, we don't know which cycles were used, so set to empty (all cycles)
+      updates.sourceCycles = []
     }
 
-    // Clear legacy field
+    // Clear legacy fields
+    if ((doc as any).sourcePromptVersions !== undefined) {
+      updates.sourcePromptVersions = undefined
+    }
     if ((doc as any).sourcePromptVersion !== undefined) {
       updates.sourcePromptVersion = undefined
     }
@@ -281,4 +285,52 @@ export const deleteFailedBatches = migrations.define({
     }
   },
 })
+
+// ============================================================================
+// Tag Batch Schema Migration
+// ============================================================================
+
+/**
+ * Backfill promptVersion on legacy tag_batches.
+ * All existing batches were created with the current prompt version.
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:backfillBatchPromptVersion"}'
+ */
+export const backfillBatchPromptVersion = migrations.define({
+  table: 'tag_batches',
+  migrateOne: async (ctx, doc) => {
+    // Skip if promptVersion already set
+    if (doc.promptVersion !== undefined) {
+      return
+    }
+
+    // Set promptVersion to current version (all legacy batches used this)
+    await ctx.db.patch(doc._id, {
+      promptVersion: CURRENT_PROMPT_VERSION,
+    })
+  },
+})
+
+// ============================================================================
+// Consensus Schema Migration (Record -> Array format)
+// ============================================================================
+
+/**
+ * Delete all consensus documents so they can be rebuilt with the new array format.
+ * The consensus table schema changed from Record<string, number> to Array<{key, value}>
+ * to avoid Convex field name restrictions on AI-generated tag strings.
+ *
+ * After this migration runs, call `npx convex run consensus:rebuildAllConsensus`
+ * to rebuild the consensus data from palette_tags with the new format.
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:clearConsensusForRebuild"}'
+ */
+export const clearConsensusForRebuild = migrations.define({
+  table: 'palette_tag_consensus',
+  migrateOne: async (ctx, doc) => {
+    // Delete all consensus documents - they'll be rebuilt with new format
+    await ctx.db.delete(doc._id)
+  },
+})
+
 

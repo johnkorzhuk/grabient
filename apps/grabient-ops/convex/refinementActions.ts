@@ -16,6 +16,7 @@ import {
   refinedTagsSchema,
   type TagSummary,
 } from './lib/refinement'
+import { REFINEMENT_PROMPT_MESSAGE } from './lib/prompts'
 import {
   vRefinementModel,
   REFINEMENT_MODEL_PROVIDER,
@@ -60,7 +61,7 @@ async function getRefinementSummaries(
   }
 
   console.log(
-    `Building tag summaries for ${palettesForRefinement.length} palettes (cycle ${cycle}, versions: ${sourcePromptVersions.length > 0 ? sourcePromptVersions.join(', ') : 'all'})`,
+    `Building tag summaries for ${palettesForRefinement.length} palettes (cycle ${cycle}, source prompts: ${sourcePromptVersions.length > 0 ? sourcePromptVersions.map(v => v.slice(0, 8)).join(', ') : 'all'})`,
   )
 
   // Process in chunks to avoid Convex read limits (16MB / ~29k docs)
@@ -166,10 +167,11 @@ export const submitAnthropicRefinementBatch = internalAction({
     cycle: v.number(),
     sourcePromptVersions: v.array(v.string()),
     limit: v.optional(v.number()),
+    retryCount: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { model, cycle, sourcePromptVersions, limit = 1000 },
+    { model, cycle, sourcePromptVersions, limit = 1000, retryCount = 0 },
   ): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
@@ -191,17 +193,22 @@ export const submitAnthropicRefinementBatch = internalAction({
 
     const anthropic = new Anthropic({ apiKey })
 
-    // Build batch requests with vision support and extended thinking
+    // Only Opus 4.5 supports extended thinking
+    const supportsThinking = model === 'claude-opus-4-5-20251101'
+
+    // Build batch requests with vision support (and extended thinking for supported models)
     const batchRequests: Anthropic.Messages.BatchCreateParams.Request[] =
       summaries.map((summary, index) => ({
         custom_id: `idx_${index}`,
         params: {
           model,
           max_tokens: 4096,
-          thinking: {
-            type: 'enabled',
-            budget_tokens: 1024, // Lower reasoning budget for refinement
-          },
+          ...(supportsThinking && {
+            thinking: {
+              type: 'enabled' as const,
+              budget_tokens: 1024,
+            },
+          }),
           system: REFINEMENT_SYSTEM_PROMPT,
           messages: [
             {
@@ -217,15 +224,24 @@ export const submitAnthropicRefinementBatch = internalAction({
       requests: batchRequests,
     })
 
-    // Record batch in database (use first version as legacy field)
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: REFINEMENT_PROMPT_VERSION,
+      type: 'refinement',
+      content: REFINEMENT_SYSTEM_PROMPT,
+      message: REFINEMENT_PROMPT_MESSAGE,
+    })
+
+    // Record batch in database
     await ctx.runMutation(internal.refinement.createRefinementBatch, {
       cycle,
       provider: 'anthropic',
       model,
       batchId: batch.id,
-            sourcePromptVersions,
+      sourcePromptVersions,
       requestCount: summaries.length,
       requestOrder,
+      retryCount,
     })
 
     console.log(
@@ -337,7 +353,7 @@ export const pollAnthropicRefinementBatch = internalAction({
 
       const requestOrder = batchRecord.requestOrder
       const cycle = batchRecord.cycle
-      // Use new array field if available, fall back to legacy field
+      // Use sourcePromptVersions if available, fall back to empty array
       const sourcePromptVersions = batchRecord.sourcePromptVersions ?? []
 
       let successCount = 0
@@ -422,10 +438,11 @@ export const submitOpenAIRefinementBatch = internalAction({
     cycle: v.number(),
     sourcePromptVersions: v.array(v.string()),
     limit: v.optional(v.number()),
+    retryCount: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { model, cycle, sourcePromptVersions, limit = 1000 },
+    { model, cycle, sourcePromptVersions, limit = 1000, retryCount = 0 },
   ): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.OPENAI_API_KEY
     if (!apiKey) throw new Error('OPENAI_API_KEY not set')
@@ -469,13 +486,16 @@ export const submitOpenAIRefinementBatch = internalAction({
         text: createRefinementPromptText(summary),
       })
 
+      // Newer OpenAI models (gpt-5-*, gpt-4.1-*) require max_completion_tokens instead of max_tokens
+      const useNewTokenParam = model.startsWith('gpt-5') || model.startsWith('gpt-4.1')
+
       return JSON.stringify({
         custom_id: `idx_${index}`,
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
           model,
-          max_tokens: 4096,
+          ...(useNewTokenParam ? { max_completion_tokens: 4096 } : { max_tokens: 4096 }),
           messages: [
             { role: 'system', content: REFINEMENT_SYSTEM_PROMPT },
             { role: 'user', content: userContent },
@@ -500,15 +520,24 @@ export const submitOpenAIRefinementBatch = internalAction({
       completion_window: '24h',
     })
 
-    // Record batch in database (use first version as legacy field)
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: REFINEMENT_PROMPT_VERSION,
+      type: 'refinement',
+      content: REFINEMENT_SYSTEM_PROMPT,
+      message: REFINEMENT_PROMPT_MESSAGE,
+    })
+
+    // Record batch in database
     await ctx.runMutation(internal.refinement.createRefinementBatch, {
       cycle,
       provider: 'openai',
       model,
       batchId: batch.id,
-            sourcePromptVersions,
+      sourcePromptVersions,
       requestCount: summaries.length,
       requestOrder,
+      retryCount,
     })
 
     console.log(`Created OpenAI refinement batch: ${batch.id} (cycle ${cycle})`)
@@ -651,7 +680,7 @@ export const pollOpenAIRefinementBatch = internalAction({
 
       const requestOrder = batchRecord.requestOrder
       const cycle = batchRecord.cycle
-      // Use new array field if available, fall back to legacy field
+      // Use sourcePromptVersions if available, fall back to empty array
       const sourcePromptVersions = batchRecord.sourcePromptVersions ?? []
 
       // Download results
@@ -674,14 +703,22 @@ export const pollOpenAIRefinementBatch = internalAction({
         }
 
         if (result.response?.status_code === 200) {
-          const message = result.response.body.choices[0].message.content
+          const choice = result.response.body.choices?.[0]
+          let message = choice?.message?.content
+
+          if (!message) {
+            // Log the structure for debugging
+            console.error(`OpenAI: No content found for seed ${seed}. Choice:`,
+              JSON.stringify(choice, null, 2).slice(0, 1000))
+          }
+
           const success = await storeRefinementResult(
             ctx,
             seed,
             model,
             cycle,
             sourcePromptVersions,
-            message,
+            message ?? null,
             {
               inputTokens: result.response.body.usage?.prompt_tokens ?? 0,
               outputTokens: result.response.body.usage?.completion_tokens ?? 0,
@@ -747,10 +784,11 @@ export const submitGroqRefinementBatch = internalAction({
     cycle: v.number(),
     sourcePromptVersions: v.array(v.string()),
     limit: v.optional(v.number()),
+    retryCount: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { model, cycle, sourcePromptVersions, limit = 1000 },
+    { model, cycle, sourcePromptVersions, limit = 1000, retryCount = 0 },
   ): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.GROQ_API_KEY
     if (!apiKey) throw new Error('GROQ_API_KEY not set')
@@ -830,15 +868,24 @@ export const submitGroqRefinementBatch = internalAction({
       throw new Error('Failed to create Groq batch')
     }
 
-    // Record batch in database (use first version as legacy field)
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: REFINEMENT_PROMPT_VERSION,
+      type: 'refinement',
+      content: REFINEMENT_SYSTEM_PROMPT,
+      message: REFINEMENT_PROMPT_MESSAGE,
+    })
+
+    // Record batch in database
     await ctx.runMutation(internal.refinement.createRefinementBatch, {
       cycle,
       provider: 'groq',
       model,
       batchId: groqBatchId,
-            sourcePromptVersions,
+      sourcePromptVersions,
       requestCount: summaries.length,
       requestOrder,
+      retryCount,
     })
 
     console.log(
@@ -1004,7 +1051,7 @@ export const pollGroqRefinementBatch = internalAction({
 
       const requestOrder = batchRecord.requestOrder
       const cycle = batchRecord.cycle
-      // Use new array field if available, fall back to legacy field
+      // Use sourcePromptVersions if available, fall back to empty array
       const sourcePromptVersions = batchRecord.sourcePromptVersions ?? []
 
       // Download results
@@ -1027,14 +1074,31 @@ export const pollGroqRefinementBatch = internalAction({
         }
 
         if (result.response?.status_code === 200) {
-          const message = result.response.body.choices[0].message.content
+          const choice = result.response.body.choices?.[0]
+          // Try content first, then check if reasoning contains JSON (some models put output there)
+          let message = choice?.message?.content
+          if (!message && choice?.message?.reasoning) {
+            // Some reasoning models put the JSON in reasoning field
+            const reasoning = choice.message.reasoning
+            // Check if reasoning contains JSON with embed_text
+            if (reasoning.includes('{') && reasoning.includes('embed_text')) {
+              message = reasoning
+            }
+          }
+
+          if (!message) {
+            // Log the structure for debugging
+            console.error(`Groq: No content found for seed ${seed}. Choice:`,
+              JSON.stringify(choice, null, 2).slice(0, 1000))
+          }
+
           const success = await storeRefinementResult(
             ctx,
             seed,
             model,
             cycle,
             sourcePromptVersions,
-            message,
+            message ?? null,
             {
               inputTokens: result.response.body.usage?.prompt_tokens ?? 0,
               outputTokens: result.response.body.usage?.completion_tokens ?? 0,
@@ -1100,10 +1164,11 @@ export const submitGoogleRefinementBatch = internalAction({
     cycle: v.number(),
     sourcePromptVersions: v.array(v.string()),
     limit: v.optional(v.number()),
+    retryCount: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { model, cycle, sourcePromptVersions, limit = 1000 },
+    { model, cycle, sourcePromptVersions, limit = 1000, retryCount = 0 },
   ): Promise<{ batchId: string; requestCount: number } | null> => {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
     if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
@@ -1156,15 +1221,24 @@ export const submitGoogleRefinementBatch = internalAction({
       throw new Error('Failed to create Google batch - no name returned')
     }
 
+    // Register prompt version (idempotent - will skip if exists)
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: REFINEMENT_PROMPT_VERSION,
+      type: 'refinement',
+      content: REFINEMENT_SYSTEM_PROMPT,
+      message: REFINEMENT_PROMPT_MESSAGE,
+    })
+
     // Record batch in database
     await ctx.runMutation(internal.refinement.createRefinementBatch, {
       cycle,
       provider: 'google',
       model,
       batchId: batchJob.name,
-            sourcePromptVersions,
+      sourcePromptVersions,
       requestCount: summaries.length,
       requestOrder,
+      retryCount,
     })
 
     console.log(
@@ -1399,10 +1473,11 @@ export const submitRefinementBatch = internalAction({
     cycle: v.number(),
     sourcePromptVersions: v.array(v.string()),
     limit: v.optional(v.number()),
+    retryCount: v.optional(v.number()),
   },
   handler: async (
     ctx,
-    { model, cycle, sourcePromptVersions, limit = 1000 },
+    { model, cycle, sourcePromptVersions, limit = 1000, retryCount = 0 },
   ): Promise<{ batchId: string; requestCount: number } | null> => {
     const provider = REFINEMENT_MODEL_PROVIDER[model as RefinementModel]
 
@@ -1415,6 +1490,7 @@ export const submitRefinementBatch = internalAction({
             cycle,
             sourcePromptVersions,
             limit,
+            retryCount,
           },
         )
       case 'openai':
@@ -1425,6 +1501,7 @@ export const submitRefinementBatch = internalAction({
             cycle,
             sourcePromptVersions,
             limit,
+            retryCount,
           },
         )
       case 'groq':
@@ -1435,6 +1512,7 @@ export const submitRefinementBatch = internalAction({
             cycle,
             sourcePromptVersions,
             limit,
+            retryCount,
           },
         )
       case 'google':
@@ -1445,6 +1523,7 @@ export const submitRefinementBatch = internalAction({
             cycle,
             sourcePromptVersions,
             limit,
+            retryCount,
           },
         )
       default:
@@ -1589,7 +1668,7 @@ export const pollRefinementBatch = internalAction({
  * Creates a new refinement cycle and submits batch to selected model.
  *
  * @param model - Refinement model to use (defaults to Opus 4.5)
- * @param sourcePromptVersions - Which tagging prompt versions to include (defaults to all)
+ * @param sourcePromptVersions - Which tag analysis prompt versions to include (defaults to all)
  * @param limit - Max palettes to refine in this batch (defaults to 1000)
  */
 export const startRefinement = action({
@@ -1612,11 +1691,11 @@ export const startRefinement = action({
       internal.refinement.getNextRefinementCycle,
       {},
     )
-    // Use provided versions or empty array (which means all versions)
-    const targetSourceVersions = sourcePromptVersions ?? []
+    // Use provided prompt versions or empty array (which means all versions)
+    const targetPromptVersions = sourcePromptVersions ?? []
 
     console.log(
-      `Starting refinement cycle ${cycle} (model: ${model}, sources: ${targetSourceVersions.length > 0 ? targetSourceVersions.join(', ') : 'all'}, limit: ${limit})`,
+      `Starting refinement cycle ${cycle} (model: ${model}, source prompts: ${targetPromptVersions.length > 0 ? targetPromptVersions.map(v => v.slice(0, 8)).join(', ') : 'all'}, limit: ${limit})`,
     )
 
     // Submit refinement batch via router
@@ -1625,7 +1704,7 @@ export const startRefinement = action({
       {
         model,
         cycle,
-        sourcePromptVersions: targetSourceVersions,
+        sourcePromptVersions: targetPromptVersions,
         limit,
       },
     )
@@ -1634,10 +1713,13 @@ export const startRefinement = action({
       cycle,
       batchId: result?.batchId ?? null,
       requestCount: result?.requestCount ?? 0,
-      sourcePromptVersions: targetSourceVersions,
+      sourcePromptVersions: targetPromptVersions,
     }
   },
 })
+
+// Maximum number of retry attempts before giving up
+const MAX_REFINEMENT_RETRIES = 5
 
 /**
  * Poll all active refinement batches.
@@ -1655,6 +1737,7 @@ export const pollActiveRefinementBatches = action({
       batchId: string
       model: string
       status: string
+      retryTriggered?: boolean
     }> = []
 
     for (const batch of activeBatches) {
@@ -1667,10 +1750,60 @@ export const pollActiveRefinementBatches = action({
           },
         )
 
+        let retryTriggered = false
+
+        // Auto-retry on failures (but not if manually cancelled or max retries reached)
+        if (pollResult.status === 'completed' && pollResult.failCount && pollResult.failCount > 0) {
+          const batchRecord = await ctx.runQuery(
+            internal.refinement.getRefinementBatchByBatchId,
+            { batchId: batch.batchId },
+          )
+
+          // Don't retry if batch was manually cancelled
+          const wasCancelled = batchRecord?.error?.includes('Cancelled by user')
+          const currentRetryCount = batchRecord?.retryCount ?? 0
+
+          if (wasCancelled) {
+            console.log(`Batch ${batch.batchId} was cancelled by user - skipping auto-retry`)
+          } else if (currentRetryCount >= MAX_REFINEMENT_RETRIES) {
+            console.log(`Batch ${batch.batchId} has reached max retries (${MAX_REFINEMENT_RETRIES}) - skipping auto-retry`)
+          } else {
+            console.log(
+              `Batch ${batch.batchId} completed with ${pollResult.failCount} failures. Triggering auto-retry (attempt ${currentRetryCount + 1}/${MAX_REFINEMENT_RETRIES})...`,
+            )
+
+            try {
+              const sourcePromptVersions = batchRecord?.sourcePromptVersions ?? []
+              const cycle = batchRecord?.cycle ?? 1
+
+              const retryResult = await ctx.runAction(
+                internal.refinementActions.retryFailedRefinements,
+                {
+                  model: batch.model,
+                  sourcePromptVersions,
+                  cycle,
+                  limit: pollResult.failCount + 10,
+                  retryCount: currentRetryCount + 1,
+                },
+              )
+
+              if (retryResult?.batchId) {
+                console.log(
+                  `Auto-retry batch submitted: ${retryResult.batchId} with ${retryResult.requestCount} requests (cycle ${cycle}, retry ${retryResult.retryCount}/${MAX_REFINEMENT_RETRIES})`,
+                )
+                retryTriggered = true
+              }
+            } catch (retryError) {
+              console.error(`Failed to trigger auto-retry for batch ${batch.batchId}:`, retryError)
+            }
+          }
+        }
+
         results.push({
           batchId: batch.batchId,
           model: batch.model,
           status: pollResult.status,
+          retryTriggered,
         })
       } catch (e) {
         console.error(`Error polling refinement batch ${batch.batchId}:`, e)
@@ -1731,39 +1864,50 @@ export const pollActiveRefinementBatchesInternal = internalAction({
         if (pollResult.status === 'completed') {
           completed++
 
-          // Check if there were failures and trigger auto-retry
+          // Check if there were failures and trigger auto-retry (but not if manually cancelled or max retries reached)
           if (pollResult.failCount && pollResult.failCount > 0) {
-            console.log(
-              `Batch ${batch.batchId} completed with ${pollResult.failCount} failures. Triggering auto-retry...`,
+            const batchRecord = await ctx.runQuery(
+              internal.refinement.getRefinementBatchByBatchId,
+              { batchId: batch.batchId },
             )
 
-            try {
-              // Get source prompt versions and cycle from the batch record
-              const batchRecord = await ctx.runQuery(
-                internal.refinement.getRefinementBatchByBatchId,
-                { batchId: batch.batchId },
-              )
-              const sourcePromptVersions = batchRecord?.sourcePromptVersions ?? []
-              const cycle = batchRecord?.cycle ?? 1
+            // Don't retry if batch was manually cancelled
+            const wasCancelled = batchRecord?.error?.includes('Cancelled by user')
+            const currentRetryCount = batchRecord?.retryCount ?? 0
 
-              const retryResult = await ctx.runAction(
-                internal.refinementActions.retryFailedRefinements,
-                {
-                  model: batch.model,
-                  sourcePromptVersions,
-                  cycle, // Reuse the same cycle
-                  limit: pollResult.failCount + 10, // Add buffer for any new failures
-                },
+            if (wasCancelled) {
+              console.log(`Batch ${batch.batchId} was cancelled by user - skipping auto-retry`)
+            } else if (currentRetryCount >= MAX_REFINEMENT_RETRIES) {
+              console.log(`Batch ${batch.batchId} has reached max retries (${MAX_REFINEMENT_RETRIES}) - skipping auto-retry`)
+            } else {
+              console.log(
+                `Batch ${batch.batchId} completed with ${pollResult.failCount} failures. Triggering auto-retry (attempt ${currentRetryCount + 1}/${MAX_REFINEMENT_RETRIES})...`,
               )
 
-              if (retryResult?.batchId) {
-                console.log(
-                  `Auto-retry batch submitted: ${retryResult.batchId} with ${retryResult.requestCount} requests (cycle ${cycle})`,
+              try {
+                const sourcePromptVersions = batchRecord?.sourcePromptVersions ?? []
+                const cycle = batchRecord?.cycle ?? 1
+
+                const retryResult = await ctx.runAction(
+                  internal.refinementActions.retryFailedRefinements,
+                  {
+                    model: batch.model,
+                    sourcePromptVersions,
+                    cycle,
+                    limit: pollResult.failCount + 10,
+                    retryCount: currentRetryCount + 1,
+                  },
                 )
-                retriesTriggered++
+
+                if (retryResult?.batchId) {
+                  console.log(
+                    `Auto-retry batch submitted: ${retryResult.batchId} with ${retryResult.requestCount} requests (cycle ${cycle}, retry ${retryResult.retryCount}/${MAX_REFINEMENT_RETRIES})`,
+                  )
+                  retriesTriggered++
+                }
+              } catch (retryError) {
+                console.error(`Failed to trigger auto-retry for batch ${batch.batchId}:`, retryError)
               }
-            } catch (retryError) {
-              console.error(`Failed to trigger auto-retry for batch ${batch.batchId}:`, retryError)
             }
           }
         } else if (pollResult.status === 'processing') {
@@ -1804,11 +1948,12 @@ export const retryFailedRefinements = internalAction({
     sourcePromptVersions: v.array(v.string()),
     cycle: v.number(), // Reuse the same cycle
     limit: v.optional(v.number()),
+    retryCount: v.optional(v.number()), // Current retry attempt (0 = first retry)
   },
   handler: async (
     ctx,
-    { model, sourcePromptVersions, cycle, limit = 1000 },
-  ): Promise<{ batchId: string; requestCount: number; cycle: number } | null> => {
+    { model, sourcePromptVersions, cycle, limit = 1000, retryCount = 0 },
+  ): Promise<{ batchId: string; requestCount: number; cycle: number; retryCount: number } | null> => {
     // Get seeds that have failed refinements for this specific model
     const failedSeeds: string[] = await ctx.runQuery(
       internal.refinement.getFailedRefinementSeeds,
@@ -1829,7 +1974,7 @@ export const retryFailedRefinements = internalAction({
     )
     console.log(`Deleted ${deleteResult.deleted} failed refinement records`)
 
-    // Submit a new batch with the same cycle number
+    // Submit a new batch with the same cycle number and incremented retry count
     const result = await ctx.runAction(
       internal.refinementActions.submitRefinementBatch,
       {
@@ -1837,6 +1982,7 @@ export const retryFailedRefinements = internalAction({
         cycle,
         sourcePromptVersions,
         limit: failedSeeds.length + 10, // Small buffer
+        retryCount,
       },
     )
 
@@ -1846,13 +1992,14 @@ export const retryFailedRefinements = internalAction({
     }
 
     console.log(
-      `Retry batch submitted: cycle=${cycle}, batchId=${result.batchId}, requests=${result.requestCount}`,
+      `Retry batch submitted: cycle=${cycle}, batchId=${result.batchId}, requests=${result.requestCount}, retryCount=${retryCount}`,
     )
 
     return {
       batchId: result.batchId,
       requestCount: result.requestCount,
       cycle,
+      retryCount,
     }
   },
 })

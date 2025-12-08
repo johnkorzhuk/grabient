@@ -13,6 +13,8 @@ import {
   ChevronDown,
   ChevronRight,
 } from "lucide-react";
+import { z } from "zod";
+import { BLACKLISTED_REFINEMENT_MODELS } from "../../../convex/lib/providers.types";
 
 // Type for the structured tag response from providers
 // Some fields can be string or array depending on model output
@@ -39,7 +41,13 @@ function asStringArray(value: string | string[]): string[] {
   return Array.isArray(value) ? value : [value];
 }
 
+// Search params schema for refinement model persistence
+const searchValidatorSchema = z.object({
+  refinementModel: z.string().optional(),
+});
+
 export const Route = createFileRoute("/_layout/$seed")({
+  validateSearch: searchValidatorSchema,
   loader: async ({ context, params }) => {
     // Check if seed exists in Convex
     const exists = await context.queryClient.fetchQuery(
@@ -57,6 +65,8 @@ export const Route = createFileRoute("/_layout/$seed")({
 
 function SeedDetailPage() {
   const { seed } = Route.useParams();
+  const { refinementModel } = Route.useSearch();
+  const navigate = Route.useNavigate();
   const palette = useQuery(api.palettes.getPaletteWithTags, { seed });
 
   const isLoading = palette === undefined;
@@ -90,7 +100,13 @@ function SeedDetailPage() {
         ) : (
           <RefinementContent
             allRefinedTags={palette.allRefinedTags}
-            availableModels={palette.availableRefinementModels}
+            selectedModel={refinementModel}
+            onModelChange={(model) => {
+              navigate({
+                search: (prev) => ({ ...prev, refinementModel: model }),
+                replace: true,
+              });
+            }}
           />
         )}
       </div>
@@ -901,10 +917,11 @@ function isRefinedTags(tags: unknown): tags is RefinedTagsData {
 }
 
 type RefinedTagRecord = {
+  _id: string;
   model: string;
   cycle: number;
   promptVersion: string;
-  sourcePromptVersions: string[];
+  sourcePromptVersions?: string[];
   tags: unknown;
   embedText: string;
   error?: string;
@@ -914,27 +931,77 @@ type RefinedTagRecord = {
 
 function RefinementContent({
   allRefinedTags,
-  availableModels,
+  selectedModel,
+  onModelChange,
 }: {
   allRefinedTags: RefinedTagRecord[];
-  availableModels: string[];
+  selectedModel?: string;
+  onModelChange: (model: string) => void;
 }) {
-  const [selectedModel, setSelectedModel] = useState<string | null>(null);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+  const [cycleDropdownOpen, setCycleDropdownOpen] = useState(false);
+  const [selectedCycle, setSelectedCycle] = useState<number | null>(null);
   const modelDropdownRef = useRef<HTMLDivElement>(null);
+  const cycleDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Default to latest model on first load
-  useEffect(() => {
-    if (availableModels.length > 0 && selectedModel === null) {
-      setSelectedModel(availableModels[0]);
+  // Group refinements by model, sorted by creation time (newest first within each model)
+  // Excludes blacklisted models from display
+  const refinementsByModel = (() => {
+    const grouped = new Map<string, RefinedTagRecord[]>();
+    for (const ref of allRefinedTags) {
+      // Skip blacklisted models
+      if (BLACKLISTED_REFINEMENT_MODELS.has(ref.model as any)) continue;
+      const existing = grouped.get(ref.model) ?? [];
+      existing.push(ref);
+      grouped.set(ref.model, existing);
     }
-  }, [availableModels, selectedModel]);
+    // Sort each model's runs by creation time (newest first)
+    for (const [model, runs] of grouped) {
+      grouped.set(model, runs.sort((a, b) => b._creationTime - a._creationTime));
+    }
+    return grouped;
+  })();
 
-  // Close dropdown when clicking outside
+  // Get runs for the current model
+  const currentModelRuns = (() => {
+    if (selectedModel) {
+      return refinementsByModel.get(selectedModel) ?? [];
+    }
+    // If no model selected, get runs for the model with the latest refinement
+    if (allRefinedTags.length > 0) {
+      const latest = allRefinedTags.reduce((a, b) =>
+        a._creationTime > b._creationTime ? a : b
+      );
+      return refinementsByModel.get(latest.model) ?? [];
+    }
+    return [];
+  })();
+
+  // Find the selected refinement - use selected cycle or default to latest
+  const selectedRefinement = (() => {
+    if (currentModelRuns.length === 0) return null;
+
+    if (selectedCycle !== null) {
+      const found = currentModelRuns.find(r => r.cycle === selectedCycle);
+      if (found) return found;
+    }
+    // Default to latest run (first in sorted array)
+    return currentModelRuns[0];
+  })();
+
+  // Reset cycle selection when model changes
+  useEffect(() => {
+    setSelectedCycle(null);
+  }, [selectedModel]);
+
+  // Close dropdowns when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target as Node)) {
         setModelDropdownOpen(false);
+      }
+      if (cycleDropdownRef.current && !cycleDropdownRef.current.contains(event.target as Node)) {
+        setCycleDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -949,7 +1016,10 @@ function RefinementContent({
       .replace("gpt-5-mini", "gpt-5-mini")
       .replace("qwen/qwen3-32b", "qwen3-32b")
       .replace("openai/gpt-oss-120b", "gpt-oss-120b")
-      .replace("moonshotai/kimi-k2-instruct", "kimi-k2");
+      .replace("openai/gpt-oss-20b", "gpt-oss-20b")
+      .replace("moonshotai/kimi-k2-instruct", "kimi-k2")
+      .replace("gemini-2.5-flash-lite", "gemini-2.5-lite")
+      .replace("gemini-2.0-flash", "gemini-2.0");
   };
 
   if (allRefinedTags.length === 0) {
@@ -970,13 +1040,11 @@ function RefinementContent({
     );
   }
 
-  // Find the selected refinement
-  const refinedTags = selectedModel
-    ? allRefinedTags.find(r => r.model === selectedModel) ?? allRefinedTags[0]
-    : allRefinedTags[0];
+  // Use the computed selected refinement
+  const refinedTags = selectedRefinement ?? allRefinedTags[0];
 
-  const hasError = !!refinedTags.error;
-  const tags = isRefinedTags(refinedTags.tags) ? refinedTags.tags : null;
+  const hasError = !!refinedTags?.error;
+  const tags = refinedTags && isRefinedTags(refinedTags.tags) ? refinedTags.tags : null;
 
   // Count successes and errors
   const successCount = allRefinedTags.filter(r => !r.error).length;
@@ -997,7 +1065,7 @@ function RefinementContent({
 
         <div className="flex items-center gap-2">
           {/* Model dropdown */}
-          {availableModels.length > 0 && (
+          {allRefinedTags.length > 0 && (
             <div className="relative" ref={modelDropdownRef}>
               <button
                 onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
@@ -1005,31 +1073,87 @@ function RefinementContent({
                   "text-xs px-2 py-1 rounded border border-input bg-background",
                   "text-muted-foreground hover:text-foreground",
                   "outline-none focus:ring-2 focus:ring-ring/70",
-                  "flex items-center gap-1.5 min-w-[100px]",
+                  "flex items-center gap-1.5",
                   modelDropdownOpen && "border-muted-foreground/30 text-foreground"
                 )}
               >
                 <span>
-                  {selectedModel ? getModelShortName(selectedModel) : "Select model"}
+                  {refinedTags ? getModelShortName(refinedTags.model) : "Select model"}
                 </span>
                 <ChevronDown
                   className={cn("w-3 h-3 transition-transform", modelDropdownOpen && "rotate-180")}
                 />
               </button>
               {modelDropdownOpen && (
-                <div className="absolute z-50 top-full mt-1 right-0 bg-background/95 backdrop-blur-sm border border-input rounded-md shadow-lg min-w-[160px] max-h-[300px] overflow-y-auto">
+                <div className="absolute z-50 top-full mt-1 right-0 bg-background/95 backdrop-blur-sm border border-input rounded-md shadow-lg min-w-[180px] max-h-[400px] overflow-y-auto">
                   <div className="p-1">
-                    {availableModels.map((model, idx) => {
-                      const isSelected = model === selectedModel;
-                      const refinement = allRefinedTags.find(r => r.model === model);
-                      const hasErr = refinement?.error;
+                    {Array.from(refinementsByModel.entries())
+                      .sort((a, b) => {
+                        const aLatest = a[1][0]?._creationTime ?? 0;
+                        const bLatest = b[1][0]?._creationTime ?? 0;
+                        return bLatest - aLatest;
+                      })
+                      .map(([model, runs]) => {
+                        const isModelSelected = refinedTags?.model === model;
+                        return (
+                          <button
+                            key={model}
+                            onClick={() => {
+                              onModelChange(model);
+                              setModelDropdownOpen(false);
+                            }}
+                            className={cn(
+                              "w-full text-left text-xs px-2 py-1.5 rounded",
+                              "hover:bg-muted transition-colors",
+                              isModelSelected ? "text-foreground bg-muted/50" : "text-muted-foreground"
+                            )}
+                          >
+                            {getModelShortName(model)}
+                            <span className="text-[10px] text-muted-foreground ml-1">
+                              ({runs.length})
+                            </span>
+                            {isModelSelected && (
+                              <Check className="inline-block w-3 h-3 ml-1 text-green-500" />
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Cycle dropdown - show if model has any runs */}
+          {currentModelRuns.length > 0 && (
+            <div className="relative" ref={cycleDropdownRef}>
+              <button
+                onClick={() => setCycleDropdownOpen(!cycleDropdownOpen)}
+                className={cn(
+                  "text-xs px-2 py-1 rounded border border-input bg-background",
+                  "text-muted-foreground hover:text-foreground",
+                  "outline-none focus:ring-2 focus:ring-ring/70",
+                  "flex items-center gap-1.5",
+                  cycleDropdownOpen && "border-muted-foreground/30 text-foreground"
+                )}
+              >
+                <span>c{refinedTags?.cycle ?? "?"}</span>
+                <ChevronDown
+                  className={cn("w-3 h-3 transition-transform", cycleDropdownOpen && "rotate-180")}
+                />
+              </button>
+              {cycleDropdownOpen && (
+                <div className="absolute z-50 top-full mt-1 right-0 bg-background/95 backdrop-blur-sm border border-input rounded-md shadow-lg min-w-[140px] max-h-[300px] overflow-y-auto">
+                  <div className="p-1">
+                    {currentModelRuns.map((run, idx) => {
+                      const isSelected = refinedTags?._id === run._id;
                       const isLatest = idx === 0;
                       return (
                         <button
-                          key={model}
+                          key={run._id}
                           onClick={() => {
-                            setSelectedModel(model);
-                            setModelDropdownOpen(false);
+                            setSelectedCycle(run.cycle);
+                            setCycleDropdownOpen(false);
                           }}
                           className={cn(
                             "w-full text-left text-xs px-2 py-1.5 rounded flex items-center gap-2",
@@ -1037,24 +1161,20 @@ function RefinementContent({
                             isSelected ? "text-foreground bg-muted/50" : "text-muted-foreground"
                           )}
                         >
-                          <span className={cn(
-                            "w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0",
-                            isSelected
-                              ? "bg-primary border-primary"
-                              : "border-input"
-                          )}>
-                            {isSelected && (
-                              <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                            )}
+                          <span className="font-mono">c{run.cycle}</span>
+                          <span className="text-muted-foreground/70 text-[10px]">
+                            {new Date(run._creationTime).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                           </span>
-                          <span className="flex-1">{getModelShortName(model)}</span>
-                          {hasErr && (
-                            <AlertCircle className="w-3 h-3 text-destructive" />
+                          {run.error && (
+                            <AlertCircle className="w-3 h-3 text-destructive ml-auto" />
                           )}
-                          {isLatest && !hasErr && (
-                            <span className="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary">
+                          {isLatest && !run.error && (
+                            <span className="text-[10px] px-1 py-0.5 rounded bg-primary/10 text-primary ml-auto">
                               latest
                             </span>
+                          )}
+                          {isSelected && !isLatest && !run.error && (
+                            <Check className="w-3 h-3 text-green-500 ml-auto" />
                           )}
                         </button>
                       );
@@ -1064,18 +1184,20 @@ function RefinementContent({
               )}
             </div>
           )}
-
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>{new Date(refinedTags._creationTime).toLocaleDateString()}</span>
-            {refinedTags.usage && (
-              <>
-                <span className="text-muted-foreground/50">·</span>
-                <span>{(refinedTags.usage.inputTokens + refinedTags.usage.outputTokens).toLocaleString()} tokens</span>
-              </>
-            )}
-          </div>
         </div>
       </div>
+
+      {refinedTags && (
+        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
+          <span>{new Date(refinedTags._creationTime).toLocaleDateString()}</span>
+          {refinedTags.usage && (
+            <>
+              <span className="text-muted-foreground/50">·</span>
+              <span>{(refinedTags.usage.inputTokens + refinedTags.usage.outputTokens).toLocaleString()} tokens</span>
+            </>
+          )}
+        </div>
+      )}
 
       {hasError ? (
         <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
@@ -1126,9 +1248,11 @@ function RefinementContent({
           )}
 
           {/* Source versions */}
-          <div className="text-xs text-muted-foreground">
-            Source versions: {refinedTags.sourcePromptVersions.map(v => v.slice(0, 8)).join(", ")}
-          </div>
+          {refinedTags.sourcePromptVersions && refinedTags.sourcePromptVersions.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Source versions: {refinedTags.sourcePromptVersions.map(v => v.slice(0, 8)).join(", ")}
+            </div>
+          )}
         </div>
       ) : (
         <div className="rounded-lg border border-border bg-card p-4">

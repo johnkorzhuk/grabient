@@ -4,24 +4,63 @@ import { z } from 'zod'
 // Tag Response Schema - used by batch actions to validate responses
 // ============================================================================
 
+/**
+ * Sanitize a string value to be safe for storage in Convex.
+ * Convex only allows printable ASCII characters (0x20-0x7E) in field names.
+ * Removes non-ASCII (Chinese, emoji, accented chars), control characters, and validates length.
+ * Returns null if the string is invalid/corrupted.
+ */
+function sanitizeTagString(value: string): string | null {
+  if (typeof value !== 'string') return null
+
+  // Keep only printable ASCII (space through tilde: 0x20-0x7E)
+  // This removes ALL non-ASCII including Chinese, emoji, accented chars, etc.
+  let sanitized = value
+    .replace(/[^\x20-\x7E]/g, ' ') // Replace non-ASCII with space
+    .replace(/\s+/g, ' ') // Collapse multiple whitespace
+    .trim()
+
+  // Skip if empty after sanitization
+  if (!sanitized || sanitized.length === 0) return null
+
+  // Skip if too long (likely corrupted data)
+  if (sanitized.length > 100) return null
+
+  // Skip if it looks like corrupted JSON fragments
+  if (/[{}\[\]"]/.test(sanitized) && sanitized.includes(':')) return null
+
+  return sanitized
+}
+
 // Accept string, array, null, or undefined - be maximally tolerant
 const flexibleString = z.union([z.string(), z.array(z.any()), z.null(), z.undefined()]).transform(val => {
   if (val === null || val === undefined) return '';
   if (Array.isArray(val)) {
-    // Flatten and get first string
+    // Flatten and get first valid string
     const flat = val.flat(2).filter((v): v is string => typeof v === 'string');
-    return flat[0] ?? '';
+    for (const s of flat) {
+      const sanitized = sanitizeTagString(s)
+      if (sanitized) return sanitized
+    }
+    return '';
   }
-  return val;
+  return sanitizeTagString(val) ?? '';
 });
 
 // Accept string, array (possibly nested), null, or undefined
 const flexibleArray = z.union([z.string(), z.array(z.any()), z.null(), z.undefined()]).transform(val => {
   if (val === null || val === undefined) return [];
-  if (typeof val === 'string') return [val]; // Handle string -> array
+  if (typeof val === 'string') {
+    const sanitized = sanitizeTagString(val)
+    return sanitized ? [sanitized] : [];
+  }
   if (Array.isArray(val)) {
-    // Flatten nested arrays and keep only strings
-    return val.flat(2).filter((v): v is string => typeof v === 'string');
+    // Flatten nested arrays, keep only valid sanitized strings
+    return val
+      .flat(2)
+      .filter((v): v is string => typeof v === 'string')
+      .map(s => sanitizeTagString(s))
+      .filter((s): s is string => s !== null);
   }
   return [];
 });

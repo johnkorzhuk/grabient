@@ -302,3 +302,47 @@ export function getAllRefinementModels(): Array<{
     model,
   }))
 }
+
+// ============================================================================
+// Model Blacklists - Models to hide from UI (but keep in schema for data)
+// ============================================================================
+
+/**
+ * Models blacklisted from tagging UI.
+ * These models exist in the schema (for legacy data) but should not be shown
+ * in dropdowns or used for new tagging jobs.
+ */
+export const BLACKLISTED_TAGGING_MODELS: Set<Model> = new Set([
+  'openai/gpt-oss-120b',
+])
+
+/**
+ * Models blacklisted from refinement UI.
+ * These models exist in the schema (for legacy data) but should not be shown
+ * in dropdowns or used for new refinement jobs.
+ */
+export const BLACKLISTED_REFINEMENT_MODELS: Set<RefinementModel> = new Set([
+  'openai/gpt-oss-120b',
+  'llama-3.1-8b-instant',
+  'qwen/qwen3-32b',
+  'gpt-5-nano',
+])
+
+/**
+ * Get tagging models filtered by blacklist
+ */
+export function getActiveTaggingModels(): Array<{ provider: Provider; model: Model }> {
+  return getAllModels().filter(({ model }) => !BLACKLISTED_TAGGING_MODELS.has(model))
+}
+
+/**
+ * Get refinement models filtered by blacklist
+ */
+export function getActiveRefinementModels(): Array<{
+  provider: RefinementProvider
+  model: RefinementModel
+}> {
+  return getAllRefinementModels().filter(
+    ({ model }) => !BLACKLISTED_REFINEMENT_MODELS.has(model)
+  )
+}

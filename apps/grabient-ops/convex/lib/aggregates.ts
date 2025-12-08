@@ -36,3 +36,27 @@ export const refinedSeedsAggregate = new TableAggregate<{
   sortKey: (doc) => doc._creationTime,
   sumValue: (doc) => (doc.error ? 0 : 1),
 })
+
+/**
+ * Tracks palette_tags - both successful and errored.
+ *
+ * Uses sumValue to count successful tags:
+ * - sumValue = 1 for successful tags
+ * - sumValue = 0 for errored tags
+ *
+ * This way:
+ * - count() gives total tag attempts
+ * - sum() gives successful count
+ * - count() - sum() gives error count
+ *
+ * Sync with: palette_tags table inserts/updates/deletes
+ */
+export const paletteTagsAggregate = new TableAggregate<{
+  Key: number
+  DataModel: DataModel
+  TableName: 'palette_tags'
+  SumValue: number
+}>(components.paletteTagsAggregate, {
+  sortKey: (doc) => doc._creationTime,
+  sumValue: (doc) => (doc.error ? 0 : 1),
+})

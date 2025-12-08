@@ -17,7 +17,8 @@ export const refinedTagsSchema = z.object({
   brightness: z.enum(['dark', 'light', 'medium', 'varied']).optional(),
   saturation: z.enum(['vibrant', 'muted', 'mixed']).optional(),
 
-  // Curated tag arrays - optional
+  // Curated tag arrays
+  harmony: z.array(z.string()).min(1).max(2), // Required: 1-2 color harmony tags
   mood: z.array(z.string()).optional(),
   style: z.array(z.string()).optional(),
   dominant_colors: z.array(z.string()).optional(),
@@ -34,6 +35,13 @@ export type RefinedTags = z.infer<typeof refinedTagsSchema>
 // Tag Summary - aggregated consensus data sent to refinement model
 // ============================================================================
 
+/**
+ * Frequency entry using array format to avoid Convex field name restrictions.
+ * AI-generated tags may contain non-ASCII characters which are invalid as field names.
+ */
+export type FrequencyEntry = { key: string; value: number }
+export type FrequencyArray = FrequencyEntry[]
+
 export interface TagSummary {
   seed: string
   paletteId: string
@@ -42,17 +50,18 @@ export interface TagSummary {
   totalModels: number
   sourcePromptVersion: string
   categorical: {
-    temperature: Record<string, number>
-    contrast: Record<string, number>
-    brightness: Record<string, number>
-    saturation: Record<string, number>
+    temperature: FrequencyArray
+    contrast: FrequencyArray
+    brightness: FrequencyArray
+    saturation: FrequencyArray
   }
   tags: {
-    mood: Record<string, number>
-    style: Record<string, number>
-    dominant_colors: Record<string, number>
-    seasonal: Record<string, number>
-    associations: Record<string, number>
+    harmony: FrequencyArray
+    mood: FrequencyArray
+    style: FrequencyArray
+    dominant_colors: FrequencyArray
+    seasonal: FrequencyArray
+    associations: FrequencyArray
   }
 }
 
@@ -61,16 +70,17 @@ export interface TagSummary {
 // ============================================================================
 
 /**
- * Format frequency data for display in prompt
+ * Format frequency data for display in prompt.
+ * Accepts FrequencyArray format (array of {key, value} objects).
  */
 function formatFrequencies(
-  data: Record<string, number>,
+  data: FrequencyArray,
   totalModels: number,
 ): string {
   return (
-    Object.entries(data)
-      .sort((a, b) => b[1] - a[1])
-      .map(([tag, count]) => `${tag}: ${count}/${totalModels}`)
+    [...data]
+      .sort((a, b) => b.value - a.value)
+      .map((entry) => `${entry.key}: ${entry.value}/${totalModels}`)
       .join(', ') || 'none'
   )
 }
@@ -93,6 +103,7 @@ ${JSON.stringify(summary.colorData, null, 2)}
 - Saturation: ${formatFrequencies(summary.categorical.saturation, summary.totalModels)}
 
 ### Tag Frequencies
+- Harmony: ${formatFrequencies(summary.tags.harmony, summary.totalModels)}
 - Mood: ${formatFrequencies(summary.tags.mood, summary.totalModels)}
 - Style: ${formatFrequencies(summary.tags.style, summary.totalModels)}
 - Dominant Colors: ${formatFrequencies(summary.tags.dominant_colors, summary.totalModels)}
