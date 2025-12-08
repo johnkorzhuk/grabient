@@ -11,7 +11,9 @@
     "build": "vite build && tsc --noEmit",
     "start": "node .output/server/index.mjs",
     "format": "prettier --write .",
-    "lint": "tsc && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "tsc && eslint .  --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "use:local": "cat .env.local-backend > .env.local.backend && cat .env.local | grep -v 'CONVEX_\\|VITE_CONVEX' > .env.local.keys && cat .env.local.backend .env.local.keys > .env.local && rm .env.local.backend .env.local.keys && echo 'Switched to local backend'",
+    "use:cloud": "cat .env.cloud > .env.local.backend && cat .env.local | grep -v 'CONVEX_\\|VITE_CONVEX' > .env.local.keys && cat .env.local.backend .env.local.keys > .env.local && rm .env.local.backend .env.local.keys && echo 'Switched to cloud backend'"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.53",

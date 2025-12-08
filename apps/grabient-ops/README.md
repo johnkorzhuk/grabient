@@ -66,6 +66,48 @@ Set these in **Convex Dashboard → Settings → Environment Variables**:
 4. Add permission: **Account → D1 → Read**
 5. Copy the token value
 
+## Backend: Local vs Cloud
+
+You can run against either the Convex cloud backend or a local self-hosted backend.
+
+### Quick Start (from repo root)
+
+```bash
+# Cloud backend
+pnpm dev:grabient-ops
+
+# Local backend (starts Docker automatically)
+pnpm dev:grabient-ops:local
+```
+
+Local dashboard available at http://localhost:6791
+
+### Manual Switching
+
+```bash
+# Switch to local (inside grabient-ops/)
+pnpm use:local
+
+# Switch to cloud (inside grabient-ops/)
+pnpm use:cloud
+```
+
+### Local Backend Commands (from repo root)
+
+| Command | Description |
+|---------|-------------|
+| `pnpm dev:grabient-ops:local` | Start local backend + run dev server |
+| `pnpm local:start` | Start Docker containers only |
+| `pnpm local:stop` | Stop Docker containers |
+| `pnpm local:logs` | View container logs |
+
+### Why Use Local?
+
+- No billing limits
+- Faster iteration (no network latency)
+- Works offline
+- Full data isolation for testing
+
 ## Usage
 
 ### Seeding Palettes
