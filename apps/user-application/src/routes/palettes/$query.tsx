@@ -9,7 +9,7 @@ import {
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
-import { hexToColorName } from "@/lib/color-utils";
+import { hexToColorName, colorNameToHex, isColorName, simplifyHex } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
 import { Search } from "lucide-react";
@@ -140,6 +140,7 @@ const HEX_REGEX = /#([0-9a-fA-F]{3}(?![0-9a-fA-F])|[0-9a-fA-F]{6}(?![0-9a-fA-F])
 
 function ColorSwatch({ hex, isLast = false }: { hex: string; isLast?: boolean }) {
     const colorName = hexToColorName(hex);
+    const displayHex = simplifyHex(hex);
     return (
         <span className={`inline-flex items-center gap-2 mx-2 ${isLast ? "pr-2" : ""}`}>
             <Tooltip>
@@ -153,7 +154,27 @@ function ColorSwatch({ hex, isLast = false }: { hex: string; isLast?: boolean })
                     <span className="capitalize">{colorName}</span>
                 </TooltipContent>
             </Tooltip>
-            <span className="text-foreground">{hex}</span>
+            <span className="text-foreground">{displayHex}</span>
+        </span>
+    );
+}
+
+function ColorNameSwatch({ name, hex }: { name: string; hex: string }) {
+    const displayHex = simplifyHex(hex);
+    return (
+        <span className="inline-flex items-center gap-1.5 mr-1">
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span
+                        className="inline-block w-4 h-4 rounded-full border border-input cursor-default"
+                        style={{ backgroundColor: hex }}
+                    />
+                </TooltipTrigger>
+                <TooltipContent>
+                    <span>{displayHex}</span>
+                </TooltipContent>
+            </Tooltip>
+            <span className="text-foreground capitalize">{name}</span>
         </span>
     );
 }
@@ -165,33 +186,84 @@ function cleanTextPart(text: string): string {
         .trim();
 }
 
-function parseQueryForDisplay(query: string): Array<{ type: "text" | "hex"; value: string }> {
+function parseQueryForDisplay(query: string): Array<{ type: "text" | "hex" | "colorName"; value: string; hex?: string }> {
     const sanitized = query
         .replace(/[\[\]"{}]/g, "")
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 100);
 
-    const parts: Array<{ type: "text" | "hex"; value: string }> = [];
-    const seenColorNames = new Set<string>();
+    const parts: Array<{ type: "text" | "hex" | "colorName"; value: string; hex?: string }> = [];
+    const seenColors = new Set<string>();
+
+    // First pass: extract hex codes
     let lastIndex = 0;
+    const segments: Array<{ type: "text" | "hex"; value: string; start: number; end: number }> = [];
 
     for (const match of sanitized.matchAll(HEX_REGEX)) {
         if (match.index! > lastIndex) {
-            const text = cleanTextPart(sanitized.slice(lastIndex, match.index));
-            if (text) parts.push({ type: "text", value: text });
+            segments.push({
+                type: "text",
+                value: sanitized.slice(lastIndex, match.index),
+                start: lastIndex,
+                end: match.index!,
+            });
         }
-        const colorName = hexToColorName(match[0]);
-        if (!seenColorNames.has(colorName)) {
-            seenColorNames.add(colorName);
-            parts.push({ type: "hex", value: match[0] });
-        }
+        segments.push({
+            type: "hex",
+            value: match[0],
+            start: match.index!,
+            end: match.index! + match[0].length,
+        });
         lastIndex = match.index! + match[0].length;
     }
 
     if (lastIndex < sanitized.length) {
-        const text = cleanTextPart(sanitized.slice(lastIndex));
-        if (text) parts.push({ type: "text", value: text });
+        segments.push({
+            type: "text",
+            value: sanitized.slice(lastIndex),
+            start: lastIndex,
+            end: sanitized.length,
+        });
+    }
+
+    // Second pass: process segments, check text for color names
+    for (const segment of segments) {
+        if (segment.type === "hex") {
+            const colorName = hexToColorName(segment.value);
+            if (!seenColors.has(colorName)) {
+                seenColors.add(colorName);
+                parts.push({ type: "hex", value: segment.value });
+            }
+        } else {
+            // Split text into words and check for color names
+            const words = segment.value.split(/\s+/);
+            let textBuffer = "";
+
+            for (const word of words) {
+                const cleanWord = word.replace(/[,]+/g, "").trim();
+                if (cleanWord && isColorName(cleanWord)) {
+                    // Flush text buffer first
+                    if (textBuffer.trim()) {
+                        parts.push({ type: "text", value: cleanTextPart(textBuffer) });
+                        textBuffer = "";
+                    }
+                    const hex = colorNameToHex(cleanWord);
+                    if (hex && !seenColors.has(cleanWord.toLowerCase())) {
+                        seenColors.add(cleanWord.toLowerCase());
+                        parts.push({ type: "colorName", value: cleanWord, hex });
+                    }
+                } else {
+                    textBuffer += (textBuffer ? " " : "") + word;
+                }
+            }
+
+            // Flush remaining text
+            if (textBuffer.trim()) {
+                const cleaned = cleanTextPart(textBuffer);
+                if (cleaned) parts.push({ type: "text", value: cleaned });
+            }
+        }
     }
 
     return parts;
@@ -217,20 +289,22 @@ function QueryDisplay({ query }: { query: string }) {
         return <span>Search</span>;
     }
 
-    const lastHexIndex = parts.reduce(
-        (last, part, i) => (part.type === "hex" ? i : last),
+    const lastColorIndex = parts.reduce(
+        (last, part, i) => (part.type === "hex" || part.type === "colorName" ? i : last),
         -1,
     );
 
     return (
         <>
-            {parts.map((part, i) =>
-                part.type === "hex" ? (
-                    <ColorSwatch key={i} hex={part.value} isLast={i === lastHexIndex} />
-                ) : (
-                    <span key={i}>{part.value} </span>
-                ),
-            )}
+            {parts.map((part, i) => {
+                if (part.type === "hex") {
+                    return <ColorSwatch key={i} hex={part.value} isLast={i === lastColorIndex} />;
+                }
+                if (part.type === "colorName" && part.hex) {
+                    return <ColorNameSwatch key={i} name={part.value} hex={part.hex} />;
+                }
+                return <span key={i}>{part.value} </span>;
+            })}
         </>
     );
 }
