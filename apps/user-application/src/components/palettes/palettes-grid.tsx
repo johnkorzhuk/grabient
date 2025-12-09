@@ -49,7 +49,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
 import { Kbd } from "@/components/ui/kbd";
-import { hexToColorName } from "@/lib/color-utils";
+import { getGradientAriaLabel, getUniqueColorNames } from "@/lib/color-utils";
 
 const LazyGradientChannelsChart = lazy(() =>
     import("./gradient-channels-chart").then((mod) => ({
@@ -386,10 +386,10 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         };
 
         const { hexColors } = palette;
-        const colorNames = hexColors.slice(0, 3).map(hexToColorName);
-        const colorList = colorNames.join(", ");
+        const uniqueColorNames = getUniqueColorNames(hexColors);
+        const colorList = uniqueColorNames.slice(0, 3).join(", ");
         const moreColors =
-            hexColors.length > 3 ? ` and ${hexColors.length - 3} more` : "";
+            uniqueColorNames.length > 3 ? ` and ${uniqueColorNames.length - 3} more` : "";
         const ariaLabel = `${itemActive ? "Deselect" : "Select"} gradient: ${colorList}${moreColors}`;
 
         // Calculate effective render settings (same logic as GradientPreview)
@@ -747,7 +747,7 @@ function GradientPreview({
                     "relative z-10 h-full w-full flex items-center justify-center overflow-hidden rounded-xl pointer-events-none transition-all duration-300",
                 )}
                 role="img"
-                aria-label={`Gradient from ${hexToColorName(colorsToUse[0])} to ${hexToColorName(colorsToUse[colorsToUse.length - 1])} with ${effectiveSteps} color stops`}
+                aria-label={getGradientAriaLabel(colorsToUse)}
             >
                 <div
                     className="w-full h-full pointer-events-none"

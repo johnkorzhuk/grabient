@@ -111,3 +111,38 @@ export function simplifyHex(hex: string): string {
     }
     return hex;
 }
+
+/**
+ * Get unique color names from an array of hex colors, preserving order.
+ * Adjacent duplicates are removed to create a readable description.
+ */
+export function getUniqueColorNames(hexColors: string[]): string[] {
+    const names: string[] = [];
+    const seen = new Set<string>();
+
+    for (const hex of hexColors) {
+        const name = hexToColorName(hex);
+        if (!seen.has(name)) {
+            seen.add(name);
+            names.push(name);
+        }
+    }
+
+    return names;
+}
+
+/**
+ * Generate a human-readable gradient description for accessibility.
+ * Example: "gradient with coral, salmon, pink, and lavender"
+ */
+export function getGradientAriaLabel(hexColors: string[]): string {
+    const names = getUniqueColorNames(hexColors);
+
+    if (names.length === 0) return "gradient";
+    if (names.length === 1) return `${names[0]} gradient`;
+    if (names.length === 2) return `gradient from ${names[0]} to ${names[1]}`;
+
+    const last = names[names.length - 1];
+    const rest = names.slice(0, -1).join(", ");
+    return `gradient with ${rest}, and ${last}`;
+}
