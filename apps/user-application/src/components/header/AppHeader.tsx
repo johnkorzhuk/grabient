@@ -28,6 +28,7 @@ import { useTheme } from "@/components/theme/theme-provider";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
+import { SearchInput } from "@/components/search/SearchInput";
 
 export function AppHeader({ className }: { className?: string }) {
     const matches = useMatches();
@@ -38,6 +39,7 @@ export function AppHeader({ className }: { className?: string }) {
     const { data: session, isPending } = authClient.useSession();
     const focusTrapRef = useFocusTrap(dropdownOpen);
     const { resolved: theme } = useTheme();
+    const previousRouteHref = useStore(uiStore, (state) => state.previousRouteHref);
     const navSelect = useStore(uiStore, (state) => state.navSelect);
 
     const handleSignOut = async () => {
@@ -64,24 +66,17 @@ export function AppHeader({ className }: { className?: string }) {
                     aria-label="Primary navigation"
                 >
                     <Link
-                        to={seedRouteMatch ? navSelect : "/"}
-                        search={(prevSearch) => {
-                            if (seedRouteMatch?.search) {
-                                return {
-                                    ...prevSearch,
-                                    style: seedRouteMatch.search.style,
-                                    angle: seedRouteMatch.search.angle,
-                                    steps: seedRouteMatch.search.steps,
-                                };
-                            }
-                            return prevSearch;
-                        }}
+                        to={seedRouteMatch ? (previousRouteHref ?? navSelect) : "/"}
                         className="flex items-center outline-none focus-visible:ring-2 focus-visible:ring-ring/70 rounded-md"
                         aria-label="Grabient home"
                     >
                         <GrabientLogoContainer className="h-11 md:h-12 w-auto" />
                     </Link>
                 </nav>
+
+                <div className="hidden md:block flex-1 max-w-xs mx-6">
+                    <SearchInput />
+                </div>
 
                 <div className="flex items-center gap-3 md:gap-6">
                     <div className="flex items-center gap-2">
