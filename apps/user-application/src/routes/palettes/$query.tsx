@@ -15,7 +15,6 @@ import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
 import { Search, ArrowLeft } from "lucide-react";
 import { useStore } from "@tanstack/react-store";
-import { cn } from "@/lib/utils";
 import {
     Tooltip,
     TooltipContent,
@@ -360,15 +359,9 @@ function BackButton({ sort, style, angle, steps, size }: SearchParams) {
             <button
                 type="button"
                 style={{ backgroundColor: "var(--background)" }}
-                className={cn(
-                    "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
-                    "h-8.5 w-8.5 p-0 border border-solid",
-                    "border-input hover:border-muted-foreground/30 hover:bg-background/60",
-                    "text-muted-foreground hover:text-foreground",
-                    "transition-colors duration-200 cursor-pointer",
-                    "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                )}
+                className="disable-animation-on-theme-change inline-flex items-center justify-center rounded-md h-8.5 w-8.5 p-0 border border-solid border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground transition-colors duration-200 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/70"
                 aria-label="Go back"
+                suppressHydrationWarning
             >
                 <ArrowLeft className="w-[18px] h-[18px]" strokeWidth={2.5} />
             </button>
