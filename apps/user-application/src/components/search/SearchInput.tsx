@@ -77,12 +77,28 @@ function parseGrabientUrl(input: string): UrlParseResult | null {
     }
 }
 
-function buildPreservedSearch(currentSearch: { style?: StyleType; angle?: "auto" | number; steps?: "auto" | number; size?: SizeType }) {
+type SortOrder = "popular" | "newest" | "oldest";
+
+function getSortFromPathname(pathname: string): SortOrder | undefined {
+    if (pathname === "/newest") return "newest";
+    if (pathname === "/oldest") return "oldest";
+    if (pathname === "/" || pathname === "/saved") return undefined; // default to popular
+    return undefined;
+}
+
+function buildPreservedSearch(
+    currentSearch: { style?: StyleType; angle?: "auto" | number; steps?: "auto" | number; size?: SizeType; sort?: SortOrder },
+    pathname: string
+) {
+    const sortFromPath = getSortFromPathname(pathname);
+    const sort = currentSearch.sort ?? sortFromPath;
+
     return {
         style: currentSearch.style && currentSearch.style !== "auto" ? currentSearch.style : undefined,
         angle: currentSearch.angle && currentSearch.angle !== "auto" ? currentSearch.angle : undefined,
         steps: currentSearch.steps && currentSearch.steps !== "auto" ? currentSearch.steps : undefined,
         size: currentSearch.size && currentSearch.size !== "auto" ? currentSearch.size : undefined,
+        sort: sort && sort !== "popular" ? sort : undefined,
     };
 }
 
@@ -107,7 +123,7 @@ export function SearchInput({ className }: { className?: string }) {
         const trimmed = localValue.trim();
         if (!trimmed) return;
 
-        const preservedSearch = buildPreservedSearch(currentSearch);
+        const preservedSearch = buildPreservedSearch(currentSearch, location.pathname);
 
         // Check if input is a vector format and convert to seed
         const seedFromVector = parseVectorToSeed(trimmed);
