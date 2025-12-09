@@ -9,7 +9,6 @@ import {
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
-import { decompressQuery } from "@/lib/utils";
 import { hexToColorName } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
@@ -89,15 +88,15 @@ function sortResults(results: SearchResultPalette[], order: SearchSortOrder): Se
 }
 
 function getQuery(param: string): string | null {
-    // If it's a valid seed, return it directly (seeds are not compressed)
+    // If it's a valid seed, return it directly
     if (isValidSeed(param)) {
         return param;
     }
-    // Otherwise try to decompress as lz-string
+    // Otherwise decode the URL-encoded search query
     try {
-        return decompressQuery(param);
+        return decodeURIComponent(param);
     } catch {
-        return null;
+        return param;
     }
 }
 

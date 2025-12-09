@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
-import { cn, compressQuery } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { isValidSeed, serializeCoeffs } from "@repo/data-ops/serialization";
 import { DEFAULT_GLOBALS, type coeffsSchema } from "@repo/data-ops/valibot-schema/grabient";
 import type * as v from "valibot";
@@ -126,11 +126,10 @@ export function SearchInput({ className }: { className?: string }) {
             return;
         }
 
-        // Default: treat as search query - compress with lz-string
-        const compressed = compressQuery(trimmed);
+        // Default: treat as search query - use URL-safe encoding
         navigate({
             to: "/palettes/$query",
-            params: { query: compressed },
+            params: { query: encodeURIComponent(trimmed) },
         });
     };
 

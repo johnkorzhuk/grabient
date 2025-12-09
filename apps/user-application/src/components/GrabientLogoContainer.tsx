@@ -13,7 +13,6 @@ import type { AppPalette } from "@/queries/palettes";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
-import { decompressQuery } from "@/lib/utils";
 
 interface GrabientLogoContainerProps {
     className?: string;
@@ -46,15 +45,15 @@ function findPaletteInCache(
 }
 
 function getSearchQuery(param: string): string | null {
-    // If it's a valid seed, return it directly (seeds are not compressed)
+    // If it's a valid seed, return it directly
     if (isValidSeed(param)) {
         return param;
     }
-    // Otherwise try to decompress as lz-string
+    // Otherwise decode the URL-encoded search query
     try {
-        return decompressQuery(param);
+        return decodeURIComponent(param);
     } catch {
-        return null;
+        return param;
     }
 }
 
