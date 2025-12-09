@@ -16,22 +16,11 @@ import {
     styleWithAutoValidator,
     angleWithAutoValidator,
     stepsWithAutoValidator,
+    sizeWithAutoValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import { useEffect } from "react";
 import type { SizeType } from "@/stores/export";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
-
-const sizeValidator = v.union([
-    v.literal("auto"),
-    v.pipe(
-        v.tuple([v.number(), v.number()]),
-        v.check(
-            ([width, height]) =>
-                width >= 1 && width <= 6000 && height >= 1 && height <= 6000,
-            "Size must be between 1 and 6000",
-        ),
-    ),
-]);
 
 const SEARCH_DEFAULTS = {
     style: "auto" as const,
@@ -68,7 +57,7 @@ const searchValidatorSchema = v.object({
         SEARCH_DEFAULTS.limit,
     ),
     size: v.optional(
-        v.fallback(sizeValidator, SEARCH_DEFAULTS.size),
+        v.fallback(sizeWithAutoValidator, SEARCH_DEFAULTS.size),
         SEARCH_DEFAULTS.size,
     ),
     redirect: v.optional(v.string()),

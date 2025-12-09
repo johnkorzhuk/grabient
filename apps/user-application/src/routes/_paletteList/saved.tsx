@@ -8,7 +8,7 @@ import { sessionQueryOptions } from "@/queries/auth";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setActivePaletteId, setPreviousRouteHref } from "@/stores/ui";
+import { setActivePaletteId, setPreviousRoute } from "@/stores/ui";
 import { UndoButton } from "@/components/navigation/UndoButton";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 
@@ -60,16 +60,15 @@ export const Route = createFileRoute("/_paletteList/saved")({
         }
     },
     onLeave: (match) => {
-        const searchParams = new URLSearchParams();
         const search = match.search;
-        if (search.style && search.style !== "auto") searchParams.set("style", search.style);
-        if (search.angle && search.angle !== "auto") searchParams.set("angle", String(search.angle));
-        if (search.steps && search.steps !== "auto") searchParams.set("steps", String(search.steps));
-        if (search.page && search.page !== 1) searchParams.set("page", String(search.page));
-        if (search.limit && search.limit !== DEFAULT_PAGE_LIMIT) searchParams.set("limit", String(search.limit));
-        const searchString = searchParams.toString();
-        const href = searchString ? `/saved?${searchString}` : "/saved";
-        setPreviousRouteHref(href);
+        const searchParams: Record<string, unknown> = {};
+        if (search.style !== "auto") searchParams.style = search.style;
+        if (search.angle !== "auto") searchParams.angle = search.angle;
+        if (search.steps !== "auto") searchParams.steps = search.steps;
+        if (search.size !== "auto") searchParams.size = search.size;
+        if (search.page !== 1) searchParams.page = search.page;
+        if (search.limit !== DEFAULT_PAGE_LIMIT) searchParams.limit = search.limit;
+        setPreviousRoute({ path: "/saved", search: searchParams });
     },
     component: SavedPalettesPage,
 });

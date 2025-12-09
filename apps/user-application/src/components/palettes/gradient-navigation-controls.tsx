@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useSearch } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { AngleInput } from "@/components/navigation/AngleInput";
@@ -13,6 +13,7 @@ import { type paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabie
 import type * as v from "valibot";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
+import type { SizeType } from "@/stores/export";
 
 type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
 
@@ -21,6 +22,9 @@ interface GradientNavigationControlsProps {
     style: "auto" | PaletteStyle;
     angle: "auto" | number;
     steps: "auto" | number;
+    initialStyle: PaletteStyle;
+    initialAngle: number;
+    initialSteps: number;
     hasCustomValues: boolean;
     showMoreOptions: boolean;
     isTouchDevice: boolean;
@@ -39,6 +43,9 @@ export function GradientNavigationControls({
     style,
     angle,
     steps,
+    initialStyle,
+    initialAngle,
+    initialSteps,
     hasCustomValues,
     showMoreOptions,
     isTouchDevice,
@@ -52,10 +59,28 @@ export function GradientNavigationControls({
     onMouseEnter,
 }: GradientNavigationControlsProps) {
     const shouldShow = isTouchDevice || isActive || isCopyMenuOpen;
-    const previousRouteHref = useStore(uiStore, (state) => state.previousRouteHref);
+    const previousRoute = useStore(uiStore, (state) => state.previousRoute);
     const navSelect = useStore(uiStore, (state) => state.navSelect);
+    const currentSearch = useSearch({ strict: false }) as { size?: SizeType };
 
-    const backHref = previousRouteHref ?? navSelect;
+    const backPath = previousRoute?.path ?? navSelect;
+
+    // Get actual values (resolve "auto" to defaults for comparison)
+    const actualStyle = style === "auto" ? initialStyle : style;
+    const actualAngle = angle === "auto" ? initialAngle : angle;
+    const actualSteps = steps === "auto" ? initialSteps : steps;
+
+    // Only retain params that the user explicitly changed from initial values
+    // This prevents palette-default values from being carried back
+    const backSearch = {
+        ...previousRoute?.search,
+        // Only include style/angle/steps if user changed them from initial
+        ...(actualStyle !== initialStyle ? { style: actualStyle } : {}),
+        ...(actualAngle !== initialAngle ? { angle: actualAngle } : {}),
+        ...(actualSteps !== initialSteps ? { steps: actualSteps } : {}),
+        // Always include size if it's not auto (size is a user preference, not palette-specific)
+        ...(currentSearch.size && currentSearch.size !== "auto" ? { size: currentSearch.size } : {}),
+    };
 
     return (
         <>
@@ -69,7 +94,8 @@ export function GradientNavigationControls({
                 suppressHydrationWarning
             >
 <Link
-                    to={backHref}
+                    to={backPath}
+                    search={backSearch}
                     className="pointer-events-auto"
                 >
                     <button

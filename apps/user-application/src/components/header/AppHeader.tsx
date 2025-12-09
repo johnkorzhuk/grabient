@@ -5,6 +5,7 @@ import {
     useMatches,
     useLocation,
     useRouter,
+    useSearch,
 } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
@@ -29,6 +30,7 @@ import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
 import { SearchInput } from "@/components/search/SearchInput";
+import type { SizeType } from "@/stores/export";
 
 export interface LogoNavigation {
     to: string;
@@ -44,8 +46,15 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
     const { data: session, isPending } = authClient.useSession();
     const focusTrapRef = useFocusTrap(dropdownOpen);
     const { resolved: theme } = useTheme();
-    const previousRouteHref = useStore(uiStore, (state) => state.previousRouteHref);
+    const previousRoute = useStore(uiStore, (state) => state.previousRoute);
     const navSelect = useStore(uiStore, (state) => state.navSelect);
+    const seedInitialSearch = useStore(uiStore, (state) => state.seedInitialSearch);
+    const currentSearch = useSearch({ strict: false }) as {
+        size?: SizeType;
+        style?: "auto" | "linearGradient" | "angularGradient" | "angularSwatches" | "linearSwatches" | "deepFlow";
+        angle?: number | "auto";
+        steps?: number | "auto";
+    };
 
     const handleSignOut = async () => {
         await authClient.signOut();
@@ -56,6 +65,37 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
     const fallbackText = user?.username
         ? user.username.charAt(0).toUpperCase()
         : user?.email?.charAt(0).toUpperCase() || "U";
+
+    const logoPath = logoNavigation?.to ?? (seedRouteMatch ? (previousRoute?.path ?? navSelect) : "/");
+
+    // When on seed route, only retain params the user explicitly changed
+    const buildSeedRouteSearch = () => {
+        const base = previousRoute?.search ?? {};
+
+        if (!seedInitialSearch) {
+            return {
+                ...base,
+                ...(currentSearch.size && currentSearch.size !== "auto" ? { size: currentSearch.size } : {}),
+            };
+        }
+
+        // Get current values from URL (undefined or "auto" means use initial)
+        const currentStyle = !currentSearch.style || currentSearch.style === "auto" ? seedInitialSearch.style : currentSearch.style;
+        const currentAngle = currentSearch.angle == null || currentSearch.angle === "auto" ? seedInitialSearch.angle : currentSearch.angle;
+        const currentSteps = currentSearch.steps == null || currentSearch.steps === "auto" ? seedInitialSearch.steps : currentSearch.steps;
+
+        return {
+            ...base,
+            // Only include if user changed from initial
+            ...(currentStyle !== seedInitialSearch.style ? { style: currentStyle } : {}),
+            ...(currentAngle !== seedInitialSearch.angle ? { angle: currentAngle } : {}),
+            ...(currentSteps !== seedInitialSearch.steps ? { steps: currentSteps } : {}),
+            // Always include size if not auto (size is a user preference)
+            ...(currentSearch.size && currentSearch.size !== "auto" ? { size: currentSearch.size } : {}),
+        };
+    };
+
+    const logoSearch = logoNavigation?.search ?? (seedRouteMatch ? buildSeedRouteSearch() : undefined);
 
     return (
         <header
@@ -71,8 +111,8 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
                     aria-label="Primary navigation"
                 >
                     <Link
-                        to={logoNavigation?.to ?? (seedRouteMatch ? (previousRouteHref ?? navSelect) : "/")}
-                        search={logoNavigation?.search}
+                        to={logoPath}
+                        search={logoSearch}
                         className="flex items-center outline-none focus-visible:ring-2 focus-visible:ring-ring/70 rounded-md"
                         aria-label="Grabient home"
                     >

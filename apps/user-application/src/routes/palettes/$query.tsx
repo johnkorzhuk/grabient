@@ -8,13 +8,12 @@ import {
 } from "@/queries/palettes";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setPreviousRouteHref, uiStore } from "@/stores/ui";
+import { setPreviousRoute } from "@/stores/ui";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 import { hexToColorName, colorNameToHex, isColorName, simplifyHex } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
 import { Search, ArrowLeft } from "lucide-react";
-import { useStore } from "@tanstack/react-store";
 import {
     Tooltip,
     TooltipContent,
@@ -24,22 +23,11 @@ import {
     styleWithAutoValidator,
     angleWithAutoValidator,
     stepsWithAutoValidator,
+    sizeWithAutoValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import type { SizeType } from "@/stores/export";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
-
-const sizeValidator = v.union([
-    v.literal("auto"),
-    v.pipe(
-        v.tuple([v.number(), v.number()]),
-        v.check(
-            ([width, height]) =>
-                width >= 1 && width <= 6000 && height >= 1 && height <= 6000,
-            "Size must be between 1 and 6000",
-        ),
-    ),
-]);
 
 const SEARCH_DEFAULTS = {
     sort: "popular" as SearchSortOrder,
@@ -70,7 +58,7 @@ const searchValidatorSchema = v.object({
         SEARCH_DEFAULTS.steps,
     ),
     size: v.optional(
-        v.fallback(sizeValidator, SEARCH_DEFAULTS.size),
+        v.fallback(sizeWithAutoValidator, SEARCH_DEFAULTS.size),
         SEARCH_DEFAULTS.size,
     ),
 });
@@ -136,15 +124,14 @@ export const Route = createFileRoute("/palettes/$query")({
         };
     },
     onLeave: (match) => {
-        const searchParams = new URLSearchParams();
         const search = match.search;
-        if (search.style && search.style !== "auto") searchParams.set("style", search.style);
-        if (search.angle && search.angle !== "auto") searchParams.set("angle", String(search.angle));
-        if (search.steps && search.steps !== "auto") searchParams.set("steps", String(search.steps));
-        if (search.sort && search.sort !== "popular") searchParams.set("sort", search.sort);
-        const searchString = searchParams.toString();
-        const href = searchString ? `${match.pathname}?${searchString}` : match.pathname;
-        setPreviousRouteHref(href);
+        const searchParams: Record<string, unknown> = {};
+        if (search.style !== "auto") searchParams.style = search.style;
+        if (search.angle !== "auto") searchParams.angle = search.angle;
+        if (search.steps !== "auto") searchParams.steps = search.steps;
+        if (search.size !== "auto") searchParams.size = search.size;
+        if (search.sort !== "popular") searchParams.sort = search.sort;
+        setPreviousRoute({ path: match.pathname, search: searchParams });
     },
     component: SearchResultsPage,
 });

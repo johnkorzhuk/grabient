@@ -27,10 +27,11 @@ import {
     setOpenCopyMenuId,
     setCustomCoeffs,
     setLivePaletteData,
+    setSeedInitialSearch,
+    uiStore,
 } from "@/stores/ui";
 import { useRef, useState, useEffect } from "react";
 import { useStore } from "@tanstack/react-store";
-import { uiStore } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import { detectDevice } from "@/lib/deviceDetection";
 import { useDebouncedCallback, useHotkeys } from "@mantine/hooks";
@@ -173,7 +174,24 @@ export const Route = createFileRoute("/$seed")({
             ],
         };
     },
-
+    onLeave: (match) => {
+        const search = match.search;
+        const currentPreviousRoute = uiStore.state.previousRoute;
+        const path = currentPreviousRoute?.path ?? "/";
+        const searchParams: Record<string, unknown> = { ...currentPreviousRoute?.search };
+        if (search.style !== "auto") searchParams.style = search.style;
+        else delete searchParams.style;
+        if (search.angle !== "auto") searchParams.angle = search.angle;
+        else delete searchParams.angle;
+        if (search.steps !== "auto") searchParams.steps = search.steps;
+        else delete searchParams.steps;
+        if (search.size !== "auto") searchParams.size = search.size;
+        else delete searchParams.size;
+        uiStore.setState((state) => ({
+            ...state,
+            previousRoute: { path, search: searchParams },
+        }));
+    },
     component: RouteComponent,
 });
 
@@ -215,6 +233,18 @@ function RouteComponent() {
         w,
         h,
     });
+
+    // Store initial search values in UI store for AppHeader to access
+    useEffect(() => {
+        setSeedInitialSearch({
+            style: initialSearchDataRef.current.style,
+            angle: initialSearchDataRef.current.angle,
+            steps: initialSearchDataRef.current.steps,
+        });
+        return () => {
+            setSeedInitialSearch(null);
+        };
+    }, []);
 
     const currentStyle =
         previewStyle || (style === "auto" ? DEFAULT_STYLE : style);
@@ -429,9 +459,9 @@ function RouteComponent() {
             to: location.pathname,
             search: (prev) => ({
                 ...prev,
-                style: "auto",
-                angle: "auto",
-                steps: "auto",
+                style: initialSearchDataRef.current.style,
+                angle: initialSearchDataRef.current.angle,
+                steps: initialSearchDataRef.current.steps,
             }),
             replace: true,
             resetScroll: false,
@@ -452,6 +482,9 @@ function RouteComponent() {
                             style={style}
                             angle={angle}
                             steps={steps}
+                            initialStyle={initialSearchDataRef.current.style}
+                            initialAngle={initialSearchDataRef.current.angle}
+                            initialSteps={initialSearchDataRef.current.steps}
                             hasCustomValues={hasCustomValues}
                             showMoreOptions={showMoreOptions}
                             isTouchDevice={isTouchDevice}

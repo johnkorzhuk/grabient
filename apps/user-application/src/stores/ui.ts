@@ -13,6 +13,17 @@ export interface LivePaletteData {
     globals: Globals;
 }
 
+export interface PreviousRoute {
+    path: string;
+    search: Record<string, unknown>;
+}
+
+export interface SeedInitialSearch {
+    style: PaletteStyle;
+    angle: number;
+    steps: number;
+}
+
 interface UIState {
     activePaletteSeed: string | null;
     previewStyle: PaletteStyle | null;
@@ -25,7 +36,8 @@ interface UIState {
     livePaletteData: LivePaletteData | null;
     openCopyMenuId: string | null;
     navSelect: string;
-    previousRouteHref: string | null;
+    previousRoute: PreviousRoute | null;
+    seedInitialSearch: SeedInitialSearch | null;
     showGraph: boolean;
 }
 
@@ -41,7 +53,8 @@ export const uiStore = new Store<UIState>({
     livePaletteData: null,
     openCopyMenuId: null,
     navSelect: "/",
-    previousRouteHref: null,
+    previousRoute: null,
+    seedInitialSearch: null,
     showGraph: false,
 });
 
@@ -141,10 +154,17 @@ export const setNavSelect = (path: string) => {
     }));
 };
 
-export const setPreviousRouteHref = (href: string) => {
+export const setPreviousRoute = (route: PreviousRoute) => {
     uiStore.setState((state) => ({
         ...state,
-        previousRouteHref: href,
+        previousRoute: route,
+    }));
+};
+
+export const setSeedInitialSearch = (search: SeedInitialSearch | null) => {
+    uiStore.setState((state) => ({
+        ...state,
+        seedInitialSearch: search,
     }));
 };
 
@@ -182,7 +202,8 @@ export const resetUIState = () => {
         livePaletteData: null,
         openCopyMenuId: null,
         navSelect: "/",
-        previousRouteHref: null,
+        previousRoute: null,
+        seedInitialSearch: null,
         showGraph: false,
     });
 };

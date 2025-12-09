@@ -4,7 +4,15 @@ import {
     Outlet,
     Scripts,
     createRootRouteWithContext,
+    stripSearchParams,
 } from "@tanstack/react-router";
+import * as v from "valibot";
+import {
+    sizeWithAutoValidator,
+    styleWithAutoValidator,
+    angleWithAutoValidator,
+    stepsWithAutoValidator,
+} from "@repo/data-ops/valibot-schema/grabient";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import * as React from "react";
@@ -39,9 +47,39 @@ function BreakpointIndicator() {
     );
 }
 
+const SEARCH_DEFAULTS = {
+    style: "auto" as const,
+    angle: "auto" as const,
+    steps: "auto" as const,
+    size: "auto" as const,
+};
+
+const searchValidatorSchema = v.object({
+    style: v.optional(
+        v.fallback(styleWithAutoValidator, SEARCH_DEFAULTS.style),
+        SEARCH_DEFAULTS.style,
+    ),
+    angle: v.optional(
+        v.fallback(angleWithAutoValidator, SEARCH_DEFAULTS.angle),
+        SEARCH_DEFAULTS.angle,
+    ),
+    steps: v.optional(
+        v.fallback(stepsWithAutoValidator, SEARCH_DEFAULTS.steps),
+        SEARCH_DEFAULTS.steps,
+    ),
+    size: v.optional(
+        v.fallback(sizeWithAutoValidator, SEARCH_DEFAULTS.size),
+        SEARCH_DEFAULTS.size,
+    ),
+});
+
 export const Route = createRootRouteWithContext<{
     queryClient: QueryClient;
 }>()({
+    validateSearch: searchValidatorSchema,
+    search: {
+        middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
+    },
     head: () => {
         const cookieYesScript = getCookieYesHeadScript();
 
