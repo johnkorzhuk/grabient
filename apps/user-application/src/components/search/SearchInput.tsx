@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "@tanstack/react-router";
+import { useNavigate, useLocation, useSearch } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidSeed, serializeCoeffs } from "@repo/data-ops/serialization";
 import { DEFAULT_GLOBALS, type coeffsSchema } from "@repo/data-ops/valibot-schema/grabient";
 import type * as v from "valibot";
+
+type StyleType = "auto" | "linearGradient" | "angularGradient" | "angularSwatches" | "linearSwatches" | "deepFlow";
+type SizeType = "auto" | [number, number];
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 
@@ -74,9 +77,19 @@ function parseGrabientUrl(input: string): UrlParseResult | null {
     }
 }
 
+function buildPreservedSearch(currentSearch: { style?: StyleType; angle?: "auto" | number; steps?: "auto" | number; size?: SizeType }) {
+    return {
+        style: currentSearch.style && currentSearch.style !== "auto" ? currentSearch.style : undefined,
+        angle: currentSearch.angle && currentSearch.angle !== "auto" ? currentSearch.angle : undefined,
+        steps: currentSearch.steps && currentSearch.steps !== "auto" ? currentSearch.steps : undefined,
+        size: currentSearch.size && currentSearch.size !== "auto" ? currentSearch.size : undefined,
+    };
+}
+
 export function SearchInput({ className }: { className?: string }) {
     const navigate = useNavigate();
     const location = useLocation();
+    const currentSearch = useSearch({ strict: false }) as { style?: StyleType; angle?: "auto" | number; steps?: "auto" | number; size?: SizeType };
 
     const [localValue, setLocalValue] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
@@ -94,25 +107,26 @@ export function SearchInput({ className }: { className?: string }) {
         const trimmed = localValue.trim();
         if (!trimmed) return;
 
+        const preservedSearch = buildPreservedSearch(currentSearch);
+
         // Check if input is a vector format and convert to seed
         const seedFromVector = parseVectorToSeed(trimmed);
         if (seedFromVector) {
-            // Seeds are already compact - use directly without lz-string compression
             navigate({
                 to: "/palettes/$query",
                 params: { query: seedFromVector },
+                search: preservedSearch,
             });
             return;
         }
 
-        // Check if input is a grabient URL
+        // Check if input is a grabient URL - URL params override current params
         const urlResult = parseGrabientUrl(trimmed);
         if (urlResult) {
-            // Seeds are already compact - use directly without lz-string compression
             navigate({
                 to: "/palettes/$query",
                 params: { query: urlResult.seed },
-                search: urlResult.searchParams,
+                search: { ...preservedSearch, ...urlResult.searchParams },
             });
             return;
         }
@@ -122,6 +136,7 @@ export function SearchInput({ className }: { className?: string }) {
             navigate({
                 to: "/palettes/$query",
                 params: { query: trimmed },
+                search: preservedSearch,
             });
             return;
         }
@@ -134,6 +149,7 @@ export function SearchInput({ className }: { className?: string }) {
         navigate({
             to: "/palettes/$query",
             params: { query: urlSafe },
+            search: preservedSearch,
         });
     };
 
