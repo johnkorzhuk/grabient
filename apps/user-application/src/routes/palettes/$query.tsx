@@ -8,6 +8,7 @@ import {
 } from "@/queries/palettes";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { setPreviousRouteHref } from "@/stores/ui";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 import { hexToColorName, colorNameToHex, isColorName, simplifyHex } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
@@ -132,6 +133,17 @@ export const Route = createFileRoute("/palettes/$query")({
                 { name: "robots", content: "noindex, follow" },
             ],
         };
+    },
+    onLeave: (match) => {
+        const searchParams = new URLSearchParams();
+        const search = match.search;
+        if (search.style && search.style !== "auto") searchParams.set("style", search.style);
+        if (search.angle && search.angle !== "auto") searchParams.set("angle", String(search.angle));
+        if (search.steps && search.steps !== "auto") searchParams.set("steps", String(search.steps));
+        if (search.sort && search.sort !== "popular") searchParams.set("sort", search.sort);
+        const searchString = searchParams.toString();
+        const href = searchString ? `${match.pathname}?${searchString}` : match.pathname;
+        setPreviousRouteHref(href);
     },
     component: SearchResultsPage,
 });

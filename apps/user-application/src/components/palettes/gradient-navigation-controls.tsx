@@ -1,4 +1,4 @@
-import { Link, useSearch } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { ArrowLeft, RotateCcw, SlidersHorizontal, X } from "lucide-react";
 import { AngleInput } from "@/components/navigation/AngleInput";
@@ -52,8 +52,10 @@ export function GradientNavigationControls({
     onMouseEnter,
 }: GradientNavigationControlsProps) {
     const shouldShow = isTouchDevice || isActive || isCopyMenuOpen;
+    const previousRouteHref = useStore(uiStore, (state) => state.previousRouteHref);
     const navSelect = useStore(uiStore, (state) => state.navSelect);
-    const currentSearch = useSearch({ from: "/$seed" });
+
+    const backHref = previousRouteHref ?? navSelect;
 
     return (
         <>
@@ -66,14 +68,8 @@ export function GradientNavigationControls({
                 onMouseEnter={() => onMouseEnter?.()}
                 suppressHydrationWarning
             >
-                <Link
-                    to={navSelect}
-                    search={(prevSearch) => ({
-                        ...prevSearch,
-                        style: currentSearch.style,
-                        angle: currentSearch.angle,
-                        steps: currentSearch.steps,
-                    })}
+<Link
+                    to={backHref}
                     className="pointer-events-auto"
                 >
                     <button

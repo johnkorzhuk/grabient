@@ -25,6 +25,7 @@ interface UIState {
     livePaletteData: LivePaletteData | null;
     openCopyMenuId: string | null;
     navSelect: string;
+    previousRouteHref: string | null;
     showGraph: boolean;
 }
 
@@ -40,6 +41,7 @@ export const uiStore = new Store<UIState>({
     livePaletteData: null,
     openCopyMenuId: null,
     navSelect: "/",
+    previousRouteHref: null,
     showGraph: false,
 });
 
@@ -139,6 +141,13 @@ export const setNavSelect = (path: string) => {
     }));
 };
 
+export const setPreviousRouteHref = (href: string) => {
+    uiStore.setState((state) => ({
+        ...state,
+        previousRouteHref: href,
+    }));
+};
+
 export const setLivePaletteData = (data: LivePaletteData | null) => {
     uiStore.setState((state) => ({
         ...state,
@@ -173,6 +182,7 @@ export const resetUIState = () => {
         livePaletteData: null,
         openCopyMenuId: null,
         navSelect: "/",
+        previousRouteHref: null,
         showGraph: false,
     });
 };

@@ -7,7 +7,8 @@ import {
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setActivePaletteId } from "@/stores/ui";
+import { setActivePaletteId, setPreviousRouteHref } from "@/stores/ui";
+import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 
 export const Route = createFileRoute("/_paletteList/")({
     beforeLoad: () => {
@@ -21,6 +22,18 @@ export const Route = createFileRoute("/_paletteList/")({
         await context.queryClient.ensureQueryData(
             palettesQueryOptions("popular", deps.page, deps.limit),
         );
+    },
+    onLeave: (match) => {
+        const searchParams = new URLSearchParams();
+        const search = match.search;
+        if (search.style && search.style !== "auto") searchParams.set("style", search.style);
+        if (search.angle && search.angle !== "auto") searchParams.set("angle", String(search.angle));
+        if (search.steps && search.steps !== "auto") searchParams.set("steps", String(search.steps));
+        if (search.page && search.page !== 1) searchParams.set("page", String(search.page));
+        if (search.limit && search.limit !== DEFAULT_PAGE_LIMIT) searchParams.set("limit", String(search.limit));
+        const searchString = searchParams.toString();
+        const href = searchString ? `/?${searchString}` : "/";
+        setPreviousRouteHref(href);
     },
     component: HomePage,
 });
