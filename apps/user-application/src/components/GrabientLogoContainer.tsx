@@ -2,7 +2,7 @@ import { GrabientLogo } from "./GrabientLogo";
 import { useLocation, useParams, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { palettesQueryOptions, searchPalettesQueryOptions } from "@/queries/palettes";
-import { deserializeCoeffs } from "@repo/data-ops/serialization";
+import { deserializeCoeffs, isValidSeed } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import {
     DEFAULT_STYLE,
@@ -45,9 +45,14 @@ function findPaletteInCache(
     return undefined;
 }
 
-function getSearchQuery(compressedParam: string): string | null {
+function getSearchQuery(param: string): string | null {
+    // If it's a valid seed, return it directly (seeds are not compressed)
+    if (isValidSeed(param)) {
+        return param;
+    }
+    // Otherwise try to decompress as lz-string
     try {
-        return decompressQuery(compressedParam);
+        return decompressQuery(param);
     } catch {
         return null;
     }

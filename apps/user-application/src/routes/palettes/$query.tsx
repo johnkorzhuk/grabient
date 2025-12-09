@@ -12,6 +12,7 @@ import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 import { decompressQuery } from "@/lib/utils";
 import { hexToColorName } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
+import { isValidSeed } from "@repo/data-ops/serialization";
 import { Search } from "lucide-react";
 import {
     Tooltip,
@@ -87,9 +88,14 @@ function sortResults(results: SearchResultPalette[], order: SearchSortOrder): Se
     });
 }
 
-function getQuery(compressedParam: string): string | null {
+function getQuery(param: string): string | null {
+    // If it's a valid seed, return it directly (seeds are not compressed)
+    if (isValidSeed(param)) {
+        return param;
+    }
+    // Otherwise try to decompress as lz-string
     try {
-        return decompressQuery(compressedParam);
+        return decompressQuery(param);
     } catch {
         return null;
     }
