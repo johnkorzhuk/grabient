@@ -1,4 +1,4 @@
-import { AppHeader } from "@/components/header/AppHeader";
+import { AppHeader, type LogoNavigation } from "@/components/header/AppHeader";
 import { NavigationSelect } from "@/components/navigation/NavigationSelect";
 import { StyleSelect } from "@/components/navigation/StyleSelect";
 import { AngleInput } from "@/components/navigation/AngleInput";
@@ -25,11 +25,6 @@ import {
     toggleIsAdvancedOpen,
     setIsAdvancedOpen,
 } from "@/stores/ui";
-
-interface LogoNavigation {
-    to: string;
-    search?: Record<string, unknown>;
-}
 
 interface AppLayoutProps {
     children: ReactNode;

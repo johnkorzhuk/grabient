@@ -332,7 +332,7 @@ function sortToRoute(sort: SearchSortOrder): string {
     }
 }
 
-interface BackButtonProps {
+interface SearchParams {
     sort: SearchSortOrder;
     style: "auto" | "linearGradient" | "angularGradient" | "angularSwatches" | "linearSwatches" | "deepFlow";
     angle: "auto" | number;
@@ -340,19 +340,23 @@ interface BackButtonProps {
     size: SizeType;
 }
 
-function BackButton({ sort, style, angle, steps, size }: BackButtonProps) {
-    const backRoute = sortToRoute(sort);
+function buildBackNavigation(params: SearchParams) {
+    return {
+        to: sortToRoute(params.sort),
+        search: {
+            style: params.style !== "auto" ? params.style : undefined,
+            angle: params.angle !== "auto" ? params.angle : undefined,
+            steps: params.steps !== "auto" ? params.steps : undefined,
+            size: params.size !== "auto" ? params.size : undefined,
+        },
+    };
+}
+
+function BackButton({ sort, style, angle, steps, size }: SearchParams) {
+    const nav = buildBackNavigation({ sort, style, angle, steps, size });
 
     return (
-        <Link
-            to={backRoute}
-            search={{
-                style: style !== "auto" ? style : undefined,
-                angle: angle !== "auto" ? angle : undefined,
-                steps: steps !== "auto" ? steps : undefined,
-                size: size !== "auto" ? size : undefined,
-            }}
-        >
+        <Link to={nav.to} search={nav.search}>
             <button
                 type="button"
                 style={{ backgroundColor: "var(--background)" }}
@@ -383,10 +387,11 @@ function SearchResultsPage() {
     const { data: likedSeeds } = useSuspenseQuery(userLikedSeedsQueryOptions());
 
     const results = sortResults(searchData?.results || [], sort);
+    const backNav = buildBackNavigation({ sort, style, angle, steps, size });
 
     if (results.length === 0) {
         return (
-            <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />}>
+            <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav}>
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground px-5 lg:px-14">
                     <Search className="h-12 w-12 mb-4 opacity-50" />
                     <p className="text-lg flex items-center flex-wrap gap-1">
@@ -399,7 +404,7 @@ function SearchResultsPage() {
     }
 
     return (
-        <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />}>
+        <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav}>
             <div className="px-5 lg:px-14 mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-1">
                     <QueryDisplay query={query} />
