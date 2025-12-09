@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Kbd } from "@/components/ui/kbd";
 import { useHotkeys } from "@mantine/hooks";
+import { getGradientAriaLabel } from "@/lib/color-utils";
 
 const LazyGradientChannelsChart = lazy(() =>
     import("@/components/palettes/gradient-channels-chart").then((mod) => ({
@@ -169,7 +170,7 @@ export function GradientPreview({
                     displaySize !== "auto" ? "rounded-lg" : "lg:rounded-lg",
                 )}
                 role="img"
-                aria-label={`Gradient with ${currentSteps} color stops`}
+                aria-label={getGradientAriaLabel(hexColors)}
             >
                 {/* Glow effect layer - duplicate gradient with blur */}
                 <div
