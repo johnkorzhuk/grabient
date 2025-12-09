@@ -1,71 +1,41 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useSearch, useLocation } from "@tanstack/react-router";
-import { Search, X, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
-import { searchPalettesQueryOptions } from "@/queries/palettes";
-
-const DEBOUNCE_MS = 500;
-
-function getSearchablePath(pathname: string): "/" | "/newest" | "/oldest" {
-    if (pathname === "/newest") return "/newest";
-    if (pathname === "/oldest") return "/oldest";
-    return "/";
-}
+import { useNavigate, useLocation } from "@tanstack/react-router";
+import { Search, X } from "lucide-react";
+import { cn, compressQuery } from "@/lib/utils";
 
 export function SearchInput({ className }: { className?: string }) {
     const navigate = useNavigate();
     const location = useLocation();
-    const search = useSearch({ strict: false }) as { q?: string };
-    const urlQuery = search.q || "";
 
-    const [localValue, setLocalValue] = useState(urlQuery);
-    const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+    const [localValue, setLocalValue] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { isFetching } = useQuery(searchPalettesQueryOptions(urlQuery));
+    const isOnSearchPage = location.pathname.startsWith("/palettes/");
 
     useEffect(() => {
-        setLocalValue(urlQuery);
-    }, [urlQuery]);
-
-    const isSearchableRoute = ["/", "/newest", "/oldest"].includes(location.pathname);
-
-    const updateUrl = (value: string) => {
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
+        if (isOnSearchPage) {
+            setLocalValue("");
         }
+    }, [isOnSearchPage, location.pathname]);
 
-        debounceRef.current = setTimeout(() => {
-            const trimmed = value.trim();
-            const targetPath = getSearchablePath(location.pathname);
-
-            if (trimmed) {
-                navigate({
-                    to: targetPath,
-                    search: { q: trimmed },
-                    replace: isSearchableRoute && !!urlQuery,
-                });
-            } else if (urlQuery) {
-                // Clear search - stay on current route without q param
-                navigate({ to: targetPath });
-            }
-        }, DEBOUNCE_MS);
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmed = localValue.trim();
+        if (trimmed) {
+            const compressed = compressQuery(trimmed);
+            navigate({
+                to: "/palettes/$query",
+                params: { query: compressed },
+            });
+        }
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const value = e.target.value;
-        setLocalValue(value);
-        updateUrl(value);
+        setLocalValue(e.target.value);
     };
 
     const handleClear = () => {
         setLocalValue("");
-        if (debounceRef.current) {
-            clearTimeout(debounceRef.current);
-        }
-        const targetPath = getSearchablePath(location.pathname);
-        navigate({ to: targetPath });
         inputRef.current?.focus();
     };
 
@@ -75,22 +45,10 @@ export function SearchInput({ className }: { className?: string }) {
         }
     };
 
-    useEffect(() => {
-        return () => {
-            if (debounceRef.current) {
-                clearTimeout(debounceRef.current);
-            }
-        };
-    }, []);
-
     return (
-        <div className={cn("relative", className)}>
+        <form onSubmit={handleSubmit} className={cn("relative", className)}>
             <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                {isFetching ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                    <Search className="h-4 w-4" />
-                )}
+                <Search className="h-4 w-4" />
             </div>
             <input
                 ref={inputRef}
@@ -125,6 +83,6 @@ export function SearchInput({ className }: { className?: string }) {
                     <X className="h-4 w-4" />
                 </button>
             )}
-        </div>
+        </form>
     );
 }

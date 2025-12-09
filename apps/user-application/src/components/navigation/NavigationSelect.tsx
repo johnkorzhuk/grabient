@@ -1,4 +1,4 @@
-import { useLocation, useRouter } from "@tanstack/react-router";
+import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
 import {
     Command,
     CommandGroup,
@@ -14,17 +14,29 @@ import { ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@mantine/hooks";
+import type { SearchSortOrder } from "@/routes/palettes/$query";
 
 interface NavigationSelectProps {
     className?: string;
     popoverClassName?: string;
 }
 
+type SortItem = {
+    id: SearchSortOrder;
+    label: string;
+};
+
 type NavigationItem = {
     id: string;
     label: string;
     path: string;
 };
+
+const SORT_ITEMS: SortItem[] = [
+    { id: "popular", label: "Popular" },
+    { id: "newest", label: "Newest" },
+    { id: "oldest", label: "Oldest" },
+];
 
 const BASE_NAVIGATION_ITEMS: NavigationItem[] = [
     { id: "popular", label: "Popular", path: "/" },
@@ -42,12 +54,14 @@ export function NavigationSelect({
 }: NavigationSelectProps) {
     const location = useLocation();
     const router = useRouter();
+    const search = useSearch({ strict: false }) as { sort?: SearchSortOrder };
     const [open, setOpen] = useState(false);
     const focusTrapRef = useFocusTrap(open);
 
-    const currentPath =
-        location.pathname === "/" ? "popular" : location.pathname.substring(1);
+    const isSearchRoute = location.pathname.startsWith("/palettes/");
+    const currentSort = search.sort || "popular";
 
+    const currentPath = location.pathname === "/" ? "popular" : location.pathname.substring(1);
     const isTimeRoute = currentPath === "newest" || currentPath === "oldest";
 
     const oppositeTimeRoute =
@@ -60,18 +74,27 @@ export function NavigationSelect({
         ...BASE_NAVIGATION_ITEMS,
     ];
 
-    const currentItem = isTimeRoute
-        ? TIME_NAVIGATION_ITEMS[currentPath as "newest" | "oldest"]
-        : (navigationItems.find((item) => item.id === currentPath) ??
-              navigationItems[0])!;
+    const currentItem = isSearchRoute
+        ? SORT_ITEMS.find((item) => item.id === currentSort) ?? SORT_ITEMS[0]!
+        : isTimeRoute
+            ? TIME_NAVIGATION_ITEMS[currentPath as "newest" | "oldest"]
+            : navigationItems.find((item) => item.id === currentPath) ?? navigationItems[0]!;
 
-    const handleNavigate = async (path: string) => {
-        await router.preloadRoute({ to: path });
+    const handleNavigate = async (itemId: string, path: string) => {
         setOpen(false);
-        await router.navigate({
-            to: path,
-            search: (prev) => ({ ...prev, page: 1 }),
-        });
+        if (isSearchRoute) {
+            await router.navigate({
+                to: location.pathname,
+                search: { sort: itemId as SearchSortOrder },
+                replace: true,
+            });
+        } else {
+            await router.preloadRoute({ to: path });
+            await router.navigate({
+                to: path,
+                search: (prev) => ({ ...prev, page: 1 }),
+            });
+        }
     };
 
     return (
@@ -121,21 +144,33 @@ export function NavigationSelect({
                 >
                     <CommandGroup>
                         <CommandList>
-                            {navigationItems.map((item) => {
-                                return (
-                                    <CommandItem
-                                        key={item.id}
-                                        value={item.id}
-                                        onSelect={() =>
-                                            handleNavigate(item.path)
-                                        }
-                                        aria-label={`Navigate to ${item.label}`}
-                                        className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 [&:hover]:bg-[var(--background)] data-[selected=true]:bg-[var(--background)] data-[selected=true]:text-foreground aria-[selected=true]:bg-[var(--background)] aria-[selected=true]:text-foreground"
-                                    >
-                                        {item.label}
-                                    </CommandItem>
-                                );
-                            })}
+                            {isSearchRoute
+                                ? SORT_ITEMS.map((item) => (
+                                      <CommandItem
+                                          key={item.id}
+                                          value={item.id}
+                                          onSelect={() =>
+                                              handleNavigate(item.id, "")
+                                          }
+                                          aria-label={`Sort by ${item.label}`}
+                                          className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 [&:hover]:bg-[var(--background)] data-[selected=true]:bg-[var(--background)] data-[selected=true]:text-foreground aria-[selected=true]:bg-[var(--background)] aria-[selected=true]:text-foreground"
+                                      >
+                                          {item.label}
+                                      </CommandItem>
+                                  ))
+                                : navigationItems.map((item) => (
+                                      <CommandItem
+                                          key={item.id}
+                                          value={item.id}
+                                          onSelect={() =>
+                                              handleNavigate(item.id, item.path)
+                                          }
+                                          aria-label={`Navigate to ${item.label}`}
+                                          className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 [&:hover]:bg-[var(--background)] data-[selected=true]:bg-[var(--background)] data-[selected=true]:text-foreground aria-[selected=true]:bg-[var(--background)] aria-[selected=true]:text-foreground"
+                                      >
+                                          {item.label}
+                                      </CommandItem>
+                                  ))}
                         </CommandList>
                     </CommandGroup>
                 </Command>

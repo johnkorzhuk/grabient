@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
-import { palettesQueryOptions, userLikedSeedsQueryOptions } from "@/queries/palettes";
+import {
+    palettesQueryOptions,
+    userLikedSeedsQueryOptions,
+} from "@/queries/palettes";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -33,7 +36,7 @@ function OldestPage() {
 
     return (
         <AppLayout style={style} angle={angle} steps={steps}>
-            <PalettesGrid palettes={data.palettes} likedSeeds={likedSeeds} />
+            <PalettesGrid palettes={data.palettes} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} />
             <PalettesPagination
                 currentPage={page}
                 totalPages={data.totalPages}

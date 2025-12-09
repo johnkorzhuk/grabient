@@ -4,18 +4,22 @@ import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 export const SEARCH_QUERY_MAX_LENGTH = 100;
 export const SEARCH_LIMIT_MAX = 96;
 
-// Common vowel patterns in English words
+// Regex for Latin alphabet characters
+const LATIN_LETTER_REGEX = /[a-zA-Z]/;
 const VOWELS = new Set(["a", "e", "i", "o", "u"]);
+
+function isLatinWord(word: string): boolean {
+    return LATIN_LETTER_REGEX.test(word);
+}
 
 function hasVowel(word: string): boolean {
     for (const char of word) {
         if (VOWELS.has(char)) return true;
     }
-    // Allow 'y' as vowel in words without other vowels (e.g., "sky", "gym")
     return word.includes("y");
 }
 
-function hasRepeatedChars(word: string, maxRepeat: number = 2): boolean {
+function hasRepeatedChars(word: string, maxRepeat: number = 3): boolean {
     let count = 1;
     for (let i = 1; i < word.length; i++) {
         if (word[i] === word[i - 1]) {
@@ -41,20 +45,12 @@ function hasTooManyConsonants(word: string, maxConsecutive: number = 4): boolean
     return false;
 }
 
-function isLikelyGibberish(word: string): boolean {
-    // Too short to validate meaningfully
+function isLikelyGibberishLatin(word: string): boolean {
     if (word.length < 3) return false;
-
-    // Must contain at least one vowel
     if (!hasVowel(word)) return true;
-
-    // No more than 2 repeated consecutive chars (e.g., "aaa" is gibberish)
     if (hasRepeatedChars(word, 2)) return true;
-
-    // No more than 4 consecutive consonants
     if (hasTooManyConsonants(word, 4)) return true;
 
-    // Reject if more than 50% numbers
     const letters = word.replace(/[^a-z]/g, "").length;
     const digits = word.replace(/[^0-9]/g, "").length;
     if (digits > 0 && digits >= letters) return true;
@@ -62,22 +58,34 @@ function isLikelyGibberish(word: string): boolean {
     return false;
 }
 
+function isLikelyGibberishNonLatin(word: string): boolean {
+    if (hasRepeatedChars(word, 3)) return true;
+    return false;
+}
+
 function normalizeQuery(query: string): string[] {
     return query
         .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, "")
-        .split(/[\s-]+/)
-        .filter((word) => word.length >= 2);
+        .normalize("NFC")
+        .split(/[\s\-_]+/)
+        .map((word) => word.replace(/[^\p{L}\p{N}]/gu, ""))
+        .filter((word) => word.length >= 1);
 }
 
 export function isValidSearchQuery(query: string): boolean {
-    const words = normalizeQuery(query);
+    const trimmed = query.trim();
+    if (trimmed.length === 0) return false;
+    if (trimmed.length > SEARCH_QUERY_MAX_LENGTH) return false;
 
+    const words = normalizeQuery(trimmed);
     if (words.length === 0) return false;
 
-    // All words must pass the gibberish check
     for (const word of words) {
-        if (isLikelyGibberish(word)) return false;
+        if (isLatinWord(word)) {
+            if (isLikelyGibberishLatin(word)) return false;
+        } else {
+            if (isLikelyGibberishNonLatin(word)) return false;
+        }
     }
 
     return true;
