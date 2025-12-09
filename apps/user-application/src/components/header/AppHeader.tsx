@@ -30,11 +30,24 @@ import { uiStore } from "@/stores/ui";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
 import { SearchInput } from "@/components/search/SearchInput";
 
+type SearchSortOrder = "popular" | "newest" | "oldest";
+
+function sortToRoute(sort: SearchSortOrder): string {
+    switch (sort) {
+        case "newest": return "/newest";
+        case "oldest": return "/oldest";
+        case "popular":
+        default: return "/";
+    }
+}
+
 export function AppHeader({ className }: { className?: string }) {
     const matches = useMatches();
     const location = useLocation();
     const router = useRouter();
     const seedRouteMatch = matches.find((match) => match.routeId === "/$seed");
+    const searchRouteMatch = matches.find((match) => match.routeId === "/palettes/$query");
+    const searchRouteSearch = searchRouteMatch?.search as { sort?: SearchSortOrder; style?: string; angle?: "auto" | number; steps?: "auto" | number; size?: "auto" | [number, number] } | undefined;
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const { data: session, isPending } = authClient.useSession();
     const focusTrapRef = useFocusTrap(dropdownOpen);
@@ -66,7 +79,17 @@ export function AppHeader({ className }: { className?: string }) {
                     aria-label="Primary navigation"
                 >
                     <Link
-                        to={seedRouteMatch ? (previousRouteHref ?? navSelect) : "/"}
+                        to={seedRouteMatch
+                            ? (previousRouteHref ?? navSelect)
+                            : searchRouteSearch
+                                ? sortToRoute(searchRouteSearch.sort ?? "popular")
+                                : "/"}
+                        search={searchRouteSearch ? {
+                            style: searchRouteSearch.style && searchRouteSearch.style !== "auto" ? searchRouteSearch.style : undefined,
+                            angle: searchRouteSearch.angle && searchRouteSearch.angle !== "auto" ? searchRouteSearch.angle : undefined,
+                            steps: searchRouteSearch.steps && searchRouteSearch.steps !== "auto" ? searchRouteSearch.steps : undefined,
+                            size: searchRouteSearch.size && searchRouteSearch.size !== "auto" ? searchRouteSearch.size : undefined,
+                        } : undefined}
                         className="flex items-center outline-none focus-visible:ring-2 focus-visible:ring-ring/70 rounded-md"
                         aria-label="Grabient home"
                     >

@@ -1,4 +1,4 @@
-import { createFileRoute, stripSearchParams } from "@tanstack/react-router";
+import { createFileRoute, stripSearchParams, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import * as v from "valibot";
 import {
@@ -8,12 +8,14 @@ import {
 } from "@/queries/palettes";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setPreviousRouteHref } from "@/stores/ui";
+import { setPreviousRouteHref, uiStore } from "@/stores/ui";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 import { hexToColorName, colorNameToHex, isColorName, simplifyHex } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
-import { Search } from "lucide-react";
+import { Search, ArrowLeft } from "lucide-react";
+import { useStore } from "@tanstack/react-store";
+import { cn } from "@/lib/utils";
 import {
     Tooltip,
     TooltipContent,
@@ -321,9 +323,58 @@ function QueryDisplay({ query }: { query: string }) {
     );
 }
 
+function sortToRoute(sort: SearchSortOrder): string {
+    switch (sort) {
+        case "newest": return "/newest";
+        case "oldest": return "/oldest";
+        case "popular":
+        default: return "/";
+    }
+}
+
+interface BackButtonProps {
+    sort: SearchSortOrder;
+    style: "auto" | "linearGradient" | "angularGradient" | "angularSwatches" | "linearSwatches" | "deepFlow";
+    angle: "auto" | number;
+    steps: "auto" | number;
+    size: SizeType;
+}
+
+function BackButton({ sort, style, angle, steps, size }: BackButtonProps) {
+    const backRoute = sortToRoute(sort);
+
+    return (
+        <Link
+            to={backRoute}
+            search={{
+                style: style !== "auto" ? style : undefined,
+                angle: angle !== "auto" ? angle : undefined,
+                steps: steps !== "auto" ? steps : undefined,
+                size: size !== "auto" ? size : undefined,
+            }}
+        >
+            <button
+                type="button"
+                style={{ backgroundColor: "var(--background)" }}
+                className={cn(
+                    "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
+                    "h-8.5 w-8.5 p-0 border border-solid",
+                    "border-input hover:border-muted-foreground/30 hover:bg-background/60",
+                    "text-muted-foreground hover:text-foreground",
+                    "transition-colors duration-200 cursor-pointer",
+                    "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                )}
+                aria-label="Go back"
+            >
+                <ArrowLeft className="w-[18px] h-[18px]" strokeWidth={2.5} />
+            </button>
+        </Link>
+    );
+}
+
 function SearchResultsPage() {
     const { query: compressedQuery } = Route.useParams();
-    const { sort, style, angle, steps } = Route.useSearch();
+    const { sort, style, angle, steps, size } = Route.useSearch();
     const query = getQuery(compressedQuery) ?? "";
 
     const { data: searchData } = useSuspenseQuery(
@@ -335,7 +386,7 @@ function SearchResultsPage() {
 
     if (results.length === 0) {
         return (
-            <AppLayout style={style} angle={angle} steps={steps}>
+            <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />}>
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground px-5 lg:px-14">
                     <Search className="h-12 w-12 mb-4 opacity-50" />
                     <p className="text-lg flex items-center flex-wrap gap-1">
@@ -348,7 +399,7 @@ function SearchResultsPage() {
     }
 
     return (
-        <AppLayout style={style} angle={angle} steps={steps}>
+        <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />}>
             <div className="px-5 lg:px-14 mb-8">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-1">
                     <QueryDisplay query={query} />

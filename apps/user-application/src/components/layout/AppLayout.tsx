@@ -26,6 +26,11 @@ import {
     setIsAdvancedOpen,
 } from "@/stores/ui";
 
+interface LogoNavigation {
+    to: string;
+    search?: Record<string, unknown>;
+}
+
 interface AppLayoutProps {
     children: ReactNode;
     showNavigation?: boolean;
@@ -39,6 +44,7 @@ interface AppLayoutProps {
     angle?: number | "auto";
     steps?: number | "auto";
     leftAction?: ReactNode;
+    logoNavigation?: LogoNavigation;
 }
 
 export function AppLayout({
@@ -48,6 +54,7 @@ export function AppLayout({
     angle = "auto",
     steps = "auto",
     leftAction,
+    logoNavigation,
 }: AppLayoutProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
@@ -136,7 +143,7 @@ export function AppLayout({
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
-            <AppHeader />
+            <AppHeader logoNavigation={logoNavigation} />
             <div className="relative pt-4 md:pt-6" />
             {showNavigation && (
                 <div
@@ -148,8 +155,8 @@ export function AppLayout({
                 >
                     <div className="mx-auto w-full px-5 lg:px-14 py-3 subpixel-antialiased flex items-center justify-between gap-1.5 md:gap-2 lg:gap-3">
                         <div className="flex items-center gap-1.5 md:gap-2">
-                            <NavigationSelect className="subpixel-antialiased" />
                             {leftAction}
+                            <NavigationSelect className="subpixel-antialiased" />
                         </div>
                         <div className="flex items-center gap-1.5 md:gap-2">
                             {hasCustomValues && (
