@@ -32,11 +32,10 @@ type NavigationItem = {
     path: string;
 };
 
-const SORT_ITEMS: SortItem[] = [
-    { id: "popular", label: "Popular" },
-    { id: "newest", label: "Newest" },
-    { id: "oldest", label: "Oldest" },
-];
+const SORT_TIME_ITEMS: Record<"newest" | "oldest", SortItem> = {
+    newest: { id: "newest", label: "Newest" },
+    oldest: { id: "oldest", label: "Oldest" },
+};
 
 const BASE_NAVIGATION_ITEMS: NavigationItem[] = [
     { id: "popular", label: "Popular", path: "/" },
@@ -63,19 +62,30 @@ export function NavigationSelect({
 
     const currentPath = location.pathname === "/" ? "popular" : location.pathname.substring(1);
     const isTimeRoute = currentPath === "newest" || currentPath === "oldest";
+    const isTimeSort = currentSort === "newest" || currentSort === "oldest";
 
     const oppositeTimeRoute =
         currentPath === "newest"
             ? TIME_NAVIGATION_ITEMS.oldest
             : TIME_NAVIGATION_ITEMS.newest;
 
+    const oppositeSortTime =
+        currentSort === "newest"
+            ? SORT_TIME_ITEMS.oldest
+            : SORT_TIME_ITEMS.newest;
+
     const navigationItems = [
         isTimeRoute ? oppositeTimeRoute : TIME_NAVIGATION_ITEMS.newest,
         ...BASE_NAVIGATION_ITEMS,
     ];
 
+    const sortItems: SortItem[] = [
+        isTimeSort ? oppositeSortTime : SORT_TIME_ITEMS.newest,
+        { id: "popular", label: "Popular" },
+    ];
+
     const currentItem = isSearchRoute
-        ? SORT_ITEMS.find((item) => item.id === currentSort) ?? SORT_ITEMS[0]!
+        ? (isTimeSort ? SORT_TIME_ITEMS[currentSort as "newest" | "oldest"] : sortItems.find((item) => item.id === currentSort) ?? sortItems[0]!)
         : isTimeRoute
             ? TIME_NAVIGATION_ITEMS[currentPath as "newest" | "oldest"]
             : navigationItems.find((item) => item.id === currentPath) ?? navigationItems[0]!;
@@ -85,7 +95,7 @@ export function NavigationSelect({
         if (isSearchRoute) {
             await router.navigate({
                 to: location.pathname,
-                search: { sort: itemId as SearchSortOrder },
+                search: (prev) => ({ ...prev, sort: itemId as SearchSortOrder }),
                 replace: true,
             });
         } else {
@@ -145,7 +155,7 @@ export function NavigationSelect({
                     <CommandGroup>
                         <CommandList>
                             {isSearchRoute
-                                ? SORT_ITEMS.map((item) => (
+                                ? sortItems.map((item) => (
                                       <CommandItem
                                           key={item.id}
                                           value={item.id}
