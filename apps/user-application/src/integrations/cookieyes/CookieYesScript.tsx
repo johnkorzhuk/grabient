@@ -1,7 +1,8 @@
 const COOKIEYES_SITE_KEY = import.meta.env.VITE_COOKIEYES_SITE_KEY;
+const IS_DEV = import.meta.env.DEV;
 
 export function getCookieYesHeadScript(): React.JSX.IntrinsicElements["script"] | null {
-    if (!COOKIEYES_SITE_KEY) {
+    if (!COOKIEYES_SITE_KEY || IS_DEV) {
         return null;
     }
 
@@ -13,5 +14,5 @@ export function getCookieYesHeadScript(): React.JSX.IntrinsicElements["script"] 
 }
 
 export function isCookieYesConfigured(): boolean {
-    return !!COOKIEYES_SITE_KEY;
+    return !!COOKIEYES_SITE_KEY && !IS_DEV;
 }
