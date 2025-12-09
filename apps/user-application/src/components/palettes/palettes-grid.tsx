@@ -14,7 +14,6 @@ import {
     stepsWithAutoValidator,
     paletteStyleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
-import { useSearch } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { uiStore, setActivePaletteSeed, setCustomCoeffs } from "@/stores/ui";
 import { PaletteChartIcon } from "@/components/icons/PaletteChartIcon";
@@ -50,6 +49,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
 import { Kbd } from "@/components/ui/kbd";
+import { hexToColorName } from "@/lib/color-utils";
 
 const LazyGradientChannelsChart = lazy(() =>
     import("./gradient-channels-chart").then((mod) => ({
@@ -73,18 +73,19 @@ interface PalettesGridProps {
     palettes: AppPalette[];
     likedSeeds: Set<string>;
     showRgbTabs?: boolean;
+    urlStyle?: StyleWithAuto;
+    urlAngle?: AngleWithAuto;
+    urlSteps?: StepsWithAuto;
 }
 
 export function PalettesGrid({
     palettes: initialPalettes,
     likedSeeds,
     showRgbTabs = true,
+    urlStyle = "auto",
+    urlAngle = "auto",
+    urlSteps = "auto",
 }: PalettesGridProps) {
-    const {
-        style: urlStyle,
-        angle: urlAngle,
-        steps: urlSteps,
-    } = useSearch({ from: "/_paletteList" });
     const previewStyle = useStore(uiStore, (state) => state.previewStyle);
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
     const previewSteps = useStore(uiStore, (state) => state.previewSteps);
@@ -270,6 +271,12 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                 });
             },
             () => {
+                // If palette hasn't been modified, use its own likesCount
+                // This ensures search results display their own like counts (for consistent sorting)
+                if (!isPaletteModified && palette.likesCount !== undefined) {
+                    return palette.likesCount;
+                }
+
                 const allPaletteQueries = queryClient.getQueriesData<{
                     palettes: AppPalette[];
                     totalPages: number;
@@ -278,8 +285,7 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     queryKey: ["palettes"],
                 });
 
-                // Always look for the current seed's like count
-                // When channels are reordered, currentSeed changes to the new variant
+                // Look for the current seed's like count (needed when channels are reordered)
                 const foundPalette = allPaletteQueries
                     .flatMap(([_, data]) => data?.palettes ?? [])
                     .find((p) => p.seed === currentSeed);
@@ -380,7 +386,8 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         };
 
         const { hexColors } = palette;
-        const colorList = hexColors.slice(0, 3).join(", ");
+        const colorNames = hexColors.slice(0, 3).map(hexToColorName);
+        const colorList = colorNames.join(", ");
         const moreColors =
             hexColors.length > 3 ? ` and ${hexColors.length - 3} more` : "";
         const ariaLabel = `${itemActive ? "Deselect" : "Select"} gradient: ${colorList}${moreColors}`;
@@ -740,7 +747,7 @@ function GradientPreview({
                     "relative z-10 h-full w-full flex items-center justify-center overflow-hidden rounded-xl pointer-events-none transition-all duration-300",
                 )}
                 role="img"
-                aria-label={`Gradient preview with ${palette.steps} color stops`}
+                aria-label={`Gradient from ${hexToColorName(colorsToUse[0])} to ${hexToColorName(colorsToUse[colorsToUse.length - 1])} with ${effectiveSteps} color stops`}
             >
                 <div
                     className="w-full h-full pointer-events-none"
@@ -751,6 +758,13 @@ function GradientPreview({
                         backgroundRepeat: "no-repeat",
                     }}
                 />
+
+                {/* Dev-only score badge */}
+                {import.meta.env.DEV && palette.score !== undefined && (
+                    <span className="absolute bottom-3 right-3 text-xs font-mono px-2 py-1 rounded bg-background/80 text-foreground">
+                        {palette.score.toFixed(4)}
+                    </span>
+                )}
 
                 {/* Graph overlay */}
                 {showGraph && (
