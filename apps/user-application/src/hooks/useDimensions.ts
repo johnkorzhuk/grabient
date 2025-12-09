@@ -1,10 +1,11 @@
-import { useSearch, useNavigate } from "@tanstack/react-router";
+import { useSearch, useLocation, useRouter } from "@tanstack/react-router";
 import { useStore } from "@tanstack/react-store";
 import { exportStore, type SizeType } from "@/stores/export";
 import { useDebouncedCallback } from "@mantine/hooks";
 
 export function useDimensions() {
-    const navigate = useNavigate();
+    const router = useRouter();
+    const location = useLocation();
     const search = useSearch({ strict: false }) as { size?: SizeType };
     const containerDimensions = useStore(
         exportStore,
@@ -17,9 +18,11 @@ export function useDimensions() {
     const actualHeight = size === "auto" ? containerDimensions.height : size[1];
 
     const setSize = (newSize: SizeType) => {
-        navigate({
+        router.navigate({
+            to: location.pathname,
             search: (prev) => ({ ...prev, size: newSize }),
             replace: true,
+            resetScroll: false,
         });
     };
 
