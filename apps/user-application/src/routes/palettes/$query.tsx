@@ -92,11 +92,12 @@ function getQuery(param: string): string | null {
     if (isValidSeed(param)) {
         return param;
     }
-    // Otherwise decode the URL-encoded search query
+    // Decode URL-safe format: dashes become spaces, decode percent-encoded chars
     try {
-        return decodeURIComponent(param);
+        const withSpaces = param.replace(/-/g, " ");
+        return decodeURIComponent(withSpaces);
     } catch {
-        return param;
+        return param.replace(/-/g, " ");
     }
 }
 

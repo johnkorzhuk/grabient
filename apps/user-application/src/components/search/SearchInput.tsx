@@ -126,10 +126,14 @@ export function SearchInput({ className }: { className?: string }) {
             return;
         }
 
-        // Default: treat as search query - use URL-safe encoding
+        // Default: treat as search query
+        // Only encode URL-unsafe characters, preserve unicode for SEO readability
+        const urlSafe = trimmed
+            .replace(/[/?#%\\]/g, (char) => encodeURIComponent(char))
+            .replace(/\s+/g, "-");
         navigate({
             to: "/palettes/$query",
-            params: { query: encodeURIComponent(trimmed) },
+            params: { query: urlSafe },
         });
     };
 
