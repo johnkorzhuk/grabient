@@ -1,4 +1,4 @@
-export const DEFAULT_PAGE_LIMIT = 20 as const;
+export const DEFAULT_PAGE_LIMIT = 24 as const;
 
 export const COLORS = {
     white: "#ffffff",

@@ -2,17 +2,19 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "grabient3",
 	"compatibility_date": "2025-09-02",
-	"compatibility_flags": ["nodejs_compat"],
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
 	"main": "./src/server.ts",
-
 	// Migrations for Durable Objects (shared across environments)
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_classes": ["RateLimiter"]
+			"new_classes": [
+				"RateLimiter"
+			]
 		}
 	],
-
 	// Default environment (staging) - used by `wrangler deploy` and `wrangler dev`
 	"vars": {
 		"EMAIL_FROM": "noreply@grabient.com",
@@ -44,7 +46,24 @@
 			"migrations_dir": "../../packages/data-ops/src/drizzle"
 		}
 	],
-
+	"vectorize": [
+		{
+			"binding": "VECTORIZE",
+			"index_name": "grabient-palettes",
+			"remote": true
+		}
+	],
+	"ai": {
+		"binding": "AI",
+		"remote": true
+	},
+	"kv_namespaces": [
+		{
+			"binding": "SEARCH_CACHE",
+			"id": "04596938aa91477eb1c38d45f3d1b9f3",
+			"remote": true
+		}
+	],
 	// Production environment - used by `wrangler deploy --env production`
 	"env": {
 		"production": {

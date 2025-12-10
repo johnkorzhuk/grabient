@@ -14,7 +14,6 @@ OUTPUT: Valid JSON only:
 {
   "mood": [],
   "style": [],
-  "dominant_colors": [],
   "harmony": ["<REQUIRED>"],
   "temperature": "",
   "contrast": "",
@@ -31,9 +30,6 @@ DO NOT use: warm, cool, neutral, vibrant, muted, bright, dark, light, high, medi
 
 style (1-5 tags): Design movements, eras, aesthetics, cultural or national design traditions, or
 industry contexts this palette fits.
-
-dominant_colors (1-4 tags): Primary colors present in the palette. Use ONLY from this list:
-white, gray, black, brown, red, orange, yellow, lime, green, teal, cyan, blue, navy, purple, magenta, pink
 
 harmony (REQUIRED, 1-2 tags): The color harmony of the palette based on hue relationships. You MUST provide at least one harmony tag. Only add a second tag if it clearly applies. Choose from:
 monochromatic, analogous, complementary, split-complementary, double-complementary, triadic, tetradic, square, achromatic, neutral, accented-analogous, near-complementary, clash, polychromatic
@@ -82,81 +78,34 @@ Return ONLY VALID JSON.`
 // Refinement System Prompt (Stage 2: Opus 4.5)
 // ============================================================================
 
-export const REFINEMENT_SYSTEM_PROMPT = `You are an expert in color theory refining tag data from multiple AI models into a clean, normalized output for vector embedding.
+export const REFINEMENT_SYSTEM_PROMPT = `You are an expert in color theory refining subjective tag data from multiple AI models.
 
 You will receive:
 1. Color data (hex, RGB, HSL, LCH)
-2. Consensus data showing tag frequencies across models (e.g., "calm: 7/10" means 7 of 10 models used "calm")
+2. Consensus data showing tag frequencies across models
 
-TASK:
-1. Trust the consensus
-2. Normalize synonyms and variants into canonical forms (see below)
-3. Remove hallucinations or tags that don't match the palette
-4. Use your color theory expertise to:
-   - Promote insightful outlier tags (even 1/10) if they're genuinely good fits
-   - Add new tags the models missed (color harmonies, cultural associations, design applications)
-5. Generate embed_text for semantic search
+YOUR TASK: Refine the subjective fields. Objective fields (temperature, contrast, brightness, saturation) are computed from consensus. The embed_text will be built programmatically from your output.
 
-COLOR THEORY GROUNDING:
-Base your decisions on established color principles:
-- Color temperature
-- Color harmonies
-- Psychological associations
-- Cultural and historical color meanings
-- Design context (what would this palette be used for?)
+FILTERING RULES:
+For ALL fields: Include ALL tags that fit. Use consensus as a guide. PROMOTE quality outliers. Order matters.
 
-NORMALIZATION:
-Be VERY conservative - only collapse terms that are true synonyms. Preserve specificity.
-
-COLLAPSE only true synonyms/grammatical variants:
-- "calm", "tranquil", "serene" → "calm"
-- "ocean", "sea" → "ocean"
-- "warm", "warmth" → "warm"
-- "forest", "forests", "forested" → "forest"
-
-DO NOT COLLAPSE - these are distinct and valuable for search:
-- "sunset" vs "dusk" vs "twilight" (different times/moods)
-- "modern" vs "minimalist" (style vs aesthetic)
-- "elegant" vs "luxurious" (refined vs opulent)
-- "peaceful" vs "melancholic" (different moods)
-- "coastal" vs "tropical" (different environments)
-- "industrial" vs "urban" (different aesthetics)
-- "cherry blossom" vs "flower" (specific vs generic - KEEP SPECIFIC)
-- "marble" vs "stone" (specific vs generic - KEEP SPECIFIC)
-- "espresso" vs "coffee" (specific vs generic - KEEP SPECIFIC)
-
-CRITICAL: The tagging stage intentionally generates specific associations. Preserve them.
-Prefer the most frequent form as canonical. When in doubt, keep them separate.
+mood: All emotional qualities from color psychology (expect 3-8 tags)
+style: All design movements/eras that apply (expect 2-6 tags)
+harmony: Color harmony based on hue relationships. Use ONLY: monochromatic, analogous, complementary, split-complementary, double-complementary, triadic, tetradic, square, achromatic, neutral, accented-analogous, near-complementary, clash, polychromatic (1-2 tags)
+seasonal: Time of year, season, or holiday associations. Only include if they truly apply (0-3 tags)
+associations: All specific objects/places/materials that apply to the palette. Promote at least 8 unique outliers. (expect 10-20 tags)
 
 OUTPUT FORMAT (JSON only):
 {
-  "temperature": "warm|cool|neutral|cool-warm",
-  "contrast": "high|medium|low",
-  "brightness": "dark|medium|light|varied",
-  "saturation": "vibrant|muted|mixed",
-  "harmony": ["harmony1", "harmony2"],
-  "mood": ["tag1", "tag2"],
-  "style": ["tag1", "tag2"],
-  "dominant_colors": ["color1", "color2"],
+  "mood": ["tag1", "tag2", "tag3", "tag4", ...],
+  "style": ["tag1", "tag2", ...],
+  "harmony": ["tag1", "optional_tag2"],
   "seasonal": [],
-  "associations": ["tag1", "tag2", "tag3"],
-  "embed_text": "space-separated canonical tags"
+  "associations": ["tag1", "tag2", "tag3", "tag4", "tag5", ...]
 }
-
-FIELD CONSTRAINTS:
-- temperature/contrast/brightness/saturation: Consensus is usually correct
-- dominant_colors: Use only: white, gray, black, brown, red, orange, yellow, lime, green, teal, cyan, blue, navy, purple, magenta, pink
-- harmony: 1-2 tags. Only add a second tag if it clearly applies. Choose from: monochromatic, analogous, complementary, split-complementary, double-complementary, triadic, tetradic, square, achromatic, neutral, accented-analogous, near-complementary, clash, polychromatic
-- mood: 2-5 tags (emotional qualities, not temperature/brightness words)
-- style: 1-5 tags (design movements, eras, aesthetics)
-- seasonal: 0-2 tags (only if clearly seasonal)
-- associations: 0-10 tags (specific concrete nouns - preserve specificity like "cherry blossom" not "flower")
-- embed_text: 50-80 words. Include ALL refined tags from every category. List associations fully (don't collapse "cherry blossom" to "flower"). Format: categorical values first, then all mood tags, all style tags, all dominant colors, all seasonal, then ALL association tags verbatim
 
 RULES:
 - All tags: lowercase, singular, 1-2 words max
-- Consensus is your foundation, but you have authority to enhance it
-- Promote outliers and add new tags when color theory supports it
 
 Return ONLY valid JSON, no markdown.`
 
@@ -166,9 +115,11 @@ Return ONLY valid JSON, no markdown.`
 // Update these when you modify the prompts above.
 // These messages help track what changed between versions.
 
-export const TAGGING_PROMPT_MESSAGE = 'Make harmony field required with clearer instructions'
+export const TAGGING_PROMPT_MESSAGE =
+  'Make harmony field required with clearer instructions'
 
-export const REFINEMENT_PROMPT_MESSAGE = 'Initial refinement prompt with normalization rules'
+export const REFINEMENT_PROMPT_MESSAGE =
+  'LLM refines mood, style, dominant_colors, harmony, seasonal, associations; consensus only for categorical fields'
 
 // ============================================================================
 // Version Hashing

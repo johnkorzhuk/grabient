@@ -1,7 +1,9 @@
 import * as v from "valibot";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
+import { getSeedColorData } from "@/lib/seed-color-data";
 
 export const SEARCH_QUERY_MAX_LENGTH = 100;
+const MAX_HEX_CODES = 8;
 export const SEARCH_LIMIT_MAX = 96;
 
 // Regex for Latin alphabet characters
@@ -91,9 +93,49 @@ export function isValidSearchQuery(query: string): boolean {
     return true;
 }
 
+function sampleHexCodes(query: string): string {
+    const hexRegex = /#([0-9a-fA-F]{3}(?![0-9a-fA-F])|[0-9a-fA-F]{6}(?![0-9a-fA-F]))/g;
+    const hexCodes = query.match(hexRegex) || [];
+
+    if (hexCodes.length <= MAX_HEX_CODES) {
+        return query;
+    }
+
+    // Sample evenly distributed hex codes
+    const sampled: string[] = [];
+    const step = (hexCodes.length - 1) / (MAX_HEX_CODES - 1);
+    for (let i = 0; i < MAX_HEX_CODES; i++) {
+        const index = Math.round(i * step);
+        const hex = hexCodes[index];
+        if (hex) sampled.push(hex);
+    }
+
+    // Replace all hex codes with sampled ones
+    const nonHexParts = query.replace(hexRegex, "").replace(/\s+/g, " ").trim();
+    const result = sampled.join(" ") + (nonHexParts ? " " + nonHexParts : "");
+    return result;
+}
+
+function transformSeedToColorNames(query: string): string {
+    const trimmed = query.trim();
+    const seedData = getSeedColorData(trimmed);
+    if (seedData) {
+        return seedData.colorNames.join(" ");
+    }
+    return query;
+}
+
 export const searchQueryValidator = v.pipe(
     v.string(),
-    v.trim(),
+    v.transform(transformSeedToColorNames),
+    v.transform((s) =>
+        s
+            .replace(/[\[\]"{}]/g, "")
+            .replace(/,\s*/g, " ")
+            .replace(/\s+/g, " ")
+            .trim(),
+    ),
+    v.transform(sampleHexCodes),
     v.minLength(1),
     v.maxLength(SEARCH_QUERY_MAX_LENGTH),
 );

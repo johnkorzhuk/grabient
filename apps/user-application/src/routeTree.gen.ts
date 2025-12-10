@@ -18,6 +18,7 @@ import { Route as SeedRouteRouteImport } from './routes/$seed.route'
 import { Route as SettingsIndexRouteImport } from './routes/settings/index'
 import { Route as PaletteListIndexRouteImport } from './routes/_paletteList/index'
 import { Route as SeedIndexRouteImport } from './routes/$seed/index'
+import { Route as PalettesQueryRouteImport } from './routes/palettes/$query'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
@@ -71,6 +72,11 @@ const SeedIndexRoute = SeedIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SeedRouteRoute,
 } as any)
+const PalettesQueryRoute = PalettesQueryRouteImport.update({
+  id: '/palettes/$query',
+  path: '/palettes/$query',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOgRoute = ApiOgRouteImport.update({
   id: '/api/og',
   path: '/api/og',
@@ -122,6 +128,7 @@ export interface FileRoutesByFullPath {
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRoute
+  '/palettes/$query': typeof PalettesQueryRoute
   '/$seed/': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -139,6 +146,7 @@ export interface FileRoutesByTo {
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRoute
+  '/palettes/$query': typeof PalettesQueryRoute
   '/$seed': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -159,6 +167,7 @@ export interface FileRoutesById {
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRoute
+  '/palettes/$query': typeof PalettesQueryRoute
   '/$seed/': typeof SeedIndexRoute
   '/_paletteList/': typeof PaletteListIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -179,6 +188,7 @@ export interface FileRouteTypes {
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/palettes/$query'
     | '/$seed/'
     | '/'
     | '/settings'
@@ -196,6 +206,7 @@ export interface FileRouteTypes {
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/palettes/$query'
     | '/$seed'
     | '/'
     | '/settings'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
     | '/api/og'
+    | '/palettes/$query'
     | '/$seed/'
     | '/_paletteList/'
     | '/settings/'
@@ -232,6 +244,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiOgRoute: typeof ApiOgRoute
+  PalettesQueryRoute: typeof PalettesQueryRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AppPolarPortalRoute: typeof AppPolarPortalRoute
@@ -303,6 +316,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$seed/'
       preLoaderRoute: typeof SeedIndexRouteImport
       parentRoute: typeof SeedRouteRoute
+    }
+    '/palettes/$query': {
+      id: '/palettes/$query'
+      path: '/palettes/$query'
+      fullPath: '/palettes/$query'
+      preLoaderRoute: typeof PalettesQueryRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/og': {
       id: '/api/og'
@@ -401,6 +421,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiOgRoute: ApiOgRoute,
+  PalettesQueryRoute: PalettesQueryRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AppPolarPortalRoute: AppPolarPortalRoute,

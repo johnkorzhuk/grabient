@@ -335,7 +335,6 @@ function mergeConsensusData(docs: Array<{
     harmony: new Map<string, number>(),
     mood: new Map<string, number>(),
     style: new Map<string, number>(),
-    dominant_colors: new Map<string, number>(),
     seasonal: new Map<string, number>(),
     associations: new Map<string, number>(),
   }
@@ -353,8 +352,8 @@ function mergeConsensusData(docs: Array<{
       }
     }
 
-    // Merge tags
-    for (const tagType of ['harmony', 'mood', 'style', 'dominant_colors', 'seasonal', 'associations'] as const) {
+    // Merge tags (dominant_colors removed - now computed algorithmically from hex)
+    for (const tagType of ['harmony', 'mood', 'style', 'seasonal', 'associations'] as const) {
       for (const entry of doc.tags[tagType]) {
         const current = tagMaps[tagType].get(entry.key) ?? 0
         tagMaps[tagType].set(entry.key, current + entry.value)
@@ -378,7 +377,6 @@ function mergeConsensusData(docs: Array<{
       harmony: mapToArray(tagMaps.harmony),
       mood: mapToArray(tagMaps.mood),
       style: mapToArray(tagMaps.style),
-      dominant_colors: mapToArray(tagMaps.dominant_colors),
       seasonal: mapToArray(tagMaps.seasonal),
       associations: mapToArray(tagMaps.associations),
     },
@@ -1027,6 +1025,30 @@ export const getEmbedTextTagFrequencies = query({
       uniqueTags: tags.length,
       tags,
     }
+  },
+})
+
+/**
+ * Get all refined palettes for a given model/cycle
+ * Used by vectorize action to seed the vector database
+ */
+export const getRefinedPalettes = query({
+  args: {
+    model: vRefinementModel,
+    cycle: v.number(),
+  },
+  handler: async (ctx, { model, cycle }) => {
+    const refinements = await ctx.db
+      .query('palette_tag_refined')
+      .withIndex('by_model_cycle', (q) => q.eq('model', model).eq('cycle', cycle))
+      .collect()
+
+    return refinements.map((r) => ({
+      seed: r.seed,
+      embedText: r.embedText,
+      tags: r.tags,
+      error: r.error,
+    }))
   },
 })
 

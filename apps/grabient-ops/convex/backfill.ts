@@ -12,6 +12,8 @@ import {
   REFINEMENT_PROMPT_VERSION,
   REFINEMENT_PROMPT_MESSAGE,
 } from './lib/prompts'
+import { buildEmbedText } from './lib/refinement'
+import { generateColorDataFromSeed } from './lib/colorData'
 
 // ============================================================================
 // Provider/Model Configuration
@@ -987,5 +989,160 @@ export const syncPromptVersions = mutation({
         : 'unchanged'
 
     return results
+  },
+})
+
+// ============================================================================
+// EmbedText Backfill with Color Names
+// ============================================================================
+
+/**
+ * Backfill embedText for refined palettes to include algorithmically-derived color names.
+ * This rebuilds embedText from existing refined tags + consensus categorical data + new colorNames.
+ * No LLM calls needed - just recomputes the text locally.
+ *
+ * Run: npx convex run backfill:backfillEmbedTextWithColorNames
+ */
+export const backfillEmbedTextWithColorNames = mutation({
+  args: {
+    batchSize: v.optional(v.number()),
+    dryRun: v.optional(v.boolean()),
+    cursor: v.optional(v.string()),
+  },
+  handler: async (ctx, { batchSize = 100, dryRun = false, cursor }) => {
+    // Use pagination to avoid reprocessing same records
+    const paginationResult = await ctx.db
+      .query('palette_tag_refined')
+      .paginate({ cursor: cursor ?? null, numItems: batchSize })
+
+    const refinedDocs = paginationResult.page
+
+    if (refinedDocs.length === 0) {
+      return { processed: 0, message: 'No refined palettes to update', hasMore: false }
+    }
+
+    let processed = 0
+    let skipped = 0
+    const samples: Array<{ seed: string; colorNames: string[]; oldLength: number; newLength: number }> = []
+
+    for (const doc of refinedDocs) {
+      // Get consensus for this seed to get categorical data
+      const consensus = await ctx.db
+        .query('palette_tag_consensus')
+        .withIndex('by_seed', (q) => q.eq('seed', doc.seed))
+        .first()
+
+      if (!consensus) {
+        skipped++
+        continue
+      }
+
+      // Generate color names from seed
+      const colorData = generateColorDataFromSeed(doc.seed)
+      const colorNames = colorData.colorNames
+
+      // Extract tags from the refined doc
+      const tags = doc.tags as {
+        mood?: string[]
+        style?: string[]
+        harmony?: string[]
+        seasonal?: string[]
+        associations?: string[]
+      } | null
+
+      if (!tags) {
+        skipped++
+        continue
+      }
+
+      // Build new embedText with colorNames
+      const newEmbedText = buildEmbedText(
+        { categorical: consensus.categorical },
+        {
+          mood: tags.mood,
+          style: tags.style,
+          harmony: tags.harmony,
+          seasonal: tags.seasonal,
+          associations: tags.associations,
+        },
+        colorNames,
+      )
+
+      // Collect samples for preview
+      if (samples.length < 5) {
+        samples.push({
+          seed: doc.seed,
+          colorNames,
+          oldLength: doc.embedText.length,
+          newLength: newEmbedText.length,
+        })
+      }
+
+      // Update if not dry run
+      if (!dryRun) {
+        await ctx.db.patch(doc._id, { embedText: newEmbedText })
+      }
+
+      processed++
+    }
+
+    const hasMore = !paginationResult.isDone
+
+    return {
+      processed,
+      skipped,
+      hasMore,
+      dryRun,
+      samples,
+      nextCursor: hasMore ? paginationResult.continueCursor : undefined,
+      message: dryRun
+        ? `[DRY RUN] Would update ${processed} palettes. Run again with dryRun=false to apply.`
+        : hasMore
+          ? `Updated ${processed} palettes. Run again with cursor to process more.`
+          : `Updated ${processed} palettes. Backfill complete.`,
+    }
+  },
+})
+
+/**
+ * Get stats about embedText backfill progress.
+ * Checks how many refined palettes have color names in their embedText.
+ */
+export const getEmbedTextBackfillStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const refinedDocs = await ctx.db.query('palette_tag_refined').collect()
+
+    // Generate color names for first palette to know what to look for
+    const sampleColorNames = refinedDocs[0]
+      ? generateColorDataFromSeed(refinedDocs[0].seed).colorNames
+      : []
+
+    let hasColorNames = 0
+    let missingColorNames = 0
+
+    for (const doc of refinedDocs) {
+      // Check if embedText contains any of the basic color names
+      const colorData = generateColorDataFromSeed(doc.seed)
+      const hasColors = colorData.colorNames.some((name) =>
+        doc.embedText.toLowerCase().includes(name.toLowerCase())
+      )
+
+      if (hasColors) {
+        hasColorNames++
+      } else {
+        missingColorNames++
+      }
+    }
+
+    return {
+      total: refinedDocs.length,
+      hasColorNames,
+      missingColorNames,
+      percentComplete: refinedDocs.length > 0
+        ? Math.round((hasColorNames / refinedDocs.length) * 100)
+        : 0,
+      sampleColorNames,
+    }
   },
 })

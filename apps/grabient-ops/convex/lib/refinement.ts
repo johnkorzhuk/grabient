@@ -10,26 +10,104 @@ export { REFINEMENT_SYSTEM_PROMPT, REFINEMENT_PROMPT_VERSION } from './prompts'
 // Refined Tags Schema
 // ============================================================================
 
+// Schema for LLM refinement output
+// LLM refines subjective fields (mood, style, harmony, seasonal, associations)
+// Color names are computed algorithmically from hex values, not by LLM
+// embed_text is constructed programmatically from consensus + LLM output + colorNames
 export const refinedTagsSchema = z.object({
-  // Categorical attributes (single values) - optional, we only require embed_text
-  temperature: z.enum(['warm', 'cool', 'neutral', 'cool-warm']).optional(),
-  contrast: z.enum(['high', 'medium', 'low']).optional(),
-  brightness: z.enum(['dark', 'light', 'medium', 'varied']).optional(),
-  saturation: z.enum(['vibrant', 'muted', 'mixed']).optional(),
-
-  // Curated tag arrays
-  harmony: z.array(z.string()).min(1).max(2), // Required: 1-2 color harmony tags
   mood: z.array(z.string()).optional(),
   style: z.array(z.string()).optional(),
-  dominant_colors: z.array(z.string()).optional(),
+  harmony: z.array(z.string()).optional(),
   seasonal: z.array(z.string()).optional(),
   associations: z.array(z.string()).optional(),
-
-  // Canonical tag string for embedding - REQUIRED
-  embed_text: z.string(),
 })
 
 export type RefinedTags = z.infer<typeof refinedTagsSchema>
+
+// ============================================================================
+// Embed Text Construction
+// ============================================================================
+
+/**
+ * Get top value from a frequency array (highest consensus)
+ */
+function getTopValue(frequencies: FrequencyArray): string | null {
+  if (frequencies.length === 0) return null
+  const sorted = [...frequencies].sort((a, b) => b.value - a.value)
+  return sorted[0].key
+}
+
+/**
+ * Build embed_text programmatically from consensus data + LLM-refined tags + color names.
+ *
+ * Order: categorical values, harmony, colorNames (at ~1/3), mood, style, seasonal, associations
+ * Target: up to 120 words
+ */
+export function buildEmbedText(
+  consensus: {
+    categorical: TagSummary['categorical']
+  },
+  refined: {
+    mood?: string[]
+    style?: string[]
+    harmony?: string[]
+    seasonal?: string[]
+    associations?: string[]
+  },
+  colorNames: string[],
+): string {
+  const parts: string[] = []
+
+  // Categorical values from consensus (single top value each)
+  const temperature = getTopValue(consensus.categorical.temperature)
+  const contrast = getTopValue(consensus.categorical.contrast)
+  const brightness = getTopValue(consensus.categorical.brightness)
+  const saturation = getTopValue(consensus.categorical.saturation)
+
+  if (temperature) parts.push(temperature)
+  if (contrast) parts.push(contrast)
+  if (brightness) parts.push(brightness)
+  if (saturation) parts.push(saturation)
+
+  // Harmony from LLM refinement (all of them)
+  if (refined.harmony && refined.harmony.length > 0) {
+    parts.push(...refined.harmony)
+  }
+
+  // Color names from algorithmic conversion (deduped, ~1/3 into text)
+  if (colorNames.length > 0) {
+    parts.push(...colorNames)
+  }
+
+  // Mood from LLM refinement (all of them)
+  if (refined.mood && refined.mood.length > 0) {
+    parts.push(...refined.mood)
+  }
+
+  // Style from LLM refinement (all of them)
+  if (refined.style && refined.style.length > 0) {
+    parts.push(...refined.style)
+  }
+
+  // Seasonal from LLM refinement (all of them)
+  if (refined.seasonal && refined.seasonal.length > 0) {
+    parts.push(...refined.seasonal)
+  }
+
+  // Associations from LLM refinement (all of them)
+  if (refined.associations && refined.associations.length > 0) {
+    parts.push(...refined.associations)
+  }
+
+  // Join and trim to ~120 words max if needed
+  let embedText = parts.join(' ')
+  const words = embedText.split(/\s+/)
+  if (words.length > 120) {
+    embedText = words.slice(0, 120).join(' ')
+  }
+
+  return embedText
+}
 
 // ============================================================================
 // Tag Summary - aggregated consensus data sent to refinement model
@@ -59,7 +137,6 @@ export interface TagSummary {
     harmony: FrequencyArray
     mood: FrequencyArray
     style: FrequencyArray
-    dominant_colors: FrequencyArray
     seasonal: FrequencyArray
     associations: FrequencyArray
   }
@@ -106,7 +183,6 @@ ${JSON.stringify(summary.colorData, null, 2)}
 - Harmony: ${formatFrequencies(summary.tags.harmony, summary.totalModels)}
 - Mood: ${formatFrequencies(summary.tags.mood, summary.totalModels)}
 - Style: ${formatFrequencies(summary.tags.style, summary.totalModels)}
-- Dominant Colors: ${formatFrequencies(summary.tags.dominant_colors, summary.totalModels)}
 - Seasonal: ${formatFrequencies(summary.tags.seasonal, summary.totalModels)}
 - Associations: ${formatFrequencies(summary.tags.associations, summary.totalModels)}
 
@@ -223,133 +299,30 @@ export function extractJson(text: string): string {
 // Normalization for Refinement Output
 // ============================================================================
 
-const SATURATION_MAP: Record<string, string> = {
-  high: 'vibrant',
-  bright: 'vibrant',
-  vivid: 'vibrant',
-  saturated: 'vibrant',
-  intense: 'vibrant',
-  rich: 'vibrant',
-  low: 'muted',
-  dull: 'muted',
-  desaturated: 'muted',
-  soft: 'muted',
-  pastel: 'muted',
-  subtle: 'muted',
-  moderate: 'mixed',
-  medium: 'mixed',
-  varied: 'mixed',
-  variable: 'mixed',
-}
-
-const BRIGHTNESS_MAP: Record<string, string> = {
-  bright: 'light',
-  pale: 'light',
-  'very light': 'light',
-  dim: 'dark',
-  deep: 'dark',
-  'very dark': 'dark',
-  moderate: 'medium',
-  mid: 'medium',
-  average: 'medium',
-  mixed: 'varied',
-  variable: 'varied',
-  contrast: 'varied',
-}
-
-const TEMPERATURE_MAP: Record<string, string> = {
-  mixed: 'cool-warm',
-  both: 'cool-warm',
-  balanced: 'neutral',
-  grey: 'neutral',
-  gray: 'neutral',
-}
-
-const CONTRAST_MAP: Record<string, string> = {
-  strong: 'high',
-  intense: 'high',
-  moderate: 'medium',
-  mid: 'medium',
-  subtle: 'low',
-  soft: 'low',
-  minimal: 'low',
-}
-
-// Valid enum values for each categorical field
-const VALID_TEMPERATURE = new Set(['warm', 'cool', 'neutral', 'cool-warm'])
-const VALID_CONTRAST = new Set(['high', 'medium', 'low'])
-const VALID_BRIGHTNESS = new Set(['dark', 'light', 'medium', 'varied'])
-const VALID_SATURATION = new Set(['vibrant', 'muted', 'mixed'])
-
 /**
- * Normalize refinement output - we only require embed_text.
- * All other fields are optional and will be passed through if valid.
- * Invalid categorical values are removed to prevent validation errors.
+ * Normalize LLM refinement output - ensures required fields exist
  */
 export function normalizeRefinedTags(
   raw: Record<string, unknown>,
 ): Record<string, unknown> {
   const normalized = { ...raw }
 
-  // Ensure embed_text exists and is a string
-  if (typeof normalized.embed_text !== 'string') {
-    normalized.embed_text = ''
+  // Ensure array fields are arrays (or empty arrays)
+  if (!Array.isArray(normalized.mood)) {
+    normalized.mood = []
   }
-
-  // Normalize saturation
-  if (typeof normalized.saturation === 'string') {
-    const lower = normalized.saturation.toLowerCase().trim()
-    const mapped = SATURATION_MAP[lower] ?? lower
-    if (VALID_SATURATION.has(mapped)) {
-      normalized.saturation = mapped
-    } else {
-      delete normalized.saturation
-    }
-  } else if (normalized.saturation !== undefined) {
-    delete normalized.saturation
+  if (!Array.isArray(normalized.style)) {
+    normalized.style = []
   }
-
-  // Normalize brightness
-  if (typeof normalized.brightness === 'string') {
-    const lower = normalized.brightness.toLowerCase().trim()
-    const mapped = BRIGHTNESS_MAP[lower] ?? lower
-    if (VALID_BRIGHTNESS.has(mapped)) {
-      normalized.brightness = mapped
-    } else {
-      delete normalized.brightness
-    }
-  } else if (normalized.brightness !== undefined) {
-    delete normalized.brightness
+  if (!Array.isArray(normalized.harmony)) {
+    normalized.harmony = []
   }
-
-  // Normalize temperature
-  if (typeof normalized.temperature === 'string') {
-    const lower = normalized.temperature.toLowerCase().trim()
-    const mapped = TEMPERATURE_MAP[lower] ?? lower
-    if (VALID_TEMPERATURE.has(mapped)) {
-      normalized.temperature = mapped
-    } else {
-      delete normalized.temperature
-    }
-  } else if (normalized.temperature !== undefined) {
-    delete normalized.temperature
+  if (!Array.isArray(normalized.seasonal)) {
+    normalized.seasonal = []
   }
-
-  // Normalize contrast
-  if (typeof normalized.contrast === 'string') {
-    const lower = normalized.contrast.toLowerCase().trim()
-    const mapped = CONTRAST_MAP[lower] ?? lower
-    if (VALID_CONTRAST.has(mapped)) {
-      normalized.contrast = mapped
-    } else {
-      delete normalized.contrast
-    }
-  } else if (normalized.contrast !== undefined) {
-    delete normalized.contrast
+  if (!Array.isArray(normalized.associations)) {
+    normalized.associations = []
   }
-
-  // Remove any problematic fields that might cause validation errors
-  delete normalized.mappings
 
   return normalized
 }

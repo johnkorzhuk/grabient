@@ -9,6 +9,7 @@ import Groq from 'groq-sdk'
 import {
   REFINEMENT_SYSTEM_PROMPT,
   REFINEMENT_PROMPT_VERSION,
+  buildEmbedText,
   createRefinementMessageContent,
   createRefinementPromptText,
   extractJson,
@@ -16,6 +17,7 @@ import {
   refinedTagsSchema,
   type TagSummary,
 } from './lib/refinement'
+import { generateColorDataFromSeed } from './lib/colorData'
 import { REFINEMENT_PROMPT_MESSAGE } from './lib/prompts'
 import {
   vRefinementModel,
@@ -92,7 +94,8 @@ async function getRefinementSummaries(
 }
 
 /**
- * Process parsed refinement result and store it
+ * Process parsed refinement result and store it.
+ * Builds embed_text programmatically from consensus + LLM-refined tags.
  */
 async function storeRefinementResult(
   ctx: ActionCtx,
@@ -100,6 +103,7 @@ async function storeRefinementResult(
   model: RefinementModel,
   cycle: number,
   sourcePromptVersions: string[],
+  summary: TagSummary | null,
   responseText: string | null,
   usage: { inputTokens: number; outputTokens: number } | null,
   error?: string,
@@ -124,6 +128,18 @@ async function storeRefinementResult(
     const normalized = normalizeRefinedTags(parsed)
     const tags = refinedTagsSchema.parse(normalized)
 
+    // Build embed_text programmatically from consensus + LLM-refined tags + color names
+    // Generate colorNames from seed (11 steps, deduped)
+    let embedText = ''
+    if (summary) {
+      const colorData = generateColorDataFromSeed(seed)
+      embedText = buildEmbedText(
+        { categorical: summary.categorical },
+        { mood: tags.mood, style: tags.style, harmony: tags.harmony, seasonal: tags.seasonal, associations: tags.associations },
+        colorData.colorNames,
+      )
+    }
+
     await ctx.runMutation(internal.refinement.storeRefinedResult, {
       seed,
       model,
@@ -131,7 +147,7 @@ async function storeRefinementResult(
       promptVersion: REFINEMENT_PROMPT_VERSION,
       sourcePromptVersions,
       tags,
-      embedText: tags.embed_text,
+      embedText,
       usage: usage ?? undefined,
     })
     return true
@@ -375,12 +391,29 @@ export const pollAnthropicRefinementBatch = internalAction({
             (c): c is Anthropic.TextBlock => c.type === 'text',
           )
 
+          // Fetch consensus for building embed_text
+          const consensus = await ctx.runQuery(internal.consensus.getConsensusForSeed, {
+            seed,
+            promptVersions: sourcePromptVersions.length > 0 ? sourcePromptVersions : undefined,
+          })
+          const summary: TagSummary | null = consensus ? {
+            seed,
+            paletteId: '',
+            colorData: { colors: [] } as any,
+            imageUrl: '',
+            totalModels: consensus.totalModels,
+            sourcePromptVersion: consensus.promptVersions[0] ?? '',
+            categorical: consensus.categorical,
+            tags: consensus.tags,
+          } : null
+
           const success = await storeRefinementResult(
             ctx,
             seed,
             model,
             cycle,
             sourcePromptVersions,
+            summary,
             textContent?.text ?? null,
             {
               inputTokens: result.result.message.usage.input_tokens,
@@ -402,6 +435,7 @@ export const pollAnthropicRefinementBatch = internalAction({
             model,
             cycle,
             sourcePromptVersions,
+            null,
             null,
             null,
             errorMsg,
@@ -712,12 +746,29 @@ export const pollOpenAIRefinementBatch = internalAction({
               JSON.stringify(choice, null, 2).slice(0, 1000))
           }
 
+          // Fetch consensus for building embed_text
+          const consensus = await ctx.runQuery(internal.consensus.getConsensusForSeed, {
+            seed,
+            promptVersions: sourcePromptVersions.length > 0 ? sourcePromptVersions : undefined,
+          })
+          const summary: TagSummary | null = consensus ? {
+            seed,
+            paletteId: '',
+            colorData: { colors: [] } as any,
+            imageUrl: '',
+            totalModels: consensus.totalModels,
+            sourcePromptVersion: consensus.promptVersions[0] ?? '',
+            categorical: consensus.categorical,
+            tags: consensus.tags,
+          } : null
+
           const success = await storeRefinementResult(
             ctx,
             seed,
             model,
             cycle,
             sourcePromptVersions,
+            summary,
             message ?? null,
             {
               inputTokens: result.response.body.usage?.prompt_tokens ?? 0,
@@ -735,6 +786,7 @@ export const pollOpenAIRefinementBatch = internalAction({
             model,
             cycle,
             sourcePromptVersions,
+            null,
             null,
             null,
             errorMsg,
@@ -1080,8 +1132,8 @@ export const pollGroqRefinementBatch = internalAction({
           if (!message && choice?.message?.reasoning) {
             // Some reasoning models put the JSON in reasoning field
             const reasoning = choice.message.reasoning
-            // Check if reasoning contains JSON with embed_text
-            if (reasoning.includes('{') && reasoning.includes('embed_text')) {
+            // Check if reasoning contains JSON with mood/style/associations
+            if (reasoning.includes('{') && (reasoning.includes('mood') || reasoning.includes('associations'))) {
               message = reasoning
             }
           }
@@ -1092,12 +1144,29 @@ export const pollGroqRefinementBatch = internalAction({
               JSON.stringify(choice, null, 2).slice(0, 1000))
           }
 
+          // Fetch consensus for building embed_text
+          const consensus = await ctx.runQuery(internal.consensus.getConsensusForSeed, {
+            seed,
+            promptVersions: sourcePromptVersions.length > 0 ? sourcePromptVersions : undefined,
+          })
+          const summary: TagSummary | null = consensus ? {
+            seed,
+            paletteId: '',
+            colorData: { colors: [] } as any,
+            imageUrl: '',
+            totalModels: consensus.totalModels,
+            sourcePromptVersion: consensus.promptVersions[0] ?? '',
+            categorical: consensus.categorical,
+            tags: consensus.tags,
+          } : null
+
           const success = await storeRefinementResult(
             ctx,
             seed,
             model,
             cycle,
             sourcePromptVersions,
+            summary,
             message ?? null,
             {
               inputTokens: result.response.body.usage?.prompt_tokens ?? 0,
@@ -1115,6 +1184,7 @@ export const pollGroqRefinementBatch = internalAction({
             model,
             cycle,
             sourcePromptVersions,
+            null,
             null,
             null,
             errorMsg,
@@ -1387,6 +1457,7 @@ export const pollGoogleRefinementBatch = internalAction({
               sourcePromptVersions,
               null,
               null,
+              null,
               `Google error: ${JSON.stringify(errorData)}`,
             )
             failCount++
@@ -1400,6 +1471,22 @@ export const pollGoogleRefinementBatch = internalAction({
           )
           const responseText = textPart?.text
 
+          // Fetch consensus for building embed_text
+          const consensus = await ctx.runQuery(internal.consensus.getConsensusForSeed, {
+            seed,
+            promptVersions: sourcePromptVersions.length > 0 ? sourcePromptVersions : undefined,
+          })
+          const summary: TagSummary | null = consensus ? {
+            seed,
+            paletteId: '',
+            colorData: { colors: [] } as any,
+            imageUrl: '',
+            totalModels: consensus.totalModels,
+            sourcePromptVersion: consensus.promptVersions[0] ?? '',
+            categorical: consensus.categorical,
+            tags: consensus.tags,
+          } : null
+
           const usage = responseData?.usageMetadata
           const success = await storeRefinementResult(
             ctx,
@@ -1407,6 +1494,7 @@ export const pollGoogleRefinementBatch = internalAction({
             model,
             cycle,
             sourcePromptVersions,
+            summary,
             responseText ?? null,
             usage
               ? {
@@ -1426,6 +1514,7 @@ export const pollGoogleRefinementBatch = internalAction({
             model,
             cycle,
             sourcePromptVersions,
+            null,
             null,
             null,
             `Process error: ${errorMsg}`,

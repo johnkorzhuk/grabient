@@ -12,9 +12,12 @@ import {
   AlertCircle,
   ChevronDown,
   ChevronRight,
+  Info,
 } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "~/components/ui/tooltip";
+import { REFINEMENT_SYSTEM_PROMPT } from "../../../convex/lib/prompts";
 import { z } from "zod";
-import { BLACKLISTED_REFINEMENT_MODELS } from "../../../convex/lib/providers.types";
+import { BLACKLISTED_REFINEMENT_MODELS, REFINEMENT_MODELS, type RefinementModel } from "../../../convex/lib/providers.types";
 
 // Type for the structured tag response from providers
 // Some fields can be string or array depending on model output
@@ -41,9 +44,10 @@ function asStringArray(value: string | string[]): string[] {
   return Array.isArray(value) ? value : [value];
 }
 
-// Search params schema for refinement model persistence
+// Search params schema - matches parent layout schema
 const searchValidatorSchema = z.object({
-  refinementModel: z.string().optional(),
+  refinementModel: z.enum(REFINEMENT_MODELS).optional(),
+  refinementCycle: z.number().optional(),
 });
 
 export const Route = createFileRoute("/_layout/$seed")({
@@ -103,6 +107,7 @@ function SeedDetailPage() {
             selectedModel={refinementModel}
             onModelChange={(model) => {
               navigate({
+                from: Route.fullPath,
                 search: (prev) => ({ ...prev, refinementModel: model }),
                 replace: true,
               });
@@ -890,35 +895,28 @@ function TagRow({ label, tags }: { label: string; tags: string[] }) {
   );
 }
 
-// Type for refined tags structure
+// Type for refined tags structure (new schema: subjective fields)
 interface RefinedTagsData {
-  temperature: string;
-  contrast: string;
-  brightness: string;
-  saturation: string;
-  harmony: string[];
-  mood: string[];
-  style: string[];
-  dominant_colors: string[];
-  seasonal: string[];
-  associations: string[];
-  mappings?: Record<string, string[]>;
-  embed_text: string;
+  mood?: string[];
+  style?: string[];
+  dominant_colors?: string[];
+  harmony?: string[];
+  seasonal?: string[];
+  associations?: string[];
 }
 
 function isRefinedTags(tags: unknown): tags is RefinedTagsData {
   return (
     typeof tags === "object" &&
     tags !== null &&
-    "temperature" in tags &&
-    "mood" in tags &&
-    "embed_text" in tags
+    // Check for any of the subjective fields
+    ("mood" in tags || "style" in tags || "dominant_colors" in tags || "harmony" in tags || "seasonal" in tags || "associations" in tags)
   );
 }
 
 type RefinedTagRecord = {
   _id: string;
-  model: string;
+  model: RefinementModel;
   cycle: number;
   promptVersion: string;
   sourcePromptVersions?: string[];
@@ -935,8 +933,8 @@ function RefinementContent({
   onModelChange,
 }: {
   allRefinedTags: RefinedTagRecord[];
-  selectedModel?: string;
-  onModelChange: (model: string) => void;
+  selectedModel?: RefinementModel;
+  onModelChange: (model: RefinementModel) => void;
 }) {
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [cycleDropdownOpen, setCycleDropdownOpen] = useState(false);
@@ -947,10 +945,10 @@ function RefinementContent({
   // Group refinements by model, sorted by creation time (newest first within each model)
   // Excludes blacklisted models from display
   const refinementsByModel = (() => {
-    const grouped = new Map<string, RefinedTagRecord[]>();
+    const grouped = new Map<RefinementModel, RefinedTagRecord[]>();
     for (const ref of allRefinedTags) {
       // Skip blacklisted models
-      if (BLACKLISTED_REFINEMENT_MODELS.has(ref.model as any)) continue;
+      if (BLACKLISTED_REFINEMENT_MODELS.has(ref.model)) continue;
       const existing = grouped.get(ref.model) ?? [];
       existing.push(ref);
       grouped.set(ref.model, existing);
@@ -1056,6 +1054,16 @@ function RefinementContent({
         <div className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-primary" />
           <h3 className="text-sm font-semibold text-foreground">Refinement</h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="text-muted-foreground hover:text-foreground transition-colors">
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="start" className="max-w-md max-h-80 overflow-y-auto !bg-card">
+              <pre className="text-[10px] whitespace-pre-wrap font-mono">{REFINEMENT_SYSTEM_PROMPT}</pre>
+            </TooltipContent>
+          </Tooltip>
           {allRefinedTags.length > 0 && (
             <span className="text-xs text-muted-foreground">
               ({successCount} successful{errorCount > 0 ? `, ${errorCount} errors` : ""})
@@ -1209,43 +1217,101 @@ function RefinementContent({
         </div>
       ) : tags ? (
         <div className="space-y-4">
-          {/* Properties */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-              Properties
-            </h4>
-            <div className="grid grid-cols-2 gap-3">
-              <RefinedProperty label="Temperature" value={tags.temperature} />
-              <RefinedProperty label="Contrast" value={tags.contrast} />
-              <RefinedProperty label="Brightness" value={tags.brightness} />
-              <RefinedProperty label="Saturation" value={tags.saturation} />
-            </div>
-          </div>
-
-          {/* Tags by category */}
-          <RefinedCategory label="Mood" tags={tags.mood} />
-          <RefinedCategory label="Style" tags={tags.style} />
-          <RefinedCategory label="Dominant Colors" tags={tags.dominant_colors} />
-          <RefinedCategory label="Harmony" tags={tags.harmony ?? []} />
-          <RefinedCategory label="Seasonal" tags={tags.seasonal} />
-          <RefinedCategory label="Associations" tags={tags.associations} />
-
-          {/* Embed Text */}
-          {tags.embed_text && (
-            <div className="rounded-lg border border-border bg-card p-4">
-              <h4 className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+          {/* Embed Text - Primary output (now stored on record, not in tags) */}
+          {refinedTags.embedText && (
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
+              <h4 className="text-xs font-medium text-primary mb-2 uppercase tracking-wide">
                 Embedding Text
               </h4>
-              <p className="text-sm text-foreground leading-relaxed">
-                {tags.embed_text}
+              <p className="text-sm text-foreground leading-relaxed font-medium">
+                {refinedTags.embedText}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                {refinedTags.embedText.split(/\s+/).length} words
               </p>
             </div>
           )}
 
-          {/* Mappings (if present) */}
-          {tags.mappings && Object.keys(tags.mappings).length > 0 && (
-            <RefinedMappings mappings={tags.mappings} />
-          )}
+          {/* Refined Tags */}
+          <div className="rounded-lg border border-border bg-card p-4">
+            <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
+              Refined Tags
+            </h4>
+            <div className="space-y-3">
+              {tags.mood && tags.mood.length > 0 && (
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Mood</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {tags.mood.map((tag, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-xs font-medium bg-purple-500/15 text-purple-700 dark:text-purple-400">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tags.style && tags.style.length > 0 && (
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Style</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {tags.style.map((tag, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-xs font-medium bg-blue-500/15 text-blue-700 dark:text-blue-400">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tags.dominant_colors && tags.dominant_colors.length > 0 && (
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Dominant Colors</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {tags.dominant_colors.map((tag, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-xs font-medium bg-pink-500/15 text-pink-700 dark:text-pink-400">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tags.harmony && tags.harmony.length > 0 && (
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Harmony</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {tags.harmony.map((tag, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-xs font-medium bg-cyan-500/15 text-cyan-700 dark:text-cyan-400">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tags.seasonal && tags.seasonal.length > 0 && (
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Seasonal</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {tags.seasonal.map((tag, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-xs font-medium bg-green-500/15 text-green-700 dark:text-green-400">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tags.associations && tags.associations.length > 0 && (
+                <div>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wide">Associations</span>
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {tags.associations.map((tag, i) => (
+                      <span key={i} className="px-2 py-1 rounded-md text-xs font-medium bg-amber-500/15 text-amber-700 dark:text-amber-400">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Source versions */}
           {refinedTags.sourcePromptVersions && refinedTags.sourcePromptVersions.length > 0 && (
@@ -1263,61 +1329,6 @@ function RefinementContent({
         </div>
       )}
     </>
-  );
-}
-
-function RefinedProperty({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function RefinedCategory({ label, tags }: { label: string; tags: string[] }) {
-  if (tags.length === 0) return null;
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-        {label}
-      </h4>
-      <div className="flex flex-wrap gap-1.5">
-        {tags.map((tag, i) => (
-          <span
-            key={i}
-            className="inline-block px-2 py-1 rounded-md text-xs font-medium bg-primary/10 text-primary"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function RefinedMappings({ mappings }: { mappings: Record<string, string[]> }) {
-  const entries = Object.entries(mappings).filter(([, variants]) => variants.length > 0);
-  if (entries.length === 0) return null;
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <h4 className="text-xs font-medium text-muted-foreground mb-3 uppercase tracking-wide">
-        Synonym Mappings
-      </h4>
-      <div className="space-y-2">
-        {entries.map(([canonical, variants]) => (
-          <div key={canonical} className="flex items-start gap-2 text-xs">
-            <span className="font-medium text-primary shrink-0">{canonical}</span>
-            <span className="text-muted-foreground">←</span>
-            <span className="text-muted-foreground">{variants.join(", ")}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   );
 }
 

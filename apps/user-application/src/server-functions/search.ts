@@ -10,8 +10,16 @@ import {
     stepsValidator,
     angleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
+import { hexToColorName } from "@/lib/color-utils";
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 3; // 3 days
+
+// Matches hex codes: #RGB, #RRGGBB (works in arrays, quotes, or standalone)
+const HEX_CODE_REGEX = /#([0-9a-fA-F]{3}(?![0-9a-fA-F])|[0-9a-fA-F]{6}(?![0-9a-fA-F]))/g;
+
+function replaceHexWithColorNames(query: string): string {
+    return query.replace(HEX_CODE_REGEX, (match) => hexToColorName(match));
+}
 
 const vectorMetadataSchema = v.object({
     seed: seedValidator,
@@ -51,7 +59,9 @@ export const searchPalettes = baseSearchFunction
             return { results: [] as SearchResult[] };
         }
 
-        const cacheKey = getCacheKey(query, limit);
+        // Replace hex codes with color names before processing
+        const normalizedQuery = replaceHexWithColorNames(query);
+        const cacheKey = getCacheKey(normalizedQuery, limit);
 
         // Check KV cache first
         if (env.SEARCH_CACHE) {
@@ -71,7 +81,7 @@ export const searchPalettes = baseSearchFunction
         const embeddingResponse = await env.AI.run(
             "@cf/google/embeddinggemma-300m",
             {
-                text: [query],
+                text: [normalizedQuery],
             },
         );
 

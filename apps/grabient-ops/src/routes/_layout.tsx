@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet, useParams, useSearch } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { useState, useMemo } from "react";
@@ -18,8 +18,18 @@ import {
   rgbToHex,
   generateCssGradient,
 } from "@repo/data-ops/gradient-gen";
+import { z } from "zod";
+import { REFINEMENT_MODELS } from "../../convex/lib/providers.types";
+
+const searchSchema = z.object({
+  refinementModel: z.enum(REFINEMENT_MODELS).optional(),
+  refinementCycle: z.number().optional(),
+});
+
+type SearchParams = z.infer<typeof searchSchema>;
 
 export const Route = createFileRoute("/_layout")({
+  validateSearch: searchSchema,
   component: LayoutComponent,
 });
 
@@ -38,6 +48,8 @@ function LayoutComponent() {
 }
 
 function Header() {
+  const search = Route.useSearch();
+
   return (
     <header className="border-b border-border px-6 py-4 shrink-0">
       <div className="flex items-center justify-between">
@@ -51,6 +63,10 @@ function Header() {
         <nav className="flex items-center gap-4">
           <Link
             to="/"
+            search={search.refinementModel || search.refinementCycle ? {
+              refinementModel: search.refinementModel,
+              refinementCycle: search.refinementCycle
+            } : undefined}
             className="text-sm text-muted-foreground hover:text-foreground transition-colors [&.active]:font-medium [&.active]:text-foreground"
           >
             Dashboard
@@ -64,7 +80,7 @@ function Header() {
 
 function Sidebar() {
   const params = useParams({ strict: false });
-  const search = useSearch({ strict: false }) as { refinementModel?: string };
+  const search = Route.useSearch();
   const selectedSeed = (params as { seed?: string }).seed ?? null;
 
   const [page, setPage] = useState(1);
@@ -123,7 +139,10 @@ function Sidebar() {
                 key={palette._id}
                 palette={palette}
                 isSelected={selectedSeed === palette.seed}
-                searchParams={search.refinementModel ? { refinementModel: search.refinementModel } : undefined}
+                searchParams={search.refinementModel || search.refinementCycle ? {
+                  refinementModel: search.refinementModel,
+                  refinementCycle: search.refinementCycle
+                } : undefined}
               />
             ))}
           </div>
@@ -197,7 +216,7 @@ function PaletteListItem({
     isRefined: boolean;
   };
   isSelected: boolean;
-  searchParams?: { refinementModel?: string };
+  searchParams?: SearchParams;
 }) {
   const grabientUrl = `https://grabient.com/${palette.seed}`;
   const gradientStyle = useMemo(() => getGradientStyle(palette.seed), [palette.seed]);

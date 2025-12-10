@@ -4,12 +4,14 @@ import {
   rgbToHex,
   applyGlobals,
 } from "@repo/data-ops/gradient-gen";
+import { hexToColorName } from "./colorUtils";
 
 export interface ColorData {
   hex: string[];
   rgb: [number, number, number][];
   hsl: [number, number, number][];
   lch: [number, number, number][];
+  colorNames: string[];
 }
 
 function rgbToHsl(
@@ -125,5 +127,16 @@ export function generateColorDataFromSeed(seed: string, steps = 11): ColorData {
     lch.push(rgbToLch(r255, g255, b255));
   }
 
-  return { hex, rgb, hsl, lch };
+  // Convert hex to color names and dedupe while preserving order
+  const seenNames = new Set<string>();
+  const colorNames: string[] = [];
+  for (const h of hex) {
+    const name = hexToColorName(h);
+    if (!seenNames.has(name)) {
+      seenNames.add(name);
+      colorNames.push(name);
+    }
+  }
+
+  return { hex, rgb, hsl, lch, colorNames };
 }

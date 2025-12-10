@@ -1,4 +1,4 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQuery, useAction, useMutation } from 'convex/react'
 import { api } from '../../../convex/_generated/api'
 import type {
@@ -18,6 +18,7 @@ const ACTIVE_REFINEMENT_MODELS = REFINEMENT_MODELS.filter(
 )
 import { useState, useEffect, useRef } from 'react'
 import { cn } from '~/lib/utils'
+import { z } from 'zod'
 import {
   Sparkles,
   Database,
@@ -33,9 +34,20 @@ import {
   Plus,
   ArrowLeft,
   Trash2,
+  Upload,
+  Download,
+  Info,
 } from 'lucide-react'
+import { Tooltip, TooltipTrigger, TooltipContent } from '~/components/ui/tooltip'
+import { REFINEMENT_SYSTEM_PROMPT } from '../../../convex/lib/prompts'
+
+const searchSchema = z.object({
+  refinementModel: z.enum(REFINEMENT_MODELS).optional(),
+  refinementCycle: z.number().optional(),
+})
 
 export const Route = createFileRoute('/_layout/')({
+  validateSearch: searchSchema,
   component: Dashboard,
 })
 
@@ -161,12 +173,13 @@ function Dashboard() {
 }
 
 function EmbedTextAnalysisPanel() {
-  const [selectedModel, setSelectedModel] = useState<RefinementModel>(
-    ACTIVE_REFINEMENT_MODELS[0]
-  )
-  const [selectedCycle, setSelectedCycle] = useState<number | undefined>(undefined)
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false)
   const [cycleDropdownOpen, setCycleDropdownOpen] = useState(false)
+  const navigate = useNavigate()
+
+  // Use URL state for model/cycle selection
+  const { refinementModel, refinementCycle } = Route.useSearch()
+  const selectedModel = refinementModel ?? ACTIVE_REFINEMENT_MODELS[0]
 
   // Get available cycles for the selected model
   const availableCycles = useQuery(
@@ -174,12 +187,8 @@ function EmbedTextAnalysisPanel() {
     { model: selectedModel }
   )
 
-  // Always reset to latest cycle when model changes
-  useEffect(() => {
-    if (availableCycles && availableCycles.length > 0) {
-      setSelectedCycle(availableCycles[0])
-    }
-  }, [selectedModel, availableCycles])
+  // Derive effective cycle - URL value takes precedence, otherwise default to first available
+  const selectedCycle = refinementCycle ?? availableCycles?.[0]
 
   const tagData = useQuery(
     api.refinement.getEmbedTextTagFrequencies,
@@ -216,7 +225,11 @@ function EmbedTextAnalysisPanel() {
                       <button
                         key={cycle}
                         onClick={() => {
-                          setSelectedCycle(cycle)
+                          navigate({
+                            from: Route.fullPath,
+                            search: (prev) => ({ ...prev, refinementCycle: cycle }),
+                            replace: true,
+                          })
                           setCycleDropdownOpen(false)
                         }}
                         className={cn(
@@ -258,7 +271,11 @@ function EmbedTextAnalysisPanel() {
                     <button
                       key={model}
                       onClick={() => {
-                        setSelectedModel(model)
+                        navigate({
+                          from: Route.fullPath,
+                          search: (prev) => ({ ...prev, refinementModel: model, refinementCycle: undefined }),
+                          replace: true,
+                        })
                         setModelDropdownOpen(false)
                       }}
                       className={cn(
@@ -376,11 +393,18 @@ function EmbedTagSection({
 function SeedButton() {
   const paletteCount = useQuery(api.seed.getPaletteCount, {})
   const importFromD1 = useAction(api.seed.importFromD1)
+  const seedVectorDb = useAction(api.vectorize.seedVectorDatabase)
   const [isImporting, setIsImporting] = useState(false)
+  const [isSeeding, setIsSeeding] = useState(false)
   const [message, setMessage] = useState<{
     type: 'success' | 'error'
     text: string
   } | null>(null)
+
+  // Use URL state for model/cycle selection
+  const { refinementModel, refinementCycle } = Route.useSearch()
+  const selectedModel = refinementModel ?? ACTIVE_REFINEMENT_MODELS[0]
+  const selectedCycle = refinementCycle
 
   const handleImport = async () => {
     setIsImporting(true)
@@ -403,6 +427,31 @@ function SeedButton() {
       })
     } finally {
       setIsImporting(false)
+    }
+  }
+
+  const handleSeedVectorDb = async () => {
+    if (selectedCycle === undefined) return
+
+    setIsSeeding(true)
+    setMessage(null)
+    try {
+      const result = await seedVectorDb({
+        model: selectedModel,
+        cycle: selectedCycle,
+      })
+      setMessage({
+        type: result.success ? 'success' : 'error',
+        text: result.message,
+      })
+      setTimeout(() => setMessage(null), 5000)
+    } catch (err) {
+      setMessage({
+        type: 'error',
+        text: err instanceof Error ? err.message : 'Seeding failed',
+      })
+    } finally {
+      setIsSeeding(false)
     }
   }
 
@@ -441,8 +490,31 @@ function SeedButton() {
             </>
           ) : (
             <>
-              <Database className="h-3 w-3" />
+              <Download className="h-3 w-3" />
               Sync D1
+            </>
+          )}
+        </button>
+        <button
+          onClick={handleSeedVectorDb}
+          disabled={isSeeding || selectedCycle === undefined}
+          className={cn(
+            'px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-1.5',
+            'border border-primary/50 bg-primary/10 text-primary hover:bg-primary/20',
+            'disabled:opacity-50 disabled:cursor-not-allowed',
+            'outline-none focus-visible:ring-2 focus-visible:ring-ring/70',
+          )}
+          title={`Seed vector DB with ${selectedModel.split('/').pop()} cycle ${selectedCycle}`}
+        >
+          {isSeeding ? (
+            <>
+              <Loader2 className="h-3 w-3 animate-spin" />
+              Seeding...
+            </>
+          ) : (
+            <>
+              <Upload className="h-3 w-3" />
+              Update Vector DB
             </>
           )}
         </button>
@@ -944,6 +1016,16 @@ function RefinementStatusPanel({
         <div className="flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-primary" />
           <h3 className="font-semibold text-foreground">Tag Refinement</h3>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="text-muted-foreground hover:text-foreground transition-colors">
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" align="start" className="max-w-md max-h-80 overflow-y-auto !bg-card">
+              <pre className="text-[10px] whitespace-pre-wrap font-mono">{REFINEMENT_SYSTEM_PROMPT}</pre>
+            </TooltipContent>
+          </Tooltip>
           {currentCycle !== undefined && currentCycle > 0 && (
             <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
               Cycle {currentCycle}

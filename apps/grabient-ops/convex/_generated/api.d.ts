@@ -14,6 +14,7 @@ import type * as consensus from "../consensus.js";
 import type * as crons from "../crons.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_colorData from "../lib/colorData.js";
+import type * as lib_colorUtils from "../lib/colorUtils.js";
 import type * as lib_legacyPrompts from "../lib/legacyPrompts.js";
 import type * as lib_prompts from "../lib/prompts.js";
 import type * as lib_providers from "../lib/providers.js";
@@ -24,6 +25,7 @@ import type * as refinement from "../refinement.js";
 import type * as refinementActions from "../refinementActions.js";
 import type * as seed from "../seed.js";
 import type * as status from "../status.js";
+import type * as vectorize from "../vectorize.js";
 
 import type {
   ApiFromModules,
@@ -38,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   "lib/aggregates": typeof lib_aggregates;
   "lib/colorData": typeof lib_colorData;
+  "lib/colorUtils": typeof lib_colorUtils;
   "lib/legacyPrompts": typeof lib_legacyPrompts;
   "lib/prompts": typeof lib_prompts;
   "lib/providers": typeof lib_providers;
@@ -48,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   refinementActions: typeof refinementActions;
   seed: typeof seed;
   status: typeof status;
+  vectorize: typeof vectorize;
 }>;
 
 /**

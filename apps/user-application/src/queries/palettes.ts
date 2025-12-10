@@ -6,6 +6,7 @@ import {
     getUserLikedSeeds,
     getPaletteLikeInfo,
 } from "@/server-functions/palettes";
+import { searchPalettes } from "@/server-functions/search";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
@@ -15,11 +16,12 @@ export type AppPalette = {
     style: Palette["style"];
     steps: Palette["steps"];
     angle: Palette["angle"];
-    createdAt: Palette["createdAt"];
+    createdAt: Palette["createdAt"] | null;
     coeffs: ReturnType<typeof deserializeCoeffs>["coeffs"];
     globals: ReturnType<typeof deserializeCoeffs>["globals"];
     hexColors: string[];
     likesCount?: number;
+    score?: number;
 };
 
 export interface ExportItem {
@@ -107,6 +109,43 @@ export const paletteLikeInfoQueryOptions = (seed: string) =>
         },
         // Like count for individual palette - 5 minutes is fine
         // Optimistic updates handle immediate feedback for current user's like status
+        staleTime: 1000 * 60 * 5,
+    });
+
+export type SearchResultPalette = AppPalette & {
+    tags: string[];
+    score: number;
+};
+
+export const searchPalettesQueryOptions = (query: string, limit = DEFAULT_PAGE_LIMIT) =>
+    queryOptions({
+        queryKey: ["palettes", "search", query, limit],
+        queryFn: async () => {
+            if (!query.trim()) {
+                return { results: [] as SearchResultPalette[] };
+            }
+            const result = await searchPalettes({ data: { query, limit } });
+            return {
+                results: result.results.map((r) => {
+                    const { coeffs, globals } = deserializeCoeffs(r.seed);
+                    const hexColors = generateHexColors(coeffs, globals, r.steps);
+                    return {
+                        seed: r.seed,
+                        style: r.style,
+                        steps: r.steps,
+                        angle: r.angle,
+                        createdAt: new Date(r.createdAt as number),
+                        coeffs,
+                        globals,
+                        hexColors,
+                        likesCount: r.likesCount,
+                        tags: r.tags,
+                        score: r.score,
+                    };
+                }),
+            };
+        },
+        enabled: !!query.trim(),
         staleTime: 1000 * 60 * 5,
     });
 
