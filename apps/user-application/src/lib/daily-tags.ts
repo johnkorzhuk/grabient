@@ -1,4 +1,8 @@
-import { getColorsWithHex, getColorsWithHue, type ColorWithHue } from "./color-utils";
+import {
+    getColorsWithHex,
+    getColorsWithHue,
+    type ColorWithHue,
+} from "./color-utils";
 
 // Emoji tags mapped to high-frequency palette tags
 const EMOJI_TAGS = [
@@ -24,8 +28,6 @@ const EMOJI_TAGS = [
     "🌻", // garden, sunshine, cheerful
     "🍇", // wine, grapes, rich
     "✨", // ethereal, magic, glamour
-    "🪨", // stone, earthy, rustic
-    "🌾", // harvest, wheat, earthy tones
 ];
 
 // Expanded list of mood/style tags
@@ -240,7 +242,10 @@ function shuffle<T>(array: T[], random: () => number): T[] {
     return result;
 }
 
-export function generateDailyTags(daysSinceEpoch: number, count = 24): DailyTag[] {
+export function generateDailyTags(
+    daysSinceEpoch: number,
+    count = 24,
+): DailyTag[] {
     const random = seededRandom(daysSinceEpoch);
     const tags: DailyTag[] = [];
 
@@ -259,7 +264,11 @@ export function generateDailyTags(daysSinceEpoch: number, count = 24): DailyTag[
     const shuffledColors = shuffle(COLORS, random);
 
     // Generate complementary pairs and triads algorithmically based on hue
-    const generatedPairs = generateComplementaryPairs(COLORS_BY_HUE, pairCount, random);
+    const generatedPairs = generateComplementaryPairs(
+        COLORS_BY_HUE,
+        pairCount,
+        random,
+    );
     const generatedTriads = generateTriads(COLORS_BY_HUE, triadCount, random);
 
     // Add emoji tags
@@ -280,7 +289,9 @@ export function generateDailyTags(daysSinceEpoch: number, count = 24): DailyTag[
             tags.push({ type: "color", name: color.name, hex: color.hex });
         } else {
             // Generate a random hex color
-            const randomHex = `#${Math.floor(random() * 0xffffff).toString(16).padStart(6, "0")}`;
+            const randomHex = `#${Math.floor(random() * 0xffffff)
+                .toString(16)
+                .padStart(6, "0")}`;
             tags.push({ type: "hex", hex: randomHex });
         }
     }
