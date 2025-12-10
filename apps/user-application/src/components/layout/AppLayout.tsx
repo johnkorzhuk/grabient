@@ -6,8 +6,8 @@ import { StepsInput } from "@/components/navigation/StepsInput";
 import { Footer } from "@/components/layout/Footer";
 import { ReactNode, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { Link, useLocation, useRouter } from "@tanstack/react-router";
-import { SlidersHorizontal, X, RotateCcw } from "lucide-react";
+import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
+import { SlidersHorizontal, X, RotateCcw, Search, RefreshCw } from "lucide-react";
 import { useHotkeys } from "@mantine/hooks";
 import {
     Tooltip,
@@ -31,36 +31,58 @@ import {
     CarouselItem,
 } from "@/components/ui/carousel";
 import { SearchInput } from "@/components/search/SearchInput";
+import { TagItem } from "@/components/search/TagItem";
+import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { dailyTagsQueryOptions } from "@/queries/daily-tags";
 
-const popularKeywords = [
-    "modern",
-    "minimalist",
-    "vintage",
-    "bohemian",
-    "scandinavian",
-    "rustic",
-    "luxury",
-    "coastal",
-    "industrial",
-    "tropical",
-    "retro",
-    "elegant",
-    "romantic",
-    "nature",
-    "urban",
-    "contemporary",
-    "professional",
-    "wellness",
-    "eco-friendly",
-    "neutral",
-    "bold",
-    "rose",
-    "lilac",
-    "lavender",
-    "ocean",
-    "forest",
-    "sunset",
-];
+type SortOrder = "popular" | "newest" | "oldest";
+type StyleType =
+    | "auto"
+    | "linearGradient"
+    | "angularGradient"
+    | "angularSwatches"
+    | "linearSwatches"
+    | "deepFlow";
+
+function getSortFromPathname(pathname: string): SortOrder | undefined {
+    if (pathname === "/newest") return "newest";
+    if (pathname === "/oldest") return "oldest";
+    return undefined;
+}
+
+function buildPreservedSearch(
+    currentSearch: {
+        style?: StyleType;
+        angle?: "auto" | number;
+        steps?: "auto" | number;
+        size?: "auto" | [number, number];
+        sort?: SortOrder;
+    },
+    pathname: string,
+) {
+    const sortFromPath = getSortFromPathname(pathname);
+    const sort = currentSearch.sort ?? sortFromPath;
+
+    return {
+        style:
+            currentSearch.style && currentSearch.style !== "auto"
+                ? currentSearch.style
+                : undefined,
+        angle:
+            currentSearch.angle && currentSearch.angle !== "auto"
+                ? currentSearch.angle
+                : undefined,
+        steps:
+            currentSearch.steps && currentSearch.steps !== "auto"
+                ? currentSearch.steps
+                : undefined,
+        size:
+            currentSearch.size && currentSearch.size !== "auto"
+                ? currentSearch.size
+                : undefined,
+        sort: sort && sort !== "popular" ? sort : undefined,
+    };
+}
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -93,6 +115,27 @@ export function AppLayout({
 
     const location = useLocation();
     const router = useRouter();
+    const currentSearch = useSearch({ strict: false }) as {
+        style?: StyleType;
+        angle?: "auto" | number;
+        steps?: "auto" | number;
+        size?: "auto" | [number, number];
+        sort?: SortOrder;
+    };
+
+    const preservedSearch = buildPreservedSearch(currentSearch, location.pathname);
+
+    const queryClient = useQueryClient();
+    const { data: dailyTagsData } = useSuspenseQuery(dailyTagsQueryOptions());
+    const dailyTags = dailyTagsData.tags;
+
+    const refreshTags = () => {
+        const newSeed = Date.now();
+        queryClient.setQueryData(["daily-tags", undefined], () => undefined);
+        queryClient.fetchQuery(dailyTagsQueryOptions(newSeed)).then((data) => {
+            queryClient.setQueryData(["daily-tags", undefined], data);
+        });
+    };
 
     const isAdvancedOpen = useStore(uiStore, (state) => state.isAdvancedOpen);
 
@@ -184,12 +227,12 @@ export function AppLayout({
                     )}
                     suppressHydrationWarning
                 >
-                    <div className="mx-auto w-full px-5 lg:px-14 py-3 subpixel-antialiased flex items-center justify-between gap-1.5 md:gap-2 lg:gap-3">
-                        <div className="flex items-center gap-1.5 md:gap-2">
+                    <div className="mx-auto w-full px-5 lg:px-14 py-3 subpixel-antialiased flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                             {leftAction}
                             <NavigationSelect className="subpixel-antialiased" />
                         </div>
-                        <div className="flex items-center gap-1.5 md:gap-2">
+                        <div className="flex items-center gap-2">
                             {hasCustomValues && (
                                 <Tooltip delayDuration={500}>
                                     <TooltipTrigger asChild>
@@ -227,21 +270,23 @@ export function AppLayout({
                                     </TooltipContent>
                                 </Tooltip>
                             )}
-                            <AngleInput
-                                value={angle}
-                                className="subpixel-antialiased hidden sm:flex"
-                                onPreviewChange={setPreviewAngle}
-                            />
-                            <StepsInput
-                                value={steps}
-                                className="subpixel-antialiased hidden sm:flex"
-                                onPreviewChange={setPreviewSteps}
-                            />
-                            <StyleSelect
-                                value={style}
-                                className="subpixel-antialiased"
-                                onPreviewChange={setPreviewStyle}
-                            />
+                            <div className="flex items-center gap-1.5">
+                                <AngleInput
+                                    value={angle}
+                                    className="subpixel-antialiased hidden sm:flex"
+                                    onPreviewChange={setPreviewAngle}
+                                />
+                                <StepsInput
+                                    value={steps}
+                                    className="subpixel-antialiased hidden sm:flex"
+                                    onPreviewChange={setPreviewSteps}
+                                />
+                                <StyleSelect
+                                    value={style}
+                                    className="subpixel-antialiased"
+                                    onPreviewChange={setPreviewStyle}
+                                />
+                            </div>
                             <Tooltip delayDuration={500}>
                                 <TooltipTrigger asChild>
                                     <button
@@ -353,43 +398,62 @@ export function AppLayout({
                                 className="flex-1 max-w-2xl min-w-0"
                             >
                                 <CarouselContent className="-ml-1.5">
-                                    {popularKeywords
-                                        .filter(
-                                            (kw) =>
-                                                location.pathname !==
-                                                `/palettes/${kw}`,
-                                        )
-                                        .map((keyword) => (
-                                            <CarouselItem
-                                                key={keyword}
-                                                className="pl-1.5 basis-auto"
-                                            >
-                                                <Link
-                                                    to="/palettes/$query"
-                                                    params={{ query: keyword }}
-                                                    style={{
-                                                        backgroundColor:
-                                                            "var(--background)",
-                                                    }}
-                                                    className={cn(
-                                                        "disable-animation-on-theme-change inline-flex items-center justify-center",
-                                                        "h-7 px-3.5 rounded-md border border-solid",
-                                                        "transition-colors duration-200 outline-none",
-                                                        "text-[11px] md:text-xs font-medium whitespace-nowrap",
-                                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
-                                                    )}
-                                                >
-                                                    {keyword}
-                                                </Link>
-                                            </CarouselItem>
-                                        ))}
+                                    {dailyTags.map((tag, index) => (
+                                        <CarouselItem
+                                            key={index}
+                                            className="pl-1.5 basis-auto"
+                                        >
+                                            <TagItem
+                                                tag={tag}
+                                                preservedSearch={preservedSearch}
+                                                currentPathname={location.pathname}
+                                            />
+                                        </CarouselItem>
+                                    ))}
+                                    <CarouselItem className="pl-1.5 basis-auto">
+                                        <button
+                                            type="button"
+                                            onClick={refreshTags}
+                                            style={{ backgroundColor: "var(--background)" }}
+                                            className={cn(
+                                                "disable-animation-on-theme-change inline-flex items-center justify-center",
+                                                "h-7 w-7 rounded-md border border-solid",
+                                                "transition-colors duration-200 outline-none",
+                                                "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                "cursor-pointer",
+                                            )}
+                                            aria-label="Refresh suggestions"
+                                        >
+                                            <RefreshCw className="h-3 w-3" />
+                                        </button>
+                                    </CarouselItem>
+                                    <CarouselItem className="pl-1.5 basis-auto">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                document.getElementById("search-input-expanded")?.focus();
+                                            }}
+                                            className={cn(
+                                                "disable-animation-on-theme-change inline-flex items-center justify-center gap-1.5",
+                                                "h-7 px-3.5 rounded-md border border-solid",
+                                                "transition-colors duration-200 outline-none",
+                                                "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                "border-input hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                "cursor-pointer",
+                                                "bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/50",
+                                            )}
+                                        >
+                                            <Search className="h-3 w-3" />
+                                            or something else
+                                        </button>
+                                    </CarouselItem>
                                 </CarouselContent>
                             </Carousel>
                         </div>
                     </div>
                 </div>
             )}
-            <main className="pt-8 pb-5 flex-1">{children}</main>
+            <main className="pt-12 md:pt-16 pb-5 flex-1">{children}</main>
             <Footer />
         </div>
     );

@@ -120,7 +120,7 @@ export function GradientSidebar({
                                             className={cn(
                                                 "disable-animation-on-theme-change",
                                                 "inline-flex items-center justify-center rounded-md",
-                                                "w-8 h-8 mr-3 border border-solid",
+                                                "group/chart w-8 h-8 mr-3 border border-solid",
                                                 "transition-colors duration-200 cursor-pointer",
                                                 "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
                                                 "border-input text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground",

@@ -1,4 +1,4 @@
-const BASIC_COLORS: Array<{ name: string; r: number; g: number; b: number }> = [
+export const BASIC_COLORS: Array<{ name: string; r: number; g: number; b: number }> = [
     { name: "black", r: 0, g: 0, b: 0 },
     { name: "white", r: 255, g: 255, b: 255 },
     { name: "red", r: 255, g: 0, b: 0 },
@@ -145,4 +145,80 @@ export function getGradientAriaLabel(hexColors: string[]): string {
     const last = names[names.length - 1];
     const rest = names.slice(0, -1).join(", ");
     return `gradient with ${rest}, and ${last}`;
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+    const toHex = (n: number) => n.toString(16).padStart(2, "0");
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+/**
+ * Convert RGB to HSL. Returns hue in degrees (0-360), saturation and lightness as 0-1.
+ */
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+    r /= 255;
+    g /= 255;
+    b /= 255;
+
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const l = (max + min) / 2;
+
+    if (max === min) {
+        return { h: 0, s: 0, l }; // achromatic
+    }
+
+    const d = max - min;
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+    let h = 0;
+    if (max === r) {
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+    } else if (max === g) {
+        h = ((b - r) / d + 2) / 6;
+    } else {
+        h = ((r - g) / d + 4) / 6;
+    }
+
+    return { h: h * 360, s, l };
+}
+
+export function getColorsWithHex(): Array<{ name: string; hex: string }> {
+    return BASIC_COLORS.map((c) => ({
+        name: c.name,
+        hex: rgbToHex(c.r, c.g, c.b),
+    }));
+}
+
+export interface ColorWithHue {
+    name: string;
+    hex: string;
+    hue: number;
+    saturation: number;
+    lightness: number;
+}
+
+/**
+ * Get colors with HSL values, optionally filtered and sorted by hue.
+ * Excludes achromatic colors (black, white, grays) by default.
+ */
+export function getColorsWithHue(options?: {
+    excludeAchromatic?: boolean;
+    minSaturation?: number;
+}): ColorWithHue[] {
+    const { excludeAchromatic = true, minSaturation = 0.1 } = options ?? {};
+
+    return BASIC_COLORS
+        .map((c) => {
+            const { h, s, l } = rgbToHsl(c.r, c.g, c.b);
+            return {
+                name: c.name,
+                hex: rgbToHex(c.r, c.g, c.b),
+                hue: h,
+                saturation: s,
+                lightness: l,
+            };
+        })
+        .filter((c) => !excludeAchromatic || c.saturation >= minSaturation)
+        .sort((a, b) => a.hue - b.hue);
 }

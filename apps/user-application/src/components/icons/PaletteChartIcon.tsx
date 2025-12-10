@@ -23,8 +23,8 @@ export function PaletteChartIcon({
         for (let i = 0; i < colors.length; i++) {
             const t = i / (colors.length - 1);
             const value = colors[i]?.[channel] ?? 0;
-            const x = 47 + t * 113;
-            const y = 155 - value * 105;
+            const x = 20 + t * 160;
+            const y = 170 - value * 140;
             points.push(`${x.toFixed(1)} ${y.toFixed(1)}`);
         }
         return (
@@ -54,20 +54,22 @@ export function PaletteChartIcon({
             <path
                 d="M25 25V158.333C25 162.754 26.7559 166.993 29.8816 170.118C33.0072 173.244 37.2464 175 41.6667 175H175"
                 stroke="currentColor"
-                strokeWidth="10"
+                strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />
-            {paths.map((pathData, i) => (
-                <path
-                    key={i}
-                    d={pathData}
-                    stroke={strokeColors[i]}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-            ))}
+            <g className="opacity-70 transition-opacity duration-200 group-hover/chart:opacity-100">
+                {paths.map((pathData, i) => (
+                    <path
+                        key={i}
+                        d={pathData}
+                        stroke={strokeColors[i]}
+                        strokeWidth="16"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                    />
+                ))}
+            </g>
         </svg>
     );
 }
