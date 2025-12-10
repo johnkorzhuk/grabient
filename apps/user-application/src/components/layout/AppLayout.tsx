@@ -6,7 +6,7 @@ import { StepsInput } from "@/components/navigation/StepsInput";
 import { Footer } from "@/components/layout/Footer";
 import { ReactNode, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useLocation, useRouter } from "@tanstack/react-router";
+import { Link, useLocation, useRouter } from "@tanstack/react-router";
 import { SlidersHorizontal, X, RotateCcw } from "lucide-react";
 import { useHotkeys } from "@mantine/hooks";
 import {
@@ -25,6 +25,41 @@ import {
     toggleIsAdvancedOpen,
     setIsAdvancedOpen,
 } from "@/stores/ui";
+import {
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+} from "@/components/ui/carousel";
+
+const popularKeywords = [
+    "modern",
+    "minimalist",
+    "vintage",
+    "bohemian",
+    "scandinavian",
+    "rustic",
+    "luxury",
+    "coastal",
+    "industrial",
+    "tropical",
+    "retro",
+    "elegant",
+    "romantic",
+    "nature",
+    "urban",
+    "contemporary",
+    "professional",
+    "wellness",
+    "eco-friendly",
+    "neutral",
+    "bold",
+    "rose",
+    "lilac",
+    "lavender",
+    "ocean",
+    "forest",
+    "sunset",
+];
 
 interface AppLayoutProps {
     children: ReactNode;
@@ -138,7 +173,7 @@ export function AppLayout({
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
-            <AppHeader logoNavigation={logoNavigation} />
+            <AppHeader logoNavigation={logoNavigation} showSearch={showNavigation} />
             <div className="relative pt-4 md:pt-6" />
             {showNavigation && (
                 <div
@@ -295,6 +330,49 @@ export function AppLayout({
                                 onPreviewChange={setPreviewSteps}
                             />
                         </div>
+                    </div>
+                </div>
+            )}
+            {showNavigation && (
+                <div className="mx-auto w-full px-5 lg:px-14 pt-16 md:pt-20 pb-2 flex flex-col items-center gap-3">
+                    <div className="w-full flex items-center justify-center gap-2">
+                        <span className="text-xs md:text-sm font-medium text-muted-foreground shrink-0 mr-1">
+                            Popular
+                        </span>
+                        <Carousel
+                            opts={{
+                                align: "start",
+                                dragFree: true,
+                                containScroll: "trimSnaps",
+                            }}
+                            className="flex-1 max-w-2xl"
+                        >
+                            <CarouselContent className="-ml-1.5">
+                                {popularKeywords
+                                    .filter((kw) => location.pathname !== `/palettes/${kw}`)
+                                    .map((keyword) => (
+                                        <CarouselItem
+                                            key={keyword}
+                                            className="pl-1.5 basis-auto"
+                                        >
+                                            <Link
+                                                to="/palettes/$query"
+                                                params={{ query: keyword }}
+                                                style={{ backgroundColor: "var(--background)" }}
+                                                className={cn(
+                                                    "disable-animation-on-theme-change inline-flex items-center justify-center",
+                                                    "h-7 px-3.5 rounded-md border border-solid",
+                                                    "transition-colors duration-200 outline-none",
+                                                    "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                    "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50"
+                                                )}
+                                            >
+                                                {keyword}
+                                            </Link>
+                                        </CarouselItem>
+                                    ))}
+                            </CarouselContent>
+                        </Carousel>
                     </div>
                 </div>
             )}

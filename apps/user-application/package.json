@@ -57,6 +57,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.44.5",
+    "embla-carousel-react": "^8.6.0",
     "fontaine": "^0.7.0",
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.476.0",

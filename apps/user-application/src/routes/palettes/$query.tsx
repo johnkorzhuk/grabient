@@ -385,7 +385,7 @@ function SearchResultsPage() {
 
     return (
         <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav}>
-            <div className="px-5 lg:px-14 mb-8">
+            <div className="px-5 lg:px-14 mb-10 md:mb-12">
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-1">
                     <QueryDisplay query={query} />
                     <span>palettes</span>
