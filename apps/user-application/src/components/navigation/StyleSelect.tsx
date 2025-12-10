@@ -85,7 +85,7 @@ export function StyleSelect({
             )}
             suppressHydrationWarning
         >
-            <span className="font-system font-semibold whitespace-nowrap pl-1 md:pl-0">
+            <span className="font-system font-semibold whitespace-nowrap pl-1 md:pl-0 -translate-y-px">
                 {value === "auto" ? "style" : STYLE_LABELS[value]}
             </span>
             <ChevronsUpDown

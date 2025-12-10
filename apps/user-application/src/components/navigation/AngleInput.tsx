@@ -311,7 +311,7 @@ export function AngleInput({
                         />
                     )}
                     <span
-                        className="font-system font-semibold whitespace-nowrap cursor-text flex-1 text-left"
+                        className="font-system font-semibold whitespace-nowrap cursor-text flex-1 text-left -translate-y-px"
                         onClick={handleLabelClick}
                         style={isEditing ? { opacity: 0 } : undefined}
                     >

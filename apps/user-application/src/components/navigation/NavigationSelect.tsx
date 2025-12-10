@@ -130,7 +130,7 @@ export function NavigationSelect({
                     )}
                     suppressHydrationWarning
                 >
-                    <span className="font-system font-semibold">
+                    <span className="font-system font-semibold -translate-y-px">
                         {currentItem.label}
                     </span>
                     <ChevronsUpDown
