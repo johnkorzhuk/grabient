@@ -112,6 +112,16 @@ export function simplifyHex(hex: string): string {
     return hex;
 }
 
+export function isExactColorMatch(hex: string): boolean {
+    const rgb = hexToRgb(hex);
+    for (const color of BASIC_COLORS) {
+        if (color.r === rgb.r && color.g === rgb.g && color.b === rgb.b) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /**
  * Get unique color names from an array of hex colors, preserving order.
  * Adjacent duplicates are removed to create a readable description.

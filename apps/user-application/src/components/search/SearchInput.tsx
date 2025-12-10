@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils";
 import { isValidSeed, serializeCoeffs } from "@repo/data-ops/serialization";
 import {
     DEFAULT_GLOBALS,
-    type coeffsSchema,
+    seedValidator,
+    coeffsSchema,
+    rawVectorInputSchema,
 } from "@repo/data-ops/valibot-schema/grabient";
-import type * as v from "valibot";
+import * as v from "valibot";
 
 type StyleType =
     | "auto"
@@ -18,50 +20,34 @@ type StyleType =
     | "deepFlow";
 type SizeType = "auto" | [number, number];
 
-type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
+// Schema for parsing raw vector string input (e.g. "[[0.5, 0.2, 0.8], [0.3, 0.1, 0.9], ...]")
+const rawCoeffsInputSchema = v.pipe(
+    v.string(),
+    v.regex(/^\s*\[\s*\[[\d.,\s\-]+\](?:\s*,\s*\[[\d.,\s\-]+\])*\s*\]\s*$/, "Invalid vector format"),
+    v.transform((input) => JSON.parse(input) as unknown),
+    v.tuple([rawVectorInputSchema, rawVectorInputSchema, rawVectorInputSchema, rawVectorInputSchema]),
+);
 
 function parseVectorToSeed(input: string): string | null {
-    const vectorRegex =
-        /^\s*\[\s*\[[\d.,\s\-]+\](?:\s*,\s*\[[\d.,\s\-]+\])*\s*\]\s*$/;
-    if (!vectorRegex.test(input)) return null;
+    const result = v.safeParse(rawCoeffsInputSchema, input);
+    if (!result.success) return null;
 
-    try {
-        const parsed = JSON.parse(input);
-        if (!Array.isArray(parsed) || parsed.length !== 4) return null;
+    // Validate the transformed coeffs match the expected schema
+    const coeffsResult = v.safeParse(coeffsSchema, result.output);
+    if (!coeffsResult.success) return null;
 
-        // Validate each vector has 3 or 4 numbers
-        for (const vec of parsed) {
-            if (!Array.isArray(vec) || vec.length < 3 || vec.length > 4)
-                return null;
-            if (
-                !vec.every((n: unknown) => typeof n === "number" && isFinite(n))
-            )
-                return null;
-        }
-
-        // Convert to coeffs format (add alpha=1 if not present)
-        const coeffs: CosineCoeffs = parsed.map((vec: number[]) => [
-            vec[0],
-            vec[1],
-            vec[2],
-            1,
-        ]) as CosineCoeffs;
-
-        return serializeCoeffs(coeffs, DEFAULT_GLOBALS);
-    } catch {
-        return null;
-    }
+    return serializeCoeffs(coeffsResult.output, DEFAULT_GLOBALS);
 }
 
 interface UrlParseResult {
     seed: string;
-    searchParams: Record<string, string>;
+    searchParams: Record<string, string | number>;
 }
 
 function parseGrabientUrl(input: string): UrlParseResult | null {
+    // Parse URL
+    let url: URL;
     try {
-        // Try to parse as URL
-        let url: URL;
         if (input.startsWith("http")) {
             url = new URL(input);
         } else if (input.includes("grabient.com")) {
@@ -69,26 +55,36 @@ function parseGrabientUrl(input: string): UrlParseResult | null {
         } else {
             return null;
         }
-
-        if (!url.hostname.includes("grabient.com")) return null;
-
-        // Extract seed from pathname (first segment after /)
-        const pathParts = url.pathname.split("/").filter(Boolean);
-        if (pathParts.length === 0) return null;
-
-        const seed = pathParts[0];
-        if (!isValidSeed(seed)) return null;
-
-        // Extract search params
-        const searchParams: Record<string, string> = {};
-        url.searchParams.forEach((value, key) => {
-            searchParams[key] = value;
-        });
-
-        return { seed, searchParams };
     } catch {
         return null;
     }
+
+    // Validate hostname
+    if (!url.hostname.includes("grabient.com")) return null;
+
+    // Extract seed from path
+    const pathParts = url.pathname.split("/").filter(Boolean);
+    if (pathParts.length === 0) return null;
+
+    const seed = pathParts[0]!;
+
+    // Validate seed format using valibot
+    const seedResult = v.safeParse(seedValidator, seed);
+    if (!seedResult.success) return null;
+
+    // Extract and convert search params
+    const searchParams: Record<string, string | number> = {};
+    url.searchParams.forEach((value, key) => {
+        // Try to convert numeric values to numbers
+        const num = Number(value);
+        if (!isNaN(num) && value.trim() !== "") {
+            searchParams[key] = num;
+        } else {
+            searchParams[key] = value;
+        }
+    });
+
+    return { seed: seedResult.output, searchParams };
 }
 
 type SortOrder = "popular" | "newest" | "oldest";
@@ -134,19 +130,6 @@ function buildPreservedSearch(
     };
 }
 
-const placeholderKeywords = [
-    "modern",
-    "minimalist",
-    "vintage",
-    "bohemian",
-    "nature",
-    "ocean",
-    "sunset",
-    "forest",
-    "luxury",
-    "tropical",
-];
-
 interface SearchInputProps {
     className?: string;
     variant?: "default" | "expanded";
@@ -157,12 +140,6 @@ export function SearchInput({
     variant = "default",
 }: SearchInputProps) {
     const isExpanded = variant === "expanded";
-    const [randomPlaceholder] = useState(
-        () =>
-            placeholderKeywords[
-                Math.floor(Math.random() * placeholderKeywords.length)
-            ],
-    );
     const navigate = useNavigate();
     const location = useLocation();
     const currentSearch = useSearch({ strict: false }) as {
@@ -257,20 +234,20 @@ export function SearchInput({
             <div
                 className={cn(
                     "absolute top-1/2 -translate-y-1/2 text-muted-foreground",
-                    isExpanded ? "left-4" : "left-3",
+                    isExpanded ? "left-3.5 md:left-4" : "left-3",
                 )}
             >
-                <Search className={cn(isExpanded ? "h-5 w-5" : "h-4 w-4")} />
+                <Search className={cn(isExpanded ? "h-4.5 w-4.5 md:h-5 md:w-5" : "h-4 w-4")} />
             </div>
             <input
                 ref={inputRef}
+                id={isExpanded ? "search-input-expanded" : undefined}
                 type="text"
                 value={localValue}
                 onChange={handleChange}
                 onKeyDown={handleKeyDown}
-                placeholder={
-                    isExpanded ? randomPlaceholder : "Search palettes..."
-                }
+                placeholder="Search palettes..."
+                suppressHydrationWarning
                 style={{ backgroundColor: "var(--background)" }}
                 className={cn(
                     "disable-animation-on-theme-change w-full border border-solid",
@@ -280,7 +257,7 @@ export function SearchInput({
                     "focus:border-muted-foreground/50 focus:outline-none",
                     "transition-colors duration-200",
                     isExpanded
-                        ? "h-11 rounded-full pl-11 pr-10 text-sm md:text-base border-input"
+                        ? "h-10 md:h-11 rounded-full pl-10 md:pl-11 pr-9 md:pr-10 text-sm md:text-base border-input"
                         : "h-9 rounded-md pl-9 pr-8 text-sm border-input",
                 )}
             />
@@ -294,7 +271,7 @@ export function SearchInput({
                         "transition-colors duration-200",
                         "cursor-pointer p-0.5 rounded",
                         "focus:outline-none focus:ring-2 focus:ring-ring/70",
-                        isExpanded ? "right-4" : "right-2",
+                        isExpanded ? "right-3.5 md:right-4" : "right-2",
                     )}
                     aria-label="Clear search"
                 >

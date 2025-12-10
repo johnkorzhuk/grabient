@@ -6,10 +6,21 @@ import { StepsInput } from "@/components/navigation/StepsInput";
 import { Footer } from "@/components/layout/Footer";
 import { type ReactNode, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useLocation, useRouter, useSearch, Link } from "@tanstack/react-router";
+import {
+    useLocation,
+    useRouter,
+    useSearch,
+    Link,
+} from "@tanstack/react-router";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
-import { SlidersHorizontal, X, RotateCcw, Search, RefreshCw } from "lucide-react";
+import {
+    SlidersHorizontal,
+    X,
+    RotateCcw,
+    Search,
+    RefreshCw,
+} from "lucide-react";
 import { useHotkeys, useMounted } from "@mantine/hooks";
 import {
     Tooltip,
@@ -45,11 +56,11 @@ type TagColorInfo =
     | { type: "pair"; hex1: string; hex2: string };
 
 function getTagColorInfo(tag: string): TagColorInfo {
-    // Check for color pair (e.g., "red and cyan")
-    if (tag.includes(" and ")) {
-        const [color1, color2] = tag.split(" and ");
-        const hex1 = colorNameToHex(color1!.trim());
-        const hex2 = colorNameToHex(color2!.trim());
+    // Check for color pair (e.g., "red cyan" - space separated)
+    const words = tag.split(" ");
+    if (words.length === 2 && isColorName(words[0]!) && isColorName(words[1]!)) {
+        const hex1 = colorNameToHex(words[0]!);
+        const hex2 = colorNameToHex(words[1]!);
         if (hex1 && hex2) {
             return { type: "pair", hex1, hex2 };
         }
@@ -70,7 +81,6 @@ function getTagColorInfo(tag: string): TagColorInfo {
 
     return { type: "none" };
 }
-
 
 type SortOrder = "popular" | "newest" | "oldest";
 type StyleType =
@@ -164,7 +174,10 @@ export function AppLayout({
         sort?: SortOrder;
     };
 
-    const preservedSearch = buildPreservedSearch(currentSearch, location.pathname);
+    const preservedSearch = buildPreservedSearch(
+        currentSearch,
+        location.pathname,
+    );
 
     const isAdvancedOpen = useStore(uiStore, (state) => state.isAdvancedOpen);
 
@@ -409,7 +422,7 @@ export function AppLayout({
                 </div>
             )}
             {showNavigation && (
-                <div className="mx-auto w-full px-5 lg:px-14 pt-4 md:pt-4 pb-2">
+                <div className="mx-auto w-full px-5 lg:px-14 pt-4 md:pt-6 pb-2">
                     <div className="sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col items-center gap-3 md:gap-5 bg-background py-2">
                         <div className="w-full md:max-w-lg">
                             <SearchInput variant="expanded" />
@@ -429,39 +442,60 @@ export function AppLayout({
                                     {popularTags.map((tag) => {
                                         const colorInfo = getTagColorInfo(tag);
                                         return (
-                                            <CarouselItem key={tag} className="basis-auto pl-1.5">
+                                            <CarouselItem
+                                                key={tag}
+                                                className="basis-auto pl-1.5"
+                                            >
                                                 <Link
                                                     to="/palettes/$query"
                                                     params={{ query: tag }}
-                                                    style={{ backgroundColor: "var(--background)" }}
+                                                    search={preservedSearch}
+                                                    style={{
+                                                        backgroundColor:
+                                                            "var(--background)",
+                                                    }}
                                                     className={cn(
                                                         "inline-flex items-center justify-center gap-1.5",
                                                         "h-7 px-3.5 rounded-md border border-solid",
                                                         "transition-colors duration-200 outline-none",
                                                         "text-[11px] md:text-xs font-medium whitespace-nowrap",
                                                         "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
-                                                        mounted && "disable-animation-on-theme-change",
+                                                        mounted &&
+                                                            "disable-animation-on-theme-change",
                                                     )}
                                                 >
-                                                    {colorInfo.type === "single" && (
+                                                    {colorInfo.type ===
+                                                        "single" && (
                                                         <span
                                                             className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
-                                                            style={{ backgroundColor: colorInfo.hex }}
+                                                            style={{
+                                                                backgroundColor:
+                                                                    colorInfo.hex,
+                                                            }}
                                                         />
                                                     )}
-                                                    {colorInfo.type === "pair" && (
+                                                    {colorInfo.type ===
+                                                        "pair" && (
                                                         <span className="inline-flex shrink-0 w-5">
                                                             <span
                                                                 className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
-                                                                style={{ backgroundColor: colorInfo.hex1 }}
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        colorInfo.hex1,
+                                                                }}
                                                             />
                                                             <span
                                                                 className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10 -ml-1.5"
-                                                                style={{ backgroundColor: colorInfo.hex2 }}
+                                                                style={{
+                                                                    backgroundColor:
+                                                                        colorInfo.hex2,
+                                                                }}
                                                             />
                                                         </span>
                                                     )}
-                                                    <span className="translate-y-px md:translate-y-0">{tag}</span>
+                                                    <span className="translate-y-px md:translate-y-0">
+                                                        {tag}
+                                                    </span>
                                                 </Link>
                                             </CarouselItem>
                                         );
@@ -470,7 +504,9 @@ export function AppLayout({
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                queryClient.refetchQueries({ queryKey: ["popularTags"] });
+                                                queryClient.refetchQueries({
+                                                    queryKey: ["popularTags"],
+                                                });
                                             }}
                                             className={cn(
                                                 "inline-flex items-center justify-center",
@@ -478,9 +514,13 @@ export function AppLayout({
                                                 "transition-colors duration-200 outline-none",
                                                 "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
                                                 "cursor-pointer",
-                                                mounted && "disable-animation-on-theme-change",
+                                                mounted &&
+                                                    "disable-animation-on-theme-change",
                                             )}
-                                            style={{ backgroundColor: "var(--background)" }}
+                                            style={{
+                                                backgroundColor:
+                                                    "var(--background)",
+                                            }}
                                             aria-label="Refresh tags"
                                         >
                                             <RefreshCw className="h-3 w-3" />
@@ -490,7 +530,11 @@ export function AppLayout({
                                         <button
                                             type="button"
                                             onClick={() => {
-                                                document.getElementById("search-input-expanded")?.focus();
+                                                document
+                                                    .getElementById(
+                                                        "search-input-expanded",
+                                                    )
+                                                    ?.focus();
                                             }}
                                             className={cn(
                                                 "inline-flex items-center justify-center gap-1.5",
@@ -500,7 +544,8 @@ export function AppLayout({
                                                 "border-input hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
                                                 "cursor-pointer",
                                                 "bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/50",
-                                                mounted && "disable-animation-on-theme-change",
+                                                mounted &&
+                                                    "disable-animation-on-theme-change",
                                             )}
                                         >
                                             <Search className="h-3 w-3" />

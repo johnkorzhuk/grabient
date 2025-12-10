@@ -1,5 +1,33 @@
 import { getColorsWithHex, getColorsWithHue, type ColorWithHue } from "./color-utils";
 
+// Emoji tags mapped to high-frequency palette tags
+const EMOJI_TAGS = [
+    "🌊", // ocean, water, sea
+    "🌅", // sunset, sunrise
+    "🍂", // autumn, leaves, fall
+    "🌲", // forest, nature, woodland
+    "🌸", // flowers, floral, cherry blossom
+    "☀️", // summer, sunshine, light
+    "🌙", // night sky, moonlight, twilight
+    "❄️", // winter, ice, glacier
+    "🌴", // tropical, beach
+    "🍬", // candy, sweet, ice cream
+    "🌿", // botanical, organic, garden
+    "💎", // jewel tone, crystal, gemstone
+    "🔥", // fire, neon, energetic
+    "🌈", // rainbow, vibrant, playful
+    "🍃", // spring, fresh, natural
+    "🌹", // romantic, rose, feminine
+    "🌌", // galaxy, cosmic, space
+    "🍊", // citrus, warm, energetic
+    "☁️", // sky, clouds, dreamy
+    "🌻", // garden, sunshine, cheerful
+    "🍇", // wine, grapes, rich
+    "✨", // ethereal, magic, glamour
+    "🪨", // stone, earthy, rustic
+    "🌾", // harvest, wheat, earthy tones
+];
+
 // Expanded list of mood/style tags
 const STYLE_TAGS = [
     "analogous",
@@ -189,6 +217,7 @@ function generateTriads(
 
 export type DailyTag =
     | { type: "text"; value: string }
+    | { type: "emoji"; value: string }
     | { type: "color"; name: string; hex: string }
     | { type: "hex"; hex: string }
     | { type: "pair"; colors: Array<{ name: string; hex: string }> }
@@ -215,19 +244,28 @@ export function generateDailyTags(daysSinceEpoch: number, count = 24): DailyTag[
     const random = seededRandom(daysSinceEpoch);
     const tags: DailyTag[] = [];
 
-    // Mix ratio: ~75% style tags, ~12% single colors, ~8% pairs, ~5% triads
-    const styleCount = Math.floor(count * 0.75);
-    const colorCount = Math.floor(count * 0.12);
-    const pairCount = Math.floor(count * 0.08);
-    const triadCount = count - styleCount - colorCount - pairCount;
+    // Fixed emoji count: 2-3 emojis
+    const emojiCount = 2 + Math.floor(random() * 2); // 2 or 3
+    // Mix ratio for remaining: ~75% style tags, ~12% single colors, ~8% pairs, ~5% triads
+    const remaining = count - emojiCount;
+    const styleCount = Math.floor(remaining * 0.75);
+    const colorCount = Math.floor(remaining * 0.12);
+    const pairCount = Math.floor(remaining * 0.08);
+    const triadCount = remaining - styleCount - colorCount - pairCount;
 
-    // Shuffle style tags
+    // Shuffle all tag sources
+    const shuffledEmojis = shuffle(EMOJI_TAGS, random);
     const shuffledStyles = shuffle(STYLE_TAGS, random);
     const shuffledColors = shuffle(COLORS, random);
 
     // Generate complementary pairs and triads algorithmically based on hue
     const generatedPairs = generateComplementaryPairs(COLORS_BY_HUE, pairCount, random);
     const generatedTriads = generateTriads(COLORS_BY_HUE, triadCount, random);
+
+    // Add emoji tags
+    for (let i = 0; i < emojiCount && i < shuffledEmojis.length; i++) {
+        tags.push({ type: "emoji", value: shuffledEmojis[i]! });
+    }
 
     // Add style tags
     for (let i = 0; i < styleCount && i < shuffledStyles.length; i++) {
@@ -281,6 +319,7 @@ export function getDaysSinceEpoch(): number {
 export function getTagSearchQuery(tag: DailyTag): string {
     switch (tag.type) {
         case "text":
+        case "emoji":
             return tag.value;
         case "color":
             return tag.name;
@@ -291,4 +330,12 @@ export function getTagSearchQuery(tag: DailyTag): string {
         case "triad":
             return tag.colors.map((c) => c.name).join(" ");
     }
+}
+
+/**
+ * Get a simple text placeholder from the daily tags (first text-type tag found)
+ */
+export function getPlaceholderFromTags(tags: DailyTag[]): string {
+    const textTag = tags.find((tag) => tag.type === "text");
+    return textTag ? textTag.value : "nature";
 }

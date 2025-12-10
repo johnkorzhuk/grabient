@@ -54,6 +54,19 @@ export function TagItem({ tag, preservedSearch, currentPathname }: TagItemProps)
                 </Link>
             );
 
+        case "emoji":
+            return (
+                <Link
+                    to="/palettes/$query"
+                    params={{ query: tag.value }}
+                    search={preservedSearch}
+                    style={{ backgroundColor: "var(--background)" }}
+                    className={baseClasses}
+                >
+                    {tag.value}
+                </Link>
+            );
+
         case "color":
             return (
                 <Link

@@ -1,5 +1,32 @@
 import { BASIC_COLORS, getColorsWithHue, type ColorWithHue } from "./color-utils";
 
+const EMOJI_TAGS = [
+    "🌊", // ocean (68), water (65), sea (31)
+    "🌅", // sunset (59), sunrise (31)
+    "🍂", // autumn (63), leaves (25), fall foliage
+    "🌲", // forest (43), nature (53), woodland (28)
+    "🌸", // flowers (38), floral (27), cherry blossom
+    "☀️", // summer (78), sunshine, light (47)
+    "🌙", // night sky (47), moonlight, twilight (28)
+    "❄️", // winter (42), ice (22), glacier
+    "🌴", // tropical (39), beach (54)
+    "🍬", // candy (46), sweet, ice cream (31)
+    "🌿", // botanical (32), organic (46), garden (36)
+    "💎", // jewel tone, crystal, gemstone
+    "🔥", // fire (11), neon (41), energetic (59)
+    "🌈", // rainbow, vibrant (111), playful (65)
+    "🍃", // spring (72), fresh (37), natural (42)
+    "🌹", // romantic (41), rose (23), feminine (23)
+    "🌌", // galaxy (26), cosmic (13), space (20)
+    "🍊", // citrus (27), warm (49), energetic
+    "☁️", // sky (45), clouds (22), dreamy (52)
+    "🌻", // garden (36), sunshine, cheerful (26)
+    "🍇", // wine (29), grapes, rich
+    "✨", // ethereal (30), magic (27), glamour
+    "🪨", // stone (63), earthy (56), rustic (42)
+    "🌾", // harvest, wheat, earthy tones
+];
+
 const STYLE_TAGS = [
     "modern",
     "vibrant",
@@ -56,7 +83,6 @@ const STYLE_TAGS = [
     "mountain",
     "urban",
     "abstract",
-    "geometric",
     "organic",
     "metallic",
     "jewel tones",
@@ -162,7 +188,7 @@ function getAnalogousColor(color: ColorWithHue, colors: ColorWithHue[], random: 
 }
 
 /**
- * Generate a color pair tag (e.g., "red and cyan" or "blue and purple")
+ * Generate a color pair tag (e.g., "red cyan" or "blue purple")
  */
 function generateColorPair(colors: ColorWithHue[], random: () => number): string {
     const shuffled = shuffleArray(colors, random);
@@ -174,15 +200,20 @@ function generateColorPair(colors: ColorWithHue[], random: () => number): string
         ? getComplementaryColor(baseColor, colors)
         : getAnalogousColor(baseColor, colors, random);
 
-    return `${baseColor.name} and ${pairColor.name}`;
+    return `${baseColor.name} ${pairColor.name}`;
 }
 
 function generatePopularTags(count: number, seed: number): string[] {
     const random = seededRandom(seed);
     const colorsWithHue = getColorsWithHue();
 
+    const shuffledEmojis = shuffleArray(EMOJI_TAGS, random);
     const shuffledStyles = shuffleArray(STYLE_TAGS, random);
     const shuffledColors = shuffleArray(colorsWithHue, random);
+
+    // Generate 2-3 emojis
+    const emojiCount = random() < 0.5 ? 2 : 3;
+    const emojis = shuffledEmojis.slice(0, emojiCount);
 
     // Generate 2-3 single colors
     const singleColorCount = random() < 0.5 ? 2 : 3;
@@ -203,16 +234,16 @@ function generatePopularTags(count: number, seed: number): string[] {
         colorPairs.push(generateColorPair(colorsWithHue, random));
     }
 
-    // Combine all color tags
-    const allColorTags = [...singleColors, ...colorPairs];
-    const colorTagCount = allColorTags.length;
+    // Combine all special tags (emojis, colors, pairs)
+    const specialTags = [...emojis, ...singleColors, ...colorPairs];
+    const specialTagCount = specialTags.length;
 
     // Fill the rest with style tags
-    const styleTagCount = count - colorTagCount;
+    const styleTagCount = count - specialTagCount;
     const styleTags = shuffledStyles.slice(0, styleTagCount);
 
-    // Combine and shuffle to distribute colors throughout
-    const allTags = [...styleTags, ...allColorTags];
+    // Combine and shuffle to distribute throughout
+    const allTags = [...styleTags, ...specialTags];
     return shuffleArray(allTags, random);
 }
 
