@@ -10,8 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
-import { SearchInput } from "@/components/search/SearchInput";
+import { useState } from "react";
 import { GrabientLogoContainer } from "@/components/GrabientLogoContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -37,31 +36,13 @@ export interface LogoNavigation {
     search?: Record<string, unknown>;
 }
 
-export function AppHeader({ className, logoNavigation, showSearch = false }: { className?: string; logoNavigation?: LogoNavigation; showSearch?: boolean }) {
+export function AppHeader({ className, logoNavigation }: { className?: string; logoNavigation?: LogoNavigation }) {
     const matches = useMatches();
     const location = useLocation();
     const router = useRouter();
     const seedRouteMatch = matches.find((match) => match.routeId === "/$seed");
     const [dropdownOpen, setDropdownOpen] = useState(false);
-    const [scrollY, setScrollY] = useState(0);
     const { data: session, isPending } = authClient.useSession();
-
-    useEffect(() => {
-        if (!showSearch) return;
-        const handleScroll = () => {
-            setScrollY(window.scrollY);
-        };
-        handleScroll();
-        window.addEventListener("scroll", handleScroll, { passive: true });
-        return () => window.removeEventListener("scroll", handleScroll);
-    }, [showSearch]);
-
-    // Calculate the Y offset for the search input
-    // It starts at its natural position below header and moves up as you scroll
-    // Until it reaches the center of the header
-    const searchStartOffset = 120; // approximate distance from header to search natural position
-    const searchTargetY = 0; // centered in header (relative to header)
-    const searchCurrentOffset = Math.max(0, searchStartOffset - scrollY);
     const focusTrapRef = useFocusTrap(dropdownOpen);
     const { resolved: theme } = useTheme();
     const previousRoute = useStore(uiStore, (state) => state.previousRoute);
@@ -118,12 +99,12 @@ export function AppHeader({ className, logoNavigation, showSearch = false }: { c
     return (
         <header
             className={cn(
-                "disable-animation-on-theme-change sticky top-0 z-[100] w-full bg-background overflow-visible",
+                "disable-animation-on-theme-change sticky top-0 z-[100] w-full bg-background",
                 className,
             )}
             suppressHydrationWarning
         >
-            <div className="mx-auto flex w-full items-center justify-between px-5 lg:px-14 py-3 lg:py-5 relative">
+            <div className="mx-auto flex w-full items-center justify-between px-5 lg:px-14 py-3 lg:py-5">
                 <nav
                     className="flex items-center gap-6 md:gap-10"
                     aria-label="Primary navigation"
@@ -137,17 +118,6 @@ export function AppHeader({ className, logoNavigation, showSearch = false }: { c
                         <GrabientLogoContainer className="h-11 md:h-12 w-auto" />
                     </Link>
                 </nav>
-
-                {showSearch && (
-                    <div
-                        className="absolute left-1/2 top-1/2 w-full max-w-lg px-5 md:px-0 hidden md:block pointer-events-auto z-10"
-                        style={{
-                            transform: `translate(-50%, calc(-50% + ${searchCurrentOffset}px))`,
-                        }}
-                    >
-                        <SearchInput variant="expanded" />
-                    </div>
-                )}
 
                 <div className="flex items-center gap-3 md:gap-6">
                     <div className="flex items-center gap-2">

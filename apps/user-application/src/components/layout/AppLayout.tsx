@@ -30,6 +30,7 @@ import {
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
+import { SearchInput } from "@/components/search/SearchInput";
 
 const popularKeywords = [
     "modern",
@@ -173,7 +174,7 @@ export function AppLayout({
 
     return (
         <div className="min-h-screen bg-background flex flex-col">
-            <AppHeader logoNavigation={logoNavigation} showSearch={showNavigation} />
+            <AppHeader logoNavigation={logoNavigation} />
             <div className="relative pt-4 md:pt-6" />
             {showNavigation && (
                 <div
@@ -334,45 +335,52 @@ export function AppLayout({
                 </div>
             )}
             {showNavigation && (
-                <div className="mx-auto w-full px-5 lg:px-14 pt-16 md:pt-20 pb-2 flex flex-col items-center gap-3">
-                    <div className="w-full flex items-center justify-center gap-2">
-                        <span className="text-xs md:text-sm font-medium text-muted-foreground shrink-0 mr-1">
-                            Popular
-                        </span>
-                        <Carousel
-                            opts={{
-                                align: "start",
-                                dragFree: true,
-                                containScroll: "trimSnaps",
-                            }}
-                            className="flex-1 max-w-2xl"
-                        >
-                            <CarouselContent className="-ml-1.5">
-                                {popularKeywords
-                                    .filter((kw) => location.pathname !== `/palettes/${kw}`)
-                                    .map((keyword) => (
-                                        <CarouselItem
-                                            key={keyword}
-                                            className="pl-1.5 basis-auto"
-                                        >
-                                            <Link
-                                                to="/palettes/$query"
-                                                params={{ query: keyword }}
-                                                style={{ backgroundColor: "var(--background)" }}
-                                                className={cn(
-                                                    "disable-animation-on-theme-change inline-flex items-center justify-center",
-                                                    "h-7 px-3.5 rounded-md border border-solid",
-                                                    "transition-colors duration-200 outline-none",
-                                                    "text-[11px] md:text-xs font-medium whitespace-nowrap",
-                                                    "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50"
-                                                )}
+                <div className="mx-auto w-full px-5 lg:px-14 pt-4 md:pt-6 pb-2">
+                    <div
+                        className="sticky top-[11px] md:top-[14px] lg:top-[22px] z-[101] flex flex-col items-center gap-3 bg-background py-2"
+                    >
+                        <div className="w-full max-w-lg">
+                            <SearchInput variant="expanded" />
+                        </div>
+                        <div className="w-full flex items-center justify-center gap-2">
+                            <span className="text-xs md:text-sm font-medium text-muted-foreground shrink-0 mr-1">
+                                Popular
+                            </span>
+                            <Carousel
+                                opts={{
+                                    align: "start",
+                                    dragFree: true,
+                                    containScroll: "trimSnaps",
+                                }}
+                                className="flex-1 max-w-2xl"
+                            >
+                                <CarouselContent className="-ml-1.5">
+                                    {popularKeywords
+                                        .filter((kw) => location.pathname !== `/palettes/${kw}`)
+                                        .map((keyword) => (
+                                            <CarouselItem
+                                                key={keyword}
+                                                className="pl-1.5 basis-auto"
                                             >
-                                                {keyword}
-                                            </Link>
-                                        </CarouselItem>
-                                    ))}
-                            </CarouselContent>
-                        </Carousel>
+                                                <Link
+                                                    to="/palettes/$query"
+                                                    params={{ query: keyword }}
+                                                    style={{ backgroundColor: "var(--background)" }}
+                                                    className={cn(
+                                                        "disable-animation-on-theme-change inline-flex items-center justify-center",
+                                                        "h-7 px-3.5 rounded-md border border-solid",
+                                                        "transition-colors duration-200 outline-none",
+                                                        "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50"
+                                                    )}
+                                                >
+                                                    {keyword}
+                                                </Link>
+                                            </CarouselItem>
+                                        ))}
+                                </CarouselContent>
+                            </Carousel>
+                        </div>
                     </div>
                 </div>
             )}
