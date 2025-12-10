@@ -62,6 +62,11 @@
 			"binding": "SEARCH_CACHE",
 			"id": "04596938aa91477eb1c38d45f3d1b9f3",
 			"remote": true
+		},
+		{
+			"binding": "OG_IMAGE_CACHE",
+			"id": "a06cc24c512d4994a88593436387f5f1",
+			"remote": true
 		}
 	],
 	// Production environment - used by `wrangler deploy --env production`

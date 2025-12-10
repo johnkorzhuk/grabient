@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { env } from "cloudflare:workers";
 import { Resvg } from "@cf-wasm/resvg/workerd";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import {
@@ -17,6 +18,17 @@ import {
     paletteStyleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
+
+const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
+function getCacheKey(
+    seed: string,
+    style: string,
+    steps: number,
+    angle: number,
+): string {
+    return `og:${seed}:${style}:${steps}:${angle}`;
+}
 
 type GradientStyle = v.InferOutput<typeof paletteStyleValidator>;
 
@@ -139,6 +151,30 @@ export const Route = createFileRoute("/api/og")({
                 const parsedAngle = angleParam ? parseInt(angleParam, 10) : NaN;
                 const angleResult = v.safeParse(angleValidator, parsedAngle);
                 const angle = angleResult.success ? angleResult.output : DEFAULT_ANGLE;
+
+                const cacheKey = getCacheKey(seed, style, steps, angle);
+
+                // Check KV cache first
+                if (env.OG_IMAGE_CACHE) {
+                    try {
+                        const cached =
+                            await env.OG_IMAGE_CACHE.get(cacheKey, "arrayBuffer");
+                        if (cached) {
+                            return new Response(cached, {
+                                status: 200,
+                                headers: {
+                                    "Content-Type": "image/png",
+                                    "Cache-Control":
+                                        "public, max-age=86400, s-maxage=604800",
+                                    "CDN-Cache-Control": "public, max-age=604800",
+                                    "X-Cache": "HIT",
+                                },
+                            });
+                        }
+                    } catch (e) {
+                        console.warn("KV cache read error:", e);
+                    }
+                }
 
                 try {
                     // 1. Deserialize the seed to get coefficients
@@ -263,13 +299,27 @@ export const Route = createFileRoute("/api/og")({
                     const pngData = resvg.render();
                     const pngBuffer = pngData.asPng();
 
-                    // 11. Return PNG with caching headers
+                    // 11. Store in KV cache for future requests
+                    if (env.OG_IMAGE_CACHE) {
+                        try {
+                            await env.OG_IMAGE_CACHE.put(
+                                cacheKey,
+                                pngBuffer,
+                                { expirationTtl: CACHE_TTL_SECONDS },
+                            );
+                        } catch (e) {
+                            console.warn("KV cache write error:", e);
+                        }
+                    }
+
+                    // 12. Return PNG with caching headers
                     return new Response(new Uint8Array(pngBuffer), {
                         status: 200,
                         headers: {
                             "Content-Type": "image/png",
                             "Cache-Control": "public, max-age=86400, s-maxage=604800",
                             "CDN-Cache-Control": "public, max-age=604800",
+                            "X-Cache": "MISS",
                         },
                     });
                 } catch (error) {
