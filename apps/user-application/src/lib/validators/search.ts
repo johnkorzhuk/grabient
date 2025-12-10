@@ -1,10 +1,10 @@
 import * as v from "valibot";
-import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
+import { optionalPageLimitValidator } from "@repo/data-ops/valibot-schema/grabient";
 import { getSeedColorData } from "@/lib/seed-color-data";
+import { HEX_CODE_REGEX } from "@/lib/color-utils";
 
 export const SEARCH_QUERY_MAX_LENGTH = 100;
 const MAX_HEX_CODES = 8;
-export const SEARCH_LIMIT_MAX = 96;
 
 // Regex for Latin alphabet characters
 const LATIN_LETTER_REGEX = /[a-zA-Z]/;
@@ -94,8 +94,7 @@ export function isValidSearchQuery(query: string): boolean {
 }
 
 function sampleHexCodes(query: string): string {
-    const hexRegex = /#([0-9a-fA-F]{3}(?![0-9a-fA-F])|[0-9a-fA-F]{6}(?![0-9a-fA-F]))/g;
-    const hexCodes = query.match(hexRegex) || [];
+    const hexCodes = query.match(HEX_CODE_REGEX) || [];
 
     if (hexCodes.length <= MAX_HEX_CODES) {
         return query;
@@ -111,7 +110,7 @@ function sampleHexCodes(query: string): string {
     }
 
     // Replace all hex codes with sampled ones
-    const nonHexParts = query.replace(hexRegex, "").replace(/\s+/g, " ").trim();
+    const nonHexParts = query.replace(HEX_CODE_REGEX, "").replace(/\s+/g, " ").trim();
     const result = sampled.join(" ") + (nonHexParts ? " " + nonHexParts : "");
     return result;
 }
@@ -140,15 +139,9 @@ export const searchQueryValidator = v.pipe(
     v.maxLength(SEARCH_QUERY_MAX_LENGTH),
 );
 
-export const searchLimitValidator = v.pipe(
-    v.number(),
-    v.minValue(1),
-    v.maxValue(SEARCH_LIMIT_MAX),
-);
-
 export const searchInputSchema = v.object({
     query: searchQueryValidator,
-    limit: v.optional(searchLimitValidator, DEFAULT_PAGE_LIMIT),
+    limit: optionalPageLimitValidator,
 });
 
 export type SearchInput = v.InferOutput<typeof searchInputSchema>;

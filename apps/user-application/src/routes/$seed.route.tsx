@@ -124,7 +124,8 @@ export const Route = createFileRoute("/$seed")({
         context.queryClient.prefetchQuery(userLikedSeedsQueryOptions());
     },
     head: ({ params, match }) => {
-        const ogUrl = new URL("/api/og", "https://grabient.com");
+        const baseUrl = import.meta.env.VITE_BASE_URL || "https://grabient.com";
+        const ogUrl = new URL("/api/og", baseUrl);
         ogUrl.searchParams.set("seed", params.seed);
 
         // Add search params to OG URL if they differ from defaults

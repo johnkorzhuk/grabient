@@ -10,7 +10,7 @@ import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setActivePaletteId, setPreviousRoute } from "@/stores/ui";
 import { UndoButton } from "@/components/navigation/UndoButton";
-import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
+import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 
 export const Route = createFileRoute("/_paletteList/saved")({
     beforeLoad: async ({ context }) => {

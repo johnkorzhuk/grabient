@@ -17,11 +17,12 @@ import {
     stepsValidator,
     angleValidator,
     seedValidator,
+    pageLimitValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 
 const palettesSchema = v.object({
     page: v.pipe(v.number(), v.minValue(1)),
-    limit: v.pipe(v.number(), v.minValue(1), v.maxValue(100)),
+    limit: pageLimitValidator,
     orderBy: v.optional(v.picklist(["popular", "newest", "oldest"]), "popular"),
 });
 
@@ -94,7 +95,7 @@ export const getPalettesPaginated = basePalettesFunction
 
 const userLikesSchema = v.object({
     page: v.pipe(v.number(), v.minValue(1)),
-    limit: v.pipe(v.number(), v.minValue(1), v.maxValue(100)),
+    limit: pageLimitValidator,
 });
 
 const baseProtectedFunction = createServerFn({ method: "GET" }).middleware([

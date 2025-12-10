@@ -73,6 +73,19 @@ export const angleWithAutoValidator = v.union([
   angleValidator,
 ]);
 
+export const DEFAULT_PAGE_LIMIT = 24;
+export const MIN_PAGE_LIMIT = 12;
+export const MAX_PAGE_LIMIT = 96;
+export const pageLimitValidator = v.pipe(
+  v.number(),
+  v.minValue(MIN_PAGE_LIMIT),
+  v.maxValue(MAX_PAGE_LIMIT),
+);
+export const optionalPageLimitValidator = v.optional(
+  v.fallback(pageLimitValidator, DEFAULT_PAGE_LIMIT),
+  DEFAULT_PAGE_LIMIT,
+);
+
 export const DEFAULT_WIDTH = 800;
 export const MIN_WIDTH = 40;
 export const MAX_WIDTH = 6000;
@@ -160,6 +173,17 @@ export const vectorSchema = v.tuple([
   componentSchema, // B component
   v.literal(1), // A component
 ]);
+
+// Schema for raw vector input (3 numbers), transforms to normalized 4-tuple with alpha=1
+export const rawVectorInputSchema = v.pipe(
+  v.tuple([v.number(), v.number(), v.number()]),
+  v.transform((vec): [number, number, number, 1] => [
+    Number(vec[0].toFixed(COEFF_PRECISION)),
+    Number(vec[1].toFixed(COEFF_PRECISION)),
+    Number(vec[2].toFixed(COEFF_PRECISION)),
+    1,
+  ]),
+);
 
 export const coeffsSchema = v.tuple([
   vectorSchema, // a: offset vector (base color)

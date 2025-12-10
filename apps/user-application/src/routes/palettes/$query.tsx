@@ -9,8 +9,8 @@ import {
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
-import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
-import { hexToColorName, colorNameToHex, isColorName, simplifyHex, isExactColorMatch } from "@/lib/color-utils";
+import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
+import { hexToColorName, colorNameToHex, isColorName, simplifyHex, isExactColorMatch, HEX_CODE_REGEX } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
 import { Search, ArrowLeft } from "lucide-react";
@@ -92,8 +92,6 @@ function getQuery(param: string): string | null {
     }
 }
 
-const HEX_REGEX = /#([0-9a-fA-F]{3}(?![0-9a-fA-F])|[0-9a-fA-F]{6}(?![0-9a-fA-F]))/g;
-
 function formatColorList(colors: string[]): string {
     if (colors.length === 0) return "";
     if (colors.length === 1) return colors[0]!;
@@ -108,7 +106,7 @@ function getHeadingText(query: string): string {
     }
 
     // Check for hex codes and convert to color names
-    const hexMatches = query.match(HEX_REGEX);
+    const hexMatches = query.match(HEX_CODE_REGEX);
     if (hexMatches && hexMatches.length > 0) {
         const colorNames: string[] = [];
         const seen = new Set<string>();
@@ -151,16 +149,40 @@ export const Route = createFileRoute("/palettes/$query")({
         "cache-control": "public, max-age=300, stale-while-revalidate=600",
         "cdn-cache-control": "max-age=1800, stale-while-revalidate=3600",
     }),
-    head: ({ params }) => {
+    head: ({ params, match }) => {
         const query = getQuery(params.query) ?? "Search";
         const heading = getHeadingText(query);
         const title = `${heading} - Grabient`;
+
+        const baseUrl = import.meta.env.VITE_BASE_URL || "https://grabient.com";
+        const ogUrl = new URL("/api/og/query", baseUrl);
+        ogUrl.searchParams.set("query", query);
+
+        const { style, steps, angle } = match.search;
+        if (style && style !== "auto") {
+            ogUrl.searchParams.set("style", style);
+        }
+        if (steps !== undefined && steps !== "auto") {
+            ogUrl.searchParams.set("steps", String(steps));
+        }
+        if (angle !== undefined && angle !== "auto") {
+            ogUrl.searchParams.set("angle", String(angle));
+        }
 
         return {
             meta: [
                 { title },
                 { name: "description", content: heading },
-                { name: "robots", content: "noindex, follow" },
+                { name: "og:type", content: "website" },
+                { name: "og:title", content: title },
+                { name: "og:description", content: heading },
+                { name: "og:image", content: ogUrl.toString() },
+                { name: "og:image:width", content: "1200" },
+                { name: "og:image:height", content: "630" },
+                { name: "twitter:card", content: "summary_large_image" },
+                { name: "twitter:title", content: title },
+                { name: "twitter:description", content: heading },
+                { name: "twitter:image", content: ogUrl.toString() },
             ],
         };
     },
@@ -255,7 +277,7 @@ function parseQueryForDisplay(query: string): Array<{ type: "text" | "hex" | "co
     let lastIndex = 0;
     const segments: Array<{ type: "text" | "hex"; value: string; start: number; end: number }> = [];
 
-    for (const match of sanitized.matchAll(HEX_REGEX)) {
+    for (const match of sanitized.matchAll(HEX_CODE_REGEX)) {
         if (match.index! > lastIndex) {
             segments.push({
                 type: "text",
@@ -332,8 +354,8 @@ type QueryType = "seed" | "hex" | "text";
 
 function getQueryType(query: string): QueryType {
     if (isValidSeed(query)) return "seed";
-    if (HEX_REGEX.test(query)) {
-        HEX_REGEX.lastIndex = 0;
+    if (HEX_CODE_REGEX.test(query)) {
+        HEX_CODE_REGEX.lastIndex = 0;
         return "hex";
     }
     return "text";
@@ -345,7 +367,7 @@ function getActualSearchTerms(query: string): { colorNames: string[]; hexCodes: 
         return { colorNames: seedData.colorNames, hexCodes: seedData.hexCodes };
     }
 
-    const hexMatches = query.match(HEX_REGEX);
+    const hexMatches = query.match(HEX_CODE_REGEX);
     if (hexMatches && hexMatches.length > 0) {
         const colorNames: string[] = [];
         const hexCodes: string[] = [];

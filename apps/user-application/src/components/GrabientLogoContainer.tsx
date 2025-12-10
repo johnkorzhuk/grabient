@@ -8,11 +8,11 @@ import {
     DEFAULT_STYLE,
     DEFAULT_ANGLE,
     DEFAULT_STEPS,
+    DEFAULT_PAGE_LIMIT,
 } from "@repo/data-ops/valibot-schema/grabient";
 import type { AppPalette } from "@/queries/palettes";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
-import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 
 interface GrabientLogoContainerProps {
     className?: string;

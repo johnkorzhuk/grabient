@@ -76,6 +76,11 @@ interface EyedropperEventProperties extends BaseEventProperties {
     color: string;
 }
 
+interface SearchEventProperties extends BaseEventProperties {
+    query: string;
+    resultCount?: number;
+}
+
 function getCurrentRoute(): string {
     if (typeof window === "undefined") return "";
     return window.location.pathname;
@@ -211,6 +216,12 @@ export const analytics = {
     eyedropper: {
         selectColor: (props: EyedropperEventProperties) => {
             trackEvent("eyedropper_select_color", props);
+        },
+    },
+
+    search: {
+        query: (props: SearchEventProperties) => {
+            trackEvent("search_query", props);
         },
     },
 };

@@ -9,7 +9,7 @@ import {
 import { searchPalettes } from "@/server-functions/search";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
-import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
+import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 
 export type AppPalette = {
     seed: string;

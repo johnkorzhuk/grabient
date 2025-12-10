@@ -17,10 +17,11 @@ import {
     angleWithAutoValidator,
     stepsWithAutoValidator,
     sizeWithAutoValidator,
+    optionalPageLimitValidator,
+    DEFAULT_PAGE_LIMIT,
 } from "@repo/data-ops/valibot-schema/grabient";
 import { useEffect } from "react";
 import type { SizeType } from "@/stores/export";
-import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 
 const SEARCH_DEFAULTS = {
@@ -50,13 +51,7 @@ const searchValidatorSchema = v.object({
         v.fallback(v.pipe(v.number(), v.minValue(1)), SEARCH_DEFAULTS.page),
         SEARCH_DEFAULTS.page,
     ),
-    limit: v.optional(
-        v.fallback(
-            v.pipe(v.number(), v.minValue(1), v.maxValue(100)),
-            SEARCH_DEFAULTS.limit,
-        ),
-        SEARCH_DEFAULTS.limit,
-    ),
+    limit: optionalPageLimitValidator,
     size: v.optional(
         v.fallback(sizeWithAutoValidator, SEARCH_DEFAULTS.size),
         SEARCH_DEFAULTS.size,

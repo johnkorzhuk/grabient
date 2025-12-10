@@ -44,11 +44,7 @@ import {
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
-import { isColorName, colorNameToHex } from "@/lib/color-utils";
-
-function isHexColor(str: string): boolean {
-    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(str);
-}
+import { isColorName, colorNameToHex, isHexColor } from "@/lib/color-utils";
 
 type TagColorInfo =
     | { type: "none" }

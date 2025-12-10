@@ -25,6 +25,7 @@ import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/old
 import { Route as PaletteListNewestRouteImport } from './routes/_paletteList/newest'
 import { Route as AppPolarSubscriptionsRouteImport } from './routes/app/polar/subscriptions'
 import { Route as AppPolarPortalRouteImport } from './routes/app/polar/portal'
+import { Route as ApiOgQueryRouteImport } from './routes/api/og.query'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
 import { Route as AppPolarCheckoutSuccessRouteImport } from './routes/app/polar/checkout.success'
 
@@ -107,6 +108,11 @@ const AppPolarPortalRoute = AppPolarPortalRouteImport.update({
   path: '/app/polar/portal',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgQueryRoute = ApiOgQueryRouteImport.update({
+  id: '/query',
+  path: '/query',
+  getParentRoute: () => ApiOgRoute,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -127,12 +133,13 @@ export interface FileRoutesByFullPath {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
-  '/api/og': typeof ApiOgRoute
+  '/api/og': typeof ApiOgRouteWithChildren
   '/palettes/$query': typeof PalettesQueryRoute
   '/$seed/': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
@@ -145,12 +152,13 @@ export interface FileRoutesByTo {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
-  '/api/og': typeof ApiOgRoute
+  '/api/og': typeof ApiOgRouteWithChildren
   '/palettes/$query': typeof PalettesQueryRoute
   '/$seed': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
@@ -166,12 +174,13 @@ export interface FileRoutesById {
   '/_paletteList/newest': typeof PaletteListNewestRoute
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
-  '/api/og': typeof ApiOgRoute
+  '/api/og': typeof ApiOgRouteWithChildren
   '/palettes/$query': typeof PalettesQueryRoute
   '/$seed/': typeof SeedIndexRoute
   '/_paletteList/': typeof PaletteListIndexRoute
   '/settings/': typeof SettingsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
@@ -193,6 +202,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings'
     | '/api/auth/$'
+    | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
     | '/app/polar/checkout/success'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/'
     | '/settings'
     | '/api/auth/$'
+    | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
     | '/app/polar/checkout/success'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/_paletteList/'
     | '/settings/'
     | '/api/auth/$'
+    | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
     | '/app/polar/checkout/success'
@@ -243,7 +255,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
-  ApiOgRoute: typeof ApiOgRoute
+  ApiOgRoute: typeof ApiOgRouteWithChildren
   PalettesQueryRoute: typeof PalettesQueryRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -366,6 +378,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPolarPortalRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/og/query': {
+      id: '/api/og/query'
+      path: '/query'
+      fullPath: '/api/og/query'
+      preLoaderRoute: typeof ApiOgQueryRouteImport
+      parentRoute: typeof ApiOgRoute
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -413,6 +432,16 @@ const PaletteListRouteWithChildren = PaletteListRoute._addFileChildren(
   PaletteListRouteChildren,
 )
 
+interface ApiOgRouteChildren {
+  ApiOgQueryRoute: typeof ApiOgQueryRoute
+}
+
+const ApiOgRouteChildren: ApiOgRouteChildren = {
+  ApiOgQueryRoute: ApiOgQueryRoute,
+}
+
+const ApiOgRouteWithChildren = ApiOgRoute._addFileChildren(ApiOgRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   SeedRouteRoute: SeedRouteRouteWithChildren,
   PaletteListRoute: PaletteListRouteWithChildren,
@@ -420,7 +449,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
-  ApiOgRoute: ApiOgRoute,
+  ApiOgRoute: ApiOgRouteWithChildren,
   PalettesQueryRoute: PalettesQueryRoute,
   SettingsIndexRoute: SettingsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,

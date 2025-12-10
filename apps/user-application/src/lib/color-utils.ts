@@ -1,3 +1,11 @@
+/** Matches hex codes: #RGB or #RRGGBB (works in arrays, quotes, or standalone) */
+export const HEX_CODE_REGEX = /#([0-9a-fA-F]{3}(?![0-9a-fA-F])|[0-9a-fA-F]{6}(?![0-9a-fA-F]))/g;
+
+/** Checks if a string is a valid hex color code */
+export function isHexColor(str: string): boolean {
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(str);
+}
+
 export const BASIC_COLORS: Array<{ name: string; r: number; g: number; b: number }> = [
     { name: "black", r: 0, g: 0, b: 0 },
     { name: "white", r: 255, g: 255, b: 255 },
@@ -80,6 +88,11 @@ export function hexToColorName(hex: string): string {
     }
 
     return closestName;
+}
+
+/** Replaces all hex codes in a string with their closest color names */
+export function replaceHexWithColorNames(query: string): string {
+    return query.replace(HEX_CODE_REGEX, (match) => hexToColorName(match));
 }
 
 const COLOR_NAME_MAP = new Map(

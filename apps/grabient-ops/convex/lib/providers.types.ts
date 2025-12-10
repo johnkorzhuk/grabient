@@ -157,24 +157,6 @@ export type BatchStatus = 'pending' | 'processing' | 'completed' | 'failed'
 // Refinement Models
 // ============================================================================
 
-/**
- * Models used for refinement - includes all tagging models plus premium options
- *
- * Premium (reasoning/thinking):
- * - claude-opus-4-5-20251101: Claude Opus 4.5 with extended thinking (2048 budget)
- * - gpt-5-mini: Best quality within budget ($2/1M output)
- * - gpt-4.1-mini: Fast, beats GPT-4o (~$1.60/1M output)
- *
- * Groq (with thinking/reasoning support):
- * - qwen/qwen3-32b: Qwen 3 32B with reasoning_effort: 'default'
- * - openai/gpt-oss-120b: GPT-OSS 120B with reasoning_effort: 'medium'
- *
- * Groq (fast/cheap, no thinking):
- * - moonshotai/kimi-k2-instruct: Kimi K2 (256k context, fast)
- *
- * Tagging models (also available for refinement):
- * - All models from ANTHROPIC_MODELS, OPENAI_MODELS, GROQ_MODELS, GOOGLE_MODELS
- */
 export const REFINEMENT_ANTHROPIC_MODELS = [
   'claude-opus-4-5-20251101',
   ...ANTHROPIC_MODELS,
@@ -332,8 +314,13 @@ export const BLACKLISTED_REFINEMENT_MODELS: Set<RefinementModel> = new Set([
 /**
  * Get tagging models filtered by blacklist
  */
-export function getActiveTaggingModels(): Array<{ provider: Provider; model: Model }> {
-  return getAllModels().filter(({ model }) => !BLACKLISTED_TAGGING_MODELS.has(model))
+export function getActiveTaggingModels(): Array<{
+  provider: Provider
+  model: Model
+}> {
+  return getAllModels().filter(
+    ({ model }) => !BLACKLISTED_TAGGING_MODELS.has(model),
+  )
 }
 
 /**
@@ -344,6 +331,6 @@ export function getActiveRefinementModels(): Array<{
   model: RefinementModel
 }> {
   return getAllRefinementModels().filter(
-    ({ model }) => !BLACKLISTED_REFINEMENT_MODELS.has(model)
+    ({ model }) => !BLACKLISTED_REFINEMENT_MODELS.has(model),
   )
 }
