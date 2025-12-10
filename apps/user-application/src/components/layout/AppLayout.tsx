@@ -4,11 +4,13 @@ import { StyleSelect } from "@/components/navigation/StyleSelect";
 import { AngleInput } from "@/components/navigation/AngleInput";
 import { StepsInput } from "@/components/navigation/StepsInput";
 import { Footer } from "@/components/layout/Footer";
-import { ReactNode, useEffect, useState, useRef } from "react";
+import { type ReactNode, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
-import { useLocation, useRouter, useSearch } from "@tanstack/react-router";
+import { useLocation, useRouter, useSearch, Link } from "@tanstack/react-router";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SlidersHorizontal, X, RotateCcw, Search, RefreshCw } from "lucide-react";
-import { useHotkeys } from "@mantine/hooks";
+import { useHotkeys, useMounted } from "@mantine/hooks";
 import {
     Tooltip,
     TooltipContent,
@@ -25,15 +27,50 @@ import {
     toggleIsAdvancedOpen,
     setIsAdvancedOpen,
 } from "@/stores/ui";
+import { SearchInput } from "@/components/search/SearchInput";
 import {
     Carousel,
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
-import { SearchInput } from "@/components/search/SearchInput";
-import { TagItem } from "@/components/search/TagItem";
-import { useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
-import { dailyTagsQueryOptions } from "@/queries/daily-tags";
+import { isColorName, colorNameToHex } from "@/lib/color-utils";
+
+function isHexColor(str: string): boolean {
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(str);
+}
+
+type TagColorInfo =
+    | { type: "none" }
+    | { type: "single"; hex: string }
+    | { type: "pair"; hex1: string; hex2: string };
+
+function getTagColorInfo(tag: string): TagColorInfo {
+    // Check for color pair (e.g., "red and cyan")
+    if (tag.includes(" and ")) {
+        const [color1, color2] = tag.split(" and ");
+        const hex1 = colorNameToHex(color1!.trim());
+        const hex2 = colorNameToHex(color2!.trim());
+        if (hex1 && hex2) {
+            return { type: "pair", hex1, hex2 };
+        }
+    }
+
+    // Check for single hex color
+    if (isHexColor(tag)) {
+        return { type: "single", hex: tag };
+    }
+
+    // Check for single color name
+    if (isColorName(tag)) {
+        const hex = colorNameToHex(tag);
+        if (hex) {
+            return { type: "single", hex };
+        }
+    }
+
+    return { type: "none" };
+}
+
 
 type SortOrder = "popular" | "newest" | "oldest";
 type StyleType =
@@ -112,6 +149,10 @@ export function AppLayout({
     const [isScrolled, setIsScrolled] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
     const contentRef = useRef<HTMLDivElement>(null);
+    const mounted = useMounted();
+    const queryClient = useQueryClient();
+
+    const { data: popularTags } = useSuspenseQuery(popularTagsQueryOptions());
 
     const location = useLocation();
     const router = useRouter();
@@ -124,18 +165,6 @@ export function AppLayout({
     };
 
     const preservedSearch = buildPreservedSearch(currentSearch, location.pathname);
-
-    const queryClient = useQueryClient();
-    const { data: dailyTagsData } = useSuspenseQuery(dailyTagsQueryOptions());
-    const dailyTags = dailyTagsData.tags;
-
-    const refreshTags = () => {
-        const newSeed = Date.now();
-        queryClient.setQueryData(["daily-tags", undefined], () => undefined);
-        queryClient.fetchQuery(dailyTagsQueryOptions(newSeed)).then((data) => {
-            queryClient.setQueryData(["daily-tags", undefined], data);
-        });
-    };
 
     const isAdvancedOpen = useStore(uiStore, (state) => state.isAdvancedOpen);
 
@@ -382,65 +411,96 @@ export function AppLayout({
             {showNavigation && (
                 <div className="mx-auto w-full px-5 lg:px-14 pt-4 md:pt-4 pb-2">
                     <div className="sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col items-center gap-3 md:gap-5 bg-background py-2">
-                        <div className="w-full max-w-lg">
+                        <div className="w-full md:max-w-lg">
                             <SearchInput variant="expanded" />
                         </div>
-                        <div className="w-full flex items-center justify-center gap-2 overflow-hidden">
-                            <span className="text-xs md:text-sm font-medium text-muted-foreground shrink-0 mr-1">
+                        <div className="w-full max-w-3xl mx-auto flex items-center gap-2">
+                            <span className="hidden md:inline text-sm font-medium text-muted-foreground shrink-0">
                                 Popular
                             </span>
                             <Carousel
                                 opts={{
                                     align: "start",
                                     dragFree: true,
-                                    containScroll: "trimSnaps",
                                 }}
-                                className="flex-1 max-w-2xl min-w-0"
+                                className="w-full overflow-hidden"
                             >
                                 <CarouselContent className="-ml-1.5">
-                                    {dailyTags.map((tag, index) => (
-                                        <CarouselItem
-                                            key={index}
-                                            className="pl-1.5 basis-auto"
-                                        >
-                                            <TagItem
-                                                tag={tag}
-                                                preservedSearch={preservedSearch}
-                                                currentPathname={location.pathname}
-                                            />
-                                        </CarouselItem>
-                                    ))}
-                                    <CarouselItem className="pl-1.5 basis-auto">
+                                    {popularTags.map((tag) => {
+                                        const colorInfo = getTagColorInfo(tag);
+                                        return (
+                                            <CarouselItem key={tag} className="basis-auto pl-1.5">
+                                                <Link
+                                                    to="/palettes/$query"
+                                                    params={{ query: tag }}
+                                                    style={{ backgroundColor: "var(--background)" }}
+                                                    className={cn(
+                                                        "inline-flex items-center justify-center gap-1.5",
+                                                        "h-7 px-3.5 rounded-md border border-solid",
+                                                        "transition-colors duration-200 outline-none",
+                                                        "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                        mounted && "disable-animation-on-theme-change",
+                                                    )}
+                                                >
+                                                    {colorInfo.type === "single" && (
+                                                        <span
+                                                            className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
+                                                            style={{ backgroundColor: colorInfo.hex }}
+                                                        />
+                                                    )}
+                                                    {colorInfo.type === "pair" && (
+                                                        <span className="inline-flex shrink-0 w-5">
+                                                            <span
+                                                                className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
+                                                                style={{ backgroundColor: colorInfo.hex1 }}
+                                                            />
+                                                            <span
+                                                                className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10 -ml-1.5"
+                                                                style={{ backgroundColor: colorInfo.hex2 }}
+                                                            />
+                                                        </span>
+                                                    )}
+                                                    <span className="translate-y-px md:translate-y-0">{tag}</span>
+                                                </Link>
+                                            </CarouselItem>
+                                        );
+                                    })}
+                                    <CarouselItem className="basis-auto pl-1.5">
                                         <button
                                             type="button"
-                                            onClick={refreshTags}
-                                            style={{ backgroundColor: "var(--background)" }}
+                                            onClick={() => {
+                                                queryClient.refetchQueries({ queryKey: ["popularTags"] });
+                                            }}
                                             className={cn(
-                                                "disable-animation-on-theme-change inline-flex items-center justify-center",
+                                                "inline-flex items-center justify-center",
                                                 "h-7 w-7 rounded-md border border-solid",
                                                 "transition-colors duration-200 outline-none",
                                                 "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
                                                 "cursor-pointer",
+                                                mounted && "disable-animation-on-theme-change",
                                             )}
-                                            aria-label="Refresh suggestions"
+                                            style={{ backgroundColor: "var(--background)" }}
+                                            aria-label="Refresh tags"
                                         >
                                             <RefreshCw className="h-3 w-3" />
                                         </button>
                                     </CarouselItem>
-                                    <CarouselItem className="pl-1.5 basis-auto">
+                                    <CarouselItem className="basis-auto pl-1.5">
                                         <button
                                             type="button"
                                             onClick={() => {
                                                 document.getElementById("search-input-expanded")?.focus();
                                             }}
                                             className={cn(
-                                                "disable-animation-on-theme-change inline-flex items-center justify-center gap-1.5",
+                                                "inline-flex items-center justify-center gap-1.5",
                                                 "h-7 px-3.5 rounded-md border border-solid",
                                                 "transition-colors duration-200 outline-none",
                                                 "text-[11px] md:text-xs font-medium whitespace-nowrap",
                                                 "border-input hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
                                                 "cursor-pointer",
                                                 "bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/50",
+                                                mounted && "disable-animation-on-theme-change",
                                             )}
                                         >
                                             <Search className="h-3 w-3" />

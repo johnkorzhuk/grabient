@@ -21,6 +21,7 @@ import {
 import { useEffect } from "react";
 import type { SizeType } from "@/stores/export";
 import { DEFAULT_PAGE_LIMIT } from "@/lib/constants";
+import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 
 const SEARCH_DEFAULTS = {
     style: "auto" as const,
@@ -81,7 +82,10 @@ export const Route = createFileRoute("/_paletteList")({
         }
     },
     loader: async ({ context }) => {
-        await context.queryClient.ensureQueryData(userLikedSeedsQueryOptions());
+        await Promise.all([
+            context.queryClient.ensureQueryData(userLikedSeedsQueryOptions()),
+            context.queryClient.ensureQueryData(popularTagsQueryOptions()),
+        ]);
     },
     headers: () => {
         return {

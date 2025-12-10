@@ -26,6 +26,7 @@ import {
     sizeWithAutoValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import type { SizeType } from "@/stores/export";
+import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -98,12 +99,16 @@ export const Route = createFileRoute("/palettes/$query")({
     },
     loader: async ({ context, params }) => {
         const query = getQuery(params.query);
-        if (!query) return;
+        if (!query) {
+            await context.queryClient.ensureQueryData(popularTagsQueryOptions());
+            return;
+        }
         await Promise.all([
             context.queryClient.ensureQueryData(
                 searchPalettesQueryOptions(query, DEFAULT_PAGE_LIMIT),
             ),
             context.queryClient.ensureQueryData(userLikedSeedsQueryOptions()),
+            context.queryClient.ensureQueryData(popularTagsQueryOptions()),
         ]);
     },
     headers: () => ({
@@ -138,11 +143,11 @@ export const Route = createFileRoute("/palettes/$query")({
 
 const HEX_REGEX = /#([0-9a-fA-F]{3}(?![0-9a-fA-F])|[0-9a-fA-F]{6}(?![0-9a-fA-F]))/g;
 
-function ColorSwatch({ hex, isLast = false }: { hex: string; isLast?: boolean }) {
+function ColorSwatch({ hex }: { hex: string }) {
     const colorName = hexToColorName(hex);
     const displayHex = simplifyHex(hex);
     return (
-        <span className={`inline-flex items-center gap-2 mx-2 ${isLast ? "pr-2" : ""}`}>
+        <span className="inline-flex items-center gap-1.5">
             <Tooltip>
                 <TooltipTrigger asChild>
                     <span
@@ -162,7 +167,7 @@ function ColorSwatch({ hex, isLast = false }: { hex: string; isLast?: boolean })
 function ColorNameSwatch({ name, hex }: { name: string; hex: string }) {
     const displayHex = simplifyHex(hex);
     return (
-        <span className="inline-flex items-center gap-1.5 mr-1">
+        <span className="inline-flex items-center gap-1.5">
             <Tooltip>
                 <TooltipTrigger asChild>
                     <span
@@ -273,11 +278,10 @@ function QueryDisplay({ query }: { query: string }) {
     // Check if query is a valid seed and render hex codes from it
     const seedData = getSeedColorData(query);
     if (seedData) {
-        const lastIndex = seedData.hexCodes.length - 1;
         return (
             <>
                 {seedData.hexCodes.map((hex, i) => (
-                    <ColorSwatch key={i} hex={hex} isLast={i === lastIndex} />
+                    <ColorSwatch key={i} hex={hex} />
                 ))}
             </>
         );
@@ -289,21 +293,16 @@ function QueryDisplay({ query }: { query: string }) {
         return <span>Search</span>;
     }
 
-    const lastColorIndex = parts.reduce(
-        (last, part, i) => (part.type === "hex" || part.type === "colorName" ? i : last),
-        -1,
-    );
-
     return (
         <>
             {parts.map((part, i) => {
                 if (part.type === "hex") {
-                    return <ColorSwatch key={i} hex={part.value} isLast={i === lastColorIndex} />;
+                    return <ColorSwatch key={i} hex={part.value} />;
                 }
                 if (part.type === "colorName" && part.hex) {
                     return <ColorNameSwatch key={i} name={part.value} hex={part.hex} />;
                 }
-                return <span key={i}>{part.value} </span>;
+                return <span key={i}>{part.value}</span>;
             })}
         </>
     );
@@ -374,7 +373,7 @@ function SearchResultsPage() {
             <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav}>
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground px-5 lg:px-14">
                     <Search className="h-12 w-12 mb-4 opacity-50" />
-                    <p className="text-lg flex items-center flex-wrap gap-1">
+                    <p className="text-lg flex items-center flex-wrap gap-2">
                         No palettes found for "<QueryDisplay query={query} />"
                     </p>
                     <p className="text-sm mt-2">Try different keywords</p>
@@ -386,7 +385,7 @@ function SearchResultsPage() {
     return (
         <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav}>
             <div className="px-5 lg:px-14 mb-10 md:mb-12">
-                <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-1">
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-2">
                     <QueryDisplay query={query} />
                     <span>palettes</span>
                 </h1>
