@@ -9,6 +9,7 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ArrowRightFromLine, X } from "lucide-react";
+import { Kbd } from "@/components/ui/kbd";
 
 interface SelectedButtonProps {
     className?: string;
@@ -67,6 +68,7 @@ export function SelectedButton({ className }: SelectedButtonProps) {
                     </TooltipTrigger>
                     <TooltipContent side="top" align="end" sideOffset={6}>
                         <span>{isExportOpen ? "Close export panel" : `Export ${exportCount} selected`}</span>
+                        {isExportOpen && <Kbd className="ml-1.5">Esc</Kbd>}
                     </TooltipContent>
                 </Tooltip>
             </TooltipProvider>

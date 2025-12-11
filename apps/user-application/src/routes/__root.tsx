@@ -52,6 +52,7 @@ const SEARCH_DEFAULTS = {
     angle: "auto" as const,
     steps: "auto" as const,
     size: "auto" as const,
+    export: false as const,
 };
 
 const searchValidatorSchema = v.object({
@@ -70,6 +71,10 @@ const searchValidatorSchema = v.object({
     size: v.optional(
         v.fallback(sizeWithAutoValidator, SEARCH_DEFAULTS.size),
         SEARCH_DEFAULTS.size,
+    ),
+    export: v.optional(
+        v.fallback(v.boolean(), SEARCH_DEFAULTS.export),
+        SEARCH_DEFAULTS.export,
     ),
 });
 

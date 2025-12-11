@@ -29,6 +29,7 @@ interface StepsInputProps {
     className?: string;
     popoverClassName?: string;
     onPreviewChange?: (steps: number | null) => void;
+    disabled?: boolean;
 }
 
 export function StepsInput({
@@ -36,6 +37,7 @@ export function StepsInput({
     className,
     popoverClassName,
     onPreviewChange,
+    disabled = false,
 }: StepsInputProps) {
     const location = useLocation();
     const router = useRouter();
@@ -47,7 +49,7 @@ export function StepsInput({
     const [previousValue, setPreviousValue] = useState<number | "auto">(value);
     const inputRef = useRef<HTMLInputElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
-    const focusTrapRef = useFocusTrap(open);
+    const focusTrapRef = useFocusTrap(open && !disabled);
 
     useEffect(() => {
         setPreviousValue(value);
@@ -58,7 +60,7 @@ export function StepsInput({
     };
 
     const handleChevronClick = (e: React.MouseEvent) => {
-        if (isEditing) {
+        if (isEditing || disabled) {
             return;
         }
         e.preventDefault();
@@ -67,6 +69,7 @@ export function StepsInput({
     };
 
     const handleLabelClick = (e: React.MouseEvent) => {
+        if (disabled) return;
         if (open) {
             setOpen(false);
         }
@@ -256,7 +259,7 @@ export function StepsInput({
             return localValue;
         }
 
-        if (value === undefined || value === null || value === "auto") {
+        if (disabled || value === undefined || value === null || value === "auto") {
             return "steps";
         }
 
@@ -265,9 +268,9 @@ export function StepsInput({
 
     return (
         <Popover
-            open={open}
+            open={open && !disabled}
             onOpenChange={(newOpen) => {
-                if (isEditing) return;
+                if (isEditing || disabled) return;
                 setOpen(newOpen);
                 // Clear preview when menu closes
                 if (!newOpen) {
@@ -280,20 +283,23 @@ export function StepsInput({
                 <button
                     ref={buttonRef}
                     role="combobox"
-                    aria-expanded={open}
+                    aria-expanded={open && !disabled}
                     aria-haspopup="listbox"
                     aria-label="Steps input"
+                    aria-disabled={disabled}
                     style={{ backgroundColor: "var(--background)" }}
                     className={cn(
                         "disable-animation-on-theme-change",
                         "inline-flex items-center justify-center rounded-md relative",
                         "w-[64px] md:w-[76px] justify-between",
                         "text-xs md:text-sm h-8 lg:h-8.5 px-2 md:px-3 border border-solid",
-                        "transition-colors duration-200 cursor-pointer",
+                        "transition-colors duration-200",
                         "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                        open || isEditing
-                            ? "border-muted-foreground/30 bg-background/60 text-foreground"
-                            : "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground",
+                        disabled
+                            ? "cursor-not-allowed opacity-50 border-input text-muted-foreground"
+                            : open || isEditing
+                                ? "border-muted-foreground/30 bg-background/60 text-foreground cursor-pointer"
+                                : "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground cursor-pointer",
                         className,
                     )}
                     suppressHydrationWarning

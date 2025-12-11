@@ -76,22 +76,37 @@ export function PalettesGrid({
     const navigate = useNavigate();
     const queryClient = useQueryClient();
 
-    const getLikesCountBySeed = (seed: string): number | undefined => {
-        const queries = queryClient.getQueriesData<{ palettes: AppPalette[] }>({ queryKey: ["palettes"] });
-        for (const [, data] of queries) {
-            if (data?.palettes) {
-                const found = data.palettes.find(p => p.seed === seed);
-                if (found?.likesCount !== undefined) return found.likesCount;
+    const getPaletteMetadataBySeed = (
+        seed: string,
+    ): { likesCount?: number; createdAt: Date | null } => {
+        // getQueriesData with ["palettes"] does fuzzy matching - returns all queries starting with "palettes"
+        // This includes: ["palettes", orderBy, page, limit], ["palettes", "liked", ...], ["palettes", "search", ...]
+        const queries = queryClient.getQueriesData<{
+            palettes?: AppPalette[];
+            results?: AppPalette[];
+        }>({ queryKey: ["palettes"] });
+        for (const [queryKey, data] of queries) {
+            // Search results use "results" key, others use "palettes" key
+            const isSearchQuery = queryKey[1] === "search";
+            const paletteList = isSearchQuery ? data?.results : data?.palettes;
+            if (paletteList) {
+                const found = paletteList.find((p) => p.seed === seed);
+                if (found) {
+                    return {
+                        likesCount: found.likesCount,
+                        createdAt: found.createdAt,
+                    };
+                }
             }
         }
-        const searchQueries = queryClient.getQueriesData<{ results: AppPalette[] }>({ queryKey: ["searchPalettes"] });
-        for (const [, data] of searchQueries) {
-            if (data?.results) {
-                const found = data.results.find(p => p.seed === seed);
-                if (found?.likesCount !== undefined) return found.likesCount;
-            }
+        // Check if seed is in liked seeds - if so, at least 1 like
+        const likedSeedsCache = queryClient.getQueryData<Set<string>>([
+            "user-liked-seeds",
+        ]);
+        if (likedSeedsCache?.has(seed)) {
+            return { likesCount: 1, createdAt: null };
         }
-        return undefined;
+        return { createdAt: null };
     };
 
     useEffect(() => {
@@ -103,8 +118,8 @@ export function PalettesGrid({
     useEffect(() => {
         if (isExportOpen && exportList.length === 0) {
             navigate({
-                search: (prev) => ({ ...prev, export: false }),
-                resetScroll: false,
+                to: ".",
+                search: (prev) => ({ ...prev, export: undefined }),
                 replace: true,
             });
         }
@@ -117,7 +132,15 @@ export function PalettesGrid({
         setCustomCoeffs(palette.seed, newCoeffs);
     };
 
-    const handleShiftClick = (palette: AppPalette, effectiveStyle: PaletteStyle, effectiveAngle: number, effectiveSteps: number, hexColors: string[], currentCoeffs: CosineCoeffs, currentSeed: string) => {
+    const handleShiftClick = (
+        palette: AppPalette,
+        effectiveStyle: PaletteStyle,
+        effectiveAngle: number,
+        effectiveSteps: number,
+        hexColors: string[],
+        currentCoeffs: CosineCoeffs,
+        currentSeed: string,
+    ) => {
         const exportItem = createExportItem(
             {
                 ...palette,
@@ -133,18 +156,32 @@ export function PalettesGrid({
         );
 
         const startIndex = lastClickedSeedRef.current
-            ? initialPalettes.findIndex(p => p.seed === lastClickedSeedRef.current)
+            ? initialPalettes.findIndex(
+                  (p) => p.seed === lastClickedSeedRef.current,
+              )
             : -1;
-        const endIndex = initialPalettes.findIndex(p => p.seed === palette.seed);
+        const endIndex = initialPalettes.findIndex(
+            (p) => p.seed === palette.seed,
+        );
 
         if (startIndex !== -1 && startIndex !== endIndex) {
-            const [start, end] = startIndex < endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+            const [start, end] =
+                startIndex < endIndex
+                    ? [startIndex, endIndex]
+                    : [endIndex, startIndex];
             for (let i = start; i <= end; i++) {
                 const p = initialPalettes[i]!;
-                const pEffectiveStyle = previewStyle || (urlStyle !== "auto" ? urlStyle : p.style);
-                const pEffectiveAngle = previewAngle ?? (urlAngle !== "auto" ? urlAngle : p.angle);
-                const pEffectiveSteps = previewSteps ?? (urlSteps !== "auto" ? urlSteps : p.steps);
-                const pHexColors = generateHexColors(p.coeffs, p.globals, pEffectiveSteps);
+                const pEffectiveStyle =
+                    previewStyle || (urlStyle !== "auto" ? urlStyle : p.style);
+                const pEffectiveAngle =
+                    previewAngle ?? (urlAngle !== "auto" ? urlAngle : p.angle);
+                const pEffectiveSteps =
+                    previewSteps ?? (urlSteps !== "auto" ? urlSteps : p.steps);
+                const pHexColors = generateHexColors(
+                    p.coeffs,
+                    p.globals,
+                    pEffectiveSteps,
+                );
 
                 const pExportItem = createExportItem(p, {
                     style: pEffectiveStyle,
@@ -168,6 +205,7 @@ export function PalettesGrid({
     const exportGridContent = (
         <ol className="h-full w-full relative grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-x-10 gap-y-20 auto-rows-[300px]">
             {exportList.map((item, index) => {
+                const metadata = getPaletteMetadataBySeed(item.seed);
                 const exportPalette: AppPalette = {
                     coeffs: item.coeffs,
                     globals: item.globals,
@@ -176,7 +214,8 @@ export function PalettesGrid({
                     angle: item.angle,
                     seed: item.seed,
                     hexColors: item.hexColors,
-                    likesCount: getLikesCountBySeed(item.seed),
+                    likesCount: metadata.likesCount,
+                    createdAt: metadata.createdAt,
                 };
                 return (
                     <PaletteCard
@@ -223,14 +262,14 @@ export function PalettesGrid({
     if (isExportOpen && exportList.length > 0) {
         return (
             <section className="h-full w-full relative px-5 lg:px-14 pb-20">
-                <div className="flex gap-10">
+                <div className="flex gap-8">
                     {/* Grid container - responsive widths */}
                     <div className="w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5">
                         {exportGridContent}
                     </div>
-                    {/* Export panel - sticky on the right */}
+                    {/* Export panel - sticky on the right, positioned below Close button */}
                     <div className="hidden md:block md:w-2/5 lg:w-1/3 xl:w-1/3 2xl:w-1/4 3xl:w-1/5">
-                        <div className="sticky top-[135px] lg:top-[151px]">
+                        <div className="sticky top-[185px] lg:top-[201px]">
                             <div className="bg-muted/50 rounded-lg p-6 border border-border">
                                 <p className="text-muted-foreground text-center">
                                     Export panel content will go here
@@ -264,7 +303,15 @@ interface PaletteCardProps {
         palette: AppPalette,
     ) => void;
     likedSeeds?: Set<string>;
-    onShiftClick: (palette: AppPalette, style: PaletteStyle, angle: number, steps: number, hexColors: string[], coeffs: CosineCoeffs, seed: string) => void;
+    onShiftClick: (
+        palette: AppPalette,
+        style: PaletteStyle,
+        angle: number,
+        steps: number,
+        hexColors: string[],
+        coeffs: CosineCoeffs,
+        seed: string,
+    ) => void;
 }
 
 const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
@@ -308,13 +355,24 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         const isPaletteModified = hasCustomCoeffs;
 
         // Check if this palette is in the export list
-        const isInExportListValue = exportList.some(item => {
-            const effectiveStyle = previewStyle || (urlStyle !== "auto" ? urlStyle : palette.style);
-            const effectiveAngle = previewAngle ?? (urlAngle !== "auto" ? urlAngle : palette.angle);
-            const effectiveSteps = previewSteps ?? (urlSteps !== "auto" ? urlSteps : palette.steps);
+        const isInExportListValue = exportList.some((item) => {
+            const effectiveStyle =
+                previewStyle ||
+                (urlStyle !== "auto" ? urlStyle : palette.style);
+            const effectiveAngle =
+                previewAngle ??
+                (urlAngle !== "auto" ? urlAngle : palette.angle);
+            const effectiveSteps =
+                previewSteps ??
+                (urlSteps !== "auto" ? urlSteps : palette.steps);
             const exportItem = createExportItem(
                 { ...palette, coeffs: currentCoeffs, seed: currentSeed },
-                { style: effectiveStyle, steps: effectiveSteps, angle: effectiveAngle, hexColors: [] },
+                {
+                    style: effectiveStyle,
+                    steps: effectiveSteps,
+                    angle: effectiveAngle,
+                    hexColors: [],
+                },
             );
             return item.id === exportItem.id;
         });
@@ -348,34 +406,35 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                 });
             },
             () => {
-                if (!isPaletteModified && palette.likesCount !== undefined) {
-                    return palette.likesCount;
-                }
-
-                const allPaletteQueries = queryClient.getQueriesData<{
-                    palettes: AppPalette[];
-                    totalPages: number;
-                    total: number;
+                // Check cache for optimistic updates (this finds the palette in any cached query)
+                const allQueries = queryClient.getQueriesData<{
+                    palettes?: AppPalette[];
+                    results?: AppPalette[];
                 }>({
                     queryKey: ["palettes"],
                 });
 
-                const foundPalette = allPaletteQueries
-                    .flatMap(([_, data]) => data?.palettes ?? [])
-                    .find((p) => p.seed === currentSeed);
-
-                if (foundPalette) {
-                    return foundPalette.likesCount;
+                for (const [queryKey, data] of allQueries) {
+                    const isSearchQuery = queryKey[1] === "search";
+                    const paletteList = isSearchQuery
+                        ? data?.results
+                        : data?.palettes;
+                    if (paletteList) {
+                        const found = paletteList.find(
+                            (p) => p.seed === currentSeed,
+                        );
+                        if (found?.likesCount !== undefined) {
+                            return found.likesCount;
+                        }
+                    }
                 }
 
-                if (isPaletteModified) {
-                    const cachedSeeds = queryClient.getQueryData<Set<string>>([
-                        "user-liked-seeds",
-                    ]);
-                    const isLiked = cachedSeeds?.has(currentSeed) ?? false;
-                    return isLiked ? 1 : 0;
+                // Fall back to passed palette likesCount (covers SSR and export items)
+                if (palette.likesCount !== undefined) {
+                    return palette.likesCount;
                 }
 
+                // For modified palettes not in cache, check liked seeds
                 const cachedSeeds = queryClient.getQueryData<Set<string>>([
                     "user-liked-seeds",
                 ]);
@@ -384,15 +443,52 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     return 1;
                 }
 
-                return palette.likesCount;
+                return undefined;
+            },
+            // Server snapshot - use palette.likesCount directly
+            () => palette.likesCount,
+        );
+
+        const currentCreatedAt = useSyncExternalStore(
+            (callback) => {
+                return queryClient.getQueryCache().subscribe((event) => {
+                    if (event?.query.queryKey[0] === "palettes") {
+                        callback();
+                    }
+                });
             },
             () => {
-                const isLiked = likedSeeds?.has(currentSeed) ?? false;
-                if (isLiked && isPaletteModified) {
-                    return 1;
+                // If palette already has createdAt, use it
+                if (palette.createdAt) {
+                    return palette.createdAt;
                 }
-                return palette.likesCount;
+
+                // Check all palettes queries (includes search results with ["palettes", "search", ...])
+                const allQueries = queryClient.getQueriesData<{
+                    palettes?: AppPalette[];
+                    results?: AppPalette[];
+                }>({
+                    queryKey: ["palettes"],
+                });
+
+                for (const [queryKey, data] of allQueries) {
+                    const isSearchQuery = queryKey[1] === "search";
+                    const paletteList = isSearchQuery
+                        ? data?.results
+                        : data?.palettes;
+                    if (paletteList) {
+                        const found = paletteList.find(
+                            (p) => p.seed === currentSeed,
+                        );
+                        if (found?.createdAt) {
+                            return found.createdAt;
+                        }
+                    }
+                }
+
+                return undefined;
             },
+            () => palette.createdAt,
         );
 
         const likeMutation = useLikePaletteMutation();
@@ -400,28 +496,46 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         const handleClick = (e: React.MouseEvent) => {
             const target = e.target as HTMLElement;
             if (
-                target.closest('button') ||
-                target.closest('a') ||
+                target.closest("button") ||
+                target.closest("a") ||
                 copyMenuOpenRef.current
             ) {
                 return;
             }
 
             // Calculate effective values for shift-click
-            const effectiveStyle = previewStyle || (urlStyle !== "auto" ? urlStyle : palette.style);
-            const effectiveAngle = previewAngle ?? (urlAngle !== "auto" ? urlAngle : palette.angle);
-            const effectiveSteps = previewSteps ?? (urlSteps !== "auto" ? urlSteps : palette.steps);
-            const hexColors = generateHexColors(currentCoeffs, palette.globals, effectiveSteps);
+            const effectiveStyle =
+                previewStyle ||
+                (urlStyle !== "auto" ? urlStyle : palette.style);
+            const effectiveAngle =
+                previewAngle ??
+                (urlAngle !== "auto" ? urlAngle : palette.angle);
+            const effectiveSteps =
+                previewSteps ??
+                (urlSteps !== "auto" ? urlSteps : palette.steps);
+            const hexColors = generateHexColors(
+                currentCoeffs,
+                palette.globals,
+                effectiveSteps,
+            );
 
             // Desktop: shift-click for multi-select
             if (e.shiftKey && !isTouchDeviceRef.current) {
                 e.preventDefault();
-                onShiftClick(palette, effectiveStyle, effectiveAngle, effectiveSteps, hexColors, currentCoeffs, currentSeed);
+                onShiftClick(
+                    palette,
+                    effectiveStyle,
+                    effectiveAngle,
+                    effectiveSteps,
+                    hexColors,
+                    currentCoeffs,
+                    currentSeed,
+                );
                 return;
             }
 
             // Toggle active state for showing controls
-            setIsActive(prev => !prev);
+            setIsActive((prev) => !prev);
         };
 
         const handleTouchStart = () => {
@@ -431,21 +545,23 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         const handleTouchEnd = (e: React.TouchEvent) => {
             const target = e.target as HTMLElement;
             if (
-                target.closest('button') ||
-                target.closest('a') ||
+                target.closest("button") ||
+                target.closest("a") ||
                 copyMenuOpenRef.current
             ) {
                 return;
             }
             // Toggle active state on touch
-            setIsActive(prev => !prev);
+            setIsActive((prev) => !prev);
         };
 
         const { hexColors } = palette;
         const uniqueColorNames = getUniqueColorNames(hexColors);
         const colorList = uniqueColorNames.slice(0, 3).join(", ");
         const moreColors =
-            uniqueColorNames.length > 3 ? ` and ${uniqueColorNames.length - 3} more` : "";
+            uniqueColorNames.length > 3
+                ? ` and ${uniqueColorNames.length - 3} more`
+                : "";
         const ariaLabel = `${isActive ? "Deselect" : "Select"} gradient: ${colorList}${moreColors}`;
 
         const effectiveStyle =
@@ -459,7 +575,7 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         // Touch devices: show controls when tapped (isActive) OR when in export list
         // Non-touch devices: only show controls on hover (CSS handles this)
         const shouldShowControls = isTouchDeviceRef.current
-            ? (isActive || isInExportListValue)
+            ? isActive || isInExportListValue
             : false;
 
         return (
@@ -483,13 +599,17 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                         onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
                                 e.preventDefault();
-                                setIsActive(prev => !prev);
+                                setIsActive((prev) => !prev);
                             }
                         }}
                         onFocus={() => setIsActive(true)}
                         onBlur={(e) => {
                             // Don't deactivate if focus moves within the card
-                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                            if (
+                                !e.currentTarget.contains(
+                                    e.relatedTarget as Node,
+                                )
+                            ) {
                                 setIsActive(false);
                             }
                         }}
@@ -513,10 +633,10 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     {/* Palette metadata */}
                     <div className="flex justify-between pt-4 relative pointer-events-none">
                         <div className="flex items-center min-h-[28px] pointer-events-none">
-                            {palette.createdAt && (
+                            {currentCreatedAt && (
                                 <span className="text-sm text-muted-foreground pointer-events-none">
                                     {formatDistanceToNow(
-                                        new Date(palette.createdAt),
+                                        new Date(currentCreatedAt),
                                         {
                                             addSuffix: false,
                                         },
@@ -728,102 +848,104 @@ function GradientPreview({
 
                 {/* Link button in top left */}
                 {isMounted && (
-                <div
-                    className={cn(
-                        "absolute top-3.5 left-3.5 z-20 pointer-events-auto",
-                    )}
-                >
-                    <Tooltip delayDuration={500}>
-                        <TooltipTrigger asChild>
-                            <Link
-                                to="/$seed"
-                                params={{
-                                    seed: currentSeed,
-                                }}
-                                search={(search) => ({
-                                    ...search,
-                                    style: effectiveStyle,
-                                    steps: effectiveSteps,
-                                    angle: effectiveAngle,
-                                })}
-                                style={{ backgroundColor: "var(--background)" }}
-                                className={cn(
-                                    "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
-                                    "w-8 h-8 p-0 border border-solid",
-                                    "text-muted-foreground hover:text-foreground",
-                                    "transition-colors duration-200 cursor-pointer",
-                                    "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                                    "backdrop-blur-sm",
-                                    !isActive
-                                        ? "opacity-0 group-hover:opacity-100"
-                                        : "opacity-100",
-                                    "border-input hover:border-muted-foreground/30 hover:bg-background/60",
-                                )}
-                                aria-label="Edit palette"
-                                suppressHydrationWarning
+                    <div
+                        className={cn(
+                            "absolute top-3.5 left-3.5 z-20 pointer-events-auto",
+                        )}
+                    >
+                        <Tooltip delayDuration={500}>
+                            <TooltipTrigger asChild>
+                                <Link
+                                    to="/$seed"
+                                    params={{
+                                        seed: currentSeed,
+                                    }}
+                                    search={(search) => ({
+                                        ...search,
+                                        style: effectiveStyle,
+                                        steps: effectiveSteps,
+                                        angle: effectiveAngle,
+                                    })}
+                                    style={{
+                                        backgroundColor: "var(--background)",
+                                    }}
+                                    className={cn(
+                                        "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
+                                        "w-8 h-8 p-0 border border-solid",
+                                        "text-muted-foreground hover:text-foreground",
+                                        "transition-colors duration-200 cursor-pointer",
+                                        "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                                        "backdrop-blur-sm",
+                                        !isActive
+                                            ? "opacity-0 group-hover:opacity-100"
+                                            : "opacity-100",
+                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60",
+                                    )}
+                                    aria-label="Edit palette"
+                                    suppressHydrationWarning
+                                >
+                                    <SquarePen
+                                        className="w-4 h-4"
+                                        strokeWidth={2.5}
+                                    />
+                                </Link>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="bottom"
+                                align="start"
+                                sideOffset={6}
                             >
-                                <SquarePen
-                                    className="w-4 h-4"
-                                    strokeWidth={2.5}
-                                />
-                            </Link>
-                        </TooltipTrigger>
-                        <TooltipContent
-                            side="bottom"
-                            align="start"
-                            sideOffset={6}
-                        >
-                            <span>Edit Palette</span>
-                        </TooltipContent>
-                    </Tooltip>
-                </div>
+                                <span>Edit Palette</span>
+                            </TooltipContent>
+                        </Tooltip>
+                    </div>
                 )}
 
                 {/* Copy button and Export button in top right */}
                 {isMounted && (
-                <div className="absolute top-3 right-3 z-20 pointer-events-auto flex flex-col gap-2">
-                    <CopyButton
-                        id={palette.seed}
-                        cssString={cssString}
-                        svgString={svgString}
-                        gradientData={currentCoeffs}
-                        gradientGlobals={palette.globals}
-                        gradientColors={colorsToUse}
-                        seed={currentSeed}
-                        style={effectiveStyle}
-                        angle={effectiveAngle}
-                        steps={effectiveSteps}
-                        isActive={isActive}
-                        onOpenChange={(isOpen) => {
-                            copyMenuOpenRef.current = isOpen;
-                        }}
-                        pngOptions={{
-                            style: effectiveStyle as PNGGenerationOptions["style"],
-                            hexColors: colorsToUse,
-                            angle: effectiveAngle,
-                            seed: currentSeed,
-                            steps: effectiveSteps,
-                            width: actualWidth,
-                            height: actualHeight,
-                        }}
-                    />
-                    <ExportButton
-                        exportItem={createExportItem(
-                            {
-                                ...palette,
-                                coeffs: currentCoeffs,
-                                seed: currentSeed,
-                            },
-                            {
-                                style: effectiveStyle,
-                                steps: effectiveSteps,
-                                angle: effectiveAngle,
+                    <div className="absolute top-3 right-3 z-20 pointer-events-auto flex flex-col gap-2">
+                        <CopyButton
+                            id={palette.seed}
+                            cssString={cssString}
+                            svgString={svgString}
+                            gradientData={currentCoeffs}
+                            gradientGlobals={palette.globals}
+                            gradientColors={colorsToUse}
+                            seed={currentSeed}
+                            style={effectiveStyle}
+                            angle={effectiveAngle}
+                            steps={effectiveSteps}
+                            isActive={isActive}
+                            onOpenChange={(isOpen) => {
+                                copyMenuOpenRef.current = isOpen;
+                            }}
+                            pngOptions={{
+                                style: effectiveStyle as PNGGenerationOptions["style"],
                                 hexColors: colorsToUse,
-                            },
-                        )}
-                        isActive={isActive}
-                    />
-                </div>
+                                angle: effectiveAngle,
+                                seed: currentSeed,
+                                steps: effectiveSteps,
+                                width: actualWidth,
+                                height: actualHeight,
+                            }}
+                        />
+                        <ExportButton
+                            exportItem={createExportItem(
+                                {
+                                    ...palette,
+                                    coeffs: currentCoeffs,
+                                    seed: currentSeed,
+                                },
+                                {
+                                    style: effectiveStyle,
+                                    steps: effectiveSteps,
+                                    angle: effectiveAngle,
+                                    hexColors: colorsToUse,
+                                },
+                            )}
+                            isActive={isActive}
+                        />
+                    </div>
                 )}
             </figure>
         </div>

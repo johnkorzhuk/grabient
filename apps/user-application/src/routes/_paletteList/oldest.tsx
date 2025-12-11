@@ -12,6 +12,7 @@ import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonCon
 import { setPreviousRoute } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_paletteList/oldest")({
     loaderDeps: ({ search }) => ({
@@ -52,7 +53,12 @@ function OldestPage() {
 
     return (
         <AppLayout style={style} angle={angle} steps={steps} isExportOpen={showExportUI}>
-            <SelectedButtonContainer />
+            <div className={cn("px-5 lg:px-14 mb-10 md:mb-12.5", !isExportOpen && "invisible")}>
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                    {exportList.length} {exportList.length === 1 ? "item" : "items"} selected
+                </h1>
+            </div>
+            <SelectedButtonContainer className="-mt-[72px] md:-mt-[84px]" />
             <PalettesGrid palettes={data.palettes} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} isExportOpen={isExportOpen} />
             {!showExportUI && (
                 <PalettesPagination

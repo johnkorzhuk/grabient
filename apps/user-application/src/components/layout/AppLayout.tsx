@@ -8,7 +8,7 @@ import { type ReactNode, useEffect, useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
     useLocation,
-    useRouter,
+    useNavigate,
     useSearch,
     Link,
 } from "@tanstack/react-router";
@@ -144,6 +144,7 @@ interface AppLayoutProps {
     angle?: number | "auto";
     steps?: number | "auto";
     leftAction?: ReactNode;
+    rightAction?: ReactNode;
     logoNavigation?: LogoNavigation;
     isExportOpen?: boolean;
 }
@@ -155,6 +156,7 @@ export function AppLayout({
     angle = "auto",
     steps = "auto",
     leftAction,
+    rightAction,
     logoNavigation,
     isExportOpen = false,
 }: AppLayoutProps) {
@@ -167,7 +169,7 @@ export function AppLayout({
     const { data: popularTags } = useSuspenseQuery(popularTagsQueryOptions());
 
     const location = useLocation();
-    const router = useRouter();
+    const navigate = useNavigate();
     const currentSearch = useSearch({ strict: false }) as {
         style?: StyleType;
         angle?: "auto" | number;
@@ -217,14 +219,13 @@ export function AppLayout({
         style !== "auto" || angle !== "auto" || steps !== "auto";
 
     const handleReset = async () => {
-        await router.navigate({
-            to: location.pathname,
-            search: (prev) => ({
-                ...prev,
-                style: "auto" as const,
-                angle: "auto" as const,
-                steps: "auto" as const,
-            }),
+        await navigate({
+            to: ".",
+            search: {
+                style: undefined,
+                angle: undefined,
+                steps: undefined,
+            },
             replace: true,
         });
         resetPreviewState();
@@ -252,7 +253,13 @@ export function AppLayout({
         [
             "Escape",
             () => {
-                if (isAdvancedOpen) {
+                if (isExportOpen) {
+                    navigate({
+                        to: ".",
+                        search: (prev) => ({ ...prev, export: undefined }),
+                        replace: true,
+                    });
+                } else if (isAdvancedOpen) {
                     setIsAdvancedOpen(false);
                 }
             },
@@ -274,10 +281,14 @@ export function AppLayout({
                     <div className="mx-auto w-full px-5 lg:px-14 py-3 subpixel-antialiased flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             {leftAction}
-                            <NavigationSelect className="subpixel-antialiased" />
+                            <NavigationSelect
+                                className="subpixel-antialiased"
+                                disabled={isExportOpen}
+                            />
+                            {rightAction}
                         </div>
                         <div className="flex items-center gap-2">
-                            {hasCustomValues && (
+                            {hasCustomValues && !isExportOpen && (
                                 <Tooltip delayDuration={500}>
                                     <TooltipTrigger asChild>
                                         <button
@@ -319,16 +330,19 @@ export function AppLayout({
                                     value={angle}
                                     className="subpixel-antialiased hidden sm:flex"
                                     onPreviewChange={setPreviewAngle}
+                                    disabled={isExportOpen}
                                 />
                                 <StepsInput
                                     value={steps}
                                     className="subpixel-antialiased hidden sm:flex"
                                     onPreviewChange={setPreviewSteps}
+                                    disabled={isExportOpen}
                                 />
                                 <StyleSelect
                                     value={style}
                                     className="subpixel-antialiased"
                                     onPreviewChange={setPreviewStyle}
+                                    disabled={isExportOpen}
                                 />
                             </div>
                             <Tooltip delayDuration={500}>
@@ -413,37 +427,53 @@ export function AppLayout({
                                 value={angle}
                                 className="subpixel-antialiased"
                                 onPreviewChange={setPreviewAngle}
+                                disabled={isExportOpen}
                             />
                             <StepsInput
                                 value={steps}
                                 className="subpixel-antialiased"
                                 onPreviewChange={setPreviewSteps}
+                                disabled={isExportOpen}
                             />
                         </div>
                     </div>
                 </div>
             )}
             {showNavigation && (
-                <div className={cn(
-                    "px-5 lg:px-14 pt-4 md:pt-6 pb-2",
-                    isExportOpen
-                        ? "w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5"
-                        : "mx-auto w-full"
-                )}>
-                    <div className={cn(
-                        "sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col gap-3 md:gap-5 bg-background py-2",
-                        isExportOpen ? "items-start md:items-start xl:items-center" : "items-center"
-                    )}>
-                        <div className={cn(
-                            "w-full",
-                            isExportOpen ? "md:max-w-none xl:max-w-lg" : "md:max-w-lg"
-                        )}>
+                <div
+                    className={cn(
+                        "px-5 lg:px-14 pt-4 md:pt-6 pb-2",
+                        isExportOpen
+                            ? "w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5"
+                            : "mx-auto w-full",
+                    )}
+                >
+                    <div
+                        className={cn(
+                            "sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col gap-3 md:gap-5 bg-background py-2",
+                            isExportOpen
+                                ? "items-start md:items-start xl:items-center"
+                                : "items-center",
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                "w-full",
+                                isExportOpen
+                                    ? "md:max-w-none xl:max-w-lg"
+                                    : "md:max-w-lg",
+                            )}
+                        >
                             <SearchInput variant="expanded" />
                         </div>
-                        <div className={cn(
-                            "w-full flex items-center gap-2",
-                            isExportOpen ? "max-w-none md:max-w-none xl:max-w-3xl xl:mx-auto" : "max-w-3xl mx-auto"
-                        )}>
+                        <div
+                            className={cn(
+                                "w-full flex items-center gap-2",
+                                isExportOpen
+                                    ? "max-w-none md:max-w-none xl:max-w-3xl xl:mx-auto"
+                                    : "max-w-3xl mx-auto",
+                            )}
+                        >
                             <span className="hidden md:inline text-sm font-medium text-muted-foreground shrink-0">
                                 Popular
                             </span>

@@ -19,6 +19,7 @@ import type { SearchSortOrder } from "@/routes/palettes/$query";
 interface NavigationSelectProps {
     className?: string;
     popoverClassName?: string;
+    disabled?: boolean;
 }
 
 type SortItem = {
@@ -50,12 +51,13 @@ const TIME_NAVIGATION_ITEMS: Record<"newest" | "oldest", NavigationItem> = {
 export function NavigationSelect({
     className,
     popoverClassName,
+    disabled = false,
 }: NavigationSelectProps) {
     const location = useLocation();
     const router = useRouter();
     const search = useSearch({ strict: false }) as { sort?: SearchSortOrder };
     const [open, setOpen] = useState(false);
-    const focusTrapRef = useFocusTrap(open);
+    const focusTrapRef = useFocusTrap(open && !disabled);
 
     const isSearchRoute = location.pathname.startsWith("/palettes/");
     const currentSort = search.sort || "popular";
@@ -108,30 +110,33 @@ export function NavigationSelect({
     };
 
     return (
-        <Popover open={open} onOpenChange={setOpen} modal={false}>
+        <Popover open={open && !disabled} onOpenChange={(newOpen) => !disabled && setOpen(newOpen)} modal={false}>
             <PopoverTrigger asChild>
                 <button
                     role="combobox"
-                    aria-expanded={open}
+                    aria-expanded={open && !disabled}
                     aria-haspopup="listbox"
                     aria-label="Navigation"
+                    aria-disabled={disabled}
                     style={{ backgroundColor: "var(--background)" }}
                     className={cn(
                         "disable-animation-on-theme-change",
                         "inline-flex items-center justify-center rounded-md",
                         "w-auto min-w-[110px] md:min-w-[130px] justify-between",
                         "text-xs md:text-sm h-8.5 px-2 md:px-3 border border-solid",
-                        "transition-colors duration-200 cursor-pointer",
+                        "transition-colors duration-200",
                         "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                        open
-                            ? "border-muted-foreground/30 bg-background/60 text-foreground"
-                            : "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground",
+                        disabled
+                            ? "cursor-not-allowed opacity-50 border-input text-muted-foreground"
+                            : open
+                                ? "border-muted-foreground/30 bg-background/60 text-foreground cursor-pointer"
+                                : "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground cursor-pointer",
                         className,
                     )}
                     suppressHydrationWarning
                 >
                     <span className="font-system font-semibold -translate-y-px">
-                        {currentItem.label}
+                        {disabled && isSearchRoute ? "Popular" : currentItem.label}
                     </span>
                     <ChevronsUpDown
                         className="ml-1.5 md:ml-2 h-3.5 w-3.5 md:h-4 md:w-4 shrink-0"

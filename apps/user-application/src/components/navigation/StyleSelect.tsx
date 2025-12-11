@@ -26,6 +26,7 @@ interface StyleSelectProps {
     className?: string;
     popoverClassName?: string;
     onPreviewChange?: (style: PaletteStyle | null) => void;
+    disabled?: boolean;
 }
 
 export function StyleSelect({
@@ -33,11 +34,12 @@ export function StyleSelect({
     className,
     popoverClassName,
     onPreviewChange,
+    disabled = false,
 }: StyleSelectProps) {
     const location = useLocation();
     const router = useRouter();
     const [open, setOpen] = useState(false);
-    const focusTrapRef = useFocusTrap(open);
+    const focusTrapRef = useFocusTrap(open && !disabled);
 
     // Check if we're on a seed route to show deepFlow option
     const isSeedRoute = location.pathname.includes("/seed/");
@@ -67,26 +69,29 @@ export function StyleSelect({
     const button = (
         <button
             role="combobox"
-            aria-expanded={open}
+            aria-expanded={open && !disabled}
             aria-haspopup="listbox"
             aria-label="Select gradient style"
+            aria-disabled={disabled}
             style={{ backgroundColor: "var(--background)" }}
             className={cn(
                 "disable-animation-on-theme-change",
                 "inline-flex items-center justify-center rounded-md",
                 "w-[148px] sm:w-[154px] md:w-[164px] lg:w-[184px] justify-between",
                 "text-[13px] sm:text-sm h-8 lg:h-8.5 px-2 md:px-3 border border-solid",
-                "transition-colors duration-200 cursor-pointer",
+                "transition-colors duration-200",
                 "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                open
-                    ? "border-muted-foreground/30 bg-background/60 text-foreground"
-                    : "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground",
+                disabled
+                    ? "cursor-not-allowed opacity-50 border-input text-muted-foreground"
+                    : open
+                        ? "border-muted-foreground/30 bg-background/60 text-foreground cursor-pointer"
+                        : "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground cursor-pointer",
                 className,
             )}
             suppressHydrationWarning
         >
             <span className="font-system font-semibold whitespace-nowrap pl-1 md:pl-0 -translate-y-px">
-                {value === "auto" ? "style" : STYLE_LABELS[value]}
+                {disabled ? "style" : value === "auto" ? "style" : STYLE_LABELS[value]}
             </span>
             <ChevronsUpDown
                 className="ml-1.5 md:ml-2 h-3.5 w-3.5 md:h-4 md:w-4 shrink-0"
@@ -97,8 +102,9 @@ export function StyleSelect({
 
     return (
         <Popover
-            open={open}
+            open={open && !disabled}
             onOpenChange={(newOpen) => {
+                if (disabled) return;
                 setOpen(newOpen);
                 // Clear preview when menu closes
                 if (!newOpen) {

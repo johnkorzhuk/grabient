@@ -14,6 +14,7 @@ import { setPreviousRoute } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import { UndoButton } from "@/components/navigation/UndoButton";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_paletteList/saved")({
     beforeLoad: async ({ context }) => {
@@ -88,7 +89,7 @@ function SavedPalettesPage() {
     );
 
     return (
-        <AppLayout style={style} angle={angle} steps={steps} leftAction={<UndoButton />} isExportOpen={showExportUI}>
+        <AppLayout style={style} angle={angle} steps={steps} rightAction={<UndoButton />} isExportOpen={showExportUI}>
             {data.palettes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16">
                     <p className="text-muted-foreground text-lg">
@@ -97,7 +98,12 @@ function SavedPalettesPage() {
                 </div>
             ) : (
                 <>
-                    <SelectedButtonContainer />
+                    <div className={cn("px-5 lg:px-14 mb-10 md:mb-12.5", !isExportOpen && "invisible")}>
+                        <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                            {exportList.length} {exportList.length === 1 ? "item" : "items"} selected
+                        </h1>
+                    </div>
+                    <SelectedButtonContainer className="-mt-[72px] md:-mt-[84px]" />
                     <PalettesGrid
                         palettes={data.palettes}
                         likedSeeds={likedSeeds}

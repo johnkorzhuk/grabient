@@ -86,7 +86,7 @@ export function useLikePaletteMutation() {
                 return newSet;
             });
 
-            queryClient.setQueriesData<{ palettes: AppPalette[]; totalPages: number; total: number }>(
+            queryClient.setQueriesData<{ palettes?: AppPalette[]; results?: AppPalette[]; totalPages?: number; total?: number }>(
                 { queryKey: ["palettes"] },
                 (old) => {
                     if (!old) return old;
@@ -94,13 +94,35 @@ export function useLikePaletteMutation() {
                     const queryKey = queryClient.getQueryCache().findAll({ queryKey: ["palettes"] })
                         .find(query => query.state.data === old)?.queryKey;
 
+                    // Handle search queries (["palettes", "search", query, limit]) which use { results: ... }
+                    if (queryKey && queryKey[1] === "search" && old.results) {
+                        const paletteWithCurrentSeed = old.results.find(p => p.seed === args.seed);
+                        if (paletteWithCurrentSeed) {
+                            return {
+                                ...old,
+                                results: old.results.map((palette) =>
+                                    palette.seed === args.seed
+                                        ? {
+                                              ...palette,
+                                              likesCount: Math.max(0, (palette.likesCount ?? 0) + likeDelta),
+                                          }
+                                        : palette
+                                ),
+                            };
+                        }
+                        return old;
+                    }
+
+                    // Handle other palette queries which use { palettes: ... }
+                    if (!old.palettes) return old;
+
                     if (queryKey && queryKey[1] === "liked") {
                         if (isCurrentlyLiked) {
                             const filteredPalettes = old.palettes.filter(p => p.seed !== args.seed);
                             return {
                                 palettes: filteredPalettes,
-                                total: Math.max(0, old.total - 1),
-                                totalPages: Math.ceil(Math.max(0, old.total - 1) / (queryKey[3] as number || 24)),
+                                total: Math.max(0, (old.total ?? 0) - 1),
+                                totalPages: Math.ceil(Math.max(0, (old.total ?? 0) - 1) / (queryKey[3] as number || 24)),
                             };
                         } else {
                             const paletteExists = old.palettes.some(p => p.seed === args.seed);
@@ -117,14 +139,14 @@ export function useLikePaletteMutation() {
                             } else if (args.palette) {
                                 return {
                                     palettes: [args.palette, ...old.palettes],
-                                    total: old.total + 1,
-                                    totalPages: Math.ceil((old.total + 1) / ((queryKey[3] as number) || 24)),
+                                    total: (old.total ?? 0) + 1,
+                                    totalPages: Math.ceil(((old.total ?? 0) + 1) / ((queryKey[3] as number) || 24)),
                                 };
                             } else {
                                 return {
                                     ...old,
-                                    total: old.total + 1,
-                                    totalPages: Math.ceil((old.total + 1) / ((queryKey[3] as number) || 24)),
+                                    total: (old.total ?? 0) + 1,
+                                    totalPages: Math.ceil(((old.total ?? 0) + 1) / ((queryKey[3] as number) || 24)),
                                 };
                             }
                         }
