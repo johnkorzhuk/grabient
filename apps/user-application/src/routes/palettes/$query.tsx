@@ -1,4 +1,8 @@
-import { createFileRoute, stripSearchParams, Link } from "@tanstack/react-router";
+import {
+    createFileRoute,
+    stripSearchParams,
+    Link,
+} from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
@@ -12,7 +16,14 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
-import { hexToColorName, colorNameToHex, isColorName, simplifyHex, isExactColorMatch, HEX_CODE_REGEX } from "@/lib/color-utils";
+import {
+    hexToColorName,
+    colorNameToHex,
+    isColorName,
+    simplifyHex,
+    isExactColorMatch,
+    HEX_CODE_REGEX,
+} from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
 import { Search, ArrowLeft } from "lucide-react";
@@ -69,13 +80,22 @@ const searchValidatorSchema = v.object({
     export: v.optional(v.boolean(), SEARCH_DEFAULTS.export),
 });
 
-function sortResults(results: SearchResultPalette[], order: SearchSortOrder): SearchResultPalette[] {
+function sortResults(
+    results: SearchResultPalette[],
+    order: SearchSortOrder,
+): SearchResultPalette[] {
     return [...results].sort((a, b) => {
         switch (order) {
             case "newest":
-                return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
+                return (
+                    (b.createdAt?.getTime() ?? 0) -
+                    (a.createdAt?.getTime() ?? 0)
+                );
             case "oldest":
-                return (a.createdAt?.getTime() ?? 0) - (b.createdAt?.getTime() ?? 0);
+                return (
+                    (a.createdAt?.getTime() ?? 0) -
+                    (b.createdAt?.getTime() ?? 0)
+                );
             case "popular":
             default:
                 return (b.likesCount ?? 0) - (a.likesCount ?? 0);
@@ -139,7 +159,9 @@ export const Route = createFileRoute("/palettes/$query")({
     loader: async ({ context, params }) => {
         const query = getQuery(params.query);
         if (!query) {
-            await context.queryClient.ensureQueryData(popularTagsQueryOptions());
+            await context.queryClient.ensureQueryData(
+                popularTagsQueryOptions(),
+            );
             return;
         }
         await Promise.all([
@@ -262,25 +284,33 @@ function ColorNameSwatch({ name, hex }: { name: string; hex: string }) {
 }
 
 function cleanTextPart(text: string): string {
-    return text
-        .replace(/[,#]+/g, " ")
-        .replace(/\s+/g, " ")
-        .trim();
+    return text.replace(/[,#]+/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function parseQueryForDisplay(query: string): Array<{ type: "text" | "hex" | "colorName"; value: string; hex?: string }> {
+function parseQueryForDisplay(
+    query: string,
+): Array<{ type: "text" | "hex" | "colorName"; value: string; hex?: string }> {
     const sanitized = query
         .replace(/[\[\]"{}]/g, "")
         .replace(/\s+/g, " ")
         .trim()
         .slice(0, 100);
 
-    const parts: Array<{ type: "text" | "hex" | "colorName"; value: string; hex?: string }> = [];
+    const parts: Array<{
+        type: "text" | "hex" | "colorName";
+        value: string;
+        hex?: string;
+    }> = [];
     const seenColors = new Set<string>();
 
     // First pass: extract hex codes
     let lastIndex = 0;
-    const segments: Array<{ type: "text" | "hex"; value: string; start: number; end: number }> = [];
+    const segments: Array<{
+        type: "text" | "hex";
+        value: string;
+        start: number;
+        end: number;
+    }> = [];
 
     for (const match of sanitized.matchAll(HEX_CODE_REGEX)) {
         if (match.index! > lastIndex) {
@@ -331,13 +361,20 @@ function parseQueryForDisplay(query: string): Array<{ type: "text" | "hex" | "co
                 if (cleanWord && isColorName(cleanWord)) {
                     // Flush text buffer first
                     if (textBuffer.trim()) {
-                        parts.push({ type: "text", value: cleanTextPart(textBuffer) });
+                        parts.push({
+                            type: "text",
+                            value: cleanTextPart(textBuffer),
+                        });
                         textBuffer = "";
                     }
                     const hex = colorNameToHex(cleanWord);
                     if (hex && !seenColors.has(cleanWord.toLowerCase())) {
                         seenColors.add(cleanWord.toLowerCase());
-                        parts.push({ type: "colorName", value: cleanWord, hex });
+                        parts.push({
+                            type: "colorName",
+                            value: cleanWord,
+                            hex,
+                        });
                     }
                 } else {
                     textBuffer += (textBuffer ? " " : "") + word;
@@ -366,7 +403,9 @@ function getQueryType(query: string): QueryType {
     return "text";
 }
 
-function getActualSearchTerms(query: string): { colorNames: string[]; hexCodes: string[] } | null {
+function getActualSearchTerms(
+    query: string,
+): { colorNames: string[]; hexCodes: string[] } | null {
     const seedData = getSeedColorData(query);
     if (seedData) {
         return { colorNames: seedData.colorNames, hexCodes: seedData.hexCodes };
@@ -391,12 +430,21 @@ function getActualSearchTerms(query: string): { colorNames: string[]; hexCodes: 
     return null;
 }
 
-function ResultsForSubtitle({ query, searchParams }: { query: string; searchParams: Record<string, unknown> }) {
+function ResultsForSubtitle({
+    query,
+    searchParams,
+}: {
+    query: string;
+    searchParams: Record<string, unknown>;
+}) {
     const queryType = getQueryType(query);
 
     if (queryType === "seed") {
         return (
-            <p className="absolute top-full left-0 mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+            <p
+                className="absolute top-full left-0 mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
+                style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+            >
                 Showing results for seed:{" "}
                 <Link
                     to="/$seed"
@@ -415,7 +463,10 @@ function ResultsForSubtitle({ query, searchParams }: { query: string; searchPara
         if (!searchTerms) return null;
 
         return (
-            <p className="absolute top-full left-0 mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+            <p
+                className="absolute top-full left-0 mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
+                style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+            >
                 Showing results for:
                 {searchTerms.colorNames.map((name, i) => (
                     <span key={i} className="inline-flex items-center gap-1">
@@ -423,7 +474,9 @@ function ResultsForSubtitle({ query, searchParams }: { query: string; searchPara
                             className="inline-block w-3 h-3 rounded-sm border border-input"
                             style={{ backgroundColor: searchTerms.hexCodes[i] }}
                         />
-                        <span className="text-foreground/80 capitalize">{name}</span>
+                        <span className="text-foreground/80 capitalize">
+                            {name}
+                        </span>
                     </span>
                 ))}
             </p>
@@ -441,7 +494,10 @@ function QueryDisplay({ query }: { query: string }) {
             <>
                 {seedData.colorNames.map((name, i) => (
                     <span key={i} className="inline-flex items-center">
-                        <ColorNameSwatch name={name} hex={seedData.hexCodes[i]!} />
+                        <ColorNameSwatch
+                            name={name}
+                            hex={seedData.hexCodes[i]!}
+                        />
                     </span>
                 ))}
             </>
@@ -479,16 +535,25 @@ function QueryDisplay({ query }: { query: string }) {
 
 function sortToRoute(sort: SearchSortOrder): string {
     switch (sort) {
-        case "newest": return "/newest";
-        case "oldest": return "/oldest";
+        case "newest":
+            return "/newest";
+        case "oldest":
+            return "/oldest";
         case "popular":
-        default: return "/";
+        default:
+            return "/";
     }
 }
 
 interface SearchParams {
     sort: SearchSortOrder;
-    style: "auto" | "linearGradient" | "angularGradient" | "angularSwatches" | "linearSwatches" | "deepFlow";
+    style:
+        | "auto"
+        | "linearGradient"
+        | "angularGradient"
+        | "angularSwatches"
+        | "linearSwatches"
+        | "deepFlow";
     angle: "auto" | number;
     steps: "auto" | number;
     size: SizeType;
@@ -543,7 +608,22 @@ function SearchResultsPage() {
 
     if (results.length === 0) {
         return (
-            <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav} isExportOpen={showExportUI}>
+            <AppLayout
+                style={style}
+                angle={angle}
+                steps={steps}
+                leftAction={
+                    <BackButton
+                        sort={sort}
+                        style={style}
+                        angle={angle}
+                        steps={steps}
+                        size={size}
+                    />
+                }
+                logoNavigation={backNav}
+                isExportOpen={showExportUI}
+            >
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground px-5 lg:px-14">
                     <Search className="h-12 w-12 mb-4 opacity-50" />
                     <p className="text-lg flex items-center flex-wrap gap-2">
@@ -566,17 +646,50 @@ function SearchResultsPage() {
     };
 
     return (
-        <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav} isExportOpen={showExportUI}>
-            <div className={`px-5 lg:px-14 ${hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12"}`}>
+        <AppLayout
+            style={style}
+            angle={angle}
+            steps={steps}
+            leftAction={
+                <BackButton
+                    sort={sort}
+                    style={style}
+                    angle={angle}
+                    steps={steps}
+                    size={size}
+                />
+            }
+            logoNavigation={backNav}
+            isExportOpen={showExportUI}
+        >
+            <div
+                className={`px-5 lg:px-14 ${hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5"}`}
+            >
                 <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1">
                     <QueryDisplay query={query} />
                     <span className="ml-1">palettes</span>
                 </h1>
-                <ResultsForSubtitle query={query} searchParams={preservedSearch} />
+                <ResultsForSubtitle
+                    query={query}
+                    searchParams={preservedSearch}
+                />
             </div>
-            <SelectedButtonContainer className="-mt-[72px] md:-mt-[84px]" />
-            <PalettesGrid palettes={results} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} isExportOpen={isExportOpen} />
-            <div className="py-3 mt-16" />
+            <SelectedButtonContainer
+                className={
+                    hasSubtitle
+                        ? "-mt-[88px] md:-mt-[100px]"
+                        : "-mt-[72px] md:-mt-[84px]"
+                }
+            />
+            <PalettesGrid
+                palettes={results}
+                likedSeeds={likedSeeds}
+                urlStyle={style}
+                urlAngle={angle}
+                urlSteps={steps}
+                isExportOpen={isExportOpen}
+            />
+            {!isExportOpen && <div className="py-3 mt-16" />}
         </AppLayout>
     );
 }
