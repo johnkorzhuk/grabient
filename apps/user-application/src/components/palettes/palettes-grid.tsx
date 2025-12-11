@@ -498,9 +498,8 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
                         <div className="flex justify-end items-center px-4 pt-4 pb-3 gap-2">
                             <ExportActions />
                         </div>
-                        {/* Row with device presets and W×H inputs */}
+                        {/* Row with W×H inputs */}
                         <div className="flex items-center px-4 pb-4 gap-3">
-                            <DevicePresets showDimensions={false} showCustomOption={false} side="top" />
                             <span
                                 className="text-xs text-muted-foreground font-semibold"
                                 style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
@@ -1321,7 +1320,7 @@ function GradientPreview({
                 {isMounted && (
                     <div className="absolute top-3 right-3 z-20 pointer-events-auto flex flex-col gap-2">
                         <CopyButton
-                            id={palette.seed}
+                            id={`${currentSeed}-${effectiveStyle}-${effectiveSteps}-${effectiveAngle}`}
                             cssString={cssString}
                             svgString={svgString}
                             gradientData={currentCoeffs}

@@ -4,6 +4,7 @@ import { SelectedButton } from "./SelectedButton";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { ExportActions } from "./ExportActions";
+import { MixButton } from "./MixButton";
 import { useMounted } from "@mantine/hooks";
 
 interface SelectedButtonContainerProps {
@@ -35,7 +36,11 @@ export function SelectedButtonContainer({
         >
             {hasSelectedItems && (
                 <>
-                    {isExportOpen && <ExportActions />}
+                    {isExportOpen ? (
+                        <ExportActions />
+                    ) : (
+                        <MixButton />
+                    )}
                     <SelectedButton />
                 </>
             )}

@@ -25,7 +25,6 @@ export const devicePresets: DevicePresets = {
     { name: "iPad Pro 13\"", resolution: [2064, 2752] },
     { name: "iPad Pro 11\"", resolution: [1668, 2420] },
     { name: "iPad Air 13\"", resolution: [2048, 2732] },
-    { name: "iPad Air 11\"", resolution: [1640, 2360] },
     { name: "iPad 11\"", resolution: [1640, 2360] },
     { name: "Galaxy Tab S9 Ultra", resolution: [1848, 2960] },
     { name: "Galaxy Tab S9", resolution: [1600, 2560] },

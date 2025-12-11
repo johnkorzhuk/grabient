@@ -16,6 +16,7 @@ import {
     useDownloadPNGGrid,
 } from "@/hooks/usePNGGridCache";
 import { downloadSVGGrid, copySVGGridToClipboard } from "@/lib/generateSVGGrid";
+import { MixButton } from "./MixButton";
 
 export function ExportActions() {
     const exportList = useStore(exportStore, (state) => state.exportList);
@@ -216,6 +217,7 @@ export function ExportActions() {
 
     return (
         <>
+            <MixButton />
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <button

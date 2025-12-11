@@ -296,3 +296,15 @@ export const setColumns = (columns: number) => {
     }));
     persistOptions();
 };
+
+export function getUniqueSeedsFromExportList(exportList: ExportItem[]): string[] {
+    const seen = new Set<string>();
+    const uniqueSeeds: string[] = [];
+    for (const item of exportList) {
+        if (!seen.has(item.seed)) {
+            seen.add(item.seed);
+            uniqueSeeds.push(item.seed);
+        }
+    }
+    return uniqueSeeds;
+}

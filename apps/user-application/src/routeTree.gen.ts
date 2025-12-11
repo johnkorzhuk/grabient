@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as MixRouteImport } from './routes/mix'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PaletteListRouteImport } from './routes/_paletteList'
@@ -37,6 +38,11 @@ const TermsRoute = TermsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MixRoute = MixRouteImport.update({
+  id: '/mix',
+  path: '/mix',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/$seed': typeof SeedRouteRouteWithChildren
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/mix': typeof MixRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/newest': typeof PaletteListNewestRoute
@@ -147,6 +154,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/mix': typeof MixRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/newest': typeof PaletteListNewestRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/_paletteList': typeof PaletteListRouteWithChildren
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/mix': typeof MixRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_paletteList/newest': typeof PaletteListNewestRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/$seed'
     | '/contact'
     | '/login'
+    | '/mix'
     | '/privacy'
     | '/terms'
     | '/newest'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
   to:
     | '/contact'
     | '/login'
+    | '/mix'
     | '/privacy'
     | '/terms'
     | '/newest'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/_paletteList'
     | '/contact'
     | '/login'
+    | '/mix'
     | '/privacy'
     | '/terms'
     | '/_paletteList/newest'
@@ -253,6 +265,7 @@ export interface RootRouteChildren {
   PaletteListRoute: typeof PaletteListRouteWithChildren
   ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
+  MixRoute: typeof MixRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiOgRoute: typeof ApiOgRouteWithChildren
@@ -278,6 +291,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mix': {
+      id: '/mix'
+      path: '/mix'
+      fullPath: '/mix'
+      preLoaderRoute: typeof MixRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -447,6 +467,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaletteListRoute: PaletteListRouteWithChildren,
   ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
+  MixRoute: MixRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiOgRoute: ApiOgRouteWithChildren,
