@@ -33,7 +33,7 @@ import {
 } from "@repo/data-ops/gradient-gen/cosine";
 import type * as v from "valibot";
 import { coeffsSchema } from "@repo/data-ops/valibot-schema/grabient";
-import { setIsDragging, setActivePaletteSeed } from "@/stores/ui";
+import { setIsDragging } from "@/stores/ui";
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 
@@ -202,7 +202,6 @@ export function RGBTabs({ palette, onOrderChange }: RGBTabsProps) {
 
     const handleDragStart = (event: DragStartEvent) => {
         setActiveId(event.active.id as string);
-        setActivePaletteSeed(palette.seed);
         setIsDragging(true);
     };
 

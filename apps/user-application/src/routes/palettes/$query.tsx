@@ -1,5 +1,6 @@
 import { createFileRoute, stripSearchParams, Link } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
 import {
     searchPalettesQueryOptions,
@@ -9,6 +10,7 @@ import {
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
+import { exportStore } from "@/stores/export";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 import { hexToColorName, colorNameToHex, isColorName, simplifyHex, isExactColorMatch, HEX_CODE_REGEX } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
@@ -27,6 +29,7 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
+import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -36,6 +39,7 @@ const SEARCH_DEFAULTS = {
     angle: "auto" as const,
     steps: "auto" as const,
     size: "auto" as SizeType,
+    export: false,
 };
 
 const searchValidatorSchema = v.object({
@@ -62,6 +66,7 @@ const searchValidatorSchema = v.object({
         v.fallback(sizeWithAutoValidator, SEARCH_DEFAULTS.size),
         SEARCH_DEFAULTS.size,
     ),
+    export: v.optional(v.boolean(), SEARCH_DEFAULTS.export),
 });
 
 function sortResults(results: SearchResultPalette[], order: SearchSortOrder): SearchResultPalette[] {
@@ -521,7 +526,11 @@ function BackButton({ sort, style, angle, steps, size }: SearchParams) {
 
 function SearchResultsPage() {
     const { query: compressedQuery } = Route.useParams();
-    const { sort, style, angle, steps, size } = Route.useSearch();
+    const search = Route.useSearch();
+    const { sort, style, angle, steps, size } = search;
+    const isExportOpen = search.export === true;
+    const exportList = useStore(exportStore, (state) => state.exportList);
+    const showExportUI = isExportOpen && exportList.length > 0;
     const query = getQuery(compressedQuery) ?? "";
 
     const { data: searchData } = useSuspenseQuery(
@@ -534,7 +543,7 @@ function SearchResultsPage() {
 
     if (results.length === 0) {
         return (
-            <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav}>
+            <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav} isExportOpen={showExportUI}>
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground px-5 lg:px-14">
                     <Search className="h-12 w-12 mb-4 opacity-50" />
                     <p className="text-lg flex items-center flex-wrap gap-2">
@@ -557,17 +566,16 @@ function SearchResultsPage() {
     };
 
     return (
-        <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav}>
+        <AppLayout style={style} angle={angle} steps={steps} leftAction={<BackButton sort={sort} style={style} angle={angle} steps={steps} size={size} />} logoNavigation={backNav} isExportOpen={showExportUI}>
             <div className={`px-5 lg:px-14 ${hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12"}`}>
-                <div className="relative">
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1">
-                        <QueryDisplay query={query} />
-                        <span className="ml-1">palettes</span>
-                    </h1>
-                    <ResultsForSubtitle query={query} searchParams={preservedSearch} />
-                </div>
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1">
+                    <QueryDisplay query={query} />
+                    <span className="ml-1">palettes</span>
+                </h1>
+                <ResultsForSubtitle query={query} searchParams={preservedSearch} />
             </div>
-            <PalettesGrid palettes={results} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} />
+            <SelectedButtonContainer className="-mt-[72px] md:-mt-[84px]" />
+            <PalettesGrid palettes={results} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} isExportOpen={isExportOpen} />
             <div className="py-3 mt-16" />
         </AppLayout>
     );

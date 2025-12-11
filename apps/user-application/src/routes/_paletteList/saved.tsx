@@ -3,19 +3,20 @@ import {
     redirect,
 } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useStore } from "@tanstack/react-store";
 import { userLikedPalettesQueryOptions, userLikedSeedsQueryOptions } from "@/queries/palettes";
 import { sessionQueryOptions } from "@/queries/auth";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setActivePaletteId, setPreviousRoute } from "@/stores/ui";
+import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
+import { setPreviousRoute } from "@/stores/ui";
+import { exportStore } from "@/stores/export";
 import { UndoButton } from "@/components/navigation/UndoButton";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 
 export const Route = createFileRoute("/_paletteList/saved")({
     beforeLoad: async ({ context }) => {
-        setActivePaletteId(null);
-
         try {
             const session = await context.queryClient.ensureQueryData(sessionQueryOptions());
             if (!session?.user) {
@@ -74,7 +75,11 @@ export const Route = createFileRoute("/_paletteList/saved")({
 });
 
 function SavedPalettesPage() {
-    const { page, limit, style, angle, steps } = Route.useSearch();
+    const search = Route.useSearch();
+    const { page, limit, style, angle, steps } = search;
+    const isExportOpen = search.export === true;
+    const exportList = useStore(exportStore, (state) => state.exportList);
+    const showExportUI = isExportOpen && exportList.length > 0;
     const { data } = useSuspenseQuery(
         userLikedPalettesQueryOptions(page, limit),
     );
@@ -83,7 +88,7 @@ function SavedPalettesPage() {
     );
 
     return (
-        <AppLayout style={style} angle={angle} steps={steps} leftAction={<UndoButton />}>
+        <AppLayout style={style} angle={angle} steps={steps} leftAction={<UndoButton />} isExportOpen={showExportUI}>
             {data.palettes.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16">
                     <p className="text-muted-foreground text-lg">
@@ -92,19 +97,22 @@ function SavedPalettesPage() {
                 </div>
             ) : (
                 <>
+                    <SelectedButtonContainer />
                     <PalettesGrid
                         palettes={data.palettes}
                         likedSeeds={likedSeeds}
-                        showRgbTabs={false}
                         urlStyle={style}
                         urlAngle={angle}
                         urlSteps={steps}
+                        isExportOpen={isExportOpen}
                     />
-                    <PalettesPagination
-                        currentPage={page}
-                        totalPages={data.totalPages}
-                        limit={limit}
-                    />
+                    {!showExportUI && (
+                        <PalettesPagination
+                            currentPage={page}
+                            totalPages={data.totalPages}
+                            limit={limit}
+                        />
+                    )}
                 </>
             )}
         </AppLayout>

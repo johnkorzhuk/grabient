@@ -1,4 +1,4 @@
-import type { AppPalette } from "@/queries/palettes";
+import type { AppPalette, ExportItem } from "@/queries/palettes";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -15,21 +15,17 @@ import {
     paletteStyleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import { useStore } from "@tanstack/react-store";
-import { uiStore, setActivePaletteSeed, setCustomCoeffs } from "@/stores/ui";
-import { PaletteChartIcon } from "@/components/icons/PaletteChartIcon";
-import { applyGlobals } from "@repo/data-ops/gradient-gen/cosine";
+import { uiStore, setCustomCoeffs } from "@/stores/ui";
 import {
     useEffect,
     useRef,
     forwardRef,
     useSyncExternalStore,
     useState,
-    lazy,
-    Suspense,
 } from "react";
-import { Heart, SquarePen, X } from "lucide-react";
-import { Link } from "@tanstack/react-router";
-import { useElementSize, useHotkeys } from "@mantine/hooks";
+import { Heart, SquarePen } from "lucide-react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { useElementSize } from "@mantine/hooks";
 import {
     Tooltip,
     TooltipContent,
@@ -37,31 +33,16 @@ import {
 } from "@/components/ui/tooltip";
 import { CopyButton } from "./copy-button";
 import { ExportButton } from "./export-button";
-import { ExportOptions } from "./export-options";
 import { createExportItem } from "@/lib/paletteUtils";
-import { exportStore } from "@/stores/export";
-import { downloadSVGGrid, copySVGGridToClipboard } from "@/lib/generateSVGGrid";
-import { useFooterOverlap } from "@/hooks/useFooterOverlap";
+import { exportStore, addToExportList, isInExportList } from "@/stores/export";
 import { setContainerDimensions } from "@/stores/export";
 import { useDimensions } from "@/hooks/useDimensions";
 import { useLikePaletteMutation } from "@/mutations/palettes";
 import { useQueryClient } from "@tanstack/react-query";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
-import { Kbd } from "@/components/ui/kbd";
 import { getGradientAriaLabel, getUniqueColorNames } from "@/lib/color-utils";
-
-const LazyGradientChannelsChart = lazy(() =>
-    import("./gradient-channels-chart").then((mod) => ({
-        default: mod.GradientChannelsChart,
-    })),
-);
-
-const LazyRGBTabs = lazy(() =>
-    import("./rgb-tabs").then((mod) => ({
-        default: mod.RGBTabs,
-    })),
-);
+import { detectDevice } from "@/lib/deviceDetection";
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type StyleWithAuto = v.InferOutput<typeof styleWithAutoValidator>;
@@ -72,32 +53,62 @@ type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
 interface PalettesGridProps {
     palettes: AppPalette[];
     likedSeeds: Set<string>;
-    showRgbTabs?: boolean;
     urlStyle?: StyleWithAuto;
     urlAngle?: AngleWithAuto;
     urlSteps?: StepsWithAuto;
+    isExportOpen?: boolean;
 }
 
 export function PalettesGrid({
     palettes: initialPalettes,
     likedSeeds,
-    showRgbTabs = true,
     urlStyle = "auto",
     urlAngle = "auto",
     urlSteps = "auto",
+    isExportOpen = false,
 }: PalettesGridProps) {
     const previewStyle = useStore(uiStore, (state) => state.previewStyle);
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
     const previewSteps = useStore(uiStore, (state) => state.previewSteps);
     const exportList = useStore(exportStore, (state) => state.exportList);
-    const { footerOffset } = useFooterOverlap();
     const { ref: firstPaletteRef, width, height } = useElementSize();
+    const lastClickedSeedRef = useRef<string | null>(null);
+    const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
+    const getLikesCountBySeed = (seed: string): number | undefined => {
+        const queries = queryClient.getQueriesData<{ palettes: AppPalette[] }>({ queryKey: ["palettes"] });
+        for (const [, data] of queries) {
+            if (data?.palettes) {
+                const found = data.palettes.find(p => p.seed === seed);
+                if (found?.likesCount !== undefined) return found.likesCount;
+            }
+        }
+        const searchQueries = queryClient.getQueriesData<{ results: AppPalette[] }>({ queryKey: ["searchPalettes"] });
+        for (const [, data] of searchQueries) {
+            if (data?.results) {
+                const found = data.results.find(p => p.seed === seed);
+                if (found?.likesCount !== undefined) return found.likesCount;
+            }
+        }
+        return undefined;
+    };
 
     useEffect(() => {
         if (width > 0 && height > 0) {
             setContainerDimensions({ width, height });
         }
     }, [width, height]);
+
+    useEffect(() => {
+        if (isExportOpen && exportList.length === 0) {
+            navigate({
+                search: (prev) => ({ ...prev, export: false }),
+                resetScroll: false,
+                replace: true,
+            });
+        }
+    }, [isExportOpen, exportList.length, navigate]);
 
     const onChannelOrderChange = (
         newCoeffs: CosineCoeffs,
@@ -106,67 +117,135 @@ export function PalettesGrid({
         setCustomCoeffs(palette.seed, newCoeffs);
     };
 
-    return (
-        <section className="h-full w-full relative">
-            <ol
-                className={cn(
-                    "h-full w-full relative px-5 lg:px-14",
-                    "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-x-10 gap-y-20 auto-rows-[300px]",
-                )}
-            >
-                {initialPalettes.map((palette, index) => (
+    const handleShiftClick = (palette: AppPalette, effectiveStyle: PaletteStyle, effectiveAngle: number, effectiveSteps: number, hexColors: string[], currentCoeffs: CosineCoeffs, currentSeed: string) => {
+        const exportItem = createExportItem(
+            {
+                ...palette,
+                coeffs: currentCoeffs,
+                seed: currentSeed,
+            },
+            {
+                style: effectiveStyle,
+                steps: effectiveSteps,
+                angle: effectiveAngle,
+                hexColors,
+            },
+        );
+
+        const startIndex = lastClickedSeedRef.current
+            ? initialPalettes.findIndex(p => p.seed === lastClickedSeedRef.current)
+            : -1;
+        const endIndex = initialPalettes.findIndex(p => p.seed === palette.seed);
+
+        if (startIndex !== -1 && startIndex !== endIndex) {
+            const [start, end] = startIndex < endIndex ? [startIndex, endIndex] : [endIndex, startIndex];
+            for (let i = start; i <= end; i++) {
+                const p = initialPalettes[i]!;
+                const pEffectiveStyle = previewStyle || (urlStyle !== "auto" ? urlStyle : p.style);
+                const pEffectiveAngle = previewAngle ?? (urlAngle !== "auto" ? urlAngle : p.angle);
+                const pEffectiveSteps = previewSteps ?? (urlSteps !== "auto" ? urlSteps : p.steps);
+                const pHexColors = generateHexColors(p.coeffs, p.globals, pEffectiveSteps);
+
+                const pExportItem = createExportItem(p, {
+                    style: pEffectiveStyle,
+                    steps: pEffectiveSteps,
+                    angle: pEffectiveAngle,
+                    hexColors: pHexColors,
+                });
+
+                if (!isInExportList(pExportItem.id)) {
+                    addToExportList(pExportItem);
+                }
+            }
+        } else {
+            if (!isInExportList(exportItem.id)) {
+                addToExportList(exportItem);
+            }
+        }
+        lastClickedSeedRef.current = palette.seed;
+    };
+
+    const exportGridContent = (
+        <ol className="h-full w-full relative grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-x-10 gap-y-20 auto-rows-[300px]">
+            {exportList.map((item, index) => {
+                const exportPalette: AppPalette = {
+                    coeffs: item.coeffs,
+                    globals: item.globals,
+                    style: item.style,
+                    steps: item.steps,
+                    angle: item.angle,
+                    seed: item.seed,
+                    hexColors: item.hexColors,
+                    likesCount: getLikesCountBySeed(item.seed),
+                };
+                return (
                     <PaletteCard
-                        key={palette.seed}
-                        palette={palette}
+                        key={item.id}
+                        palette={exportPalette}
                         index={index}
-                        urlStyle={urlStyle}
-                        urlAngle={urlAngle}
-                        urlSteps={urlSteps}
-                        previewStyle={previewStyle}
-                        previewAngle={previewAngle}
-                        previewSteps={previewSteps}
+                        urlStyle={item.style}
+                        urlAngle={item.angle}
+                        urlSteps={item.steps}
+                        previewStyle={null}
+                        previewAngle={null}
+                        previewSteps={null}
                         onChannelOrderChange={onChannelOrderChange}
                         likedSeeds={likedSeeds}
-                        showRgbTabs={showRgbTabs}
-                        ref={index === 0 ? firstPaletteRef : undefined}
+                        onShiftClick={handleShiftClick}
                     />
-                ))}
-            </ol>
+                );
+            })}
+        </ol>
+    );
 
-            {exportList.length > 0 && (
-                <div
-                    className={cn(
-                        "fixed z-[50]",
-                        "px-3 py-2.5",
-                        "rounded-lg border border-solid border-input",
-                        "shadow-lg transition-colors duration-200",
-                        "w-auto",
-                        "bg-background",
-                        "disable-animation-on-theme-change",
-                    )}
-                    style={{
-                        right: "calc(var(--fixed-right-offset, 1.25rem) + var(--scrollbar-offset, 0px))",
-                        bottom: `${32 + footerOffset}px`,
-                    }}
-                >
-                    <ExportOptions
-                        onSvgExport={(itemWidth, itemHeight) => {
-                            downloadSVGGrid({
-                                exportList,
-                                itemWidth,
-                                itemHeight,
-                            });
-                        }}
-                        onSvgCopy={async (itemWidth, itemHeight) => {
-                            await copySVGGridToClipboard({
-                                exportList,
-                                itemWidth,
-                                itemHeight,
-                            });
-                        }}
-                    />
+    const paletteGridContent = (
+        <ol className="h-full w-full relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-x-10 gap-y-20 auto-rows-[300px]">
+            {initialPalettes.map((palette, index) => (
+                <PaletteCard
+                    key={palette.seed}
+                    palette={palette}
+                    index={index}
+                    urlStyle={urlStyle}
+                    urlAngle={urlAngle}
+                    urlSteps={urlSteps}
+                    previewStyle={previewStyle}
+                    previewAngle={previewAngle}
+                    previewSteps={previewSteps}
+                    onChannelOrderChange={onChannelOrderChange}
+                    likedSeeds={likedSeeds}
+                    onShiftClick={handleShiftClick}
+                    ref={index === 0 ? firstPaletteRef : undefined}
+                />
+            ))}
+        </ol>
+    );
+
+    if (isExportOpen && exportList.length > 0) {
+        return (
+            <section className="h-full w-full relative px-5 lg:px-14 pb-20">
+                <div className="flex gap-10">
+                    {/* Grid container - responsive widths */}
+                    <div className="w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5">
+                        {exportGridContent}
+                    </div>
+                    {/* Export panel - sticky on the right */}
+                    <div className="hidden md:block md:w-2/5 lg:w-1/3 xl:w-1/3 2xl:w-1/4 3xl:w-1/5">
+                        <div className="sticky top-[135px] lg:top-[151px]">
+                            <div className="bg-muted/50 rounded-lg p-6 border border-border">
+                                <p className="text-muted-foreground text-center">
+                                    Export panel content will go here
+                                </p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            )}
+            </section>
+        );
+    }
+
+    return (
+        <section className="h-full w-full relative px-5 lg:px-14">
+            {paletteGridContent}
         </section>
     );
 }
@@ -185,7 +264,7 @@ interface PaletteCardProps {
         palette: AppPalette,
     ) => void;
     likedSeeds?: Set<string>;
-    showRgbTabs?: boolean;
+    onShiftClick: (palette: AppPalette, style: PaletteStyle, angle: number, steps: number, hexColors: string[], coeffs: CosineCoeffs, seed: string) => void;
 }
 
 const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
@@ -198,50 +277,48 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             previewStyle,
             previewAngle,
             previewSteps,
-            onChannelOrderChange,
             likedSeeds,
-            showRgbTabs = true,
+            onShiftClick,
         },
         ref,
     ) => {
         const queryClient = useQueryClient();
-        const activePaletteSeed = useStore(
-            uiStore,
-            (state) => state.activePaletteSeed,
-        );
         const isDragging = useStore(uiStore, (state) => state.isDragging);
         const customCoeffsMap = useStore(
             uiStore,
             (state) => state.customCoeffs,
         );
-        const itemActive = activePaletteSeed === palette.seed;
+        const exportList = useStore(exportStore, (state) => state.exportList);
         const [isMounted, setIsMounted] = useState(false);
-        const [showGraph, setShowGraph] = useState(false);
+        const [isActive, setIsActive] = useState(false);
+        const isTouchDeviceRef = useRef(false);
+        const copyMenuOpenRef = useRef(false);
 
         useEffect(() => {
             setIsMounted(true);
+            isTouchDeviceRef.current = detectDevice().isTouchDevice;
         }, []);
-
-        useEffect(() => {
-            if (activePaletteSeed !== palette.seed && showGraph) {
-                setShowGraph(false);
-            }
-        }, [activePaletteSeed, palette.seed, showGraph]);
-
-        useHotkeys([
-            ["Escape", () => showGraph && setShowGraph(false)],
-        ]);
 
         const currentCoeffs =
             customCoeffsMap.get(palette.seed) ?? palette.coeffs;
-        // Only re-serialize if user actually modified the coeffs, otherwise use original seed
         const hasCustomCoeffs = customCoeffsMap.has(palette.seed);
         const currentSeed = hasCustomCoeffs
             ? serializeCoeffs(currentCoeffs, palette.globals)
             : palette.seed;
         const isPaletteModified = hasCustomCoeffs;
 
-        // Subscribe to query cache changes for optimistic updates
+        // Check if this palette is in the export list
+        const isInExportListValue = exportList.some(item => {
+            const effectiveStyle = previewStyle || (urlStyle !== "auto" ? urlStyle : palette.style);
+            const effectiveAngle = previewAngle ?? (urlAngle !== "auto" ? urlAngle : palette.angle);
+            const effectiveSteps = previewSteps ?? (urlSteps !== "auto" ? urlSteps : palette.steps);
+            const exportItem = createExportItem(
+                { ...palette, coeffs: currentCoeffs, seed: currentSeed },
+                { style: effectiveStyle, steps: effectiveSteps, angle: effectiveAngle, hexColors: [] },
+            );
+            return item.id === exportItem.id;
+        });
+
         const isLikedFromServer = useSyncExternalStore(
             (callback) => {
                 return queryClient.getQueryCache().subscribe((event) => {
@@ -271,8 +348,6 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                 });
             },
             () => {
-                // If palette hasn't been modified, use its own likesCount
-                // This ensures search results display their own like counts (for consistent sorting)
                 if (!isPaletteModified && palette.likesCount !== undefined) {
                     return palette.likesCount;
                 }
@@ -285,7 +360,6 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     queryKey: ["palettes"],
                 });
 
-                // Look for the current seed's like count (needed when channels are reordered)
                 const foundPalette = allPaletteQueries
                     .flatMap(([_, data]) => data?.palettes ?? [])
                     .find((p) => p.seed === currentSeed);
@@ -294,17 +368,14 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     return foundPalette.likesCount;
                 }
 
-                // If palette was modified (channels reordered), check if the new variant is liked
                 if (isPaletteModified) {
                     const cachedSeeds = queryClient.getQueryData<Set<string>>([
                         "user-liked-seeds",
                     ]);
                     const isLiked = cachedSeeds?.has(currentSeed) ?? false;
-                    // New variant can only have 0 or 1 likes (user's like)
                     return isLiked ? 1 : 0;
                 }
 
-                // If not found and not modified, check if current seed is liked
                 const cachedSeeds = queryClient.getQueryData<Set<string>>([
                     "user-liked-seeds",
                 ]);
@@ -313,7 +384,6 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     return 1;
                 }
 
-                // Fall back to original palette's like count
                 return palette.likesCount;
             },
             () => {
@@ -325,64 +395,50 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             },
         );
 
-        const copyMenuOpenRef = useRef(false);
         const likeMutation = useLikePaletteMutation();
-        const isMouseInteractionRef = useRef(false);
-
-        const handleInteraction = () => {
-            if (activePaletteSeed === palette.seed && !showGraph) {
-                setActivePaletteSeed(null);
-            } else {
-                setActivePaletteSeed(palette.seed);
-            }
-        };
-
-        const handleMouseDown = () => {
-            isMouseInteractionRef.current = true;
-        };
 
         const handleClick = (e: React.MouseEvent) => {
             const target = e.target as HTMLElement;
             if (
-                target.closest('button:not([role="button"])') ||
+                target.closest('button') ||
+                target.closest('a') ||
                 copyMenuOpenRef.current
             ) {
                 return;
             }
-            handleInteraction();
+
+            // Calculate effective values for shift-click
+            const effectiveStyle = previewStyle || (urlStyle !== "auto" ? urlStyle : palette.style);
+            const effectiveAngle = previewAngle ?? (urlAngle !== "auto" ? urlAngle : palette.angle);
+            const effectiveSteps = previewSteps ?? (urlSteps !== "auto" ? urlSteps : palette.steps);
+            const hexColors = generateHexColors(currentCoeffs, palette.globals, effectiveSteps);
+
+            // Desktop: shift-click for multi-select
+            if (e.shiftKey && !isTouchDeviceRef.current) {
+                e.preventDefault();
+                onShiftClick(palette, effectiveStyle, effectiveAngle, effectiveSteps, hexColors, currentCoeffs, currentSeed);
+                return;
+            }
+
+            // Toggle active state for showing controls
+            setIsActive(prev => !prev);
+        };
+
+        const handleTouchStart = () => {
+            isTouchDeviceRef.current = true;
         };
 
         const handleTouchEnd = (e: React.TouchEvent) => {
             const target = e.target as HTMLElement;
             if (
-                target.closest('button:not([role="button"])') ||
+                target.closest('button') ||
+                target.closest('a') ||
                 copyMenuOpenRef.current
             ) {
                 return;
             }
-            isMouseInteractionRef.current = true;
-            handleInteraction();
-        };
-
-        const handleKeyDown = (e: React.KeyboardEvent) => {
-            if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                e.stopPropagation();
-                handleInteraction();
-            }
-        };
-
-        const handleFocus = (e: React.FocusEvent) => {
-            const isFocusFromWithinPalette =
-                e.relatedTarget &&
-                (e.currentTarget as HTMLElement).contains(
-                    e.relatedTarget as HTMLElement,
-                );
-
-            if (!isMouseInteractionRef.current && !isFocusFromWithinPalette) {
-                setActivePaletteSeed(palette.seed);
-            }
-            isMouseInteractionRef.current = false;
+            // Toggle active state on touch
+            setIsActive(prev => !prev);
         };
 
         const { hexColors } = palette;
@@ -390,9 +446,8 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         const colorList = uniqueColorNames.slice(0, 3).join(", ");
         const moreColors =
             uniqueColorNames.length > 3 ? ` and ${uniqueColorNames.length - 3} more` : "";
-        const ariaLabel = `${itemActive ? "Deselect" : "Select"} gradient: ${colorList}${moreColors}`;
+        const ariaLabel = `${isActive ? "Deselect" : "Select"} gradient: ${colorList}${moreColors}`;
 
-        // Calculate effective render settings (same logic as GradientPreview)
         const effectiveStyle =
             previewStyle || (urlStyle !== "auto" ? urlStyle : palette.style);
         const effectiveAngle =
@@ -400,32 +455,50 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         const effectiveSteps =
             previewSteps ?? (urlSteps !== "auto" ? urlSteps : palette.steps);
 
+        // Determine if controls should be visible
+        // Touch devices: show controls when tapped (isActive) OR when in export list
+        // Non-touch devices: only show controls on hover (CSS handles this)
+        const shouldShowControls = isTouchDeviceRef.current
+            ? (isActive || isInExportListValue)
+            : false;
+
         return (
             <li
                 ref={ref}
                 className={cn(
                     "relative w-full font-poppins",
-                    isDragging && !itemActive && "pointer-events-none",
+                    isDragging && "pointer-events-none",
                 )}
             >
                 <div className="group">
                     <div
                         className="relative w-full cursor-pointer outline-none"
-                        onMouseDown={handleMouseDown}
                         onClick={handleClick}
+                        onTouchStart={handleTouchStart}
                         onTouchEnd={handleTouchEnd}
-                        onKeyDown={handleKeyDown}
-                        onFocus={handleFocus}
                         tabIndex={0}
                         role="button"
-                        aria-pressed={itemActive}
+                        aria-pressed={isActive}
                         aria-label={ariaLabel}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                setIsActive(prev => !prev);
+                            }
+                        }}
+                        onFocus={() => setIsActive(true)}
+                        onBlur={(e) => {
+                            // Don't deactivate if focus moves within the card
+                            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                                setIsActive(false);
+                            }
+                        }}
                     >
                         <GradientPreview
                             palette={palette}
                             currentCoeffs={currentCoeffs}
                             currentSeed={currentSeed}
-                            itemActive={itemActive}
+                            isActive={shouldShowControls}
                             isMounted={isMounted}
                             urlStyle={urlStyle}
                             urlAngle={urlAngle}
@@ -434,120 +507,13 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                             previewAngle={previewAngle}
                             previewSteps={previewSteps}
                             copyMenuOpenRef={copyMenuOpenRef}
-                            showGraph={showGraph}
-                            onCloseGraph={() => setShowGraph(false)}
                         />
                     </div>
 
-                    {/* Palette metadata - interactive elements only render after mount */}
+                    {/* Palette metadata */}
                     <div className="flex justify-between pt-4 relative pointer-events-none">
                         <div className="flex items-center min-h-[28px] pointer-events-none">
-                            {showRgbTabs && (
-                                <>
-                                    {/* Graph icon and RGB Tabs - only render after mount */}
-                                    {isMounted && (
-                                        <div
-                                            className={cn(
-                                                "flex items-center gap-2 transition-all duration-200 z-10",
-                                                itemActive
-                                                    ? "opacity-100 pointer-events-auto"
-                                                    : isDragging
-                                                      ? "opacity-0 pointer-events-none"
-                                                      : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto",
-                                            )}
-                                            aria-label="Color channel controls"
-                                        >
-                                            <Tooltip delayDuration={1000}>
-                                                <TooltipTrigger asChild>
-                                                    <button
-                                                        aria-label={
-                                                            showGraph
-                                                                ? "Hide graph"
-                                                                : "Show graph"
-                                                        }
-                                                        style={{
-                                                            backgroundColor:
-                                                                "var(--background)",
-                                                        }}
-                                                        className={cn(
-                                                            "disable-animation-on-theme-change",
-                                                            "inline-flex items-center justify-center rounded-md",
-                                                            "group/chart w-8 h-8 mr-1 border border-solid",
-                                                            "transition-colors duration-200 cursor-pointer",
-                                                            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                                                            "border-input text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground",
-                                                            showGraph &&
-                                                                "border-muted-foreground/30 text-foreground",
-                                                        )}
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const newShowGraph = !showGraph;
-                                                            setShowGraph(newShowGraph);
-                                                            if (newShowGraph) {
-                                                                setActivePaletteSeed(palette.seed);
-                                                            }
-                                                        }}
-                                                        suppressHydrationWarning
-                                                    >
-                                                        <PaletteChartIcon
-                                                            coeffs={applyGlobals(
-                                                                currentCoeffs,
-                                                                palette.globals,
-                                                            )}
-                                                            size={22}
-                                                        />
-                                                    </button>
-                                                </TooltipTrigger>
-                                                <TooltipContent
-                                                    side="top"
-                                                    align="start"
-                                                    sideOffset={6}
-                                                >
-                                                    <span className="flex items-center gap-1.5">
-                                                        {showGraph
-                                                            ? "Hide graph"
-                                                            : "Show graph"}
-                                                        {showGraph && <Kbd>esc</Kbd>}
-                                                    </span>
-                                                </TooltipContent>
-                                            </Tooltip>
-                                            <Suspense fallback={<div className="h-8 w-[104px]" />}>
-                                                <LazyRGBTabs
-                                                    key={palette.seed}
-                                                    palette={{
-                                                        ...palette,
-                                                        coeffs: currentCoeffs,
-                                                    }}
-                                                    onOrderChange={onChannelOrderChange}
-                                                />
-                                            </Suspense>
-                                        </div>
-                                    )}
-
-                                    {/* Creation date display - always render for SSR */}
-                                    {palette.createdAt && (
-                                        <span
-                                            className={cn(
-                                                "text-sm text-muted-foreground transition-all duration-50 absolute left-0 pointer-events-none",
-                                                isMounted && itemActive
-                                                    ? "invisible"
-                                                    : isMounted && isDragging
-                                                      ? "visible"
-                                                      : "visible group-hover:invisible",
-                                            )}
-                                        >
-                                            {formatDistanceToNow(
-                                                new Date(palette.createdAt),
-                                                {
-                                                    addSuffix: false,
-                                                },
-                                            ).replace("about", "")}
-                                        </span>
-                                    )}
-                                </>
-                            )}
-                            {!showRgbTabs && palette.createdAt && (
+                            {palette.createdAt && (
                                 <span className="text-sm text-muted-foreground pointer-events-none">
                                     {formatDistanceToNow(
                                         new Date(palette.createdAt),
@@ -637,7 +603,7 @@ interface GradientPreviewProps {
     palette: AppPalette;
     currentCoeffs: CosineCoeffs;
     currentSeed: string;
-    itemActive: boolean;
+    isActive: boolean;
     isMounted: boolean;
     urlStyle: StyleWithAuto;
     urlAngle: AngleWithAuto;
@@ -646,15 +612,13 @@ interface GradientPreviewProps {
     previewAngle: number | null;
     previewSteps: number | null;
     copyMenuOpenRef: React.MutableRefObject<boolean>;
-    showGraph: boolean;
-    onCloseGraph: () => void;
 }
 
 function GradientPreview({
     palette,
     currentCoeffs,
     currentSeed,
-    itemActive,
+    isActive,
     isMounted,
     urlStyle,
     urlAngle,
@@ -663,8 +627,6 @@ function GradientPreview({
     previewAngle,
     previewSteps,
     copyMenuOpenRef,
-    showGraph,
-    onCloseGraph,
 }: GradientPreviewProps) {
     const {
         style: paletteStyle,
@@ -700,7 +662,6 @@ function GradientPreview({
 
     const creditSearchString = buildQueryString();
 
-    // Only generate what's needed for display - gradientString for background
     const { cssString, gradientString } = generateCssGradient(
         colorsToUse,
         effectiveStyle,
@@ -711,7 +672,6 @@ function GradientPreview({
 
     const { actualWidth, actualHeight } = useDimensions();
 
-    // Defer SVG generation until after mount since it's only needed for copy/export
     const svgString = isMounted
         ? generateSvgGradient(
               colorsToUse,
@@ -725,14 +685,14 @@ function GradientPreview({
 
     return (
         <div className="relative h-[300px] w-full overflow-visible pointer-events-none">
-            {/* Glow effect layer - only render after mount since it's hover-only */}
+            {/* Glow effect layer */}
             {isMounted && (
                 <div
                     className={cn(
                         "absolute -inset-3 transition-opacity duration-300 z-0 pointer-events-none blur-lg rounded-xl flex items-center justify-center",
                         {
-                            "opacity-0 group-hover:opacity-40": !itemActive,
-                            "opacity-40": itemActive,
+                            "opacity-0 group-hover:opacity-40": !isActive,
+                            "opacity-40": isActive,
                         },
                     )}
                     style={{
@@ -766,77 +726,8 @@ function GradientPreview({
                     </span>
                 )}
 
-                {/* Graph overlay */}
-                {showGraph && (
-                    <div className="absolute -inset-px flex flex-col overflow-hidden pointer-events-auto">
-                        {/* Full background layer */}
-                        <div className="absolute -inset-px bg-background" />
-                        {/* Close button */}
-                        <div className="absolute top-3.5 left-3.5 z-20">
-                            <Tooltip delayDuration={500}>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        aria-label="Hide graph"
-                                        style={{ backgroundColor: "var(--background)" }}
-                                        className={cn(
-                                            "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
-                                            "w-8 h-8 p-0 border border-solid",
-                                            "text-muted-foreground hover:text-foreground",
-                                            "transition-colors duration-200 cursor-pointer",
-                                            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                                            "border-input hover:border-muted-foreground/30",
-                                        )}
-                                        type="button"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            onCloseGraph();
-                                        }}
-                                        suppressHydrationWarning
-                                    >
-                                        <X className="w-4 h-4" strokeWidth={2.5} />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="bottom" align="start" sideOffset={6}>
-                                    <span className="flex items-center gap-1.5">
-                                        Hide graph <Kbd>esc</Kbd>
-                                    </span>
-                                </TooltipContent>
-                            </Tooltip>
-                        </div>
-                        {/* Graph area */}
-                        <div className="flex-1 relative py-3">
-                            <div className="absolute inset-x-0 top-3 bottom-3">
-                                <Suspense fallback={<div className="h-full w-full" />}>
-                                    <LazyGradientChannelsChart
-                                        coeffs={currentCoeffs}
-                                        globals={palette.globals}
-                                        steps={effectiveSteps}
-                                        showLabels={true}
-                                        showGrid={true}
-                                    />
-                                </Suspense>
-                            </div>
-                        </div>
-                        {/* Bottom strip showing swatches as x-axis legend */}
-                        <div
-                            className="h-10 shrink-0 relative"
-                            style={{
-                                backgroundImage: generateCssGradient(
-                                    colorsToUse,
-                                    "linearSwatches",
-                                    90,
-                                    { seed: currentSeed, searchString: "" },
-                                ).gradientString,
-                                backgroundSize: "cover",
-                                backgroundPosition: "center bottom",
-                                backgroundRepeat: "no-repeat",
-                            }}
-                        />
-                    </div>
-                )}
-
-                {/* Link button in top left - only render after mount to reduce SSR DOM */}
-                {isMounted && !showGraph && (
+                {/* Link button in top left */}
+                {isMounted && (
                 <div
                     className={cn(
                         "absolute top-3.5 left-3.5 z-20 pointer-events-auto",
@@ -863,7 +754,7 @@ function GradientPreview({
                                     "transition-colors duration-200 cursor-pointer",
                                     "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
                                     "backdrop-blur-sm",
-                                    !itemActive
+                                    !isActive
                                         ? "opacity-0 group-hover:opacity-100"
                                         : "opacity-100",
                                     "border-input hover:border-muted-foreground/30 hover:bg-background/60",
@@ -888,8 +779,8 @@ function GradientPreview({
                 </div>
                 )}
 
-                {/* Copy button in top right - only render after mount to reduce SSR DOM */}
-                {isMounted && !showGraph && (
+                {/* Copy button and Export button in top right */}
+                {isMounted && (
                 <div className="absolute top-3 right-3 z-20 pointer-events-auto flex flex-col gap-2">
                     <CopyButton
                         id={palette.seed}
@@ -902,12 +793,7 @@ function GradientPreview({
                         style={effectiveStyle}
                         angle={effectiveAngle}
                         steps={effectiveSteps}
-                        isActive={itemActive}
-                        onOpen={() => {
-                            if (!itemActive) {
-                                setActivePaletteSeed(palette.seed);
-                            }
-                        }}
+                        isActive={isActive}
                         onOpenChange={(isOpen) => {
                             copyMenuOpenRef.current = isOpen;
                         }}
@@ -935,7 +821,7 @@ function GradientPreview({
                                 hexColors: colorsToUse,
                             },
                         )}
-                        isActive={itemActive}
+                        isActive={isActive}
                     />
                 </div>
                 )}

@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
+import { exportStore } from "@/stores/export";
 import { generateHexColors } from "@/lib/paletteUtils";
 import type { AppPalette } from "@/queries/palettes";
 
@@ -11,9 +12,8 @@ interface GrabientLogoProps {
 }
 
 const TRANSITION_DURATION = 2000;
-const FIXED_STOP_COUNT = 10; // Fixed number of stops for smooth transitions
+const FIXED_STOP_COUNT = 10;
 
-// Interpolate a color between two hex colors
 function interpolateColor(
     color1: string,
     color2: string,
@@ -34,7 +34,6 @@ function interpolateColor(
     return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
 }
 
-// Normalize any gradient to a fixed number of stops
 function normalizeGradient(hexColors: string[], targetStops: number): string[] {
     if (hexColors.length === 0) return Array(targetStops).fill("#000000");
     if (hexColors.length === 1) return Array(targetStops).fill(hexColors[0]!);
@@ -42,7 +41,6 @@ function normalizeGradient(hexColors: string[], targetStops: number): string[] {
     const normalized: string[] = [];
 
     for (let i = 0; i < targetStops; i++) {
-        // Map this stop index to a position in the original gradient (0 to hexColors.length - 1)
         const position = (i / (targetStops - 1)) * (hexColors.length - 1);
         const lowerIndex = Math.floor(position);
         const upperIndex = Math.min(lowerIndex + 1, hexColors.length - 1);
@@ -60,64 +58,80 @@ function normalizeGradient(hexColors: string[], targetStops: number): string[] {
 }
 
 export function GrabientLogo({ className, palettes }: GrabientLogoProps) {
-    const activePaletteSeed = useStore(uiStore, (state) => state.activePaletteSeed);
     const livePaletteData = useStore(uiStore, (state) => state.livePaletteData);
-    const customCoeffs = useStore(uiStore, (state) => state.customCoeffs);
+    const exportList = useStore(exportStore, (state) => state.exportList);
 
     const [currentIndex, setCurrentIndex] = useState(0);
 
-    const isSinglePalette = palettes.length === 1;
+    const hasExportItems = exportList.length > 0;
     const hasPalettes = palettes.length > 0;
+    const isSinglePalette = palettes.length === 1;
+    const isSingleExport = exportList.length === 1;
 
-    // Find active palette from grid routes (when user clicks/hovers a palette)
-    const activePalette = hasPalettes
-        ? palettes.find((c) => c.seed === activePaletteSeed)
-        : undefined;
+    // Priority: export list > single palette with live data > palette cycling
+    const getHexColors = (): string[] => {
+        // If export list has items, use those
+        if (hasExportItems) {
+            const currentExportItem = exportList[currentIndex % exportList.length]!;
+            return currentExportItem.hexColors;
+        }
 
-    // Check if there are custom coefficients for the active palette (from RGB tab reordering)
-    const activeCustomCoeffs = activePaletteSeed ? customCoeffs.get(activePaletteSeed) : undefined;
+        // If single palette route with live data (slider dragging)
+        if (isSinglePalette && hasPalettes && livePaletteData) {
+            return generateHexColors(
+                livePaletteData.coeffs,
+                livePaletteData.globals,
+                palettes[0]!.steps
+            );
+        }
 
-    // Use live palette data if available (during slider dragging on /$seed route),
-    // then check for custom coefficients (from RGB tab reordering on grid routes),
-    // otherwise use palette data
-    const activePaletteColors = livePaletteData && (activePalette || isSinglePalette) && hasPalettes
-        ? generateHexColors(
-            livePaletteData.coeffs,
-            livePaletteData.globals,
-            (activePalette || palettes[0])!.steps
-        )
-        : activePalette && activeCustomCoeffs
-            ? generateHexColors(activeCustomCoeffs, activePalette.globals, activePalette.steps)
-            : activePalette
-                ? activePalette.hexColors
-                : undefined;
+        // If single palette, use its colors
+        if (isSinglePalette && hasPalettes) {
+            return palettes[0]!.hexColors;
+        }
 
-    // Use active palette colors if available, otherwise cycle through palettes or show single palette
-    const hexColors = hasPalettes
-        ? (activePaletteColors ||
-            (isSinglePalette
-                ? palettes[0]!.hexColors
-                : palettes[currentIndex % palettes.length]!.hexColors))
-        : ["#000000"];
+        // Multiple palettes: cycle through them
+        if (hasPalettes) {
+            return palettes[currentIndex % palettes.length]!.hexColors;
+        }
 
+        return ["#000000"];
+    };
+
+    const hexColors = getHexColors();
     const normalizedColors = normalizeGradient(hexColors, FIXED_STOP_COUNT);
 
-    // Cycle through palettes only if there's no active palette and multiple palettes
+    // Determine if we should cycle
+    const shouldCycle = hasExportItems
+        ? exportList.length > 1  // Cycle through export list if multiple items
+        : !isSinglePalette && hasPalettes;  // Otherwise cycle palettes if multiple
+
+    // Fixed on single item: export list with 1 item, or single palette
+    const isFixed = (hasExportItems && isSingleExport) || isSinglePalette;
+
     useEffect(() => {
-        if (!hasPalettes || activePaletteSeed || isSinglePalette) {
+        if (!shouldCycle) {
             return;
         }
 
-        setCurrentIndex((prev) => (prev + 1) % palettes.length);
+        const totalItems = hasExportItems ? exportList.length : palettes.length;
+
+        setCurrentIndex((prev) => (prev + 1) % totalItems);
 
         const interval = setInterval(() => {
-            setCurrentIndex((prev) => (prev + 1) % palettes.length);
+            setCurrentIndex((prev) => (prev + 1) % totalItems);
         }, TRANSITION_DURATION);
 
         return () => clearInterval(interval);
-    }, [palettes.length, activePaletteSeed, isSinglePalette, hasPalettes]);
+    }, [shouldCycle, hasExportItems, exportList.length, palettes.length]);
 
-    // Generate stops with proper offsets
+    // Reset index when export list changes
+    useEffect(() => {
+        if (hasExportItems) {
+            setCurrentIndex(0);
+        }
+    }, [hasExportItems, exportList.length]);
+
     const stops = normalizedColors.map((color, i) => {
         const offset = (i / (FIXED_STOP_COUNT - 1)) * 100;
         return { color, offset };
@@ -145,11 +159,11 @@ export function GrabientLogo({ className, palettes }: GrabientLogoProps) {
                     >
                         {stops.map((stop, i) => (
                             <stop
-                                key={`${i}-${activePaletteSeed || isSinglePalette ? 'active' : 'cycling'}`}
+                                key={`${i}-${isFixed ? 'fixed' : 'cycling'}`}
                                 offset={`${stop.offset}%`}
                                 stopColor={stop.color}
                                 style={{
-                                    transition: activePaletteSeed || isSinglePalette
+                                    transition: isFixed
                                         ? "none !important"
                                         : "stop-color 3s cubic-bezier(0.2, 0.9, 0.3, 1)",
                                 }}

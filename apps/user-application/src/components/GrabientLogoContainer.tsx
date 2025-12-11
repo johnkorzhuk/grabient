@@ -1,6 +1,6 @@
 import { GrabientLogo } from "./GrabientLogo";
 import { useLocation, useParams, useSearch } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { palettesQueryOptions, searchPalettesQueryOptions } from "@/queries/palettes";
 import { deserializeCoeffs, isValidSeed } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
@@ -26,30 +26,10 @@ function getOrderByFromPath(pathname: string): OrderBy {
     return "popular";
 }
 
-function findPaletteInCache(
-    queryClient: ReturnType<typeof useQueryClient>,
-    seed: string,
-): AppPalette | undefined {
-    const cache = queryClient.getQueryCache();
-    const queries = cache.findAll({ queryKey: ["palettes"] });
-
-    for (const query of queries) {
-        const data = query.state.data as any;
-        if (data?.palettes) {
-            const palette = data.palettes.find((p: AppPalette) => p.seed === seed);
-            if (palette) return palette;
-        }
-    }
-
-    return undefined;
-}
-
 function getSearchQuery(param: string): string | null {
-    // If it's a valid seed, return it directly
     if (isValidSeed(param)) {
         return param;
     }
-    // Decode URL-safe format: dashes become spaces, decode percent-encoded chars
     try {
         const withSpaces = param.replace(/-/g, " ");
         return decodeURIComponent(withSpaces);
@@ -137,21 +117,6 @@ export function GrabientLogoContainer({
     className,
 }: GrabientLogoContainerProps) {
     const palettes = usePalettes();
-    const queryClient = useQueryClient();
-    const activePaletteSeed = useStore(uiStore, (state) => state.activePaletteSeed);
 
-    let allPalettes = palettes;
-
-    if (activePaletteSeed && palettes.length > 1) {
-        const paletteInCurrentList = palettes.find(p => p.seed === activePaletteSeed);
-
-        if (!paletteInCurrentList) {
-            const paletteFromCache = findPaletteInCache(queryClient, activePaletteSeed);
-            if (paletteFromCache) {
-                allPalettes = [...palettes, paletteFromCache];
-            }
-        }
-    }
-
-    return <GrabientLogo className={className} palettes={allPalettes} />;
+    return <GrabientLogo className={className} palettes={palettes} />;
 }

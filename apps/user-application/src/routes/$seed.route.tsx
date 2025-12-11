@@ -215,7 +215,6 @@ function RouteComponent() {
     const previewStyle = useStore(uiStore, (state) => state.previewStyle);
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
     const previewSteps = useStore(uiStore, (state) => state.previewSteps);
-    const showGraph = useStore(uiStore, (state) => state.showGraph);
     const containerDimensions = useStore(
         exportStore,
         (state) => state.containerDimensions,
@@ -477,7 +476,7 @@ function RouteComponent() {
 
             <main className="w-full h-viewport-content overflow-x-hidden">
                 <div className="h-full w-full relative">
-                    <div className={showGraph ? "hidden sm:block" : ""}>
+                    <div>
                         <GradientNavigationControls
                             seed={seed}
                             style={style}

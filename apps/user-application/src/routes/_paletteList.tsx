@@ -6,7 +6,6 @@ import {
     redirect,
 } from "@tanstack/react-router";
 import {
-    setActivePaletteId,
     setIsAdvancedOpen,
     setNavSelect,
 } from "@/stores/ui";
@@ -32,6 +31,7 @@ const SEARCH_DEFAULTS = {
     limit: DEFAULT_PAGE_LIMIT,
     size: "auto" as SizeType,
     redirect: undefined as string | undefined,
+    export: false,
 };
 
 const searchValidatorSchema = v.object({
@@ -57,6 +57,7 @@ const searchValidatorSchema = v.object({
         SEARCH_DEFAULTS.size,
     ),
     redirect: v.optional(v.string()),
+    export: v.optional(v.boolean(), SEARCH_DEFAULTS.export),
 });
 
 export const Route = createFileRoute("/_paletteList")({
@@ -91,7 +92,6 @@ export const Route = createFileRoute("/_paletteList")({
         };
     },
     onLeave: () => {
-        setActivePaletteId(null);
         setIsAdvancedOpen(false);
     },
     component: LayoutComponent,

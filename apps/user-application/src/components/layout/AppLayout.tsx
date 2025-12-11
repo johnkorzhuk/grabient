@@ -54,7 +54,11 @@ type TagColorInfo =
 function getTagColorInfo(tag: string): TagColorInfo {
     // Check for color pair (e.g., "red cyan" - space separated)
     const words = tag.split(" ");
-    if (words.length === 2 && isColorName(words[0]!) && isColorName(words[1]!)) {
+    if (
+        words.length === 2 &&
+        isColorName(words[0]!) &&
+        isColorName(words[1]!)
+    ) {
         const hex1 = colorNameToHex(words[0]!);
         const hex2 = colorNameToHex(words[1]!);
         if (hex1 && hex2) {
@@ -141,6 +145,7 @@ interface AppLayoutProps {
     steps?: number | "auto";
     leftAction?: ReactNode;
     logoNavigation?: LogoNavigation;
+    isExportOpen?: boolean;
 }
 
 export function AppLayout({
@@ -151,6 +156,7 @@ export function AppLayout({
     steps = "auto",
     leftAction,
     logoNavigation,
+    isExportOpen = false,
 }: AppLayoutProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
@@ -418,12 +424,26 @@ export function AppLayout({
                 </div>
             )}
             {showNavigation && (
-                <div className="mx-auto w-full px-5 lg:px-14 pt-4 md:pt-6 pb-2">
-                    <div className="sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col items-center gap-3 md:gap-5 bg-background py-2">
-                        <div className="w-full md:max-w-lg">
+                <div className={cn(
+                    "px-5 lg:px-14 pt-4 md:pt-6 pb-2",
+                    isExportOpen
+                        ? "w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5"
+                        : "mx-auto w-full"
+                )}>
+                    <div className={cn(
+                        "sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col gap-3 md:gap-5 bg-background py-2",
+                        isExportOpen ? "items-start md:items-start xl:items-center" : "items-center"
+                    )}>
+                        <div className={cn(
+                            "w-full",
+                            isExportOpen ? "md:max-w-none xl:max-w-lg" : "md:max-w-lg"
+                        )}>
                             <SearchInput variant="expanded" />
                         </div>
-                        <div className="w-full max-w-3xl mx-auto flex items-center gap-2">
+                        <div className={cn(
+                            "w-full flex items-center gap-2",
+                            isExportOpen ? "max-w-none md:max-w-none xl:max-w-3xl xl:mx-auto" : "max-w-3xl mx-auto"
+                        )}>
                             <span className="hidden md:inline text-sm font-medium text-muted-foreground shrink-0">
                                 Popular
                             </span>
@@ -554,7 +574,7 @@ export function AppLayout({
                     </div>
                 </div>
             )}
-            <main className="pt-12 md:pt-16 pb-5 flex-1">{children}</main>
+            <main className="pt-12 pb-5 flex-1">{children}</main>
             <Footer />
         </div>
     );

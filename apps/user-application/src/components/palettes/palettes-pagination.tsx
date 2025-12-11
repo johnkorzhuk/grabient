@@ -83,7 +83,7 @@ export function PalettesPagination({
     const pageNumbers = getPageNumbers();
 
     return (
-        <div className="mx-auto w-full px-5 lg:px-14 py-3 mt-16">
+        <div className="w-full mx-auto px-5 lg:px-14 py-3 mt-16">
             {validTotalPages > 1 ? (
                 <Pagination className="justify-center">
                     <PaginationContent>

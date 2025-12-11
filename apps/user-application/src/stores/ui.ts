@@ -25,7 +25,6 @@ export interface SeedInitialSearch {
 }
 
 interface UIState {
-    activePaletteSeed: string | null;
     previewStyle: PaletteStyle | null;
     previewAngle: number | null;
     previewSteps: number | null;
@@ -38,11 +37,9 @@ interface UIState {
     navSelect: string;
     previousRoute: PreviousRoute | null;
     seedInitialSearch: SeedInitialSearch | null;
-    showGraph: boolean;
 }
 
 export const uiStore = new Store<UIState>({
-    activePaletteSeed: null,
     previewStyle: null,
     previewAngle: null,
     previewSteps: null,
@@ -55,20 +52,9 @@ export const uiStore = new Store<UIState>({
     navSelect: "/",
     previousRoute: null,
     seedInitialSearch: null,
-    showGraph: false,
 });
 
 // Action helpers
-export const setActivePaletteSeed = (seed: string | null) => {
-    uiStore.setState((state) => ({
-        ...state,
-        activePaletteSeed: seed,
-    }));
-};
-
-// Backwards compatibility alias
-export const setActivePaletteId = setActivePaletteSeed;
-
 export const setPreviewStyle = (style: PaletteStyle | null) => {
     uiStore.setState((state) => ({
         ...state,
@@ -175,23 +161,8 @@ export const setLivePaletteData = (data: LivePaletteData | null) => {
     }));
 };
 
-export const setShowGraph = (show: boolean) => {
-    uiStore.setState((state) => ({
-        ...state,
-        showGraph: show,
-    }));
-};
-
-export const toggleShowGraph = () => {
-    uiStore.setState((state) => ({
-        ...state,
-        showGraph: !state.showGraph,
-    }));
-};
-
 export const resetUIState = () => {
     uiStore.setState({
-        activePaletteSeed: null,
         previewStyle: null,
         previewAngle: null,
         previewSteps: null,
@@ -204,7 +175,6 @@ export const resetUIState = () => {
         navSelect: "/",
         previousRoute: null,
         seedInitialSearch: null,
-        showGraph: false,
     });
 };
 

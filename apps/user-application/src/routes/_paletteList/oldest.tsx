@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
+import { useStore } from "@tanstack/react-store";
 import {
     palettesQueryOptions,
     userLikedSeedsQueryOptions,
@@ -7,13 +8,12 @@ import {
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setActivePaletteId, setPreviousRoute } from "@/stores/ui";
+import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
+import { setPreviousRoute } from "@/stores/ui";
+import { exportStore } from "@/stores/export";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 
 export const Route = createFileRoute("/_paletteList/oldest")({
-    beforeLoad: () => {
-        setActivePaletteId(null);
-    },
     loaderDeps: ({ search }) => ({
         page: search.page,
         limit: search.limit,
@@ -38,7 +38,11 @@ export const Route = createFileRoute("/_paletteList/oldest")({
 });
 
 function OldestPage() {
-    const { page, limit, style, angle, steps } = Route.useSearch();
+    const search = Route.useSearch();
+    const { page, limit, style, angle, steps } = search;
+    const isExportOpen = search.export === true;
+    const exportList = useStore(exportStore, (state) => state.exportList);
+    const showExportUI = isExportOpen && exportList.length > 0;
     const { data } = useSuspenseQuery(
         palettesQueryOptions("oldest", page, limit),
     );
@@ -47,13 +51,16 @@ function OldestPage() {
     );
 
     return (
-        <AppLayout style={style} angle={angle} steps={steps}>
-            <PalettesGrid palettes={data.palettes} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} />
-            <PalettesPagination
-                currentPage={page}
-                totalPages={data.totalPages}
-                limit={limit}
-            />
+        <AppLayout style={style} angle={angle} steps={steps} isExportOpen={showExportUI}>
+            <SelectedButtonContainer />
+            <PalettesGrid palettes={data.palettes} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} isExportOpen={isExportOpen} />
+            {!showExportUI && (
+                <PalettesPagination
+                    currentPage={page}
+                    totalPages={data.totalPages}
+                    limit={limit}
+                />
+            )}
         </AppLayout>
     );
 }

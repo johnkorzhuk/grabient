@@ -1,6 +1,6 @@
 import { RGBTabs } from "@/components/palettes/rgb-tabs";
 import { SaveButton } from "@/components/palettes/save-button";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useState } from "react";
 import { GradientModifierControls } from "@/components/palettes/gradient-modifier-controls";
 import { DevicePresets } from "@/components/palettes/device-presets";
 import { PaletteChartIcon } from "@/components/icons/PaletteChartIcon";
@@ -20,8 +20,6 @@ import {
 import type { MODIFIERS } from "@repo/data-ops/valibot-schema/grabient";
 import type * as v from "valibot";
 import { applyGlobals } from "@repo/data-ops/gradient-gen/cosine";
-import { toggleShowGraph, uiStore } from "@/stores/ui";
-import { useStore } from "@tanstack/react-store";
 
 const LazyGradientChannelsChart = lazy(() =>
     import("@/components/palettes/gradient-channels-chart").then((mod) => ({
@@ -75,7 +73,7 @@ export function GradientSidebar({
     onTareModifier,
 }: GradientSidebarProps) {
     const processedCoeffs = applyGlobals(coeffs, globals);
-    const showGraph = useStore(uiStore, (state) => state.showGraph);
+    const [showGraph, setShowGraph] = useState(false);
 
     return (
         <aside className="h-[280px] lg:h-full lg:w-[340px] w-full shrink-0 lg:pl-8 px-5 lg:pr-0 pb-2 lg:pt-0 lg:pb-1 relative z-20">
@@ -97,7 +95,7 @@ export function GradientSidebar({
                                 isLoading={isLikesLoading}
                             />
                         </div>
-                        <div className="flex-1 pt-3 mb-3 lg:mb-6 min-h-0">
+                        <div className="flex-1 pt-3 mb-3 lg:mb-6 min-h-0 lg:max-h-[350px] flex flex-col justify-start">
                             <Suspense fallback={<div className="h-full w-full" />}>
                                 <LazyGradientChannelsChart
                                     coeffs={coeffs}
@@ -127,7 +125,7 @@ export function GradientSidebar({
                                                 showGraph && "border-muted-foreground/30 text-foreground",
                                             )}
                                             type="button"
-                                            onClick={toggleShowGraph}
+                                            onClick={() => setShowGraph(!showGraph)}
                                             suppressHydrationWarning
                                         >
                                             <PaletteChartIcon
@@ -152,20 +150,15 @@ export function GradientSidebar({
                                     onOrderChange={onChannelOrderChange}
                                 />
                             </div>
-                            <div className="flex items-center gap-2">
-                                <SaveButton
-                                    palette={palette}
-                                    seed={seed}
-                                    style={currentStyle}
-                                    angle={currentAngle}
-                                    steps={currentSteps}
-                                    likeInfo={likeInfo}
-                                    isLoading={isLikesLoading}
-                                />
-                                <div className="ml-3">
-                                    <DevicePresets showDimensions={false} />
-                                </div>
-                            </div>
+                            <SaveButton
+                                palette={palette}
+                                seed={seed}
+                                style={currentStyle}
+                                angle={currentAngle}
+                                steps={currentSteps}
+                                likeInfo={likeInfo}
+                                isLoading={isLikesLoading}
+                            />
                         </div>
                         <div className="flex-1 w-full pb-2.5 sm:px-5 sm:pl-5 sm:pr-0 lg:pb-0 lg:px-0 flex flex-col justify-end">
                             <GradientModifierControls
