@@ -39,7 +39,7 @@ import { CopyButton } from "./copy-button";
 import { ExportButton } from "./export-button";
 import { createExportItem } from "@/lib/paletteUtils";
 import { generateSVGGrid } from "@/lib/generateSVGGrid";
-import { exportStore, addToExportList, isInExportList, setContainerDimensions, setGap, setBorderRadius, setColumns } from "@/stores/export";
+import { exportStore, addToExportList, isInExportList, setContainerDimensions, setGap, setBorderRadius, setColumns, GAP_MIN, GAP_MAX, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX, COLUMNS_MIN, COLUMNS_MAX } from "@/stores/export";
 import { useDimensions } from "@/hooks/useDimensions";
 import { useLikePaletteMutation } from "@/mutations/palettes";
 import { useQueryClient } from "@tanstack/react-query";
@@ -418,8 +418,8 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
                 </span>
                 <input
                     type="number"
-                    min="0"
-                    max="200"
+                    min={GAP_MIN}
+                    max={GAP_MAX}
                     value={gap}
                     onChange={(e) => setGap(parseInt(e.target.value, 10) || 0)}
                     onFocus={(e) => e.target.select()}
@@ -436,8 +436,8 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
                 </span>
                 <input
                     type="number"
-                    min="0"
-                    max="100"
+                    min={BORDER_RADIUS_MIN}
+                    max={BORDER_RADIUS_MAX}
                     value={borderRadius}
                     onChange={(e) => setBorderRadius(parseInt(e.target.value, 10) || 0)}
                     onFocus={(e) => e.target.select()}
@@ -454,10 +454,10 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
                 </span>
                 <input
                     type="number"
-                    min="1"
-                    max="10"
+                    min={COLUMNS_MIN}
+                    max={COLUMNS_MAX}
                     value={columns}
-                    onChange={(e) => setColumns(parseInt(e.target.value, 10) || 1)}
+                    onChange={(e) => setColumns(parseInt(e.target.value, 10) || COLUMNS_MIN)}
                     onFocus={(e) => e.target.select()}
                     className={inputClassName}
                     style={{ backgroundColor: "var(--background)" }}

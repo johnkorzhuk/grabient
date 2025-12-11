@@ -20,6 +20,7 @@ function isThrottled(eventName: string): boolean {
 
 interface BaseEventProperties {
     route?: string;
+    searchQuery?: string;
 }
 
 interface GradientEventProperties extends BaseEventProperties {
@@ -86,14 +87,31 @@ function getCurrentRoute(): string {
     return window.location.pathname;
 }
 
+function getCurrentSearchQuery(): string | undefined {
+    if (typeof window === "undefined") return undefined;
+    const pathname = window.location.pathname;
+    const match = pathname.match(/^\/palettes\/(.+)$/);
+    if (match && match[1]) {
+        try {
+            const withSpaces = match[1].replace(/-/g, " ");
+            return decodeURIComponent(withSpaces);
+        } catch {
+            return match[1].replace(/-/g, " ");
+        }
+    }
+    return undefined;
+}
+
 function trackEvent<T extends BaseEventProperties>(eventName: string, properties?: T) {
     if (isThrottled(eventName)) {
         return;
     }
 
+    const searchQuery = getCurrentSearchQuery();
     const enrichedProperties = {
         ...properties,
         route: properties?.route || getCurrentRoute(),
+        ...(searchQuery && { searchQuery }),
     };
 
     trackGA4Event(eventName, enrichedProperties as Record<string, unknown>);

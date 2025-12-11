@@ -18,15 +18,22 @@ const EXPORT_LIST_STORAGE_KEY = "export-list";
 const EXPORT_OPTIONS_VERSION = 1;
 const EXPORT_LIST_VERSION = 1;
 
+export const GAP_MIN = 0;
+export const GAP_MAX = 1000;
+export const BORDER_RADIUS_MIN = 0;
+export const BORDER_RADIUS_MAX = 100;
+export const COLUMNS_MIN = 1;
+export const COLUMNS_MAX = 10;
+
 const exportOptionsSchema = v.object({
     version: v.number(),
     containerDimensions: v.object({
         width: v.pipe(v.number(), v.minValue(1), v.maxValue(6000)),
         height: v.pipe(v.number(), v.minValue(1), v.maxValue(6000)),
     }),
-    gap: v.pipe(v.number(), v.minValue(0), v.maxValue(200)),
-    borderRadius: v.pipe(v.number(), v.minValue(0), v.maxValue(100)),
-    columns: v.pipe(v.number(), v.minValue(1), v.maxValue(10)),
+    gap: v.pipe(v.number(), v.minValue(GAP_MIN), v.maxValue(GAP_MAX)),
+    borderRadius: v.pipe(v.number(), v.minValue(BORDER_RADIUS_MIN), v.maxValue(BORDER_RADIUS_MAX)),
+    columns: v.pipe(v.number(), v.minValue(COLUMNS_MIN), v.maxValue(COLUMNS_MAX)),
 });
 
 const exportItemSchema = v.object({
@@ -274,25 +281,28 @@ export const setContainerDimensions = (dimensions: {
 };
 
 export const setGap = (gap: number) => {
+    const clampedGap = Math.max(GAP_MIN, Math.min(GAP_MAX, gap));
     exportStore.setState((state) => ({
         ...state,
-        gap,
+        gap: clampedGap,
     }));
     persistOptions();
 };
 
 export const setBorderRadius = (borderRadius: number) => {
+    const clampedBorderRadius = Math.max(BORDER_RADIUS_MIN, Math.min(BORDER_RADIUS_MAX, borderRadius));
     exportStore.setState((state) => ({
         ...state,
-        borderRadius,
+        borderRadius: clampedBorderRadius,
     }));
     persistOptions();
 };
 
 export const setColumns = (columns: number) => {
+    const clampedColumns = Math.max(COLUMNS_MIN, Math.min(COLUMNS_MAX, columns));
     exportStore.setState((state) => ({
         ...state,
-        columns,
+        columns: clampedColumns,
     }));
     persistOptions();
 };
