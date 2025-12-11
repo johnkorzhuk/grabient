@@ -157,4 +157,3 @@ vite.config.ts.timestamp-*
 packages/data-ops/src/data/prod-*.jsonl
 snapshot.zip
 .seed-production.sql
-dev_images/
