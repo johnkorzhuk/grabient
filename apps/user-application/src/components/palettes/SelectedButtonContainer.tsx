@@ -21,23 +21,24 @@ export function SelectedButtonContainer({
     // Only check for selected items after mount to avoid hydration mismatch
     const hasSelectedItems = mounted && exportList.length > 0;
 
-    // Don't render if no items selected (or not yet mounted)
-    if (!hasSelectedItems) {
-        return null;
-    }
-
+    // Always render the container with fixed height to prevent layout shift
+    // This ensures the negative margin positioning works consistently
     return (
         <div
             className={cn(
-                "px-5 lg:px-14 flex justify-end mb-10 md:mb-12 gap-2",
+                "px-5 lg:px-14 flex justify-end mb-10 md:mb-12 gap-2 h-8",
                 isExportOpen && "sticky top-[135px] lg:top-[151px] z-50",
                 // Hide on mobile when export is open (close button is in drawer)
                 isExportOpen && "hidden md:flex",
                 className,
             )}
         >
-            {isExportOpen && <ExportActions />}
-            <SelectedButton />
+            {hasSelectedItems && (
+                <>
+                    {isExportOpen && <ExportActions />}
+                    <SelectedButton />
+                </>
+            )}
         </div>
     );
 }

@@ -26,10 +26,6 @@ export function SelectedButton({ className }: SelectedButtonProps) {
     // Only show count after mount to avoid hydration mismatch
     const exportCount = mounted ? exportList.length : 0;
 
-    if (exportCount === 0) {
-        return null;
-    }
-
     const handleClick = () => {
         navigate({
             search: (prev) => ({ ...prev, export: !isExportOpen }),
