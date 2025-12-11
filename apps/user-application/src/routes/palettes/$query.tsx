@@ -3,6 +3,7 @@ import {
     stripSearchParams,
     Link,
 } from "@tanstack/react-router";
+import { cn } from "@/lib/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
@@ -663,20 +664,20 @@ function SearchResultsPage() {
             isExportOpen={showExportUI}
         >
             <div
-                className={`px-5 lg:px-14 ${hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5"}`}
-            >
-                {!isExportOpen && (
-                    <>
-                        <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1">
-                            <QueryDisplay query={query} />
-                            <span className="ml-1">palettes</span>
-                        </h1>
-                        <ResultsForSubtitle
-                            query={query}
-                            searchParams={preservedSearch}
-                        />
-                    </>
+                className={cn(
+                    "px-5 lg:px-14",
+                    hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
+                    isExportOpen && "invisible"
                 )}
+            >
+                <h1 className="text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1">
+                    <QueryDisplay query={query} />
+                    <span className="ml-1">palettes</span>
+                </h1>
+                <ResultsForSubtitle
+                    query={query}
+                    searchParams={preservedSearch}
+                />
             </div>
             <SelectedButtonContainer
                 className={
