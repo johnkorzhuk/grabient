@@ -25,7 +25,7 @@ export function usePNGCache(options: PNGGenerationOptions | null) {
         },
         enabled: false,
         staleTime: Infinity,
-        gcTime: 1000 * 60 * 5,
+        gcTime: 1000 * 30,
     });
 }
 

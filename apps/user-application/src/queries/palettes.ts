@@ -61,9 +61,8 @@ export const palettesQueryOptions = (
                 palettes: result.palettes.map(enrichPalette),
             };
         },
-        // Public data - 10 minutes staleTime is acceptable
-        // Popular changes slowly, newest/oldest changes with new submissions
         staleTime: orderBy === "popular" ? 1000 * 60 * 10 : 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 2,
     });
 
 export const userLikedPalettesQueryOptions = (
@@ -79,8 +78,8 @@ export const userLikedPalettesQueryOptions = (
                 palettes: result.palettes.map(enrichPalette),
             };
         },
-        // User's saved palettes - 2 minutes for more responsive feel after likes/unlikes
         staleTime: 1000 * 60 * 2,
+        gcTime: 1000 * 60 * 2,
     });
 
 export const userLikedSeedsQueryOptions = () =>
@@ -94,9 +93,8 @@ export const userLikedSeedsQueryOptions = () =>
                 return new Set<string>();
             }
         },
-        // User's liked seeds - used for heart icons UI state
-        // 2 minutes for responsive feel, but optimistic updates handle immediate feedback
         staleTime: 1000 * 60 * 2,
+        gcTime: 1000 * 60 * 5,
         retry: false,
     });
 
@@ -107,9 +105,8 @@ export const paletteLikeInfoQueryOptions = (seed: string) =>
             const result = await getPaletteLikeInfo({ data: { seed } });
             return result;
         },
-        // Like count for individual palette - 5 minutes is fine
-        // Optimistic updates handle immediate feedback for current user's like status
         staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 2,
     });
 
 export type SearchResultPalette = AppPalette & {
@@ -147,5 +144,6 @@ export const searchPalettesQueryOptions = (query: string, limit = DEFAULT_PAGE_L
         },
         enabled: !!query.trim(),
         staleTime: 1000 * 60 * 5,
+        gcTime: 1000 * 60 * 1,
     });
 

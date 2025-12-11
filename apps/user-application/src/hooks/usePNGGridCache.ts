@@ -30,7 +30,7 @@ export function usePNGGridCache(
     },
     enabled: false,
     staleTime: Infinity,
-    gcTime: 1000 * 60 * 5,
+    gcTime: 1000 * 30,
   })
 }
 
