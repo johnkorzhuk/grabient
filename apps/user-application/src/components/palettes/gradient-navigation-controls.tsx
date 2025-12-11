@@ -72,13 +72,16 @@ export function GradientNavigationControls({
 
     // Only retain params that the user explicitly changed from initial values
     // This prevents palette-default values from being carried back
+    // Extract size from previousRoute.search to handle it separately
+    const { size: _prevSize, ...prevSearchWithoutSize } = previousRoute?.search ?? {};
     const backSearch = {
-        ...previousRoute?.search,
+        ...prevSearchWithoutSize,
         // Only include style/angle/steps if user changed them from initial
         ...(actualStyle !== initialStyle ? { style: actualStyle } : {}),
         ...(actualAngle !== initialAngle ? { angle: actualAngle } : {}),
         ...(actualSteps !== initialSteps ? { steps: actualSteps } : {}),
         // Always include size if it's not auto (size is a user preference, not palette-specific)
+        // Use current URL's size, not the stale previousRoute size
         ...(currentSearch.size && currentSearch.size !== "auto" ? { size: currentSearch.size } : {}),
     };
 

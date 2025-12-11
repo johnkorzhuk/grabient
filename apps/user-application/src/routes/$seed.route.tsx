@@ -326,7 +326,7 @@ function RouteComponent() {
         angle: currentAngle,
         steps: currentSteps,
         hexColors: [],
-        createdAt: new Date(),
+        createdAt: new Date(), 
         likesCount: likeInfo?.likesCount ?? 0,
     };
 

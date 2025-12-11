@@ -69,11 +69,13 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
 
     // When on seed route, only retain params the user explicitly changed
     const buildSeedRouteSearch = () => {
-        const base = previousRoute?.search ?? {};
+        // Extract size from previousRoute.search to handle it separately
+        // This prevents stale size values from being used
+        const { size: _prevSize, ...baseWithoutSize } = previousRoute?.search ?? {};
 
         if (!seedInitialSearch) {
             return {
-                ...base,
+                ...baseWithoutSize,
                 ...(currentSearch.size && currentSearch.size !== "auto" ? { size: currentSearch.size } : {}),
             };
         }
@@ -84,12 +86,13 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
         const currentSteps = currentSearch.steps == null || currentSearch.steps === "auto" ? seedInitialSearch.steps : currentSearch.steps;
 
         return {
-            ...base,
+            ...baseWithoutSize,
             // Only include if user changed from initial
             ...(currentStyle !== seedInitialSearch.style ? { style: currentStyle } : {}),
             ...(currentAngle !== seedInitialSearch.angle ? { angle: currentAngle } : {}),
             ...(currentSteps !== seedInitialSearch.steps ? { steps: currentSteps } : {}),
             // Always include size if not auto (size is a user preference)
+            // Use current URL's size, not the stale previousRoute size
             ...(currentSearch.size && currentSearch.size !== "auto" ? { size: currentSearch.size } : {}),
         };
     };
