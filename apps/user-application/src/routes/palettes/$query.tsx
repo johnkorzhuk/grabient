@@ -432,13 +432,11 @@ function QueryDisplay({ query }: { query: string }) {
     // Check if query is a valid seed and render hex codes from it
     const seedData = getSeedColorData(query);
     if (seedData) {
-        const count = seedData.colorNames.length;
         return (
             <>
                 {seedData.colorNames.map((name, i) => (
                     <span key={i} className="inline-flex items-center">
                         <ColorNameSwatch name={name} hex={seedData.hexCodes[i]!} />
-                        {count >= 2 && i < count - 1 && <span>,</span>}
                     </span>
                 ))}
             </>
@@ -451,37 +449,20 @@ function QueryDisplay({ query }: { query: string }) {
         return <span>Search</span>;
     }
 
-    // Count color/hex parts to determine if commas are needed
-    const colorParts = parts.filter(p => p.type === "hex" || p.type === "colorName");
-    const colorCount = colorParts.length;
-
-    // Track which color index we're at
-    let colorIndex = 0;
-
     return (
         <>
             {parts.map((part, i) => {
                 if (part.type === "hex") {
-                    const currentColorIndex = colorIndex++;
-                    const isLast = currentColorIndex === colorCount - 1;
-                    const showComma = colorCount >= 2 && !isLast;
-
                     return (
                         <span key={i} className="inline-flex items-center">
                             <ColorSwatch hex={part.value} />
-                            {showComma && <span>,</span>}
                         </span>
                     );
                 }
                 if (part.type === "colorName" && part.hex) {
-                    const currentColorIndex = colorIndex++;
-                    const isLast = currentColorIndex === colorCount - 1;
-                    const showComma = colorCount >= 2 && !isLast;
-
                     return (
                         <span key={i} className="inline-flex items-center">
                             <ColorNameSwatch name={part.value} hex={part.hex} />
-                            {showComma && <span>,</span>}
                         </span>
                     );
                 }
