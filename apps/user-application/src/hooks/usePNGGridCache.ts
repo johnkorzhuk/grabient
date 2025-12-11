@@ -11,6 +11,9 @@ function createGridCacheKey(options: Omit<PNGGridOptions, 'onProgress'>): string
     })),
     itemWidth: options.itemWidth,
     itemHeight: options.itemHeight,
+    gap: options.gap,
+    borderRadius: options.borderRadius,
+    columns: options.columns,
     quality: options.quality,
   })
 }

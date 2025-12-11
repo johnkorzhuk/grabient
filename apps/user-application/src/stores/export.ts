@@ -8,11 +8,17 @@ export type SizeType = "auto" | [number, number];
 interface ExportStore {
     exportList: ExportItem[];
     containerDimensions: { width: number; height: number };
+    gap: number;
+    borderRadius: number;
+    columns: number;
 }
 
 export const exportStore = new Store<ExportStore>({
     exportList: [],
     containerDimensions: { width: 800, height: 400 },
+    gap: 40,
+    borderRadius: 0,
+    columns: 5,
 });
 
 const MAX_EXPORT_ITEMS = 50;
@@ -81,5 +87,26 @@ export const setContainerDimensions = (dimensions: {
     exportStore.setState((state) => ({
         ...state,
         containerDimensions: dimensions,
+    }));
+};
+
+export const setGap = (gap: number) => {
+    exportStore.setState((state) => ({
+        ...state,
+        gap,
+    }));
+};
+
+export const setBorderRadius = (borderRadius: number) => {
+    exportStore.setState((state) => ({
+        ...state,
+        borderRadius,
+    }));
+};
+
+export const setColumns = (columns: number) => {
+    exportStore.setState((state) => ({
+        ...state,
+        columns,
     }));
 };

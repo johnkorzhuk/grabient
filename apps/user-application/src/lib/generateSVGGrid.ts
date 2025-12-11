@@ -5,6 +5,9 @@ export interface SVGGridOptions {
   exportList: ExportItem[];
   itemWidth: number;
   itemHeight: number;
+  gap?: number;
+  borderRadius?: number;
+  columns?: number;
 }
 
 /**
@@ -86,12 +89,12 @@ function generateAngularGradientForGrid(
 }
 
 export function generateSVGGrid(options: SVGGridOptions): string {
-  const { exportList, itemWidth, itemHeight } = options;
+  const { exportList, itemWidth, itemHeight, gap = 40, borderRadius = 0, columns: columnsProp } = options;
 
-  const gapX = 40;
-  const gapY = 80;
+  const gapX = gap;
+  const gapY = gap * 2;
   const padding = 56;
-  const columns = Math.min(exportList.length, 5);
+  const columns = columnsProp ?? Math.min(exportList.length, 5);
   const rows = Math.ceil(exportList.length / columns);
 
   const totalWidth = columns * itemWidth + (columns - 1) * gapX + padding * 2;
@@ -109,6 +112,14 @@ export function generateSVGGrid(options: SVGGridOptions): string {
     const x = padding + column * (itemWidth + gapX);
     const y = padding + row * (itemHeight + gapY);
 
+    // Add clip path for border radius if needed
+    const clipPathId = `clip_${index}`;
+    if (borderRadius > 0) {
+      allDefs.push(`<clipPath id="${clipPathId}"><rect width="${itemWidth}" height="${itemHeight}" rx="${borderRadius}" ry="${borderRadius}"/></clipPath>`);
+    }
+
+    const clipPathAttr = borderRadius > 0 ? ` clip-path="url(#${clipPathId})"` : "";
+
     if (item.style === "angularGradient") {
       // Generate angular gradient in local coordinates, then wrap in translate group
       const { content, defs } = generateAngularGradientForGrid(
@@ -119,7 +130,7 @@ export function generateSVGGrid(options: SVGGridOptions): string {
         index
       );
       // Wrap in translate group just like other gradient types
-      allContent.push(`<g transform="translate(${x}, ${y})">${content}</g>`);
+      allContent.push(`<g transform="translate(${x}, ${y})"${clipPathAttr}>${content}</g>`);
       allDefs.push(defs);
     } else {
       // Other styles use the standard approach
@@ -143,7 +154,7 @@ export function generateSVGGrid(options: SVGGridOptions): string {
           innerSVG = innerSVG.replace(/<defs>[\s\S]*?<\/defs>/, "");
         }
 
-        allContent.push(`<g transform="translate(${x}, ${y})">${innerSVG}</g>`);
+        allContent.push(`<g transform="translate(${x}, ${y})"${clipPathAttr}>${innerSVG}</g>`);
       }
     }
   }

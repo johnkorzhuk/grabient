@@ -1,4 +1,4 @@
-import type { AppPalette, ExportItem } from "@/queries/palettes";
+import type { AppPalette } from "@/queries/palettes";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -23,7 +23,11 @@ import {
     useSyncExternalStore,
     useState,
 } from "react";
-import { Heart, SquarePen } from "lucide-react";
+import { Heart, SquarePen, Check } from "lucide-react";
+import { Drawer, DrawerContent } from "@/components/ui/drawer";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import { useDevicePresetsState, DevicePresets } from "./device-presets";
+import { ExportActions } from "./ExportActions";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useElementSize } from "@mantine/hooks";
 import {
@@ -34,8 +38,8 @@ import {
 import { CopyButton } from "./copy-button";
 import { ExportButton } from "./export-button";
 import { createExportItem } from "@/lib/paletteUtils";
-import { exportStore, addToExportList, isInExportList } from "@/stores/export";
-import { setContainerDimensions } from "@/stores/export";
+import { generateSVGGrid } from "@/lib/generateSVGGrid";
+import { exportStore, addToExportList, isInExportList, setContainerDimensions, setGap, setBorderRadius, setColumns } from "@/stores/export";
 import { useDimensions } from "@/hooks/useDimensions";
 import { useLikePaletteMutation } from "@/mutations/palettes";
 import { useQueryClient } from "@tanstack/react-query";
@@ -261,24 +265,10 @@ export function PalettesGrid({
 
     if (isExportOpen && exportList.length > 0) {
         return (
-            <section className="h-full w-full relative px-5 lg:px-14 pb-20">
-                <div className="flex gap-8">
-                    {/* Grid container - responsive widths */}
-                    <div className="w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5">
-                        {exportGridContent}
-                    </div>
-                    {/* Export panel - sticky on the right, positioned below Close button */}
-                    <div className="hidden md:block md:w-2/5 lg:w-1/3 xl:w-1/3 2xl:w-1/4 3xl:w-1/5">
-                        <div className="sticky top-[185px] lg:top-[201px]">
-                            <div className="bg-muted/50 rounded-lg p-6 border border-border">
-                                <p className="text-muted-foreground text-center">
-                                    Export panel content will go here
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <ExportView
+                exportGridContent={exportGridContent}
+                navigate={navigate}
+            />
         );
     }
 
@@ -286,6 +276,432 @@ export function PalettesGrid({
         <section className="h-full w-full relative px-5 lg:px-14">
             {paletteGridContent}
         </section>
+    );
+}
+
+interface ExportViewProps {
+    exportGridContent: React.ReactNode;
+    navigate: ReturnType<typeof useNavigate>;
+}
+
+function ExportView({ exportGridContent, navigate }: ExportViewProps) {
+    const isMobile = !useMediaQuery("(min-width: 768px)");
+    const [drawerOpen, setDrawerOpen] = useState(true);
+    const devicePresetsState = useDevicePresetsState();
+    const gap = useStore(exportStore, (state) => state.gap);
+    const borderRadius = useStore(exportStore, (state) => state.borderRadius);
+    const columns = useStore(exportStore, (state) => state.columns);
+
+    const handleDrawerClose = () => {
+        setDrawerOpen(false);
+        navigate({
+            to: ".",
+            search: (prev) => ({ ...prev, export: undefined }),
+            replace: true,
+        });
+    };
+
+    const customInputs = (
+        <div className="flex gap-2 items-center">
+            <div className="relative group/width">
+                <span
+                    className="absolute -top-4 left-2 text-[10px] text-muted-foreground/70 opacity-0 group-hover/width:opacity-100 group-focus-within/width:opacity-100 transition-opacity duration-200"
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Width
+                </span>
+                <input
+                    type="number"
+                    placeholder="W"
+                    min="1"
+                    max="6000"
+                    value={devicePresetsState.customWidth}
+                    onChange={(e) => devicePresetsState.handleWidthChange(e.target.value)}
+                    onFocus={(e) => {
+                        e.target.select();
+                        devicePresetsState.isEditingCustomRef.current = true;
+                    }}
+                    onBlur={() => {
+                        devicePresetsState.isEditingCustomRef.current = false;
+                    }}
+                    className={cn(
+                        "h-7 w-14 text-xs px-2",
+                        "rounded-md border border-solid",
+                        "placeholder:text-muted-foreground",
+                        "transition-colors duration-200",
+                        "outline-none",
+                        "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground",
+                        "focus:border-muted-foreground/30 focus:bg-background/60 focus:text-foreground",
+                        "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                    )}
+                    style={{ backgroundColor: "var(--background)" }}
+                />
+            </div>
+            <span className="text-xs text-muted-foreground">×</span>
+            <div className="relative group/height">
+                <span
+                    className="absolute -top-4 left-2 text-[10px] text-muted-foreground/70 opacity-0 group-hover/height:opacity-100 group-focus-within/height:opacity-100 transition-opacity duration-200"
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Height
+                </span>
+                <input
+                    type="number"
+                    placeholder="H"
+                    min="1"
+                    max="6000"
+                    value={devicePresetsState.customHeight}
+                    onChange={(e) => devicePresetsState.handleHeightChange(e.target.value)}
+                    onFocus={(e) => {
+                        e.target.select();
+                        devicePresetsState.isEditingCustomRef.current = true;
+                    }}
+                    onBlur={() => {
+                        devicePresetsState.isEditingCustomRef.current = false;
+                    }}
+                    className={cn(
+                        "h-7 w-14 text-xs px-2",
+                        "rounded-md border border-solid",
+                        "placeholder:text-muted-foreground",
+                        "transition-colors duration-200",
+                        "outline-none",
+                        "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground",
+                        "focus:border-muted-foreground/30 focus:bg-background/60 focus:text-foreground",
+                        "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                    )}
+                    style={{ backgroundColor: "var(--background)" }}
+                />
+            </div>
+        </div>
+    );
+
+    const inputClassName = cn(
+        "h-7 w-14 text-xs px-2",
+        "rounded-md border border-solid",
+        "placeholder:text-muted-foreground",
+        "transition-colors duration-200",
+        "outline-none",
+        "border-input text-muted-foreground hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground",
+        "focus:border-muted-foreground/30 focus:bg-background/60 focus:text-foreground",
+        "[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+    );
+
+    const exportPanelContent = (
+        <div
+            className="flex flex-col"
+            style={{ height: "calc(100dvh - 201px - 222px)" }}
+        >
+            <span
+                className="text-sm text-muted-foreground font-semibold block mb-6"
+                style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+            >
+                Export options
+            </span>
+            <div className="flex items-center justify-between">
+                <DevicePresets showDimensions={false} showCustomOption={false} side="left" align="start" />
+                <div className="flex items-center gap-3">
+                    <span
+                        className="text-xs text-muted-foreground font-semibold"
+                        style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                    >
+                        W × H
+                    </span>
+                    {customInputs}
+                </div>
+            </div>
+            <div className="flex items-center justify-between mt-4">
+                <span
+                    className="text-xs text-muted-foreground font-semibold"
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Gap
+                </span>
+                <input
+                    type="number"
+                    min="0"
+                    max="200"
+                    value={gap}
+                    onChange={(e) => setGap(parseInt(e.target.value, 10) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    className={inputClassName}
+                    style={{ backgroundColor: "var(--background)" }}
+                />
+            </div>
+            <div className="flex items-center justify-between mt-4">
+                <span
+                    className="text-xs text-muted-foreground font-semibold"
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Radius
+                </span>
+                <input
+                    type="number"
+                    min="0"
+                    max="200"
+                    value={borderRadius}
+                    onChange={(e) => setBorderRadius(parseInt(e.target.value, 10) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    className={inputClassName}
+                    style={{ backgroundColor: "var(--background)" }}
+                />
+            </div>
+            <div className="flex items-center justify-between mt-4">
+                <span
+                    className="text-xs text-muted-foreground font-semibold"
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Columns
+                </span>
+                <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={columns}
+                    onChange={(e) => setColumns(parseInt(e.target.value, 10) || 1)}
+                    onFocus={(e) => e.target.select()}
+                    className={inputClassName}
+                    style={{ backgroundColor: "var(--background)" }}
+                />
+            </div>
+            <ExportPreview
+                width={devicePresetsState.customWidth ? parseInt(devicePresetsState.customWidth, 10) : 800}
+                height={devicePresetsState.customHeight ? parseInt(devicePresetsState.customHeight, 10) : 400}
+                gap={gap}
+                borderRadius={borderRadius}
+                columns={columns}
+            />
+        </div>
+    );
+
+    return (
+        <section className="h-full w-full relative px-5 lg:px-14 pb-20">
+            <div className="flex gap-8">
+                {/* Grid container - full width on mobile, responsive on desktop */}
+                <div className="w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5">
+                    {exportGridContent}
+                </div>
+                {/* Export panel - sticky on the right, hidden on mobile */}
+                <div className="hidden md:block md:w-2/5 lg:w-1/3 xl:w-1/3 2xl:w-1/4 3xl:w-1/5">
+                    <div className="sticky top-[185px] lg:top-[201px]">
+                        {exportPanelContent}
+                    </div>
+                </div>
+            </div>
+
+            {/* Mobile drawer - only renders on xs/sm screens */}
+            {isMobile && (
+                <Drawer open={drawerOpen} onOpenChange={(open) => {
+                    if (!open) handleDrawerClose();
+                }}>
+                    <DrawerContent className="disable-animation-on-theme-change">
+                        {/* Header with copy/download buttons on top right */}
+                        <div className="flex justify-end items-center px-4 pt-4 pb-3 gap-2">
+                            <ExportActions />
+                        </div>
+                        {/* Row with device presets and W×H inputs */}
+                        <div className="flex items-center px-4 pb-4 gap-3">
+                            <DevicePresets showDimensions={false} showCustomOption={false} side="top" />
+                            <span
+                                className="text-xs text-muted-foreground font-semibold"
+                                style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                            >
+                                W × H
+                            </span>
+                            {customInputs}
+                        </div>
+                        <div className="border-t">
+                            <div className="px-4 pt-3 pb-2">
+                                <span
+                                    className="text-sm text-muted-foreground font-semibold"
+                                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                                >
+                                    Presets
+                                </span>
+                            </div>
+                            <div className="max-h-[50vh] overflow-y-auto pb-4">
+                                <ExportDrawerPresetList
+                                    expandedCategories={devicePresetsState.expandedCategories}
+                                    toggleCategory={devicePresetsState.toggleCategory}
+                                    handlePresetSelect={devicePresetsState.handlePresetSelect}
+                                    isPresetSelected={devicePresetsState.isPresetSelected}
+                                    isAutoSelected={devicePresetsState.isAutoSelected}
+                                />
+                            </div>
+                        </div>
+                    </DrawerContent>
+                </Drawer>
+            )}
+        </section>
+    );
+}
+
+import { ChevronRight } from "lucide-react";
+import { devicePresets, deviceCategoryLabels, type DeviceCategory, type DevicePreset } from "@/data/device-presets";
+
+function ExportDrawerPresetList({
+    expandedCategories,
+    toggleCategory,
+    handlePresetSelect,
+    isPresetSelected,
+    isAutoSelected,
+}: {
+    expandedCategories: Set<DeviceCategory>;
+    toggleCategory: (category: DeviceCategory) => void;
+    handlePresetSelect: (preset: DevicePreset | "auto") => void;
+    isPresetSelected: (preset: DevicePreset) => boolean;
+    isAutoSelected: boolean;
+}) {
+    return (
+        <>
+            {/* Auto option at the top */}
+            <button
+                onClick={() => handlePresetSelect("auto")}
+                className={cn(
+                    "w-full cursor-pointer relative h-9 min-h-[2.25rem] px-4 py-2 text-sm font-medium transition-colors duration-200 disable-animation-on-theme-change",
+                    "text-foreground/80 hover:text-foreground hover:bg-[var(--background)]",
+                    isAutoSelected && "text-foreground",
+                )}
+                style={{
+                    fontFamily:
+                        'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                }}
+            >
+                <div className="flex items-center justify-between w-full">
+                    <span className={isAutoSelected ? "font-semibold" : ""}>
+                        Auto
+                    </span>
+                    {isAutoSelected && (
+                        <Check
+                            className="h-4 w-4 text-foreground"
+                            strokeWidth={2.5}
+                        />
+                    )}
+                </div>
+            </button>
+            <div className="border-t border-border/40 my-1 mx-4" />
+            {/* Device presets */}
+            {(Object.keys(devicePresets) as DeviceCategory[]).map(
+                (category) => {
+                    const presets = devicePresets[category];
+                    const isExpanded = expandedCategories.has(category);
+                    return (
+                        <div key={category}>
+                            <button
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleCategory(category);
+                                }}
+                                className="w-full px-4 py-1.5 text-sm font-bold text-foreground/80 hover:text-foreground transition-colors duration-200 flex items-center gap-1 cursor-pointer font-poppins"
+                            >
+                                <ChevronRight
+                                    className={cn(
+                                        "h-3.5 w-3.5 transition-transform duration-200",
+                                        isExpanded && "rotate-90",
+                                    )}
+                                    strokeWidth={2.5}
+                                />
+                                {deviceCategoryLabels[category]}
+                            </button>
+                            {isExpanded &&
+                                presets.map((preset) => {
+                                    const isSelected = isPresetSelected(preset);
+                                    return (
+                                        <button
+                                            key={`${category}-${preset.name}`}
+                                            onClick={() =>
+                                                handlePresetSelect(preset)
+                                            }
+                                            className={cn(
+                                                "w-full cursor-pointer relative h-9 min-h-[2.25rem] px-4 py-2 text-sm font-medium transition-colors duration-200 disable-animation-on-theme-change",
+                                                "text-foreground/80 hover:text-foreground hover:bg-[var(--background)]",
+                                                isSelected && "text-foreground",
+                                            )}
+                                            style={{
+                                                fontFamily:
+                                                    'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                                            }}
+                                        >
+                                            <div className="flex items-center justify-between w-full">
+                                                <span
+                                                    className={
+                                                        isSelected
+                                                            ? "font-semibold"
+                                                            : ""
+                                                    }
+                                                >
+                                                    {preset.name}
+                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-muted-foreground font-poppins">
+                                                        {preset.resolution[0]}×
+                                                        {preset.resolution[1]}
+                                                    </span>
+                                                    {isSelected && (
+                                                        <Check
+                                                            className="h-4 w-4 text-foreground"
+                                                            strokeWidth={2.5}
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
+                            {isExpanded && (
+                                <div className="border-t border-border/40 my-1 mx-4" />
+                            )}
+                        </div>
+                    );
+                },
+            )}
+        </>
+    );
+}
+
+interface ExportPreviewProps {
+    width: number;
+    height: number;
+    gap: number;
+    borderRadius: number;
+    columns: number;
+}
+
+function ExportPreview({ width, height, gap, borderRadius, columns }: ExportPreviewProps) {
+    const exportList = useStore(exportStore, (state) => state.exportList);
+
+    if (exportList.length === 0) {
+        return null;
+    }
+
+    const svgString = generateSVGGrid({
+        exportList,
+        itemWidth: width,
+        itemHeight: height,
+        gap,
+        borderRadius,
+        columns,
+    });
+
+    // Extract the viewBox dimensions from the generated SVG to get correct aspect ratio
+    const viewBoxMatch = svgString.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/);
+    const svgWidth = viewBoxMatch ? parseFloat(viewBoxMatch[1]!) : width;
+    const svgHeight = viewBoxMatch ? parseFloat(viewBoxMatch[2]!) : height;
+    const aspectRatio = svgWidth / svgHeight;
+
+    return (
+        <div
+            className="mt-6 pb-6 flex-1 min-h-0"
+        >
+            <div
+                className="w-full h-full rounded-lg overflow-hidden border border-input"
+            >
+                <div
+                    className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
+                    dangerouslySetInnerHTML={{ __html: svgString }}
+                />
+            </div>
+        </div>
     );
 }
 

@@ -5,8 +5,32 @@ export interface PNGGridOptions {
   exportList: ExportItem[];
   itemWidth: number;
   itemHeight: number;
+  gap?: number;
+  borderRadius?: number;
+  columns?: number;
   quality?: number;
   onProgress?: (progress: number) => void;
+}
+
+function roundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
 }
 
 async function renderGradientToCanvas(
@@ -16,7 +40,15 @@ async function renderGradientToCanvas(
   y: number,
   width: number,
   height: number,
+  borderRadius: number = 0,
 ): Promise<void> {
+  ctx.save();
+
+  if (borderRadius > 0) {
+    roundedRect(ctx, x, y, width, height, borderRadius);
+    ctx.clip();
+  }
+
   if (item.style === "angularGradient") {
     const centerX = x + width / 2;
     const centerY = y + height / 2;
@@ -41,7 +73,7 @@ async function renderGradientToCanvas(
       { width, height },
     );
 
-    return new Promise((resolve, reject) => {
+    await new Promise<void>((resolve, reject) => {
       const img = new Image();
       img.onload = () => {
         ctx.drawImage(img, x, y, width, height);
@@ -58,6 +90,8 @@ async function renderGradientToCanvas(
       img.src = svgDataUrl;
     });
   }
+
+  ctx.restore();
 }
 
 function yieldToMain(): Promise<void> {
@@ -71,12 +105,12 @@ function yieldToMain(): Promise<void> {
 export async function generatePNGGridBlobAsync(
   options: PNGGridOptions,
 ): Promise<Blob> {
-  const { exportList, itemWidth, itemHeight, quality = 1, onProgress } = options;
+  const { exportList, itemWidth, itemHeight, gap = 40, borderRadius = 0, columns: columnsProp, quality = 1, onProgress } = options;
 
-  const gapX = 40;
-  const gapY = 80;
+  const gapX = gap;
+  const gapY = gap * 2;
   const padding = 56;
-  const columns = Math.min(exportList.length, 5);
+  const columns = columnsProp ?? Math.min(exportList.length, 5);
   const rows = Math.ceil(exportList.length / columns);
 
   const totalWidth = columns * itemWidth + (columns - 1) * gapX + padding * 2;
@@ -102,7 +136,7 @@ export async function generatePNGGridBlobAsync(
     const x = padding + column * (itemWidth + gapX);
     const y = padding + row * (itemHeight + gapY);
 
-    await renderGradientToCanvas(ctx, item, x, y, itemWidth, itemHeight);
+    await renderGradientToCanvas(ctx, item, x, y, itemWidth, itemHeight, borderRadius);
 
     if (onProgress) {
       onProgress((index + 1) / exportList.length);
