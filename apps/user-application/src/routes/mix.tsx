@@ -62,8 +62,8 @@ function MixPage() {
             {/* Mobile layout (xs/sm) */}
             <main className="md:hidden w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
                 {/* Header controls */}
-                <div className="bg-background px-5 py-4 flex items-center justify-between border-b border-input/50">
-                    <h1 className="text-xl font-bold text-foreground">
+                <div className="bg-background px-5 py-4 flex items-center justify-between">
+                    <h1 className="text-2xl font-bold text-foreground">
                         Mix {count} {count === 1 ? "palette" : "palettes"}
                     </h1>
                     <div className="flex items-center gap-1.5">
@@ -75,14 +75,7 @@ function MixPage() {
                     </div>
                 </div>
 
-                {/* Fixed top panel - Mix result area */}
-                <div className="sticky top-0 h-[30vh] bg-muted/20 border-b border-input/50 z-10">
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                        <p className="text-sm">Mix result area</p>
-                    </div>
-                </div>
-
-                {/* Palettes list - flows below the sticky mix result */}
+                {/* Palettes list - flows naturally */}
                 <div>
                     {uniquePalettes.length === 0 ? (
                         <div className="h-[50vh] flex items-center justify-center text-muted-foreground">
@@ -101,6 +94,13 @@ function MixPage() {
                             ))}
                         </div>
                     )}
+                </div>
+
+                {/* Sticky bottom panel - Mix result area */}
+                <div className="sticky bottom-0 h-[30vh] bg-background border-t border-input/50 z-10">
+                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                        <p className="text-sm">Mix result area</p>
+                    </div>
                 </div>
             </main>
 
