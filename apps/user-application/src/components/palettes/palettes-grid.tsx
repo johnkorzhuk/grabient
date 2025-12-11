@@ -409,7 +409,7 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
                     {customInputs}
                 </div>
             </div>
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-end gap-3 mt-3">
                 <span
                     className="text-xs text-muted-foreground font-semibold"
                     style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
@@ -427,17 +427,17 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
                     style={{ backgroundColor: "var(--background)" }}
                 />
             </div>
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-end gap-3 mt-3">
                 <span
                     className="text-xs text-muted-foreground font-semibold"
                     style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
                 >
-                    Radius
+                    Border %
                 </span>
                 <input
                     type="number"
                     min="0"
-                    max="200"
+                    max="100"
                     value={borderRadius}
                     onChange={(e) => setBorderRadius(parseInt(e.target.value, 10) || 0)}
                     onFocus={(e) => e.target.select()}
@@ -445,7 +445,7 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
                     style={{ backgroundColor: "var(--background)" }}
                 />
             </div>
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex items-center justify-end gap-3 mt-3">
                 <span
                     className="text-xs text-muted-foreground font-semibold"
                     style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
@@ -691,10 +691,10 @@ function ExportPreview({ width, height, gap, borderRadius, columns }: ExportPrev
 
     return (
         <div
-            className="mt-6 pb-6 flex-1 min-h-0"
+            className="mt-6 flex-1 min-h-0"
         >
             <div
-                className="w-full h-full rounded-lg overflow-hidden border border-input"
+                className="w-full h-full rounded-lg overflow-hidden border border-input p-2"
             >
                 <div
                     className="w-full h-full [&>svg]:w-full [&>svg]:h-full"
@@ -1050,7 +1050,7 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     <div className="flex justify-between pt-4 relative pointer-events-none">
                         <div className="flex items-center min-h-[28px] pointer-events-none">
                             {currentCreatedAt && (
-                                <span className="text-sm text-muted-foreground pointer-events-none">
+                                <span className="text-sm text-muted-foreground pointer-events-none select-none">
                                     {formatDistanceToNow(
                                         new Date(currentCreatedAt),
                                         {
@@ -1257,7 +1257,7 @@ function GradientPreview({
 
                 {/* Dev-only score badge */}
                 {import.meta.env.DEV && palette.score !== undefined && (
-                    <span className="absolute bottom-3 right-3 text-xs font-mono px-2 py-1 rounded bg-background/80 text-foreground">
+                    <span className="absolute bottom-3 right-3 text-xs font-mono px-2 py-1 rounded bg-background/80 text-foreground select-none">
                         {palette.score.toFixed(4)}
                     </span>
                 )}

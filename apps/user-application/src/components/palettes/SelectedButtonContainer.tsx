@@ -3,6 +3,8 @@ import { exportStore } from "@/stores/export";
 import { SelectedButton } from "./SelectedButton";
 import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
+import { ExportActions } from "./ExportActions";
+import { useMounted } from "@mantine/hooks";
 
 interface SelectedButtonContainerProps {
     className?: string;
@@ -11,13 +13,15 @@ interface SelectedButtonContainerProps {
 export function SelectedButtonContainer({
     className,
 }: SelectedButtonContainerProps) {
+    const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
     const routerState = useRouterState();
     const isExportOpen =
         (routerState.location.search as { export?: boolean }).export === true;
-    const hasSelectedItems = exportList.length > 0;
+    // Only check for selected items after mount to avoid hydration mismatch
+    const hasSelectedItems = mounted && exportList.length > 0;
 
-    // Don't render if no items selected
+    // Don't render if no items selected (or not yet mounted)
     if (!hasSelectedItems) {
         return null;
     }
@@ -25,11 +29,14 @@ export function SelectedButtonContainer({
     return (
         <div
             className={cn(
-                "px-5 lg:px-14 flex justify-end mb-10 md:mb-12",
+                "px-5 lg:px-14 flex justify-end mb-10 md:mb-12 gap-2",
                 isExportOpen && "sticky top-[135px] lg:top-[151px] z-50",
+                // Hide on mobile when export is open (close button is in drawer)
+                isExportOpen && "hidden md:flex",
                 className,
             )}
         >
+            {isExportOpen && <ExportActions />}
             <SelectedButton />
         </div>
     );

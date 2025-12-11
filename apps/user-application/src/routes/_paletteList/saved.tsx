@@ -15,6 +15,7 @@ import { exportStore } from "@/stores/export";
 import { UndoButton } from "@/components/navigation/UndoButton";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 import { cn } from "@/lib/utils";
+import { useMounted } from "@mantine/hooks";
 
 export const Route = createFileRoute("/_paletteList/saved")({
     beforeLoad: async ({ context }) => {
@@ -79,8 +80,11 @@ function SavedPalettesPage() {
     const search = Route.useSearch();
     const { page, limit, style, angle, steps } = search;
     const isExportOpen = search.export === true;
+    const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
-    const showExportUI = isExportOpen && exportList.length > 0;
+    // Only show export UI after mount to avoid hydration mismatch (exportList comes from localStorage)
+    const exportCount = mounted ? exportList.length : 0;
+    const showExportUI = isExportOpen && exportCount > 0;
     const { data } = useSuspenseQuery(
         userLikedPalettesQueryOptions(page, limit),
     );
@@ -100,7 +104,7 @@ function SavedPalettesPage() {
                 <>
                     <div className={cn("px-5 lg:px-14 mb-10 md:mb-12.5", !isExportOpen && "invisible")}>
                         <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                            {exportList.length} {exportList.length === 1 ? "item" : "items"} selected
+                            {exportCount} {exportCount === 1 ? "item" : "items"} selected
                         </h1>
                     </div>
                     <SelectedButtonContainer className="-mt-[72px] md:-mt-[84px]" />

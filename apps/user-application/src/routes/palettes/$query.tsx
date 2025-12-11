@@ -42,6 +42,7 @@ import {
 import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
+import { useMounted } from "@mantine/hooks";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -53,6 +54,13 @@ const SEARCH_DEFAULTS = {
     size: "auto" as SizeType,
     export: false,
 };
+
+// Export param should never be true during SSR to avoid hydration mismatches
+// It's only meaningful on the client where we have access to localStorage export list
+const exportValidator = v.pipe(
+    v.optional(v.boolean(), false),
+    v.transform((value) => (typeof window === "undefined" ? false : value)),
+);
 
 const searchValidatorSchema = v.object({
     sort: v.optional(
@@ -78,7 +86,7 @@ const searchValidatorSchema = v.object({
         v.fallback(sizeWithAutoValidator, SEARCH_DEFAULTS.size),
         SEARCH_DEFAULTS.size,
     ),
-    export: v.optional(v.boolean(), SEARCH_DEFAULTS.export),
+    export: exportValidator,
 });
 
 function sortResults(
@@ -595,8 +603,11 @@ function SearchResultsPage() {
     const search = Route.useSearch();
     const { sort, style, angle, steps, size } = search;
     const isExportOpen = search.export === true;
+    const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
-    const showExportUI = isExportOpen && exportList.length > 0;
+    // Only show export UI after mount to avoid hydration mismatch (exportList comes from localStorage)
+    const exportCount = mounted ? exportList.length : 0;
+    const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
 
     const { data: searchData } = useSuspenseQuery(

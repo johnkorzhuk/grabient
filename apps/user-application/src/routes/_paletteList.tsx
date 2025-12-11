@@ -34,6 +34,13 @@ const SEARCH_DEFAULTS = {
     export: false,
 };
 
+// Export param should never be true during SSR to avoid hydration mismatches
+// It's only meaningful on the client where we have access to localStorage export list
+const exportValidator = v.pipe(
+    v.optional(v.boolean(), false),
+    v.transform((value) => (typeof window === "undefined" ? false : value)),
+);
+
 const searchValidatorSchema = v.object({
     style: v.optional(
         v.fallback(styleWithAutoValidator, SEARCH_DEFAULTS.style),
@@ -57,7 +64,7 @@ const searchValidatorSchema = v.object({
         SEARCH_DEFAULTS.size,
     ),
     redirect: v.optional(v.string()),
-    export: v.optional(v.boolean(), SEARCH_DEFAULTS.export),
+    export: exportValidator,
 });
 
 export const Route = createFileRoute("/_paletteList")({
