@@ -40,6 +40,7 @@ import { useInitializeGA4 } from "@/integrations/ga4/useInitializeGA4";
 import { getCookieYesHeadScript } from "@/integrations/cookieyes/CookieYesScript";
 import { useCookieYesSync } from "@/integrations/cookieyes/useCookieYesSync";
 import { consentStore } from "@/stores/consent-store";
+import { hydrateExportStore } from "@/stores/export";
 
 function BreakpointIndicator() {
     return (
@@ -195,6 +196,7 @@ function RootComponent() {
         >
             <ThemeProvider>
                 <CookieYesSyncInitializer />
+                <ExportStoreInitializer />
                 <SentryInitializer />
                 <PostHogInitializer />
                 <GA4Initializer />
@@ -215,6 +217,13 @@ function ThemeHotkeys() {
 
 function CookieYesSyncInitializer() {
     useCookieYesSync();
+    return null;
+}
+
+function ExportStoreInitializer() {
+    useEffect(() => {
+        hydrateExportStore();
+    }, []);
     return null;
 }
 

@@ -100,6 +100,10 @@ export function generateSVGGrid(options: SVGGridOptions): string {
   const totalWidth = columns * itemWidth + (columns - 1) * gapX + padding * 2;
   const totalHeight = rows * itemHeight + (rows - 1) * gapY + padding * 2;
 
+  // Convert percentage to pixels based on smaller dimension
+  const minDimension = Math.min(itemWidth, itemHeight);
+  const borderRadiusPx = (borderRadius / 100) * (minDimension / 2);
+
   const allDefs: string[] = [];
   const allContent: string[] = [];
 
@@ -114,11 +118,11 @@ export function generateSVGGrid(options: SVGGridOptions): string {
 
     // Add clip path for border radius if needed
     const clipPathId = `clip_${index}`;
-    if (borderRadius > 0) {
-      allDefs.push(`<clipPath id="${clipPathId}"><rect width="${itemWidth}" height="${itemHeight}" rx="${borderRadius}" ry="${borderRadius}"/></clipPath>`);
+    if (borderRadiusPx > 0) {
+      allDefs.push(`<clipPath id="${clipPathId}"><rect width="${itemWidth}" height="${itemHeight}" rx="${borderRadiusPx}" ry="${borderRadiusPx}"/></clipPath>`);
     }
 
-    const clipPathAttr = borderRadius > 0 ? ` clip-path="url(#${clipPathId})"` : "";
+    const clipPathAttr = borderRadiusPx > 0 ? ` clip-path="url(#${clipPathId})"` : "";
 
     if (item.style === "angularGradient") {
       // Generate angular gradient in local coordinates, then wrap in translate group

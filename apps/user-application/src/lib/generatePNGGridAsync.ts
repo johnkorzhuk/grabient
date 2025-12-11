@@ -113,6 +113,10 @@ export async function generatePNGGridBlobAsync(
   const columns = columnsProp ?? Math.min(exportList.length, 5);
   const rows = Math.ceil(exportList.length / columns);
 
+  // Convert percentage to pixels based on smaller dimension
+  const minDimension = Math.min(itemWidth, itemHeight);
+  const borderRadiusPx = (borderRadius / 100) * (minDimension / 2);
+
   const totalWidth = columns * itemWidth + (columns - 1) * gapX + padding * 2;
   const totalHeight = rows * itemHeight + (rows - 1) * gapY + padding * 2;
 
@@ -136,7 +140,7 @@ export async function generatePNGGridBlobAsync(
     const x = padding + column * (itemWidth + gapX);
     const y = padding + row * (itemHeight + gapY);
 
-    await renderGradientToCanvas(ctx, item, x, y, itemWidth, itemHeight, borderRadius);
+    await renderGradientToCanvas(ctx, item, x, y, itemWidth, itemHeight, borderRadiusPx);
 
     if (onProgress) {
       onProgress((index + 1) / exportList.length);
