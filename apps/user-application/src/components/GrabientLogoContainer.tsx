@@ -1,7 +1,7 @@
 import { GrabientLogo } from "./GrabientLogo";
 import { useLocation, useParams, useSearch } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { palettesQueryOptions, searchPalettesQueryOptions } from "@/queries/palettes";
+import { palettesQueryOptions, searchPalettesQueryOptions, userLikedPalettesQueryOptions } from "@/queries/palettes";
 import { deserializeCoeffs, isValidSeed } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import {
@@ -16,6 +16,16 @@ import { uiStore } from "@/stores/ui";
 
 interface GrabientLogoContainerProps {
     className?: string;
+}
+
+interface SearchParams {
+    export?: boolean;
+    page?: number;
+    limit?: number;
+    sort?: "popular" | "newest" | "oldest";
+    style?: string;
+    angle?: number | "auto";
+    steps?: number | "auto";
 }
 
 type OrderBy = "popular" | "newest" | "oldest";
@@ -38,6 +48,29 @@ function getSearchQuery(param: string): string | null {
     }
 }
 
+function sortResults(
+    results: AppPalette[],
+    order: "popular" | "newest" | "oldest",
+): AppPalette[] {
+    return [...results].sort((a, b) => {
+        switch (order) {
+            case "newest":
+                return (
+                    (b.createdAt?.getTime() ?? 0) -
+                    (a.createdAt?.getTime() ?? 0)
+                );
+            case "oldest":
+                return (
+                    (a.createdAt?.getTime() ?? 0) -
+                    (b.createdAt?.getTime() ?? 0)
+                );
+            case "popular":
+            default:
+                return (b.likesCount ?? 0) - (a.likesCount ?? 0);
+        }
+    });
+}
+
 function usePalettes(): AppPalette[] {
     const location = useLocation();
     const params = useParams({ strict: false });
@@ -46,6 +79,7 @@ function usePalettes(): AppPalette[] {
 
     const isSeedRoute = "seed" in params && typeof params.seed === "string";
     const isSearchRoute = location.pathname.startsWith("/palettes/") && "query" in params && typeof params.query === "string";
+    const isSavedRoute = location.pathname === "/saved";
 
     const searchQuery = isSearchRoute ? getSearchQuery(params.query as string) : null;
 
@@ -54,13 +88,19 @@ function usePalettes(): AppPalette[] {
         enabled: isSearchRoute && !!searchQuery,
     });
 
-    const orderBy = getOrderByFromPath(location.pathname);
     const rawSearch = search as { page?: number; limit?: number };
     const page = rawSearch.page ?? 1;
     const limit = rawSearch.limit ?? DEFAULT_PAGE_LIMIT;
+
+    const { data: savedData } = useQuery({
+        ...userLikedPalettesQueryOptions(page, limit),
+        enabled: isSavedRoute,
+    });
+
+    const orderBy = getOrderByFromPath(location.pathname);
     const { data: palettesData } = useQuery({
         ...palettesQueryOptions(orderBy, page, limit),
-        enabled: !isSeedRoute && !isSearchRoute,
+        enabled: !isSeedRoute && !isSearchRoute && !isSavedRoute,
     });
 
     if (isSeedRoute && params.seed) {
@@ -107,7 +147,14 @@ function usePalettes(): AppPalette[] {
     }
 
     if (isSearchRoute) {
-        return searchData?.results ?? [];
+        const results = searchData?.results ?? [];
+        const rawSearch = search as SearchParams;
+        const sort = rawSearch.sort ?? "popular";
+        return sortResults(results, sort);
+    }
+
+    if (isSavedRoute) {
+        return savedData?.palettes ?? [];
     }
 
     return palettesData?.palettes ?? [];
@@ -117,6 +164,13 @@ export function GrabientLogoContainer({
     className,
 }: GrabientLogoContainerProps) {
     const palettes = usePalettes();
+    const params = useParams({ strict: false });
+    const search = useSearch({ strict: false }) as SearchParams;
 
-    return <GrabientLogo className={className} palettes={palettes} />;
+    // Only consider export mode on routes that support it (palette list routes and search routes)
+    // The seed route (/$seed) doesn't have export mode - it always shows the live palette from sliders
+    const isSeedRoute = "seed" in params && typeof params.seed === "string";
+    const isExportMode = !isSeedRoute && search.export === true;
+
+    return <GrabientLogo className={className} palettes={palettes} isExportMode={isExportMode} />;
 }

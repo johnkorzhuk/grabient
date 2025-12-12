@@ -9,6 +9,7 @@ import type { AppPalette } from "@/queries/palettes";
 interface GrabientLogoProps {
     className?: string;
     palettes: AppPalette[];
+    isExportMode?: boolean;
 }
 
 const TRANSITION_DURATION = 2000;
@@ -57,7 +58,7 @@ function normalizeGradient(hexColors: string[], targetStops: number): string[] {
     return normalized;
 }
 
-export function GrabientLogo({ className, palettes }: GrabientLogoProps) {
+export function GrabientLogo({ className, palettes, isExportMode = false }: GrabientLogoProps) {
     const livePaletteData = useStore(uiStore, (state) => state.livePaletteData);
     const exportList = useStore(exportStore, (state) => state.exportList);
 
@@ -68,10 +69,13 @@ export function GrabientLogo({ className, palettes }: GrabientLogoProps) {
     const isSinglePalette = palettes.length === 1;
     const isSingleExport = exportList.length === 1;
 
-    // Priority: export list > single palette with live data > palette cycling
+    // Use export list only when export mode is active AND there are items
+    const useExportList = isExportMode && hasExportItems;
+
+    // Priority: export mode > single palette with live data > palette cycling
     const getHexColors = (): string[] => {
-        // If export list has items, use those
-        if (hasExportItems) {
+        // If export mode is active and has items, use export list
+        if (useExportList) {
             const currentExportItem = exportList[currentIndex % exportList.length]!;
             return currentExportItem.hexColors;
         }
@@ -102,19 +106,23 @@ export function GrabientLogo({ className, palettes }: GrabientLogoProps) {
     const normalizedColors = normalizeGradient(hexColors, FIXED_STOP_COUNT);
 
     // Determine if we should cycle
-    const shouldCycle = hasExportItems
+    const shouldCycle = useExportList
         ? exportList.length > 1  // Cycle through export list if multiple items
         : !isSinglePalette && hasPalettes;  // Otherwise cycle palettes if multiple
 
-    // Fixed on single item: export list with 1 item, or single palette
-    const isFixed = (hasExportItems && isSingleExport) || isSinglePalette;
+    // Fixed (no transitions) when:
+    // - In export mode with single export item
+    // - NOT in export mode AND (single palette OR has live data from sliders)
+    const isFixed = useExportList
+        ? isSingleExport
+        : (isSinglePalette || livePaletteData !== null);
 
     useEffect(() => {
         if (!shouldCycle) {
             return;
         }
 
-        const totalItems = hasExportItems ? exportList.length : palettes.length;
+        const totalItems = useExportList ? exportList.length : palettes.length;
 
         setCurrentIndex((prev) => (prev + 1) % totalItems);
 
@@ -123,14 +131,12 @@ export function GrabientLogo({ className, palettes }: GrabientLogoProps) {
         }, TRANSITION_DURATION);
 
         return () => clearInterval(interval);
-    }, [shouldCycle, hasExportItems, exportList.length, palettes.length]);
+    }, [shouldCycle, useExportList, exportList.length, palettes.length]);
 
-    // Reset index when export list changes
+    // Reset index when switching between export mode and normal mode
     useEffect(() => {
-        if (hasExportItems) {
-            setCurrentIndex(0);
-        }
-    }, [hasExportItems, exportList.length]);
+        setCurrentIndex(0);
+    }, [useExportList]);
 
     const stops = normalizedColors.map((color, i) => {
         const offset = (i / (FIXED_STOP_COUNT - 1)) * 100;
