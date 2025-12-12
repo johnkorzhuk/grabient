@@ -237,18 +237,6 @@ importers:
         specifier: ^5.9.2
         version: 5.9.3
 
-  apps/posthog-proxy:
-    devDependencies:
-      '@cloudflare/workers-types':
-        specifier: ^4.20251202.0
-        version: 4.20251202.0
-      typescript:
-        specifier: ^5.9.3
-        version: 5.9.3
-      wrangler:
-        specifier: ^4.44.0
-        version: 4.44.0(@cloudflare/workers-types@4.20251202.0)
-
   apps/user-application:
     dependencies:
       '@cf-wasm/resvg':

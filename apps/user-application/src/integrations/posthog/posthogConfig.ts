@@ -1,7 +1,20 @@
 // See: https://posthog.com/docs/libraries/js
 
 const POSTHOG_API_KEY = import.meta.env.VITE_POSTHOG_API_KEY as string;
-const POSTHOG_API_HOST = import.meta.env.VITE_POSTHOG_API_HOST as string;
+const POSTHOG_API_HOST_OVERRIDE = import.meta.env.VITE_POSTHOG_API_HOST as string;
+
+function getPostHogApiHost(): string {
+    // Allow explicit override via env var
+    if (POSTHOG_API_HOST_OVERRIDE) {
+        return POSTHOG_API_HOST_OVERRIDE;
+    }
+    // In production, use the /e proxy route on the same origin
+    if (typeof window !== "undefined" && !import.meta.env.DEV) {
+        return `${window.location.origin}/e`;
+    }
+    // Fallback to direct PostHog (dev mode or SSR)
+    return "https://us.i.posthog.com";
+}
 
 let posthogInitialized = false;
 let posthogInstance: typeof import("posthog-js").default | null = null;
@@ -36,7 +49,7 @@ export async function initializePostHog(): Promise<void> {
             const { default: posthog } = await import("posthog-js");
 
             posthog.init(POSTHOG_API_KEY, {
-                api_host: POSTHOG_API_HOST || "https://us.i.posthog.com",
+                api_host: getPostHogApiHost(),
                 cookieless_mode: "on_reject",
                 person_profiles: "identified_only",
                 capture_pageview: false,
