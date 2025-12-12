@@ -442,7 +442,7 @@ export function AppLayout({
             {showNavigation && (
                 <div
                     className={cn(
-                        "px-5 lg:px-14 pt-4 md:pt-6 pb-2",
+                        "px-5 lg:px-14 pt-4 md:pt-6",
                         isExportOpen
                             ? "w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5"
                             : "mx-auto w-full",
@@ -450,7 +450,7 @@ export function AppLayout({
                 >
                     <div
                         className={cn(
-                            "sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col gap-3 md:gap-5 bg-background py-2",
+                            "sticky top-[11px] md:top-[14px] lg:top-[22px] z-30 flex flex-col gap-3 md:gap-5 bg-background pt-2",
                             isExportOpen
                                 ? "items-start md:items-start xl:items-center"
                                 : "items-center",

@@ -104,7 +104,7 @@ function EmptyMixState() {
                     No palettes selected
                 </p>
                 <p className="text-sm text-muted-foreground max-w-[280px]">
-                    Add palettes to your mix by clicking the <span className="inline-flex items-center justify-center align-middle w-5 h-5 rounded border border-muted-foreground/40 mx-0.5 pointer-events-none select-none" aria-hidden="true"><Plus size={12} /></span> export button on any gradient
+                    Add palettes to your mix by clicking the <span className="inline-flex items-center justify-center align-middle w-5 h-5 rounded border border-muted-foreground/40 mx-0.5 pointer-events-none select-none" aria-hidden="true"><Plus size={12} /></span> select button on any gradient
                 </p>
             </div>
             <Link
