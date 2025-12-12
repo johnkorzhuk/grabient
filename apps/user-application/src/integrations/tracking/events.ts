@@ -112,7 +112,7 @@ interface SearchEventProperties extends BaseEventProperties {
 
 interface SearchFeedbackEventProperties extends GradientEventProperties {
     query: string;
-    feedback: "good" | "bad";
+    feedback: "good" | "bad" | "clear";
 }
 
 function getCurrentRoute(): string {

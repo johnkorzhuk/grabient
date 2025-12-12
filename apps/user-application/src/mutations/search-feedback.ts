@@ -38,7 +38,7 @@ export function useSearchFeedbackMutation() {
                 angle: args.angle,
                 steps: args.steps,
                 query: args.query,
-                feedback: isToggleOff ? "clear" as any : args.feedback,
+                feedback: isToggleOff ? "clear" : args.feedback,
             });
 
             // If logged in, persist to server
