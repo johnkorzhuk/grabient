@@ -1,8 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-// PostHog hosts - US region
-const POSTHOG_HOST = "us.i.posthog.com";
-const POSTHOG_ASSET_HOST = "us-assets.i.posthog.com";
+// PostHog hosts - derived from env var or default to US region
+const POSTHOG_API_HOST = import.meta.env.VITE_POSTHOG_API_HOST as string;
+
+function getPostHogHosts() {
+    // Parse the host from env var (e.g., "https://us.i.posthog.com" -> "us.i.posthog.com")
+    let apiHost = "us.i.posthog.com";
+    if (POSTHOG_API_HOST) {
+        try {
+            const url = new URL(POSTHOG_API_HOST);
+            apiHost = url.host;
+        } catch {
+            // If it's not a full URL, use as-is
+            apiHost = POSTHOG_API_HOST.replace(/^https?:\/\//, "");
+        }
+    }
+
+    // Derive asset host from API host (us.i.posthog.com -> us-assets.i.posthog.com)
+    const assetHost = apiHost.replace(".i.posthog.com", "-assets.i.posthog.com");
+
+    return { apiHost, assetHost };
+}
+
+const { apiHost: POSTHOG_HOST, assetHost: POSTHOG_ASSET_HOST } = getPostHogHosts();
 
 // Cache TTL for static assets (24 hours)
 const STATIC_CACHE_TTL = 86400;
