@@ -53,62 +53,59 @@ function MixPage() {
     const effectiveSteps = previewSteps ?? DEFAULT_STEPS;
 
     return (
-        <div className="h-viewport-dynamic flex flex-col overflow-hidden md:min-h-screen-dynamic md:h-auto md:overflow-visible">
-            <AppHeader className="shrink-0" />
+        <div className="min-h-screen-dynamic flex flex-col">
+            <AppHeader />
 
-            {/* xs/sm: main is scrollable, bottom panel fixed */}
-            {/* md+: side by side layout with left panel scrollable */}
-
-            {/* Mobile layout (xs/sm) */}
-            <main className="md:hidden w-full flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
-                {/* Header controls */}
-                <div className="bg-background px-5 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-foreground">
-                        Mix {count} {count === 1 ? "palette" : "palettes"}
-                    </h1>
-                    <div className="flex items-center gap-1.5">
-                        <StyleSelect
-                            value="auto"
-                            className="subpixel-antialiased"
-                            onPreviewChange={setPreviewStyle}
-                        />
-                    </div>
-                </div>
-
-                {/* Palettes list - flows naturally */}
-                <div>
-                    {uniquePalettes.length === 0 ? (
-                        <div className="h-[50vh] flex items-center justify-center text-muted-foreground">
-                            <p className="text-sm">No palettes selected</p>
-                        </div>
-                    ) : (
-                        <div className="p-4 grid grid-cols-1 gap-3">
-                            {uniquePalettes.map((palette) => (
-                                <PalettePreviewCard
-                                    key={palette.seed}
-                                    palette={palette}
-                                    style={effectiveStyle}
-                                    angle={effectiveAngle}
-                                    steps={effectiveSteps}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                {/* Sticky bottom panel - Mix result area */}
-                <div className="sticky bottom-0 h-[30vh] bg-background border-t border-input/50 z-10">
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                        <p className="text-sm">Mix result area</p>
-                    </div>
-                </div>
-            </main>
-
-            {/* Desktop layout (md+) */}
-            <main className="hidden md:flex w-full h-viewport-content overflow-hidden">
-                <div className="h-full w-full flex flex-col">
+            <main className="w-full h-viewport-content overflow-x-hidden overflow-y-auto">
+                {/* Mobile layout (xs/sm) */}
+                <div className="md:hidden h-full">
                     {/* Header controls */}
-                    <div className="shrink-0 bg-background px-5 lg:px-14 py-4 flex items-center justify-between border-b border-input/50">
+                    <div className="bg-background px-5 py-4 flex items-center justify-between">
+                        <h1 className="text-2xl font-bold text-foreground">
+                            Mix {count} {count === 1 ? "palette" : "palettes"}
+                        </h1>
+                        <div className="flex items-center gap-1.5">
+                            <StyleSelect
+                                value="auto"
+                                className="subpixel-antialiased"
+                                onPreviewChange={setPreviewStyle}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Palettes list - flows naturally */}
+                    <div>
+                        {uniquePalettes.length === 0 ? (
+                            <div className="h-[50vh] flex items-center justify-center text-muted-foreground">
+                                <p className="text-sm">No palettes selected</p>
+                            </div>
+                        ) : (
+                            <div className="p-4 grid grid-cols-1 gap-3">
+                                {uniquePalettes.map((palette) => (
+                                    <PalettePreviewCard
+                                        key={palette.seed}
+                                        palette={palette}
+                                        style={effectiveStyle}
+                                        angle={effectiveAngle}
+                                        steps={effectiveSteps}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Sticky bottom panel - Mix result area */}
+                    <div className="sticky bottom-0 h-[30vh] bg-background z-10">
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                            <p className="text-sm">Mix result area</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Desktop layout (md+) */}
+                <div className="hidden md:block">
+                    {/* Header controls */}
+                    <div className="sticky top-0 z-10 bg-background px-5 lg:px-14 py-4 flex items-center justify-between">
                         <h1 className="text-2xl font-bold text-foreground">
                             Mix {count} {count === 1 ? "palette" : "palettes"}
                         </h1>
@@ -132,11 +129,11 @@ function MixPage() {
                     </div>
 
                     {/* Side by side panels */}
-                    <div className="flex-1 flex flex-row min-h-0">
-                        {/* Left panel - scrollable */}
-                        <div className="h-full w-1/2 border-r border-input/50 overflow-y-auto">
+                    <div className="flex flex-row">
+                        {/* Left panel */}
+                        <div className="w-1/2">
                             {uniquePalettes.length === 0 ? (
-                                <div className="h-full flex items-center justify-center text-muted-foreground">
+                                <div className="h-[50vh] flex items-center justify-center text-muted-foreground">
                                     <p className="text-sm">No palettes selected</p>
                                 </div>
                             ) : (
@@ -154,8 +151,8 @@ function MixPage() {
                             )}
                         </div>
 
-                        {/* Right panel */}
-                        <div className="h-full w-1/2 bg-muted/20">
+                        {/* Right panel - sticky to viewport */}
+                        <div className="w-1/2 sticky top-[61px] h-[calc(100vh-61px)] self-start bg-background">
                             <div className="h-full flex items-center justify-center text-muted-foreground">
                                 <p className="text-sm">Mix result area</p>
                             </div>
@@ -164,7 +161,7 @@ function MixPage() {
                 </div>
             </main>
 
-            <Footer className="hidden md:block" />
+            <Footer />
         </div>
     );
 }
