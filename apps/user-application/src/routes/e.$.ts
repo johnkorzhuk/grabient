@@ -1,12 +1,3 @@
-/**
- * PostHog Reverse Proxy Route
- *
- * Proxies PostHog requests through your domain to bypass ad blockers.
- * All requests to /e/* are forwarded to PostHog.
- *
- * Based on: https://posthog.com/docs/advanced/proxy/cloudflare
- */
-
 import { createFileRoute } from "@tanstack/react-router";
 
 // PostHog hosts - US region
@@ -22,8 +13,10 @@ async function handlePostHogProxy(request: Request): Promise<Response> {
     const pathname = url.pathname.replace(/^\/e/, "") || "/";
     const search = url.search;
 
-    // Handle static assets (JS SDK, etc.)
-    if (pathname.startsWith("/static/")) {
+    // Handle static assets (JS SDK, config, etc.)
+    // /static/ - SDK and other static files
+    // /array/ - External dependencies and config
+    if (pathname.startsWith("/static/") || pathname.startsWith("/array/")) {
         return handleStatic(request, pathname);
     }
 
@@ -33,7 +26,7 @@ async function handlePostHogProxy(request: Request): Promise<Response> {
 
 async function handleStatic(
     request: Request,
-    pathname: string
+    pathname: string,
 ): Promise<Response> {
     const response = await fetch(`https://${POSTHOG_ASSET_HOST}${pathname}`, {
         method: request.method,
@@ -59,7 +52,7 @@ async function handleStatic(
 
 async function forwardRequest(
     request: Request,
-    pathWithSearch: string
+    pathWithSearch: string,
 ): Promise<Response> {
     const targetUrl = `https://${POSTHOG_HOST}${pathWithSearch}`;
 

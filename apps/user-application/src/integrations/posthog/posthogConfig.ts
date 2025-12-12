@@ -50,6 +50,7 @@ export async function initializePostHog(): Promise<void> {
 
             posthog.init(POSTHOG_API_KEY, {
                 api_host: getPostHogApiHost(),
+                ui_host: "https://us.posthog.com",
                 cookieless_mode: "on_reject",
                 person_profiles: "identified_only",
                 capture_pageview: false,
