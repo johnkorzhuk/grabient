@@ -237,144 +237,14 @@ importers:
         specifier: ^5.9.2
         version: 5.9.3
 
-  apps/palette-ops:
-    dependencies:
-      '@ai-sdk/anthropic':
-        specifier: ^2.0.53
-        version: 2.0.53(zod@3.25.76)
-      '@ai-sdk/google':
-        specifier: ^2.0.44
-        version: 2.0.44(zod@3.25.76)
-      '@ai-sdk/groq':
-        specifier: ^2.0.32
-        version: 2.0.32(zod@3.25.76)
-      '@ai-sdk/openai':
-        specifier: ^2.0.76
-        version: 2.0.76(zod@3.25.76)
-      '@anthropic-ai/sdk':
-        specifier: ^0.71.1
-        version: 0.71.1(zod@3.25.76)
-      '@radix-ui/react-collapsible':
-        specifier: ^1.1.12
-        version: 1.1.12(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-dialog':
-        specifier: ^1.1.15
-        version: 1.1.15(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-label':
-        specifier: ^2.1.8
-        version: 2.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-scroll-area':
-        specifier: ^1.2.10
-        version: 1.2.10(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-separator':
-        specifier: ^1.1.8
-        version: 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-slot':
-        specifier: ^1.2.3
-        version: 1.2.4(@types/react@19.2.2)(react@19.2.0)
-      '@radix-ui/react-tooltip':
-        specifier: ^1.2.8
-        version: 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@repo/data-ops':
-        specifier: workspace:^
-        version: link:../../packages/data-ops
-      '@tailwindcss/vite':
-        specifier: ^4.1.15
-        version: 4.1.15(vite@7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1))
-      '@tanstack/react-query':
-        specifier: ^5.90.5
-        version: 5.90.5(react@19.2.0)
-      '@tanstack/react-query-devtools':
-        specifier: ^5.90.2
-        version: 5.90.2(@tanstack/react-query@5.90.5(react@19.2.0))(react@19.2.0)
-      '@tanstack/react-router':
-        specifier: ^1.133.22
-        version: 1.133.22(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@tanstack/react-router-devtools':
-        specifier: ^1.133.22
-        version: 1.133.22(@tanstack/react-router@1.133.22(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.20)(@types/node@22.18.12)(csstype@3.1.3)(jiti@2.6.1)(lightningcss@1.30.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(solid-js@1.9.9)(terser@5.43.1)(tiny-invariant@1.3.3)(tsx@4.20.6)(yaml@2.8.1)
-      '@tanstack/react-router-ssr-query':
-        specifier: ^1.133.22
-        version: 1.133.22(@tanstack/query-core@5.90.5)(@tanstack/react-query@5.90.5(react@19.2.0))(@tanstack/react-router@1.133.22(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.133.20)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@tanstack/react-start':
-        specifier: ^1.133.22
-        version: 1.133.22(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(vite@7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1))
-      ai:
-        specifier: ^5.0.106
-        version: 5.0.106(zod@3.25.76)
-      class-variance-authority:
-        specifier: ^0.7.1
-        version: 0.7.1
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      drizzle-orm:
-        specifier: ^0.44.5
-        version: 0.44.5(@cloudflare/workers-types@4.20251202.0)(@neondatabase/serverless@1.0.1)(@opentelemetry/api@1.9.0)(@planetscale/database@1.19.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(better-sqlite3@12.2.0)(kysely@0.28.8)(mysql2@3.14.3)(postgres@3.4.7)
-      lucide-react:
-        specifier: ^0.476.0
-        version: 0.476.0(react@19.2.0)
-      nanoid:
-        specifier: ^5.1.6
-        version: 5.1.6
-      react:
-        specifier: ^19.2.0
-        version: 19.2.0
-      react-dom:
-        specifier: ^19.2.0
-        version: 19.2.0(react@19.2.0)
-      recharts:
-        specifier: ^2.15.4
-        version: 2.15.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      tailwind-merge:
-        specifier: ^3.3.1
-        version: 3.3.1
-      tailwindcss:
-        specifier: ^4.1.15
-        version: 4.1.15
-      tw-animate-css:
-        specifier: ^1.4.0
-        version: 1.4.0
-      valibot:
-        specifier: ^1.1.0
-        version: 1.1.0(typescript@5.9.3)
-      vite-tsconfig-paths:
-        specifier: ^5.1.4
-        version: 5.1.4(typescript@5.9.3)(vite@7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1))
-      workers-ai-provider:
-        specifier: ^2.0.0
-        version: 2.0.0(zod@3.25.76)
-      zod:
-        specifier: ^3.25.67
-        version: 3.25.76
+  apps/posthog-proxy:
     devDependencies:
-      '@cloudflare/vite-plugin':
-        specifier: ^1.13.14
-        version: 1.13.14(vite@7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1))(workerd@1.20251011.0)(wrangler@4.44.0(@cloudflare/workers-types@4.20251202.0))
       '@cloudflare/workers-types':
         specifier: ^4.20251202.0
         version: 4.20251202.0
-      '@types/node':
-        specifier: ^22.18.12
-        version: 22.18.12
-      '@types/react':
-        specifier: ^19.2.2
-        version: 19.2.2
-      '@types/react-dom':
-        specifier: ^19.2.2
-        version: 19.2.2(@types/react@19.2.2)
-      '@vitejs/plugin-react':
-        specifier: ^4.7.0
-        version: 4.7.0(vite@7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1))
-      prettier:
-        specifier: ^3.6.2
-        version: 3.6.2
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
-      vite:
-        specifier: 7.1.2
-        version: 7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1)
       wrangler:
         specifier: ^4.44.0
         version: 4.44.0(@cloudflare/workers-types@4.20251202.0)
@@ -7601,9 +7471,6 @@ packages:
     engines: {node: '>=16'}
     hasBin: true
 
-  workers-ai-provider@2.0.0:
-    resolution: {integrity: sha512-AoGGy8aOR3lzCzRouSxA6mgrCKuZfrnzxvOHHy9kOzwz4Mm4Hb55a/9G8zz+v0I/mn8bYLs/4I6JABSl/zXJ7w==}
-
   wrangler@4.35.0:
     resolution: {integrity: sha512-HbyXtbrh4Fi3mU8ussY85tVdQ74qpVS1vctUgaPc+bPrXBTqfDLkZ6VRtHAVF/eBhz4SFmhJtCQpN1caY2Ak8A==}
     engines: {node: '>=18.0.0'}
@@ -7737,24 +7604,11 @@ packages:
 
 snapshots:
 
-  '@ai-sdk/anthropic@2.0.53(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-      zod: 3.25.76
-
   '@ai-sdk/anthropic@2.0.53(zod@4.1.13)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.18(zod@4.1.13)
       zod: 4.1.13
-
-  '@ai-sdk/gateway@2.0.18(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-      '@vercel/oidc': 3.0.5
-      zod: 3.25.76
 
   '@ai-sdk/gateway@2.0.18(zod@4.1.13)':
     dependencies:
@@ -7763,23 +7617,11 @@ snapshots:
       '@vercel/oidc': 3.0.5
       zod: 4.1.13
 
-  '@ai-sdk/google@2.0.44(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-      zod: 3.25.76
-
   '@ai-sdk/google@2.0.44(zod@4.1.13)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.18(zod@4.1.13)
       zod: 4.1.13
-
-  '@ai-sdk/groq@2.0.32(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-      zod: 3.25.76
 
   '@ai-sdk/groq@2.0.32(zod@4.1.13)':
     dependencies:
@@ -7787,24 +7629,11 @@ snapshots:
       '@ai-sdk/provider-utils': 3.0.18(zod@4.1.13)
       zod: 4.1.13
 
-  '@ai-sdk/openai@2.0.76(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-      zod: 3.25.76
-
   '@ai-sdk/openai@2.0.76(zod@4.1.13)':
     dependencies:
       '@ai-sdk/provider': 2.0.0
       '@ai-sdk/provider-utils': 3.0.18(zod@4.1.13)
       zod: 4.1.13
-
-  '@ai-sdk/provider-utils@3.0.18(zod@3.25.76)':
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@standard-schema/spec': 1.0.0
-      eventsource-parser: 3.0.6
-      zod: 3.25.76
 
   '@ai-sdk/provider-utils@3.0.18(zod@4.1.13)':
     dependencies:
@@ -7821,12 +7650,6 @@ snapshots:
     dependencies:
       '@jridgewell/gen-mapping': 0.3.13
       '@jridgewell/trace-mapping': 0.3.31
-
-  '@anthropic-ai/sdk@0.71.1(zod@3.25.76)':
-    dependencies:
-      json-schema-to-ts: 3.1.1
-    optionalDependencies:
-      zod: 3.25.76
 
   '@anthropic-ai/sdk@0.71.1(zod@4.1.13)':
     dependencies:
@@ -12244,14 +12067,6 @@ snapshots:
     dependencies:
       humanize-ms: 1.2.1
 
-  ai@5.0.106(zod@3.25.76):
-    dependencies:
-      '@ai-sdk/gateway': 2.0.18(zod@3.25.76)
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-      '@opentelemetry/api': 1.9.0
-      zod: 3.25.76
-
   ai@5.0.106(zod@4.1.13):
     dependencies:
       '@ai-sdk/gateway': 2.0.18(zod@4.1.13)
@@ -16068,13 +15883,6 @@ snapshots:
       '@cloudflare/workerd-linux-64': 1.20251011.0
       '@cloudflare/workerd-linux-arm64': 1.20251011.0
       '@cloudflare/workerd-windows-64': 1.20251011.0
-
-  workers-ai-provider@2.0.0(zod@3.25.76):
-    dependencies:
-      '@ai-sdk/provider': 2.0.0
-      '@ai-sdk/provider-utils': 3.0.18(zod@3.25.76)
-    transitivePeerDependencies:
-      - zod
 
   wrangler@4.35.0(@cloudflare/workers-types@4.20251202.0):
     dependencies:
