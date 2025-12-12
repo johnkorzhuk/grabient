@@ -110,6 +110,11 @@ interface SearchEventProperties extends BaseEventProperties {
     resultCount?: number;
 }
 
+interface SearchFeedbackEventProperties extends GradientEventProperties {
+    query: string;
+    feedback: "good" | "bad";
+}
+
 function getCurrentRoute(): string {
     if (typeof window === "undefined") return "";
     return window.location.pathname;
@@ -270,6 +275,9 @@ export const analytics = {
     search: {
         query: (props: SearchEventProperties) => {
             trackEvent("search_query", props);
+        },
+        feedback: (props: SearchFeedbackEventProperties) => {
+            trackEvent("search_feedback", props);
         },
     },
 };

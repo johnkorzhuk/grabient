@@ -23,7 +23,7 @@ import {
     useSyncExternalStore,
     useState,
 } from "react";
-import { Heart, SquarePen, Check } from "lucide-react";
+import { Heart, SquarePen, Check, ThumbsUp, ThumbsDown } from "lucide-react";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import { useDevicePresetsState, DevicePresets } from "./device-presets";
@@ -47,6 +47,7 @@ import { serializeCoeffs } from "@repo/data-ops/serialization";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
 import { getGradientAriaLabel, getUniqueColorNames } from "@/lib/color-utils";
 import { detectDevice } from "@/lib/deviceDetection";
+import { analytics } from "@/integrations/tracking/events";
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type StyleWithAuto = v.InferOutput<typeof styleWithAutoValidator>;
@@ -61,6 +62,7 @@ interface PalettesGridProps {
     urlAngle?: AngleWithAuto;
     urlSteps?: StepsWithAuto;
     isExportOpen?: boolean;
+    searchQuery?: string;
 }
 
 export function PalettesGrid({
@@ -70,6 +72,7 @@ export function PalettesGrid({
     urlAngle = "auto",
     urlSteps = "auto",
     isExportOpen = false,
+    searchQuery,
 }: PalettesGridProps) {
     const previewStyle = useStore(uiStore, (state) => state.previewStyle);
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
@@ -258,6 +261,7 @@ export function PalettesGrid({
                     likedSeeds={likedSeeds}
                     onShiftClick={handleShiftClick}
                     ref={index === 0 ? firstPaletteRef : undefined}
+                    searchQuery={searchQuery}
                 />
             ))}
         </ol>
@@ -741,6 +745,7 @@ export interface PaletteCardProps {
     variant?: PaletteCardVariant;
     idPrefix?: string;
     removeAllOnExportClick?: boolean;
+    searchQuery?: string;
 }
 
 export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
@@ -758,6 +763,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             variant = "default",
             idPrefix = "",
             removeAllOnExportClick = false,
+            searchQuery,
         },
         ref,
     ) => {
@@ -1063,6 +1069,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                             idPrefix={idPrefix}
                             removeAllOnExportClick={removeAllOnExportClick}
                             borderRadius={borderRadius}
+                            searchQuery={searchQuery}
                         />
                     </div>
 
@@ -1174,6 +1181,7 @@ interface GradientPreviewProps {
     idPrefix?: string;
     removeAllOnExportClick?: boolean;
     borderRadius: number;
+    searchQuery?: string;
 }
 
 function GradientPreview({
@@ -1193,6 +1201,7 @@ function GradientPreview({
     idPrefix = "",
     removeAllOnExportClick = false,
     borderRadius,
+    searchQuery,
 }: GradientPreviewProps) {
     const {
         style: paletteStyle,
@@ -1396,6 +1405,92 @@ function GradientPreview({
                             isActive={isActive}
                             removeAllOnClick={removeAllOnExportClick}
                         />
+                    </div>
+                )}
+
+                {/* Search feedback icons in bottom left - only shown on query routes */}
+                {isMounted && searchQuery && (
+                    <div
+                        className={cn(
+                            "absolute bottom-3.5 left-3.5 z-20 pointer-events-auto flex gap-3",
+                            !isActive
+                                ? "opacity-0 group-hover:opacity-100"
+                                : "opacity-100",
+                            "transition-opacity duration-200",
+                        )}
+                    >
+                        <Tooltip delayDuration={500}>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        analytics.search.feedback({
+                                            seed: currentSeed,
+                                            style: effectiveStyle,
+                                            angle: effectiveAngle,
+                                            steps: effectiveSteps,
+                                            query: searchQuery,
+                                            feedback: "good",
+                                        });
+                                    }}
+                                    className="transition-opacity duration-200 cursor-pointer outline-none opacity-80 hover:opacity-100 focus-visible:opacity-100"
+                                    style={{
+                                        color: "var(--background)",
+                                        filter: "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
+                                    }}
+                                    aria-label={`Good fit for ${searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}`}
+                                >
+                                    <ThumbsUp
+                                        className="w-6 h-6"
+                                        strokeWidth={2}
+                                    />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="top"
+                                align="start"
+                                sideOffset={6}
+                            >
+                                <span>Good fit for {searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}</span>
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip delayDuration={500}>
+                            <TooltipTrigger asChild>
+                                <button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        analytics.search.feedback({
+                                            seed: currentSeed,
+                                            style: effectiveStyle,
+                                            angle: effectiveAngle,
+                                            steps: effectiveSteps,
+                                            query: searchQuery,
+                                            feedback: "bad",
+                                        });
+                                    }}
+                                    className="transition-opacity duration-200 cursor-pointer outline-none opacity-80 hover:opacity-100 focus-visible:opacity-100"
+                                    style={{
+                                        color: "var(--background)",
+                                        filter: "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
+                                    }}
+                                    aria-label={`Bad fit for ${searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}`}
+                                >
+                                    <ThumbsDown
+                                        className="w-6 h-6"
+                                        strokeWidth={2}
+                                    />
+                                </button>
+                            </TooltipTrigger>
+                            <TooltipContent
+                                side="top"
+                                align="start"
+                                sideOffset={6}
+                            >
+                                <span>Bad fit for {searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}</span>
+                            </TooltipContent>
+                        </Tooltip>
                     </div>
                 )}
             </figure>

@@ -704,6 +704,7 @@ function SearchResultsPage() {
                 urlAngle={angle}
                 urlSteps={steps}
                 isExportOpen={isExportOpen}
+                searchQuery={query}
             />
             {!isExportOpen && <div className="py-3 mt-16" />}
         </AppLayout>
