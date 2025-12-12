@@ -6,6 +6,7 @@ import {
     applyGlobals,
     cosineGradient,
     rgbToHex,
+    calculateAverageBrightness,
 } from "@repo/data-ops/gradient-gen/cosine";
 import { generateSvgGradient } from "@repo/data-ops/gradient-gen/svg";
 import {
@@ -110,19 +111,6 @@ function generateAngularGradientSvg(
     }
 
     return paths;
-}
-
-function calculateAverageBrightness(hexColors: string[]): number {
-    if (hexColors.length === 0) return 0.5;
-
-    let totalBrightness = 0;
-    for (const hex of hexColors) {
-        const r = (parseInt(hex.slice(1, 3), 16) || 0) / 255;
-        const g = (parseInt(hex.slice(3, 5), 16) || 0) / 255;
-        const b = (parseInt(hex.slice(5, 7), 16) || 0) / 255;
-        totalBrightness += r * 0.299 + g * 0.587 + b * 0.114;
-    }
-    return totalBrightness / hexColors.length;
 }
 
 export const Route = createFileRoute("/api/og")({

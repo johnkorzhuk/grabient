@@ -11,6 +11,7 @@ export const rateLimitConfig = {
 
 	// High priority mutations
 	toggleLike: { requests: 20, window: 60 }, // 20 requests per minute
+	searchFeedback: { requests: 100, window: 60 }, // 100 requests per minute
 	accountMutation: { requests: 30, window: 3600 }, // 30 requests per hour
 
 	// Read operations - lenient limits

@@ -46,8 +46,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
 import { getGradientAriaLabel, getUniqueColorNames } from "@/lib/color-utils";
+import { calculateAverageBrightness } from "@repo/data-ops/gradient-gen";
 import { detectDevice } from "@/lib/deviceDetection";
-import { analytics } from "@/integrations/tracking/events";
+import { useSearchFeedbackMutation } from "@/mutations/search-feedback";
+import { searchFeedbackStore, type FeedbackType } from "@/stores/search-feedback";
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type StyleWithAuto = v.InferOutput<typeof styleWithAutoValidator>;
@@ -1410,90 +1412,153 @@ function GradientPreview({
 
                 {/* Search feedback icons in bottom left - only shown on query routes */}
                 {isMounted && searchQuery && (
-                    <div
-                        className={cn(
-                            "absolute bottom-3.5 left-3.5 z-20 pointer-events-auto flex gap-3",
-                            !isActive
-                                ? "opacity-0 group-hover:opacity-100"
-                                : "opacity-100",
-                            "transition-opacity duration-200",
-                        )}
-                    >
-                        <Tooltip delayDuration={500}>
-                            <TooltipTrigger asChild>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        analytics.search.feedback({
-                                            seed: currentSeed,
-                                            style: effectiveStyle,
-                                            angle: effectiveAngle,
-                                            steps: effectiveSteps,
-                                            query: searchQuery,
-                                            feedback: "good",
-                                        });
-                                    }}
-                                    className="transition-opacity duration-200 cursor-pointer outline-none opacity-80 hover:opacity-100 focus-visible:opacity-100"
-                                    style={{
-                                        color: "var(--background)",
-                                        filter: "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
-                                    }}
-                                    aria-label={`Good fit for ${searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}`}
-                                >
-                                    <ThumbsUp
-                                        className="w-6 h-6"
-                                        strokeWidth={2}
-                                    />
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent
-                                side="top"
-                                align="start"
-                                sideOffset={6}
-                            >
-                                <span>Good fit for {searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}</span>
-                            </TooltipContent>
-                        </Tooltip>
-                        <Tooltip delayDuration={500}>
-                            <TooltipTrigger asChild>
-                                <button
-                                    type="button"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        analytics.search.feedback({
-                                            seed: currentSeed,
-                                            style: effectiveStyle,
-                                            angle: effectiveAngle,
-                                            steps: effectiveSteps,
-                                            query: searchQuery,
-                                            feedback: "bad",
-                                        });
-                                    }}
-                                    className="transition-opacity duration-200 cursor-pointer outline-none opacity-80 hover:opacity-100 focus-visible:opacity-100"
-                                    style={{
-                                        color: "var(--background)",
-                                        filter: "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
-                                    }}
-                                    aria-label={`Bad fit for ${searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}`}
-                                >
-                                    <ThumbsDown
-                                        className="w-6 h-6"
-                                        strokeWidth={2}
-                                    />
-                                </button>
-                            </TooltipTrigger>
-                            <TooltipContent
-                                side="top"
-                                align="start"
-                                sideOffset={6}
-                            >
-                                <span>Bad fit for {searchQuery.length > 16 ? searchQuery.slice(0, 16) + "..." : searchQuery}</span>
-                            </TooltipContent>
-                        </Tooltip>
-                    </div>
+                    <SearchFeedbackButtons
+                        searchQuery={searchQuery}
+                        currentSeed={currentSeed}
+                        effectiveStyle={effectiveStyle}
+                        effectiveAngle={effectiveAngle}
+                        effectiveSteps={effectiveSteps}
+                        isActive={isActive}
+                        hexColors={colorsToUse}
+                    />
                 )}
             </figure>
+        </div>
+    );
+}
+
+interface SearchFeedbackButtonsProps {
+    searchQuery: string;
+    currentSeed: string;
+    effectiveStyle: PaletteStyle;
+    effectiveAngle: number;
+    effectiveSteps: number;
+    isActive: boolean;
+    hexColors: string[];
+}
+
+function SearchFeedbackButtons({
+    searchQuery,
+    currentSeed,
+    effectiveStyle,
+    effectiveAngle,
+    effectiveSteps,
+    isActive,
+    hexColors,
+}: SearchFeedbackButtonsProps) {
+    const feedbackMutation = useSearchFeedbackMutation();
+    const currentFeedback = useStore(searchFeedbackStore, (state) =>
+        state.feedback.get(searchQuery)?.get(currentSeed)?.feedback ?? null
+    );
+
+    const truncatedQuery = searchQuery.length > 16
+        ? searchQuery.slice(0, 16) + "..."
+        : searchQuery;
+
+    // Calculate brightness to determine if we need dark or light feedback colors
+    const avgBrightness = calculateAverageBrightness(hexColors);
+    const useDarkColors = avgBrightness > 0.5;
+
+    // Green shades: dark (#15803d green-700) for bright palettes, light (#4ade80 green-400) for dark palettes
+    const greenColor = useDarkColors ? "#15803d" : "#4ade80";
+    // Red shades: dark (#b91c1c red-700) for bright palettes, light (#f87171 red-400) for dark palettes
+    const redColor = useDarkColors ? "#b91c1c" : "#f87171";
+
+    const handleFeedback = (feedback: FeedbackType) => {
+        feedbackMutation.mutate({
+            query: searchQuery,
+            seed: currentSeed,
+            feedback,
+            style: effectiveStyle,
+            angle: effectiveAngle,
+            steps: effectiveSteps,
+        });
+    };
+
+    return (
+        <div
+            className={cn(
+                "absolute bottom-3.5 left-3.5 z-20 pointer-events-auto flex gap-3",
+                !isActive
+                    ? "opacity-0 group-hover:opacity-100"
+                    : "opacity-100",
+                "transition-opacity duration-200",
+            )}
+        >
+            <Tooltip delayDuration={500}>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleFeedback("good");
+                        }}
+                        className={cn(
+                            "transition-all duration-200 cursor-pointer outline-none",
+                            currentFeedback === "good"
+                                ? "opacity-100"
+                                : "opacity-80 hover:opacity-100 focus-visible:opacity-100"
+                        )}
+                        style={{
+                            color: currentFeedback === "good" ? greenColor : "var(--background)",
+                            filter: currentFeedback === "good"
+                                ? "drop-shadow(0 0 1px rgba(0,0,0,0.3))"
+                                : "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
+                        }}
+                        aria-label={`Good fit for ${truncatedQuery}`}
+                        aria-pressed={currentFeedback === "good"}
+                    >
+                        <ThumbsUp
+                            className="w-6 h-6"
+                            strokeWidth={2}
+                        />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent
+                    side="top"
+                    align="start"
+                    sideOffset={6}
+                >
+                    <span>Good fit for {truncatedQuery}</span>
+                </TooltipContent>
+            </Tooltip>
+            <Tooltip delayDuration={500}>
+                <TooltipTrigger asChild>
+                    <button
+                        type="button"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleFeedback("bad");
+                        }}
+                        className={cn(
+                            "transition-all duration-200 cursor-pointer outline-none",
+                            currentFeedback === "bad"
+                                ? "opacity-100"
+                                : "opacity-80 hover:opacity-100 focus-visible:opacity-100"
+                        )}
+                        style={{
+                            color: currentFeedback === "bad" ? redColor : "var(--background)",
+                            filter: currentFeedback === "bad"
+                                ? "drop-shadow(0 0 1px rgba(0,0,0,0.3))"
+                                : "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
+                        }}
+                        aria-label={`Bad fit for ${truncatedQuery}`}
+                        aria-pressed={currentFeedback === "bad"}
+                    >
+                        <ThumbsDown
+                            className="w-6 h-6"
+                            strokeWidth={2}
+                        />
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent
+                    side="top"
+                    align="start"
+                    sideOffset={6}
+                >
+                    <span>Bad fit for {truncatedQuery}</span>
+                </TooltipContent>
+            </Tooltip>
         </div>
     );
 }

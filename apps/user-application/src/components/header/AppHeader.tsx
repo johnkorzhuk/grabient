@@ -223,21 +223,14 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
                                 search={{ redirect: location.pathname }}
                             >
                                 <button
-                                    style={{
-                                        backgroundColor: "var(--background)",
-                                        fontFamily:
-                                            "system-ui, -apple-system, sans-serif",
-                                    }}
                                     className={cn(
                                         "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
-                                        "h-8.5 px-3 border border-solid",
-                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60",
-                                        "text-muted-foreground hover:text-foreground",
+                                        "h-8 px-2.5 border border-solid border-transparent",
+                                        "bg-foreground/80 text-background hover:bg-foreground/90",
                                         "transition-colors duration-200 cursor-pointer",
                                         "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                                        "font-medium text-sm",
+                                        "font-medium text-xs",
                                     )}
-                                    suppressHydrationWarning
                                 >
                                     Sign in
                                 </button>
