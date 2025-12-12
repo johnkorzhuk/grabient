@@ -33,6 +33,8 @@ export interface ExportItem {
     angle: Palette["angle"];
     seed: string;
     hexColors: string[];
+    likesCount?: number;
+    createdAt?: Palette["createdAt"] | null;
 }
 
 function enrichPalette(palette: { seed: string; style: Palette["style"]; steps: Palette["steps"]; angle: Palette["angle"]; createdAt: Palette["createdAt"]; likesCount?: number }): AppPalette {

@@ -76,6 +76,8 @@ export function createExportItem(
         angle: overrides?.angle ?? source.angle,
         seed: source.seed,
         hexColors: overrides?.hexColors ?? source.hexColors,
+        likesCount: source.likesCount,
+        createdAt: source.createdAt,
     };
 
     return {

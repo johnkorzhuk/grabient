@@ -682,12 +682,6 @@ function ExportPreview({ width, height, gap, borderRadius, columns }: ExportPrev
         columns,
     });
 
-    // Extract the viewBox dimensions from the generated SVG to get correct aspect ratio
-    const viewBoxMatch = svgString.match(/viewBox="0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?)"/);
-    const svgWidth = viewBoxMatch ? parseFloat(viewBoxMatch[1]!) : width;
-    const svgHeight = viewBoxMatch ? parseFloat(viewBoxMatch[2]!) : height;
-    const aspectRatio = svgWidth / svgHeight;
-
     return (
         <div
             className="mt-6 flex-1 min-h-0"
@@ -704,7 +698,9 @@ function ExportPreview({ width, height, gap, borderRadius, columns }: ExportPrev
     );
 }
 
-interface PaletteCardProps {
+export type PaletteCardVariant = "default" | "compact";
+
+export interface PaletteCardProps {
     palette: AppPalette;
     index: number;
     urlStyle: StyleWithAuto;
@@ -727,9 +723,12 @@ interface PaletteCardProps {
         coeffs: CosineCoeffs,
         seed: string,
     ) => void;
+    variant?: PaletteCardVariant;
+    idPrefix?: string;
+    removeAllOnExportClick?: boolean;
 }
 
-const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
+export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
     (
         {
             palette,
@@ -741,6 +740,9 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             previewSteps,
             likedSeeds,
             onShiftClick,
+            variant = "default",
+            idPrefix = "",
+            removeAllOnExportClick = false,
         },
         ref,
     ) => {
@@ -767,7 +769,6 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
         const currentSeed = hasCustomCoeffs
             ? serializeCoeffs(currentCoeffs, palette.globals)
             : palette.seed;
-        const isPaletteModified = hasCustomCoeffs;
 
         // Check if this palette is in the export list
         const isInExportListValue = exportList.some((item) => {
@@ -1042,6 +1043,9 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                             previewAngle={previewAngle}
                             previewSteps={previewSteps}
                             copyMenuOpenRef={copyMenuOpenRef}
+                            variant={variant}
+                            idPrefix={idPrefix}
+                            removeAllOnExportClick={removeAllOnExportClick}
                         />
                     </div>
 
@@ -1134,6 +1138,8 @@ const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
     },
 );
 
+PaletteCard.displayName = "PaletteCard";
+
 interface GradientPreviewProps {
     palette: AppPalette;
     currentCoeffs: CosineCoeffs;
@@ -1147,6 +1153,9 @@ interface GradientPreviewProps {
     previewAngle: number | null;
     previewSteps: number | null;
     copyMenuOpenRef: React.MutableRefObject<boolean>;
+    variant?: PaletteCardVariant;
+    idPrefix?: string;
+    removeAllOnExportClick?: boolean;
 }
 
 function GradientPreview({
@@ -1162,6 +1171,9 @@ function GradientPreview({
     previewAngle,
     previewSteps,
     copyMenuOpenRef,
+    variant = "default",
+    idPrefix = "",
+    removeAllOnExportClick = false,
 }: GradientPreviewProps) {
     const {
         style: paletteStyle,
@@ -1218,17 +1230,20 @@ function GradientPreview({
           )
         : "";
 
+    const heightClass = variant === "compact" ? "h-[180px]" : "h-[300px]";
+    const glowOpacity = variant === "compact" ? "opacity-20" : "opacity-40";
+    const glowHoverOpacity = variant === "compact" ? "group-hover:opacity-20" : "group-hover:opacity-40";
+    const glowSize = variant === "compact" ? "-inset-2 blur-md" : "-inset-3 blur-lg";
+
     return (
-        <div className="relative h-[300px] w-full overflow-visible pointer-events-none">
+        <div className={cn("relative w-full overflow-visible pointer-events-none", heightClass)}>
             {/* Glow effect layer */}
             {isMounted && (
                 <div
                     className={cn(
-                        "absolute -inset-3 transition-opacity duration-300 z-0 pointer-events-none blur-lg rounded-xl flex items-center justify-center",
-                        {
-                            "opacity-0 group-hover:opacity-40": !isActive,
-                            "opacity-40": isActive,
-                        },
+                        "absolute transition-opacity duration-300 z-0 pointer-events-none rounded-xl flex items-center justify-center",
+                        glowSize,
+                        !isActive ? `opacity-0 ${glowHoverOpacity}` : glowOpacity,
                     )}
                     style={{
                         backgroundImage: gradientString,
@@ -1320,7 +1335,7 @@ function GradientPreview({
                 {isMounted && (
                     <div className="absolute top-3 right-3 z-20 pointer-events-auto flex flex-col gap-2">
                         <CopyButton
-                            id={`${currentSeed}-${effectiveStyle}-${effectiveSteps}-${effectiveAngle}`}
+                            id={`${idPrefix}${currentSeed}-${effectiveStyle}-${effectiveSteps}-${effectiveAngle}`}
                             cssString={cssString}
                             svgString={svgString}
                             gradientData={currentCoeffs}
@@ -1359,6 +1374,7 @@ function GradientPreview({
                                 },
                             )}
                             isActive={isActive}
+                            removeAllOnClick={removeAllOnExportClick}
                         />
                     </div>
                 )}

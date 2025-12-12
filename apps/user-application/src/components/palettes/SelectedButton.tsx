@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { useStore } from "@tanstack/react-store";
 import { exportStore } from "@/stores/export";
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useLocation, useRouter, useRouterState } from "@tanstack/react-router";
 import {
     Tooltip,
     TooltipContent,
@@ -19,7 +19,8 @@ interface SelectedButtonProps {
 export function SelectedButton({ className }: SelectedButtonProps) {
     const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
-    const navigate = useNavigate();
+    const router = useRouter();
+    const location = useLocation();
     const routerState = useRouterState();
     const isExportOpen = (routerState.location.search as { export?: boolean }).export === true;
 
@@ -27,7 +28,8 @@ export function SelectedButton({ className }: SelectedButtonProps) {
     const exportCount = mounted ? exportList.length : 0;
 
     const handleClick = () => {
-        navigate({
+        router.navigate({
+            to: location.pathname,
             search: (prev) => ({ ...prev, export: !isExportOpen }),
             resetScroll: false,
             replace: true,

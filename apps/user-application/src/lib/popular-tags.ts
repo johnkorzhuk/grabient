@@ -1,4 +1,4 @@
-import { BASIC_COLORS, getColorsWithHue, type ColorWithHue } from "./color-utils";
+import { getColorsWithHue, type ColorWithHue } from "./color-utils";
 
 const EMOJI_TAGS = [
     "🌊", // ocean (68), water (65), sea (31)
@@ -112,10 +112,6 @@ const STYLE_TAGS = [
     "pop art",
     "grunge",
 ];
-
-const COLOR_NAMES = BASIC_COLORS
-    .filter((c) => c.name !== "black" && c.name !== "white" && c.name !== "gray")
-    .map((c) => c.name);
 
 function seededRandom(seed: number): () => number {
     return () => {

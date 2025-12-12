@@ -2,7 +2,6 @@ import { RGBTabs } from "@/components/palettes/rgb-tabs";
 import { SaveButton } from "@/components/palettes/save-button";
 import { Suspense, lazy, useState } from "react";
 import { GradientModifierControls } from "@/components/palettes/gradient-modifier-controls";
-import { DevicePresets } from "@/components/palettes/device-presets";
 import { PaletteChartIcon } from "@/components/icons/PaletteChartIcon";
 import {
     Tooltip,

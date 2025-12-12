@@ -240,6 +240,14 @@ export const removeFromExportList = (exportItemId: string) => {
     });
 };
 
+export const removeAllBySeed = (seed: string) => {
+    exportStore.setState((state) => {
+        const newList = state.exportList.filter((item) => item.seed !== seed);
+        saveExportListToStorage(newList);
+        return { ...state, exportList: newList };
+    });
+};
+
 export const clearExportList = () => {
     const currentCount = exportStore.state.exportList.length;
 

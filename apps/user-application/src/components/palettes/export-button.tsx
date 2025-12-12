@@ -7,22 +7,29 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { useStore } from '@tanstack/react-store'
-import { exportStore, addToExportList, removeFromExportList } from '@/stores/export'
+import { exportStore, addToExportList, removeFromExportList, removeAllBySeed } from '@/stores/export'
 import type { ExportItem } from '@/queries/palettes'
 
 interface ExportButtonProps {
   exportItem: ExportItem
   isActive?: boolean
+  removeAllOnClick?: boolean
 }
 
-export function ExportButton({ exportItem, isActive = false }: ExportButtonProps) {
+export function ExportButton({ exportItem, isActive = false, removeAllOnClick = false }: ExportButtonProps) {
   const exportList = useStore(exportStore, (state) => state.exportList)
-  const isInList = exportList.some((item) => item.id === exportItem.id)
+  const isInList = removeAllOnClick
+    ? exportList.some((item) => item.seed === exportItem.seed)
+    : exportList.some((item) => item.id === exportItem.id)
 
   const handleClick = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation()
     if (isInList) {
-      removeFromExportList(exportItem.id)
+      if (removeAllOnClick) {
+        removeAllBySeed(exportItem.seed)
+      } else {
+        removeFromExportList(exportItem.id)
+      }
     } else {
       addToExportList(exportItem)
     }
