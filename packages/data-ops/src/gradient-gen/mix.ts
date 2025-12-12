@@ -94,6 +94,10 @@ export interface GeneratedPalette {
 export interface MixOptions {
   count?: number;
   seed?: number;
+  /** Similarity threshold for deduplicating outputs (0-1, default 0.92) */
+  dedupThreshold?: number;
+  /** Max generation attempts before giving up (default 200) */
+  maxAttempts?: number;
 }
 
 export interface MixResult {
@@ -652,7 +656,71 @@ function avgSimilarity(generated: CosineCoeffs, inputs: CosineCoeffs[]): number 
 // ============================================================================
 
 /**
+ * Remove near-duplicate palettes to prevent bias toward repeated inputs
+ */
+function deduplicatePalettes(palettes: CosineCoeffs[], threshold = 0.95): CosineCoeffs[] {
+  if (palettes.length <= 1) return palettes;
+
+  const unique: CosineCoeffs[] = [palettes[0]!];
+
+  for (let i = 1; i < palettes.length; i++) {
+    const candidate = palettes[i]!;
+    let isDuplicate = false;
+
+    for (const existing of unique) {
+      const similarity = calculatePerceptualSimilarity(candidate, existing);
+      if (similarity > threshold) {
+        isDuplicate = true;
+        break;
+      }
+    }
+
+    if (!isDuplicate) {
+      unique.push(candidate);
+    }
+  }
+
+  return unique;
+}
+
+/**
+ * Deduplicate generated palettes to ensure variety in output
+ */
+function deduplicateOutput(
+  candidates: GeneratedPalette[],
+  threshold: number
+): GeneratedPalette[] {
+  if (candidates.length <= 1) return candidates;
+
+  const unique: GeneratedPalette[] = [candidates[0]!];
+
+  for (let i = 1; i < candidates.length; i++) {
+    const candidate = candidates[i]!;
+    let isDuplicate = false;
+
+    for (const existing of unique) {
+      const similarity = calculatePerceptualSimilarity(candidate.coeffs, existing.coeffs);
+      if (similarity > threshold) {
+        isDuplicate = true;
+        break;
+      }
+    }
+
+    if (!isDuplicate) {
+      unique.push(candidate);
+    }
+  }
+
+  return unique;
+}
+
+/**
  * Generate palette variations from input palettes
+ *
+ * Uses a retry loop to ensure output diversity:
+ * - Generates candidates in batches
+ * - Deduplicates outputs to remove similar palettes
+ * - Continues generating until target count is reached or max attempts exceeded
  */
 export function generateMix(
   palettes: CosineCoeffs[],
@@ -660,33 +728,52 @@ export function generateMix(
 ): MixResult {
   const count = options.count ?? 20;
   const seed = options.seed ?? Date.now();
+  const dedupThreshold = options.dedupThreshold ?? 0.92;
+  const maxAttempts = options.maxAttempts ?? 200;
   const rand = createRNG(seed);
 
   if (palettes.length === 0) {
     throw new Error("At least one input palette is required");
   }
 
-  const collective = analyzeCollective(palettes);
-  const candidates: GeneratedPalette[] = [];
+  // Deduplicate inputs to prevent bias from repeated similar palettes
+  const uniquePalettes = deduplicatePalettes(palettes);
 
-  // Generate more candidates than needed for better selection
-  const genCount = Math.ceil(count * 2);
+  const collective = analyzeCollective(uniquePalettes);
+  let allCandidates: GeneratedPalette[] = [];
+  let uniqueOutput: GeneratedPalette[] = [];
+  let attempts = 0;
+  const batchSize = Math.max(10, count); // Generate at least 10 per batch
 
-  for (let i = 0; i < genCount; i++) {
-    const coeffs = generateVariation(collective, rand);
-    candidates.push({
-      coeffs,
-      analysis: analyzePalette(coeffs),
-      similarity: avgSimilarity(coeffs, palettes),
-    });
+  // Keep generating until we have enough unique outputs or hit max attempts
+  while (uniqueOutput.length < count && attempts < maxAttempts) {
+    // Generate a batch of candidates
+    for (let i = 0; i < batchSize && attempts < maxAttempts; i++) {
+      const coeffs = generateVariation(collective, rand);
+      allCandidates.push({
+        coeffs,
+        analysis: analyzePalette(coeffs),
+        similarity: avgSimilarity(coeffs, uniquePalettes),
+      });
+      attempts++;
+    }
+
+    // Sort all candidates by similarity (best matches first)
+    allCandidates.sort((a, b) => b.similarity - a.similarity);
+
+    // Deduplicate to get unique outputs
+    uniqueOutput = deduplicateOutput(allCandidates, dedupThreshold);
+
+    // If we're making no progress, slightly lower the threshold to allow more through
+    // This prevents infinite loops when inputs are very constrained
+    if (uniqueOutput.length < count && attempts >= maxAttempts * 0.75) {
+      uniqueOutput = deduplicateOutput(allCandidates, dedupThreshold + 0.03);
+    }
   }
-
-  // Sort by similarity and take top results
-  candidates.sort((a, b) => b.similarity - a.similarity);
 
   return {
     collective,
-    output: candidates.slice(0, count),
+    output: uniqueOutput.slice(0, count),
   };
 }
 

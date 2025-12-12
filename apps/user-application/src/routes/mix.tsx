@@ -17,7 +17,7 @@ import {
 } from "@/stores/ui";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
-import { SlidersHorizontal, X, RotateCcw, Home, Plus } from "lucide-react";
+import { SlidersHorizontal, X, RotateCcw, Home, Plus, Shuffle } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -152,6 +152,7 @@ function MixPage() {
     const shouldAnimateRef = useRef(!isAdvancedOpen);
 
     const [generatedPalettes, setGeneratedPalettes] = useState<AppPalette[]>([]);
+    const [generateCount, setGenerateCount] = useState(20);
 
     const hasNonAutoValues =
         urlStyle !== "auto" || urlAngle !== "auto" || urlSteps !== "auto";
@@ -184,19 +185,16 @@ function MixPage() {
     }, []);
 
     const uniquePalettes = getUniquePalettesFromExportList(exportList);
-
-    // Create a stable key from input seeds for dependency tracking
     const inputSeedsKey = uniquePalettes.map((p) => p.seed).join(",");
 
-    // Generate mix results when inputs change
-    useEffect(() => {
+    const doGenerate = () => {
         if (uniquePalettes.length === 0) {
             setGeneratedPalettes([]);
             return;
         }
 
         const inputCoeffs = uniquePalettes.map((p) => p.coeffs);
-        const result = generateMix(inputCoeffs, { count: 20 });
+        const result = generateMix(inputCoeffs, { count: generateCount });
 
         const generated: AppPalette[] = result.output.map((item) => {
             const seed = serializeCoeffs(item.coeffs, DEFAULT_GLOBALS);
@@ -214,7 +212,34 @@ function MixPage() {
         });
 
         setGeneratedPalettes(generated);
+    };
+
+    // Generate on mount and when items are removed; keep results when items are added
+    const hasGeneratedRef = useRef(false);
+    const prevCountRef = useRef(uniquePalettes.length);
+    useEffect(() => {
+        const prevCount = prevCountRef.current;
+        const currentCount = uniquePalettes.length;
+
+        if (!hasGeneratedRef.current && currentCount > 0) {
+            // Initial generation on mount
+            doGenerate();
+            hasGeneratedRef.current = true;
+        } else if (currentCount < prevCount && currentCount > 0) {
+            // Items removed → regenerate
+            doGenerate();
+        } else if (currentCount === 0) {
+            // All items removed → clear
+            setGeneratedPalettes([]);
+        }
+        // Items added → keep existing generated palettes
+
+        prevCountRef.current = currentCount;
     }, [inputSeedsKey]);
+
+    const handleGenerate = () => {
+        doGenerate();
+    };
 
     const count = uniquePalettes.length;
 
@@ -329,6 +354,66 @@ function MixPage() {
                                 Mix {count} {count === 1 ? "palette" : "palettes"}
                             </h1>
                             <div className="flex items-center gap-1.5">
+                            <Tooltip delayDuration={500}>
+                                <TooltipTrigger asChild>
+                                    <div
+                                        style={{ backgroundColor: "var(--background)" }}
+                                        className={cn(
+                                            "disable-animation-on-theme-change inline-flex items-center rounded-md",
+                                            "h-8.5 border border-solid",
+                                            "border-input",
+                                            uniquePalettes.length === 0 && "opacity-50",
+                                        )}
+                                    >
+                                        <button
+                                            onClick={handleGenerate}
+                                            disabled={uniquePalettes.length === 0}
+                                            className={cn(
+                                                "inline-flex items-center justify-center gap-1.5 px-3 h-full",
+                                                "hover:bg-background/60 rounded-l-md",
+                                                "text-muted-foreground hover:text-foreground",
+                                                "transition-colors duration-200 cursor-pointer",
+                                                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                                                "text-sm font-medium",
+                                                uniquePalettes.length === 0 && "cursor-not-allowed",
+                                            )}
+                                            aria-label="Generate new mix"
+                                            suppressHydrationWarning
+                                        >
+                                            <Shuffle
+                                                size={14}
+                                                style={{ color: "currentColor" }}
+                                            />
+                                            Generate
+                                        </button>
+                                        <div className="h-5 w-px bg-border" />
+                                        <input
+                                            type="number"
+                                            min={5}
+                                            max={100}
+                                            value={generateCount}
+                                            onChange={(e) => {
+                                                const val = Math.min(100, Math.max(5, parseInt(e.target.value) || 5));
+                                                setGenerateCount(val);
+                                            }}
+                                            disabled={uniquePalettes.length === 0}
+                                            className={cn(
+                                                "w-12 h-full px-2 text-sm font-medium text-center",
+                                                "bg-transparent text-muted-foreground",
+                                                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70 rounded-r-md",
+                                                "appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                                                uniquePalettes.length === 0 && "cursor-not-allowed",
+                                            )}
+                                            aria-label="Number of palettes to generate"
+                                        />
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="end" sideOffset={6}>
+                                    {uniquePalettes.length === 0
+                                        ? "Add palettes to mix first"
+                                        : "Generate new palettes from mix (5-100)"}
+                                </TooltipContent>
+                            </Tooltip>
                             {hasNonAutoValues && (
                                 <Tooltip delayDuration={500}>
                                     <TooltipTrigger asChild>
@@ -530,6 +615,66 @@ function MixPage() {
                             Mix {count} {count === 1 ? "palette" : "palettes"}
                         </h1>
                         <div className="flex items-center gap-1.5">
+                        <Tooltip delayDuration={500}>
+                            <TooltipTrigger asChild>
+                                <div
+                                    style={{ backgroundColor: "var(--background)" }}
+                                    className={cn(
+                                        "disable-animation-on-theme-change inline-flex items-center rounded-md",
+                                        "h-8.5 border border-solid",
+                                        "border-input",
+                                        uniquePalettes.length === 0 && "opacity-50",
+                                    )}
+                                >
+                                    <button
+                                        onClick={handleGenerate}
+                                        disabled={uniquePalettes.length === 0}
+                                        className={cn(
+                                            "inline-flex items-center justify-center gap-1.5 px-3 h-full",
+                                            "hover:bg-background/60 rounded-l-md",
+                                            "text-muted-foreground hover:text-foreground",
+                                            "transition-colors duration-200 cursor-pointer",
+                                            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                                            "text-sm font-medium",
+                                            uniquePalettes.length === 0 && "cursor-not-allowed",
+                                        )}
+                                        aria-label="Generate new mix"
+                                        suppressHydrationWarning
+                                    >
+                                        <Shuffle
+                                            size={14}
+                                            style={{ color: "currentColor" }}
+                                        />
+                                        Generate
+                                    </button>
+                                    <div className="h-5 w-px bg-border" />
+                                    <input
+                                        type="number"
+                                        min={5}
+                                        max={100}
+                                        value={generateCount}
+                                        onChange={(e) => {
+                                            const val = Math.min(100, Math.max(5, parseInt(e.target.value) || 5));
+                                            setGenerateCount(val);
+                                        }}
+                                        disabled={uniquePalettes.length === 0}
+                                        className={cn(
+                                            "w-12 h-full px-2 text-sm font-medium text-center",
+                                            "bg-transparent text-muted-foreground",
+                                            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70 rounded-r-md",
+                                            "appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                                            uniquePalettes.length === 0 && "cursor-not-allowed",
+                                        )}
+                                        aria-label="Number of palettes to generate"
+                                    />
+                                </div>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom" align="end" sideOffset={6}>
+                                {uniquePalettes.length === 0
+                                    ? "Add palettes to mix first"
+                                    : "Generate new palettes from mix (5-100)"}
+                            </TooltipContent>
+                        </Tooltip>
                         {hasNonAutoValues && (
                             <Tooltip delayDuration={500}>
                                 <TooltipTrigger asChild>
