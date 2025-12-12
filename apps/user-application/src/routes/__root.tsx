@@ -36,11 +36,19 @@ import {
     isSentryInitialized,
 } from "@/lib/sentry";
 import { useInitializePostHog } from "@/integrations/posthog/useInitializePostHog";
+import {
+    getPostHogInstance,
+    isPostHogInitialized,
+} from "@/integrations/posthog/posthogConfig";
 import { useInitializeGA4 } from "@/integrations/ga4/useInitializeGA4";
+import { setGA4UserId } from "@/integrations/ga4/ga4Config";
 import { getCookieYesHeadScript } from "@/integrations/cookieyes/CookieYesScript";
 import { useCookieYesSync } from "@/integrations/cookieyes/useCookieYesSync";
 import { consentStore } from "@/stores/consent-store";
 import { hydrateExportStore } from "@/stores/export";
+import { authClient } from "@/lib/auth-client";
+import { setUserRole } from "@/integrations/tracking/events";
+import type { AuthUser } from "@repo/data-ops/auth/client-types";
 
 function BreakpointIndicator() {
     return (
@@ -200,6 +208,7 @@ function RootComponent() {
                 <SentryInitializer />
                 <PostHogInitializer />
                 <GA4Initializer />
+                <AnalyticsUserRoleInitializer />
                 <ThemeHotkeys />
                 <TooltipProvider delayDuration={500}>
                     <Outlet />
@@ -264,6 +273,41 @@ function PostHogInitializer() {
 
 function GA4Initializer() {
     useInitializeGA4();
+    return null;
+}
+
+function AnalyticsUserRoleInitializer() {
+    const { data: session } = authClient.useSession();
+    const user = session?.user as AuthUser | undefined;
+    const prevUserIdRef = React.useRef<string | undefined>(undefined);
+
+    useEffect(() => {
+        setUserRole(user?.role);
+
+        const userId = user?.id;
+        const prevUserId = prevUserIdRef.current;
+
+        if (userId && userId !== prevUserId) {
+            if (isPostHogInitialized()) {
+                const posthog = getPostHogInstance();
+                if (posthog?.__loaded) {
+                    posthog.identify(userId, { role: user.role });
+                }
+            }
+            setGA4UserId(userId);
+        } else if (!userId && prevUserId) {
+            if (isPostHogInitialized()) {
+                const posthog = getPostHogInstance();
+                if (posthog?.__loaded) {
+                    posthog.reset();
+                }
+            }
+            setGA4UserId(null);
+        }
+
+        prevUserIdRef.current = userId;
+    }, [user?.id, user?.role]);
+
     return null;
 }
 

@@ -20,7 +20,7 @@ export function rateLimitFunctionMiddleware(limitType: RateLimitType) {
 		type: "function",
 	}).server(async ({ next, context }) => {
 		const request = getRequest();
-		const env = context.env as RateLimitEnv;
+		const env = context.env as unknown as RateLimitEnv;
 
 		if (!env?.RATE_LIMITER) {
 			console.warn("RATE_LIMITER binding not found - rate limiting disabled");

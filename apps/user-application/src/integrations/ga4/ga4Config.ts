@@ -4,7 +4,7 @@ declare global {
     interface Window {
         gtag?: (
             command: string,
-            targetId: string | Date | boolean,
+            targetId: string | Date | boolean | Record<string, unknown>,
             config?: Record<string, unknown> | boolean
         ) => void;
         dataLayer?: unknown[];
@@ -199,4 +199,12 @@ export function trackGA4Event(
     }
 
     window.gtag("event", eventName, params);
+}
+
+export function setGA4UserId(userId: string | null): void {
+    if (!ga4Initialized || !window.gtag) {
+        return;
+    }
+
+    window.gtag("set", { user_id: userId });
 }

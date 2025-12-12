@@ -4,17 +4,45 @@ import type { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabie
 import type * as v from "valibot";
 
 type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
+type UserRole = "admin" | "user" | undefined;
+
+let currentUserRole: UserRole = undefined;
+
+export function setUserRole(role: UserRole): void {
+    currentUserRole = role;
+}
+
+export function getUserRole(): UserRole {
+    return currentUserRole;
+}
 
 const THROTTLE_MS = 1000;
+const THROTTLE_MAP_MAX_SIZE = 100;
+const THROTTLE_CLEANUP_AGE = THROTTLE_MS * 10;
 const lastEventTimes = new Map<string, number>();
 
-function isThrottled(eventName: string): boolean {
+function cleanupThrottleMap(): void {
+    if (lastEventTimes.size <= THROTTLE_MAP_MAX_SIZE) return;
+
     const now = Date.now();
-    const lastTime = lastEventTimes.get(eventName);
+    for (const [key, time] of lastEventTimes) {
+        if (now - time > THROTTLE_CLEANUP_AGE) {
+            lastEventTimes.delete(key);
+        }
+    }
+}
+
+function isThrottled(eventName: string, contextKey?: string): boolean {
+    const throttleKey = contextKey ? `${eventName}:${contextKey}` : eventName;
+    const now = Date.now();
+    const lastTime = lastEventTimes.get(throttleKey);
+
     if (lastTime && now - lastTime < THROTTLE_MS) {
         return true;
     }
-    lastEventTimes.set(eventName, now);
+
+    lastEventTimes.set(throttleKey, now);
+    cleanupThrottleMap();
     return false;
 }
 
@@ -103,7 +131,8 @@ function getCurrentSearchQuery(): string | undefined {
 }
 
 function trackEvent<T extends BaseEventProperties>(eventName: string, properties?: T) {
-    if (isThrottled(eventName)) {
+    const contextKey = (properties as { seed?: string })?.seed;
+    if (isThrottled(eventName, contextKey)) {
         return;
     }
 
@@ -112,6 +141,7 @@ function trackEvent<T extends BaseEventProperties>(eventName: string, properties
         ...properties,
         route: properties?.route || getCurrentRoute(),
         ...(searchQuery && { searchQuery }),
+        ...(currentUserRole && { role: currentUserRole }),
     };
 
     trackGA4Event(eventName, enrichedProperties as Record<string, unknown>);
