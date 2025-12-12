@@ -7,7 +7,7 @@ export function PrimaryDivider({ className }: { className?: string }) {
         <div
             suppressHydrationWarning
             className={cn(
-                "block w-full absolute top-0",
+                "block w-full absolute top-0 px-5 lg:px-14",
                 className,
                 {
                     "opacity-50": theme === "dark",

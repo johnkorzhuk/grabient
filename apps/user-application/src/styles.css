@@ -215,17 +215,10 @@
         height: calc(100dvh - 69px);
     }
 
-    @media (min-width: 768px) {
-        .h-viewport-content {
-            height: calc(100vh - 73px);
-            height: calc(100dvh - 73px);
-        }
-    }
-
     @media (min-width: 1024px) {
         .h-viewport-content {
-            height: calc(100vh - 73px);
-            height: calc(100dvh - 73px);
+            height: calc(100vh - 89px - 16px);
+            height: calc(100dvh - 89px - 16px);
         }
     }
 
@@ -238,4 +231,13 @@
     .recharts-wrapper .recharts-layer {
         overflow: visible !important;
     }
+}
+
+.scrollbar-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+    display: none;
 }
