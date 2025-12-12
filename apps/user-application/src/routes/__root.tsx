@@ -40,10 +40,7 @@ import {
     getPostHogInstance,
     isPostHogInitialized,
 } from "@/integrations/posthog/posthogConfig";
-import { useInitializeGA4 } from "@/integrations/ga4/useInitializeGA4";
-import { setGA4UserId } from "@/integrations/ga4/ga4Config";
-import { getCookieYesHeadScript } from "@/integrations/cookieyes/CookieYesScript";
-import { useCookieYesSync } from "@/integrations/cookieyes/useCookieYesSync";
+import { useZarazConsent } from "@/integrations/zaraz/useZarazConsent";
 import { consentStore } from "@/stores/consent-store";
 import { hydrateExportStore } from "@/stores/export";
 import { authClient } from "@/lib/auth-client";
@@ -95,8 +92,6 @@ export const Route = createRootRouteWithContext<{
         middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
     },
     head: () => {
-        const cookieYesScript = getCookieYesHeadScript();
-
         return {
             meta: [
                 {
@@ -143,7 +138,7 @@ export const Route = createRootRouteWithContext<{
                 { rel: "manifest", href: "/site.webmanifest", color: "#fffff" },
                 { rel: "icon", href: "/favicon.ico" },
             ],
-            scripts: cookieYesScript ? [cookieYesScript] : [],
+            scripts: [],
         };
     },
     errorComponent: (props) => {
@@ -203,11 +198,10 @@ function RootComponent() {
             shouldDisableScrollLock={shouldDisableScroll}
         >
             <ThemeProvider>
-                <CookieYesSyncInitializer />
+                <ZarazConsentInitializer />
                 <ExportStoreInitializer />
                 <SentryInitializer />
                 <PostHogInitializer />
-                <GA4Initializer />
                 <AnalyticsUserRoleInitializer />
                 <ThemeHotkeys />
                 <TooltipProvider delayDuration={500}>
@@ -224,8 +218,8 @@ function ThemeHotkeys() {
     return null;
 }
 
-function CookieYesSyncInitializer() {
-    useCookieYesSync();
+function ZarazConsentInitializer() {
+    useZarazConsent();
     return null;
 }
 
@@ -271,11 +265,6 @@ function PostHogInitializer() {
     return null;
 }
 
-function GA4Initializer() {
-    useInitializeGA4();
-    return null;
-}
-
 function AnalyticsUserRoleInitializer() {
     const { data: session } = authClient.useSession();
     const user = session?.user as AuthUser | undefined;
@@ -294,7 +283,10 @@ function AnalyticsUserRoleInitializer() {
                     posthog.identify(userId, { role: user.role });
                 }
             }
-            setGA4UserId(userId);
+            // Zaraz handles GA4 user ID via zaraz.set() if needed
+            if (typeof zaraz !== "undefined") {
+                zaraz.set("user_id", userId);
+            }
         } else if (!userId && prevUserId) {
             if (isPostHogInitialized()) {
                 const posthog = getPostHogInstance();
@@ -302,7 +294,9 @@ function AnalyticsUserRoleInitializer() {
                     posthog.reset();
                 }
             }
-            setGA4UserId(null);
+            if (typeof zaraz !== "undefined") {
+                zaraz.set("user_id", null);
+            }
         }
 
         prevUserIdRef.current = userId;

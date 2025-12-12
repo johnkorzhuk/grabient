@@ -1,4 +1,3 @@
-import { trackGA4Event } from "@/integrations/ga4/ga4Config";
 import { getPostHogInstance, isPostHogInitialized } from "@/integrations/posthog/posthogConfig";
 import type { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabient";
 import type * as v from "valibot";
@@ -149,7 +148,10 @@ function trackEvent<T extends BaseEventProperties>(eventName: string, properties
         ...(currentUserRole && { role: currentUserRole }),
     };
 
-    trackGA4Event(eventName, enrichedProperties as Record<string, unknown>);
+    // Zaraz handles GA4 server-side
+    if (typeof zaraz !== "undefined") {
+        zaraz.track(eventName, enrichedProperties as Record<string, unknown>);
+    }
 
     try {
         if (isPostHogInitialized()) {
