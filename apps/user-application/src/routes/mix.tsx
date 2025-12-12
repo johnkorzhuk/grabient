@@ -1,6 +1,7 @@
 import { createFileRoute, stripSearchParams, useRouter, useLocation, Link } from "@tanstack/react-router";
 import { AppHeader } from "@/components/header/AppHeader";
 import { Footer } from "@/components/layout/Footer";
+import { useTheme } from "@/components/theme/theme-provider";
 import { useStore } from "@tanstack/react-store";
 import { exportStore, addToExportList, isInExportList } from "@/stores/export";
 import { AngleInput } from "@/components/navigation/AngleInput";
@@ -101,7 +102,7 @@ function EmptyMixState() {
     const homeSearch = previousRoute?.search;
 
     return (
-        <div className="flex flex-col items-center justify-center gap-6 text-center px-5">
+        <div className="flex flex-col items-center justify-center gap-6 text-center px-5" suppressHydrationWarning>
             <div className="flex flex-col items-center gap-2">
                 <p className="text-lg font-medium text-foreground">
                     No palettes selected
@@ -122,6 +123,7 @@ function EmptyMixState() {
                     "transition-colors duration-200",
                     "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
                 )}
+                suppressHydrationWarning
             >
                 <Home size={16} />
                 Browse palettes
@@ -143,6 +145,7 @@ function MixPage() {
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
     const previewSteps = useStore(uiStore, (state) => state.previewSteps);
     const isAdvancedOpen = useStore(uiStore, (state) => state.isAdvancedOpen);
+    const { resolved: theme } = useTheme();
     const lastClickedSeedRef = useRef<string | null>(null);
 
     const { data: likedSeeds } = useQuery(userLikedSeedsQueryOptions());
@@ -153,6 +156,11 @@ function MixPage() {
 
     const [generatedPalettes, setGeneratedPalettes] = useState<AppPalette[]>([]);
     const [generateCount, setGenerateCount] = useState(20);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     const hasNonAutoValues =
         urlStyle !== "auto" || urlAngle !== "auto" || urlSteps !== "auto";
@@ -184,16 +192,18 @@ function MixPage() {
         shouldAnimateRef.current = true;
     }, []);
 
-    const uniquePalettes = getUniquePalettesFromExportList(exportList);
-    const inputSeedsKey = uniquePalettes.map((p) => p.seed).join(",");
+    const uniquePalettesRaw = getUniquePalettesFromExportList(exportList);
+    // Use empty array during SSR to avoid hydration mismatch (exportStore is client-only)
+    const uniquePalettes = mounted ? uniquePalettesRaw : [];
+    const inputSeedsKey = uniquePalettesRaw.map((p) => p.seed).join(",");
 
     const doGenerate = () => {
-        if (uniquePalettes.length === 0) {
+        if (uniquePalettesRaw.length === 0) {
             setGeneratedPalettes([]);
             return;
         }
 
-        const inputCoeffs = uniquePalettes.map((p) => p.coeffs);
+        const inputCoeffs = uniquePalettesRaw.map((p) => p.coeffs);
         const result = generateMix(inputCoeffs, { count: generateCount });
 
         const generated: AppPalette[] = result.output.map((item) => {
@@ -216,10 +226,10 @@ function MixPage() {
 
     // Generate on mount and when items are removed; keep results when items are added
     const hasGeneratedRef = useRef(false);
-    const prevCountRef = useRef(uniquePalettes.length);
+    const prevCountRef = useRef(uniquePalettesRaw.length);
     useEffect(() => {
         const prevCount = prevCountRef.current;
-        const currentCount = uniquePalettes.length;
+        const currentCount = uniquePalettesRaw.length;
 
         if (!hasGeneratedRef.current && currentCount > 0) {
             // Initial generation on mount
@@ -344,19 +354,20 @@ function MixPage() {
         <div className="min-h-screen-dynamic flex flex-col">
             <AppHeader />
 
-            {/* Mobile layout (xs/sm) - uses fixed bottom panel */}
-            <main className="md:hidden w-full h-viewport-content flex flex-col overflow-hidden">
+            {/* Mobile layout (xs/sm) */}
+            <main className="md:hidden w-full min-h-viewport-content">
                 {/* Header controls */}
                 <div className="shrink-0 bg-background">
                     <div className="px-5 py-4 flex flex-col gap-4">
                         <div className="flex items-center justify-between">
-                            <h1 className="text-2xl font-bold text-foreground">
+                            <h1 className="text-2xl font-bold text-foreground" suppressHydrationWarning>
                                 Mix {count} {count === 1 ? "palette" : "palettes"}
                             </h1>
                             <div className="flex items-center gap-1.5">
                             <Tooltip delayDuration={500}>
                                 <TooltipTrigger asChild>
                                     <div
+                                        suppressHydrationWarning
                                         style={{ backgroundColor: "var(--background)" }}
                                         className={cn(
                                             "disable-animation-on-theme-change inline-flex items-center rounded-md",
@@ -405,10 +416,11 @@ function MixPage() {
                                                 uniquePalettes.length === 0 && "cursor-not-allowed",
                                             )}
                                             aria-label="Number of palettes to generate"
+                                            suppressHydrationWarning
                                         />
                                     </div>
                                 </TooltipTrigger>
-                                <TooltipContent side="bottom" align="end" sideOffset={6}>
+                                <TooltipContent side="bottom" align="end" sideOffset={6} suppressHydrationWarning>
                                     {uniquePalettes.length === 0
                                         ? "Add palettes to mix first"
                                         : "Generate new palettes from mix (5-100)"}
@@ -537,44 +549,40 @@ function MixPage() {
                     </div>
                 </div>
 
-                {/* Content area - 70% top for list, 30% bottom for mix result */}
-                <div className="flex-1 min-h-0 flex flex-col">
-                    {/* Palettes list - scrollable with hidden scrollbar */}
-                    <div className="flex-[7] min-h-0 overflow-y-auto scrollbar-hidden">
-                        {uniquePalettes.length === 0 ? (
-                            <div className="h-full flex items-center justify-center">
-                                <EmptyMixState />
-                            </div>
-                        ) : (
-                            <ol className="px-5 pt-4 pb-8 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6 auto-rows-[220px]">
-                                {palettesAsAppPalettes.map((palette, index) => (
-                                    <PaletteCard
-                                        key={`mix-mobile-${palette.seed}`}
-                                        palette={palette}
-                                        index={index}
-                                        urlStyle={urlStyle}
-                                        urlAngle={urlAngle}
-                                        urlSteps={urlSteps}
-                                        previewStyle={previewStyle}
-                                        previewAngle={previewAngle}
-                                        previewSteps={previewSteps}
-                                        onChannelOrderChange={
-                                            onChannelOrderChange
-                                        }
-                                        onShiftClick={handleShiftClick}
-                                        likedSeeds={likedSeeds}
-                                        variant="compact"
-                                        idPrefix="mix-mobile-"
-                                        removeAllOnExportClick
-                                    />
-                                ))}
-                            </ol>
-                        )}
+                {/* Content area */}
+                {uniquePalettes.length === 0 ? (
+                    <div className="h-viewport-content flex items-center justify-center">
+                        <EmptyMixState />
                     </div>
+                ) : (
+                    <>
+                        {/* Input palettes */}
+                        <ol className="px-5 pt-4 pb-8 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-6 auto-rows-[220px]">
+                            {palettesAsAppPalettes.map((palette, index) => (
+                                <PaletteCard
+                                    key={`mix-mobile-${palette.seed}`}
+                                    palette={palette}
+                                    index={index}
+                                    urlStyle={urlStyle}
+                                    urlAngle={urlAngle}
+                                    urlSteps={urlSteps}
+                                    previewStyle={previewStyle}
+                                    previewAngle={previewAngle}
+                                    previewSteps={previewSteps}
+                                    onChannelOrderChange={
+                                        onChannelOrderChange
+                                    }
+                                    onShiftClick={handleShiftClick}
+                                    likedSeeds={likedSeeds}
+                                    variant="compact"
+                                    idPrefix="mix-mobile-"
+                                    removeAllOnExportClick
+                                />
+                            ))}
+                        </ol>
 
-                    {/* Mix result area - fixed 30% */}
-                    {uniquePalettes.length > 0 && (
-                        <div className="flex-[3] shrink-0 bg-muted/30 border-t border-border overflow-y-auto scrollbar-hidden">
+                        {/* Output palettes */}
+                        <div>
                             {generatedPalettes.length > 0 ? (
                                 <ol className="px-5 py-4 grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[100px]">
                                     {generatedPalettes.map((palette, index) => (
@@ -597,84 +605,82 @@ function MixPage() {
                                     ))}
                                 </ol>
                             ) : (
-                                <div className="h-full flex items-center justify-center">
+                                <div className="h-32 flex items-center justify-center">
                                     <p className="text-sm text-muted-foreground">Generating...</p>
                                 </div>
                             )}
                         </div>
-                    )}
-                </div>
+                    </>
+                )}
             </main>
 
             {/* Desktop layout (md+) */}
             <main className="hidden md:block w-full min-h-viewport-content">
                 {/* Header controls - full width */}
-                <div className="bg-background px-5 lg:px-14 py-4 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-2xl font-bold text-foreground">
+                <div className="bg-background py-4 flex flex-row gap-x-8 lg:gap-x-12">
+                    {/* Left half - title and generate button */}
+                    <div className="w-1/2 pl-5 lg:pl-14 flex items-center justify-between">
+                        <h1 className="text-2xl font-bold text-foreground" suppressHydrationWarning>
                             Mix {count} {count === 1 ? "palette" : "palettes"}
                         </h1>
-                        <div className="flex items-center gap-1.5">
-                        <Tooltip delayDuration={500}>
-                            <TooltipTrigger asChild>
-                                <div
-                                    style={{ backgroundColor: "var(--background)" }}
-                                    className={cn(
-                                        "disable-animation-on-theme-change inline-flex items-center rounded-md",
-                                        "h-8.5 border border-solid",
-                                        "border-input",
-                                        uniquePalettes.length === 0 && "opacity-50",
-                                    )}
-                                >
-                                    <button
-                                        onClick={handleGenerate}
-                                        disabled={uniquePalettes.length === 0}
+                        {uniquePalettes.length > 0 && (
+                            <Tooltip delayDuration={500}>
+                                <TooltipTrigger asChild>
+                                    <div
+                                        style={{ backgroundColor: "var(--background)" }}
                                         className={cn(
-                                            "inline-flex items-center justify-center gap-1.5 px-3 h-full",
-                                            "hover:bg-background/60 rounded-l-md",
-                                            "text-muted-foreground hover:text-foreground",
-                                            "transition-colors duration-200 cursor-pointer",
-                                            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                                            "text-sm font-medium",
-                                            uniquePalettes.length === 0 && "cursor-not-allowed",
+                                            "disable-animation-on-theme-change inline-flex items-center rounded-md",
+                                            "h-8.5 border border-solid",
+                                            "border-input",
                                         )}
-                                        aria-label="Generate new mix"
-                                        suppressHydrationWarning
                                     >
-                                        <Shuffle
-                                            size={14}
-                                            style={{ color: "currentColor" }}
+                                        <button
+                                            onClick={handleGenerate}
+                                            className={cn(
+                                                "inline-flex items-center justify-center gap-1.5 px-3 h-full",
+                                                "hover:bg-background/60 rounded-l-md",
+                                                "text-muted-foreground hover:text-foreground",
+                                                "transition-colors duration-200 cursor-pointer",
+                                                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                                                "text-sm font-medium",
+                                            )}
+                                            aria-label="Generate new mix"
+                                            suppressHydrationWarning
+                                        >
+                                            <Shuffle
+                                                size={14}
+                                                style={{ color: "currentColor" }}
+                                            />
+                                            Generate
+                                        </button>
+                                        <div className="h-5 w-px bg-border" />
+                                        <input
+                                            type="number"
+                                            min={5}
+                                            max={100}
+                                            value={generateCount}
+                                            onChange={(e) => {
+                                                const val = Math.min(100, Math.max(5, parseInt(e.target.value) || 5));
+                                                setGenerateCount(val);
+                                            }}
+                                            className={cn(
+                                                "w-12 h-full px-2 text-sm font-medium text-center",
+                                                "bg-transparent text-muted-foreground",
+                                                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70 rounded-r-md",
+                                                "appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+                                            )}
+                                            aria-label="Number of palettes to generate"
                                         />
-                                        Generate
-                                    </button>
-                                    <div className="h-5 w-px bg-border" />
-                                    <input
-                                        type="number"
-                                        min={5}
-                                        max={100}
-                                        value={generateCount}
-                                        onChange={(e) => {
-                                            const val = Math.min(100, Math.max(5, parseInt(e.target.value) || 5));
-                                            setGenerateCount(val);
-                                        }}
-                                        disabled={uniquePalettes.length === 0}
-                                        className={cn(
-                                            "w-12 h-full px-2 text-sm font-medium text-center",
-                                            "bg-transparent text-muted-foreground",
-                                            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70 rounded-r-md",
-                                            "appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
-                                            uniquePalettes.length === 0 && "cursor-not-allowed",
-                                        )}
-                                        aria-label="Number of palettes to generate"
-                                    />
-                                </div>
-                            </TooltipTrigger>
-                            <TooltipContent side="bottom" align="end" sideOffset={6}>
-                                {uniquePalettes.length === 0
-                                    ? "Add palettes to mix first"
-                                    : "Generate new palettes from mix (5-100)"}
-                            </TooltipContent>
-                        </Tooltip>
+                                    </div>
+                                </TooltipTrigger>
+                                <TooltipContent side="bottom" align="end" sideOffset={6}>
+                                    Generate new palettes from mix (5-100)
+                                </TooltipContent>
+                            </Tooltip>
+                        )}
+                    </div>
+                    {/* Right half - controls */}
+                    <div className="w-1/2 pr-5 lg:pr-14 flex items-center justify-end gap-1.5">
                         {hasNonAutoValues && (
                             <Tooltip delayDuration={500}>
                                 <TooltipTrigger asChild>
@@ -720,13 +726,12 @@ function MixPage() {
                             className="subpixel-antialiased"
                             onPreviewChange={setPreviewStyle}
                         />
-                        </div>
                     </div>
                 </div>
 
                 {/* Side by side panels */}
-                <div className="flex flex-row">
-                    {/* Left panel - content flows naturally, body scrolls */}
+                <div className="flex flex-row gap-x-8 lg:gap-x-12">
+                    {/* Left panel - input palettes */}
                     <div className="w-1/2">
                         {uniquePalettes.length === 0 ? (
                             <div className="h-viewport-content flex items-center justify-center">
@@ -759,9 +764,25 @@ function MixPage() {
                         )}
                     </div>
 
-                    {/* Right panel - sticky to stay in view while scrolling */}
+                    {/* Vertical dotted divider */}
                     {uniquePalettes.length > 0 && (
-                        <div className="w-1/2 sticky top-[69px] lg:top-[89px] h-viewport-content self-start bg-muted/30 pl-2.5 lg:pl-7 pr-5 lg:pr-14 overflow-y-auto scrollbar-hidden">
+                        <div
+                            suppressHydrationWarning
+                            className={cn(
+                                "w-[1px] shrink-0",
+                                theme === "dark" ? "opacity-50" : "opacity-80"
+                            )}
+                            style={{
+                                backgroundImage:
+                                    "linear-gradient(to bottom, var(--muted-foreground) 0%, var(--muted-foreground) 3px, transparent 3px, transparent 12px)",
+                                backgroundSize: "1px 8px",
+                            }}
+                        />
+                    )}
+
+                    {/* Right panel - output palettes */}
+                    {uniquePalettes.length > 0 && (
+                        <div className="w-1/2 pl-2.5 lg:pl-7 pr-5 lg:pr-14">
                             {generatedPalettes.length > 0 ? (
                                 <ol className="pt-4 pb-8 grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-x-6 gap-y-6 auto-rows-[220px]">
                                     {generatedPalettes.map((palette, index) => (
