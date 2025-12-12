@@ -72,6 +72,7 @@ export function GradientPreview({
         height: number;
     } | null>(null);
     const previewSize = useStore(uiStore, (state) => state.previewSize);
+    const borderRadius = useStore(exportStore, (state) => state.borderRadius);
 
     useEffect(() => {
         if (!containerRef.current) return;
@@ -269,6 +270,7 @@ export function GradientPreview({
                         steps: currentSteps,
                         width: Math.round(actualWidth),
                         height: Math.round(actualHeight),
+                        borderRadius,
                     }}
                 />
                 <div className="hidden lg:block">

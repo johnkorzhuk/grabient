@@ -219,6 +219,7 @@ function RouteComponent() {
         exportStore,
         (state) => state.containerDimensions,
     );
+    const borderRadius = useStore(exportStore, (state) => state.borderRadius);
     const isCopyMenuOpen =
         openCopyMenuId === seed || openCopyMenuId === `${seed}-more-options`;
     const device = detectDevice();
@@ -451,7 +452,7 @@ function RouteComponent() {
         currentAngle,
         { seed: currentSeed, searchString: creditSearchString },
         null,
-        { width: svgWidth, height: svgHeight },
+        { width: svgWidth, height: svgHeight, borderRadius },
     );
 
     const handleReset = async () => {

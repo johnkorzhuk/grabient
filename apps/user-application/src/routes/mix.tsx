@@ -18,7 +18,7 @@ import {
 } from "@/stores/ui";
 import { cn } from "@/lib/utils";
 import { useState, useRef, useEffect } from "react";
-import { SlidersHorizontal, X, RotateCcw, Home, Plus, Shuffle } from "lucide-react";
+import { SlidersHorizontal, X, RotateCcw, Home, Plus, Dna } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -391,11 +391,11 @@ function MixPage() {
                                             aria-label="Generate new mix"
                                             suppressHydrationWarning
                                         >
-                                            <Shuffle
+                                            Generate
+                                            <Dna
                                                 size={14}
                                                 style={{ color: "currentColor" }}
                                             />
-                                            Generate
                                         </button>
                                         <div className="h-5 w-px bg-border" />
                                         <input
@@ -647,11 +647,11 @@ function MixPage() {
                                             aria-label="Generate new mix"
                                             suppressHydrationWarning
                                         >
-                                            <Shuffle
+                                            Generate
+                                            <Dna
                                                 size={14}
                                                 style={{ color: "currentColor" }}
                                             />
-                                            Generate
                                         </button>
                                         <div className="h-5 w-px bg-border" />
                                         <input

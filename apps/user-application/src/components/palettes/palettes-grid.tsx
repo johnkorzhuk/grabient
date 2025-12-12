@@ -768,6 +768,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             (state) => state.customCoeffs,
         );
         const exportList = useStore(exportStore, (state) => state.exportList);
+        const borderRadius = useStore(exportStore, (state) => state.borderRadius);
         const [isMounted, setIsMounted] = useState(false);
         const [isActive, setIsActive] = useState(false);
         const isTouchDeviceRef = useRef(false);
@@ -1061,6 +1062,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                             variant={variant}
                             idPrefix={idPrefix}
                             removeAllOnExportClick={removeAllOnExportClick}
+                            borderRadius={borderRadius}
                         />
                     </div>
 
@@ -1171,6 +1173,7 @@ interface GradientPreviewProps {
     variant?: PaletteCardVariant;
     idPrefix?: string;
     removeAllOnExportClick?: boolean;
+    borderRadius: number;
 }
 
 function GradientPreview({
@@ -1189,6 +1192,7 @@ function GradientPreview({
     variant = "default",
     idPrefix = "",
     removeAllOnExportClick = false,
+    borderRadius,
 }: GradientPreviewProps) {
     const {
         style: paletteStyle,
@@ -1241,7 +1245,7 @@ function GradientPreview({
               effectiveAngle,
               { seed: currentSeed, searchString: creditSearchString },
               null,
-              { width: actualWidth, height: actualHeight },
+              { width: actualWidth, height: actualHeight, borderRadius },
           )
         : "";
 
@@ -1372,6 +1376,7 @@ function GradientPreview({
                                 steps: effectiveSteps,
                                 width: actualWidth,
                                 height: actualHeight,
+                                borderRadius,
                             }}
                         />
                         <ExportButton

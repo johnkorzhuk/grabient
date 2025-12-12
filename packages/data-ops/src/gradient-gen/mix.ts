@@ -433,9 +433,10 @@ const HARMONY = {
  * Generation parameters (tuned for interesting variations)
  */
 const CONFIG = {
-  perturbScale: 0.6,
-  hueShiftMax: 180,
-  blendChance: 0.5,
+  perturbScale: 0.5,
+  hueShiftMax: 45,
+  blendChance: 0.7,
+  harmonyChance: 0.15,
 } as const;
 
 /**
@@ -534,57 +535,58 @@ function generateVariation(
       if (diff < -0.5) diff += 1;
       p.d[i] = wrapPhase(base.d[i] + diff * t);
     }
-  } else if (rand() < 0.4) {
+  } else if (rand() < CONFIG.harmonyChance) {
     // === STRATEGY: Color harmony transformation ===
-    const harmonyTypes = Object.keys(HARMONY) as (keyof typeof HARMONY)[];
-    const harmonyType = harmonyTypes[Math.floor(rand() * harmonyTypes.length)]!;
+    // Favor smaller angle harmonies (analogous, tetradic) over large ones
+    const safeHarmonies: (keyof typeof HARMONY)[] = ["analogous", "tetradic", "splitComplementary"];
+    const harmonyType = safeHarmonies[Math.floor(rand() * safeHarmonies.length)]!;
     const harmonyAngle = HARMONY[harmonyType];
 
     // Apply harmony-based hue shift
     const direction = rand() < 0.5 ? 1 : -1;
-    const variation = (rand() - 0.5) * 20; // ±10° variation
+    const variation = (rand() - 0.5) * 15; // ±7.5° variation
     applyHueRotation(p, direction * harmonyAngle + variation);
 
     // Small adjustments to other parameters
-    applyLightnessShift(p, (rand() - 0.5) * CONFIG.perturbScale * 0.5);
-    applyChromaScale(p, 0.9 + rand() * 0.2);
+    applyLightnessShift(p, (rand() - 0.5) * CONFIG.perturbScale * 0.4);
+    applyChromaScale(p, 0.92 + rand() * 0.16);
   } else {
     // === STRATEGY: Perceptual perturbation ===
 
-    // 1. Hue rotation (most impactful, always apply some)
+    // 1. Hue rotation (most impactful)
     const hueShift = (rand() - 0.5) * 2 * CONFIG.hueShiftMax;
     applyHueRotation(p, hueShift);
 
     // 2. Lightness adjustment (preserve relative contrast)
-    if (rand() < 0.6) {
-      const lightnessShift = (rand() - 0.5) * CONFIG.perturbScale;
+    if (rand() < 0.5) {
+      const lightnessShift = (rand() - 0.5) * CONFIG.perturbScale * 0.7;
       applyLightnessShift(p, lightnessShift);
     }
 
     // 3. Chroma/saturation adjustment
-    if (rand() < 0.5) {
-      const chromaScale = 1 + (rand() - 0.5) * CONFIG.perturbScale;
+    if (rand() < 0.4) {
+      const chromaScale = 1 + (rand() - 0.5) * CONFIG.perturbScale * 0.6;
       applyChromaScale(p, chromaScale);
     }
 
-    // 4. Temperature shift
-    if (rand() < 0.4) {
-      const tempShift = (rand() - 0.5) * 2 * CONFIG.perturbScale;
+    // 4. Temperature shift (reduced chance and magnitude)
+    if (rand() < 0.25) {
+      const tempShift = (rand() - 0.5) * CONFIG.perturbScale;
       applyTemperatureShift(p, tempShift);
     }
 
     // 5. Per-channel phase jitter (adds interest without breaking structure)
-    if (rand() < 0.5) {
+    if (rand() < 0.35) {
       for (const i of INDICES) {
-        p.d[i] = wrapPhase(p.d[i] + (rand() - 0.5) * CONFIG.perturbScale * 0.3);
+        p.d[i] = wrapPhase(p.d[i] + (rand() - 0.5) * CONFIG.perturbScale * 0.2);
       }
     }
 
     // 6. Amplitude jitter
-    if (rand() < 0.4) {
+    if (rand() < 0.3) {
       for (const i of INDICES) {
         p.b[i] = clamp(
-          p.b[i] + (rand() - 0.5) * CONFIG.perturbScale * 0.2,
+          p.b[i] + (rand() - 0.5) * CONFIG.perturbScale * 0.15,
           -0.5,
           0.5
         );

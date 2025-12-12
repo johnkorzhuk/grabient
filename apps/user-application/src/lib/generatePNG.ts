@@ -15,6 +15,28 @@ export interface PNGGenerationOptions {
     width?: number;
     height?: number;
     quality?: number;
+    borderRadius?: number;
+}
+
+function drawRoundedRect(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number,
+): void {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
 }
 
 export async function generatePNGBlob(
@@ -29,7 +51,12 @@ export async function generatePNGBlob(
         width = 800,
         height = 400,
         quality = 1,
+        borderRadius = 0,
     } = options;
+
+    // Convert percentage to pixels based on smaller dimension
+    const minDimension = Math.min(width, height);
+    const borderRadiusPx = (borderRadius / 100) * (minDimension / 2);
 
     return new Promise((resolve, reject) => {
         let canvas: HTMLCanvasElement | null = null;
@@ -62,6 +89,12 @@ export async function generatePNGBlob(
                         const position = index / (hexColors.length - 1);
                         gradient.addColorStop(position, color);
                     });
+
+                    // Apply border radius clip if needed
+                    if (borderRadiusPx > 0) {
+                        drawRoundedRect(ctx, 0, 0, width, height, borderRadiusPx);
+                        ctx.clip();
+                    }
 
                     ctx.fillStyle = gradient;
                     ctx.fillRect(0, 0, width, height);
@@ -108,6 +141,13 @@ export async function generatePNGBlob(
             img.onload = () => {
                 try {
                     ctx.clearRect(0, 0, width, height);
+
+                    // Apply border radius clip if needed
+                    if (borderRadiusPx > 0) {
+                        drawRoundedRect(ctx, 0, 0, width, height, borderRadiusPx);
+                        ctx.clip();
+                    }
+
                     ctx.drawImage(img!, 0, 0, width, height);
 
                     canvas!.toBlob(

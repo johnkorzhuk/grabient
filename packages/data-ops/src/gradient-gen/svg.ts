@@ -12,6 +12,7 @@ export interface SvgGenerationOptions {
     width?: number;
     height?: number;
     gridItemIndex?: number;
+    borderRadius?: number;
 }
 
 /**
@@ -35,7 +36,12 @@ export function generateSvgGradient(
     activeIndex?: number | null,
     options: SvgGenerationOptions = {},
 ): string {
-    const { width = 800, height = 400, gridItemIndex } = options;
+    const { width = 800, height = 400, gridItemIndex, borderRadius = 0 } = options;
+
+    // Convert percentage to pixels based on smaller dimension
+    const minDimension = Math.min(width, height);
+    const borderRadiusPx = (borderRadius / 100) * (minDimension / 2);
+    const rxAttr = borderRadiusPx > 0 ? ` rx="${borderRadiusPx}" ry="${borderRadiusPx}"` : "";
     const baseUrl = creditProps.baseUrl ?? "https://grabient.com";
     const creditComment = `<!-- ${baseUrl}/${creditProps.seed}${creditProps.searchString} -->`;
 
@@ -63,7 +69,7 @@ export function generateSvgGradient(
     if (hexColors.length === 1) {
         return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
           ${creditComment}
-          <rect x="0" y="0" width="${width}" height="${height}" fill="${hexColors[0]}"/>
+          <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} fill="${hexColors[0]}"/>
         </svg>`;
     }
 
@@ -105,7 +111,7 @@ export function generateSvgGradient(
             svgContent += `
               </linearGradient>
             </defs>
-            <rect x="0" y="0" width="${width}" height="${height}" fill="url(#${getUniqueId("gradient")})" />
+            <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} fill="url(#${getUniqueId("gradient")})" />
           </svg>`;
 
             return svgContent;
@@ -118,7 +124,7 @@ export function generateSvgGradient(
             ${creditComment}
             <defs>
               <clipPath id="${getUniqueId("bounds")}">
-                <rect x="0" y="0" width="${width}" height="${height}" />
+                <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} />
               </clipPath>
             </defs>
             <g clip-path="url(#${getUniqueId("bounds")})">`;
@@ -287,9 +293,9 @@ export function generateSvgGradient(
 
             return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg">
 ${creditComment}
-<g clip-path="url(#${clipPathId})" data-figma-skip-parse="true"><g transform="matrix(${a.toFixed(6)} ${b.toFixed(6)} ${c.toFixed(6)} ${d.toFixed(6)} ${e.toFixed(6)} ${f.toFixed(6)})"><foreignObject x="${-foreignObjectHalf}" y="${-foreignObjectHalf}" width="${foreignObjectSize}" height="${foreignObjectSize}"><div xmlns="http://www.w3.org/1999/xhtml" style="background:conic-gradient(from 90deg,${colorStops.join(",")});height:100%;width:100%;opacity:1"></div></foreignObject></g></g><rect width="${width}" height="${height}" data-figma-gradient-fill="${gradientFillData}"/>
+<g clip-path="url(#${clipPathId})" data-figma-skip-parse="true"><g transform="matrix(${a.toFixed(6)} ${b.toFixed(6)} ${c.toFixed(6)} ${d.toFixed(6)} ${e.toFixed(6)} ${f.toFixed(6)})"><foreignObject x="${-foreignObjectHalf}" y="${-foreignObjectHalf}" width="${foreignObjectSize}" height="${foreignObjectSize}"><div xmlns="http://www.w3.org/1999/xhtml" style="background:conic-gradient(from 90deg,${colorStops.join(",")});height:100%;width:100%;opacity:1"></div></foreignObject></g></g><rect width="${width}" height="${height}"${rxAttr} data-figma-gradient-fill="${gradientFillData}"/>
 <defs>
-<clipPath id="${clipPathId}"><rect width="${width}" height="${height}"/></clipPath>
+<clipPath id="${clipPathId}"><rect width="${width}" height="${height}"${rxAttr}/></clipPath>
 </defs>
 </svg>`;
         }
@@ -299,7 +305,7 @@ ${creditComment}
             ${creditComment}
             <defs>
               <clipPath id="${getUniqueId("squareClip")}">
-                <rect x="0" y="0" width="${width}" height="${height}" />
+                <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} />
               </clipPath>
               <filter id="${getUniqueId("antiGap")}">
                 <feGaussianBlur in="SourceGraphic" stdDeviation="0.3" />
