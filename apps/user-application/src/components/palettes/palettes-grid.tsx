@@ -39,7 +39,7 @@ import { CopyButton } from "./copy-button";
 import { ExportButton } from "./export-button";
 import { createExportItem } from "@/lib/paletteUtils";
 import { generateSVGGrid } from "@/lib/generateSVGGrid";
-import { exportStore, addToExportList, isInExportList, setContainerDimensions, setGap, setBorderRadius, setColumns, GAP_MIN, GAP_MAX, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX, COLUMNS_MIN, COLUMNS_MAX } from "@/stores/export";
+import { exportStore, addToExportList, isInExportList, clearExportList, setContainerDimensions, setGap, setBorderRadius, setColumns, GAP_MIN, GAP_MAX, BORDER_RADIUS_MIN, BORDER_RADIUS_MAX, COLUMNS_MIN, COLUMNS_MAX } from "@/stores/export";
 import { useDimensions } from "@/hooks/useDimensions";
 import { useLikePaletteMutation } from "@/mutations/palettes";
 import { useQueryClient } from "@tanstack/react-query";
@@ -388,15 +388,30 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
 
     const exportPanelContent = (
         <div
-            className="flex flex-col"
+            className="flex flex-col pt-6"
             style={{ height: "calc(100dvh - 201px - 222px)" }}
         >
-            <span
-                className="text-sm text-muted-foreground font-semibold block mb-6"
-                style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
-            >
-                Export options
-            </span>
+            <div className="flex items-center justify-between mb-6">
+                <span
+                    className="text-base text-muted-foreground font-semibold"
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Export options
+                </span>
+                <button
+                    onClick={clearExportList}
+                    className={cn(
+                        "text-xs font-semibold px-1.5 py-0.5 rounded",
+                        "text-red-500 border border-red-500/50",
+                        "hover:border-red-500 hover:bg-red-500/10",
+                        "transition-colors duration-200 cursor-pointer",
+                        "outline-none focus-visible:ring-2 focus-visible:ring-red-500/50"
+                    )}
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Clear selected
+                </button>
+            </div>
             <div className="flex items-center justify-between">
                 <DevicePresets showDimensions={false} showCustomOption={false} side="left" align="start" />
                 <div className="flex items-center gap-3">

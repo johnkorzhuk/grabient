@@ -39,7 +39,7 @@ export function SelectedButtonContainer({
                     {isExportOpen ? (
                         <ExportActions />
                     ) : (
-                        <MixButton />
+                        import.meta.env.DEV && <MixButton />
                     )}
                     <SelectedButton />
                 </>

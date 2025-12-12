@@ -36,6 +36,7 @@ interface DevicePresetsProps {
     className?: string;
     showDimensions?: boolean;
     showCustomOption?: boolean;
+    showLabel?: boolean;
     side?: "top" | "bottom" | "left" | "right";
     align?: "start" | "center" | "end";
     customAlignOffset?: number;
@@ -47,6 +48,7 @@ export function DevicePresets({
     className,
     showDimensions = true,
     showCustomOption = true,
+    showLabel = false,
     side,
     align,
     customAlignOffset,
@@ -219,7 +221,8 @@ export function DevicePresets({
             className={cn(
                 "disable-animation-on-theme-change",
                 "inline-flex items-center justify-center rounded-md",
-                "w-8 h-8 border border-solid",
+                showLabel ? "h-8 px-2.5 gap-1.5" : "w-8 h-8",
+                "border border-solid",
                 "transition-colors duration-200 cursor-pointer",
                 "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
                 "border-input text-muted-foreground hover:border-muted-foreground/30 hover:text-foreground",
@@ -228,6 +231,14 @@ export function DevicePresets({
             )}
             suppressHydrationWarning
         >
+            {showLabel && (
+                <span
+                    className="text-xs font-semibold"
+                    style={{ fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}
+                >
+                    Presets
+                </span>
+            )}
             <Monitor className="w-4 h-4" strokeWidth={2.5} />
         </button>
     );

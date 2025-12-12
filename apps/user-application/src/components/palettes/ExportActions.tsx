@@ -217,7 +217,7 @@ export function ExportActions() {
 
     return (
         <>
-            <MixButton />
+            {import.meta.env.DEV && <MixButton />}
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <button
