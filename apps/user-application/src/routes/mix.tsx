@@ -29,7 +29,10 @@ import {
     styleWithAutoValidator,
     angleWithAutoValidator,
     stepsWithAutoValidator,
+    DEFAULT_GLOBALS,
 } from "@repo/data-ops/valibot-schema/grabient";
+import { generateMix } from "@repo/data-ops/gradient-gen";
+import { serializeCoeffs } from "@repo/data-ops/serialization";
 import * as v from "valibot";
 import type { ExportItem, AppPalette } from "@/queries/palettes";
 import { userLikedSeedsQueryOptions } from "@/queries/palettes";
@@ -148,6 +151,8 @@ function MixPage() {
     const contentRef = useRef<HTMLDivElement>(null);
     const shouldAnimateRef = useRef(!isAdvancedOpen);
 
+    const [generatedPalettes, setGeneratedPalettes] = useState<AppPalette[]>([]);
+
     const hasNonAutoValues =
         urlStyle !== "auto" || urlAngle !== "auto" || urlSteps !== "auto";
 
@@ -179,6 +184,38 @@ function MixPage() {
     }, []);
 
     const uniquePalettes = getUniquePalettesFromExportList(exportList);
+
+    // Create a stable key from input seeds for dependency tracking
+    const inputSeedsKey = uniquePalettes.map((p) => p.seed).join(",");
+
+    // Generate mix results when inputs change
+    useEffect(() => {
+        if (uniquePalettes.length === 0) {
+            setGeneratedPalettes([]);
+            return;
+        }
+
+        const inputCoeffs = uniquePalettes.map((p) => p.coeffs);
+        const result = generateMix(inputCoeffs, { count: 20 });
+
+        const generated: AppPalette[] = result.output.map((item) => {
+            const seed = serializeCoeffs(item.coeffs, DEFAULT_GLOBALS);
+            const hexColors = generateHexColors(item.coeffs, DEFAULT_GLOBALS, 7);
+            return {
+                coeffs: item.coeffs,
+                globals: DEFAULT_GLOBALS,
+                style: "linearGradient" as const,
+                steps: 7,
+                angle: 90,
+                seed,
+                hexColors,
+                createdAt: null,
+            };
+        });
+
+        setGeneratedPalettes(generated);
+    }, [inputSeedsKey]);
+
     const count = uniquePalettes.length;
 
     const onChannelOrderChange = (
@@ -286,11 +323,12 @@ function MixPage() {
             <main className="md:hidden w-full h-viewport-content flex flex-col overflow-hidden">
                 {/* Header controls */}
                 <div className="shrink-0 bg-background">
-                    <div className="px-5 py-4 flex items-center justify-between">
-                        <h1 className="text-2xl font-bold text-foreground">
-                            Mix {count} {count === 1 ? "palette" : "palettes"}
-                        </h1>
-                        <div className="flex items-center gap-1.5">
+                    <div className="px-5 py-4 flex flex-col gap-4">
+                        <div className="flex items-center justify-between">
+                            <h1 className="text-2xl font-bold text-foreground">
+                                Mix {count} {count === 1 ? "palette" : "palettes"}
+                            </h1>
+                            <div className="flex items-center gap-1.5">
                             {hasNonAutoValues && (
                                 <Tooltip delayDuration={500}>
                                     <TooltipTrigger asChild>
@@ -377,6 +415,7 @@ function MixPage() {
                                         : "More options"}
                                 </TooltipContent>
                             </Tooltip>
+                            </div>
                         </div>
                     </div>
                     {/* Expandable panel for angle and steps */}
@@ -450,10 +489,33 @@ function MixPage() {
 
                     {/* Mix result area - fixed 30% */}
                     {uniquePalettes.length > 0 && (
-                        <div className="flex-[3] shrink-0 bg-background">
-                            <div className="h-full flex items-center justify-center text-muted-foreground">
-                                <p className="text-sm">Mix result area</p>
-                            </div>
+                        <div className="flex-[3] shrink-0 bg-muted/30 border-t border-border overflow-y-auto scrollbar-hidden">
+                            {generatedPalettes.length > 0 ? (
+                                <ol className="px-5 py-4 grid grid-cols-2 sm:grid-cols-3 gap-3 auto-rows-[100px]">
+                                    {generatedPalettes.map((palette, index) => (
+                                        <PaletteCard
+                                            key={`mix-result-mobile-${palette.seed}`}
+                                            palette={palette}
+                                            index={index}
+                                            urlStyle={urlStyle}
+                                            urlAngle={urlAngle}
+                                            urlSteps={urlSteps}
+                                            previewStyle={previewStyle}
+                                            previewAngle={previewAngle}
+                                            previewSteps={previewSteps}
+                                            onChannelOrderChange={onChannelOrderChange}
+                                            onShiftClick={handleShiftClick}
+                                            likedSeeds={likedSeeds}
+                                            variant="compact"
+                                            idPrefix="mix-result-mobile-"
+                                        />
+                                    ))}
+                                </ol>
+                            ) : (
+                                <div className="h-full flex items-center justify-center">
+                                    <p className="text-sm text-muted-foreground">Generating...</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -462,11 +524,12 @@ function MixPage() {
             {/* Desktop layout (md+) */}
             <main className="hidden md:block w-full min-h-viewport-content">
                 {/* Header controls - full width */}
-                <div className="bg-background px-5 lg:px-14 py-4 flex items-center justify-between">
-                    <h1 className="text-2xl font-bold text-foreground">
-                        Mix {count} {count === 1 ? "palette" : "palettes"}
-                    </h1>
-                    <div className="flex items-center gap-1.5">
+                <div className="bg-background px-5 lg:px-14 py-4 flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-2xl font-bold text-foreground">
+                            Mix {count} {count === 1 ? "palette" : "palettes"}
+                        </h1>
+                        <div className="flex items-center gap-1.5">
                         {hasNonAutoValues && (
                             <Tooltip delayDuration={500}>
                                 <TooltipTrigger asChild>
@@ -512,6 +575,7 @@ function MixPage() {
                             className="subpixel-antialiased"
                             onPreviewChange={setPreviewStyle}
                         />
+                        </div>
                     </div>
                 </div>
 
@@ -552,10 +616,33 @@ function MixPage() {
 
                     {/* Right panel - sticky to stay in view while scrolling */}
                     {uniquePalettes.length > 0 && (
-                        <div className="w-1/2 sticky top-[69px] lg:top-[89px] h-viewport-content self-start bg-background pl-2.5 lg:pl-7 pr-5 lg:pr-14">
-                            <div className="h-full flex items-center justify-center text-muted-foreground">
-                                <p className="text-sm">Mix result area</p>
-                            </div>
+                        <div className="w-1/2 sticky top-[69px] lg:top-[89px] h-viewport-content self-start bg-muted/30 pl-2.5 lg:pl-7 pr-5 lg:pr-14 overflow-y-auto scrollbar-hidden">
+                            {generatedPalettes.length > 0 ? (
+                                <ol className="pt-4 pb-8 grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-x-6 gap-y-6 auto-rows-[220px]">
+                                    {generatedPalettes.map((palette, index) => (
+                                        <PaletteCard
+                                            key={`mix-result-desktop-${palette.seed}`}
+                                            palette={palette}
+                                            index={index}
+                                            urlStyle={urlStyle}
+                                            urlAngle={urlAngle}
+                                            urlSteps={urlSteps}
+                                            previewStyle={previewStyle}
+                                            previewAngle={previewAngle}
+                                            previewSteps={previewSteps}
+                                            onChannelOrderChange={onChannelOrderChange}
+                                            onShiftClick={handleShiftClick}
+                                            likedSeeds={likedSeeds}
+                                            variant="compact"
+                                            idPrefix="mix-result-desktop-"
+                                        />
+                                    ))}
+                                </ol>
+                            ) : (
+                                <div className="h-full flex items-center justify-center">
+                                    <p className="text-sm text-muted-foreground">Generating...</p>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
