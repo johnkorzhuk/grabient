@@ -1,6 +1,6 @@
 import { RGBTabs } from "@/components/palettes/rgb-tabs";
 import { SaveButton } from "@/components/palettes/save-button";
-import { Suspense, lazy, useState } from "react";
+import { Suspense, lazy } from "react";
 import { GradientModifierControls } from "@/components/palettes/gradient-modifier-controls";
 import { PaletteChartIcon } from "@/components/icons/PaletteChartIcon";
 import {
@@ -42,6 +42,8 @@ interface GradientSidebarProps {
     likeInfo?: { likesCount: number; isLiked: boolean };
     isLikesLoading: boolean;
     isTouchDevice: boolean;
+    showGraph: boolean;
+    onToggleShowGraph: () => void;
     onChannelOrderChange: (newCoeffs: Coeffs, palette: AppPalette) => void;
     onGlobalChange: (modifierIndex: number, value: number) => void;
     onRGBChannelChange: (
@@ -65,6 +67,8 @@ export function GradientSidebar({
     likeInfo,
     isLikesLoading,
     isTouchDevice,
+    showGraph,
+    onToggleShowGraph,
     onChannelOrderChange,
     onGlobalChange,
     onRGBChannelChange,
@@ -72,7 +76,6 @@ export function GradientSidebar({
     onTareModifier,
 }: GradientSidebarProps) {
     const processedCoeffs = applyGlobals(coeffs, globals);
-    const [showGraph, setShowGraph] = useState(false);
 
     return (
         <aside className="h-[280px] lg:h-full lg:w-[340px] w-full shrink-0 lg:pl-8 px-5 lg:pr-0 pb-2 lg:pt-0 lg:pb-1 relative z-20">
@@ -124,7 +127,7 @@ export function GradientSidebar({
                                                 showGraph && "border-muted-foreground/30 text-foreground",
                                             )}
                                             type="button"
-                                            onClick={() => setShowGraph(!showGraph)}
+                                            onClick={onToggleShowGraph}
                                             suppressHydrationWarning
                                         >
                                             <PaletteChartIcon

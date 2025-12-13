@@ -204,6 +204,7 @@ function RouteComponent() {
     const [showMoreOptions, setShowMoreOptions] = useState(false);
     const [isTouchToggled, setIsTouchToggled] = useState(false);
     const [isHovered, setIsHovered] = useState(false);
+    const [showGraph, setShowGraph] = useState(false);
 
     const [localCoeffs, setLocalCoeffs] = useState<
         ReturnType<typeof deserializeCoeffs>["coeffs"] | null
@@ -519,6 +520,8 @@ function RouteComponent() {
                             isActive={isActive}
                             isCopyMenuOpen={isCopyMenuOpen}
                             showMoreOptions={showMoreOptions}
+                            showGraph={showGraph}
+                            onSetShowGraph={setShowGraph}
                             clipping={clipping}
                             onMouseEnter={() => setIsHovered(true)}
                             onMouseLeave={() => setIsHovered(false)}
@@ -559,6 +562,8 @@ function RouteComponent() {
                             likeInfo={likeInfo}
                             isLikesLoading={isLikesLoading}
                             isTouchDevice={isTouchDevice}
+                            showGraph={showGraph}
+                            onToggleShowGraph={() => setShowGraph(!showGraph)}
                             onChannelOrderChange={handleChannelOrderChange}
                             onGlobalChange={handleGlobalChange}
                             onRGBChannelChange={handleRGBChannelChange}
