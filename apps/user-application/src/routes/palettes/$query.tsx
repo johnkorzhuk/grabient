@@ -47,10 +47,10 @@ import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
 import { useMounted } from "@mantine/hooks";
 import {
-    RefineButtonV2,
-    type RefinedPaletteV2,
+    RefineButton,
+    type RefinedPalette,
     type PaletteFeedback,
-} from "@/components/palettes/RefineButtonV2";
+} from "@/components/palettes/RefineButton";
 import {
     getGoodSeedsForQuery,
     getBadSeedsForQuery,
@@ -623,11 +623,11 @@ function SearchResultsPage() {
 
     // V2 Refine state - simpler flow
     const [isRefining, setIsRefining] = useState(false);
-    const [refinedPalettes, setRefinedPalettes] = useState<RefinedPaletteV2[]>([]);
+    const [refinedPalettes, setRefinedPalettes] = useState<RefinedPalette[]>([]);
     const [refineError, setRefineError] = useState<string | null>(null);
 
-    // Convert RefinedPaletteV2 to AppPalette format
-    const refinedToAppPalette = (refined: RefinedPaletteV2): AppPalette => {
+    // Convert RefinedPalette to AppPalette format
+    const refinedToAppPalette = (refined: RefinedPalette): AppPalette => {
         const { coeffs } = deserializeCoeffs(refined.seed);
         return {
             seed: refined.seed,
@@ -777,7 +777,7 @@ function SearchResultsPage() {
                 )}
             >
                 {!isExportOpen && (
-                    <RefineButtonV2
+                    <RefineButton
                         query={query}
                         limit={DEFAULT_PAGE_LIMIT}
                         examplePalettes={results.slice(0, 6).map(r => r.hexColors)}

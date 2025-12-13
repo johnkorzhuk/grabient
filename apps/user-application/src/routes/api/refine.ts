@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { refinePalettesStream, type PaletteFeedback } from "@/server-functions/refine-v2";
+import { refinePalettesStream, type PaletteFeedback } from "@/server-functions/refine";
 
 export const Route = createFileRoute("/api/refine")({
     server: {

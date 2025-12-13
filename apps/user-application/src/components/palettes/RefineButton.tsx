@@ -4,29 +4,29 @@ import { cn } from "@/lib/utils";
 import { fitCosinePalette } from "@repo/data-ops/gradient-gen";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
-import type { StreamingPalette, PaletteFeedback } from "@/server-functions/refine-v2";
+import type { StreamingPalette, PaletteFeedback } from "@/server-functions/refine";
 
 export type { PaletteFeedback };
 
-export interface RefinedPaletteV2 {
+export interface RefinedPalette {
     seed: string;
     hexColors: string[];
 }
 
-interface RefineButtonV2Props {
+interface RefineButtonProps {
     query: string;
     limit?: number;
     examplePalettes?: string[][];
     feedback?: PaletteFeedback;
     onRefineStart: () => void;
-    onPaletteReceived: (palette: RefinedPaletteV2) => void;
+    onPaletteReceived: (palette: RefinedPalette) => void;
     onRefineComplete: () => void;
     onRefineError: (error: string) => void;
     disabled?: boolean;
     className?: string;
 }
 
-export function RefineButtonV2({
+export function RefineButton({
     query,
     limit = 24,
     examplePalettes,
@@ -37,7 +37,7 @@ export function RefineButtonV2({
     onRefineError,
     disabled,
     className,
-}: RefineButtonV2Props) {
+}: RefineButtonProps) {
     const [isRefining, setIsRefining] = useState(false);
     const [includeExamples, setIncludeExamples] = useState(false);
 
