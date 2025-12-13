@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { refinePalettesStream } from "@/server-functions/refine-v2";
+import { refinePalettesStream, type PaletteFeedback } from "@/server-functions/refine-v2";
 
 export const Route = createFileRoute("/api/refine")({
     server: {
@@ -8,9 +8,16 @@ export const Route = createFileRoute("/api/refine")({
                 const body = await request.json() as {
                     query: string;
                     limit?: number;
+                    examples?: string[][];
+                    feedback?: PaletteFeedback;
                 };
 
-                return refinePalettesStream(body.query, body.limit ?? 24);
+                return refinePalettesStream(
+                    body.query,
+                    body.limit ?? 24,
+                    body.examples,
+                    body.feedback
+                );
             },
         },
     },

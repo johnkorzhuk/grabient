@@ -49,7 +49,12 @@ import { useMounted } from "@mantine/hooks";
 import {
     RefineButtonV2,
     type RefinedPaletteV2,
+    type PaletteFeedback,
 } from "@/components/palettes/RefineButtonV2";
+import {
+    getGoodSeedsForQuery,
+    getBadSeedsForQuery,
+} from "@/stores/search-feedback";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -646,6 +651,46 @@ function SearchResultsPage() {
 
     const results = sortResults(searchData?.results || [], sort);
 
+    // Build feedback from stored preferences
+    const buildFeedback = (): PaletteFeedback | undefined => {
+        const goodSeeds = getGoodSeedsForQuery(query);
+        const badSeeds = getBadSeedsForQuery(query);
+
+        if (goodSeeds.size === 0 && badSeeds.size === 0) {
+            return undefined;
+        }
+
+        // Map seeds to hex colors from all available palettes
+        const allPalettes = [...results, ...refinedAppPalettes];
+        const seedToHex = new Map<string, string[]>();
+        for (const p of allPalettes) {
+            if (!seedToHex.has(p.seed)) {
+                seedToHex.set(p.seed, p.hexColors);
+            }
+        }
+
+        const good: string[][] = [];
+        const bad: string[][] = [];
+
+        for (const seed of goodSeeds) {
+            const hex = seedToHex.get(seed);
+            if (hex) good.push(hex);
+        }
+
+        for (const seed of badSeeds) {
+            const hex = seedToHex.get(seed);
+            if (hex) bad.push(hex);
+        }
+
+        if (good.length === 0 && bad.length === 0) {
+            return undefined;
+        }
+
+        return { good, bad };
+    };
+
+    const feedback = buildFeedback();
+
     const hasRefineResults = refinedPalettes.length > 0 || refineError !== null;
 
     const backNav = buildBackNavigation({ sort, style, angle, steps, size });
@@ -735,6 +780,8 @@ function SearchResultsPage() {
                     <RefineButtonV2
                         query={query}
                         limit={DEFAULT_PAGE_LIMIT}
+                        examplePalettes={results.slice(0, 6).map(r => r.hexColors)}
+                        feedback={feedback}
                         onRefineStart={() => {
                             setIsRefining(true);
                             setRefinedPalettes([]);

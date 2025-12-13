@@ -4,7 +4,9 @@ import { cn } from "@/lib/utils";
 import { fitCosinePalette } from "@repo/data-ops/gradient-gen";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
-import type { StreamingPalette } from "@/server-functions/refine-v2";
+import type { StreamingPalette, PaletteFeedback } from "@/server-functions/refine-v2";
+
+export type { PaletteFeedback };
 
 export interface RefinedPaletteV2 {
     seed: string;
@@ -14,6 +16,8 @@ export interface RefinedPaletteV2 {
 interface RefineButtonV2Props {
     query: string;
     limit?: number;
+    examplePalettes?: string[][];
+    feedback?: PaletteFeedback;
     onRefineStart: () => void;
     onPaletteReceived: (palette: RefinedPaletteV2) => void;
     onRefineComplete: () => void;
@@ -25,6 +29,8 @@ interface RefineButtonV2Props {
 export function RefineButtonV2({
     query,
     limit = 24,
+    examplePalettes,
+    feedback,
     onRefineStart,
     onPaletteReceived,
     onRefineComplete,
@@ -33,16 +39,32 @@ export function RefineButtonV2({
     className,
 }: RefineButtonV2Props) {
     const [isRefining, setIsRefining] = useState(false);
+    const [includeExamples, setIncludeExamples] = useState(false);
 
     const handleRefine = async () => {
         setIsRefining(true);
         onRefineStart();
 
         try {
+            const body: {
+                query: string;
+                limit: number;
+                examples?: string[][];
+                feedback?: PaletteFeedback;
+            } = { query, limit };
+
+            if (includeExamples && examplePalettes && examplePalettes.length > 0) {
+                body.examples = examplePalettes;
+            }
+
+            if (feedback && (feedback.good.length > 0 || feedback.bad.length > 0)) {
+                body.feedback = feedback;
+            }
+
             const response = await fetch("/api/refine", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ query, limit }),
+                body: JSON.stringify(body),
             });
 
             if (!response.ok) {
@@ -99,35 +121,49 @@ export function RefineButtonV2({
         }
     };
 
+    const hasExamples = examplePalettes && examplePalettes.length > 0;
+
     return (
-        <button
-            type="button"
-            onClick={handleRefine}
-            disabled={disabled || isRefining}
-            style={{ backgroundColor: "var(--background)" }}
-            className={cn(
-                "disable-animation-on-theme-change",
-                "inline-flex items-center justify-center gap-2 rounded-md",
-                "font-bold text-sm h-8.5 px-3 border border-solid",
-                "border-input hover:border-muted-foreground/30 hover:bg-background/60",
-                "text-muted-foreground hover:text-foreground",
-                "transition-colors duration-200 cursor-pointer",
-                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                "disabled:opacity-50 disabled:cursor-not-allowed",
-                className,
+        <div className={cn("inline-flex items-center gap-3", className)}>
+            {hasExamples && (
+                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
+                    <input
+                        type="checkbox"
+                        checked={includeExamples}
+                        onChange={(e) => setIncludeExamples(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-input accent-foreground cursor-pointer"
+                    />
+                    <span>Include examples</span>
+                </label>
             )}
-        >
-            {isRefining ? (
-                <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Refining...</span>
-                </>
-            ) : (
-                <>
-                    <Sparkles className="w-4 h-4" />
-                    <span>Refine</span>
-                </>
-            )}
-        </button>
+            <button
+                type="button"
+                onClick={handleRefine}
+                disabled={disabled || isRefining}
+                style={{ backgroundColor: "var(--background)" }}
+                className={cn(
+                    "disable-animation-on-theme-change",
+                    "inline-flex items-center justify-center gap-2 rounded-md",
+                    "font-bold text-sm h-8.5 px-3 border border-solid",
+                    "border-input hover:border-muted-foreground/30 hover:bg-background/60",
+                    "text-muted-foreground hover:text-foreground",
+                    "transition-colors duration-200 cursor-pointer",
+                    "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                )}
+            >
+                {isRefining ? (
+                    <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Refining...</span>
+                    </>
+                ) : (
+                    <>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Refine</span>
+                    </>
+                )}
+            </button>
+        </div>
     );
 }
