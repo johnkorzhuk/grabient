@@ -16,20 +16,20 @@ export function ConsentSection() {
 
     const handleAnalyticsChange = (checked: boolean) => {
         updateConsent({ analytics: checked, sessionReplay: checked });
-        if (typeof zaraz !== "undefined") {
+        if (typeof zaraz !== "undefined" && zaraz.consent) {
             zaraz.consent.set({ analytics: checked });
         }
     };
 
     const handleAdvertisingChange = (checked: boolean) => {
         updateConsent({ advertising: checked });
-        if (typeof zaraz !== "undefined") {
+        if (typeof zaraz !== "undefined" && zaraz.consent) {
             zaraz.consent.set({ advertising: checked });
         }
     };
 
     const handleOpenConsentModal = () => {
-        if (typeof zaraz !== "undefined") {
+        if (typeof zaraz !== "undefined" && zaraz.consent) {
             zaraz.consent.modal = true;
         }
     };
