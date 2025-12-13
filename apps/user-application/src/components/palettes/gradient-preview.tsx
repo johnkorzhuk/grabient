@@ -1,5 +1,7 @@
 import { cn } from "@/lib/utils";
 import { CopyButton } from "@/components/palettes/copy-button";
+import { ExportButton } from "@/components/palettes/export-button";
+import { createExportItem } from "@/lib/paletteUtils";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
 import {
     coeffsSchema,
@@ -373,6 +375,29 @@ export function GradientPreview({
                         height: Math.round(actualHeight),
                         borderRadius,
                     }}
+                />
+                <ExportButton
+                    exportItem={createExportItem(
+                        {
+                            seed,
+                            coeffs,
+                            globals,
+                            style: currentStyle,
+                            angle: currentAngle,
+                            steps: currentSteps,
+                            hexColors,
+                            likesCount: 0,
+                            createdAt: new Date(),
+                        },
+                        {
+                            style: currentStyle,
+                            steps: currentSteps,
+                            angle: currentAngle,
+                            hexColors,
+                        },
+                    )}
+                    isActive={true}
+                    removeAllOnClick={true}
                 />
                 <div className="hidden lg:block">
                     <DevicePresets size={size} showDimensions={false} />
