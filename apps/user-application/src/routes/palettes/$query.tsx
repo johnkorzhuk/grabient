@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
     createFileRoute,
     stripSearchParams,
@@ -26,8 +27,10 @@ import {
     HEX_CODE_REGEX,
 } from "@/lib/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
-import { isValidSeed } from "@repo/data-ops/serialization";
-import { Search, ArrowLeft } from "lucide-react";
+import { isValidSeed, deserializeCoeffs } from "@repo/data-ops/serialization";
+import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
+import type { AppPalette } from "@/queries/palettes";
+import { Search, ArrowLeft, Sparkles } from "lucide-react";
 import {
     Tooltip,
     TooltipContent,
@@ -43,6 +46,10 @@ import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
 import { useMounted } from "@mantine/hooks";
+import {
+    RefineButtonV2,
+    type RefinedPaletteV2,
+} from "@/components/palettes/RefineButtonV2";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -605,10 +612,32 @@ function SearchResultsPage() {
     const isExportOpen = search.export === true;
     const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
-    // Only show export UI after mount to avoid hydration mismatch (exportList comes from localStorage)
     const exportCount = mounted ? exportList.length : 0;
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
+
+    // V2 Refine state - simpler flow
+    const [isRefining, setIsRefining] = useState(false);
+    const [refinedPalettes, setRefinedPalettes] = useState<RefinedPaletteV2[]>([]);
+    const [refineError, setRefineError] = useState<string | null>(null);
+
+    // Convert RefinedPaletteV2 to AppPalette format
+    const refinedToAppPalette = (refined: RefinedPaletteV2): AppPalette => {
+        const { coeffs } = deserializeCoeffs(refined.seed);
+        return {
+            seed: refined.seed,
+            style: "linearGradient",
+            steps: refined.hexColors.length,
+            angle: 90,
+            createdAt: null,
+            coeffs,
+            globals: DEFAULT_GLOBALS,
+            hexColors: refined.hexColors,
+            score: 0,
+        };
+    };
+
+    const refinedAppPalettes = refinedPalettes.map(refinedToAppPalette);
 
     const { data: searchData } = useSuspenseQuery(
         searchPalettesQueryOptions(query, DEFAULT_PAGE_LIMIT),
@@ -616,6 +645,9 @@ function SearchResultsPage() {
     const { data: likedSeeds } = useSuspenseQuery(userLikedSeedsQueryOptions());
 
     const results = sortResults(searchData?.results || [], sort);
+
+    const hasRefineResults = refinedPalettes.length > 0 || refineError !== null;
+
     const backNav = buildBackNavigation({ sort, style, angle, steps, size });
 
     if (results.length === 0) {
@@ -690,22 +722,86 @@ function SearchResultsPage() {
                     searchParams={preservedSearch}
                 />
             </div>
-            <SelectedButtonContainer
-                className={
+            {/* V2 Refine Button - simpler flow */}
+            <div
+                className={cn(
+                    "px-5 lg:px-14 flex justify-end mb-10 md:mb-12 gap-2 h-8",
                     hasSubtitle
                         ? "-mt-[88px] md:-mt-[100px]"
-                        : "-mt-[72px] md:-mt-[84px]"
-                }
-            />
-            <PalettesGrid
-                palettes={results}
-                likedSeeds={likedSeeds}
-                urlStyle={style}
-                urlAngle={angle}
-                urlSteps={steps}
-                isExportOpen={isExportOpen}
-                searchQuery={query}
-            />
+                        : "-mt-[72px] md:-mt-[84px]",
+                )}
+            >
+                {!isExportOpen && (
+                    <RefineButtonV2
+                        query={query}
+                        limit={DEFAULT_PAGE_LIMIT}
+                        onRefineStart={() => {
+                            setIsRefining(true);
+                            setRefinedPalettes([]);
+                            setRefineError(null);
+                        }}
+                        onPaletteReceived={(palette) => {
+                            setRefinedPalettes((prev) => [...prev, palette]);
+                        }}
+                        onRefineComplete={() => {
+                            setIsRefining(false);
+                        }}
+                        onRefineError={(error) => {
+                            setRefineError(error);
+                            setIsRefining(false);
+                        }}
+                    />
+                )}
+                <SelectedButtonContainer
+                    className="contents"
+                />
+            </div>
+            {hasRefineResults ? (
+                <>
+                    <div className="px-5 lg:px-14 mb-6">
+                        <div className="flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-muted-foreground" />
+                            <h2 className="text-lg font-semibold">AI Refinement Results</h2>
+                            {isRefining && (
+                                <span className="text-sm text-muted-foreground animate-pulse">
+                                    Generating... ({refinedPalettes.length} received)
+                                </span>
+                            )}
+                            {!isRefining && (
+                                <span className="text-sm text-muted-foreground">
+                                    {refinedAppPalettes.length} palettes
+                                </span>
+                            )}
+                        </div>
+                        {refineError && (
+                            <div className="text-red-500 text-sm p-4 mt-4 rounded-md bg-red-500/10 border border-red-500/20">
+                                {refineError}
+                            </div>
+                        )}
+                    </div>
+                    {!refineError && (
+                        <PalettesGrid
+                            palettes={refinedAppPalettes}
+                            likedSeeds={likedSeeds}
+                            urlStyle={style}
+                            urlAngle={angle}
+                            urlSteps={steps}
+                            isExportOpen={isExportOpen}
+                            searchQuery={query}
+                        />
+                    )}
+                </>
+            ) : (
+                <PalettesGrid
+                    palettes={results}
+                    likedSeeds={likedSeeds}
+                    urlStyle={style}
+                    urlAngle={angle}
+                    urlSteps={steps}
+                    isExportOpen={isExportOpen}
+                    searchQuery={query}
+                />
+            )}
             {!isExportOpen && <div className="py-3 mt-16" />}
         </AppLayout>
     );

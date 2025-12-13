@@ -21,6 +21,7 @@ import { Route as PaletteListIndexRouteImport } from './routes/_paletteList/inde
 import { Route as SeedIndexRouteImport } from './routes/$seed/index'
 import { Route as PalettesQueryRouteImport } from './routes/palettes/$query'
 import { Route as ESplatRouteImport } from './routes/e.$'
+import { Route as ApiRefineRouteImport } from './routes/api/refine'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
@@ -90,6 +91,11 @@ const ESplatRoute = ESplatRouteImport.update({
   path: '/e/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiRefineRoute = ApiRefineRouteImport.update({
+  id: '/api/refine',
+  path: '/api/refine',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOgRoute = ApiOgRouteImport.update({
   id: '/api/og',
   path: '/api/og',
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/api/refine': typeof ApiRefineRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRoute
   '/$seed/': typeof SeedIndexRoute
@@ -168,6 +175,7 @@ export interface FileRoutesByTo {
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/api/refine': typeof ApiRefineRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRoute
   '/$seed': typeof SeedIndexRoute
@@ -192,6 +200,7 @@ export interface FileRoutesById {
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/api/refine': typeof ApiRefineRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRoute
   '/$seed/': typeof SeedIndexRoute
@@ -216,6 +225,7 @@ export interface FileRouteTypes {
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/api/refine'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -237,6 +247,7 @@ export interface FileRouteTypes {
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/api/refine'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed'
@@ -260,6 +271,7 @@ export interface FileRouteTypes {
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
     | '/api/og'
+    | '/api/refine'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -281,6 +293,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiOgRoute: typeof ApiOgRouteWithChildren
+  ApiRefineRoute: typeof ApiRefineRoute
   ESplatRoute: typeof ESplatRoute
   PalettesQueryRoute: typeof PalettesQueryRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -374,6 +387,13 @@ declare module '@tanstack/react-router' {
       path: '/e/$'
       fullPath: '/e/$'
       preLoaderRoute: typeof ESplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/refine': {
+      id: '/api/refine'
+      path: '/api/refine'
+      fullPath: '/api/refine'
+      preLoaderRoute: typeof ApiRefineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/og': {
@@ -491,6 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiOgRoute: ApiOgRouteWithChildren,
+  ApiRefineRoute: ApiRefineRoute,
   ESplatRoute: ESplatRoute,
   PalettesQueryRoute: PalettesQueryRoute,
   SettingsIndexRoute: SettingsIndexRoute,

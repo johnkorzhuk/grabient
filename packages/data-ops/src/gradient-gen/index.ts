@@ -2,3 +2,4 @@ export { generateCssGradient, type GradientCssResult, type CreditProps } from '.
 export * from './cosine';
 export { generateSvgGradient, type SvgGenerationOptions } from './svg';
 export * from './mix';
+export * from './fit-linear';

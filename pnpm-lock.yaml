@@ -314,6 +314,15 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.15
         version: 4.1.15(vite@7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1))
+      '@tanstack/ai':
+        specifier: ^0.0.3
+        version: 0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)
+      '@tanstack/ai-openai':
+        specifier: ^0.0.3
+        version: 0.0.3(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(ws@8.18.3)(zod@4.1.12)
+      '@tanstack/ai-react':
+        specifier: ^0.0.3
+        version: 0.0.3(@tanstack/ai-client@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(@types/react@19.2.2)(react@19.2.0)
       '@tanstack/form-core':
         specifier: ^1.26.0
         version: 1.26.0
@@ -607,6 +616,11 @@ packages:
   '@ai-sdk/provider@2.0.0':
     resolution: {integrity: sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA==}
     engines: {node: '>=18'}
+
+  '@alcyone-labs/zod-to-json-schema@4.0.10':
+    resolution: {integrity: sha512-TFsSpAPToqmqmT85SGHXuxoCwEeK9zUDvn512O9aBVvWRhSuy+VvAXZkifzsdllD3ncF0ZjUrf4MpBwIEixdWQ==}
+    peerDependencies:
+      zod: ^4.0.5
 
   '@ampproject/remapping@2.3.0':
     resolution: {integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==}
@@ -3598,8 +3612,35 @@ packages:
     peerDependencies:
       vite: ^5.2.0 || ^6 || ^7
 
+  '@tanstack/ai-client@0.0.3':
+    resolution: {integrity: sha512-5XIHhRJ2pWeJKfMpeInI46Ytavq78/E/5gllcYMaLJ24aiPXHbxNeO3akiX7kmnwuL6OIkX99Le/MxZBZvdFhg==}
+
+  '@tanstack/ai-openai@0.0.3':
+    resolution: {integrity: sha512-JyV5KMvaUIkS/9mt8zdu+8Sl0+/btbwrsreuFXftbrL8H+ysvbmFW3KwD2eUdTBwNPv2szUn5su17X1yt1CphQ==}
+    peerDependencies:
+      '@tanstack/ai': 0.0.3
+
+  '@tanstack/ai-react@0.0.3':
+    resolution: {integrity: sha512-C65+F4k0S9Z8Ot8+zhIn5XMxZABejEjbU+Ap99TtJA3C31PlnJry18ny/f82FOZl80G2P5xriehMNKsfcxQM9w==}
+    peerDependencies:
+      '@tanstack/ai': 0.0.3
+      '@tanstack/ai-client': 0.0.3
+      '@types/react': '>=18.0.0'
+      react: '>=18.0.0'
+
+  '@tanstack/ai@0.0.3':
+    resolution: {integrity: sha512-zwSl0obT/fkUZocI22xClGNg66yWiRw3d3BKz7F5/V8E+JWFZk2Gh4P7V9wrr0uUEjsZlt8u7qNDgBzwU9uu9g==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      '@alcyone-labs/zod-to-json-schema': ^4.0.0
+      zod: ^3.0.0 || ^4.0.0
+
   '@tanstack/devtools-event-client@0.3.5':
     resolution: {integrity: sha512-RL1f5ZlfZMpghrCIdzl6mLOFLTuhqmPNblZgBaeKfdtk5rfbjykurv+VfYydOFXj0vxVIoA2d/zT7xfD7Ph8fw==}
+    engines: {node: '>=18'}
+
+  '@tanstack/devtools-event-client@0.4.0':
+    resolution: {integrity: sha512-RPfGuk2bDZgcu9bAJodvO2lnZeHuz4/71HjZ0bGb/SPg8+lyTA+RLSKQvo7fSmPSi8/vcH3aKQ8EM9ywf1olaw==}
     engines: {node: '>=18'}
 
   '@tanstack/directive-functions-plugin@1.133.19':
@@ -6280,6 +6321,9 @@ packages:
   parse5@7.3.0:
     resolution: {integrity: sha512-IInvU7fabl34qmi9gY8XOVxhYyMyuH2xUNpb2q8/Y+7552KlejkRvqvD19nMoUW/uQGGbqNpA6Tufu5FL5BZgw==}
 
+  partial-json@0.1.7:
+    resolution: {integrity: sha512-Njv/59hHaokb/hRUjce3Hdv12wd60MtM9Z5Olmn+nehe0QDAsRtRbJPvJ0Z91TusF0SuZRIvnM+S4l6EIP8leA==}
+
   path-exists@4.0.0:
     resolution: {integrity: sha512-ak9Qy5Q7jYb2Wwcey5Fpvg2KoAc/ZIhLSLOSBmRmygPsGwkVVt0fZa0qrtMz+m6tJTAHfZQ8FnmB4MG4LWy7/w==}
     engines: {node: '>=8'}
@@ -7633,6 +7677,10 @@ snapshots:
   '@ai-sdk/provider@2.0.0':
     dependencies:
       json-schema: 0.4.0
+
+  '@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12)':
+    dependencies:
+      zod: 4.1.12
 
   '@ampproject/remapping@2.3.0':
     dependencies:
@@ -11010,7 +11058,38 @@ snapshots:
       tailwindcss: 4.1.15
       vite: 7.1.2(@types/node@22.18.12)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1)
 
+  '@tanstack/ai-client@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)':
+    dependencies:
+      '@tanstack/ai': 0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)
+    transitivePeerDependencies:
+      - '@alcyone-labs/zod-to-json-schema'
+      - zod
+
+  '@tanstack/ai-openai@0.0.3(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(ws@8.18.3)(zod@4.1.12)':
+    dependencies:
+      '@tanstack/ai': 0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)
+      openai: 6.10.0(ws@8.18.3)(zod@4.1.12)
+    transitivePeerDependencies:
+      - ws
+      - zod
+
+  '@tanstack/ai-react@0.0.3(@tanstack/ai-client@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(@types/react@19.2.2)(react@19.2.0)':
+    dependencies:
+      '@tanstack/ai': 0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)
+      '@tanstack/ai-client': 0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)
+      '@types/react': 19.2.2
+      react: 19.2.0
+
+  '@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)':
+    dependencies:
+      '@alcyone-labs/zod-to-json-schema': 4.0.10(zod@4.1.12)
+      '@tanstack/devtools-event-client': 0.4.0
+      partial-json: 0.1.7
+      zod: 4.1.12
+
   '@tanstack/devtools-event-client@0.3.5': {}
+
+  '@tanstack/devtools-event-client@0.4.0': {}
 
   '@tanstack/directive-functions-plugin@1.133.19(vite@7.1.12(@types/node@24.9.1)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.43.1)(tsx@4.20.6)(yaml@2.8.1))':
     dependencies:
@@ -14392,6 +14471,11 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
+  openai@6.10.0(ws@8.18.3)(zod@4.1.12):
+    optionalDependencies:
+      ws: 8.18.3
+      zod: 4.1.12
+
   openai@6.10.0(ws@8.18.3)(zod@4.1.13):
     optionalDependencies:
       ws: 8.18.3
@@ -14449,6 +14533,8 @@ snapshots:
   parse5@7.3.0:
     dependencies:
       entities: 6.0.1
+
+  partial-json@0.1.7: {}
 
   path-exists@4.0.0: {}
 
