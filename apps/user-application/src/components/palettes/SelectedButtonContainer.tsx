@@ -5,39 +5,14 @@ import { useRouterState } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { ExportActions } from "./ExportActions";
 import { MixButton } from "./MixButton";
-import { RefineButton } from "./RefineButton";
 import { useMounted } from "@mantine/hooks";
-import type { RefineResult } from "@/server-functions/refine";
-import type { ReferenceExample } from "@/lib/palette-gen/prompts";
-
-interface RefineState {
-    isRefining: boolean;
-    hasResults: boolean;
-    limit: number;
-    referenceExamples: ReferenceExample[];
-    likedSeeds: string[];
-    dislikedSeeds: string[];
-    hasFeedback: boolean;
-    canGiveFeedback: boolean;
-    iterationCount: number;
-    maxIterations: number;
-    onRefineStart: (isUpdate: boolean) => void;
-    onRefineProgress: (approved: number, currentTool?: string) => void;
-    onRefineComplete: (result: RefineResult) => void;
-    onRefineError: (error: string) => void;
-    onRefineClear: () => void;
-}
 
 interface SelectedButtonContainerProps {
     className?: string;
-    searchQuery?: string;
-    refineState?: RefineState;
 }
 
 export function SelectedButtonContainer({
     className,
-    searchQuery,
-    refineState,
 }: SelectedButtonContainerProps) {
     const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
@@ -59,26 +34,6 @@ export function SelectedButtonContainer({
                 className,
             )}
         >
-            {!isExportOpen && searchQuery && refineState && (
-                <RefineButton
-                    query={searchQuery}
-                    limit={refineState.limit}
-                    isRefining={refineState.isRefining}
-                    hasResults={refineState.hasResults}
-                    referenceExamples={refineState.referenceExamples}
-                    likedSeeds={refineState.likedSeeds}
-                    dislikedSeeds={refineState.dislikedSeeds}
-                    hasFeedback={refineState.hasFeedback}
-                    canGiveFeedback={refineState.canGiveFeedback}
-                    iterationCount={refineState.iterationCount}
-                    maxIterations={refineState.maxIterations}
-                    onRefineStart={refineState.onRefineStart}
-                    onRefineProgress={refineState.onRefineProgress}
-                    onRefineComplete={refineState.onRefineComplete}
-                    onRefineError={refineState.onRefineError}
-                    onRefineClear={refineState.onRefineClear}
-                />
-            )}
             {hasSelectedItems && (
                 <>
                     {isExportOpen ? (
