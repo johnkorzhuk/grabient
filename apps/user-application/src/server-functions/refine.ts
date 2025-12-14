@@ -64,12 +64,12 @@ The query may lock certain dimensions (e.g., "warm" locks temperature, "muted" l
 
 3. **Hue Transitions / Frequency** (cosine frequency 'c'):
    Target distribution (adjust based on query energy):
-   - ~60-70%: 2-3 hue transitions (the workhorses—elegant and versatile)
-   - ~20-30%: 4+ hue transitions (exploratory, more dynamic)
+   - ~60-70%: simple hue transitions (the workhorses—elegant and versatile)
+   - ~20-30%: more complex hue transitions (exploratory, more dynamic)
    - ~10-20%: unexpected interpretations (surprising but still clearly connected to the theme)
 
    Shift this ratio based on theme: "neon carnival" → more high-frequency; "minimal zen" → more simple flows.
-   Don't default to complex. A beautiful 2-hue gradient is often exactly right.
+   Don't default to complex.
 
 4. **Saturation**: muted/grayish ↔ vivid/pure
 5. **Temperature**: warmer ↔ cooler
@@ -308,7 +308,13 @@ export async function refinePalettesStream(
         baseURL: "https://api.groq.com/openai/v1",
     });
 
-    const systemPrompt = buildSystemPrompt(query, limit, mode, examples, feedback);
+    const systemPrompt = buildSystemPrompt(
+        query,
+        limit,
+        mode,
+        examples,
+        feedback,
+    );
 
     const messages: Array<{ role: "user" | "assistant"; content: string }> = [
         { role: "user", content: `## Theme: ${query}` },

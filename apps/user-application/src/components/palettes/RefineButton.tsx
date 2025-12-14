@@ -26,6 +26,8 @@ interface RefineButtonProps {
     limit?: number;
     examplePalettes?: string[][];
     feedback?: PaletteFeedback;
+    promptMode: PromptMode;
+    onModeChange: (mode: PromptMode) => void;
     onRefineStart: () => void;
     onPaletteReceived: (palette: RefinedPalette) => void;
     onRefineComplete: () => void;
@@ -39,6 +41,8 @@ export function RefineButton({
     limit = 24,
     examplePalettes,
     feedback,
+    promptMode,
+    onModeChange,
     onRefineStart,
     onPaletteReceived,
     onRefineComplete,
@@ -47,7 +51,6 @@ export function RefineButton({
     className,
 }: RefineButtonProps) {
     const [isRefining, setIsRefining] = useState(false);
-    const [promptMode, setPromptMode] = useState<PromptMode>("unbiased");
 
     const handleRefine = async () => {
         setIsRefining(true);
@@ -137,7 +140,7 @@ export function RefineButton({
             <div className="relative">
                 <select
                     value={promptMode}
-                    onChange={(e) => setPromptMode(e.target.value as PromptMode)}
+                    onChange={(e) => onModeChange(e.target.value as PromptMode)}
                     disabled={isRefining}
                     style={{ backgroundColor: "var(--background)" }}
                     className={cn(

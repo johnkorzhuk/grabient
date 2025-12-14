@@ -50,6 +50,7 @@ import {
     RefineButton,
     type RefinedPalette,
     type PaletteFeedback,
+    type PromptMode,
 } from "@/components/palettes/RefineButton";
 import {
     getGoodSeedsForQuery,
@@ -621,10 +622,18 @@ function SearchResultsPage() {
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
 
-    // V2 Refine state - simpler flow
+    // Refine state with per-mode caching
+    const [promptMode, setPromptMode] = useState<PromptMode>("unbiased");
     const [isRefining, setIsRefining] = useState(false);
-    const [refinedPalettes, setRefinedPalettes] = useState<RefinedPalette[]>([]);
+    const [paletteCache, setPaletteCache] = useState<Record<PromptMode, RefinedPalette[]>>({
+        unbiased: [],
+        "full-feedback": [],
+        "positive-only": [],
+    });
     const [refineError, setRefineError] = useState<string | null>(null);
+
+    // Get palettes for current mode
+    const refinedPalettes = paletteCache[promptMode];
 
     // Convert RefinedPalette to AppPalette format
     const refinedToAppPalette = (refined: RefinedPalette): AppPalette => {
@@ -691,7 +700,9 @@ function SearchResultsPage() {
 
     const feedback = buildFeedback();
 
-    const hasRefineResults = refinedPalettes.length > 0 || refineError !== null;
+    // Show refine section if any mode has results or there's an error
+    const hasAnyResults = Object.values(paletteCache).some(arr => arr.length > 0);
+    const hasRefineResults = hasAnyResults || refineError !== null;
 
     const backNav = buildBackNavigation({ sort, style, angle, steps, size });
 
@@ -782,13 +793,21 @@ function SearchResultsPage() {
                         limit={DEFAULT_PAGE_LIMIT}
                         examplePalettes={results.slice(0, 6).map(r => r.hexColors)}
                         feedback={feedback}
+                        promptMode={promptMode}
+                        onModeChange={setPromptMode}
                         onRefineStart={() => {
                             setIsRefining(true);
-                            setRefinedPalettes([]);
+                            setPaletteCache(prev => ({
+                                ...prev,
+                                [promptMode]: [],
+                            }));
                             setRefineError(null);
                         }}
                         onPaletteReceived={(palette) => {
-                            setRefinedPalettes((prev) => [...prev, palette]);
+                            setPaletteCache(prev => ({
+                                ...prev,
+                                [promptMode]: [...prev[promptMode], palette],
+                            }));
                         }}
                         onRefineComplete={() => {
                             setIsRefining(false);
@@ -806,9 +825,14 @@ function SearchResultsPage() {
             {hasRefineResults ? (
                 <>
                     <div className="px-5 lg:px-14 mb-6">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <Sparkles className="w-5 h-5 text-muted-foreground" />
                             <h2 className="text-lg font-semibold">AI Refinement Results</h2>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
+                                {promptMode === "unbiased" ? "Unbiased" :
+                                 promptMode === "full-feedback" ? "+/- Feedback" :
+                                 "+ Only"}
+                            </span>
                             {isRefining && (
                                 <span className="text-sm text-muted-foreground animate-pulse">
                                     Generating... ({refinedPalettes.length} received)
@@ -819,6 +843,31 @@ function SearchResultsPage() {
                                     {refinedAppPalettes.length} palettes
                                 </span>
                             )}
+                        </div>
+                        {/* Show cache status for all modes */}
+                        <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                            {(["unbiased", "full-feedback", "positive-only"] as PromptMode[]).map((mode) => {
+                                const count = paletteCache[mode].length;
+                                const isActive = mode === promptMode;
+                                if (count === 0 && !isActive) return null;
+                                return (
+                                    <button
+                                        key={mode}
+                                        type="button"
+                                        onClick={() => setPromptMode(mode)}
+                                        className={cn(
+                                            "transition-colors",
+                                            isActive
+                                                ? "text-foreground font-medium"
+                                                : "hover:text-foreground cursor-pointer underline underline-offset-2"
+                                        )}
+                                    >
+                                        {mode === "unbiased" ? "Unbiased" :
+                                         mode === "full-feedback" ? "+/- Feedback" :
+                                         "+ Only"}: {count}
+                                    </button>
+                                );
+                            })}
                         </div>
                         {refineError && (
                             <div className="text-red-500 text-sm p-4 mt-4 rounded-md bg-red-500/10 border border-red-500/20">
