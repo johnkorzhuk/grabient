@@ -51,7 +51,6 @@ import {
     type RefinedPalette,
     type PaletteFeedback,
     type PromptMode,
-    type PromptVersion,
 } from "@/components/palettes/RefineButton";
 import {
     getGoodSeedsForQuery,
@@ -625,7 +624,6 @@ function SearchResultsPage() {
 
     // Refine state with per-mode caching (store AppPalettes directly to avoid re-conversion)
     const [promptMode, setPromptMode] = useState<PromptMode>("unbiased");
-    const [promptVersion, setPromptVersion] = useState<PromptVersion>("v6");
     const [isRefining, setIsRefining] = useState(false);
     const [paletteCache, setPaletteCache] = useState<Record<PromptMode, AppPalette[]>>({
         "vector-search": [],
@@ -796,9 +794,7 @@ function SearchResultsPage() {
                         examplePalettes={results.map(r => r.hexColors)}
                         feedback={feedback}
                         promptMode={promptMode}
-                        promptVersion={promptVersion}
                         onModeChange={setPromptMode}
-                        onVersionChange={setPromptVersion}
                         onRefineStart={() => {
                             setIsRefining(true);
                             setRefineError(null);

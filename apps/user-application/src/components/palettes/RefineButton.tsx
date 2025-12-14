@@ -8,9 +8,10 @@ import type { StreamingPalette, PaletteFeedback } from "@/server-functions/refin
 
 export type { PaletteFeedback };
 
-export type PromptMode = "unbiased" | "examples-only" | "full-feedback" | "positive-only";
+export type PromptMode = "vector-search" | "unbiased" | "examples-only" | "full-feedback" | "positive-only";
 
 const PROMPT_MODE_LABELS: Record<PromptMode, string> = {
+    "vector-search": "Vector search (no AI)",
     unbiased: "Unbiased (no examples)",
     "examples-only": "Examples only",
     "full-feedback": "Examples + feedback (+/-)",
@@ -58,6 +59,12 @@ export function RefineButton({
         onRefineStart();
 
         try {
+            // Vector search mode: handled by parent (uses existing results with seeds)
+            if (promptMode === "vector-search") {
+                onRefineComplete();
+                return;
+            }
+
             const body: {
                 query: string;
                 limit: number;
@@ -136,10 +143,10 @@ export function RefineButton({
         }
     };
 
-    const promptModes: PromptMode[] = ["unbiased", "examples-only", "full-feedback", "positive-only"];
+    const promptModes: PromptMode[] = ["vector-search", "unbiased", "examples-only", "full-feedback", "positive-only"];
 
     return (
-        <div className={cn("inline-flex items-center gap-3", className)}>
+        <div className={cn("inline-flex items-center gap-2", className)}>
             <div className="relative">
                 <select
                     value={promptMode}

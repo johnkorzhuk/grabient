@@ -15,8 +15,7 @@ User lands on /palettes/ocean
          ▼                                           │
    Create session (v1)                               │
    Generate 24 palettes                              │
-   LLM self-selects its top picks (by index)        │
-   Store in session: generatedSeeds["1"], topPicks["1"]
+   Store in session: generatedSeeds["1"]             │
          │                                           │
          ▼                                           │
    User gives feedback (thumbs up/down)              │
@@ -28,75 +27,15 @@ User lands on /palettes/ocean
          ▼
    Load session (now v2)
    Build SOFT context from:
-     - llmTopPicks (from last version)
      - liked/disliked (from session feedback)
-     - topPicks (from previous generation only)
    Generate 24 NEW palettes (prioritize uniqueness + query fit)
-   Store in session: generatedSeeds["2"], topPicks["2"]
+   Store in session: generatedSeeds["2"]
 ```
 
 The "conversation" is implicit, built from:
 
-1. LLM's self-selected top picks from **previous version only** (positive signal)
-2. User likes from **previous version only** (positive signal)
-3. User dislikes from **all versions** (negative signal—what to avoid)
-4. Top picks from **previous generation only** (positive signal)
-
----
-
-## LLM Self-Selection
-
-Each generation, the LLM outputs palettes AND selects its top picks by index. These self-selected palettes become stronger context for the next generation.
-
-### Output Format
-
-```json
-{
-  "palettes": [
-    ["#1a2b3c", "#4d5e6f", ...],
-    ["#7a8b9c", "#0d1e2f", ...],
-    ...
-  ],
-  "topPicks": [0, 5, 12, 18]
-}
-```
-
-### System Prompt Addition
-
-```
-## Output Format
-Return a JSON object with:
-1. "palettes": array of ${limit} palette arrays (8 hex colors each)
-2. "topPicks": array of 3-5 indices (0-based) of your strongest palettes for "${query}"
-
-Select palettes that best capture the theme's essence with interesting color relationships.
-
-Example:
-{
-  "palettes": [["#hex1", ...], ["#hex2", ...], ...],
-  "topPicks": [0, 7, 15, 22]
-}
-```
-
-### Using Top Picks in Next Generation
-
-The LLM's self-selected palettes feed into the next refinement as the strongest context signal for continuation, alongside user feedback from thumbs up/down.
-
-```typescript
-interface RefineContext {
-    llmTopPicks: string[][]; // LLM's self-selected from previous version (positive)
-    liked: string[][]; // User likes from previous version (positive)
-    disliked: string[][]; // User dislikes from all versions (negative)
-    topPicks: string[][]; // Top picks from previous version (positive)
-}
-```
-
-Priority hierarchy for context:
-
-1. **LLM top picks** → "These worked well, explore similar directions"
-2. **User liked** → "User approved these from last batch"
-3. **User disliked** → "Avoid these directions"
-4. **Top picks** → "Previous generation's strongest palettes"
+1. User likes from **previous version only** (positive signal)
+2. User dislikes from **all versions** (negative signal—what to avoid)
 
 ---
 
@@ -112,7 +51,6 @@ CREATE TABLE refine_sessions (
   query TEXT NOT NULL,
   version INTEGER NOT NULL DEFAULT 1,
   generated_seeds TEXT NOT NULL DEFAULT '{}',
-  top_picks TEXT NOT NULL DEFAULT '{}',
   feedback TEXT NOT NULL DEFAULT '{}',
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
@@ -138,11 +76,6 @@ export const refineSessions = sqliteTable(
         // Seeds generated per version: { "1": ["seed1", "seed2"], "2": ["seed3"] }
         generatedSeeds: text("generated_seeds", { mode: "json" })
             .$type<Record<number, string[]>>()
-            .notNull()
-            .default({}),
-        // LLM's self-selected top picks per version: { "1": [0, 5, 12], "2": [1, 8] }
-        topPicks: text("top_picks", { mode: "json" })
-            .$type<Record<number, number[]>>()
             .notNull()
             .default({}),
         // User feedback per version: { "1": { "seed1": "good", "seed2": "bad" }, "2": {...} }
@@ -191,27 +124,18 @@ pnpm drizzle-kit push
 // apps/user-application/src/server-functions/refine.ts
 
 interface RefineContext {
-    llmTopPicks: string[][]; // LLM's self-selected from previous version (positive)
     liked: string[][]; // User likes from previous version (positive)
     disliked: string[][]; // User dislikes from all versions (negative)
-    topPicks: string[][]; // Top picks from previous version (positive)
 }
 
 async function buildRefineContext(
     session: RefineSession | null,
 ): Promise<RefineContext> {
     if (!session) {
-        return { llmTopPicks: [], liked: [], disliked: [], topPicks: [] };
+        return { liked: [], disliked: [] };
     }
 
     const prevVersion = session.version;
-
-    // Get LLM's top picks from previous version
-    const llmTopPicks = getVersionTopPicks(
-        session.generatedSeeds,
-        session.topPicks,
-        prevVersion,
-    );
 
     // Get user likes from previous version only (positive signal)
     const liked = getVersionLikedPalettes(
@@ -222,28 +146,7 @@ async function buildRefineContext(
     // Get user dislikes from ALL versions (negative signal)
     const disliked = getAllDislikedPalettes(session.feedback);
 
-    // Get top picks from previous version (positive signal)
-    const topPicks = getVersionTopPicks(
-        session.generatedSeeds,
-        session.topPicks,
-        prevVersion,
-    );
-
-    return { llmTopPicks, liked, disliked, topPicks };
-}
-
-// Helper: get LLM's top picks from a specific version
-function getVersionTopPicks(
-    generatedSeeds: Record<number, string[]>,
-    topPicks: Record<number, number[]>,
-    version: number,
-): string[][] {
-    const seeds = generatedSeeds[version] ?? [];
-    const picks = topPicks[version] ?? [];
-
-    return picks
-        .filter((idx) => idx >= 0 && idx < seeds.length)
-        .map((idx) => seedToHexColors(seeds[idx]!));
+    return { liked, disliked };
 }
 
 // Helper: get liked palettes from a specific version
@@ -273,41 +176,6 @@ function getAllDislikedPalettes(
 
     return disliked;
 }
-
-// Helper: get LLM's top picks from the last version
-function getLastVersionTopPicks(
-    generatedSeeds: Record<number, string[]>,
-    topPicks: Record<number, number[]>,
-    currentVersion: number,
-): string[][] {
-    const lastVersion = currentVersion; // topPicks from the version we just completed
-    const seeds = generatedSeeds[lastVersion] ?? [];
-    const picks = topPicks[lastVersion] ?? [];
-
-    return picks
-        .filter((idx) => idx >= 0 && idx < seeds.length)
-        .map((idx) => seedToHexColors(seeds[idx]!));
-}
-
-// Helper: get most recent N palettes across versions
-function getRecentPalettes(
-    generatedSeeds: Record<number, string[]>,
-    limit: number,
-): string[][] {
-    const versions = Object.keys(generatedSeeds)
-        .map(Number)
-        .sort((a, b) => b - a); // newest first
-
-    const recent: string[][] = [];
-    for (const version of versions) {
-        const seeds = generatedSeeds[version] ?? [];
-        for (const seed of seeds) {
-            recent.push(seedToHexColors(seed));
-            if (recent.length >= limit) return recent;
-        }
-    }
-    return recent;
-}
 ```
 
 ### System Prompt Integration
@@ -329,10 +197,10 @@ function buildSystemPrompt(
         prompt += `\n\n## Session Context (Refinement #${version})
 This is soft guidance to help you generate fresh variations. Your primary goal remains: unique, interesting palettes for "${query}".`;
 
-        if (context.llmTopPicks.length > 0) {
-            // LLM's own top picks from last version - positive signal
-            prompt += `\n\n### Previous Top Picks (these worked well, explore similar directions)
-${context.llmTopPicks
+        if (context.liked.length > 0) {
+            // User likes from last version - positive signal
+            prompt += `\n\n### User Liked (explore similar directions)
+${context.liked
     .slice(0, 4)
     .map((p) => JSON.stringify(p))
     .join("\n")}`;
@@ -343,14 +211,6 @@ ${context.llmTopPicks
             prompt += `\n\n### User Disliked (avoid these directions)
 ${context.disliked
     .slice(0, 6)
-    .map((p) => JSON.stringify(p))
-    .join("\n")}`;
-        }
-
-        if (context.topPicks.length > 0) {
-            prompt += `\n\n### Previous Top Picks (positive signal)
-${context.topPicks
-    .slice(0, 12)
     .map((p) => JSON.stringify(p))
     .join("\n")}`;
         }
@@ -408,7 +268,6 @@ export async function refinePalettesStream(
             query: normalizeQuery(query),
             version: 1,
             generatedSeeds: {},
-            topPicks: {},
             feedback: {},
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -419,11 +278,10 @@ export async function refinePalettesStream(
     const context = await buildRefineContext(session);
     const systemPrompt = buildSystemPrompt(query, limit, version, context);
 
-    // ... streaming logic that parses JSON with palettes + topPicks ...
+    // ... streaming logic that parses JSON with palettes ...
 
-    // After stream completes, update session with new seeds and LLM's top picks
+    // After stream completes, update session with new seeds
     const newSeeds: string[] = []; // collected during streaming
-    const newTopPicks: number[] = []; // parsed from LLM's "topPicks" field
 
     await db
         .update(refineSessions)
@@ -432,10 +290,6 @@ export async function refinePalettesStream(
             generatedSeeds: {
                 ...(session?.generatedSeeds ?? {}),
                 [version]: newSeeds,
-            },
-            topPicks: {
-                ...(session?.topPicks ?? {}),
-                [version]: newTopPicks,
             },
             updatedAt: new Date(),
         })

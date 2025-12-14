@@ -9,9 +9,16 @@ import { chat } from "@tanstack/ai";
 // meta-llama/llama-4-maverick-17b-128e-instruct
 // qwen/qwen3-32b
 // const MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct";
+//
+// openai/gpt-oss-120b
+// openai/gpt-oss-20b
 const MODEL = "openai/gpt-oss-120b";
 
-export type PromptMode = "unbiased" | "examples-only" | "full-feedback" | "positive-only";
+export type PromptMode =
+    | "unbiased"
+    | "examples-only"
+    | "full-feedback"
+    | "positive-only";
 
 export const PROMPT_MODE_LABELS: Record<PromptMode, string> = {
     unbiased: "Unbiased (no examples)",
@@ -21,72 +28,97 @@ export const PROMPT_MODE_LABELS: Record<PromptMode, string> = {
 };
 
 function buildBasePrompt(query: string, limit: number): string {
-    return `You are a color palette generator. Generate ${limit} palettes of 8 hex colors each.
+    return `Generate ${limit} gradient palettes for "${query}". Each palette is 8 hex colors.
 
-## Theme: "${query}"
-This is your anchor. Every palette must clearly connect to this theme.
+## Your Anchor: "${query}"
+Every palette must unmistakably evoke this theme. But there are many ways to interpret any theme.
 
-Consider what "${query}" evokes:
-- What colors, moods, or imagery come to mind?
-- Does it imply constraints (like "muted" or "warm") or invite exploration?
-- What emotions or atmospheres should the palettes capture?
+The query "${query}" constrains some dimensions but leaves others open:
+- "sunset" → constrains hue to warm, but brightness/contrast/saturation can vary freely
+- "muted forest" → constrains saturation (low) and hue (green), but brightness/contrast/complexity can vary
+- "neon" → constrains saturation (high), but hue/brightness/contrast can vary
 
-Generate ${limit} distinct interpretations that all feel true to "${query}".
+Identify what "${query}" constrains, then spread your ${limit} palettes across the unconstrained dimensions.
 
-## How to Create Great Palettes
-Your palettes will be fitted to cosine gradients: color(t) = a + b·cos(2π(c·t + d))
+## The Algorithm
+Your colors will be fitted to: color(t) = a + b·cos(2π(c·t + d)) for each RGB channel independently.
+- **a** (bias): baseline brightness of the channel
+- **b** (amplitude): how much the channel oscillates
+- **c** (frequency): how many oscillations across the gradient
+- **d** (phase): where in the cycle the channel starts
 
-This algorithm excels at smooth oscillations and hue journeys:
-- Channels can rise and fall naturally (that's what cosine does)
-- Phase offsets between R/G/B create beautiful hue rotations
-- Simple A→B flows work great; A→B→C or A→B→A journeys add variety when appropriate
+The interplay of these parameters across R, G, B creates all color effects.
 
-**Different journeys serve different moods:**
-- Simple 2-hue flows (blue→purple): elegant, calm, focused
-- 3-hue journeys (teal→gold→rose): balanced, dynamic
-- Multi-hue paths (navy→coral→mint→plum): energetic, complex, playful
-- Through-neutral paths (red→gray→blue): sophisticated transitions
+## Dimensions to Vary (mapped to algorithm)
 
-All of these are valid. Match the complexity to the theme's energy.
+**Brightness** (bias 'a' of all channels):
+- Dark/moody (low bias) ↔ Medium ↔ Bright/airy (high bias)
+- Distribute: ~1/3 dark, ~1/3 medium, ~1/3 bright
 
-## Vary the Unconstrained Dimensions
-The query may lock certain dimensions (e.g., "warm" locks temperature, "muted" locks saturation). Identify which dimensions are FREE and spread your palettes across them.
+**Contrast** (amplitude 'b'):
+- Dramatic: high amplitude, near-black to near-white swings
+- Subtle: low amplitude, narrow value range
+- Mix both across your palettes
 
-**Critical dimensions to vary** (these map directly to cosine parameters):
+**Saturation** (amplitude relationships between R,G,B):
+- Vivid: similar amplitudes across channels
+- Muted: one channel dampened
+- Near-gray: all channels low amplitude
 
-1. **Exposure/Brightness** (cosine bias 'a'):
-   - Evenly distributed unless otherwise specified by the query
+**Saturation Arc** (how saturation changes across gradient):
+- Consistent: saturated throughout
+- Fading: vivid→muted
+- Emerging: muted→vivid
+- Dip: saturated→muted→saturated
 
-2. **Contrast/Value Range** (cosine amplitude 'b'):
-   - Some high contrast: near-black to near-white
-   - Some low contrast: all pastels, or all deep tones
+**Hue Journey** (phase 'd' relationships):
+- Monochromatic: same phase, only brightness changes
+- Analogous: small phase offsets, neighboring hues
+- Complementary passage: passes through the complement
+- Spectral: sequential phase offsets, rainbow-like
 
-3. **Hue Transitions / Frequency** (cosine frequency 'c'):
-   Target distribution (adjust based on query energy):
-   - ~60-70%: simple hue transitions (the workhorses—elegant and versatile)
-   - ~20-30%: more complex hue transitions (exploratory, more dynamic)
-   - ~10-20%: unexpected interpretations (surprising but still clearly connected to the theme)
+**Complexity** (frequency 'c'):
+- Simple A→B (c≈0.5): one-directional flow
+- Symmetric A→B→A (c≈1.0): rises and returns
+- Multi-peak (c>1): multiple color cycles
+- Target: ~60% simple, ~30% symmetric, ~10% complex
 
-   Shift this ratio based on theme: "neon carnival" → more high-frequency; "minimal zen" → more simple flows.
-   Don't default to complex.
+**Peak Position** (phase 'd' value):
+- Early climax: intensity peaks at start
+- Centered: peak in middle
+- Late climax: builds to end
 
-4. **Saturation**: muted/grayish ↔ vivid/pure
-5. **Temperature**: warmer ↔ cooler
-6. **Direction**: light→dark vs dark→light
+**Temperature** (bias relationships):
+- Warm cast: red bias slightly higher
+- Cool cast: blue bias slightly higher
+- Neutral: balanced
 
-Example: Query "ocean" → vary exposure (bright shallow water vs deep abyss), contrast (subtle gradients vs dramatic), frequency (simple blue→teal vs blue→green→purple→navy).
+## Worked Example
 
-Don't produce ${limit} similar palettes. Spread across the free dimensions.
+**"ocean"** constrains: blue-green hues. FREE: everything else.
+- Dark abyss: low brightness, low contrast, simple A→B, late climax
+- Tropical shallows: high brightness, medium contrast, analogous hues
+- Storm: medium brightness, HIGH contrast, symmetric A→B→A, complementary grays
+- Bioluminescence: dark with vivid accents, emerging saturation, spectral hints
+- Sunset reflection: warm cast on cool base, fading saturation
 
-## Final Check: Theme Alignment
-Before outputting, verify each palette against the theme "${query}":
-- Would someone seeing this palette think of "${query}"?
-- Every palette—including creative ones—must have a clear connection
-- If a palette feels random or disconnected, replace it
-- Variety in style is good; departure from the theme is not
+## What Makes a Bad Set
+- All similar brightness
+- All high OR all low saturation
+- All simple OR all complex
+- Only obvious hue choices
+- No variety in saturation arc or peak position
+- Generic palettes that fit any theme
+
+## Summary
+1. Anchor every palette to "${query}" — it must be unmistakably on-theme
+2. Identify what "${query}" constrains (hue? saturation? brightness?)
+3. Spread your ${limit} palettes across ALL unconstrained dimensions
+4. Vary: brightness levels, contrast intensity, saturation arcs, hue journeys, complexity, peak positions
+5. Each palette should feel like a different interpretation of the same theme
 
 ## Output
-Return ONLY a JSON array of ${limit} arrays:
+${limit} distinct palettes for "${query}". JSON array only:
 [["#hex1", "#hex2", "#hex3", "#hex4", "#hex5", "#hex6", "#hex7", "#hex8"], ...]`;
 }
 
@@ -349,6 +381,7 @@ export async function refinePalettesStream(
         model: MODEL as "gpt-4o",
         systemPrompts: [systemPrompt],
         messages,
+        maxLength: 10240,
     });
 
     // Transform TanStack AI stream into palette SSE events
