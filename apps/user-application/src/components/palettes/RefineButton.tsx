@@ -8,10 +8,11 @@ import type { StreamingPalette, PaletteFeedback } from "@/server-functions/refin
 
 export type { PaletteFeedback };
 
-export type PromptMode = "unbiased" | "full-feedback" | "positive-only";
+export type PromptMode = "unbiased" | "examples-only" | "full-feedback" | "positive-only";
 
 const PROMPT_MODE_LABELS: Record<PromptMode, string> = {
     unbiased: "Unbiased (no examples)",
+    "examples-only": "Examples only",
     "full-feedback": "Examples + feedback (+/-)",
     "positive-only": "Examples + positive only",
 };
@@ -69,7 +70,9 @@ export function RefineButton({
                 body.examples = examplePalettes;
             }
 
-            if (promptMode !== "unbiased" && feedback && (feedback.good.length > 0 || feedback.bad.length > 0)) {
+            // Only include feedback for modes that use it
+            const usesFeedback = promptMode === "full-feedback" || promptMode === "positive-only";
+            if (usesFeedback && feedback && (feedback.good.length > 0 || feedback.bad.length > 0)) {
                 body.feedback = feedback;
             }
 
@@ -133,7 +136,7 @@ export function RefineButton({
         }
     };
 
-    const promptModes: PromptMode[] = ["unbiased", "full-feedback", "positive-only"];
+    const promptModes: PromptMode[] = ["unbiased", "examples-only", "full-feedback", "positive-only"];
 
     return (
         <div className={cn("inline-flex items-center gap-3", className)}>

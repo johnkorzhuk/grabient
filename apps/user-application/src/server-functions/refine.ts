@@ -11,10 +11,11 @@ import { chat } from "@tanstack/ai";
 // const MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct";
 const MODEL = "openai/gpt-oss-120b";
 
-export type PromptMode = "unbiased" | "full-feedback" | "positive-only";
+export type PromptMode = "unbiased" | "examples-only" | "full-feedback" | "positive-only";
 
 export const PROMPT_MODE_LABELS: Record<PromptMode, string> = {
     unbiased: "Unbiased (no examples)",
+    "examples-only": "Examples only",
     "full-feedback": "Examples + feedback (positive & negative)",
     "positive-only": "Examples + positive feedback only",
 };
@@ -54,13 +55,11 @@ The query may lock certain dimensions (e.g., "warm" locks temperature, "muted" l
 **Critical dimensions to vary** (these map directly to cosine parameters):
 
 1. **Exposure/Brightness** (cosine bias 'a'):
-   - Some palettes should be predominantly dark, others light, others mid-toned
-   - Example: deep navy→purple→maroon vs pale pink→lavender→sky
+   - Evenly distributed unless otherwise specified by the query
 
 2. **Contrast/Value Range** (cosine amplitude 'b'):
    - Some high contrast: near-black to near-white
    - Some low contrast: all pastels, or all deep tones
-   - Example: #1a1a2e→#eeeef0 vs #667788→#8899aa
 
 3. **Hue Transitions / Frequency** (cosine frequency 'c'):
    Target distribution (adjust based on query energy):
@@ -95,6 +94,28 @@ function buildUnbiasedPrompt(query: string, limit: number): string {
     return buildBasePrompt(query, limit);
 }
 
+function buildExamplesOnlyPrompt(
+    query: string,
+    limit: number,
+    examples?: string[][],
+): string {
+    let prompt = buildBasePrompt(query, limit);
+
+    if (examples && examples.length > 0) {
+        const exampleLines = examples
+            .slice(0, 24)
+            .map((p) => JSON.stringify(p))
+            .join("\n");
+        prompt += `
+
+## Reference Examples
+Here are some example palettes that may or may not be representative of the theme. Use them as loose inspiration for style and structure, not as strict templates:
+${exampleLines}`;
+    }
+
+    return prompt;
+}
+
 function buildFullFeedbackPrompt(
     query: string,
     limit: number,
@@ -105,7 +126,7 @@ function buildFullFeedbackPrompt(
 
     if (examples && examples.length > 0) {
         const exampleLines = examples
-            .slice(0, 6)
+            .slice(0, 24)
             .map((p) => JSON.stringify(p))
             .join("\n");
         prompt += `
@@ -154,7 +175,7 @@ function buildPositiveOnlyPrompt(
 
     if (examples && examples.length > 0) {
         const exampleLines = examples
-            .slice(0, 6)
+            .slice(0, 24)
             .map((p) => JSON.stringify(p))
             .join("\n");
         prompt += `
@@ -189,6 +210,8 @@ function buildSystemPrompt(
     switch (mode) {
         case "unbiased":
             return buildUnbiasedPrompt(query, limit);
+        case "examples-only":
+            return buildExamplesOnlyPrompt(query, limit, examples);
         case "full-feedback":
             return buildFullFeedbackPrompt(query, limit, examples, feedback);
         case "positive-only":

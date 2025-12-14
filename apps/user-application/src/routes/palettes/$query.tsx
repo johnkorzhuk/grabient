@@ -627,6 +627,7 @@ function SearchResultsPage() {
     const [isRefining, setIsRefining] = useState(false);
     const [paletteCache, setPaletteCache] = useState<Record<PromptMode, RefinedPalette[]>>({
         unbiased: [],
+        "examples-only": [],
         "full-feedback": [],
         "positive-only": [],
     });
@@ -791,7 +792,7 @@ function SearchResultsPage() {
                     <RefineButton
                         query={query}
                         limit={DEFAULT_PAGE_LIMIT}
-                        examplePalettes={results.slice(0, 6).map(r => r.hexColors)}
+                        examplePalettes={results.map(r => r.hexColors)}
                         feedback={feedback}
                         promptMode={promptMode}
                         onModeChange={setPromptMode}
@@ -830,6 +831,7 @@ function SearchResultsPage() {
                             <h2 className="text-lg font-semibold">AI Refinement Results</h2>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
                                 {promptMode === "unbiased" ? "Unbiased" :
+                                 promptMode === "examples-only" ? "Examples" :
                                  promptMode === "full-feedback" ? "+/- Feedback" :
                                  "+ Only"}
                             </span>
@@ -846,7 +848,7 @@ function SearchResultsPage() {
                         </div>
                         {/* Show cache status for all modes */}
                         <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                            {(["unbiased", "full-feedback", "positive-only"] as PromptMode[]).map((mode) => {
+                            {(["unbiased", "examples-only", "full-feedback", "positive-only"] as PromptMode[]).map((mode) => {
                                 const count = paletteCache[mode].length;
                                 const isActive = mode === promptMode;
                                 if (count === 0 && !isActive) return null;
@@ -863,6 +865,7 @@ function SearchResultsPage() {
                                         )}
                                     >
                                         {mode === "unbiased" ? "Unbiased" :
+                                         mode === "examples-only" ? "Examples" :
                                          mode === "full-feedback" ? "+/- Feedback" :
                                          "+ Only"}: {count}
                                     </button>
