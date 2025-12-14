@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sparkles, Loader2 } from "lucide-react";
+import { Sparkles, Loader2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fitCosinePalette } from "@repo/data-ops/gradient-gen";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
@@ -7,6 +7,14 @@ import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
 import type { StreamingPalette, PaletteFeedback } from "@/server-functions/refine";
 
 export type { PaletteFeedback };
+
+export type PromptMode = "unbiased" | "full-feedback" | "positive-only";
+
+const PROMPT_MODE_LABELS: Record<PromptMode, string> = {
+    unbiased: "Unbiased (no examples)",
+    "full-feedback": "Examples + feedback (+/-)",
+    "positive-only": "Examples + positive only",
+};
 
 export interface RefinedPalette {
     seed: string;
@@ -39,7 +47,7 @@ export function RefineButton({
     className,
 }: RefineButtonProps) {
     const [isRefining, setIsRefining] = useState(false);
-    const [includeExamples, setIncludeExamples] = useState(false);
+    const [promptMode, setPromptMode] = useState<PromptMode>("unbiased");
 
     const handleRefine = async () => {
         setIsRefining(true);
@@ -49,15 +57,16 @@ export function RefineButton({
             const body: {
                 query: string;
                 limit: number;
+                mode: PromptMode;
                 examples?: string[][];
                 feedback?: PaletteFeedback;
-            } = { query, limit };
+            } = { query, limit, mode: promptMode };
 
-            if (includeExamples && examplePalettes && examplePalettes.length > 0) {
+            if (promptMode !== "unbiased" && examplePalettes && examplePalettes.length > 0) {
                 body.examples = examplePalettes;
             }
 
-            if (feedback && (feedback.good.length > 0 || feedback.bad.length > 0)) {
+            if (promptMode !== "unbiased" && feedback && (feedback.good.length > 0 || feedback.bad.length > 0)) {
                 body.feedback = feedback;
             }
 
@@ -121,21 +130,35 @@ export function RefineButton({
         }
     };
 
-    const hasExamples = examplePalettes && examplePalettes.length > 0;
+    const promptModes: PromptMode[] = ["unbiased", "full-feedback", "positive-only"];
 
     return (
         <div className={cn("inline-flex items-center gap-3", className)}>
-            {hasExamples && (
-                <label className="inline-flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={includeExamples}
-                        onChange={(e) => setIncludeExamples(e.target.checked)}
-                        className="w-3.5 h-3.5 rounded border-input accent-foreground cursor-pointer"
-                    />
-                    <span>Include examples</span>
-                </label>
-            )}
+            <div className="relative">
+                <select
+                    value={promptMode}
+                    onChange={(e) => setPromptMode(e.target.value as PromptMode)}
+                    disabled={isRefining}
+                    style={{ backgroundColor: "var(--background)" }}
+                    className={cn(
+                        "disable-animation-on-theme-change",
+                        "appearance-none rounded-md",
+                        "font-medium text-xs h-8.5 pl-3 pr-7 border border-solid",
+                        "border-input hover:border-muted-foreground/30 hover:bg-background/60",
+                        "text-muted-foreground hover:text-foreground",
+                        "transition-colors duration-200 cursor-pointer",
+                        "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                        "disabled:opacity-50 disabled:cursor-not-allowed",
+                    )}
+                >
+                    {promptModes.map((mode) => (
+                        <option key={mode} value={mode}>
+                            {PROMPT_MODE_LABELS[mode]}
+                        </option>
+                    ))}
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+            </div>
             <button
                 type="button"
                 onClick={handleRefine}

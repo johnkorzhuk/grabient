@@ -11,39 +11,45 @@ import { chat } from "@tanstack/ai";
 // const MODEL = "meta-llama/llama-4-maverick-17b-128e-instruct";
 const MODEL = "openai/gpt-oss-120b";
 
-function buildSystemPrompt(limit: number, examples?: string[][]): string {
-    let prompt = `You are a color palette generator. Generate ${limit} palettes of 8 hex colors each.
+export type PromptMode = "unbiased" | "full-feedback" | "positive-only";
 
-## Your Primary Goal: Interpret the Theme
-The user's query is everything. Your job is to translate their theme into compelling color journeys.
+export const PROMPT_MODE_LABELS: Record<PromptMode, string> = {
+    unbiased: "Unbiased (no examples)",
+    "full-feedback": "Examples + feedback (positive & negative)",
+    "positive-only": "Examples + positive feedback only",
+};
 
-**Read the query carefully.** Consider:
-- What colors, moods, or imagery does it evoke?
-- Is it abstract ("energy") or concrete ("forest at dawn")?
-- Does it imply constraints ("muted pastels") or invite exploration ("vibrant")?
+function buildBasePrompt(query: string, limit: number): string {
+    return `You are a color palette generator. Generate ${limit} palettes of 8 hex colors each.
+
+## Theme: "${query}"
+This is your anchor. Every palette must clearly connect to this theme.
+
+Consider what "${query}" evokes:
+- What colors, moods, or imagery come to mind?
+- Does it imply constraints (like "muted" or "warm") or invite exploration?
 - What emotions or atmospheres should the palettes capture?
 
-Generate ${limit} distinct interpretations that ALL feel true to the theme.
+Generate ${limit} distinct interpretations that all feel true to "${query}".
 
 ## How to Create Great Palettes
 Your palettes will be fitted to cosine gradients: color(t) = a + b·cos(2π(c·t + d))
 
-This algorithm excels at smooth oscillations and multi-hue journeys:
+This algorithm excels at smooth oscillations and hue journeys:
 - Channels can rise and fall naturally (that's what cosine does)
 - Phase offsets between R/G/B create beautiful hue rotations
-- Don't just do A→B linear blends—explore A→B→C or A→B→A journeys
+- Simple A→B flows work great; A→B→C or A→B→A journeys add variety when appropriate
 
-**Avoid** (underuses the algorithm):
-- Simple two-color blends: blue→purple, orange→red
-- Monotonic single-hue progressions
+**Different journeys serve different moods:**
+- Simple 2-hue flows (blue→purple): elegant, calm, focused
+- 3-hue journeys (teal→gold→rose): balanced, dynamic
+- Multi-hue paths (navy→coral→mint→plum): energetic, complex, playful
+- Through-neutral paths (red→gray→blue): sophisticated transitions
 
-**Embrace** (leverages cosine strengths):
-- Multi-hue journeys: teal→gold→rose, navy→coral→mint
-- Through-neutral paths: red→gray→blue, forest→cream→plum
-- Oscillating lightness: bright→dark→bright with hue shifts
+All of these are valid. Match the complexity to the theme's energy.
 
-## Maximize Variety in Unconstrained Dimensions
-The query may lock certain dimensions (e.g., "warm" locks temperature, "muted" locks saturation). Identify which dimensions are FREE and push variety hard in those.
+## Vary the Unconstrained Dimensions
+The query may lock certain dimensions (e.g., "warm" locks temperature, "muted" locks saturation). Identify which dimensions are FREE and spread your palettes across them.
 
 **Critical dimensions to vary** (these map directly to cosine parameters):
 
@@ -56,11 +62,14 @@ The query may lock certain dimensions (e.g., "warm" locks temperature, "muted" l
    - Some low contrast: all pastels, or all deep tones
    - Example: #1a1a2e→#eeeef0 vs #667788→#8899aa
 
-3. **Frequency/Complexity** (cosine frequency 'c'):
-   - Some simple 2-color journeys (half wave)
-   - Some 3-4 color journeys (full wave)
-   - Some complex 5+ transitions (multiple waves)
-   - Example: blue→orange vs blue→purple→gold→teal→rose
+3. **Hue Transitions / Frequency** (cosine frequency 'c'):
+   Target distribution (adjust based on query energy):
+   - ~60-70%: 2-3 hue transitions (the workhorses—elegant and versatile)
+   - ~20-30%: 4+ hue transitions (exploratory, more dynamic)
+   - ~10-20%: unexpected interpretations (surprising but still clearly connected to the theme)
+
+   Shift this ratio based on theme: "neon carnival" → more high-frequency; "minimal zen" → more simple flows.
+   Don't default to complex. A beautiful 2-hue gradient is often exactly right.
 
 4. **Saturation**: muted/grayish ↔ vivid/pure
 5. **Temperature**: warmer ↔ cooler
@@ -68,14 +77,37 @@ The query may lock certain dimensions (e.g., "warm" locks temperature, "muted" l
 
 Example: Query "ocean" → vary exposure (bright shallow water vs deep abyss), contrast (subtle gradients vs dramatic), frequency (simple blue→teal vs blue→green→purple→navy).
 
-Don't produce ${limit} similar palettes. Spread across ALL free dimensions.
+Don't produce ${limit} similar palettes. Spread across the free dimensions.
+
+## Final Check: Theme Alignment
+Before outputting, verify each palette against the theme "${query}":
+- Would someone seeing this palette think of "${query}"?
+- Every palette—including creative ones—must have a clear connection
+- If a palette feels random or disconnected, replace it
+- Variety in style is good; departure from the theme is not
 
 ## Output
 Return ONLY a JSON array of ${limit} arrays:
 [["#hex1", "#hex2", "#hex3", "#hex4", "#hex5", "#hex6", "#hex7", "#hex8"], ...]`;
+}
+
+function buildUnbiasedPrompt(query: string, limit: number): string {
+    return buildBasePrompt(query, limit);
+}
+
+function buildFullFeedbackPrompt(
+    query: string,
+    limit: number,
+    examples?: string[][],
+    feedback?: PaletteFeedback,
+): string {
+    let prompt = buildBasePrompt(query, limit);
 
     if (examples && examples.length > 0) {
-        const exampleLines = examples.slice(0, 6).map(p => JSON.stringify(p)).join("\n");
+        const exampleLines = examples
+            .slice(0, 6)
+            .map((p) => JSON.stringify(p))
+            .join("\n");
         prompt += `
 
 ## Reference Examples
@@ -83,7 +115,85 @@ Here are some example palettes that may or may not be representative of the them
 ${exampleLines}`;
     }
 
+    if (feedback) {
+        if (feedback.good.length > 0) {
+            const goodLines = feedback.good
+                .slice(0, 4)
+                .map((p) => JSON.stringify(p))
+                .join("\n");
+            prompt += `
+
+## Positive Feedback (user liked these)
+These palettes resonated with the user. Consider what makes them successful and explore similar directions:
+${goodLines}`;
+        }
+
+        if (feedback.bad.length > 0) {
+            const badLines = feedback.bad
+                .slice(0, 4)
+                .map((p) => JSON.stringify(p))
+                .join("\n");
+            prompt += `
+
+## Negative Feedback (user disliked these)
+These palettes didn't work for the user. Avoid similar color combinations and directions:
+${badLines}`;
+        }
+    }
+
     return prompt;
+}
+
+function buildPositiveOnlyPrompt(
+    query: string,
+    limit: number,
+    examples?: string[][],
+    feedback?: PaletteFeedback,
+): string {
+    let prompt = buildBasePrompt(query, limit);
+
+    if (examples && examples.length > 0) {
+        const exampleLines = examples
+            .slice(0, 6)
+            .map((p) => JSON.stringify(p))
+            .join("\n");
+        prompt += `
+
+## Reference Examples
+Here are some example palettes that may or may not be representative of the theme. Use them as loose inspiration for style and structure, not as strict templates:
+${exampleLines}`;
+    }
+
+    if (feedback && feedback.good.length > 0) {
+        const goodLines = feedback.good
+            .slice(0, 4)
+            .map((p) => JSON.stringify(p))
+            .join("\n");
+        prompt += `
+
+## Positive Feedback (user liked these)
+These palettes resonated with the user. Consider what makes them successful and explore similar directions:
+${goodLines}`;
+    }
+
+    return prompt;
+}
+
+function buildSystemPrompt(
+    query: string,
+    limit: number,
+    mode: PromptMode,
+    examples?: string[][],
+    feedback?: PaletteFeedback,
+): string {
+    switch (mode) {
+        case "unbiased":
+            return buildUnbiasedPrompt(query, limit);
+        case "full-feedback":
+            return buildFullFeedbackPrompt(query, limit, examples, feedback);
+        case "positive-only":
+            return buildPositiveOnlyPrompt(query, limit, examples, feedback);
+    }
 }
 
 export interface StreamingPalette {
@@ -180,6 +290,7 @@ export interface PaletteFeedback {
 export async function refinePalettesStream(
     query: string,
     limit: number = 24,
+    mode: PromptMode = "unbiased",
     examples?: string[][],
     feedback?: PaletteFeedback,
 ): Promise<Response> {
@@ -197,31 +308,11 @@ export async function refinePalettesStream(
         baseURL: "https://api.groq.com/openai/v1",
     });
 
-    const systemPrompt = buildSystemPrompt(limit, examples);
+    const systemPrompt = buildSystemPrompt(query, limit, mode, examples, feedback);
 
-    // Build messages with feedback if provided
-    const messages: Array<{ role: "user" | "assistant"; content: string }> = [];
-
-    // Add feedback context first if available (soft hints, not hard constraints)
-    if (feedback && (feedback.good.length > 0 || feedback.bad.length > 0)) {
-        let feedbackMessage = "Some optional context on my preferences (use as soft hints, not strict rules):\n";
-
-        if (feedback.good.length > 0) {
-            feedbackMessage += "\nI somewhat liked these:\n";
-            feedbackMessage += feedback.good.slice(0, 3).map(p => JSON.stringify(p)).join("\n");
-        }
-
-        if (feedback.bad.length > 0) {
-            feedbackMessage += "\nThese weren't quite right for me:\n";
-            feedbackMessage += feedback.bad.slice(0, 3).map(p => JSON.stringify(p)).join("\n");
-        }
-
-        messages.push({ role: "user", content: feedbackMessage });
-        messages.push({ role: "assistant", content: "Noted. I'll keep that in mind while still exploring diverse options." });
-    }
-
-    // Add the main theme request
-    messages.push({ role: "user", content: `## Theme: ${query}` });
+    const messages: Array<{ role: "user" | "assistant"; content: string }> = [
+        { role: "user", content: `## Theme: ${query}` },
+    ];
 
     // Cast to bypass OpenAI model type restriction - Groq uses different model names
     const stream = chat({
