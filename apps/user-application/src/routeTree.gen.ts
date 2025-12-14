@@ -21,11 +21,13 @@ import { Route as PaletteListIndexRouteImport } from './routes/_paletteList/inde
 import { Route as SeedIndexRouteImport } from './routes/$seed/index'
 import { Route as PalettesQueryRouteImport } from './routes/palettes/$query'
 import { Route as ESplatRouteImport } from './routes/e.$'
-import { Route as ApiRefineRouteImport } from './routes/api/refine'
 import { Route as ApiOgRouteImport } from './routes/api/og'
+import { Route as ApiGenerateRouteImport } from './routes/api/generate'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
 import { Route as PaletteListNewestRouteImport } from './routes/_paletteList/newest'
+import { Route as PalettesQueryIndexRouteImport } from './routes/palettes/$query/index'
+import { Route as PalettesQueryGenerateRouteImport } from './routes/palettes/$query/generate'
 import { Route as AppPolarSubscriptionsRouteImport } from './routes/app/polar/subscriptions'
 import { Route as AppPolarPortalRouteImport } from './routes/app/polar/portal'
 import { Route as ApiOgQueryRouteImport } from './routes/api/og.query'
@@ -91,14 +93,14 @@ const ESplatRoute = ESplatRouteImport.update({
   path: '/e/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiRefineRoute = ApiRefineRouteImport.update({
-  id: '/api/refine',
-  path: '/api/refine',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiOgRoute = ApiOgRouteImport.update({
   id: '/api/og',
   path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiGenerateRoute = ApiGenerateRouteImport.update({
+  id: '/api/generate',
+  path: '/api/generate',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaletteListSavedRoute = PaletteListSavedRouteImport.update({
@@ -115,6 +117,16 @@ const PaletteListNewestRoute = PaletteListNewestRouteImport.update({
   id: '/newest',
   path: '/newest',
   getParentRoute: () => PaletteListRoute,
+} as any)
+const PalettesQueryIndexRoute = PalettesQueryIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => PalettesQueryRoute,
+} as any)
+const PalettesQueryGenerateRoute = PalettesQueryGenerateRouteImport.update({
+  id: '/generate',
+  path: '/generate',
+  getParentRoute: () => PalettesQueryRoute,
 } as any)
 const AppPolarSubscriptionsRoute = AppPolarSubscriptionsRouteImport.update({
   id: '/app/polar/subscriptions',
@@ -152,10 +164,10 @@ export interface FileRoutesByFullPath {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/og': typeof ApiOgRouteWithChildren
-  '/api/refine': typeof ApiRefineRoute
   '/e/$': typeof ESplatRoute
-  '/palettes/$query': typeof PalettesQueryRoute
+  '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -163,6 +175,8 @@ export interface FileRoutesByFullPath {
   '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
+  '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
+  '/palettes/$query/': typeof PalettesQueryIndexRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
 }
 export interface FileRoutesByTo {
@@ -174,10 +188,9 @@ export interface FileRoutesByTo {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/og': typeof ApiOgRouteWithChildren
-  '/api/refine': typeof ApiRefineRoute
   '/e/$': typeof ESplatRoute
-  '/palettes/$query': typeof PalettesQueryRoute
   '/$seed': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
@@ -185,6 +198,8 @@ export interface FileRoutesByTo {
   '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
+  '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
+  '/palettes/$query': typeof PalettesQueryIndexRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
 }
 export interface FileRoutesById {
@@ -199,10 +214,10 @@ export interface FileRoutesById {
   '/_paletteList/newest': typeof PaletteListNewestRoute
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
+  '/api/generate': typeof ApiGenerateRoute
   '/api/og': typeof ApiOgRouteWithChildren
-  '/api/refine': typeof ApiRefineRoute
   '/e/$': typeof ESplatRoute
-  '/palettes/$query': typeof PalettesQueryRoute
+  '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
   '/_paletteList/': typeof PaletteListIndexRoute
   '/settings/': typeof SettingsIndexRoute
@@ -210,6 +225,8 @@ export interface FileRoutesById {
   '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
+  '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
+  '/palettes/$query/': typeof PalettesQueryIndexRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
 }
 export interface FileRouteTypes {
@@ -224,8 +241,8 @@ export interface FileRouteTypes {
     | '/newest'
     | '/oldest'
     | '/saved'
+    | '/api/generate'
     | '/api/og'
-    | '/api/refine'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -235,6 +252,8 @@ export interface FileRouteTypes {
     | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/palettes/$query/generate'
+    | '/palettes/$query/'
     | '/app/polar/checkout/success'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -246,10 +265,9 @@ export interface FileRouteTypes {
     | '/newest'
     | '/oldest'
     | '/saved'
+    | '/api/generate'
     | '/api/og'
-    | '/api/refine'
     | '/e/$'
-    | '/palettes/$query'
     | '/$seed'
     | '/'
     | '/settings'
@@ -257,6 +275,8 @@ export interface FileRouteTypes {
     | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/palettes/$query/generate'
+    | '/palettes/$query'
     | '/app/polar/checkout/success'
   id:
     | '__root__'
@@ -270,8 +290,8 @@ export interface FileRouteTypes {
     | '/_paletteList/newest'
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
+    | '/api/generate'
     | '/api/og'
-    | '/api/refine'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -281,6 +301,8 @@ export interface FileRouteTypes {
     | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/palettes/$query/generate'
+    | '/palettes/$query/'
     | '/app/polar/checkout/success'
   fileRoutesById: FileRoutesById
 }
@@ -292,10 +314,10 @@ export interface RootRouteChildren {
   MixRoute: typeof MixRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
+  ApiGenerateRoute: typeof ApiGenerateRoute
   ApiOgRoute: typeof ApiOgRouteWithChildren
-  ApiRefineRoute: typeof ApiRefineRoute
   ESplatRoute: typeof ESplatRoute
-  PalettesQueryRoute: typeof PalettesQueryRoute
+  PalettesQueryRoute: typeof PalettesQueryRouteWithChildren
   SettingsIndexRoute: typeof SettingsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   AppPolarPortalRoute: typeof AppPolarPortalRoute
@@ -389,18 +411,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ESplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/refine': {
-      id: '/api/refine'
-      path: '/api/refine'
-      fullPath: '/api/refine'
-      preLoaderRoute: typeof ApiRefineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/og': {
       id: '/api/og'
       path: '/api/og'
       fullPath: '/api/og'
       preLoaderRoute: typeof ApiOgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/generate': {
+      id: '/api/generate'
+      path: '/api/generate'
+      fullPath: '/api/generate'
+      preLoaderRoute: typeof ApiGenerateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_paletteList/saved': {
@@ -423,6 +445,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/newest'
       preLoaderRoute: typeof PaletteListNewestRouteImport
       parentRoute: typeof PaletteListRoute
+    }
+    '/palettes/$query/': {
+      id: '/palettes/$query/'
+      path: '/'
+      fullPath: '/palettes/$query/'
+      preLoaderRoute: typeof PalettesQueryIndexRouteImport
+      parentRoute: typeof PalettesQueryRoute
+    }
+    '/palettes/$query/generate': {
+      id: '/palettes/$query/generate'
+      path: '/generate'
+      fullPath: '/palettes/$query/generate'
+      preLoaderRoute: typeof PalettesQueryGenerateRouteImport
+      parentRoute: typeof PalettesQueryRoute
     }
     '/app/polar/subscriptions': {
       id: '/app/polar/subscriptions'
@@ -502,6 +538,20 @@ const ApiOgRouteChildren: ApiOgRouteChildren = {
 
 const ApiOgRouteWithChildren = ApiOgRoute._addFileChildren(ApiOgRouteChildren)
 
+interface PalettesQueryRouteChildren {
+  PalettesQueryGenerateRoute: typeof PalettesQueryGenerateRoute
+  PalettesQueryIndexRoute: typeof PalettesQueryIndexRoute
+}
+
+const PalettesQueryRouteChildren: PalettesQueryRouteChildren = {
+  PalettesQueryGenerateRoute: PalettesQueryGenerateRoute,
+  PalettesQueryIndexRoute: PalettesQueryIndexRoute,
+}
+
+const PalettesQueryRouteWithChildren = PalettesQueryRoute._addFileChildren(
+  PalettesQueryRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   SeedRouteRoute: SeedRouteRouteWithChildren,
   PaletteListRoute: PaletteListRouteWithChildren,
@@ -510,10 +560,10 @@ const rootRouteChildren: RootRouteChildren = {
   MixRoute: MixRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
+  ApiGenerateRoute: ApiGenerateRoute,
   ApiOgRoute: ApiOgRouteWithChildren,
-  ApiRefineRoute: ApiRefineRoute,
   ESplatRoute: ESplatRoute,
-  PalettesQueryRoute: PalettesQueryRoute,
+  PalettesQueryRoute: PalettesQueryRouteWithChildren,
   SettingsIndexRoute: SettingsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   AppPolarPortalRoute: AppPolarPortalRoute,

@@ -248,9 +248,15 @@ export function PalettesGrid({
 
     const paletteGridContent = (
         <ol className="h-full w-full relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-x-10 gap-y-20 auto-rows-[300px]">
-            {initialPalettes.map((palette, index) => (
+            {initialPalettes.map((palette, index) => {
+                // Include version and unbiased flag in key to handle duplicate seeds across versions/streams
+                const paletteWithMeta = palette as AppPalette & { unbiased?: boolean; version?: number };
+                const key = paletteWithMeta.version !== undefined
+                    ? `${palette.seed}-v${paletteWithMeta.version}-${paletteWithMeta.unbiased ? "u" : "b"}`
+                    : palette.seed;
+                return (
                 <PaletteCard
-                    key={palette.seed}
+                    key={key}
                     palette={palette}
                     index={index}
                     urlStyle={urlStyle}
@@ -265,7 +271,8 @@ export function PalettesGrid({
                     ref={index === 0 ? firstPaletteRef : undefined}
                     searchQuery={searchQuery}
                 />
-            ))}
+                );
+            })}
         </ol>
     );
 
@@ -748,6 +755,7 @@ export interface PaletteCardProps {
     idPrefix?: string;
     removeAllOnExportClick?: boolean;
     searchQuery?: string;
+    version?: number;
 }
 
 export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
@@ -766,6 +774,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             idPrefix = "",
             removeAllOnExportClick = false,
             searchQuery,
+            version,
         },
         ref,
     ) => {
@@ -1072,6 +1081,8 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                             removeAllOnExportClick={removeAllOnExportClick}
                             borderRadius={borderRadius}
                             searchQuery={searchQuery}
+                            version={version ?? (palette as AppPalette & { version?: number }).version}
+                            unbiased={(palette as AppPalette & { unbiased?: boolean }).unbiased}
                         />
                     </div>
 
@@ -1184,6 +1195,8 @@ interface GradientPreviewProps {
     removeAllOnExportClick?: boolean;
     borderRadius: number;
     searchQuery?: string;
+    version?: number;
+    unbiased?: boolean;
 }
 
 function GradientPreview({
@@ -1204,6 +1217,8 @@ function GradientPreview({
     removeAllOnExportClick = false,
     borderRadius,
     searchQuery,
+    version,
+    unbiased,
 }: GradientPreviewProps) {
     const {
         style: paletteStyle,
@@ -1299,11 +1314,25 @@ function GradientPreview({
                     }}
                 />
 
-                {/* Dev-only score badge */}
-                {import.meta.env.DEV && palette.score !== undefined && (
-                    <span className="absolute bottom-3 right-3 text-xs font-mono px-2 py-1 rounded bg-background/80 text-foreground select-none">
-                        {palette.score.toFixed(4)}
-                    </span>
+                {/* Dev-only badges */}
+                {import.meta.env.DEV && (
+                    <div className="absolute bottom-3 right-3 flex gap-1.5 select-none">
+                        {version !== undefined && (
+                            <span className={cn(
+                                "text-xs font-mono px-2 py-1 rounded",
+                                unbiased
+                                    ? "bg-blue-500/80 text-white"
+                                    : "bg-purple-500/80 text-white"
+                            )}>
+                                v{version} {unbiased ? "U" : "B"}
+                            </span>
+                        )}
+                        {palette.score !== undefined && (
+                            <span className="text-xs font-mono px-2 py-1 rounded bg-background/80 text-foreground">
+                                {palette.score.toFixed(4)}
+                            </span>
+                        )}
+                    </div>
                 )}
 
                 {/* Link button in top left */}

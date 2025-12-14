@@ -1,4 +1,4 @@
-import { hexToRgb, rgbToHex, type CosineCoeffs } from './cosine';
+import { hexToRgb, rgbToHex, type CosineCoeffs } from "./cosine";
 
 type Vec3 = [number, number, number];
 
@@ -86,22 +86,24 @@ function solveLinearLeastSquares(A: number[][], b: number[]): number[] {
     ];
 }
 
+const TAU = Math.PI * 2;
+
 /**
  * For a single channel, find optimal (a, b, d) given fixed frequency c.
  * Uses trig identity: a + b·cos(2π(ct+d)) = A + B·cos(2πct) + C·sin(2πct)
  * which is linear in A, B, C.
- *
- * @returns [a, b, d, error]
  */
 function fitChannelAtFrequency(
     targets: number[],
     tValues: number[],
     freq: number,
 ): [number, number, number, number] {
-    const TAU = Math.PI * 2;
-
     // Build design matrix: [1, cos(2πct), sin(2πct)]
-    const A: number[][] = tValues.map((t) => [1, Math.cos(TAU * freq * t), Math.sin(TAU * freq * t)]);
+    const A: number[][] = tValues.map((t) => [
+        1,
+        Math.cos(TAU * freq * t),
+        Math.sin(TAU * freq * t),
+    ]);
 
     // Solve for [A, B, C] where color = A + B·cos + C·sin
     const [bigA, B, C] = solveLinearLeastSquares(A, targets);
@@ -122,30 +124,57 @@ function fitChannelAtFrequency(
     return [a, b, d, error];
 }
 
-// Frequency candidates: 0.3 to 2.5 in steps of 0.1
-const FREQ_CANDIDATES = Array.from({ length: 23 }, (_, i) => 0.3 + i * 0.1);
+// Frequency candidates: 0.1 to 2.0 in steps of 0.02
+const FREQ_CANDIDATES = Array.from({ length: 96 }, (_, i) => 0.1 + i * 0.02);
+
+/**
+ * Create dense samples from linear interpolation of input colors.
+ * This is the key to getting good fits - we fit the entire gradient shape,
+ * not just the sparse input points.
+ */
+function createDenseTargets(
+    hexColors: string[],
+    numSamples: number = 64,
+): { tValues: number[]; targets: [number[], number[], number[]] } {
+    const colors = hexColors.map(hexToVec3);
+
+    const tValues: number[] = [];
+    const targets: [number[], number[], number[]] = [[], [], []];
+
+    for (let i = 0; i < numSamples; i++) {
+        const t = i / (numSamples - 1);
+        tValues.push(t);
+
+        // Find which segment we're in
+        const scaledT = t * (colors.length - 1);
+        const idx = Math.min(Math.floor(scaledT), colors.length - 2);
+        const localT = scaledT - idx;
+
+        // Linear interpolation between colors[idx] and colors[idx+1]
+        const c0 = colors[idx]!;
+        const c1 = colors[idx + 1]!;
+        targets[0].push(c0[0] + (c1[0] - c0[0]) * localT);
+        targets[1].push(c0[1] + (c1[1] - c0[1]) * localT);
+        targets[2].push(c0[2] + (c1[2] - c0[2]) * localT);
+    }
+
+    return { tValues, targets };
+}
 
 /**
  * Fits cosine palette coefficients to hex colors using linear least squares.
  *
- * This approach is faster and more reliable than gradient descent:
- * - Exploits trig identity to make the problem linear for fixed frequency
- * - Searches over frequency candidates (only nonlinear parameter)
- * - No hyperparameters, no local minima, closed-form solution
+ * Key insight: fit against a densely sampled linear interpolation of the input
+ * colors, not just the sparse input points. This ensures the fitted curve
+ * approximates the expected gradient shape rather than oscillating wildly
+ * between sample points.
  *
  * @param hexColors Array of 3-8 hex colors representing key points along the gradient
  * @returns Fitted coefficients and error metric
  */
 export function fitCosinePalette(hexColors: string[]): FitResult {
-    const targetColors = hexColors.map(hexToVec3);
-    const tValues = hexColors.map((_, i) => i / (hexColors.length - 1));
-
-    // Extract channels
-    const targets: [number[], number[], number[]] = [
-        targetColors.map((c) => c[0]),
-        targetColors.map((c) => c[1]),
-        targetColors.map((c) => c[2]),
-    ];
+    // Create dense samples from linear interpolation
+    const { tValues, targets } = createDenseTargets(hexColors, 64);
 
     const bestParams: Vec3[] = [
         [0, 0, 0], // a (bias)
@@ -158,13 +187,18 @@ export function fitCosinePalette(hexColors: string[]): FitResult {
     // Fit each channel independently
     for (let ch = 0; ch < 3; ch++) {
         let bestFreq = 1;
-        let bestA = 0.5,
-            bestB = 0,
-            bestD = 0;
+        let bestA = 0.5;
+        let bestB = 0;
+        let bestD = 0;
         let bestErr = Infinity;
 
+        // Phase 1: Coarse grid search
         for (const freq of FREQ_CANDIDATES) {
-            const [a, b, d, err] = fitChannelAtFrequency(targets[ch]!, tValues, freq);
+            const [a, b, d, err] = fitChannelAtFrequency(
+                targets[ch]!,
+                tValues,
+                freq,
+            );
             if (err < bestErr) {
                 bestErr = err;
                 bestFreq = freq;
@@ -174,10 +208,27 @@ export function fitCosinePalette(hexColors: string[]): FitResult {
             }
         }
 
-        // Clamp to valid ranges
-        bestParams[0]![ch] = Math.max(0, Math.min(1, bestA));
-        bestParams[1]![ch] = Math.max(-0.6, Math.min(0.6, bestB));
-        bestParams[2]![ch] = Math.max(0.1, Math.min(3, bestFreq));
+        // Phase 2: Fine search around best frequency
+        const fineStep = 0.005;
+        for (let f = bestFreq - 0.05; f <= bestFreq + 0.05; f += fineStep) {
+            if (f < 0.1) continue;
+            const [a, b, d, err] = fitChannelAtFrequency(
+                targets[ch]!,
+                tValues,
+                f,
+            );
+            if (err < bestErr) {
+                bestErr = err;
+                bestFreq = f;
+                bestA = a;
+                bestB = b;
+                bestD = d;
+            }
+        }
+
+        bestParams[0]![ch] = bestA;
+        bestParams[1]![ch] = bestB;
+        bestParams[2]![ch] = Math.max(0.1, bestFreq);
         bestParams[3]![ch] = ((bestD % 1) + 1) % 1;
         totalError += bestErr;
     }
@@ -194,7 +245,6 @@ export function fitCosinePalette(hexColors: string[]): FitResult {
 }
 
 function cosineColor(t: number, a: Vec3, b: Vec3, c: Vec3, d: Vec3): Vec3 {
-    const TAU = Math.PI * 2;
     return [
         a[0] + b[0] * Math.cos(TAU * (c[0] * t + d[0])),
         a[1] + b[1] * Math.cos(TAU * (c[1] * t + d[1])),
@@ -205,12 +255,31 @@ function cosineColor(t: number, a: Vec3, b: Vec3, c: Vec3, d: Vec3): Vec3 {
 /**
  * Validates the fit quality by comparing original and fitted colors.
  */
-export function validateFit(hexColors: string[], result: FitResult): FitValidation {
+export function validateFit(
+    hexColors: string[],
+    result: FitResult,
+): FitValidation {
     const tValues = hexColors.map((_, i) => i / (hexColors.length - 1));
-    const a: Vec3 = [result.coeffs[0][0], result.coeffs[0][1], result.coeffs[0][2]];
-    const b: Vec3 = [result.coeffs[1][0], result.coeffs[1][1], result.coeffs[1][2]];
-    const c: Vec3 = [result.coeffs[2][0], result.coeffs[2][1], result.coeffs[2][2]];
-    const d: Vec3 = [result.coeffs[3][0], result.coeffs[3][1], result.coeffs[3][2]];
+    const a: Vec3 = [
+        result.coeffs[0][0],
+        result.coeffs[0][1],
+        result.coeffs[0][2],
+    ];
+    const b: Vec3 = [
+        result.coeffs[1][0],
+        result.coeffs[1][1],
+        result.coeffs[1][2],
+    ];
+    const c: Vec3 = [
+        result.coeffs[2][0],
+        result.coeffs[2][1],
+        result.coeffs[2][2],
+    ];
+    const d: Vec3 = [
+        result.coeffs[3][0],
+        result.coeffs[3][1],
+        result.coeffs[3][2],
+    ];
 
     return {
         colorComparisons: hexColors.map((hex, i) => {
@@ -225,7 +294,12 @@ export function validateFit(hexColors: string[], result: FitResult): FitValidati
             ];
 
             // Calculate error as average RGB difference (0-255 scale for readability)
-            const error = ((Math.abs(target[0] - clamped[0]) + Math.abs(target[1] - clamped[1]) + Math.abs(target[2] - clamped[2])) / 3) * 255;
+            const error =
+                ((Math.abs(target[0] - clamped[0]) +
+                    Math.abs(target[1] - clamped[1]) +
+                    Math.abs(target[2] - clamped[2])) /
+                    3) *
+                255;
 
             return {
                 original: hex,

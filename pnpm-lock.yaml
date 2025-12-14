@@ -287,6 +287,9 @@ importers:
       '@radix-ui/react-scroll-area':
         specifier: ^1.2.10
         version: 1.2.10(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-select':
+        specifier: ^2.2.6
+        version: 2.2.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@radix-ui/react-separator':
         specifier: ^1.1.8
         version: 1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -317,6 +320,9 @@ importers:
       '@tanstack/ai':
         specifier: ^0.0.3
         version: 0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)
+      '@tanstack/ai-gemini':
+        specifier: ^0.0.3
+        version: 0.0.3(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))
       '@tanstack/ai-openai':
         specifier: ^0.0.3
         version: 0.0.3(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(ws@8.18.3)(zod@4.1.12)
@@ -2933,6 +2939,19 @@ packages:
       '@types/react-dom':
         optional: true
 
+  '@radix-ui/react-select@2.2.6':
+    resolution: {integrity: sha512-I30RydO+bnn2PQztvo25tswPH+wFBjehVGtmagkU78yMdwTwVf12wnAOF+AeP8S2N8xD+5UPbGhkUfPyvT+mwQ==}
+    peerDependencies:
+      '@types/react': '*'
+      '@types/react-dom': '*'
+      react: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+      react-dom: ^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc
+    peerDependenciesMeta:
+      '@types/react':
+        optional: true
+      '@types/react-dom':
+        optional: true
+
   '@radix-ui/react-separator@1.1.8':
     resolution: {integrity: sha512-sDvqVY4itsKwwSMEe0jtKgfTh+72Sy3gPmQpjqcQneqQ4PFmr/1I0YA+2/puilhggCe2gJcx5EBAYFkWkdpa5g==}
     peerDependencies:
@@ -3614,6 +3633,11 @@ packages:
 
   '@tanstack/ai-client@0.0.3':
     resolution: {integrity: sha512-5XIHhRJ2pWeJKfMpeInI46Ytavq78/E/5gllcYMaLJ24aiPXHbxNeO3akiX7kmnwuL6OIkX99Le/MxZBZvdFhg==}
+
+  '@tanstack/ai-gemini@0.0.3':
+    resolution: {integrity: sha512-tLpnFQ9VvBakCTfAPNhd8ya8es8IzIF6B35ghhv1Qp/UVeUpIcF9hzX4LGtgk05y1CLbXy/JjJb3jcRPKDuK/Q==}
+    peerDependencies:
+      '@tanstack/ai': 0.0.3
 
   '@tanstack/ai-openai@0.0.3':
     resolution: {integrity: sha512-JyV5KMvaUIkS/9mt8zdu+8Sl0+/btbwrsreuFXftbrL8H+ysvbmFW3KwD2eUdTBwNPv2szUn5su17X1yt1CphQ==}
@@ -10243,6 +10267,35 @@ snapshots:
       '@types/react': 19.2.2
       '@types/react-dom': 19.2.2(@types/react@19.2.2)
 
+  '@radix-ui/react-select@2.2.6(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
+    dependencies:
+      '@radix-ui/number': 1.1.1
+      '@radix-ui/primitive': 1.1.3
+      '@radix-ui/react-collection': 1.1.7(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-compose-refs': 1.1.2(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-context': 1.1.2(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-direction': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-dismissable-layer': 1.1.11(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-focus-guards': 1.1.3(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-focus-scope': 1.1.7(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-id': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-popper': 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-portal': 1.1.9(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-primitive': 2.1.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@radix-ui/react-slot': 1.2.3(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-use-callback-ref': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-use-controllable-state': 1.2.2(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-use-layout-effect': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-use-previous': 1.1.1(@types/react@19.2.2)(react@19.2.0)
+      '@radix-ui/react-visually-hidden': 1.2.3(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      aria-hidden: 1.2.6
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      react-remove-scroll: 2.7.1(@types/react@19.2.2)(react@19.2.0)
+    optionalDependencies:
+      '@types/react': 19.2.2
+      '@types/react-dom': 19.2.2(@types/react@19.2.2)
+
   '@radix-ui/react-separator@1.1.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:
       '@radix-ui/react-primitive': 2.1.4(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -11064,6 +11117,16 @@ snapshots:
     transitivePeerDependencies:
       - '@alcyone-labs/zod-to-json-schema'
       - zod
+
+  '@tanstack/ai-gemini@0.0.3(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))':
+    dependencies:
+      '@google/genai': 1.31.0
+      '@tanstack/ai': 0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12)
+    transitivePeerDependencies:
+      - '@modelcontextprotocol/sdk'
+      - bufferutil
+      - supports-color
+      - utf-8-validate
 
   '@tanstack/ai-openai@0.0.3(@tanstack/ai@0.0.3(@alcyone-labs/zod-to-json-schema@4.0.10(zod@4.1.12))(zod@4.1.12))(ws@8.18.3)(zod@4.1.12)':
     dependencies:

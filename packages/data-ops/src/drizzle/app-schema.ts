@@ -48,6 +48,35 @@ export const searchFeedback = sqliteTable(
   })
 );
 
+// Refine sessions - stores AI refinement history and feedback
+export const refineSessions = sqliteTable(
+  "refine_sessions",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id"),
+    query: text("query").notNull(),
+    version: integer("version").notNull().default(1),
+    // Seeds generated per version: { "1": ["seed1", "seed2"], "2": ["seed3"] }
+    generatedSeeds: text("generated_seeds", { mode: "json" })
+      .$type<Record<string, string[]>>()
+      .notNull()
+      .default({}),
+    // User feedback per version: { "1": { "seed1": "good", "seed2": "bad" }, "2": {...} }
+    feedback: text("feedback", { mode: "json" })
+      .$type<Record<string, Record<string, "good" | "bad">>>()
+      .notNull()
+      .default({}),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
+    updatedAt: integer("updated_at", { mode: "timestamp_ms" }).notNull(),
+  },
+  (table) => ({
+    userQueryIdx: index("refine_sessions_user_query_idx").on(
+      table.userId,
+      table.query,
+    ),
+  })
+);
+
 // Type exports
 export type Palette = typeof palettes.$inferSelect;
 export type NewPalette = typeof palettes.$inferInsert;
@@ -55,4 +84,6 @@ export type Like = typeof likes.$inferSelect;
 export type NewLike = typeof likes.$inferInsert;
 export type SearchFeedback = typeof searchFeedback.$inferSelect;
 export type NewSearchFeedback = typeof searchFeedback.$inferInsert;
+export type RefineSession = typeof refineSessions.$inferSelect;
+export type NewRefineSession = typeof refineSessions.$inferInsert;
 
