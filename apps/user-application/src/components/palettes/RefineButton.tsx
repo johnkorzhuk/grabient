@@ -147,31 +147,33 @@ export function RefineButton({
 
     return (
         <div className={cn("inline-flex items-center gap-2", className)}>
-            <div className="relative">
-                <select
-                    value={promptMode}
-                    onChange={(e) => onModeChange(e.target.value as PromptMode)}
-                    disabled={isRefining}
-                    style={{ backgroundColor: "var(--background)" }}
-                    className={cn(
-                        "disable-animation-on-theme-change",
-                        "appearance-none rounded-md",
-                        "font-medium text-xs h-8.5 pl-3 pr-7 border border-solid",
-                        "border-input hover:border-muted-foreground/30 hover:bg-background/60",
-                        "text-muted-foreground hover:text-foreground",
-                        "transition-colors duration-200 cursor-pointer",
-                        "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                        "disabled:opacity-50 disabled:cursor-not-allowed",
-                    )}
-                >
-                    {promptModes.map((mode) => (
-                        <option key={mode} value={mode}>
-                            {PROMPT_MODE_LABELS[mode]}
-                        </option>
-                    ))}
-                </select>
-                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
-            </div>
+            {import.meta.env.DEV && (
+                <div className="relative">
+                    <select
+                        value={promptMode}
+                        onChange={(e) => onModeChange(e.target.value as PromptMode)}
+                        disabled={isRefining}
+                        style={{ backgroundColor: "var(--background)" }}
+                        className={cn(
+                            "disable-animation-on-theme-change",
+                            "appearance-none rounded-md",
+                            "font-medium text-xs h-8.5 pl-3 pr-7 border border-solid",
+                            "border-input hover:border-muted-foreground/30 hover:bg-background/60",
+                            "text-muted-foreground hover:text-foreground",
+                            "transition-colors duration-200 cursor-pointer",
+                            "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                            "disabled:opacity-50 disabled:cursor-not-allowed",
+                        )}
+                    >
+                        {promptModes.map((mode) => (
+                            <option key={mode} value={mode}>
+                                {PROMPT_MODE_LABELS[mode]}
+                            </option>
+                        ))}
+                    </select>
+                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                </div>
+            )}
             <button
                 type="button"
                 onClick={handleRefine}

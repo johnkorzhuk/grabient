@@ -769,70 +769,62 @@ function SearchResultsPage() {
                     isExportOpen && "invisible"
                 )}
             >
-                <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 max-w-[calc(100%-220px)] sm:max-w-[calc(100%-240px)]">
-                    <QueryDisplay query={query} />
-                    <span className="ml-1">palettes</span>
-                </h1>
+                <div className="flex items-start justify-between gap-4">
+                    <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
+                        <QueryDisplay query={query} />
+                        <span className="ml-1">palettes</span>
+                    </h1>
+                    {!isExportOpen && (
+                        <div className="flex items-center gap-2 shrink-0">
+                            <RefineButton
+                                query={query}
+                                limit={DEFAULT_PAGE_LIMIT}
+                                examplePalettes={results.map(r => r.hexColors)}
+                                feedback={feedback}
+                                promptMode={promptMode}
+                                onModeChange={setPromptMode}
+                                onRefineStart={() => {
+                                    setIsRefining(true);
+                                    setRefineError(null);
+
+                                    if (promptMode === "vector-search") {
+                                        setPaletteCache(prev => ({
+                                            ...prev,
+                                            "vector-search": results.slice(0, DEFAULT_PAGE_LIMIT),
+                                        }));
+                                        setIsRefining(false);
+                                        return;
+                                    }
+
+                                    setPaletteCache(prev => ({
+                                        ...prev,
+                                        [promptMode]: [],
+                                    }));
+                                }}
+                                onPaletteReceived={(palette) => {
+                                    const appPalette = refinedToAppPalette(palette);
+                                    setPaletteCache(prev => ({
+                                        ...prev,
+                                        [promptMode]: [...prev[promptMode], appPalette],
+                                    }));
+                                }}
+                                onRefineComplete={() => {
+                                    setIsRefining(false);
+                                }}
+                                onRefineError={(error) => {
+                                    setRefineError(error);
+                                    setIsRefining(false);
+                                }}
+                            />
+                            <SelectedButtonContainer className="contents" />
+                        </div>
+                    )}
+                </div>
                 <ResultsForSubtitle
                     query={query}
                     searchParams={preservedSearch}
                 />
             </div>
-            {/* V2 Refine Button - when export is closed, show RefineButton + SelectedButtonContainer inline */}
-            {!isExportOpen && (
-                <div
-                    className={cn(
-                        "px-5 lg:px-14 flex justify-end mb-10 md:mb-12 gap-2 h-8",
-                        hasSubtitle
-                            ? "-mt-[88px] md:-mt-[100px]"
-                            : "-mt-[72px] md:-mt-[84px]",
-                    )}
-                >
-                    <RefineButton
-                        query={query}
-                        limit={DEFAULT_PAGE_LIMIT}
-                        examplePalettes={results.map(r => r.hexColors)}
-                        feedback={feedback}
-                        promptMode={promptMode}
-                        onModeChange={setPromptMode}
-                        onRefineStart={() => {
-                            setIsRefining(true);
-                            setRefineError(null);
-
-                            // Vector search mode: use existing results directly (already AppPalette)
-                            if (promptMode === "vector-search") {
-                                setPaletteCache(prev => ({
-                                    ...prev,
-                                    "vector-search": results.slice(0, DEFAULT_PAGE_LIMIT),
-                                }));
-                                setIsRefining(false);
-                                return;
-                            }
-
-                            setPaletteCache(prev => ({
-                                ...prev,
-                                [promptMode]: [],
-                            }));
-                        }}
-                        onPaletteReceived={(palette) => {
-                            // Convert to AppPalette immediately so switching modes is instant
-                            const appPalette = refinedToAppPalette(palette);
-                            setPaletteCache(prev => ({
-                                ...prev,
-                                [promptMode]: [...prev[promptMode], appPalette],
-                            }));
-                        }}
-                        onRefineComplete={() => {
-                            setIsRefining(false);
-                        }}
-                        onRefineError={(error) => {
-                            setRefineError(error);
-                            setIsRefining(false);
-                        }}
-                    />
-                    <SelectedButtonContainer className="contents" />
-                </div>
-            )}
             {/* When export is open, SelectedButtonContainer renders with its own layout/sticky positioning */}
             {isExportOpen && (
                 <SelectedButtonContainer
