@@ -51,6 +51,7 @@ import {
     type RefinedPalette,
     type PaletteFeedback,
     type PromptMode,
+    type PromptVersion,
 } from "@/components/palettes/RefineButton";
 import {
     getGoodSeedsForQuery,
@@ -622,19 +623,18 @@ function SearchResultsPage() {
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
 
-    // Refine state with per-mode caching
+    // Refine state with per-mode caching (store AppPalettes directly to avoid re-conversion)
     const [promptMode, setPromptMode] = useState<PromptMode>("unbiased");
+    const [promptVersion, setPromptVersion] = useState<PromptVersion>("v6");
     const [isRefining, setIsRefining] = useState(false);
-    const [paletteCache, setPaletteCache] = useState<Record<PromptMode, RefinedPalette[]>>({
+    const [paletteCache, setPaletteCache] = useState<Record<PromptMode, AppPalette[]>>({
+        "vector-search": [],
         unbiased: [],
         "examples-only": [],
         "full-feedback": [],
         "positive-only": [],
     });
     const [refineError, setRefineError] = useState<string | null>(null);
-
-    // Get palettes for current mode
-    const refinedPalettes = paletteCache[promptMode];
 
     // Convert RefinedPalette to AppPalette format
     const refinedToAppPalette = (refined: RefinedPalette): AppPalette => {
@@ -652,7 +652,8 @@ function SearchResultsPage() {
         };
     };
 
-    const refinedAppPalettes = refinedPalettes.map(refinedToAppPalette);
+    // Get palettes for current mode (already converted)
+    const refinedAppPalettes = paletteCache[promptMode];
 
     const { data: searchData } = useSuspenseQuery(
         searchPalettesQueryOptions(query, DEFAULT_PAGE_LIMIT),
@@ -779,35 +780,50 @@ function SearchResultsPage() {
                     searchParams={preservedSearch}
                 />
             </div>
-            {/* V2 Refine Button - simpler flow */}
-            <div
-                className={cn(
-                    "px-5 lg:px-14 flex justify-end mb-10 md:mb-12 gap-2 h-8",
-                    hasSubtitle
-                        ? "-mt-[88px] md:-mt-[100px]"
-                        : "-mt-[72px] md:-mt-[84px]",
-                )}
-            >
-                {!isExportOpen && (
+            {/* V2 Refine Button - when export is closed, show RefineButton + SelectedButtonContainer inline */}
+            {!isExportOpen && (
+                <div
+                    className={cn(
+                        "px-5 lg:px-14 flex justify-end mb-10 md:mb-12 gap-2 h-8",
+                        hasSubtitle
+                            ? "-mt-[88px] md:-mt-[100px]"
+                            : "-mt-[72px] md:-mt-[84px]",
+                    )}
+                >
                     <RefineButton
                         query={query}
                         limit={DEFAULT_PAGE_LIMIT}
                         examplePalettes={results.map(r => r.hexColors)}
                         feedback={feedback}
                         promptMode={promptMode}
+                        promptVersion={promptVersion}
                         onModeChange={setPromptMode}
+                        onVersionChange={setPromptVersion}
                         onRefineStart={() => {
                             setIsRefining(true);
+                            setRefineError(null);
+
+                            // Vector search mode: use existing results directly (already AppPalette)
+                            if (promptMode === "vector-search") {
+                                setPaletteCache(prev => ({
+                                    ...prev,
+                                    "vector-search": results.slice(0, DEFAULT_PAGE_LIMIT),
+                                }));
+                                setIsRefining(false);
+                                return;
+                            }
+
                             setPaletteCache(prev => ({
                                 ...prev,
                                 [promptMode]: [],
                             }));
-                            setRefineError(null);
                         }}
                         onPaletteReceived={(palette) => {
+                            // Convert to AppPalette immediately so switching modes is instant
+                            const appPalette = refinedToAppPalette(palette);
                             setPaletteCache(prev => ({
                                 ...prev,
-                                [promptMode]: [...prev[promptMode], palette],
+                                [promptMode]: [...prev[promptMode], appPalette],
                             }));
                         }}
                         onRefineComplete={() => {
@@ -818,11 +834,19 @@ function SearchResultsPage() {
                             setIsRefining(false);
                         }}
                     />
-                )}
+                    <SelectedButtonContainer className="contents" />
+                </div>
+            )}
+            {/* When export is open, SelectedButtonContainer renders with its own layout/sticky positioning */}
+            {isExportOpen && (
                 <SelectedButtonContainer
-                    className="contents"
+                    className={cn(
+                        hasSubtitle
+                            ? "-mt-[88px] md:-mt-[100px]"
+                            : "-mt-[72px] md:-mt-[84px]",
+                    )}
                 />
-            </div>
+            )}
             {hasRefineResults ? (
                 <>
                     <div className="px-5 lg:px-14 mb-6">
@@ -830,14 +854,15 @@ function SearchResultsPage() {
                             <Sparkles className="w-5 h-5 text-muted-foreground" />
                             <h2 className="text-lg font-semibold">AI Refinement Results</h2>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground font-medium">
-                                {promptMode === "unbiased" ? "Unbiased" :
+                                {promptMode === "vector-search" ? "Vector" :
+                                 promptMode === "unbiased" ? "Unbiased" :
                                  promptMode === "examples-only" ? "Examples" :
                                  promptMode === "full-feedback" ? "+/- Feedback" :
                                  "+ Only"}
                             </span>
                             {isRefining && (
                                 <span className="text-sm text-muted-foreground animate-pulse">
-                                    Generating... ({refinedPalettes.length} received)
+                                    Generating... ({refinedAppPalettes.length} received)
                                 </span>
                             )}
                             {!isRefining && (
@@ -848,7 +873,7 @@ function SearchResultsPage() {
                         </div>
                         {/* Show cache status for all modes */}
                         <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                            {(["unbiased", "examples-only", "full-feedback", "positive-only"] as PromptMode[]).map((mode) => {
+                            {(["vector-search", "unbiased", "examples-only", "full-feedback", "positive-only"] as PromptMode[]).map((mode) => {
                                 const count = paletteCache[mode].length;
                                 const isActive = mode === promptMode;
                                 if (count === 0 && !isActive) return null;
@@ -864,7 +889,8 @@ function SearchResultsPage() {
                                                 : "hover:text-foreground cursor-pointer underline underline-offset-2"
                                         )}
                                     >
-                                        {mode === "unbiased" ? "Unbiased" :
+                                        {mode === "vector-search" ? "Vector" :
+                                         mode === "unbiased" ? "Unbiased" :
                                          mode === "examples-only" ? "Examples" :
                                          mode === "full-feedback" ? "+/- Feedback" :
                                          "+ Only"}: {count}
