@@ -11,7 +11,7 @@ import {
     stepsValidator,
     angleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
-import { replaceHexWithColorNames } from "@/lib/color-utils";
+import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
 import { getDb } from "@repo/data-ops/database/setup";
 import { searchFeedback } from "@repo/data-ops/drizzle/app-schema";
 import { eq, and } from "drizzle-orm";

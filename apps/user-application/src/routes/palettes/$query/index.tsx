@@ -24,7 +24,7 @@ import {
     simplifyHex,
     isExactColorMatch,
     HEX_CODE_REGEX,
-} from "@/lib/color-utils";
+} from "@repo/data-ops/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
 import { Search, ArrowLeft, Sparkles } from "lucide-react";

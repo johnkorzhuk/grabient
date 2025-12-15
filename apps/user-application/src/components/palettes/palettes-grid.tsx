@@ -45,7 +45,7 @@ import { useLikePaletteMutation } from "@/mutations/palettes";
 import { useQueryClient } from "@tanstack/react-query";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
-import { getGradientAriaLabel, getUniqueColorNames } from "@/lib/color-utils";
+import { getGradientAriaLabel, getUniqueColorNames } from "@repo/data-ops/color-utils";
 import { calculateAverageBrightness } from "@repo/data-ops/gradient-gen";
 import { detectDevice } from "@/lib/deviceDetection";
 import { useSearchFeedbackMutation } from "@/mutations/search-feedback";

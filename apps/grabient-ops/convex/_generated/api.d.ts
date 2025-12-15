@@ -12,6 +12,8 @@ import type * as backfill from "../backfill.js";
 import type * as backfillActions from "../backfillActions.js";
 import type * as consensus from "../consensus.js";
 import type * as crons from "../crons.js";
+import type * as generate from "../generate.js";
+import type * as generateActions from "../generateActions.js";
 import type * as lib_aggregates from "../lib/aggregates.js";
 import type * as lib_colorData from "../lib/colorData.js";
 import type * as lib_colorUtils from "../lib/colorUtils.js";
@@ -38,6 +40,8 @@ declare const fullApi: ApiFromModules<{
   backfillActions: typeof backfillActions;
   consensus: typeof consensus;
   crons: typeof crons;
+  generate: typeof generate;
+  generateActions: typeof generateActions;
   "lib/aggregates": typeof lib_aggregates;
   "lib/colorData": typeof lib_colorData;
   "lib/colorUtils": typeof lib_colorUtils;

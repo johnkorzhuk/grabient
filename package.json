@@ -27,7 +27,7 @@
     "license": "FSL-1.1-ALv2",
     "packageManager": "pnpm@10.14.0",
     "devDependencies": {
-        "@types/node": "^22.18.12",
+        "@types/node": "22.18.6",
         "typescript": "^5.9.3"
     }
 }

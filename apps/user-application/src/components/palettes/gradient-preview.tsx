@@ -15,7 +15,7 @@ import { useStore } from "@tanstack/react-store";
 import { exportStore } from "@/stores/export";
 import { uiStore } from "@/stores/ui";
 import { useRef, useEffect, useState, lazy, Suspense } from "react";
-import { getGradientAriaLabel } from "@/lib/color-utils";
+import { getGradientAriaLabel } from "@repo/data-ops/color-utils";
 import { generateCssGradient } from "@repo/data-ops/gradient-gen";
 import { X } from "lucide-react";
 import {

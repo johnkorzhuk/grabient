@@ -1,7 +1,7 @@
 import * as v from "valibot";
 import { optionalPageLimitValidator } from "@repo/data-ops/valibot-schema/grabient";
 import { getSeedColorData } from "@/lib/seed-color-data";
-import { HEX_CODE_REGEX } from "@/lib/color-utils";
+import { HEX_CODE_REGEX } from "@repo/data-ops/color-utils";
 
 export const SEARCH_QUERY_MAX_LENGTH = 100;
 const MAX_HEX_CODES = 8;

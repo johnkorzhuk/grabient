@@ -1,4 +1,4 @@
-import { hexToColorName } from "@/lib/color-utils";
+import { hexToColorName } from "@repo/data-ops/color-utils";
 import {
     cosineGradient,
     rgbToHex,

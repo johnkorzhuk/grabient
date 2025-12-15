@@ -50,6 +50,10 @@
     "./scripts/*": {
       "types": "./dist/scripts/*.d.ts",
       "default": "./dist/scripts/*.js"
+    },
+    "./color-utils": {
+      "types": "./dist/color-utils.d.ts",
+      "default": "./dist/color-utils.js"
     }
   },
   "scripts": {

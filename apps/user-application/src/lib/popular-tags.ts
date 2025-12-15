@@ -1,4 +1,4 @@
-import { getColorsWithHue, type ColorWithHue } from "./color-utils";
+import { getColorsWithHue, type ColorWithHue } from "@repo/data-ops/color-utils";
 
 const EMOJI_TAGS = [
     "🌊", // ocean (68), water (65), sea (31)

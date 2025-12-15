@@ -2,7 +2,7 @@ import {
     getColorsWithHex,
     getColorsWithHue,
     type ColorWithHue,
-} from "./color-utils";
+} from "@repo/data-ops/color-utils";
 
 // Emoji tags mapped to high-frequency palette tags
 const EMOJI_TAGS = [

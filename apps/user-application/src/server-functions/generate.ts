@@ -8,37 +8,45 @@ import {
     type RefineSession,
 } from "@repo/data-ops/drizzle/app-schema";
 import { eq, and } from "drizzle-orm";
-import { AVAILABLE_MODELS, DEFAULT_MODEL, type ModelKey, type GeminiModelId } from "@/lib/model-config";
+import { AVAILABLE_MODELS, DEFAULT_MODEL, type ModelKey, isGeminiModel } from "@/lib/model-config";
 
 function buildSystemPrompt(
     query: string,
     limit: number,
-    _examples?: string[][],
+    examples?: string[][],
     _sessionContext?: SessionContext,
     _version?: number,
 ): string {
+    const examplesSection = examples && examples.length > 0
+        ? `
+**Source Palettes**:
+${examples.slice(0, 12).map(p => JSON.stringify(p)).join('\n')}
+
+Create interesting combinations, interpolations, and extrapolations from these palettes. Blend elements, shift hues, invert progressions, or merge characteristics — but always inspired by "${query}".
+
+`
+        : '';
+
     return `**Role**: You are a Mathematical Color Architect creating gradient keyframes optimized for Cosine Gradient Fitting.
 
 **Context**: Your colors will be fit to: color(t) = a + b * cos(2π(c * t + d)). Each RGB channel is fit independently.
+${examplesSection}**Theme**: "${query}"
+Generate ${limit} UNIQUE palettes inspired by "${query}". Each palette should feel like a different creative interpretation. Include 2-3 "wildcard" palettes that are extra bold or unexpected while still fitting "${query}".
 
-**Theme**: "${query}"
-Generate ${limit} UNIQUE palettes that unmistakably evoke "${query}". Each palette must feel like a different interpretation of the theme.
-
-**Process for Each Palette**:
-1. Pick 2-3 anchor colors that ARE "${query}" — its visual signature
-2. Build smooth bridges between them (8-12 colors total)
+**Process**:
+1. Pick 2-3 anchor colors inspired by "${query}"
+2. Build smooth bridges between them (8-12 colors total, unless "${query}" implies otherwise)
 3. Verify each R, G, B channel follows a single-arc rule (no zigzags)
-4. Be creative — think cinematically, how would this palette unfold over time?
+4. Think cinematically — how would this palette unfold over time?
 
-**Mathematical Constraints**:
-1. **Waveform Continuity**: Each RGB channel must follow a smooth curve (ramp or bell curve). No noisy jumps.
-2. **Phase Offsets**: The peaks of R, G, B channels should NOT all occur at the same position. This creates rich hue shifts rather than monochromatic fades.
-3. **Luminosity Range**: Explore a range of brightness. Flat brightness = boring gradient.
+**Mathematical Constraints** (unless "${query}" implies otherwise):
+1. **Waveform Continuity**: Each RGB channel must follow a smooth curve. No noisy jumps.
+2. **Phase Offsets**: R, G, B peaks should NOT all occur at the same position. This creates rich hue shifts.
+3. **Luminosity Range**: Explore a range of brightness. Flat = boring.
 
 **Output**: JSON array only. No markdown, no explanation.
-[["#hex1","#hex2",...,"#hex8"], ...]
 
-Generate ${limit} unique "${query}" palettes:`;
+Generate ${limit} unique palettes:`;
 }
 
 export interface StreamingPalette {
@@ -308,11 +316,8 @@ export async function generatePalettesStream(
     // Build session context from stored feedback
     const sessionContext = buildSessionContext(session, seedToHexMap);
 
-    // Create adapter based on provider
-    const geminiAdapter = modelConfig.provider === "gemini"
-        ? createGemini(env.GOOGLE_GENERATIVE_AI_API_KEY!)
-        : null;
-    const groqAdapter = modelConfig.provider === "groq"
+    // Create Groq adapter if needed
+    const groqAdapter = !isGeminiModel(modelConfig)
         ? createOpenAI(env.GROQ_API_KEY!, {
             baseURL: "https://api.groq.com/openai/v1",
         })
@@ -353,15 +358,14 @@ export async function generatePalettesStream(
     );
 
     // Create chat stream with provider-specific configuration
-    const stream = geminiAdapter
+    const stream = isGeminiModel(modelConfig)
         ? chat({
-            adapter: geminiAdapter,
-            model: modelConfig.id as GeminiModelId,
+            adapter: createGemini(env.GOOGLE_GENERATIVE_AI_API_KEY!, {
+                generationConfig: { maxOutputTokens: 32768 },
+            }),
+            model: modelConfig.id,
             systemPrompts: [systemPrompt],
             messages,
-            providerOptions: {
-                generationConfig: { maxOutputTokens: 8192 },
-            } as Record<string, unknown>,
         })
         : chat({
             adapter: groqAdapter!,
@@ -389,14 +393,36 @@ export async function generatePalettesStream(
                     ),
                 );
 
-                for await (const chunk of stream) {
-                    if (chunk.type === "content") {
-                        jsonBuffer += chunk.delta;
+                // Keep-alive: send ping every 10s to prevent timeout while waiting for slow models
+                const keepAlive = setInterval(() => {
+                    controller.enqueue(encoder.encode(`: ping\n\n`));
+                }, 10000);
 
-                        const { palettes, remaining } =
-                            extractPalettes(jsonBuffer);
-                        jsonBuffer = remaining;
+                try {
+                    for await (const chunk of stream) {
+                        if (chunk.type === "content") {
+                            jsonBuffer += chunk.delta;
 
+                            const { palettes, remaining } =
+                                extractPalettes(jsonBuffer);
+                            jsonBuffer = remaining;
+
+                            for (const palette of palettes) {
+                                controller.enqueue(
+                                    encoder.encode(
+                                        `data: ${JSON.stringify({
+                                            type: "palette",
+                                            colors: palette.colors,
+                                        })}\n\n`,
+                                    ),
+                                );
+                            }
+                        }
+                    }
+
+                    // Process any remaining content
+                    if (jsonBuffer.trim()) {
+                        const { palettes } = extractPalettes(jsonBuffer);
                         for (const palette of palettes) {
                             controller.enqueue(
                                 encoder.encode(
@@ -408,33 +434,20 @@ export async function generatePalettesStream(
                             );
                         }
                     }
+
+                    // Update session with new version
+                    await db
+                        .update(refineSessions)
+                        .set({
+                            version,
+                            updatedAt: new Date(),
+                        })
+                        .where(eq(refineSessions.id, currentSessionId));
+
+                    controller.close();
+                } finally {
+                    clearInterval(keepAlive);
                 }
-
-                // Process any remaining content
-                if (jsonBuffer.trim()) {
-                    const { palettes } = extractPalettes(jsonBuffer);
-                    for (const palette of palettes) {
-                        controller.enqueue(
-                            encoder.encode(
-                                `data: ${JSON.stringify({
-                                    type: "palette",
-                                    colors: palette.colors,
-                                })}\n\n`,
-                            ),
-                        );
-                    }
-                }
-
-                // Update session with new version
-                await db
-                    .update(refineSessions)
-                    .set({
-                        version,
-                        updatedAt: new Date(),
-                    })
-                    .where(eq(refineSessions.id, currentSessionId));
-
-                controller.close();
             } catch (error) {
                 console.error("Stream error:", error);
                 controller.enqueue(

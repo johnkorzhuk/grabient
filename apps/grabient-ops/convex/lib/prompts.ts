@@ -141,3 +141,121 @@ export const REFINEMENT_PROMPT_VERSION = hashString(REFINEMENT_SYSTEM_PROMPT)
 
 // Legacy export for backwards compatibility
 export const CURRENT_PROMPT_VERSION = TAGGING_PROMPT_VERSION
+
+// ============================================================================
+// Generation System Prompt (Palette Generation from Tags)
+// ============================================================================
+
+/**
+ * Builds the generation system prompt with optional reference examples
+ */
+export function buildGenerationSystemPrompt(
+  query: string,
+  limit: number,
+  examples?: string[][]
+): string {
+  const examplesSection = examples && examples.length > 0
+    ? `## Reference Palettes
+These palettes were retrieved from a database based on similarity to "${query}". They may be highly relevant, loosely related, or occasionally off-target — use your judgment. Treat them as inspiration for quality and aesthetic range, not as templates to copy or constraints to follow.
+
+${examples.map((p) => JSON.stringify(p)).join('\n')}
+
+`
+    : ''
+
+  const referenceEvaluation = examples && examples.length > 0
+    ? `\n- REFERENCE EVALUATION: Which examples actually fit "${query}"? Which are off-target? What useful patterns exist in the relevant ones?`
+    : ''
+
+  return `Generate ${limit} gradient palettes for "${query}". Each palette is 8 hex colors.
+
+${examplesSection}## Step 1: Theme Analysis (REQUIRED — do this internally, do not include in your response)
+Analyze "${query}":
+- CORE IDENTITY: What does "${query}" fundamentally mean in color terms?
+- PRIMARY HUES: 2-4 colors this theme demands (be specific: "dusty rose" not "pink")
+- FORBIDDEN HUES: Colors that would break the theme
+- BRIGHTNESS: Natural range (dark/medium/bright)
+- SATURATION: Natural character (vivid/muted/desaturated)
+- ASSOCIATIONS: Related concepts, materials, environments, moods${referenceEvaluation}
+
+## Step 2: Generate Two Categories
+
+**Category A: Pure Interpretations (${Math.ceil(limit / 3)} palettes)**
+Stay strictly within "${query}" — unmistakably on-theme with no additions.
+Vary only: brightness, contrast, saturation level, gradient direction, complexity.
+Someone should look at these and immediately think "${query}".
+
+**Category B: Creative Expansions (${Math.floor((limit * 2) / 3)} palettes)**
+Pair "${query}" with modifiers that create interesting combinations. Each palette should use a DIFFERENT modifier approach.
+
+Consider two types of expansion:
+
+*Conceptual modifiers* — dimensions that recontextualize the theme:
+Time, light, weather, texture, material, emotion, temperature, age, season, environment, intensity, abstraction.
+
+*Color harmony modifiers* — introduce hues that relate to "${query}" through color theory:
+- Analogous: neighboring hues that extend the theme naturally
+- Complementary: opposite hues that create vibrant tension
+- Split-complementary: two hues adjacent to the complement for softer contrast
+
+Choose modifiers — conceptual, harmonic, or combined — that genuinely enhance "${query}". Not every harmony works with every theme; select what creates *interesting tension or natural extension* for this specific query.
+
+**CRITICAL: Anchor Rule**
+Every Category B palette must remain identifiable as "${query}". At least half of each palette should be rooted in the core theme colors — enough to anchor the viewer's association. Modifiers should enhance or recontextualize, never overwhelm. If someone cannot connect the palette back to "${query}", the modifier has gone too far.
+
+## The Algorithm
+Your colors will be rendered using: color(t) = a + b·cos(2π(c·t + d))
+- **a** (bias): baseline brightness
+- **b** (amplitude): oscillation range
+- **c** (frequency): number of color cycles (0.5 = monotonic A→B, 1.0 = A→B→A, >1 = complex)
+- **d** (phase): where each channel starts
+
+## Gradient Shapes (CRITICAL — vary these)
+
+**Monotonic (target: ~50% of palettes)**
+Frequency c ≈ 0.3–0.5. Color flows ONE direction: A → B. No peak, no return.
+Use for: transitions, journeys, fades, progressions.
+
+**Symmetric (target: ~35% of palettes)**
+Frequency c ≈ 0.8–1.0. Color flows A → B → A. Has a peak or trough.
+VARY THE PEAK POSITION using phase d:
+- Early peak (d ≈ 0.0–0.2): intensity at start, fades out
+- Center peak (d ≈ 0.25): classic glow — USE SPARINGLY
+- Late peak (d ≈ 0.3–0.5): builds to climax at end
+
+**Complex (target: ~15% of palettes)**
+Frequency c > 1. Multiple color cycles. Use for: iridescence, rainbow effects, energy.
+
+## Brightness Distribution
+Across all ${limit} palettes, distribute with respect to ${query}:
+- ~30% dark dominant (deep, moody, shadows)
+- ~40% medium (balanced, natural)
+- ~30% bright dominant (airy, light, glowing)
+
+## Quality Checks (do these internally, do not include in your response)
+✓ Could someone identify "${query}" from Category A palettes alone?
+✓ Does each Category B palette contain at least half core theme colors?
+✓ Is there variety in gradient direction (monotonic vs symmetric)?
+✓ Is there variety in brightness (dark/medium/bright)?
+✓ Do the palettes look distinct from each other, not like minor variations?
+✓ Do Category B palettes use a mix of conceptual and harmonic modifiers?
+
+## Output Format
+Return ONLY a JSON object with two fields. No explanation, no markdown, no code blocks, no preamble.
+
+**palettes**: Array of ${limit} palettes. First ${Math.ceil(limit / 3)} are Category A (pure), remaining are Category B (expanded).
+
+**modifiers**: Array of 2-6 modifier tags you used for Category B palettes. These are the conceptual or harmonic modifiers you paired with "${query}" (e.g., for "ocean" you might output ["stormy", "tropical", "bioluminescent", "complementary-coral", "triadic-warm"]). Only include modifiers that actually appear in your Category B palettes.
+
+{
+  "palettes": [["#hex1", "#hex2", "#hex3", "#hex4", "#hex5", "#hex6", "#hex7", "#hex8"], ...],
+  "modifiers": ["modifier1", "modifier2", ...]
+}`
+}
+
+// Legacy constant for backwards compatibility (without examples)
+export const GENERATION_SYSTEM_PROMPT = buildGenerationSystemPrompt('${query}', 24)
+
+export const GENERATION_PROMPT_MESSAGE = 'Two-category generation with theme analysis and reference examples'
+
+export const GENERATION_PROMPT_VERSION = hashString(GENERATION_SYSTEM_PROMPT)

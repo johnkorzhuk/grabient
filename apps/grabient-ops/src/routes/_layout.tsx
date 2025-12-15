@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Outlet, useParams } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { cn } from "~/lib/utils";
 import {
   Database,
@@ -70,6 +70,18 @@ function Header() {
             className="text-sm text-muted-foreground hover:text-foreground transition-colors [&.active]:font-medium [&.active]:text-foreground"
           >
             Dashboard
+          </Link>
+          <Link
+            to="/generate"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors [&.active]:font-medium [&.active]:text-foreground"
+          >
+            Generate
+          </Link>
+          <Link
+            to="/random"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors [&.active]:font-medium [&.active]:text-foreground"
+          >
+            Random
           </Link>
           <ThemeToggle />
         </nav>
@@ -219,7 +231,7 @@ function PaletteListItem({
   searchParams?: SearchParams;
 }) {
   const grabientUrl = `https://grabient.com/${palette.seed}`;
-  const gradientStyle = useMemo(() => getGradientStyle(palette.seed), [palette.seed]);
+  const gradientStyle = getGradientStyle(palette.seed);
 
   return (
     <div

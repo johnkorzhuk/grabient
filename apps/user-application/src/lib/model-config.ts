@@ -33,3 +33,8 @@ type GeminiModelKeys = {
 }[ModelKey];
 
 export type GeminiModelId = typeof AVAILABLE_MODELS[GeminiModelKeys]["id"];
+
+// Type guard to check if a model config is for Gemini
+export function isGeminiModel(config: typeof AVAILABLE_MODELS[ModelKey]): config is typeof AVAILABLE_MODELS[GeminiModelKeys] {
+    return config.provider === "gemini";
+}

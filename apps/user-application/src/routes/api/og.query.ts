@@ -17,7 +17,7 @@ import {
     seedValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
-import { replaceHexWithColorNames } from "@/lib/color-utils";
+import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
 
 const OG_CACHE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 

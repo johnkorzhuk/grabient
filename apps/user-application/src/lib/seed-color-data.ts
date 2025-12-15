@@ -1,6 +1,6 @@
 import { isValidSeed, deserializeCoeffs } from "@repo/data-ops/serialization";
 import { cosineGradient, rgbToHex, applyGlobals } from "@repo/data-ops/gradient-gen";
-import { hexToColorName } from "./color-utils";
+import { hexToColorName } from "@repo/data-ops/color-utils";
 
 const SEED_STEPS = 11;
 

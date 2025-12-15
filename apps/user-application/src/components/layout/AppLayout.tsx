@@ -44,7 +44,7 @@ import {
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
-import { isColorName, colorNameToHex, isHexColor } from "@/lib/color-utils";
+import { isColorName, colorNameToHex, isHexColor } from "@repo/data-ops/color-utils";
 
 type TagColorInfo =
     | { type: "none" }
