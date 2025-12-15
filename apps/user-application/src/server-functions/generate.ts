@@ -13,152 +13,32 @@ import { AVAILABLE_MODELS, DEFAULT_MODEL, type ModelKey, type GeminiModelId } fr
 function buildSystemPrompt(
     query: string,
     limit: number,
-    examples?: string[][],
-    sessionContext?: SessionContext,
-    version?: number,
+    _examples?: string[][],
+    _sessionContext?: SessionContext,
+    _version?: number,
 ): string {
-    let prompt = `Generate ${limit} gradient palettes for "${query}". Each palette is 8 hex colors.
+    return `**Role**: You are a Mathematical Color Architect creating gradient keyframes optimized for Cosine Gradient Fitting.
 
-## Your Anchor: "${query}"
-Every palette must unmistakably evoke this theme. But there are many ways to interpret any theme.
+**Context**: Your colors will be fit to: color(t) = a + b * cos(2π(c * t + d)). Each RGB channel is fit independently.
 
-The query "${query}" constrains some dimensions but leaves others open:
-- "sunset" → constrains hue to warm, but brightness/contrast/saturation can vary freely
-- "muted forest" → constrains saturation (low) and hue (green), but brightness/contrast/complexity can vary
-- "neon" → constrains saturation (high), but hue/brightness/contrast can vary
+**Theme**: "${query}"
+Generate ${limit} UNIQUE palettes that unmistakably evoke "${query}". Each palette must feel like a different interpretation of the theme.
 
-Identify what "${query}" constrains, then spread your ${limit} palettes across the unconstrained dimensions.
+**Process for Each Palette**:
+1. Pick 2-3 anchor colors that ARE "${query}" — its visual signature
+2. Build smooth bridges between them (8-12 colors total)
+3. Verify each R, G, B channel follows a single-arc rule (no zigzags)
+4. Be creative — think cinematically, how would this palette unfold over time?
 
-## The Algorithm
-Your colors will be fitted to: color(t) = a + b·cos(2π(c·t + d)) for each RGB channel independently.
-- **a** (bias): baseline brightness of the channel
-- **b** (amplitude): how much the channel oscillates
-- **c** (frequency): how many oscillations across the gradient
-- **d** (phase): where in the cycle the channel starts
+**Mathematical Constraints**:
+1. **Waveform Continuity**: Each RGB channel must follow a smooth curve (ramp or bell curve). No noisy jumps.
+2. **Phase Offsets**: The peaks of R, G, B channels should NOT all occur at the same position. This creates rich hue shifts rather than monochromatic fades.
+3. **Luminosity Range**: Explore a range of brightness. Flat brightness = boring gradient.
 
-The interplay of these parameters across R, G, B creates all color effects.
+**Output**: JSON array only. No markdown, no explanation.
+[["#hex1","#hex2",...,"#hex8"], ...]
 
-## Dimensions to Vary (mapped to algorithm)
-
-**Brightness** (bias 'a' of all channels):
-- Dark/moody (low bias) ↔ Medium ↔ Bright/airy (high bias)
-- Distribute: ~1/3 dark, ~1/3 medium, ~1/3 bright
-
-**Contrast** (amplitude 'b'):
-- Dramatic: high amplitude, near-black to near-white swings
-- Subtle: low amplitude, narrow value range
-- Mix both across your palettes
-
-**Saturation** (amplitude relationships between R,G,B):
-- Vivid: similar amplitudes across channels
-- Muted: one channel dampened
-- Near-gray: all channels low amplitude
-
-**Saturation Arc** (how saturation changes across gradient):
-- Consistent: saturated throughout
-- Fading: vivid→muted
-- Emerging: muted→vivid
-- Dip: saturated→muted→saturated
-
-**Hue Journey** (phase 'd' relationships):
-- Monochromatic: same phase, only brightness changes
-- Analogous: small phase offsets, neighboring hues
-- Complementary passage: passes through the complement
-- Spectral: sequential phase offsets, rainbow-like
-
-**Complexity** (frequency 'c'):
-- Monotonic A→B (c≈0.5): TRUE one-directional flow, NO peak, just steady transition
-- Symmetric A→B→A (c≈1.0): rises and returns, has a peak/trough
-- Multi-peak (c>1): multiple color cycles
-- Target: ~50% monotonic, ~35% symmetric, ~15% symmetric/complex
-
-**Peak Position** (only for symmetric/multi-peak, NOT monotonic):
-- Early climax (d≈0.1-0.3): intensity peaks near start, then fades
-- Centered (d≈0.4-0.6): peak in middle
-- Late climax (d≈0.7-0.9): builds intensity toward end
-- DISTRIBUTE EVENLY: ~1/3 early, ~1/3 centered, ~1/3 late
-- DO NOT default to centered - this creates a repetitive "glow in the middle" look
-
-**Temperature** (bias relationships):
-- Warm cast: red bias slightly higher
-- Cool cast: blue bias slightly higher
-- Neutral: balanced
-
-## Worked Example
-
-**"ocean"** constrains: blue-green hues. FREE: everything else.
-- Dark abyss: MONOTONIC dark→darker, no peak, just descent into depths
-- Tropical shallows: MONOTONIC light→medium, bright start fading to deeper water
-- Storm: symmetric A→B→A with EARLY peak, intensity at start then fading
-- Bioluminescence: symmetric with LATE peak, builds to bright accent at end
-- Coastal gradient: MONOTONIC shore→sea, steady hue transition, no brightness peak
-- Sunset reflection: symmetric CENTERED peak (use sparingly - this is the default everyone overuses)
-
-## What Makes a Bad Set
-- All similar brightness
-- All high OR all low saturation
-- All simple OR all complex
-- Only obvious hue choices
-
-## Summary
-1. Anchor every palette to "${query}" — it must be unmistakably on-theme
-2. Identify what "${query}" constrains (hue? saturation? brightness?)
-3. Spread your ${limit} palettes across ALL unconstrained dimensions
-4. CRITICAL DISTRIBUTION:
-   - ~50% MONOTONIC (no peak - purely transitional A→B)
-   - ~35% symmetric with VARIED peak positions (early/centered/late equally distributed)
-   - ~15% complex multi-peak
-5. Avoid the "centered glow" trap - it's the most common failure mode
-6. Each palette should feel like a different interpretation of the same theme
-
-## Output
-${limit} distinct palettes for "${query}". JSON array only:
-[["#hex1", "#hex2", "#hex3", "#hex4", "#hex5", "#hex6", "#hex7", "#hex8"], ...]`;
-
-    // Add reference examples (from vector search results)
-    if (examples && examples.length > 0) {
-        const exampleLines = examples
-            .slice(0, 24)
-            .map((p) => JSON.stringify(p))
-            .join("\n");
-        prompt += `
-
-## Reference Examples
-Here are some example palettes that may or may not be representative of the theme. Use them as loose inspiration for style and structure, not as strict templates:
-${exampleLines}`;
-    }
-
-    // Add session context for refinement rounds after v1
-    if (version && version > 1 && sessionContext) {
-        prompt += `
-
-## Session Context (Refinement #${version})
-This is soft guidance to help you generate fresh variations. Your primary goal remains: unique, interesting palettes for "${query}".`;
-
-        if (sessionContext.liked.length > 0) {
-            const likedLines = sessionContext.liked
-                .slice(0, 4)
-                .map((p) => JSON.stringify(p))
-                .join("\n");
-            prompt += `
-
-### User Liked (explore similar directions)
-${likedLines}`;
-        }
-
-        if (sessionContext.disliked.length > 0) {
-            const dislikedLines = sessionContext.disliked
-                .slice(0, 6)
-                .map((p) => JSON.stringify(p))
-                .join("\n");
-            prompt += `
-
-### User Disliked (avoid these directions)
-${dislikedLines}`;
-        }
-    }
-
-    return prompt;
+Generate ${limit} unique "${query}" palettes:`;
 }
 
 export interface StreamingPalette {
@@ -488,7 +368,6 @@ export async function generatePalettesStream(
             model: modelConfig.id as "gpt-4o",
             systemPrompts: [systemPrompt],
             messages,
-            providerOptions: { max_tokens: 8192 } as Record<string, unknown>,
         });
 
     // Transform TanStack AI stream into palette SSE events
