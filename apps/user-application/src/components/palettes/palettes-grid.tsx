@@ -1106,7 +1106,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                                     {theme}
                                 </span>
                             )}
-                            {modelKey && (
+                            {modelKey && modelKey !== "unknown" && (
                                 <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground pointer-events-none select-none">
                                     {modelKey}
                                 </span>

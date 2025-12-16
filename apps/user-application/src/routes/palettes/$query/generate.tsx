@@ -505,16 +505,16 @@ function GeneratePage() {
 
     // Convert stored palette data to a VersionedPalette (for loading from DB)
     const storedToVersionedPalette = (
-        paletteData: string | { seed: string; style: string; steps: number; angle: number },
+        paletteData: string | { seed: string; style: string; steps: number; angle: number; keyword?: string },
         version: number,
-        modelKey: string = "unknown",
-        theme: string = ""
+        modelKey: string = "unknown"
     ): VersionedPalette => {
         // Handle both old format (string) and new format (object)
         const seed = typeof paletteData === 'string' ? paletteData : paletteData.seed;
         const style = typeof paletteData === 'string' ? "linearGradient" : paletteData.style;
         const steps = typeof paletteData === 'string' ? 8 : paletteData.steps;
         const angle = typeof paletteData === 'string' ? 90 : paletteData.angle;
+        const theme = typeof paletteData === 'string' ? "" : (paletteData.keyword ?? "");
         
         const { coeffs } = deserializeCoeffs(seed);
         const hexColors = generateHexColors(coeffs, DEFAULT_GLOBALS, steps);
@@ -602,7 +602,7 @@ function GeneratePage() {
     const pendingSeedsRef = useRef<{ 
         sessionId: string | null; 
         version: number; 
-        palettes: Array<{ seed: string; style: string; steps: number; angle: number }>;
+        palettes: Array<{ seed: string; style: string; steps: number; angle: number; keyword: string }>;
     }>({
         sessionId: null,
         version: 0,
@@ -667,6 +667,7 @@ function GeneratePage() {
                                         style: palette.style,
                                         steps: palette.steps,
                                         angle: palette.angle,
+                                        keyword: palette.theme,
                                     });
                                 }}
                                 onGenerateComplete={() => {

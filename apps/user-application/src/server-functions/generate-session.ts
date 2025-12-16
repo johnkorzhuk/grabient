@@ -238,6 +238,7 @@ const paletteMetadataSchema = v.object({
     style: v.picklist(["angularGradient", "angularSwatches", "linearGradient", "linearSwatches", "deepFlow"]),
     steps: v.number(),
     angle: v.number(),
+    keyword: v.string(),
 });
 
 const saveGeneratedSeedsSchema = v.object({
