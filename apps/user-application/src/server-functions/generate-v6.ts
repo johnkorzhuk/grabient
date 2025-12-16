@@ -9,7 +9,11 @@ import { streamText } from "ai";
 import { getDb } from "@repo/data-ops/database/setup";
 import { refineSessions } from "@repo/data-ops/drizzle/app-schema";
 import { eq, and } from "drizzle-orm";
-import { fitCosinePalette, calculateAverageFrequency, calculateContrast } from "@repo/data-ops/gradient-gen";
+import {
+    fitCosinePalette,
+    calculateAverageFrequency,
+    calculateContrast,
+} from "@repo/data-ops/gradient-gen";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
 import type { CosineCoeffs } from "@repo/data-ops/gradient-gen/cosine";
@@ -37,18 +41,57 @@ import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
 // =============================================================================
 
 const COMPOSER_MODEL = {
-    id: "moonshotai/kimi-k2-instruct-0905",
-    name: "Kimi K2 (Composer)",
-    provider: "groq" as const,
+    // id: "openai/gpt-oss-120b",
+    // name: "GPT OSS 120B (Composer)",
+    // provider: "groq" as const,
+    // id: "llama-3.3-70b-versatile",
+    // name: "Llama 3.3 70B (Composer)",
+    // provider: "groq" as const,
+    // id: "moonshotai/kimi-k2-instruct-0905",
+    // name: "Kimi K2 (Composer)",
+    // provider: "groq" as const,
+    id: "google/gemini-2.5-flash-lite",
+    name: "Gemini 2.5 Flash Lite (Composer)",
+    provider: "openrouter" as const,
 };
 
 const PAINTER_MODELS = [
-    { key: "llama-4-maverick", id: "meta-llama/llama-4-maverick-17b-128e-instruct", name: "Llama 4 Maverick", provider: "groq" as const },
-    { key: "llama-4-scout", id: "meta-llama/llama-4-scout-17b-16e-instruct", name: "Llama 4 Scout", provider: "groq" as const },
-    { key: "gpt-4.1-nano", id: "gpt-4.1-nano", name: "GPT-4.1 Nano", provider: "openai" as const },
-    { key: "llama-3.3-70b", id: "llama-3.3-70b-versatile", name: "Llama 3.3 70B", provider: "groq" as const },
-    { key: "gemini-flash-lite", id: "google/gemini-2.5-flash-lite", name: "Gemini 2.5 Flash Lite", provider: "openrouter" as const },
-    { key: "kimi-k2", id: "moonshotai/kimi-k2-instruct-0905", name: "Kimi K2", provider: "groq" as const },
+    {
+        key: "llama-4-maverick",
+        id: "meta-llama/llama-4-maverick-17b-128e-instruct",
+        name: "Llama 4 Maverick",
+        provider: "groq" as const,
+    },
+    {
+        key: "llama-4-scout",
+        id: "meta-llama/llama-4-scout-17b-16e-instruct",
+        name: "Llama 4 Scout",
+        provider: "groq" as const,
+    },
+    {
+        key: "gpt-4.1-nano",
+        id: "gpt-4.1-nano",
+        name: "GPT-4.1 Nano",
+        provider: "openai" as const,
+    },
+    {
+        key: "llama-3.3-70b",
+        id: "llama-3.3-70b-versatile",
+        name: "Llama 3.3 70B",
+        provider: "groq" as const,
+    },
+    {
+        key: "gemini-flash-lite",
+        id: "google/gemini-2.5-flash-lite",
+        name: "Gemini 2.5 Flash Lite",
+        provider: "openrouter" as const,
+    },
+    {
+        key: "kimi-k2",
+        id: "moonshotai/kimi-k2-instruct-0905",
+        name: "Kimi K2",
+        provider: "groq" as const,
+    },
 ] as const;
 
 // =============================================================================
@@ -56,7 +99,12 @@ const PAINTER_MODELS = [
 // =============================================================================
 
 // Style type matching palettes.ts
-type PaletteStyle = "angularGradient" | "angularSwatches" | "linearGradient" | "linearSwatches" | "deepFlow";
+type PaletteStyle =
+    | "angularGradient"
+    | "angularSwatches"
+    | "linearGradient"
+    | "linearSwatches"
+    | "deepFlow";
 
 // Angle values from dropdown: 0, 45, 90, 135, 180, 225, 270, 315
 type PaletteAngle = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;
@@ -67,9 +115,27 @@ export type GenerateEvent =
     | { type: "composer_progress"; variationsReceived: number }
     | { type: "composer_complete"; totalMatrices: number }
     | { type: "composer_error"; error: string }
-    | { type: "painter_start"; modelKey: string; modelName: string; matricesCount: number }
-    | { type: "palette"; modelKey: string; seed: string; style: PaletteStyle; steps: number; angle: PaletteAngle; theme: string }
-    | { type: "painter_complete"; modelKey: string; paletteCount: number; duration: number }
+    | {
+          type: "painter_start";
+          modelKey: string;
+          modelName: string;
+          matricesCount: number;
+      }
+    | {
+          type: "palette";
+          modelKey: string;
+          seed: string;
+          style: PaletteStyle;
+          steps: number;
+          angle: PaletteAngle;
+          theme: string;
+      }
+    | {
+          type: "painter_complete";
+          modelKey: string;
+          paletteCount: number;
+          duration: number;
+      }
     | { type: "painter_error"; modelKey: string; error: string }
     | { type: "done"; totalPalettes: number };
 
@@ -90,16 +156,20 @@ function getOpenAIModel(modelId: string) {
 }
 
 function getOpenRouterModel(modelId: string) {
-    if (!env.OPENROUTER_API_KEY) throw new Error("OPENROUTER_API_KEY not configured");
+    if (!env.OPENROUTER_API_KEY)
+        throw new Error("OPENROUTER_API_KEY not configured");
     const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
     return openrouter(modelId);
 }
 
 function getModel(provider: "groq" | "openai" | "openrouter", modelId: string) {
     switch (provider) {
-        case "groq": return getGroqModel(modelId);
-        case "openai": return getOpenAIModel(modelId);
-        case "openrouter": return getOpenRouterModel(modelId);
+        case "groq":
+            return getGroqModel(modelId);
+        case "openai":
+            return getOpenAIModel(modelId);
+        case "openrouter":
+            return getOpenRouterModel(modelId);
     }
 }
 
@@ -116,21 +186,27 @@ const MAX_FREQUENCY_REDUCTION = 0.5; // Don't reduce by more than 50%
  */
 class FrequencyBalancer {
     private frequencies: number[] = [];
-    
+
     addPalette(coeffs: CosineCoeffs): number {
         // Average frequency across RGB channels
-        const avgFreq = (Math.abs(coeffs[2][0]) + Math.abs(coeffs[2][1]) + Math.abs(coeffs[2][2])) / 3;
+        const avgFreq =
+            (Math.abs(coeffs[2][0]) +
+                Math.abs(coeffs[2][1]) +
+                Math.abs(coeffs[2][2])) /
+            3;
         this.frequencies.push(avgFreq);
         return avgFreq;
     }
-    
+
     getAdjustmentFactor(): number {
         if (this.frequencies.length < 3) return 1; // Need some data first
-        
-        const currentAvg = this.frequencies.reduce((a, b) => a + b, 0) / this.frequencies.length;
-        
+
+        const currentAvg =
+            this.frequencies.reduce((a, b) => a + b, 0) /
+            this.frequencies.length;
+
         if (currentAvg <= TARGET_AVG_FREQUENCY) return 1; // Already low enough
-        
+
         // Calculate reduction factor to bring average toward target
         const ratio = TARGET_AVG_FREQUENCY / currentAvg;
         // Clamp to not reduce too aggressively
@@ -141,15 +217,23 @@ class FrequencyBalancer {
 /**
  * Apply frequency adjustment and ±5% jitter to frequency (c) and phase (d) VALUES.
  */
-function applyFrequencyAdjustment(coeffs: CosineCoeffs, adjustmentFactor: number): CosineCoeffs {
+function applyFrequencyAdjustment(
+    coeffs: CosineCoeffs,
+    adjustmentFactor: number,
+): CosineCoeffs {
     const jitter = () => 1 + (Math.random() * 0.1 - 0.05); // ±5% random
     const adjust = (val: number) => val * adjustmentFactor * jitter();
-    
+
     return [
         coeffs[0], // a (bias) - no change
         coeffs[1], // b (amplitude) - no change
         [adjust(coeffs[2][0]), adjust(coeffs[2][1]), adjust(coeffs[2][2]), 1], // c (frequency) - adjust + jitter
-        [coeffs[3][0] * jitter(), coeffs[3][1] * jitter(), coeffs[3][2] * jitter(), 1], // d (phase) - jitter only
+        [
+            coeffs[3][0] * jitter(),
+            coeffs[3][1] * jitter(),
+            coeffs[3][2] * jitter(),
+            1,
+        ], // d (phase) - jitter only
     ] as CosineCoeffs;
 }
 
@@ -160,18 +244,18 @@ function applyFrequencyAdjustment(coeffs: CosineCoeffs, adjustmentFactor: number
  */
 function determinePaletteProperties(
     coeffs: CosineCoeffs,
-    hexColors: string[]
+    hexColors: string[],
 ): { steps: number; style: PaletteStyle; angle: PaletteAngle } {
     const frequency = calculateAverageFrequency(coeffs);
     const contrast = calculateContrast(hexColors);
-    
+
     // Complexity score: 0-1 based on frequency and contrast
     const complexity = (Math.min(frequency, 1.5) / 1.5 + contrast) / 2;
-    
+
     // Determine steps: 5-8 based on complexity
     // Higher complexity = more steps to show the detail
     const steps = Math.round(5 + complexity * 3) as 5 | 6 | 7 | 8;
-    
+
     // Determine style based on complexity
     let style: PaletteStyle;
     if (complexity > 0.6) {
@@ -187,7 +271,7 @@ function determinePaletteProperties(
         // Low complexity: simple linear styles
         style = Math.random() > 0.3 ? "linearGradient" : "linearSwatches";
     }
-    
+
     // Determine angle: use variety based on randomness
     // Angular styles benefit from non-zero angles
     const angles: PaletteAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -195,12 +279,14 @@ function determinePaletteProperties(
     if (style.startsWith("angular")) {
         // For angular styles, prefer diagonal angles
         const diagonalAngles: PaletteAngle[] = [45, 135, 225, 315];
-        angle = diagonalAngles[Math.floor(Math.random() * diagonalAngles.length)] ?? 45;
+        angle =
+            diagonalAngles[Math.floor(Math.random() * diagonalAngles.length)] ??
+            45;
     } else {
         // For linear styles, any angle works
         angle = angles[Math.floor(Math.random() * angles.length)] ?? 0;
     }
-    
+
     return { steps, style, angle };
 }
 
@@ -218,7 +304,10 @@ const vectorMetadataSchema = v.object({
     createdAt: v.number(),
 });
 
-async function getExamplePalettes(query: string, limit = 5): Promise<ExamplePalette[]> {
+async function getExamplePalettes(
+    query: string,
+    limit = 5,
+): Promise<ExamplePalette[]> {
     if (!env.AI || !env.VECTORIZE) {
         console.log("[VectorSearch] AI/Vectorize bindings not available");
         return [];
@@ -226,7 +315,7 @@ async function getExamplePalettes(query: string, limit = 5): Promise<ExamplePale
 
     try {
         const normalizedQuery = replaceHexWithColorNames(query);
-        
+
         const embeddingResponse = await env.AI.run(
             "@cf/google/embeddinggemma-300m",
             { text: [normalizedQuery] },
@@ -248,12 +337,21 @@ async function getExamplePalettes(query: string, limit = 5): Promise<ExamplePale
 
         return matches.matches
             .map((match) => {
-                const parsed = v.safeParse(vectorMetadataSchema, match.metadata);
+                const parsed = v.safeParse(
+                    vectorMetadataSchema,
+                    match.metadata,
+                );
                 if (!parsed.success) return null;
-                
-                const { coeffs, globals } = deserializeCoeffs(parsed.output.seed);
-                const hexColors = generateHexColors(coeffs, globals, parsed.output.steps);
-                
+
+                const { coeffs, globals } = deserializeCoeffs(
+                    parsed.output.seed,
+                );
+                const hexColors = generateHexColors(
+                    coeffs,
+                    globals,
+                    parsed.output.steps,
+                );
+
                 return {
                     hexColors,
                     score: match.score,
@@ -275,7 +373,9 @@ async function* runComposer(
     variationCount: number,
     palettesPerVariation: number,
     examplePalettes?: ExamplePalette[],
-): AsyncGenerator<GenerateEvent | { type: "__result"; data: ComposerOutput | null }> {
+): AsyncGenerator<
+    GenerateEvent | { type: "__result"; data: ComposerOutput | null }
+> {
     const systemPrompt = buildComposerSystemPrompt({
         query,
         variationCount,
@@ -289,7 +389,7 @@ async function* runComposer(
 
     try {
         const model = getModel(COMPOSER_MODEL.provider, COMPOSER_MODEL.id);
-        
+
         const result = streamText({
             model,
             system: systemPrompt,
@@ -298,22 +398,34 @@ async function* runComposer(
 
         let fullText = "";
         let lastVariationCount = 0;
-        
+
         for await (const chunk of result.textStream) {
             fullText += chunk;
-            
+
             // Try to count variations received so far for progress updates
             const partialParsed = parseComposerOutput(fullText);
-            if (partialParsed?.variations?.length && partialParsed.variations.length > lastVariationCount) {
+            if (
+                partialParsed?.variations?.length &&
+                partialParsed.variations.length > lastVariationCount
+            ) {
                 lastVariationCount = partialParsed.variations.length;
-                yield { type: "composer_progress", variationsReceived: lastVariationCount };
+                yield {
+                    type: "composer_progress",
+                    variationsReceived: lastVariationCount,
+                };
             }
         }
 
         const parsed = parseComposerOutput(fullText);
         if (!parsed) {
-            console.error("[Composer] Failed to parse output:", fullText.slice(0, 500));
-            yield { type: "composer_error", error: "Failed to parse composer output" };
+            console.error(
+                "[Composer] Failed to parse output:",
+                fullText.slice(0, 500),
+            );
+            yield {
+                type: "composer_error",
+                error: "Failed to parse composer output",
+            };
             yield { type: "__result", data: null };
             return;
         }
@@ -327,7 +439,6 @@ async function* runComposer(
         console.log("[Composer] Complete with", totalMatrices, "matrices");
         yield { type: "composer_complete", totalMatrices };
         yield { type: "__result", data: parsed };
-
     } catch (error) {
         console.error("[Composer] Error:", error);
         yield { type: "composer_error", error: String(error) };
@@ -340,7 +451,7 @@ async function* runComposer(
 // =============================================================================
 
 async function* runPainter(
-    modelConfig: typeof PAINTER_MODELS[number],
+    modelConfig: (typeof PAINTER_MODELS)[number],
     matrices: PaletteMatrix[],
     frequencyBalancer: FrequencyBalancer,
 ): AsyncGenerator<GenerateEvent> {
@@ -348,7 +459,12 @@ async function* runPainter(
     const palettes: string[][] = [];
     let paletteIndex = 0;
 
-    yield { type: "painter_start", modelKey: modelConfig.key, modelName: modelConfig.name, matricesCount: matrices.length };
+    yield {
+        type: "painter_start",
+        modelKey: modelConfig.key,
+        modelName: modelConfig.name,
+        matricesCount: matrices.length,
+    };
 
     try {
         const model = getModel(modelConfig.provider, modelConfig.id);
@@ -361,52 +477,86 @@ async function* runPainter(
         });
 
         let buffer = "";
-        const paletteRegex = /\[\s*"#[0-9A-Fa-f]{6}"(?:\s*,\s*"#[0-9A-Fa-f]{6}")+\s*\]/g;
+        const paletteRegex =
+            /\[\s*"#[0-9A-Fa-f]{6}"(?:\s*,\s*"#[0-9A-Fa-f]{6}")+\s*\]/g;
 
         for await (const chunk of result.textStream) {
             buffer += chunk;
             let match;
-            
+
             // Reset regex lastIndex before each search
             paletteRegex.lastIndex = 0;
             let lastMatchEnd = 0;
-            
+
             while ((match = paletteRegex.exec(buffer)) !== null) {
                 lastMatchEnd = paletteRegex.lastIndex;
-                console.log(`[Painter:${modelConfig.key}] Regex matched:`, match[0].slice(0, 100));
+                console.log(
+                    `[Painter:${modelConfig.key}] Regex matched:`,
+                    match[0].slice(0, 100),
+                );
                 try {
                     const palette = JSON.parse(match[0]) as string[];
-                    console.log(`[Painter:${modelConfig.key}] Parsed palette with ${palette.length} colors:`, palette.slice(0, 3));
-                    const invalidColors = palette.filter(c => !/^#[0-9A-Fa-f]{6}$/i.test(c));
+                    console.log(
+                        `[Painter:${modelConfig.key}] Parsed palette with ${palette.length} colors:`,
+                        palette.slice(0, 3),
+                    );
+                    const invalidColors = palette.filter(
+                        (c) => !/^#[0-9A-Fa-f]{6}$/i.test(c),
+                    );
                     if (invalidColors.length > 0) {
-                        console.log(`[Painter:${modelConfig.key}] Invalid colors:`, invalidColors);
+                        console.log(
+                            `[Painter:${modelConfig.key}] Invalid colors:`,
+                            invalidColors,
+                        );
                     }
                     if (palette.length >= 5 && invalidColors.length === 0) {
                         // Get theme from corresponding matrix (palettes come in order)
-                        const theme = matrices[paletteIndex]?.theme ?? "unknown";
-                        
+                        const theme =
+                            matrices[paletteIndex]?.theme ?? "unknown";
+
                         // Fit cosine palette on server side
                         const fitResult = fitCosinePalette(palette);
-                        
+
                         // Track frequency and get adjustment factor
                         frequencyBalancer.addPalette(fitResult.coeffs);
-                        const adjustmentFactor = frequencyBalancer.getAdjustmentFactor();
-                        const adjustedCoeffs = applyFrequencyAdjustment(fitResult.coeffs, adjustmentFactor);
-                        const seed = serializeCoeffs(adjustedCoeffs, DEFAULT_GLOBALS);
-                        
+                        const adjustmentFactor =
+                            frequencyBalancer.getAdjustmentFactor();
+                        const adjustedCoeffs = applyFrequencyAdjustment(
+                            fitResult.coeffs,
+                            adjustmentFactor,
+                        );
+                        const seed = serializeCoeffs(
+                            adjustedCoeffs,
+                            DEFAULT_GLOBALS,
+                        );
+
                         // Determine steps, style, and angle based on palette complexity
-                        const { steps, style, angle } = determinePaletteProperties(adjustedCoeffs, palette);
-                        
+                        const { steps, style, angle } =
+                            determinePaletteProperties(adjustedCoeffs, palette);
+
                         palettes.push(palette);
                         paletteIndex++;
-                        console.log(`[Painter:${modelConfig.key}] Yielding palette #${palettes.length} (freq adj: ${adjustmentFactor.toFixed(2)}, steps: ${steps}, style: ${style})`);
-                        yield { type: "palette", modelKey: modelConfig.key, seed, style, steps, angle, theme };
+                        console.log(
+                            `[Painter:${modelConfig.key}] Yielding palette #${palettes.length} (freq adj: ${adjustmentFactor.toFixed(2)}, steps: ${steps}, style: ${style})`,
+                        );
+                        yield {
+                            type: "palette",
+                            modelKey: modelConfig.key,
+                            seed,
+                            style,
+                            steps,
+                            angle,
+                            theme,
+                        };
                     }
                 } catch (e) {
-                    console.error(`[Painter:${modelConfig.key}] Error processing palette:`, e);
+                    console.error(
+                        `[Painter:${modelConfig.key}] Error processing palette:`,
+                        e,
+                    );
                 }
             }
-            
+
             // Keep only unprocessed part of buffer
             if (lastMatchEnd > 0) {
                 buffer = buffer.slice(lastMatchEnd);
@@ -421,14 +571,27 @@ async function* runPainter(
         const duration = Date.now() - startTime;
         // Debug: show final buffer if no palettes found
         if (palettes.length === 0) {
-            console.log(`[Painter:${modelConfig.key}] Final buffer (${buffer.length} chars):`, buffer.slice(0, 1000));
+            console.log(
+                `[Painter:${modelConfig.key}] Final buffer (${buffer.length} chars):`,
+                buffer.slice(0, 1000),
+            );
         }
-        console.log(`[Painter:${modelConfig.key}] Complete with ${palettes.length} palettes in ${duration}ms`);
-        yield { type: "painter_complete", modelKey: modelConfig.key, paletteCount: palettes.length, duration };
-
+        console.log(
+            `[Painter:${modelConfig.key}] Complete with ${palettes.length} palettes in ${duration}ms`,
+        );
+        yield {
+            type: "painter_complete",
+            modelKey: modelConfig.key,
+            paletteCount: palettes.length,
+            duration,
+        };
     } catch (error) {
         console.error(`[Painter:${modelConfig.key}] Error:`, error);
-        yield { type: "painter_error", modelKey: modelConfig.key, error: String(error) };
+        yield {
+            type: "painter_error",
+            modelKey: modelConfig.key,
+            error: String(error),
+        };
     }
 }
 
@@ -465,7 +628,12 @@ export async function generatePalettesSSE(
         const result = await db
             .select()
             .from(refineSessions)
-            .where(and(eq(refineSessions.id, sessionId), eq(refineSessions.query, normalizedQuery)))
+            .where(
+                and(
+                    eq(refineSessions.id, sessionId),
+                    eq(refineSessions.query, normalizedQuery),
+                ),
+            )
             .limit(1);
         const session = result[0] ?? null;
         if (session) {
@@ -493,7 +661,9 @@ export async function generatePalettesSSE(
     const writer = writable.getWriter();
 
     const sendEvent = async (event: GenerateEvent) => {
-        await writer.write(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+        await writer.write(
+            encoder.encode(`data: ${JSON.stringify(event)}\n\n`),
+        );
     };
 
     // Run pipeline in background
@@ -502,15 +672,26 @@ export async function generatePalettesSSE(
 
         try {
             // Send session info
-            await sendEvent({ type: "session", sessionId: currentSessionId, version });
+            await sendEvent({
+                type: "session",
+                sessionId: currentSessionId,
+                version,
+            });
 
             // Fetch example palettes from vector search (runs in parallel with session setup)
             const examplePalettes = await getExamplePalettes(query, 5);
-            console.log(`[GenerateV6] Found ${examplePalettes.length} example palettes for query: ${query}`);
+            console.log(
+                `[GenerateV6] Found ${examplePalettes.length} example palettes for query: ${query}`,
+            );
 
             // Stage 1: Composer - generate 6 variations with 1 palette spec each
             let composerOutput: ComposerOutput | null = null;
-            for await (const event of runComposer(query, 6, 1, examplePalettes)) {
+            for await (const event of runComposer(
+                query,
+                6,
+                1,
+                examplePalettes,
+            )) {
                 if (event.type === "__result") {
                     composerOutput = event.data;
                 } else {
@@ -531,7 +712,7 @@ export async function generatePalettesSSE(
 
             // Each painter gets ALL matrices (6 total) and generates 6 palettes
             const painterTasks: Array<{
-                modelConfig: typeof PAINTER_MODELS[number];
+                modelConfig: (typeof PAINTER_MODELS)[number];
                 matrices: PaletteMatrix[];
             }> = [];
 
@@ -544,9 +725,13 @@ export async function generatePalettesSSE(
 
             // Stage 2: Run all painters in parallel with shared frequency balancer
             const frequencyBalancer = new FrequencyBalancer();
-            
+
             const painterPromises = painterTasks.map(async (task) => {
-                for await (const event of runPainter(task.modelConfig, task.matrices, frequencyBalancer)) {
+                for await (const event of runPainter(
+                    task.modelConfig,
+                    task.matrices,
+                    frequencyBalancer,
+                )) {
                     if (event.type === "palette") {
                         totalPalettes++;
                     }
@@ -557,17 +742,20 @@ export async function generatePalettesSSE(
             await Promise.allSettled(painterPromises);
 
             // Update session
-            await db.update(refineSessions)
+            await db
+                .update(refineSessions)
                 .set({ version, updatedAt: new Date() })
                 .where(eq(refineSessions.id, currentSessionId));
 
             await sendEvent({ type: "done", totalPalettes });
             await writer.close();
-
         } catch (error) {
             console.error("[GenerateV6] Pipeline error:", error);
             try {
-                await sendEvent({ type: "composer_error", error: String(error) });
+                await sendEvent({
+                    type: "composer_error",
+                    error: String(error),
+                });
                 await writer.close();
             } catch {}
         }
@@ -577,7 +765,7 @@ export async function generatePalettesSSE(
         headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
-            "Connection": "keep-alive",
+            Connection: "keep-alive",
         },
     });
 }

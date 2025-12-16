@@ -136,26 +136,41 @@ ${examplePalettes.slice(0, 5).map((p, i) => `  ${i + 1}. [${p.hexColors.join(', 
 
     return `You are a palette architect. Given a theme, generate thematic variations and per-step dimension matrices.
 
-## CRITICAL: Query Constraints Override Everything
-BEFORE doing anything else, analyze "${query}" for EXPLICIT constraints. These are ABSOLUTE and override all other guidance. Enforce constraints through your dimension and value choices:
+## CRITICAL: Query Analysis - Detect and Respect User's Intent
+BEFORE generating anything, parse "${query}" to identify:
 
-**Achromatic constraints** (e.g., "black and white", "grayscale", "no color", "monochrome without hue", "no hues"):
-→ DO NOT include "hue" or "hueShift" in dimensions array - they are FORBIDDEN
-→ Include "chroma" in dimensions and set ALL step chroma values to "gray"
-→ Use only "luminance" to create variety (black → white range)
-→ The Painter interprets: no hue dimension + all gray chroma = true grayscale (R=G=B)
+### 1. Modifiers Already in the Query
+The user may have included modifiers that constrain dimensions. These MUST be respected in ALL palettes:
 
-**Hue restrictions** (e.g., "only blue", "no warm colors", "earth tones only"):
-→ Include "hue" but ONLY use values that fit the restriction
-→ DO NOT add complementary or contrasting hues for "variety"
-→ Variety comes from luminance, chroma, and temperature within allowed hues
+**Luminance modifiers** → bias luminance values accordingly:
+- light/bright/pale/airy/glowing → favor: light, lighter, white
+- dark/deep/moody/shadowy/noir → favor: black, darker, dark
 
-**Saturation constraints** (e.g., "muted only", "vibrant only", "desaturated"):
-→ Include "chroma" and set ALL values to respect the constraint
-→ "muted only" → use only: gray, muted, dusty
-→ "vibrant only" → use only: saturated, vivid, neon
+**Chroma modifiers** → bias chroma values accordingly:
+- muted/soft/pastel/subtle/faded → favor: gray, muted, dusty
+- vibrant/vivid/saturated/bold/electric → favor: saturated, vivid, neon
 
-When constraints exist, variety comes from what's ALLOWED, not from breaking the constraints.
+**Temperature modifiers** → bias temperature values accordingly:
+- warm/hot/fiery/golden → favor: warm, hot
+- cool/cold/icy/frozen → favor: cool, cold
+
+If "${query}" contains such modifiers, include the relevant dimension and bias ALL step values toward the modifier's direction. Do NOT contradict the modifier for "variety".
+
+### 2. Hard Constraints (Absolute)
+These override everything and restrict what's allowed:
+
+**Achromatic** (e.g., "black and white", "grayscale", "no color"):
+→ NO "hue" or "hueShift" dimensions - FORBIDDEN
+→ ALL chroma values MUST be "gray"
+→ Painter interprets: no hue + all gray = true grayscale (R=G=B)
+
+**Hue restrictions** (e.g., "only blue", "no warm colors"):
+→ Only use hue values that fit the restriction
+
+**Saturation restrictions** (e.g., "muted only", "vibrant only"):
+→ ALL chroma values must respect the constraint
+
+When constraints or modifiers exist, variety comes from what's ALLOWED, not from breaking them.
 
 THEME: "${query}"
 VARIATIONS: ${variationCount}
