@@ -9,16 +9,11 @@ import { cn } from "@/lib/utils";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
-import {
-    searchPalettesQueryOptions,
-    userLikedSeedsQueryOptions,
-    type SearchResultPalette,
-} from "@/queries/palettes";
+import { userLikedSeedsQueryOptions } from "@/queries/palettes";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
-import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 import {
     hexToColorName,
     colorNameToHex,
@@ -55,6 +50,7 @@ import { VersionPagination } from "@/components/palettes/version-pagination";
 import {
     getGenerateSessionByQuery,
     saveGenerateSessionSeeds,
+    saveGenerateSessionFeedback,
 } from "@/server-functions/generate-session";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { sessionQueryOptions } from "@/queries/auth";
@@ -101,29 +97,6 @@ const searchValidatorSchema = v.object({
     ),
     export: exportValidator,
 });
-
-function sortResults(
-    results: SearchResultPalette[],
-    order: SearchSortOrder,
-): SearchResultPalette[] {
-    return [...results].sort((a, b) => {
-        switch (order) {
-            case "newest":
-                return (
-                    (b.createdAt?.getTime() ?? 0) -
-                    (a.createdAt?.getTime() ?? 0)
-                );
-            case "oldest":
-                return (
-                    (a.createdAt?.getTime() ?? 0) -
-                    (b.createdAt?.getTime() ?? 0)
-                );
-            case "popular":
-            default:
-                return (b.likesCount ?? 0) - (a.likesCount ?? 0);
-        }
-    });
-}
 
 function getQuery(param: string): string | null {
     if (isValidSeed(param)) {
@@ -199,9 +172,6 @@ export const Route = createFileRoute("/palettes/$query/generate")({
             return;
         }
         await Promise.all([
-            context.queryClient.ensureQueryData(
-                searchPalettesQueryOptions(query, DEFAULT_PAGE_LIMIT),
-            ),
             context.queryClient.ensureQueryData(userLikedSeedsQueryOptions()),
             context.queryClient.ensureQueryData(popularTagsQueryOptions()),
         ]);
@@ -513,8 +483,8 @@ function GeneratePage() {
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
 
-    // Generate state - palettes include version info and unbiased flag
-    type VersionedPalette = AppPalette & { version: number; unbiased: boolean };
+    // Generate state - palettes include version info, model source, and theme
+    type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };
     const [isGenerating, setIsGenerating] = useState(false);
     const [generatedPalettes, setGeneratedPalettes] = useState<VersionedPalette[]>([]);
     const [generateError, setGenerateError] = useState<string | null>(null);
@@ -533,22 +503,34 @@ function GeneratePage() {
         staleTime: 0,
     });
 
-    // Convert a seed to a VersionedPalette (for loading from DB)
-    const seedToVersionedPalette = (seed: string, version: number, unbiased: boolean): VersionedPalette => {
+    // Convert stored palette data to a VersionedPalette (for loading from DB)
+    const storedToVersionedPalette = (
+        paletteData: string | { seed: string; style: string; steps: number; angle: number },
+        version: number,
+        modelKey: string = "unknown",
+        theme: string = ""
+    ): VersionedPalette => {
+        // Handle both old format (string) and new format (object)
+        const seed = typeof paletteData === 'string' ? paletteData : paletteData.seed;
+        const style = typeof paletteData === 'string' ? "linearGradient" : paletteData.style;
+        const steps = typeof paletteData === 'string' ? 8 : paletteData.steps;
+        const angle = typeof paletteData === 'string' ? 90 : paletteData.angle;
+        
         const { coeffs } = deserializeCoeffs(seed);
-        const hexColors = generateHexColors(coeffs, DEFAULT_GLOBALS, 8);
+        const hexColors = generateHexColors(coeffs, DEFAULT_GLOBALS, steps);
         return {
             seed,
-            style: "linearGradient",
-            steps: 8,
-            angle: 90,
+            style: style as VersionedPalette["style"],
+            steps,
+            angle,
             createdAt: null,
             coeffs,
             globals: DEFAULT_GLOBALS,
             hexColors,
             score: 0,
             version,
-            unbiased,
+            modelKey,
+            theme,
         };
     };
 
@@ -559,14 +541,14 @@ function GeneratePage() {
             setSessionVersion(existingSession.version);
             setSelectedVersion(existingSession.version);
 
-            // Reconstruct palettes from stored seeds
+            // Reconstruct palettes from stored data
             const palettes: VersionedPalette[] = [];
             const generatedSeeds = existingSession.generatedSeeds ?? {};
 
-            for (const [versionKey, seeds] of Object.entries(generatedSeeds)) {
+            for (const [versionKey, paletteDataArray] of Object.entries(generatedSeeds)) {
                 const version = parseInt(versionKey, 10);
-                for (const seed of seeds as string[]) {
-                    palettes.push(seedToVersionedPalette(seed, version, false));
+                for (const paletteData of paletteDataArray) {
+                    palettes.push(storedToVersionedPalette(paletteData, version));
                 }
             }
 
@@ -597,45 +579,37 @@ function GeneratePage() {
         }
     }, [sessionVersion]);
 
-    // Convert GeneratedPalette to AppPalette format with version and unbiased flag
+    // Convert GeneratedPalette to AppPalette format with version
     const generatedToAppPalette = (generated: GeneratedPalette, version: number): VersionedPalette => {
         const { coeffs } = deserializeCoeffs(generated.seed);
         return {
             seed: generated.seed,
-            style: "linearGradient",
-            steps: generated.hexColors.length,
-            angle: 90,
+            style: generated.style,
+            steps: generated.steps,
+            angle: generated.angle,
             createdAt: null,
             coeffs,
             globals: DEFAULT_GLOBALS,
             hexColors: generated.hexColors,
             score: 0,
             version,
-            unbiased: generated.unbiased,
+            modelKey: generated.modelKey,
+            theme: generated.theme,
         };
     };
 
-    // Track seeds to save in batch after generation completes
-    const pendingSeedsRef = useRef<{ sessionId: string | null; version: number; seeds: string[] }>({
+    // Track palettes to save in batch after generation completes
+    const pendingSeedsRef = useRef<{ 
+        sessionId: string | null; 
+        version: number; 
+        palettes: Array<{ seed: string; style: string; steps: number; angle: number }>;
+    }>({
         sessionId: null,
         version: 0,
-        seeds: [],
+        palettes: [],
     });
 
-    const { data: searchData } = useSuspenseQuery(
-        searchPalettesQueryOptions(query, DEFAULT_PAGE_LIMIT),
-    );
     const { data: likedSeeds } = useSuspenseQuery(userLikedSeedsQueryOptions());
-
-    const results = sortResults(searchData?.results || [], sort);
-
-    // Build seed-to-hex mapping for session context
-    const seedToHex: Record<string, string[]> = {};
-    for (const p of [...results, ...generatedPalettes]) {
-        if (!seedToHex[p.seed]) {
-            seedToHex[p.seed] = p.hexColors;
-        }
-    }
 
     const hasGeneratedResults = generatedPalettes.length > 0 || generateError !== null;
 
@@ -671,16 +645,12 @@ function GeneratePage() {
                         <div className="flex items-center gap-2 shrink-0">
                             <GenerateButton
                                 query={query}
-                                limit={DEFAULT_PAGE_LIMIT}
-                                examplePalettes={results.map(r => r.hexColors)}
                                 sessionId={sessionId}
-                                seedToHex={seedToHex}
-                                showModeSelector
                                 onSessionCreated={(newSessionId, version) => {
                                     console.log("[generate.tsx] onSessionCreated:", newSessionId, "version:", version);
                                     setSessionId(newSessionId);
                                     setSessionVersion(version);
-                                    pendingSeedsRef.current = { sessionId: newSessionId, version, seeds: [] };
+                                    pendingSeedsRef.current = { sessionId: newSessionId, version, palettes: [] };
                                 }}
                                 onGenerateStart={() => {
                                     setIsGenerating(true);
@@ -691,14 +661,20 @@ function GeneratePage() {
                                     const currentVersion = pendingSeedsRef.current.version;
                                     const appPalette = generatedToAppPalette(palette, currentVersion);
                                     setGeneratedPalettes(prev => [...prev, appPalette]);
-                                    pendingSeedsRef.current.seeds.push(palette.seed);
+                                    // Store full palette metadata for session persistence
+                                    pendingSeedsRef.current.palettes.push({
+                                        seed: palette.seed,
+                                        style: palette.style,
+                                        steps: palette.steps,
+                                        angle: palette.angle,
+                                    });
                                 }}
                                 onGenerateComplete={() => {
                                     setIsGenerating(false);
-                                    const { sessionId: sid, version, seeds } = pendingSeedsRef.current;
-                                    if (sid && seeds.length > 0) {
+                                    const { sessionId: sid, version, palettes } = pendingSeedsRef.current;
+                                    if (sid && palettes.length > 0) {
                                         saveGenerateSessionSeeds({
-                                            data: { sessionId: sid, version, seeds },
+                                            data: { sessionId: sid, version, palettes },
                                         }).catch(console.error);
                                     }
                                 }}
@@ -759,6 +735,16 @@ function GeneratePage() {
                             urlSteps={steps}
                             isExportOpen={isExportOpen}
                             searchQuery={query}
+                            onBadFeedback={(seed) => {
+                                // Remove palette from local state
+                                setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                                // Save feedback to server (which also removes from generatedSeeds)
+                                if (sessionId) {
+                                    saveGenerateSessionFeedback({
+                                        data: { sessionId, seed, feedback: "bad" },
+                                    }).catch(console.error);
+                                }
+                            }}
                         />
                     )}
                 </>

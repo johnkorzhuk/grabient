@@ -10,10 +10,7 @@ export const sendContactEmail = createServerFn({ method: "POST" })
     .handler(async (ctx) => {
         const { email, subject, message } = ctx.data;
 
-        const env = process.env as {
-            RESEND_API_KEY?: string;
-            EMAIL_FROM?: string;
-        };
+        const env = process.env 
 
         if (!env.RESEND_API_KEY) {
             throw new Error("RESEND_API_KEY is not configured");

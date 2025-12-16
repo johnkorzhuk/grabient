@@ -65,6 +65,7 @@ interface PalettesGridProps {
     urlSteps?: StepsWithAuto;
     isExportOpen?: boolean;
     searchQuery?: string;
+    onBadFeedback?: (seed: string) => void;
 }
 
 export function PalettesGrid({
@@ -75,6 +76,7 @@ export function PalettesGrid({
     urlSteps = "auto",
     isExportOpen = false,
     searchQuery,
+    onBadFeedback,
 }: PalettesGridProps) {
     const previewStyle = useStore(uiStore, (state) => state.previewStyle);
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
@@ -250,9 +252,9 @@ export function PalettesGrid({
         <ol className="h-full w-full relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-x-10 gap-y-20 auto-rows-[300px]">
             {initialPalettes.map((palette, index) => {
                 // Include version and unbiased flag in key to handle duplicate seeds across versions/streams
-                const paletteWithMeta = palette as AppPalette & { unbiased?: boolean; version?: number };
+                const paletteWithMeta = palette as AppPalette & { unbiased?: boolean; version?: number; modelKey?: string; theme?: string };
                 const key = paletteWithMeta.version !== undefined
-                    ? `${palette.seed}-v${paletteWithMeta.version}-${paletteWithMeta.unbiased ? "u" : "b"}`
+                    ? `${palette.seed}-v${paletteWithMeta.version}-${paletteWithMeta.modelKey ?? ""}-${index}`
                     : palette.seed;
                 return (
                 <PaletteCard
@@ -270,6 +272,9 @@ export function PalettesGrid({
                     onShiftClick={handleShiftClick}
                     ref={index === 0 ? firstPaletteRef : undefined}
                     searchQuery={searchQuery}
+                    modelKey={paletteWithMeta.modelKey}
+                    onBadFeedback={onBadFeedback}
+                    theme={paletteWithMeta.theme}
                 />
                 );
             })}
@@ -756,6 +761,9 @@ export interface PaletteCardProps {
     removeAllOnExportClick?: boolean;
     searchQuery?: string;
     version?: number;
+    modelKey?: string;
+    theme?: string;
+    onBadFeedback?: (seed: string) => void;
 }
 
 export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
@@ -775,6 +783,9 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             removeAllOnExportClick = false,
             searchQuery,
             version,
+            modelKey,
+            onBadFeedback,
+            theme,
         },
         ref,
     ) => {
@@ -1083,12 +1094,23 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                             searchQuery={searchQuery}
                             version={version ?? (palette as AppPalette & { version?: number }).version}
                             unbiased={(palette as AppPalette & { unbiased?: boolean }).unbiased}
+                            onBadFeedback={onBadFeedback}
                         />
                     </div>
 
                     {/* Palette metadata */}
                     <div className="flex justify-between pt-4 relative pointer-events-none">
-                        <div className="flex items-center min-h-[28px] pointer-events-none">
+                        <div className="flex items-center gap-2 min-h-[28px] pointer-events-none flex-wrap">
+                            {theme && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary pointer-events-none select-none">
+                                    {theme}
+                                </span>
+                            )}
+                            {modelKey && (
+                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground pointer-events-none select-none">
+                                    {modelKey}
+                                </span>
+                            )}
                             {currentCreatedAt && (
                                 <span className="text-sm text-muted-foreground pointer-events-none select-none">
                                     {formatDistanceToNow(
@@ -1197,6 +1219,7 @@ interface GradientPreviewProps {
     searchQuery?: string;
     version?: number;
     unbiased?: boolean;
+    onBadFeedback?: (seed: string) => void;
 }
 
 function GradientPreview({
@@ -1219,6 +1242,7 @@ function GradientPreview({
     searchQuery,
     version,
     unbiased,
+    onBadFeedback,
 }: GradientPreviewProps) {
     const {
         style: paletteStyle,
@@ -1449,6 +1473,7 @@ function GradientPreview({
                         effectiveSteps={effectiveSteps}
                         isActive={isActive}
                         hexColors={colorsToUse}
+                        onBadFeedback={onBadFeedback}
                     />
                 )}
             </figure>
@@ -1464,6 +1489,7 @@ interface SearchFeedbackButtonsProps {
     effectiveSteps: number;
     isActive: boolean;
     hexColors: string[];
+    onBadFeedback?: (seed: string) => void;
 }
 
 function SearchFeedbackButtons({
@@ -1474,6 +1500,7 @@ function SearchFeedbackButtons({
     effectiveSteps,
     isActive,
     hexColors,
+    onBadFeedback,
 }: SearchFeedbackButtonsProps) {
     const feedbackMutation = useSearchFeedbackMutation();
     const currentFeedback = useStore(searchFeedbackStore, (state) =>
@@ -1502,6 +1529,10 @@ function SearchFeedbackButtons({
             angle: effectiveAngle,
             steps: effectiveSteps,
         });
+        // Call onBadFeedback callback to remove palette from UI
+        if (feedback === "bad" && onBadFeedback) {
+            onBadFeedback(currentSeed);
+        }
     };
 
     return (

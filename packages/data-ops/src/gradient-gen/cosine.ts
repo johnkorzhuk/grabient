@@ -88,6 +88,50 @@ export function calculateAverageBrightness(hexColors: string[]): number {
     return totalBrightness / hexColors.length;
 }
 
+/**
+ * Calculate average frequency (color change rate) of cosine coefficients.
+ * Higher values indicate more rapid color transitions.
+ * Returns value typically between 0 and 2.
+ */
+export function calculateAverageFrequency(coeffs: CosineCoeffs): number {
+    const frequencies = coeffs[2];
+    if (!frequencies) return 0.5;
+    
+    // Average absolute frequency across RGB channels
+    const avgFreq = (Math.abs(frequencies[0]) + Math.abs(frequencies[1]) + Math.abs(frequencies[2])) / 3;
+    return avgFreq;
+}
+
+/**
+ * Calculate contrast of a palette based on color differences.
+ * Measures the average difference between adjacent colors.
+ * Returns value between 0 (no contrast) and 1 (max contrast).
+ */
+export function calculateContrast(hexColors: string[]): number {
+    if (hexColors.length < 2) return 0;
+
+    let totalDiff = 0;
+    for (let i = 0; i < hexColors.length - 1; i++) {
+        const hex1 = hexColors[i];
+        const hex2 = hexColors[i + 1];
+        if (!hex1 || !hex2) continue;
+        
+        const rgb1 = hexToRgb(hex1);
+        const rgb2 = hexToRgb(hex2);
+        
+        // Calculate RGB distance normalized to 0-1
+        const diff = Math.sqrt(
+            Math.pow((rgb2.r - rgb1.r) / 255, 2) +
+            Math.pow((rgb2.g - rgb1.g) / 255, 2) +
+            Math.pow((rgb2.b - rgb1.b) / 255, 2)
+        ) / Math.sqrt(3); // Normalize by max possible distance
+        
+        totalDiff += diff;
+    }
+    
+    return totalDiff / (hexColors.length - 1);
+}
+
 export function applyGlobals(
     cosCoeffs: CosineCoeffs,
     globals: GlobalModifiers,

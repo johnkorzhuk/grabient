@@ -1,152 +1,72 @@
 import { env } from "cloudflare:workers";
-import { createOpenAI } from "@tanstack/ai-openai";
-import { createGemini } from "@tanstack/ai-gemini";
-import { chat } from "@tanstack/ai";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
+// import { createAnthropic } from "@ai-sdk/anthropic";
+import { createOpenAI } from "@ai-sdk/openai";
+import { streamObject, streamText } from "ai";
+import { z } from "zod";
 import { getDb } from "@repo/data-ops/database/setup";
 import {
     refineSessions,
     type RefineSession,
 } from "@repo/data-ops/drizzle/app-schema";
 import { eq, and } from "drizzle-orm";
-import { AVAILABLE_MODELS, DEFAULT_MODEL, type ModelKey, isGeminiModel } from "@/lib/model-config";
-
-function buildSystemPrompt(
-    query: string,
-    limit: number,
-    examples?: string[][],
-    _sessionContext?: SessionContext,
-    _version?: number,
-): string {
-    const examplesSection = examples && examples.length > 0
-        ? `
-**Source Palettes**:
-${examples.slice(0, 12).map(p => JSON.stringify(p)).join('\n')}
-
-Create interesting combinations, interpolations, and extrapolations from these palettes. Blend elements, shift hues, invert progressions, or merge characteristics — but always inspired by "${query}".
-
-`
-        : '';
-
-    return `**Role**: You are a Mathematical Color Architect creating gradient keyframes optimized for Cosine Gradient Fitting.
-
-**Context**: Your colors will be fit to: color(t) = a + b * cos(2π(c * t + d)). Each RGB channel is fit independently.
-${examplesSection}**Theme**: "${query}"
-Generate ${limit} UNIQUE palettes inspired by "${query}". Each palette should feel like a different creative interpretation. Include 2-3 "wildcard" palettes that are extra bold or unexpected while still fitting "${query}".
-
-**Process**:
-1. Pick 2-3 anchor colors inspired by "${query}"
-2. Build smooth bridges between them (8-12 colors total, unless "${query}" implies otherwise)
-3. Verify each R, G, B channel follows a single-arc rule (no zigzags)
-4. Think cinematically — how would this palette unfold over time?
-
-**Mathematical Constraints** (unless "${query}" implies otherwise):
-1. **Waveform Continuity**: Each RGB channel must follow a smooth curve. No noisy jumps.
-2. **Phase Offsets**: R, G, B peaks should NOT all occur at the same position. This creates rich hue shifts.
-3. **Luminosity Range**: Explore a range of brightness. Flat = boring.
-
-**Output**: JSON array only. No markdown, no explanation.
-
-Generate ${limit} unique palettes:`;
-}
-
-export interface StreamingPalette {
-    colors: string[];
-}
-
-// Extract complete JSON arrays (palettes) from a partial JSON string
-function extractPalettes(jsonBuffer: string): {
-    palettes: StreamingPalette[];
-    remaining: string;
-} {
-    const palettes: StreamingPalette[] = [];
-    let remaining = jsonBuffer;
-
-    let searchStart = 0;
-    while (searchStart < remaining.length) {
-        const paletteStart = remaining.indexOf('["#', searchStart);
-        if (paletteStart === -1) break;
-
-        let depth = 0;
-        let inStr = false;
-        let escape = false;
-        let arrEnd = -1;
-
-        for (let i = paletteStart; i < remaining.length; i++) {
-            const char = remaining[i];
-
-            if (escape) {
-                escape = false;
-                continue;
-            }
-
-            if (char === "\\") {
-                escape = true;
-                continue;
-            }
-
-            if (char === '"') {
-                inStr = !inStr;
-                continue;
-            }
-
-            if (!inStr) {
-                if (char === "[") depth++;
-                else if (char === "]") {
-                    depth--;
-                    if (depth === 0) {
-                        arrEnd = i;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (arrEnd === -1) {
-            remaining = remaining.slice(paletteStart);
-            break;
-        }
-
-        const arrStr = remaining.slice(paletteStart, arrEnd + 1);
-        try {
-            const colors = JSON.parse(arrStr) as string[];
-            if (
-                Array.isArray(colors) &&
-                colors.length >= 5 &&
-                colors.every((c) => typeof c === "string" && c.startsWith("#"))
-            ) {
-                palettes.push({ colors });
-            }
-        } catch {
-            // Invalid JSON, skip
-        }
-
-        searchStart = arrEnd + 1;
-        if (searchStart >= remaining.length) {
-            remaining = "";
-        }
-    }
-
-    if (searchStart > 0 && searchStart < remaining.length) {
-        remaining = remaining.slice(searchStart);
-    } else if (searchStart >= remaining.length) {
-        remaining = "";
-    }
-
-    return { palettes, remaining };
-}
+import { AVAILABLE_MODELS, DEFAULT_MODEL, type ModelKey } from "@/lib/model-config";
 
 // Session context built from feedback across versions
 interface SessionContext {
-    liked: string[][]; // Liked palettes from previous version (positive signal)
-    disliked: string[][]; // Disliked palettes from ALL versions (negative signal)
+    liked: string[][];
+    disliked: string[][];
 }
 
-// Normalize query for consistent session lookup
+function buildSystemPrompt(query: string, limit: number, examples?: string[][]): string {
+    const exampleSection = examples?.length 
+        ? `\nReference palettes (for inspiration, not copying):\n${examples.slice(0, 6).map(p => JSON.stringify(p)).join('\n')}\n`
+        : '';
+
+    return `You generate gradient color palettes as JSON arrays of hex codes.
+
+THEME: "${query}"
+COUNT: ${limit} unique palettes
+
+GRADIENT STRUCTURE (critical for smooth interpolation):
+- Use exactly 5-7 colors per palette
+- Each color channel (R, G, B) should follow ONE of these patterns:
+  * Rising: low → high (e.g., R: 20 → 80 → 140 → 200)
+  * Falling: high → low
+  * Hill: low → high → low  
+  * Valley: high → low → high
+- NEVER zigzag (e.g., 50 → 150 → 80 → 200 is BAD)
+- Adjacent colors: max 100 difference per channel
+
+GOOD EXAMPLE - "Ocean":
+["#0a1628","#0d3b4a","#1a6b6b","#4a9b8a","#8bcbaa","#d4f0e0"]
+Why it works:
+- R: 10→13→26→74→139→212 (smooth rise)
+- G: 22→59→107→155→203→240 (smooth rise)  
+- B: 40→74→107→138→170→224 (smooth rise)
+All channels follow simple curves.
+
+BAD EXAMPLE:
+["#ff0000","#00ff00","#0000ff","#ffff00","#ff00ff"]
+Why it fails:
+- R: 255→0→0→255→255 (zigzag chaos)
+- Channels jump wildly, impossible to fit smoothly
+
+THEME INTERPRETATION for "${query}":
+- What are 2-3 signature colors that DEFINE this theme?
+- Build smooth bridges between them
+- Vary the mood: some palettes dark/moody, some bright/vibrant
+${exampleSection}
+OUTPUT: JSON array only, no explanation.
+[["#hex1",...],["#hex1",...],...]`;
+}
+
 function normalizeQuery(query: string): string {
     return query.toLowerCase().trim();
 }
 
-// Get liked palettes (hex colors) from a specific version
 function getVersionLikedPalettes(
     feedback: Record<string, Record<string, "good" | "bad">>,
     version: number,
@@ -155,61 +75,39 @@ function getVersionLikedPalettes(
     const versionKey = String(version);
     const versionFeedback = feedback[versionKey] ?? {};
     const liked: string[][] = [];
-
     for (const [seed, rating] of Object.entries(versionFeedback)) {
         if (rating === "good") {
             const hexColors = seedToHexMap.get(seed);
-            if (hexColors) {
-                liked.push(hexColors);
-            }
+            if (hexColors) liked.push(hexColors);
         }
     }
-
     return liked;
 }
 
-// Get disliked palettes (hex colors) from ALL versions
 function getAllDislikedPalettes(
     feedback: Record<string, Record<string, "good" | "bad">>,
     seedToHexMap: Map<string, string[]>,
 ): string[][] {
     const disliked: string[][] = [];
-
     for (const versionFeedback of Object.values(feedback)) {
         for (const [seed, rating] of Object.entries(versionFeedback)) {
             if (rating === "bad") {
                 const hexColors = seedToHexMap.get(seed);
-                if (hexColors) {
-                    disliked.push(hexColors);
-                }
+                if (hexColors) disliked.push(hexColors);
             }
         }
     }
-
     return disliked;
 }
 
-// Build session context from stored feedback
 function buildSessionContext(
     session: RefineSession | null,
     seedToHexMap: Map<string, string[]>,
 ): SessionContext {
-    if (!session) {
-        return { liked: [], disliked: [] };
-    }
-
+    if (!session) return { liked: [], disliked: [] };
     const prevVersion = session.version;
-
-    // Liked from previous version only (positive signal)
-    const liked = getVersionLikedPalettes(
-        session.feedback,
-        prevVersion,
-        seedToHexMap,
-    );
-
-    // Disliked from ALL versions (negative signal)
+    const liked = getVersionLikedPalettes(session.feedback, prevVersion, seedToHexMap);
     const disliked = getAllDislikedPalettes(session.feedback, seedToHexMap);
-
     return { liked, disliked };
 }
 
@@ -218,11 +116,8 @@ export interface GenerateRequest {
     limit?: number;
     sessionId?: string;
     examples?: string[][];
-    // Seed to hex color mapping for building session context
     seedToHex?: Record<string, string[]>;
-    // If true, skip examples and session context (unbiased generation)
     unbiased?: boolean;
-    // Model selection
     model?: ModelKey;
 }
 
@@ -230,36 +125,13 @@ export async function generatePalettesStream(
     request: GenerateRequest,
     userId?: string | null,
 ): Promise<Response> {
-    const {
-        query,
-        limit = 24,
-        sessionId,
-        examples,
-        seedToHex,
-        unbiased = false,
-        model: modelKey = DEFAULT_MODEL,
-    } = request;
+    const { query, limit = 24, sessionId, examples, seedToHex, unbiased = false, model: modelKey = DEFAULT_MODEL } = request;
 
     const modelConfig = AVAILABLE_MODELS[modelKey];
-
-    // Check for required API key based on provider
-    if (modelConfig.provider === "groq" && !env.GROQ_API_KEY) {
+    if (!modelConfig) {
         return new Response(
-            JSON.stringify({ error: "GROQ_API_KEY is not configured" }),
-            {
-                status: 500,
-                headers: { "Content-Type": "application/json" },
-            },
-        );
-    }
-
-    if (modelConfig.provider === "gemini" && !env.GOOGLE_GENERATIVE_AI_API_KEY) {
-        return new Response(
-            JSON.stringify({ error: "GOOGLE_GENERATIVE_AI_API_KEY is not configured" }),
-            {
-                status: 500,
-                headers: { "Content-Type": "application/json" },
-            },
+            JSON.stringify({ error: `Unknown model: ${modelKey}` }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
         );
     }
 
@@ -275,21 +147,12 @@ export async function generatePalettesStream(
         const result = await db
             .select()
             .from(refineSessions)
-            .where(
-                and(
-                    eq(refineSessions.id, sessionId),
-                    eq(refineSessions.query, normalizedQuery),
-                ),
-            )
+            .where(and(eq(refineSessions.id, sessionId), eq(refineSessions.query, normalizedQuery)))
             .limit(1);
         session = result[0] ?? null;
-
-        if (session) {
-            version = session.version + 1;
-        }
+        if (session) version = session.version + 1;
     }
 
-    // Create new session if none exists
     if (!session) {
         await db.insert(refineSessions).values({
             id: currentSessionId,
@@ -305,168 +168,219 @@ export async function generatePalettesStream(
         currentSessionId = session.id;
     }
 
-    // Build seed-to-hex map from provided data
+    // Build context (for future use with session feedback)
     const seedToHexMap = new Map<string, string[]>();
     if (seedToHex) {
         for (const [seed, colors] of Object.entries(seedToHex)) {
             seedToHexMap.set(seed, colors);
         }
     }
+    // Session context available for future refinement features
+    buildSessionContext(session, seedToHexMap);
 
-    // Build session context from stored feedback
-    const sessionContext = buildSessionContext(session, seedToHexMap);
-
-    // Create Groq adapter if needed
-    const groqAdapter = !isGeminiModel(modelConfig)
-        ? createOpenAI(env.GROQ_API_KEY!, {
-            baseURL: "https://api.groq.com/openai/v1",
-        })
-        : null;
-
-    // For unbiased requests, skip examples and session context
     const systemPrompt = unbiased
-        ? buildSystemPrompt(query, limit, undefined, undefined, undefined)
-        : buildSystemPrompt(query, limit, examples, sessionContext, version);
+        ? buildSystemPrompt(query, limit)
+        : buildSystemPrompt(query, limit, examples);
 
-    const messages: Array<{ role: "user" | "assistant"; content: string }> = [
-        { role: "user", content: `## Theme: ${query}` },
-    ];
+    console.log(`\n=== Generate [${unbiased ? "UNBIASED" : "BIASED"}] ===`);
+    console.log("Query:", query, "| Model:", modelConfig.name, "(", modelConfig.id, ") | Provider:", modelConfig.provider, "| Session:", currentSessionId, "| Version:", version);
+    console.log("Examples injected:", !unbiased && examples?.length ? examples.length : 0);
+    console.log("System Prompt:\n", systemPrompt);
 
-    // Log request info
-    console.log(
-        `\n=== Refine Request [${unbiased ? "UNBIASED" : "BIASED"}] ===`,
-    );
-    console.log("Query:", query);
-    console.log("Model:", modelKey, `(${modelConfig.name})`);
-    console.log("Provider:", modelConfig.provider);
-    console.log("Limit:", limit);
-    console.log("Unbiased:", unbiased);
-    console.log("Session ID:", currentSessionId);
-    console.log("Version:", version);
-    console.log("Examples count:", unbiased ? 0 : (examples?.length ?? 0));
-    console.log(
-        "Session context - Liked:",
-        unbiased ? 0 : sessionContext.liked.length,
-        "Disliked:",
-        unbiased ? 0 : sessionContext.disliked.length,
-    );
-    console.log("System prompt length:", systemPrompt.length, "chars");
-    console.log(`--- System Prompt [${unbiased ? "UNBIASED" : "BIASED"}] ---`);
-    console.log(systemPrompt);
-    console.log(
-        `--- End System Prompt [${unbiased ? "UNBIASED" : "BIASED"}] ---\n`,
-    );
+    // Create the appropriate provider based on model config
+    const getModel = () => {
+        const { provider } = modelConfig;
+        
+        switch (provider) {
+            case "openrouter": {
+                if (!env.OPENROUTER_API_KEY) {
+                    throw new Error("OPENROUTER_API_KEY is not configured");
+                }
+                const openrouter = createOpenRouter({ apiKey: env.OPENROUTER_API_KEY });
+                return openrouter(modelConfig.id);
+            }
+            case "google": {
+                if (!env.GOOGLE_GENERATIVE_AI_API_KEY) {
+                    throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is not configured");
+                }
+                const google = createGoogleGenerativeAI({
+                    apiKey: env.GOOGLE_GENERATIVE_AI_API_KEY,
+                });
+                return google(modelConfig.id);
+            }
+            case "groq": {
+                if (!env.GROQ_API_KEY) {
+                    throw new Error("GROQ_API_KEY is not configured");
+                }
+                const groq = createGroq({ apiKey: env.GROQ_API_KEY });
+                return groq(modelConfig.id);
+            }
+            // case "anthropic": {
+            //     if (!env.ANTHROPIC_API_KEY) {
+            //         throw new Error("ANTHROPIC_API_KEY is not configured");
+            //     }
+            //     const anthropic = createAnthropic({ apiKey: env.ANTHROPIC_API_KEY });
+            //     return anthropic(modelConfig.id);
+            // }
+            case "openai": {
+                if (!env.OPENAI_API_KEY) {
+                    throw new Error("OPENAI_API_KEY is not configured");
+                }
+                const openai = createOpenAI({ apiKey: env.OPENAI_API_KEY });
+                return openai(modelConfig.id);
+            }
+            default:
+                throw new Error(`Unknown provider: ${provider}`);
+        }
+    };
 
-    // Create chat stream with provider-specific configuration
-    const stream = isGeminiModel(modelConfig)
-        ? chat({
-            adapter: createGemini(env.GOOGLE_GENERATIVE_AI_API_KEY!, {
-                generationConfig: { maxOutputTokens: 32768 },
-            }),
-            model: modelConfig.id,
-            systemPrompts: [systemPrompt],
-            messages,
-        })
-        : chat({
-            adapter: groqAdapter!,
-            model: modelConfig.id as "gpt-4o",
-            systemPrompts: [systemPrompt],
-            messages,
+    let model;
+    try {
+        model = getModel();
+    } catch (error) {
+        return new Response(
+            JSON.stringify({ error: String(error) }),
+            { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+    }
+
+    const isGroq = modelConfig.provider === "groq";
+    const isOpenAI = modelConfig.provider === "openai";
+    const useManualParsing = isGroq || isOpenAI; // OpenAI doesn't support streamObject with output: "array"
+
+    // Transform the element stream into SSE events
+    const encoder = new TextEncoder();
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+
+    if (useManualParsing) {
+        // Groq and OpenAI don't support streamObject with output: "array" - use streamText with manual JSON parsing
+        console.log(`[Generate] Using streamText for ${modelConfig.provider} (manual JSON parsing)`);
+        
+        const result = streamText({
+            model,
+            system: systemPrompt,
+            prompt: `## Theme: ${query}\n\nRespond with ONLY a JSON array of palette arrays. No markdown, no explanation. Example format:\n[["#hex1","#hex2","#hex3","#hex4","#hex5"],["#hex1","#hex2","#hex3","#hex4","#hex5"]]`,
         });
 
-    // Transform TanStack AI stream into palette SSE events
-    const encoder = new TextEncoder();
-    let jsonBuffer = "";
-
-    const transformedStream = new ReadableStream({
-        async start(controller) {
+        // Process in background with manual palette extraction
+        (async () => {
             try {
-                // Emit session metadata as the first event
-                controller.enqueue(
-                    encoder.encode(
-                        `data: ${JSON.stringify({
-                            type: "session",
-                            sessionId: currentSessionId,
-                            version,
-                            unbiased,
-                        })}\n\n`,
-                    ),
-                );
+                // Send session info first
+                await writer.write(encoder.encode(
+                    `data: ${JSON.stringify({ type: "session", sessionId: currentSessionId, version, unbiased })}\n\n`
+                ));
 
-                // Keep-alive: send ping every 10s to prevent timeout while waiting for slow models
-                const keepAlive = setInterval(() => {
-                    controller.enqueue(encoder.encode(`: ping\n\n`));
-                }, 10000);
+                let buffer = "";
+                let palettesEmitted = 0;
+                const allPalettes: string[][] = []; // Track all palettes streamed
 
-                try {
-                    for await (const chunk of stream) {
-                        if (chunk.type === "content") {
-                            jsonBuffer += chunk.delta;
-
-                            const { palettes, remaining } =
-                                extractPalettes(jsonBuffer);
-                            jsonBuffer = remaining;
-
-                            for (const palette of palettes) {
-                                controller.enqueue(
-                                    encoder.encode(
-                                        `data: ${JSON.stringify({
-                                            type: "palette",
-                                            colors: palette.colors,
-                                        })}\n\n`,
-                                    ),
-                                );
+                for await (const chunk of result.textStream) {
+                    buffer += chunk;
+                    
+                    // Try to extract complete palettes from buffer
+                    // Look for patterns like ["#hex","#hex","#hex","#hex","#hex"]
+                    const paletteRegex = /\[\s*"#[0-9A-Fa-f]{6}"(?:\s*,\s*"#[0-9A-Fa-f]{6}")+\s*\]/g;
+                    let match;
+                    
+                    while ((match = paletteRegex.exec(buffer)) !== null) {
+                        try {
+                            const palette = JSON.parse(match[0]) as string[];
+                            if (palette.length >= 5 && palette.every(c => /^#[0-9A-Fa-f]{6}$/.test(c))) {
+                                allPalettes.push(palette);
+                                await writer.write(encoder.encode(
+                                    `data: ${JSON.stringify({ type: "palette", colors: palette })}\n\n`
+                                ));
+                                palettesEmitted++;
                             }
-                        }
+                        } catch {}
                     }
-
-                    // Process any remaining content
-                    if (jsonBuffer.trim()) {
-                        const { palettes } = extractPalettes(jsonBuffer);
-                        for (const palette of palettes) {
-                            controller.enqueue(
-                                encoder.encode(
-                                    `data: ${JSON.stringify({
-                                        type: "palette",
-                                        colors: palette.colors,
-                                    })}\n\n`,
-                                ),
-                            );
-                        }
+                    
+                    // Keep only the last part of buffer that might be incomplete
+                    const lastBracket = buffer.lastIndexOf(']');
+                    if (lastBracket > 0) {
+                        buffer = buffer.slice(lastBracket + 1);
                     }
-
-                    // Update session with new version
-                    await db
-                        .update(refineSessions)
-                        .set({
-                            version,
-                            updatedAt: new Date(),
-                        })
-                        .where(eq(refineSessions.id, currentSessionId));
-
-                    controller.close();
-                } finally {
-                    clearInterval(keepAlive);
                 }
-            } catch (error) {
-                console.error("Stream error:", error);
-                controller.enqueue(
-                    encoder.encode(
-                        `data: ${JSON.stringify({
-                            type: "error",
-                            error: String(error),
-                        })}\n\n`,
-                    ),
-                );
-                controller.close();
-            }
-        },
-    });
 
-    return new Response(transformedStream, {
+                console.log("[Generate] Groq finished, emitted", palettesEmitted, "palettes");
+                console.log("[Generate] All palettes:", JSON.stringify(allPalettes));
+
+                // Update session after completion
+                await db.update(refineSessions)
+                    .set({ version, updatedAt: new Date() })
+                    .where(eq(refineSessions.id, currentSessionId));
+
+                await writer.close();
+            } catch (error) {
+                console.error("[Generate] Groq stream error:", error);
+                try {
+                    await writer.write(encoder.encode(
+                        `data: ${JSON.stringify({ type: "error", error: String(error) })}\n\n`
+                    ));
+                    await writer.close();
+                } catch {}
+            }
+        })();
+    } else {
+        // Use streamObject for providers that support json_schema (OpenRouter, Google)
+        const paletteSchema = z.array(z.string().regex(/^#[0-9A-Fa-f]{6}$/))
+            .min(5)
+            .max(16)
+            .describe("A palette of hex colors");
+
+        const result = streamObject({
+            model,
+            output: "array",
+            schema: paletteSchema,
+            system: systemPrompt,
+            prompt: `## Theme: ${query}`,
+        });
+
+        // Process in background
+        (async () => {
+            try {
+                // Send session info first
+                await writer.write(encoder.encode(
+                    `data: ${JSON.stringify({ type: "session", sessionId: currentSessionId, version, unbiased })}\n\n`
+                ));
+
+                const allPalettes: string[][] = []; // Track all palettes streamed
+
+                // Stream each palette as it arrives
+                for await (const palette of result.elementStream) {
+                    allPalettes.push(palette);
+                    await writer.write(encoder.encode(
+                        `data: ${JSON.stringify({ type: "palette", colors: palette })}\n\n`
+                    ));
+                }
+
+                console.log("[Generate] Finished, emitted", allPalettes.length, "palettes");
+                console.log("[Generate] All palettes:", JSON.stringify(allPalettes));
+
+                // Update session after completion
+                await db.update(refineSessions)
+                    .set({ version, updatedAt: new Date() })
+                    .where(eq(refineSessions.id, currentSessionId));
+
+                await writer.close();
+            } catch (error) {
+                console.error("[Generate] Stream error:", error);
+                try {
+                    await writer.write(encoder.encode(
+                        `data: ${JSON.stringify({ type: "error", error: String(error) })}\n\n`
+                    ));
+                    await writer.close();
+                } catch {}
+            }
+        })();
+    }
+
+    return new Response(readable, {
         headers: {
             "Content-Type": "text/event-stream",
             "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
         },
     });
 }

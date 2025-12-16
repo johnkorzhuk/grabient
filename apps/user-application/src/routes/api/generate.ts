@@ -1,27 +1,28 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { generatePalettesStream, type GenerateRequest } from "@/server-functions/generate";
+import { generatePalettesSSE } from "@/server-functions/generate-v6";
 import { getAuth } from "@repo/data-ops/auth/server";
 
 export const Route = createFileRoute("/api/generate")({
     server: {
         handlers: {
             POST: async ({ request }: { request: Request }) => {
-                const body = await request.json() as GenerateRequest;
+                // Require authentication
+                const auth = getAuth();
+                const session = await auth.api.getSession({
+                    headers: request.headers,
+                    query: { disableCookieCache: true },
+                });
 
-                // Get userId from auth session if available (optional auth)
-                let userId: string | null = null;
-                try {
-                    const auth = getAuth();
-                    const session = await auth.api.getSession({
-                        headers: request.headers,
-                        query: { disableCookieCache: true },
-                    });
-                    userId = session?.user.id ?? null;
-                } catch {
-                    // Auth not available, proceed without userId
+                if (!session?.user) {
+                    return new Response(
+                        JSON.stringify({ error: "Unauthorized" }),
+                        { status: 401, headers: { "Content-Type": "application/json" } }
+                    );
                 }
 
-                return generatePalettesStream(body, userId);
+                const body = await request.json() as { query: string; sessionId?: string };
+
+                return generatePalettesSSE(body, session.user.id);
             },
         },
     },

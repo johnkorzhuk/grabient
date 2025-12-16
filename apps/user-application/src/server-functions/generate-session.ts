@@ -51,11 +51,31 @@ export const saveGenerateSessionFeedback = createServerFn({ method: "POST" })
             },
         };
 
-        // Save updated feedback
+        // If feedback is "bad", remove the palette from generatedSeeds
+        let updatedSeeds = session.generatedSeeds;
+        if (feedback === "bad") {
+            const existingSeeds = session.generatedSeeds ?? {};
+            const versionPalettes = existingSeeds[currentVersion] ?? [];
+            // Handle both old format (string[]) and new format (object[])
+            const filteredPalettes = versionPalettes.filter((p: unknown) => {
+                if (typeof p === 'string') return p !== seed;
+                if (typeof p === 'object' && p !== null && 'seed' in p) {
+                    return (p as { seed: string }).seed !== seed;
+                }
+                return true;
+            });
+            updatedSeeds = {
+                ...existingSeeds,
+                [currentVersion]: filteredPalettes,
+            } as typeof session.generatedSeeds;
+        }
+
+        // Save updated feedback and seeds
         await db
             .update(refineSessions)
             .set({
                 feedback: updatedFeedback,
+                generatedSeeds: updatedSeeds,
                 updatedAt: new Date(),
             })
             .where(eq(refineSessions.id, sessionId));
@@ -212,17 +232,25 @@ export const getGenerateSessionByQuery = createServerFn({ method: "GET" })
         };
     });
 
+// Palette metadata shape for generated palettes
+const paletteMetadataSchema = v.object({
+    seed: v.string(),
+    style: v.picklist(["angularGradient", "angularSwatches", "linearGradient", "linearSwatches", "deepFlow"]),
+    steps: v.number(),
+    angle: v.number(),
+});
+
 const saveGeneratedSeedsSchema = v.object({
     sessionId: v.pipe(v.string(), v.minLength(1), v.maxLength(100)),
     version: v.number(),
-    seeds: v.array(v.string()),
+    palettes: v.array(paletteMetadataSchema),
 });
 
 export const saveGenerateSessionSeeds = createServerFn({ method: "POST" })
     .middleware([optionalAuthFunctionMiddleware])
     .inputValidator((input) => v.parse(saveGeneratedSeedsSchema, input))
     .handler(async (ctx) => {
-        const { sessionId, version, seeds } = ctx.data;
+        const { sessionId, version, palettes } = ctx.data;
         const userId = ctx.context.userId;
 
         const db = getDb();
@@ -244,17 +272,19 @@ export const saveGenerateSessionSeeds = createServerFn({ method: "POST" })
             throw new Error("Unauthorized");
         }
 
-        // Update generated seeds for this version
+        // Update generated palettes for this version
         const existingSeeds = session.generatedSeeds ?? {};
         const versionKey = String(version);
-        const existingVersionSeeds = existingSeeds[versionKey] ?? [];
+        const existingVersionPalettes = existingSeeds[versionKey] ?? [];
 
-        // Append new seeds (deduped)
-        const allSeeds = [...new Set([...existingVersionSeeds, ...seeds])];
+        // Append new palettes (deduped by seed)
+        const existingPaletteSeeds = new Set(existingVersionPalettes.map(p => p.seed));
+        const newPalettes = palettes.filter(p => !existingPaletteSeeds.has(p.seed));
+        const allPalettes = [...existingVersionPalettes, ...newPalettes];
 
         const updatedSeeds = {
             ...existingSeeds,
-            [versionKey]: allSeeds,
+            [versionKey]: allPalettes,
         };
 
         await db

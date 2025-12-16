@@ -56,9 +56,14 @@ export const refineSessions = sqliteTable(
     userId: text("user_id"),
     query: text("query").notNull(),
     version: integer("version").notNull().default(1),
-    // Seeds generated per version: { "1": ["seed1", "seed2"], "2": ["seed3"] }
+    // Palettes generated per version: { "1": [{ seed, style, steps, angle }, ...], "2": [...] }
     generatedSeeds: text("generated_seeds", { mode: "json" })
-      .$type<Record<string, string[]>>()
+      .$type<Record<string, Array<{ 
+        seed: string; 
+        style: typeof PALETTE_STYLES[number]; 
+        steps: number; 
+        angle: number; 
+      }>>>()
       .notNull()
       .default({}),
     // User feedback per version: { "1": { "seed1": "good", "seed2": "bad" }, "2": {...} }

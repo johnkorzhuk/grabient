@@ -28,6 +28,7 @@ import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/old
 import { Route as PaletteListNewestRouteImport } from './routes/_paletteList/newest'
 import { Route as PalettesQueryIndexRouteImport } from './routes/palettes/$query/index'
 import { Route as PalettesQueryGenerateRouteImport } from './routes/palettes/$query/generate'
+import { Route as PalettesQueryCompareRouteImport } from './routes/palettes/$query/compare'
 import { Route as AppPolarSubscriptionsRouteImport } from './routes/app/polar/subscriptions'
 import { Route as AppPolarPortalRouteImport } from './routes/app/polar/portal'
 import { Route as ApiOgQueryRouteImport } from './routes/api/og.query'
@@ -128,6 +129,11 @@ const PalettesQueryGenerateRoute = PalettesQueryGenerateRouteImport.update({
   path: '/generate',
   getParentRoute: () => PalettesQueryRoute,
 } as any)
+const PalettesQueryCompareRoute = PalettesQueryCompareRouteImport.update({
+  id: '/compare',
+  path: '/compare',
+  getParentRoute: () => PalettesQueryRoute,
+} as any)
 const AppPolarSubscriptionsRoute = AppPolarSubscriptionsRouteImport.update({
   id: '/app/polar/subscriptions',
   path: '/app/polar/subscriptions',
@@ -175,6 +181,7 @@ export interface FileRoutesByFullPath {
   '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
+  '/palettes/$query/compare': typeof PalettesQueryCompareRoute
   '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
   '/palettes/$query/': typeof PalettesQueryIndexRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
@@ -198,6 +205,7 @@ export interface FileRoutesByTo {
   '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
+  '/palettes/$query/compare': typeof PalettesQueryCompareRoute
   '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
   '/palettes/$query': typeof PalettesQueryIndexRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
@@ -225,6 +233,7 @@ export interface FileRoutesById {
   '/api/og/query': typeof ApiOgQueryRoute
   '/app/polar/portal': typeof AppPolarPortalRoute
   '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
+  '/palettes/$query/compare': typeof PalettesQueryCompareRoute
   '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
   '/palettes/$query/': typeof PalettesQueryIndexRoute
   '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
@@ -252,6 +261,7 @@ export interface FileRouteTypes {
     | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/palettes/$query/compare'
     | '/palettes/$query/generate'
     | '/palettes/$query/'
     | '/app/polar/checkout/success'
@@ -275,6 +285,7 @@ export interface FileRouteTypes {
     | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/palettes/$query/compare'
     | '/palettes/$query/generate'
     | '/palettes/$query'
     | '/app/polar/checkout/success'
@@ -301,6 +312,7 @@ export interface FileRouteTypes {
     | '/api/og/query'
     | '/app/polar/portal'
     | '/app/polar/subscriptions'
+    | '/palettes/$query/compare'
     | '/palettes/$query/generate'
     | '/palettes/$query/'
     | '/app/polar/checkout/success'
@@ -460,6 +472,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PalettesQueryGenerateRouteImport
       parentRoute: typeof PalettesQueryRoute
     }
+    '/palettes/$query/compare': {
+      id: '/palettes/$query/compare'
+      path: '/compare'
+      fullPath: '/palettes/$query/compare'
+      preLoaderRoute: typeof PalettesQueryCompareRouteImport
+      parentRoute: typeof PalettesQueryRoute
+    }
     '/app/polar/subscriptions': {
       id: '/app/polar/subscriptions'
       path: '/app/polar/subscriptions'
@@ -539,11 +558,13 @@ const ApiOgRouteChildren: ApiOgRouteChildren = {
 const ApiOgRouteWithChildren = ApiOgRoute._addFileChildren(ApiOgRouteChildren)
 
 interface PalettesQueryRouteChildren {
+  PalettesQueryCompareRoute: typeof PalettesQueryCompareRoute
   PalettesQueryGenerateRoute: typeof PalettesQueryGenerateRoute
   PalettesQueryIndexRoute: typeof PalettesQueryIndexRoute
 }
 
 const PalettesQueryRouteChildren: PalettesQueryRouteChildren = {
+  PalettesQueryCompareRoute: PalettesQueryCompareRoute,
   PalettesQueryGenerateRoute: PalettesQueryGenerateRoute,
   PalettesQueryIndexRoute: PalettesQueryIndexRoute,
 }
