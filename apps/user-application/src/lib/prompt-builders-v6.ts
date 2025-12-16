@@ -136,6 +136,27 @@ ${examplePalettes.slice(0, 5).map((p, i) => `  ${i + 1}. [${p.hexColors.join(', 
 
     return `You are a palette architect. Given a theme, generate thematic variations and per-step dimension matrices.
 
+## CRITICAL: Query Constraints Override Everything
+BEFORE doing anything else, analyze "${query}" for EXPLICIT constraints. These are ABSOLUTE and override all other guidance. Enforce constraints through your dimension and value choices:
+
+**Achromatic constraints** (e.g., "black and white", "grayscale", "no color", "monochrome without hue", "no hues"):
+→ DO NOT include "hue" or "hueShift" in dimensions array - they are FORBIDDEN
+→ Include "chroma" in dimensions and set ALL step chroma values to "gray"
+→ Use only "luminance" to create variety (black → white range)
+→ The Painter interprets: no hue dimension + all gray chroma = true grayscale (R=G=B)
+
+**Hue restrictions** (e.g., "only blue", "no warm colors", "earth tones only"):
+→ Include "hue" but ONLY use values that fit the restriction
+→ DO NOT add complementary or contrasting hues for "variety"
+→ Variety comes from luminance, chroma, and temperature within allowed hues
+
+**Saturation constraints** (e.g., "muted only", "vibrant only", "desaturated"):
+→ Include "chroma" and set ALL values to respect the constraint
+→ "muted only" → use only: gray, muted, dusty
+→ "vibrant only" → use only: saturated, vivid, neon
+
+When constraints exist, variety comes from what's ALLOWED, not from breaking the constraints.
+
 THEME: "${query}"
 VARIATIONS: ${variationCount}
 PALETTES PER VARIATION: ${palettesPerVariation}
@@ -253,29 +274,45 @@ export function buildPainterSystemPrompt(matrices: PaletteMatrix[]): string {
 ${stepRows}`;
     }).join('\n\n');
 
-    return `You generate gradient color palettes as hex arrays. STRICTLY match each theme's aesthetic.
+    return `You generate gradient color palettes as hex arrays. STRICTLY match each theme's aesthetic AND dimensional specifications.
 
 COUNT: ${matrices.length} palettes
 
-CRITICAL: Each palette MUST visually represent its specific theme. The theme is your primary guide.
+## CRITICAL: Constraint Detection from Matrix Structure
+The matrix dimensions encode constraints. You MUST detect and respect them:
 
-The dimensional specs are SECONDARY guidance. The THEME is what matters most.
+**Achromatic/Grayscale Detection:**
+If a palette has NO "hue" dimension AND all chroma values are "gray":
+→ This is an ACHROMATIC palette - use ONLY true grays where R=G=B
+→ Examples: #000000, #333333, #666666, #999999, #CCCCCC, #FFFFFF
+→ NO hues whatsoever - not even slight tints or warm/cool grays
+
+**Hue Restriction Detection:**
+If "hue" dimension exists but uses only a subset of values (e.g., only "blue" and "cyan"):
+→ Stay strictly within those hues - do NOT add others for variety
+
+**Saturation Restriction Detection:**
+If all chroma values are in the low range (gray, muted, dusty):
+→ Keep all colors desaturated - do NOT add vibrant colors
+
+The dimensional specs are PRIMARY when they encode constraints. The theme name is SECONDARY context.
 
 SCALES (for dimension guidance):
 - luminance: black (darkest) → white (brightest)
-- chroma: gray (no color) → neon (max saturation)
-- temperature: cold (icy blues) → hot (fiery reds)
-- hue: position on color wheel
-- hueShift: none (base hue) → opposite (complementary)
+- chroma: gray (no saturation, R=G=B) → neon (max saturation)
+- temperature: cold (blue-shifted) → hot (red-shifted) - SKIP if achromatic
+- hue: position on color wheel - SKIP if achromatic
+- hueShift: none (base hue) → opposite (complementary) - SKIP if achromatic
 
 SPECIFICATIONS:
 ${paletteSpecs}
 
-REQUIREMENTS:
-- FIRST: If a step has [USE: #rrggbb], use that EXACT hex code for that position
-- SECOND: Colors must unmistakably evoke the theme
-- THIRD: Follow dimensional guidance where possible
-- Smooth transitions, max 80 RGB difference between adjacent
+REQUIREMENTS (in priority order):
+1. CONSTRAINTS: If matrix encodes achromatic (no hue + gray chroma), use ONLY true grays (R=G=B). No exceptions.
+2. EXACT HEX: If a step has [USE: #rrggbb], use that EXACT hex code
+3. DIMENSIONS: Follow ALL dimensional values in the matrix - they are specifications, not suggestions
+4. THEME: Colors should evoke the theme WITHIN the constraints
+5. TRANSITIONS: Smooth transitions, max 80 RGB difference between adjacent
 - Each palette has its own color count (specified above)
 
 OUTPUT: Array of ${matrices.length} palettes, each with its specified color count.

@@ -169,13 +169,34 @@ ${examples.map((p) => JSON.stringify(p)).join('\n')}
 
   return `Generate ${limit} gradient palettes for "${query}". Each palette is 8 hex colors.
 
+## CRITICAL: Query Constraints Override Everything
+If "${query}" contains EXPLICIT constraints, they are ABSOLUTE and override ALL other guidance in this prompt:
+
+**Achromatic constraints** (e.g., "black and white", "grayscale", "no color", "monochrome without hue"):
+→ Use ONLY true grays: #000000 to #FFFFFF with identical R=G=B values
+→ NO hues whatsoever — not even slight tints or undertones
+→ Ignore Category B creative expansions, color harmony modifiers, and hue variety guidelines
+→ Vary ONLY: brightness levels, contrast, gradient shape
+
+**Hue restrictions** (e.g., "only blue", "no warm colors", "earth tones only"):
+→ Stay strictly within the specified hue range
+→ Do NOT introduce complementary or contrasting hues for "variety"
+→ Vary ONLY: saturation, brightness, gradient shape within the allowed hues
+
+**Saturation constraints** (e.g., "muted only", "vibrant only", "desaturated"):
+→ ALL palettes must respect the saturation constraint
+→ Do NOT vary saturation for "distribution" purposes
+
+When constraints exist, variety comes from what's ALLOWED, not from breaking the constraints.
+
 ${examplesSection}## Step 1: Theme Analysis (REQUIRED — do this internally, do not include in your response)
 Analyze "${query}":
+- EXPLICIT CONSTRAINTS: What hard limits does the query impose? (hue, saturation, brightness restrictions)
 - CORE IDENTITY: What does "${query}" fundamentally mean in color terms?
-- PRIMARY HUES: 2-4 colors this theme demands (be specific: "dusty rose" not "pink")
-- FORBIDDEN HUES: Colors that would break the theme
-- BRIGHTNESS: Natural range (dark/medium/bright)
-- SATURATION: Natural character (vivid/muted/desaturated)
+- ALLOWED HUES: What colors fit within any constraints? (be specific: "dusty rose" not "pink")
+- FORBIDDEN HUES: Colors explicitly excluded OR that would break the theme
+- BRIGHTNESS: Natural range (dark/medium/bright) — unless constrained
+- SATURATION: Natural character (vivid/muted/desaturated) — unless constrained
 - ASSOCIATIONS: Related concepts, materials, environments, moods${referenceEvaluation}
 
 ## Step 2: Generate Two Categories
@@ -233,12 +254,13 @@ Across all ${limit} palettes, distribute with respect to ${query}:
 - ~30% bright dominant (airy, light, glowing)
 
 ## Quality Checks (do these internally, do not include in your response)
+✓ CONSTRAINT CHECK: Do ALL palettes respect explicit constraints in "${query}"? (If achromatic was requested, verify R=G=B for every color)
 ✓ Could someone identify "${query}" from Category A palettes alone?
 ✓ Does each Category B palette contain at least half core theme colors?
 ✓ Is there variety in gradient direction (monotonic vs symmetric)?
-✓ Is there variety in brightness (dark/medium/bright)?
+✓ Is there variety in brightness (dark/medium/bright)? (Skip if brightness was constrained)
 ✓ Do the palettes look distinct from each other, not like minor variations?
-✓ Do Category B palettes use a mix of conceptual and harmonic modifiers?
+✓ Do Category B palettes use a mix of conceptual and harmonic modifiers? (Skip if constraints eliminate Category B)
 
 ## Output Format
 Return ONLY a JSON object with two fields. No explanation, no markdown, no code blocks, no preamble.
@@ -256,6 +278,6 @@ Return ONLY a JSON object with two fields. No explanation, no markdown, no code 
 // Legacy constant for backwards compatibility (without examples)
 export const GENERATION_SYSTEM_PROMPT = buildGenerationSystemPrompt('${query}', 24)
 
-export const GENERATION_PROMPT_MESSAGE = 'Two-category generation with theme analysis and reference examples'
+export const GENERATION_PROMPT_MESSAGE = 'Add explicit constraint override section - query constraints take precedence over variety guidelines'
 
 export const GENERATION_PROMPT_VERSION = hashString(GENERATION_SYSTEM_PROMPT)
