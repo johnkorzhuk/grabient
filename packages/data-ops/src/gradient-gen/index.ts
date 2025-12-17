@@ -3,3 +3,4 @@ export * from './cosine';
 export { generateSvgGradient, type SvgGenerationOptions } from './svg';
 export * from './mix';
 export * from './fit-linear';
+export * from './palette-tags';
