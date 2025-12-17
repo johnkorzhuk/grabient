@@ -161,14 +161,9 @@ function generateGradientSvgContent(
         };
     }
 
-    let effectiveStyle: GradientStyle = style;
-    if (style === "deepFlow") {
-        effectiveStyle = "linearSwatches";
-    }
-
     const baseSvgString = generateSvgGradient(
         hexColors,
-        effectiveStyle,
+        style,
         angle,
         { seed, searchString: "" },
         null,

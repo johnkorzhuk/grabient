@@ -18,7 +18,7 @@ export interface SvgGenerationOptions {
 /**
  * Generates SVG gradient for export.
  * Isomorphic - works in browser, Node.js, and edge environments.
- * For styles that require non-SVG rendering (like deepFlow), uses fallback from FALLBACK_STYLES.
+ * Uses fallback from FALLBACK_STYLES if needed.
  *
  * @param hexColors - Array of hex color strings (e.g., ["#ff0000", "#00ff00"])
  * @param style - The gradient style type

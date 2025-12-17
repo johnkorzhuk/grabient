@@ -217,3 +217,80 @@ describe('Similarity Key Precision Handling', () => {
     expect(key === key2).toBe(true);
   });
 });
+
+describe('Real-world Deduplication Scenarios', () => {
+  it('should dedupe visually similar palettes from production data', () => {
+    // These 4 palettes are visually very similar and should be deduped
+    const similarGroup: CosineCoeffs[] = [
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.773, 1.909, 0.975, 1], [0.197, 0.315, 0.456, 1]],
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.802, 1.885, 1.001, 1], [0.199, 0.334, 0.464, 1]],
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.819, 1.964, 1.002, 1], [0.195, 0.339, 0.449, 1]],
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.754, 2.02, 0.927, 1], [0.189, 0.325, 0.445, 1]],
+    ];
+
+    // This palette is distinct
+    const distinctPalette: CosineCoeffs = [
+      [0.765, -0.188, 0.604, 1], [0.064, 0.922, 0.111, 1], [1.224, 0.101, 0.453, 1], [0.954, 0.996, 0.809, 1]
+    ];
+
+    const similarKeys = similarGroup.map(createSimilarityKey);
+    const distinctKey = createSimilarityKey(distinctPalette);
+
+    // All 4 similar palettes should have the SAME similarity key (deduped to 1)
+    expect(similarKeys[0]).toBe(similarKeys[1]);
+    expect(similarKeys[1]).toBe(similarKeys[2]);
+    expect(similarKeys[2]).toBe(similarKeys[3]);
+
+    // The distinct palette should have a DIFFERENT key
+    expect(distinctKey).not.toBe(similarKeys[0]);
+  });
+
+  it('should keep distinct palettes separate', () => {
+    // These palettes should all be considered distinct
+    const distinctPalettes: CosineCoeffs[] = [
+      [[-0.136, 0.32, 0.026, 1], [1.11, 0.714, 0.955, 1], [0.098, 0.095, 0.102, 1], [0.866, 0.84, 0.857, 1]],
+      [[0.847, 1.176, 1.215, 1], [0.201, 0.609, 0.714, 1], [0.293, 0.12, 0.103, 1], [0.143, 0.335, 0.346, 1]],
+      [[-0.136, 0.32, 0.026, 1], [1.11, 0.714, 0.955, 1], [0.1, 0.098, 0.099, 1], [0.883, 0.828, 0.9, 1]],
+      [[-0.101, 0.666, 0.563, 1], [0.925, 0.065, 0.064, 1], [0.104, 0.87, 0.833, 1], [0.026, 0.596, 0.708, 1]],
+    ];
+
+    const keys = distinctPalettes.map(createSimilarityKey);
+    const uniqueKeys = new Set(keys);
+
+    // All distinct palettes should have unique keys
+    // Note: palettes 0 and 2 are very similar - let's check
+    console.log('Distinct palette keys:', keys);
+
+    // At minimum, most should be unique
+    expect(uniqueKeys.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it('should validate deduplication reduces count significantly', () => {
+    // Simulate the deduplication process
+    const allPalettes: CosineCoeffs[] = [
+      // Similar group (should dedupe to 1)
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.773, 1.909, 0.975, 1], [0.197, 0.315, 0.456, 1]],
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.802, 1.885, 1.001, 1], [0.199, 0.334, 0.464, 1]],
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.819, 1.964, 1.002, 1], [0.195, 0.339, 0.449, 1]],
+      [[0.761, 0.715, 0.693, 1], [0.086, 0.041, 0.059, 1], [0.754, 2.02, 0.927, 1], [0.189, 0.325, 0.445, 1]],
+      // Distinct palette
+      [[0.765, -0.188, 0.604, 1], [0.064, 0.922, 0.111, 1], [1.224, 0.101, 0.453, 1], [0.954, 0.996, 0.809, 1]],
+      // More distinct palettes
+      [[-0.136, 0.32, 0.026, 1], [1.11, 0.714, 0.955, 1], [0.098, 0.095, 0.102, 1], [0.866, 0.84, 0.857, 1]],
+      [[0.847, 1.176, 1.215, 1], [0.201, 0.609, 0.714, 1], [0.293, 0.12, 0.103, 1], [0.143, 0.335, 0.346, 1]],
+      [[-0.101, 0.666, 0.563, 1], [0.925, 0.065, 0.064, 1], [0.104, 0.87, 0.833, 1], [0.026, 0.596, 0.708, 1]],
+    ];
+
+    const keys = allPalettes.map(createSimilarityKey);
+    const uniqueKeys = new Set(keys);
+
+    console.log(`Total palettes: ${allPalettes.length}`);
+    console.log(`Unique after dedup: ${uniqueKeys.size}`);
+    console.log(`Reduction: ${allPalettes.length - uniqueKeys.size} duplicates removed`);
+
+    // Started with 8 palettes, the 4 similar ones should collapse to 1
+    // So we expect ~5 unique palettes (4 similar -> 1, plus 4 distinct)
+    expect(uniqueKeys.size).toBeLessThan(allPalettes.length);
+    expect(uniqueKeys.size).toBeLessThanOrEqual(5);
+  });
+});

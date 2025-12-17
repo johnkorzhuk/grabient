@@ -267,11 +267,9 @@ export const GenerationBatches = Table('generation_batches', {
 
 // ============================================================================
 // StagedPalettes - deduplicated palettes ready for curation
-// Created by deduplication migration using 2-decimal precision similarity keys
+// Created by deduplication migration using euclidean distance on coefficients
 // ============================================================================
 export const StagedPalettes = Table('staged_palettes', {
-  // 2-decimal precision similarity key for deduplication (e.g., "0.50|0.30|0.20|...")
-  similarityKey: v.string(),
   // Reference to the canonical generated_palette this was derived from
   sourceId: v.id('generated_palettes'),
   // Palette data (copied from source)
@@ -285,6 +283,27 @@ export const StagedPalettes = Table('staged_palettes', {
   modelKey: v.optional(vPainterModelKey),
   // Aggregated themes from this palette and all its duplicates
   themes: v.array(v.string()),
+})
+
+// ============================================================================
+// VectorizedPalettes - palettes that have been embedded and upserted to Vectorize
+// Pipeline: generated_palettes → staged_palettes → vectorized_palettes
+// OR: D1 palettes → refinements → vectorized_palettes
+// Uses seed as unique identifier, _creationTime for timestamp
+// ============================================================================
+export const VectorizedPalettes = Table('vectorized_palettes', {
+  // Core data for search
+  seed: v.string(),
+  // Computed embed text used for vectorization
+  embedText: v.string(),
+  // Tags array (coefficient-derived + themes, deduplicated)
+  tags: v.array(v.string()),
+  // Display properties
+  style: vPaletteStyle,
+  steps: v.number(),
+  angle: vPaletteAngle,
+  // Vectorize metadata
+  vectorId: v.string(), // nanoid used as vector ID in Cloudflare Vectorize
 })
 
 export default defineSchema({
@@ -341,7 +360,9 @@ export default defineSchema({
     .index('by_batch_id', ['batchId']),
   // Deduplicated palettes for curation
   staged_palettes: StagedPalettes.table
-    .index('by_similarity_key', ['similarityKey'])
     .index('by_tag', ['tag'])
     .index('by_cycle', ['cycle']),
+  // Vectorized palettes (final stage of pipeline)
+  vectorized_palettes: VectorizedPalettes.table
+    .index('by_seed', ['seed']),
 })

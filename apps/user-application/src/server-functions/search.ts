@@ -39,8 +39,7 @@ function getCacheKey(query: string, limit: number): string {
     return `search:${query.toLowerCase().trim()}:${limit}`;
 }
 
-// Max extra palettes to fetch for filtering (prevents abuse)
-// Combined with MAX_PAGE_LIMIT (96), max fetch is 196
+// Max extra palettes to fetch for bad seed filtering (prevents abuse)
 const MAX_EXTRA_PALETTES = 100;
 
 const baseSearchFunction = createServerFn({ method: "GET" }).middleware([
@@ -86,9 +85,9 @@ export const searchPalettes = baseSearchFunction
             }
         }
 
-        // Calculate how many extra results to fetch (capped for abuse prevention)
-        const extraToFetch = Math.min(badSeeds.size, MAX_EXTRA_PALETTES);
-        const totalToFetch = limit + extraToFetch;
+        // Calculate how many extra results to fetch for bad seed filtering
+        const extraForBadSeeds = Math.min(badSeeds.size, MAX_EXTRA_PALETTES);
+        const totalToFetch = limit + extraForBadSeeds;
 
         // For anonymous users, use KV cache
         // For authenticated users with bad seeds, skip cache (personalized results)

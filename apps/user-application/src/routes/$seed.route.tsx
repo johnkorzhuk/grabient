@@ -34,7 +34,7 @@ import { useRef, useState, useEffect } from "react";
 import { useStore } from "@tanstack/react-store";
 import { exportStore } from "@/stores/export";
 import { detectDevice } from "@/lib/deviceDetection";
-import { useDebouncedCallback, useHotkeys } from "@mantine/hooks";
+import { useDebouncedCallback } from "@mantine/hooks";
 import { GradientNavigationControls } from "@/components/palettes/gradient-navigation-controls";
 import { GradientPreview } from "@/components/palettes/gradient-preview";
 import { GradientSidebar } from "@/components/palettes/gradient-sidebar";
@@ -264,25 +264,6 @@ function RouteComponent() {
         actualAngle !== initialSearchDataRef.current.angle ||
         actualSteps !== initialSearchDataRef.current.steps;
 
-    useHotkeys(
-        actualStyle === "deepFlow"
-            ? [
-                  [
-                      "c",
-                      () => {
-                          navigate({
-                              from: Route.fullPath,
-                              search: (prev) => ({
-                                  ...prev,
-                                  clipping: !clipping,
-                              }),
-                              replace: true,
-                          });
-                      },
-                  ],
-              ]
-            : [],
-    );
 
     useEffect(() => {
         if (showMoreOptions && isCopyMenuOpen) {

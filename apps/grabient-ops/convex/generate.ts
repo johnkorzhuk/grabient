@@ -1,4 +1,5 @@
 import { query, mutation, internalMutation, internalQuery } from './_generated/server'
+import type { Id } from './_generated/dataModel'
 import { paginationOptsValidator } from 'convex/server'
 import { v } from 'convex/values'
 import { vBatchStatus, vPainterModelKey, vPainterProvider, vPaletteStyle, vPaletteAngle } from './lib/providers.types'
@@ -885,3 +886,131 @@ export const deleteStagedPalettes = mutation({
     return { deletedCount }
   },
 })
+
+/**
+ * Get staged palettes for embedding/vectorization
+ * By default returns only unvectorized palettes (those without entry in vectorized_palettes)
+ * Use revectorize=true to get already-vectorized palettes for re-vectorization
+ */
+export const getUnvectorizedStagedPalettes = query({
+  args: {
+    limit: v.optional(v.number()),
+    revectorize: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { limit = 1000, revectorize = false }) => {
+    // Get vectorized seeds for filtering
+    const vectorizedPalettes = await ctx.db.query('vectorized_palettes').collect()
+    const vectorizedSeeds = new Set(vectorizedPalettes.map((vp) => vp.seed))
+
+    // Collect all staged palettes to properly filter
+    // (we need to scan all to find unvectorized ones, as they may be spread throughout)
+    const allStaged = await ctx.db.query('staged_palettes').collect()
+
+    if (revectorize) {
+      // Return staged palettes that ARE already vectorized
+      return allStaged.filter((sp) => vectorizedSeeds.has(sp.seed)).slice(0, limit)
+    }
+
+    // Return only unvectorized palettes (up to limit)
+    return allStaged.filter((sp) => !vectorizedSeeds.has(sp.seed)).slice(0, limit)
+  },
+})
+
+/**
+ * Get vectorization stats for staged palettes
+ */
+export const getStagedPalettesVectorizeStats = query({
+  args: {},
+  handler: async (ctx) => {
+    // Count all staged palettes
+    const allStaged = await ctx.db.query('staged_palettes').collect()
+
+    // Count vectorized palettes
+    const vectorized = await ctx.db.query('vectorized_palettes').collect()
+
+    return {
+      vectorized: vectorized.length,
+      unvectorized: allStaged.length - vectorized.length,
+      total: allStaged.length,
+    }
+  },
+})
+
+/**
+ * Insert vectorized palettes (internal mutation for vectorize action)
+ * Creates entries in vectorized_palettes table for each successfully vectorized palette
+ */
+export const insertVectorizedPalettes = internalMutation({
+  args: {
+    palettes: v.array(
+      v.object({
+        seed: v.string(),
+        embedText: v.string(),
+        tags: v.array(v.string()),
+        style: vPaletteStyle,
+        steps: v.number(),
+        angle: vPaletteAngle,
+        vectorId: v.string(),
+      })
+    ),
+  },
+  handler: async (ctx, { palettes }) => {
+    let count = 0
+    for (const p of palettes) {
+      await ctx.db.insert('vectorized_palettes', {
+        seed: p.seed,
+        embedText: p.embedText,
+        tags: p.tags,
+        style: p.style,
+        steps: p.steps,
+        angle: p.angle,
+        vectorId: p.vectorId,
+      })
+      count++
+    }
+    return { count }
+  },
+})
+
+/**
+ * Delete vectorized palettes by seeds (for re-vectorization)
+ */
+export const deleteVectorizedPalettes = internalMutation({
+  args: {
+    seeds: v.array(v.string()),
+  },
+  handler: async (ctx, { seeds }) => {
+    let count = 0
+    for (const seed of seeds) {
+      const existing = await ctx.db
+        .query('vectorized_palettes')
+        .withIndex('by_seed', (q) => q.eq('seed', seed))
+        .first()
+      if (existing) {
+        await ctx.db.delete(existing._id)
+        count++
+      }
+    }
+    return { count }
+  },
+})
+
+/**
+ * Clear all vectorized palettes (for full re-vectorization)
+ */
+export const clearAllVectorizedPalettes = mutation({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { limit = 5000 }) => {
+    const palettes = await ctx.db.query('vectorized_palettes').take(limit)
+
+    let count = 0
+    for (const p of palettes) {
+      await ctx.db.delete(p._id)
+      count++
+    }
+    return { deleted: count, hasMore: palettes.length === limit }
+  },
+})
+

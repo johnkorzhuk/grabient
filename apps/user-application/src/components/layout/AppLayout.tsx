@@ -45,6 +45,8 @@ import {
     CarouselItem,
 } from "@/components/ui/carousel";
 import { isColorName, colorNameToHex, isHexColor } from "@repo/data-ops/color-utils";
+import { styleWithAutoValidator } from "@repo/data-ops/valibot-schema/grabient";
+import * as v from "valibot";
 
 type TagColorInfo =
     | { type: "none" }
@@ -83,13 +85,7 @@ function getTagColorInfo(tag: string): TagColorInfo {
 }
 
 type SortOrder = "popular" | "newest" | "oldest";
-type StyleType =
-    | "auto"
-    | "linearGradient"
-    | "angularGradient"
-    | "angularSwatches"
-    | "linearSwatches"
-    | "deepFlow";
+type StyleType = v.InferOutput<typeof styleWithAutoValidator>;
 
 function getSortFromPathname(pathname: string): SortOrder | undefined {
     if (pathname === "/newest") return "newest";
@@ -134,13 +130,7 @@ function buildPreservedSearch(
 interface AppLayoutProps {
     children: ReactNode;
     showNavigation?: boolean;
-    style?:
-        | "auto"
-        | "linearGradient"
-        | "angularGradient"
-        | "angularSwatches"
-        | "linearSwatches"
-        | "deepFlow";
+    style?: StyleType;
     angle?: number | "auto";
     steps?: number | "auto";
     leftAction?: ReactNode;

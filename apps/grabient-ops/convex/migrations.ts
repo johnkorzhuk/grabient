@@ -2,10 +2,9 @@ import { Migrations } from '@convex-dev/migrations'
 import { v } from 'convex/values'
 import { components } from './_generated/api'
 import type { DataModel, Id } from './_generated/dataModel'
-import { internalMutation, internalQuery } from './_generated/server'
+import { internalMutation, internalQuery, query } from './_generated/server'
 import { PROVIDERS, ALL_MODELS, type Provider, type Model } from './lib/providers.types'
 import { CURRENT_PROMPT_VERSION } from './lib/prompts'
-import { deserializeCoeffs, isValidSeed } from '@repo/data-ops/serialization'
 
 // Initialize migrations component
 export const migrations = new Migrations<DataModel>(components.migrations)
@@ -340,30 +339,6 @@ export const clearConsensusForRebuild = migrations.define({
 // Palette Deduplication Migration
 // ============================================================================
 
-/**
- * Create a 2-decimal precision similarity key from a seed string.
- * Returns null if the seed is invalid.
- */
-function createSimilarityKeyFromSeed(seed: string): string | null {
-  try {
-    if (!isValidSeed(seed)) return null
-
-    const { coeffs, globals } = deserializeCoeffs(seed)
-
-    // Round coeffs to 2 decimal places (skip the alpha channel at index 3)
-    const coeffParts: string[] = []
-    for (const vec of coeffs) {
-      coeffParts.push(vec[0].toFixed(2), vec[1].toFixed(2), vec[2].toFixed(2))
-    }
-
-    // Round globals to 2 decimal places
-    const globalParts = globals.map((g: number) => g.toFixed(2))
-
-    return [...coeffParts, ...globalParts].join('|')
-  } catch {
-    return null
-  }
-}
 
 /**
  * Get all staged palettes for building the lookup map.
@@ -373,14 +348,14 @@ export const getStagedPalettesLookup = internalQuery({
   args: {},
   returns: v.array(v.object({
     _id: v.id('staged_palettes'),
-    similarityKey: v.string(),
+    seed: v.string(),
     themes: v.array(v.string()),
   })),
   handler: async (ctx) => {
     const staged = await ctx.db.query('staged_palettes').collect()
     return staged.map(s => ({
       _id: s._id,
-      similarityKey: s.similarityKey,
+      seed: s.seed,
       themes: s.themes,
     }))
   },
@@ -420,112 +395,6 @@ export const getGeneratedPalettesBatch = internalQuery({
   },
 })
 
-/**
- * Process a batch of generated palettes and create/update staged palettes.
- * Uses index-based lookups instead of loading all staged_palettes into memory.
- *
- * Run via: npx convex run migrations:deduplicatePalettesBatch '{"cursor": null}'
- * Then continue with the returned cursor until isDone is true.
- */
-export const deduplicatePalettesBatch = internalMutation({
-  args: {
-    cursor: v.union(v.string(), v.null()),
-    batchSize: v.optional(v.number()),
-  },
-  returns: v.object({
-    nextCursor: v.union(v.string(), v.null()),
-    isDone: v.boolean(),
-    stats: v.object({
-      processed: v.number(),
-      created: v.number(),
-      duplicates: v.number(),
-      themesAdded: v.number(),
-      skipped: v.number(),
-    }),
-  }),
-  handler: async (ctx, { cursor, batchSize = 500 }) => {
-    // Get batch of generated palettes
-    const result = await ctx.db
-      .query('generated_palettes')
-      .order('desc')
-      .paginate({ cursor, numItems: batchSize })
-
-    const stats = { processed: 0, created: 0, duplicates: 0, themesAdded: 0, skipped: 0 }
-
-    // Track keys we've seen in THIS batch to avoid duplicate index lookups
-    const batchCache = new Map<string, { _id: Id<'staged_palettes'>; themes: string[] }>()
-
-    for (const palette of result.page) {
-      stats.processed++
-
-      // Skip palettes without seeds
-      if (!palette.seed) {
-        stats.skipped++
-        continue
-      }
-
-      // Generate similarity key
-      const similarityKey = createSimilarityKeyFromSeed(palette.seed)
-      if (!similarityKey) {
-        stats.skipped++
-        continue
-      }
-
-      // Check batch cache first (for duplicates within same batch)
-      let existingEntry = batchCache.get(similarityKey)
-
-      // If not in batch cache, check database using index
-      if (!existingEntry) {
-        const existing = await ctx.db
-          .query('staged_palettes')
-          .withIndex('by_similarity_key', q => q.eq('similarityKey', similarityKey))
-          .first()
-
-        if (existing) {
-          existingEntry = { _id: existing._id, themes: existing.themes }
-          batchCache.set(similarityKey, existingEntry)
-        }
-      }
-
-      if (existingEntry) {
-        // Duplicate found - check if we need to add the theme
-        stats.duplicates++
-
-        if (palette.theme && !existingEntry.themes.includes(palette.theme)) {
-          // Add the theme to the existing staged palette
-          const newThemes = [...existingEntry.themes, palette.theme]
-          await ctx.db.patch(existingEntry._id, { themes: newThemes })
-          existingEntry.themes = newThemes // Update cache
-          stats.themesAdded++
-        }
-      } else {
-        // New unique palette - create staged entry
-        const themes: Array<string> = palette.theme ? [palette.theme] : []
-        const newId = await ctx.db.insert('staged_palettes', {
-          similarityKey,
-          sourceId: palette._id,
-          cycle: palette.cycle,
-          tag: palette.tag,
-          seed: palette.seed,
-          colors: palette.colors,
-          style: palette.style,
-          steps: palette.steps,
-          angle: palette.angle,
-          modelKey: palette.modelKey,
-          themes,
-        })
-        batchCache.set(similarityKey, { _id: newId, themes })
-        stats.created++
-      }
-    }
-
-    return {
-      nextCursor: result.continueCursor,
-      isDone: result.isDone,
-      stats,
-    }
-  },
-})
 
 /**
  * Clear staged palettes in batches to avoid read limits.
@@ -548,28 +417,18 @@ export const clearStagedPalettes = internalMutation({
 })
 
 /**
- * Get deduplication progress stats.
+ * Get staged palettes count.
  *
- * Run via: npx convex run migrations:getDeduplicationStats '{}'
+ * Run via: npx convex run migrations:getStagedPalettesCount '{}'
  */
-export const getDeduplicationStats = internalQuery({
+export const getStagedPalettesCount = query({
   args: {},
   returns: v.object({
-    totalGenerated: v.number(),
     totalStaged: v.number(),
-    totalThemes: v.number(),
   }),
   handler: async (ctx) => {
-    // Count generated palettes (use index scan with limit to estimate)
-    const generatedSample = await ctx.db.query('generated_palettes').take(10000)
-    const totalGenerated = generatedSample.length
-
-    // Get staged stats
     const staged = await ctx.db.query('staged_palettes').collect()
-    const totalStaged = staged.length
-    const totalThemes = staged.reduce((sum, s) => sum + s.themes.length, 0)
-
-    return { totalGenerated, totalStaged, totalThemes }
+    return { totalStaged: staged.length }
   },
 })
 
@@ -581,7 +440,6 @@ export const insertStagedPalettesBatch = internalMutation({
   args: {
     palettes: v.array(
       v.object({
-        similarityKey: v.string(),
         sourceId: v.string(),
         cycle: v.number(),
         tag: v.string(),
@@ -599,7 +457,6 @@ export const insertStagedPalettesBatch = internalMutation({
   handler: async (ctx, { palettes }) => {
     for (const p of palettes) {
       await ctx.db.insert('staged_palettes', {
-        similarityKey: p.similarityKey,
         sourceId: p.sourceId as Id<'generated_palettes'>,
         cycle: p.cycle,
         tag: p.tag,
@@ -613,6 +470,73 @@ export const insertStagedPalettesBatch = internalMutation({
       })
     }
     return { inserted: palettes.length }
+  },
+})
+
+/**
+ * Batch update themes on existing staged palettes.
+ * Used by incremental migration to merge themes from duplicates.
+ */
+export const updateStagedPaletteThemes = internalMutation({
+  args: {
+    updates: v.array(
+      v.object({
+        id: v.id('staged_palettes'),
+        themes: v.array(v.string()),
+      })
+    ),
+  },
+  returns: v.object({ updated: v.number() }),
+  handler: async (ctx, { updates }) => {
+    for (const u of updates) {
+      await ctx.db.patch(u.id, { themes: u.themes })
+    }
+    return { updated: updates.length }
+  },
+})
+
+// ============================================================================
+// DeepFlow Style Migration
+// ============================================================================
+
+/**
+ * Migrate vectorized_palettes with deprecated deepFlow style to linearGradient.
+ * deepFlow is being removed as a style option.
+ *
+ * Run via: npx convex run migrations:run '{"fn": "migrations:migrateDeepFlowStyle"}'
+ */
+export const migrateDeepFlowStyle = migrations.define({
+  table: 'vectorized_palettes',
+  migrateOne: async (ctx, doc) => {
+    if ((doc as any).style === 'deepFlow') {
+      await ctx.db.patch(doc._id, { style: 'linearGradient' })
+    }
+  },
+})
+
+/**
+ * Get all vectorized_palettes with deepFlow style.
+ */
+export const getVectorizedPalettesWithDeepFlow = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const all = await ctx.db.query('vectorized_palettes').collect()
+    return all.filter((p: any) => p.style === 'deepFlow').map(p => ({ _id: p._id }))
+  },
+})
+
+/**
+ * Update vectorized_palettes from deepFlow to linearGradient.
+ */
+export const updateDeepFlowToLinearGradient = internalMutation({
+  args: {
+    ids: v.array(v.id('vectorized_palettes')),
+  },
+  handler: async (ctx, { ids }) => {
+    for (const id of ids) {
+      await ctx.db.patch(id, { style: 'linearGradient' })
+    }
+    return { updated: ids.length }
   },
 })
 

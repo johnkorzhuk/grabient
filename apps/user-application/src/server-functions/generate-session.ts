@@ -235,7 +235,7 @@ export const getGenerateSessionByQuery = createServerFn({ method: "GET" })
 // Palette metadata shape for generated palettes
 const paletteMetadataSchema = v.object({
     seed: v.string(),
-    style: v.picklist(["angularGradient", "angularSwatches", "linearGradient", "linearSwatches", "deepFlow"]),
+    style: v.picklist(["angularGradient", "angularSwatches", "linearGradient", "linearSwatches"]),
     steps: v.number(),
     angle: v.number(),
     keyword: v.string(),

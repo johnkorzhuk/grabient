@@ -30,6 +30,8 @@ import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
 import type { SizeType } from "@/stores/export";
+import { styleWithAutoValidator } from "@repo/data-ops/valibot-schema/grabient";
+import * as v from "valibot";
 
 export interface LogoNavigation {
     to: string;
@@ -50,7 +52,7 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
     const seedInitialSearch = useStore(uiStore, (state) => state.seedInitialSearch);
     const currentSearch = useSearch({ strict: false }) as {
         size?: SizeType;
-        style?: "auto" | "linearGradient" | "angularGradient" | "angularSwatches" | "linearSwatches" | "deepFlow";
+        style?: v.InferOutput<typeof styleWithAutoValidator>;
         angle?: number | "auto";
         steps?: number | "auto";
     };

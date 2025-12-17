@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 import type { GenerateEvent } from "@/server-functions/generate-v6";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
+import { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabient";
+import * as v from "valibot";
 
-// Style type matching palettes.ts
-type PaletteStyle = "angularGradient" | "angularSwatches" | "linearGradient" | "linearSwatches" | "deepFlow";
+type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
 
 export interface GeneratedPalette {
     seed: string;

@@ -1692,7 +1692,7 @@ export const pollAnthropicPainterBatch = internalAction({
         paletteIndex: number
         modelKey: PainterModelKey
         seed: string
-        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches'
         steps: number
         angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
         colors: string[]
@@ -1816,7 +1816,7 @@ export const pollOpenAIPainterBatch = internalAction({
         paletteIndex: number
         modelKey: PainterModelKey
         seed: string
-        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches'
         steps: number
         angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
         colors: string[]
@@ -1968,7 +1968,7 @@ export const pollGroqPainterBatch = internalAction({
         paletteIndex: number
         modelKey: PainterModelKey
         seed: string
-        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches'
         steps: number
         angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
         colors: string[]
@@ -2118,7 +2118,7 @@ export const pollGooglePainterBatch = internalAction({
         paletteIndex: number
         modelKey: PainterModelKey
         seed: string
-        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches'
         steps: number
         angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
         colors: string[]

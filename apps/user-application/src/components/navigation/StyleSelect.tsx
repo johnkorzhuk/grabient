@@ -41,8 +41,6 @@ export function StyleSelect({
     const [open, setOpen] = useState(false);
     const focusTrapRef = useFocusTrap(open && !disabled);
 
-    // Check if we're on a seed route to show deepFlow option
-    const isSeedRoute = location.pathname.includes("/seed/");
 
     const handleValueClick = async (clickedStyle: PaletteStyle) => {
         // If clicking the already selected style, toggle to auto
@@ -132,13 +130,7 @@ export function StyleSelect({
                 >
                     <CommandGroup>
                         <CommandList>
-                            {PALETTE_STYLES.filter((style) => {
-                                // Hide deepFlow option when not on seed route
-                                if (style === "deepFlow" && !isSeedRoute) {
-                                    return false;
-                                }
-                                return true;
-                            }).map((style) => (
+                            {PALETTE_STYLES.map((style) => (
                                 <CommandItem
                                     key={style}
                                     value={style}

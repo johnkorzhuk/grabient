@@ -473,7 +473,6 @@ export const PALETTE_STYLES = [
   'angularSwatches',
   'linearGradient',
   'linearSwatches',
-  'deepFlow',
 ] as const
 export type PaletteStyle = (typeof PALETTE_STYLES)[number]
 
@@ -482,22 +481,12 @@ export const vPaletteStyle = v.union(
   v.literal('angularSwatches'),
   v.literal('linearGradient'),
   v.literal('linearSwatches'),
-  v.literal('deepFlow'),
 )
 
 /**
- * Palette angles
+ * Palette angles (0-360 degrees)
  */
 export const PALETTE_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const
-export type PaletteAngle = (typeof PALETTE_ANGLES)[number]
+export type PaletteAngle = number
 
-export const vPaletteAngle = v.union(
-  v.literal(0),
-  v.literal(45),
-  v.literal(90),
-  v.literal(135),
-  v.literal(180),
-  v.literal(225),
-  v.literal(270),
-  v.literal(315),
-)
+export const vPaletteAngle = v.number()

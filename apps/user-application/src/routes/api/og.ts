@@ -44,8 +44,6 @@ function getCacheKey(
     return `og:${seed}:${style}:${steps}:${angle}`;
 }
 
-type GradientStyle = v.InferOutput<typeof paletteStyleValidator>;
-
 function generateAngularGradientSvg(
     hexColors: string[],
     angle: number,
@@ -210,14 +208,9 @@ export const Route = createFileRoute("/api/og")({
                             paletteHeight,
                         );
                     } else {
-                        let effectiveStyle: GradientStyle = style;
-                        if (style === "deepFlow") {
-                            effectiveStyle = "linearSwatches";
-                        }
-
                         const baseSvgString = generateSvgGradient(
                             hexColors,
-                            effectiveStyle,
+                            style,
                             angle,
                             { seed, searchString: "" },
                             null,

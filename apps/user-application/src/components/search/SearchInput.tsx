@@ -8,16 +8,11 @@ import {
     seedValidator,
     coeffsSchema,
     rawVectorInputSchema,
+    styleWithAutoValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
 
-type StyleType =
-    | "auto"
-    | "linearGradient"
-    | "angularGradient"
-    | "angularSwatches"
-    | "linearSwatches"
-    | "deepFlow";
+type StyleType = v.InferOutput<typeof styleWithAutoValidator>;
 type SizeType = "auto" | [number, number];
 
 // Schema for parsing raw vector string input (e.g. "[[0.5, 0.2, 0.8], [0.3, 0.1, 0.9], ...]")

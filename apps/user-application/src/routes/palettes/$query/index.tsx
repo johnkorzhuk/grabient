@@ -16,7 +16,13 @@ import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
-import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
+import {
+    DEFAULT_PAGE_LIMIT,
+    styleWithAutoValidator,
+    angleWithAutoValidator,
+    stepsWithAutoValidator,
+    sizeWithAutoValidator,
+} from "@repo/data-ops/valibot-schema/grabient";
 import {
     hexToColorName,
     colorNameToHex,
@@ -33,12 +39,6 @@ import {
     TooltipContent,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-    styleWithAutoValidator,
-    angleWithAutoValidator,
-    stepsWithAutoValidator,
-    sizeWithAutoValidator,
-} from "@repo/data-ops/valibot-schema/grabient";
 import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
@@ -542,13 +542,7 @@ function sortToRoute(sort: SearchSortOrder): string {
 
 interface SearchParams {
     sort: SearchSortOrder;
-    style:
-        | "auto"
-        | "linearGradient"
-        | "angularGradient"
-        | "angularSwatches"
-        | "linearSwatches"
-        | "deepFlow";
+    style: v.InferOutput<typeof styleWithAutoValidator>;
     angle: "auto" | number;
     steps: "auto" | number;
     size: SizeType;

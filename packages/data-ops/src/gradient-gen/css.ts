@@ -17,7 +17,7 @@ export interface GradientCssResult {
 /**
  * Generates CSS gradient with credit comments for export.
  * Isomorphic - works in browser, Node.js, and edge environments.
- * For styles that require non-CSS rendering (like deepFlow), uses fallback from FALLBACK_STYLES.
+ * Uses fallback from FALLBACK_STYLES if needed.
  *
  * @param hexColors - Array of hex color strings (e.g., ["#ff0000", "#00ff00"])
  * @param style - The gradient style type
@@ -55,14 +55,16 @@ export function generateCssGradient(
 
     const inactiveAlpha = 0.5;
 
-    const effectiveStyle: GradientStyle = (FALLBACK_STYLES[style] ?? style) as GradientStyle;
+    const effectiveStyle: GradientStyle = style;
 
     // Helper to add alpha to hex color
     const hexToRgba = (hex: string, alpha: number = 1): string => {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
-        return alpha === 1 ? hex : `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
+        return alpha === 1
+            ? hex
+            : `rgba(${r}, ${g}, ${b}, ${alpha.toFixed(3)})`;
     };
 
     switch (effectiveStyle) {
@@ -70,8 +72,16 @@ export function generateCssGradient(
             let gradientString = `linear-gradient(${angle}deg,`;
 
             hexColors.forEach((color, index) => {
-                const position = ((index / (hexColors.length - 1)) * 100).toFixed(3);
-                const alpha = typeof activeIndex === "number" ? (index === activeIndex ? 1 : inactiveAlpha) : 1;
+                const position = (
+                    (index / (hexColors.length - 1)) *
+                    100
+                ).toFixed(3);
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
                 const colorValue = hexToRgba(color, alpha);
                 gradientString += ` ${colorValue} ${position}%`;
                 if (index < hexColors.length - 1) {
@@ -94,7 +104,12 @@ export function generateCssGradient(
             hexColors.forEach((color, index) => {
                 const startPosNum = index * segmentSize;
                 const endPosNum = (index + 1) * segmentSize;
-                const alpha = typeof activeIndex === "number" ? (index === activeIndex ? 1 : inactiveAlpha) : 1;
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
                 const colorValue = hexToRgba(color, alpha);
 
                 if (index === 0) {
@@ -123,8 +138,16 @@ export function generateCssGradient(
             let gradientString = `conic-gradient(from ${angle}deg,`;
 
             hexColors.forEach((color, index) => {
-                const anglePos = ((index / (hexColors.length - 1)) * 360).toFixed(3);
-                const alpha = typeof activeIndex === "number" ? (index === activeIndex ? 1 : inactiveAlpha) : 1;
+                const anglePos = (
+                    (index / (hexColors.length - 1)) *
+                    360
+                ).toFixed(3);
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
                 const colorValue = hexToRgba(color, alpha);
                 gradientString += ` ${colorValue} ${anglePos}deg`;
                 if (index < hexColors.length - 1) {
@@ -147,7 +170,12 @@ export function generateCssGradient(
             hexColors.forEach((color, index) => {
                 const startAngle = (index * segmentSize).toFixed(3);
                 const endAngle = ((index + 1) * segmentSize).toFixed(3);
-                const alpha = typeof activeIndex === "number" ? (index === activeIndex ? 1 : inactiveAlpha) : 1;
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
                 const colorValue = hexToRgba(color, alpha);
 
                 if (index === 0) {

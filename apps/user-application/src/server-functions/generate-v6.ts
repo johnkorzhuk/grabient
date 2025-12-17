@@ -36,6 +36,8 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
 
+type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
+
 // =============================================================================
 // MODEL CONFIGURATION
 // =============================================================================
@@ -100,14 +102,6 @@ const PAINTER_MODELS = [
 // =============================================================================
 // STREAMING EVENT TYPES
 // =============================================================================
-
-// Style type matching palettes.ts
-type PaletteStyle =
-    | "angularGradient"
-    | "angularSwatches"
-    | "linearGradient"
-    | "linearSwatches"
-    | "deepFlow";
 
 // Angle values from dropdown: 0, 45, 90, 135, 180, 225, 270, 315
 type PaletteAngle = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;
