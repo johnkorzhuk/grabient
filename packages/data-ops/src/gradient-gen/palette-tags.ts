@@ -320,6 +320,134 @@ export function tagsToArray(tags: PaletteTags): string[] {
 }
 
 // =============================================================================
+// Emoji Generation
+// =============================================================================
+
+/** Emoji squares with their RGB values for color matching */
+const EMOJI_SQUARES = [
+  { emoji: '🟥', r: 255, g: 0, b: 0 },
+  { emoji: '🟧', r: 255, g: 165, b: 0 },
+  { emoji: '🟨', r: 255, g: 255, b: 0 },
+  { emoji: '🟩', r: 0, g: 128, b: 0 },
+  { emoji: '🟦', r: 0, g: 0, b: 255 },
+  { emoji: '🟪', r: 128, g: 0, b: 128 },
+  { emoji: '🟫', r: 139, g: 69, b: 19 },
+  { emoji: '⬛', r: 0, g: 0, b: 0 },
+  { emoji: '⬜', r: 255, g: 255, b: 255 },
+] as const;
+
+const WARMTH_EMOJIS: Record<WarmthTag, string> = {
+  warm: '☀️',
+  cool: '🌙',
+  neutral: '🌿',
+};
+
+const TEXTURE_EMOJIS: Record<TextureTag, string> = {
+  monochrome: '🌫️',
+  subtle: '🌫️',
+  soft: '🌸',
+  rich: '💎',
+  bold: '🔥',
+  vivid: '✨',
+  electric: '⚡',
+};
+
+const JOURNEY_EMOJIS: Record<JourneyTag, string | null> = {
+  warming: '🌅',
+  cooling: '🌇',
+  stable: null,
+};
+
+const CONTRAST_EMOJIS: Record<ContrastTag, string> = {
+  gentle: '🌫️',
+  smooth: '🌊',
+  dynamic: '⚡',
+  dramatic: '💥',
+};
+
+/**
+ * Find the closest emoji square for a color name.
+ */
+function getColorEmoji(colorName: string): string {
+  const basicColor = BASIC_COLORS.find(c => c.name === colorName);
+  if (!basicColor) return '🎨';
+
+  let closest = '🎨';
+  let minDist = Infinity;
+  for (const sq of EMOJI_SQUARES) {
+    const dist = colorDistance(basicColor.r, basicColor.g, basicColor.b, sq.r, sq.g, sq.b);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = sq.emoji;
+    }
+  }
+  return closest;
+}
+
+/**
+ * Generate an array of emojis representing the palette's vibe.
+ * Returns 3-7 emojis based on the palette's characteristics.
+ */
+export function generatePaletteEmojis(tags: PaletteTags): string[] {
+  const result: string[] = [];
+  const usedEmojis = new Set<string>();
+
+  // Color emojis (up to 3)
+  for (const colorName of tags.dominantColors) {
+    const em = getColorEmoji(colorName);
+    if (!usedEmojis.has(em)) {
+      usedEmojis.add(em);
+      result.push(em);
+    }
+  }
+
+  // Warmth emoji
+  const warmEm = WARMTH_EMOJIS[tags.warmth];
+  if (warmEm && !usedEmojis.has(warmEm)) {
+    usedEmojis.add(warmEm);
+    result.push(warmEm);
+  }
+
+  // Texture emoji
+  const texEm = TEXTURE_EMOJIS[tags.texture];
+  if (texEm && !usedEmojis.has(texEm)) {
+    usedEmojis.add(texEm);
+    result.push(texEm);
+  }
+
+  // Journey emoji (only if not stable)
+  const jourEm = JOURNEY_EMOJIS[tags.journey];
+  if (jourEm && !usedEmojis.has(jourEm)) {
+    usedEmojis.add(jourEm);
+    result.push(jourEm);
+  }
+
+  // Contrast emoji (only if dynamic/dramatic)
+  if (tags.contrast === 'dynamic' || tags.contrast === 'dramatic') {
+    const contEm = CONTRAST_EMOJIS[tags.contrast];
+    if (contEm && !usedEmojis.has(contEm)) {
+      usedEmojis.add(contEm);
+      result.push(contEm);
+    }
+  }
+
+  // Fallback - ensure at least 3 emojis
+  if (result.length === 0) return ['🎨', '✨', '💫'];
+  if (result.length === 1) return [...result, '✨', '💫'];
+  if (result.length === 2) return [...result, '✨'];
+
+  return result.slice(0, 7);
+}
+
+/**
+ * Generate emoji string for a palette (joined with no separator).
+ * Example: "🟦🌙✨"
+ */
+export function tagsToEmojis(tags: PaletteTags): string {
+  return generatePaletteEmojis(tags).join('');
+}
+
+// =============================================================================
 // Palette Validation
 // =============================================================================
 
@@ -334,13 +462,19 @@ export function tagsToArray(tags: PaletteTags): string[] {
 export function isValidPaletteColors(colors: string[]): boolean {
   if (!colors || colors.length === 0) return false;
 
+  // Validate hex format - must be valid hex characters only
+  const hexRegex = /^#?[0-9A-Fa-f]{6}$/;
+  for (const color of colors) {
+    if (!hexRegex.test(color)) return false;
+  }
+
   // Parse hex colors to RGB
   const rgbColors = colors.map(hex => {
     const clean = hex.replace('#', '');
     return {
-      r: parseInt(clean.slice(0, 2), 16) || 0,
-      g: parseInt(clean.slice(2, 4), 16) || 0,
-      b: parseInt(clean.slice(4, 6), 16) || 0,
+      r: parseInt(clean.slice(0, 2), 16),
+      g: parseInt(clean.slice(2, 4), 16),
+      b: parseInt(clean.slice(4, 6), 16),
     };
   });
 

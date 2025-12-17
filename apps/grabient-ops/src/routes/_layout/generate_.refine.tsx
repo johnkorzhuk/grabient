@@ -5,7 +5,7 @@ import { useRef, useEffect, useState } from 'react'
 import { Filter, Loader2 } from 'lucide-react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { deserializeCoeffs } from '@repo/data-ops/serialization'
-import { analyzeCoefficients, tagsToArray, isValidPaletteColors, type PaletteTags } from '@repo/data-ops/gradient-gen'
+import { analyzeCoefficients, tagsToArray, isValidPaletteColors, isValidPaletteCoeffs, generatePaletteEmojis, type PaletteTags } from '@repo/data-ops/gradient-gen'
 
 export const Route = createFileRoute('/_layout/generate_/refine')({
   component: RefinePage,
@@ -74,8 +74,16 @@ function RefinePage() {
 
   const isLoading = status === 'LoadingFirstPage'
 
-  // Filter out corrupted palettes (solid black, empty, etc.)
-  const validPalettes = results.filter(p => isValidPaletteColors(p.colors))
+  // Filter out corrupted palettes (solid black, empty, invalid coeffs, etc.)
+  const validPalettes = results.filter(p => {
+    if (!isValidPaletteColors(p.colors)) return false
+    try {
+      const { coeffs } = deserializeCoeffs(p.seed)
+      return isValidPaletteCoeffs(coeffs)
+    } catch {
+      return false
+    }
+  })
   const corruptedCount = results.length - validPalettes.length
 
   return (
@@ -173,6 +181,16 @@ function RefinePage() {
                   Palette Character
                 </h3>
                 <div className="space-y-3">
+                  {/* Vibe Emojis */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground w-16">Vibe</span>
+                    <div className="flex gap-1 px-3 py-1.5 rounded bg-background border border-border">
+                      {generatePaletteEmojis(paletteTags).map((emoji, i) => (
+                        <span key={i} className="text-base">{emoji}</span>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Dominant Colors */}
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground w-16">Colors</span>
@@ -237,6 +255,19 @@ function RefinePage() {
                     </span>
                   ))}
                 </div>
+              </div>
+
+              {/* Embed Text Preview */}
+              <div>
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                  Embed Text (Vectorize Input)
+                </h3>
+                <div className="p-3 rounded-lg bg-background border border-border font-mono text-xs text-foreground/80 whitespace-pre-wrap break-words">
+                  {[...generatePaletteEmojis(paletteTags), ...tagsToArray(paletteTags), ...selectedPalette.themes].join(' ')}
+                </div>
+                <p className="mt-2 text-[10px] text-muted-foreground">
+                  {generatePaletteEmojis(paletteTags).length} emojis + {tagsToArray(paletteTags).length} tags + {selectedPalette.themes.length} themes
+                </p>
               </div>
             </div>
           ) : (
