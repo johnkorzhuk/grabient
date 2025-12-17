@@ -6,13 +6,11 @@ import { cn } from '~/lib/utils'
 import {
   Sparkles,
   Loader2,
-  Play,
   RefreshCw,
   Trash2,
   ChevronDown,
   ChevronRight,
   Eye,
-  EyeOff,
   X,
   Palette,
 } from 'lucide-react'
@@ -21,6 +19,7 @@ import {
   isPredefinedColor,
   type ExpandedTag,
 } from '~/lib/color-expansion'
+import { PAINTER_MODELS, type PainterModelKey, type PainterProvider } from '../../../convex/lib/providers.types'
 
 export const Route = createFileRoute('/_layout/generate')({
   component: GeneratePage,
@@ -61,13 +60,14 @@ function GeneratePage() {
 const GEMINI_MODEL = 'gemini-2.5-flash-lite' as const
 
 function GenerationControlPanel() {
-  const [iterationCount, setIterationCount] = useState(1)
-  const [palettesPerTag, setPalettesPerTag] = useState(24)
+  const [variationsPerTag, setVariationsPerTag] = useState(6)
+  const [palettesPerVariation, setPalettesPerVariation] = useState(1)
   const [isSelectingTags, setIsSelectingTags] = useState(false)
   const [isStarting, setIsStarting] = useState(false)
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [newTagInput, setNewTagInput] = useState('')
   const [colorExpansionEnabled, setColorExpansionEnabled] = useState(false)
+  const [selectedComposerModel, setSelectedComposerModel] = useState<string>(PAINTER_MODELS[0].key)
 
   // Compute expanded tags with color harmonies
   const expandedTags: ExpandedTag[] = colorExpansionEnabled
@@ -77,11 +77,27 @@ function GenerationControlPanel() {
   // Check if there are any color tags that can be expanded
   const hasColorTags = selectedTags.some((tag) => isPredefinedColor(tag))
 
+  // Painter model selection
+  const [selectedPainterModels, setSelectedPainterModels] = useState<string[]>(() => PAINTER_MODELS.map(m => m.key))
+  const [isStartingPainter, setIsStartingPainter] = useState(false)
+
   const selectTags = useAction(api.generateActions.selectUnderrepresentedTags)
   const startGeneration = useAction(api.generateActions.startGeneration)
-  const pollBatches = useAction(api.generateActions.pollActiveGenerationBatches)
-  const batches = useQuery(api.generate.getAllGenerationBatches, {})
-  const activeBatches = useQuery(api.generate.getActiveGenerationBatches, {})
+  const startPainterBatch = useAction(api.generateActions.startPainterBatch)
+  const pollBatches = useAction(api.generateActions.pollAllActiveBatches)
+  const cancelComposerBatch = useAction(api.generateActions.cancelComposerBatch)
+  const cancelPainterBatch = useAction(api.generateActions.cancelPainterBatch)
+  const activeComposerBatches = useQuery(api.generate.getActiveComposerBatches, {})
+  const activePainterBatches = useQuery(api.generate.getActivePainterBatches, {})
+  const allComposerBatches = useQuery(api.generate.getAllComposerBatches, {})
+  const batches = allComposerBatches
+
+  // Get the latest completed cycle for starting painter batches
+  const latestCompletedCycle = allComposerBatches?.find(b => b.status === 'completed')?.cycle
+  const composerOutputsForPainter = useQuery(
+    api.generate.getComposerOutputs,
+    latestCompletedCycle !== undefined ? { cycle: latestCompletedCycle } : 'skip'
+  )
 
   // Get available cycles for gemini-2.5-flash-lite
   const availableCycles = useQuery(api.refinement.getAvailableCyclesForModel, {
@@ -115,6 +131,11 @@ function GenerationControlPanel() {
   }
 
   const handleStartGeneration = async () => {
+    // Guard against double-submission
+    if (isStarting) {
+      console.warn('Already starting generation, ignoring duplicate call')
+      return
+    }
     if (expandedTags.length === 0) {
       console.error('No tags selected')
       return
@@ -124,8 +145,14 @@ function GenerationControlPanel() {
     try {
       // Use expanded tags for generation
       const tagsToGenerate = expandedTags.map((t) => t.tag)
-      const result = await startGeneration({ iterationCount, palettesPerTag, tags: tagsToGenerate })
-      console.log('Generation started:', result)
+      console.log(`Starting generation with ${tagsToGenerate.length} tags, ${variationsPerTag} variations, ${palettesPerVariation} matrices`)
+      const result = await startGeneration({
+        tags: tagsToGenerate,
+        composerModelKey: selectedComposerModel as typeof PAINTER_MODELS[number]['key'],
+        variationsPerTag,
+        palettesPerVariation,
+      })
+      console.log('Composer batch started:', result)
       setSelectedTags([]) // Clear selection after starting
       setColorExpansionEnabled(false)
     } catch (e) {
@@ -144,6 +171,60 @@ function GenerationControlPanel() {
     }
   }
 
+  const handleStartPainterBatch = async () => {
+    if (!latestCompletedCycle || selectedPainterModels.length === 0) {
+      console.error('No cycle or models selected')
+      return
+    }
+
+    setIsStartingPainter(true)
+    try {
+      const result = await startPainterBatch({
+        cycle: latestCompletedCycle,
+        modelKeys: selectedPainterModels,
+      })
+      console.log('Painter batches started:', result)
+    } catch (e) {
+      console.error('Failed to start painter batch:', e)
+    } finally {
+      setIsStartingPainter(false)
+    }
+  }
+
+  const handleCancelComposerBatch = async (batchId: string, provider: PainterProvider) => {
+    try {
+      await cancelComposerBatch({ batchId, provider })
+      console.log('Cancelled composer batch:', batchId)
+    } catch (e) {
+      console.error('Failed to cancel composer batch:', e)
+    }
+  }
+
+  const handleCancelPainterBatch = async (batchId: string, modelKey: PainterModelKey, provider: PainterProvider) => {
+    try {
+      await cancelPainterBatch({ batchId, modelKey, provider })
+      console.log('Cancelled painter batch:', batchId)
+    } catch (e) {
+      console.error('Failed to cancel painter batch:', e)
+    }
+  }
+
+  const togglePainterModel = (modelKey: string) => {
+    setSelectedPainterModels(prev =>
+      prev.includes(modelKey)
+        ? prev.filter(k => k !== modelKey)
+        : [...prev, modelKey]
+    )
+  }
+
+  const selectAllPainterModels = () => {
+    setSelectedPainterModels(PAINTER_MODELS.map(m => m.key))
+  }
+
+  const clearPainterModels = () => {
+    setSelectedPainterModels([])
+  }
+
   const removeTag = (tagToRemove: string) => {
     setSelectedTags(selectedTags.filter((t) => t !== tagToRemove))
   }
@@ -156,10 +237,19 @@ function GenerationControlPanel() {
     }
   }
 
-  const hasActiveBatches = activeBatches && activeBatches.length > 0
+  const hasActiveComposerBatches = activeComposerBatches && activeComposerBatches.length > 0
+  const hasActivePainterBatches = activePainterBatches && activePainterBatches.length > 0
+  const hasActiveBatches = hasActiveComposerBatches || hasActivePainterBatches
   const tagCount = expandedTags.length
   const originalTagCount = selectedTags.length
   const expansionCount = tagCount - originalTagCount
+
+  // Check if we can start painter batches
+  const validComposerOutputs = composerOutputsForPainter?.filter(o => !o.error && o.theme) ?? []
+  const canStartPainterBatch = latestCompletedCycle !== undefined &&
+    validComposerOutputs.length > 0 &&
+    selectedPainterModels.length > 0 &&
+    !hasActivePainterBatches
 
   return (
     <div className="space-y-6">
@@ -170,38 +260,56 @@ function GenerationControlPanel() {
           Start New Generation
         </h3>
 
+        {/* Model Selection */}
+        <div>
+          <label className="text-sm text-muted-foreground block mb-1">
+            Composer Model
+          </label>
+          <select
+            value={selectedComposerModel}
+            onChange={(e) => setSelectedComposerModel(e.target.value)}
+            className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring/70"
+          >
+            {PAINTER_MODELS.map((model) => (
+              <option key={model.key} value={model.key}>
+                {model.name} ({model.provider})
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="text-sm text-muted-foreground block mb-1">
-              Iterations (n)
+              Variations per Tag
             </label>
             <input
               type="number"
               min={1}
               max={10}
-              value={iterationCount}
-              onChange={(e) => setIterationCount(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+              value={variationsPerTag}
+              onChange={(e) => setVariationsPerTag(Math.max(1, Math.min(10, parseInt(e.target.value) || 6)))}
               className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring/70"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              How many times to generate for each tag
+              Theme variations per tag
             </p>
           </div>
 
           <div>
             <label className="text-sm text-muted-foreground block mb-1">
-              Palettes per Tag
+              Matrices per Variation
             </label>
             <input
               type="number"
               min={1}
-              max={48}
-              value={palettesPerTag}
-              onChange={(e) => setPalettesPerTag(Math.max(1, Math.min(48, parseInt(e.target.value) || 24)))}
+              max={5}
+              value={palettesPerVariation}
+              onChange={(e) => setPalettesPerVariation(Math.max(1, Math.min(5, parseInt(e.target.value) || 1)))}
               className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background focus:outline-none focus:ring-2 focus:ring-ring/70"
             />
             <p className="text-xs text-muted-foreground mt-1">
-              Number of palettes per request
+              Each painter model runs once per matrix
             </p>
           </div>
         </div>
@@ -339,13 +447,15 @@ function GenerationControlPanel() {
 
               {/* Summary */}
               <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
-                <p><strong>Will generate:</strong></p>
+                <p><strong>Composer stage:</strong></p>
                 <ul className="list-disc list-inside mt-1 space-y-0.5">
-                  <li>{tagCount} tags{expansionCount > 0 && ` (${originalTagCount} + ${expansionCount} color variations)`}</li>
-                  <li>2 requests per tag (with/without examples)</li>
-                  <li>{iterationCount} iteration{iterationCount > 1 ? 's' : ''}</li>
-                  <li>= <strong>{tagCount * 2 * iterationCount}</strong> total requests</li>
-                  <li>= up to <strong>{tagCount * 2 * iterationCount * palettesPerTag}</strong> palettes</li>
+                  <li>{tagCount} tags × {variationsPerTag} variations × {palettesPerVariation} matrices</li>
+                  <li>= <strong>{tagCount}</strong> composer batch requests</li>
+                  <li>= <strong>{tagCount * variationsPerTag * palettesPerVariation}</strong> unique matrices</li>
+                </ul>
+                <p className="mt-2"><strong>Painter stage:</strong></p>
+                <ul className="list-disc list-inside mt-1 space-y-0.5">
+                  <li>Each painter model called once per matrix</li>
                 </ul>
               </div>
 
@@ -362,12 +472,12 @@ function GenerationControlPanel() {
                 {isStarting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Starting...
+                    Starting Composer...
                   </>
                 ) : (
                   <>
-                    <Play className="h-4 w-4" />
-                    Start Generation with {tagCount} Tags
+                    <Sparkles className="h-4 w-4" />
+                    Start Composer with {tagCount} Tags
                   </>
                 )}
               </button>
@@ -382,13 +492,13 @@ function GenerationControlPanel() {
         )}
       </div>
 
-      {/* Active Batches */}
-      {hasActiveBatches && (
+      {/* Active Composer Batches */}
+      {hasActiveComposerBatches && (
         <div className="border border-border rounded-lg p-4 space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-foreground flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Active Batches
+              Active Composer Batches
             </h3>
             <button
               onClick={handlePoll}
@@ -399,8 +509,133 @@ function GenerationControlPanel() {
             </button>
           </div>
 
-          {activeBatches?.map((batch) => (
-            <BatchStatusCard key={batch._id} batch={batch} />
+          {activeComposerBatches?.map((batch) => (
+            <BatchStatusCard
+              key={batch._id}
+              batch={batch}
+              type="composer"
+              onCancel={batch.batchId && batch.provider ? () => handleCancelComposerBatch(batch.batchId!, batch.provider!) : undefined}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Painter Stage Panel */}
+      {latestCompletedCycle !== undefined && validComposerOutputs.length > 0 && (
+        <div className="border border-border rounded-lg p-4 space-y-4">
+          <h3 className="font-medium text-foreground flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            Painter Stage (Cycle {latestCompletedCycle})
+          </h3>
+
+          <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
+            <p>{validComposerOutputs.length} matrices ready for painting</p>
+          </div>
+
+          {/* Model Selection */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm text-muted-foreground">Select Painter Models</label>
+              <div className="flex gap-2">
+                <button
+                  onClick={selectAllPainterModels}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Select All
+                </button>
+                <button
+                  onClick={clearPainterModels}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto p-2 border border-border rounded-md bg-muted/30">
+              {PAINTER_MODELS.map((model) => (
+                <label
+                  key={model.key}
+                  className={cn(
+                    'flex items-center gap-2 p-2 rounded cursor-pointer transition-colors',
+                    selectedPainterModels.includes(model.key)
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-muted'
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedPainterModels.includes(model.key)}
+                    onChange={() => togglePainterModel(model.key)}
+                    className="rounded border-input"
+                  />
+                  <span className="text-sm">{model.name}</span>
+                  <span className="text-xs text-muted-foreground">({model.provider})</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
+            <p>{selectedPainterModels.length} models × {validComposerOutputs.length} matrices = <strong>{selectedPainterModels.length * validComposerOutputs.length}</strong> total palette generations</p>
+          </div>
+
+          <button
+            onClick={handleStartPainterBatch}
+            disabled={!canStartPainterBatch || isStartingPainter}
+            className={cn(
+              'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-md font-medium',
+              'bg-primary text-primary-foreground',
+              'hover:bg-primary/90 transition-colors',
+              'disabled:opacity-50 disabled:cursor-not-allowed'
+            )}
+          >
+            {isStartingPainter ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Starting Painter Batches...
+              </>
+            ) : (
+              <>
+                <Palette className="h-4 w-4" />
+                Start Painter with {selectedPainterModels.length} Models
+              </>
+            )}
+          </button>
+
+          {hasActivePainterBatches && (
+            <p className="text-xs text-amber-600 text-center">
+              Wait for active painter batches to complete
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Active Painter Batches */}
+      {hasActivePainterBatches && (
+        <div className="border border-border rounded-lg p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="font-medium text-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Active Painter Batches
+            </h3>
+            <button
+              onClick={handlePoll}
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Poll Status
+            </button>
+          </div>
+
+          {activePainterBatches?.map((batch) => (
+            <BatchStatusCard
+              key={batch._id}
+              batch={batch}
+              type="painter"
+              onCancel={batch.batchId && batch.provider ? () => handleCancelPainterBatch(batch.batchId!, batch.modelKey, batch.provider!) : undefined}
+            />
           ))}
         </div>
       )}
@@ -423,16 +658,21 @@ function GenerationControlPanel() {
   )
 }
 
-function BatchStatusCard({ batch }: { batch: {
-  _id: string
-  cycle: number
-  batchId: string
-  status: string
-  requestCount: number
-  completedCount: number
-  failedCount: number
-  tags: string[]
-} }) {
+function BatchStatusCard({ batch, type, onCancel }: {
+  batch: {
+    _id: string
+    cycle: number
+    batchId?: string
+    status: string
+    requestCount: number
+    completedCount: number
+    failedCount: number
+    tags?: string[]
+    modelKey?: string
+  }
+  type?: 'composer' | 'painter'
+  onCancel?: () => void
+}) {
   const progress = batch.requestCount > 0
     ? Math.round(((batch.completedCount + batch.failedCount) / batch.requestCount) * 100)
     : 0
@@ -440,14 +680,28 @@ function BatchStatusCard({ batch }: { batch: {
   return (
     <div className="bg-muted/30 rounded-md p-3 space-y-2">
       <div className="flex items-center justify-between text-sm">
-        <span className="font-medium">Cycle {batch.cycle}</span>
-        <span className={cn(
-          'px-2 py-0.5 rounded text-xs font-medium',
-          batch.status === 'processing' && 'bg-blue-500/20 text-blue-600',
-          batch.status === 'pending' && 'bg-yellow-500/20 text-yellow-600'
-        )}>
-          {batch.status}
+        <span className="font-medium">
+          {type === 'painter' ? batch.modelKey : `Cycle ${batch.cycle}`}
+          {type === 'composer' && batch.modelKey && <span className="text-muted-foreground ml-1">({batch.modelKey})</span>}
         </span>
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            'px-2 py-0.5 rounded text-xs font-medium',
+            batch.status === 'processing' && 'bg-blue-500/20 text-blue-600',
+            batch.status === 'pending' && 'bg-yellow-500/20 text-yellow-600'
+          )}>
+            {batch.status}
+          </span>
+          {onCancel && (batch.status === 'pending' || batch.status === 'processing') && (
+            <button
+              onClick={onCancel}
+              className="text-xs text-red-600 hover:underline flex items-center gap-1"
+            >
+              <X className="h-3 w-3" />
+              Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-1">
@@ -463,10 +717,12 @@ function BatchStatusCard({ batch }: { batch: {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground">
-        {batch.tags.length} tags: {batch.tags.slice(0, 5).join(', ')}
-        {batch.tags.length > 5 && ` +${batch.tags.length - 5} more`}
-      </p>
+      {batch.tags && batch.tags.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {batch.tags.length} tags: {batch.tags.slice(0, 5).join(', ')}
+          {batch.tags.length > 5 && ` +${batch.tags.length - 5} more`}
+        </p>
+      )}
     </div>
   )
 }
@@ -575,18 +831,11 @@ function ResultsBrowser() {
     selectedCycle !== undefined ? { cycle: selectedCycle } : 'skip'
   )
 
-  // Fetch palettes for both with and without examples
-  const palettesWithExamples = useQuery(
+  // Fetch palettes for the selected cycle/tag
+  const palettes = useQuery(
     api.generate.getGeneratedPalettes,
     selectedCycle !== undefined
-      ? { cycle: selectedCycle, tag: selectedTag, withExamples: true, limit: 500 }
-      : 'skip'
-  )
-
-  const palettesWithoutExamples = useQuery(
-    api.generate.getGeneratedPalettes,
-    selectedCycle !== undefined
-      ? { cycle: selectedCycle, tag: selectedTag, withExamples: false, limit: 500 }
+      ? { cycle: selectedCycle, tag: selectedTag, limit: 1000 }
       : 'skip'
   )
 
@@ -600,32 +849,23 @@ function ResultsBrowser() {
     setSelectedCycle(cycles[0].cycle)
   }
 
-  // Group palettes by tag for comparison view
+  // Filter valid palettes
+  const validPalettes = palettes?.filter((p) => p.colors.length > 0 && !p.error) ?? []
+
+  // Group palettes by tag
   const groupedByTag = (() => {
-    if (!palettesWithExamples && !palettesWithoutExamples) return []
+    if (!validPalettes.length) return []
 
-    const tagSet = new Set<string>()
-    palettesWithExamples?.forEach((p) => tagSet.add(p.tag))
-    palettesWithoutExamples?.forEach((p) => tagSet.add(p.tag))
+    const tagMap = new Map<string, typeof validPalettes>()
+    for (const p of validPalettes) {
+      const existing = tagMap.get(p.tag) || []
+      existing.push(p)
+      tagMap.set(p.tag, existing)
+    }
 
-    const sortedTags = Array.from(tagSet).sort()
-
-    return sortedTags.map((tag) => {
-      const withEx = (palettesWithExamples ?? []).filter((p) => p.tag === tag && p.colors.length > 0)
-      const withoutEx = (palettesWithoutExamples ?? []).filter((p) => p.tag === tag && p.colors.length > 0)
-      
-      // Collect unique modifiers from all palettes in this tag group
-      const modifierSet = new Set<string>()
-      withEx.forEach((p) => p.modifiers?.forEach((m) => modifierSet.add(m)))
-      withoutEx.forEach((p) => p.modifiers?.forEach((m) => modifierSet.add(m)))
-      
-      return {
-        tag,
-        withExamples: withEx,
-        withoutExamples: withoutEx,
-        modifiers: Array.from(modifierSet).sort(),
-      }
-    })
+    return Array.from(tagMap.entries())
+      .map(([tag, tagPalettes]) => ({ tag, palettes: tagPalettes }))
+      .sort((a, b) => a.tag.localeCompare(b.tag))
   })()
 
   return (
@@ -633,7 +873,7 @@ function ResultsBrowser() {
       <div className="flex items-center justify-between shrink-0">
         <h3 className="font-medium text-foreground flex items-center gap-2">
           <Eye className="h-4 w-4" />
-          Browse Results (Side-by-Side Comparison)
+          Browse Results
         </h3>
       </div>
 
@@ -678,12 +918,12 @@ function ResultsBrowser() {
             <p className="text-xs text-muted-foreground">Total</p>
           </div>
           <div className="bg-muted/30 rounded-md p-2 text-center">
-            <p className="text-lg font-bold text-green-600">{stats.withExamples}</p>
-            <p className="text-xs text-muted-foreground">With Examples</p>
+            <p className="text-lg font-bold text-blue-600">{stats.composerOutputs}</p>
+            <p className="text-xs text-muted-foreground">Matrices</p>
           </div>
           <div className="bg-muted/30 rounded-md p-2 text-center">
-            <p className="text-lg font-bold text-blue-600">{stats.withoutExamples}</p>
-            <p className="text-xs text-muted-foreground">Without</p>
+            <p className="text-lg font-bold text-green-600">{stats.uniqueTags}</p>
+            <p className="text-xs text-muted-foreground">Tags</p>
           </div>
           <div className="bg-muted/30 rounded-md p-2 text-center">
             <p className="text-lg font-bold text-red-600">{stats.errors}</p>
@@ -692,72 +932,39 @@ function ResultsBrowser() {
         </div>
       )}
 
-      {/* Column Headers */}
-      <div className="grid grid-cols-2 gap-4 shrink-0">
-        <div className="flex items-center gap-2 text-sm font-medium text-green-600">
-          <Eye className="h-4 w-4" />
-          With Examples
+      {/* Model counts */}
+      {stats?.modelCounts && Object.keys(stats.modelCounts).length > 0 && (
+        <div className="flex flex-wrap gap-2 shrink-0">
+          {Object.entries(stats.modelCounts).map(([model, count]) => (
+            <span key={model} className="text-xs bg-muted/50 rounded px-2 py-1">
+              {model}: {count}
+            </span>
+          ))}
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium text-blue-600">
-          <EyeOff className="h-4 w-4" />
-          Without Examples
-        </div>
-      </div>
+      )}
 
-      {/* Side-by-Side Comparison per Tag */}
+      {/* Palettes by Tag */}
       <div className="flex-1 min-h-0 overflow-y-auto space-y-6">
         {groupedByTag.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             {selectedCycle ? 'No palettes found' : 'Select a cycle to view results'}
           </div>
         ) : (
-          groupedByTag.map(({ tag, withExamples, withoutExamples, modifiers }) => (
+          groupedByTag.map(({ tag, palettes: tagPalettes }) => (
             <div key={tag} className="border border-border rounded-lg p-3">
               {/* Tag Header */}
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-border">
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium text-foreground">{tag}</span>
-                  {modifiers.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {modifiers.map((modifier) => (
-                        <span
-                          key={modifier}
-                          className="px-1.5 py-0.5 text-[10px] rounded bg-primary/10 text-primary"
-                        >
-                          {modifier}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <span className="font-medium text-foreground">{tag}</span>
                 <span className="text-xs text-muted-foreground">
-                  {withExamples.length} with / {withoutExamples.length} without
+                  {tagPalettes.length} palettes
                 </span>
               </div>
 
-              {/* Two Columns */}
-              <div className="grid grid-cols-2 gap-4">
-                {/* With Examples Column */}
-                <div className="space-y-2">
-                  {withExamples.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">No palettes</p>
-                  ) : (
-                    withExamples.map((palette) => (
-                      <PaletteCard key={palette._id} palette={palette} compact />
-                    ))
-                  )}
-                </div>
-
-                {/* Without Examples Column */}
-                <div className="space-y-2">
-                  {withoutExamples.length === 0 ? (
-                    <p className="text-xs text-muted-foreground italic">No palettes</p>
-                  ) : (
-                    withoutExamples.map((palette) => (
-                      <PaletteCard key={palette._id} palette={palette} compact />
-                    ))
-                  )}
-                </div>
+              {/* Palettes Grid */}
+              <div className="grid grid-cols-4 gap-2">
+                {tagPalettes.map((palette) => (
+                  <PaletteCard key={palette._id} palette={palette} compact />
+                ))}
               </div>
             </div>
           ))
@@ -771,11 +978,11 @@ function PaletteCard({ palette, compact = false }: {
   palette: {
     _id: string
     tag: string
-    iterationIndex: number
-    paletteIndex: number
-    withExamples: boolean
+    theme?: string
+    variationIndex?: number
+    paletteIndex?: number
+    modelKey?: string
     colors: string[]
-    modifiers?: string[]
   }
   compact?: boolean
 }) {
@@ -787,8 +994,13 @@ function PaletteCard({ palette, compact = false }: {
         <div
           className="h-10 w-full"
           style={{ background: gradient }}
-          title={`Iteration ${palette.iterationIndex}, Palette ${palette.paletteIndex}`}
+          title={palette.theme || palette.tag}
         />
+        {palette.modelKey && (
+          <div className="px-1 py-0.5 text-[9px] text-muted-foreground truncate bg-muted/30">
+            {palette.modelKey}
+          </div>
+        )}
       </div>
     )
   }
@@ -801,13 +1013,12 @@ function PaletteCard({ palette, compact = false }: {
       />
       <div className="p-2 space-y-1">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium truncate">{palette.tag}</span>
-          <span className={cn(
-            'px-1.5 py-0.5 rounded text-[10px] font-medium',
-            palette.withExamples ? 'bg-green-500/20 text-green-600' : 'bg-blue-500/20 text-blue-600'
-          )}>
-            {palette.withExamples ? 'with' : 'w/o'}
-          </span>
+          <span className="text-xs font-medium truncate">{palette.theme || palette.tag}</span>
+          {palette.modelKey && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-500/20 text-blue-600">
+              {palette.modelKey}
+            </span>
+          )}
         </div>
         <div className="flex gap-0.5">
           {palette.colors.slice(0, 8).map((color, i) => (

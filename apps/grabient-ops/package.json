@@ -30,6 +30,7 @@
     "@google/genai": "^1.31.0",
     "@google/generative-ai": "^0.24.1",
     "@mantine/hooks": "^8.3.7",
+    "@openrouter/ai-sdk-provider": "^1.5.4",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@repo/data-ops": "workspace:^",
     "@resvg/resvg-wasm": "^2.6.2",

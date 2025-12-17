@@ -1,5 +1,5 @@
-// prompt-builders-v6.ts
-// Re-export from shared data-ops package for backwards compatibility
+// prompts/index.ts
+// Export all prompt builders
 
 export {
     // Types
@@ -20,7 +20,8 @@ export {
     // Functions
     buildComposerSystemPrompt,
     buildPainterSystemPrompt,
+    buildSinglePainterPrompt,
     cleanJsonResponse,
     parseComposerOutput,
     parsePainterOutput,
-} from "@repo/data-ops/prompts";
+} from "./composer-painter";

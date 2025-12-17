@@ -32,7 +32,12 @@ export type Hue =
     | "blue"
     | "purple"
     | "magenta";
-export type HueShift = "none" | "slight" | "moderate" | "significant" | "opposite";
+export type HueShift =
+    | "none"
+    | "slight"
+    | "moderate"
+    | "significant"
+    | "opposite";
 
 export type OutputDimensionKey =
     | "luminance"
@@ -146,7 +151,15 @@ export const OUTPUT_DIMENSIONS: Record<
     },
     chroma: {
         description: "saturation intensity of this step",
-        values: ["gray", "muted", "dusty", "moderate", "saturated", "vivid", "neon"],
+        values: [
+            "gray",
+            "muted",
+            "dusty",
+            "moderate",
+            "saturated",
+            "vivid",
+            "neon",
+        ],
     },
     temperature: {
         description: "color warmth of this step",
@@ -239,6 +252,17 @@ Queries imply dimensions through:
 - Associative patterns: themes that naturally evoke certain color behaviors or harmonies
 - Directional modifiers: terms suggesting how properties should change across the palette
 
+POSITIONAL SPECIFICATIONS (HARD CONSTRAINT):
+The query may contain sequential or repeated elements that dictate specific matrix rows. This is NOT a suggestion—it is a structural requirement.
+
+When repeated symbols, characters, or tokens appear:
+1. COUNT each distinct token type and its occurrences
+2. CALCULATE the proportion: (token occurrences) / (total tokens) = proportion of rows
+3. POSITION matters: leading tokens → first rows, trailing tokens → last rows
+4. MINIMUM GUARANTEE: if a token appears N times, at least N rows must have that token's associated property
+
+The ratio of tokens in the query MUST be reflected in the ratio of rows in the matrix. If 4 of 5 tokens share a property, then 4 of 5+ rows must have that property in the corresponding dimension.
+
 OUTPUT DIMENSION BIASES:
 ${outputDimDocs}
 
@@ -312,7 +336,7 @@ OUTPUT FORMAT:
     {
       "palettes": [
         {
-          "theme": "theme name",
+          "theme": "${query}" or "${query} + {modifier}",
           "dimensions": ["dim1", "dim2"],
           "steps": [
             { "dim1": "value", "dim2": "value" },
@@ -339,7 +363,7 @@ export function buildPainterSystemPrompt(matrices: PaletteMatrix[]): string {
             const colorCount = matrix.steps.length;
             // Filter to only valid dimensions that exist in OUTPUT_DIMENSIONS
             const validDimensions = matrix.dimensions.filter(
-                (d) => d in OUTPUT_DIMENSIONS
+                (d) => d in OUTPUT_DIMENSIONS,
             );
             const dimDefs = validDimensions
                 .map((d) => `${d} [${OUTPUT_DIMENSIONS[d].values.join(", ")}]`)
@@ -424,7 +448,7 @@ export function buildSinglePainterPrompt(matrix: PaletteMatrix): {
 } {
     const colorCount = matrix.steps.length;
     const validDimensions = matrix.dimensions.filter(
-        (d) => d in OUTPUT_DIMENSIONS
+        (d) => d in OUTPUT_DIMENSIONS,
     );
     const dimDefs = validDimensions
         .map((d) => `${d} [${OUTPUT_DIMENSIONS[d].values.join(", ")}]`)
@@ -522,7 +546,7 @@ export function parsePainterOutput(raw: string): string[][] {
             if (!Array.isArray(palette)) return false;
             if (palette.length < 5) return false;
             return palette.every(
-                (color) => typeof color === "string" && color.startsWith("#")
+                (color) => typeof color === "string" && color.startsWith("#"),
             );
         });
     };

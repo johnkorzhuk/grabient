@@ -54,6 +54,14 @@
     "./color-utils": {
       "types": "./dist/color-utils.d.ts",
       "default": "./dist/color-utils.js"
+    },
+    "./prompts": {
+      "types": "./dist/prompts/index.d.ts",
+      "default": "./dist/prompts/index.js"
+    },
+    "./prompts/*": {
+      "types": "./dist/prompts/*.d.ts",
+      "default": "./dist/prompts/*.js"
     }
   },
   "scripts": {

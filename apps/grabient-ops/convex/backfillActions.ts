@@ -332,9 +332,6 @@ export const submitOpenAIBatch = internalAction({
     // gpt-5-nano only supports temperature=1
     const temperature = OPENAI_TEMP_1_ONLY_MODELS.includes(model) ? 1 : 1.4
 
-    // Newer OpenAI models (gpt-5-*, gpt-4.1-*) require max_completion_tokens instead of max_tokens
-    const useNewTokenParam = model.startsWith('gpt-5') || model.startsWith('gpt-4.1')
-
     // Build JSONL content
     const jsonlLines = requests.map((req) =>
       JSON.stringify({
@@ -344,7 +341,6 @@ export const submitOpenAIBatch = internalAction({
         body: {
           model,
           temperature,
-          ...(useNewTokenParam ? { max_completion_tokens: 1024 } : { max_tokens: 1024 }),
           response_format: { type: 'json_object' },
           messages: [
             { role: 'system', content: TAGGING_SYSTEM_PROMPT },

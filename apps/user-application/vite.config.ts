@@ -8,11 +8,7 @@ import { FontaineTransform } from "fontaine";
 import { visualizer } from "rollup-plugin-visualizer";
 import path from "node:path";
 
-const config = defineConfig(({ mode }) => {
-  return {
-    define: {
-      "process.env.NODE_ENV": JSON.stringify(mode),
-    },
+const config = defineConfig({
   plugins: [
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
@@ -39,7 +35,7 @@ const config = defineConfig(({ mode }) => {
         "Arial",
         "Noto Sans",
       ],
-      resolvePath: (id) => {
+      resolvePath: (id: string) => {
         if (
           id.includes("/files/") ||
           id.includes(".woff") ||
@@ -97,7 +93,6 @@ const config = defineConfig(({ mode }) => {
       },
     },
   },
-};
 });
 
 export default config;

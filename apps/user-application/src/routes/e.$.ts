@@ -117,7 +117,7 @@ export const Route = createFileRoute("/e/$")({
         handlers: {
             GET: ({ request }) => handlePostHogProxy(request),
             POST: ({ request }) => handlePostHogProxy(request),
-            OPTIONS: ({ request }) => {
+            OPTIONS: () => {
                 return new Response(null, {
                     status: 204,
                     headers: {

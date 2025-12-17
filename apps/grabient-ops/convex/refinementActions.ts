@@ -520,16 +520,12 @@ export const submitOpenAIRefinementBatch = internalAction({
         text: createRefinementPromptText(summary),
       })
 
-      // Newer OpenAI models (gpt-5-*, gpt-4.1-*) require max_completion_tokens instead of max_tokens
-      const useNewTokenParam = model.startsWith('gpt-5') || model.startsWith('gpt-4.1')
-
       return JSON.stringify({
         custom_id: `idx_${index}`,
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
           model,
-          ...(useNewTokenParam ? { max_completion_tokens: 4096 } : { max_tokens: 4096 }),
           messages: [
             { role: 'system', content: REFINEMENT_SYSTEM_PROMPT },
             { role: 'user', content: userContent },
@@ -870,7 +866,6 @@ export const submitGroqRefinementBatch = internalAction({
     const jsonlLines = summaries.map((summary, index) => {
       const body: Record<string, any> = {
         model,
-        max_tokens: 4096,
         messages: [
           { role: 'system', content: REFINEMENT_SYSTEM_PROMPT },
           { role: 'user', content: createRefinementPromptText(summary) },

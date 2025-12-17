@@ -32,6 +32,7 @@ declare namespace Cloudflare {
 		OPENROUTER_API_KEY?: string;
 		GOOGLE_GENERATIVE_AI_API_KEY?: string;
 		GROQ_API_KEY?: string;
+		POLAR_SECRET?: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

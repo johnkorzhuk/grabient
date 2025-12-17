@@ -334,3 +334,163 @@ export function getActiveRefinementModels(): Array<{
     ({ model }) => !BLACKLISTED_REFINEMENT_MODELS.has(model),
   )
 }
+
+// ============================================================================
+// Painter Models (for two-stage generation pipeline)
+// Used for both Composer (batched) and Painter (streaming) stages
+// ============================================================================
+
+/**
+ * Painter models with keys for identification
+ * These match the active refinement models (excluding blacklisted ones)
+ */
+export const PAINTER_MODELS = [
+  // Anthropic
+  {
+    key: 'claude-3-5-haiku',
+    id: 'claude-3-5-haiku-20241022',
+    name: 'Claude 3.5 Haiku',
+    provider: 'anthropic' as const,
+  },
+  // OpenAI
+  {
+    key: 'gpt-5-mini',
+    id: 'gpt-5-mini',
+    name: 'GPT-5 Mini',
+    provider: 'openai' as const,
+  },
+  {
+    key: 'gpt-4.1-mini',
+    id: 'gpt-4.1-mini',
+    name: 'GPT-4.1 Mini',
+    provider: 'openai' as const,
+  },
+  // Groq
+  {
+    key: 'kimi-k2',
+    id: 'moonshotai/kimi-k2-instruct',
+    name: 'Kimi K2',
+    provider: 'groq' as const,
+  },
+  {
+    key: 'llama-3.3-70b',
+    id: 'llama-3.3-70b-versatile',
+    name: 'Llama 3.3 70B',
+    provider: 'groq' as const,
+  },
+  {
+    key: 'llama-4-scout',
+    id: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    name: 'Llama 4 Scout',
+    provider: 'groq' as const,
+  },
+  {
+    key: 'llama-4-maverick',
+    id: 'meta-llama/llama-4-maverick-17b-128e-instruct',
+    name: 'Llama 4 Maverick',
+    provider: 'groq' as const,
+  },
+  {
+    key: 'gpt-oss-20b',
+    id: 'openai/gpt-oss-20b',
+    name: 'GPT-OSS 20B',
+    provider: 'groq' as const,
+  },
+  {
+    key: 'qwen3-32b',
+    id: 'qwen/qwen3-32b',
+    name: 'Qwen3 32B',
+    provider: 'groq' as const,
+  },
+  {
+    key: 'gpt-oss-120b',
+    id: 'openai/gpt-oss-120b',
+    name: 'GPT-OSS 120B',
+    provider: 'groq' as const,
+  },
+  // Google (direct API)
+  {
+    key: 'gemini-2.0-flash',
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    provider: 'google' as const,
+  },
+  {
+    key: 'gemini-flash-lite',
+    id: 'gemini-2.5-flash-lite',
+    name: 'Gemini 2.5 Flash Lite',
+    provider: 'google' as const,
+  },
+] as const
+
+export type PainterModelKey = (typeof PAINTER_MODELS)[number]['key']
+export type PainterProvider = 'anthropic' | 'groq' | 'openai' | 'google'
+
+/**
+ * Convex validator for painter model keys
+ */
+export const vPainterModelKey = v.union(
+  // Anthropic
+  v.literal('claude-3-5-haiku'),
+  // OpenAI
+  v.literal('gpt-5-mini'),
+  v.literal('gpt-4.1-mini'),
+  // Groq
+  v.literal('kimi-k2'),
+  v.literal('llama-3.3-70b'),
+  v.literal('llama-4-scout'),
+  v.literal('llama-4-maverick'),
+  v.literal('gpt-oss-20b'),
+  v.literal('qwen3-32b'),
+  v.literal('gpt-oss-120b'),
+  // Google (via OpenRouter)
+  v.literal('gemini-2.0-flash'),
+  v.literal('gemini-flash-lite'),
+)
+
+/**
+ * Convex validator for painter provider
+ */
+export const vPainterProvider = v.union(
+  v.literal('anthropic'),
+  v.literal('groq'),
+  v.literal('openai'),
+  v.literal('google'),
+)
+
+/**
+ * Palette style type (matching user-application)
+ */
+export const PALETTE_STYLES = [
+  'angularGradient',
+  'angularSwatches',
+  'linearGradient',
+  'linearSwatches',
+  'deepFlow',
+] as const
+export type PaletteStyle = (typeof PALETTE_STYLES)[number]
+
+export const vPaletteStyle = v.union(
+  v.literal('angularGradient'),
+  v.literal('angularSwatches'),
+  v.literal('linearGradient'),
+  v.literal('linearSwatches'),
+  v.literal('deepFlow'),
+)
+
+/**
+ * Palette angles
+ */
+export const PALETTE_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const
+export type PaletteAngle = (typeof PALETTE_ANGLES)[number]
+
+export const vPaletteAngle = v.union(
+  v.literal(0),
+  v.literal(45),
+  v.literal(90),
+  v.literal(135),
+  v.literal(180),
+  v.literal(225),
+  v.literal(270),
+  v.literal(315),
+)

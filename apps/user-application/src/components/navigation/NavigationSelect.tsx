@@ -14,7 +14,7 @@ import { ChevronsUpDown } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { useFocusTrap } from "@mantine/hooks";
-import type { SearchSortOrder } from "@/routes/palettes/$query";
+import type { SearchSortOrder } from "@/routes/palettes/$query/index";
 
 interface NavigationSelectProps {
     className?: string;

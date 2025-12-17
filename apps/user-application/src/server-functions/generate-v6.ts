@@ -416,11 +416,21 @@ async function* runComposer(
             }
         }
 
+        console.log("[Composer] Raw output length:", fullText.length);
+        console.log(
+            "[Composer] Raw output (first 2000 chars):",
+            fullText.slice(0, 2000),
+        );
+        console.log(
+            "[Composer] Raw output (last 500 chars):",
+            fullText.slice(-500),
+        );
+
         const parsed = parseComposerOutput(fullText);
         if (!parsed) {
             console.error(
-                "[Composer] Failed to parse output:",
-                fullText.slice(0, 500),
+                "[Composer] Failed to parse output - full text:",
+                fullText,
             );
             yield {
                 type: "composer_error",
@@ -569,11 +579,15 @@ async function* runPainter(
         }
 
         const duration = Date.now() - startTime;
+        // Debug: show response info for all painters
+        console.log(
+            `[Painter:${modelConfig.key}] Total response length: ${buffer.length} chars`,
+        );
         // Debug: show final buffer if no palettes found
         if (palettes.length === 0) {
             console.log(
-                `[Painter:${modelConfig.key}] Final buffer (${buffer.length} chars):`,
-                buffer.slice(0, 1000),
+                `[Painter:${modelConfig.key}] ZERO PALETTES - Full response:`,
+                buffer,
             );
         }
         console.log(
