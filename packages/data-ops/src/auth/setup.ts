@@ -1,4 +1,4 @@
-import { betterAuth, type BetterAuthOptions } from "better-auth";
+import { betterAuth, type BetterAuthOptions, type GenericEndpointContext } from "better-auth";
 import { magicLink } from "better-auth/plugins";
 
 export const createBetterAuth = (config: {
@@ -6,12 +6,13 @@ export const createBetterAuth = (config: {
   secret?: BetterAuthOptions["secret"];
   socialProviders?: BetterAuthOptions["socialProviders"];
   emailAndPassword?: { enabled: boolean; requireEmailVerification?: boolean };
-  sendMagicLink?: (data: { email: string; url: string; token: string }, request?: Request) => void | Promise<void>;
+  sendMagicLink?: (data: { email: string; url: string; token: string }, ctx?: GenericEndpointContext) => void | Promise<void>;
   sendDeleteAccountVerification?: (data: {
     user: {
       id: string;
       email: string;
       emailVerified: boolean;
+      name: string;
       username?: string | null;
       createdAt: Date;
       updatedAt: Date;
