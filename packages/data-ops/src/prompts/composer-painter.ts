@@ -318,10 +318,36 @@ STEP COUNT GUIDANCE (${stepsRange[0]}-${stepsRange[1]}):
 Choose based on theme complexity and shape requirements. Vary across palettes.
 
 MATRIX RULES:
-- Select 2-5 output dimensions relevant to the theme
+- Select 2-4 output dimensions relevant to the theme (fewer is often better)
 - Include ${stepsRange[0]}-${stepsRange[1]} steps (rows) based on palette complexity
 - Each step has explicit values for selected dimensions only
 - Omitted dimensions are left to Painter interpretation
+
+SMOOTHNESS PRINCIPLE (CRITICAL):
+Output dimension values should change GRADUALLY between adjacent steps. The most beautiful gradients have gentle transitions, not jarring jumps.
+
+DELTA CONSTRAINTS (adjacent steps):
+- luminance: prefer 1-2 level jumps (e.g., dark→mid→light), avoid 3+ level jumps (dark→white)
+- chroma: prefer 1-2 level jumps (muted→moderate→saturated), avoid dramatic swings
+- temperature: prefer stable or 1 level shifts per step, avoid cold→hot in one step
+- hue: MOST CRITICAL - prefer NO hue change or at most one hue shift per 2-3 steps
+- hueShift: use sparingly, "slight" or "moderate" only; "significant"/"opposite" reserved for intentional accent moments
+
+HUE RESTRAINT (DEFAULT BEHAVIOR):
+Unless the query explicitly requests a rainbow, multi-colored, or polychromatic palette:
+- Most palettes should use 1-2 hues maximum
+- Monochromatic and analogous harmonies produce the most refined results
+- When multiple hues are needed, transition through adjacent hues on the color wheel
+- Complementary hues should be rare accents, not equal partners (unless query demands it)
+- A palette that "does too much" with hue feels chaotic—err on the side of simplicity
+
+COMPLEXITY LADDER (choose appropriate level):
+1. SIMPLE (default): 1 hue, vary only luminance and chroma → elegant, timeless
+2. MODERATE: 1-2 analogous hues, subtle temperature shifts → sophisticated, natural
+3. COMPLEX: 2-3 hues with intentional harmony → bold, requires careful balance
+4. MAXIMALIST (only if query demands): 4+ hues, dramatic shifts → use sparingly
+
+Default to SIMPLE or MODERATE unless the query language suggests otherwise.
 
 HEX CODE RULES (when theme contains hex codes):
 - Include "hex" field in steps to specify exact colors the Painter must use

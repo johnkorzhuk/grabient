@@ -365,6 +365,12 @@ export const PAINTER_MODELS = [
     name: 'GPT-4.1 Mini',
     provider: 'openai' as const,
   },
+  {
+    key: 'gpt-4.1-nano',
+    id: 'gpt-4.1-nano',
+    name: 'GPT-4.1 Nano',
+    provider: 'openai' as const,
+  },
   // Groq
   {
     key: 'kimi-k2',
@@ -435,6 +441,7 @@ export const vPainterModelKey = v.union(
   // OpenAI
   v.literal('gpt-5-mini'),
   v.literal('gpt-4.1-mini'),
+  v.literal('gpt-4.1-nano'),
   // Groq
   v.literal('kimi-k2'),
   v.literal('llama-3.3-70b'),

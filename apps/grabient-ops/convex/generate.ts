@@ -1,4 +1,5 @@
 import { query, mutation, internalMutation, internalQuery } from './_generated/server'
+import { paginationOptsValidator } from 'convex/server'
 import { v } from 'convex/values'
 import { vBatchStatus, vPainterModelKey, vPainterProvider, vPaletteStyle, vPaletteAngle } from './lib/providers.types'
 
@@ -32,6 +33,7 @@ export const getNextGenerationCycle = query({
 
 /**
  * Get available cycles for dropdown
+ * Returns composer batches - client-side handles deduplication and formatting.
  */
 export const getAvailableGenerationCycles = query({
   args: {},
@@ -41,39 +43,12 @@ export const getAvailableGenerationCycles = query({
       .order('desc')
       .collect()
 
-    // Also check for cycles that have palettes but no composer batch
-    const palettes = await ctx.db.query('generated_palettes').collect()
-    const paletteCycles = new Set(palettes.map(p => p.cycle))
-
-    // Combine composer batch cycles with palette-only cycles
-    const composerCycleSet = new Set(composerBatches.map(b => b.cycle))
-    const allCycles = new Map<number, { cycle: number; status: string; tags: number; createdAt: number }>()
-
-    // Add composer batch cycles
-    for (const b of composerBatches) {
-      allCycles.set(b.cycle, {
-        cycle: b.cycle,
-        status: b.status,
-        tags: b.tags.length,
-        createdAt: b.createdAt,
-      })
-    }
-
-    // Add palette-only cycles (cycles with palettes but no composer batch)
-    for (const cycle of paletteCycles) {
-      if (!composerCycleSet.has(cycle)) {
-        const cyclePalettes = palettes.filter(p => p.cycle === cycle)
-        const uniqueTags = new Set(cyclePalettes.map(p => p.tag))
-        allCycles.set(cycle, {
-          cycle,
-          status: 'completed', // Assume completed if palettes exist
-          tags: uniqueTags.size,
-          createdAt: cyclePalettes[0]?.createdAt ?? Date.now(),
-        })
-      }
-    }
-
-    return Array.from(allCycles.values()).sort((a, b) => b.cycle - a.cycle)
+    return composerBatches.map(b => ({
+      cycle: b.cycle,
+      status: b.status,
+      tags: b.tags.length,
+      createdAt: b.createdAt,
+    }))
   },
 })
 
@@ -195,6 +170,16 @@ export const getAllPainterBatches = query({
 })
 
 /**
+ * Force delete a painter batch by document ID (for stuck batches)
+ */
+export const forceDeletePainterBatch = mutation({
+  args: { id: v.id('painter_batches') },
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id)
+  },
+})
+
+/**
  * Get painter batch by batchId (internal)
  */
 export const getPainterBatchByBatchId = internalQuery({
@@ -273,6 +258,39 @@ export const getGeneratedPalettes = query({
       .query('generated_palettes')
       .order('desc')
       .take(limit)
+  },
+})
+
+/**
+ * Get all palettes from all cycles for refinement
+ * WARNING: This can timeout with large datasets. Use getPaginatedGeneratedPalettes instead.
+ */
+export const getAllGeneratedPalettes = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query('generated_palettes').collect()
+  },
+})
+
+/**
+ * Get generated palettes with pagination to avoid timeouts
+ */
+export const getPaginatedGeneratedPalettes = query({
+  args: {
+    cursor: v.union(v.string(), v.null()),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { cursor, limit = 1000 }) => {
+    const results = await ctx.db
+      .query('generated_palettes')
+      .order('desc')
+      .paginate({ cursor: cursor ?? null, numItems: limit })
+
+    return {
+      palettes: results.page,
+      nextCursor: results.continueCursor,
+      isDone: results.isDone,
+    }
   },
 })
 
@@ -788,5 +806,82 @@ export const clearGenerationTable = mutation({
       deleted: docs.length,
       hasMore: docs.length === limit,
     }
+  },
+})
+
+// ============================================================================
+// Staged Palettes - deduplicated and filtered palettes
+// ============================================================================
+
+/**
+ * Get staged palettes with pagination (for usePaginatedQuery hook)
+ */
+export const getStagedPalettes = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    tag: v.optional(v.string()),
+  },
+  handler: async (ctx, { paginationOpts, tag }) => {
+    if (tag) {
+      return await ctx.db
+        .query('staged_palettes')
+        .withIndex('by_tag', (q) => q.eq('tag', tag))
+        .order('desc')
+        .paginate(paginationOpts)
+    }
+
+    return await ctx.db
+      .query('staged_palettes')
+      .order('desc')
+      .paginate(paginationOpts)
+  },
+})
+
+/**
+ * Get staged palettes stats
+ */
+export const getStagedPalettesStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const allPalettes = await ctx.db.query('staged_palettes').collect()
+
+    // Count by tag
+    const tagCounts = new Map<string, number>()
+    let totalThemes = 0
+
+    for (const p of allPalettes) {
+      tagCounts.set(p.tag, (tagCounts.get(p.tag) || 0) + 1)
+      totalThemes += p.themes.length
+    }
+
+    return {
+      totalPalettes: allPalettes.length,
+      uniqueTags: tagCounts.size,
+      totalThemes,
+      tagCounts: Array.from(tagCounts.entries())
+        .sort((a, b) => b[1] - a[1])
+        .map(([tag, count]) => ({ tag, count })),
+    }
+  },
+})
+
+/**
+ * Delete staged palettes by their IDs
+ */
+export const deleteStagedPalettes = mutation({
+  args: {
+    ids: v.array(v.id('staged_palettes')),
+  },
+  handler: async (ctx, { ids }) => {
+    let deletedCount = 0
+    for (const id of ids) {
+      try {
+        await ctx.db.delete(id)
+        deletedCount++
+      } catch {
+        // Palette may have already been deleted
+      }
+    }
+    return { deletedCount }
   },
 })

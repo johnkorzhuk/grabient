@@ -33,8 +33,7 @@
 		"bindings": [
 			{
 				"name": "RATE_LIMITER",
-				"class_name": "RateLimiter",
-				"script_name": "grabient3"
+				"class_name": "RateLimiter"
 			}
 		]
 	},
@@ -91,8 +90,7 @@
 				"bindings": [
 					{
 						"name": "RATE_LIMITER",
-						"class_name": "RateLimiter",
-						"script_name": "grabient-production"
+						"class_name": "RateLimiter"
 					}
 				]
 			},

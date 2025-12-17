@@ -22,6 +22,7 @@ import type * as lib_prompts from "../lib/prompts.js";
 import type * as lib_providers from "../lib/providers.js";
 import type * as lib_refinement from "../lib/refinement.js";
 import type * as migrations from "../migrations.js";
+import type * as migrationsActions from "../migrationsActions.js";
 import type * as palettes from "../palettes.js";
 import type * as refinement from "../refinement.js";
 import type * as refinementActions from "../refinementActions.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   "lib/providers": typeof lib_providers;
   "lib/refinement": typeof lib_refinement;
   migrations: typeof migrations;
+  migrationsActions: typeof migrationsActions;
   palettes: typeof palettes;
   refinement: typeof refinement;
   refinementActions: typeof refinementActions;

@@ -20,11 +20,14 @@ import {
   vPainterModelKey,
   type PainterModelKey,
 } from './lib/providers.types'
-import { deserializeCoeffs, isValidSeed } from '@repo/data-ops/serialization'
+import { deserializeCoeffs, isValidSeed, serializeCoeffs } from '@repo/data-ops/serialization'
+import { DEFAULT_GLOBALS } from '@repo/data-ops/valibot-schema/grabient'
 import {
   cosineGradient,
   rgbToHex,
   applyGlobals,
+  fitCosinePalette,
+  type CosineCoeffs,
 } from '@repo/data-ops/gradient-gen'
 
 const EMBEDDING_MODEL = '@cf/google/embeddinggemma-300m'
@@ -33,6 +36,46 @@ const VECTOR_SEARCH_LIMIT = 24
 
 // Default model for tag selection - uses thinking for better reasoning
 const TAG_SELECTION_MODEL = 'gemini-2.5-pro'
+
+// ============================================================================
+// Palette Processing Utilities
+// ============================================================================
+
+/**
+ * Apply ±5% jitter to frequency (c) and phase (d) values for variation.
+ */
+function applyJitter(coeffs: CosineCoeffs): CosineCoeffs {
+  const jitter = () => 1 + (Math.random() * 0.1 - 0.05) // ±5% random
+
+  return [
+    coeffs[0], // a (bias) - no change
+    coeffs[1], // b (amplitude) - no change
+    [coeffs[2][0] * jitter(), coeffs[2][1] * jitter(), coeffs[2][2] * jitter(), 1], // c (frequency) - jitter
+    [coeffs[3][0] * jitter(), coeffs[3][1] * jitter(), coeffs[3][2] * jitter(), 1], // d (phase) - jitter
+  ] as CosineCoeffs
+}
+
+/**
+ * Process hex colors: fit cosine palette, apply jitter, and serialize to seed
+ */
+function processColorsToSeed(colors: string[]): string {
+  const fitResult = fitCosinePalette(colors)
+  const jitteredCoeffs = applyJitter(fitResult.coeffs)
+  return serializeCoeffs(jitteredCoeffs, DEFAULT_GLOBALS)
+}
+
+/**
+ * Clean LLM output by removing thinking tags, markdown code blocks, and other wrappers
+ */
+function cleanLLMOutput(content: string): string {
+  return content
+    // Remove <think>...</think> tags (reasoning models like qwen3)
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    // Remove markdown code blocks
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim()
+}
 
 // ============================================================================
 // Vector Search - Fetch example palettes from Cloudflare Vectorize
@@ -1411,10 +1454,29 @@ export const submitOpenAIPainterBatch = internalAction({
         url: '/v1/chat/completions',
         body: {
           model: modelConfig.id,
-          response_format: { type: 'json_object' },
+          response_format: {
+            type: 'json_schema',
+            json_schema: {
+              name: 'palette_colors',
+              strict: true,
+              schema: {
+                type: 'object',
+                properties: {
+                  colors: {
+                    type: 'array',
+                    items: { type: 'string', pattern: '^#[0-9A-Fa-f]{6}$' },
+                    minItems: 5,
+                    maxItems: 12,
+                  },
+                },
+                required: ['colors'],
+                additionalProperties: false,
+              },
+            },
+          },
           messages: [
             { role: 'system', content: prompt.system },
-            { role: 'user', content: prompt.user },
+            { role: 'user', content: prompt.user + '\n\nRespond with JSON: {"colors": ["#hex1", "#hex2", ...]}' },
           ],
         },
       })
@@ -1650,7 +1712,7 @@ export const pollAnthropicPainterBatch = internalAction({
           }
 
           try {
-            const cleaned = textBlock.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+            const cleaned = cleanLLMOutput(textBlock.text)
             const colors = JSON.parse(cleaned) as string[]
 
             if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
@@ -1660,7 +1722,7 @@ export const pollAnthropicPainterBatch = internalAction({
                 theme,
                 paletteIndex: index,
                 modelKey,
-                seed: `anthropic-${batchId}-${index}`,
+                seed: processColorsToSeed(colors),
                 style: 'linearGradient',
                 steps: colors.length,
                 angle: 0,
@@ -1789,8 +1851,10 @@ export const pollOpenAIPainterBatch = internalAction({
             }
 
             try {
-              const cleaned = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-              const colors = JSON.parse(cleaned) as string[]
+              const cleaned = cleanLLMOutput(contentStr)
+              const parsed = JSON.parse(cleaned) as string[] | { colors: string[] }
+              // Handle both structured output {colors: [...]} and raw array [...]
+              const colors = Array.isArray(parsed) ? parsed : parsed.colors
 
               if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
                 palettesToStore.push({
@@ -1799,7 +1863,7 @@ export const pollOpenAIPainterBatch = internalAction({
                   theme,
                   paletteIndex: index,
                   modelKey,
-                  seed: `openai-${batchId}-${index}`,
+                  seed: processColorsToSeed(colors),
                   style: 'linearGradient',
                   steps: colors.length,
                   angle: 0,
@@ -1940,9 +2004,11 @@ export const pollGroqPainterBatch = internalAction({
             }
 
             try {
-              // Parse the JSON array of hex colors
-              const cleaned = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-              const colors = JSON.parse(cleaned) as string[]
+              // Parse the JSON array of hex colors (strip thinking tags and markdown)
+              const cleaned = cleanLLMOutput(contentStr)
+              const parsed = JSON.parse(cleaned) as string[] | { colors: string[] }
+              // Handle both structured output {colors: [...]} and raw array [...]
+              const colors = Array.isArray(parsed) ? parsed : parsed.colors
 
               if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
                 palettesToStore.push({
@@ -1951,7 +2017,7 @@ export const pollGroqPainterBatch = internalAction({
                   theme,
                   paletteIndex: index,
                   modelKey,
-                  seed: `groq-${batchId}-${index}`,
+                  seed: processColorsToSeed(colors),
                   style: 'linearGradient',
                   steps: colors.length,
                   angle: 0,
@@ -2074,7 +2140,7 @@ export const pollGooglePainterBatch = internalAction({
         }
 
         try {
-          const cleaned = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          const cleaned = cleanLLMOutput(contentStr)
           const colors = JSON.parse(cleaned) as string[]
 
           if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
@@ -2084,7 +2150,7 @@ export const pollGooglePainterBatch = internalAction({
               theme,
               paletteIndex: index,
               modelKey,
-              seed: `google-${batchId}-${index}`,
+              seed: processColorsToSeed(colors),
               style: 'linearGradient',
               steps: colors.length,
               angle: 0,
@@ -2241,6 +2307,160 @@ export const cancelPainterBatch = action({
     } catch (e) {
       console.error(`Failed to cancel painter batch ${batchId}:`, e)
       return { success: false, actualStatus: String(e) }
+    }
+  },
+})
+
+// ============================================================================
+// Palette Deduplication
+// ============================================================================
+
+/**
+ * Create a similarity key by rounding cosine coefficients to 2 decimal precision.
+ * This allows detecting near-duplicate palettes.
+ */
+function createSimilarityKey(seed: string): string | null {
+  try {
+    const { coeffs, globals } = deserializeCoeffs(seed)
+
+    // Round each coefficient to 2 decimal places
+    const roundedParts: string[] = []
+    for (const vec of coeffs) {
+      roundedParts.push(
+        vec[0].toFixed(2),
+        vec[1].toFixed(2),
+        vec[2].toFixed(2)
+      )
+    }
+    // Include rounded globals in the key
+    for (const g of globals) {
+      roundedParts.push(g.toFixed(2))
+    }
+
+    return roundedParts.join('|')
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Get all palettes deduplicated using 2-decimal precision similarity keys.
+ * Uses pagination to avoid query timeouts.
+ */
+export const getDeduplicatedPalettes = action({
+  args: {},
+  handler: async (ctx): Promise<{
+    palettes: Array<{
+      _id: string
+      cycle: number
+      tag: string
+      theme?: string
+      seed?: string
+      colors: string[]
+      modelKey?: string
+      variationIndex?: number
+      paletteIndex?: number
+      similarityKey: string
+    }>
+    stats: {
+      totalProcessed: number
+      withoutSeed: number
+      duplicates: number
+      unique: number
+      cycles: number
+    }
+  }> => {
+    const seenKeys = new Set<string>()
+    const seenCycles = new Set<number>()
+    const deduplicated: Array<{
+      _id: string
+      cycle: number
+      tag: string
+      theme?: string
+      seed?: string
+      colors: string[]
+      modelKey?: string
+      variationIndex?: number
+      paletteIndex?: number
+      similarityKey: string
+    }> = []
+
+    let totalProcessed = 0
+    let withoutSeed = 0
+    let duplicates = 0
+
+    // Use pagination to load all palettes
+    let cursor: string | null = null
+    let isDone = false
+
+    while (!isDone) {
+      const result: {
+        palettes: Array<{
+          _id: string
+          cycle: number
+          tag: string
+          theme?: string
+          seed?: string
+          colors: string[]
+          modelKey?: string
+          variationIndex?: number
+          paletteIndex?: number
+        }>
+        nextCursor: string
+        isDone: boolean
+      } = await ctx.runQuery(api.generate.getPaginatedGeneratedPalettes, {
+        cursor,
+        limit: 2000,
+      })
+
+      for (const palette of result.palettes) {
+        totalProcessed++
+        seenCycles.add(palette.cycle)
+
+        if (!palette.seed) {
+          withoutSeed++
+          continue
+        }
+
+        const key = createSimilarityKey(palette.seed)
+        if (!key) {
+          withoutSeed++
+          continue
+        }
+
+        if (seenKeys.has(key)) {
+          duplicates++
+          continue
+        }
+
+        seenKeys.add(key)
+        deduplicated.push({
+          _id: palette._id,
+          cycle: palette.cycle,
+          tag: palette.tag,
+          theme: palette.theme,
+          seed: palette.seed,
+          colors: palette.colors,
+          modelKey: palette.modelKey,
+          variationIndex: palette.variationIndex,
+          paletteIndex: palette.paletteIndex,
+          similarityKey: key,
+        })
+      }
+
+      cursor = result.nextCursor
+      isDone = result.isDone
+    }
+
+    return {
+      palettes: deduplicated,
+      stats: {
+        totalProcessed,
+        withoutSeed,
+        duplicates,
+        unique: deduplicated.length,
+        cycles: seenCycles.size,
+      },
     }
   },
 })

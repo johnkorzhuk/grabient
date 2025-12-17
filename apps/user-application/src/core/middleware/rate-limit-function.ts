@@ -22,6 +22,16 @@ export function rateLimitFunctionMiddleware(limitType: RateLimitType) {
 		const request = getRequest();
 		const env = context.env as unknown as RateLimitEnv;
 
+		// Skip rate limiting in local development - DOs don't work properly with
+		// TanStack Start + Cloudflare Vite plugin in dev mode
+		const isDev = process.env.NODE_ENV === "development" || 
+			request.url.includes("localhost") || 
+			request.url.includes("127.0.0.1");
+		
+		if (isDev) {
+			return next({ context });
+		}
+
 		if (!env?.RATE_LIMITER) {
 			console.warn("RATE_LIMITER binding not found - rate limiting disabled");
 			return next({ context });
@@ -59,8 +69,16 @@ export function rateLimitFunctionMiddleware(limitType: RateLimitType) {
 
 			return next({ context });
 		} catch (error) {
+			// Re-throw rate limit exceeded errors
 			if (error instanceof Error && error.message.startsWith("{")) {
 				throw error;
+			}
+			// Silently skip rate limiting if DO is unavailable (common in local dev)
+			// The "no such actor class" error occurs when DO isn't properly configured
+			const errorStr = String(error);
+			if (errorStr.includes("no such actor class") || errorStr.includes("durableObjectReset")) {
+				// Skip rate limiting in dev - DO not available
+				return next({ context });
 			}
 			console.error("Rate limit check failed:", error);
 			return next({ context });

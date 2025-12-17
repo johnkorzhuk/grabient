@@ -78,6 +78,12 @@ function Header() {
             Generate
           </Link>
           <Link
+            to="/generate/refine"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors [&.active]:font-medium [&.active]:text-foreground"
+          >
+            Refine
+          </Link>
+          <Link
             to="/random"
             className="text-sm text-muted-foreground hover:text-foreground transition-colors [&.active]:font-medium [&.active]:text-foreground"
           >

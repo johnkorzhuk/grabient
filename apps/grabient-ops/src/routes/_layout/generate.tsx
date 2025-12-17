@@ -87,6 +87,7 @@ function GenerationControlPanel() {
   const pollBatches = useAction(api.generateActions.pollAllActiveBatches)
   const cancelComposerBatch = useAction(api.generateActions.cancelComposerBatch)
   const cancelPainterBatch = useAction(api.generateActions.cancelPainterBatch)
+  const forceDeletePainterBatch = useMutation(api.generate.forceDeletePainterBatch)
   const activeComposerBatches = useQuery(api.generate.getActiveComposerBatches, {})
   const activePainterBatches = useQuery(api.generate.getActivePainterBatches, {})
   const allComposerBatches = useQuery(api.generate.getAllComposerBatches, {})
@@ -838,10 +839,11 @@ function ResultsBrowser() {
   )
 
   // Fetch palettes for the selected cycle/tag
+  // Use high limit to get all palettes - stats show ~3500 total for cycle 2
   const palettes = useQuery(
     api.generate.getGeneratedPalettes,
     selectedCycle !== undefined
-      ? { cycle: selectedCycle, tag: selectedTag, limit: 1000 }
+      ? { cycle: selectedCycle, tag: selectedTag, limit: 5000 }
       : 'skip'
   )
 

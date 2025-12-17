@@ -50,6 +50,9 @@ const COMPOSER_MODEL = {
     // id: "moonshotai/kimi-k2-instruct-0905",
     // name: "Kimi K2 (Composer)",
     // provider: "groq" as const,
+    // id: "gpt-5-mini",
+    // name: "GPT-5 Mini (Composer)",
+    // provider: "openai" as const,
     id: "google/gemini-2.5-flash-lite",
     name: "Gemini 2.5 Flash Lite (Composer)",
     provider: "openrouter" as const,
@@ -173,67 +176,17 @@ function getModel(provider: "groq" | "openai" | "openrouter", modelId: string) {
     }
 }
 
-// =============================================================================
-// FREQUENCY BALANCING & JITTER
-// =============================================================================
-
-// Target average frequency - lower = smoother gradients
-const TARGET_AVG_FREQUENCY = 0.6;
-const MAX_FREQUENCY_REDUCTION = 0.5; // Don't reduce by more than 50%
-
 /**
- * Tracks running frequency statistics and returns adjustment factor.
+ * Apply ±5% jitter to frequency (c) and phase (d) values for variation.
  */
-class FrequencyBalancer {
-    private frequencies: number[] = [];
-
-    addPalette(coeffs: CosineCoeffs): number {
-        // Average frequency across RGB channels
-        const avgFreq =
-            (Math.abs(coeffs[2][0]) +
-                Math.abs(coeffs[2][1]) +
-                Math.abs(coeffs[2][2])) /
-            3;
-        this.frequencies.push(avgFreq);
-        return avgFreq;
-    }
-
-    getAdjustmentFactor(): number {
-        if (this.frequencies.length < 3) return 1; // Need some data first
-
-        const currentAvg =
-            this.frequencies.reduce((a, b) => a + b, 0) /
-            this.frequencies.length;
-
-        if (currentAvg <= TARGET_AVG_FREQUENCY) return 1; // Already low enough
-
-        // Calculate reduction factor to bring average toward target
-        const ratio = TARGET_AVG_FREQUENCY / currentAvg;
-        // Clamp to not reduce too aggressively
-        return Math.max(MAX_FREQUENCY_REDUCTION, ratio);
-    }
-}
-
-/**
- * Apply frequency adjustment and ±5% jitter to frequency (c) and phase (d) VALUES.
- */
-function applyFrequencyAdjustment(
-    coeffs: CosineCoeffs,
-    adjustmentFactor: number,
-): CosineCoeffs {
+function applyJitter(coeffs: CosineCoeffs): CosineCoeffs {
     const jitter = () => 1 + (Math.random() * 0.1 - 0.05); // ±5% random
-    const adjust = (val: number) => val * adjustmentFactor * jitter();
 
     return [
         coeffs[0], // a (bias) - no change
         coeffs[1], // b (amplitude) - no change
-        [adjust(coeffs[2][0]), adjust(coeffs[2][1]), adjust(coeffs[2][2]), 1], // c (frequency) - adjust + jitter
-        [
-            coeffs[3][0] * jitter(),
-            coeffs[3][1] * jitter(),
-            coeffs[3][2] * jitter(),
-            1,
-        ], // d (phase) - jitter only
+        [coeffs[2][0] * jitter(), coeffs[2][1] * jitter(), coeffs[2][2] * jitter(), 1], // c (frequency) - jitter
+        [coeffs[3][0] * jitter(), coeffs[3][1] * jitter(), coeffs[3][2] * jitter(), 1], // d (phase) - jitter
     ] as CosineCoeffs;
 }
 
@@ -463,7 +416,6 @@ async function* runComposer(
 async function* runPainter(
     modelConfig: (typeof PAINTER_MODELS)[number],
     matrices: PaletteMatrix[],
-    frequencyBalancer: FrequencyBalancer,
 ): AsyncGenerator<GenerateEvent> {
     const startTime = Date.now();
     const palettes: string[][] = [];
@@ -524,30 +476,22 @@ async function* runPainter(
                         const theme =
                             matrices[paletteIndex]?.theme ?? "unknown";
 
-                        // Fit cosine palette on server side
+                        // Fit cosine palette on server side and apply jitter
                         const fitResult = fitCosinePalette(palette);
-
-                        // Track frequency and get adjustment factor
-                        frequencyBalancer.addPalette(fitResult.coeffs);
-                        const adjustmentFactor =
-                            frequencyBalancer.getAdjustmentFactor();
-                        const adjustedCoeffs = applyFrequencyAdjustment(
-                            fitResult.coeffs,
-                            adjustmentFactor,
-                        );
+                        const jitteredCoeffs = applyJitter(fitResult.coeffs);
                         const seed = serializeCoeffs(
-                            adjustedCoeffs,
+                            jitteredCoeffs,
                             DEFAULT_GLOBALS,
                         );
 
                         // Determine steps, style, and angle based on palette complexity
                         const { steps, style, angle } =
-                            determinePaletteProperties(adjustedCoeffs, palette);
+                            determinePaletteProperties(jitteredCoeffs, palette);
 
                         palettes.push(palette);
                         paletteIndex++;
                         console.log(
-                            `[Painter:${modelConfig.key}] Yielding palette #${palettes.length} (freq adj: ${adjustmentFactor.toFixed(2)}, steps: ${steps}, style: ${style})`,
+                            `[Painter:${modelConfig.key}] Yielding palette #${palettes.length} (steps: ${steps}, style: ${style})`,
                         );
                         yield {
                             type: "palette",
@@ -737,14 +681,11 @@ export async function generatePalettesSSE(
                 });
             }
 
-            // Stage 2: Run all painters in parallel with shared frequency balancer
-            const frequencyBalancer = new FrequencyBalancer();
-
+            // Stage 2: Run all painters in parallel
             const painterPromises = painterTasks.map(async (task) => {
                 for await (const event of runPainter(
                     task.modelConfig,
                     task.matrices,
-                    frequencyBalancer,
                 )) {
                     if (event.type === "palette") {
                         totalPalettes++;

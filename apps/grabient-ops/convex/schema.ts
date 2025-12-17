@@ -265,6 +265,28 @@ export const GenerationBatches = Table('generation_batches', {
   requestOrder: v.array(v.string()),
 })
 
+// ============================================================================
+// StagedPalettes - deduplicated palettes ready for curation
+// Created by deduplication migration using 2-decimal precision similarity keys
+// ============================================================================
+export const StagedPalettes = Table('staged_palettes', {
+  // 2-decimal precision similarity key for deduplication (e.g., "0.50|0.30|0.20|...")
+  similarityKey: v.string(),
+  // Reference to the canonical generated_palette this was derived from
+  sourceId: v.id('generated_palettes'),
+  // Palette data (copied from source)
+  cycle: v.number(),
+  tag: v.string(),
+  seed: v.string(), // Original 3-precision seed
+  colors: v.array(v.string()),
+  style: v.optional(vPaletteStyle),
+  steps: v.optional(v.number()),
+  angle: v.optional(vPaletteAngle),
+  modelKey: v.optional(vPainterModelKey),
+  // Aggregated themes from this palette and all its duplicates
+  themes: v.array(v.string()),
+})
+
 export default defineSchema({
   palettes: Palettes.table.index('by_seed', ['seed']),
   palette_tags: PaletteTags.table
@@ -317,4 +339,9 @@ export default defineSchema({
     .index('by_cycle', ['cycle'])
     .index('by_status', ['status'])
     .index('by_batch_id', ['batchId']),
+  // Deduplicated palettes for curation
+  staged_palettes: StagedPalettes.table
+    .index('by_similarity_key', ['similarityKey'])
+    .index('by_tag', ['tag'])
+    .index('by_cycle', ['cycle']),
 })
