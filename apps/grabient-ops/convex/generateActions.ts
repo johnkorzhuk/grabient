@@ -287,29 +287,36 @@ export const startGeneration = action({
 })
 
 // Helper to build composer requests for a set of tags
+// Creates palettesPerVariation requests per tag for a total of tags.length * palettesPerVariation requests
 async function buildComposerRequests(
   tags: string[],
   variationsPerTag: number,
   palettesPerVariation: number,
-): Promise<{ tag: string; systemPrompt: string; userPrompt: string }[]> {
-  const requests: { tag: string; systemPrompt: string; userPrompt: string }[] = []
+): Promise<{ tag: string; matrixIndex: number; systemPrompt: string; userPrompt: string }[]> {
+  const requests: { tag: string; matrixIndex: number; systemPrompt: string; userPrompt: string }[] = []
 
   for (const tag of tags) {
     const examples = await searchVectorizeForExamples(tag)
-    const systemPrompt = buildComposerSystemPrompt({
-      query: tag,
-      variationCount: variationsPerTag,
-      palettesPerVariation,
-      stepsRange: [5, 8],
-      examplePalettes: examples,
-    })
-    requests.push({
-      tag,
-      systemPrompt,
-      userPrompt: `Generate dimension matrices for: "${tag}"`,
-    })
+
+    // Create palettesPerVariation separate requests per tag
+    for (let matrixIndex = 0; matrixIndex < palettesPerVariation; matrixIndex++) {
+      const systemPrompt = buildComposerSystemPrompt({
+        query: tag,
+        variationCount: variationsPerTag,
+        palettesPerVariation: 1, // Each request generates 1 matrix
+        stepsRange: [5, 8],
+        examplePalettes: examples,
+      })
+      requests.push({
+        tag,
+        matrixIndex,
+        systemPrompt,
+        userPrompt: `Generate dimension matrices for: "${tag}"`,
+      })
+    }
   }
 
+  console.log(`Built ${requests.length} composer requests (${tags.length} tags × ${palettesPerVariation} matrices)`)
   return requests
 }
 
@@ -338,7 +345,7 @@ export const submitAnthropicComposerBatch = internalAction({
     const anthropic = new Anthropic({ apiKey })
 
     const batchRequests = requests.map((req) => ({
-      custom_id: req.tag,
+      custom_id: `${req.tag}__${req.matrixIndex}`,
       params: {
         model: modelConfig.id,
         max_tokens: 8192,
@@ -351,7 +358,7 @@ export const submitAnthropicComposerBatch = internalAction({
       requests: batchRequests,
     })
 
-    console.log(`Anthropic composer batch created: ${batch.id} (cycle ${cycle})`)
+    console.log(`Anthropic composer batch created: ${batch.id} with ${requests.length} requests (cycle ${cycle})`)
 
     await ctx.runMutation(internal.generate.createComposerBatch, {
       cycle,
@@ -395,7 +402,7 @@ export const submitOpenAIComposerBatch = internalAction({
 
     const jsonlLines = requests.map((req) =>
       JSON.stringify({
-        custom_id: req.tag,
+        custom_id: `${req.tag}__${req.matrixIndex}`,
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
@@ -422,7 +429,7 @@ export const submitOpenAIComposerBatch = internalAction({
       completion_window: '24h',
     })
 
-    console.log(`OpenAI composer batch created: ${batch.id} (cycle ${cycle})`)
+    console.log(`OpenAI composer batch created: ${batch.id} with ${requests.length} requests (cycle ${cycle})`)
 
     await ctx.runMutation(internal.generate.createComposerBatch, {
       cycle,
@@ -466,7 +473,7 @@ export const submitGroqComposerBatch = internalAction({
 
     const jsonlLines = requests.map((req) =>
       JSON.stringify({
-        custom_id: req.tag,
+        custom_id: `${req.tag}__${req.matrixIndex}`,
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
@@ -500,7 +507,7 @@ export const submitGroqComposerBatch = internalAction({
       throw new Error('Failed to create Groq composer batch - no id returned')
     }
 
-    console.log(`Groq composer batch created: ${batch.id} (cycle ${cycle})`)
+    console.log(`Groq composer batch created: ${batch.id} with ${requests.length} requests (cycle ${cycle})`)
 
     await ctx.runMutation(internal.generate.createComposerBatch, {
       cycle,
@@ -544,7 +551,7 @@ export const submitGoogleComposerBatch = internalAction({
     const ai = new GoogleGenAI({ apiKey })
 
     const inlinedRequests = requests.map((req) => ({
-      metadata: { key: req.tag },
+      metadata: { key: `${req.tag}__${req.matrixIndex}` },
       contents: [
         {
           role: 'user' as const,
@@ -571,7 +578,7 @@ export const submitGoogleComposerBatch = internalAction({
       throw new Error('Failed to create Google batch - no name returned')
     }
 
-    console.log(`Google composer batch created: ${batchJob.name} (cycle ${cycle})`)
+    console.log(`Google composer batch created: ${batchJob.name} with ${requests.length} requests (cycle ${cycle})`)
 
     await ctx.runMutation(internal.generate.createComposerBatch, {
       cycle,
