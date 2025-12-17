@@ -41,12 +41,39 @@ export const getAvailableGenerationCycles = query({
       .order('desc')
       .collect()
 
-    return composerBatches.map((b) => ({
-      cycle: b.cycle,
-      status: b.status,
-      tags: b.tags.length,
-      createdAt: b.createdAt,
-    }))
+    // Also check for cycles that have palettes but no composer batch
+    const palettes = await ctx.db.query('generated_palettes').collect()
+    const paletteCycles = new Set(palettes.map(p => p.cycle))
+
+    // Combine composer batch cycles with palette-only cycles
+    const composerCycleSet = new Set(composerBatches.map(b => b.cycle))
+    const allCycles = new Map<number, { cycle: number; status: string; tags: number; createdAt: number }>()
+
+    // Add composer batch cycles
+    for (const b of composerBatches) {
+      allCycles.set(b.cycle, {
+        cycle: b.cycle,
+        status: b.status,
+        tags: b.tags.length,
+        createdAt: b.createdAt,
+      })
+    }
+
+    // Add palette-only cycles (cycles with palettes but no composer batch)
+    for (const cycle of paletteCycles) {
+      if (!composerCycleSet.has(cycle)) {
+        const cyclePalettes = palettes.filter(p => p.cycle === cycle)
+        const uniqueTags = new Set(cyclePalettes.map(p => p.tag))
+        allCycles.set(cycle, {
+          cycle,
+          status: 'completed', // Assume completed if palettes exist
+          tags: uniqueTags.size,
+          createdAt: cyclePalettes[0]?.createdAt ?? Date.now(),
+        })
+      }
+    }
+
+    return Array.from(allCycles.values()).sort((a, b) => b.cycle - a.cycle)
   },
 })
 

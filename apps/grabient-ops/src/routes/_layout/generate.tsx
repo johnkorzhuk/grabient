@@ -246,7 +246,9 @@ function GenerationControlPanel() {
 
   // Check if we can start painter batches
   const validComposerOutputs = composerOutputsForPainter?.filter(o => !o.error && o.theme) ?? []
-  const canStartPainterBatch = latestCompletedCycle !== undefined &&
+  // Show painter panel if there's a completed cycle (even if outputs not yet processed)
+  const hasCompletedCycle = latestCompletedCycle !== undefined
+  const canStartPainterBatch = hasCompletedCycle &&
     validComposerOutputs.length > 0 &&
     selectedPainterModels.length > 0 &&
     !hasActivePainterBatches
@@ -521,7 +523,7 @@ function GenerationControlPanel() {
       )}
 
       {/* Painter Stage Panel */}
-      {latestCompletedCycle !== undefined && validComposerOutputs.length > 0 && (
+      {hasCompletedCycle && (
         <div className="border border-border rounded-lg p-4 space-y-4">
           <h3 className="font-medium text-foreground flex items-center gap-2">
             <Palette className="h-4 w-4" />
@@ -529,7 +531,11 @@ function GenerationControlPanel() {
           </h3>
 
           <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3">
-            <p>{validComposerOutputs.length} matrices ready for painting</p>
+            {validComposerOutputs.length > 0 ? (
+              <p>{validComposerOutputs.length} matrices ready for painting</p>
+            ) : (
+              <p className="text-amber-600">Composer outputs not yet processed. Poll the batch to fetch results.</p>
+            )}
           </div>
 
           {/* Model Selection */}

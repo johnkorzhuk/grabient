@@ -718,8 +718,100 @@ export const pollGoogleComposerBatch = internalAction({
     }
 
     if (batch.state === 'JOB_STATE_SUCCEEDED') {
-      // TODO: Process results and store composer outputs
-      // For now, mark as completed
+      // Get batch record to find cycle and request order
+      const batchRecord = await ctx.runQuery(internal.generate.getComposerBatchByBatchId, { batchId })
+      if (!batchRecord) {
+        console.error(`Batch record not found for ${batchId}`)
+        return
+      }
+
+      const cycle = batchRecord.cycle
+      const tags = batchRecord.tags
+      const palettesPerVariation = batchRecord.palettesPerVariation
+      console.log(`Processing Google composer results for cycle ${cycle}`)
+
+      let storedCount = 0
+      let errorCount = 0
+
+      // Get inline responses - they're in the same order as requests
+      const inlinedResponses = batch.dest?.inlinedResponses ?? []
+
+      // Reconstruct request order: for each tag, there are palettesPerVariation requests
+      let requestIndex = 0
+      for (const tag of tags) {
+        for (let matrixIndex = 0; matrixIndex < palettesPerVariation; matrixIndex++) {
+          const result = inlinedResponses[requestIndex]
+          requestIndex++
+
+          if (!result) {
+            errorCount++
+            continue
+          }
+
+          if (result.error) {
+            await ctx.runMutation(internal.generate.storeComposerError, {
+              cycle,
+              tag,
+              variationIndex: matrixIndex,
+              error: result.error.message ?? 'Unknown error',
+            })
+            errorCount++
+            continue
+          }
+
+          const contentStr = result.response?.candidates?.[0]?.content?.parts?.[0]?.text
+          if (!contentStr) {
+            await ctx.runMutation(internal.generate.storeComposerError, {
+              cycle,
+              tag,
+              variationIndex: matrixIndex,
+              error: 'No response content',
+            })
+            errorCount++
+            continue
+          }
+
+          try {
+            const content = JSON.parse(contentStr) as {
+              variations: Array<{
+                palettes: Array<{
+                  theme: string
+                  dimensions: string[]
+                  steps: unknown[]
+                }>
+              }>
+            }
+
+            for (let variationIndex = 0; variationIndex < content.variations.length; variationIndex++) {
+              const variation = content.variations[variationIndex]
+              for (let paletteIndex = 0; paletteIndex < variation.palettes.length; paletteIndex++) {
+                const palette = variation.palettes[paletteIndex]
+                await ctx.runMutation(internal.generate.storeComposerOutput, {
+                  cycle,
+                  tag,
+                  variationIndex,
+                  paletteIndex: matrixIndex * 100 + paletteIndex,
+                  theme: palette.theme,
+                  dimensions: palette.dimensions,
+                  steps: palette.steps,
+                })
+                storedCount++
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to parse Google result for ${tag}__${matrixIndex}:`, e)
+            await ctx.runMutation(internal.generate.storeComposerError, {
+              cycle,
+              tag,
+              variationIndex: matrixIndex,
+              error: e instanceof Error ? e.message : String(e),
+            })
+            errorCount++
+          }
+        }
+      }
+
+      console.log(`Google composer batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
 
       await ctx.runMutation(internal.generate.updateComposerBatchStatus, {
         batchId,
@@ -763,7 +855,98 @@ export const pollAnthropicComposerBatch = internalAction({
         completedCount: batch.request_counts.succeeded,
         failedCount: batch.request_counts.errored,
       })
-    } else if (batch.processing_status === 'ended') {
+      return
+    }
+
+    if (batch.processing_status === 'ended') {
+      // Get batch record to find cycle
+      const batchRecord = await ctx.runQuery(internal.generate.getComposerBatchByBatchId, { batchId })
+      if (!batchRecord) {
+        console.error(`Batch record not found for ${batchId}`)
+        return
+      }
+
+      const cycle = batchRecord.cycle
+      console.log(`Processing Anthropic composer results for cycle ${cycle}`)
+
+      let storedCount = 0
+      let errorCount = 0
+
+      // Iterate through all results
+      const resultsDecoder = await anthropic.messages.batches.results(batchId)
+      for await (const result of resultsDecoder) {
+        const customId = result.custom_id
+        // Parse custom_id format: "tag__matrixIndex"
+        const [tag, matrixIndexStr] = customId.split('__')
+        const matrixIndex = parseInt(matrixIndexStr ?? '0', 10)
+
+        if (result.result.type === 'succeeded') {
+          try {
+            // Extract text content from the message
+            const message = result.result.message
+            const textBlock = message.content.find((block): block is Anthropic.TextBlock => block.type === 'text')
+            if (!textBlock) {
+              console.warn(`No text content in result for ${customId}`)
+              errorCount++
+              continue
+            }
+
+            // Parse the JSON response
+            const content = JSON.parse(textBlock.text) as {
+              variations: Array<{
+                palettes: Array<{
+                  theme: string
+                  dimensions: string[]
+                  steps: unknown[]
+                }>
+              }>
+            }
+
+            // Store each palette from each variation
+            for (let variationIndex = 0; variationIndex < content.variations.length; variationIndex++) {
+              const variation = content.variations[variationIndex]
+              for (let paletteIndex = 0; paletteIndex < variation.palettes.length; paletteIndex++) {
+                const palette = variation.palettes[paletteIndex]
+                await ctx.runMutation(internal.generate.storeComposerOutput, {
+                  cycle,
+                  tag,
+                  variationIndex,
+                  paletteIndex: matrixIndex * 100 + paletteIndex, // Unique index combining matrix and palette
+                  theme: palette.theme,
+                  dimensions: palette.dimensions,
+                  steps: palette.steps,
+                })
+                storedCount++
+              }
+            }
+          } catch (e) {
+            console.error(`Failed to parse result for ${customId}:`, e)
+            await ctx.runMutation(internal.generate.storeComposerError, {
+              cycle,
+              tag,
+              variationIndex: matrixIndex,
+              error: e instanceof Error ? e.message : String(e),
+            })
+            errorCount++
+          }
+        } else {
+          // Handle error results
+          const errorMsg = result.result.type === 'errored'
+            ? result.result.error?.error?.message ?? 'Unknown error'
+            : 'Request expired or cancelled'
+
+          await ctx.runMutation(internal.generate.storeComposerError, {
+            cycle,
+            tag,
+            variationIndex: matrixIndex,
+            error: errorMsg,
+          })
+          errorCount++
+        }
+      }
+
+      console.log(`Anthropic composer batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
+
       await ctx.runMutation(internal.generate.updateComposerBatchStatus, {
         batchId,
         status: 'completed',
@@ -796,7 +979,109 @@ export const pollOpenAIComposerBatch = internalAction({
         completedCount: batch.request_counts?.completed ?? 0,
         failedCount: batch.request_counts?.failed ?? 0,
       })
-    } else if (batch.status === 'completed') {
+      return
+    }
+
+    if (batch.status === 'completed') {
+      // Get batch record to find cycle
+      const batchRecord = await ctx.runQuery(internal.generate.getComposerBatchByBatchId, { batchId })
+      if (!batchRecord) {
+        console.error(`Batch record not found for ${batchId}`)
+        return
+      }
+
+      const cycle = batchRecord.cycle
+      console.log(`Processing OpenAI composer results for cycle ${cycle}`)
+
+      // Download the output file
+      if (!batch.output_file_id) {
+        console.error(`No output file for batch ${batchId}`)
+        await ctx.runMutation(internal.generate.updateComposerBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: 'No output file',
+        })
+        return
+      }
+
+      const fileResponse = await openai.files.content(batch.output_file_id)
+      const fileContent = await fileResponse.text()
+      const lines = fileContent.trim().split('\n')
+
+      let storedCount = 0
+      let errorCount = 0
+
+      for (const line of lines) {
+        try {
+          const result = JSON.parse(line) as {
+            custom_id: string
+            response?: {
+              status_code: number
+              body: {
+                choices: Array<{
+                  message: {
+                    content: string
+                  }
+                }>
+              }
+            }
+            error?: { message: string }
+          }
+
+          const customId = result.custom_id
+          const [tag, matrixIndexStr] = customId.split('__')
+          const matrixIndex = parseInt(matrixIndexStr ?? '0', 10)
+
+          if (result.response?.status_code === 200) {
+            const contentStr = result.response.body.choices[0]?.message?.content
+            if (!contentStr) {
+              errorCount++
+              continue
+            }
+
+            const content = JSON.parse(contentStr) as {
+              variations: Array<{
+                palettes: Array<{
+                  theme: string
+                  dimensions: string[]
+                  steps: unknown[]
+                }>
+              }>
+            }
+
+            for (let variationIndex = 0; variationIndex < content.variations.length; variationIndex++) {
+              const variation = content.variations[variationIndex]
+              for (let paletteIndex = 0; paletteIndex < variation.palettes.length; paletteIndex++) {
+                const palette = variation.palettes[paletteIndex]
+                await ctx.runMutation(internal.generate.storeComposerOutput, {
+                  cycle,
+                  tag,
+                  variationIndex,
+                  paletteIndex: matrixIndex * 100 + paletteIndex,
+                  theme: palette.theme,
+                  dimensions: palette.dimensions,
+                  steps: palette.steps,
+                })
+                storedCount++
+              }
+            }
+          } else {
+            await ctx.runMutation(internal.generate.storeComposerError, {
+              cycle,
+              tag,
+              variationIndex: matrixIndex,
+              error: result.error?.message ?? 'Request failed',
+            })
+            errorCount++
+          }
+        } catch (e) {
+          console.error(`Failed to parse OpenAI result line:`, e)
+          errorCount++
+        }
+      }
+
+      console.log(`OpenAI composer batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
+
       await ctx.runMutation(internal.generate.updateComposerBatchStatus, {
         batchId,
         status: 'completed',
@@ -835,7 +1120,109 @@ export const pollGroqComposerBatch = internalAction({
         completedCount: batch.request_counts?.completed ?? 0,
         failedCount: batch.request_counts?.failed ?? 0,
       })
-    } else if (batch.status === 'completed') {
+      return
+    }
+
+    if (batch.status === 'completed') {
+      // Get batch record to find cycle
+      const batchRecord = await ctx.runQuery(internal.generate.getComposerBatchByBatchId, { batchId })
+      if (!batchRecord) {
+        console.error(`Batch record not found for ${batchId}`)
+        return
+      }
+
+      const cycle = batchRecord.cycle
+      console.log(`Processing Groq composer results for cycle ${cycle}`)
+
+      // Download the output file
+      if (!batch.output_file_id) {
+        console.error(`No output file for batch ${batchId}`)
+        await ctx.runMutation(internal.generate.updateComposerBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: 'No output file',
+        })
+        return
+      }
+
+      const fileContent = await groq.files.content(batch.output_file_id)
+      const text = await fileContent.text()
+      const lines = text.trim().split('\n')
+
+      let storedCount = 0
+      let errorCount = 0
+
+      for (const line of lines) {
+        try {
+          const result = JSON.parse(line) as {
+            custom_id: string
+            response?: {
+              status_code: number
+              body: {
+                choices: Array<{
+                  message: {
+                    content: string
+                  }
+                }>
+              }
+            }
+            error?: { message: string }
+          }
+
+          const customId = result.custom_id
+          const [tag, matrixIndexStr] = customId.split('__')
+          const matrixIndex = parseInt(matrixIndexStr ?? '0', 10)
+
+          if (result.response?.status_code === 200) {
+            const contentStr = result.response.body.choices[0]?.message?.content
+            if (!contentStr) {
+              errorCount++
+              continue
+            }
+
+            const content = JSON.parse(contentStr) as {
+              variations: Array<{
+                palettes: Array<{
+                  theme: string
+                  dimensions: string[]
+                  steps: unknown[]
+                }>
+              }>
+            }
+
+            for (let variationIndex = 0; variationIndex < content.variations.length; variationIndex++) {
+              const variation = content.variations[variationIndex]
+              for (let paletteIndex = 0; paletteIndex < variation.palettes.length; paletteIndex++) {
+                const palette = variation.palettes[paletteIndex]
+                await ctx.runMutation(internal.generate.storeComposerOutput, {
+                  cycle,
+                  tag,
+                  variationIndex,
+                  paletteIndex: matrixIndex * 100 + paletteIndex,
+                  theme: palette.theme,
+                  dimensions: palette.dimensions,
+                  steps: palette.steps,
+                })
+                storedCount++
+              }
+            }
+          } else {
+            await ctx.runMutation(internal.generate.storeComposerError, {
+              cycle,
+              tag,
+              variationIndex: matrixIndex,
+              error: result.error?.message ?? 'Request failed',
+            })
+            errorCount++
+          }
+        } catch (e) {
+          console.error(`Failed to parse Groq result line:`, e)
+          errorCount++
+        }
+      }
+
+      console.log(`Groq composer batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
+
       await ctx.runMutation(internal.generate.updateComposerBatchStatus, {
         batchId,
         status: 'completed',
@@ -966,8 +1353,10 @@ export const submitAnthropicPainterBatch = internalAction({
 
     const batchRequests = matrices.map((matrix, i) => {
       const prompt = buildSinglePainterPrompt(matrix as PaletteMatrix)
+      // Include theme in custom_id for traceability (sanitize to remove special chars)
+      const safeTheme = matrix.theme.replace(/[^a-zA-Z0-9-]/g, '_').slice(0, 50)
       return {
-        custom_id: `matrix-${i}`,
+        custom_id: `${safeTheme}__${i}`,
         params: {
           model: modelConfig.id,
           max_tokens: 2048,
@@ -981,12 +1370,17 @@ export const submitAnthropicPainterBatch = internalAction({
       requests: batchRequests,
     })
 
+    console.log(`Anthropic painter batch created: ${batch.id} with ${matrices.length} requests for model ${modelKey}`)
+
+    const requestOrder = matrices.map(m => m.theme)
+
     await ctx.runMutation(internal.generate.createPainterBatch, {
       cycle,
       modelKey,
       provider: 'anthropic',
       batchId: batch.id,
       requestCount: matrices.length,
+      requestOrder,
     })
 
     return { batchId: batch.id, requestCount: matrices.length }
@@ -1010,8 +1404,9 @@ export const submitOpenAIPainterBatch = internalAction({
 
     const jsonlLines = matrices.map((matrix, i) => {
       const prompt = buildSinglePainterPrompt(matrix as PaletteMatrix)
+      const safeTheme = matrix.theme.replace(/[^a-zA-Z0-9-]/g, '_').slice(0, 50)
       return JSON.stringify({
-        custom_id: `matrix-${i}`,
+        custom_id: `${safeTheme}__${i}`,
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
@@ -1038,12 +1433,17 @@ export const submitOpenAIPainterBatch = internalAction({
       completion_window: '24h',
     })
 
+    console.log(`OpenAI painter batch created: ${batch.id} with ${matrices.length} requests for model ${modelKey}`)
+
+    const requestOrder = matrices.map(m => m.theme)
+
     await ctx.runMutation(internal.generate.createPainterBatch, {
       cycle,
       modelKey,
       provider: 'openai',
       batchId: batch.id,
       requestCount: matrices.length,
+      requestOrder,
     })
 
     return { batchId: batch.id, requestCount: matrices.length }
@@ -1067,8 +1467,9 @@ export const submitGroqPainterBatch = internalAction({
 
     const jsonlLines = matrices.map((matrix, i) => {
       const prompt = buildSinglePainterPrompt(matrix as PaletteMatrix)
+      const safeTheme = matrix.theme.replace(/[^a-zA-Z0-9-]/g, '_').slice(0, 50)
       return JSON.stringify({
-        custom_id: `matrix-${i}`,
+        custom_id: `${safeTheme}__${i}`,
         method: 'POST',
         url: '/v1/chat/completions',
         body: {
@@ -1102,12 +1503,18 @@ export const submitGroqPainterBatch = internalAction({
       throw new Error('Failed to create Groq painter batch - no id returned')
     }
 
+    console.log(`Groq painter batch created: ${batch.id} with ${matrices.length} requests for model ${modelKey}`)
+
+    // Store the themes in order so we can map results back
+    const requestOrder = matrices.map(m => m.theme)
+
     await ctx.runMutation(internal.generate.createPainterBatch, {
       cycle,
       modelKey,
       provider: 'groq',
       batchId: batch.id,
       requestCount: matrices.length,
+      requestOrder,
     })
 
     return { batchId: batch.id, requestCount: matrices.length }
@@ -1132,8 +1539,9 @@ export const submitGooglePainterBatch = internalAction({
 
     const inlinedRequests = matrices.map((matrix, i) => {
       const prompt = buildSinglePainterPrompt(matrix as PaletteMatrix)
+      const safeTheme = matrix.theme.replace(/[^a-zA-Z0-9-]/g, '_').slice(0, 50)
       return {
-        metadata: { key: `matrix-${i}` },
+        metadata: { key: `${safeTheme}__${i}` },
         contents: [
           {
             role: 'user' as const,
@@ -1161,12 +1569,17 @@ export const submitGooglePainterBatch = internalAction({
       throw new Error('Failed to create Google painter batch - no name returned')
     }
 
+    console.log(`Google painter batch created: ${batchJob.name} with ${matrices.length} requests for model ${modelKey}`)
+
+    const requestOrder = matrices.map(m => m.theme)
+
     await ctx.runMutation(internal.generate.createPainterBatch, {
       cycle,
       modelKey,
       provider: 'google',
       batchId: batchJob.name,
       requestCount: matrices.length,
+      requestOrder,
     })
 
     return { batchId: batchJob.name, requestCount: matrices.length }
@@ -1179,33 +1592,538 @@ export const submitGooglePainterBatch = internalAction({
 
 export const pollAnthropicPainterBatch = internalAction({
   args: { batchId: v.string(), cycle: v.number(), modelKey: vPainterModelKey },
-  handler: async (_ctx, { batchId, cycle: _cycle, modelKey: _modelKey }) => {
-    // TODO: Implement full polling logic
-    console.log(`Polling Anthropic painter batch ${batchId}`)
+  handler: async (ctx, { batchId, cycle, modelKey }) => {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
+
+    const anthropic = new Anthropic({ apiKey })
+    const batch = await anthropic.messages.batches.retrieve(batchId)
+
+    console.log(`Anthropic painter batch ${batchId} (${modelKey}):`, {
+      status: batch.processing_status,
+      succeeded: batch.request_counts.succeeded,
+      failed: batch.request_counts.errored,
+    })
+
+    if (batch.processing_status === 'in_progress') {
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'processing',
+        completedCount: batch.request_counts.succeeded,
+        failedCount: batch.request_counts.errored,
+      })
+      return
+    }
+
+    if (batch.processing_status === 'ended') {
+      // Get the painter batch record for requestOrder
+      const batchRecord = await ctx.runQuery(internal.generate.getPainterBatchByBatchId, { batchId })
+      const requestOrder = batchRecord?.requestOrder ?? []
+
+      let storedCount = 0
+      let errorCount = 0
+      const palettesToStore: Array<{
+        cycle: number
+        tag: string
+        theme: string
+        paletteIndex: number
+        modelKey: PainterModelKey
+        seed: string
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        steps: number
+        angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
+        colors: string[]
+      }> = []
+
+      const resultsDecoder = await anthropic.messages.batches.results(batchId)
+      for await (const result of resultsDecoder) {
+        const parts = result.custom_id.split('__')
+        const index = parseInt(parts[parts.length - 1] ?? '0', 10)
+        const theme = requestOrder[index] ?? result.custom_id.replace(/__\d+$/, '').replace(/_/g, ' ')
+
+        if (result.result.type === 'succeeded') {
+          const textBlock = result.result.message.content.find((block): block is Anthropic.TextBlock => block.type === 'text')
+          if (!textBlock) {
+            errorCount++
+            continue
+          }
+
+          try {
+            const cleaned = textBlock.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+            const colors = JSON.parse(cleaned) as string[]
+
+            if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
+              palettesToStore.push({
+                cycle,
+                tag: theme,
+                theme,
+                paletteIndex: index,
+                modelKey,
+                seed: `anthropic-${batchId}-${index}`,
+                style: 'linearGradient',
+                steps: colors.length,
+                angle: 0,
+                colors,
+              })
+              storedCount++
+            } else {
+              errorCount++
+            }
+          } catch {
+            errorCount++
+          }
+        } else {
+          errorCount++
+        }
+      }
+
+      // Store all palettes in batches
+      if (palettesToStore.length > 0) {
+        for (let i = 0; i < palettesToStore.length; i += 100) {
+          const chunk = palettesToStore.slice(i, i + 100)
+          await ctx.runMutation(internal.generate.storeGeneratedPalettes, { palettes: chunk })
+        }
+      }
+
+      console.log(`Anthropic painter batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
+
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'completed',
+        completedCount: batch.request_counts.succeeded,
+        failedCount: batch.request_counts.errored,
+      })
+    }
   },
 })
 
 export const pollOpenAIPainterBatch = internalAction({
   args: { batchId: v.string(), cycle: v.number(), modelKey: vPainterModelKey },
-  handler: async (_ctx, { batchId, cycle: _cycle, modelKey: _modelKey }) => {
-    // TODO: Implement full polling logic
-    console.log(`Polling OpenAI painter batch ${batchId}`)
+  handler: async (ctx, { batchId, cycle, modelKey }) => {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) throw new Error('OPENAI_API_KEY not set')
+
+    const openai = new OpenAI({ apiKey })
+    const batch = await openai.batches.retrieve(batchId)
+
+    console.log(`OpenAI painter batch ${batchId} (${modelKey}):`, {
+      status: batch.status,
+      completed: batch.request_counts?.completed,
+      failed: batch.request_counts?.failed,
+    })
+
+    if (batch.status === 'in_progress' || batch.status === 'validating' || batch.status === 'finalizing') {
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'processing',
+        completedCount: batch.request_counts?.completed ?? 0,
+        failedCount: batch.request_counts?.failed ?? 0,
+      })
+      return
+    }
+
+    if (batch.status === 'completed') {
+      // Get the painter batch record for requestOrder
+      const batchRecord = await ctx.runQuery(internal.generate.getPainterBatchByBatchId, { batchId })
+      const requestOrder = batchRecord?.requestOrder ?? []
+
+      if (!batch.output_file_id) {
+        console.error(`No output file for OpenAI painter batch ${batchId}`)
+        await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+          cycle,
+          modelKey,
+          status: 'failed',
+          error: 'No output file',
+        })
+        return
+      }
+
+      const fileResponse = await openai.files.content(batch.output_file_id)
+      const fileContent = await fileResponse.text()
+      const lines = fileContent.trim().split('\n')
+
+      let storedCount = 0
+      let errorCount = 0
+      const palettesToStore: Array<{
+        cycle: number
+        tag: string
+        theme: string
+        paletteIndex: number
+        modelKey: PainterModelKey
+        seed: string
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        steps: number
+        angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
+        colors: string[]
+      }> = []
+
+      for (const line of lines) {
+        try {
+          const result = JSON.parse(line) as {
+            custom_id: string
+            response?: {
+              status_code: number
+              body: {
+                choices: Array<{
+                  message: {
+                    content: string
+                  }
+                }>
+              }
+            }
+            error?: { message: string }
+          }
+
+          const parts = result.custom_id.split('__')
+          const index = parseInt(parts[parts.length - 1] ?? '0', 10)
+          const theme = requestOrder[index] ?? result.custom_id.replace(/__\d+$/, '').replace(/_/g, ' ')
+
+          if (result.response?.status_code === 200) {
+            const contentStr = result.response.body.choices[0]?.message?.content
+            if (!contentStr) {
+              errorCount++
+              continue
+            }
+
+            try {
+              const cleaned = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+              const colors = JSON.parse(cleaned) as string[]
+
+              if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
+                palettesToStore.push({
+                  cycle,
+                  tag: theme,
+                  theme,
+                  paletteIndex: index,
+                  modelKey,
+                  seed: `openai-${batchId}-${index}`,
+                  style: 'linearGradient',
+                  steps: colors.length,
+                  angle: 0,
+                  colors,
+                })
+                storedCount++
+              } else {
+                errorCount++
+              }
+            } catch {
+              errorCount++
+            }
+          } else {
+            errorCount++
+          }
+        } catch {
+          errorCount++
+        }
+      }
+
+      // Store all palettes in batches
+      if (palettesToStore.length > 0) {
+        for (let i = 0; i < palettesToStore.length; i += 100) {
+          const chunk = palettesToStore.slice(i, i + 100)
+          await ctx.runMutation(internal.generate.storeGeneratedPalettes, { palettes: chunk })
+        }
+      }
+
+      console.log(`OpenAI painter batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
+
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'completed',
+        completedCount: batch.request_counts?.completed ?? 0,
+        failedCount: batch.request_counts?.failed ?? 0,
+      })
+    } else if (batch.status === 'failed' || batch.status === 'cancelled' || batch.status === 'expired') {
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'failed',
+        error: `Batch ${batch.status}`,
+      })
+    }
   },
 })
 
 export const pollGroqPainterBatch = internalAction({
   args: { batchId: v.string(), cycle: v.number(), modelKey: vPainterModelKey },
-  handler: async (_ctx, { batchId, cycle: _cycle, modelKey: _modelKey }) => {
-    // TODO: Implement full polling logic
-    console.log(`Polling Groq painter batch ${batchId}`)
+  handler: async (ctx, { batchId, cycle, modelKey }) => {
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey) throw new Error('GROQ_API_KEY not set')
+
+    const groq = new Groq({ apiKey })
+    const batch = await groq.batches.retrieve(batchId)
+
+    console.log(`Groq painter batch ${batchId} (${modelKey}):`, {
+      status: batch.status,
+      completed: batch.request_counts?.completed,
+      failed: batch.request_counts?.failed,
+    })
+
+    if (batch.status === 'in_progress' || batch.status === 'validating' || batch.status === 'finalizing') {
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'processing',
+        completedCount: batch.request_counts?.completed ?? 0,
+        failedCount: batch.request_counts?.failed ?? 0,
+      })
+      return
+    }
+
+    if (batch.status === 'completed') {
+      // Get the painter batch record for requestOrder
+      const batchRecord = await ctx.runQuery(internal.generate.getPainterBatchByBatchId, { batchId })
+      const requestOrder = batchRecord?.requestOrder ?? []
+
+      // Download the output file
+      if (!batch.output_file_id) {
+        console.error(`No output file for Groq painter batch ${batchId}`)
+        await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+          cycle,
+          modelKey,
+          status: 'failed',
+          error: 'No output file',
+        })
+        return
+      }
+
+      const fileContent = await groq.files.content(batch.output_file_id)
+      const text = await fileContent.text()
+      const lines = text.trim().split('\n')
+
+      let storedCount = 0
+      let errorCount = 0
+      const palettesToStore: Array<{
+        cycle: number
+        tag: string
+        theme: string
+        paletteIndex: number
+        modelKey: PainterModelKey
+        seed: string
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        steps: number
+        angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
+        colors: string[]
+      }> = []
+
+      for (const line of lines) {
+        try {
+          const result = JSON.parse(line) as {
+            custom_id: string
+            response?: {
+              status_code: number
+              body: {
+                choices: Array<{
+                  message: {
+                    content: string
+                  }
+                }>
+              }
+            }
+            error?: { message: string }
+          }
+
+          // Parse custom_id format: "safeTheme__index"
+          const parts = result.custom_id.split('__')
+          const index = parseInt(parts[parts.length - 1] ?? '0', 10)
+          const theme = requestOrder[index] ?? result.custom_id.replace(/__\d+$/, '').replace(/_/g, ' ')
+
+          if (result.response?.status_code === 200) {
+            const contentStr = result.response.body.choices[0]?.message?.content
+            if (!contentStr) {
+              errorCount++
+              continue
+            }
+
+            try {
+              // Parse the JSON array of hex colors
+              const cleaned = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+              const colors = JSON.parse(cleaned) as string[]
+
+              if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
+                palettesToStore.push({
+                  cycle,
+                  tag: theme, // Use theme as tag
+                  theme,
+                  paletteIndex: index,
+                  modelKey,
+                  seed: `groq-${batchId}-${index}`,
+                  style: 'linearGradient',
+                  steps: colors.length,
+                  angle: 0,
+                  colors,
+                })
+                storedCount++
+              } else {
+                console.warn(`Invalid colors format for ${result.custom_id}:`, colors)
+                errorCount++
+              }
+            } catch (parseErr) {
+              console.error(`Failed to parse colors for ${result.custom_id}:`, parseErr)
+              errorCount++
+            }
+          } else {
+            errorCount++
+          }
+        } catch (e) {
+          console.error(`Failed to parse Groq painter result line:`, e)
+          errorCount++
+        }
+      }
+
+      // Store all palettes in batches
+      if (palettesToStore.length > 0) {
+        // Store in chunks of 100
+        for (let i = 0; i < palettesToStore.length; i += 100) {
+          const chunk = palettesToStore.slice(i, i + 100)
+          await ctx.runMutation(internal.generate.storeGeneratedPalettes, { palettes: chunk })
+        }
+      }
+
+      console.log(`Groq painter batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
+
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'completed',
+        completedCount: batch.request_counts?.completed ?? 0,
+        failedCount: batch.request_counts?.failed ?? 0,
+      })
+    } else if (batch.status === 'failed' || batch.status === 'cancelled' || batch.status === 'expired') {
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'failed',
+        error: `Batch ${batch.status}`,
+      })
+    }
   },
 })
 
 export const pollGooglePainterBatch = internalAction({
   args: { batchId: v.string(), cycle: v.number(), modelKey: vPainterModelKey },
-  handler: async (_ctx, { batchId, cycle: _cycle, modelKey: _modelKey }) => {
-    // TODO: Implement full polling logic
-    console.log(`Polling Google painter batch ${batchId}`)
+  handler: async (ctx, { batchId, cycle, modelKey }) => {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+    const { GoogleGenAI } = await import('@google/genai')
+    const ai = new GoogleGenAI({ apiKey })
+    const batch = await ai.batches.get({ name: batchId })
+
+    const stats = batch.completionStats
+    console.log(`Google painter batch ${batchId} (${modelKey}):`, {
+      state: batch.state,
+      successfulCount: stats?.successfulCount,
+      failedCount: stats?.failedCount,
+    })
+
+    if (batch.state === 'JOB_STATE_PENDING' || batch.state === 'JOB_STATE_RUNNING') {
+      const completedCount = parseInt(stats?.successfulCount ?? '0', 10)
+      const failedCount = parseInt(stats?.failedCount ?? '0', 10)
+
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'processing',
+        completedCount,
+        failedCount,
+      })
+      return
+    }
+
+    if (batch.state === 'JOB_STATE_SUCCEEDED') {
+      // Get the painter batch record for requestOrder
+      const batchRecord = await ctx.runQuery(internal.generate.getPainterBatchByBatchId, { batchId })
+      const requestOrder = batchRecord?.requestOrder ?? []
+
+      // Get inline responses
+      const inlinedResponses = batch.dest?.inlinedResponses ?? []
+
+      let storedCount = 0
+      let errorCount = 0
+      const palettesToStore: Array<{
+        cycle: number
+        tag: string
+        theme: string
+        paletteIndex: number
+        modelKey: PainterModelKey
+        seed: string
+        style: 'linearGradient' | 'linearSwatches' | 'angularGradient' | 'angularSwatches' | 'deepFlow'
+        steps: number
+        angle: 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315
+        colors: string[]
+      }> = []
+
+      for (let index = 0; index < inlinedResponses.length; index++) {
+        const result = inlinedResponses[index]
+        const theme = requestOrder[index] ?? `theme-${index}`
+
+        if (result.error) {
+          errorCount++
+          continue
+        }
+
+        const contentStr = result.response?.candidates?.[0]?.content?.parts?.[0]?.text
+        if (!contentStr) {
+          errorCount++
+          continue
+        }
+
+        try {
+          const cleaned = contentStr.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+          const colors = JSON.parse(cleaned) as string[]
+
+          if (Array.isArray(colors) && colors.length > 0 && colors.every(c => typeof c === 'string' && c.startsWith('#'))) {
+            palettesToStore.push({
+              cycle,
+              tag: theme,
+              theme,
+              paletteIndex: index,
+              modelKey,
+              seed: `google-${batchId}-${index}`,
+              style: 'linearGradient',
+              steps: colors.length,
+              angle: 0,
+              colors,
+            })
+            storedCount++
+          } else {
+            errorCount++
+          }
+        } catch {
+          errorCount++
+        }
+      }
+
+      // Store all palettes in batches
+      if (palettesToStore.length > 0) {
+        for (let i = 0; i < palettesToStore.length; i += 100) {
+          const chunk = palettesToStore.slice(i, i + 100)
+          await ctx.runMutation(internal.generate.storeGeneratedPalettes, { palettes: chunk })
+        }
+      }
+
+      console.log(`Google painter batch ${batchId} processed: ${storedCount} palettes stored, ${errorCount} errors`)
+
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'completed',
+        completedCount: parseInt(stats?.successfulCount ?? '0', 10),
+        failedCount: parseInt(stats?.failedCount ?? '0', 10),
+      })
+    } else if (batch.state === 'JOB_STATE_FAILED' || batch.state === 'JOB_STATE_CANCELLED') {
+      await ctx.runMutation(internal.generate.updatePainterBatchStatus, {
+        cycle,
+        modelKey,
+        status: 'failed',
+        error: `Batch ${batch.state}`,
+      })
+    }
   },
 })
 
