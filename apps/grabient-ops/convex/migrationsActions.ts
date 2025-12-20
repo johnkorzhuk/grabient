@@ -1,6 +1,6 @@
 'use node'
 
-import { action, internalAction } from './_generated/server'
+import { internalAction } from './_generated/server'
 import { internal } from './_generated/api'
 import { v } from 'convex/values'
 import { deserializeCoeffs } from '@repo/data-ops/serialization'
@@ -9,6 +9,11 @@ import {
   calculateContrast,
   type CosineCoeffs,
 } from '@repo/data-ops/gradient-gen'
+import {
+  computeLabSamples,
+  comparePalettes,
+  type LAB,
+} from '@repo/data-ops/similarity'
 
 // ============================================================================
 // Types
@@ -29,23 +34,20 @@ interface GeneratedPalette {
 
 interface StagedPaletteData {
   sourceId: string
-  cycle: number
-  tag: string
   seed: string
-  colors: string[]
-  style?: string
-  steps?: number
-  angle?: number
   modelKey?: string
   themes: string[]
-  flatCoeffs: number[]
+  labSamples: LAB[]
+  labSamplesReversed: LAB[]
 }
 
 interface ExistingStagedPalette {
   _id: string
   seed: string
+  colors: string[]
   themes: string[]
-  flatCoeffs: number[]
+  labSamples: LAB[]
+  labSamplesReversed: LAB[]
 }
 
 interface FilterStats {
@@ -64,34 +66,19 @@ interface FilterStats {
 // ============================================================================
 
 /**
- * Flatten coefficients to a 12-element array (4 rows × 3 RGB values).
- */
-function flattenCoeffs(coeffs: CosineCoeffs): number[] {
-  return coeffs.flatMap(vec => [vec[0], vec[1], vec[2]])
-}
-
-/**
- * Calculate euclidean distance between two coefficient vectors.
- */
-function coeffDistance(a: number[], b: number[]): number {
-  let sum = 0
-  for (let i = 0; i < a.length; i++) {
-    const diff = a[i] - b[i]
-    sum += diff * diff
-  }
-  return Math.sqrt(sum)
-}
-
-/**
- * Find index of similar palette in new palettes array, or -1 if none found.
+ * Find index of similar palette in new palettes array using LAB color distance.
+ * Returns -1 if none found.
  */
 function findSimilarInNew(
-  flatCoeffs: number[],
+  labSamples: LAB[],
   uniquePalettes: StagedPaletteData[],
   threshold: number
 ): number {
   for (let i = 0; i < uniquePalettes.length; i++) {
-    if (coeffDistance(flatCoeffs, uniquePalettes[i].flatCoeffs) < threshold) {
+    const existing = uniquePalettes[i]
+    if (!existing) continue
+    const { distance } = comparePalettes(labSamples, existing.labSamples, existing.labSamplesReversed)
+    if (distance < threshold) {
       return i
     }
   }
@@ -99,15 +86,19 @@ function findSimilarInNew(
 }
 
 /**
- * Find index of similar palette in existing staged palettes, or -1 if none found.
+ * Find index of similar palette in existing staged palettes using LAB color distance.
+ * Returns -1 if none found.
  */
 function findSimilarInExisting(
-  flatCoeffs: number[],
+  labSamples: LAB[],
   existingPalettes: ExistingStagedPalette[],
   threshold: number
 ): number {
   for (let i = 0; i < existingPalettes.length; i++) {
-    if (coeffDistance(flatCoeffs, existingPalettes[i].flatCoeffs) < threshold) {
+    const existing = existingPalettes[i]
+    if (!existing) continue
+    const { distance } = comparePalettes(labSamples, existing.labSamples, existing.labSamplesReversed)
+    if (distance < threshold) {
       return i
     }
   }
@@ -150,7 +141,7 @@ export const processAndStagePalettes = internalAction({
     similarityThreshold: v.optional(v.number()), // Euclidean distance threshold (default 0.25)
   },
   handler: async (ctx, args) => {
-    const { clearFirst = true, minContrast = 0.05, maxFrequency = 1.5, similarityThreshold = 0.25 } = args
+    const { clearFirst = true, minContrast = 0.05, maxFrequency = 3.0, similarityThreshold = 11 } = args
     const incremental = !clearFirst
 
     console.log(`Starting staged palette processing (${incremental ? 'incremental' : 'full'} mode)...`)
@@ -162,24 +153,11 @@ export const processAndStagePalettes = internalAction({
     const themeUpdates = new Map<string, Set<string>>()
 
     if (incremental) {
-      console.log('Loading existing staged_palettes...')
-      const existing = await ctx.runQuery(internal.migrations.getStagedPalettesLookup, {})
-      console.log(`Found ${existing.length} existing staged palettes`)
-
-      for (const p of existing) {
-        try {
-          const { coeffs } = deserializeCoeffs(p.seed)
-          existingPalettes.push({
-            _id: p._id,
-            seed: p.seed,
-            themes: p.themes,
-            flatCoeffs: flattenCoeffs(coeffs),
-          })
-        } catch {
-          // Skip invalid seeds
-        }
-      }
-      console.log(`Loaded ${existingPalettes.length} existing palettes with valid coefficients`)
+      // Note: Incremental mode is no longer fully supported since staged_palettes
+      // doesn't store colors. We'd need to look up colors from generated_palettes via sourceId.
+      // For now, just warn and continue - existing palettes won't be deduplicated against.
+      console.log('Warning: Incremental mode has limited support - staged_palettes lacks colors field')
+      console.log('Existing staged palettes will be preserved but not deduplicated against.')
     } else {
       console.log('Clearing existing staged_palettes...')
       const deleteResult = await ctx.runMutation(internal.migrations.clearStagedPalettes, {})
@@ -238,54 +216,64 @@ export const processAndStagePalettes = internalAction({
     console.log('Filtering and deduplicating...')
 
     for (const palette of allPalettes) {
-      // Filter 1: Must have seed
+      // Filter 1: Must have valid colors
+      if (!palette.colors || palette.colors.length === 0) {
+        stats.noSeed++
+        continue
+      }
+
+      // Filter 2: Must have seed
       if (!palette.seed) {
         stats.noSeed++
         continue
       }
 
-      // Filter 2: Valid seed that can be parsed + extract coeffs
+      // Filter 3: Seed must be valid (parseable coefficients)
       let coeffs: CosineCoeffs
-      let flatCoeffs: number[]
       try {
         const parsed = deserializeCoeffs(palette.seed)
         coeffs = parsed.coeffs
-        flatCoeffs = flattenCoeffs(coeffs)
       } catch {
+        // Invalid seed - can't use this palette
         stats.invalidSeed++
         continue
       }
 
-      // Filter 3: Color diversity (not dominated by single color)
+      // Filter 4: Color diversity (not dominated by single color)
       if (isDominatedPalette(palette.colors)) {
         stats.dominated++
         continue
       }
 
-      // Filter 4: Minimum contrast
+      // Filter 5: Minimum contrast
       const contrast = calculateContrast(palette.colors)
       if (contrast < minContrast) {
         stats.lowContrast++
         continue
       }
 
-      // Filter 5: Maximum frequency
+      // Filter 6: Maximum frequency
       const avgFreq = calculateAverageFrequency(coeffs)
       if (avgFreq > maxFrequency) {
         stats.highFrequency++
         continue
       }
 
+      // Pre-compute LAB samples for deduplication
+      const labSamples = computeLabSamples(palette.colors)
+      const labSamplesReversed = [...labSamples].reverse()
+
       // Deduplication: First check against existing palettes (incremental mode)
       if (incremental) {
-        const existingMatch = findSimilarInExisting(flatCoeffs, existingPalettes, similarityThreshold)
+        const existingMatch = findSimilarInExisting(labSamples, existingPalettes, similarityThreshold)
         if (existingMatch >= 0) {
           stats.existingMatches++
           // Queue theme update for existing palette
-          if (palette.theme) {
-            const existingId = existingPalettes[existingMatch]._id
+          const existingPalette = existingPalettes[existingMatch]
+          if (palette.theme && existingPalette) {
+            const existingId = existingPalette._id
             if (!themeUpdates.has(existingId)) {
-              themeUpdates.set(existingId, new Set(existingPalettes[existingMatch].themes))
+              themeUpdates.set(existingId, new Set(existingPalette.themes))
             }
             themeUpdates.get(existingId)!.add(palette.theme)
           }
@@ -294,12 +282,13 @@ export const processAndStagePalettes = internalAction({
       }
 
       // Check against new unique palettes in this batch
-      const newMatch = findSimilarInNew(flatCoeffs, newUniquePalettes, similarityThreshold)
+      const newMatch = findSimilarInNew(labSamples, newUniquePalettes, similarityThreshold)
       if (newMatch >= 0) {
         stats.duplicates++
         // Merge theme into new palette
-        if (palette.theme && !newUniquePalettes[newMatch].themes.includes(palette.theme)) {
-          newUniquePalettes[newMatch].themes.push(palette.theme)
+        const matchedPalette = newUniquePalettes[newMatch]
+        if (palette.theme && matchedPalette && !matchedPalette.themes.includes(palette.theme)) {
+          matchedPalette.themes.push(palette.theme)
         }
         continue
       }
@@ -307,16 +296,11 @@ export const processAndStagePalettes = internalAction({
       // New unique palette - add to array
       newUniquePalettes.push({
         sourceId: palette._id,
-        cycle: palette.cycle,
-        tag: palette.tag,
         seed: palette.seed,
-        colors: palette.colors,
-        style: palette.style,
-        steps: palette.steps,
-        angle: palette.angle,
         modelKey: palette.modelKey,
         themes: palette.theme ? [palette.theme] : [],
-        flatCoeffs,
+        labSamples,
+        labSamplesReversed,
       })
       stats.passed++
     }
@@ -340,13 +324,7 @@ export const processAndStagePalettes = internalAction({
         await ctx.runMutation(internal.migrations.insertStagedPalettesBatch, {
           palettes: batch.map(p => ({
             sourceId: p.sourceId,
-            cycle: p.cycle,
-            tag: p.tag,
             seed: p.seed,
-            colors: p.colors,
-            style: p.style,
-            steps: p.steps,
-            angle: p.angle,
             modelKey: p.modelKey,
             themes: [...new Set(p.themes)], // Dedupe themes
           })),
@@ -392,35 +370,4 @@ export const processAndStagePalettes = internalAction({
   },
 })
 
-// ============================================================================
-// DeepFlow Style Fix
-// ============================================================================
-
-/**
- * Fix vectorized_palettes with deprecated deepFlow style by changing to linearGradient.
- *
- * Run via: npx convex run migrationsActions:fixDeepFlowStyle
- */
-export const fixDeepFlowStyle = action({
-  args: {},
-  returns: v.object({ updated: v.number() }),
-  handler: async (ctx): Promise<{ updated: number }> => {
-    // Query all vectorized_palettes and filter for deepFlow
-    const allPalettes: Array<{ _id: string }> = await ctx.runQuery(internal.migrations.getVectorizedPalettesWithDeepFlow, {})
-
-    console.log(`Found ${allPalettes.length} palettes with deepFlow style`)
-
-    if (allPalettes.length === 0) {
-      return { updated: 0 }
-    }
-
-    // Update each one to linearGradient
-    await ctx.runMutation(internal.migrations.updateDeepFlowToLinearGradient, {
-      ids: allPalettes.map((p: { _id: string }) => p._id) as any,
-    })
-
-    console.log(`Updated ${allPalettes.length} palettes from deepFlow to linearGradient`)
-
-    return { updated: allPalettes.length }
-  },
-})
+// Note: DeepFlow style fix action removed - style field no longer exists on vectorized_palettes

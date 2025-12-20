@@ -10,10 +10,8 @@ import { deserializeCoeffs } from '@repo/data-ops/serialization'
 import {
   analyzeCoefficients,
   tagsToArray,
-  isValidPaletteColors,
   isValidPaletteCoeffs,
   generatePaletteEmojis,
-  calculateAverageFrequency,
   cosineGradient,
   rgbToHex,
   applyGlobals,
@@ -57,9 +55,7 @@ interface VectorizeVector {
   metadata: {
     seed: string
     tags: string[]
-    style: string
-    steps: number
-    angle: number
+    // Note: style/steps/angle are derived from seed at display time
     likesCount: number
     createdAt: number
   }
@@ -559,13 +555,11 @@ export const seedVectorDatabase = action({
       const batchVectorIds = vectorIds.slice(i, i + INSERT_BATCH_SIZE)
 
       const palettesToInsert = batchPalettes.map((p, idx) => ({
+        // D1-sourced palettes don't have sourceId/modelKey/themes
         seed: p.seed,
         embedText: p.embedText,
         tags: p.tags,
-        style: p.style,
-        steps: p.steps,
-        angle: p.angle,
-        vectorId: batchVectorIds[idx],
+        vectorId: batchVectorIds[idx]!,
       }))
 
       const result = await ctx.runMutation(internal.generate.insertVectorizedPalettes, {
@@ -643,10 +637,10 @@ export const vectorizeStagedPalettes = action({
     console.log(`Step 1: Querying up to ${limit} palettes for ${mode}...`)
     const stagedPalettes = await ctx.runQuery(api.generate.getUnvectorizedStagedPalettes, { limit, revectorize }) as Array<{
       _id: Id<'staged_palettes'>
+      sourceId: Id<'generated_palettes'>
       seed: string
-      colors: string[]
+      modelKey?: string
       themes: string[]
-      angle?: number
     }>
 
     if (stagedPalettes.length === 0) {
@@ -673,22 +667,16 @@ export const vectorizeStagedPalettes = action({
     // Step 2: Validate and prepare palettes
     console.log('Step 2: Validating palettes and generating embed text...')
     const validPalettes: Array<{
+      sourceId: Id<'generated_palettes'>
       seed: string
+      modelKey?: string
+      themes: string[]
       embedText: string
       tags: string[]
-      style: string
-      steps: number
-      angle: number
     }> = []
     let skipped = 0
 
     for (const palette of stagedPalettes) {
-      // Validate colors
-      if (!isValidPaletteColors(palette.colors)) {
-        skipped++
-        continue
-      }
-
       // Validate and analyze coefficients
       try {
         const { coeffs } = deserializeCoeffs(palette.seed)
@@ -702,16 +690,8 @@ export const vectorizeStagedPalettes = action({
         const tagArray = tagsToArray(paletteTags)
         const emojis = generatePaletteEmojis(paletteTags)
 
-        // Extract unique color names from palette colors (what shows in search heading)
-        const colorNames: string[] = []
-        const seenColors = new Set<string>()
-        for (const hex of palette.colors) {
-          const name = hexToColorName(hex)
-          if (!seenColors.has(name)) {
-            seenColors.add(name)
-            colorNames.push(name)
-          }
-        }
+        // Extract unique color names from seed (derive colors from coefficients)
+        const colorNames = getColorNamesFromSeed(palette.seed)
 
         // Deduplicate themes
         const uniqueThemes = [...new Set(palette.themes)]
@@ -721,27 +701,16 @@ export const vectorizeStagedPalettes = action({
         const uniqueTokens = [...new Set(allTokens)]
         const embedText = uniqueTokens.join(' ')
 
-        // Determine style based on frequency - high frequency has slight chance of angular
-        // but most should remain linear for better visual appeal
-        const avgFrequency = calculateAverageFrequency(coeffs)
-        const angularProbability = Math.min(avgFrequency / 3, 0.35) // Cap at 35% chance
-        const style = Math.random() < angularProbability ? 'angularGradient' : 'linearGradient'
-
-        // Determine steps (8-16) based on frequency - higher frequency = more steps
-        // Clamp frequency to [0, 1.5] range, then map to [8, 16]
-        const normalizedFreq = Math.min(avgFrequency, 1.5) / 1.5
-        const steps = Math.round(8 + normalizedFreq * 8) // 8-16 range
-
         // Deduplicate tags array as well
         const uniqueTags = [...new Set([...tagArray, ...uniqueThemes])]
 
         validPalettes.push({
+          sourceId: palette.sourceId,
           seed: palette.seed,
+          modelKey: palette.modelKey,
+          themes: uniqueThemes,
           embedText,
           tags: uniqueTags,
-          style,
-          steps,
-          angle: palette.angle ?? 0,
         })
       } catch {
         skipped++
@@ -784,9 +753,7 @@ export const vectorizeStagedPalettes = action({
       metadata: {
         seed: p.seed,
         tags: p.tags,
-        style: p.style,
-        steps: p.steps,
-        angle: p.angle,
+        // Note: style/steps/angle are derived from seed at display time
         likesCount: 0,
         createdAt: Date.now(),
       },
@@ -812,13 +779,13 @@ export const vectorizeStagedPalettes = action({
       const batchVectorIds = vectorIds.slice(i, i + INSERT_BATCH_SIZE)
 
       const palettesToInsert = batchPalettes.map((p, idx) => ({
+        sourceId: p.sourceId,
         seed: p.seed,
+        modelKey: p.modelKey,
+        themes: p.themes,
         embedText: p.embedText,
         tags: p.tags,
-        style: p.style as any,
-        steps: p.steps,
-        angle: p.angle as any,
-        vectorId: batchVectorIds[idx],
+        vectorId: batchVectorIds[idx]!,
       }))
 
       const result = await ctx.runMutation(internal.generate.insertVectorizedPalettes, {

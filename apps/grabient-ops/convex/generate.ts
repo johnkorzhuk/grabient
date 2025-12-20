@@ -860,17 +860,8 @@ export const clearGenerationTable = mutation({
 export const getStagedPalettes = query({
   args: {
     paginationOpts: paginationOptsValidator,
-    tag: v.optional(v.string()),
   },
-  handler: async (ctx, { paginationOpts, tag }) => {
-    if (tag) {
-      return await ctx.db
-        .query('staged_palettes')
-        .withIndex('by_tag', (q) => q.eq('tag', tag))
-        .order('desc')
-        .paginate(paginationOpts)
-    }
-
+  handler: async (ctx, { paginationOpts }) => {
     return await ctx.db
       .query('staged_palettes')
       .order('desc')
@@ -886,22 +877,22 @@ export const getStagedPalettesStats = query({
   handler: async (ctx) => {
     const allPalettes = await ctx.db.query('staged_palettes').collect()
 
-    // Count by tag
-    const tagCounts = new Map<string, number>()
+    // Count by modelKey and themes
+    const modelCounts = new Map<string, number>()
     let totalThemes = 0
 
     for (const p of allPalettes) {
-      tagCounts.set(p.tag, (tagCounts.get(p.tag) || 0) + 1)
+      const key = p.modelKey || 'unknown'
+      modelCounts.set(key, (modelCounts.get(key) || 0) + 1)
       totalThemes += p.themes.length
     }
 
     return {
       totalPalettes: allPalettes.length,
-      uniqueTags: tagCounts.size,
       totalThemes,
-      tagCounts: Array.from(tagCounts.entries())
+      modelCounts: Array.from(modelCounts.entries())
         .sort((a, b) => b[1] - a[1])
-        .map(([tag, count]) => ({ tag, count })),
+        .map(([modelKey, count]) => ({ modelKey, count })),
     }
   },
 })
@@ -984,12 +975,12 @@ export const insertVectorizedPalettes = internalMutation({
   args: {
     palettes: v.array(
       v.object({
+        sourceId: v.optional(v.id('generated_palettes')),
         seed: v.string(),
+        modelKey: v.optional(v.string()),
+        themes: v.optional(v.array(v.string())),
         embedText: v.string(),
         tags: v.array(v.string()),
-        style: vPaletteStyle,
-        steps: v.number(),
-        angle: vPaletteAngle,
         vectorId: v.string(),
       })
     ),
@@ -998,12 +989,12 @@ export const insertVectorizedPalettes = internalMutation({
     let count = 0
     for (const p of palettes) {
       await ctx.db.insert('vectorized_palettes', {
+        sourceId: p.sourceId,
         seed: p.seed,
+        modelKey: p.modelKey as any,
+        themes: p.themes,
         embedText: p.embedText,
         tags: p.tags,
-        style: p.style,
-        steps: p.steps,
-        angle: p.angle,
         vectorId: p.vectorId,
       })
       count++

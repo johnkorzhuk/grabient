@@ -267,19 +267,14 @@ export const GenerationBatches = Table('generation_batches', {
 
 // ============================================================================
 // StagedPalettes - deduplicated palettes ready for curation
-// Created by deduplication migration using euclidean distance on coefficients
+// Created by deduplication migration using LAB color-space distance
 // ============================================================================
 export const StagedPalettes = Table('staged_palettes', {
   // Reference to the canonical generated_palette this was derived from
   sourceId: v.id('generated_palettes'),
-  // Palette data (copied from source)
-  cycle: v.number(),
-  tag: v.string(),
-  seed: v.string(), // Original 3-precision seed
-  colors: v.array(v.string()),
-  style: v.optional(vPaletteStyle),
-  steps: v.optional(v.number()),
-  angle: v.optional(vPaletteAngle),
+  // Cosine seed for gradient generation
+  seed: v.string(),
+  // Which painter model generated this
   modelKey: v.optional(vPainterModelKey),
   // Aggregated themes from this palette and all its duplicates
   themes: v.array(v.string()),
@@ -288,21 +283,17 @@ export const StagedPalettes = Table('staged_palettes', {
 // ============================================================================
 // VectorizedPalettes - palettes that have been embedded and upserted to Vectorize
 // Pipeline: generated_palettes → staged_palettes → vectorized_palettes
-// OR: D1 palettes → refinements → vectorized_palettes
-// Uses seed as unique identifier, _creationTime for timestamp
+// Mirrors staged_palettes schema + vectorization metadata
 // ============================================================================
 export const VectorizedPalettes = Table('vectorized_palettes', {
-  // Core data for search
+  // Mirror of staged_palettes fields (optional for D1-sourced palettes)
+  sourceId: v.optional(v.id('generated_palettes')),
   seed: v.string(),
-  // Computed embed text used for vectorization
-  embedText: v.string(),
-  // Tags array (coefficient-derived + themes, deduplicated)
-  tags: v.array(v.string()),
-  // Display properties
-  style: vPaletteStyle,
-  steps: v.number(),
-  angle: vPaletteAngle,
-  // Vectorize metadata
+  modelKey: v.optional(vPainterModelKey),
+  themes: v.optional(v.array(v.string())), // Optional for D1-sourced palettes
+  // Vectorization metadata
+  embedText: v.string(), // Computed embed text used for vectorization
+  tags: v.array(v.string()), // Tags array (coefficient-derived + themes, deduplicated)
   vectorId: v.string(), // nanoid used as vector ID in Cloudflare Vectorize
 })
 
@@ -360,8 +351,7 @@ export default defineSchema({
     .index('by_batch_id', ['batchId']),
   // Deduplicated palettes for curation
   staged_palettes: StagedPalettes.table
-    .index('by_tag', ['tag'])
-    .index('by_cycle', ['cycle']),
+    .index('by_seed', ['seed']),
   // Vectorized palettes (final stage of pipeline)
   vectorized_palettes: VectorizedPalettes.table
     .index('by_seed', ['seed']),

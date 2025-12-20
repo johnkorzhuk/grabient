@@ -343,11 +343,13 @@ export const clearConsensusForRebuild = migrations.define({
 /**
  * Get all staged palettes for building the lookup map.
  * Called at the start of each batch to ensure we have the latest state.
+ * Note: For incremental mode, colors must be looked up from generated_palettes via sourceId.
  */
 export const getStagedPalettesLookup = internalQuery({
   args: {},
   returns: v.array(v.object({
     _id: v.id('staged_palettes'),
+    sourceId: v.id('generated_palettes'),
     seed: v.string(),
     themes: v.array(v.string()),
   })),
@@ -355,6 +357,7 @@ export const getStagedPalettesLookup = internalQuery({
     const staged = await ctx.db.query('staged_palettes').collect()
     return staged.map(s => ({
       _id: s._id,
+      sourceId: s.sourceId,
       seed: s.seed,
       themes: s.themes,
     }))
@@ -441,13 +444,7 @@ export const insertStagedPalettesBatch = internalMutation({
     palettes: v.array(
       v.object({
         sourceId: v.string(),
-        cycle: v.number(),
-        tag: v.string(),
         seed: v.string(),
-        colors: v.array(v.string()),
-        style: v.optional(v.string()),
-        steps: v.optional(v.number()),
-        angle: v.optional(v.number()),
         modelKey: v.optional(v.string()),
         themes: v.array(v.string()),
       })
@@ -458,13 +455,7 @@ export const insertStagedPalettesBatch = internalMutation({
     for (const p of palettes) {
       await ctx.db.insert('staged_palettes', {
         sourceId: p.sourceId as Id<'generated_palettes'>,
-        cycle: p.cycle,
-        tag: p.tag,
         seed: p.seed,
-        colors: p.colors,
-        style: p.style as any,
-        steps: p.steps,
-        angle: p.angle as any,
         modelKey: p.modelKey as any,
         themes: p.themes,
       })
@@ -495,48 +486,5 @@ export const updateStagedPaletteThemes = internalMutation({
   },
 })
 
-// ============================================================================
-// DeepFlow Style Migration
-// ============================================================================
-
-/**
- * Migrate vectorized_palettes with deprecated deepFlow style to linearGradient.
- * deepFlow is being removed as a style option.
- *
- * Run via: npx convex run migrations:run '{"fn": "migrations:migrateDeepFlowStyle"}'
- */
-export const migrateDeepFlowStyle = migrations.define({
-  table: 'vectorized_palettes',
-  migrateOne: async (ctx, doc) => {
-    if ((doc as any).style === 'deepFlow') {
-      await ctx.db.patch(doc._id, { style: 'linearGradient' })
-    }
-  },
-})
-
-/**
- * Get all vectorized_palettes with deepFlow style.
- */
-export const getVectorizedPalettesWithDeepFlow = internalQuery({
-  args: {},
-  handler: async (ctx) => {
-    const all = await ctx.db.query('vectorized_palettes').collect()
-    return all.filter((p: any) => p.style === 'deepFlow').map(p => ({ _id: p._id }))
-  },
-})
-
-/**
- * Update vectorized_palettes from deepFlow to linearGradient.
- */
-export const updateDeepFlowToLinearGradient = internalMutation({
-  args: {
-    ids: v.array(v.id('vectorized_palettes')),
-  },
-  handler: async (ctx, { ids }) => {
-    for (const id of ids) {
-      await ctx.db.patch(id, { style: 'linearGradient' })
-    }
-    return { updated: ids.length }
-  },
-})
+// Note: DeepFlow style migration removed - style field no longer exists on vectorized_palettes
 
