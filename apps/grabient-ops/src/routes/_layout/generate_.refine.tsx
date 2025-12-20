@@ -5,42 +5,37 @@ import { useRef, useEffect, useState } from 'react'
 import { Filter, Loader2, Sliders } from 'lucide-react'
 import type { Id } from '../../../convex/_generated/dataModel'
 import { deserializeCoeffs } from '@repo/data-ops/serialization'
-import { analyzeCoefficients, tagsToArray, isValidPaletteColors, isValidPaletteCoeffs, generatePaletteEmojis, type PaletteTags, type CosineCoeffs } from '@repo/data-ops/gradient-gen'
+import { analyzeCoefficients, tagsToArray, isValidPaletteColors, generatePaletteEmojis, type PaletteTags } from '@repo/data-ops/gradient-gen'
+import {
+  computeLabSamples,
+  comparePalettes,
+  type PaletteForDedup,
+} from '@repo/data-ops/similarity'
 
 export const Route = createFileRoute('/_layout/generate_/refine')({
   component: RefinePage,
 })
 
-const ITEMS_PER_PAGE = 1000
+const ITEMS_PER_PAGE = 2500
 const PRELOAD_PAGES = 1
 
-type StagedPalette = {
-  _id: Id<'staged_palettes'>
+type GeneratedPalette = {
+  _id: Id<'generated_palettes'>
   colors: string[]
-  themes: string[]
+  theme?: string
   tag: string
-  seed: string
+  seed?: string
 }
 
-// Similarity detection utilities
-function flattenCoeffs(coeffs: CosineCoeffs): number[] {
-  return coeffs.flatMap(vec => [vec[0], vec[1], vec[2]])
+type PaletteWithData = GeneratedPalette & PaletteForDedup & {
+  themes: string[]
 }
-
-function coeffDistance(a: number[], b: number[]): number {
-  let sum = 0
-  for (let i = 0; i < a.length; i++) {
-    const diff = a[i] - b[i]
-    sum += diff * diff
-  }
-  return Math.sqrt(sum)
+type PaletteWithDupes = PaletteWithData & {
+  duplicates: Array<PaletteWithData & { distance: number; reversed: boolean }>
 }
-
-type PaletteWithCoeffs = StagedPalette & { flatCoeffs: number[] }
-type PaletteWithDupes = PaletteWithCoeffs & { duplicates: PaletteWithCoeffs[] }
 
 function deduplicatePalettes(
-  palettes: PaletteWithCoeffs[],
+  palettes: PaletteWithData[],
   threshold: number
 ): { unique: PaletteWithDupes[]; duplicateCount: number } {
   const unique: PaletteWithDupes[] = []
@@ -48,26 +43,38 @@ function deduplicatePalettes(
 
   for (const palette of palettes) {
     let matchIndex = -1
+    let matchDistance = Infinity
+    let matchReversed = false
+
     for (let i = 0; i < unique.length; i++) {
-      if (coeffDistance(palette.flatCoeffs, unique[i].flatCoeffs) < threshold) {
-        matchIndex = i
+      const { distance, reversed } = comparePalettes(
+        palette.labSamples,
+        unique[i].labSamples,
+        unique[i].labSamplesReversed
+      )
+      if (distance < threshold) {
+        if (distance < matchDistance) {
+          matchIndex = i
+          matchDistance = distance
+          matchReversed = reversed
+        }
         break
       }
     }
 
     if (matchIndex >= 0) {
-      // Merge themes from duplicate into existing palette
       const existing = unique[matchIndex]
-      for (const theme of palette.themes) {
-        if (!existing.themes.includes(theme)) {
-          existing.themes = [...existing.themes, theme]
-        }
+      if (palette.theme && !existing.themes.includes(palette.theme)) {
+        existing.themes = [...existing.themes, palette.theme]
       }
-      // Track the duplicate
-      existing.duplicates.push(palette)
+      existing.duplicates.push({ ...palette, distance: matchDistance, reversed: matchReversed })
       duplicateCount++
     } else {
-      unique.push({ ...palette, duplicates: [] })
+      unique.push({
+        ...palette,
+        themes: palette.theme ? [palette.theme] : [],
+        duplicates: []
+      })
     }
   }
 
@@ -76,14 +83,16 @@ function deduplicatePalettes(
 
 function RefinePage() {
   const { results, status, loadMore } = usePaginatedQuery(
-    api.generate.getStagedPalettes,
+    api.generate.getGeneratedPalettesPaginated,
     {},
     { initialNumItems: ITEMS_PER_PAGE }
   )
 
   const [selectedPalette, setSelectedPalette] = useState<PaletteWithDupes | null>(null)
   const [paletteTags, setPaletteTags] = useState<PaletteTags | null>(null)
-  const [similarityThreshold, setSimilarityThreshold] = useState(0.7)
+  // Default threshold: average deltaE of 8 (very similar colors)
+  // deltaE < 2.3: imperceptible, 2.3-5: noticeable, 5-10: obvious, 10+: different
+  const [similarityThreshold, setSimilarityThreshold] = useState(8)
   const [enableDedup, setEnableDedup] = useState(true)
   const [sortByDupes, setSortByDupes] = useState(false)
 
@@ -93,6 +102,10 @@ function RefinePage() {
   // Analyze tags when palette is selected
   const handleSelectPalette = (palette: PaletteWithDupes) => {
     setSelectedPalette(palette)
+    if (!palette.seed) {
+      setPaletteTags(null)
+      return
+    }
     try {
       const { coeffs } = deserializeCoeffs(palette.seed)
       const tags = analyzeCoefficients(coeffs)
@@ -129,34 +142,35 @@ function RefinePage() {
 
   const isLoading = status === 'LoadingFirstPage'
 
-  // Filter out corrupted palettes and extract coefficients
-  const validPalettesWithCoeffs: PaletteWithCoeffs[] = []
+  // Filter out corrupted palettes and pre-compute LAB samples for fast comparison
+  const validPalettes: PaletteWithData[] = []
   let corruptedCount = 0
+  let noSeedCount = 0
 
   for (const p of results) {
-    if (!isValidPaletteColors(p.colors)) {
+    // Skip palettes with no colors or invalid colors
+    if (!p.colors || p.colors.length === 0 || !isValidPaletteColors(p.colors)) {
       corruptedCount++
       continue
     }
-    try {
-      const { coeffs } = deserializeCoeffs(p.seed)
-      if (!isValidPaletteCoeffs(coeffs)) {
-        corruptedCount++
-        continue
-      }
-      validPalettesWithCoeffs.push({
-        ...p,
-        flatCoeffs: flattenCoeffs(coeffs),
-      })
-    } catch {
-      corruptedCount++
+    // Track palettes without seeds (still valid for color comparison)
+    if (!p.seed) {
+      noSeedCount++
     }
+    // Pre-compute normalized LAB samples (and reversed) for O(1) comparison
+    const labSamples = computeLabSamples(p.colors)
+    validPalettes.push({
+      ...p,
+      labSamples,
+      labSamplesReversed: [...labSamples].reverse(),
+      themes: p.theme ? [p.theme] : [],
+    })
   }
 
   // Apply deduplication if enabled
   const { unique: dedupedPalettes, duplicateCount } = enableDedup
-    ? deduplicatePalettes(validPalettesWithCoeffs, similarityThreshold)
-    : { unique: validPalettesWithCoeffs.map(p => ({ ...p, duplicates: [] })), duplicateCount: 0 }
+    ? deduplicatePalettes(validPalettes, similarityThreshold)
+    : { unique: validPalettes.map(p => ({ ...p, duplicates: [] })), duplicateCount: 0 }
 
   // Sort by duplicate count if enabled
   const displayPalettes = sortByDupes
@@ -198,28 +212,28 @@ function RefinePage() {
               <div className="flex items-center gap-3">
                 <Sliders className="h-4 w-4 text-muted-foreground" />
                 <label className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Threshold:</span>
+                  <span className="text-muted-foreground">ΔE Threshold:</span>
                   <input
                     type="range"
-                    min="0.05"
-                    max="1.5"
-                    step="0.05"
+                    min="2"
+                    max="25"
+                    step="1"
                     value={similarityThreshold}
                     onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value))}
                     className="w-32"
                   />
                   <input
                     type="number"
-                    min="0.05"
-                    max="2.0"
-                    step="0.05"
+                    min="1"
+                    max="50"
+                    step="1"
                     value={similarityThreshold}
-                    onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value) || 0.7)}
+                    onChange={(e) => setSimilarityThreshold(parseFloat(e.target.value) || 8)}
                     className="w-16 px-2 py-1 text-xs rounded border border-border bg-background"
                   />
                 </label>
                 <span className="text-xs text-muted-foreground">
-                  (lower = more aggressive)
+                  (higher = more aggressive dedup)
                 </span>
               </div>
 
@@ -237,27 +251,28 @@ function RefinePage() {
         </div>
 
         {/* Stats */}
-        {enableDedup && validPalettesWithCoeffs.length > 0 && (
+        {enableDedup && validPalettes.length > 0 && (
           <div className="mt-2 text-xs text-muted-foreground">
-            {validPalettesWithCoeffs.length} valid → {dedupedPalettes.length} unique ({Math.round((1 - dedupedPalettes.length / validPalettesWithCoeffs.length) * 100)}% reduction)
+            {validPalettes.length} valid → {dedupedPalettes.length} unique ({Math.round((1 - dedupedPalettes.length / validPalettes.length) * 100)}% reduction)
+            {noSeedCount > 0 && ` • ${noSeedCount} missing seeds`}
           </div>
         )}
       </div>
 
       {/* Split Content - 50/50 */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Panel - Staged Palettes */}
+        {/* Left Panel - Generated Palettes */}
         <div className="w-1/2 overflow-y-auto p-4 border-r border-border">
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 gap-2">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Loading staged palettes...</p>
+              <p className="text-sm text-muted-foreground">Loading generated palettes...</p>
             </div>
           ) : displayPalettes.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-2">
-              <p className="text-muted-foreground">No staged palettes found</p>
+              <p className="text-muted-foreground">No generated palettes found</p>
               <p className="text-sm text-muted-foreground">
-                Run the deduplication action to populate this table
+                Run the generation pipeline to create palettes
               </p>
             </div>
           ) : (
@@ -301,7 +316,7 @@ function RefinePage() {
 
         {/* Right Panel - Palette Details */}
         <div className="w-1/2 overflow-y-auto p-4 bg-muted/20">
-          {selectedPalette && paletteTags ? (
+          {selectedPalette ? (
             <div className="space-y-6">
               {/* Large Preview */}
               <div>
@@ -314,114 +329,123 @@ function RefinePage() {
                 <p className="mt-2 text-sm text-muted-foreground">
                   {selectedPalette.themes[0] || selectedPalette.tag}
                 </p>
+                {selectedPalette.seed && (
+                  <p className="mt-1 text-[10px] text-muted-foreground font-mono truncate">
+                    seed: {selectedPalette.seed}
+                  </p>
+                )}
               </div>
 
-              {/* Tags */}
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  Palette Character
-                </h3>
-                <div className="space-y-3">
-                  {/* Vibe Emojis */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Vibe</span>
-                    <div className="flex gap-1 px-3 py-1.5 rounded bg-background border border-border">
-                      {generatePaletteEmojis(paletteTags).map((emoji, i) => (
-                        <span key={i} className="text-base">{emoji}</span>
-                      ))}
+              {/* Tags (only if seed exists and was parsed) */}
+              {paletteTags && (
+                <>
+                  <div>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                      Palette Character
+                    </h3>
+                    <div className="space-y-3">
+                      {/* Vibe Emojis */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-16">Vibe</span>
+                        <div className="flex gap-1 px-3 py-1.5 rounded bg-background border border-border">
+                          {generatePaletteEmojis(paletteTags).map((emoji, i) => (
+                            <span key={i} className="text-base">{emoji}</span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Dominant Colors */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-16">Colors</span>
+                        <div className="flex gap-1.5">
+                          {paletteTags.dominantColors.map((color) => (
+                            <span
+                              key={color}
+                              className="text-xs px-2 py-1 rounded bg-background border border-border"
+                            >
+                              {color}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Texture */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-16">Texture</span>
+                        <span className="text-xs px-2 py-1 rounded bg-background border border-border">
+                          {paletteTags.texture}
+                        </span>
+                      </div>
+
+                      {/* Warmth */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-16">Warmth</span>
+                        <span className="text-xs px-2 py-1 rounded bg-background border border-border">
+                          {paletteTags.warmth}
+                        </span>
+                      </div>
+
+                      {/* Journey */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-16">Journey</span>
+                        <span className="text-xs px-2 py-1 rounded bg-background border border-border">
+                          {paletteTags.journey}
+                        </span>
+                      </div>
+
+                      {/* Contrast */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground w-16">Contrast</span>
+                        <span className="text-xs px-2 py-1 rounded bg-background border border-border">
+                          {paletteTags.contrast}
+                        </span>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Dominant Colors */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Colors</span>
-                    <div className="flex gap-1.5">
-                      {paletteTags.dominantColors.map((color) => (
+                  {/* All Tags as Array */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                      All Tags
+                    </h3>
+                    <div className="flex flex-wrap gap-1.5">
+                      {tagsToArray(paletteTags).map((tag, i) => (
                         <span
-                          key={color}
-                          className="text-xs px-2 py-1 rounded bg-background border border-border"
+                          key={`${tag}-${i}`}
+                          className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20"
                         >
-                          {color}
+                          {tag}
                         </span>
                       ))}
                     </div>
                   </div>
 
-                  {/* Texture */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Texture</span>
-                    <span className="text-xs px-2 py-1 rounded bg-background border border-border">
-                      {paletteTags.texture}
-                    </span>
+                  {/* Embed Text Preview */}
+                  <div>
+                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                      Embed Text (Vectorize Input)
+                    </h3>
+                    {(() => {
+                      const emojis = generatePaletteEmojis(paletteTags)
+                      const tags = tagsToArray(paletteTags)
+                      const themes = selectedPalette.themes
+                      // Dedupe all tokens (emojis are unique, but tags/themes may overlap)
+                      const allTokens = [...emojis, ...tags, ...themes]
+                      const uniqueTokens = [...new Set(allTokens)]
+                      return (
+                        <>
+                          <div className="p-3 rounded-lg bg-background border border-border font-mono text-xs text-foreground/80 whitespace-pre-wrap break-words">
+                            {uniqueTokens.join(' ')}
+                          </div>
+                          <p className="mt-2 text-[10px] text-muted-foreground">
+                            {uniqueTokens.length} tokens ({allTokens.length - uniqueTokens.length} dupes removed)
+                          </p>
+                        </>
+                      )
+                    })()}
                   </div>
-
-                  {/* Warmth */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Warmth</span>
-                    <span className="text-xs px-2 py-1 rounded bg-background border border-border">
-                      {paletteTags.warmth}
-                    </span>
-                  </div>
-
-                  {/* Journey */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Journey</span>
-                    <span className="text-xs px-2 py-1 rounded bg-background border border-border">
-                      {paletteTags.journey}
-                    </span>
-                  </div>
-
-                  {/* Contrast */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-muted-foreground w-16">Contrast</span>
-                    <span className="text-xs px-2 py-1 rounded bg-background border border-border">
-                      {paletteTags.contrast}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* All Tags as Array */}
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  All Tags
-                </h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {tagsToArray(paletteTags).map((tag, i) => (
-                    <span
-                      key={`${tag}-${i}`}
-                      className="text-xs px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20"
-                    >
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* Embed Text Preview */}
-              <div>
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                  Embed Text (Vectorize Input)
-                </h3>
-                {(() => {
-                  const emojis = generatePaletteEmojis(paletteTags)
-                  const tags = tagsToArray(paletteTags)
-                  const themes = selectedPalette.themes
-                  // Dedupe all tokens (emojis are unique, but tags/themes may overlap)
-                  const allTokens = [...emojis, ...tags, ...themes]
-                  const uniqueTokens = [...new Set(allTokens)]
-                  return (
-                    <>
-                      <div className="p-3 rounded-lg bg-background border border-border font-mono text-xs text-foreground/80 whitespace-pre-wrap break-words">
-                        {uniqueTokens.join(' ')}
-                      </div>
-                      <p className="mt-2 text-[10px] text-muted-foreground">
-                        {uniqueTokens.length} tokens ({allTokens.length - uniqueTokens.length} dupes removed)
-                      </p>
-                    </>
-                  )
-                })()}
-              </div>
+                </>
+              )}
 
               {/* Duplicates */}
               {selectedPalette.duplicates.length > 0 && (
@@ -443,29 +467,26 @@ function RefinePage() {
                       </p>
                     </div>
                     {/* Show all merged duplicates */}
-                    {selectedPalette.duplicates.map((dupe, i) => {
-                      const dist = coeffDistance(selectedPalette.flatCoeffs, dupe.flatCoeffs)
-                      return (
-                        <div key={dupe._id} className="p-2 rounded border border-border bg-background">
-                          <div
-                            className="h-12 w-full rounded"
-                            style={{
-                              background: `linear-gradient(to right, ${dupe.colors.join(', ')})`,
-                            }}
-                          />
-                          <p className="mt-1 text-[10px] text-muted-foreground">
-                            #{i + 1} — dist: {dist.toFixed(3)} — {dupe.themes[0] || dupe.tag}
-                          </p>
-                        </div>
-                      )
-                    })}
+                    {selectedPalette.duplicates.map((dupe, i) => (
+                      <div key={dupe._id} className="p-2 rounded border border-border bg-background">
+                        <div
+                          className="h-12 w-full rounded"
+                          style={{
+                            background: `linear-gradient(to right, ${dupe.colors.join(', ')})`,
+                          }}
+                        />
+                        <p className="mt-1 text-[10px] text-muted-foreground">
+                          #{i + 1} — ΔE: {dupe.distance.toFixed(1)} {dupe.reversed && '(reversed)'} — {dupe.theme || dupe.tag}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           ) : (
             <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              Click a palette to view its tags
+              Click a palette to view its details
             </div>
           )}
         </div>

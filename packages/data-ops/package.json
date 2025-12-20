@@ -62,6 +62,10 @@
     "./prompts/*": {
       "types": "./dist/prompts/*.d.ts",
       "default": "./dist/prompts/*.js"
+    },
+    "./similarity": {
+      "types": "./dist/similarity.d.ts",
+      "default": "./dist/similarity.js"
     }
   },
   "scripts": {

@@ -1,5 +1,4 @@
 import { query, mutation, internalMutation, internalQuery } from './_generated/server'
-import type { Id } from './_generated/dataModel'
 import { paginationOptsValidator } from 'convex/server'
 import { v } from 'convex/values'
 import { vBatchStatus, vPainterModelKey, vPainterProvider, vPaletteStyle, vPaletteAngle } from './lib/providers.types'
@@ -292,6 +291,47 @@ export const getPaginatedGeneratedPalettes = query({
       nextCursor: results.continueCursor,
       isDone: results.isDone,
     }
+  },
+})
+
+/**
+ * Get generated palettes with usePaginatedQuery hook support (for refine page)
+ */
+export const getGeneratedPalettesPaginated = query({
+  args: {
+    paginationOpts: paginationOptsValidator,
+    cycle: v.optional(v.number()),
+    tag: v.optional(v.string()),
+  },
+  handler: async (ctx, { paginationOpts, cycle, tag }) => {
+    if (cycle !== undefined && tag !== undefined) {
+      return await ctx.db
+        .query('generated_palettes')
+        .withIndex('by_cycle_tag', (q) => q.eq('cycle', cycle).eq('tag', tag))
+        .order('desc')
+        .paginate(paginationOpts)
+    }
+
+    if (cycle !== undefined) {
+      return await ctx.db
+        .query('generated_palettes')
+        .withIndex('by_cycle', (q) => q.eq('cycle', cycle))
+        .order('desc')
+        .paginate(paginationOpts)
+    }
+
+    if (tag !== undefined) {
+      return await ctx.db
+        .query('generated_palettes')
+        .withIndex('by_tag', (q) => q.eq('tag', tag))
+        .order('desc')
+        .paginate(paginationOpts)
+    }
+
+    return await ctx.db
+      .query('generated_palettes')
+      .order('desc')
+      .paginate(paginationOpts)
   },
 })
 
