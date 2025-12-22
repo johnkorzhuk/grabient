@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { env } from "cloudflare:workers";
 import * as v from "valibot";
 import { rateLimitFunctionMiddleware } from "@/core/middleware/rate-limit-function";
-import { optionalAuthFunctionMiddleware } from "@/core/middleware/auth";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
 import { searchInputSchema } from "@/lib/validators/search";
 import {
@@ -12,9 +11,6 @@ import {
     angleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
-import { getDb } from "@repo/data-ops/database/setup";
-import { searchFeedback } from "@repo/data-ops/drizzle/app-schema";
-import { eq, and } from "drizzle-orm";
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 3; // 3 days
 
@@ -39,11 +35,7 @@ function getCacheKey(query: string, limit: number): string {
     return `search:${query.toLowerCase().trim()}:${limit}`;
 }
 
-// Max extra palettes to fetch for bad seed filtering (prevents abuse)
-const MAX_EXTRA_PALETTES = 100;
-
 const baseSearchFunction = createServerFn({ method: "GET" }).middleware([
-    optionalAuthFunctionMiddleware,
     rateLimitFunctionMiddleware("paletteRead"),
 ]);
 
@@ -51,7 +43,6 @@ export const searchPalettes = baseSearchFunction
     .inputValidator((input) => v.parse(searchInputSchema, input))
     .handler(async (ctx) => {
         const { query, limit = DEFAULT_PAGE_LIMIT } = ctx.data;
-        const userId = ctx.context.userId;
 
         // Vectorize and AI bindings require remote: true in wrangler config
         if (!env.AI || !env.VECTORIZE) {
@@ -64,37 +55,9 @@ export const searchPalettes = baseSearchFunction
         // Replace hex codes with color names before processing
         const normalizedQuery = replaceHexWithColorNames(query);
 
-        // For authenticated users, get their bad seeds to filter out
-        let badSeeds = new Set<string>();
-        if (userId) {
-            try {
-                const db = getDb();
-                const feedbackRows = await db
-                    .select({ seed: searchFeedback.seed })
-                    .from(searchFeedback)
-                    .where(
-                        and(
-                            eq(searchFeedback.userId, userId),
-                            eq(searchFeedback.query, query),
-                            eq(searchFeedback.feedback, "bad")
-                        )
-                    );
-                badSeeds = new Set(feedbackRows.map((r) => r.seed));
-            } catch (e) {
-                console.warn("Failed to fetch user feedback:", e);
-            }
-        }
-
-        // Calculate how many extra results to fetch for bad seed filtering
-        const extraForBadSeeds = Math.min(badSeeds.size, MAX_EXTRA_PALETTES);
-        const totalToFetch = limit + extraForBadSeeds;
-
-        // For anonymous users, use KV cache
-        // For authenticated users with bad seeds, skip cache (personalized results)
         const cacheKey = getCacheKey(normalizedQuery, limit);
-        const useCache = !userId || badSeeds.size === 0;
 
-        if (useCache && env.SEARCH_CACHE) {
+        if (env.SEARCH_CACHE) {
             try {
                 const cached = await env.SEARCH_CACHE.get<SearchResult[]>(
                     cacheKey,
@@ -126,11 +89,11 @@ export const searchPalettes = baseSearchFunction
         }
 
         const matches = await env.VECTORIZE.query(queryVector, {
-            topK: totalToFetch,
+            topK: limit,
             returnMetadata: "all",
         });
 
-        let results = matches.matches
+        const results = matches.matches
             .map((match) => {
                 const parsed = v.safeParse(vectorMetadataSchema, match.metadata);
                 if (!parsed.success) {
@@ -143,16 +106,7 @@ export const searchPalettes = baseSearchFunction
             })
             .filter((r) => r !== null);
 
-        // Filter out bad seeds for authenticated users
-        if (badSeeds.size > 0) {
-            results = results.filter((r) => !badSeeds.has(r.seed));
-        }
-
-        // Trim to requested limit
-        results = results.slice(0, limit);
-
-        // Only cache for anonymous users (shared cache)
-        if (useCache && env.SEARCH_CACHE && results.length > 0) {
+        if (env.SEARCH_CACHE && results.length > 0) {
             try {
                 await env.SEARCH_CACHE.put(cacheKey, JSON.stringify(results), {
                     expirationTtl: CACHE_TTL_SECONDS,

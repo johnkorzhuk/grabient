@@ -32,22 +32,6 @@ export const likes = sqliteTable(
   })
 );
 
-export const searchFeedback = sqliteTable(
-  "search_feedback",
-  {
-    userId: text("user_id").notNull(),
-    query: text("query").notNull(),
-    seed: text("seed").notNull(),
-    feedback: text("feedback").notNull().$type<"good" | "bad">(),
-    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull(),
-  },
-  (table) => ({
-    pk: primaryKey({ columns: [table.userId, table.query, table.seed] }),
-    userQueryIdx: index("search_feedback_user_query_idx").on(table.userId, table.query),
-    seedIdx: index("search_feedback_seed_idx").on(table.seed),
-  })
-);
-
 // Refine sessions - stores AI refinement history and feedback
 export const refineSessions = sqliteTable(
   "refine_sessions",
@@ -88,8 +72,6 @@ export type Palette = typeof palettes.$inferSelect;
 export type NewPalette = typeof palettes.$inferInsert;
 export type Like = typeof likes.$inferSelect;
 export type NewLike = typeof likes.$inferInsert;
-export type SearchFeedback = typeof searchFeedback.$inferSelect;
-export type NewSearchFeedback = typeof searchFeedback.$inferInsert;
 export type RefineSession = typeof refineSessions.$inferSelect;
 export type NewRefineSession = typeof refineSessions.$inferInsert;
 

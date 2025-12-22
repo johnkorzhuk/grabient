@@ -46,7 +46,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import type { PNGGenerationOptions } from "@/lib/generatePNG";
 import { getGradientAriaLabel, getUniqueColorNames } from "@repo/data-ops/color-utils";
-import { calculateAverageBrightness } from "@repo/data-ops/gradient-gen";
 import { detectDevice } from "@/lib/deviceDetection";
 import { useSearchFeedbackMutation } from "@/mutations/search-feedback";
 import { searchFeedbackStore, type FeedbackType } from "@/stores/search-feedback";
@@ -1472,7 +1471,6 @@ function GradientPreview({
                         effectiveAngle={effectiveAngle}
                         effectiveSteps={effectiveSteps}
                         isActive={isActive}
-                        hexColors={colorsToUse}
                         onBadFeedback={onBadFeedback}
                     />
                 )}
@@ -1488,7 +1486,6 @@ interface SearchFeedbackButtonsProps {
     effectiveAngle: number;
     effectiveSteps: number;
     isActive: boolean;
-    hexColors: string[];
     onBadFeedback?: (seed: string) => void;
 }
 
@@ -1499,7 +1496,6 @@ function SearchFeedbackButtons({
     effectiveAngle,
     effectiveSteps,
     isActive,
-    hexColors,
     onBadFeedback,
 }: SearchFeedbackButtonsProps) {
     const feedbackMutation = useSearchFeedbackMutation();
@@ -1511,15 +1507,6 @@ function SearchFeedbackButtons({
         ? searchQuery.slice(0, 16) + "..."
         : searchQuery;
 
-    // Calculate brightness to determine if we need dark or light feedback colors
-    const avgBrightness = calculateAverageBrightness(hexColors);
-    const useDarkColors = avgBrightness > 0.5;
-
-    // Green shades: dark (#15803d green-700) for bright palettes, light (#4ade80 green-400) for dark palettes
-    const greenColor = useDarkColors ? "#15803d" : "#4ade80";
-    // Red shades: dark (#b91c1c red-700) for bright palettes, light (#f87171 red-400) for dark palettes
-    const redColor = useDarkColors ? "#b91c1c" : "#f87171";
-
     const handleFeedback = (feedback: FeedbackType) => {
         feedbackMutation.mutate({
             query: searchQuery,
@@ -1529,7 +1516,6 @@ function SearchFeedbackButtons({
             angle: effectiveAngle,
             steps: effectiveSteps,
         });
-        // Call onBadFeedback callback to remove palette from UI
         if (feedback === "bad" && onBadFeedback) {
             onBadFeedback(currentSeed);
         }
@@ -1538,87 +1524,77 @@ function SearchFeedbackButtons({
     return (
         <div
             className={cn(
-                "absolute bottom-3.5 left-3.5 z-20 pointer-events-auto flex gap-3",
+                "absolute bottom-3.5 left-3.5 z-20 pointer-events-auto",
                 !isActive
                     ? "opacity-0 group-hover:opacity-100"
                     : "opacity-100",
                 "transition-opacity duration-200",
             )}
         >
-            <Tooltip delayDuration={500}>
-                <TooltipTrigger asChild>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleFeedback("good");
-                        }}
-                        className={cn(
-                            "transition-all duration-200 cursor-pointer outline-none",
-                            currentFeedback === "good"
-                                ? "opacity-100"
-                                : "opacity-80 hover:opacity-100 focus-visible:opacity-100"
-                        )}
-                        style={{
-                            color: currentFeedback === "good" ? greenColor : "var(--background)",
-                            filter: currentFeedback === "good"
-                                ? "drop-shadow(0 0 1px rgba(0,0,0,0.3))"
-                                : "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
-                        }}
-                        aria-label={`Good fit for ${truncatedQuery}`}
-                        aria-pressed={currentFeedback === "good"}
-                    >
-                        <ThumbsUp
-                            className="w-6 h-6"
-                            strokeWidth={2}
-                        />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent
-                    side="top"
-                    align="start"
-                    sideOffset={6}
-                >
-                    <span>Good fit for {truncatedQuery}</span>
-                </TooltipContent>
-            </Tooltip>
-            <Tooltip delayDuration={500}>
-                <TooltipTrigger asChild>
-                    <button
-                        type="button"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleFeedback("bad");
-                        }}
-                        className={cn(
-                            "transition-all duration-200 cursor-pointer outline-none",
-                            currentFeedback === "bad"
-                                ? "opacity-100"
-                                : "opacity-80 hover:opacity-100 focus-visible:opacity-100"
-                        )}
-                        style={{
-                            color: currentFeedback === "bad" ? redColor : "var(--background)",
-                            filter: currentFeedback === "bad"
-                                ? "drop-shadow(0 0 1px rgba(0,0,0,0.3))"
-                                : "drop-shadow(0 0 0.5px var(--foreground)) drop-shadow(0 0 0.5px var(--foreground))",
-                        }}
-                        aria-label={`Bad fit for ${truncatedQuery}`}
-                        aria-pressed={currentFeedback === "bad"}
-                    >
-                        <ThumbsDown
-                            className="w-6 h-6"
-                            strokeWidth={2}
-                        />
-                    </button>
-                </TooltipTrigger>
-                <TooltipContent
-                    side="top"
-                    align="start"
-                    sideOffset={6}
-                >
-                    <span>Bad fit for {truncatedQuery}</span>
-                </TooltipContent>
-            </Tooltip>
+            <div
+                style={{ backgroundColor: "var(--background)" }}
+                className={cn(
+                    "disable-animation-on-theme-change inline-flex items-center rounded-md",
+                    "border border-solid border-input",
+                    "backdrop-blur-sm",
+                )}
+            >
+                <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleFeedback("good");
+                            }}
+                            className={cn(
+                                "inline-flex items-center justify-center",
+                                "w-8 h-8 p-0 rounded-l-[5px]",
+                                "transition-colors duration-200 cursor-pointer",
+                                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-inset",
+                                currentFeedback === "good"
+                                    ? "text-foreground"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-background/60",
+                            )}
+                            aria-label={`Good fit for "${truncatedQuery}"`}
+                            aria-pressed={currentFeedback === "good"}
+                        >
+                            <ThumbsUp className="w-4 h-4" strokeWidth={2.5} />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="start" sideOffset={6}>
+                        <span>Good fit for "{truncatedQuery}"</span>
+                    </TooltipContent>
+                </Tooltip>
+                <div className="w-px h-4 bg-border" />
+                <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleFeedback("bad");
+                            }}
+                            className={cn(
+                                "inline-flex items-center justify-center",
+                                "w-8 h-8 p-0 rounded-r-[5px]",
+                                "transition-colors duration-200 cursor-pointer",
+                                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70 focus-visible:ring-inset",
+                                currentFeedback === "bad"
+                                    ? "text-foreground"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-background/60",
+                            )}
+                            aria-label={`Bad fit for "${truncatedQuery}"`}
+                            aria-pressed={currentFeedback === "bad"}
+                        >
+                            <ThumbsDown className="w-4 h-4" strokeWidth={2.5} />
+                        </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="start" sideOffset={6}>
+                        <span>Bad fit for "{truncatedQuery}"</span>
+                    </TooltipContent>
+                </Tooltip>
+            </div>
         </div>
     );
 }
