@@ -89,6 +89,12 @@ function Header() {
           >
             Random
           </Link>
+          <Link
+            to="/staged"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors [&.active]:font-medium [&.active]:text-foreground"
+          >
+            Staged
+          </Link>
           <ThemeToggle />
         </nav>
       </div>

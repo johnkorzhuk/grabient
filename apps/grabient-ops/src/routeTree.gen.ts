@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LayoutRouteImport } from './routes/_layout'
 import { Route as LayoutIndexRouteImport } from './routes/_layout/index'
+import { Route as LayoutStagedRouteImport } from './routes/_layout/staged'
 import { Route as LayoutRandomRouteImport } from './routes/_layout/random'
 import { Route as LayoutGenerateRouteImport } from './routes/_layout/generate'
 import { Route as LayoutSeedRouteImport } from './routes/_layout/$seed'
@@ -23,6 +24,11 @@ const LayoutRoute = LayoutRouteImport.update({
 const LayoutIndexRoute = LayoutIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => LayoutRoute,
+} as any)
+const LayoutStagedRoute = LayoutStagedRouteImport.update({
+  id: '/staged',
+  path: '/staged',
   getParentRoute: () => LayoutRoute,
 } as any)
 const LayoutRandomRoute = LayoutRandomRouteImport.update({
@@ -50,6 +56,7 @@ export interface FileRoutesByFullPath {
   '/$seed': typeof LayoutSeedRoute
   '/generate': typeof LayoutGenerateRoute
   '/random': typeof LayoutRandomRoute
+  '/staged': typeof LayoutStagedRoute
   '/': typeof LayoutIndexRoute
   '/generate/refine': typeof LayoutGenerateRefineRoute
 }
@@ -57,6 +64,7 @@ export interface FileRoutesByTo {
   '/$seed': typeof LayoutSeedRoute
   '/generate': typeof LayoutGenerateRoute
   '/random': typeof LayoutRandomRoute
+  '/staged': typeof LayoutStagedRoute
   '/': typeof LayoutIndexRoute
   '/generate/refine': typeof LayoutGenerateRefineRoute
 }
@@ -66,20 +74,28 @@ export interface FileRoutesById {
   '/_layout/$seed': typeof LayoutSeedRoute
   '/_layout/generate': typeof LayoutGenerateRoute
   '/_layout/random': typeof LayoutRandomRoute
+  '/_layout/staged': typeof LayoutStagedRoute
   '/_layout/': typeof LayoutIndexRoute
   '/_layout/generate_/refine': typeof LayoutGenerateRefineRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/$seed' | '/generate' | '/random' | '/' | '/generate/refine'
+  fullPaths:
+    | '/$seed'
+    | '/generate'
+    | '/random'
+    | '/staged'
+    | '/'
+    | '/generate/refine'
   fileRoutesByTo: FileRoutesByTo
-  to: '/$seed' | '/generate' | '/random' | '/' | '/generate/refine'
+  to: '/$seed' | '/generate' | '/random' | '/staged' | '/' | '/generate/refine'
   id:
     | '__root__'
     | '/_layout'
     | '/_layout/$seed'
     | '/_layout/generate'
     | '/_layout/random'
+    | '/_layout/staged'
     | '/_layout/'
     | '/_layout/generate_/refine'
   fileRoutesById: FileRoutesById
@@ -102,6 +118,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof LayoutIndexRouteImport
+      parentRoute: typeof LayoutRoute
+    }
+    '/_layout/staged': {
+      id: '/_layout/staged'
+      path: '/staged'
+      fullPath: '/staged'
+      preLoaderRoute: typeof LayoutStagedRouteImport
       parentRoute: typeof LayoutRoute
     }
     '/_layout/random': {
@@ -139,6 +162,7 @@ interface LayoutRouteChildren {
   LayoutSeedRoute: typeof LayoutSeedRoute
   LayoutGenerateRoute: typeof LayoutGenerateRoute
   LayoutRandomRoute: typeof LayoutRandomRoute
+  LayoutStagedRoute: typeof LayoutStagedRoute
   LayoutIndexRoute: typeof LayoutIndexRoute
   LayoutGenerateRefineRoute: typeof LayoutGenerateRefineRoute
 }
@@ -147,6 +171,7 @@ const LayoutRouteChildren: LayoutRouteChildren = {
   LayoutSeedRoute: LayoutSeedRoute,
   LayoutGenerateRoute: LayoutGenerateRoute,
   LayoutRandomRoute: LayoutRandomRoute,
+  LayoutStagedRoute: LayoutStagedRoute,
   LayoutIndexRoute: LayoutIndexRoute,
   LayoutGenerateRefineRoute: LayoutGenerateRefineRoute,
 }

@@ -30,25 +30,15 @@ export const getAvailablePromptVersions = query({
     }
 
     // Get accurate tag counts from consensus table (totalModels = number of tags)
-    // Paginate to avoid 16MB limit
+    // Use collect() - Convex only allows one paginated query per function
     const versionCounts = new Map<string, number>()
-    let cursor: string | null = null
-    let isDone = false
+    const consensusDocs = await ctx.db.query('palette_tag_consensus').collect()
 
-    while (!isDone) {
-      const page = await ctx.db
-        .query('palette_tag_consensus')
-        .paginate({ cursor, numItems: 1000 })
-
-      for (const doc of page.page) {
-        if (doc.promptVersion) {
-          const current = versionCounts.get(doc.promptVersion) ?? 0
-          versionCounts.set(doc.promptVersion, current + doc.totalModels)
-        }
+    for (const doc of consensusDocs) {
+      if (doc.promptVersion) {
+        const current = versionCounts.get(doc.promptVersion) ?? 0
+        versionCounts.set(doc.promptVersion, current + doc.totalModels)
       }
-
-      isDone = page.isDone
-      cursor = page.continueCursor
     }
 
     // Also check tag_batches for cycle information (newer batches have promptVersion)
@@ -531,6 +521,119 @@ export const storeRefinedResult = internalMutation({
 })
 
 /**
+ * Store multiple refined tag results in a single mutation (batch insert)
+ * Much more efficient than calling storeRefinedResult one by one.
+ * Set skipAggregates=true for bulk operations - run backfillRefinedSeedsAggregate after.
+ */
+export const storeRefinedResultsBatch = internalMutation({
+  args: {
+    results: v.array(
+      v.object({
+        seed: v.string(),
+        model: vRefinementModel,
+        cycle: v.number(),
+        promptVersion: v.string(),
+        sourcePromptVersions: v.array(v.string()),
+        tags: v.any(),
+        embedText: v.string(),
+        inputSummary: v.optional(v.any()),
+        error: v.optional(v.string()),
+        usage: v.optional(
+          v.object({
+            inputTokens: v.number(),
+            outputTokens: v.number(),
+          }),
+        ),
+      }),
+    ),
+    skipAggregates: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { results, skipAggregates }) => {
+    let inserted = 0
+    let updated = 0
+
+    for (const args of results) {
+      // Check for existing result for this seed+model (idempotency)
+      // Use by_seed index which is most selective
+      const existingForSeed = await ctx.db
+        .query('palette_tag_refined')
+        .withIndex('by_seed', (q) => q.eq('seed', args.seed))
+        .collect()
+
+      // Find the one matching model and cycle
+      const existing = existingForSeed.find(
+        (e) => e.model === args.model && e.cycle === args.cycle
+      )
+
+      if (existing) {
+        // Update existing record
+        const oldDoc = existing
+        await ctx.db.patch(existing._id, {
+          tags: args.tags,
+          embedText: args.embedText,
+          promptVersion: args.promptVersion,
+          sourcePromptVersions: args.sourcePromptVersions,
+          inputSummary: args.inputSummary,
+          error: args.error,
+          usage: args.usage,
+        })
+        if (!skipAggregates) {
+          const newDoc = await ctx.db.get(existing._id)
+          await refinedSeedsAggregate.replace(ctx, oldDoc, newDoc!)
+        }
+        updated++
+      } else {
+        // Insert new record
+        const id = await ctx.db.insert('palette_tag_refined', args)
+        if (!skipAggregates) {
+          const doc = await ctx.db.get(id)
+          await refinedSeedsAggregate.insert(ctx, doc!)
+        }
+        inserted++
+      }
+    }
+
+    return { inserted, updated, total: results.length }
+  },
+})
+
+/**
+ * Fast bulk insert for new refinement results - NO idempotency checks.
+ * Use only when you're confident there are no duplicates (e.g., fresh batch job).
+ * Skips aggregates - run backfillRefinedSeedsAggregate after.
+ */
+export const bulkInsertRefinedResults = internalMutation({
+  args: {
+    results: v.array(
+      v.object({
+        seed: v.string(),
+        model: vRefinementModel,
+        cycle: v.number(),
+        promptVersion: v.string(),
+        sourcePromptVersions: v.array(v.string()),
+        tags: v.any(),
+        embedText: v.string(),
+        inputSummary: v.optional(v.any()),
+        error: v.optional(v.string()),
+        usage: v.optional(
+          v.object({
+            inputTokens: v.number(),
+            outputTokens: v.number(),
+          }),
+        ),
+      }),
+    ),
+  },
+  handler: async (ctx, { results }) => {
+    // Direct insert - no queries, no aggregates, maximum speed
+    for (const args of results) {
+      await ctx.db.insert('palette_tag_refined', args)
+    }
+    return { inserted: results.length }
+  },
+})
+
+/**
  * Get refinement batch by batch ID (internal)
  */
 export const getRefinementBatchByBatchId = internalQuery({
@@ -680,6 +783,55 @@ export const getRefinedBySeed = query({
       .query('palette_tag_refined')
       .withIndex('by_seed', (q) => q.eq('seed', seed))
       .first()
+  },
+})
+
+/**
+ * Get refined results for multiple seeds (batch lookup)
+ * Returns a map of seed -> refinement data (embedText + tags)
+ * Optionally filter by specific model and cycles
+ */
+export const getRefinedBySeeds = internalQuery({
+  args: {
+    seeds: v.array(v.string()),
+    model: v.optional(vRefinementModel),
+    cycles: v.optional(v.array(v.number())),
+  },
+  handler: async (ctx, { seeds, model, cycles }) => {
+    const results: Record<
+      string,
+      { embedText: string; tags: Record<string, string[]> }
+    > = {}
+
+    const cycleSet = cycles?.length ? new Set(cycles) : null
+
+    for (const seed of seeds) {
+      // If model/cycles specified, look for match in any of the cycles
+      let refined
+      if (model && cycleSet) {
+        // Query by seed first, then filter by model and any matching cycle
+        const allForSeed = await ctx.db
+          .query('palette_tag_refined')
+          .withIndex('by_seed', (q) => q.eq('seed', seed))
+          .collect()
+        refined = allForSeed.find((r) => r.model === model && cycleSet.has(r.cycle))
+      } else {
+        // Just get the first refinement for this seed
+        refined = await ctx.db
+          .query('palette_tag_refined')
+          .withIndex('by_seed', (q) => q.eq('seed', seed))
+          .first()
+      }
+
+      if (refined && !refined.error && refined.embedText && refined.tags) {
+        results[seed] = {
+          embedText: refined.embedText,
+          tags: refined.tags as Record<string, string[]>,
+        }
+      }
+    }
+
+    return results
   },
 })
 
@@ -910,30 +1062,43 @@ export const getEmbedTextTagFrequencies = query({
   args: {
     model: vRefinementModel,
     cycle: v.optional(v.number()),
+    cycles: v.optional(v.array(v.number())),
   },
-  handler: async (ctx, { model, cycle }) => {
-    // Get refinements for this model, optionally filtered by cycle
+  handler: async (ctx, { model, cycle, cycles }) => {
+    // Get refinements for this model, optionally filtered by cycle(s)
     let refinements
-    if (cycle !== undefined) {
+
+    // Support both single cycle and multiple cycles
+    const cycleSet = cycles?.length ? new Set(cycles) : cycle !== undefined ? new Set([cycle]) : null
+
+    if (cycleSet && cycleSet.size === 1) {
+      // Single cycle - use index
+      const singleCycle = [...cycleSet][0]
       refinements = await ctx.db
         .query('palette_tag_refined')
-        .withIndex('by_model_cycle', (q) => q.eq('model', model).eq('cycle', cycle))
+        .withIndex('by_model_cycle', (q) => q.eq('model', model).eq('cycle', singleCycle))
         .collect()
+    } else if (cycleSet && cycleSet.size > 1) {
+      // Multiple cycles - query by model and filter
+      const allForModel = await ctx.db
+        .query('palette_tag_refined')
+        .withIndex('by_model', (q) => q.eq('model', model))
+        .collect()
+      refinements = allForModel.filter((r) => cycleSet.has(r.cycle))
     } else {
+      // No cycle filter - get all for model
       refinements = await ctx.db
         .query('palette_tag_refined')
         .withIndex('by_model', (q) => q.eq('model', model))
         .collect()
     }
 
-    // Filter to only successful refinements (no error, has embedText and tags)
-    const successfulRefinements = refinements.filter(
-      (r) => !r.error && r.embedText && r.tags
-    )
+    // Filter to only successful refinements (no error, has tags)
+    const successfulRefinements = refinements.filter((r) => !r.error && r.tags)
 
-    // Build a set of all known multi-word tags from the structured tags
-    // This allows us to properly parse the embed_text
-    const knownMultiWordTags = new Set<string>()
+    // Count tag frequencies directly from the structured tags field
+    // This is much faster than parsing embed_text strings
+    const tagFrequencies: Record<string, number> = {}
 
     for (const r of successfulRefinements) {
       const tags = r.tags as {
@@ -945,7 +1110,9 @@ export const getEmbedTextTagFrequencies = query({
         associations?: string[]
       }
 
-      // Only collect multi-word tags (contain space)
+      // Collect all tags from all categories, counting each once per refinement
+      const foundTags = new Set<string>()
+
       for (const arr of [
         tags.mood,
         tags.style,
@@ -958,53 +1125,12 @@ export const getEmbedTextTagFrequencies = query({
           for (const tag of arr) {
             if (tag) {
               const normalized = tag.toLowerCase().trim()
-              if (normalized.includes(' ')) {
-                knownMultiWordTags.add(normalized)
+              if (normalized) {
+                foundTags.add(normalized)
               }
             }
           }
         }
-      }
-    }
-
-    // Sort multi-word tags by length (longest first) for greedy matching
-    const sortedMultiWordTags = Array.from(knownMultiWordTags).sort(
-      (a, b) => b.length - a.length
-    )
-
-    // Count tag frequencies across all embed_text
-    const tagFrequencies: Record<string, number> = {}
-
-    for (const r of successfulRefinements) {
-      let embedText = r.embedText.toLowerCase().trim()
-      const foundTags = new Set<string>()
-
-      // First pass: extract known multi-word tags using indexOf (fast)
-      for (const multiWordTag of sortedMultiWordTags) {
-        let idx = embedText.indexOf(multiWordTag)
-        while (idx !== -1) {
-          // Check word boundaries (space or string edge before/after)
-          const beforeOk = idx === 0 || embedText[idx - 1] === ' '
-          const afterIdx = idx + multiWordTag.length
-          const afterOk = afterIdx === embedText.length || embedText[afterIdx] === ' '
-
-          if (beforeOk && afterOk) {
-            foundTags.add(multiWordTag)
-            // Replace with spaces to avoid re-matching parts
-            embedText = embedText.slice(0, idx) + ' '.repeat(multiWordTag.length) + embedText.slice(afterIdx)
-          }
-          idx = embedText.indexOf(multiWordTag, idx + 1)
-        }
-      }
-
-      // Second pass: split remaining text by whitespace for single-word tags
-      const remainingWords = embedText
-        .split(/\s+/)
-        .map((t) => t.trim())
-        .filter((t) => t.length > 0)
-
-      for (const word of remainingWords) {
-        foundTags.add(word)
       }
 
       // Count frequencies (each tag once per refinement)
@@ -1049,6 +1175,235 @@ export const getRefinedPalettes = query({
       tags: r.tags,
       error: r.error,
     }))
+  },
+})
+
+// ============================================================================
+// Staged Palette Refinement
+// ============================================================================
+
+/**
+ * Get staged palettes that need refinement for a specific model and cycle.
+ * A staged palette needs refinement if:
+ * 1. It has consensus data (meaning it has been tagged)
+ * 2. It doesn't already have a successful refinement from this specific model+cycle
+ *
+ * @param model - The refinement model to check against
+ * @param cycle - The refinement cycle number
+ * @param sourcePromptVersions - Array of prompt versions to include (defaults to all)
+ */
+export const getStagedPalettesForRefinement = query({
+  args: {
+    model: vRefinementModel,
+    cycle: v.number(),
+    sourcePromptVersions: v.optional(v.array(v.string())),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { model, cycle, sourcePromptVersions, limit = 1000 }) => {
+    // Get existing refinements FOR THIS MODEL (any cycle) - allows resuming across cycles
+    const refinements = await ctx.db
+      .query('palette_tag_refined')
+      .withIndex('by_model', (q) => q.eq('model', model))
+      .collect()
+    const refinedSeeds = new Set(
+      refinements
+        .filter((r) => !r.error)
+        .map((r) => r.seed)
+    )
+
+    // Get all staged palette seeds
+    const stagedPalettes = await ctx.db.query('staged_palettes').collect()
+    const stagedSeeds = new Set(stagedPalettes.map((p) => p.seed))
+
+    // Group consensus by seed (only for staged palette seeds)
+    const seedsWithTags = new Map<string, number>()
+
+    // If specific prompt versions are requested, use the index for each version
+    if (sourcePromptVersions && sourcePromptVersions.length > 0) {
+      for (const version of sourcePromptVersions) {
+        const versionDocs = await ctx.db
+          .query('palette_tag_consensus')
+          .withIndex('by_prompt_version', (q) => q.eq('promptVersion', version))
+          .collect()
+
+        for (const doc of versionDocs) {
+          // Only include staged palette seeds
+          if (!stagedSeeds.has(doc.seed)) continue
+          // Skip if already refined for this model+cycle
+          if (refinedSeeds.has(doc.seed)) continue
+
+          const existing = seedsWithTags.get(doc.seed) ?? 0
+          seedsWithTags.set(doc.seed, existing + doc.totalModels)
+        }
+      }
+    } else {
+      // No specific versions - need to scan all consensus docs
+      const consensusDocs = await ctx.db
+        .query('palette_tag_consensus')
+        .take(limit * 5)
+
+      for (const doc of consensusDocs) {
+        // Only include staged palette seeds
+        if (!stagedSeeds.has(doc.seed)) continue
+        // Skip if already refined for this model+cycle
+        if (refinedSeeds.has(doc.seed)) continue
+
+        const existing = seedsWithTags.get(doc.seed) ?? 0
+        seedsWithTags.set(doc.seed, existing + doc.totalModels)
+      }
+    }
+
+    // Build result array with seed info
+    const palettesNeedingRefinement: Array<{
+      seed: string
+      _id: string
+      tagCount: number
+    }> = []
+
+    // Fetch staged palettes for the seeds we found
+    for (const [seed, tagCount] of seedsWithTags) {
+      if (palettesNeedingRefinement.length >= limit) break
+
+      const palette = await ctx.db
+        .query('staged_palettes')
+        .withIndex('by_seed', (q) => q.eq('seed', seed))
+        .first()
+
+      if (!palette) continue
+
+      palettesNeedingRefinement.push({
+        _id: palette._id,
+        seed: palette.seed,
+        tagCount,
+      })
+    }
+
+    // Sort by tag count (prioritize palettes with more tags)
+    palettesNeedingRefinement.sort((a, b) => b.tagCount - a.tagCount)
+
+    return palettesNeedingRefinement.slice(0, limit)
+  },
+})
+
+/**
+ * Build TagSummaries for staged palettes ready for refinement.
+ * Similar to buildTagSummaries but works with staged_palettes table.
+ * Staged palettes don't have imageUrl, so we omit it.
+ */
+export const buildStagedTagSummaries = internalQuery({
+  args: {
+    seeds: v.array(v.string()),
+    sourcePromptVersions: v.array(v.string()),
+  },
+  handler: async (ctx, { seeds, sourcePromptVersions }) => {
+    const summaries: TagSummary[] = []
+
+    // Build set of target prompt versions for efficient lookup
+    const targetVersions = sourcePromptVersions.length > 0
+      ? new Set(sourcePromptVersions)
+      : null // null means all versions
+
+    for (const seed of seeds) {
+      // Fetch staged palette by seed
+      const palette = await ctx.db
+        .query('staged_palettes')
+        .withIndex('by_seed', (q) => q.eq('seed', seed))
+        .first()
+
+      if (!palette) continue
+
+      // Get consensus docs for this seed (one per prompt version)
+      const consensusDocs = await ctx.db
+        .query('palette_tag_consensus')
+        .withIndex('by_seed', (q) => q.eq('seed', seed))
+        .collect()
+
+      // Filter by prompt versions if specified
+      const matchingDocs = targetVersions
+        ? consensusDocs.filter((c) => c.promptVersion && targetVersions.has(c.promptVersion))
+        : consensusDocs
+
+      if (matchingDocs.length === 0) {
+        console.warn(`Skipping staged seed ${seed}: no consensus data found`)
+        continue
+      }
+
+      // Merge consensus from all matching versions
+      const merged = mergeConsensusData(matchingDocs)
+
+      const colorData = generateColorDataFromSeed(palette.seed)
+
+      // Use the first matching version as the "source" (for display purposes)
+      const sourcePromptVersion = matchingDocs[0].promptVersion ?? 'unknown'
+
+      summaries.push({
+        seed: palette.seed,
+        paletteId: palette._id,
+        colorData,
+        imageUrl: '', // Staged palettes don't have images yet
+        totalModels: merged.totalModels,
+        sourcePromptVersion,
+        categorical: merged.categorical,
+        tags: merged.tags,
+      })
+    }
+
+    return summaries
+  },
+})
+
+/**
+ * Get refinement status specifically for staged palettes.
+ * Optimized to avoid reading entire tables by using indexed lookups per seed.
+ */
+export const getStagedRefinementStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    // Count staged palettes (this table is small)
+    const stagedPalettes = await ctx.db.query('staged_palettes').collect()
+    const totalStaged = stagedPalettes.length
+
+    // Sample up to 500 staged palettes to estimate stats
+    // (checking all 3300+ would be too slow)
+    const sampleSize = Math.min(500, stagedPalettes.length)
+    const sample = stagedPalettes.slice(0, sampleSize)
+
+    let withTagsSample = 0
+    let refinedSample = 0
+
+    for (const palette of sample) {
+      // Check if has consensus data (using index)
+      const consensus = await ctx.db
+        .query('palette_tag_consensus')
+        .withIndex('by_seed', (q) => q.eq('seed', palette.seed))
+        .first()
+
+      if (consensus) {
+        withTagsSample++
+
+        // Check if has refinement (using index)
+        const refinement = await ctx.db
+          .query('palette_tag_refined')
+          .withIndex('by_seed', (q) => q.eq('seed', palette.seed))
+          .first()
+
+        if (refinement && !refinement.error) {
+          refinedSample++
+        }
+      }
+    }
+
+    // Extrapolate to full dataset
+    const ratio = totalStaged / sampleSize
+    const withTags = Math.round(withTagsSample * ratio)
+    const refined = Math.round(refinedSample * ratio)
+
+    return {
+      totalStaged,
+      withTags,
+      refined,
+      pending: Math.max(0, withTags - refined),
+    }
   },
 })
 

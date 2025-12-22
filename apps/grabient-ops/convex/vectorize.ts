@@ -11,7 +11,6 @@ import {
   analyzeCoefficients,
   tagsToArray,
   isValidPaletteCoeffs,
-  generatePaletteEmojis,
   cosineGradient,
   rgbToHex,
   applyGlobals,
@@ -55,7 +54,9 @@ interface VectorizeVector {
   metadata: {
     seed: string
     tags: string[]
-    // Note: style/steps/angle are derived from seed at display time
+    style: string
+    steps: number
+    angle: number
     likesCount: number
     createdAt: number
   }
@@ -515,7 +516,7 @@ export const seedVectorDatabase = action({
 
     console.log(`Generated ${allEmbeddings.length} embeddings`)
 
-    // Step 6: Upsert vectors (use nanoid since seeds are too long for Vectorize max 64 bytes)
+    // Step 6: Upsert vectors (nanoid for ID, seed stored in metadata + Convex for lookup)
     const vectorIds = palettesData.map(() => nanoid())
     const vectors: VectorizeVector[] = palettesData.map((p, i) => ({
       id: vectorIds[i],
@@ -616,10 +617,11 @@ interface StagedPaletteVectorizeResult {
  */
 export const vectorizeStagedPalettes = action({
   args: {
-    limit: v.optional(v.number()),
     revectorize: v.optional(v.boolean()),
+    model: v.optional(vRefinementModel),
+    cycles: v.optional(v.array(v.number())),
   },
-  handler: async (ctx, { limit = 1000, revectorize = false }): Promise<StagedPaletteVectorizeResult> => {
+  handler: async (ctx, { revectorize = false, model, cycles }): Promise<StagedPaletteVectorizeResult> => {
     const accountId = process.env.CF_ACCOUNT_ID
     const apiToken = process.env.CF_API_TOKEN
 
@@ -631,193 +633,252 @@ export const vectorizeStagedPalettes = action({
     }
 
     const client = new Cloudflare({ apiToken })
-
-    // Step 1: Query staged palettes
     const mode = revectorize ? 're-vectorization' : 'vectorization'
-    console.log(`Step 1: Querying up to ${limit} palettes for ${mode}...`)
-    const stagedPalettes = await ctx.runQuery(api.generate.getUnvectorizedStagedPalettes, { limit, revectorize }) as Array<{
-      _id: Id<'staged_palettes'>
-      sourceId: Id<'generated_palettes'>
-      seed: string
-      modelKey?: string
-      themes: string[]
-    }>
+    const QUERY_BATCH_SIZE = 1000 // Process 1000 palettes per iteration
 
-    if (stagedPalettes.length === 0) {
-      return {
-        success: true,
-        message: 'No unvectorized staged palettes found',
-        stats: { queried: 0, valid: 0, skipped: 0, embedded: 0, upserted: 0, insertedToConvex: 0 },
+    // Accumulate stats across all iterations
+    let totalQueried = 0
+    let totalValid = 0
+    let totalSkipped = 0
+    let totalEmbedded = 0
+    let totalUpserted = 0
+    let totalInsertedToConvex = 0
+
+    // Loop until all palettes are vectorized
+    let iteration = 0
+    while (true) {
+      iteration++
+      console.log(`\n=== Iteration ${iteration} ===`)
+
+      // Step 1: Query staged palettes
+      console.log(`Step 1: Querying up to ${QUERY_BATCH_SIZE} palettes for ${mode}...`)
+      const stagedPalettes = await ctx.runQuery(api.generate.getUnvectorizedStagedPalettes, {
+        limit: QUERY_BATCH_SIZE,
+        revectorize
+      }) as Array<{
+        _id: Id<'staged_palettes'>
+        sourceId: Id<'generated_palettes'>
+        seed: string
+        modelKey?: string
+        themes: string[]
+      }>
+
+      if (stagedPalettes.length === 0) {
+        console.log('No more unvectorized palettes found')
+        break
       }
-    }
 
-    console.log(`Found ${stagedPalettes.length} palettes for ${mode}`)
+      console.log(`Found ${stagedPalettes.length} palettes for ${mode}`)
+      totalQueried += stagedPalettes.length
 
-    // For revectorize mode, delete existing vectorized_palettes entries first
-    if (revectorize) {
-      console.log('Deleting existing vectorized_palettes entries for re-vectorization...')
+      // For revectorize mode, delete existing vectorized_palettes entries first
+      if (revectorize) {
+        console.log('Deleting existing vectorized_palettes entries for re-vectorization...')
+        const seeds = stagedPalettes.map((p) => p.seed)
+        const DELETE_BATCH = 100
+        for (let i = 0; i < seeds.length; i += DELETE_BATCH) {
+          const batch = seeds.slice(i, i + DELETE_BATCH)
+          await ctx.runMutation(internal.generate.deleteVectorizedPalettes, { seeds: batch })
+        }
+      }
+
+      // Step 2: Fetch refinement data for seeds (optionally filtered by model/cycles)
+      const filterDesc = model && cycles?.length ? ` for ${model} cycles [${cycles.join(', ')}]` : ''
+      console.log(`Step 2: Fetching refinement data${filterDesc}...`)
       const seeds = stagedPalettes.map((p) => p.seed)
-      const DELETE_BATCH = 100
-      for (let i = 0; i < seeds.length; i += DELETE_BATCH) {
-        const batch = seeds.slice(i, i + DELETE_BATCH)
-        await ctx.runMutation(internal.generate.deleteVectorizedPalettes, { seeds: batch })
+      const REFINEMENT_BATCH_SIZE = 100
+      const refinementMap: Record<string, { embedText: string; tags: Record<string, string[]> }> = {}
+
+      for (let i = 0; i < seeds.length; i += REFINEMENT_BATCH_SIZE) {
+        const batch = seeds.slice(i, i + REFINEMENT_BATCH_SIZE)
+        const batchResults = await ctx.runQuery(internal.refinement.getRefinedBySeeds, {
+          seeds: batch,
+          model,
+          cycles,
+        })
+        Object.assign(refinementMap, batchResults)
+        console.log(`Fetched refinement batch ${Math.floor(i / REFINEMENT_BATCH_SIZE) + 1}/${Math.ceil(seeds.length / REFINEMENT_BATCH_SIZE)}`)
       }
-    }
 
-    // Step 2: Validate and prepare palettes
-    console.log('Step 2: Validating palettes and generating embed text...')
-    const validPalettes: Array<{
-      sourceId: Id<'generated_palettes'>
-      seed: string
-      modelKey?: string
-      themes: string[]
-      embedText: string
-      tags: string[]
-    }> = []
-    let skipped = 0
+      console.log(`Found refinement data for ${Object.keys(refinementMap).length}/${seeds.length} seeds`)
 
-    for (const palette of stagedPalettes) {
-      // Validate and analyze coefficients
-      try {
-        const { coeffs } = deserializeCoeffs(palette.seed)
-        if (!isValidPaletteCoeffs(coeffs)) {
+      // If model/cycles specified, skip palettes without matching refinement data
+      let palettesToProcess = stagedPalettes
+      if (model && cycles?.length) {
+        palettesToProcess = stagedPalettes.filter(p => refinementMap[p.seed])
+        console.log(`Filtering to ${palettesToProcess.length} palettes with refinement data for ${model} cycles [${cycles.join(', ')}]`)
+      }
+
+      // Step 3: Validate and prepare palettes
+      console.log('Step 3: Validating palettes and generating embed text...')
+      const validPalettes: Array<{
+        sourceId: Id<'generated_palettes'>
+        seed: string
+        modelKey?: string
+        themes: string[]
+        embedText: string
+        tags: string[]
+      }> = []
+      let skipped = 0
+
+      for (const palette of palettesToProcess) {
+        try {
+          // Validate coefficients
+          const { coeffs } = deserializeCoeffs(palette.seed)
+          if (!isValidPaletteCoeffs(coeffs)) {
+            skipped++
+            continue
+          }
+
+          // Get refinement data if available
+          const refinement = refinementMap[palette.seed]
+
+          // Extract color names from seed
+          const colorNames = getColorNamesFromSeed(palette.seed)
+
+          // Deduplicate themes from staged palette
+          const uniqueThemes = [...new Set(palette.themes)]
+
+          // Build embed text: refinement embedText (if available) + color names + themes
+          // No emojis - just semantic tags and themes
+          let embedTokens: string[]
+          let tagTokens: string[]
+
+          if (refinement) {
+            // Use refinement embedText (already contains refined tags)
+            // Extract tags from refinement structured data
+            const refinedTags: string[] = []
+            for (const arr of Object.values(refinement.tags)) {
+              if (Array.isArray(arr)) {
+                refinedTags.push(...arr.map((t: string) => t.toLowerCase().trim()).filter(Boolean))
+              }
+            }
+
+            // Combine: refinement embedText + color names + themes
+            embedTokens = [refinement.embedText, ...colorNames, ...uniqueThemes]
+            tagTokens = [...new Set([...refinedTags, ...uniqueThemes])]
+          } else {
+            // Fallback: use coefficient-based tags if no refinement data
+            const paletteTags = analyzeCoefficients(coeffs)
+            const tagArray = tagsToArray(paletteTags)
+
+            embedTokens = [...colorNames, ...tagArray, ...uniqueThemes]
+            tagTokens = [...new Set([...tagArray, ...uniqueThemes])]
+          }
+
+          const embedText = [...new Set(embedTokens)].join(' ')
+
+          validPalettes.push({
+            sourceId: palette.sourceId,
+            seed: palette.seed,
+            modelKey: palette.modelKey,
+            themes: uniqueThemes,
+            embedText,
+            tags: tagTokens,
+          })
+        } catch {
           skipped++
           continue
         }
+      }
 
-        // Generate tags from coefficients
-        const paletteTags = analyzeCoefficients(coeffs)
-        const tagArray = tagsToArray(paletteTags)
-        const emojis = generatePaletteEmojis(paletteTags)
+      console.log(`Valid: ${validPalettes.length}, Skipped: ${skipped}`)
+      totalSkipped += skipped
 
-        // Extract unique color names from seed (derive colors from coefficients)
-        const colorNames = getColorNamesFromSeed(palette.seed)
-
-        // Deduplicate themes
-        const uniqueThemes = [...new Set(palette.themes)]
-
-        // Build embed text: emojis + color names + tags + themes (deduplicated)
-        const allTokens = [...emojis, ...colorNames, ...tagArray, ...uniqueThemes]
-        const uniqueTokens = [...new Set(allTokens)]
-        const embedText = uniqueTokens.join(' ')
-
-        // Deduplicate tags array as well
-        const uniqueTags = [...new Set([...tagArray, ...uniqueThemes])]
-
-        validPalettes.push({
-          sourceId: palette.sourceId,
-          seed: palette.seed,
-          modelKey: palette.modelKey,
-          themes: uniqueThemes,
-          embedText,
-          tags: uniqueTags,
-        })
-      } catch {
-        skipped++
+      if (validPalettes.length === 0) {
+        console.log('No valid palettes in this batch, continuing...')
         continue
       }
-    }
 
-    console.log(`Valid: ${validPalettes.length}, Skipped: ${skipped}`)
+      totalValid += validPalettes.length
 
-    if (validPalettes.length === 0) {
-      return {
-        success: true,
-        message: 'All palettes were invalid or skipped',
-        stats: { queried: stagedPalettes.length, valid: 0, skipped, embedded: 0, upserted: 0, insertedToConvex: 0 },
+      // Step 4: Generate embeddings in batches
+      console.log(`Step 4: Generating embeddings in batches of ${BATCH_SIZE}...`)
+      const allEmbeddings: number[][] = []
+
+      for (let i = 0; i < validPalettes.length; i += BATCH_SIZE) {
+        const batch = validPalettes.slice(i, i + BATCH_SIZE)
+        const texts = batch.map((p) => p.embedText)
+
+        console.log(`Embedding batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(validPalettes.length / BATCH_SIZE)} (${batch.length} items)`)
+        const embeddings = await generateEmbeddings(texts, client, accountId)
+        allEmbeddings.push(...embeddings)
       }
-    }
 
-    // Step 3: Generate embeddings in batches
-    console.log(`Step 3: Generating embeddings in batches of ${BATCH_SIZE}...`)
-    const allEmbeddings: number[][] = []
+      console.log(`Generated ${allEmbeddings.length} embeddings`)
+      totalEmbedded += allEmbeddings.length
 
-    for (let i = 0; i < validPalettes.length; i += BATCH_SIZE) {
-      const batch = validPalettes.slice(i, i + BATCH_SIZE)
-      const texts = batch.map((p) => p.embedText)
+      // Step 5: Build vectors and upsert to Vectorize (nanoid for ID, seed in metadata + Convex)
+      console.log(`Step 5: Upserting ${validPalettes.length} vectors...`)
+      const vectorIds = validPalettes.map(() => nanoid())
 
-      console.log(`Embedding batch ${Math.floor(i / BATCH_SIZE) + 1}/${Math.ceil(validPalettes.length / BATCH_SIZE)} (${batch.length} items)`)
-      const embeddings = await generateEmbeddings(texts, client, accountId)
-      allEmbeddings.push(...embeddings)
-    }
-
-    console.log(`Generated ${allEmbeddings.length} embeddings`)
-
-    // Step 4: Build vectors with nanoid and upsert to Vectorize
-    console.log(`Step 4: Upserting ${validPalettes.length} vectors...`)
-    const vectorIds = validPalettes.map(() => nanoid()) // Generate vectorIds upfront
-
-    const vectors: VectorizeVector[] = validPalettes.map((p, i) => ({
-      id: vectorIds[i],
-      values: allEmbeddings[i]!,
-      metadata: {
-        seed: p.seed,
-        tags: p.tags,
-        // Note: style/steps/angle are derived from seed at display time
-        likesCount: 0,
-        createdAt: Date.now(),
-      },
-    }))
-
-    let totalUpserted = 0
-    for (let i = 0; i < vectors.length; i += UPSERT_BATCH_SIZE) {
-      const batch = vectors.slice(i, i + UPSERT_BATCH_SIZE)
-      console.log(`Upserting batch ${Math.floor(i / UPSERT_BATCH_SIZE) + 1}/${Math.ceil(vectors.length / UPSERT_BATCH_SIZE)} (${batch.length} vectors)`)
-
-      const mutationId = await upsertVectors(batch, accountId, apiToken)
-      console.log(`Batch upserted with mutationId: ${mutationId}`)
-      totalUpserted += batch.length
-    }
-
-    // Step 5: Insert into vectorized_palettes table
-    console.log('Step 5: Inserting into vectorized_palettes table...')
-    const INSERT_BATCH_SIZE = 100
-    let insertedCount = 0
-
-    for (let i = 0; i < validPalettes.length; i += INSERT_BATCH_SIZE) {
-      const batchPalettes = validPalettes.slice(i, i + INSERT_BATCH_SIZE)
-      const batchVectorIds = vectorIds.slice(i, i + INSERT_BATCH_SIZE)
-
-      const palettesToInsert = batchPalettes.map((p, idx) => ({
-        sourceId: p.sourceId,
-        seed: p.seed,
-        modelKey: p.modelKey,
-        themes: p.themes,
-        embedText: p.embedText,
-        tags: p.tags,
-        vectorId: batchVectorIds[idx]!,
+      const vectors: VectorizeVector[] = validPalettes.map((p, i) => ({
+        id: vectorIds[i],
+        values: allEmbeddings[i]!,
+        metadata: {
+          seed: p.seed,
+          tags: p.tags,
+          style: 'linearGradient',
+          steps: 7,
+          angle: 90,
+          likesCount: 0,
+          createdAt: Date.now(),
+        },
       }))
 
-      const result = await ctx.runMutation(internal.generate.insertVectorizedPalettes, {
-        palettes: palettesToInsert,
-      })
-      insertedCount += result.count
+      for (let i = 0; i < vectors.length; i += UPSERT_BATCH_SIZE) {
+        const batch = vectors.slice(i, i + UPSERT_BATCH_SIZE)
+        console.log(`Upserting batch ${Math.floor(i / UPSERT_BATCH_SIZE) + 1}/${Math.ceil(vectors.length / UPSERT_BATCH_SIZE)} (${batch.length} vectors)`)
 
-      console.log(`Inserted batch ${Math.floor(i / INSERT_BATCH_SIZE) + 1}/${Math.ceil(validPalettes.length / INSERT_BATCH_SIZE)} (${result.count} records)`)
+        const mutationId = await upsertVectors(batch, accountId, apiToken)
+        console.log(`Batch upserted with mutationId: ${mutationId}`)
+        totalUpserted += batch.length
+      }
+
+      // Step 6: Insert into vectorized_palettes table
+      console.log('Step 6: Inserting into vectorized_palettes table...')
+      const INSERT_BATCH_SIZE = 100
+
+      for (let i = 0; i < validPalettes.length; i += INSERT_BATCH_SIZE) {
+        const batchPalettes = validPalettes.slice(i, i + INSERT_BATCH_SIZE)
+        const batchVectorIds = vectorIds.slice(i, i + INSERT_BATCH_SIZE)
+
+        const palettesToInsert = batchPalettes.map((p, idx) => ({
+          sourceId: p.sourceId,
+          seed: p.seed,
+          modelKey: p.modelKey,
+          themes: p.themes,
+          embedText: p.embedText,
+          tags: p.tags,
+          vectorId: batchVectorIds[idx]!,
+        }))
+
+        const result = await ctx.runMutation(internal.generate.insertVectorizedPalettes, {
+          palettes: palettesToInsert,
+        })
+        totalInsertedToConvex += result.count
+
+        console.log(`Inserted batch ${Math.floor(i / INSERT_BATCH_SIZE) + 1}/${Math.ceil(validPalettes.length / INSERT_BATCH_SIZE)} (${result.count} records)`)
+      }
+
+      console.log(`Iteration ${iteration} complete: ${validPalettes.length} palettes vectorized`)
     }
 
-    console.log(`Inserted ${insertedCount} records into vectorized_palettes`)
-
-    // Step 6: Check if all staged palettes are now vectorized, if so clear KV cache
-    const remainingStats = await ctx.runQuery(api.generate.getStagedPalettesVectorizeStats, {})
-    if (remainingStats.unvectorized <= 0) {
-      console.log('All staged palettes vectorized! Clearing KV search cache...')
-      const kvKeysCleared = await clearKVCache(accountId, apiToken)
-      console.log(`Cleared ${kvKeysCleared} KV cache keys`)
-    } else {
-      console.log(`${remainingStats.unvectorized} palettes still unvectorized, skipping KV cache clear`)
-    }
+    // Final step: Clear KV cache since all palettes are now vectorized
+    console.log('\nAll staged palettes vectorized! Clearing KV search cache...')
+    const kvKeysCleared = await clearKVCache(accountId, apiToken)
+    console.log(`Cleared ${kvKeysCleared} KV cache keys`)
 
     return {
       success: true,
       message: `Successfully vectorized ${totalUpserted} staged palettes`,
       stats: {
-        queried: stagedPalettes.length,
-        valid: validPalettes.length,
-        skipped,
-        embedded: allEmbeddings.length,
+        queried: totalQueried,
+        valid: totalValid,
+        skipped: totalSkipped,
+        embedded: totalEmbedded,
         upserted: totalUpserted,
-        insertedToConvex: insertedCount,
+        insertedToConvex: totalInsertedToConvex,
       },
     }
   },

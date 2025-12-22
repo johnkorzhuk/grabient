@@ -28,6 +28,8 @@ import {
   type RefinementProvider,
 } from './lib/providers.types'
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
 // ============================================================================
 // Shared Helpers
 // ============================================================================
@@ -94,8 +96,127 @@ async function getRefinementSummaries(
 }
 
 /**
+ * Type for prepared refinement result data (ready to be stored)
+ */
+type RefinedResultData = {
+  seed: string
+  model: RefinementModel
+  cycle: number
+  promptVersion: string
+  sourcePromptVersions: string[]
+  tags: unknown
+  embedText: string
+  inputSummary?: unknown
+  error?: string
+  usage?: { inputTokens: number; outputTokens: number }
+}
+
+/**
+ * Prepare refinement result data without storing.
+ * Returns the data object ready to be batch-stored.
+ */
+function prepareRefinementResult(
+  seed: string,
+  model: RefinementModel,
+  cycle: number,
+  sourcePromptVersions: string[],
+  summary: TagSummary | null,
+  responseText: string | null,
+  usage: { inputTokens: number; outputTokens: number } | null,
+  error?: string,
+): { data: RefinedResultData; success: boolean } {
+  if (error || !responseText) {
+    return {
+      data: {
+        seed,
+        model,
+        cycle,
+        promptVersion: REFINEMENT_PROMPT_VERSION,
+        sourcePromptVersions,
+        tags: null,
+        embedText: '',
+        error: error ?? 'No response text',
+      },
+      success: false,
+    }
+  }
+
+  try {
+    const jsonText = extractJson(responseText)
+    const parsed = JSON.parse(jsonText)
+    const normalized = normalizeRefinedTags(parsed)
+    const tags = refinedTagsSchema.parse(normalized)
+
+    // Build embed_text programmatically from consensus + LLM-refined tags + color names
+    let embedText = ''
+    if (summary) {
+      const colorData = generateColorDataFromSeed(seed)
+      embedText = buildEmbedText(
+        { categorical: summary.categorical },
+        { mood: tags.mood, style: tags.style, harmony: tags.harmony, seasonal: tags.seasonal, associations: tags.associations },
+        colorData.colorNames,
+      )
+    }
+
+    return {
+      data: {
+        seed,
+        model,
+        cycle,
+        promptVersion: REFINEMENT_PROMPT_VERSION,
+        sourcePromptVersions,
+        tags,
+        embedText,
+        usage: usage ?? undefined,
+      },
+      success: true,
+    }
+  } catch (e) {
+    const errorMsg = e instanceof Error ? e.message : String(e)
+    console.error(`Parse error for seed ${seed}:`, errorMsg)
+
+    return {
+      data: {
+        seed,
+        model,
+        cycle,
+        promptVersion: REFINEMENT_PROMPT_VERSION,
+        sourcePromptVersions,
+        tags: null,
+        embedText: '',
+        error: `Parse error: ${errorMsg}`,
+      },
+      success: false,
+    }
+  }
+}
+
+/**
+ * Store refined results in chunks using fast bulk insert.
+ * Uses 200 items per chunk for speed - no idempotency checks, no aggregates.
+ * Run backfillRefinedSeedsAggregate after to update aggregates.
+ */
+async function storeRefinedResultsInChunks(
+  ctx: ActionCtx,
+  results: RefinedResultData[],
+): Promise<void> {
+  const CHUNK_SIZE = 200 // Large chunks - bulk insert is fast (no queries)
+  const totalChunks = Math.ceil(results.length / CHUNK_SIZE)
+
+  for (let i = 0; i < results.length; i += CHUNK_SIZE) {
+    const chunkNum = Math.floor(i / CHUNK_SIZE) + 1
+    const chunk = results.slice(i, i + CHUNK_SIZE)
+    console.log(`Inserting chunk ${chunkNum}/${totalChunks} (${chunk.length} items)...`)
+    await ctx.runMutation(internal.refinement.bulkInsertRefinedResults, {
+      results: chunk,
+    })
+  }
+}
+
+/**
  * Process parsed refinement result and store it.
  * Builds embed_text programmatically from consensus + LLM-refined tags.
+ * @deprecated Use prepareRefinementResult + storeRefinedResultsInChunks for batch operations
  */
 async function storeRefinementResult(
   ctx: ActionCtx,
@@ -108,65 +229,11 @@ async function storeRefinementResult(
   usage: { inputTokens: number; outputTokens: number } | null,
   error?: string,
 ): Promise<boolean> {
-  if (error || !responseText) {
-    await ctx.runMutation(internal.refinement.storeRefinedResult, {
-      seed,
-      model,
-      cycle,
-      promptVersion: REFINEMENT_PROMPT_VERSION,
-      sourcePromptVersions,
-      tags: null,
-      embedText: '',
-      error: error ?? 'No response text',
-    })
-    return false
-  }
-
-  try {
-    const jsonText = extractJson(responseText)
-    const parsed = JSON.parse(jsonText)
-    const normalized = normalizeRefinedTags(parsed)
-    const tags = refinedTagsSchema.parse(normalized)
-
-    // Build embed_text programmatically from consensus + LLM-refined tags + color names
-    // Generate colorNames from seed (11 steps, deduped)
-    let embedText = ''
-    if (summary) {
-      const colorData = generateColorDataFromSeed(seed)
-      embedText = buildEmbedText(
-        { categorical: summary.categorical },
-        { mood: tags.mood, style: tags.style, harmony: tags.harmony, seasonal: tags.seasonal, associations: tags.associations },
-        colorData.colorNames,
-      )
-    }
-
-    await ctx.runMutation(internal.refinement.storeRefinedResult, {
-      seed,
-      model,
-      cycle,
-      promptVersion: REFINEMENT_PROMPT_VERSION,
-      sourcePromptVersions,
-      tags,
-      embedText,
-      usage: usage ?? undefined,
-    })
-    return true
-  } catch (e) {
-    const errorMsg = e instanceof Error ? e.message : String(e)
-    console.error(`Parse error for seed ${seed}:`, errorMsg)
-
-    await ctx.runMutation(internal.refinement.storeRefinedResult, {
-      seed,
-      model,
-      cycle,
-      promptVersion: REFINEMENT_PROMPT_VERSION,
-      sourcePromptVersions,
-      tags: null,
-      embedText: '',
-      error: `Parse error: ${errorMsg}`,
-    })
-    return false
-  }
+  const { data, success } = prepareRefinementResult(
+    seed, model, cycle, sourcePromptVersions, summary, responseText, usage, error
+  )
+  await ctx.runMutation(internal.refinement.storeRefinedResult, data)
+  return success
 }
 
 // ============================================================================
@@ -372,6 +439,8 @@ export const pollAnthropicRefinementBatch = internalAction({
       // Use sourcePromptVersions if available, fall back to empty array
       const sourcePromptVersions = batchRecord.sourcePromptVersions ?? []
 
+      // Collect all results first, then batch store
+      const resultsToStore: RefinedResultData[] = []
       let successCount = 0
       let failCount = 0
 
@@ -407,12 +476,8 @@ export const pollAnthropicRefinementBatch = internalAction({
             tags: consensus.tags,
           } : null
 
-          const success = await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
+          const { data, success } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
             summary,
             textContent?.text ?? null,
             {
@@ -421,6 +486,7 @@ export const pollAnthropicRefinementBatch = internalAction({
             },
             textContent ? undefined : 'No text content in response',
           )
+          resultsToStore.push(data)
           if (success) successCount++
           else failCount++
         } else {
@@ -429,19 +495,20 @@ export const pollAnthropicRefinementBatch = internalAction({
               ? JSON.stringify(result.result.error)
               : result.result.type
 
-          await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
-            null,
-            null,
-            null,
+          const { data } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
+            null, null, null,
             errorMsg,
           )
+          resultsToStore.push(data)
           failCount++
         }
+      }
+
+      // Batch store all results in chunks to avoid read limits
+      if (resultsToStore.length > 0) {
+        console.log(`Batch storing ${resultsToStore.length} refinement results in chunks...`)
+        await storeRefinedResultsInChunks(ctx, resultsToStore)
       }
 
       await ctx.runMutation(internal.refinement.updateRefinementBatchStatus, {
@@ -718,6 +785,8 @@ export const pollOpenAIRefinementBatch = internalAction({
       const content = await fileResponse.text()
       const lines = content.trim().split('\n')
 
+      // Collect all results first, then batch store
+      const resultsToStore: RefinedResultData[] = []
       let successCount = 0
       let failCount = 0
 
@@ -758,12 +827,8 @@ export const pollOpenAIRefinementBatch = internalAction({
             tags: consensus.tags,
           } : null
 
-          const success = await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
+          const { data, success } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
             summary,
             message ?? null,
             {
@@ -771,24 +836,26 @@ export const pollOpenAIRefinementBatch = internalAction({
               outputTokens: result.response.body.usage?.completion_tokens ?? 0,
             },
           )
+          resultsToStore.push(data)
           if (success) successCount++
           else failCount++
         } else {
           const errorMsg =
             result.error?.message ?? `Status ${result.response?.status_code}`
-          await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
-            null,
-            null,
-            null,
+          const { data } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
+            null, null, null,
             errorMsg,
           )
+          resultsToStore.push(data)
           failCount++
         }
+      }
+
+      // Batch store all results in chunks to avoid read limits
+      if (resultsToStore.length > 0) {
+        console.log(`Batch storing ${resultsToStore.length} refinement results in chunks...`)
+        await storeRefinedResultsInChunks(ctx, resultsToStore)
       }
 
       await ctx.runMutation(internal.refinement.updateRefinementBatchStatus, {
@@ -1106,6 +1173,8 @@ export const pollGroqRefinementBatch = internalAction({
       const content = await fileContent.text()
       const lines = content.trim().split('\n')
 
+      // Collect all results first, then batch store
+      const resultsToStore: RefinedResultData[] = []
       let successCount = 0
       let failCount = 0
 
@@ -1155,12 +1224,8 @@ export const pollGroqRefinementBatch = internalAction({
             tags: consensus.tags,
           } : null
 
-          const success = await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
+          const { data, success } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
             summary,
             message ?? null,
             {
@@ -1168,24 +1233,26 @@ export const pollGroqRefinementBatch = internalAction({
               outputTokens: result.response.body.usage?.completion_tokens ?? 0,
             },
           )
+          resultsToStore.push(data)
           if (success) successCount++
           else failCount++
         } else {
           const errorMsg =
             result.error?.message ?? `Status ${result.response?.status_code}`
-          await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
-            null,
-            null,
-            null,
+          const { data } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
+            null, null, null,
             errorMsg,
           )
+          resultsToStore.push(data)
           failCount++
         }
+      }
+
+      // Batch store all results in chunks to avoid read limits
+      if (resultsToStore.length > 0) {
+        console.log(`Batch storing ${resultsToStore.length} refinement results in chunks...`)
+        await storeRefinedResultsInChunks(ctx, resultsToStore)
       }
 
       await ctx.runMutation(internal.refinement.updateRefinementBatchStatus, {
@@ -1426,6 +1493,8 @@ export const pollGoogleRefinementBatch = internalAction({
         return { status: 'failed' as const }
       }
 
+      // Collect all results first, then batch store
+      const resultsToStore: RefinedResultData[] = []
       let successCount = 0
       let failCount = 0
 
@@ -1444,17 +1513,12 @@ export const pollGoogleRefinementBatch = internalAction({
           const errorData = inlinedResponse.error
 
           if (errorData) {
-            await storeRefinementResult(
-              ctx,
-              seed,
-              model,
-              cycle,
-              sourcePromptVersions,
-              null,
-              null,
-              null,
+            const { data } = prepareRefinementResult(
+              seed, model, cycle, sourcePromptVersions,
+              null, null, null,
               `Google error: ${JSON.stringify(errorData)}`,
             )
+            resultsToStore.push(data)
             failCount++
             continue
           }
@@ -1483,12 +1547,8 @@ export const pollGoogleRefinementBatch = internalAction({
           } : null
 
           const usage = responseData?.usageMetadata
-          const success = await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
+          const { data, success } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
             summary,
             responseText ?? null,
             usage
@@ -1499,23 +1559,25 @@ export const pollGoogleRefinementBatch = internalAction({
               : null,
             responseText ? undefined : 'No text in response',
           )
+          resultsToStore.push(data)
           if (success) successCount++
           else failCount++
         } catch (e) {
           const errorMsg = e instanceof Error ? e.message : String(e)
-          await storeRefinementResult(
-            ctx,
-            seed,
-            model,
-            cycle,
-            sourcePromptVersions,
-            null,
-            null,
-            null,
+          const { data } = prepareRefinementResult(
+            seed, model, cycle, sourcePromptVersions,
+            null, null, null,
             `Process error: ${errorMsg}`,
           )
+          resultsToStore.push(data)
           failCount++
         }
+      }
+
+      // Batch store all results in chunks to avoid read limits
+      if (resultsToStore.length > 0) {
+        console.log(`Batch storing ${resultsToStore.length} refinement results in chunks...`)
+        await storeRefinedResultsInChunks(ctx, resultsToStore)
       }
 
       await ctx.runMutation(internal.refinement.updateRefinementBatchStatus, {
@@ -2126,5 +2188,450 @@ export const cancelRefinement = action({
     }
 
     return { success: true, actualStatus: 'cancelled' }
+  },
+})
+
+// ============================================================================
+// Staged Palette Refinement
+// ============================================================================
+
+/**
+ * Helper to get summaries for staged palette refinement.
+ * Similar to getRefinementSummaries but uses staged_palettes table.
+ */
+async function getStagedRefinementSummaries(
+  ctx: ActionCtx,
+  model: RefinementModel,
+  sourcePromptVersions: string[],
+  limit: number,
+  cycle: number,
+): Promise<{ summaries: TagSummary[]; requestOrder: string[]; cycle: number } | null> {
+  const palettesForRefinement = await ctx.runQuery(
+    api.refinement.getStagedPalettesForRefinement,
+    {
+      model,
+      cycle,
+      sourcePromptVersions: sourcePromptVersions.length > 0 ? sourcePromptVersions : undefined,
+      limit,
+    },
+  )
+
+  if (palettesForRefinement.length === 0) {
+    console.log(`No staged palettes need refinement for cycle ${cycle}`)
+    return null
+  }
+
+  console.log(
+    `Building tag summaries for ${palettesForRefinement.length} staged palettes (cycle ${cycle}, source prompts: ${sourcePromptVersions.length > 0 ? sourcePromptVersions.map(v => v.slice(0, 8)).join(', ') : 'all'})`,
+  )
+
+  // Process in chunks to avoid Convex read limits
+  const CHUNK_SIZE = 50
+  const allSummaries: TagSummary[] = []
+  const seeds = palettesForRefinement.map((p: { seed: string }) => p.seed)
+
+  for (let i = 0; i < seeds.length; i += CHUNK_SIZE) {
+    const chunkSeeds = seeds.slice(i, i + CHUNK_SIZE)
+    const chunkSummaries: TagSummary[] = await ctx.runQuery(
+      internal.refinement.buildStagedTagSummaries,
+      {
+        seeds: chunkSeeds,
+        sourcePromptVersions,
+      },
+    )
+    allSummaries.push(...chunkSummaries)
+  }
+
+  if (allSummaries.length === 0) {
+    console.log(`No valid tag summaries for staged palettes in cycle ${cycle}`)
+    return null
+  }
+
+  const requestOrder = allSummaries.map((s) => s.seed)
+  return { summaries: allSummaries, requestOrder, cycle }
+}
+
+/**
+ * Submit staged refinement batch - routes to the correct provider.
+ * Uses staged palette data but same batch infrastructure.
+ */
+export const submitStagedRefinementBatch = internalAction({
+  args: {
+    model: vRefinementModel,
+    cycle: v.number(),
+    sourcePromptVersions: v.array(v.string()),
+    limit: v.optional(v.number()),
+    retryCount: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    { model, cycle, sourcePromptVersions, limit = 1000, retryCount = 0 },
+  ): Promise<{ batchId: string; requestCount: number } | null> => {
+    const provider = REFINEMENT_MODEL_PROVIDER[model as RefinementModel]
+
+    // Get summaries using staged palette helper
+    const result = await getStagedRefinementSummaries(
+      ctx,
+      model,
+      sourcePromptVersions,
+      limit,
+      cycle,
+    )
+    if (!result) return null
+
+    const { summaries, requestOrder } = result
+
+    console.log(
+      `Submitting ${summaries.length} staged palette refinement requests (cycle ${cycle}, provider: ${provider})`,
+    )
+
+    // Register prompt version
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: REFINEMENT_PROMPT_VERSION,
+      type: 'refinement',
+      content: REFINEMENT_SYSTEM_PROMPT,
+      message: REFINEMENT_PROMPT_MESSAGE,
+    })
+
+    // Route to provider-specific submission
+    switch (provider) {
+      case 'anthropic': {
+        const apiKey = process.env.ANTHROPIC_API_KEY
+        if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
+
+        const anthropic = new Anthropic({ apiKey })
+        const supportsThinking = model === 'claude-opus-4-5-20251101'
+
+        const batchRequests: Anthropic.Messages.BatchCreateParams.Request[] =
+          summaries.map((summary, index) => ({
+            custom_id: `idx_${index}`,
+            params: {
+              model,
+              max_tokens: 4096,
+              ...(supportsThinking && {
+                thinking: {
+                  type: 'enabled' as const,
+                  budget_tokens: 1024,
+                },
+              }),
+              system: REFINEMENT_SYSTEM_PROMPT,
+              messages: [
+                {
+                  role: 'user',
+                  content: createRefinementMessageContent(summary) as any,
+                },
+              ],
+            },
+          }))
+
+        const batch = await anthropic.messages.batches.create({
+          requests: batchRequests,
+        })
+
+        await ctx.runMutation(internal.refinement.createRefinementBatch, {
+          cycle,
+          provider: 'anthropic',
+          model,
+          batchId: batch.id,
+          sourcePromptVersions,
+          requestCount: summaries.length,
+          requestOrder,
+          retryCount,
+        })
+
+        console.log(`Created Anthropic staged refinement batch: ${batch.id}`)
+        return { batchId: batch.id, requestCount: summaries.length }
+      }
+
+      case 'openai': {
+        const apiKey = process.env.OPENAI_API_KEY
+        if (!apiKey) throw new Error('OPENAI_API_KEY not set')
+
+        const openai = new OpenAI({ apiKey })
+
+        const jsonlLines = summaries.map((summary, index) => {
+          const userContent: Array<{ type: 'text'; text: string }> = [
+            { type: 'text', text: createRefinementPromptText(summary) },
+          ]
+
+          return JSON.stringify({
+            custom_id: `idx_${index}`,
+            method: 'POST',
+            url: '/v1/chat/completions',
+            body: {
+              model,
+              messages: [
+                { role: 'system', content: REFINEMENT_SYSTEM_PROMPT },
+                { role: 'user', content: userContent },
+              ],
+            },
+          })
+        })
+
+        const jsonlContent = jsonlLines.join('\n')
+        const file = await openai.files.create({
+          file: new File([jsonlContent], 'staged_refinement_batch.jsonl', {
+            type: 'application/jsonl',
+          }),
+          purpose: 'batch',
+        })
+
+        const batch = await openai.batches.create({
+          input_file_id: file.id,
+          endpoint: '/v1/chat/completions',
+          completion_window: '24h',
+        })
+
+        await ctx.runMutation(internal.refinement.createRefinementBatch, {
+          cycle,
+          provider: 'openai',
+          model,
+          batchId: batch.id,
+          sourcePromptVersions,
+          requestCount: summaries.length,
+          requestOrder,
+          retryCount,
+        })
+
+        console.log(`Created OpenAI staged refinement batch: ${batch.id}`)
+        return { batchId: batch.id, requestCount: summaries.length }
+      }
+
+      case 'groq': {
+        const apiKey = process.env.GROQ_API_KEY
+        if (!apiKey) throw new Error('GROQ_API_KEY not set')
+
+        const groq = new Groq({ apiKey })
+        const reasoningEffort = GROQ_REASONING_EFFORT[model as RefinementModel]
+        const supportsReasoningFormat = GROQ_REASONING_FORMAT_SUPPORTED.has(model as RefinementModel)
+
+        const jsonlLines = summaries.map((summary, index) => {
+          const body: Record<string, any> = {
+            model,
+            messages: [
+              { role: 'system', content: REFINEMENT_SYSTEM_PROMPT },
+              { role: 'user', content: createRefinementPromptText(summary) },
+            ],
+          }
+
+          if (reasoningEffort) {
+            body.reasoning_effort = reasoningEffort
+            if (supportsReasoningFormat) {
+              body.reasoning_format = 'raw'
+            }
+          }
+
+          return JSON.stringify({
+            custom_id: `idx_${index}`,
+            method: 'POST',
+            url: '/v1/chat/completions',
+            body,
+          })
+        })
+
+        const jsonlContent = jsonlLines.join('\n')
+        const file = await groq.files.create({
+          file: new File([jsonlContent], 'staged_refinement_batch.jsonl', {
+            type: 'application/jsonl',
+          }),
+          purpose: 'batch',
+        })
+
+        const fileId = file.id
+        if (!fileId) throw new Error('Failed to create Groq file')
+
+        const batch = await groq.batches.create({
+          input_file_id: fileId,
+          endpoint: '/v1/chat/completions',
+          completion_window: '24h',
+        })
+
+        const groqBatchId = batch.id as string
+        if (!groqBatchId) throw new Error('Failed to create Groq batch')
+
+        await ctx.runMutation(internal.refinement.createRefinementBatch, {
+          cycle,
+          provider: 'groq',
+          model,
+          batchId: groqBatchId,
+          sourcePromptVersions,
+          requestCount: summaries.length,
+          requestOrder,
+          retryCount,
+        })
+
+        console.log(`Created Groq staged refinement batch: ${groqBatchId}`)
+        return { batchId: groqBatchId, requestCount: summaries.length }
+      }
+
+      case 'google': {
+        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+        if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+        const { GoogleGenAI } = await import('@google/genai')
+        const ai = new GoogleGenAI({ apiKey })
+
+        // Only split for gemini-2.5-flash-lite due to quota limits
+        // gemini-2.0-flash can handle larger batches
+        const needsSequentialBatching = model === 'gemini-2.5-flash-lite'
+        const MAX_BATCH_SIZE = needsSequentialBatching ? 1000 : summaries.length
+        const chunks: TagSummary[][] = []
+        for (let i = 0; i < summaries.length; i += MAX_BATCH_SIZE) {
+          chunks.push(summaries.slice(i, i + MAX_BATCH_SIZE))
+        }
+
+        console.log(needsSequentialBatching
+          ? `Splitting ${summaries.length} refinement requests into ${chunks.length} sequential batch(es) (flash-lite quota limit)`
+          : `Submitting ${summaries.length} refinement requests in single batch`)
+
+        let totalProcessed = 0
+        let lastBatchId: string | null = null
+
+        for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+          const chunkSummaries = chunks[chunkIdx]
+          const chunkStartIdx = chunkIdx * MAX_BATCH_SIZE
+
+          const inlinedRequests = chunkSummaries.map((summary, index) => ({
+            metadata: { key: `idx_${chunkStartIdx + index}` },
+            contents: [
+              {
+                role: 'user' as const,
+                parts: [{ text: createRefinementPromptText(summary) }],
+              },
+            ],
+            config: {
+              systemInstruction: { parts: [{ text: REFINEMENT_SYSTEM_PROMPT }] },
+              temperature: 0.7,
+              responseMimeType: 'application/json',
+            },
+          }))
+
+          const batchJob = await ai.batches.create({
+            model,
+            src: inlinedRequests,
+            config: {
+              displayName: `grabient-staged-refinement-cycle-${cycle}-${model}${chunks.length > 1 ? `-part${chunkIdx + 1}` : ''}`,
+            },
+          })
+
+          if (!batchJob.name) throw new Error('Failed to create Google batch')
+
+          const chunkRequestOrder = chunkSummaries.map((s) => s.seed)
+          await ctx.runMutation(internal.refinement.createRefinementBatch, {
+            cycle,
+            provider: 'google',
+            model,
+            batchId: batchJob.name,
+            sourcePromptVersions,
+            requestCount: chunkSummaries.length,
+            requestOrder: chunkRequestOrder,
+            retryCount,
+          })
+
+          console.log(`Created Google staged refinement batch ${chunkIdx + 1}/${chunks.length}: ${batchJob.name} (${chunkSummaries.length} requests)`)
+          lastBatchId = batchJob.name
+          totalProcessed += chunkSummaries.length
+
+          // If not the last chunk, wait for this batch to complete before submitting next
+          if (chunkIdx < chunks.length - 1) {
+            console.log(`Sequential mode: waiting for batch ${batchJob.name} to complete...`)
+            const batchId = batchJob.name
+
+            // Poll until complete (max 15 minutes with 30s intervals)
+            const maxAttempts = 30
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+              await sleep(30000) // 30 seconds
+
+              const currentBatch = await ai.batches.get({ name: batchId })
+              console.log(`Polling refinement batch ${batchId}: state=${currentBatch.state}`)
+
+              if (currentBatch.state === 'JOB_STATE_SUCCEEDED') {
+                console.log(`Batch ${batchId} completed, processing results...`)
+                await ctx.runAction(internal.refinementActions.pollGoogleRefinementBatch, { batchId, model })
+                break
+              }
+
+              if (
+                currentBatch.state === 'JOB_STATE_FAILED' ||
+                currentBatch.state === 'JOB_STATE_CANCELLED' ||
+                currentBatch.state === 'JOB_STATE_EXPIRED'
+              ) {
+                console.error(`Batch ${batchId} failed with state: ${currentBatch.state}`)
+                await ctx.runMutation(internal.refinement.updateRefinementBatchStatus, {
+                  batchId,
+                  status: 'failed',
+                  error: currentBatch.state,
+                })
+                break
+              }
+
+              // Still processing
+              const stats = currentBatch.completionStats
+              await ctx.runMutation(internal.refinement.updateRefinementBatchStatus, {
+                batchId,
+                status: 'processing',
+                completedCount: parseInt(stats?.successfulCount ?? '0', 10),
+                failedCount: parseInt(stats?.failedCount ?? '0', 10),
+              })
+            }
+          }
+        }
+
+        return { batchId: lastBatchId!, requestCount: totalProcessed }
+      }
+
+      default:
+        throw new Error(`Unknown provider for model ${model}`)
+    }
+  },
+})
+
+/**
+ * Start refinement for staged palettes.
+ * Creates a new refinement cycle and submits batch to selected model.
+ */
+export const startStagedRefinement = action({
+  args: {
+    model: v.optional(vRefinementModel),
+    sourcePromptVersions: v.optional(v.array(v.string())),
+    limit: v.optional(v.number()),
+  },
+  handler: async (
+    ctx,
+    { model = 'claude-3-5-haiku-20241022', sourcePromptVersions, limit = 1000 },
+  ): Promise<{
+    cycle: number
+    batchId: string | null
+    requestCount: number
+    sourcePromptVersions: string[]
+  }> => {
+    // Get next cycle number
+    const cycle: number = await ctx.runQuery(
+      internal.refinement.getNextRefinementCycle,
+      {},
+    )
+    const targetPromptVersions = sourcePromptVersions ?? []
+
+    console.log(
+      `Starting staged refinement cycle ${cycle} (model: ${model}, source prompts: ${targetPromptVersions.length > 0 ? targetPromptVersions.map(v => v.slice(0, 8)).join(', ') : 'all'}, limit: ${limit})`,
+    )
+
+    // Submit staged refinement batch
+    const result = await ctx.runAction(
+      internal.refinementActions.submitStagedRefinementBatch,
+      {
+        model,
+        cycle,
+        sourcePromptVersions: targetPromptVersions,
+        limit,
+      },
+    )
+
+    return {
+      cycle,
+      batchId: result?.batchId ?? null,
+      requestCount: result?.requestCount ?? 0,
+      sourcePromptVersions: targetPromptVersions,
+    }
   },
 })

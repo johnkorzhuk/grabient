@@ -305,7 +305,6 @@ export const BLACKLISTED_TAGGING_MODELS: Set<Model> = new Set([
  */
 export const BLACKLISTED_REFINEMENT_MODELS: Set<RefinementModel> = new Set([
   'claude-opus-4-5-20251101',
-  'openai/gpt-oss-120b',
   'llama-3.1-8b-instant',
   'qwen/qwen3-32b',
   'gpt-5-nano',

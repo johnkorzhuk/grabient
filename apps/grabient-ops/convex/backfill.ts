@@ -92,9 +92,10 @@ export const createBatch = internalMutation({
     promptVersion: v.string(),
     requestCount: v.number(),
     requestOrder: v.optional(v.array(v.string())), // For Google batches: customIds in order
+    sourceTable: v.optional(v.union(v.literal('palettes'), v.literal('staged_palettes'))),
   },
   returns: v.id('tag_batches'),
-  handler: async (ctx, { cycle, provider, model, batchId, analysisCount, promptVersion, requestCount, requestOrder }) => {
+  handler: async (ctx, { cycle, provider, model, batchId, analysisCount, promptVersion, requestCount, requestOrder, sourceTable }) => {
     return await ctx.db.insert('tag_batches', {
       cycle,
       provider,
@@ -108,7 +109,55 @@ export const createBatch = internalMutation({
       failedCount: 0,
       createdAt: Date.now(),
       requestOrder,
+      sourceTable,
     })
+  },
+})
+
+/**
+ * Fix batches missing sourceTable field (one-time migration)
+ */
+export const fixStagedBatchesSourceTable = mutation({
+  args: {},
+  handler: async (ctx) => {
+    // Find batches in cycle 21 that don't have sourceTable set (these are the staged palette batches)
+    const batches = await ctx.db.query('tag_batches').collect()
+    const batchesToFix = batches.filter(
+      (b) => b.cycle === 21 && !b.sourceTable
+    )
+
+    let fixed = 0
+    for (const batch of batchesToFix) {
+      await ctx.db.patch(batch._id, { sourceTable: 'staged_palettes' })
+      fixed++
+    }
+
+    return { fixed, total: batchesToFix.length }
+  },
+})
+
+/**
+ * Mark batches as completed (one-time fix for batches that completed but status wasn't updated)
+ */
+export const markBatchesCompleted = mutation({
+  args: { batchIds: v.array(v.string()) },
+  handler: async (ctx, { batchIds }) => {
+    let updated = 0
+    for (const batchId of batchIds) {
+      const batch = await ctx.db
+        .query('tag_batches')
+        .withIndex('by_batch_id', (q) => q.eq('batchId', batchId))
+        .first()
+
+      if (batch && batch.status !== 'completed') {
+        await ctx.db.patch(batch._id, {
+          status: 'completed',
+          completedAt: Date.now(),
+        })
+        updated++
+      }
+    }
+    return { updated }
   },
 })
 
@@ -193,6 +242,59 @@ export const storeTagResult = internalMutation({
     }
 
     return id
+  },
+})
+
+/**
+ * Batch store tag results - much faster than individual inserts
+ */
+export const storeTagResultsBatch = internalMutation({
+  args: {
+    results: v.array(
+      v.object({
+        seed: v.string(),
+        provider: vProvider,
+        model: vModel,
+        analysisIndex: v.number(),
+        promptVersion: v.string(),
+        tags: v.any(),
+        error: v.optional(v.string()),
+        usage: v.optional(
+          v.object({
+            inputTokens: v.number(),
+            outputTokens: v.number(),
+          }),
+        ),
+      }),
+    ),
+  },
+  handler: async (ctx, { results }) => {
+    let inserted = 0
+    let skipped = 0
+
+    for (const args of results) {
+      // Check for existing result (idempotency)
+      const existingTags = await ctx.db
+        .query('palette_tags')
+        .withIndex('by_seed_provider', (q) =>
+          q.eq('seed', args.seed).eq('provider', args.provider).eq('model', args.model),
+        )
+        .collect()
+
+      const existing = existingTags.find((t) => t.analysisIndex === args.analysisIndex)
+      if (existing) {
+        skipped++
+        continue
+      }
+
+      // Insert new tag and update aggregate
+      const id = await ctx.db.insert('palette_tags', args)
+      const doc = await ctx.db.get(id)
+      await paletteTagsAggregate.insert(ctx, doc!)
+      inserted++
+    }
+
+    return { inserted, skipped }
   },
 })
 
@@ -333,6 +435,36 @@ export const getRecentBatches = query({
       completedAt: batch.completedAt,
       error: batch.error,
     }))
+  },
+})
+
+/**
+ * Get all batches for a specific cycle
+ */
+export const getBatchesByCycle = query({
+  args: { cycle: v.number() },
+  handler: async (ctx, { cycle }) => {
+    const allBatches = await ctx.db
+      .query('tag_batches')
+      .withIndex('by_cycle', (q) => q.eq('cycle', cycle))
+      .collect()
+
+    return allBatches
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((batch) => ({
+        _id: batch._id,
+        cycle: batch.cycle ?? 1,
+        provider: batch.provider,
+        model: batch.model,
+        batchId: batch.batchId,
+        status: batch.status,
+        requestCount: batch.requestCount,
+        completedCount: batch.completedCount,
+        failedCount: batch.failedCount,
+        createdAt: batch.createdAt,
+        completedAt: batch.completedAt,
+        error: batch.error,
+      }))
   },
 })
 
@@ -1143,6 +1275,71 @@ export const getEmbedTextBackfillStats = query({
         ? Math.round((hasColorNames / refinedDocs.length) * 100)
         : 0,
       sampleColorNames,
+    }
+  },
+})
+
+// ============================================================================
+// Staged Palettes Tag Analysis
+// ============================================================================
+
+/**
+ * Get staged palettes for a new tagging cycle.
+ * Staged palettes are new and start fresh at analysisIndex 0.
+ */
+export const getStagedPalettesForNewCycle = query({
+  args: {
+    provider: vProvider,
+    model: vModel,
+    analysisCount: v.number(),
+  },
+  handler: async (ctx, { analysisCount }) => {
+    // Get all staged palettes
+    const stagedPalettes = await ctx.db.query('staged_palettes').collect()
+
+    // Build list with indices starting at 0 (staged palettes are fresh)
+    const newIndices: number[] = []
+    for (let i = 0; i < analysisCount; i++) {
+      newIndices.push(i)
+    }
+
+    return stagedPalettes.map((palette) => ({
+      _id: palette._id,
+      seed: palette.seed,
+      newIndices,
+    }))
+  },
+})
+
+/**
+ * Get overall backfill status for staged palettes.
+ */
+export const getStagedPalettesBackfillStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    const stagedPalettes = await ctx.db.query('staged_palettes').collect()
+    const batches = await ctx.db.query('tag_batches').collect()
+
+    // Count tags for staged palette seeds using aggregate (approximate)
+    const totalTags = await paletteTagsAggregate.count(ctx)
+    const successfulTags = await paletteTagsAggregate.sum(ctx)
+    const totalErrors = totalTags - successfulTags
+
+    const activeBatches = batches.filter(
+      (b) => b.status === 'pending' || b.status === 'processing',
+    )
+
+    // Count unique providers from batches
+    const uniqueProviders = new Set(batches.map((b) => b.provider)).size
+
+    return {
+      palettes: stagedPalettes.length,
+      palettesWithTags: stagedPalettes.length, // Approximate
+      uniqueProviders,
+      totalTags: successfulTags,
+      totalErrors,
+      activeBatches: activeBatches.length,
+      providerStats: [],
     }
   },
 })

@@ -21,6 +21,16 @@ export const getById = internalQuery({
 });
 
 /**
+ * Get staged palette by ID (internal use for batch processing)
+ */
+export const getStagedPaletteById = internalQuery({
+  args: { id: v.id("staged_palettes") },
+  handler: async (ctx, { id }) => {
+    return await ctx.db.get(id);
+  },
+});
+
+/**
  * Check if a seed exists in the database
  */
 export const seedExists = query({

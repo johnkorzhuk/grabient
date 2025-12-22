@@ -1322,33 +1322,35 @@ export const pollActiveBatches = action({
         continue
       }
 
+      const isStaged = batch.sourceTable === 'staged_palettes'
+
       try {
         let pollResult: { status: string }
 
         switch (batch.provider) {
           case 'anthropic':
-            pollResult = await ctx.runAction(internal.backfillActions.pollAnthropicBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedAnthropicBatch : internal.backfillActions.pollAnthropicBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           case 'openai':
-            pollResult = await ctx.runAction(internal.backfillActions.pollOpenAIBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedOpenAIBatch : internal.backfillActions.pollOpenAIBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           case 'groq':
-            pollResult = await ctx.runAction(internal.backfillActions.pollGroqBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedGroqBatch : internal.backfillActions.pollGroqBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           case 'google':
-            pollResult = await ctx.runAction(internal.backfillActions.pollGoogleBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedGoogleBatch : internal.backfillActions.pollGoogleBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           default:
             pollResult = { status: 'unknown' }
@@ -1407,33 +1409,35 @@ export const pollActiveBatchesInternal = internalAction({
         continue
       }
 
+      const isStaged = batch.sourceTable === 'staged_palettes'
+
       try {
         let pollResult: { status: string }
 
         switch (batch.provider) {
           case 'anthropic':
-            pollResult = await ctx.runAction(internal.backfillActions.pollAnthropicBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedAnthropicBatch : internal.backfillActions.pollAnthropicBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           case 'openai':
-            pollResult = await ctx.runAction(internal.backfillActions.pollOpenAIBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedOpenAIBatch : internal.backfillActions.pollOpenAIBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           case 'groq':
-            pollResult = await ctx.runAction(internal.backfillActions.pollGroqBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedGroqBatch : internal.backfillActions.pollGroqBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           case 'google':
-            pollResult = await ctx.runAction(internal.backfillActions.pollGoogleBatch, {
-              batchId: batch.batchId,
-              model: batch.model,
-            })
+            pollResult = await ctx.runAction(
+              isStaged ? internal.backfillActions.pollStagedGoogleBatch : internal.backfillActions.pollGoogleBatch,
+              { batchId: batch.batchId, model: batch.model }
+            )
             break
           default:
             pollResult = { status: 'unknown' }
@@ -1449,6 +1453,1158 @@ export const pollActiveBatchesInternal = internalAction({
 
     console.log(`Poll results: ${completed} completed, ${processing} processing, ${errors} errors, ${skipped} skipped`)
     return { polled: activeBatches.length - skipped, completed, processing, errors, skipped }
+  },
+})
+
+// ============================================================================
+// Staged Palettes Backfill
+// ============================================================================
+
+interface StagedBatchRequest {
+  customId: string // Format: stagedPaletteId_analysisIndex
+  seed: string
+  stagedPaletteId: string
+  analysisIndex: number
+  colorData: ColorData
+}
+
+function buildStagedBatchRequests(
+  palettesForCycle: Array<{ _id: string; seed: string; newIndices: number[] }>,
+): StagedBatchRequest[] {
+  const requests: StagedBatchRequest[] = []
+
+  for (const { _id, seed, newIndices } of palettesForCycle) {
+    const colorData = generateColorDataFromSeed(seed)
+
+    for (const analysisIndex of newIndices) {
+      requests.push({
+        customId: `${_id}_${analysisIndex}`,
+        seed,
+        stagedPaletteId: _id,
+        analysisIndex,
+        colorData,
+      })
+    }
+  }
+
+  return requests
+}
+
+function parseStagedCustomId(customId: string): { stagedPaletteId: Id<'staged_palettes'>; analysisIndex: number } {
+  const lastUnderscore = customId.lastIndexOf('_')
+  return {
+    stagedPaletteId: customId.substring(0, lastUnderscore) as Id<'staged_palettes'>,
+    analysisIndex: parseInt(customId.substring(lastUnderscore + 1), 10),
+  }
+}
+
+// Anthropic batch for staged palettes
+export const submitStagedAnthropicBatch = internalAction({
+  args: { model: vModel, cycle: v.number(), analysisCount: v.number() },
+  handler: async (ctx, { model, cycle, analysisCount }): Promise<{ batchId: string; requestCount: number } | null> => {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
+
+    const palettesForCycle = await ctx.runQuery(api.backfill.getStagedPalettesForNewCycle, {
+      provider: 'anthropic',
+      model,
+      analysisCount,
+    })
+
+    if (palettesForCycle.length === 0) {
+      console.log(`No staged palettes for cycle ${cycle} anthropic:${model}`)
+      return null
+    }
+
+    const requests = buildStagedBatchRequests(palettesForCycle)
+    console.log(`Submitting ${requests.length} staged palette requests to Anthropic batch API (cycle ${cycle})`)
+
+    const anthropic = new Anthropic({ apiKey })
+
+    const batchRequests: Anthropic.Messages.BatchCreateParams.Request[] = requests.map((req) => ({
+      custom_id: req.customId,
+      params: {
+        model,
+        max_tokens: 1024,
+        temperature: 0.7,
+        system: TAGGING_SYSTEM_PROMPT,
+        messages: [
+          {
+            role: 'user',
+            content: JSON.stringify(req.colorData),
+          },
+        ],
+      },
+    }))
+
+    const batch = await anthropic.messages.batches.create({
+      requests: batchRequests,
+    })
+
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
+    await ctx.runMutation(internal.backfill.createBatch, {
+      cycle,
+      provider: 'anthropic',
+      model,
+      batchId: batch.id,
+      analysisCount,
+      promptVersion: CURRENT_PROMPT_VERSION,
+      requestCount: requests.length,
+      sourceTable: 'staged_palettes',
+    })
+
+    console.log(`Created Anthropic staged batch: ${batch.id} (cycle ${cycle})`)
+    return { batchId: batch.id, requestCount: requests.length }
+  },
+})
+
+export const pollStagedAnthropicBatch = internalAction({
+  args: { batchId: v.string(), model: vModel },
+  handler: async (ctx, { batchId, model }) => {
+    const apiKey = process.env.ANTHROPIC_API_KEY
+    if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
+
+    const anthropic = new Anthropic({ apiKey })
+    const batch = await anthropic.messages.batches.retrieve(batchId)
+
+    console.log(`Anthropic staged batch ${batchId} status: ${batch.processing_status}`)
+
+    if (batch.processing_status === 'in_progress') {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'processing',
+        completedCount: batch.request_counts.succeeded,
+        failedCount: batch.request_counts.errored + batch.request_counts.expired,
+      })
+      return { status: 'processing' as const }
+    }
+
+    if (batch.processing_status === 'ended') {
+      // Collect all results for batch insert
+      const resultsToStore: Array<{
+        seed: string
+        provider: 'anthropic'
+        model: Model
+        analysisIndex: number
+        promptVersion: string
+        tags: unknown
+        error?: string
+        usage?: { inputTokens: number; outputTokens: number }
+      }> = []
+
+      let successCount = 0
+      let failCount = 0
+
+      const seedCache = new Map<string, string>()
+      const resultsIterator = await anthropic.messages.batches.results(batchId)
+      for await (const result of resultsIterator) {
+        const { stagedPaletteId, analysisIndex } = parseStagedCustomId(result.custom_id)
+
+        let seed = seedCache.get(stagedPaletteId)
+        if (!seed) {
+          const palette = await ctx.runQuery(internal.palettes.getStagedPaletteById, { id: stagedPaletteId })
+          if (!palette) {
+            console.error(`Staged palette not found for id ${stagedPaletteId}`)
+            failCount++
+            continue
+          }
+          seed = palette.seed
+          seedCache.set(stagedPaletteId, seed)
+        }
+
+        if (result.result.type === 'succeeded') {
+          const textContent = result.result.message.content.find(
+            (c): c is Anthropic.TextBlock => c.type === 'text',
+          )
+          if (textContent && textContent.type === 'text') {
+            try {
+              const jsonText = extractJson(textContent.text)
+              const parsed = JSON.parse(jsonText)
+              const normalized = normalizeTagResponse(parsed)
+              const tags = tagResponseSchema.parse(normalized)
+
+              resultsToStore.push({
+                seed,
+                provider: 'anthropic',
+                model,
+                analysisIndex,
+                promptVersion: CURRENT_PROMPT_VERSION,
+                tags,
+                usage: {
+                  inputTokens: result.result.message.usage.input_tokens,
+                  outputTokens: result.result.message.usage.output_tokens,
+                },
+              })
+              successCount++
+            } catch (e) {
+              resultsToStore.push({
+                seed,
+                provider: 'anthropic',
+                model,
+                analysisIndex,
+                promptVersion: CURRENT_PROMPT_VERSION,
+                tags: null,
+                error: `Parse error: ${e instanceof Error ? e.message : String(e)}`,
+              })
+              failCount++
+            }
+          }
+        } else {
+          const errorMsg =
+            result.result.type === 'errored'
+              ? JSON.stringify(result.result.error)
+              : result.result.type
+          resultsToStore.push({
+            seed,
+            provider: 'anthropic',
+            model,
+            analysisIndex,
+            promptVersion: CURRENT_PROMPT_VERSION,
+            tags: null,
+            error: errorMsg,
+          })
+          failCount++
+        }
+      }
+
+      // Batch insert all results (in chunks to avoid mutation size limits)
+      const BATCH_SIZE = 100
+      for (let i = 0; i < resultsToStore.length; i += BATCH_SIZE) {
+        const chunk = resultsToStore.slice(i, i + BATCH_SIZE)
+        await ctx.runMutation(internal.backfill.storeTagResultsBatch, { results: chunk })
+      }
+
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'completed',
+        completedCount: successCount,
+        failedCount: failCount,
+      })
+
+      return { status: 'completed' as const, successCount, failCount }
+    }
+
+    return { status: batch.processing_status as 'canceling' }
+  },
+})
+
+// OpenAI batch for staged palettes
+export const submitStagedOpenAIBatch = internalAction({
+  args: { model: vModel, cycle: v.number(), analysisCount: v.number() },
+  handler: async (ctx, { model, cycle, analysisCount }): Promise<{ batchId: string; requestCount: number } | null> => {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) throw new Error('OPENAI_API_KEY not set')
+
+    const palettesForCycle = await ctx.runQuery(api.backfill.getStagedPalettesForNewCycle, {
+      provider: 'openai',
+      model,
+      analysisCount,
+    })
+
+    if (palettesForCycle.length === 0) {
+      console.log(`No staged palettes for cycle ${cycle} openai:${model}`)
+      return null
+    }
+
+    const requests = buildStagedBatchRequests(palettesForCycle)
+    console.log(`Submitting ${requests.length} staged palette requests to OpenAI batch API (cycle ${cycle})`)
+
+    const openai = new OpenAI({ apiKey })
+    const temperature = OPENAI_TEMP_1_ONLY_MODELS.includes(model) ? 1 : 1.4
+
+    const jsonlLines = requests.map((req) =>
+      JSON.stringify({
+        custom_id: req.customId,
+        method: 'POST',
+        url: '/v1/chat/completions',
+        body: {
+          model,
+          temperature,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: TAGGING_SYSTEM_PROMPT },
+            { role: 'user', content: JSON.stringify(req.colorData) },
+          ],
+        },
+      }),
+    )
+
+    const jsonlContent = jsonlLines.join('\n')
+    const file = await openai.files.create({
+      file: new File([jsonlContent], 'batch_requests.jsonl', { type: 'application/jsonl' }),
+      purpose: 'batch',
+    })
+
+    const batch = await openai.batches.create({
+      input_file_id: file.id,
+      endpoint: '/v1/chat/completions',
+      completion_window: '24h',
+    })
+
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
+    await ctx.runMutation(internal.backfill.createBatch, {
+      cycle,
+      provider: 'openai',
+      model,
+      batchId: batch.id,
+      analysisCount,
+      promptVersion: CURRENT_PROMPT_VERSION,
+      requestCount: requests.length,
+      sourceTable: 'staged_palettes',
+    })
+
+    console.log(`Created OpenAI staged batch: ${batch.id} (cycle ${cycle})`)
+    return { batchId: batch.id, requestCount: requests.length }
+  },
+})
+
+export const pollStagedOpenAIBatch = internalAction({
+  args: { batchId: v.string(), model: vModel },
+  handler: async (ctx, { batchId, model }) => {
+    const apiKey = process.env.OPENAI_API_KEY
+    if (!apiKey) throw new Error('OPENAI_API_KEY not set')
+
+    const openai = new OpenAI({ apiKey })
+    const batch = await openai.batches.retrieve(batchId)
+
+    console.log(`OpenAI staged batch ${batchId} status: ${batch.status}`)
+
+    if (batch.status === 'in_progress' || batch.status === 'validating' || batch.status === 'finalizing') {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'processing',
+        completedCount: batch.request_counts?.completed ?? 0,
+        failedCount: batch.request_counts?.failed ?? 0,
+      })
+      return { status: 'processing' as const }
+    }
+
+    if (batch.status === 'completed' && batch.output_file_id) {
+      console.log(`OpenAI staged batch ${batchId} downloading results`)
+      const fileResponse = await openai.files.content(batch.output_file_id)
+      const content = await fileResponse.text()
+      const lines = content.trim().split('\n')
+
+      // Collect all results for batch insert
+      const resultsToStore: Array<{
+        seed: string
+        provider: 'openai'
+        model: Model
+        analysisIndex: number
+        promptVersion: string
+        tags: unknown
+        error?: string
+        usage?: { inputTokens: number; outputTokens: number }
+      }> = []
+
+      let successCount = 0
+      let failCount = 0
+
+      const seedCache = new Map<string, string>()
+      for (const line of lines) {
+        const result = JSON.parse(line)
+        const { stagedPaletteId, analysisIndex } = parseStagedCustomId(result.custom_id)
+
+        let seed = seedCache.get(stagedPaletteId)
+        if (!seed) {
+          const palette = await ctx.runQuery(internal.palettes.getStagedPaletteById, { id: stagedPaletteId })
+          if (!palette) {
+            console.error(`Staged palette not found for id ${stagedPaletteId}`)
+            failCount++
+            continue
+          }
+          seed = palette.seed
+          seedCache.set(stagedPaletteId, seed)
+        }
+
+        if (result.response?.status_code === 200) {
+          try {
+            const message = result.response.body.choices[0].message.content
+            const jsonText = extractJson(message)
+            const parsed = JSON.parse(jsonText)
+            const tags = tagResponseSchema.parse(parsed)
+
+            resultsToStore.push({
+              seed,
+              provider: 'openai',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags,
+              usage: {
+                inputTokens: result.response.body.usage?.prompt_tokens ?? 0,
+                outputTokens: result.response.body.usage?.completion_tokens ?? 0,
+              },
+            })
+            successCount++
+          } catch (e) {
+            resultsToStore.push({
+              seed,
+              provider: 'openai',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: `Parse error: ${e instanceof Error ? e.message : String(e)}`,
+            })
+            failCount++
+          }
+        } else {
+          resultsToStore.push({
+            seed,
+            provider: 'openai',
+            model,
+            analysisIndex,
+            promptVersion: CURRENT_PROMPT_VERSION,
+            tags: null,
+            error: result.response?.body?.error?.message ?? result.error?.message ?? 'Unknown error',
+          })
+          failCount++
+        }
+      }
+
+      // Batch insert all results (in chunks to avoid mutation size limits)
+      const BATCH_SIZE = 100
+      for (let i = 0; i < resultsToStore.length; i += BATCH_SIZE) {
+        const chunk = resultsToStore.slice(i, i + BATCH_SIZE)
+        await ctx.runMutation(internal.backfill.storeTagResultsBatch, { results: chunk })
+      }
+
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'completed',
+        completedCount: successCount,
+        failedCount: failCount,
+      })
+
+      return { status: 'completed' as const, successCount, failCount }
+    }
+
+    if (batch.status === 'failed' || batch.status === 'expired' || batch.status === 'cancelled') {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: batch.status,
+      })
+      return { status: 'failed' as const }
+    }
+
+    return { status: batch.status }
+  },
+})
+
+// Groq batch for staged palettes
+export const submitStagedGroqBatch = internalAction({
+  args: { model: vModel, cycle: v.number(), analysisCount: v.number() },
+  handler: async (ctx, { model, cycle, analysisCount }): Promise<{ batchId: string; requestCount: number } | null> => {
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey) throw new Error('GROQ_API_KEY not set')
+
+    const palettesForCycle = await ctx.runQuery(api.backfill.getStagedPalettesForNewCycle, {
+      provider: 'groq',
+      model,
+      analysisCount,
+    })
+
+    if (palettesForCycle.length === 0) {
+      console.log(`No staged palettes for cycle ${cycle} groq:${model}`)
+      return null
+    }
+
+    const requests = buildStagedBatchRequests(palettesForCycle)
+    console.log(`Submitting ${requests.length} staged palette requests to Groq batch API (cycle ${cycle})`)
+
+    const groq = new Groq({ apiKey })
+
+    const jsonlLines = requests.map((req) =>
+      JSON.stringify({
+        custom_id: req.customId,
+        method: 'POST',
+        url: '/v1/chat/completions',
+        body: {
+          model,
+          temperature: 1.4,
+          response_format: { type: 'json_object' },
+          messages: [
+            { role: 'system', content: TAGGING_SYSTEM_PROMPT },
+            { role: 'user', content: JSON.stringify(req.colorData) },
+          ],
+        },
+      }),
+    )
+
+    const jsonlContent = jsonlLines.join('\n')
+    const file = await groq.files.create({
+      file: new File([jsonlContent], 'batch_requests.jsonl', { type: 'application/jsonl' }),
+      purpose: 'batch',
+    })
+
+    if (!file.id) throw new Error('Failed to upload file to Groq')
+
+    const batch = await groq.batches.create({
+      input_file_id: file.id,
+      endpoint: '/v1/chat/completions',
+      completion_window: '24h',
+    })
+
+    if (!batch.id) throw new Error('Failed to create Groq batch')
+
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
+    await ctx.runMutation(internal.backfill.createBatch, {
+      cycle,
+      provider: 'groq',
+      model,
+      batchId: batch.id,
+      analysisCount,
+      promptVersion: CURRENT_PROMPT_VERSION,
+      requestCount: requests.length,
+      sourceTable: 'staged_palettes',
+    })
+
+    console.log(`Created Groq staged batch: ${batch.id} (cycle ${cycle})`)
+    return { batchId: batch.id, requestCount: requests.length }
+  },
+})
+
+export const pollStagedGroqBatch = internalAction({
+  args: { batchId: v.string(), model: vModel },
+  handler: async (ctx, { batchId, model }) => {
+    const apiKey = process.env.GROQ_API_KEY
+    if (!apiKey) throw new Error('GROQ_API_KEY not set')
+
+    const groq = new Groq({ apiKey })
+    const batch = await groq.batches.retrieve(batchId)
+
+    console.log(`Groq staged batch ${batchId} status: ${batch.status}`)
+
+    if (batch.status === 'in_progress' || batch.status === 'validating' || batch.status === 'finalizing') {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'processing',
+        completedCount: batch.request_counts?.completed ?? 0,
+        failedCount: batch.request_counts?.failed ?? 0,
+      })
+      return { status: 'processing' as const }
+    }
+
+    if (batch.status === 'completed' && batch.output_file_id) {
+      const fileContent = await groq.files.content(batch.output_file_id)
+      const content = await fileContent.text()
+      const lines = content.trim().split('\n')
+
+      // Collect all results for batch insert
+      const resultsToStore: Array<{
+        seed: string
+        provider: 'groq'
+        model: Model
+        analysisIndex: number
+        promptVersion: string
+        tags: unknown
+        error?: string
+        usage?: { inputTokens: number; outputTokens: number }
+      }> = []
+
+      let successCount = 0
+      let failCount = 0
+
+      // First pass: parse results and look up seeds
+      const seedCache = new Map<string, string>()
+      for (const line of lines) {
+        const result = JSON.parse(line)
+        const { stagedPaletteId, analysisIndex } = parseStagedCustomId(result.custom_id)
+
+        let seed = seedCache.get(stagedPaletteId)
+        if (!seed) {
+          const palette = await ctx.runQuery(internal.palettes.getStagedPaletteById, { id: stagedPaletteId })
+          if (!palette) {
+            console.error(`Staged palette not found for id ${stagedPaletteId}`)
+            failCount++
+            continue
+          }
+          seed = palette.seed
+          seedCache.set(stagedPaletteId, seed)
+        }
+
+        if (result.response?.status_code === 200) {
+          try {
+            const message = result.response.body.choices[0].message.content
+            const jsonText = extractJson(message)
+            const parsed = JSON.parse(jsonText)
+            const tags = tagResponseSchema.parse(parsed)
+
+            resultsToStore.push({
+              seed,
+              provider: 'groq',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags,
+              usage: {
+                inputTokens: result.response.body.usage?.prompt_tokens ?? 0,
+                outputTokens: result.response.body.usage?.completion_tokens ?? 0,
+              },
+            })
+            successCount++
+          } catch (e) {
+            resultsToStore.push({
+              seed,
+              provider: 'groq',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: `Parse error: ${e instanceof Error ? e.message : String(e)}`,
+            })
+            failCount++
+          }
+        } else {
+          resultsToStore.push({
+            seed,
+            provider: 'groq',
+            model,
+            analysisIndex,
+            promptVersion: CURRENT_PROMPT_VERSION,
+            tags: null,
+            error: result.error?.message ?? 'Unknown error',
+          })
+          failCount++
+        }
+      }
+
+      // Batch insert all results (in chunks to avoid mutation size limits)
+      const BATCH_SIZE = 100
+      for (let i = 0; i < resultsToStore.length; i += BATCH_SIZE) {
+        const chunk = resultsToStore.slice(i, i + BATCH_SIZE)
+        await ctx.runMutation(internal.backfill.storeTagResultsBatch, { results: chunk })
+      }
+
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'completed',
+        completedCount: successCount,
+        failedCount: failCount,
+      })
+
+      return { status: 'completed' as const, successCount, failCount }
+    }
+
+    if (batch.status === 'failed' || batch.status === 'expired' || batch.status === 'cancelled') {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: batch.status,
+      })
+      return { status: 'failed' as const }
+    }
+
+    return { status: batch.status }
+  },
+})
+
+// Google batch for staged palettes
+// Supports splitting large batches with maxBatchSize parameter
+// When sequential=true, waits for each batch to complete before submitting the next
+export const submitStagedGoogleBatch = internalAction({
+  args: {
+    model: vModel,
+    cycle: v.number(),
+    analysisCount: v.number(),
+    maxBatchSize: v.optional(v.number()),
+    sequential: v.optional(v.boolean()),
+  },
+  handler: async (
+    ctx,
+    { model, cycle, analysisCount, maxBatchSize, sequential }
+  ): Promise<Array<{ batchId: string; requestCount: number }> | null> => {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+    const palettesForCycle = await ctx.runQuery(api.backfill.getStagedPalettesForNewCycle, {
+      provider: 'google',
+      model,
+      analysisCount,
+    })
+
+    if (palettesForCycle.length === 0) {
+      console.log(`No staged palettes for cycle ${cycle} google:${model}`)
+      return null
+    }
+
+    const allRequests = buildStagedBatchRequests(palettesForCycle)
+    console.log(
+      `Preparing ${allRequests.length} staged palette requests for Google batch API (cycle ${cycle})${maxBatchSize ? `, max batch size: ${maxBatchSize}` : ''}${sequential ? ', sequential mode' : ''}`
+    )
+
+    const ai = new GoogleGenAI({ apiKey })
+
+    await ctx.runMutation(internal.backfill.registerPromptVersion, {
+      version: CURRENT_PROMPT_VERSION,
+      type: 'tagging',
+      content: TAGGING_SYSTEM_PROMPT,
+      message: TAGGING_PROMPT_MESSAGE,
+    })
+
+    // Split requests into chunks if maxBatchSize is specified
+    const chunkSize = maxBatchSize ?? allRequests.length
+    const chunks: Array<typeof allRequests> = []
+    for (let i = 0; i < allRequests.length; i += chunkSize) {
+      chunks.push(allRequests.slice(i, i + chunkSize))
+    }
+
+    console.log(`Splitting into ${chunks.length} batch(es)`)
+
+    const results: Array<{ batchId: string; requestCount: number }> = []
+
+    for (let chunkIdx = 0; chunkIdx < chunks.length; chunkIdx++) {
+      const requests = chunks[chunkIdx]
+
+      const inlinedRequests = requests.map((req) => ({
+        metadata: { key: req.customId },
+        contents: [
+          {
+            role: 'user' as const,
+            parts: [{ text: JSON.stringify(req.colorData) }],
+          },
+        ],
+        config: {
+          systemInstruction: { parts: [{ text: TAGGING_SYSTEM_PROMPT }] },
+          temperature: 0.7,
+          responseMimeType: 'application/json',
+        },
+      }))
+
+      const batchJob = await ai.batches.create({
+        model,
+        src: inlinedRequests,
+        config: {
+          displayName: `grabient-staged-tags-cycle-${cycle}-${model}${chunks.length > 1 ? `-part${chunkIdx + 1}` : ''}`,
+        },
+      })
+
+      if (!batchJob.name) throw new Error('Failed to create Google batch - no name returned')
+
+      const requestOrder = requests.map((req) => req.customId)
+      await ctx.runMutation(internal.backfill.createBatch, {
+        cycle,
+        provider: 'google',
+        model,
+        batchId: batchJob.name,
+        analysisCount,
+        promptVersion: CURRENT_PROMPT_VERSION,
+        requestCount: requests.length,
+        requestOrder,
+        sourceTable: 'staged_palettes',
+      })
+
+      console.log(
+        `Created Google staged batch ${chunkIdx + 1}/${chunks.length}: ${batchJob.name} (${requests.length} requests)`
+      )
+      results.push({ batchId: batchJob.name, requestCount: requests.length })
+
+      // If sequential mode and not the last chunk, wait for this batch to complete
+      if (sequential && chunkIdx < chunks.length - 1) {
+        console.log(`Sequential mode: waiting for batch ${batchJob.name} to complete before submitting next...`)
+        const batchId = batchJob.name
+
+        // Poll until complete (max 10 minutes with 30s intervals)
+        const maxAttempts = 20
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+          await sleep(30000) // 30 seconds
+
+          const currentBatch = await ai.batches.get({ name: batchId })
+          console.log(`Polling batch ${batchId}: state=${currentBatch.state}`)
+
+          if (currentBatch.state === 'JOB_STATE_SUCCEEDED') {
+            console.log(`Batch ${batchId} completed successfully, processing results...`)
+            // Process results before continuing to next batch
+            await ctx.runAction(internal.backfillActions.pollStagedGoogleBatch, { batchId, model })
+            break
+          }
+
+          if (
+            currentBatch.state === 'JOB_STATE_FAILED' ||
+            currentBatch.state === 'JOB_STATE_CANCELLED' ||
+            currentBatch.state === 'JOB_STATE_EXPIRED'
+          ) {
+            console.error(`Batch ${batchId} failed with state: ${currentBatch.state}`)
+            await ctx.runMutation(internal.backfill.updateBatchStatus, {
+              batchId,
+              status: 'failed',
+              error: currentBatch.state,
+            })
+            // Continue to next batch anyway
+            break
+          }
+
+          // Still processing, update status
+          const stats = currentBatch.completionStats
+          await ctx.runMutation(internal.backfill.updateBatchStatus, {
+            batchId,
+            status: 'processing',
+            completedCount: parseInt(stats?.successfulCount ?? '0', 10),
+            failedCount: parseInt(stats?.failedCount ?? '0', 10),
+          })
+        }
+      }
+    }
+
+    return results
+  },
+})
+
+export const pollStagedGoogleBatch = internalAction({
+  args: { batchId: v.string(), model: vModel },
+  handler: async (ctx, { batchId, model }) => {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not set')
+
+    const ai = new GoogleGenAI({ apiKey })
+    const batch = await ai.batches.get({ name: batchId })
+
+    const stats = batch.completionStats
+    console.log(`Google staged batch ${batchId}: state=${batch.state}`)
+
+    if (batch.state === 'JOB_STATE_PENDING' || batch.state === 'JOB_STATE_RUNNING') {
+      const completedCount = parseInt(stats?.successfulCount ?? '0', 10)
+      const failedCount = parseInt(stats?.failedCount ?? '0', 10)
+
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'processing',
+        completedCount,
+        failedCount,
+      })
+      return { status: 'processing' as const, completedCount, failedCount }
+    }
+
+    if (batch.state === 'JOB_STATE_SUCCEEDED') {
+      let successCount = 0
+      let failCount = 0
+
+      const inlinedResponses = batch.dest?.inlinedResponses
+      if (!inlinedResponses || inlinedResponses.length === 0) {
+        await ctx.runMutation(internal.backfill.updateBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: 'No inlined responses in completed batch',
+        })
+        return { status: 'failed' as const }
+      }
+
+      const batchRecord = await ctx.runQuery(internal.backfill.getBatchByBatchIdInternal, { batchId })
+      const requestOrder = batchRecord?.requestOrder
+
+      if (!requestOrder || requestOrder.length === 0) {
+        await ctx.runMutation(internal.backfill.updateBatchStatus, {
+          batchId,
+          status: 'failed',
+          error: 'No request order stored',
+        })
+        return { status: 'failed' as const }
+      }
+
+      // Use seed cache to avoid repeated queries for the same palette
+      const seedCache = new Map<string, string>()
+      const resultsToStore: Array<{
+        seed: string
+        provider: 'google'
+        model: typeof model
+        analysisIndex: number
+        promptVersion: string
+        tags: unknown
+        error?: string
+        usage?: { inputTokens: number; outputTokens: number }
+      }> = []
+
+      for (let i = 0; i < inlinedResponses.length; i++) {
+        const inlinedResponse = inlinedResponses[i]
+        try {
+          const responseData = inlinedResponse.response
+          const errorData = inlinedResponse.error
+          const customId = requestOrder[i]
+
+          if (!customId) {
+            failCount++
+            continue
+          }
+
+          const { stagedPaletteId, analysisIndex } = parseStagedCustomId(customId)
+
+          // Check cache first, then query
+          let seed = seedCache.get(stagedPaletteId)
+          if (!seed) {
+            const palette = await ctx.runQuery(internal.palettes.getStagedPaletteById, { id: stagedPaletteId })
+            if (!palette) {
+              console.error(`Staged palette not found for id ${stagedPaletteId}`)
+              failCount++
+              continue
+            }
+            seed = palette.seed
+            seedCache.set(stagedPaletteId, seed)
+          }
+
+          if (errorData) {
+            resultsToStore.push({
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: JSON.stringify(errorData),
+            })
+            failCount++
+            continue
+          }
+
+          if (!responseData) {
+            resultsToStore.push({
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: 'No response in batch result',
+            })
+            failCount++
+            continue
+          }
+
+          let text = responseData.text ?? ''
+          if (!text && responseData.candidates?.[0]?.content?.parts?.[0]?.text) {
+            text = responseData.candidates[0].content.parts[0].text
+          }
+
+          if (!text) {
+            resultsToStore.push({
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: 'Empty response text',
+            })
+            failCount++
+            continue
+          }
+
+          const jsonText = extractJson(text)
+          if (!jsonText) {
+            resultsToStore.push({
+              seed,
+              provider: 'google',
+              model,
+              analysisIndex,
+              promptVersion: CURRENT_PROMPT_VERSION,
+              tags: null,
+              error: 'Could not extract JSON',
+            })
+            failCount++
+            continue
+          }
+
+          const parsed = JSON.parse(jsonText)
+          const normalized = normalizeTagResponse(parsed)
+          const tags = tagResponseSchema.parse(normalized)
+
+          const usageMetadata = responseData.usageMetadata
+          resultsToStore.push({
+            seed,
+            provider: 'google',
+            model,
+            analysisIndex,
+            promptVersion: CURRENT_PROMPT_VERSION,
+            tags,
+            usage: usageMetadata
+              ? {
+                  inputTokens: usageMetadata.promptTokenCount ?? 0,
+                  outputTokens: usageMetadata.candidatesTokenCount ?? 0,
+                }
+              : undefined,
+          })
+          successCount++
+        } catch (e) {
+          const errorMsg = e instanceof Error ? e.message : String(e)
+          console.error(`Error processing Google staged batch response at index ${i}:`, errorMsg)
+          try {
+            const customId = requestOrder[i]
+            if (customId) {
+              const { stagedPaletteId, analysisIndex } = parseStagedCustomId(customId)
+              let seed = seedCache.get(stagedPaletteId)
+              if (!seed) {
+                const palette = await ctx.runQuery(internal.palettes.getStagedPaletteById, { id: stagedPaletteId })
+                if (palette) {
+                  seed = palette.seed
+                  seedCache.set(stagedPaletteId, seed)
+                }
+              }
+              if (seed) {
+                resultsToStore.push({
+                  seed,
+                  provider: 'google',
+                  model,
+                  analysisIndex,
+                  promptVersion: CURRENT_PROMPT_VERSION,
+                  tags: null,
+                  error: `Parse error: ${errorMsg}`,
+                })
+              }
+            }
+          } catch {
+            // Couldn't store error
+          }
+          failCount++
+        }
+      }
+
+      // Batch insert results in chunks of 100
+      const BATCH_SIZE = 100
+      for (let i = 0; i < resultsToStore.length; i += BATCH_SIZE) {
+        const chunk = resultsToStore.slice(i, i + BATCH_SIZE)
+        await ctx.runMutation(internal.backfill.storeTagResultsBatch, { results: chunk })
+      }
+
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'completed',
+        completedCount: successCount,
+        failedCount: failCount,
+      })
+
+      return { status: 'completed' as const, successCount, failCount }
+    }
+
+    if (
+      batch.state === 'JOB_STATE_FAILED' ||
+      batch.state === 'JOB_STATE_CANCELLED' ||
+      batch.state === 'JOB_STATE_EXPIRED'
+    ) {
+      await ctx.runMutation(internal.backfill.updateBatchStatus, {
+        batchId,
+        status: 'failed',
+        error: batch.state,
+      })
+      return { status: 'failed' as const }
+    }
+
+    return { status: batch.state ?? 'unknown' }
+  },
+})
+
+/**
+ * Start tag analysis backfill for staged palettes.
+ * Creates a new cycle - targets staged_palettes table instead of palettes.
+ */
+export const startStagedPalettesBackfill = action({
+  args: {
+    selectedModels: v.optional(v.array(v.string())),
+    analysisCount: v.optional(v.number()),
+  },
+  handler: async (ctx, { selectedModels, analysisCount = 1 }): Promise<{
+    cycle: number
+    batchesCreated: number
+    totalRequests: number
+    results: Array<{ provider: Provider; model: Model; batchId: string | null; requestCount: number }>
+  }> => {
+    if (analysisCount < 1 || analysisCount > 20) {
+      throw new Error('analysisCount must be between 1 and 20')
+    }
+
+    const cycle: number = await ctx.runQuery(internal.backfill.getNextCycle, {})
+    console.log(`Starting staged palettes backfill cycle: ${cycle} (analysisCount: ${analysisCount})`)
+
+    const shouldInclude = (model: string) => !selectedModels || selectedModels.includes(model)
+
+    const results: Array<{ provider: Provider; model: Model; batchId: string | null; requestCount: number }> = []
+
+    for (const provider of PROVIDERS) {
+      const models = PROVIDER_MODELS[provider]
+
+      for (const model of models) {
+        if (!shouldInclude(model)) continue
+
+        let result: { batchId: string; requestCount: number } | null = null
+
+        switch (provider) {
+          case 'anthropic':
+            result = await ctx.runAction(internal.backfillActions.submitStagedAnthropicBatch, { model, cycle, analysisCount })
+            break
+          case 'openai':
+            result = await ctx.runAction(internal.backfillActions.submitStagedOpenAIBatch, { model, cycle, analysisCount })
+            break
+          case 'groq':
+            result = await ctx.runAction(internal.backfillActions.submitStagedGroqBatch, { model, cycle, analysisCount })
+            break
+          case 'google': {
+            // Only gemini-2.5-flash-lite has strict batch quotas requiring sequential mode
+            // gemini-2.0-flash can handle larger concurrent batches
+            const needsSequentialBatching = model === 'gemini-2.5-flash-lite'
+            const googleResults = await ctx.runAction(internal.backfillActions.submitStagedGoogleBatch, {
+              model,
+              cycle,
+              analysisCount,
+              maxBatchSize: needsSequentialBatching ? 1000 : undefined,
+              sequential: needsSequentialBatching,
+            })
+            if (googleResults) {
+              for (const gr of googleResults) {
+                results.push({
+                  provider,
+                  model: model as Model,
+                  batchId: gr.batchId,
+                  requestCount: gr.requestCount,
+                })
+              }
+            } else {
+              results.push({
+                provider,
+                model: model as Model,
+                batchId: null,
+                requestCount: 0,
+              })
+            }
+            continue // Skip the common push below
+          }
+        }
+
+        results.push({
+          provider,
+          model: model as Model,
+          batchId: result?.batchId ?? null,
+          requestCount: result?.requestCount ?? 0,
+        })
+      }
+    }
+
+    const totalRequests = results.reduce((sum, r) => sum + r.requestCount, 0)
+    const batchesCreated = results.filter((r) => r.batchId).length
+
+    return {
+      cycle,
+      batchesCreated,
+      totalRequests,
+      results,
+    }
   },
 })
 

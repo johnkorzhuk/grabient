@@ -17,7 +17,6 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import {
-    DEFAULT_PAGE_LIMIT,
     styleWithAutoValidator,
     angleWithAutoValidator,
     stepsWithAutoValidator,
@@ -168,7 +167,7 @@ export const Route = createFileRoute("/palettes/$query/")({
         }
         await Promise.all([
             context.queryClient.ensureQueryData(
-                searchPalettesQueryOptions(query, DEFAULT_PAGE_LIMIT),
+                searchPalettesQueryOptions(query, 48),
             ),
             context.queryClient.ensureQueryData(userLikedSeedsQueryOptions()),
             context.queryClient.ensureQueryData(popularTagsQueryOptions()),
@@ -616,7 +615,7 @@ function SearchResultsPage() {
     const query = getQuery(compressedQuery) ?? "";
 
     const { data: searchData } = useSuspenseQuery(
-        searchPalettesQueryOptions(query, DEFAULT_PAGE_LIMIT),
+        searchPalettesQueryOptions(query, 48),
     );
     const { data: likedSeeds } = useSuspenseQuery(userLikedSeedsQueryOptions());
 

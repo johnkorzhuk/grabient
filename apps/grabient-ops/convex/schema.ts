@@ -62,6 +62,8 @@ export const TagBatches = Table('tag_batches', {
   error: v.optional(v.string()),
   // For Google batches: store request order since SDK doesn't return metadata in responses
   requestOrder: v.optional(v.array(v.string())), // Array of customIds in order
+  // Source table for palette IDs (palettes or staged_palettes)
+  sourceTable: v.optional(v.union(v.literal('palettes'), v.literal('staged_palettes'))),
 })
 
 // ============================================================================
