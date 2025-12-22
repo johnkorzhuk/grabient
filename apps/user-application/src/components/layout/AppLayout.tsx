@@ -44,45 +44,9 @@ import {
     CarouselContent,
     CarouselItem,
 } from "@/components/ui/carousel";
-import { isColorName, colorNameToHex, isHexColor } from "@repo/data-ops/color-utils";
 import { styleWithAutoValidator } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
-
-type TagColorInfo =
-    | { type: "none" }
-    | { type: "single"; hex: string }
-    | { type: "pair"; hex1: string; hex2: string };
-
-function getTagColorInfo(tag: string): TagColorInfo {
-    // Check for color pair (e.g., "red cyan" - space separated)
-    const words = tag.split(" ");
-    if (
-        words.length === 2 &&
-        isColorName(words[0]!) &&
-        isColorName(words[1]!)
-    ) {
-        const hex1 = colorNameToHex(words[0]!);
-        const hex2 = colorNameToHex(words[1]!);
-        if (hex1 && hex2) {
-            return { type: "pair", hex1, hex2 };
-        }
-    }
-
-    // Check for single hex color
-    if (isHexColor(tag)) {
-        return { type: "single", hex: tag };
-    }
-
-    // Check for single color name
-    if (isColorName(tag)) {
-        const hex = colorNameToHex(tag);
-        if (hex) {
-            return { type: "single", hex };
-        }
-    }
-
-    return { type: "none" };
-}
+import { getTagSearchQuery } from "@/lib/tags";
 
 type SortOrder = "popular" | "newest" | "oldest";
 type StyleType = v.InferOutput<typeof styleWithAutoValidator>;
@@ -475,16 +439,16 @@ export function AppLayout({
                                 className="w-full overflow-hidden"
                             >
                                 <CarouselContent className="-ml-1.5">
-                                    {popularTags.map((tag) => {
-                                        const colorInfo = getTagColorInfo(tag);
+                                    {popularTags.map((tag, index) => {
+                                        const query = getTagSearchQuery(tag);
                                         return (
                                             <CarouselItem
-                                                key={tag}
+                                                key={`${tag.type}-${index}`}
                                                 className="basis-auto pl-1.5"
                                             >
                                                 <Link
                                                     to="/palettes/$query"
-                                                    params={{ query: tag }}
+                                                    params={{ query: query.replace(/\s+/g, "-") }}
                                                     search={preservedSearch}
                                                     style={{
                                                         backgroundColor:
@@ -500,37 +464,57 @@ export function AppLayout({
                                                             "disable-animation-on-theme-change",
                                                     )}
                                                 >
-                                                    {colorInfo.type ===
-                                                        "single" && (
+                                                    {tag.type === "color" && (
                                                         <span
                                                             className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
                                                             style={{
-                                                                backgroundColor:
-                                                                    colorInfo.hex,
+                                                                backgroundColor: tag.hex,
                                                             }}
                                                         />
                                                     )}
-                                                    {colorInfo.type ===
-                                                        "pair" && (
-                                                        <span className="inline-flex shrink-0 w-5">
-                                                            <span
-                                                                className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
-                                                                style={{
-                                                                    backgroundColor:
-                                                                        colorInfo.hex1,
-                                                                }}
-                                                            />
-                                                            <span
-                                                                className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10 -ml-1.5"
-                                                                style={{
-                                                                    backgroundColor:
-                                                                        colorInfo.hex2,
-                                                                }}
-                                                            />
+                                                    {tag.type === "hex" && (
+                                                        <span
+                                                            className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
+                                                            style={{
+                                                                backgroundColor: tag.hex,
+                                                            }}
+                                                        />
+                                                    )}
+                                                    {tag.type === "pair" && (
+                                                        <span className="inline-flex shrink-0">
+                                                            {tag.colors.map((color, i) => (
+                                                                <span
+                                                                    key={i}
+                                                                    className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
+                                                                    style={{
+                                                                        backgroundColor: color.hex,
+                                                                        marginLeft: i > 0 ? "-6px" : 0,
+                                                                    }}
+                                                                />
+                                                            ))}
+                                                        </span>
+                                                    )}
+                                                    {tag.type === "triad" && (
+                                                        <span className="inline-flex shrink-0">
+                                                            {tag.colors.map((color, i) => (
+                                                                <span
+                                                                    key={i}
+                                                                    className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
+                                                                    style={{
+                                                                        backgroundColor: color.hex,
+                                                                        marginLeft: i > 0 ? "-6px" : 0,
+                                                                    }}
+                                                                />
+                                                            ))}
                                                         </span>
                                                     )}
                                                     <span className="translate-y-px md:translate-y-0">
-                                                        {tag}
+                                                        {tag.type === "text" && tag.value}
+                                                        {tag.type === "emoji" && tag.value}
+                                                        {tag.type === "color" && tag.name}
+                                                        {tag.type === "hex" && tag.hex}
+                                                        {tag.type === "pair" && tag.colors.map(c => c.name).join(" & ")}
+                                                        {tag.type === "triad" && tag.colors.map(c => c.name).join(", ")}
                                                     </span>
                                                 </Link>
                                             </CarouselItem>

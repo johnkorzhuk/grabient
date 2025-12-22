@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import type { DailyTag } from "@/lib/daily-tags";
-import { getTagSearchQuery } from "@/lib/daily-tags";
+import type { DailyTag } from "@/lib/tags";
+import { getTagSearchQuery } from "@/lib/tags";
 
 interface ColorSwatchProps {
     hex: string;
