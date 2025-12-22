@@ -14,6 +14,24 @@ import {
 } from './lib/prompts'
 import { buildEmbedText } from './lib/refinement'
 import { generateColorDataFromSeed } from './lib/colorData'
+import { deserializeCoeffs } from '@repo/data-ops/serialization'
+import { cosineGradient, rgbToHex, applyGlobals } from '@repo/data-ops/gradient-gen'
+import { detectHarmonies } from '@repo/data-ops/harmony'
+
+const SEED_STEPS = 11
+
+function getHarmonyTagsFromSeed(seed: string): string[] {
+  try {
+    const { coeffs, globals } = deserializeCoeffs(seed)
+    const appliedCoeffs = applyGlobals(coeffs, globals)
+    const rgbColors = cosineGradient(SEED_STEPS, appliedCoeffs)
+    const hexColors = rgbColors.map((color) => rgbToHex(color[0], color[1], color[2]))
+    const harmonies = detectHarmonies(hexColors, 3)
+    return harmonies.map((h) => h.type)
+  } catch {
+    return []
+  }
+}
 
 // ============================================================================
 // Provider/Model Configuration
@@ -1187,17 +1205,18 @@ export const backfillEmbedTextWithColorNames = mutation({
         continue
       }
 
-      // Build new embedText with colorNames
+      // Build new embedText with colorNames and algorithmic harmony tags
+      const harmonyTags = getHarmonyTagsFromSeed(doc.seed)
       const newEmbedText = buildEmbedText(
         { categorical: consensus.categorical },
         {
           mood: tags.mood,
           style: tags.style,
-          harmony: tags.harmony,
           seasonal: tags.seasonal,
           associations: tags.associations,
         },
         colorNames,
+        harmonyTags,
       )
 
       // Collect samples for preview

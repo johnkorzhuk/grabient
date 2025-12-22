@@ -66,6 +66,10 @@
     "./similarity": {
       "types": "./dist/similarity.d.ts",
       "default": "./dist/similarity.js"
+    },
+    "./harmony": {
+      "types": "./dist/harmony.d.ts",
+      "default": "./dist/harmony.js"
     }
   },
   "scripts": {

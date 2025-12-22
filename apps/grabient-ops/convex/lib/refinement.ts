@@ -38,10 +38,13 @@ function getTopValue(frequencies: FrequencyArray): string | null {
 }
 
 /**
- * Build embed_text programmatically from consensus data + LLM-refined tags + color names.
+ * Build embed_text programmatically from consensus data + LLM-refined tags + color names + harmony.
  *
- * Order: categorical values, harmony, colorNames (at ~1/3), mood, style, seasonal, associations
+ * Order: categorical values, harmony (algorithmic), colorNames (at ~1/3), mood, style, seasonal, associations
  * Target: up to 120 words
+ *
+ * Note: Harmony tags are now computed algorithmically using OkLCh color space analysis,
+ * not from LLM refinement, for more accurate color theory-based detection.
  */
 export function buildEmbedText(
   consensus: {
@@ -50,11 +53,11 @@ export function buildEmbedText(
   refined: {
     mood?: string[]
     style?: string[]
-    harmony?: string[]
     seasonal?: string[]
     associations?: string[]
   },
   colorNames: string[],
+  harmonyTags: string[] = [],
 ): string {
   const parts: string[] = []
 
@@ -69,9 +72,9 @@ export function buildEmbedText(
   if (brightness) parts.push(brightness)
   if (saturation) parts.push(saturation)
 
-  // Harmony from LLM refinement (all of them)
-  if (refined.harmony && refined.harmony.length > 0) {
-    parts.push(...refined.harmony)
+  // Harmony from algorithmic detection (OkLCh color space analysis)
+  if (harmonyTags.length > 0) {
+    parts.push(...harmonyTags)
   }
 
   // Color names from algorithmic conversion (deduped, ~1/3 into text)

@@ -30,6 +30,7 @@ import {
   rgbToHex,
   generateCssGradient,
 } from '@repo/data-ops/gradient-gen'
+import { detectHarmonies } from '@repo/data-ops/harmony'
 
 export const Route = createFileRoute('/_layout/staged')({
   component: StagedPalettesPage,
@@ -37,12 +38,21 @@ export const Route = createFileRoute('/_layout/staged')({
 
 const GRADIENT_STEPS = 11
 
-function getGradientStyle(seed: string): string {
+function getHexColorsFromSeed(seed: string): string[] {
   try {
     const { coeffs, globals } = deserializeCoeffs(seed)
     const appliedCoeffs = applyGlobals(coeffs, globals)
     const rgbColors = cosineGradient(GRADIENT_STEPS, appliedCoeffs)
-    const hexColors = rgbColors.map((color) => rgbToHex(color[0], color[1], color[2]))
+    return rgbColors.map((color) => rgbToHex(color[0], color[1], color[2]))
+  } catch {
+    return []
+  }
+}
+
+function getGradientStyle(seed: string): string {
+  try {
+    const hexColors = getHexColorsFromSeed(seed)
+    if (hexColors.length === 0) return 'linear-gradient(90deg, #888, #aaa)'
     const { gradientString } = generateCssGradient(
       hexColors,
       'linearSwatches',
@@ -191,6 +201,8 @@ function PaletteCard({
   }
 }) {
   const gradientStyle = getGradientStyle(palette.seed)
+  const hexColors = getHexColorsFromSeed(palette.seed)
+  const harmonies = detectHarmonies(hexColors, 3)
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -217,6 +229,21 @@ function PaletteCard({
             </span>
           )}
         </div>
+
+        {/* Detected Harmonies */}
+        {harmonies.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {harmonies.map((h) => (
+              <span
+                key={h.type}
+                className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-700 dark:text-purple-400"
+                title={`${Math.round(h.confidence * 100)}% confidence`}
+              >
+                {h.type}
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Themes */}
         {palette.themes.length > 0 && (

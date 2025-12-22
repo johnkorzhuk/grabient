@@ -50,7 +50,7 @@ export const BASIC_COLORS: Array<{ name: string; r: number; g: number; b: number
     { name: "charcoal", r: 54, g: 69, b: 79 },
 ];
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
+export function hexToRgb(hex: string): { r: number; g: number; b: number } {
     const clean = hex.replace("#", "").toLowerCase();
     let expanded = clean;
     if (clean.length === 3) {
@@ -61,6 +61,55 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
         g: parseInt(expanded.slice(2, 4), 16),
         b: parseInt(expanded.slice(4, 6), 16),
     };
+}
+
+// =============================================================================
+// OkLCh Color Space (Perceptually Uniform)
+// Reference: https://bottosson.github.io/posts/oklab/
+// =============================================================================
+
+export interface OkLch {
+    L: number; // Lightness 0-1
+    C: number; // Chroma (saturation) 0-0.4+
+    h: number; // Hue 0-360
+}
+
+/** Convert sRGB component (0-255) to linear RGB (0-1) */
+export function srgbToLinear(c: number): number {
+    const v = c / 255;
+    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+}
+
+/** Convert hex color to OkLCh (perceptually uniform color space) */
+export function hexToOkLch(hex: string): OkLch {
+    const { r, g, b } = hexToRgb(hex);
+
+    // sRGB to linear RGB
+    const lr = srgbToLinear(r);
+    const lg = srgbToLinear(g);
+    const lb = srgbToLinear(b);
+
+    // Linear RGB to LMS
+    const l = 0.4122214708 * lr + 0.5363325363 * lg + 0.0514459929 * lb;
+    const m = 0.2119034982 * lr + 0.6806995451 * lg + 0.1073969566 * lb;
+    const s = 0.0883024619 * lr + 0.2817188376 * lg + 0.6299787005 * lb;
+
+    // Cube root
+    const lp = Math.cbrt(l);
+    const mp = Math.cbrt(m);
+    const sp = Math.cbrt(s);
+
+    // LMS to OkLab
+    const L = 0.2104542553 * lp + 0.793617785 * mp - 0.0040720468 * sp;
+    const a = 1.9779984951 * lp - 2.428592205 * mp + 0.4505937099 * sp;
+    const ob = 0.0259040371 * lp + 0.7827717662 * mp - 0.808675766 * sp;
+
+    // OkLab to OkLCh (polar)
+    const C = Math.sqrt(a * a + ob * ob);
+    let h = (Math.atan2(ob, a) * 180) / Math.PI;
+    if (h < 0) h += 360;
+
+    return { L, C, h };
 }
 
 function colorDistance(
@@ -177,7 +226,7 @@ function rgbToHex(r: number, g: number, b: number): string {
 /**
  * Convert RGB to HSL. Returns hue in degrees (0-360), saturation and lightness as 0-1.
  */
-function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+export function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
     r /= 255;
     g /= 255;
     b /= 255;

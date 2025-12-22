@@ -19,6 +19,24 @@ import {
 } from './lib/refinement'
 import { generateColorDataFromSeed } from './lib/colorData'
 import { REFINEMENT_PROMPT_MESSAGE } from './lib/prompts'
+import { deserializeCoeffs } from '@repo/data-ops/serialization'
+import { cosineGradient, rgbToHex, applyGlobals } from '@repo/data-ops/gradient-gen'
+import { detectHarmonies } from '@repo/data-ops/harmony'
+
+const SEED_STEPS = 11
+
+function getHarmonyTagsFromSeed(seed: string): string[] {
+  try {
+    const { coeffs, globals } = deserializeCoeffs(seed)
+    const appliedCoeffs = applyGlobals(coeffs, globals)
+    const rgbColors = cosineGradient(SEED_STEPS, appliedCoeffs)
+    const hexColors = rgbColors.map((color) => rgbToHex(color[0], color[1], color[2]))
+    const harmonies = detectHarmonies(hexColors, 3)
+    return harmonies.map((h) => h.type)
+  } catch {
+    return []
+  }
+}
 import {
   vRefinementModel,
   REFINEMENT_MODEL_PROVIDER,
@@ -147,14 +165,16 @@ function prepareRefinementResult(
     const normalized = normalizeRefinedTags(parsed)
     const tags = refinedTagsSchema.parse(normalized)
 
-    // Build embed_text programmatically from consensus + LLM-refined tags + color names
+    // Build embed_text programmatically from consensus + LLM-refined tags + color names + algorithmic harmony
     let embedText = ''
     if (summary) {
       const colorData = generateColorDataFromSeed(seed)
+      const harmonyTags = getHarmonyTagsFromSeed(seed)
       embedText = buildEmbedText(
         { categorical: summary.categorical },
-        { mood: tags.mood, style: tags.style, harmony: tags.harmony, seasonal: tags.seasonal, associations: tags.associations },
+        { mood: tags.mood, style: tags.style, seasonal: tags.seasonal, associations: tags.associations },
         colorData.colorNames,
+        harmonyTags,
       )
     }
 

@@ -1045,3 +1045,27 @@ export const clearAllVectorizedPalettes = mutation({
   },
 })
 
+/**
+ * Internal: Clear all vectorized palettes (for seedVectorDatabase action)
+ */
+export const internalClearAllVectorizedPalettes = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    let totalDeleted = 0
+    const BATCH_SIZE = 1000
+
+    while (true) {
+      const palettes = await ctx.db.query('vectorized_palettes').take(BATCH_SIZE)
+      if (palettes.length === 0) break
+
+      for (const p of palettes) {
+        await ctx.db.delete(p._id)
+      }
+      totalDeleted += palettes.length
+      console.log(`Deleted ${totalDeleted} vectorized_palettes entries...`)
+    }
+
+    return { deleted: totalDeleted }
+  },
+})
+

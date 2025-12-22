@@ -16,6 +16,7 @@ import {
   applyGlobals,
 } from '@repo/data-ops/gradient-gen'
 import { hexToColorName } from '@repo/data-ops/color-utils'
+import { detectHarmonies } from '@repo/data-ops/harmony'
 import type { Id } from './_generated/dataModel'
 
 const EMBEDDING_MODEL = '@cf/google/embeddinggemma-300m'
@@ -26,16 +27,24 @@ const UPSERT_BATCH_SIZE = 1000 // Vectorize recommends max 5000, we'll use 1000 
 const DELETE_BATCH_SIZE = 100 // Vectorize max is 100 IDs per delete request
 const D1_BATCH_SIZE = 50 // Keep small due to long seed strings
 const SEED_STEPS = 11 // Steps for extracting color names from seed
-function getColorNamesFromSeed(seed: string): string[] {
+
+function getHexColorsFromSeed(seed: string): string[] {
   try {
     const { coeffs, globals } = deserializeCoeffs(seed)
     const appliedCoeffs = applyGlobals(coeffs, globals)
     const rgbColors = cosineGradient(SEED_STEPS, appliedCoeffs)
+    return rgbColors.map((color) => rgbToHex(color[0], color[1], color[2]))
+  } catch {
+    return []
+  }
+}
 
+function getColorNamesFromSeed(seed: string): string[] {
+  try {
+    const hexColors = getHexColorsFromSeed(seed)
     const colorNames: string[] = []
     const seen = new Set<string>()
-    for (const color of rgbColors) {
-      const hex = rgbToHex(color[0], color[1], color[2])
+    for (const hex of hexColors) {
       const name = hexToColorName(hex)
       if (!seen.has(name)) {
         seen.add(name)
@@ -46,6 +55,13 @@ function getColorNamesFromSeed(seed: string): string[] {
   } catch {
     return []
   }
+}
+
+function getHarmonyTagsFromSeed(seed: string): string[] {
+  const hexColors = getHexColorsFromSeed(seed)
+  if (hexColors.length === 0) return []
+  const harmonies = detectHarmonies(hexColors, 3)
+  return harmonies.map((h) => h.type)
 }
 
 interface VectorizeVector {
@@ -96,6 +112,7 @@ interface SeedResult {
     insertedToConvex?: number
     vectorsCleared?: number
     kvKeysCleared?: number
+    palettesCleared?: number
   }
 }
 
@@ -435,8 +452,13 @@ export const seedVectorDatabase = action({
     console.log('Step 2: Clearing KV search cache...')
     const kvKeysCleared = await clearKVCache(accountId, apiToken)
 
-    // Step 3: Fetch refinements
-    console.log(`Step 3: Fetching refined palettes for model=${model}, cycle=${cycle}...`)
+    // Step 3: Clear vectorized_palettes table
+    console.log('Step 3: Clearing vectorized_palettes table...')
+    const { deleted: palettesCleared } = await ctx.runMutation(internal.generate.internalClearAllVectorizedPalettes, {})
+    console.log(`Cleared ${palettesCleared} vectorized_palettes entries`)
+
+    // Step 4: Fetch refinements
+    console.log(`Step 4: Fetching refined palettes for model=${model}, cycle=${cycle}...`)
     const refinements: RefinedPalette[] = await ctx.runQuery(api.refinement.getRefinedPalettes, {
       model,
       cycle,
@@ -446,7 +468,7 @@ export const seedVectorDatabase = action({
       return {
         success: true,
         message: 'No refinements found for this model/cycle',
-        stats: { total: 0, vectorsCleared, kvKeysCleared },
+        stats: { total: 0, vectorsCleared, kvKeysCleared, palettesCleared },
       }
     }
 
@@ -461,14 +483,14 @@ export const seedVectorDatabase = action({
       return {
         success: true,
         message: 'No valid refinements (all have errors or missing data)',
-        stats: { total: refinements.length, vectorsCleared, kvKeysCleared },
+        stats: { total: refinements.length, vectorsCleared, kvKeysCleared, palettesCleared },
       }
     }
 
     console.log(`Processing ${validRefinements.length} valid refinements`)
 
-    // Step 4: Fetch palette data from D1
-    console.log('Step 4: Fetching palette data from D1...')
+    // Step 5: Fetch palette data from D1
+    console.log('Step 5: Fetching palette data from D1...')
     const seeds = validRefinements.map((r) => r.seed)
     const paletteDataMap = await fetchPaletteDataFromD1(seeds, accountId, apiToken, d1DatabaseId)
     console.log(`Found ${paletteDataMap.size} palettes in D1`)
@@ -483,16 +505,22 @@ export const seedVectorDatabase = action({
         const d1Data = paletteDataMap.get(r.seed)!
         // Extract color names from seed (what shows in search heading)
         const colorNames = getColorNamesFromSeed(r.seed)
-        // Prepend color names to embed text for better search matching
-        const enhancedEmbedText = [...colorNames, r.embedText].join(' ')
+        // Get algorithmic harmony tags (OkLCh color space analysis)
+        const harmonyTags = getHarmonyTagsFromSeed(r.seed)
+        // Build enhanced embed text: harmony tags + color names + refinement text
+        // Harmony tags first for higher embedding weight
+        const enhancedEmbedText = [...harmonyTags, ...colorNames, r.embedText].join(' ')
         // Validate style is a known palette style, default to linearGradient
         const style: PaletteStyle = (PALETTE_STYLES as readonly string[]).includes(d1Data.style)
           ? (d1Data.style as PaletteStyle)
           : 'linearGradient'
+        // Extract tags including algorithmic harmony
+        const baseTags = extractTagsFromEmbedText(r.embedText, knownMultiWordTags)
+        const allTags = [...new Set([...harmonyTags, ...baseTags])]
         return {
           seed: r.seed,
           embedText: enhancedEmbedText,
-          tags: extractTagsFromEmbedText(r.embedText, knownMultiWordTags),
+          tags: allTags,
           style,
           steps: d1Data.steps,
           angle: d1Data.angle,
@@ -501,8 +529,8 @@ export const seedVectorDatabase = action({
         }
       })
 
-    // Step 5: Generate embeddings
-    console.log(`Step 5: Generating embeddings in batches of ${BATCH_SIZE}...`)
+    // Step 6: Generate embeddings
+    console.log(`Step 6: Generating embeddings in batches of ${BATCH_SIZE}...`)
     const allEmbeddings: number[][] = []
 
     for (let i = 0; i < palettesData.length; i += BATCH_SIZE) {
@@ -516,7 +544,7 @@ export const seedVectorDatabase = action({
 
     console.log(`Generated ${allEmbeddings.length} embeddings`)
 
-    // Step 6: Upsert vectors (nanoid for ID, seed stored in metadata + Convex for lookup)
+    // Step 7: Upsert vectors (nanoid for ID, seed stored in metadata + Convex for lookup)
     const vectorIds = palettesData.map(() => nanoid())
     const vectors: VectorizeVector[] = palettesData.map((p, i) => ({
       id: vectorIds[i],
@@ -532,7 +560,7 @@ export const seedVectorDatabase = action({
       },
     }))
 
-    console.log(`Step 6: Upserting ${vectors.length} vectors in batches of ${UPSERT_BATCH_SIZE}...`)
+    console.log(`Step 7: Upserting ${vectors.length} vectors in batches of ${UPSERT_BATCH_SIZE}...`)
     let totalUpserted = 0
 
     for (let i = 0; i < vectors.length; i += UPSERT_BATCH_SIZE) {
@@ -546,8 +574,8 @@ export const seedVectorDatabase = action({
 
     console.log(`Successfully upserted ${totalUpserted} vectors`)
 
-    // Step 7: Insert into vectorized_palettes table
-    console.log('Step 7: Inserting into vectorized_palettes table...')
+    // Step 8: Insert into vectorized_palettes table
+    console.log('Step 8: Inserting into vectorized_palettes table...')
     const INSERT_BATCH_SIZE = 100
     let insertedCount = 0
 
@@ -582,6 +610,7 @@ export const seedVectorDatabase = action({
         insertedToConvex: insertedCount,
         vectorsCleared,
         kvKeysCleared,
+        palettesCleared,
       },
     }
   },
@@ -736,34 +765,39 @@ export const vectorizeStagedPalettes = action({
           // Extract color names from seed
           const colorNames = getColorNamesFromSeed(palette.seed)
 
+          // Get algorithmic harmony tags (OkLCh color space analysis)
+          const harmonyTags = getHarmonyTagsFromSeed(palette.seed)
+
           // Deduplicate themes from staged palette
           const uniqueThemes = [...new Set(palette.themes)]
 
-          // Build embed text: refinement embedText (if available) + color names + themes
-          // No emojis - just semantic tags and themes
+          // Build embed text: harmony tags + refinement embedText (if available) + color names + themes
+          // Harmony tags first for higher embedding weight
           let embedTokens: string[]
           let tagTokens: string[]
 
           if (refinement) {
             // Use refinement embedText (already contains refined tags)
-            // Extract tags from refinement structured data
+            // Extract tags from refinement structured data (excluding harmony - we use algorithmic)
             const refinedTags: string[] = []
-            for (const arr of Object.values(refinement.tags)) {
+            for (const [key, arr] of Object.entries(refinement.tags)) {
+              // Skip harmony tags from refinement - use algorithmic ones instead
+              if (key === 'harmony') continue
               if (Array.isArray(arr)) {
                 refinedTags.push(...arr.map((t: string) => t.toLowerCase().trim()).filter(Boolean))
               }
             }
 
-            // Combine: refinement embedText + color names + themes
-            embedTokens = [refinement.embedText, ...colorNames, ...uniqueThemes]
-            tagTokens = [...new Set([...refinedTags, ...uniqueThemes])]
+            // Combine: harmony tags + refinement embedText + color names + themes
+            embedTokens = [...harmonyTags, refinement.embedText, ...colorNames, ...uniqueThemes]
+            tagTokens = [...new Set([...harmonyTags, ...refinedTags, ...uniqueThemes])]
           } else {
             // Fallback: use coefficient-based tags if no refinement data
             const paletteTags = analyzeCoefficients(coeffs)
             const tagArray = tagsToArray(paletteTags)
 
-            embedTokens = [...colorNames, ...tagArray, ...uniqueThemes]
-            tagTokens = [...new Set([...tagArray, ...uniqueThemes])]
+            embedTokens = [...harmonyTags, ...colorNames, ...tagArray, ...uniqueThemes]
+            tagTokens = [...new Set([...harmonyTags, ...tagArray, ...uniqueThemes])]
           }
 
           const embedText = [...new Set(embedTokens)].join(' ')
