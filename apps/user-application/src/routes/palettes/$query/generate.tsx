@@ -625,7 +625,7 @@ function GeneratePage() {
                 className={cn(
                     "px-5 lg:px-14",
                     hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
-                    isExportOpen && "invisible"
+                    isExportOpen && "hidden"
                 )}
             >
                 <div className="flex items-start justify-between gap-4">
@@ -683,6 +683,13 @@ function GeneratePage() {
                     )}
                 </div>
             </div>
+            {isExportOpen && (
+                <div className="px-5 lg:px-14 mb-10 md:mb-12.5">
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                        {exportCount} {exportCount === 1 ? "item" : "items"} selected
+                    </h1>
+                </div>
+            )}
             {isExportOpen && (
                 <SelectedButtonContainer
                     className={cn(
