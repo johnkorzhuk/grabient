@@ -46,18 +46,18 @@ const COMPOSER_MODEL = {
     // id: "openai/gpt-oss-120b",
     // name: "GPT OSS 120B (Composer)",
     // provider: "groq" as const,
-    // id: "llama-3.3-70b-versatile",
-    // name: "Llama 3.3 70B (Composer)",
-    // provider: "groq" as const,
+    id: "llama-3.3-70b-versatile",
+    name: "Llama 3.3 70B (Composer)",
+    provider: "groq" as const,
     // id: "moonshotai/kimi-k2-instruct-0905",
     // name: "Kimi K2 (Composer)",
     // provider: "groq" as const,
-    // id: "gpt-5-mini",
-    // name: "GPT-5 Mini (Composer)",
+    // id: "gpt-4.1-nano",
+    // name: "GPT-4.1 Nano (Composer)",
     // provider: "openai" as const,
-    id: "google/gemini-2.5-flash-lite",
-    name: "Gemini 2.5 Flash Lite (Composer)",
-    provider: "openrouter" as const,
+    // id: "google/gemini-2.5-flash-lite",
+    // name: "Gemini 2.5 Flash Lite (Composer)",
+    // provider: "openrouter" as const,
 };
 
 const PAINTER_MODELS = [
@@ -364,14 +364,7 @@ async function* runComposer(
         }
 
         console.log("[Composer] Raw output length:", fullText.length);
-        console.log(
-            "[Composer] Raw output (first 2000 chars):",
-            fullText.slice(0, 2000),
-        );
-        console.log(
-            "[Composer] Raw output (last 500 chars):",
-            fullText.slice(-500),
-        );
+        console.log("[Composer] Raw output:", fullText);
 
         const parsed = parseComposerOutput(fullText);
         if (!parsed) {
@@ -394,6 +387,23 @@ async function* runComposer(
         }
 
         console.log("[Composer] Complete with", totalMatrices, "matrices");
+
+        // Log matrices as formatted table
+        let matrixIndex = 0;
+        for (const variation of parsed.variations) {
+            for (const palette of variation.palettes) {
+                matrixIndex++;
+                console.log(`\n[Matrix ${matrixIndex}] Theme: "${palette.theme}"`);
+                console.log(`Dimensions: ${palette.dimensions.join(", ")}`);
+                console.log("Steps:");
+                palette.steps.forEach((step, i) => {
+                    const stepValues = Object.entries(step)
+                        .map(([k, v]) => `${k}=${v}`)
+                        .join(", ");
+                    console.log(`  ${i + 1}. ${stepValues}`);
+                });
+            }
+        }
         yield { type: "composer_complete", totalMatrices };
         yield { type: "__result", data: parsed };
     } catch (error) {
@@ -446,25 +456,11 @@ async function* runPainter(
 
             while ((match = paletteRegex.exec(buffer)) !== null) {
                 lastMatchEnd = paletteRegex.lastIndex;
-                console.log(
-                    `[Painter:${modelConfig.key}] Regex matched:`,
-                    match[0].slice(0, 100),
-                );
                 try {
                     const palette = JSON.parse(match[0]) as string[];
-                    console.log(
-                        `[Painter:${modelConfig.key}] Parsed palette with ${palette.length} colors:`,
-                        palette.slice(0, 3),
-                    );
                     const invalidColors = palette.filter(
                         (c) => !/^#[0-9A-Fa-f]{6}$/i.test(c),
                     );
-                    if (invalidColors.length > 0) {
-                        console.log(
-                            `[Painter:${modelConfig.key}] Invalid colors:`,
-                            invalidColors,
-                        );
-                    }
                     if (palette.length >= 5 && invalidColors.length === 0) {
                         // Get theme from corresponding matrix (palettes come in order)
                         const theme =
@@ -484,9 +480,6 @@ async function* runPainter(
 
                         palettes.push(palette);
                         paletteIndex++;
-                        console.log(
-                            `[Painter:${modelConfig.key}] Yielding palette #${palettes.length} (steps: ${steps}, style: ${style})`,
-                        );
                         yield {
                             type: "palette",
                             modelKey: modelConfig.key,
@@ -517,20 +510,6 @@ async function* runPainter(
         }
 
         const duration = Date.now() - startTime;
-        // Debug: show response info for all painters
-        console.log(
-            `[Painter:${modelConfig.key}] Total response length: ${buffer.length} chars`,
-        );
-        // Debug: show final buffer if no palettes found
-        if (palettes.length === 0) {
-            console.log(
-                `[Painter:${modelConfig.key}] ZERO PALETTES - Full response:`,
-                buffer,
-            );
-        }
-        console.log(
-            `[Painter:${modelConfig.key}] Complete with ${palettes.length} palettes in ${duration}ms`,
-        );
         yield {
             type: "painter_complete",
             modelKey: modelConfig.key,
@@ -636,7 +615,8 @@ export async function generatePalettesSSE(
                 `[GenerateV6] Found ${examplePalettes.length} example palettes for query: ${query}`,
             );
 
-            // Stage 1: Composer - generate 6 variations with 1 palette spec each
+            // Stage 1: Composer - generate 6 variations with 1 palette spec each = 6 matrices
+            // Then 6 painters each paint all 6 = 36 total palettes
             let composerOutput: ComposerOutput | null = null;
             for await (const event of runComposer(
                 query,

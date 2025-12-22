@@ -621,7 +621,6 @@ const STYLE_TAGS = [
     "mythology",
     "soot",
     "business",
-    "music",
     "trusting",
     "ribbon",
     "snowflake",
@@ -796,20 +795,16 @@ const STYLE_TAGS = [
     "twine",
     "ruins",
     "raw",
-    "barbecue",
-    "poetry",
     "alley",
     "art",
     "stormcloud",
     "timber",
-    "experimental",
     "passion",
     "clown",
     "iris",
     "gradient",
     "waves",
     "lapis",
-    "skateboard",
     "biscuit",
     "sweater",
     "gingerbread",
@@ -1143,7 +1138,6 @@ export type DailyTag =
     | { type: "text"; value: string }
     | { type: "emoji"; value: string }
     | { type: "color"; name: string; hex: string }
-    | { type: "hex"; hex: string }
     | { type: "pair"; colors: Array<{ name: string; hex: string }> }
     | { type: "triad"; colors: Array<{ name: string; hex: string }> };
 
@@ -1191,7 +1185,11 @@ export function generateDailyTags(
         pairCount,
         random,
     );
-    const generatedHarmonySets = generateColorHarmonySets(COLORS_BY_HUE, harmonySetCount, random);
+    const generatedHarmonySets = generateColorHarmonySets(
+        COLORS_BY_HUE,
+        harmonySetCount,
+        random,
+    );
 
     // Add emoji tags
     for (let i = 0; i < emojiCount && i < shuffledEmojis.length; i++) {
@@ -1203,19 +1201,10 @@ export function generateDailyTags(
         tags.push({ type: "text", value: shuffledStyles[i]! });
     }
 
-    // Add single colors (mix of name+swatch and random hex+swatch)
+    // Add single colors
     for (let i = 0; i < colorCount && i < shuffledColors.length; i++) {
         const color = shuffledColors[i]!;
-        // 70% show color name, 30% show random hex
-        if (random() < 0.7) {
-            tags.push({ type: "color", name: color.name, hex: color.hex });
-        } else {
-            // Generate a random hex color
-            const randomHex = `#${Math.floor(random() * 0xffffff)
-                .toString(16)
-                .padStart(6, "0")}`;
-            tags.push({ type: "hex", hex: randomHex });
-        }
+        tags.push({ type: "color", name: color.name, hex: color.hex });
     }
 
     // Add generated complementary pairs
@@ -1256,8 +1245,6 @@ export function getTagSearchQuery(tag: DailyTag): string {
             return tag.value;
         case "color":
             return tag.name;
-        case "hex":
-            return tag.hex;
         case "pair":
             return tag.colors.map((c) => c.name).join(" ");
         case "triad":

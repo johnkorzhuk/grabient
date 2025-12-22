@@ -549,6 +549,7 @@ export function cleanJsonResponse(raw: string): string {
 
 export function parseComposerOutput(raw: string): ComposerOutput | null {
     try {
+        // First try: clean markdown and parse directly
         const cleaned = cleanJsonResponse(raw);
         const parsed = JSON.parse(cleaned) as ComposerOutput;
 
@@ -558,6 +559,33 @@ export function parseComposerOutput(raw: string): ComposerOutput | null {
 
         return parsed;
     } catch {
+        // Second try: extract JSON object from surrounding text
+        // Look for the outermost { ... } that contains "variations"
+        const jsonMatch = raw.match(/\{[\s\S]*"variations"[\s\S]*\}/);
+        if (jsonMatch) {
+            try {
+                const parsed = JSON.parse(jsonMatch[0]) as ComposerOutput;
+                if (parsed.variations && Array.isArray(parsed.variations)) {
+                    return parsed;
+                }
+            } catch {
+                // Continue to next fallback
+            }
+        }
+
+        // Third try: find JSON within markdown code blocks
+        const codeBlockMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?"variations"[\s\S]*?\})\s*```/);
+        if (codeBlockMatch?.[1]) {
+            try {
+                const parsed = JSON.parse(codeBlockMatch[1]) as ComposerOutput;
+                if (parsed.variations && Array.isArray(parsed.variations)) {
+                    return parsed;
+                }
+            } catch {
+                // Fall through
+            }
+        }
+
         return null;
     }
 }

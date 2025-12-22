@@ -81,20 +81,6 @@ export function TagItem({ tag, preservedSearch, currentPathname }: TagItemProps)
                 </Link>
             );
 
-        case "hex":
-            return (
-                <Link
-                    to="/palettes/$query"
-                    params={{ query: tag.hex }}
-                    search={preservedSearch}
-                    style={{ backgroundColor: "var(--background)" }}
-                    className={baseClasses}
-                >
-                    <ColorSwatch hex={tag.hex} />
-                    {tag.hex}
-                </Link>
-            );
-
         case "pair":
             return (
                 <Link

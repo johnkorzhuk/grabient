@@ -472,14 +472,6 @@ export function AppLayout({
                                                             }}
                                                         />
                                                     )}
-                                                    {tag.type === "hex" && (
-                                                        <span
-                                                            className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
-                                                            style={{
-                                                                backgroundColor: tag.hex,
-                                                            }}
-                                                        />
-                                                    )}
                                                     {tag.type === "pair" && (
                                                         <span className="inline-flex shrink-0">
                                                             {tag.colors.map((color, i) => (
@@ -512,7 +504,6 @@ export function AppLayout({
                                                         {tag.type === "text" && tag.value}
                                                         {tag.type === "emoji" && tag.value}
                                                         {tag.type === "color" && tag.name}
-                                                        {tag.type === "hex" && tag.hex}
                                                         {tag.type === "pair" && tag.colors.map(c => c.name).join(" & ")}
                                                         {tag.type === "triad" && tag.colors.map(c => c.name).join(", ")}
                                                     </span>
