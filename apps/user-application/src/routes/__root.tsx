@@ -106,7 +106,7 @@ export const Route = createRootRouteWithContext<{
                     content: "ca-pub-2436216252635443",
                 },
                 ...seo({
-                    title: "Grabient - CSS Gradient Generator",
+                    title: "Grabient - CSS Gradient Generator & Palette Finder",
                     description: `Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.`,
                     image: "/grabber.png",
                 }),

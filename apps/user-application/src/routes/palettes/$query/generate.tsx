@@ -147,19 +147,23 @@ export const Route = createFileRoute("/palettes/$query/generate")({
         middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
     },
     beforeLoad: async ({ context, params }) => {
-        // Check authentication - redirect to search page if not logged in
+        // Check authentication - redirect to login page if not logged in
         try {
             const session = await context.queryClient.ensureQueryData(sessionQueryOptions());
             if (!session?.user) {
                 throw redirect({
-                    to: "/palettes/$query",
-                    params: { query: params.query },
+                    to: "/login",
+                    search: {
+                        redirect: `/palettes/${params.query}/generate`,
+                    },
                 });
             }
         } catch {
             throw redirect({
-                to: "/palettes/$query",
-                params: { query: params.query },
+                to: "/login",
+                search: {
+                    redirect: `/palettes/${params.query}/generate`,
+                },
             });
         }
     },
@@ -631,7 +635,6 @@ function GeneratePage() {
                 <div className="flex items-start justify-between gap-4">
                     <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
                         <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground" />
-                        <span>Generate</span>
                         <QueryDisplay query={query} />
                         <span>palettes</span>
                     </h1>
@@ -703,19 +706,12 @@ function GeneratePage() {
                 <>
                     <div className="px-5 lg:px-14 mb-6">
                         <div className="flex items-center justify-between gap-4 flex-wrap">
-                            <div className="flex items-center gap-2 flex-wrap">
-                                <h2 className="text-lg font-semibold">Generated Palettes</h2>
-                                {isGenerating && (
-                                    <span className="text-sm text-muted-foreground animate-pulse">
-                                        Generating... ({generatedPalettes.filter(p => p.version === sessionVersion).length} received)
-                                    </span>
-                                )}
-                                {!isGenerating && (
-                                    <span className="text-sm text-muted-foreground">
-                                        {generatedPalettes.filter(p => p.version === selectedVersion).length} palettes
-                                    </span>
-                                )}
-                            </div>
+                            {isGenerating && (
+                                <span className="text-sm text-muted-foreground animate-pulse">
+                                    Generating... ({generatedPalettes.filter(p => p.version === sessionVersion).length} received)
+                                </span>
+                            )}
+                            {!isGenerating && <div />}
                             <VersionPagination
                                 currentVersion={selectedVersion}
                                 totalVersions={sessionVersion}

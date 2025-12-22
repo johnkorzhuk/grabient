@@ -142,7 +142,7 @@ export const Route = createFileRoute("/$seed")({
 
         return {
             meta: [
-                { title: "Grabient - CSS Gradient Generator" },
+                { title: "Grabient - CSS Gradient Generator & Palette Finder" },
                 {
                     name: "description",
                     content:
@@ -151,7 +151,7 @@ export const Route = createFileRoute("/$seed")({
                 { name: "og:type", content: "website" },
                 {
                     name: "og:title",
-                    content: "Grabient - CSS Gradient Generator",
+                    content: "Grabient - CSS Gradient Generator & Palette Finder",
                 },
                 {
                     name: "og:description",
@@ -164,7 +164,7 @@ export const Route = createFileRoute("/$seed")({
                 { name: "twitter:card", content: "summary_large_image" },
                 {
                     name: "twitter:title",
-                    content: "Grabient - CSS Gradient Generator",
+                    content: "Grabient - CSS Gradient Generator & Palette Finder",
                 },
                 {
                     name: "twitter:description",
