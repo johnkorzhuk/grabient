@@ -796,7 +796,6 @@ const STYLE_TAGS = [
     "girly",
     "dew",
     "lily",
-    "wallpaper",
     "apple",
     "undergrowth",
     "twine",
