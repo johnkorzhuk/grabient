@@ -362,9 +362,16 @@ async function* runComposer(
 // PAINTER STAGE
 // =============================================================================
 
+interface PaletteOverrides {
+    style?: "auto" | PaletteStyle;
+    steps?: "auto" | number;
+    angle?: "auto" | number;
+}
+
 async function* runPainter(
     modelConfig: (typeof PAINTER_MODELS)[number],
     matrices: PaletteMatrix[],
+    overrides?: PaletteOverrides,
 ): AsyncGenerator<GenerateEvent> {
     const startTime = Date.now();
     const palettes: string[][] = [];
@@ -420,8 +427,17 @@ async function* runPainter(
                         );
 
                         // Determine steps, style, and angle based on palette complexity
-                        const { steps, style, angle } =
-                            determinePaletteProperties(jitteredCoeffs, palette);
+                        // Use overrides if provided (not "auto" or undefined)
+                        const computed = determinePaletteProperties(jitteredCoeffs, palette);
+                        const style = (overrides?.style && overrides.style !== "auto")
+                            ? overrides.style
+                            : computed.style;
+                        const steps = (overrides?.steps && overrides.steps !== "auto")
+                            ? overrides.steps
+                            : computed.steps;
+                        const angle = (overrides?.angle !== undefined && overrides.angle !== "auto")
+                            ? overrides.angle as PaletteAngle
+                            : computed.angle;
 
                         palettes.push(palette);
                         paletteIndex++;
@@ -486,13 +502,17 @@ function normalizeQuery(query: string): string {
 export interface GenerateRequest {
     query: string;
     sessionId?: string;
+    style?: "auto" | PaletteStyle;
+    steps?: "auto" | number;
+    angle?: "auto" | number;
 }
 
 export async function generatePalettesSSE(
     request: GenerateRequest,
     userId: string,
 ): Promise<Response> {
-    const { query, sessionId } = request;
+    const { query, sessionId, style, steps, angle } = request;
+    const overrides: PaletteOverrides = { style, steps, angle };
     const db = getDb();
     const normalizedQuery = normalizeQuery(query);
 
@@ -605,6 +625,7 @@ export async function generatePalettesSSE(
                 for await (const event of runPainter(
                     task.modelConfig,
                     task.matrices,
+                    overrides,
                 )) {
                     if (event.type === "palette") {
                         totalPalettes++;

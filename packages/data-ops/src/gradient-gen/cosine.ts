@@ -315,9 +315,18 @@ export function determinePaletteProperties(
     // Complexity score: 0-1 based on frequency and contrast
     const complexity = (Math.min(frequency, 1.5) / 1.5 + contrast) / 2;
 
-    // Determine steps: 5-8 based on complexity
-    // Higher complexity = more steps to show the detail
-    const steps = Math.round(5 + complexity * 3) as 5 | 6 | 7 | 8;
+    // Determine steps using tiered scaling:
+    // - Low complexity (< 0.3): 5-7 steps
+    // - Medium complexity (0.3-0.6): 7-11 steps
+    // - High complexity (> 0.6): 12-18 steps (2-3x more for complex palettes)
+    let steps: number;
+    if (complexity < 0.3) {
+        steps = Math.round(5 + (complexity / 0.3) * 2);
+    } else if (complexity < 0.6) {
+        steps = Math.round(7 + ((complexity - 0.3) / 0.3) * 4);
+    } else {
+        steps = Math.round(12 + ((complexity - 0.6) / 0.4) * 6);
+    }
 
     // Determine style based on complexity
     let style: PaletteStyle;

@@ -146,7 +146,7 @@ const STYLE_TAGS = [
     "opalescent",
     "apothecary",
     "floral",
-    "coral",
+    "sea coral",
     "seafoam",
     "mist",
     "sea",

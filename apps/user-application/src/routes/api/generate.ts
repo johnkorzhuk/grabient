@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { generatePalettesSSE } from "@/server-functions/generate-v6";
+import { generatePalettesSSE, type GenerateRequest } from "@/server-functions/generate-v6";
 import { getAuth } from "@repo/data-ops/auth/server";
 
 export const Route = createFileRoute("/api/generate")({
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/api/generate")({
                     );
                 }
 
-                const body = await request.json() as { query: string; sessionId?: string };
+                const body = await request.json() as GenerateRequest;
 
                 return generatePalettesSSE(body, session.user.id);
             },

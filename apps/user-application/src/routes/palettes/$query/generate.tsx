@@ -643,6 +643,9 @@ function GeneratePage() {
                             <GenerateButton
                                 query={query}
                                 sessionId={sessionId}
+                                style={style}
+                                steps={steps}
+                                angle={angle}
                                 onSessionCreated={(newSessionId, version) => {
                                     console.log("[generate.tsx] onSessionCreated:", newSessionId, "version:", version);
                                     setSessionId(newSessionId);

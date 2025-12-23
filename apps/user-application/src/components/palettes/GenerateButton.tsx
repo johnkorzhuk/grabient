@@ -28,6 +28,10 @@ interface GenerateButtonProps {
     // Session props
     sessionId?: string | null;
     onSessionCreated?: (sessionId: string, version: number) => void;
+    // Override props - if not "auto", use these values for all generated palettes
+    style?: "auto" | PaletteStyle;
+    steps?: "auto" | number;
+    angle?: "auto" | number;
     disabled?: boolean;
     className?: string;
 }
@@ -40,6 +44,9 @@ export function GenerateButton({
     onGenerateError,
     sessionId,
     onSessionCreated,
+    style,
+    steps,
+    angle,
     disabled,
     className,
 }: GenerateButtonProps) {
@@ -138,6 +145,9 @@ export function GenerateButton({
                 body: JSON.stringify({
                     query,
                     sessionId: sessionId ?? undefined,
+                    style,
+                    steps,
+                    angle,
                 }),
             });
 
