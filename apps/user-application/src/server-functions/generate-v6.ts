@@ -11,8 +11,7 @@ import { refineSessions } from "@repo/data-ops/drizzle/app-schema";
 import { eq, and } from "drizzle-orm";
 import {
     fitCosinePalette,
-    calculateAverageFrequency,
-    calculateContrast,
+    determinePaletteProperties,
 } from "@repo/data-ops/gradient-gen";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
@@ -103,8 +102,7 @@ const PAINTER_MODELS = [
 // STREAMING EVENT TYPES
 // =============================================================================
 
-// Angle values from dropdown: 0, 45, 90, 135, 180, 225, 270, 315
-type PaletteAngle = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;
+import type { PaletteAngle } from "@repo/data-ops/gradient-gen/cosine";
 
 export type GenerateEvent =
     | { type: "session"; sessionId: string; version: number }
@@ -182,59 +180,6 @@ function applyJitter(coeffs: CosineCoeffs): CosineCoeffs {
         [coeffs[2][0] * jitter(), coeffs[2][1] * jitter(), coeffs[2][2] * jitter(), 1], // c (frequency) - jitter
         [coeffs[3][0] * jitter(), coeffs[3][1] * jitter(), coeffs[3][2] * jitter(), 1], // d (phase) - jitter
     ] as CosineCoeffs;
-}
-
-/**
- * Determine steps, style, and angle based on palette complexity.
- * High frequency + high contrast = more steps + angular style
- * Simple palettes = linear style
- */
-function determinePaletteProperties(
-    coeffs: CosineCoeffs,
-    hexColors: string[],
-): { steps: number; style: PaletteStyle; angle: PaletteAngle } {
-    const frequency = calculateAverageFrequency(coeffs);
-    const contrast = calculateContrast(hexColors);
-
-    // Complexity score: 0-1 based on frequency and contrast
-    const complexity = (Math.min(frequency, 1.5) / 1.5 + contrast) / 2;
-
-    // Determine steps: 5-8 based on complexity
-    // Higher complexity = more steps to show the detail
-    const steps = Math.round(5 + complexity * 3) as 5 | 6 | 7 | 8;
-
-    // Determine style based on complexity
-    let style: PaletteStyle;
-    if (complexity > 0.6) {
-        // High complexity: angular styles to show color transitions
-        style = Math.random() > 0.5 ? "angularGradient" : "angularSwatches";
-    } else if (complexity > 0.3) {
-        // Medium complexity: mix of styles
-        const rand = Math.random();
-        if (rand > 0.6) style = "linearGradient";
-        else if (rand > 0.3) style = "angularGradient";
-        else style = "linearSwatches";
-    } else {
-        // Low complexity: simple linear styles
-        style = Math.random() > 0.3 ? "linearGradient" : "linearSwatches";
-    }
-
-    // Determine angle: use variety based on randomness
-    // Angular styles benefit from non-zero angles
-    const angles: PaletteAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
-    let angle: PaletteAngle;
-    if (style.startsWith("angular")) {
-        // For angular styles, prefer diagonal angles
-        const diagonalAngles: PaletteAngle[] = [45, 135, 225, 315];
-        angle =
-            diagonalAngles[Math.floor(Math.random() * diagonalAngles.length)] ??
-            45;
-    } else {
-        // For linear styles, any angle works
-        angle = angles[Math.floor(Math.random() * angles.length)] ?? 0;
-    }
-
-    return { steps, style, angle };
 }
 
 // =============================================================================

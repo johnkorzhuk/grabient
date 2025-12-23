@@ -188,8 +188,8 @@ export function GenerateButton({
                     </>
                 ) : (
                     <>
-                        <Sparkles className="w-4 h-4" />
                         <span>Generate</span>
+                        <Sparkles className="w-4 h-4" />
                     </>
                 )}
             </button>

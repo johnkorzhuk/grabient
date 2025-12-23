@@ -704,7 +704,7 @@ function GeneratePage() {
             )}
             {hasGeneratedResults ? (
                 <>
-                    <div className="px-5 lg:px-14 mb-6">
+                    <div className="px-5 lg:px-14">
                         <div className="flex items-center justify-between gap-4 flex-wrap">
                             {isGenerating && (
                                 <span className="text-sm text-muted-foreground animate-pulse">

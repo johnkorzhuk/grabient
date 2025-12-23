@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { coeffsSchema, globalsSchema } from "../valibot-schema/grabient";
+import { coeffsSchema, globalsSchema, type PaletteStyle, PALETTE_STYLES } from "../valibot-schema/grabient";
 
 const TAU = Math.PI * 2;
 
@@ -282,4 +282,71 @@ export function tareModifier(
     newGlobals[modifierIndex] = defaultGlobal;
 
     return { coeffs: newCoeffs, globals: newGlobals };
+}
+
+/**
+ * Valid palette display angles (in degrees)
+ */
+export type PaletteAngle = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;
+
+export const PALETTE_ANGLES: PaletteAngle[] = [0, 45, 90, 135, 180, 225, 270, 315];
+
+/**
+ * Determine steps, style, and angle based on palette complexity.
+ * High frequency + high contrast = more steps + angular style
+ * Simple palettes = linear style
+ *
+ * @param coeffs - The cosine gradient coefficients
+ * @param hexColors - Array of hex color strings from the palette
+ * @param randomSeed - Optional seed for deterministic randomness (0-1 range)
+ * @returns Object with steps, style, and angle properties
+ */
+export function determinePaletteProperties(
+    coeffs: CosineCoeffs,
+    hexColors: string[],
+    randomSeed?: number,
+): { steps: number; style: PaletteStyle; angle: PaletteAngle } {
+    // Use provided seed for deterministic results, or Math.random for variety
+    const random = randomSeed !== undefined ? () => randomSeed : Math.random;
+
+    const frequency = calculateAverageFrequency(coeffs);
+    const contrast = calculateContrast(hexColors);
+
+    // Complexity score: 0-1 based on frequency and contrast
+    const complexity = (Math.min(frequency, 1.5) / 1.5 + contrast) / 2;
+
+    // Determine steps: 5-8 based on complexity
+    // Higher complexity = more steps to show the detail
+    const steps = Math.round(5 + complexity * 3) as 5 | 6 | 7 | 8;
+
+    // Determine style based on complexity
+    let style: PaletteStyle;
+    if (complexity > 0.6) {
+        // High complexity: angular styles to show color transitions
+        style = random() > 0.5 ? "angularGradient" : "angularSwatches";
+    } else if (complexity > 0.3) {
+        // Medium complexity: mix of styles
+        const rand = random();
+        if (rand > 0.6) style = "linearGradient";
+        else if (rand > 0.3) style = "angularGradient";
+        else style = "linearSwatches";
+    } else {
+        // Low complexity: simple linear styles
+        style = random() > 0.3 ? "linearGradient" : "linearSwatches";
+    }
+
+    // Determine angle: use variety based on randomness
+    // Angular styles benefit from non-zero angles
+    let angle: PaletteAngle;
+    if (style.startsWith("angular")) {
+        // For angular styles, prefer diagonal angles
+        const diagonalAngles: PaletteAngle[] = [45, 135, 225, 315];
+        angle =
+            diagonalAngles[Math.floor(random() * diagonalAngles.length)] ?? 45;
+    } else {
+        // For linear styles, any angle works
+        angle = PALETTE_ANGLES[Math.floor(random() * PALETTE_ANGLES.length)] ?? 0;
+    }
+
+    return { steps, style, angle };
 }

@@ -14,6 +14,7 @@ import {
   cosineGradient,
   rgbToHex,
   applyGlobals,
+  determinePaletteProperties,
 } from '@repo/data-ops/gradient-gen'
 import { hexToColorName } from '@repo/data-ops/color-utils'
 import { detectHarmonies } from '@repo/data-ops/harmony'
@@ -771,8 +772,8 @@ export const vectorizeStagedPalettes = action({
           // Deduplicate themes from staged palette
           const uniqueThemes = [...new Set(palette.themes)]
 
-          // Build embed text: harmony tags + refinement embedText (if available) + color names + themes
-          // Harmony tags first for higher embedding weight
+          // Build embed text: themes first + harmony tags + refinement embedText (if available) + color names
+          // Themes first for higher embedding weight on search queries
           let embedTokens: string[]
           let tagTokens: string[]
 
@@ -788,15 +789,16 @@ export const vectorizeStagedPalettes = action({
               }
             }
 
-            // Combine: harmony tags + refinement embedText + color names + themes
-            embedTokens = [...harmonyTags, refinement.embedText, ...colorNames, ...uniqueThemes]
+            // Combine: themes first + harmony tags + refinement embedText + color names
+            embedTokens = [...uniqueThemes, ...harmonyTags, refinement.embedText, ...colorNames]
             tagTokens = [...new Set([...harmonyTags, ...refinedTags, ...uniqueThemes])]
           } else {
             // Fallback: use coefficient-based tags if no refinement data
             const paletteTags = analyzeCoefficients(coeffs)
             const tagArray = tagsToArray(paletteTags)
 
-            embedTokens = [...harmonyTags, ...colorNames, ...tagArray, ...uniqueThemes]
+            // Themes first + harmony tags + color names + tags
+            embedTokens = [...uniqueThemes, ...harmonyTags, ...colorNames, ...tagArray]
             tagTokens = [...new Set([...harmonyTags, ...tagArray, ...uniqueThemes])]
           }
 
@@ -846,19 +848,37 @@ export const vectorizeStagedPalettes = action({
       console.log(`Step 5: Upserting ${validPalettes.length} vectors...`)
       const vectorIds = validPalettes.map(() => nanoid())
 
-      const vectors: VectorizeVector[] = validPalettes.map((p, i) => ({
-        id: vectorIds[i],
-        values: allEmbeddings[i]!,
-        metadata: {
-          seed: p.seed,
-          tags: p.tags,
-          style: 'linearGradient',
-          steps: 7,
-          angle: 90,
-          likesCount: 0,
-          createdAt: Date.now(),
-        },
-      }))
+      const vectors: VectorizeVector[] = validPalettes.map((p, i) => {
+        // Get coeffs and hex colors for determinePaletteProperties
+        const { coeffs, globals } = deserializeCoeffs(p.seed)
+        const hexColors = getHexColorsFromSeed(p.seed)
+
+        // Use a deterministic random seed based on the palette seed hash
+        const hashCode = p.seed.split('').reduce((acc, char) => {
+          return ((acc << 5) - acc + char.charCodeAt(0)) | 0
+        }, 0)
+        const randomSeed = Math.abs(hashCode) / 0x7fffffff
+
+        const { steps, style, angle } = determinePaletteProperties(
+          applyGlobals(coeffs, globals),
+          hexColors,
+          randomSeed
+        )
+
+        return {
+          id: vectorIds[i],
+          values: allEmbeddings[i]!,
+          metadata: {
+            seed: p.seed,
+            tags: p.tags,
+            style,
+            steps,
+            angle,
+            likesCount: 0,
+            createdAt: Date.now(),
+          },
+        }
+      })
 
       for (let i = 0; i < vectors.length; i += UPSERT_BATCH_SIZE) {
         const batch = vectors.slice(i, i + UPSERT_BATCH_SIZE)
