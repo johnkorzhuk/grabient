@@ -74,3 +74,35 @@ export const optionalAuthFunctionMiddleware = createMiddleware({
         },
     });
 });
+
+export const adminFunctionMiddleware = createMiddleware({
+    type: "function",
+}).server(async ({ next }) => {
+    const auth = getAuth();
+    const session = await auth.api.getSession({
+        headers: getRequest().headers,
+        query: {
+            disableCookieCache: true,
+        },
+    });
+
+    if (!session) {
+        setResponseStatus(401);
+        throw new Error("Unauthorized");
+    }
+
+    const role = (session.user as { role?: string }).role;
+    if (role !== "admin") {
+        setResponseStatus(403);
+        throw new Error("Forbidden: Admin access required");
+    }
+
+    return next({
+        context: {
+            auth: auth,
+            userId: session.user.id,
+            email: session.user.email,
+            role: role,
+        },
+    });
+});

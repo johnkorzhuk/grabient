@@ -4,6 +4,7 @@ import {
     stripSearchParams,
     Link,
     redirect,
+    Navigate,
 } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
@@ -54,6 +55,8 @@ import {
 } from "@/server-functions/generate-session";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { sessionQueryOptions } from "@/queries/auth";
+import { authClient } from "@/lib/auth-client";
+import type { AuthUser } from "@repo/data-ops/auth/client-types";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -480,6 +483,18 @@ function GeneratePage() {
     const exportCount = mounted ? exportList.length : 0;
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
+    const { data: session, isPending: authPending } = authClient.useSession();
+    const user = session?.user as AuthUser | undefined;
+
+    // Redirect non-admin users
+    if (!authPending && user?.role !== "admin") {
+        return <Navigate to="/palettes/$query" params={{ query: compressedQuery }} />;
+    }
+
+    // Show nothing while auth is loading
+    if (authPending) {
+        return null;
+    }
 
     // Generate state - palettes include version info, model source, and theme
     type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Sparkles, Loader2, ArrowLeft } from "lucide-react";
@@ -10,6 +10,8 @@ import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import type { AppPalette } from "@/queries/palettes";
 import { generateCompare } from "@/server-functions/generate-compare";
+import { authClient } from "@/lib/auth-client";
+import type { AuthUser } from "@repo/data-ops/auth/client-types";
 
 function getQuery(param: string): string {
     try {
@@ -54,9 +56,21 @@ function BackButton({ query }: { query: string }) {
 function ComparePage() {
     const { query: compressedQuery } = Route.useParams();
     const query = getQuery(compressedQuery);
-    
+    const { data: session, isPending } = authClient.useSession();
+    const user = session?.user as AuthUser | undefined;
+
     const [isGenerating, setIsGenerating] = useState(false);
     const [modelResults, setModelResults] = useState<Record<string, ModelResult>>({});
+
+    // Redirect non-admin users
+    if (!isPending && user?.role !== "admin") {
+        return <Navigate to="/palettes/$query" params={{ query: compressedQuery }} />;
+    }
+
+    // Show nothing while auth is loading
+    if (isPending) {
+        return null;
+    }
 
     const handleGenerate = async () => {
         setIsGenerating(true);

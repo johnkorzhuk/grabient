@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { GenerateEvent } from "@/server-functions/generate-v6";
+import { generatePalettes, type GenerateEvent } from "@/server-functions/generate";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabient";
+import { authClient } from "@/lib/auth-client";
+import type { AuthUser } from "@repo/data-ops/auth/client-types";
 import * as v from "valibot";
 
 type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
@@ -50,7 +52,14 @@ export function GenerateButton({
     disabled,
     className,
 }: GenerateButtonProps) {
+    const { data: session, isPending } = authClient.useSession();
+    const user = session?.user as AuthUser | undefined;
     const [isGenerating, setIsGenerating] = useState(false);
+
+    // Don't render until auth state is available, and only render for admins
+    if (isPending || user?.role !== "admin") {
+        return null;
+    }
 
     // Process SSE stream from server
     const processStream = async (response: Response): Promise<void> => {
@@ -139,25 +148,15 @@ export function GenerateButton({
         onGenerateStart();
 
         try {
-            const response = await fetch("/api/generate", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
+            const response = await generatePalettes({
+                data: {
                     query,
                     sessionId: sessionId ?? undefined,
                     style,
                     steps,
                     angle,
-                }),
+                },
             });
-
-            console.log("[GenerateButton] Response status:", response.status);
-
-            if (!response.ok) {
-                const errorData = await response.json() as { error?: string };
-                console.error("[GenerateButton] Error response:", errorData);
-                throw new Error(errorData.error || `HTTP ${response.status}`);
-            }
 
             console.log("[GenerateButton] Processing SSE stream...");
             await processStream(response);

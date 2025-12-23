@@ -21,7 +21,6 @@ import { Route as SeedIndexRouteImport } from './routes/$seed/index'
 import { Route as PalettesQueryRouteImport } from './routes/palettes/$query'
 import { Route as ESplatRouteImport } from './routes/e.$'
 import { Route as ApiOgRouteImport } from './routes/api/og'
-import { Route as ApiGenerateRouteImport } from './routes/api/generate'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
 import { Route as PaletteListNewestRouteImport } from './routes/_paletteList/newest'
@@ -93,11 +92,6 @@ const ApiOgRoute = ApiOgRouteImport.update({
   path: '/api/og',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiGenerateRoute = ApiGenerateRouteImport.update({
-  id: '/api/generate',
-  path: '/api/generate',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const PaletteListSavedRoute = PaletteListSavedRouteImport.update({
   id: '/saved',
   path: '/saved',
@@ -163,7 +157,6 @@ export interface FileRoutesByFullPath {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
-  '/api/generate': typeof ApiGenerateRoute
   '/api/og': typeof ApiOgRouteWithChildren
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
@@ -187,7 +180,6 @@ export interface FileRoutesByTo {
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
-  '/api/generate': typeof ApiGenerateRoute
   '/api/og': typeof ApiOgRouteWithChildren
   '/e/$': typeof ESplatRoute
   '/$seed': typeof SeedIndexRoute
@@ -213,7 +205,6 @@ export interface FileRoutesById {
   '/_paletteList/newest': typeof PaletteListNewestRoute
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
-  '/api/generate': typeof ApiGenerateRoute
   '/api/og': typeof ApiOgRouteWithChildren
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
@@ -240,7 +231,6 @@ export interface FileRouteTypes {
     | '/newest'
     | '/oldest'
     | '/saved'
-    | '/api/generate'
     | '/api/og'
     | '/e/$'
     | '/palettes/$query'
@@ -264,7 +254,6 @@ export interface FileRouteTypes {
     | '/newest'
     | '/oldest'
     | '/saved'
-    | '/api/generate'
     | '/api/og'
     | '/e/$'
     | '/$seed'
@@ -289,7 +278,6 @@ export interface FileRouteTypes {
     | '/_paletteList/newest'
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
-    | '/api/generate'
     | '/api/og'
     | '/e/$'
     | '/palettes/$query'
@@ -313,7 +301,6 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
-  ApiGenerateRoute: typeof ApiGenerateRoute
   ApiOgRoute: typeof ApiOgRouteWithChildren
   ESplatRoute: typeof ESplatRoute
   PalettesQueryRoute: typeof PalettesQueryRouteWithChildren
@@ -408,13 +395,6 @@ declare module '@tanstack/react-router' {
       path: '/api/og'
       fullPath: '/api/og'
       preLoaderRoute: typeof ApiOgRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/generate': {
-      id: '/api/generate'
-      path: '/api/generate'
-      fullPath: '/api/generate'
-      preLoaderRoute: typeof ApiGenerateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_paletteList/saved': {
@@ -560,7 +540,6 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
-  ApiGenerateRoute: ApiGenerateRoute,
   ApiOgRoute: ApiOgRouteWithChildren,
   ESplatRoute: ESplatRoute,
   PalettesQueryRoute: PalettesQueryRouteWithChildren,

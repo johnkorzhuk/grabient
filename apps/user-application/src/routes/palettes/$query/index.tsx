@@ -42,6 +42,8 @@ import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
 import { useMounted } from "@mantine/hooks";
+import { authClient } from "@/lib/auth-client";
+import type { AuthUser } from "@repo/data-ops/auth/client-types";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -578,6 +580,14 @@ function BackButton({ sort, style, angle, steps, size }: SearchParams) {
 }
 
 function GenerateButton({ query }: { query: string }) {
+    const { data: session, isPending } = authClient.useSession();
+    const user = session?.user as AuthUser | undefined;
+
+    // Don't render until auth state is available, and only render for admins
+    if (isPending || user?.role !== "admin") {
+        return null;
+    }
+
     return (
         <Link
             to="/palettes/$query/generate"

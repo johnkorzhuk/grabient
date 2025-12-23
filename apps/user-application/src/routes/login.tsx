@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useForm } from "@tanstack/react-form";
 import { useState, useEffect } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/login")({
 function LoginPage() {
     const search = Route.useSearch();
     const redirectUrl = search.redirect;
+    const { data: session, isPending } = authClient.useSession();
 
     const [isLoading, setIsLoading] = useState(false);
     const [magicLinkSent, setMagicLinkSent] = useState(false);
@@ -64,6 +65,11 @@ function LoginPage() {
             return () => clearTimeout(timer);
         }
     }, [retryTimer]);
+
+    // Redirect authenticated users (after all hooks)
+    if (!isPending && session?.user) {
+        return <Navigate to={redirectUrl ?? "/"} />;
+    }
 
     const handleGoogleSignIn = async () => {
         setIsLoading(true);
