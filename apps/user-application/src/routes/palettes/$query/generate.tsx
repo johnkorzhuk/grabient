@@ -4,7 +4,6 @@ import {
     stripSearchParams,
     Link,
     redirect,
-    Navigate,
 } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
@@ -55,8 +54,6 @@ import {
 } from "@/server-functions/generate-session";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { sessionQueryOptions } from "@/queries/auth";
-import { authClient } from "@/lib/auth-client";
-import type { AuthUser } from "@repo/data-ops/auth/client-types";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -150,23 +147,22 @@ export const Route = createFileRoute("/palettes/$query/generate")({
         middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
     },
     beforeLoad: async ({ context, params }) => {
-        // Check authentication - redirect to login page if not logged in
-        try {
-            const session = await context.queryClient.ensureQueryData(sessionQueryOptions());
-            if (!session?.user) {
-                throw redirect({
-                    to: "/login",
-                    search: {
-                        redirect: `/palettes/${params.query}/generate`,
-                    },
-                });
-            }
-        } catch {
+        // Check authentication and admin role - redirect if not authorized
+        const session = await context.queryClient.ensureQueryData(sessionQueryOptions());
+        if (!session?.user) {
             throw redirect({
                 to: "/login",
                 search: {
                     redirect: `/palettes/${params.query}/generate`,
                 },
+            });
+        }
+        // Check admin role (allow in dev mode)
+        const isDev = import.meta.env.DEV;
+        if (!isDev && session.user.role !== "admin") {
+            throw redirect({
+                to: "/palettes/$query",
+                params: { query: params.query },
             });
         }
     },
@@ -483,19 +479,6 @@ function GeneratePage() {
     const exportCount = mounted ? exportList.length : 0;
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
-    const { data: session, isPending: authPending } = authClient.useSession();
-    const user = session?.user as AuthUser | undefined;
-    const isAdmin = user?.role === "admin" || import.meta.env.DEV;
-
-    // Redirect non-admin users (allow in dev mode)
-    if (!authPending && !isAdmin) {
-        return <Navigate to="/palettes/$query" params={{ query: compressedQuery }} />;
-    }
-
-    // Show nothing while auth is loading
-    if (authPending) {
-        return null;
-    }
 
     // Generate state - palettes include version info, model source, and theme
     type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };
@@ -525,18 +508,18 @@ function GeneratePage() {
     ): VersionedPalette => {
         // Handle both old format (string) and new format (object)
         const seed = typeof paletteData === 'string' ? paletteData : paletteData.seed;
-        const style = typeof paletteData === 'string' ? "linearGradient" : paletteData.style;
-        const steps = typeof paletteData === 'string' ? 8 : paletteData.steps;
-        const angle = typeof paletteData === 'string' ? 90 : paletteData.angle;
+        const paletteStyle = typeof paletteData === 'string' ? "linearGradient" : paletteData.style;
+        const paletteSteps = typeof paletteData === 'string' ? 8 : paletteData.steps;
+        const paletteAngle = typeof paletteData === 'string' ? 90 : paletteData.angle;
         const theme = typeof paletteData === 'string' ? "" : (paletteData.keyword ?? "");
-        
+
         const { coeffs } = deserializeCoeffs(seed);
-        const hexColors = generateHexColors(coeffs, DEFAULT_GLOBALS, steps);
+        const hexColors = generateHexColors(coeffs, DEFAULT_GLOBALS, paletteSteps);
         return {
             seed,
-            style: style as VersionedPalette["style"],
-            steps,
-            angle,
+            style: paletteStyle as VersionedPalette["style"],
+            steps: paletteSteps,
+            angle: paletteAngle,
             createdAt: null,
             coeffs,
             globals: DEFAULT_GLOBALS,
@@ -560,9 +543,9 @@ function GeneratePage() {
             const generatedSeeds = existingSession.generatedSeeds ?? {};
 
             for (const [versionKey, paletteDataArray] of Object.entries(generatedSeeds)) {
-                const version = parseInt(versionKey, 10);
+                const ver = parseInt(versionKey, 10);
                 for (const paletteData of paletteDataArray) {
-                    palettes.push(storedToVersionedPalette(paletteData, version));
+                    palettes.push(storedToVersionedPalette(paletteData, ver));
                 }
             }
 

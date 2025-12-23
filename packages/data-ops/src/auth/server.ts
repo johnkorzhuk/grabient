@@ -10,6 +10,15 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 
 let betterAuth: ReturnType<typeof createBetterAuth>;
 
+// Augment the base Session type with our additional user fields
+type BaseSession = typeof betterAuth.$Infer.Session;
+export type Session = Omit<BaseSession, "user"> & {
+  user: BaseSession["user"] & {
+    username?: string | null;
+    role: string;
+  };
+};
+
 export function setAuth(
   config: Omit<Parameters<typeof createBetterAuth>[0], "database"> & {
     adapter: {

@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { getAuth } from "@repo/data-ops/auth/server";
+import { getAuth, type Session } from "@repo/data-ops/auth/server";
 import { getRequest } from "@tanstack/react-start/server";
 import { protectedFunctionMiddleware } from "@/core/middleware/auth";
 import { rateLimitFunctionMiddleware } from "@/core/middleware/rate-limit-function";
@@ -10,7 +10,7 @@ import { auth_user } from "@repo/data-ops/drizzle/auth-schema";
 import { sql } from "drizzle-orm";
 
 export const getServerSession = createServerFn({ method: "GET" }).handler(
-    async () => {
+    async (): Promise<Session | null> => {
         const auth = getAuth();
         const session = await auth.api.getSession({
             headers: getRequest().headers,
@@ -19,7 +19,9 @@ export const getServerSession = createServerFn({ method: "GET" }).handler(
             },
         });
 
-        return session;
+        // Cast to our Session type which includes additional fields (role, username)
+        // The runtime values are present, but better-auth's types don't reflect additionalFields
+        return session as Session | null;
     }
 );
 
