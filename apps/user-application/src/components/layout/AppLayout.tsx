@@ -252,7 +252,7 @@ export function AppLayout({
                                                     "var(--background)",
                                             }}
                                             className={cn(
-                                                "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
+                                                "disable-animation-on-theme-change hidden sm:inline-flex items-center justify-center rounded-md",
                                                 "h-8.5 w-8.5 p-0 border border-solid",
                                                 "border-input hover:border-muted-foreground/30 hover:bg-background/60",
                                                 "text-muted-foreground hover:text-foreground",
@@ -377,6 +377,31 @@ export function AppLayout({
                                 paddingBottom: isAdvancedOpen ? "12px" : "0px",
                             }}
                         >
+                            {hasCustomValues && !isExportOpen && (
+                                <button
+                                    onClick={handleReset}
+                                    style={{
+                                        backgroundColor: "var(--background)",
+                                    }}
+                                    className={cn(
+                                        "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
+                                        "h-8.5 w-8.5 p-0 border border-solid",
+                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60",
+                                        "text-muted-foreground hover:text-foreground",
+                                        "transition-colors duration-200 cursor-pointer",
+                                        "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                                    )}
+                                    aria-label="Reset all options to auto"
+                                    suppressHydrationWarning
+                                >
+                                    <RotateCcw
+                                        size={16}
+                                        style={{
+                                            color: "currentColor",
+                                        }}
+                                    />
+                                </button>
+                            )}
                             <AngleInput
                                 value={angle}
                                 className="subpixel-antialiased"

@@ -485,9 +485,10 @@ function GeneratePage() {
     const query = getQuery(compressedQuery) ?? "";
     const { data: session, isPending: authPending } = authClient.useSession();
     const user = session?.user as AuthUser | undefined;
+    const isAdmin = user?.role === "admin" || import.meta.env.DEV;
 
-    // Redirect non-admin users
-    if (!authPending && user?.role !== "admin") {
+    // Redirect non-admin users (allow in dev mode)
+    if (!authPending && !isAdmin) {
         return <Navigate to="/palettes/$query" params={{ query: compressedQuery }} />;
     }
 

@@ -78,6 +78,7 @@ export const optionalAuthFunctionMiddleware = createMiddleware({
 export const adminFunctionMiddleware = createMiddleware({
     type: "function",
 }).server(async ({ next }) => {
+    const isDev = process.env.NODE_ENV === "development";
     const auth = getAuth();
     const session = await auth.api.getSession({
         headers: getRequest().headers,
@@ -92,7 +93,9 @@ export const adminFunctionMiddleware = createMiddleware({
     }
 
     const role = (session.user as { role?: string }).role;
-    if (role !== "admin") {
+
+    // Allow access in dev mode, require admin in production
+    if (!isDev && role !== "admin") {
         setResponseStatus(403);
         throw new Error("Forbidden: Admin access required");
     }
@@ -102,7 +105,7 @@ export const adminFunctionMiddleware = createMiddleware({
             auth: auth,
             userId: session.user.id,
             email: session.user.email,
-            role: role,
+            role: role ?? "user",
         },
     });
 });

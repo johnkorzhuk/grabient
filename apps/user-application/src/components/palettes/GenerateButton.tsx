@@ -55,9 +55,10 @@ export function GenerateButton({
     const { data: session, isPending } = authClient.useSession();
     const user = session?.user as AuthUser | undefined;
     const [isGenerating, setIsGenerating] = useState(false);
+    const isAdmin = user?.role === "admin" || import.meta.env.DEV;
 
-    // Don't render until auth state is available, and only render for admins
-    if (isPending || user?.role !== "admin") {
+    // Don't render until auth state is available, and only render for admins (or in dev mode)
+    if (isPending || !isAdmin) {
         return null;
     }
 
