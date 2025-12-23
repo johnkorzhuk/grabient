@@ -596,8 +596,8 @@ function GenerateButton({ query }: { query: string }) {
                     "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
                 )}
             >
-                <Sparkles className="w-4 h-4" />
                 <span>Generate</span>
+                <Sparkles className="w-4 h-4" />
             </button>
         </Link>
     );

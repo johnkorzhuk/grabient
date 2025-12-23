@@ -574,7 +574,9 @@ export function parseComposerOutput(raw: string): ComposerOutput | null {
         }
 
         // Third try: find JSON within markdown code blocks
-        const codeBlockMatch = raw.match(/```(?:json)?\s*(\{[\s\S]*?"variations"[\s\S]*?\})\s*```/);
+        const codeBlockMatch = raw.match(
+            /```(?:json)?\s*(\{[\s\S]*?"variations"[\s\S]*?\})\s*```/,
+        );
         if (codeBlockMatch?.[1]) {
             try {
                 const parsed = JSON.parse(codeBlockMatch[1]) as ComposerOutput;
