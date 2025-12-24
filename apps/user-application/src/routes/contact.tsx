@@ -597,18 +597,21 @@ function ContactPage() {
                                     </button>
                                 )}
                             </form.Subscribe>
-                            <div className="flex justify-center">
-                                <Turnstile
-                                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                                    onSuccess={(token) => setTurnstileToken(token)}
-                                    onError={() => setTurnstileToken(null)}
-                                    onExpire={() => setTurnstileToken(null)}
-                                    options={{
-                                        theme: "auto",
-                                        size: "normal",
-                                    }}
-                                />
-                            </div>
+                            {!turnstileToken && (
+                                <div className="flex justify-center">
+                                    <Turnstile
+                                        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                                        onSuccess={(token) => setTurnstileToken(token)}
+                                        onError={() => setTurnstileToken(null)}
+                                        onExpire={() => setTurnstileToken(null)}
+                                        options={{
+                                            theme: "auto",
+                                            size: "normal",
+                                            appearance: "interaction-only",
+                                        }}
+                                    />
+                                </div>
+                            )}
                         </div>
                     </form>
                 )}

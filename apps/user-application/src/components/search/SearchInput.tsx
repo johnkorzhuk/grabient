@@ -14,6 +14,22 @@ import * as v from "valibot";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { verifyTurnstile } from "@/server-functions/turnstile";
 
+const TURNSTILE_VERIFIED_KEY = "turnstile_verified_at";
+const TURNSTILE_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes
+
+function isTurnstileVerified(): boolean {
+    if (typeof window === "undefined") return false;
+    const verifiedAt = sessionStorage.getItem(TURNSTILE_VERIFIED_KEY);
+    if (!verifiedAt) return false;
+    const timestamp = parseInt(verifiedAt, 10);
+    return Date.now() - timestamp < TURNSTILE_EXPIRY_MS;
+}
+
+function setTurnstileVerified(): void {
+    if (typeof window === "undefined") return;
+    sessionStorage.setItem(TURNSTILE_VERIFIED_KEY, Date.now().toString());
+}
+
 type StyleType = v.InferOutput<typeof styleWithAutoValidator>;
 type SizeType = "auto" | [number, number];
 
@@ -150,10 +166,15 @@ export function SearchInput({
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
     const [turnstileError, setTurnstileError] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [isAlreadyVerified, setIsAlreadyVerified] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const turnstileRef = useRef<TurnstileInstance>(null);
 
     const isOnSearchPage = location.pathname.startsWith("/palettes/");
+
+    useEffect(() => {
+        setIsAlreadyVerified(isTurnstileVerified());
+    }, []);
 
     useEffect(() => {
         if (isOnSearchPage) {
@@ -231,6 +252,12 @@ export function SearchInput({
         const trimmed = localValue.trim();
         if (!trimmed || isVerifying) return;
 
+        // Skip Turnstile if already verified in this session
+        if (isAlreadyVerified) {
+            performNavigation(trimmed);
+            return;
+        }
+
         if (!turnstileToken) {
             setTurnstileError(true);
             return;
@@ -240,6 +267,8 @@ export function SearchInput({
         try {
             const result = await verifyTurnstile({ data: { token: turnstileToken } });
             if (result.success) {
+                setTurnstileVerified();
+                setIsAlreadyVerified(true);
                 performNavigation(trimmed);
             } else {
                 setTurnstileError(true);
@@ -305,27 +334,30 @@ export function SearchInput({
                     </button>
                 )}
             </form>
-            <div className="mt-3 [&_iframe]:!w-full">
-                <Turnstile
-                    ref={turnstileRef}
-                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
-                    onSuccess={(token) => {
-                        setTurnstileToken(token);
-                        setTurnstileError(false);
-                    }}
-                    onError={() => {
-                        setTurnstileToken(null);
-                        setTurnstileError(true);
-                    }}
-                    onExpire={() => {
-                        setTurnstileToken(null);
-                    }}
-                    options={{
-                        size: "flexible",
-                        theme: "auto",
-                    }}
-                />
-            </div>
+            {!isAlreadyVerified && !turnstileToken && (
+                <div className="mt-3 [&_iframe]:!w-full">
+                    <Turnstile
+                        ref={turnstileRef}
+                        siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                        onSuccess={(token) => {
+                            setTurnstileToken(token);
+                            setTurnstileError(false);
+                        }}
+                        onError={() => {
+                            setTurnstileToken(null);
+                            setTurnstileError(true);
+                        }}
+                        onExpire={() => {
+                            setTurnstileToken(null);
+                        }}
+                        options={{
+                            size: "flexible",
+                            theme: "auto",
+                            appearance: "interaction-only",
+                        }}
+                    />
+                </div>
+            )}
             {turnstileError && (
                 <p className="mt-2 text-xs text-red-500 text-center">
                     Verification failed. Please refresh.
