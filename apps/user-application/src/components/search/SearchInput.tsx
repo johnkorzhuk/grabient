@@ -150,6 +150,7 @@ export function SearchInput({
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
     const [turnstileError, setTurnstileError] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [showChallenge, setShowChallenge] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const turnstileRef = useRef<TurnstileInstance>(null);
 
@@ -255,7 +256,7 @@ export function SearchInput({
     };
 
     return (
-        <div className={cn("relative flex flex-col", className)}>
+        <div className={cn("flex flex-col", className)}>
             <form onSubmit={handleSubmitWithTurnstile} className="relative">
                 <div
                     className={cn(
@@ -305,7 +306,7 @@ export function SearchInput({
                     </button>
                 )}
             </form>
-            <div className="absolute [&_iframe]:!w-full">
+            <div className={cn("[&_iframe]:!w-full", showChallenge ? "mt-3" : "sr-only")}>
                 <Turnstile
                     ref={turnstileRef}
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
@@ -319,6 +320,12 @@ export function SearchInput({
                     }}
                     onExpire={() => {
                         setTurnstileToken(null);
+                    }}
+                    onBeforeInteractive={() => {
+                        setShowChallenge(true);
+                    }}
+                    onAfterInteractive={() => {
+                        setShowChallenge(false);
                     }}
                     options={{
                         size: "flexible",
