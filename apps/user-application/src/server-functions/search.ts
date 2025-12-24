@@ -63,7 +63,7 @@ async function fetchFreshLikeCounts(seeds: string[]): Promise<Map<string, number
 }
 
 const baseSearchFunction = createServerFn({ method: "GET" }).middleware([
-    rateLimitFunctionMiddleware("paletteRead"),
+    rateLimitFunctionMiddleware("paletteSearch"),
 ]);
 
 export const searchPalettes = baseSearchFunction

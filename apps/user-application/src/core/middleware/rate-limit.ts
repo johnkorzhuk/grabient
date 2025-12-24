@@ -17,6 +17,7 @@ export const rateLimitConfig = {
 	// Read operations - lenient limits
 	usernameCheck: { requests: 50, window: 60 }, // 50 requests per minute
 	paletteRead: { requests: 100, window: 60 }, // 100 requests per minute
+	paletteSearch: { requests: 40, window: 60 }, // 40 requests per minute
 	userPalettes: { requests: 30, window: 60 }, // 30 requests per minute
 
 	// Low priority - lenient limits
