@@ -285,6 +285,31 @@ export function tareModifier(
 }
 
 /**
+ * Invert the palette colors by flipping offset and amplitude.
+ * This produces a negative/inverted version of the palette.
+ */
+export function invertCoeffs(coeffs: CosineCoeffs): CosineCoeffs {
+    return coeffs.map((coeff, i) => {
+        const alpha = coeff[3] ?? 1;
+        if (i === 0) {
+            // a: offset - flip around 0.5 (1 - a)
+            return [
+                ...coeff.slice(0, 3).map((v) => 1 - v),
+                alpha,
+            ];
+        }
+        if (i === 1) {
+            // b: amplitude - negate
+            return [
+                ...coeff.slice(0, 3).map((v) => -v),
+                alpha,
+            ];
+        }
+        return coeff;
+    }) as CosineCoeffs;
+}
+
+/**
  * Valid palette display angles (in degrees)
  */
 export type PaletteAngle = 0 | 45 | 90 | 135 | 180 | 225 | 270 | 315;

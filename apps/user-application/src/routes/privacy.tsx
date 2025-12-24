@@ -1,11 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useEffect } from "react";
 
 export const Route = createFileRoute("/privacy")({
     component: RouteComponent,
 });
 
 function RouteComponent() {
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     return (
         <AppLayout showNavigation={false}>
             <PrivacyPolicy />

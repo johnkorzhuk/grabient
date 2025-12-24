@@ -16,7 +16,7 @@ import { Check, ChevronsUpDown } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import * as v from "valibot";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useServerFn } from "@tanstack/react-start";
 import { sendContactEmail } from "@/server-functions/contact";
@@ -31,6 +31,10 @@ export const Route = createFileRoute("/contact")({
 });
 
 function RouteComponent() {
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
+
     return (
         <AppLayout showNavigation={false}>
             <ContactPage />
