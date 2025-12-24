@@ -212,8 +212,8 @@ export const globalFrequencySchema = v.pipe(
 
 export const globalPhaseSchema = v.pipe(
     v.number(),
-    v.minValue(-PI - Math.pow(10, -COEFF_PRECISION)),
-    v.maxValue(PI + Math.pow(10, -COEFF_PRECISION)),
+    v.minValue(-1 - Math.pow(10, -COEFF_PRECISION)),
+    v.maxValue(1 + Math.pow(10, -COEFF_PRECISION)),
     v.transform((input) => Number(input.toFixed(COEFF_PRECISION))),
 );
 
@@ -221,7 +221,7 @@ export const globalsSchema = v.tuple([
     globalExposureSchema, // exposure [-1, 1]
     globalContrastSchema, // contrast [0, 2]
     globalFrequencySchema, // frequency [0, 2]
-    globalPhaseSchema, // phase [-π, π]
+    globalPhaseSchema, // phase [-1, 1]
 ]);
 
 // Default values for global modifiers [exposure, contrast, frequency, phase]

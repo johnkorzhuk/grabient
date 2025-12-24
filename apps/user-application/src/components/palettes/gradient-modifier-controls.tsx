@@ -41,9 +41,8 @@ const rgbChannels = [
 function getModifierRange(modifier: string) {
     switch (modifier) {
         case "exposure":
-            return { min: -1, max: 1 };
         case "phase":
-            return { min: -Math.PI, max: Math.PI };
+            return { min: -1, max: 1 };
         default:
             return { min: 0, max: 2 };
     }

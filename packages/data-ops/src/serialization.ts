@@ -77,7 +77,17 @@ export function deserializeCoeffs(seed: string) {
   }
 
   const coeffsData = numbers.slice(0, 12);
-  const globalsData = numbers.length > 12 ? numbers.slice(12, 16) : DEFAULT_GLOBALS;
+  let globalsData = numbers.length > 12 ? numbers.slice(12, 16) : [...DEFAULT_GLOBALS];
+
+  // Backward compatibility: old seeds have phase in -π..π range (|phase| > 1)
+  // New seeds have phase in -1..1 range
+  if (globalsData.length === 4) {
+    const phase = globalsData[3] ?? 0;
+    if (Math.abs(phase) > 1.001) {
+      // Old format - scale from -π..π to -1..1
+      globalsData[3] = phase / Math.PI;
+    }
+  }
 
   const coeffsWithAlpha = [];
   for (let i = 0; i < 12; i += 3) {
