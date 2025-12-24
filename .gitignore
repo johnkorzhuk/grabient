@@ -157,3 +157,7 @@ vite.config.ts.timestamp-*
 packages/data-ops/src/data/prod-*.jsonl
 snapshot.zip
 .seed-production.sql
+
+# Ops apps (not ready for production)
+apps/grabient-ops/
+apps/grabient-ops-local/

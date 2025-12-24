@@ -101,7 +101,26 @@
 					"database_id": "8902a4a8-cca3-4a34-b456-7b35ad021985",
 					"migrations_dir": "../../packages/data-ops/src/drizzle"
 				}
-			]
+			],
+			"kv_namespaces": [
+				{
+					"binding": "SEARCH_CACHE",
+					"id": "e8a90572e8584a0c9587011bacf50d7a"
+				},
+				{
+					"binding": "OG_IMAGE_CACHE",
+					"id": "f43a67e1a657473fbe09db8c94e77ed9"
+				}
+			],
+			"vectorize": [
+				{
+					"binding": "VECTORIZE",
+					"index_name": "grabient-palettes"
+				}
+			],
+			"ai": {
+				"binding": "AI"
+			}
 		}
 	}
 }
