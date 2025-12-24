@@ -255,7 +255,7 @@ export function SearchInput({
     };
 
     return (
-        <div className={cn("flex flex-col", className)}>
+        <div className={cn("relative flex flex-col", className)}>
             <form onSubmit={handleSubmitWithTurnstile} className="relative">
                 <div
                     className={cn(
@@ -305,7 +305,7 @@ export function SearchInput({
                     </button>
                 )}
             </form>
-            <div className="[&_iframe]:!w-full empty:hidden">
+            <div className="absolute [&_iframe]:!w-full">
                 <Turnstile
                     ref={turnstileRef}
                     siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
