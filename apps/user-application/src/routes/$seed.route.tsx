@@ -177,17 +177,41 @@ export const Route = createFileRoute("/$seed")({
     },
     onLeave: (match) => {
         const search = match.search;
+        const seedInitialSearch = uiStore.state.seedInitialSearch;
         const currentPreviousRoute = uiStore.state.previousRoute;
         const path = currentPreviousRoute?.path ?? "/";
         const searchParams: Record<string, unknown> = { ...currentPreviousRoute?.search };
-        if (search.style !== "auto") searchParams.style = search.style;
-        else delete searchParams.style;
-        if (search.angle !== "auto") searchParams.angle = search.angle;
-        else delete searchParams.angle;
-        if (search.steps !== "auto") searchParams.steps = search.steps;
-        else delete searchParams.steps;
+
+        // Get resolved current values
+        const actualStyle = search.style === "auto" ? DEFAULT_STYLE : search.style;
+        const actualAngle = search.angle === "auto" ? DEFAULT_ANGLE : search.angle;
+        const actualSteps = search.steps === "auto" ? DEFAULT_STEPS : search.steps;
+
+        // Only add/update params that were explicitly changed from initial values
+        // This prevents palette-default values from being carried to other routes
+        // but preserves values that were already in previousRoute.search from the source route
+        if (seedInitialSearch) {
+            if (actualStyle !== seedInitialSearch.style) {
+                searchParams.style = actualStyle;
+            }
+            // If unchanged, leave searchParams.style as-is (don't delete source route's value)
+            if (actualAngle !== seedInitialSearch.angle) {
+                searchParams.angle = actualAngle;
+            }
+            if (actualSteps !== seedInitialSearch.steps) {
+                searchParams.steps = actualSteps;
+            }
+        } else {
+            // Fallback if seedInitialSearch is not available
+            if (search.style !== "auto") searchParams.style = search.style;
+            if (search.angle !== "auto") searchParams.angle = search.angle;
+            if (search.steps !== "auto") searchParams.steps = search.steps;
+        }
+
+        // Size is a user preference, not palette-specific
         if (search.size !== "auto") searchParams.size = search.size;
         else delete searchParams.size;
+
         uiStore.setState((state) => ({
             ...state,
             previousRoute: { path, search: searchParams },
