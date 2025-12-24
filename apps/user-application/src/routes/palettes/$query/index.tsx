@@ -439,7 +439,7 @@ function ResultsForSubtitle({
     if (queryType === "seed") {
         return (
             <p
-                className="absolute top-full left-0 mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
+                className="absolute top-full mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
                 style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
             >
                 Showing results for seed:{" "}
@@ -461,7 +461,7 @@ function ResultsForSubtitle({
 
         return (
             <p
-                className="absolute top-full left-0 mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
+                className="absolute top-full mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
                 style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
             >
                 Showing results for:
@@ -692,7 +692,7 @@ function SearchResultsPage() {
         >
             <div
                 className={cn(
-                    "px-5 lg:px-14",
+                    "relative px-5 lg:px-14",
                     hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
                     isExportOpen && "hidden"
                 )}

@@ -40,7 +40,7 @@ R2_BUCKET_NAME=grabient-uploads
 # PROD: Use custom domain if configured (e.g., https://cdn.yourdomain.com)
 R2_PUBLIC_URL=https://pub-xxxxxxxxx.r2.dev
 
-TURNSTILE_SECRET_KEY=
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
 
 OPENAI_API_KEY=your_openai_key_here
 GOOGLE_GENERATIVE_AI_API_KEY=your_google_key_here
