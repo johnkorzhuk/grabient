@@ -4,13 +4,59 @@ import * as v from "valibot";
 import { contactFormSchema } from "@repo/data-ops/valibot-schema/contact";
 import { rateLimitFunctionMiddleware } from "@/core/middleware/rate-limit-function";
 
+const TURNSTILE_VERIFY_URL =
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+
+const contactFormWithTurnstileSchema = v.object({
+    ...contactFormSchema.entries,
+    turnstileToken: v.pipe(
+        v.string(),
+        v.minLength(1, "Turnstile verification required"),
+    ),
+});
+
+async function verifyTurnstileToken(
+    token: string,
+    secretKey: string,
+): Promise<boolean> {
+    const formData = new FormData();
+    formData.append("secret", secretKey);
+    formData.append("response", token);
+
+    try {
+        const response = await fetch(TURNSTILE_VERIFY_URL, {
+            method: "POST",
+            body: formData,
+        });
+        const result = (await response.json()) as { success: boolean };
+        return result.success === true;
+    } catch (error) {
+        console.error("Turnstile verification error:", error);
+        return false;
+    }
+}
+
 export const sendContactEmail = createServerFn({ method: "POST" })
     .middleware([rateLimitFunctionMiddleware("contactForm")])
-    .inputValidator((input) => v.parse(contactFormSchema, input))
+    .inputValidator((input) => v.parse(contactFormWithTurnstileSchema, input))
     .handler(async (ctx) => {
-        const { email, subject, message } = ctx.data;
+        const { email, subject, message, turnstileToken } = ctx.data;
 
-        const env = process.env 
+        const env = process.env;
+
+        if (!env.TURNSTILE_SECRET_KEY) {
+            console.error("TURNSTILE_SECRET_KEY is not configured");
+            throw new Error("Server configuration error");
+        }
+
+        const isValidToken = await verifyTurnstileToken(
+            turnstileToken,
+            env.TURNSTILE_SECRET_KEY,
+        );
+
+        if (!isValidToken) {
+            throw new Error("Turnstile verification failed");
+        }
 
         if (!env.RESEND_API_KEY) {
             throw new Error("RESEND_API_KEY is not configured");

@@ -25,6 +25,7 @@ import {
     emailFieldSchema,
     type ContactFormData,
 } from "@repo/data-ops/valibot-schema/contact";
+import { Turnstile } from "@marsidev/react-turnstile";
 
 export const Route = createFileRoute("/contact")({
     component: RouteComponent,
@@ -54,6 +55,7 @@ function ContactPage() {
     const [customSubject, setCustomSubject] = useState("");
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
     const navigate = useNavigate();
     const subjectInputRef = useRef<HTMLInputElement>(null);
     const sendEmail = useServerFn(sendContactEmail);
@@ -66,6 +68,12 @@ function ContactPage() {
         } as ContactFormData,
         onSubmit: async ({ value }) => {
             setSubmitError(null);
+
+            if (!turnstileToken) {
+                setSubmitError("Please complete the verification.");
+                return;
+            }
+
             try {
                 const submitData = {
                     email: value.email || undefined,
@@ -74,6 +82,7 @@ function ContactPage() {
                             ? customSubject
                             : value.subject || undefined,
                     message: value.message,
+                    turnstileToken,
                 };
 
                 await sendEmail({ data: submitData });
@@ -81,8 +90,10 @@ function ContactPage() {
                 setIsSubmitted(true);
                 form.reset();
                 setCustomSubject("");
+                setTurnstileToken(null);
             } catch (error) {
                 console.error("Failed to send message:", error);
+                setTurnstileToken(null);
                 setSubmitError("Failed to send message. Please try again later.");
             }
         },
@@ -109,7 +120,7 @@ function ContactPage() {
     });
 
     return (
-        <div className="container mx-auto px-5 lg:px-14 py-8 max-w-2xl">
+        <div className="container mx-auto px-5 lg:px-14 py-8 max-w-2xl min-h-[500px] h-[calc(100dvh-69px-48px-20px)] lg:h-[calc(100dvh-89px-24px-68px)] flex flex-col justify-center">
             <div className="space-y-6">
                 <div className="text-center space-y-3 pb-6">
                     {isSubmitted ? (
@@ -563,7 +574,7 @@ function ContactPage() {
                                 {([canSubmit, isSubmitting]) => (
                                     <button
                                         type="submit"
-                                        disabled={!canSubmit || isSubmitting}
+                                        disabled={!canSubmit || isSubmitting || !turnstileToken}
                                         style={{
                                             backgroundColor: "var(--background)",
                                             fontFamily: 'system-ui, -apple-system, sans-serif'
@@ -586,6 +597,18 @@ function ContactPage() {
                                     </button>
                                 )}
                             </form.Subscribe>
+                            <div className="flex justify-center">
+                                <Turnstile
+                                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                                    onSuccess={(token) => setTurnstileToken(token)}
+                                    onError={() => setTurnstileToken(null)}
+                                    onExpire={() => setTurnstileToken(null)}
+                                    options={{
+                                        theme: "auto",
+                                        size: "normal",
+                                    }}
+                                />
+                            </div>
                         </div>
                     </form>
                 )}

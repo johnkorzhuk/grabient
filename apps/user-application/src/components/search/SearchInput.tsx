@@ -11,6 +11,8 @@ import {
     styleWithAutoValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
+import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
+import { verifyTurnstile } from "@/server-functions/turnstile";
 
 type StyleType = v.InferOutput<typeof styleWithAutoValidator>;
 type SizeType = "auto" | [number, number];
@@ -145,7 +147,11 @@ export function SearchInput({
     };
 
     const [localValue, setLocalValue] = useState("");
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const [turnstileError, setTurnstileError] = useState(false);
+    const [isVerifying, setIsVerifying] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
+    const turnstileRef = useRef<TurnstileInstance>(null);
 
     const isOnSearchPage = location.pathname.startsWith("/palettes/");
 
@@ -155,11 +161,7 @@ export function SearchInput({
         }
     }, [isOnSearchPage, location.pathname]);
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const trimmed = localValue.trim();
-        if (!trimmed) return;
-
+    const performNavigation = (trimmed: string) => {
         const preservedSearch = buildPreservedSearch(
             currentSearch,
             location.pathname,
@@ -224,55 +226,111 @@ export function SearchInput({
         }
     };
 
+    const handleSubmitWithTurnstile = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const trimmed = localValue.trim();
+        if (!trimmed || isVerifying) return;
+
+        if (!turnstileToken) {
+            setTurnstileError(true);
+            return;
+        }
+
+        setIsVerifying(true);
+        try {
+            const result = await verifyTurnstile({ data: { token: turnstileToken } });
+            if (result.success) {
+                performNavigation(trimmed);
+            } else {
+                setTurnstileError(true);
+            }
+        } catch (error) {
+            console.error("Turnstile verification failed:", error);
+            setTurnstileError(true);
+        } finally {
+            setTurnstileToken(null);
+            turnstileRef.current?.reset();
+            setIsVerifying(false);
+        }
+    };
+
     return (
-        <form onSubmit={handleSubmit} className={cn("relative", className)}>
-            <div
-                className={cn(
-                    "absolute top-1/2 -translate-y-1/2 text-muted-foreground",
-                    isExpanded ? "left-3.5 md:left-4" : "left-3",
-                )}
-            >
-                <Search className={cn(isExpanded ? "h-4.5 w-4.5 md:h-5 md:w-5" : "h-4 w-4")} />
-            </div>
-            <input
-                ref={inputRef}
-                id={isExpanded ? "search-input-expanded" : undefined}
-                type="text"
-                value={localValue}
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                placeholder="Search palettes..."
-                suppressHydrationWarning
-                style={{ backgroundColor: "var(--background)" }}
-                className={cn(
-                    "disable-animation-on-theme-change w-full border border-solid",
-                    "text-foreground placeholder:text-muted-foreground",
-                    isExpanded ? "placeholder:opacity-[0.55] focus:placeholder:opacity-0" : "placeholder:opacity-100",
-                    "hover:border-muted-foreground/30",
-                    "focus:border-muted-foreground/50 focus:outline-none",
-                    "transition-colors duration-200",
-                    isExpanded
-                        ? "h-10 md:h-11 rounded-full pl-10 md:pl-11 pr-9 md:pr-10 text-sm md:text-base border-input"
-                        : "h-9 rounded-md pl-9 pr-8 text-sm border-input",
-                )}
-            />
-            {localValue && (
-                <button
-                    type="button"
-                    onClick={handleClear}
+        <div className={cn("flex flex-col", className)}>
+            <form onSubmit={handleSubmitWithTurnstile} className="relative">
+                <div
                     className={cn(
-                        "absolute top-1/2 -translate-y-1/2",
-                        "text-muted-foreground hover:text-foreground",
-                        "transition-colors duration-200",
-                        "cursor-pointer p-0.5 rounded",
-                        "focus:outline-none focus:ring-2 focus:ring-ring/70",
-                        isExpanded ? "right-3.5 md:right-4" : "right-2",
+                        "absolute top-1/2 -translate-y-1/2 text-muted-foreground",
+                        isExpanded ? "left-3.5 md:left-4" : "left-3",
                     )}
-                    aria-label="Clear search"
                 >
-                    <X className={cn(isExpanded ? "h-5 w-5" : "h-4 w-4")} />
-                </button>
+                    <Search className={cn(isExpanded ? "h-4.5 w-4.5 md:h-5 md:w-5" : "h-4 w-4")} />
+                </div>
+                <input
+                    ref={inputRef}
+                    id={isExpanded ? "search-input-expanded" : undefined}
+                    type="text"
+                    value={localValue}
+                    onChange={handleChange}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Search palettes..."
+                    suppressHydrationWarning
+                    style={{ backgroundColor: "var(--background)" }}
+                    className={cn(
+                        "disable-animation-on-theme-change w-full border border-solid",
+                        "text-foreground placeholder:text-muted-foreground",
+                        isExpanded ? "placeholder:opacity-[0.55] focus:placeholder:opacity-0" : "placeholder:opacity-100",
+                        "hover:border-muted-foreground/30",
+                        "focus:border-muted-foreground/50 focus:outline-none",
+                        "transition-colors duration-200",
+                        isExpanded
+                            ? "h-10 md:h-11 rounded-full pl-10 md:pl-11 pr-9 md:pr-10 text-sm md:text-base border-input"
+                            : "h-9 rounded-md pl-9 pr-8 text-sm border-input",
+                    )}
+                />
+                {localValue && (
+                    <button
+                        type="button"
+                        onClick={handleClear}
+                        className={cn(
+                            "absolute top-1/2 -translate-y-1/2",
+                            "text-muted-foreground hover:text-foreground",
+                            "transition-colors duration-200",
+                            "cursor-pointer p-0.5 rounded",
+                            "focus:outline-none focus:ring-2 focus:ring-ring/70",
+                            isExpanded ? "right-3.5 md:right-4" : "right-2",
+                        )}
+                        aria-label="Clear search"
+                    >
+                        <X className={cn(isExpanded ? "h-5 w-5" : "h-4 w-4")} />
+                    </button>
+                )}
+            </form>
+            <div className="mt-3 [&_iframe]:!w-full">
+                <Turnstile
+                    ref={turnstileRef}
+                    siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => {
+                        setTurnstileToken(token);
+                        setTurnstileError(false);
+                    }}
+                    onError={() => {
+                        setTurnstileToken(null);
+                        setTurnstileError(true);
+                    }}
+                    onExpire={() => {
+                        setTurnstileToken(null);
+                    }}
+                    options={{
+                        size: "flexible",
+                        theme: "auto",
+                    }}
+                />
+            </div>
+            {turnstileError && (
+                <p className="mt-2 text-xs text-red-500 text-center">
+                    Verification failed. Please refresh.
+                </p>
             )}
-        </form>
+        </div>
     );
 }
