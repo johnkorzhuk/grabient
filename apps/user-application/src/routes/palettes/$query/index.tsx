@@ -690,46 +690,48 @@ function SearchResultsPage() {
             logoNavigation={backNav}
             isExportOpen={showExportUI}
         >
-            <div
-                className={cn(
-                    "relative px-5 lg:px-14",
-                    hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
-                    isExportOpen && "hidden"
-                )}
-            >
-                <div className="flex items-start justify-between gap-4">
-                    <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
-                        <QueryDisplay query={query} />
-                        <span className="ml-1">palettes</span>
-                    </h1>
-                    {!isExportOpen && (
-                        <div className="flex items-center gap-2 shrink-0">
-                            <GenerateButton query={compressedQuery} />
-                            <SelectedButtonContainer className="contents" />
-                        </div>
+            <div className="relative">
+                <div
+                    className={cn(
+                        "px-5 lg:px-14",
+                        hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
+                        !isExportOpen && "invisible"
                     )}
-                </div>
-                <ResultsForSubtitle
-                    query={query}
-                    searchParams={preservedSearch}
-                />
-            </div>
-            {isExportOpen && (
-                <div className="px-5 lg:px-14 mb-10 md:mb-12.5">
+                >
                     <h1 className="text-3xl md:text-4xl font-bold text-foreground">
                         {exportCount} {exportCount === 1 ? "item" : "items"} selected
                     </h1>
                 </div>
-            )}
-            {isExportOpen && (
-                <SelectedButtonContainer
+                <div
                     className={cn(
-                        hasSubtitle
-                            ? "-mt-[88px] md:-mt-[100px]"
-                            : "-mt-[72px] md:-mt-[84px]",
+                        "absolute inset-0 px-5 lg:px-14",
+                        isExportOpen && "hidden"
                     )}
-                />
-            )}
+                >
+                    <div className="flex items-start justify-between gap-4">
+                        <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
+                            <QueryDisplay query={query} />
+                            <span className="ml-1">palettes</span>
+                        </h1>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <GenerateButton query={compressedQuery} />
+                            <SelectedButtonContainer className="contents" />
+                        </div>
+                    </div>
+                    <ResultsForSubtitle
+                        query={query}
+                        searchParams={preservedSearch}
+                    />
+                </div>
+            </div>
+            <SelectedButtonContainer
+                className={cn(
+                    hasSubtitle
+                        ? "-mt-[88px] md:-mt-[100px]"
+                        : "-mt-[72px] md:-mt-[84px]",
+                    !isExportOpen && "[&>*]:invisible"
+                )}
+            />
             <PalettesGrid
                 palettes={results}
                 likedSeeds={likedSeeds}

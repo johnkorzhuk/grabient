@@ -290,7 +290,7 @@ export function PalettesGrid({
     }
 
     return (
-        <section className="h-full w-full relative px-5 lg:px-14">
+        <section className="h-full w-full relative px-5 lg:px-14 pt-4">
             {paletteGridContent}
         </section>
     );
@@ -506,7 +506,7 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
     );
 
     return (
-        <section className="h-full w-full relative px-5 lg:px-14 pb-20">
+        <section className="h-full w-full relative px-5 lg:px-14 pt-4 pb-20">
             <div className="flex gap-8">
                 {/* Grid container - full width on mobile, responsive on desktop */}
                 <div className="w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5">
