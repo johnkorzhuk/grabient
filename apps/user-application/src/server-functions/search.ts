@@ -11,6 +11,9 @@ import {
     angleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
+import { getDb } from "@repo/data-ops/database/setup";
+import { palettes, likes } from "@repo/data-ops/drizzle/app-schema";
+import { sql, inArray, eq } from "drizzle-orm";
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 3; // 3 days
 
@@ -33,6 +36,30 @@ export type SearchResult = v.InferOutput<typeof searchResultSchema>;
 
 function getCacheKey(query: string, limit: number): string {
     return `search:${query.toLowerCase().trim()}:${limit}`;
+}
+
+async function fetchFreshLikeCounts(seeds: string[]): Promise<Map<string, number>> {
+    if (seeds.length === 0) return new Map();
+
+    try {
+        const db = getDb();
+        const likesCountSql = sql<number>`COUNT(DISTINCT ${likes.userId})`;
+
+        const results = await db
+            .select({
+                seed: palettes.id,
+                likesCount: likesCountSql,
+            })
+            .from(palettes)
+            .leftJoin(likes, eq(palettes.id, likes.paletteId))
+            .where(inArray(palettes.id, seeds))
+            .groupBy(palettes.id);
+
+        return new Map(results.map((r) => [r.seed, r.likesCount]));
+    } catch (e) {
+        console.warn("Failed to fetch fresh like counts:", e);
+        return new Map();
+    }
 }
 
 const baseSearchFunction = createServerFn({ method: "GET" }).middleware([
@@ -64,7 +91,14 @@ export const searchPalettes = baseSearchFunction
                     "json",
                 );
                 if (cached) {
-                    return { results: cached };
+                    // Fetch fresh like counts from D1 even for cached results
+                    const seeds = cached.map((r) => r.seed);
+                    const freshLikes = await fetchFreshLikeCounts(seeds);
+                    const resultsWithFreshLikes = cached.map((r) => ({
+                        ...r,
+                        likesCount: freshLikes.get(r.seed) ?? r.likesCount,
+                    }));
+                    return { results: resultsWithFreshLikes };
                 }
             } catch (e) {
                 console.warn("KV cache read error:", e);
@@ -106,8 +140,17 @@ export const searchPalettes = baseSearchFunction
             })
             .filter((r) => r !== null);
 
+        // Fetch fresh like counts from D1
+        const seeds = results.map((r) => r.seed);
+        const freshLikes = await fetchFreshLikeCounts(seeds);
+        const resultsWithFreshLikes = results.map((r) => ({
+            ...r,
+            likesCount: freshLikes.get(r.seed) ?? r.likesCount,
+        }));
+
         if (env.SEARCH_CACHE && results.length > 0) {
             try {
+                // Cache the original results (with vector metadata likes) for vector search caching
                 await env.SEARCH_CACHE.put(cacheKey, JSON.stringify(results), {
                     expirationTtl: CACHE_TTL_SECONDS,
                 });
@@ -116,5 +159,5 @@ export const searchPalettes = baseSearchFunction
             }
         }
 
-        return { results };
+        return { results: resultsWithFreshLikes };
     });
