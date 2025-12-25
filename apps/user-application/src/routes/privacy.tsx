@@ -19,7 +19,7 @@ function RouteComponent() {
 }
 
 function PrivacyPolicy() {
-    const lastUpdated = "December 1, 2025";
+    const lastUpdated = "December 25, 2025";
 
     return (
         <div className="container mx-auto px-5 lg:px-14 pb-16 max-w-4xl">
@@ -367,25 +367,25 @@ function PrivacyPolicy() {
                         <p className="text-muted-foreground leading-relaxed">
                             We use{" "}
                             <a
-                                href="https://www.cookieyes.com"
+                                href="https://www.cloudflare.com/products/zaraz/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-foreground underline hover:text-muted-foreground"
                             >
-                                CookieYes
+                                Cloudflare Zaraz
                             </a>{" "}
-                            as our Consent Management Platform (CMP) to manage
-                            cookie consent in compliance with GDPR, CCPA, and
-                            other privacy regulations. CookieYes is a
-                            Google-certified CMP that supports IAB TCF v2.2 and
-                            Google Consent Mode v2. Learn more:{" "}
+                            to manage third-party tools and cookie consent in
+                            compliance with GDPR and other privacy regulations.
+                            Zaraz loads third-party scripts through Cloudflare's
+                            edge network, improving privacy and performance.
+                            Learn more:{" "}
                             <a
-                                href="https://www.cookieyes.com/privacy-policy/"
+                                href="https://www.cloudflare.com/trust-hub/gdpr/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-foreground underline hover:text-muted-foreground"
                             >
-                                CookieYes Privacy Policy
+                                Cloudflare GDPR Compliance
                             </a>
                         </p>
 
@@ -406,9 +406,10 @@ function PrivacyPolicy() {
                             </li>
                             <li>
                                 <strong className="text-foreground">
-                                    CookieYes consent cookies:
+                                    Consent preferences:
                                 </strong>{" "}
-                                Used to remember your cookie preferences
+                                Stored in localStorage to remember your privacy
+                                choices
                             </li>
                             <li>
                                 <strong className="text-foreground">
@@ -458,51 +459,55 @@ function PrivacyPolicy() {
                             5.5 Regional Consent Behavior
                         </h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            Our consent behavior varies by region:
+                            Our consent defaults vary by region based on
+                            applicable privacy laws:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                             <li>
                                 <strong className="text-foreground">
-                                    EEA, UK, Switzerland (GDPR):
+                                    EEA, UK (GDPR regions):
                                 </strong>{" "}
-                                A consent banner is displayed. All non-essential
-                                cookies are disabled by default until you
-                                provide consent.
-                            </li>
-                            <li>
-                                <strong className="text-foreground">
-                                    California (CCPA):
-                                </strong>{" "}
-                                A consent banner is displayed with options to
-                                opt-out of data sharing.
+                                All non-essential cookies and tracking are
+                                disabled by default. You must explicitly opt-in
+                                to enable analytics, session replay, or
+                                advertising features.
                             </li>
                             <li>
                                 <strong className="text-foreground">
                                     Other regions:
                                 </strong>{" "}
-                                Analytics and advertising are enabled by
-                                default. You can opt-out at any time in your
-                                settings.
+                                Analytics and advertising are enabled by default
+                                under legitimate interest. You can opt-out at
+                                any time in your{" "}
+                                <Link
+                                    to="/settings"
+                                    className="text-foreground underline hover:text-muted-foreground"
+                                >
+                                    account settings
+                                </Link>
+                                .
                             </li>
                         </ul>
 
                         <h3 className="text-lg font-poppins-bold text-foreground">
-                            5.6 Session Recording (Consent Required)
+                            5.6 Session Recording (Separate Consent Required)
                         </h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            With your explicit consent to analytics, we may
+                            With your explicit consent to Session Replay, we may
                             record your session to understand how users interact
                             with our Service and identify usability issues.
-                            Session recordings:
+                            Session Replay is a separate consent option from
+                            Analytics. Session recordings:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                             <li>
-                                Automatically mask text inputs and form data
+                                Are fully anonymized with all text and inputs
+                                masked
                             </li>
                             <li>Block media and images from being recorded</li>
                             <li>
-                                Are only enabled when analytics consent is
-                                granted
+                                Require separate opt-in via the Session Replay
+                                toggle in your settings
                             </li>
                         </ul>
                     </section>
@@ -516,34 +521,34 @@ function PrivacyPolicy() {
                             6.1 Consent Management
                         </h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            You can manage your cookie preferences at any time
-                            by:
+                            You can manage your privacy preferences at any time
+                            by visiting the Privacy & Consent section in your{" "}
+                            <Link
+                                to="/settings"
+                                className="text-foreground underline hover:text-muted-foreground"
+                            >
+                                account settings
+                            </Link>
+                            . There you can individually toggle:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                             <li>
-                                Clicking the cookie icon in the bottom corner of
-                                any page to reopen the consent banner
+                                <strong className="text-foreground">
+                                    Analytics:
+                                </strong>{" "}
+                                Anonymous usage analytics to help us improve
                             </li>
                             <li>
-                                Visiting your{" "}
-                                <Link
-                                    to="/settings"
-                                    className="text-foreground underline hover:text-muted-foreground"
-                                >
-                                    account settings
-                                </Link>{" "}
-                                and clicking "Manage cookie preferences"
+                                <strong className="text-foreground">
+                                    Session Replay:
+                                </strong>{" "}
+                                Anonymized session recordings
                             </li>
-                        </ul>
-                        <p className="text-muted-foreground leading-relaxed">
-                            You can choose to:
-                        </p>
-                        <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
-                            <li>Accept all cookies and tracking</li>
-                            <li>Reject all non-essential cookies</li>
                             <li>
-                                Customize your preferences for each category
-                                (analytics, advertising, etc.)
+                                <strong className="text-foreground">
+                                    Marketing:
+                                </strong>{" "}
+                                Personalized ads and marketing content
                             </li>
                         </ul>
 

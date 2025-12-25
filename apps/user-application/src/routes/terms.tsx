@@ -19,7 +19,7 @@ function RouteComponent() {
 }
 
 function TermsOfService() {
-    const lastUpdated = "December 1, 2025";
+    const lastUpdated = "December 25, 2025";
 
     return (
         <div className="container mx-auto px-5 lg:px-14 pb-16 max-w-4xl">
@@ -260,33 +260,32 @@ function TermsOfService() {
                             our Service, analyze usage, and serve personalized
                             advertising. We use{" "}
                             <a
-                                href="https://www.cookieyes.com"
+                                href="https://www.cloudflare.com/products/zaraz/"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-foreground underline hover:text-muted-foreground"
                             >
-                                CookieYes
+                                Cloudflare Zaraz
                             </a>{" "}
-                            as our Consent Management Platform (CMP) to manage
-                            cookie consent in compliance with applicable privacy
-                            laws.
+                            to manage third-party tools and consent in
+                            compliance with applicable privacy laws.
                         </p>
                         <p className="text-muted-foreground leading-relaxed">
                             By using our Service, you acknowledge that:
                         </p>
                         <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
                             <li>
-                                We may display a cookie consent banner based on
-                                your geographic location
+                                Default consent settings vary by your geographic
+                                location (GDPR regions require opt-in; other
+                                regions use opt-out)
                             </li>
                             <li>
                                 Your consent preferences are stored and honored
                                 across sessions
                             </li>
                             <li>
-                                You can change your cookie preferences at any
-                                time through the cookie icon or in your account
-                                settings
+                                You can change your privacy preferences at any
+                                time in your account settings
                             </li>
                         </ul>
                         <p className="text-muted-foreground leading-relaxed">
