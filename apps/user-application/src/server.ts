@@ -32,7 +32,9 @@ export class RateLimiter {
 			return new Response("Invalid limit type", { status: 400 });
 		}
 
-		const result = await this.checkRateLimit(key, config.requests, config.window);
+		// Include limitType in storage key so each endpoint type has its own bucket
+		const storageKey = `${limitType}:${key}`;
+		const result = await this.checkRateLimit(storageKey, config.requests, config.window);
 
 		return new Response(JSON.stringify(result), {
 			status: result.success ? 200 : 429,
