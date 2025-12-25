@@ -2,7 +2,14 @@ import { Store } from "@tanstack/react-store";
 import * as v from "valibot";
 
 const CONSENT_STORAGE_KEY = "consent-preferences";
-const CONSENT_VERSION = 2;
+const CONSENT_VERSION = 3;
+
+// Zaraz purpose IDs from Cloudflare dashboard
+export const ZARAZ_PURPOSE_IDS = {
+    analytics: "HdWd",
+    sessionReplay: "mxdH",
+    advertising: "daJQ",
+} as const;
 
 const consentCategoriesSchema = v.object({
     necessary: v.literal(true),
@@ -16,22 +23,30 @@ const consentStateSchema = v.object({
     timestamp: v.number(),
     categories: consentCategoriesSchema,
     hasInteracted: v.boolean(),
+    isGdprRegion: v.optional(v.boolean()),
 });
 
 export type ConsentCategories = v.InferOutput<typeof consentCategoriesSchema>;
 export type ConsentState = v.InferOutput<typeof consentStateSchema>;
 
-const defaultConsentState: ConsentState = {
-    version: CONSENT_VERSION,
-    timestamp: Date.now(),
-    categories: {
-        necessary: true,
-        analytics: true,
-        sessionReplay: false,
-        advertising: true,
-    },
-    hasInteracted: false,
-};
+function getDefaultConsentState(isGdprRegion = false): ConsentState {
+    return {
+        version: CONSENT_VERSION,
+        timestamp: Date.now(),
+        categories: {
+            necessary: true,
+            // GDPR: default to false (opt-in required)
+            // Non-GDPR: default to true (legitimate interest)
+            analytics: !isGdprRegion,
+            sessionReplay: false,
+            advertising: !isGdprRegion,
+        },
+        hasInteracted: false,
+        isGdprRegion,
+    };
+}
+
+const defaultConsentState: ConsentState = getDefaultConsentState(false);
 
 function loadConsentFromStorage(): ConsentState {
     if (typeof window === "undefined") {
@@ -81,7 +96,60 @@ function saveConsentToStorage(state: ConsentState): void {
     }
 }
 
+export function syncToZaraz(state: ConsentState): void {
+    if (typeof window === "undefined" || typeof zaraz === "undefined") {
+        return;
+    }
+
+    if (!zaraz.consent?.APIReady) {
+        return;
+    }
+
+    const { categories, hasInteracted, isGdprRegion } = state;
+
+    // For GDPR users who haven't interacted, don't enable anything
+    // For non-GDPR users who haven't interacted, use the defaults (already set in state)
+    if (isGdprRegion && !hasInteracted) {
+        zaraz.consent.set({
+            [ZARAZ_PURPOSE_IDS.analytics]: false,
+            [ZARAZ_PURPOSE_IDS.sessionReplay]: false,
+            [ZARAZ_PURPOSE_IDS.advertising]: false,
+        });
+        return;
+    }
+
+    zaraz.consent.set({
+        [ZARAZ_PURPOSE_IDS.analytics]: categories.analytics,
+        [ZARAZ_PURPOSE_IDS.sessionReplay]: categories.sessionReplay,
+        [ZARAZ_PURPOSE_IDS.advertising]: categories.advertising,
+    });
+
+    if (hasInteracted) {
+        zaraz.consent.sendQueuedEvents();
+    }
+}
+
 export const consentStore = new Store<ConsentState>(loadConsentFromStorage());
+
+export function initializeWithGeo(isGdprRegion: boolean): void {
+    const currentState = consentStore.state;
+
+    // If user has already interacted, preserve their choices
+    if (currentState.hasInteracted) {
+        // Just update the geo region and sync to Zaraz
+        const updatedState = { ...currentState, isGdprRegion };
+        consentStore.setState(() => updatedState);
+        saveConsentToStorage(updatedState);
+        syncToZaraz(updatedState);
+        return;
+    }
+
+    // User hasn't interacted yet - apply geo-based defaults
+    const newState = getDefaultConsentState(isGdprRegion);
+    consentStore.setState(() => newState);
+    saveConsentToStorage(newState);
+    syncToZaraz(newState);
+}
 
 export function updateConsent(
     categories: Partial<Omit<ConsentCategories, "necessary">>,
@@ -101,15 +169,18 @@ export function updateConsent(
                 categories.advertising ?? currentState.categories.advertising,
         },
         hasInteracted: true,
+        isGdprRegion: currentState.isGdprRegion,
     };
 
     consentStore.setState(() => newState);
     saveConsentToStorage(newState);
+    syncToZaraz(newState);
 }
 
 export function setConsentState(state: ConsentState) {
     consentStore.setState(() => state);
     saveConsentToStorage(state);
+    syncToZaraz(state);
 }
 
 export function acceptAllConsent() {
@@ -128,9 +199,11 @@ export function rejectAllConsent() {
     });
 }
 
-export function resetConsent() {
+export function resetConsent(isGdprRegion?: boolean) {
     if (typeof window !== "undefined") {
         localStorage.removeItem(CONSENT_STORAGE_KEY);
     }
-    consentStore.setState(() => defaultConsentState);
+    const newState = getDefaultConsentState(isGdprRegion ?? consentStore.state.isGdprRegion ?? false);
+    consentStore.setState(() => newState);
+    syncToZaraz(newState);
 }

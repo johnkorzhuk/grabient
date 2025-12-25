@@ -5,7 +5,6 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useStore } from "@tanstack/react-store";
@@ -16,42 +15,19 @@ export function ConsentSection() {
 
     const handleAnalyticsChange = (checked: boolean) => {
         updateConsent({ analytics: checked, sessionReplay: checked });
-        if (typeof zaraz !== "undefined" && zaraz.consent) {
-            zaraz.consent.set({ analytics: checked });
-        }
     };
 
     const handleAdvertisingChange = (checked: boolean) => {
         updateConsent({ advertising: checked });
-        if (typeof zaraz !== "undefined" && zaraz.consent) {
-            zaraz.consent.set({ advertising: checked });
-        }
-    };
-
-    const handleOpenConsentModal = () => {
-        if (typeof zaraz !== "undefined" && zaraz.consent) {
-            zaraz.consent.modal = true;
-        }
     };
 
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-start justify-between">
-                    <div>
-                        <CardTitle>Privacy & Consent</CardTitle>
-                        <CardDescription className="font-system">
-                            Manage your data privacy and cookie preferences
-                        </CardDescription>
-                    </div>
-                    <Button
-                        onClick={handleOpenConsentModal}
-                        variant="outline"
-                        className="disable-animation-on-theme-change cursor-pointer"
-                    >
-                        Cookie preferences
-                    </Button>
-                </div>
+                <CardTitle>Privacy & Consent</CardTitle>
+                <CardDescription className="font-system">
+                    Manage your data privacy and cookie preferences
+                </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex items-center justify-between rounded-lg border border-border p-4">

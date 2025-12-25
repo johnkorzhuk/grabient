@@ -108,14 +108,35 @@ declare module "@tanstack/react-start" {
                 userId?: string | null;
                 email?: string | null;
                 auth?: ReturnType<typeof setAuth>;
+                // Geo data from Cloudflare
+                isGdprRegion: boolean;
+                country?: string;
             };
         };
     }
 }
 
+// GDPR applies to EEA (EU + Iceland, Liechtenstein, Norway) and UK
+const GDPR_COUNTRIES = new Set([
+    // EU Member States
+    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR",
+    "DE", "GR", "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL",
+    "PL", "PT", "RO", "SK", "SI", "ES", "SE",
+    // EEA (non-EU)
+    "IS", "LI", "NO",
+    // UK (post-Brexit still has GDPR-equivalent)
+    "GB",
+]);
+
 export default {
     fetch(request: Request, env: Env) {
         const db = initDatabase(env.DB);
+
+        // Extract geo data from Cloudflare
+        const cf = (request as Request<unknown, IncomingRequestCfProperties>).cf;
+        const country = cf?.country;
+        const isEUCountry = cf?.isEUCountry === "1";
+        const isGdprRegion = isEUCountry || (country ? GDPR_COUNTRIES.has(country) : false);
 
         setAuth({
             secret: env.BETTER_AUTH_SECRET,
@@ -225,6 +246,8 @@ export default {
                 db,
                 fromFetch: true,
                 env,
+                isGdprRegion,
+                country,
             },
         });
     },
