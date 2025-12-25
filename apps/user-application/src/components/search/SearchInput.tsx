@@ -233,18 +233,21 @@ export function SearchInput({
         if (!trimmed || isVerifying) return;
 
         setIsVerifying(true);
+        setTurnstileError(false);
 
-        // Wait for token if not ready yet (up to 3 seconds)
-        let token = turnstileToken;
-        if (!token) {
-            for (let i = 0; i < 30; i++) {
-                await new Promise(resolve => setTimeout(resolve, 100));
-                // Check the ref's response directly as state might not have updated
-                const widgetToken = turnstileRef.current?.getResponse();
-                if (widgetToken) {
-                    token = widgetToken;
-                    break;
-                }
+        // Always reset and get a fresh token to avoid expired token issues
+        // Tokens expire after 5 minutes
+        turnstileRef.current?.reset();
+        setTurnstileToken(null);
+
+        // Wait for fresh token (up to 5 seconds)
+        let token: string | undefined;
+        for (let i = 0; i < 50; i++) {
+            await new Promise(resolve => setTimeout(resolve, 100));
+            const widgetToken = turnstileRef.current?.getResponse();
+            if (widgetToken) {
+                token = widgetToken;
+                break;
             }
         }
 
