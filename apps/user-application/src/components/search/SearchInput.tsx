@@ -232,14 +232,30 @@ export function SearchInput({
         const trimmed = localValue.trim();
         if (!trimmed || isVerifying) return;
 
-        if (!turnstileToken) {
+        setIsVerifying(true);
+
+        // Wait for token if not ready yet (up to 3 seconds)
+        let token = turnstileToken;
+        if (!token) {
+            for (let i = 0; i < 30; i++) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                // Check the ref's response directly as state might not have updated
+                const widgetToken = turnstileRef.current?.getResponse();
+                if (widgetToken) {
+                    token = widgetToken;
+                    break;
+                }
+            }
+        }
+
+        if (!token) {
             setTurnstileError(true);
+            setIsVerifying(false);
             return;
         }
 
-        setIsVerifying(true);
         try {
-            const result = await verifyTurnstile({ data: { token: turnstileToken } });
+            const result = await verifyTurnstile({ data: { token } });
             if (result.success) {
                 performNavigation(trimmed);
             } else {
