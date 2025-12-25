@@ -107,25 +107,33 @@ export function syncToZaraz(state: ConsentState): void {
 
     const { categories, hasInteracted, isGdprRegion } = state;
 
+    // Only sync purposes that exist in Zaraz
+    const availablePurposes = zaraz.consent.purposes || {};
+    const preferences: Record<string, boolean> = {};
+
     // For GDPR users who haven't interacted, don't enable anything
-    // For non-GDPR users who haven't interacted, use the defaults (already set in state)
-    if (isGdprRegion && !hasInteracted) {
-        zaraz.consent.set({
-            [ZARAZ_PURPOSE_IDS.analytics]: false,
-            [ZARAZ_PURPOSE_IDS.sessionReplay]: false,
-            [ZARAZ_PURPOSE_IDS.advertising]: false,
-        });
-        return;
+    const useDefaults = isGdprRegion && !hasInteracted;
+
+    if (ZARAZ_PURPOSE_IDS.analytics in availablePurposes) {
+        preferences[ZARAZ_PURPOSE_IDS.analytics] = useDefaults ? false : categories.analytics;
+    }
+    if (ZARAZ_PURPOSE_IDS.sessionReplay in availablePurposes) {
+        preferences[ZARAZ_PURPOSE_IDS.sessionReplay] = useDefaults ? false : categories.sessionReplay;
+    }
+    if (ZARAZ_PURPOSE_IDS.advertising in availablePurposes) {
+        preferences[ZARAZ_PURPOSE_IDS.advertising] = useDefaults ? false : categories.advertising;
     }
 
-    zaraz.consent.set({
-        [ZARAZ_PURPOSE_IDS.analytics]: categories.analytics,
-        [ZARAZ_PURPOSE_IDS.sessionReplay]: categories.sessionReplay,
-        [ZARAZ_PURPOSE_IDS.advertising]: categories.advertising,
-    });
-
-    if (hasInteracted) {
-        zaraz.consent.sendQueuedEvents();
+    // Only call set if we have purposes to sync
+    if (Object.keys(preferences).length > 0) {
+        try {
+            zaraz.consent.set(preferences);
+            if (hasInteracted) {
+                zaraz.consent.sendQueuedEvents();
+            }
+        } catch (error) {
+            console.warn("Failed to sync consent to Zaraz:", error);
+        }
     }
 }
 
