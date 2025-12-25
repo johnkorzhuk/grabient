@@ -63,7 +63,7 @@ export function ConsentSection() {
                             Session Replay
                         </Label>
                         <p className="text-xs text-muted-foreground font-system">
-                            Record and replay sessions to help us fix issues
+                            Anonymized session recordings to help us fix issues
                         </p>
                     </div>
                     <Switch
