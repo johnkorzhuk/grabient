@@ -42,21 +42,24 @@ type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
 // =============================================================================
 
 const COMPOSER_MODEL = {
+    id: "google/gemini-2.5-flash-lite",
+    name: "Gemini 2.5 Flash Lite (Composer)",
+    provider: "openrouter" as const,
+    // id: "openai/gpt-oss-20b",
+    // name: "GPT OSS 20B (Composer)",
+    // provider: "groq" as const,
     // id: "openai/gpt-oss-120b",
     // name: "GPT OSS 120B (Composer)",
     // provider: "groq" as const,
-    id: "llama-3.3-70b-versatile",
-    name: "Llama 3.3 70B (Composer)",
-    provider: "groq" as const,
+    // id: "llama-3.3-70b-versatile",
+    // name: "Llama 3.3 70B (Composer)",
+    // provider: "groq" as const,
     // id: "moonshotai/kimi-k2-instruct-0905",
     // name: "Kimi K2 (Composer)",
     // provider: "groq" as const,
     // id: "gpt-4.1-nano",
     // name: "GPT-4.1 Nano (Composer)",
     // provider: "openai" as const,
-    // id: "google/gemini-2.5-flash-lite",
-    // name: "Gemini 2.5 Flash Lite (Composer)",
-    // provider: "openrouter" as const,
 };
 
 const PAINTER_MODELS = [
@@ -89,12 +92,6 @@ const PAINTER_MODELS = [
         id: "google/gemini-2.5-flash-lite",
         name: "Gemini 2.5 Flash Lite",
         provider: "openrouter" as const,
-    },
-    {
-        key: "kimi-k2",
-        id: "moonshotai/kimi-k2-instruct-0905",
-        name: "Kimi K2",
-        provider: "groq" as const,
     },
 ] as const;
 
@@ -201,7 +198,7 @@ async function getExamplePalettes(
     limit = 5,
 ): Promise<ExamplePalette[]> {
     if (!env.AI || !env.VECTORIZE) {
-        console.log("[VectorSearch] AI/Vectorize bindings not available");
+        // console.log("[VectorSearch] AI/Vectorize bindings not available");
         return [];
     }
 
@@ -251,7 +248,7 @@ async function getExamplePalettes(
             })
             .filter((r): r is ExamplePalette => r !== null);
     } catch (e) {
-        console.error("[VectorSearch] Error:", e);
+        // console.error("[VectorSearch] Error:", e);
         return [];
     }
 }
@@ -260,13 +257,28 @@ async function getExamplePalettes(
 // COMPOSER STAGE (yields events)
 // =============================================================================
 
+interface TokenUsage {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+}
+
+interface ModelTokenUsage {
+    modelKey: string;
+    modelId: string;
+    provider: "groq" | "openai" | "openrouter";
+    usage: TokenUsage;
+}
+
 async function* runComposer(
     query: string,
     variationCount: number,
     palettesPerVariation: number,
     examplePalettes?: ExamplePalette[],
 ): AsyncGenerator<
-    GenerateEvent | { type: "__result"; data: ComposerOutput | null }
+    | GenerateEvent
+    | { type: "__result"; data: ComposerOutput | null }
+    | { type: "__usage"; data: ModelTokenUsage | null }
 > {
     const systemPrompt = buildComposerSystemPrompt({
         query,
@@ -276,7 +288,7 @@ async function* runComposer(
         examplePalettes,
     });
 
-    console.log("[Composer] Starting with query:", query);
+    // console.log("[Composer] Starting with query:", query);
     yield { type: "composer_start" };
 
     try {
@@ -308,15 +320,49 @@ async function* runComposer(
             }
         }
 
-        console.log("[Composer] Raw output length:", fullText.length);
-        console.log("[Composer] Raw output:", fullText);
+        // console.log("[Composer] Raw output length:", fullText.length);
+        // console.log("[Composer] Raw output:", fullText);
+
+        // Capture token usage
+        const usage = await result.usage;
+        // console.log("[TokenUsage] Composer raw usage object:", JSON.stringify(usage, null, 2));
+        if (usage) {
+            // Try all known property names from different AI SDK versions
+            const usageAny = usage as Record<string, unknown>;
+            const inputTokens =
+                (typeof usageAny.inputTokens === 'number' ? usageAny.inputTokens : 0) ||
+                (typeof usageAny.promptTokens === 'number' ? usageAny.promptTokens : 0) ||
+                0;
+            const outputTokens =
+                (typeof usageAny.outputTokens === 'number' ? usageAny.outputTokens : 0) ||
+                (typeof usageAny.completionTokens === 'number' ? usageAny.completionTokens : 0) ||
+                0;
+            const totalTokens =
+                (typeof usageAny.totalTokens === 'number' ? usageAny.totalTokens : 0) ||
+                (inputTokens + outputTokens);
+            const tokenUsage: ModelTokenUsage = {
+                modelKey: COMPOSER_MODEL.name,
+                modelId: COMPOSER_MODEL.id,
+                provider: COMPOSER_MODEL.provider,
+                usage: {
+                    promptTokens: inputTokens,
+                    completionTokens: outputTokens,
+                    totalTokens,
+                },
+            };
+            // console.log(
+            //     `[TokenUsage] Composer (${COMPOSER_MODEL.provider}/${COMPOSER_MODEL.id}): ` +
+            //     `input=${inputTokens}, output=${outputTokens}, total=${totalTokens}`
+            // );
+            yield { type: "__usage", data: tokenUsage };
+        }
 
         const parsed = parseComposerOutput(fullText);
         if (!parsed) {
-            console.error(
-                "[Composer] Failed to parse output - full text:",
-                fullText,
-            );
+            // console.error(
+            //     "[Composer] Failed to parse output - full text:",
+            //     fullText,
+            // );
             yield {
                 type: "composer_error",
                 error: "Failed to parse composer output",
@@ -331,29 +377,30 @@ async function* runComposer(
             totalMatrices += variation.palettes.length;
         }
 
-        console.log("[Composer] Complete with", totalMatrices, "matrices");
+        // console.log("[Composer] Complete with", totalMatrices, "matrices");
 
         // Log matrices as formatted table
-        let matrixIndex = 0;
-        for (const variation of parsed.variations) {
-            for (const palette of variation.palettes) {
-                matrixIndex++;
-                console.log(`\n[Matrix ${matrixIndex}] Theme: "${palette.theme}"`);
-                console.log(`Dimensions: ${palette.dimensions.join(", ")}`);
-                console.log("Steps:");
-                palette.steps.forEach((step, i) => {
-                    const stepValues = Object.entries(step)
-                        .map(([k, v]) => `${k}=${v}`)
-                        .join(", ");
-                    console.log(`  ${i + 1}. ${stepValues}`);
-                });
-            }
-        }
+        // let matrixIndex = 0;
+        // for (const variation of parsed.variations) {
+        //     for (const palette of variation.palettes) {
+        //         matrixIndex++;
+        //         console.log(`\n[Matrix ${matrixIndex}] Theme: "${palette.theme}"`);
+        //         console.log(`Dimensions: ${palette.dimensions.join(", ")}`);
+        //         console.log("Steps:");
+        //         palette.steps.forEach((step, i) => {
+        //             const stepValues = Object.entries(step)
+        //                 .map(([k, v]) => `${k}=${v}`)
+        //                 .join(", ");
+        //             console.log(`  ${i + 1}. ${stepValues}`);
+        //         });
+        //     }
+        // }
         yield { type: "composer_complete", totalMatrices };
         yield { type: "__result", data: parsed };
     } catch (error) {
-        console.error("[Composer] Error:", error);
+        // console.error("[Composer] Error:", error);
         yield { type: "composer_error", error: String(error) };
+        yield { type: "__usage", data: null };
         yield { type: "__result", data: null };
     }
 }
@@ -372,7 +419,7 @@ async function* runPainter(
     modelConfig: (typeof PAINTER_MODELS)[number],
     matrices: PaletteMatrix[],
     overrides?: PaletteOverrides,
-): AsyncGenerator<GenerateEvent> {
+): AsyncGenerator<GenerateEvent | { type: "__usage"; data: ModelTokenUsage | null }> {
     const startTime = Date.now();
     const palettes: string[][] = [];
     let paletteIndex = 0;
@@ -452,10 +499,10 @@ async function* runPainter(
                         };
                     }
                 } catch (e) {
-                    console.error(
-                        `[Painter:${modelConfig.key}] Error processing palette:`,
-                        e,
-                    );
+                    // console.error(
+                    //     `[Painter:${modelConfig.key}] Error processing palette:`,
+                    //     e,
+                    // );
                 }
             }
 
@@ -470,6 +517,40 @@ async function* runPainter(
             }
         }
 
+        // Capture token usage
+        const usage = await result.usage;
+        // console.log(`[TokenUsage] Painter ${modelConfig.key} raw usage object:`, JSON.stringify(usage, null, 2));
+        if (usage) {
+            // Try all known property names from different AI SDK versions
+            const usageAny = usage as Record<string, unknown>;
+            const inputTokens =
+                (typeof usageAny.inputTokens === 'number' ? usageAny.inputTokens : 0) ||
+                (typeof usageAny.promptTokens === 'number' ? usageAny.promptTokens : 0) ||
+                0;
+            const outputTokens =
+                (typeof usageAny.outputTokens === 'number' ? usageAny.outputTokens : 0) ||
+                (typeof usageAny.completionTokens === 'number' ? usageAny.completionTokens : 0) ||
+                0;
+            const totalTokens =
+                (typeof usageAny.totalTokens === 'number' ? usageAny.totalTokens : 0) ||
+                (inputTokens + outputTokens);
+            const tokenUsage: ModelTokenUsage = {
+                modelKey: modelConfig.key,
+                modelId: modelConfig.id,
+                provider: modelConfig.provider,
+                usage: {
+                    promptTokens: inputTokens,
+                    completionTokens: outputTokens,
+                    totalTokens,
+                },
+            };
+            // console.log(
+            //     `[TokenUsage] Painter ${modelConfig.key} (${modelConfig.provider}/${modelConfig.id}): ` +
+            //     `input=${inputTokens}, output=${outputTokens}, total=${totalTokens}`
+            // );
+            yield { type: "__usage", data: tokenUsage };
+        }
+
         const duration = Date.now() - startTime;
         yield {
             type: "painter_complete",
@@ -478,7 +559,8 @@ async function* runPainter(
             duration,
         };
     } catch (error) {
-        console.error(`[Painter:${modelConfig.key}] Error:`, error);
+        // console.error(`[Painter:${modelConfig.key}] Error:`, error);
+        yield { type: "__usage", data: null };
         yield {
             type: "painter_error",
             modelKey: modelConfig.key,
@@ -493,6 +575,77 @@ async function* runPainter(
 
 function normalizeQuery(query: string): string {
     return query.toLowerCase().trim();
+}
+
+function logTokenUsageSummary(usageData: ModelTokenUsage[], query: string): void {
+    if (usageData.length === 0) {
+        console.log("[TokenUsage] No token usage data collected");
+        return;
+    }
+
+    // Group by provider
+    const byProvider = new Map<string, { input: number; output: number; total: number; models: string[] }>();
+
+    for (const usage of usageData) {
+        const existing = byProvider.get(usage.provider) ?? { input: 0, output: 0, total: 0, models: [] };
+        existing.input += usage.usage.promptTokens ?? 0;
+        existing.output += usage.usage.completionTokens ?? 0;
+        existing.total += usage.usage.totalTokens ?? 0;
+        if (!existing.models.includes(usage.modelId)) {
+            existing.models.push(usage.modelId);
+        }
+        byProvider.set(usage.provider, existing);
+    }
+
+    // Calculate totals
+    let grandTotalInput = 0;
+    let grandTotalOutput = 0;
+    let grandTotalTokens = 0;
+
+    console.log("\n" + "=".repeat(80));
+    console.log(`[TokenUsage Summary] Query: "${query}"`);
+    console.log("=".repeat(80));
+
+    // Log per-model details
+    console.log("\nPer-Model Breakdown:");
+    console.log("-".repeat(60));
+    for (const usage of usageData) {
+        const input = usage.usage.promptTokens ?? 0;
+        const output = usage.usage.completionTokens ?? 0;
+        const total = usage.usage.totalTokens ?? 0;
+        console.log(
+            `  ${usage.modelKey.padEnd(20)} | ` +
+            `input: ${input.toString().padStart(6)} | ` +
+            `output: ${output.toString().padStart(5)} | ` +
+            `total: ${total.toString().padStart(6)}`
+        );
+    }
+
+    // Log per-provider summary
+    console.log("\nPer-Provider Summary:");
+    console.log("-".repeat(60));
+    for (const [provider, data] of byProvider) {
+        grandTotalInput += data.input;
+        grandTotalOutput += data.output;
+        grandTotalTokens += data.total;
+        console.log(
+            `  ${provider.toUpperCase().padEnd(12)} | ` +
+            `input: ${data.input.toString().padStart(6)} | ` +
+            `output: ${data.output.toString().padStart(5)} | ` +
+            `total: ${data.total.toString().padStart(6)} | ` +
+            `models: ${data.models.length}`
+        );
+    }
+
+    // Log grand totals
+    console.log("-".repeat(60));
+    console.log(
+        `  ${"GRAND TOTAL".padEnd(12)} | ` +
+        `input: ${grandTotalInput.toString().padStart(6)} | ` +
+        `output: ${grandTotalOutput.toString().padStart(5)} | ` +
+        `total: ${grandTotalTokens.toString().padStart(6)}`
+    );
+    console.log("=".repeat(80) + "\n");
 }
 
 // =============================================================================
@@ -565,6 +718,7 @@ export async function generatePalettesSSE(
     // Run pipeline in background
     (async () => {
         let totalPalettes = 0;
+        const allTokenUsage: ModelTokenUsage[] = [];
 
         try {
             // Send session info
@@ -576,9 +730,9 @@ export async function generatePalettesSSE(
 
             // Fetch example palettes from vector search (runs in parallel with session setup)
             const examplePalettes = await getExamplePalettes(query, 5);
-            console.log(
-                `[GenerateV6] Found ${examplePalettes.length} example palettes for query: ${query}`,
-            );
+            // console.log(
+            //     `[GenerateV6] Found ${examplePalettes.length} example palettes for query: ${query}`,
+            // );
 
             // Stage 1: Composer - generate 6 variations with 1 palette spec each = 6 matrices
             // Then 6 painters each paint all 6 = 36 total palettes
@@ -591,6 +745,8 @@ export async function generatePalettesSSE(
             )) {
                 if (event.type === "__result") {
                     composerOutput = event.data;
+                } else if (event.type === "__usage") {
+                    if (event.data) allTokenUsage.push(event.data);
                 } else {
                     await sendEvent(event as GenerateEvent);
                 }
@@ -627,14 +783,21 @@ export async function generatePalettesSSE(
                     task.matrices,
                     overrides,
                 )) {
-                    if (event.type === "palette") {
-                        totalPalettes++;
+                    if (event.type === "__usage") {
+                        if (event.data) allTokenUsage.push(event.data);
+                    } else {
+                        if (event.type === "palette") {
+                            totalPalettes++;
+                        }
+                        await sendEvent(event);
                     }
-                    await sendEvent(event);
                 }
             });
 
             await Promise.allSettled(painterPromises);
+
+            // Log token usage summary broken down by provider
+            logTokenUsageSummary(allTokenUsage, query);
 
             // Update session
             await db
@@ -645,7 +808,7 @@ export async function generatePalettesSSE(
             await sendEvent({ type: "done", totalPalettes });
             await writer.close();
         } catch (error) {
-            console.error("[GenerateV6] Pipeline error:", error);
+            // console.error("[GenerateV6] Pipeline error:", error);
             try {
                 await sendEvent({
                     type: "composer_error",
