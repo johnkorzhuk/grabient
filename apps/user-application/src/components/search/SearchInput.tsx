@@ -235,19 +235,13 @@ export function SearchInput({
         setIsVerifying(true);
         setTurnstileError(false);
 
-        // Always reset and get a fresh token to avoid expired token issues
-        // Tokens expire after 5 minutes
-        turnstileRef.current?.reset();
-        setTurnstileToken(null);
-
-        // Wait for fresh token (up to 5 seconds)
-        let token: string | undefined;
-        for (let i = 0; i < 50; i++) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const widgetToken = turnstileRef.current?.getResponse();
-            if (widgetToken) {
-                token = widgetToken;
-                break;
+        // Get token - either from state or wait for widget (up to 3 seconds)
+        let token = turnstileToken ?? turnstileRef.current?.getResponse();
+        if (!token) {
+            for (let i = 0; i < 30; i++) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                token = turnstileRef.current?.getResponse();
+                if (token) break;
             }
         }
 
@@ -350,6 +344,7 @@ export function SearchInput({
                         size: "flexible",
                         theme: "auto",
                         appearance: "interaction-only",
+                        refreshExpired: "auto",
                     }}
                 />
             </div>
