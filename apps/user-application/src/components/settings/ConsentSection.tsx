@@ -14,7 +14,11 @@ export function ConsentSection() {
     const consentState = useStore(consentStore);
 
     const handleAnalyticsChange = (checked: boolean) => {
-        updateConsent({ analytics: checked, sessionReplay: checked });
+        updateConsent({ analytics: checked });
+    };
+
+    const handleSessionReplayChange = (checked: boolean) => {
+        updateConsent({ sessionReplay: checked });
     };
 
     const handleAdvertisingChange = (checked: boolean) => {
@@ -46,6 +50,26 @@ export function ConsentSection() {
                         id="analytics"
                         checked={consentState.categories.analytics}
                         onCheckedChange={handleAnalyticsChange}
+                        className="disable-animation-on-theme-change cursor-pointer"
+                    />
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                    <div className="space-y-1">
+                        <Label
+                            htmlFor="sessionReplay"
+                            className="text-sm font-medium cursor-pointer"
+                        >
+                            Session Replay
+                        </Label>
+                        <p className="text-xs text-muted-foreground font-system">
+                            Record and replay sessions to help us fix issues
+                        </p>
+                    </div>
+                    <Switch
+                        id="sessionReplay"
+                        checked={consentState.categories.sessionReplay}
+                        onCheckedChange={handleSessionReplayChange}
                         className="disable-animation-on-theme-change cursor-pointer"
                     />
                 </div>
