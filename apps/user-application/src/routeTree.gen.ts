@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PaletteListRouteImport } from './routes/_paletteList'
@@ -20,6 +21,7 @@ import { Route as PaletteListIndexRouteImport } from './routes/_paletteList/inde
 import { Route as SeedIndexRouteImport } from './routes/$seed/index'
 import { Route as PalettesQueryRouteImport } from './routes/palettes/$query'
 import { Route as ESplatRouteImport } from './routes/e.$'
+import { Route as CheckoutSuccessRouteImport } from './routes/checkout/success'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
@@ -40,6 +42,11 @@ const TermsRoute = TermsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PricingRoute = PricingRouteImport.update({
+  id: '/pricing',
+  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -84,6 +91,11 @@ const PalettesQueryRoute = PalettesQueryRouteImport.update({
 const ESplatRoute = ESplatRouteImport.update({
   id: '/e/$',
   path: '/e/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
+  id: '/checkout/success',
+  path: '/checkout/success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiOgRoute = ApiOgRouteImport.update({
@@ -146,12 +158,14 @@ export interface FileRoutesByFullPath {
   '/$seed': typeof SeedRouteRouteWithChildren
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
@@ -168,12 +182,14 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/e/$': typeof ESplatRoute
   '/$seed': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
@@ -192,12 +208,14 @@ export interface FileRoutesById {
   '/_paletteList': typeof PaletteListRouteWithChildren
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
+  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_paletteList/newest': typeof PaletteListNewestRoute
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/checkout/success': typeof CheckoutSuccessRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
@@ -217,12 +235,14 @@ export interface FileRouteTypes {
     | '/$seed'
     | '/contact'
     | '/login'
+    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/newest'
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/checkout/success'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -239,12 +259,14 @@ export interface FileRouteTypes {
   to:
     | '/contact'
     | '/login'
+    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/newest'
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/checkout/success'
     | '/e/$'
     | '/$seed'
     | '/'
@@ -262,12 +284,14 @@ export interface FileRouteTypes {
     | '/_paletteList'
     | '/contact'
     | '/login'
+    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/_paletteList/newest'
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
     | '/api/og'
+    | '/checkout/success'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -287,9 +311,11 @@ export interface RootRouteChildren {
   PaletteListRoute: typeof PaletteListRouteWithChildren
   ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
+  PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiOgRoute: typeof ApiOgRouteWithChildren
+  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   ESplatRoute: typeof ESplatRoute
   PalettesQueryRoute: typeof PalettesQueryRouteWithChildren
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -313,6 +339,13 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pricing': {
+      id: '/pricing'
+      path: '/pricing'
+      fullPath: '/pricing'
+      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -376,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/e/$'
       fullPath: '/e/$'
       preLoaderRoute: typeof ESplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout/success': {
+      id: '/checkout/success'
+      path: '/checkout/success'
+      fullPath: '/checkout/success'
+      preLoaderRoute: typeof CheckoutSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/og': {
@@ -517,9 +557,11 @@ const rootRouteChildren: RootRouteChildren = {
   PaletteListRoute: PaletteListRouteWithChildren,
   ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
+  PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiOgRoute: ApiOgRouteWithChildren,
+  CheckoutSuccessRoute: CheckoutSuccessRoute,
   ESplatRoute: ESplatRoute,
   PalettesQueryRoute: PalettesQueryRouteWithChildren,
   SettingsIndexRoute: SettingsIndexRoute,

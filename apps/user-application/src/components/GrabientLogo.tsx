@@ -4,6 +4,7 @@ import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import { generateHexColors } from "@/lib/paletteUtils";
+import { updatePaletteAnimation } from "@/stores/palette-animation";
 import type { AppPalette } from "@/queries/palettes";
 
 interface GrabientLogoProps {
@@ -104,6 +105,11 @@ export function GrabientLogo({ className, palettes, isExportMode = false }: Grab
 
     const hexColors = getHexColors();
     const normalizedColors = normalizeGradient(hexColors, FIXED_STOP_COUNT);
+
+    // Publish colors to shared store for other components (like GradientBorderButton)
+    useEffect(() => {
+        updatePaletteAnimation(currentIndex, normalizedColors);
+    }, [currentIndex, normalizedColors]);
 
     // Determine if we should cycle
     const shouldCycle = useExportList

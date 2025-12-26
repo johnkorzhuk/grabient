@@ -27,6 +27,7 @@
     "@mantine/hooks": "^8.3.7",
     "@marsidev/react-turnstile": "^1.4.0",
     "@openrouter/ai-sdk-provider": "^1.5.4",
+    "@polar-sh/better-auth": "^1.6.1",
     "@polar-sh/sdk": "^0.34.17",
     "@polar-sh/tanstack-start": "^0.1.12",
     "@radix-ui/react-avatar": "^1.1.10",

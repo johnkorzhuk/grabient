@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generatePalettes, type GenerateEvent } from "@/server-functions/generate";
+import { trackAIGeneration } from "@/server-functions/subscription";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabient";
@@ -163,6 +164,15 @@ export function GenerateButton({
             await processStream(response);
 
             console.log("[GenerateButton] Stream complete");
+
+            // Track usage for metering
+            try {
+                await trackAIGeneration();
+                console.log("[GenerateButton] Usage tracked");
+            } catch (trackError) {
+                console.error("[GenerateButton] Failed to track usage:", trackError);
+            }
+
             onGenerateComplete();
         } catch (error) {
             console.error("[GenerateButton] Error:", error);

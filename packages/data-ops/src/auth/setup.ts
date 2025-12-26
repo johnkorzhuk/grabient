@@ -1,5 +1,18 @@
 import { betterAuth, type BetterAuthOptions, type GenericEndpointContext } from "better-auth";
 import { magicLink } from "better-auth/plugins";
+import { polar, checkout, portal, usage, webhooks } from "@polar-sh/better-auth";
+import { Polar } from "@polar-sh/sdk";
+
+export interface PolarConfig {
+  accessToken: string;
+  webhookSecret: string;
+  server: "sandbox" | "production";
+  products: {
+    monthly: { productId: string; slug: string };
+    yearly: { productId: string; slug: string };
+  };
+  successUrl: string;
+}
 
 export const createBetterAuth = (config: {
   database: BetterAuthOptions["database"];
@@ -21,6 +34,7 @@ export const createBetterAuth = (config: {
     url: string;
     token: string;
   }, request?: Request) => Promise<void>;
+  polar?: PolarConfig;
 }): ReturnType<typeof betterAuth> => {
   const plugins = [];
 
@@ -29,6 +43,45 @@ export const createBetterAuth = (config: {
     plugins.push(
       magicLink({
         sendMagicLink: config.sendMagicLink,
+      })
+    );
+  }
+
+  // Add Polar plugin if polar config is provided
+  if (config.polar) {
+    const polarClient = new Polar({
+      accessToken: config.polar.accessToken,
+      server: config.polar.server,
+    });
+
+    plugins.push(
+      polar({
+        client: polarClient,
+        createCustomerOnSignUp: true,
+        use: [
+          checkout({
+            products: [
+              {
+                productId: config.polar.products.monthly.productId,
+                slug: config.polar.products.monthly.slug,
+              },
+              {
+                productId: config.polar.products.yearly.productId,
+                slug: config.polar.products.yearly.slug,
+              },
+            ],
+            successUrl: config.polar.successUrl,
+            authenticatedUsersOnly: true,
+          }),
+          portal(),
+          usage(),
+          webhooks({
+            secret: config.polar.webhookSecret,
+            onPayload: async (payload) => {
+              console.log("[Polar Webhook]:", payload.type);
+            },
+          }),
+        ],
       })
     );
   }

@@ -1,4 +1,4 @@
-import { createBetterAuth } from "@/auth/setup";
+import { createBetterAuth, type PolarConfig } from "@/auth/setup";
 import { getDb } from "@/database/setup";
 import {
   auth_account,
@@ -25,6 +25,7 @@ export function setAuth(
       drizzleDb: ReturnType<typeof getDb>;
       provider: Parameters<typeof drizzleAdapter>[1]["provider"];
     };
+    polar?: PolarConfig;
   },
 ) {
   betterAuth = createBetterAuth({

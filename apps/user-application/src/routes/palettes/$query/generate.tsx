@@ -54,6 +54,7 @@ import {
 } from "@/server-functions/generate-session";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { sessionQueryOptions } from "@/queries/auth";
+import { checkSubscriptionStatus } from "@/server-functions/subscription";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -147,7 +148,7 @@ export const Route = createFileRoute("/palettes/$query/generate")({
         middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
     },
     beforeLoad: async ({ context, params }) => {
-        // Check authentication and admin role - redirect if not authorized
+        // Check authentication - redirect to login if not authenticated
         const session = await context.queryClient.ensureQueryData(sessionQueryOptions());
         if (!session?.user) {
             throw redirect({
@@ -157,12 +158,16 @@ export const Route = createFileRoute("/palettes/$query/generate")({
                 },
             });
         }
-        // Check admin role (allow in dev mode)
+        // Allow admin users and dev mode to bypass subscription check
         const isDev = import.meta.env.DEV;
-        if (!isDev && session.user.role !== "admin") {
+        if (isDev || session.user.role === "admin") {
+            return;
+        }
+        // Check subscription status for non-admin users
+        const subscriptionStatus = await checkSubscriptionStatus();
+        if (!subscriptionStatus.hasSubscription) {
             throw redirect({
-                to: "/palettes/$query",
-                params: { query: params.query },
+                to: "/pricing",
             });
         }
     },
