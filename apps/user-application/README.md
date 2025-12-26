@@ -306,6 +306,3 @@ This template includes the latest and greatest from the React ecosystem:
 - **[Shadcn/UI](https://ui.shadcn.com/)** - Component library
 - **[Tailwind CSS](https://tailwindcss.com/)** - Utility-first CSS
 
-## 📄 License
-
-This template is open source and available under the [MIT License](LICENSE).
