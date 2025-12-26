@@ -52,9 +52,7 @@ export const trackAIGeneration = createServerFn({ method: "POST" })
     .middleware([protectedFunctionMiddleware, polarMiddleware])
     .handler(async (ctx): Promise<{ success: boolean }> => {
         try {
-            console.log("[trackAIGeneration] Sending event for user:", ctx.context.userId);
-
-            const result = await ctx.context.polar.events.ingest({
+            await ctx.context.polar.events.ingest({
                 events: [
                     {
                         name: env.POLAR_METER_AI_GENERATIONS,
@@ -63,7 +61,6 @@ export const trackAIGeneration = createServerFn({ method: "POST" })
                 ],
             });
 
-            console.log("[trackAIGeneration] Result:", JSON.stringify(result));
             return { success: true };
         } catch (error) {
             console.error("[trackAIGeneration] Error:", error);

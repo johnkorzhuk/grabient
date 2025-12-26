@@ -39,7 +39,6 @@ export const createPaymentLink = baseFunction
 
 export const validPayment = baseFunction
     .inputValidator((data: string) => {
-        console.log("validatePayment", data);
         if (typeof data !== "string") {
             throw new Error("Invalid data type");
         }
@@ -49,7 +48,6 @@ export const validPayment = baseFunction
         const payment = await ctx.context.polar.checkouts.get({
             id: ctx.data,
         });
-        console.log(payment);
         if (payment.status === "succeeded") {
             return true;
         }

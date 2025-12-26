@@ -157,14 +157,11 @@ export const toggleLikePalette = baseToggleLikeFunction
             throw new Error("User ID is required");
         }
 
-        console.log('[Server toggleLikePalette] Received:', { userId, seed, steps, style, angle });
-
         const { toggleLikePalette } = await import(
             "@repo/data-ops/queries/palettes"
         );
         const db = getDb();
 
-        console.log('[Server toggleLikePalette] Calling data-ops toggleLikePalette');
         const result = await toggleLikePalette(
             userId,
             seed,
@@ -174,7 +171,6 @@ export const toggleLikePalette = baseToggleLikeFunction
             db,
         );
 
-        console.log('[Server toggleLikePalette] Result:', result);
         return result;
     });
 

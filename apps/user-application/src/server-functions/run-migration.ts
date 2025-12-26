@@ -10,16 +10,11 @@ const migrationSchema = v.object({
 export const runMigration = createServerFn({ method: 'GET' })
   .inputValidator((input) => v.parse(migrationSchema, input))
   .handler(async (ctx) => {
-    console.log('[runMigration] Function called');
-    console.log('[runMigration] Execute mode:', ctx.data.execute);
-
     const dryRun = !ctx.data.execute;
     const db = getDb();
 
     try {
-      console.log('[runMigration] Starting migration...');
       const result = await migrateSeedsToDefaults(dryRun, db);
-      console.log('[runMigration] Migration completed successfully');
 
       return {
         success: true,

@@ -651,7 +651,6 @@ function GeneratePage() {
                                 steps={steps}
                                 angle={angle}
                                 onSessionCreated={(newSessionId, version) => {
-                                    console.log("[generate.tsx] onSessionCreated:", newSessionId, "version:", version);
                                     setSessionId(newSessionId);
                                     setSessionVersion(version);
                                     pendingSeedsRef.current = { sessionId: newSessionId, version, palettes: [] };

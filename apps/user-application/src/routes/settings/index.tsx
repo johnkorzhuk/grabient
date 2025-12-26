@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { AppHeader } from "@/components/header/AppHeader";
-import { LogOut, ArrowLeft } from "lucide-react";
+import { LogOut, ArrowLeft, ExternalLink } from "lucide-react";
 import { SettingsSolid } from "@/components/icons/SettingsSolid";
 import { useState, useEffect, useRef } from "react";
 import * as v from "valibot";
@@ -29,6 +29,7 @@ import {
     type AvatarUploadHandle,
 } from "@/components/AvatarUpload";
 import { ConsentSection } from "@/components/settings/ConsentSection";
+import { useCustomerState } from "@/hooks/useCustomerState";
 
 const searchSchema = v.object({
     token: v.optional(v.string()),
@@ -55,6 +56,7 @@ function SettingsPage() {
     const avatarRef = useRef<AvatarUploadHandle>(null);
 
     const updateUsernameMutation = useUpdateUsernameMutation();
+    const { data: customerState, isLoading: customerStateLoading } = useCustomerState();
 
     const fallbackText = user?.username
         ? user.username.charAt(0).toUpperCase()
@@ -144,25 +146,101 @@ function SettingsPage() {
         }
     };
 
+    const subscription = customerState?.activeSubscriptions?.[0];
+    const hasSubscription = (customerState?.activeSubscriptions?.length ?? 0) > 0;
+
+    const handlePortal = async () => {
+        try {
+            await authClient.customer.portal();
+        } catch (error) {
+            console.error("Portal error:", error);
+        }
+    };
+
+    const formatDate = (dateString: string | Date | null | undefined) => {
+        if (!dateString) return "N/A";
+        return new Date(dateString).toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+        });
+    };
+
+    const getStatusBadge = (status: string | undefined) => {
+        switch (status) {
+            case "active":
+                return { text: "Active", className: "bg-green-500/10 text-green-600 border-green-500/20" };
+            case "trialing":
+                return { text: "Trial", className: "bg-blue-500/10 text-blue-600 border-blue-500/20" };
+            case "past_due":
+                return { text: "Past Due", className: "bg-amber-500/10 text-amber-600 border-amber-500/20" };
+            case "canceled":
+                return { text: "Canceled", className: "bg-red-500/10 text-red-600 border-red-500/20" };
+            default:
+                return { text: status || "Unknown", className: "bg-muted text-muted-foreground border-border" };
+        }
+    };
+
+    const navItems = [
+        { id: "profile", label: "Profile" },
+        ...(user ? [
+            { id: "subscription", label: "Subscription" },
+            { id: "account", label: "Account" },
+        ] : []),
+        { id: "privacy", label: "Privacy" },
+        ...(user ? [
+            { id: "danger-zone", label: "Danger Zone" },
+        ] : []),
+    ];
+
+    const scrollToSection = (id: string) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+    };
+
     return (
         <div className="min-h-screen-dynamic bg-background">
             <AppHeader />
             <main className="container mx-auto px-4 py-6 lg:py-12">
-                <div className="max-w-4xl mx-auto space-y-6 lg:space-y-8">
-                    <div className="flex items-start gap-6">
-                        <SettingsSolid className="w-12 h-12 text-foreground shrink-0 mt-1.5" />
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight">
-                                Settings
-                            </h1>
-                            <p className="text-muted-foreground font-system">
-                                Manage your account settings and preferences
-                            </p>
+                <div className="flex gap-8 max-w-5xl mx-auto">
+                    {/* Sidebar Navigation */}
+                    <nav className="hidden lg:block w-48 flex-shrink-0">
+                        <div className="sticky top-24 space-y-1">
+                            {navItems.map((item) => (
+                                <button
+                                    key={item.id}
+                                    onClick={() => scrollToSection(item.id)}
+                                    className={cn(
+                                        "w-full text-left px-3 py-2 text-sm rounded-md",
+                                        "text-muted-foreground hover:text-foreground",
+                                        "hover:bg-muted/50 transition-colors duration-200",
+                                        "cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                                    )}
+                                >
+                                    {item.label}
+                                </button>
+                            ))}
                         </div>
-                    </div>
+                    </nav>
+
+                    {/* Main Content */}
+                    <div className="flex-1 max-w-3xl space-y-6 lg:space-y-8">
+                        <div className="flex items-start gap-6">
+                            <SettingsSolid className="w-12 h-12 text-foreground shrink-0 mt-1.5" />
+                            <div>
+                                <h1 className="text-3xl font-bold tracking-tight">
+                                    Settings
+                                </h1>
+                                <p className="text-muted-foreground font-system">
+                                    Manage your account settings and preferences
+                                </p>
+                            </div>
+                        </div>
 
                     {/* Profile Section */}
-                    <Card className="relative">
+                    <Card id="profile" className="relative scroll-mt-24">
                         <CardHeader>
                             <CardTitle>Profile</CardTitle>
                             <CardDescription className="font-system">
@@ -462,13 +540,122 @@ function SettingsPage() {
                         )}
                     </Card>
 
-                    {/* Privacy & Consent Section */}
-                    <ConsentSection />
-
                     {user && (
                         <>
+                            {/* Subscription Section */}
+                            <Card id="subscription" className="scroll-mt-24">
+                                <CardHeader>
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <CardTitle>Subscription</CardTitle>
+                                            <CardDescription className="font-system">
+                                                Manage your plan and billing
+                                            </CardDescription>
+                                        </div>
+                                        {hasSubscription && (
+                                            <span className={cn(
+                                                "px-2.5 py-1 text-xs font-medium rounded-full border",
+                                                getStatusBadge(subscription?.status).className
+                                            )}>
+                                                {getStatusBadge(subscription?.status).text}
+                                            </span>
+                                        )}
+                                    </div>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    {customerStateLoading ? (
+                                        <div className="space-y-4">
+                                            <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                                            <div className="h-4 w-48 bg-muted animate-pulse rounded" />
+                                        </div>
+                                    ) : hasSubscription ? (
+                                        <>
+                                            <div className="space-y-4">
+                                                {subscription?.status === "trialing" && subscription?.trialEnd ? (
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm text-muted-foreground">Trial ends</p>
+                                                        <p className="text-sm font-medium">{formatDate(subscription.trialEnd)}</p>
+                                                    </div>
+                                                ) : subscription?.currentPeriodEnd && (
+                                                    <div className="space-y-1">
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {subscription?.cancelAtPeriodEnd ? "Access until" : "Next billing"}
+                                                        </p>
+                                                        <p className="text-sm font-medium">{formatDate(subscription.currentPeriodEnd)}</p>
+                                                    </div>
+                                                )}
+
+                                                {customerState?.activeMeters && customerState.activeMeters.length > 0 && (
+                                                    customerState.activeMeters.map((meter) => (
+                                                        <div key={meter.meterId} className="space-y-1">
+                                                            <p className="text-sm text-muted-foreground">AI Generations</p>
+                                                            <p className="text-sm font-medium">
+                                                                {meter.consumedUnits} / {meter.creditedUnits} used
+                                                            </p>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+
+                                            {subscription?.cancelAtPeriodEnd && (
+                                                <div className="flex items-center gap-2 py-2 px-3 rounded-md bg-amber-500/10 border border-amber-500/20">
+                                                    <p className="text-xs text-amber-600">
+                                                        Your subscription will cancel at the end of the billing period
+                                                    </p>
+                                                </div>
+                                            )}
+
+                                            <div className="flex items-center justify-between pt-4 border-t border-border">
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-medium">Grabient Pro</p>
+                                                    <p className="text-xs text-muted-foreground font-system">
+                                                        {subscription?.status === "trialing"
+                                                            ? "Your free trial is active"
+                                                            : "Full access to all Pro features"}
+                                                    </p>
+                                                </div>
+                                                <Button
+                                                    onClick={handlePortal}
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="disable-animation-on-theme-change cursor-pointer"
+                                                >
+                                                    Manage
+                                                    <ExternalLink className="h-3 w-3 ml-1.5 text-muted-foreground" />
+                                                </Button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="rounded-lg border border-border p-4">
+                                            <div className="flex items-center justify-between">
+                                                <div className="space-y-1">
+                                                    <p className="text-sm font-medium">Free Plan</p>
+                                                    <p className="text-xs text-muted-foreground font-system">
+                                                        Upgrade to Pro for AI palette generation and more
+                                                    </p>
+                                                </div>
+                                                <Link
+                                                    to="/pricing"
+                                                    className={cn(
+                                                        "disable-animation-on-theme-change inline-flex items-center justify-center rounded-md",
+                                                        "font-medium text-sm h-9 px-4 border border-solid",
+                                                        "bg-foreground hover:bg-foreground/90",
+                                                        "border-foreground hover:border-foreground/70",
+                                                        "text-background hover:text-background",
+                                                        "transition-colors duration-200 cursor-pointer",
+                                                        "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                                                    )}
+                                                >
+                                                    Upgrade
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
                             {/* Account Section */}
-                            <Card>
+                            <Card id="account" className="scroll-mt-24">
                                 <CardHeader>
                                     <div className="flex items-start justify-between">
                                         <div>
@@ -552,11 +739,18 @@ function SettingsPage() {
                                     </div>
                                 </CardContent>
                             </Card>
+                        </>
+                    )}
 
+                    {/* Privacy & Consent Section */}
+                    <ConsentSection id="privacy" />
+
+                    {user && (
+                        <>
                             {/* Danger Zone */}
                             <Card
                                 id="danger-zone"
-                                className="border-destructive"
+                                className="border-destructive scroll-mt-24"
                             >
                                 <CardHeader>
                                     <CardTitle className="text-destructive">
@@ -609,6 +803,7 @@ function SettingsPage() {
                             </Card>
                         </>
                     )}
+                    </div>
                 </div>
             </main>
         </div>

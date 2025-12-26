@@ -21,7 +21,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Check, Rocket } from "lucide-react";
+import { LogOut, Rocket } from "lucide-react";
 import { SettingsSolid } from "@/components/icons/SettingsSolid";
 import { useFocusTrap } from "@mantine/hooks";
 import { Skeleton } from "@/components/ui/skeleton";

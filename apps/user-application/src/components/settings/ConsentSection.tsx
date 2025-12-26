@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { useStore } from "@tanstack/react-store";
 import { consentStore, updateConsent } from "@/stores/consent-store";
 
-export function ConsentSection() {
+export function ConsentSection({ id }: { id?: string }) {
     const consentState = useStore(consentStore);
 
     const handleAnalyticsChange = (checked: boolean) => {
@@ -26,7 +26,7 @@ export function ConsentSection() {
     };
 
     return (
-        <Card>
+        <Card id={id} className={id ? "scroll-mt-24" : undefined}>
             <CardHeader>
                 <CardTitle>Privacy & Consent</CardTitle>
                 <CardDescription className="font-system">

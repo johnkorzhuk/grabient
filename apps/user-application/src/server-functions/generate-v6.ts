@@ -577,76 +577,6 @@ function normalizeQuery(query: string): string {
     return query.toLowerCase().trim();
 }
 
-function logTokenUsageSummary(usageData: ModelTokenUsage[], query: string): void {
-    if (usageData.length === 0) {
-        console.log("[TokenUsage] No token usage data collected");
-        return;
-    }
-
-    // Group by provider
-    const byProvider = new Map<string, { input: number; output: number; total: number; models: string[] }>();
-
-    for (const usage of usageData) {
-        const existing = byProvider.get(usage.provider) ?? { input: 0, output: 0, total: 0, models: [] };
-        existing.input += usage.usage.promptTokens ?? 0;
-        existing.output += usage.usage.completionTokens ?? 0;
-        existing.total += usage.usage.totalTokens ?? 0;
-        if (!existing.models.includes(usage.modelId)) {
-            existing.models.push(usage.modelId);
-        }
-        byProvider.set(usage.provider, existing);
-    }
-
-    // Calculate totals
-    let grandTotalInput = 0;
-    let grandTotalOutput = 0;
-    let grandTotalTokens = 0;
-
-    console.log("\n" + "=".repeat(80));
-    console.log(`[TokenUsage Summary] Query: "${query}"`);
-    console.log("=".repeat(80));
-
-    // Log per-model details
-    console.log("\nPer-Model Breakdown:");
-    console.log("-".repeat(60));
-    for (const usage of usageData) {
-        const input = usage.usage.promptTokens ?? 0;
-        const output = usage.usage.completionTokens ?? 0;
-        const total = usage.usage.totalTokens ?? 0;
-        console.log(
-            `  ${usage.modelKey.padEnd(20)} | ` +
-            `input: ${input.toString().padStart(6)} | ` +
-            `output: ${output.toString().padStart(5)} | ` +
-            `total: ${total.toString().padStart(6)}`
-        );
-    }
-
-    // Log per-provider summary
-    console.log("\nPer-Provider Summary:");
-    console.log("-".repeat(60));
-    for (const [provider, data] of byProvider) {
-        grandTotalInput += data.input;
-        grandTotalOutput += data.output;
-        grandTotalTokens += data.total;
-        console.log(
-            `  ${provider.toUpperCase().padEnd(12)} | ` +
-            `input: ${data.input.toString().padStart(6)} | ` +
-            `output: ${data.output.toString().padStart(5)} | ` +
-            `total: ${data.total.toString().padStart(6)} | ` +
-            `models: ${data.models.length}`
-        );
-    }
-
-    // Log grand totals
-    console.log("-".repeat(60));
-    console.log(
-        `  ${"GRAND TOTAL".padEnd(12)} | ` +
-        `input: ${grandTotalInput.toString().padStart(6)} | ` +
-        `output: ${grandTotalOutput.toString().padStart(5)} | ` +
-        `total: ${grandTotalTokens.toString().padStart(6)}`
-    );
-    console.log("=".repeat(80) + "\n");
-}
 
 // =============================================================================
 // MAIN SSE FUNCTION (API route compatible)
@@ -795,9 +725,6 @@ export async function generatePalettesSSE(
             });
 
             await Promise.allSettled(painterPromises);
-
-            // Log token usage summary broken down by provider
-            logTokenUsageSummary(allTokenUsage, query);
 
             // Update session
             await db

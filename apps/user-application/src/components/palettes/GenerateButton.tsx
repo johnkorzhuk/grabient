@@ -75,11 +75,8 @@ export function GenerateButton({
 
         while (true) {
             const { done, value } = await reader.read();
-            
-            if (done) {
-                console.log("[GenerateButton] Stream done");
-                break;
-            }
+
+            if (done) break;
 
             buffer += decoder.decode(value, { stream: true });
 
@@ -88,35 +85,24 @@ export function GenerateButton({
 
             for (const eventText of events) {
                 if (!eventText.trim()) continue;
-                
+
                 const dataMatch = eventText.match(/^data: (.+)$/m);
                 if (!dataMatch) continue;
-                
+
                 const data = dataMatch[1]!;
 
                 try {
                     const event = JSON.parse(data) as GenerateEvent;
 
                     if (event.type === "session") {
-                        console.log("[GenerateButton] Session:", event.sessionId, "version:", event.version);
                         onSessionCreated?.(event.sessionId, event.version);
-                    } else if (event.type === "composer_start") {
-                        console.log("[GenerateButton] Composer started");
-                    } else if (event.type === "composer_progress") {
-                        console.log("[GenerateButton] Composer progress:", event.variationsReceived, "variations");
-                    } else if (event.type === "composer_complete") {
-                        console.log("[GenerateButton] Composer complete:", event.totalMatrices, "matrices");
                     } else if (event.type === "composer_error") {
                         console.error("[GenerateButton] Composer error:", event.error);
                         throw new Error(event.error);
-                    } else if (event.type === "painter_start") {
-                        console.log("[GenerateButton] Painter started:", event.modelName);
                     } else if (event.type === "palette") {
-                        // Deserialize seed to get hex colors for display
                         const { coeffs, globals } = deserializeCoeffs(event.seed);
                         const hexColors = generateHexColors(coeffs, globals, event.steps);
-                        
-                        console.log("[GenerateButton] Palette from", event.modelKey, "theme:", event.theme, "steps:", event.steps, "style:", event.style);
+
                         onPaletteReceived({
                             seed: event.seed,
                             style: event.style,
@@ -126,12 +112,8 @@ export function GenerateButton({
                             modelKey: event.modelKey,
                             theme: event.theme,
                         });
-                    } else if (event.type === "painter_complete") {
-                        console.log("[GenerateButton] Painter complete:", event.modelKey, event.paletteCount, "palettes in", event.duration, "ms");
                     } else if (event.type === "painter_error") {
                         console.warn("[GenerateButton] Painter error:", event.modelKey, event.error);
-                    } else if (event.type === "done") {
-                        console.log("[GenerateButton] Done:", event.totalPalettes, "total palettes");
                     }
                 } catch (parseError) {
                     if (parseError instanceof SyntaxError) {
@@ -145,7 +127,6 @@ export function GenerateButton({
     };
 
     const handleGenerate = async () => {
-        console.log("[GenerateButton] handleGenerate called");
         setIsGenerating(true);
         onGenerateStart();
 
@@ -160,15 +141,10 @@ export function GenerateButton({
                 },
             });
 
-            console.log("[GenerateButton] Processing SSE stream...");
             await processStream(response);
 
-            console.log("[GenerateButton] Stream complete");
-
-            // Track usage for metering
             try {
                 await trackAIGeneration();
-                console.log("[GenerateButton] Usage tracked");
             } catch (trackError) {
                 console.error("[GenerateButton] Failed to track usage:", trackError);
             }
