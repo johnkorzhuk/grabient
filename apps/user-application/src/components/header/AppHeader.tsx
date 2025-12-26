@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { GrabientLogoContainer } from "@/components/GrabientLogoContainer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -21,13 +21,15 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut } from "lucide-react";
+import { LogOut, Check, Rocket } from "lucide-react";
 import { SettingsSolid } from "@/components/icons/SettingsSolid";
 import { useFocusTrap } from "@mantine/hooks";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTheme } from "@/components/theme/theme-provider";
+import { useHasActiveSubscription } from "@/hooks/useCustomerState";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
+import { paletteAnimationStore } from "@/stores/palette-animation";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
 import type { SizeType } from "@/stores/export";
 import { styleWithAutoValidator } from "@repo/data-ops/valibot-schema/grabient";
@@ -38,6 +40,25 @@ export interface LogoNavigation {
     search?: Record<string, unknown>;
 }
 
+const FIXED_STOP_COUNT = 10;
+const TWEEN_DURATION = 2000;
+
+function interpolateColor(color1: string, color2: string, factor: number): string {
+    const r1 = parseInt(color1.slice(1, 3), 16);
+    const g1 = parseInt(color1.slice(3, 5), 16);
+    const b1 = parseInt(color1.slice(5, 7), 16);
+
+    const r2 = parseInt(color2.slice(1, 3), 16);
+    const g2 = parseInt(color2.slice(3, 5), 16);
+    const b2 = parseInt(color2.slice(5, 7), 16);
+
+    const r = Math.round(r1 + (r2 - r1) * factor);
+    const g = Math.round(g1 + (g2 - g1) * factor);
+    const b = Math.round(b1 + (b2 - b1) * factor);
+
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
 export function AppHeader({ className, logoNavigation }: { className?: string; logoNavigation?: LogoNavigation }) {
     const matches = useMatches();
     const location = useLocation();
@@ -45,6 +66,62 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
     const seedRouteMatch = matches.find((match) => match.routeId === "/$seed");
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const { data: session, isPending } = authClient.useSession();
+    const { hasSubscription } = useHasActiveSubscription();
+    const targetColors = useStore(paletteAnimationStore, (state) => state.normalizedColors);
+    const [displayedColors, setDisplayedColors] = useState<string[]>(
+        () => Array(FIXED_STOP_COUNT).fill("#888888")
+    );
+    const animationRef = useRef<number | null>(null);
+    const tweenStateRef = useRef<{
+        startColors: string[];
+        endColors: string[];
+        startTime: number;
+    } | null>(null);
+
+    useEffect(() => {
+        if (targetColors.length === 0) return;
+
+        tweenStateRef.current = {
+            startColors: [...displayedColors],
+            endColors: [...targetColors],
+            startTime: performance.now(),
+        };
+
+        const animate = (currentTime: number) => {
+            const state = tweenStateRef.current;
+            if (!state) return;
+
+            const elapsed = currentTime - state.startTime;
+            const progress = Math.min(elapsed / TWEEN_DURATION, 1);
+
+            const interpolated = state.startColors.map((startColor, i) => {
+                const endColor = state.endColors[i] || startColor;
+                return interpolateColor(startColor, endColor, progress);
+            });
+
+            setDisplayedColors(interpolated);
+
+            if (progress < 1) {
+                animationRef.current = requestAnimationFrame(animate);
+            } else {
+                tweenStateRef.current = null;
+            }
+        };
+
+        if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+        }
+
+        animationRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = null;
+            }
+        };
+    }, [targetColors]);
+
     const focusTrapRef = useFocusTrap(dropdownOpen);
     const { resolved: theme } = useTheme();
     const previousRoute = useStore(uiStore, (state) => state.previousRoute);
@@ -182,6 +259,53 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
                                             )}
                                         </div>
                                     </DropdownMenuLabel>
+                                    <DropdownMenuSeparator className="bg-border/40" />
+                                    {hasSubscription ? (
+                                        <div className="flex items-center px-3 py-2">
+                                            <Rocket
+                                                className="mr-4 h-4 w-4 flex-shrink-0"
+                                                style={{ color: "currentColor" }}
+                                                aria-hidden="true"
+                                            />
+                                            <span className="font-bold text-sm">Grabient</span>
+                                            <span className="relative -mt-px ml-1">
+                                                <span className="text-base font-bold">Pro</span>
+                                                <span
+                                                    className="absolute left-0 right-0 bottom-[-1px] h-[4px] rounded-full"
+                                                    style={{
+                                                        backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
+                                                    }}
+                                                />
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <DropdownMenuItem
+                                            asChild
+                                            className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 hover:bg-[var(--background)] focus:bg-[var(--background)] focus:text-foreground px-3"
+                                        >
+                                            <Link to="/pricing" className="flex items-center">
+                                                <Rocket
+                                                    className="mr-2 h-4 w-4"
+                                                    style={{ color: "currentColor" }}
+                                                    aria-hidden="true"
+                                                />
+                                                <span className="flex items-baseline gap-1">
+                                                    <span className="font-medium text-sm">
+                                                        Upgrade to
+                                                    </span>
+                                                    <span className="relative -mt-px ml-px">
+                                                        <span className="text-base font-bold">Pro</span>
+                                                        <span
+                                                            className="absolute left-0 right-0 bottom-[-1px] h-[4px] rounded-full"
+                                                            style={{
+                                                                backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
+                                                            }}
+                                                        />
+                                                    </span>
+                                                </span>
+                                            </Link>
+                                        </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuSeparator className="bg-border/40" />
                                     <DropdownMenuItem
                                         asChild

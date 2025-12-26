@@ -4,7 +4,7 @@ import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { authClient, useSession } from "@/lib/auth-client";
 import { useHasActiveSubscription } from "@/hooks/useCustomerState";
-import { Check, X, Sparkles } from "lucide-react";
+import { Check, X, Rocket } from "lucide-react";
 import { useState } from "react";
 import { GradientBorderButton } from "@/components/GradientBorderButton";
 
@@ -32,7 +32,7 @@ const PRO_FEATURES = [
 function PricingPage() {
     const { data: session, isPending: sessionPending } = useSession();
     const { hasSubscription, isLoading: subscriptionLoading } = useHasActiveSubscription();
-    const [isYearly, setIsYearly] = useState(true);
+    const [isYearly, setIsYearly] = useState(false);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
 
     const currentPlan = isYearly
@@ -145,7 +145,7 @@ function PricingPage() {
                         <div className="relative p-6 rounded-xl border border-solid border-muted-foreground/30 bg-background/50 overflow-visible">
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                                 <span className="px-3 py-1 text-xs font-bold bg-foreground text-background rounded-full flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" />
+                                    <Rocket className="w-3 h-3" />
                                     Pro
                                 </span>
                             </div>
@@ -163,11 +163,20 @@ function PricingPage() {
                                         {currentPlan.period}
                                     </span>
                                 </div>
-                                <p className={cn(
-                                    "text-sm mt-1 h-5",
-                                    isYearly ? "text-green-600" : "text-transparent select-none"
-                                )}>
-                                    $2.50/mo · Save $6
+                                <p className="text-sm mt-1 h-5 text-green-600">
+                                    {isYearly ? (
+                                        "$2.50/mo · 2 months free"
+                                    ) : (
+                                        <>
+                                            Get 2 months free with{" "}
+                                            <button
+                                                onClick={() => setIsYearly(true)}
+                                                className="underline hover:text-green-500 transition-colors cursor-pointer"
+                                            >
+                                                yearly
+                                            </button>
+                                        </>
+                                    )}
                                 </p>
                             </div>
 
@@ -177,7 +186,7 @@ function PricingPage() {
                                     <button
                                         onClick={() => setIsYearly(false)}
                                         className={cn(
-                                            "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors",
+                                            "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer",
                                             !isYearly
                                                 ? "bg-background text-foreground shadow-sm"
                                                 : "text-muted-foreground hover:text-foreground"
@@ -188,7 +197,7 @@ function PricingPage() {
                                     <button
                                         onClick={() => setIsYearly(true)}
                                         className={cn(
-                                            "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors",
+                                            "flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer",
                                             isYearly
                                                 ? "bg-background text-foreground shadow-sm"
                                                 : "text-muted-foreground hover:text-foreground"
