@@ -3,6 +3,8 @@ import { AppHeader } from "@/components/header/AppHeader";
 import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
 import { CheckCircle, Sparkles, ArrowRight } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 import * as v from "valibot";
 
 const searchSchema = v.object({
@@ -15,6 +17,11 @@ export const Route = createFileRoute("/checkout/success")({
 });
 
 function CheckoutSuccessPage() {
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        queryClient.invalidateQueries({ queryKey: ["customer-state"] });
+    }, [queryClient]);
     return (
         <div className="min-h-screen-dynamic flex flex-col">
             <AppHeader />

@@ -1,10 +1,11 @@
 import { collectSubscription, validPayment } from "@/core/functions/payments";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
+import { useEffect } from "react";
 
 const searchSchema = z.object({
     checkout_id: z.string(),
@@ -65,6 +66,7 @@ export const Route = createFileRoute("/app/polar/checkout/success")({
 function RouteComponent() {
     const loaderData = Route.useLoaderData();
     const nav = Route.useNavigate();
+    const queryClient = useQueryClient();
 
     const { data, isLoading, isFetching, error } = useQuery({
         queryKey: [loaderData.checkoutId],
@@ -76,6 +78,12 @@ function RouteComponent() {
             return false;
         },
     });
+
+    useEffect(() => {
+        if (data) {
+            queryClient.invalidateQueries({ queryKey: ["customer-state"] });
+        }
+    }, [data, queryClient]);
 
     const getStatus = () => {
         if (error) return "error";

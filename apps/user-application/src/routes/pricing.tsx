@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { authClient, useSession } from "@/lib/auth-client";
 import { useHasActiveSubscription } from "@/hooks/useCustomerState";
 import { Check, X, Rocket } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { GradientBorderButton } from "@/components/GradientBorderButton";
 
 export const Route = createFileRoute("/pricing")({
@@ -14,7 +15,7 @@ export const Route = createFileRoute("/pricing")({
 
 const FREE_FEATURES = [
     { text: "Browse community palettes", included: true },
-    { text: "Vector search palettes", included: true },
+    { text: "Vector search thousands of palettes", included: true },
     { text: "Export gradients", included: true },
     { text: "Save favorites", included: true },
     { text: "AI palette generation", included: false },
@@ -30,10 +31,15 @@ const PRO_FEATURES = [
 ];
 
 function PricingPage() {
+    const queryClient = useQueryClient();
     const { data: session, isPending: sessionPending } = useSession();
     const { hasSubscription, isLoading: subscriptionLoading } = useHasActiveSubscription();
     const [isYearly, setIsYearly] = useState(false);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
+
+    useEffect(() => {
+        queryClient.invalidateQueries({ queryKey: ["customer-state"] });
+    }, [queryClient]);
 
     const currentPlan = isYearly
         ? { slug: "pro-yearly", price: "$30", period: "/year", monthly: "$2.50/mo" }
