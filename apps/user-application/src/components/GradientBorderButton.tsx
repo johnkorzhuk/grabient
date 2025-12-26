@@ -113,8 +113,7 @@ export function GradientBorderButton({
             onMouseLeave={() => setIsHovered(false)}
             onFocus={() => setIsHovered(true)}
             onBlur={() => setIsHovered(false)}
-            className={cn("relative z-0", className)}
-            style={{ backgroundColor: "var(--background)" }}
+            className={cn("relative z-0 overflow-visible", className)}
         >
             {/* Outer glow layer */}
             <svg
@@ -183,15 +182,15 @@ export function GradientBorderButton({
                     y="0"
                     width="100%"
                     height="100%"
-                    rx="6"
-                    ry="6"
+                    rx="8"
+                    ry="8"
                     fill={`url(#${gradientId})`}
                 />
             </svg>
             {/* Inner background to create border effect */}
             <div
                 className={cn(
-                    "pointer-events-none absolute inset-0 rounded-[5px] -z-[5] transition-shadow duration-300",
+                    "pointer-events-none absolute inset-0 rounded-md -z-[5] transition-shadow duration-300",
                     isHovered && "shadow-[inset_0_0_16px_rgba(255,255,255,0.15)]"
                 )}
                 style={{ backgroundColor: "var(--background)" }}

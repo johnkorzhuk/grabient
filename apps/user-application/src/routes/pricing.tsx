@@ -142,7 +142,7 @@ function PricingPage() {
                         </div>
 
                         {/* Pro Plan */}
-                        <div className="relative p-6 rounded-xl border border-solid border-muted-foreground/30 bg-background/50">
+                        <div className="relative p-6 rounded-xl border border-solid border-muted-foreground/30 bg-background/50 overflow-visible">
                             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                                 <span className="px-3 py-1 text-xs font-bold bg-foreground text-background rounded-full flex items-center gap-1">
                                     <Sparkles className="w-3 h-3" />
