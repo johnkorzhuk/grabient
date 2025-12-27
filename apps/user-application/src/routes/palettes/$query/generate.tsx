@@ -415,20 +415,30 @@ function GeneratePage() {
             logoNavigation={backNav}
             isExportOpen={showExportUI}
         >
-            <div
-                className={cn(
-                    "px-5 lg:px-14 relative",
-                    hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
-                    isExportOpen && "hidden"
-                )}
-            >
-                <div className="flex items-start justify-between gap-4">
-                    <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
-                        <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground" />
-                        <QueryDisplay query={query} />
-                        <span>palettes</span>
+            <div className="relative">
+                <div
+                    className={cn(
+                        "px-5 lg:px-14",
+                        hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
+                        !isExportOpen && "invisible"
+                    )}
+                >
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground">
+                        {exportCount} {exportCount === 1 ? "item" : "items"} selected
                     </h1>
-                    {!isExportOpen && (
+                </div>
+                <div
+                    className={cn(
+                        "absolute inset-0 px-5 lg:px-14",
+                        isExportOpen && "hidden"
+                    )}
+                >
+                    <div className="flex items-start justify-between gap-4">
+                        <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
+                            <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-muted-foreground" />
+                            <QueryDisplay query={query} />
+                            <span>palettes</span>
+                        </h1>
                         <div className="flex items-center gap-2 shrink-0">
                             <GenerateButton
                                 query={generationQuery}
@@ -475,71 +485,61 @@ function GeneratePage() {
                             />
                             <SelectedButtonContainer className="contents" />
                         </div>
-                    )}
-                </div>
-                {isSeed && <PalettePageSubtitle query={query} />}
-            </div>
-            {isExportOpen && (
-                <div className="px-5 lg:px-14 mb-10 md:mb-12.5">
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground">
-                        {exportCount} {exportCount === 1 ? "item" : "items"} selected
-                    </h1>
-                </div>
-            )}
-            {isExportOpen && (
-                <SelectedButtonContainer
-                    className={cn(
-                        hasSubtitle
-                            ? "-mt-[88px] md:-mt-[100px]"
-                            : "-mt-[72px] md:-mt-[84px]",
-                    )}
-                />
-            )}
-            {hasGeneratedResults ? (
-                <>
-                    <div className="px-5 lg:px-14">
-                        <div className="flex items-center justify-between gap-4 flex-wrap">
-                            {isGenerating && (
-                                <span className="text-sm text-muted-foreground animate-pulse">
-                                    Generating... ({generatedPalettes.filter(p => p.version === sessionVersion).length} received)
-                                </span>
-                            )}
-                            {!isGenerating && <div />}
-                            <VersionPagination
-                                currentVersion={selectedVersion}
-                                totalVersions={sessionVersion}
-                                onVersionChange={setSelectedVersion}
-                            />
-                        </div>
-                        {generateError && (
-                            <div className="text-red-500 text-sm p-4 mt-4 rounded-md bg-red-500/10 border border-red-500/20">
-                                {generateError}
-                            </div>
-                        )}
                     </div>
-                    {!generateError && (
-                        <PalettesGrid
-                            palettes={generatedPalettes.filter(p => p.version === selectedVersion)}
-                            likedSeeds={likedSeeds}
-                            urlStyle={style}
-                            urlAngle={angle}
-                            urlSteps={steps}
-                            isExportOpen={isExportOpen}
-                            searchQuery={query}
-                            onBadFeedback={(seed) => {
-                                // Remove palette from local state
-                                setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                                // Save feedback to server (which also removes from generatedSeeds)
-                                if (sessionId) {
-                                    saveGenerateSessionFeedback({
-                                        data: { sessionId, seed, feedback: "bad" },
-                                    }).catch(console.error);
-                                }
-                            }}
+                    {isSeed && <PalettePageSubtitle query={query} />}
+                </div>
+            </div>
+            <SelectedButtonContainer
+                className={cn(
+                    hasSubtitle
+                        ? "-mt-[88px] md:-mt-[100px]"
+                        : "-mt-[72px] md:-mt-[84px]",
+                    !isExportOpen && "[&>*]:invisible"
+                )}
+            />
+            {hasGeneratedResults && !isExportOpen && (
+                <div className="px-5 lg:px-14">
+                    <div className="flex items-center justify-between gap-4 flex-wrap">
+                        {isGenerating && (
+                            <span className="text-sm text-muted-foreground animate-pulse">
+                                Generating... ({generatedPalettes.filter(p => p.version === sessionVersion).length} received)
+                            </span>
+                        )}
+                        {!isGenerating && <div />}
+                        <VersionPagination
+                            currentVersion={selectedVersion}
+                            totalVersions={sessionVersion}
+                            onVersionChange={setSelectedVersion}
                         />
+                    </div>
+                    {generateError && (
+                        <div className="text-red-500 text-sm p-4 mt-4 rounded-md bg-red-500/10 border border-red-500/20">
+                            {generateError}
+                        </div>
                     )}
-                </>
-            ) : (
+                </div>
+            )}
+            {(hasGeneratedResults || isExportOpen) && !generateError ? (
+                <PalettesGrid
+                    palettes={generatedPalettes.filter(p => p.version === selectedVersion)}
+                    likedSeeds={likedSeeds}
+                    urlStyle={style}
+                    urlAngle={angle}
+                    urlSteps={steps}
+                    isExportOpen={isExportOpen}
+                    searchQuery={query}
+                    onBadFeedback={(seed) => {
+                        // Remove palette from local state
+                        setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                        // Save feedback to server (which also removes from generatedSeeds)
+                        if (sessionId) {
+                            saveGenerateSessionFeedback({
+                                data: { sessionId, seed, feedback: "bad" },
+                            }).catch(console.error);
+                        }
+                    }}
+                />
+            ) : !isExportOpen ? (
                 <div className="px-5 lg:px-14 py-16 text-center">
                     <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                     <p className="text-lg text-muted-foreground mb-2">
@@ -549,7 +549,7 @@ function GeneratePage() {
                         Click the Generate button above to create AI-powered palettes
                     </p>
                 </div>
-            )}
+            ) : null}
             {!isExportOpen && <div className="py-3 mt-16" />}
         </AppLayout>
     );

@@ -25,13 +25,12 @@ import {
 import { hexToColorName, HEX_CODE_REGEX } from "@repo/data-ops/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Search, Sparkles } from "lucide-react";
 import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
 import { useMounted } from "@mantine/hooks";
 import {
-    PalettePageHeader,
     PalettePageSubtitle,
     QueryDisplay,
     queryHasSubtitle,
