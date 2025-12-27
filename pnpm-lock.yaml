@@ -371,6 +371,9 @@ importers:
       '@tanstack/react-store':
         specifier: ^0.8.0
         version: 0.8.0(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@tanstack/react-virtual':
+        specifier: ^3.13.13
+        version: 3.13.13(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       '@tanstack/valibot-form-adapter':
         specifier: ^0.42.1
         version: 0.42.1(valibot@1.2.0(typescript@5.9.3))
@@ -3957,6 +3960,12 @@ packages:
       react: '>=16.8'
       react-dom: '>=16.8'
 
+  '@tanstack/react-virtual@3.13.13':
+    resolution: {integrity: sha512-4o6oPMDvQv+9gMi8rE6gWmsOjtUZUYIJHv7EB+GblyYdi8U6OqLl8rhHWIUZSL1dUU2dPwTdTgybCKf9EjIrQg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
+
   '@tanstack/router-core@1.141.4':
     resolution: {integrity: sha512-/7x0Ilo/thg1Hiev6wLL9SA4kk9PICga96qfLuLHVYMEYMfm1+F8BBxgNYeSZfehxTI0Fdo03LjMLYka9JCk4g==}
     engines: {node: '>=12'}
@@ -4044,6 +4053,9 @@ packages:
     resolution: {integrity: sha512-MUWjxGm8ZVDEqW79UET9U0hh87r8hj1oM0dTjCUHnHjvyIHpItk3SDkv4OjBSBoy9Y4kWvCF+0NQ3KM/omdGqg==}
     peerDependencies:
       valibot: ^1.0.0 || ^1.0.0-beta.4 || ^1.0.0-rc
+
+  '@tanstack/virtual-core@3.13.13':
+    resolution: {integrity: sha512-uQFoSdKKf5S8k51W5t7b2qpfkyIbdHMzAn+AMQvHPxKUPeo1SsGaA4JRISQT87jm28b7z8OEqPcg1IOZagQHcA==}
 
   '@tanstack/virtual-file-routes@1.141.0':
     resolution: {integrity: sha512-CJrWtr6L9TVzEImm9S7dQINx+xJcYP/aDkIi6gnaWtIgbZs1pnzsE0yJc2noqXZ+yAOqLx3TBGpBEs9tS0P9/A==}
@@ -11348,6 +11360,12 @@ snapshots:
       react: 19.2.3
       react-dom: 19.2.3(react@19.2.3)
 
+  '@tanstack/react-virtual@3.13.13(react-dom@19.2.3(react@19.2.3))(react@19.2.3)':
+    dependencies:
+      '@tanstack/virtual-core': 3.13.13
+      react: 19.2.3
+      react-dom: 19.2.3(react@19.2.3)
+
   '@tanstack/router-core@1.141.4':
     dependencies:
       '@tanstack/history': 1.141.0
@@ -11576,6 +11594,8 @@ snapshots:
     dependencies:
       '@tanstack/form-core': 0.42.1
       valibot: 1.2.0(typescript@5.9.3)
+
+  '@tanstack/virtual-core@3.13.13': {}
 
   '@tanstack/virtual-file-routes@1.141.0': {}
 

@@ -56,6 +56,7 @@
     "@tanstack/react-router-ssr-query": "^1.133.22",
     "@tanstack/react-start": "^1.133.22",
     "@tanstack/react-store": "^0.8.0",
+    "@tanstack/react-virtual": "^3.13.13",
     "@tanstack/valibot-form-adapter": "^0.42.1",
     "ai": "^5.0.106",
     "aws4fetch": "^1.0.20",

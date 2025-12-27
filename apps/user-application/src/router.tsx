@@ -16,7 +16,9 @@ export const getRouter = () => {
         scrollRestoration: true,
         getScrollRestorationKey: (location) => {
             const paletteListRoutes = ['/', '/newest', '/oldest', '/saved'];
-            if (paletteListRoutes.includes(location.pathname)) {
+            // Preserve scroll for palette list routes and generate routes
+            const isGenerateRoute = location.pathname.startsWith('/palettes/') && location.pathname.endsWith('/generate');
+            if (paletteListRoutes.includes(location.pathname) || isGenerateRoute) {
                 return location.state.__TSR_key ?? location.pathname;
             }
             return location.pathname;

@@ -271,7 +271,6 @@ export function PalettesGrid({
                     onShiftClick={handleShiftClick}
                     ref={index === 0 ? firstPaletteRef : undefined}
                     searchQuery={searchQuery}
-                    modelKey={paletteWithMeta.modelKey}
                     onBadFeedback={onBadFeedback}
                     theme={paletteWithMeta.theme}
                 />
@@ -760,9 +759,9 @@ export interface PaletteCardProps {
     removeAllOnExportClick?: boolean;
     searchQuery?: string;
     version?: number;
-    modelKey?: string;
     theme?: string;
     onBadFeedback?: (seed: string) => void;
+    style?: React.CSSProperties;
 }
 
 export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
@@ -782,9 +781,9 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             removeAllOnExportClick = false,
             searchQuery,
             version,
-            modelKey,
             onBadFeedback,
             theme,
+            style,
         },
         ref,
     ) => {
@@ -1044,6 +1043,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                     "relative w-full font-poppins",
                     isDragging && "pointer-events-none",
                 )}
+                style={style}
             >
                 <div className="group">
                     <div
@@ -1099,15 +1099,13 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
 
                     {/* Palette metadata */}
                     <div className="flex justify-between pt-4 relative pointer-events-none">
-                        <div className="flex items-center gap-2 min-h-[28px] pointer-events-none flex-wrap">
-                            {theme && (
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary pointer-events-none select-none">
+                        <div className="flex items-center gap-2 min-h-[28px] pointer-events-none">
+                            {!currentCreatedAt && theme && (
+                                <span
+                                    className="text-sm font-medium text-muted-foreground truncate max-w-[240px] sm:max-w-[320px] pointer-events-auto"
+                                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+                                >
                                     {theme}
-                                </span>
-                            )}
-                            {modelKey && modelKey !== "unknown" && (
-                                <span className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground pointer-events-none select-none">
-                                    {modelKey}
                                 </span>
                             )}
                             {currentCreatedAt && (

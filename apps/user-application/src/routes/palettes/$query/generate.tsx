@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, Suspense } from "react";
 import {
     createFileRoute,
     stripSearchParams,
@@ -9,7 +9,8 @@ import { cn } from "@/lib/utils";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
-import { userLikedSeedsQueryOptions } from "@/queries/palettes";
+import { userLikedSeedsQueryOptions, searchPalettesQueryOptions, type SearchResultPalette } from "@/queries/palettes";
+import { VirtualizedPalettesGrid } from "@/components/palettes/virtualized-palettes-grid";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
@@ -34,7 +35,6 @@ import {
     GenerateButton,
     type GeneratedPalette,
 } from "@/components/palettes/GenerateButton";
-import { VersionPagination } from "@/components/palettes/version-pagination";
 import {
     getGenerateSessionByQuery,
     saveGenerateSessionSeeds,
@@ -42,13 +42,35 @@ import {
 } from "@/server-functions/generate-session";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { sessionQueryOptions } from "@/queries/auth";
-import { checkSubscriptionStatus } from "@/server-functions/subscription";
 import {
     PalettePageSubtitle,
     QueryDisplay,
 } from "@/components/palettes/PalettePageHeader";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
+
+function sortResults(
+    results: SearchResultPalette[],
+    order: SearchSortOrder,
+): SearchResultPalette[] {
+    return [...results].sort((a, b) => {
+        switch (order) {
+            case "newest":
+                return (
+                    (b.createdAt?.getTime() ?? 0) -
+                    (a.createdAt?.getTime() ?? 0)
+                );
+            case "oldest":
+                return (
+                    (a.createdAt?.getTime() ?? 0) -
+                    (b.createdAt?.getTime() ?? 0)
+                );
+            case "popular":
+            default:
+                return (b.likesCount ?? 0) - (a.likesCount ?? 0);
+        }
+    });
+}
 
 const SEARCH_DEFAULTS = {
     sort: "popular" as SearchSortOrder,
@@ -158,18 +180,8 @@ export const Route = createFileRoute("/palettes/$query/generate")({
                 },
             });
         }
-        // Allow admin users and dev mode to bypass subscription check
-        const isDev = import.meta.env.DEV;
-        if (isDev || session.user.role === "admin") {
-            return;
-        }
-        // Check subscription status for non-admin users
-        const subscriptionStatus = await checkSubscriptionStatus();
-        if (!subscriptionStatus.hasSubscription) {
-            throw redirect({
-                to: "/pricing",
-            });
-        }
+        // Page is accessible to any authenticated user
+        // Subscription status is checked in the UI for the Generate button
     },
     loader: async ({ context, params }) => {
         const query = getQuery(params.query);
@@ -179,6 +191,9 @@ export const Route = createFileRoute("/palettes/$query/generate")({
             );
             return;
         }
+        // Prefetch search results without blocking (will be picked up by useSuspenseQuery)
+        context.queryClient.prefetchQuery(searchPalettesQueryOptions(query, 48));
+
         await Promise.all([
             context.queryClient.ensureQueryData(userLikedSeedsQueryOptions()),
             context.queryClient.ensureQueryData(popularTagsQueryOptions()),
@@ -257,6 +272,94 @@ function BackButton({ query }: { query: string }) {
     );
 }
 
+// Component that suspends while loading search results
+interface SearchResultsProps {
+    query: string;
+    sort: SearchSortOrder;
+    generatedPalettes: Array<AppPalette & { version: number; modelKey: string; theme: string }>;
+    likedSeeds: Set<string>;
+    urlStyle: v.InferOutput<typeof styleWithAutoValidator>;
+    urlAngle: "auto" | number;
+    urlSteps: "auto" | number;
+    isExportOpen: boolean;
+    isGenerating: boolean;
+    pendingPalettesCount: number;
+    onBadFeedback: (seed: string) => void;
+}
+
+function SearchResultsGrid({
+    query,
+    sort,
+    generatedPalettes,
+    likedSeeds,
+    urlStyle,
+    urlAngle,
+    urlSteps,
+    isExportOpen,
+    isGenerating,
+    pendingPalettesCount,
+    onBadFeedback,
+}: SearchResultsProps) {
+    // This will suspend until search results are ready
+    const { data: searchData } = useSuspenseQuery(searchPalettesQueryOptions(query, 48));
+
+    // Sort search results according to the sort order, then combine with generated palettes
+    const sortedSearchResults = sortResults(searchData?.results ?? [], sort);
+    const combinedPalettes = [
+        ...generatedPalettes,
+        ...sortedSearchResults.map((p) => ({
+            ...p,
+            version: 0,
+            modelKey: "",
+            theme: "",
+        })),
+    ];
+
+    // Show empty state if no palettes at all
+    if (combinedPalettes.length === 0 && !isGenerating) {
+        return (
+            <div className="px-5 lg:px-14 py-16 text-center">
+                <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                <p className="text-lg text-muted-foreground mb-2">
+                    No palettes yet
+                </p>
+                <p className="text-sm text-muted-foreground">
+                    Click the Generate button above to create AI-powered palettes
+                </p>
+            </div>
+        );
+    }
+
+    if (isExportOpen) {
+        return (
+            <PalettesGrid
+                palettes={combinedPalettes}
+                likedSeeds={likedSeeds}
+                urlStyle={urlStyle}
+                urlAngle={urlAngle}
+                urlSteps={urlSteps}
+                isExportOpen={isExportOpen}
+                searchQuery={query}
+                onBadFeedback={onBadFeedback}
+            />
+        );
+    }
+
+    return (
+        <VirtualizedPalettesGrid
+            palettes={combinedPalettes}
+            likedSeeds={likedSeeds}
+            urlStyle={urlStyle}
+            urlAngle={urlAngle}
+            urlSteps={urlSteps}
+            isExportOpen={isExportOpen}
+            searchQuery={query}
+            onBadFeedback={onBadFeedback}
+            skeletonCount={isGenerating ? Math.max(0, 30 - pendingPalettesCount) : 0}
+        />
+    );
+}
+
 function GeneratePage() {
     const { query: compressedQuery } = Route.useParams();
     const search = Route.useSearch();
@@ -264,6 +367,7 @@ function GeneratePage() {
     const isExportOpen = search.export === true;
     const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
+
     const exportCount = mounted ? exportList.length : 0;
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
@@ -277,9 +381,8 @@ function GeneratePage() {
 
     // Session state for multi-round generation
     const [sessionId, setSessionId] = useState<string | null>(null);
-    const [sessionVersion, setSessionVersion] = useState(1);
-    const [selectedVersion, setSelectedVersion] = useState(1);
     const [sessionLoaded, setSessionLoaded] = useState(false);
+
 
     // Load existing session from database
     // Use generationQuery (color names for seeds) since sessions are stored with the transformed query
@@ -325,8 +428,6 @@ function GeneratePage() {
     useEffect(() => {
         if (existingSession && !sessionLoaded) {
             setSessionId(existingSession.sessionId);
-            setSessionVersion(existingSession.version);
-            setSelectedVersion(existingSession.version);
 
             // Reconstruct palettes from stored data
             const palettes: VersionedPalette[] = [];
@@ -349,22 +450,11 @@ function GeneratePage() {
     useEffect(() => {
         if (prevQueryRef.current !== generationQuery) {
             setSessionId(null);
-            setSessionVersion(1);
-            setSelectedVersion(1);
             setGeneratedPalettes([]);
             setSessionLoaded(false);
             prevQueryRef.current = generationQuery;
         }
     }, [generationQuery]);
-
-    // Auto-select latest version when new version arrives
-    const prevSessionVersionRef = useRef(sessionVersion);
-    useEffect(() => {
-        if (prevSessionVersionRef.current !== sessionVersion) {
-            setSelectedVersion(sessionVersion);
-            prevSessionVersionRef.current = sessionVersion;
-        }
-    }, [sessionVersion]);
 
     // Convert GeneratedPalette to AppPalette format with version
     const generatedToAppPalette = (generated: GeneratedPalette, version: number): VersionedPalette => {
@@ -398,7 +488,12 @@ function GeneratePage() {
 
     const { data: likedSeeds } = useSuspenseQuery(userLikedSeedsQueryOptions());
 
-    const hasGeneratedResults = generatedPalettes.length > 0 || generateError !== null;
+    // Generated palettes sorted by version descending (latest first)
+    const sortedGeneratedPalettes = generatedPalettes
+        .slice()
+        .sort((a, b) => b.version - a.version);
+
+    const hasGeneratedPalettes = sortedGeneratedPalettes.length > 0;
 
     const backNav = buildBackNavigation({ sort, style, angle, steps, size });
 
@@ -442,13 +537,13 @@ function GeneratePage() {
                         <div className="flex items-center gap-2 shrink-0">
                             <GenerateButton
                                 query={generationQuery}
+                                buttonText="Create more"
                                 sessionId={sessionId}
                                 style={style}
                                 steps={steps}
                                 angle={angle}
                                 onSessionCreated={(newSessionId, version) => {
                                     setSessionId(newSessionId);
-                                    setSessionVersion(version);
                                     pendingSeedsRef.current = { sessionId: newSessionId, version, palettes: [] };
                                 }}
                                 onGenerateStart={() => {
@@ -497,58 +592,109 @@ function GeneratePage() {
                     !isExportOpen && "[&>*]:invisible"
                 )}
             />
-            {hasGeneratedResults && !isExportOpen && (
-                <div className="px-5 lg:px-14">
-                    <div className="flex items-center justify-between gap-4 flex-wrap">
-                        {isGenerating && (
-                            <span className="text-sm text-muted-foreground animate-pulse">
-                                Generating... ({generatedPalettes.filter(p => p.version === sessionVersion).length} received)
-                            </span>
-                        )}
-                        {!isGenerating && <div />}
-                        <VersionPagination
-                            currentVersion={selectedVersion}
-                            totalVersions={sessionVersion}
-                            onVersionChange={setSelectedVersion}
-                        />
+            {generateError && !isExportOpen && (
+                <div className="px-5 lg:px-14 mb-4">
+                    <div className="text-red-500 text-sm p-4 rounded-md bg-red-500/10 border border-red-500/20">
+                        {generateError}
                     </div>
-                    {generateError && (
-                        <div className="text-red-500 text-sm p-4 mt-4 rounded-md bg-red-500/10 border border-red-500/20">
-                            {generateError}
-                        </div>
-                    )}
                 </div>
             )}
-            {(hasGeneratedResults || isExportOpen) && !generateError ? (
-                <PalettesGrid
-                    palettes={generatedPalettes.filter(p => p.version === selectedVersion)}
-                    likedSeeds={likedSeeds}
-                    urlStyle={style}
-                    urlAngle={angle}
-                    urlSteps={steps}
-                    isExportOpen={isExportOpen}
-                    searchQuery={query}
-                    onBadFeedback={(seed) => {
-                        // Remove palette from local state
-                        setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                        // Save feedback to server (which also removes from generatedSeeds)
-                        if (sessionId) {
-                            saveGenerateSessionFeedback({
-                                data: { sessionId, seed, feedback: "bad" },
-                            }).catch(console.error);
-                        }
-                    }}
-                />
-            ) : !isExportOpen ? (
-                <div className="px-5 lg:px-14 py-16 text-center">
-                    <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                    <p className="text-lg text-muted-foreground mb-2">
-                        No generated palettes yet
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                        Click the Generate button above to create AI-powered palettes
-                    </p>
-                </div>
+            {(hasGeneratedPalettes || isGenerating) && !generateError ? (
+                <Suspense
+                    fallback={
+                        isExportOpen ? (
+                            <PalettesGrid
+                                palettes={sortedGeneratedPalettes}
+                                likedSeeds={likedSeeds}
+                                urlStyle={style}
+                                urlAngle={angle}
+                                urlSteps={steps}
+                                isExportOpen={isExportOpen}
+                                searchQuery={query}
+                                onBadFeedback={(seed) => {
+                                    setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                                    if (sessionId) {
+                                        saveGenerateSessionFeedback({
+                                            data: { sessionId, seed, feedback: "bad" },
+                                        }).catch(console.error);
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <VirtualizedPalettesGrid
+                                palettes={sortedGeneratedPalettes}
+                                likedSeeds={likedSeeds}
+                                urlStyle={style}
+                                urlAngle={angle}
+                                urlSteps={steps}
+                                isExportOpen={isExportOpen}
+                                searchQuery={query}
+                                onBadFeedback={(seed) => {
+                                    setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                                    if (sessionId) {
+                                        saveGenerateSessionFeedback({
+                                            data: { sessionId, seed, feedback: "bad" },
+                                        }).catch(console.error);
+                                    }
+                                }}
+                                skeletonCount={isGenerating ? Math.max(0, 30 - pendingSeedsRef.current.palettes.length) : 0}
+                            />
+                        )
+                    }
+                >
+                    <SearchResultsGrid
+                        query={query}
+                        sort={sort}
+                        generatedPalettes={sortedGeneratedPalettes}
+                        likedSeeds={likedSeeds}
+                        urlStyle={style}
+                        urlAngle={angle}
+                        urlSteps={steps}
+                        isExportOpen={isExportOpen}
+                        isGenerating={isGenerating}
+                        pendingPalettesCount={pendingSeedsRef.current.palettes.length}
+                        onBadFeedback={(seed) => {
+                            setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                            if (sessionId) {
+                                saveGenerateSessionFeedback({
+                                    data: { sessionId, seed, feedback: "bad" },
+                                }).catch(console.error);
+                            }
+                        }}
+                    />
+                </Suspense>
+            ) : !isExportOpen && !isGenerating ? (
+                <Suspense
+                    fallback={
+                        <div className="px-5 lg:px-14 py-16 text-center">
+                            <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+                            <p className="text-lg text-muted-foreground mb-2">
+                                Loading palettes...
+                            </p>
+                        </div>
+                    }
+                >
+                    <SearchResultsGrid
+                        query={query}
+                        sort={sort}
+                        generatedPalettes={sortedGeneratedPalettes}
+                        likedSeeds={likedSeeds}
+                        urlStyle={style}
+                        urlAngle={angle}
+                        urlSteps={steps}
+                        isExportOpen={isExportOpen}
+                        isGenerating={isGenerating}
+                        pendingPalettesCount={0}
+                        onBadFeedback={(seed) => {
+                            setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                            if (sessionId) {
+                                saveGenerateSessionFeedback({
+                                    data: { sessionId, seed, feedback: "bad" },
+                                }).catch(console.error);
+                            }
+                        }}
+                    />
+                </Suspense>
             ) : null}
             {!isExportOpen && <div className="py-3 mt-16" />}
         </AppLayout>

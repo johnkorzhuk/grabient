@@ -184,6 +184,49 @@ const getSessionByQuerySchema = v.object({
     query: v.pipe(v.string(), v.minLength(1), v.maxLength(500)),
 });
 
+// Check if a user has existing generated palettes for a query (lightweight check for beforeLoad)
+export const hasExistingPalettes = createServerFn({ method: "GET" })
+    .middleware([optionalAuthFunctionMiddleware])
+    .inputValidator((input) => v.parse(getSessionByQuerySchema, input))
+    .handler(async (ctx) => {
+        const { query } = ctx.data;
+        const userId = ctx.context.userId;
+
+        if (!userId) {
+            return { hasPalettes: false };
+        }
+
+        const normalizedQuery = normalizeQuery(query);
+        const db = getDb();
+
+        // Check if user has a session with generated palettes for this query
+        const results = await db
+            .select({
+                generatedSeeds: refineSessions.generatedSeeds,
+            })
+            .from(refineSessions)
+            .where(
+                and(
+                    eq(refineSessions.query, normalizedQuery),
+                    eq(refineSessions.userId, userId),
+                ),
+            )
+            .limit(1);
+
+        const session = results[0];
+        if (!session?.generatedSeeds) {
+            return { hasPalettes: false };
+        }
+
+        // Check if there are any palettes in any version
+        const seeds = session.generatedSeeds;
+        const hasPalettes = Object.values(seeds).some(
+            (versionPalettes) => Array.isArray(versionPalettes) && versionPalettes.length > 0
+        );
+
+        return { hasPalettes };
+    });
+
 export const getGenerateSessionByQuery = createServerFn({ method: "GET" })
     .middleware([optionalAuthFunctionMiddleware])
     .inputValidator((input) => v.parse(getSessionByQuerySchema, input))

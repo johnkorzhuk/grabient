@@ -38,6 +38,29 @@ import {
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
+function sortResults(
+    results: SearchResultPalette[],
+    order: SearchSortOrder,
+): SearchResultPalette[] {
+    return [...results].sort((a, b) => {
+        switch (order) {
+            case "newest":
+                return (
+                    (b.createdAt?.getTime() ?? 0) -
+                    (a.createdAt?.getTime() ?? 0)
+                );
+            case "oldest":
+                return (
+                    (a.createdAt?.getTime() ?? 0) -
+                    (b.createdAt?.getTime() ?? 0)
+                );
+            case "popular":
+            default:
+                return (b.likesCount ?? 0) - (a.likesCount ?? 0);
+        }
+    });
+}
+
 const SEARCH_DEFAULTS = {
     sort: "popular" as SearchSortOrder,
     style: "auto" as const,
@@ -78,29 +101,6 @@ const searchValidatorSchema = v.object({
     ),
     export: exportValidator,
 });
-
-function sortResults(
-    results: SearchResultPalette[],
-    order: SearchSortOrder,
-): SearchResultPalette[] {
-    return [...results].sort((a, b) => {
-        switch (order) {
-            case "newest":
-                return (
-                    (b.createdAt?.getTime() ?? 0) -
-                    (a.createdAt?.getTime() ?? 0)
-                );
-            case "oldest":
-                return (
-                    (a.createdAt?.getTime() ?? 0) -
-                    (b.createdAt?.getTime() ?? 0)
-                );
-            case "popular":
-            default:
-                return (b.likesCount ?? 0) - (a.likesCount ?? 0);
-        }
-    });
-}
 
 function getQuery(param: string): string | null {
     if (isValidSeed(param)) {
@@ -270,28 +270,31 @@ function BackButton({ sort, style, angle, steps, size }: SearchParams) {
     );
 }
 
-function GenerateButton({ query }: { query: string }) {
+function GenerateButton({ query, search }: { query: string; search: SearchParams }) {
     return (
         <Link
             to="/palettes/$query/generate"
             params={{ query }}
+            search={{
+                style: search.style !== "auto" ? search.style : undefined,
+                angle: search.angle !== "auto" ? search.angle : undefined,
+                steps: search.steps !== "auto" ? search.steps : undefined,
+                size: search.size !== "auto" ? search.size : undefined,
+                sort: search.sort !== "popular" ? search.sort : undefined,
+            }}
+            style={{ backgroundColor: "var(--background)" }}
+            className={cn(
+                "disable-animation-on-theme-change",
+                "inline-flex items-center justify-center gap-2 rounded-md",
+                "font-bold text-sm h-8.5 px-3 border border-solid",
+                "border-input hover:border-muted-foreground/30 hover:bg-background/60",
+                "text-muted-foreground hover:text-foreground",
+                "transition-colors duration-200 cursor-pointer",
+                "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+            )}
         >
-            <button
-                type="button"
-                style={{ backgroundColor: "var(--background)" }}
-                className={cn(
-                    "disable-animation-on-theme-change",
-                    "inline-flex items-center justify-center gap-2 rounded-md",
-                    "font-bold text-sm h-8.5 px-3 border border-solid",
-                    "border-input hover:border-muted-foreground/30 hover:bg-background/60",
-                    "text-muted-foreground hover:text-foreground",
-                    "transition-colors duration-200 cursor-pointer",
-                    "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
-                )}
-            >
-                <span>Generate</span>
-                <Sparkles className="w-4 h-4" />
-            </button>
+            <span>Generate</span>
+            <Sparkles className="w-4 h-4" />
         </Link>
     );
 }
@@ -395,7 +398,7 @@ function SearchResultsPage() {
                             <span className="ml-1">palettes</span>
                         </h1>
                         <div className="flex items-center gap-2 shrink-0">
-                            <GenerateButton query={compressedQuery} />
+                            <GenerateButton query={compressedQuery} search={{ sort, style, angle, steps, size }} />
                             <SelectedButtonContainer className="contents" />
                         </div>
                     </div>

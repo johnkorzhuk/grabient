@@ -39,6 +39,7 @@ interface GenerateButtonProps {
     angle?: "auto" | number;
     disabled?: boolean;
     className?: string;
+    buttonText?: string;
 }
 
 export function GenerateButton({
@@ -54,6 +55,7 @@ export function GenerateButton({
     angle,
     disabled,
     className,
+    buttonText = "Generate",
 }: GenerateButtonProps) {
     const { data: session, isPending: isAuthPending } = authClient.useSession();
     const { data: customerState } = useCustomerState();
@@ -229,7 +231,7 @@ export function GenerateButton({
                     </>
                 ) : (
                     <>
-                        <span>Generate</span>
+                        <span>{buttonText}</span>
                         <Sparkles className="w-4 h-4" />
                     </>
                 )}
