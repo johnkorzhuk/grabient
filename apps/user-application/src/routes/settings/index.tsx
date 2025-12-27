@@ -585,16 +585,17 @@ function SettingsPage() {
                                                     </div>
                                                 )}
 
-                                                {customerState?.activeMeters && customerState.activeMeters.length > 0 && (
-                                                    customerState.activeMeters.map((meter) => (
-                                                        <div key={meter.meterId} className="space-y-1">
+                                                {(() => {
+                                                    const meter = customerState?.activeMeters?.find(m => m.creditedUnits > 0) ?? customerState?.activeMeters?.[0];
+                                                    return meter && (
+                                                        <div className="space-y-1">
                                                             <p className="text-sm text-muted-foreground">AI Generations</p>
                                                             <p className="text-sm font-medium">
                                                                 {meter.consumedUnits} / {meter.creditedUnits} used
                                                             </p>
                                                         </div>
-                                                    ))
-                                                )}
+                                                    );
+                                                })()}
                                             </div>
 
                                             {subscription?.cancelAtPeriodEnd && (

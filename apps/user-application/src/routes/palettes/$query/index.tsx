@@ -22,28 +22,20 @@ import {
     stepsWithAutoValidator,
     sizeWithAutoValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
-import {
-    hexToColorName,
-    colorNameToHex,
-    isColorName,
-    simplifyHex,
-    isExactColorMatch,
-    HEX_CODE_REGEX,
-} from "@repo/data-ops/color-utils";
+import { hexToColorName, HEX_CODE_REGEX } from "@repo/data-ops/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
-import { Search, ArrowLeft, Sparkles } from "lucide-react";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
 import { useMounted } from "@mantine/hooks";
-import { authClient } from "@/lib/auth-client";
-import type { AuthUser } from "@repo/data-ops/auth/client-types";
+import {
+    PalettePageHeader,
+    PalettePageSubtitle,
+    QueryDisplay,
+    queryHasSubtitle,
+} from "@/components/palettes/PalettePageHeader";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -229,306 +221,6 @@ export const Route = createFileRoute("/palettes/$query/")({
     component: SearchResultsPage,
 });
 
-function ColorSwatch({ hex }: { hex: string }) {
-    const colorName = hexToColorName(hex);
-    const displayHex = simplifyHex(hex);
-    const isExact = isExactColorMatch(hex);
-
-    const swatch = (
-        <span
-            className="inline-block w-4 h-4 rounded-full border border-input cursor-default"
-            style={{ backgroundColor: hex }}
-        />
-    );
-
-    return (
-        <span className="inline-flex items-center gap-1.5">
-            {isExact ? (
-                <Tooltip>
-                    <TooltipTrigger asChild>{swatch}</TooltipTrigger>
-                    <TooltipContent>
-                        <span className="capitalize">{colorName}</span>
-                    </TooltipContent>
-                </Tooltip>
-            ) : (
-                swatch
-            )}
-            <span className="text-foreground">{displayHex}</span>
-        </span>
-    );
-}
-
-function ColorNameSwatch({ name, hex }: { name: string; hex: string }) {
-    const displayHex = simplifyHex(hex);
-    const isExact = isExactColorMatch(hex);
-
-    const swatch = (
-        <span
-            className="inline-block w-4 h-4 rounded-full border border-input cursor-default"
-            style={{ backgroundColor: hex }}
-        />
-    );
-
-    return (
-        <span className="inline-flex items-center gap-1.5">
-            {isExact ? (
-                <Tooltip>
-                    <TooltipTrigger asChild>{swatch}</TooltipTrigger>
-                    <TooltipContent>
-                        <span>{displayHex}</span>
-                    </TooltipContent>
-                </Tooltip>
-            ) : (
-                swatch
-            )}
-            <span className="text-foreground capitalize">{name}</span>
-        </span>
-    );
-}
-
-function cleanTextPart(text: string): string {
-    return text.replace(/[,#]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function parseQueryForDisplay(
-    query: string,
-): Array<{ type: "text" | "hex" | "colorName"; value: string; hex?: string }> {
-    const sanitized = query
-        .replace(/[\[\]"{}]/g, "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 100);
-
-    const parts: Array<{
-        type: "text" | "hex" | "colorName";
-        value: string;
-        hex?: string;
-    }> = [];
-    const seenColors = new Set<string>();
-
-    let lastIndex = 0;
-    const segments: Array<{
-        type: "text" | "hex";
-        value: string;
-        start: number;
-        end: number;
-    }> = [];
-
-    for (const match of sanitized.matchAll(HEX_CODE_REGEX)) {
-        if (match.index! > lastIndex) {
-            segments.push({
-                type: "text",
-                value: sanitized.slice(lastIndex, match.index),
-                start: lastIndex,
-                end: match.index!,
-            });
-        }
-        segments.push({
-            type: "hex",
-            value: match[0],
-            start: match.index!,
-            end: match.index! + match[0].length,
-        });
-        lastIndex = match.index! + match[0].length;
-    }
-
-    if (lastIndex < sanitized.length) {
-        segments.push({
-            type: "text",
-            value: sanitized.slice(lastIndex),
-            start: lastIndex,
-            end: sanitized.length,
-        });
-    }
-
-    for (const segment of segments) {
-        if (segment.type === "hex") {
-            const colorName = hexToColorName(segment.value);
-            if (!seenColors.has(colorName)) {
-                seenColors.add(colorName);
-                parts.push({ type: "hex", value: segment.value });
-            }
-        } else {
-            const words = segment.value.split(/\s+/);
-            let textBuffer = "";
-
-            for (const word of words) {
-                const cleanWord = word.replace(/[,]+/g, "").trim();
-                if (cleanWord.toLowerCase() === "and") {
-                    continue;
-                }
-                if (cleanWord && isColorName(cleanWord)) {
-                    if (textBuffer.trim()) {
-                        parts.push({
-                            type: "text",
-                            value: cleanTextPart(textBuffer),
-                        });
-                        textBuffer = "";
-                    }
-                    const hex = colorNameToHex(cleanWord);
-                    if (hex && !seenColors.has(cleanWord.toLowerCase())) {
-                        seenColors.add(cleanWord.toLowerCase());
-                        parts.push({
-                            type: "colorName",
-                            value: cleanWord,
-                            hex,
-                        });
-                    }
-                } else {
-                    textBuffer += (textBuffer ? " " : "") + word;
-                }
-            }
-
-            if (textBuffer.trim()) {
-                const cleaned = cleanTextPart(textBuffer);
-                if (cleaned) parts.push({ type: "text", value: cleaned });
-            }
-        }
-    }
-
-    return parts;
-}
-
-type QueryType = "seed" | "hex" | "text";
-
-function getQueryType(query: string): QueryType {
-    if (isValidSeed(query)) return "seed";
-    if (HEX_CODE_REGEX.test(query)) {
-        HEX_CODE_REGEX.lastIndex = 0;
-        return "hex";
-    }
-    return "text";
-}
-
-function getActualSearchTerms(
-    query: string,
-): { colorNames: string[]; hexCodes: string[] } | null {
-    const seedData = getSeedColorData(query);
-    if (seedData) {
-        return { colorNames: seedData.colorNames, hexCodes: seedData.hexCodes };
-    }
-
-    const hexMatches = query.match(HEX_CODE_REGEX);
-    if (hexMatches && hexMatches.length > 0) {
-        const colorNames: string[] = [];
-        const hexCodes: string[] = [];
-        const seen = new Set<string>();
-        for (const hex of hexMatches) {
-            const name = hexToColorName(hex);
-            if (!seen.has(name)) {
-                seen.add(name);
-                colorNames.push(name);
-                hexCodes.push(colorNameToHex(name) || hex);
-            }
-        }
-        return { colorNames, hexCodes };
-    }
-
-    return null;
-}
-
-function ResultsForSubtitle({
-    query,
-    searchParams,
-}: {
-    query: string;
-    searchParams: Record<string, unknown>;
-}) {
-    const queryType = getQueryType(query);
-
-    if (queryType === "seed") {
-        return (
-            <p
-                className="absolute top-full mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
-                style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
-            >
-                Showing results for seed:{" "}
-                <Link
-                    to="/$seed"
-                    params={{ seed: query }}
-                    search={searchParams}
-                    className="text-foreground/80 hover:text-foreground underline underline-offset-2 decoration-muted-foreground/40 hover:decoration-foreground/50 transition-colors"
-                >
-                    {query.slice(0, 12)}...
-                </Link>
-            </p>
-        );
-    }
-
-    if (queryType === "hex") {
-        const searchTerms = getActualSearchTerms(query);
-        if (!searchTerms) return null;
-
-        return (
-            <p
-                className="absolute top-full mt-1.5 text-sm text-muted-foreground font-medium flex items-center gap-1.5"
-                style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
-            >
-                Showing results for:
-                {searchTerms.colorNames.map((name, i) => (
-                    <span key={i} className="inline-flex items-center gap-1">
-                        <span
-                            className="inline-block w-3 h-3 rounded-sm border border-input"
-                            style={{ backgroundColor: searchTerms.hexCodes[i] }}
-                        />
-                        <span className="text-foreground/80 capitalize">
-                            {name}
-                        </span>
-                    </span>
-                ))}
-            </p>
-        );
-    }
-
-    return null;
-}
-
-function QueryDisplay({ query }: { query: string }) {
-    const seedData = getSeedColorData(query);
-    if (seedData) {
-        return (
-            <>
-                {seedData.colorNames.map((name, i) => (
-                    <span key={i} className="inline-flex items-center">
-                        <ColorNameSwatch
-                            name={name}
-                            hex={seedData.hexCodes[i]!}
-                        />
-                    </span>
-                ))}
-            </>
-        );
-    }
-
-    const parts = parseQueryForDisplay(query);
-
-    if (parts.length === 0) {
-        return <span>Search</span>;
-    }
-
-    return (
-        <>
-            {parts.map((part, i) => {
-                if (part.type === "hex") {
-                    return (
-                        <span key={i} className="inline-flex items-center">
-                            <ColorSwatch hex={part.value} />
-                        </span>
-                    );
-                }
-                if (part.type === "colorName" && part.hex) {
-                    return (
-                        <span key={i} className="inline-flex items-center">
-                            <ColorNameSwatch name={part.value} hex={part.hex} />
-                        </span>
-                    );
-                }
-                return <span key={i}>{part.value}</span>;
-            })}
-        </>
-    );
-}
-
 function sortToRoute(sort: SearchSortOrder): string {
     switch (sort) {
         case "newest":
@@ -580,15 +272,6 @@ function BackButton({ sort, style, angle, steps, size }: SearchParams) {
 }
 
 function GenerateButton({ query }: { query: string }) {
-    const { data: session, isPending } = authClient.useSession();
-    const user = session?.user as AuthUser | undefined;
-    const isAdmin = user?.role === "admin" || import.meta.env.DEV;
-
-    // Don't render until auth state is available, and only render for admins (or in dev mode)
-    if (isPending || !isAdmin) {
-        return null;
-    }
-
     return (
         <Link
             to="/palettes/$query/generate"
@@ -663,8 +346,7 @@ function SearchResultsPage() {
         );
     }
 
-    const queryType = getQueryType(query);
-    const hasSubtitle = queryType === "seed" || queryType === "hex";
+    const hasSubtitle = queryHasSubtitle(query);
     const preservedSearch = {
         style: style !== "auto" ? style : undefined,
         angle: angle !== "auto" ? angle : undefined,
@@ -718,7 +400,7 @@ function SearchResultsPage() {
                             <SelectedButtonContainer className="contents" />
                         </div>
                     </div>
-                    <ResultsForSubtitle
+                    <PalettePageSubtitle
                         query={query}
                         searchParams={preservedSearch}
                     />

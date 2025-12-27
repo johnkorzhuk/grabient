@@ -8,7 +8,7 @@ export function useCustomerState() {
             const { data } = await authClient.customer.state();
             return data;
         },
-        staleTime: 30000,
+        staleTime: 5000, // 5 seconds - keep fresh for usage tracking
     });
 }
 

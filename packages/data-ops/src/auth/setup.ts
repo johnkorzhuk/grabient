@@ -88,6 +88,7 @@ export const createBetterAuth = (config: {
   }
 
   // After hook: ensure Polar customer exists for existing users on sign-in
+  // Also handles re-linking customers who deleted their account and signed up again
   const polarAfterHook = polarClient ? createAuthMiddleware(async (ctx) => {
     const isSignIn = ctx.path.includes("/sign-in/") || ctx.path.includes("/callback/");
     if (!isSignIn) return;
@@ -106,11 +107,25 @@ export const createBetterAuth = (config: {
 
       if (isNotFound) {
         try {
-          await polarClient.customers.create({
-            email: user.email,
-            externalId: user.id,
-            name: user.name || user.email,
-          });
+          // First, check if a customer exists with this email (e.g., user deleted account and signed up again)
+          const existingCustomers = await polarClient.customers.list({ email: user.email });
+          const existingCustomer = existingCustomers.result.items[0];
+
+          if (existingCustomer) {
+            // Re-link the existing customer to the new user ID
+            // This preserves their subscription/trial history and prevents trial abuse
+            await polarClient.customers.update({
+              id: existingCustomer.id,
+              customerUpdate: { externalId: user.id },
+            });
+          } else {
+            // No existing customer - create a new one
+            await polarClient.customers.create({
+              email: user.email,
+              externalId: user.id,
+              name: user.name || user.email,
+            });
+          }
         } catch {
           // Silently fail - customer creation is not critical for sign-in
         }
@@ -118,7 +133,7 @@ export const createBetterAuth = (config: {
     }
   }) : undefined;
 
-  // Before hook: delete Polar customer before account deletion (cancels subscriptions automatically)
+  // Before hook: cancel subscriptions before account deletion (keeps customer to prevent trial abuse)
   const polarBeforeHook = polarClient ? createAuthMiddleware(async (ctx) => {
     if (ctx.path !== "/delete-user/callback") return;
 
@@ -126,9 +141,20 @@ export const createBetterAuth = (config: {
     if (!session?.user?.id) return;
 
     try {
-      await polarClient.customers.deleteExternal({ externalId: session.user.id });
+      // Get the customer by external ID
+      const customer = await polarClient.customers.getExternal({ externalId: session.user.id });
+
+      // Revoke all active subscriptions for this customer (immediate cancellation)
+      const subscriptions = await polarClient.subscriptions.list({ customerId: customer.id });
+      for (const subscription of subscriptions.result.items) {
+        if (subscription.status === "active" || subscription.status === "trialing") {
+          await polarClient.subscriptions.revoke({ id: subscription.id });
+        }
+      }
+      // Note: We intentionally do NOT delete the customer record
+      // This preserves trial history and prevents users from getting new trials by deleting/recreating accounts
     } catch {
-      // Silently fail - customer may not exist or already deleted
+      // Silently fail - customer may not exist
     }
   }) : undefined;
 

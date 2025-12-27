@@ -7,7 +7,9 @@ import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabient";
 import { authClient } from "@/lib/auth-client";
-import type { AuthUser } from "@repo/data-ops/auth/client-types";
+import { useCustomerState } from "@/hooks/useCustomerState";
+import { useRouter } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import * as v from "valibot";
 
 type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
@@ -53,15 +55,23 @@ export function GenerateButton({
     disabled,
     className,
 }: GenerateButtonProps) {
-    const { data: session, isPending } = authClient.useSession();
-    const user = session?.user as AuthUser | undefined;
+    const { data: session, isPending: isAuthPending } = authClient.useSession();
+    const { data: customerState } = useCustomerState();
+    const router = useRouter();
+    const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = useState(false);
-    const isAdmin = user?.role === "admin" || import.meta.env.DEV;
 
-    // Don't render until auth state is available, and only render for admins (or in dev mode)
-    if (isPending || !isAdmin) {
-        return null;
-    }
+    const isAuthenticated = !!session?.user;
+    const meter = customerState?.activeMeters?.find(m => m.creditedUnits > 0) ?? customerState?.activeMeters?.[0];
+    const subscription = customerState?.activeSubscriptions?.[0];
+
+    const consumed = meter?.consumedUnits ?? 0;
+    const credited = meter?.creditedUnits ?? 0;
+    const remaining = Math.max(0, credited - consumed);
+    // Show warning when 5 or fewer generations remaining, or when at 90%+ usage
+    const usagePercent = credited > 0 ? (consumed / credited) * 100 : 0;
+    const isNearingLimit = (remaining > 0 && remaining <= 5) || (usagePercent >= 90 && remaining > 0);
+    const hasNoCredits = credited > 0 && remaining === 0;
 
     // Process SSE stream from server
     const processStream = async (response: Response): Promise<void> => {
@@ -127,6 +137,14 @@ export function GenerateButton({
     };
 
     const handleGenerate = async () => {
+        if (!isAuthenticated) {
+            router.navigate({
+                to: "/login",
+                search: { redirect: window.location.pathname + window.location.search },
+            });
+            return;
+        }
+
         setIsGenerating(true);
         onGenerateStart();
 
@@ -145,6 +163,21 @@ export function GenerateButton({
 
             try {
                 await trackAIGeneration();
+                // Optimistically update the customer state cache immediately
+                // This ensures accurate display without waiting for Polar to process
+                // We don't invalidate because Polar takes time to process the event
+                // and an immediate refetch would return stale data, overwriting our update
+                queryClient.setQueryData(["customer-state"], (old: typeof customerState) => {
+                    if (!old?.activeMeters) return old;
+                    return {
+                        ...old,
+                        activeMeters: old.activeMeters.map(meter => ({
+                            ...meter,
+                            consumedUnits: meter.consumedUnits + 1,
+                            balance: meter.balance - 1,
+                        })),
+                    };
+                });
             } catch (trackError) {
                 console.error("[GenerateButton] Failed to track usage:", trackError);
             }
@@ -159,12 +192,24 @@ export function GenerateButton({
         }
     };
 
+    const formatResetDate = (dateString: string | Date | null | undefined) => {
+        if (!dateString) return null;
+        return new Date(dateString).toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+        });
+    };
+
+    const resetDate = subscription?.currentPeriodEnd
+        ? formatResetDate(subscription.currentPeriodEnd)
+        : null;
+
     return (
-        <div className={cn("inline-flex items-center gap-2", className)}>
+        <div className={cn("relative inline-flex items-center", className)}>
             <button
                 type="button"
                 onClick={handleGenerate}
-                disabled={disabled || isGenerating}
+                disabled={disabled || isGenerating || isAuthPending || hasNoCredits}
                 style={{ backgroundColor: "var(--background)" }}
                 className={cn(
                     "disable-animation-on-theme-change",
@@ -189,6 +234,22 @@ export function GenerateButton({
                     </>
                 )}
             </button>
+            {isAuthenticated && isNearingLimit && (
+                <p
+                    className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap"
+                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+                >
+                    {remaining} generation{remaining !== 1 ? "s" : ""} left
+                </p>
+            )}
+            {isAuthenticated && hasNoCredits && (
+                <p
+                    className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap"
+                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+                >
+                    No generations left{resetDate ? ` · Resets ${resetDate}` : ""}
+                </p>
+            )}
         </div>
     );
 }

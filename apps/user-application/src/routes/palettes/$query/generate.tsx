@@ -14,14 +14,7 @@ import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
-import {
-    hexToColorName,
-    colorNameToHex,
-    isColorName,
-    simplifyHex,
-    isExactColorMatch,
-    HEX_CODE_REGEX,
-} from "@repo/data-ops/color-utils";
+import { hexToColorName, HEX_CODE_REGEX } from "@repo/data-ops/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed, deserializeCoeffs } from "@repo/data-ops/serialization";
 import {
@@ -33,11 +26,6 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import type { AppPalette } from "@/queries/palettes";
 import { ArrowLeft, Sparkles } from "lucide-react";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-} from "@/components/ui/tooltip";
 import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
@@ -55,6 +43,10 @@ import {
 import { generateHexColors } from "@/lib/paletteUtils";
 import { sessionQueryOptions } from "@/queries/auth";
 import { checkSubscriptionStatus } from "@/server-functions/subscription";
+import {
+    PalettePageSubtitle,
+    QueryDisplay,
+} from "@/components/palettes/PalettePageHeader";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -115,6 +107,14 @@ function formatColorList(colors: string[]): string {
     if (colors.length === 0) return "";
     if (colors.length === 1) return colors[0]!;
     return colors.join(", ");
+}
+
+function getQueryForGeneration(query: string): string {
+    const seedData = getSeedColorData(query);
+    if (seedData) {
+        return formatColorList(seedData.colorNames);
+    }
+    return query;
 }
 
 function getHeadingText(query: string): string {
@@ -209,223 +209,6 @@ export const Route = createFileRoute("/palettes/$query/generate")({
     component: GeneratePage,
 });
 
-function ColorSwatch({ hex }: { hex: string }) {
-    const colorName = hexToColorName(hex);
-    const displayHex = simplifyHex(hex);
-    const isExact = isExactColorMatch(hex);
-
-    const swatch = (
-        <span
-            className="inline-block w-4 h-4 rounded-full border border-input cursor-default"
-            style={{ backgroundColor: hex }}
-        />
-    );
-
-    return (
-        <span className="inline-flex items-center gap-1.5">
-            {isExact ? (
-                <Tooltip>
-                    <TooltipTrigger asChild>{swatch}</TooltipTrigger>
-                    <TooltipContent>
-                        <span className="capitalize">{colorName}</span>
-                    </TooltipContent>
-                </Tooltip>
-            ) : (
-                swatch
-            )}
-            <span className="text-foreground">{displayHex}</span>
-        </span>
-    );
-}
-
-function ColorNameSwatch({ name, hex }: { name: string; hex: string }) {
-    const displayHex = simplifyHex(hex);
-    const isExact = isExactColorMatch(hex);
-
-    const swatch = (
-        <span
-            className="inline-block w-4 h-4 rounded-full border border-input cursor-default"
-            style={{ backgroundColor: hex }}
-        />
-    );
-
-    return (
-        <span className="inline-flex items-center gap-1.5">
-            {isExact ? (
-                <Tooltip>
-                    <TooltipTrigger asChild>{swatch}</TooltipTrigger>
-                    <TooltipContent>
-                        <span>{displayHex}</span>
-                    </TooltipContent>
-                </Tooltip>
-            ) : (
-                swatch
-            )}
-            <span className="text-foreground capitalize">{name}</span>
-        </span>
-    );
-}
-
-function cleanTextPart(text: string): string {
-    return text.replace(/[,#]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function parseQueryForDisplay(
-    query: string,
-): Array<{ type: "text" | "hex" | "colorName"; value: string; hex?: string }> {
-    const sanitized = query
-        .replace(/[\[\]"{}]/g, "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 100);
-
-    const parts: Array<{
-        type: "text" | "hex" | "colorName";
-        value: string;
-        hex?: string;
-    }> = [];
-    const seenColors = new Set<string>();
-
-    let lastIndex = 0;
-    const segments: Array<{
-        type: "text" | "hex";
-        value: string;
-        start: number;
-        end: number;
-    }> = [];
-
-    for (const match of sanitized.matchAll(HEX_CODE_REGEX)) {
-        if (match.index! > lastIndex) {
-            segments.push({
-                type: "text",
-                value: sanitized.slice(lastIndex, match.index),
-                start: lastIndex,
-                end: match.index!,
-            });
-        }
-        segments.push({
-            type: "hex",
-            value: match[0],
-            start: match.index!,
-            end: match.index! + match[0].length,
-        });
-        lastIndex = match.index! + match[0].length;
-    }
-
-    if (lastIndex < sanitized.length) {
-        segments.push({
-            type: "text",
-            value: sanitized.slice(lastIndex),
-            start: lastIndex,
-            end: sanitized.length,
-        });
-    }
-
-    for (const segment of segments) {
-        if (segment.type === "hex") {
-            const colorName = hexToColorName(segment.value);
-            if (!seenColors.has(colorName)) {
-                seenColors.add(colorName);
-                parts.push({ type: "hex", value: segment.value });
-            }
-        } else {
-            const words = segment.value.split(/\s+/);
-            let textBuffer = "";
-
-            for (const word of words) {
-                const cleanWord = word.replace(/[,]+/g, "").trim();
-                if (cleanWord.toLowerCase() === "and") {
-                    continue;
-                }
-                if (cleanWord && isColorName(cleanWord)) {
-                    if (textBuffer.trim()) {
-                        parts.push({
-                            type: "text",
-                            value: cleanTextPart(textBuffer),
-                        });
-                        textBuffer = "";
-                    }
-                    const hex = colorNameToHex(cleanWord);
-                    if (hex && !seenColors.has(cleanWord.toLowerCase())) {
-                        seenColors.add(cleanWord.toLowerCase());
-                        parts.push({
-                            type: "colorName",
-                            value: cleanWord,
-                            hex,
-                        });
-                    }
-                } else {
-                    textBuffer += (textBuffer ? " " : "") + word;
-                }
-            }
-
-            if (textBuffer.trim()) {
-                const cleaned = cleanTextPart(textBuffer);
-                if (cleaned) parts.push({ type: "text", value: cleaned });
-            }
-        }
-    }
-
-    return parts;
-}
-
-type QueryType = "seed" | "hex" | "text";
-
-function getQueryType(query: string): QueryType {
-    if (isValidSeed(query)) return "seed";
-    if (HEX_CODE_REGEX.test(query)) {
-        HEX_CODE_REGEX.lastIndex = 0;
-        return "hex";
-    }
-    return "text";
-}
-
-function QueryDisplay({ query }: { query: string }) {
-    const seedData = getSeedColorData(query);
-    if (seedData) {
-        return (
-            <>
-                {seedData.colorNames.map((name, i) => (
-                    <span key={i} className="inline-flex items-center">
-                        <ColorNameSwatch
-                            name={name}
-                            hex={seedData.hexCodes[i]!}
-                        />
-                    </span>
-                ))}
-            </>
-        );
-    }
-
-    const parts = parseQueryForDisplay(query);
-
-    if (parts.length === 0) {
-        return <span>Search</span>;
-    }
-
-    return (
-        <>
-            {parts.map((part, i) => {
-                if (part.type === "hex") {
-                    return (
-                        <span key={i} className="inline-flex items-center">
-                            <ColorSwatch hex={part.value} />
-                        </span>
-                    );
-                }
-                if (part.type === "colorName" && part.hex) {
-                    return (
-                        <span key={i} className="inline-flex items-center">
-                            <ColorNameSwatch name={part.value} hex={part.hex} />
-                        </span>
-                    );
-                }
-                return <span key={i}>{part.value}</span>;
-            })}
-        </>
-    );
-}
-
 function sortToRoute(sort: SearchSortOrder): string {
     switch (sort) {
         case "newest":
@@ -484,6 +267,7 @@ function GeneratePage() {
     const exportCount = mounted ? exportList.length : 0;
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
+    const generationQuery = getQueryForGeneration(query);
 
     // Generate state - palettes include version info, model source, and theme
     type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };
@@ -498,10 +282,11 @@ function GeneratePage() {
     const [sessionLoaded, setSessionLoaded] = useState(false);
 
     // Load existing session from database
+    // Use generationQuery (color names for seeds) since sessions are stored with the transformed query
     const { data: existingSession } = useQuery({
-        queryKey: ["generate-session", query],
-        queryFn: () => getGenerateSessionByQuery({ data: { query } }),
-        enabled: !!query && !sessionLoaded,
+        queryKey: ["generate-session", generationQuery],
+        queryFn: () => getGenerateSessionByQuery({ data: { query: generationQuery } }),
+        enabled: !!generationQuery && !sessionLoaded,
         staleTime: 0,
     });
 
@@ -559,18 +344,18 @@ function GeneratePage() {
         }
     }, [existingSession, sessionLoaded]);
 
-    // Reset session when query changes
-    const prevQueryRef = useRef(query);
+    // Reset session when generation query changes
+    const prevQueryRef = useRef(generationQuery);
     useEffect(() => {
-        if (prevQueryRef.current !== query) {
+        if (prevQueryRef.current !== generationQuery) {
             setSessionId(null);
             setSessionVersion(1);
             setSelectedVersion(1);
             setGeneratedPalettes([]);
             setSessionLoaded(false);
-            prevQueryRef.current = query;
+            prevQueryRef.current = generationQuery;
         }
-    }, [query]);
+    }, [generationQuery]);
 
     // Auto-select latest version when new version arrives
     const prevSessionVersionRef = useRef(sessionVersion);
@@ -617,8 +402,9 @@ function GeneratePage() {
 
     const backNav = buildBackNavigation({ sort, style, angle, steps, size });
 
-    const queryType = getQueryType(query);
-    const hasSubtitle = queryType === "seed" || queryType === "hex";
+    // On generate route, only show subtitle for seeds (not hex codes)
+    const isSeed = isValidSeed(query);
+    const hasSubtitle = isSeed;
 
     return (
         <AppLayout
@@ -631,7 +417,7 @@ function GeneratePage() {
         >
             <div
                 className={cn(
-                    "px-5 lg:px-14",
+                    "px-5 lg:px-14 relative",
                     hasSubtitle ? "mb-14 md:mb-16" : "mb-10 md:mb-12.5",
                     isExportOpen && "hidden"
                 )}
@@ -645,7 +431,7 @@ function GeneratePage() {
                     {!isExportOpen && (
                         <div className="flex items-center gap-2 shrink-0">
                             <GenerateButton
-                                query={query}
+                                query={generationQuery}
                                 sessionId={sessionId}
                                 style={style}
                                 steps={steps}
@@ -691,6 +477,7 @@ function GeneratePage() {
                         </div>
                     )}
                 </div>
+                {isSeed && <PalettePageSubtitle query={query} />}
             </div>
             {isExportOpen && (
                 <div className="px-5 lg:px-14 mb-10 md:mb-12.5">

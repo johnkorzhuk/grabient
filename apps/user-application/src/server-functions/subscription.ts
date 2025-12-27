@@ -32,8 +32,9 @@ export const checkSubscriptionStatus = createServerFn({ method: "GET" })
 
                 const hasSubscription =
                     (customerState.activeSubscriptions?.length ?? 0) > 0;
-                const meter = customerState.activeMeters?.[0];
-                const creditsRemaining = Math.max(0, meter?.balance ?? 0);
+                // Find the meter with credits, fallback to first meter
+                const meter = customerState.activeMeters?.find(m => m.creditedUnits > 0) ?? customerState.activeMeters?.[0];
+                const creditsRemaining = meter?.balance ?? 0;
                 const hasCredits = creditsRemaining > 0;
 
                 return { hasSubscription, hasCredits, creditsRemaining };
