@@ -5,9 +5,11 @@ import { cn } from "@/lib/utils";
 import { authClient, useSession } from "@/lib/auth-client";
 import { useHasActiveSubscription } from "@/hooks/useCustomerState";
 import { Check, X, Rocket } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { GradientBorderButton } from "@/components/GradientBorderButton";
+import { useStore } from "@tanstack/react-store";
+import { paletteAnimationStore } from "@/stores/palette-animation";
 
 export const Route = createFileRoute("/pricing")({
     component: PricingPage,
@@ -30,6 +32,25 @@ const PRO_FEATURES = [
     { text: "More coming soon", included: true, muted: true },
 ];
 
+const FIXED_STOP_COUNT = 10;
+const TWEEN_DURATION = 2000;
+
+function interpolateColor(color1: string, color2: string, factor: number): string {
+    const r1 = parseInt(color1.slice(1, 3), 16);
+    const g1 = parseInt(color1.slice(3, 5), 16);
+    const b1 = parseInt(color1.slice(5, 7), 16);
+
+    const r2 = parseInt(color2.slice(1, 3), 16);
+    const g2 = parseInt(color2.slice(3, 5), 16);
+    const b2 = parseInt(color2.slice(5, 7), 16);
+
+    const r = Math.round(r1 + (r2 - r1) * factor);
+    const g = Math.round(g1 + (g2 - g1) * factor);
+    const b = Math.round(b1 + (b2 - b1) * factor);
+
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
+
 function PricingPage() {
     const queryClient = useQueryClient();
     const { data: session, isPending: sessionPending } = useSession();
@@ -37,9 +58,64 @@ function PricingPage() {
     const [isYearly, setIsYearly] = useState(false);
     const [checkoutLoading, setCheckoutLoading] = useState(false);
 
+    const targetColors = useStore(paletteAnimationStore, (state) => state.normalizedColors);
+    const [displayedColors, setDisplayedColors] = useState<string[]>(
+        () => Array(FIXED_STOP_COUNT).fill("#888888")
+    );
+    const animationRef = useRef<number | null>(null);
+    const tweenStateRef = useRef<{
+        startColors: string[];
+        endColors: string[];
+        startTime: number;
+    } | null>(null);
+
     useEffect(() => {
         queryClient.invalidateQueries({ queryKey: ["customer-state"] });
     }, [queryClient]);
+
+    useEffect(() => {
+        if (targetColors.length === 0) return;
+
+        tweenStateRef.current = {
+            startColors: [...displayedColors],
+            endColors: [...targetColors],
+            startTime: performance.now(),
+        };
+
+        const animate = (currentTime: number) => {
+            const state = tweenStateRef.current;
+            if (!state) return;
+
+            const elapsed = currentTime - state.startTime;
+            const progress = Math.min(elapsed / TWEEN_DURATION, 1);
+
+            const interpolated = state.startColors.map((startColor, i) => {
+                const endColor = state.endColors[i] || startColor;
+                return interpolateColor(startColor, endColor, progress);
+            });
+
+            setDisplayedColors(interpolated);
+
+            if (progress < 1) {
+                animationRef.current = requestAnimationFrame(animate);
+            } else {
+                tweenStateRef.current = null;
+            }
+        };
+
+        if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+        }
+
+        animationRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = null;
+            }
+        };
+    }, [targetColors]);
 
     const currentPlan = isYearly
         ? { slug: "pro-yearly", price: "$30", period: "/year", monthly: "$2.50/mo" }
@@ -157,7 +233,17 @@ function PricingPage() {
                             </div>
 
                             <div className="mb-6">
-                                <h3 className="text-xl font-bold text-foreground mb-1">Pro</h3>
+                                <h3 className="text-xl font-bold text-foreground mb-1">
+                                    <span className="relative">
+                                        <span>Pro</span>
+                                        <span
+                                            className="absolute left-0 right-0 bottom-[-1px] h-[4px] rounded-full"
+                                            style={{
+                                                backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
+                                            }}
+                                        />
+                                    </span>
+                                </h3>
                                 <p className="text-sm text-muted-foreground mb-4">
                                     For creators & designers
                                 </p>
