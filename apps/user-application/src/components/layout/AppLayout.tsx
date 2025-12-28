@@ -101,6 +101,7 @@ interface AppLayoutProps {
     rightAction?: ReactNode;
     logoNavigation?: LogoNavigation;
     isExportOpen?: boolean;
+    navigateToGenerate?: boolean;
 }
 
 export function AppLayout({
@@ -113,6 +114,7 @@ export function AppLayout({
     rightAction,
     logoNavigation,
     isExportOpen = false,
+    navigateToGenerate = false,
 }: AppLayoutProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const [contentHeight, setContentHeight] = useState(0);
@@ -443,7 +445,7 @@ export function AppLayout({
                                     : "md:max-w-lg",
                             )}
                         >
-                            <SearchInput variant="expanded" />
+                            <SearchInput variant="expanded" navigateToGenerate={navigateToGenerate} />
                         </div>
                         <div
                             className={cn(
@@ -472,7 +474,7 @@ export function AppLayout({
                                                 className="basis-auto pl-1.5"
                                             >
                                                 <Link
-                                                    to="/palettes/$query"
+                                                    to={navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query"}
                                                     params={{ query: query.replace(/\s+/g, "-") }}
                                                     search={preservedSearch}
                                                     style={{

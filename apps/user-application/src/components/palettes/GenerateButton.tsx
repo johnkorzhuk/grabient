@@ -10,6 +10,7 @@ import { authClient } from "@/lib/auth-client";
 import { useCustomerState } from "@/hooks/useCustomerState";
 import { useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
+import { useHover } from "@mantine/hooks";
 import * as v from "valibot";
 
 type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
@@ -58,12 +59,14 @@ export function GenerateButton({
     buttonText = "Generate",
 }: GenerateButtonProps) {
     const { data: session, isPending: isAuthPending } = authClient.useSession();
-    const { data: customerState } = useCustomerState();
+    const { data: customerState, isLoading: isCustomerLoading } = useCustomerState();
     const router = useRouter();
     const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = useState(false);
+    const { hovered, ref: hoverRef } = useHover();
 
     const isAuthenticated = !!session?.user;
+    const hasSubscription = (customerState?.activeSubscriptions?.length ?? 0) > 0;
     const meter = customerState?.activeMeters?.find(m => m.creditedUnits > 0) ?? customerState?.activeMeters?.[0];
     const subscription = customerState?.activeSubscriptions?.[0];
 
@@ -73,7 +76,7 @@ export function GenerateButton({
     // Show warning when 5 or fewer generations remaining, or when at 90%+ usage
     const usagePercent = credited > 0 ? (consumed / credited) * 100 : 0;
     const isNearingLimit = (remaining > 0 && remaining <= 5) || (usagePercent >= 90 && remaining > 0);
-    const hasNoCredits = credited > 0 && remaining === 0;
+    const hasNoCredits = hasSubscription && credited > 0 && remaining === 0;
 
     // Process SSE stream from server
     const processStream = async (response: Response): Promise<void> => {
@@ -209,9 +212,10 @@ export function GenerateButton({
     return (
         <div className={cn("relative inline-flex items-center", className)}>
             <button
+                ref={hoverRef}
                 type="button"
                 onClick={handleGenerate}
-                disabled={disabled || isGenerating || isAuthPending || hasNoCredits}
+                disabled={disabled || isGenerating || isAuthPending || isCustomerLoading || !hasSubscription || hasNoCredits}
                 style={{ backgroundColor: "var(--background)" }}
                 className={cn(
                     "disable-animation-on-theme-change",
@@ -236,7 +240,7 @@ export function GenerateButton({
                     </>
                 )}
             </button>
-            {isAuthenticated && isNearingLimit && (
+            {isAuthenticated && hasSubscription && isNearingLimit && (
                 <p
                     className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap"
                     style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
@@ -244,12 +248,20 @@ export function GenerateButton({
                     {remaining} generation{remaining !== 1 ? "s" : ""} left
                 </p>
             )}
-            {isAuthenticated && hasNoCredits && (
+            {isAuthenticated && hasSubscription && hasNoCredits && (
                 <p
                     className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap"
                     style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
                 >
                     No generations left{resetDate ? ` · Resets ${resetDate}` : ""}
+                </p>
+            )}
+            {isAuthenticated && !isCustomerLoading && !hasSubscription && hovered && (
+                <p
+                    className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-muted-foreground font-medium whitespace-nowrap"
+                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
+                >
+                    Pro subscription required
                 </p>
             )}
         </div>

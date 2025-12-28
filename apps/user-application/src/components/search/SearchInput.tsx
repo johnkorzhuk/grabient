@@ -130,11 +130,13 @@ function buildPreservedSearch(
 interface SearchInputProps {
     className?: string;
     variant?: "default" | "expanded";
+    navigateToGenerate?: boolean;
 }
 
 export function SearchInput({
     className,
     variant = "default",
+    navigateToGenerate = false,
 }: SearchInputProps) {
     const isExpanded = variant === "expanded";
     const navigate = useNavigate();
@@ -168,11 +170,14 @@ export function SearchInput({
             location.pathname,
         );
 
+        // Determine target route based on navigateToGenerate prop
+        const targetRoute = navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query";
+
         // Check if input is a vector format and convert to seed
         const seedFromVector = parseVectorToSeed(trimmed);
         if (seedFromVector) {
             navigate({
-                to: "/palettes/$query",
+                to: targetRoute,
                 params: { query: seedFromVector },
                 search: preservedSearch,
             });
@@ -183,7 +188,7 @@ export function SearchInput({
         const urlResult = parseGrabientUrl(trimmed);
         if (urlResult) {
             navigate({
-                to: "/palettes/$query",
+                to: targetRoute,
                 params: { query: urlResult.seed },
                 search: { ...preservedSearch, ...urlResult.searchParams },
             });
@@ -193,7 +198,7 @@ export function SearchInput({
         // Check if input is a raw seed
         if (isValidSeed(trimmed)) {
             navigate({
-                to: "/palettes/$query",
+                to: targetRoute,
                 params: { query: trimmed },
                 search: preservedSearch,
             });
@@ -206,7 +211,7 @@ export function SearchInput({
             .replace(/[/?#%\\]/g, (char) => encodeURIComponent(char))
             .replace(/\s+/g, "-");
         navigate({
-            to: "/palettes/$query",
+            to: targetRoute,
             params: { query: urlSafe },
             search: preservedSearch,
         });

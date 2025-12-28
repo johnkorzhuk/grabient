@@ -11,7 +11,7 @@ interface GradientBorderButtonProps {
 }
 
 const FIXED_STOP_COUNT = 10;
-const TWEEN_DURATION = 2000; // Duration to tween between palette changes
+const TWEEN_DURATION = 2000;
 
 function interpolateColor(color1: string, color2: string, factor: number): string {
     const r1 = parseInt(color1.slice(1, 3), 16);
@@ -38,15 +38,12 @@ export function GradientBorderButton({
     const [isHovered, setIsHovered] = useState(false);
     const svgId = useRef(`gradient-btn-${Math.random().toString(36).slice(2)}`);
 
-    // Get target colors from the shared store (synced with GrabientLogo)
     const targetColors = useStore(paletteAnimationStore, (state) => state.normalizedColors);
 
-    // State for the displayed colors (tweened)
     const [displayedColors, setDisplayedColors] = useState<string[]>(
         () => Array(FIXED_STOP_COUNT).fill("#888888")
     );
 
-    // Refs for animation
     const animationRef = useRef<number | null>(null);
     const tweenStateRef = useRef<{
         startColors: string[];
@@ -54,11 +51,9 @@ export function GradientBorderButton({
         startTime: number;
     } | null>(null);
 
-    // Effect to start tweening when target colors change
     useEffect(() => {
         if (targetColors.length === 0) return;
 
-        // Start a new tween
         tweenStateRef.current = {
             startColors: [...displayedColors],
             endColors: [...targetColors],
@@ -86,7 +81,6 @@ export function GradientBorderButton({
             }
         };
 
-        // Cancel any existing animation
         if (animationRef.current) {
             cancelAnimationFrame(animationRef.current);
         }

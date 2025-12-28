@@ -7,10 +7,34 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
+import { paletteAnimationStore } from "@/stores/palette-animation";
 import { useRef, useState, useEffect } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { PaletteCard } from "./palettes-grid";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "@tanstack/react-router";
+import { Rocket } from "lucide-react";
+import { GradientBorderButton } from "@/components/GradientBorderButton";
+import { cn } from "@/lib/utils";
+
+const FIXED_STOP_COUNT = 10;
+const TWEEN_DURATION = 2000;
+
+function interpolateColor(color1: string, color2: string, factor: number): string {
+    const r1 = parseInt(color1.slice(1, 3), 16);
+    const g1 = parseInt(color1.slice(3, 5), 16);
+    const b1 = parseInt(color1.slice(5, 7), 16);
+
+    const r2 = parseInt(color2.slice(1, 3), 16);
+    const g2 = parseInt(color2.slice(3, 5), 16);
+    const b2 = parseInt(color2.slice(5, 7), 16);
+
+    const r = Math.round(r1 + (r2 - r1) * factor);
+    const g = Math.round(g1 + (g2 - g1) * factor);
+    const b = Math.round(b1 + (b2 - b1) * factor);
+
+    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+}
 
 type StyleWithAuto = v.InferOutput<typeof styleWithAutoValidator>;
 type AngleWithAuto = v.InferOutput<typeof angleWithAutoValidator>;
@@ -28,6 +52,7 @@ interface VirtualizedPalettesGridProps {
     searchQuery?: string;
     onBadFeedback?: (seed: string) => void;
     skeletonCount?: number;
+    showSubscribeCta?: boolean;
 }
 
 // Breakpoints matching Tailwind config (must match grid-cols breakpoints)
@@ -56,14 +81,70 @@ export function VirtualizedPalettesGrid({
     searchQuery,
     onBadFeedback,
     skeletonCount = 0,
+    showSubscribeCta = false,
 }: VirtualizedPalettesGridProps) {
     void _isExportOpen;
 
     const previewStyle = useStore(uiStore, (state) => state.previewStyle);
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
     const previewSteps = useStore(uiStore, (state) => state.previewSteps);
+    const targetColors = useStore(paletteAnimationStore, (state) => state.normalizedColors);
+    const navigate = useNavigate();
 
     const containerRef = useRef<HTMLOListElement>(null);
+    const animationRef = useRef<number | null>(null);
+    const tweenStateRef = useRef<{
+        startColors: string[];
+        endColors: string[];
+        startTime: number;
+    } | null>(null);
+    const [displayedColors, setDisplayedColors] = useState<string[]>(
+        () => Array(FIXED_STOP_COUNT).fill("#888888")
+    );
+
+    useEffect(() => {
+        if (targetColors.length === 0) return;
+
+        tweenStateRef.current = {
+            startColors: [...displayedColors],
+            endColors: [...targetColors],
+            startTime: performance.now(),
+        };
+
+        const animate = (currentTime: number) => {
+            const state = tweenStateRef.current;
+            if (!state) return;
+
+            const elapsed = currentTime - state.startTime;
+            const progress = Math.min(elapsed / TWEEN_DURATION, 1);
+
+            const interpolated = state.startColors.map((startColor, i) => {
+                const endColor = state.endColors[i] || startColor;
+                return interpolateColor(startColor, endColor, progress);
+            });
+
+            setDisplayedColors(interpolated);
+
+            if (progress < 1) {
+                animationRef.current = requestAnimationFrame(animate);
+            } else {
+                tweenStateRef.current = null;
+            }
+        };
+
+        if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+        }
+
+        animationRef.current = requestAnimationFrame(animate);
+
+        return () => {
+            if (animationRef.current) {
+                cancelAnimationFrame(animationRef.current);
+                animationRef.current = null;
+            }
+        };
+    }, [targetColors]);
     const [columns, setColumns] = useState(1);
     const [contentWidth, setContentWidth] = useState(0);
 
@@ -83,8 +164,9 @@ export function VirtualizedPalettesGrid({
         return () => window.removeEventListener('resize', updateDimensions);
     }, []);
 
-    // Total items = palettes + skeletons
-    const totalItems = palettes.length + skeletonCount;
+    // Total items = CTA (if shown) + palettes + skeletons
+    const ctaOffset = showSubscribeCta ? 1 : 0;
+    const totalItems = ctaOffset + palettes.length + skeletonCount;
     const rowCount = Math.ceil(totalItems / columns);
 
     const virtualizer = useWindowVirtualizer({
@@ -104,9 +186,9 @@ export function VirtualizedPalettesGrid({
         return null;
     }
 
-    // Flatten virtual rows into individual items (palettes + skeletons) with positions
+    // Flatten virtual rows into individual items (CTA + palettes + skeletons) with positions
     const visibleItems: Array<{
-        type: 'palette' | 'skeleton';
+        type: 'cta' | 'palette' | 'skeleton';
         palette?: VersionedPalette;
         globalIndex: number;
         row: number;
@@ -122,27 +204,40 @@ export function VirtualizedPalettesGrid({
             const globalIndex = rowStartIndex + col;
             if (globalIndex >= totalItems) break;
 
-            if (globalIndex < palettes.length) {
-                const palette = palettes[globalIndex];
-                if (palette) {
+            // First item is CTA if showSubscribeCta is true
+            if (showSubscribeCta && globalIndex === 0) {
+                visibleItems.push({
+                    type: 'cta',
+                    globalIndex,
+                    row: virtualRow.index,
+                    col,
+                    yOffset,
+                });
+            } else {
+                // Adjust index for palettes (subtract CTA offset)
+                const paletteIndex = globalIndex - ctaOffset;
+                if (paletteIndex < palettes.length) {
+                    const palette = palettes[paletteIndex];
+                    if (palette) {
+                        visibleItems.push({
+                            type: 'palette',
+                            palette,
+                            globalIndex,
+                            row: virtualRow.index,
+                            col,
+                            yOffset,
+                        });
+                    }
+                } else {
+                    // Skeleton item
                     visibleItems.push({
-                        type: 'palette',
-                        palette,
+                        type: 'skeleton',
                         globalIndex,
                         row: virtualRow.index,
                         col,
                         yOffset,
                     });
                 }
-            } else {
-                // Skeleton item
-                visibleItems.push({
-                    type: 'skeleton',
-                    globalIndex,
-                    row: virtualRow.index,
-                    col,
-                    yOffset,
-                });
             }
         }
     }
@@ -166,6 +261,52 @@ export function VirtualizedPalettesGrid({
                     height: `${PALETTE_HEIGHT}px`,
                     transform: `translate(${xOffset}px, ${item.yOffset}px)`,
                 };
+
+                if (item.type === 'cta') {
+                    return (
+                        <li
+                            key="subscribe-cta"
+                            className="relative w-full"
+                            style={itemStyle}
+                        >
+                            <div className="flex flex-col items-center justify-center w-full h-full rounded-lg border border-dashed border-muted-foreground/30 bg-muted/20">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Rocket className="w-8 h-8 text-foreground" />
+                                </div>
+                                <p className="text-sm text-muted-foreground text-center px-4 mb-1">
+                                    Subscribe to{" "}
+                                    <span className="font-bold text-foreground">Grabient</span>
+                                    <span className="relative -mt-px ml-1 inline-block">
+                                        <span className="text-base font-bold text-foreground">Pro</span>
+                                        <span
+                                            className="absolute left-0 right-0 bottom-[-1px] h-[4px] rounded-full"
+                                            style={{
+                                                backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
+                                            }}
+                                        />
+                                    </span>
+                                </p>
+                                <p className="text-sm text-muted-foreground text-center px-4 mb-4">
+                                    to generate unique palettes with AI
+                                </p>
+                                <GradientBorderButton
+                                    onClick={() => navigate({ to: "/pricing" })}
+                                    className={cn(
+                                        "disable-animation-on-theme-change",
+                                        "inline-flex items-center justify-center rounded-md",
+                                        "font-medium text-sm h-10 px-5 border border-solid",
+                                        "border-muted-foreground/30 text-foreground",
+                                        "hover:border-transparent",
+                                        "transition-colors duration-200 cursor-pointer",
+                                        "outline-none",
+                                    )}
+                                >
+                                    Upgrade
+                                </GradientBorderButton>
+                            </div>
+                        </li>
+                    );
+                }
 
                 if (item.type === 'skeleton') {
                     return (

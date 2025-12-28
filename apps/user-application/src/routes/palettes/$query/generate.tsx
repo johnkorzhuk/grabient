@@ -46,6 +46,7 @@ import {
     PalettePageSubtitle,
     QueryDisplay,
 } from "@/components/palettes/PalettePageHeader";
+import { useHasActiveSubscription } from "@/hooks/useCustomerState";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -285,6 +286,7 @@ interface SearchResultsProps {
     isGenerating: boolean;
     pendingPalettesCount: number;
     onBadFeedback: (seed: string) => void;
+    showSubscribeCta: boolean;
 }
 
 function SearchResultsGrid({
@@ -299,6 +301,7 @@ function SearchResultsGrid({
     isGenerating,
     pendingPalettesCount,
     onBadFeedback,
+    showSubscribeCta,
 }: SearchResultsProps) {
     // This will suspend until search results are ready
     const { data: searchData } = useSuspenseQuery(searchPalettesQueryOptions(query, 48));
@@ -356,6 +359,7 @@ function SearchResultsGrid({
             searchQuery={query}
             onBadFeedback={onBadFeedback}
             skeletonCount={isGenerating ? Math.max(0, 30 - pendingPalettesCount) : 0}
+            showSubscribeCta={showSubscribeCta}
         />
     );
 }
@@ -367,11 +371,14 @@ function GeneratePage() {
     const isExportOpen = search.export === true;
     const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
+    const { hasSubscription, isLoading: isSubscriptionLoading } = useHasActiveSubscription();
 
     const exportCount = mounted ? exportList.length : 0;
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
     const generationQuery = getQueryForGeneration(query);
+    // Show CTA for non-subscribers (only after loading completes)
+    const showSubscribeCta = !isSubscriptionLoading && !hasSubscription;
 
     // Generate state - palettes include version info, model source, and theme
     type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };
@@ -509,6 +516,7 @@ function GeneratePage() {
             leftAction={<BackButton query={compressedQuery} />}
             logoNavigation={backNav}
             isExportOpen={showExportUI}
+            navigateToGenerate
         >
             <div className="relative">
                 <div
@@ -599,103 +607,78 @@ function GeneratePage() {
                     </div>
                 </div>
             )}
-            {(hasGeneratedPalettes || isGenerating) && !generateError ? (
-                <Suspense
-                    fallback={
-                        isExportOpen ? (
-                            <PalettesGrid
-                                palettes={sortedGeneratedPalettes}
-                                likedSeeds={likedSeeds}
-                                urlStyle={style}
-                                urlAngle={angle}
-                                urlSteps={steps}
-                                isExportOpen={isExportOpen}
-                                searchQuery={query}
-                                onBadFeedback={(seed) => {
-                                    setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                                    if (sessionId) {
-                                        saveGenerateSessionFeedback({
-                                            data: { sessionId, seed, feedback: "bad" },
-                                        }).catch(console.error);
-                                    }
-                                }}
-                            />
-                        ) : (
-                            <VirtualizedPalettesGrid
-                                palettes={sortedGeneratedPalettes}
-                                likedSeeds={likedSeeds}
-                                urlStyle={style}
-                                urlAngle={angle}
-                                urlSteps={steps}
-                                isExportOpen={isExportOpen}
-                                searchQuery={query}
-                                onBadFeedback={(seed) => {
-                                    setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                                    if (sessionId) {
-                                        saveGenerateSessionFeedback({
-                                            data: { sessionId, seed, feedback: "bad" },
-                                        }).catch(console.error);
-                                    }
-                                }}
-                                skeletonCount={isGenerating ? Math.max(0, 30 - pendingSeedsRef.current.palettes.length) : 0}
-                            />
-                        )
-                    }
-                >
-                    <SearchResultsGrid
-                        query={query}
-                        sort={sort}
-                        generatedPalettes={sortedGeneratedPalettes}
-                        likedSeeds={likedSeeds}
-                        urlStyle={style}
-                        urlAngle={angle}
-                        urlSteps={steps}
-                        isExportOpen={isExportOpen}
-                        isGenerating={isGenerating}
-                        pendingPalettesCount={pendingSeedsRef.current.palettes.length}
-                        onBadFeedback={(seed) => {
-                            setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                            if (sessionId) {
-                                saveGenerateSessionFeedback({
-                                    data: { sessionId, seed, feedback: "bad" },
-                                }).catch(console.error);
-                            }
-                        }}
-                    />
-                </Suspense>
-            ) : !isExportOpen && !isGenerating ? (
-                <Suspense
-                    fallback={
+            <Suspense
+                fallback={
+                    isExportOpen ? (
+                        <PalettesGrid
+                            palettes={sortedGeneratedPalettes}
+                            likedSeeds={likedSeeds}
+                            urlStyle={style}
+                            urlAngle={angle}
+                            urlSteps={steps}
+                            isExportOpen={isExportOpen}
+                            searchQuery={query}
+                            onBadFeedback={(seed) => {
+                                setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                                if (sessionId) {
+                                    saveGenerateSessionFeedback({
+                                        data: { sessionId, seed, feedback: "bad" },
+                                    }).catch(console.error);
+                                }
+                            }}
+                        />
+                    ) : (hasGeneratedPalettes || isGenerating) && !generateError ? (
+                        <VirtualizedPalettesGrid
+                            palettes={sortedGeneratedPalettes}
+                            likedSeeds={likedSeeds}
+                            urlStyle={style}
+                            urlAngle={angle}
+                            urlSteps={steps}
+                            isExportOpen={isExportOpen}
+                            searchQuery={query}
+                            onBadFeedback={(seed) => {
+                                setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                                if (sessionId) {
+                                    saveGenerateSessionFeedback({
+                                        data: { sessionId, seed, feedback: "bad" },
+                                    }).catch(console.error);
+                                }
+                            }}
+                            skeletonCount={isGenerating ? Math.max(0, 30 - pendingSeedsRef.current.palettes.length) : 0}
+                            showSubscribeCta={showSubscribeCta}
+                        />
+                    ) : (
                         <div className="px-5 lg:px-14 py-16 text-center">
                             <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
                             <p className="text-lg text-muted-foreground mb-2">
                                 Loading palettes...
                             </p>
                         </div>
-                    }
-                >
-                    <SearchResultsGrid
-                        query={query}
-                        sort={sort}
-                        generatedPalettes={sortedGeneratedPalettes}
-                        likedSeeds={likedSeeds}
-                        urlStyle={style}
-                        urlAngle={angle}
-                        urlSteps={steps}
-                        isExportOpen={isExportOpen}
-                        isGenerating={isGenerating}
-                        pendingPalettesCount={0}
-                        onBadFeedback={(seed) => {
-                            setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                            if (sessionId) {
-                                saveGenerateSessionFeedback({
-                                    data: { sessionId, seed, feedback: "bad" },
-                                }).catch(console.error);
-                            }
-                        }}
-                    />
-                </Suspense>
-            ) : null}
+                    )
+                }
+            >
+                <SearchResultsGrid
+                    query={query}
+                    sort={sort}
+                    generatedPalettes={sortedGeneratedPalettes}
+                    likedSeeds={likedSeeds}
+                    urlStyle={style}
+                    urlAngle={angle}
+                    urlSteps={steps}
+                    isExportOpen={isExportOpen}
+                    isGenerating={isGenerating}
+                    pendingPalettesCount={pendingSeedsRef.current.palettes.length}
+                    onBadFeedback={(seed) => {
+                        setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                        if (sessionId) {
+                            saveGenerateSessionFeedback({
+                                data: { sessionId, seed, feedback: "bad" },
+                            }).catch(console.error);
+                        }
+                    }}
+                    showSubscribeCta={showSubscribeCta}
+                />
+            </Suspense>
             {!isExportOpen && <div className="py-3 mt-16" />}
         </AppLayout>
     );
