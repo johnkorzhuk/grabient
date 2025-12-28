@@ -271,7 +271,7 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
                                             <span className="relative -mt-px ml-1">
                                                 <span className="text-base font-bold">Pro</span>
                                                 <span
-                                                    className="absolute left-0 right-0 bottom-[-1px] h-[4px] rounded-full"
+                                                    className="absolute left-0 right-0 bottom-[-2px] h-[4px]"
                                                     style={{
                                                         backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
                                                     }}
@@ -296,7 +296,7 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
                                                     <span className="relative -mt-px ml-px">
                                                         <span className="text-base font-bold">Pro</span>
                                                         <span
-                                                            className="absolute left-0 right-0 bottom-[-1px] h-[4px] rounded-full"
+                                                            className="absolute left-0 right-0 bottom-[-2px] h-[4px]"
                                                             style={{
                                                                 backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
                                                             }}

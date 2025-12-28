@@ -237,7 +237,7 @@ function PricingPage() {
                                     <span className="relative">
                                         <span>Pro</span>
                                         <span
-                                            className="absolute left-0 right-0 bottom-[-1px] h-[4px] rounded-full"
+                                            className="absolute left-0 right-0 bottom-[-2px] h-[4px]"
                                             style={{
                                                 backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
                                             }}
