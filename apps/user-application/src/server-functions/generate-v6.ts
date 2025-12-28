@@ -174,8 +174,18 @@ function applyJitter(coeffs: CosineCoeffs): CosineCoeffs {
     return [
         coeffs[0], // a (bias) - no change
         coeffs[1], // b (amplitude) - no change
-        [coeffs[2][0] * jitter(), coeffs[2][1] * jitter(), coeffs[2][2] * jitter(), 1], // c (frequency) - jitter
-        [coeffs[3][0] * jitter(), coeffs[3][1] * jitter(), coeffs[3][2] * jitter(), 1], // d (phase) - jitter
+        [
+            coeffs[2][0] * jitter(),
+            coeffs[2][1] * jitter(),
+            coeffs[2][2] * jitter(),
+            1,
+        ], // c (frequency) - jitter
+        [
+            coeffs[3][0] * jitter(),
+            coeffs[3][1] * jitter(),
+            coeffs[3][2] * jitter(),
+            1,
+        ], // d (phase) - jitter
     ] as CosineCoeffs;
 }
 
@@ -330,16 +340,25 @@ async function* runComposer(
             // Try all known property names from different AI SDK versions
             const usageAny = usage as Record<string, unknown>;
             const inputTokens =
-                (typeof usageAny.inputTokens === 'number' ? usageAny.inputTokens : 0) ||
-                (typeof usageAny.promptTokens === 'number' ? usageAny.promptTokens : 0) ||
+                (typeof usageAny.inputTokens === "number"
+                    ? usageAny.inputTokens
+                    : 0) ||
+                (typeof usageAny.promptTokens === "number"
+                    ? usageAny.promptTokens
+                    : 0) ||
                 0;
             const outputTokens =
-                (typeof usageAny.outputTokens === 'number' ? usageAny.outputTokens : 0) ||
-                (typeof usageAny.completionTokens === 'number' ? usageAny.completionTokens : 0) ||
+                (typeof usageAny.outputTokens === "number"
+                    ? usageAny.outputTokens
+                    : 0) ||
+                (typeof usageAny.completionTokens === "number"
+                    ? usageAny.completionTokens
+                    : 0) ||
                 0;
             const totalTokens =
-                (typeof usageAny.totalTokens === 'number' ? usageAny.totalTokens : 0) ||
-                (inputTokens + outputTokens);
+                (typeof usageAny.totalTokens === "number"
+                    ? usageAny.totalTokens
+                    : 0) || inputTokens + outputTokens;
             const tokenUsage: ModelTokenUsage = {
                 modelKey: COMPOSER_MODEL.name,
                 modelId: COMPOSER_MODEL.id,
@@ -419,7 +438,9 @@ async function* runPainter(
     modelConfig: (typeof PAINTER_MODELS)[number],
     matrices: PaletteMatrix[],
     overrides?: PaletteOverrides,
-): AsyncGenerator<GenerateEvent | { type: "__usage"; data: ModelTokenUsage | null }> {
+): AsyncGenerator<
+    GenerateEvent | { type: "__usage"; data: ModelTokenUsage | null }
+> {
     const startTime = Date.now();
     const palettes: string[][] = [];
     let paletteIndex = 0;
@@ -475,16 +496,23 @@ async function* runPainter(
 
                         // Determine steps, style, and angle based on palette complexity
                         // Use overrides if provided (not "auto" or undefined)
-                        const computed = determinePaletteProperties(jitteredCoeffs, palette);
-                        const style = (overrides?.style && overrides.style !== "auto")
-                            ? overrides.style
-                            : computed.style;
-                        const steps = (overrides?.steps && overrides.steps !== "auto")
-                            ? overrides.steps
-                            : computed.steps;
-                        const angle = (overrides?.angle !== undefined && overrides.angle !== "auto")
-                            ? overrides.angle as PaletteAngle
-                            : computed.angle;
+                        const computed = determinePaletteProperties(
+                            jitteredCoeffs,
+                            palette,
+                        );
+                        const style =
+                            overrides?.style && overrides.style !== "auto"
+                                ? overrides.style
+                                : computed.style;
+                        const steps =
+                            overrides?.steps && overrides.steps !== "auto"
+                                ? overrides.steps
+                                : computed.steps;
+                        const angle =
+                            overrides?.angle !== undefined &&
+                            overrides.angle !== "auto"
+                                ? (overrides.angle as PaletteAngle)
+                                : computed.angle;
 
                         palettes.push(palette);
                         paletteIndex++;
@@ -524,16 +552,25 @@ async function* runPainter(
             // Try all known property names from different AI SDK versions
             const usageAny = usage as Record<string, unknown>;
             const inputTokens =
-                (typeof usageAny.inputTokens === 'number' ? usageAny.inputTokens : 0) ||
-                (typeof usageAny.promptTokens === 'number' ? usageAny.promptTokens : 0) ||
+                (typeof usageAny.inputTokens === "number"
+                    ? usageAny.inputTokens
+                    : 0) ||
+                (typeof usageAny.promptTokens === "number"
+                    ? usageAny.promptTokens
+                    : 0) ||
                 0;
             const outputTokens =
-                (typeof usageAny.outputTokens === 'number' ? usageAny.outputTokens : 0) ||
-                (typeof usageAny.completionTokens === 'number' ? usageAny.completionTokens : 0) ||
+                (typeof usageAny.outputTokens === "number"
+                    ? usageAny.outputTokens
+                    : 0) ||
+                (typeof usageAny.completionTokens === "number"
+                    ? usageAny.completionTokens
+                    : 0) ||
                 0;
             const totalTokens =
-                (typeof usageAny.totalTokens === 'number' ? usageAny.totalTokens : 0) ||
-                (inputTokens + outputTokens);
+                (typeof usageAny.totalTokens === "number"
+                    ? usageAny.totalTokens
+                    : 0) || inputTokens + outputTokens;
             const tokenUsage: ModelTokenUsage = {
                 modelKey: modelConfig.key,
                 modelId: modelConfig.id,
@@ -576,7 +613,6 @@ async function* runPainter(
 function normalizeQuery(query: string): string {
     return query.toLowerCase().trim();
 }
-
 
 // =============================================================================
 // MAIN SSE FUNCTION (API route compatible)
