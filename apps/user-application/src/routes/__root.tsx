@@ -44,7 +44,8 @@ import { useZarazConsent } from "@/integrations/zaraz/useZarazConsent";
 import { consentStore } from "@/stores/consent-store";
 import { hydrateExportStore } from "@/stores/export";
 import { authClient } from "@/lib/auth-client";
-import { setUserRole } from "@/integrations/tracking/events";
+import { setUserRole, setUserTier } from "@/integrations/tracking/events";
+import { useHasActiveSubscription } from "@/hooks/useCustomerState";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
 
 function BreakpointIndicator() {
@@ -268,24 +269,42 @@ function PostHogInitializer() {
 function AnalyticsUserRoleInitializer() {
     const { data: session } = authClient.useSession();
     const user = session?.user as AuthUser | undefined;
+    const { hasSubscription } = useHasActiveSubscription();
     const prevUserIdRef = React.useRef<string | undefined>(undefined);
+    const prevTierRef = React.useRef<boolean | undefined>(undefined);
 
     useEffect(() => {
         setUserRole(user?.role);
+        setUserTier(hasSubscription ? "paid" : "free");
 
         const userId = user?.id;
         const prevUserId = prevUserIdRef.current;
+        const prevTier = prevTierRef.current;
+        const tierChanged = prevTier !== undefined && prevTier !== hasSubscription;
 
         if (userId && userId !== prevUserId) {
             if (isPostHogInitialized()) {
                 const posthog = getPostHogInstance();
                 if (posthog?.__loaded) {
-                    posthog.identify(userId, { role: user.role });
+                    posthog.identify(userId, {
+                        role: user.role,
+                        tier: hasSubscription ? "paid" : "free",
+                    });
                 }
             }
             // Zaraz handles GA4 user ID via zaraz.set() if needed
             if (typeof zaraz !== "undefined") {
                 zaraz.set("user_id", userId);
+            }
+        } else if (userId && tierChanged) {
+            // Update PostHog profile when subscription status changes
+            if (isPostHogInitialized()) {
+                const posthog = getPostHogInstance();
+                if (posthog?.__loaded) {
+                    posthog.identify(userId, {
+                        tier: hasSubscription ? "paid" : "free",
+                    });
+                }
             }
         } else if (!userId && prevUserId) {
             if (isPostHogInitialized()) {
@@ -300,7 +319,8 @@ function AnalyticsUserRoleInitializer() {
         }
 
         prevUserIdRef.current = userId;
-    }, [user?.id, user?.role]);
+        prevTierRef.current = hasSubscription;
+    }, [user?.id, user?.role, hasSubscription]);
 
     return null;
 }

@@ -4,8 +4,10 @@ import type * as v from "valibot";
 
 type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
 type UserRole = "admin" | "user" | undefined;
+type UserTier = "free" | "paid" | undefined;
 
 let currentUserRole: UserRole = undefined;
+let currentUserTier: UserTier = undefined;
 
 export function setUserRole(role: UserRole): void {
     currentUserRole = role;
@@ -13,6 +15,14 @@ export function setUserRole(role: UserRole): void {
 
 export function getUserRole(): UserRole {
     return currentUserRole;
+}
+
+export function setUserTier(tier: UserTier): void {
+    currentUserTier = tier;
+}
+
+export function getUserTier(): UserTier {
+    return currentUserTier;
 }
 
 const THROTTLE_MS = 1000;
@@ -146,6 +156,7 @@ function trackEvent<T extends BaseEventProperties>(eventName: string, properties
         route: properties?.route || getCurrentRoute(),
         ...(searchQuery && { searchQuery }),
         ...(currentUserRole && { role: currentUserRole }),
+        tier: currentUserTier ?? "free",
     };
 
     // Zaraz handles GA4 server-side
