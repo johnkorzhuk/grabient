@@ -55,6 +55,10 @@ export function rateLimitFunctionMiddleware(limitType: RateLimitType) {
 			if (!result.success) {
 				const retryAfter = Math.max(0, result.reset - Math.floor(Date.now() / 1000));
 				setResponseHeader("Retry-After", retryAfter.toString());
+				// CRITICAL: Prevent caching of rate limit errors
+				// Without this, CDN can cache 429 responses and serve them to all users
+				setResponseHeader("Cache-Control", "no-store, no-cache, must-revalidate");
+				setResponseHeader("CDN-Cache-Control", "no-store");
 				setResponseStatus(429);
 				throw new Error(
 					JSON.stringify({
