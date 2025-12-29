@@ -117,6 +117,7 @@ interface EyedropperEventProperties extends BaseEventProperties {
 interface SearchEventProperties extends BaseEventProperties {
     query: string;
     resultCount?: number;
+    isCustomQuery?: boolean;
 }
 
 interface SearchFeedbackEventProperties extends GradientEventProperties {

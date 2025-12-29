@@ -786,3 +786,51 @@ export function getPlaceholderFromTags(tags: DailyTag[]): string {
     const textTag = tags.find((tag) => tag.type === "text");
     return textTag ? textTag.value : "nature";
 }
+
+// Lazy-initialized set of all predefined tags for quick lookup
+let predefinedTagsSet: Set<string> | null = null;
+
+function getPredefinedTagsSet(): Set<string> {
+    if (predefinedTagsSet) return predefinedTagsSet;
+
+    predefinedTagsSet = new Set<string>();
+
+    // Add style tags (lowercase)
+    for (const tag of STYLE_TAGS) {
+        predefinedTagsSet.add(tag.toLowerCase());
+    }
+
+    // Add emoji tags
+    for (const emoji of EMOJI_TAGS) {
+        predefinedTagsSet.add(emoji);
+    }
+
+    // Add color names (lowercase)
+    for (const color of COLORS) {
+        predefinedTagsSet.add(color.name.toLowerCase());
+    }
+
+    return predefinedTagsSet;
+}
+
+/**
+ * Check if a query is a predefined tag (style, emoji, or color name)
+ * Returns true if the query matches any predefined tag
+ */
+export function isPredefinedQuery(query: string): boolean {
+    const normalized = query.toLowerCase().trim();
+    if (!normalized) return false;
+
+    const tags = getPredefinedTagsSet();
+
+    // Direct match
+    if (tags.has(normalized)) return true;
+
+    // Check if query is a combination of color names (e.g., "red blue green")
+    const words = normalized.split(/\s+/);
+    if (words.length > 1 && words.every(word => tags.has(word))) {
+        return true;
+    }
+
+    return false;
+}

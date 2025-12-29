@@ -1,6 +1,7 @@
 import { PrimaryDivider } from "./Divider";
 import { cn } from "@/lib/utils";
 import { Link } from "@tanstack/react-router";
+import { GitHubStars } from "@/components/GitHubStars";
 
 interface FooterProps {
     className?: string;
@@ -45,6 +46,8 @@ export function Footer({ className }: FooterProps) {
                     >
                         Terms
                     </Link>
+                    <div className="h-4 w-px bg-muted-foreground/30"></div>
+                    <GitHubStars />
                 </div>
 
                 <div className="text-muted-foreground font-poppins text-xs sm:text-sm">

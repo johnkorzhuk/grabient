@@ -3,6 +3,8 @@ import { useNavigate, useLocation, useSearch } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isValidSeed, serializeCoeffs } from "@repo/data-ops/serialization";
+import { isPredefinedQuery } from "@/lib/tags";
+import { analytics } from "@/integrations/tracking/events";
 import {
     DEFAULT_GLOBALS,
     seedValidator,
@@ -210,6 +212,13 @@ export function SearchInput({
         const urlSafe = trimmed
             .replace(/[/?#%\\]/g, (char) => encodeURIComponent(char))
             .replace(/\s+/g, "-");
+
+        // Track search query analytics
+        analytics.search.query({
+            query: trimmed,
+            isCustomQuery: !isPredefinedQuery(trimmed),
+        });
+
         navigate({
             to: targetRoute,
             params: { query: urlSafe },
