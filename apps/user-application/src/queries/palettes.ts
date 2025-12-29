@@ -7,6 +7,7 @@ import {
     getPaletteLikeInfo,
 } from "@/server-functions/palettes";
 import { searchPalettes } from "@/server-functions/search";
+import { getGenerateSessionByQuery } from "@/server-functions/generate-session";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { DEFAULT_PAGE_LIMIT } from "@repo/data-ops/valibot-schema/grabient";
@@ -147,5 +148,14 @@ export const searchPalettesQueryOptions = (query: string, limit = DEFAULT_PAGE_L
         enabled: !!query.trim(),
         staleTime: 1000 * 60 * 5,
         gcTime: 1000 * 60 * 1,
+    });
+
+export const generateSessionQueryOptions = (generationQuery: string) =>
+    queryOptions({
+        queryKey: ["generate-session", generationQuery],
+        queryFn: () => getGenerateSessionByQuery({ data: { query: generationQuery } }),
+        enabled: !!generationQuery,
+        staleTime: 0,
+        gcTime: 1000 * 60 * 5,
     });
 

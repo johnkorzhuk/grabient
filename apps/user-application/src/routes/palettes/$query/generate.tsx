@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
-import { userLikedSeedsQueryOptions, searchPalettesQueryOptions, type SearchResultPalette } from "@/queries/palettes";
+import { userLikedSeedsQueryOptions, searchPalettesQueryOptions, generateSessionQueryOptions, type SearchResultPalette } from "@/queries/palettes";
 import { VirtualizedPalettesGrid } from "@/components/palettes/virtualized-palettes-grid";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -36,7 +36,6 @@ import {
     type GeneratedPalette,
 } from "@/components/palettes/GenerateButton";
 import {
-    getGenerateSessionByQuery,
     saveGenerateSessionSeeds,
     saveGenerateSessionFeedback,
 } from "@/server-functions/generate-session";
@@ -192,11 +191,16 @@ export const Route = createFileRoute("/palettes/$query/generate")({
             );
             return;
         }
-        // Prefetch search results without blocking (will be picked up by useSuspenseQuery)
-        context.queryClient.prefetchQuery(searchPalettesQueryOptions(query, 48));
 
+        const generationQuery = getQueryForGeneration(query);
+
+        // Prefetch non-blocking data (will be available when component mounts)
+        context.queryClient.prefetchQuery(userLikedSeedsQueryOptions());
+        context.queryClient.prefetchQuery(generateSessionQueryOptions(generationQuery));
+
+        // Block on vector search results and popular tags
         await Promise.all([
-            context.queryClient.ensureQueryData(userLikedSeedsQueryOptions()),
+            context.queryClient.ensureQueryData(searchPalettesQueryOptions(query, 48)),
             context.queryClient.ensureQueryData(popularTagsQueryOptions()),
         ]);
     },
@@ -391,14 +395,9 @@ function GeneratePage() {
     const [sessionLoaded, setSessionLoaded] = useState(false);
 
 
-    // Load existing session from database
+    // Load existing session from database (prefetched in loader)
     // Use generationQuery (color names for seeds) since sessions are stored with the transformed query
-    const { data: existingSession } = useQuery({
-        queryKey: ["generate-session", generationQuery],
-        queryFn: () => getGenerateSessionByQuery({ data: { query: generationQuery } }),
-        enabled: !!generationQuery && !sessionLoaded,
-        staleTime: 0,
-    });
+    const { data: existingSession } = useQuery(generateSessionQueryOptions(generationQuery));
 
     // Convert stored palette data to a VersionedPalette (for loading from DB)
     const storedToVersionedPalette = (
@@ -609,52 +608,25 @@ function GeneratePage() {
             )}
             <Suspense
                 fallback={
-                    isExportOpen ? (
-                        <PalettesGrid
-                            palettes={sortedGeneratedPalettes}
-                            likedSeeds={likedSeeds}
-                            urlStyle={style}
-                            urlAngle={angle}
-                            urlSteps={steps}
-                            isExportOpen={isExportOpen}
-                            searchQuery={query}
-                            onBadFeedback={(seed) => {
-                                setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                                if (sessionId) {
-                                    saveGenerateSessionFeedback({
-                                        data: { sessionId, seed, feedback: "bad" },
-                                    }).catch(console.error);
-                                }
-                            }}
-                        />
-                    ) : (hasGeneratedPalettes || isGenerating) && !generateError ? (
-                        <VirtualizedPalettesGrid
-                            palettes={sortedGeneratedPalettes}
-                            likedSeeds={likedSeeds}
-                            urlStyle={style}
-                            urlAngle={angle}
-                            urlSteps={steps}
-                            isExportOpen={isExportOpen}
-                            searchQuery={query}
-                            onBadFeedback={(seed) => {
-                                setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                                if (sessionId) {
-                                    saveGenerateSessionFeedback({
-                                        data: { sessionId, seed, feedback: "bad" },
-                                    }).catch(console.error);
-                                }
-                            }}
-                            skeletonCount={isGenerating ? Math.max(0, 30 - pendingSeedsRef.current.palettes.length) : 0}
-                            showSubscribeCta={showSubscribeCta}
-                        />
-                    ) : (
-                        <div className="px-5 lg:px-14 py-16 text-center">
-                            <Sparkles className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                            <p className="text-lg text-muted-foreground mb-2">
-                                Loading palettes...
-                            </p>
-                        </div>
-                    )
+                    <VirtualizedPalettesGrid
+                        palettes={sortedGeneratedPalettes}
+                        likedSeeds={likedSeeds}
+                        urlStyle={style}
+                        urlAngle={angle}
+                        urlSteps={steps}
+                        isExportOpen={isExportOpen}
+                        searchQuery={query}
+                        onBadFeedback={(seed) => {
+                            setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
+                            if (sessionId) {
+                                saveGenerateSessionFeedback({
+                                    data: { sessionId, seed, feedback: "bad" },
+                                }).catch(console.error);
+                            }
+                        }}
+                        skeletonCount={48}
+                        showSubscribeCta={showSubscribeCta}
+                    />
                 }
             >
                 <SearchResultsGrid

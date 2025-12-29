@@ -762,6 +762,7 @@ export interface PaletteCardProps {
     theme?: string;
     onBadFeedback?: (seed: string) => void;
     style?: React.CSSProperties;
+    className?: string;
 }
 
 export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
@@ -784,6 +785,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
             onBadFeedback,
             theme,
             style,
+            className,
         },
         ref,
     ) => {
@@ -1042,6 +1044,7 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                 className={cn(
                     "relative w-full font-poppins",
                     isDragging && "pointer-events-none",
+                    className,
                 )}
                 style={style}
             >

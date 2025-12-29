@@ -8,7 +8,7 @@ import {
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
 import { paletteAnimationStore } from "@/stores/palette-animation";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
 import { PaletteCard } from "./palettes-grid";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -98,6 +98,19 @@ export function VirtualizedPalettesGrid({
         endColors: string[];
         startTime: number;
     } | null>(null);
+
+    // Track which palette seeds have been rendered (for fade-in animation)
+    // Seeds seen on initial render won't animate, only new ones added later will
+    const seenSeedsRef = useRef<Set<string>>(new Set());
+
+    // Initialize seen seeds on mount with current palettes (skip animation for initial data)
+    useLayoutEffect(() => {
+        const newSeeds = new Set(seenSeedsRef.current);
+        for (const p of palettes) {
+            newSeeds.add(p.seed);
+        }
+        seenSeedsRef.current = newSeeds;
+    }, []);
     const [displayedColors, setDisplayedColors] = useState<string[]>(
         () => Array(FIXED_STOP_COUNT).fill("#888888")
     );
@@ -325,6 +338,12 @@ export function VirtualizedPalettesGrid({
                     ? `${palette.seed}-v${palette.version}-${palette.modelKey ?? ""}-${item.globalIndex}`
                     : palette.seed;
 
+                // Check if this is a new palette that should animate
+                const isNew = !seenSeedsRef.current.has(palette.seed);
+                if (isNew) {
+                    seenSeedsRef.current.add(palette.seed);
+                }
+
                 return (
                     <PaletteCard
                         key={key}
@@ -343,6 +362,7 @@ export function VirtualizedPalettesGrid({
                         onBadFeedback={onBadFeedback}
                         theme={palette.theme}
                         style={itemStyle}
+                        className={isNew ? "animate-in fade-in slide-in-from-top-2 duration-300" : undefined}
                     />
                 );
             })}
