@@ -194,14 +194,14 @@ export const Route = createFileRoute("/palettes/$query/generate")({
 
         const generationQuery = getQueryForGeneration(query);
 
-        // Prefetch non-blocking data (will be available when component mounts)
+        // Prefetch non-blocking data
         context.queryClient.prefetchQuery(userLikedSeedsQueryOptions());
-        context.queryClient.prefetchQuery(generateSessionQueryOptions(generationQuery));
 
-        // Block on vector search results and popular tags
+        // Block on vector search, popular tags, and session data
         await Promise.all([
             context.queryClient.ensureQueryData(searchPalettesQueryOptions(query, 48)),
             context.queryClient.ensureQueryData(popularTagsQueryOptions()),
+            context.queryClient.ensureQueryData(generateSessionQueryOptions(generationQuery)),
         ]);
     },
     head: ({ params }) => {
@@ -492,7 +492,7 @@ function GeneratePage() {
         palettes: [],
     });
 
-    const { data: likedSeeds } = useSuspenseQuery(userLikedSeedsQueryOptions());
+    const { data: likedSeeds = new Set<string>() } = useQuery(userLikedSeedsQueryOptions());
 
     // Generated palettes sorted by version descending (latest first)
     const sortedGeneratedPalettes = generatedPalettes
