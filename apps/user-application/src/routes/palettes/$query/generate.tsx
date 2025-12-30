@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, Suspense } from "react";
 import {
     createFileRoute,
     stripSearchParams,
@@ -6,7 +6,7 @@ import {
     redirect,
 } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
-import { useSuspenseQuery, useQuery } from "@tanstack/react-query";
+import { useSuspenseQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
 import { userLikedSeedsQueryOptions, searchPalettesQueryOptions, generateSessionQueryOptions, type SearchResultPalette } from "@/queries/palettes";
@@ -31,10 +31,7 @@ import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
 import { useMounted } from "@mantine/hooks";
-import {
-    GenerateButton,
-    type GeneratedPalette,
-} from "@/components/palettes/GenerateButton";
+import { GenerateButton } from "@/components/palettes/GenerateButton";
 import {
     saveGenerateSessionSeeds,
     saveGenerateSessionFeedback,
@@ -386,124 +383,85 @@ function GeneratePage() {
     // Show CTA for non-subscribers (only after loading completes)
     const showSubscribeCta = !isSubscriptionLoading && !hasSubscription;
 
-    // Generate state - palettes include version info, model source, and theme
+    // Palette type with generation metadata
     type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };
+
+    const queryClient = useQueryClient();
+
+    // UI state for generation
     const [isGenerating, setIsGenerating] = useState(false);
-    const [generatedPalettes, setGeneratedPalettes] = useState<VersionedPalette[]>([]);
     const [generateError, setGenerateError] = useState<string | null>(null);
 
-    // Session state for multi-round generation
+    // In-flight palettes: only palettes currently being generated (not yet saved to D1)
+    const [inFlightPalettes, setInFlightPalettes] = useState<VersionedPalette[]>([]);
+
+    // Session ID for the current generation round
     const [sessionId, setSessionId] = useState<string | null>(null);
-    // Track which session+version we've loaded to detect changes
-    const [loadedSessionKey, setLoadedSessionKey] = useState<string | null>(null);
 
     // Load existing session from database (prefetched in loader)
-    // Use generationQuery (color names for seeds) since sessions are stored with the transformed query
     const { data: existingSession } = useSuspenseQuery(generateSessionQueryOptions(generationQuery));
 
-    // Convert stored palette data to a VersionedPalette (for loading from DB)
-    const storedToVersionedPalette = (
-        paletteData: string | { seed: string; style: string; steps: number; angle: number; keyword?: string },
-        version: number,
-        modelKey: string = "unknown"
-    ): VersionedPalette => {
-        // Handle both old format (string) and new format (object)
-        const seed = typeof paletteData === 'string' ? paletteData : paletteData.seed;
-        const paletteStyle = typeof paletteData === 'string' ? "linearGradient" : paletteData.style;
-        const paletteSteps = typeof paletteData === 'string' ? 8 : paletteData.steps;
-        const paletteAngle = typeof paletteData === 'string' ? 90 : paletteData.angle;
-        const theme = typeof paletteData === 'string' ? "" : (paletteData.keyword ?? "");
+    // Derive session ID from query if not set locally (handles initial load and back nav)
+    const effectiveSessionId = sessionId ?? existingSession?.sessionId ?? null;
 
-        const { coeffs } = deserializeCoeffs(seed);
-        const hexColors = generateHexColors(coeffs, DEFAULT_GLOBALS, paletteSteps);
+    // Convert stored palette data to VersionedPalette
+    const toVersionedPalette = (
+        data: { seed: string; style: string; steps: number; angle: number; keyword?: string },
+        version: number,
+    ): VersionedPalette => {
+        const { coeffs } = deserializeCoeffs(data.seed);
+        const hexColors = generateHexColors(coeffs, DEFAULT_GLOBALS, data.steps);
         return {
-            seed,
-            style: paletteStyle as VersionedPalette["style"],
-            steps: paletteSteps,
-            angle: paletteAngle,
+            seed: data.seed,
+            style: data.style as VersionedPalette["style"],
+            steps: data.steps,
+            angle: data.angle,
             createdAt: null,
             coeffs,
             globals: DEFAULT_GLOBALS,
             hexColors,
             score: 0,
             version,
-            modelKey,
-            theme,
+            modelKey: "unknown",
+            theme: data.keyword ?? "",
         };
     };
 
-    // Create a unique key for the current session state to detect changes
-    const currentSessionKey = existingSession
-        ? `${existingSession.sessionId}-${existingSession.version}-${JSON.stringify(existingSession.generatedSeeds)}`
-        : null;
-
-    // Initialize/update state from loaded session when it changes
-    useEffect(() => {
-        // Skip if no session or if we've already loaded this exact session state
-        if (currentSessionKey === loadedSessionKey) {
-            return;
-        }
-
-        if (existingSession) {
-            setSessionId(existingSession.sessionId);
-
-            // Reconstruct palettes from stored data
-            const palettes: VersionedPalette[] = [];
-            const generatedSeeds = existingSession.generatedSeeds ?? {};
-
-            for (const [versionKey, paletteDataArray] of Object.entries(generatedSeeds)) {
-                const ver = parseInt(versionKey, 10);
-                for (const paletteData of paletteDataArray) {
-                    palettes.push(storedToVersionedPalette(paletteData, ver));
-                }
-            }
-
-            setGeneratedPalettes(palettes);
-        } else {
-            // No session - reset state
-            setSessionId(null);
-            setGeneratedPalettes([]);
-        }
-
-        setLoadedSessionKey(currentSessionKey);
-    }, [currentSessionKey, loadedSessionKey, existingSession]);
-
-    // Convert GeneratedPalette to AppPalette format with version
-    const generatedToAppPalette = (generated: GeneratedPalette, version: number): VersionedPalette => {
-        const { coeffs } = deserializeCoeffs(generated.seed);
-        return {
-            seed: generated.seed,
-            style: generated.style,
-            steps: generated.steps,
-            angle: generated.angle,
-            createdAt: null,
-            coeffs,
-            globals: DEFAULT_GLOBALS,
-            hexColors: generated.hexColors,
-            score: 0,
-            version,
-            modelKey: generated.modelKey,
-            theme: generated.theme,
-        };
-    };
+    // Derive persisted palettes directly from query data (no sync useEffect needed)
+    const persistedPalettes: VersionedPalette[] = existingSession
+        ? Object.entries(existingSession.generatedSeeds ?? {}).flatMap(([versionKey, palettes]) =>
+            palettes.map((p) => toVersionedPalette(p, parseInt(versionKey, 10)))
+        )
+        : [];
 
     // Track palettes to save in batch after generation completes
-    const pendingSeedsRef = useRef<{ 
-        sessionId: string | null; 
-        version: number; 
+    const pendingRef = useRef<{
+        sessionId: string | null;
+        version: number;
         palettes: Array<{ seed: string; style: string; steps: number; angle: number; keyword: string }>;
-    }>({
-        sessionId: null,
-        version: 0,
-        palettes: [],
-    });
+    }>({ sessionId: null, version: 0, palettes: [] });
 
     const { data: likedSeeds = new Set<string>() } = useQuery(userLikedSeedsQueryOptions());
 
-    // Generated palettes sorted by version descending (latest first)
-    const sortedGeneratedPalettes = generatedPalettes
-        .slice()
+    // Combine in-flight + persisted palettes, sorted by version descending (latest first)
+    // In-flight palettes appear first since they're from the current/latest generation
+    const allGeneratedPalettes = [...inFlightPalettes, ...persistedPalettes]
         .sort((a, b) => b.version - a.version);
+
+    // Handler for bad feedback - removes palette and saves to D1
+    const handleBadFeedback = (seed: string) => {
+        // Remove from in-flight if present
+        setInFlightPalettes(prev => prev.filter(p => p.seed !== seed));
+        // Save feedback to D1 (will be reflected when query refetches)
+        if (effectiveSessionId) {
+            saveGenerateSessionFeedback({
+                data: { sessionId: effectiveSessionId, seed, feedback: "bad" },
+            }).then(() => {
+                // Invalidate to refetch persisted palettes without the removed one
+                queryClient.invalidateQueries({ queryKey: ["generate-session", generationQuery] });
+            }).catch(console.error);
+        }
+    };
 
     const backNav = buildBackNavigation({ sort, style, angle, steps, size });
 
@@ -549,25 +507,38 @@ function GeneratePage() {
                             <GenerateButton
                                 query={generationQuery}
                                 buttonText="Create more"
-                                sessionId={sessionId}
+                                sessionId={effectiveSessionId}
                                 style={style}
                                 steps={steps}
                                 angle={angle}
                                 onSessionCreated={(newSessionId, version) => {
                                     setSessionId(newSessionId);
-                                    pendingSeedsRef.current = { sessionId: newSessionId, version, palettes: [] };
+                                    pendingRef.current = { sessionId: newSessionId, version, palettes: [] };
                                 }}
                                 onGenerateStart={() => {
                                     setIsGenerating(true);
                                     setGenerateError(null);
+                                    setInFlightPalettes([]);
                                 }}
                                 onPaletteReceived={(palette) => {
-                                    // Use ref version instead of state to avoid stale closure
-                                    const currentVersion = pendingSeedsRef.current.version;
-                                    const appPalette = generatedToAppPalette(palette, currentVersion);
-                                    setGeneratedPalettes(prev => [...prev, appPalette]);
-                                    // Store full palette metadata for session persistence
-                                    pendingSeedsRef.current.palettes.push({
+                                    const currentVersion = pendingRef.current.version;
+                                    const { coeffs } = deserializeCoeffs(palette.seed);
+                                    const appPalette: VersionedPalette = {
+                                        seed: palette.seed,
+                                        style: palette.style,
+                                        steps: palette.steps,
+                                        angle: palette.angle,
+                                        createdAt: null,
+                                        coeffs,
+                                        globals: DEFAULT_GLOBALS,
+                                        hexColors: palette.hexColors,
+                                        score: 0,
+                                        version: currentVersion,
+                                        modelKey: palette.modelKey,
+                                        theme: palette.theme,
+                                    };
+                                    setInFlightPalettes(prev => [...prev, appPalette]);
+                                    pendingRef.current.palettes.push({
                                         seed: palette.seed,
                                         style: palette.style,
                                         steps: palette.steps,
@@ -577,10 +548,14 @@ function GeneratePage() {
                                 }}
                                 onGenerateComplete={() => {
                                     setIsGenerating(false);
-                                    const { sessionId: sid, version, palettes } = pendingSeedsRef.current;
+                                    const { sessionId: sid, version, palettes } = pendingRef.current;
                                     if (sid && palettes.length > 0) {
                                         saveGenerateSessionSeeds({
                                             data: { sessionId: sid, version, palettes },
+                                        }).then(() => {
+                                            // Clear in-flight and invalidate query to show persisted
+                                            setInFlightPalettes([]);
+                                            queryClient.invalidateQueries({ queryKey: ["generate-session", generationQuery] });
                                         }).catch(console.error);
                                     }
                                 }}
@@ -613,21 +588,14 @@ function GeneratePage() {
             <Suspense
                 fallback={
                     <VirtualizedPalettesGrid
-                        palettes={sortedGeneratedPalettes}
+                        palettes={allGeneratedPalettes}
                         likedSeeds={likedSeeds}
                         urlStyle={style}
                         urlAngle={angle}
                         urlSteps={steps}
                         isExportOpen={isExportOpen}
                         searchQuery={query}
-                        onBadFeedback={(seed) => {
-                            setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                            if (sessionId) {
-                                saveGenerateSessionFeedback({
-                                    data: { sessionId, seed, feedback: "bad" },
-                                }).catch(console.error);
-                            }
-                        }}
+                        onBadFeedback={handleBadFeedback}
                         skeletonCount={48}
                         showSubscribeCta={showSubscribeCta}
                     />
@@ -636,22 +604,15 @@ function GeneratePage() {
                 <SearchResultsGrid
                     query={query}
                     sort={sort}
-                    generatedPalettes={sortedGeneratedPalettes}
+                    generatedPalettes={allGeneratedPalettes}
                     likedSeeds={likedSeeds}
                     urlStyle={style}
                     urlAngle={angle}
                     urlSteps={steps}
                     isExportOpen={isExportOpen}
                     isGenerating={isGenerating}
-                    pendingPalettesCount={pendingSeedsRef.current.palettes.length}
-                    onBadFeedback={(seed) => {
-                        setGeneratedPalettes(prev => prev.filter(p => p.seed !== seed));
-                        if (sessionId) {
-                            saveGenerateSessionFeedback({
-                                data: { sessionId, seed, feedback: "bad" },
-                            }).catch(console.error);
-                        }
-                    }}
+                    pendingPalettesCount={pendingRef.current.palettes.length}
+                    onBadFeedback={handleBadFeedback}
                     showSubscribeCta={showSubscribeCta}
                 />
             </Suspense>
