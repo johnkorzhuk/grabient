@@ -70,6 +70,7 @@
     "embla-carousel": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "fontaine": "^0.7.0",
+    "fuzzysort": "^3.1.0",
     "highlight.js": "^11.11.1",
     "lucide-react": "^0.476.0",
     "lz-string": "^1.5.0",

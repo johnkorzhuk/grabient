@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation, useSearch } from "@tanstack/react-router";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,8 @@ import {
 import * as v from "valibot";
 import { Turnstile, type TurnstileInstance } from "@marsidev/react-turnstile";
 import { verifyTurnstile } from "@/server-functions/turnstile";
+import { useStore } from "@tanstack/react-store";
+import { uiStore, setSearchQuery } from "@/stores/ui";
 
 type StyleType = v.InferOutput<typeof styleWithAutoValidator>;
 type SizeType = "auto" | [number, number];
@@ -150,7 +152,11 @@ export function SearchInput({
         size?: SizeType;
     };
 
-    const [localValue, setLocalValue] = useState("");
+    // Store value for external sync (e.g., route clearing on navigation)
+    const storeSearchQuery = useStore(uiStore, (state) => state.searchQuery);
+
+    // Local state for responsive input control
+    const [localValue, setLocalValue] = useState(storeSearchQuery);
     const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
     const [turnstileError, setTurnstileError] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
@@ -158,13 +164,12 @@ export function SearchInput({
     const inputRef = useRef<HTMLInputElement>(null);
     const turnstileRef = useRef<TurnstileInstance>(null);
 
-    const isOnSearchPage = location.pathname.startsWith("/palettes/");
-
+    // Sync local state when store is cleared externally (e.g., on navigation)
     useEffect(() => {
-        if (isOnSearchPage) {
+        if (storeSearchQuery === "" && localValue !== "") {
             setLocalValue("");
         }
-    }, [isOnSearchPage, location.pathname]);
+    }, [storeSearchQuery, localValue]);
 
     const performNavigation = (trimmed: string) => {
         const preservedSearch = buildPreservedSearch(
@@ -227,11 +232,14 @@ export function SearchInput({
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setLocalValue(e.target.value);
+        const value = e.target.value;
+        setLocalValue(value);
+        setSearchQuery(value);
     };
 
     const handleClear = () => {
         setLocalValue("");
+        setSearchQuery("");
         inputRef.current?.focus();
     };
 

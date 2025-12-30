@@ -4,34 +4,34 @@ import {
     type ColorWithHue,
 } from "@repo/data-ops/color-utils";
 
-// Emoji tags mapped to high-frequency palette tags
-const EMOJI_TAGS = [
-    "🌊", // ocean, water, sea
-    "🌅", // sunset, sunrise
-    "🍂", // autumn, leaves, fall
-    "🌲", // forest, nature, woodland
-    "🌸", // flowers, floral, cherry blossom
-    "☀️", // summer, sunshine, light
-    "🌙", // night sky, moonlight, twilight
-    "❄️", // winter, ice, glacier
-    "🌴", // tropical, beach
-    "🍬", // candy, sweet, ice cream
-    "🌿", // botanical, organic, garden
-    "💎", // jewel tone, crystal, gemstone
-    "🔥", // fire, neon, energetic
-    "🌈", // rainbow, vibrant, playful
-    "🍃", // spring, fresh, natural
-    "🌹", // romantic, rose, feminine
-    "🌌", // galaxy, cosmic, space
-    "🍊", // citrus, warm, energetic
-    "☁️", // sky, clouds, dreamy
-    "🌻", // garden, sunshine, cheerful
-    "🍇", // wine, grapes, rich
-    "✨", // ethereal, magic, glamour
+// Emoji tags mapped to high-frequency palette tags with searchable keywords
+export const EMOJI_TAGS = [
+    { emoji: "🌊", keywords: "ocean water sea wave" },
+    { emoji: "🌅", keywords: "sunset sunrise" },
+    { emoji: "🍂", keywords: "autumn leaves fall" },
+    { emoji: "🌲", keywords: "forest nature woodland trees" },
+    { emoji: "🌸", keywords: "flowers floral cherry blossom pink" },
+    { emoji: "☀️", keywords: "summer sunshine light bright" },
+    { emoji: "🌙", keywords: "night sky moonlight twilight dark" },
+    { emoji: "❄️", keywords: "winter ice glacier cold snow" },
+    { emoji: "🌴", keywords: "tropical beach palm" },
+    { emoji: "🍬", keywords: "candy sweet ice cream pastel" },
+    { emoji: "🌿", keywords: "botanical organic garden green" },
+    { emoji: "💎", keywords: "jewel tone crystal gemstone luxury" },
+    { emoji: "🔥", keywords: "fire neon energetic hot warm" },
+    { emoji: "🌈", keywords: "rainbow vibrant playful colorful" },
+    { emoji: "🍃", keywords: "spring fresh natural leaf" },
+    { emoji: "🌹", keywords: "romantic rose feminine red" },
+    { emoji: "🌌", keywords: "galaxy cosmic space stars" },
+    { emoji: "🍊", keywords: "citrus warm energetic orange" },
+    { emoji: "☁️", keywords: "sky clouds dreamy soft" },
+    { emoji: "🌻", keywords: "garden sunshine cheerful sunflower yellow" },
+    { emoji: "🍇", keywords: "wine grapes rich purple" },
+    { emoji: "✨", keywords: "ethereal magic glamour sparkle" },
 ];
 
 // Expanded list of mood/style tags
-const STYLE_TAGS = [
+export const STYLE_TAGS = [
     // === SEASONS & TIME ===
     "spring",
     "summer",
@@ -720,7 +720,7 @@ export function generateDailyTags(
 
     // Add emoji tags
     for (let i = 0; i < emojiCount && i < shuffledEmojis.length; i++) {
-        tags.push({ type: "emoji", value: shuffledEmojis[i]! });
+        tags.push({ type: "emoji", value: shuffledEmojis[i]!.emoji });
     }
 
     // Add style tags
@@ -801,7 +801,7 @@ function getPredefinedTagsSet(): Set<string> {
     }
 
     // Add emoji tags
-    for (const emoji of EMOJI_TAGS) {
+    for (const { emoji } of EMOJI_TAGS) {
         predefinedTagsSet.add(emoji);
     }
 

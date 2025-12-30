@@ -8,6 +8,7 @@ import {
 import {
     setIsAdvancedOpen,
     setNavSelect,
+    clearSearchQuery,
 } from "@/stores/ui";
 import { userLikedSeedsQueryOptions } from "@/queries/palettes";
 import * as v from "valibot";
@@ -100,6 +101,7 @@ export const Route = createFileRoute("/_paletteList")({
     },
     onLeave: () => {
         setIsAdvancedOpen(false);
+        clearSearchQuery();
     },
     component: LayoutComponent,
 });

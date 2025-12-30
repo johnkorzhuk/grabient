@@ -14,7 +14,7 @@ import {
 } from "@/queries/palettes";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setPreviousRoute } from "@/stores/ui";
+import { setPreviousRoute, clearSearchQuery } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import {
     styleWithAutoValidator,
@@ -208,6 +208,7 @@ export const Route = createFileRoute("/palettes/$query/")({
         };
     },
     onLeave: (match) => {
+        clearSearchQuery();
         const search = match.search;
         const searchParams: Record<string, unknown> = {};
         if (search.style !== "auto") searchParams.style = search.style;

@@ -20,6 +20,7 @@ import {
     RotateCcw,
     Search,
     RefreshCw,
+    CornerDownLeft,
 } from "lucide-react";
 import { useHotkeys, useMounted } from "@mantine/hooks";
 import {
@@ -47,6 +48,7 @@ import {
 import { styleWithAutoValidator } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
 import { getTagSearchQuery } from "@/lib/tags";
+import { fuzzySearch } from "@/lib/fuzzy-search";
 
 type SortOrder = "popular" | "newest" | "oldest";
 type StyleType = v.InferOutput<typeof styleWithAutoValidator>;
@@ -121,6 +123,12 @@ export function AppLayout({
     const contentRef = useRef<HTMLDivElement>(null);
     const mounted = useMounted();
     const queryClient = useQueryClient();
+
+    // Get search query from store
+    const searchQuery = useStore(uiStore, (state) => state.searchQuery);
+
+    // Get fuzzy search suggestions when there's a query
+    const suggestions = searchQuery.trim() ? fuzzySearch(searchQuery.trim(), 8) : [];
 
     const { data: popularTags } = useSuspenseQuery(popularTagsQueryOptions());
 
@@ -445,7 +453,10 @@ export function AppLayout({
                                     : "md:max-w-lg",
                             )}
                         >
-                            <SearchInput variant="expanded" navigateToGenerate={navigateToGenerate} />
+                            <SearchInput
+                                variant="expanded"
+                                navigateToGenerate={navigateToGenerate}
+                            />
                         </div>
                         <div
                             className={cn(
@@ -456,7 +467,7 @@ export function AppLayout({
                             )}
                         >
                             <span className="hidden md:inline text-sm font-medium text-muted-foreground shrink-0">
-                                Popular
+                                {searchQuery.trim() ? "Suggestions" : "Popular"}
                             </span>
                             <Carousel
                                 opts={{
@@ -466,130 +477,215 @@ export function AppLayout({
                                 className="w-full overflow-hidden"
                             >
                                 <CarouselContent className="-ml-1.5">
-                                    {popularTags.map((tag, index) => {
-                                        const query = getTagSearchQuery(tag);
-                                        return (
-                                            <CarouselItem
-                                                key={`${tag.type}-${index}`}
-                                                className="basis-auto pl-1.5"
-                                            >
+                                    {searchQuery.trim() ? (
+                                        <>
+                                            {/* Fuzzy search suggestions */}
+                                            {suggestions.map((suggestion, index) => (
+                                                <CarouselItem
+                                                    key={`${suggestion.type}-${suggestion.value}-${index}`}
+                                                    className="basis-auto pl-1.5"
+                                                >
+                                                    <Link
+                                                        to={navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query"}
+                                                        params={{ query: suggestion.value.replace(/\s+/g, "-") }}
+                                                        search={preservedSearch}
+                                                        style={{
+                                                            backgroundColor:
+                                                                "var(--background)",
+                                                        }}
+                                                        className={cn(
+                                                            "inline-flex items-center justify-center gap-1.5",
+                                                            "h-7 px-3.5 rounded-md border border-solid",
+                                                            "transition-colors duration-200 outline-none",
+                                                            "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                            "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                            mounted &&
+                                                                "disable-animation-on-theme-change",
+                                                        )}
+                                                    >
+                                                        {suggestion.type === "color" && suggestion.hex && (
+                                                            <span
+                                                                className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
+                                                                style={{
+                                                                    backgroundColor: suggestion.hex,
+                                                                }}
+                                                            />
+                                                        )}
+                                                        {suggestion.type === "emoji" && (
+                                                            <span className="translate-y-px md:translate-y-0">
+                                                                {suggestion.value}
+                                                            </span>
+                                                        )}
+                                                        {suggestion.type !== "emoji" && (
+                                                            <span
+                                                                className="translate-y-px md:translate-y-0 [&_mark]:bg-transparent [&_mark]:text-foreground"
+                                                                dangerouslySetInnerHTML={{
+                                                                    __html: suggestion.highlighted ?? suggestion.display,
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Link>
+                                                </CarouselItem>
+                                            ))}
+                                            {/* Enter to search link */}
+                                            <CarouselItem className="basis-auto pl-1.5">
                                                 <Link
                                                     to={navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query"}
-                                                    params={{ query: query.replace(/\s+/g, "-") }}
+                                                    params={{
+                                                        query: searchQuery.trim()
+                                                            .replace(/[/?#%\\]/g, (char) => encodeURIComponent(char))
+                                                            .replace(/\s+/g, "-"),
+                                                    }}
                                                     search={preservedSearch}
+                                                    className={cn(
+                                                        "inline-flex items-center justify-center gap-1.5",
+                                                        "h-7 px-3.5 rounded-md border border-solid",
+                                                        "transition-colors duration-200 outline-none",
+                                                        "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                        "border-input hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                        "cursor-pointer",
+                                                        "bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/50",
+                                                        mounted &&
+                                                            "disable-animation-on-theme-change",
+                                                    )}
+                                                >
+                                                    <Kbd className="h-4.5">
+                                                        <CornerDownLeft className="h-3 w-3" />
+                                                        enter
+                                                    </Kbd>
+                                                    <span>to search</span>
+                                                </Link>
+                                            </CarouselItem>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Popular tags */}
+                                            {popularTags.map((tag, index) => {
+                                                const query = getTagSearchQuery(tag);
+                                                return (
+                                                    <CarouselItem
+                                                        key={`${tag.type}-${index}`}
+                                                        className="basis-auto pl-1.5"
+                                                    >
+                                                        <Link
+                                                            to={navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query"}
+                                                            params={{ query: query.replace(/\s+/g, "-") }}
+                                                            search={preservedSearch}
+                                                            style={{
+                                                                backgroundColor:
+                                                                    "var(--background)",
+                                                            }}
+                                                            className={cn(
+                                                                "inline-flex items-center justify-center gap-1.5",
+                                                                "h-7 px-3.5 rounded-md border border-solid",
+                                                                "transition-colors duration-200 outline-none",
+                                                                "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                                "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                                mounted &&
+                                                                    "disable-animation-on-theme-change",
+                                                            )}
+                                                        >
+                                                            {tag.type === "color" && (
+                                                                <span
+                                                                    className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
+                                                                    style={{
+                                                                        backgroundColor: tag.hex,
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {tag.type === "pair" && (
+                                                                <span className="inline-flex shrink-0">
+                                                                    {tag.colors.map((color, i) => (
+                                                                        <span
+                                                                            key={i}
+                                                                            className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
+                                                                            style={{
+                                                                                backgroundColor: color.hex,
+                                                                                marginLeft: i > 0 ? "-6px" : 0,
+                                                                            }}
+                                                                        />
+                                                                    ))}
+                                                                </span>
+                                                            )}
+                                                            {tag.type === "triad" && (
+                                                                <span className="inline-flex shrink-0">
+                                                                    {tag.colors.map((color, i) => (
+                                                                        <span
+                                                                            key={i}
+                                                                            className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
+                                                                            style={{
+                                                                                backgroundColor: color.hex,
+                                                                                marginLeft: i > 0 ? "-6px" : 0,
+                                                                            }}
+                                                                        />
+                                                                    ))}
+                                                                </span>
+                                                            )}
+                                                            <span className="translate-y-px md:translate-y-0">
+                                                                {tag.type === "text" && tag.value}
+                                                                {tag.type === "emoji" && tag.value}
+                                                                {tag.type === "color" && tag.name}
+                                                                {tag.type === "pair" && tag.colors.map(c => c.name).join(" & ")}
+                                                                {tag.type === "triad" && tag.colors.map(c => c.name).join(", ")}
+                                                            </span>
+                                                        </Link>
+                                                    </CarouselItem>
+                                                );
+                                            })}
+                                            <CarouselItem className="basis-auto pl-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        queryClient.refetchQueries({
+                                                            queryKey: ["popularTags"],
+                                                        });
+                                                    }}
+                                                    className={cn(
+                                                        "inline-flex items-center justify-center",
+                                                        "h-7 w-7 rounded-md border border-solid",
+                                                        "transition-colors duration-200 outline-none",
+                                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                        "cursor-pointer",
+                                                        mounted &&
+                                                            "disable-animation-on-theme-change",
+                                                    )}
                                                     style={{
                                                         backgroundColor:
                                                             "var(--background)",
+                                                    }}
+                                                    aria-label="Refresh tags"
+                                                >
+                                                    <RefreshCw className="h-3 w-3" />
+                                                </button>
+                                            </CarouselItem>
+                                            <CarouselItem className="basis-auto pl-1.5">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        document
+                                                            .getElementById(
+                                                                "search-input-expanded",
+                                                            )
+                                                            ?.focus();
                                                     }}
                                                     className={cn(
                                                         "inline-flex items-center justify-center gap-1.5",
                                                         "h-7 px-3.5 rounded-md border border-solid",
                                                         "transition-colors duration-200 outline-none",
                                                         "text-[11px] md:text-xs font-medium whitespace-nowrap",
-                                                        "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                        "border-input hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                        "cursor-pointer",
+                                                        "bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/50",
                                                         mounted &&
                                                             "disable-animation-on-theme-change",
                                                     )}
                                                 >
-                                                    {tag.type === "color" && (
-                                                        <span
-                                                            className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
-                                                            style={{
-                                                                backgroundColor: tag.hex,
-                                                            }}
-                                                        />
-                                                    )}
-                                                    {tag.type === "pair" && (
-                                                        <span className="inline-flex shrink-0">
-                                                            {tag.colors.map((color, i) => (
-                                                                <span
-                                                                    key={i}
-                                                                    className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
-                                                                    style={{
-                                                                        backgroundColor: color.hex,
-                                                                        marginLeft: i > 0 ? "-6px" : 0,
-                                                                    }}
-                                                                />
-                                                            ))}
-                                                        </span>
-                                                    )}
-                                                    {tag.type === "triad" && (
-                                                        <span className="inline-flex shrink-0">
-                                                            {tag.colors.map((color, i) => (
-                                                                <span
-                                                                    key={i}
-                                                                    className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
-                                                                    style={{
-                                                                        backgroundColor: color.hex,
-                                                                        marginLeft: i > 0 ? "-6px" : 0,
-                                                                    }}
-                                                                />
-                                                            ))}
-                                                        </span>
-                                                    )}
-                                                    <span className="translate-y-px md:translate-y-0">
-                                                        {tag.type === "text" && tag.value}
-                                                        {tag.type === "emoji" && tag.value}
-                                                        {tag.type === "color" && tag.name}
-                                                        {tag.type === "pair" && tag.colors.map(c => c.name).join(" & ")}
-                                                        {tag.type === "triad" && tag.colors.map(c => c.name).join(", ")}
-                                                    </span>
-                                                </Link>
+                                                    <Search className="h-3 w-3" />
+                                                    or something else
+                                                </button>
                                             </CarouselItem>
-                                        );
-                                    })}
-                                    <CarouselItem className="basis-auto pl-1.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                queryClient.refetchQueries({
-                                                    queryKey: ["popularTags"],
-                                                });
-                                            }}
-                                            className={cn(
-                                                "inline-flex items-center justify-center",
-                                                "h-7 w-7 rounded-md border border-solid",
-                                                "transition-colors duration-200 outline-none",
-                                                "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
-                                                "cursor-pointer",
-                                                mounted &&
-                                                    "disable-animation-on-theme-change",
-                                            )}
-                                            style={{
-                                                backgroundColor:
-                                                    "var(--background)",
-                                            }}
-                                            aria-label="Refresh tags"
-                                        >
-                                            <RefreshCw className="h-3 w-3" />
-                                        </button>
-                                    </CarouselItem>
-                                    <CarouselItem className="basis-auto pl-1.5">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                document
-                                                    .getElementById(
-                                                        "search-input-expanded",
-                                                    )
-                                                    ?.focus();
-                                            }}
-                                            className={cn(
-                                                "inline-flex items-center justify-center gap-1.5",
-                                                "h-7 px-3.5 rounded-md border border-solid",
-                                                "transition-colors duration-200 outline-none",
-                                                "text-[11px] md:text-xs font-medium whitespace-nowrap",
-                                                "border-input hover:border-muted-foreground/30 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
-                                                "cursor-pointer",
-                                                "bg-muted/50 dark:bg-muted/30 hover:bg-muted/70 dark:hover:bg-muted/50",
-                                                mounted &&
-                                                    "disable-animation-on-theme-change",
-                                            )}
-                                        >
-                                            <Search className="h-3 w-3" />
-                                            or something else
-                                        </button>
-                                    </CarouselItem>
+                                        </>
+                                    )}
                                 </CarouselContent>
                             </Carousel>
                         </div>

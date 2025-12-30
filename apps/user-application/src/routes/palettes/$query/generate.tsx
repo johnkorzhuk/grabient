@@ -13,7 +13,7 @@ import { userLikedSeedsQueryOptions, searchPalettesQueryOptions, generateSession
 import { VirtualizedPalettesGrid } from "@/components/palettes/virtualized-palettes-grid";
 import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { setPreviousRoute } from "@/stores/ui";
+import { setPreviousRoute, clearSearchQuery } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
 import { hexToColorName, HEX_CODE_REGEX } from "@repo/data-ops/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
@@ -217,6 +217,7 @@ export const Route = createFileRoute("/palettes/$query/generate")({
         };
     },
     onLeave: (match) => {
+        clearSearchQuery();
         const search = match.search;
         const searchParams: Record<string, unknown> = {};
         if (search.style !== "auto") searchParams.style = search.style;

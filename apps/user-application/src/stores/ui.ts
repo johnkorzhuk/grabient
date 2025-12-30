@@ -37,6 +37,7 @@ interface UIState {
     navSelect: string;
     previousRoute: PreviousRoute | null;
     seedInitialSearch: SeedInitialSearch | null;
+    searchQuery: string;
 }
 
 export const uiStore = new Store<UIState>({
@@ -52,6 +53,7 @@ export const uiStore = new Store<UIState>({
     navSelect: "/",
     previousRoute: null,
     seedInitialSearch: null,
+    searchQuery: "",
 });
 
 // Action helpers
@@ -175,6 +177,7 @@ export const resetUIState = () => {
         navSelect: "/",
         previousRoute: null,
         seedInitialSearch: null,
+        searchQuery: "",
     });
 };
 
@@ -185,5 +188,19 @@ export const resetPreviewState = () => {
         previewAngle: null,
         previewSteps: null,
         previewSize: null,
+    }));
+};
+
+export const setSearchQuery = (query: string) => {
+    uiStore.setState((state) => ({
+        ...state,
+        searchQuery: query,
+    }));
+};
+
+export const clearSearchQuery = () => {
+    uiStore.setState((state) => ({
+        ...state,
+        searchQuery: "",
     }));
 };
