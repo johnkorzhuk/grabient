@@ -12,7 +12,7 @@ import {
     userLikedSeedsQueryOptions,
     type SearchResultPalette,
 } from "@/queries/palettes";
-import { PalettesGrid } from "@/components/palettes/palettes-grid";
+import { VirtualizedPalettesGrid } from "@/components/palettes/virtualized-palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute, clearSearchQuery } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
@@ -417,7 +417,7 @@ function SearchResultsPage() {
                     !isExportOpen && "[&>*]:invisible"
                 )}
             />
-            <PalettesGrid
+            <VirtualizedPalettesGrid
                 palettes={results}
                 likedSeeds={likedSeeds}
                 urlStyle={style}

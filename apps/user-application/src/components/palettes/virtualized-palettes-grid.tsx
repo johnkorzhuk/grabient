@@ -40,10 +40,10 @@ type StyleWithAuto = v.InferOutput<typeof styleWithAutoValidator>;
 type AngleWithAuto = v.InferOutput<typeof angleWithAutoValidator>;
 type StepsWithAuto = v.InferOutput<typeof stepsWithAutoValidator>;
 
-type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };
+type PaletteWithOptionalMeta = AppPalette & { version?: number; modelKey?: string; theme?: string };
 
 interface VirtualizedPalettesGridProps {
-    palettes: VersionedPalette[];
+    palettes: PaletteWithOptionalMeta[];
     likedSeeds: Set<string>;
     urlStyle?: StyleWithAuto;
     urlAngle?: AngleWithAuto;
@@ -202,7 +202,7 @@ export function VirtualizedPalettesGrid({
     // Flatten virtual rows into individual items (CTA + palettes + skeletons) with positions
     const visibleItems: Array<{
         type: 'cta' | 'palette' | 'skeleton';
-        palette?: VersionedPalette;
+        palette?: PaletteWithOptionalMeta;
         globalIndex: number;
         row: number;
         col: number;

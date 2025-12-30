@@ -6,7 +6,7 @@ import { useSuspenseQuery } from "@tanstack/react-query";
 import { useStore } from "@tanstack/react-store";
 import { userLikedPalettesQueryOptions, userLikedSeedsQueryOptions } from "@/queries/palettes";
 import { sessionQueryOptions } from "@/queries/auth";
-import { PalettesGrid } from "@/components/palettes/palettes-grid";
+import { VirtualizedPalettesGrid } from "@/components/palettes/virtualized-palettes-grid";
 import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
@@ -108,7 +108,7 @@ function SavedPalettesPage() {
                         </h1>
                     </div>
                     <SelectedButtonContainer className="-mt-[72px] md:-mt-[84px]" />
-                    <PalettesGrid
+                    <VirtualizedPalettesGrid
                         palettes={data.palettes}
                         likedSeeds={likedSeeds}
                         urlStyle={style}

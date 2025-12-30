@@ -11,7 +11,6 @@ import { useStore } from "@tanstack/react-store";
 import * as v from "valibot";
 import { userLikedSeedsQueryOptions, searchPalettesQueryOptions, generateSessionQueryOptions, type SearchResultPalette } from "@/queries/palettes";
 import { VirtualizedPalettesGrid } from "@/components/palettes/virtualized-palettes-grid";
-import { PalettesGrid } from "@/components/palettes/palettes-grid";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { setPreviousRoute, clearSearchQuery } from "@/stores/ui";
 import { exportStore } from "@/stores/export";
@@ -333,21 +332,6 @@ function SearchResultsGrid({
                     Click the Generate button above to create AI-powered palettes
                 </p>
             </div>
-        );
-    }
-
-    if (isExportOpen) {
-        return (
-            <PalettesGrid
-                palettes={combinedPalettes}
-                likedSeeds={likedSeeds}
-                urlStyle={urlStyle}
-                urlAngle={urlAngle}
-                urlSteps={urlSteps}
-                isExportOpen={isExportOpen}
-                searchQuery={query}
-                onBadFeedback={onBadFeedback}
-            />
         );
     }
 

@@ -5,7 +5,7 @@ import {
     palettesQueryOptions,
     userLikedSeedsQueryOptions,
 } from "@/queries/palettes";
-import { PalettesGrid } from "@/components/palettes/palettes-grid";
+import { VirtualizedPalettesGrid } from "@/components/palettes/virtualized-palettes-grid";
 import { PalettesPagination } from "@/components/palettes/palettes-pagination";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
@@ -63,7 +63,7 @@ function NewestPage() {
                 </h1>
             </div>
             <SelectedButtonContainer className="-mt-[72px] md:-mt-[84px]" />
-            <PalettesGrid palettes={data.palettes} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} isExportOpen={isExportOpen} />
+            <VirtualizedPalettesGrid palettes={data.palettes} likedSeeds={likedSeeds} urlStyle={style} urlAngle={angle} urlSteps={steps} isExportOpen={isExportOpen} />
             {!showExportUI && (
                 <PalettesPagination
                     currentPage={page}
