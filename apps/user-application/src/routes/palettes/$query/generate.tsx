@@ -198,10 +198,11 @@ export const Route = createFileRoute("/palettes/$query/generate")({
         context.queryClient.prefetchQuery(userLikedSeedsQueryOptions());
 
         // Block on vector search, popular tags, and session data
+        // Use fetchQuery for session to always get fresh data (important for back navigation)
         await Promise.all([
             context.queryClient.ensureQueryData(searchPalettesQueryOptions(query, 48)),
             context.queryClient.ensureQueryData(popularTagsQueryOptions()),
-            context.queryClient.ensureQueryData(generateSessionQueryOptions(generationQuery)),
+            context.queryClient.fetchQuery(generateSessionQueryOptions(generationQuery)),
         ]);
     },
     head: ({ params }) => {
@@ -393,12 +394,12 @@ function GeneratePage() {
 
     // Session state for multi-round generation
     const [sessionId, setSessionId] = useState<string | null>(null);
-    const [sessionLoaded, setSessionLoaded] = useState(false);
-
+    // Track which session+version we've loaded to detect changes
+    const [loadedSessionKey, setLoadedSessionKey] = useState<string | null>(null);
 
     // Load existing session from database (prefetched in loader)
     // Use generationQuery (color names for seeds) since sessions are stored with the transformed query
-    const { data: existingSession } = useQuery(generateSessionQueryOptions(generationQuery));
+    const { data: existingSession } = useSuspenseQuery(generateSessionQueryOptions(generationQuery));
 
     // Convert stored palette data to a VersionedPalette (for loading from DB)
     const storedToVersionedPalette = (
@@ -431,9 +432,19 @@ function GeneratePage() {
         };
     };
 
-    // Initialize state from loaded session
+    // Create a unique key for the current session state to detect changes
+    const currentSessionKey = existingSession
+        ? `${existingSession.sessionId}-${existingSession.version}-${JSON.stringify(existingSession.generatedSeeds)}`
+        : null;
+
+    // Initialize/update state from loaded session when it changes
     useEffect(() => {
-        if (existingSession && !sessionLoaded) {
+        // Skip if no session or if we've already loaded this exact session state
+        if (currentSessionKey === loadedSessionKey) {
+            return;
+        }
+
+        if (existingSession) {
             setSessionId(existingSession.sessionId);
 
             // Reconstruct palettes from stored data
@@ -448,20 +459,14 @@ function GeneratePage() {
             }
 
             setGeneratedPalettes(palettes);
-            setSessionLoaded(true);
-        }
-    }, [existingSession, sessionLoaded]);
-
-    // Reset session when generation query changes
-    const prevQueryRef = useRef(generationQuery);
-    useEffect(() => {
-        if (prevQueryRef.current !== generationQuery) {
+        } else {
+            // No session - reset state
             setSessionId(null);
             setGeneratedPalettes([]);
-            setSessionLoaded(false);
-            prevQueryRef.current = generationQuery;
         }
-    }, [generationQuery]);
+
+        setLoadedSessionKey(currentSessionKey);
+    }, [currentSessionKey, loadedSessionKey, existingSession]);
 
     // Convert GeneratedPalette to AppPalette format with version
     const generatedToAppPalette = (generated: GeneratedPalette, version: number): VersionedPalette => {
@@ -499,8 +504,6 @@ function GeneratePage() {
     const sortedGeneratedPalettes = generatedPalettes
         .slice()
         .sort((a, b) => b.version - a.version);
-
-    const hasGeneratedPalettes = sortedGeneratedPalettes.length > 0;
 
     const backNav = buildBackNavigation({ sort, style, angle, steps, size });
 
