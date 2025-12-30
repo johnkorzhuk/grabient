@@ -108,7 +108,7 @@ export function fuzzySearch(
     const results = fuzzysort.go(trimmed, targets, {
         key: "searchText",
         limit,
-        threshold: -10000,
+        threshold: -1000,
     });
 
     return results.map((result) => ({

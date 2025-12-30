@@ -128,7 +128,9 @@ export function AppLayout({
     const searchQuery = useStore(uiStore, (state) => state.searchQuery);
 
     // Get fuzzy search suggestions when there's a query
-    const suggestions = searchQuery.trim() ? fuzzySearch(searchQuery.trim(), 8) : [];
+    const suggestions = searchQuery.trim()
+        ? fuzzySearch(searchQuery.trim(), 8)
+        : [];
 
     const { data: popularTags } = useSuspenseQuery(popularTagsQueryOptions());
 
@@ -480,61 +482,98 @@ export function AppLayout({
                                     {searchQuery.trim() ? (
                                         <>
                                             {/* Fuzzy search suggestions */}
-                                            {suggestions.map((suggestion, index) => (
-                                                <CarouselItem
-                                                    key={`${suggestion.type}-${suggestion.value}-${index}`}
-                                                    className="basis-auto pl-1.5"
-                                                >
-                                                    <Link
-                                                        to={navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query"}
-                                                        params={{ query: suggestion.value.replace(/\s+/g, "-") }}
-                                                        search={preservedSearch}
-                                                        style={{
-                                                            backgroundColor:
-                                                                "var(--background)",
-                                                        }}
-                                                        className={cn(
-                                                            "inline-flex items-center justify-center gap-1.5",
-                                                            "h-7 px-3.5 rounded-md border border-solid",
-                                                            "transition-colors duration-200 outline-none",
-                                                            "text-[11px] md:text-xs font-medium whitespace-nowrap",
-                                                            "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
-                                                            mounted &&
-                                                                "disable-animation-on-theme-change",
-                                                        )}
+                                            {suggestions.map(
+                                                (suggestion, index) => (
+                                                    <CarouselItem
+                                                        key={`${suggestion.type}-${suggestion.value}-${index}`}
+                                                        className="basis-auto pl-1.5"
                                                     >
-                                                        {suggestion.type === "color" && suggestion.hex && (
-                                                            <span
-                                                                className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
-                                                                style={{
-                                                                    backgroundColor: suggestion.hex,
-                                                                }}
-                                                            />
-                                                        )}
-                                                        {suggestion.type === "emoji" && (
-                                                            <span className="translate-y-px md:translate-y-0">
-                                                                {suggestion.value}
-                                                            </span>
-                                                        )}
-                                                        {suggestion.type !== "emoji" && (
-                                                            <span
-                                                                className="translate-y-px md:translate-y-0 [&_mark]:bg-transparent [&_mark]:text-foreground"
-                                                                dangerouslySetInnerHTML={{
-                                                                    __html: suggestion.highlighted ?? suggestion.display,
-                                                                }}
-                                                            />
-                                                        )}
-                                                    </Link>
-                                                </CarouselItem>
-                                            ))}
+                                                        <Link
+                                                            to={
+                                                                navigateToGenerate
+                                                                    ? "/palettes/$query/generate"
+                                                                    : "/palettes/$query"
+                                                            }
+                                                            params={{
+                                                                query: suggestion.value.replace(
+                                                                    /\s+/g,
+                                                                    "-",
+                                                                ),
+                                                            }}
+                                                            search={
+                                                                preservedSearch
+                                                            }
+                                                            style={{
+                                                                backgroundColor:
+                                                                    "var(--background)",
+                                                            }}
+                                                            className={cn(
+                                                                "inline-flex items-center justify-center gap-1.5",
+                                                                "h-7 px-3.5 rounded-md border border-solid",
+                                                                "transition-[border-color,background-color] duration-200 outline-none",
+                                                                "text-[11px] md:text-xs font-medium whitespace-nowrap",
+                                                                "border-input hover:border-muted-foreground/30 hover:bg-background/60 text-muted-foreground hover:text-foreground focus-visible:border-muted-foreground/50",
+                                                                "[&:hover_mark]:text-foreground",
+                                                                mounted &&
+                                                                    "disable-animation-on-theme-change",
+                                                            )}
+                                                        >
+                                                            {suggestion.type ===
+                                                                "color" &&
+                                                                suggestion.hex && (
+                                                                    <span
+                                                                        className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
+                                                                        style={{
+                                                                            backgroundColor:
+                                                                                suggestion.hex,
+                                                                        }}
+                                                                    />
+                                                                )}
+                                                            {suggestion.type ===
+                                                                "emoji" && (
+                                                                <span className="translate-y-px md:translate-y-0">
+                                                                    {
+                                                                        suggestion.value
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                            {suggestion.type !==
+                                                                "emoji" && (
+                                                                <span
+                                                                    className="translate-y-px md:translate-y-0 [&_mark]:bg-transparent [&_mark]:text-foreground dark:[&_mark]:text-foreground/75"
+                                                                    dangerouslySetInnerHTML={{
+                                                                        __html:
+                                                                            suggestion.highlighted ??
+                                                                            suggestion.display,
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </Link>
+                                                    </CarouselItem>
+                                                ),
+                                            )}
                                             {/* Enter to search link */}
                                             <CarouselItem className="basis-auto pl-1.5">
                                                 <Link
-                                                    to={navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query"}
+                                                    to={
+                                                        navigateToGenerate
+                                                            ? "/palettes/$query/generate"
+                                                            : "/palettes/$query"
+                                                    }
                                                     params={{
-                                                        query: searchQuery.trim()
-                                                            .replace(/[/?#%\\]/g, (char) => encodeURIComponent(char))
-                                                            .replace(/\s+/g, "-"),
+                                                        query: searchQuery
+                                                            .trim()
+                                                            .replace(
+                                                                /[/?#%\\]/g,
+                                                                (char) =>
+                                                                    encodeURIComponent(
+                                                                        char,
+                                                                    ),
+                                                            )
+                                                            .replace(
+                                                                /\s+/g,
+                                                                "-",
+                                                            ),
                                                     }}
                                                     search={preservedSearch}
                                                     className={cn(
@@ -561,16 +600,28 @@ export function AppLayout({
                                         <>
                                             {/* Popular tags */}
                                             {popularTags.map((tag, index) => {
-                                                const query = getTagSearchQuery(tag);
+                                                const query =
+                                                    getTagSearchQuery(tag);
                                                 return (
                                                     <CarouselItem
                                                         key={`${tag.type}-${index}`}
                                                         className="basis-auto pl-1.5"
                                                     >
                                                         <Link
-                                                            to={navigateToGenerate ? "/palettes/$query/generate" : "/palettes/$query"}
-                                                            params={{ query: query.replace(/\s+/g, "-") }}
-                                                            search={preservedSearch}
+                                                            to={
+                                                                navigateToGenerate
+                                                                    ? "/palettes/$query/generate"
+                                                                    : "/palettes/$query"
+                                                            }
+                                                            params={{
+                                                                query: query.replace(
+                                                                    /\s+/g,
+                                                                    "-",
+                                                                ),
+                                                            }}
+                                                            search={
+                                                                preservedSearch
+                                                            }
                                                             style={{
                                                                 backgroundColor:
                                                                     "var(--background)",
@@ -585,48 +636,104 @@ export function AppLayout({
                                                                     "disable-animation-on-theme-change",
                                                             )}
                                                         >
-                                                            {tag.type === "color" && (
+                                                            {tag.type ===
+                                                                "color" && (
                                                                 <span
                                                                     className="inline-block w-3 h-3 rounded-sm shrink-0 border border-black/10 dark:border-white/10"
                                                                     style={{
-                                                                        backgroundColor: tag.hex,
+                                                                        backgroundColor:
+                                                                            tag.hex,
                                                                     }}
                                                                 />
                                                             )}
-                                                            {tag.type === "pair" && (
+                                                            {tag.type ===
+                                                                "pair" && (
                                                                 <span className="inline-flex shrink-0">
-                                                                    {tag.colors.map((color, i) => (
-                                                                        <span
-                                                                            key={i}
-                                                                            className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
-                                                                            style={{
-                                                                                backgroundColor: color.hex,
-                                                                                marginLeft: i > 0 ? "-6px" : 0,
-                                                                            }}
-                                                                        />
-                                                                    ))}
+                                                                    {tag.colors.map(
+                                                                        (
+                                                                            color,
+                                                                            i,
+                                                                        ) => (
+                                                                            <span
+                                                                                key={
+                                                                                    i
+                                                                                }
+                                                                                className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
+                                                                                style={{
+                                                                                    backgroundColor:
+                                                                                        color.hex,
+                                                                                    marginLeft:
+                                                                                        i >
+                                                                                        0
+                                                                                            ? "-6px"
+                                                                                            : 0,
+                                                                                }}
+                                                                            />
+                                                                        ),
+                                                                    )}
                                                                 </span>
                                                             )}
-                                                            {tag.type === "triad" && (
+                                                            {tag.type ===
+                                                                "triad" && (
                                                                 <span className="inline-flex shrink-0">
-                                                                    {tag.colors.map((color, i) => (
-                                                                        <span
-                                                                            key={i}
-                                                                            className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
-                                                                            style={{
-                                                                                backgroundColor: color.hex,
-                                                                                marginLeft: i > 0 ? "-6px" : 0,
-                                                                            }}
-                                                                        />
-                                                                    ))}
+                                                                    {tag.colors.map(
+                                                                        (
+                                                                            color,
+                                                                            i,
+                                                                        ) => (
+                                                                            <span
+                                                                                key={
+                                                                                    i
+                                                                                }
+                                                                                className="inline-block w-3 h-3 rounded-full border border-black/10 dark:border-white/10"
+                                                                                style={{
+                                                                                    backgroundColor:
+                                                                                        color.hex,
+                                                                                    marginLeft:
+                                                                                        i >
+                                                                                        0
+                                                                                            ? "-6px"
+                                                                                            : 0,
+                                                                                }}
+                                                                            />
+                                                                        ),
+                                                                    )}
                                                                 </span>
                                                             )}
                                                             <span className="translate-y-px md:translate-y-0">
-                                                                {tag.type === "text" && tag.value}
-                                                                {tag.type === "emoji" && tag.value}
-                                                                {tag.type === "color" && tag.name}
-                                                                {tag.type === "pair" && tag.colors.map(c => c.name).join(" & ")}
-                                                                {tag.type === "triad" && tag.colors.map(c => c.name).join(", ")}
+                                                                {tag.type ===
+                                                                    "text" &&
+                                                                    tag.value}
+                                                                {tag.type ===
+                                                                    "emoji" &&
+                                                                    tag.value}
+                                                                {tag.type ===
+                                                                    "color" &&
+                                                                    tag.name}
+                                                                {tag.type ===
+                                                                    "pair" &&
+                                                                    tag.colors
+                                                                        .map(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.name,
+                                                                        )
+                                                                        .join(
+                                                                            " & ",
+                                                                        )}
+                                                                {tag.type ===
+                                                                    "triad" &&
+                                                                    tag.colors
+                                                                        .map(
+                                                                            (
+                                                                                c,
+                                                                            ) =>
+                                                                                c.name,
+                                                                        )
+                                                                        .join(
+                                                                            ", ",
+                                                                        )}
                                                             </span>
                                                         </Link>
                                                     </CarouselItem>
@@ -636,9 +743,13 @@ export function AppLayout({
                                                 <button
                                                     type="button"
                                                     onClick={() => {
-                                                        queryClient.refetchQueries({
-                                                            queryKey: ["popularTags"],
-                                                        });
+                                                        queryClient.refetchQueries(
+                                                            {
+                                                                queryKey: [
+                                                                    "popularTags",
+                                                                ],
+                                                            },
+                                                        );
                                                     }}
                                                     className={cn(
                                                         "inline-flex items-center justify-center",

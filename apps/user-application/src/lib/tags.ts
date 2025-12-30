@@ -18,16 +18,44 @@ export const EMOJI_TAGS = [
     { emoji: "🍬", keywords: "candy sweet ice cream pastel" },
     { emoji: "🌿", keywords: "botanical organic garden green" },
     { emoji: "💎", keywords: "jewel tone crystal gemstone luxury" },
-    { emoji: "🔥", keywords: "fire neon energetic hot warm" },
+    { emoji: "🔥", keywords: "fire neon energetic hot warm flame" },
     { emoji: "🌈", keywords: "rainbow vibrant playful colorful" },
     { emoji: "🍃", keywords: "spring fresh natural leaf" },
     { emoji: "🌹", keywords: "romantic rose feminine red" },
     { emoji: "🌌", keywords: "galaxy cosmic space stars" },
-    { emoji: "🍊", keywords: "citrus warm energetic orange" },
+    { emoji: "🍊", keywords: "citrus warm energetic orange tangerine" },
     { emoji: "☁️", keywords: "sky clouds dreamy soft" },
     { emoji: "🌻", keywords: "garden sunshine cheerful sunflower yellow" },
     { emoji: "🍇", keywords: "wine grapes rich purple" },
     { emoji: "✨", keywords: "ethereal magic glamour sparkle" },
+    { emoji: "🍎", keywords: "apple fruit red crisp" },
+    { emoji: "🍋", keywords: "lemon yellow citrus sour zesty" },
+    { emoji: "🍑", keywords: "peach fruit soft blush" },
+    { emoji: "🍓", keywords: "strawberry berry red sweet" },
+    { emoji: "🥑", keywords: "avocado green creamy" },
+    { emoji: "🌾", keywords: "wheat harvest golden grain" },
+    { emoji: "🦋", keywords: "butterfly delicate colorful" },
+    { emoji: "🐚", keywords: "shell beach coastal sand" },
+    { emoji: "🍌", keywords: "banana yellow tropical" },
+    { emoji: "🍒", keywords: "cherry red sweet" },
+    { emoji: "🫐", keywords: "blueberry blue berry" },
+    { emoji: "🍉", keywords: "watermelon summer pink green" },
+    { emoji: "🥭", keywords: "mango tropical golden orange" },
+    { emoji: "🌵", keywords: "cactus desert southwest" },
+    { emoji: "🪻", keywords: "lavender purple calm relaxing" },
+    { emoji: "🌺", keywords: "hibiscus tropical pink flower" },
+    { emoji: "🌷", keywords: "tulip spring flower" },
+    { emoji: "🪷", keywords: "lotus zen spiritual pink" },
+    { emoji: "⚡", keywords: "lightning electric storm energy" },
+    { emoji: "🌋", keywords: "volcano lava dramatic fire" },
+    { emoji: "🦩", keywords: "flamingo pink tropical" },
+    { emoji: "🦚", keywords: "peacock colorful elegant iridescent" },
+    { emoji: "🐠", keywords: "tropical fish ocean colorful reef" },
+    { emoji: "🎃", keywords: "pumpkin halloween autumn orange" },
+    { emoji: "🎄", keywords: "christmas holiday festive winter" },
+    { emoji: "🔮", keywords: "crystal ball mystical magical purple" },
+    { emoji: "🪸", keywords: "coral reef ocean pink" },
+    { emoji: "🧊", keywords: "ice frozen cold blue" },
 ];
 
 // Expanded list of mood/style tags
@@ -828,7 +856,7 @@ export function isPredefinedQuery(query: string): boolean {
 
     // Check if query is a combination of color names (e.g., "red blue green")
     const words = normalized.split(/\s+/);
-    if (words.length > 1 && words.every(word => tags.has(word))) {
+    if (words.length > 1 && words.every((word) => tags.has(word))) {
         return true;
     }
 
