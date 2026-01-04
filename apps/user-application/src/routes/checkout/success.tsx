@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { AppHeader } from "@/components/header/AppHeader";
 import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
@@ -6,6 +6,7 @@ import { CheckCircle, Sparkles, ArrowRight } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect } from "react";
 import * as v from "valibot";
+import { isProEnabled } from "@/lib/feature-flags";
 
 const searchSchema = v.object({
     checkout_id: v.optional(v.string()),
@@ -13,6 +14,11 @@ const searchSchema = v.object({
 
 export const Route = createFileRoute("/checkout/success")({
     validateSearch: searchSchema,
+    beforeLoad: () => {
+        if (!isProEnabled()) {
+            throw redirect({ to: "/" });
+        }
+    },
     component: CheckoutSuccessPage,
 });
 

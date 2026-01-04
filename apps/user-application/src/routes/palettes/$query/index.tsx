@@ -35,6 +35,7 @@ import {
     QueryDisplay,
     queryHasSubtitle,
 } from "@/components/palettes/PalettePageHeader";
+import { useProEnabled } from "@/hooks/useProEnabled";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -272,6 +273,12 @@ function BackButton({ sort, style, angle, steps, size }: SearchParams) {
 }
 
 function GenerateButton({ query, search }: { query: string; search: SearchParams }) {
+    const proEnabled = useProEnabled();
+
+    if (!proEnabled) {
+        return null;
+    }
+
     return (
         <Link
             to="/palettes/$query/generate"

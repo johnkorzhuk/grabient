@@ -1,13 +1,25 @@
-import { createServerFn } from "@tanstack/react-start";
+import { createServerFn, createMiddleware } from "@tanstack/react-start";
 import {
     optionalAuthFunctionMiddleware,
     protectedFunctionMiddleware,
 } from "@/core/middleware/auth";
 import { polarMiddleware } from "@/core/middleware/polar";
-import { env } from "cloudflare:workers";
+import { isProEnabled } from "@/lib/feature-flags";
+import { setResponseStatus } from "@tanstack/react-start/server";
+import { Polar } from "@polar-sh/sdk";
+
+const proEnabledMiddleware = createMiddleware({
+    type: "function",
+}).server(async ({ next }) => {
+    if (!isProEnabled()) {
+        setResponseStatus(503);
+        throw new Error("Pro features are not available");
+    }
+    return next();
+});
 
 export const checkSubscriptionStatus = createServerFn({ method: "GET" })
-    .middleware([optionalAuthFunctionMiddleware, polarMiddleware])
+    .middleware([optionalAuthFunctionMiddleware])
     .handler(
         async (
             ctx,
@@ -16,6 +28,15 @@ export const checkSubscriptionStatus = createServerFn({ method: "GET" })
             hasCredits: boolean;
             creditsRemaining: number;
         }> => {
+            // When Pro is disabled, always return no subscription
+            if (!isProEnabled()) {
+                return {
+                    hasSubscription: false,
+                    hasCredits: false,
+                    creditsRemaining: 0,
+                };
+            }
+
             if (!ctx.context.userId) {
                 return {
                     hasSubscription: false,
@@ -25,8 +46,14 @@ export const checkSubscriptionStatus = createServerFn({ method: "GET" })
             }
 
             try {
+                const { env } = await import("cloudflare:workers");
+                const polar = new Polar({
+                    accessToken: env.POLAR_ACCESS_TOKEN,
+                    server: (env.POLAR_SERVER as "sandbox" | "production") || "sandbox",
+                });
+
                 const customerState =
-                    await ctx.context.polar.customers.getStateExternal({
+                    await polar.customers.getStateExternal({
                         externalId: ctx.context.userId!,
                     });
 
@@ -50,9 +77,10 @@ export const checkSubscriptionStatus = createServerFn({ method: "GET" })
     );
 
 export const trackAIGeneration = createServerFn({ method: "POST" })
-    .middleware([protectedFunctionMiddleware, polarMiddleware])
+    .middleware([proEnabledMiddleware, protectedFunctionMiddleware, polarMiddleware])
     .handler(async (ctx): Promise<{ success: boolean }> => {
         try {
+            const { env } = await import("cloudflare:workers");
             await ctx.context.polar.events.ingest({
                 events: [
                     {

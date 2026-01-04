@@ -2,9 +2,22 @@ import { createServerFn } from "@tanstack/react-start";
 import { protectedFunctionMiddleware } from "@/core/middleware/auth";
 import { polarMiddleware } from "@/core/middleware/polar";
 import z from "zod";
-import { getRequestIP } from "@tanstack/react-start/server";
+import { getRequestIP, setResponseStatus } from "@tanstack/react-start/server";
+import { isProEnabled } from "@/lib/feature-flags";
+import { createMiddleware } from "@tanstack/react-start";
+
+const proEnabledMiddleware = createMiddleware({
+    type: "function",
+}).server(async ({ next }) => {
+    if (!isProEnabled()) {
+        setResponseStatus(503);
+        throw new Error("Pro features are not available");
+    }
+    return next();
+});
 
 export const baseFunction = createServerFn().middleware([
+    proEnabledMiddleware,
     protectedFunctionMiddleware,
     polarMiddleware,
 ]);

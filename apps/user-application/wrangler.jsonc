@@ -21,7 +21,8 @@
 		"R2_PUBLIC_URL": "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev",
 		"R2_ACCOUNT_ID": "f846204052f664d57da7acde8f6803cd",
 		"R2_BUCKET_NAME": "grabient-uploads-dev",
-		"VITE_SENTRY_DSN": "https://c729528778730d962b0343db87d28416@o4508445794959360.ingest.us.sentry.io/4509076183449600"
+		"VITE_SENTRY_DSN": "https://c729528778730d962b0343db87d28416@o4508445794959360.ingest.us.sentry.io/4509076183449600",
+		"VITE_ENABLE_PRO": "false"
 	},
 	"r2_buckets": [
 		{
@@ -78,7 +79,8 @@
 				"R2_PUBLIC_URL": "https://cdn.grabient.com",
 				"R2_ACCOUNT_ID": "f846204052f664d57da7acde8f6803cd",
 				"R2_BUCKET_NAME": "grabient-uploads",
-				"VITE_SENTRY_DSN": "https://c729528778730d962b0343db87d28416@o4508445794959360.ingest.us.sentry.io/4509076183449600"
+				"VITE_SENTRY_DSN": "https://c729528778730d962b0343db87d28416@o4508445794959360.ingest.us.sentry.io/4509076183449600",
+				"VITE_ENABLE_PRO": "false"
 			},
 			"r2_buckets": [
 				{

@@ -3,9 +3,13 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { PricingGrid, useCheckout } from "@/components/payments/polar";
 import { authClient } from "@/lib/auth-client";
+import { isProEnabled } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/app/polar/subscriptions")({
     beforeLoad: async () => {
+        if (!isProEnabled()) {
+            throw redirect({ to: "/" });
+        }
         const session = await authClient.getSession();
         if (!session) {
             throw redirect({

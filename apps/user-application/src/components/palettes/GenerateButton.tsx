@@ -12,6 +12,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { useHover } from "@mantine/hooks";
 import * as v from "valibot";
+import { useProEnabled } from "@/hooks/useProEnabled";
 
 type PaletteStyle = v.InferOutput<typeof paletteStyleValidator>;
 
@@ -64,6 +65,7 @@ export function GenerateButton({
     const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = useState(false);
     const { hovered, ref: hoverRef } = useHover();
+    const proEnabled = useProEnabled();
 
     const isAuthenticated = !!session?.user;
     const hasSubscription = (customerState?.activeSubscriptions?.length ?? 0) > 0;
@@ -208,6 +210,11 @@ export function GenerateButton({
     const resetDate = subscription?.currentPeriodEnd
         ? formatResetDate(subscription.currentPeriodEnd)
         : null;
+
+    // Hide generate button entirely when Pro features are disabled
+    if (!proEnabled) {
+        return null;
+    }
 
     return (
         <div className={cn("relative inline-flex items-center", className)}>

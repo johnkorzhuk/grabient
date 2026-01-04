@@ -42,6 +42,7 @@ import {
     QueryDisplay,
 } from "@/components/palettes/PalettePageHeader";
 import { useHasActiveSubscription } from "@/hooks/useCustomerState";
+import { isProEnabled } from "@/lib/feature-flags";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
 
@@ -166,6 +167,13 @@ export const Route = createFileRoute("/palettes/$query/generate")({
         middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
     },
     beforeLoad: async ({ context, params }) => {
+        // Redirect to search results if Pro features are disabled
+        if (!isProEnabled()) {
+            throw redirect({
+                to: "/palettes/$query",
+                params: { query: params.query },
+            });
+        }
         // Check authentication - redirect to login if not authenticated
         const session = await context.queryClient.ensureQueryData(sessionQueryOptions());
         if (!session?.user) {

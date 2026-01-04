@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { useEffect } from "react";
+import { isProEnabled } from "@/lib/feature-flags";
 
 const searchSchema = z.object({
     checkout_id: z.string(),
@@ -15,6 +16,9 @@ export const Route = createFileRoute("/app/polar/checkout/success")({
     component: RouteComponent,
     validateSearch: (search) => searchSchema.parse(search),
     beforeLoad: async ({ search }) => {
+        if (!isProEnabled()) {
+            throw redirect({ to: "/" });
+        }
         const session = await authClient.getSession();
         if (!session) {
             throw redirect({

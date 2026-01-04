@@ -34,6 +34,7 @@ import type { AuthUser } from "@repo/data-ops/auth/client-types";
 import type { SizeType } from "@/stores/export";
 import { styleWithAutoValidator } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
+import { useProEnabled } from "@/hooks/useProEnabled";
 
 export interface LogoNavigation {
     to: string;
@@ -67,6 +68,7 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const { data: session, isPending } = authClient.useSession();
     const { hasSubscription } = useHasActiveSubscription();
+    const proEnabled = useProEnabled();
     const targetColors = useStore(paletteAnimationStore, (state) => state.normalizedColors);
     const [displayedColors, setDisplayedColors] = useState<string[]>(
         () => Array(FIXED_STOP_COUNT).fill("#888888")
@@ -260,53 +262,55 @@ export function AppHeader({ className, logoNavigation }: { className?: string; l
                                         </div>
                                     </DropdownMenuLabel>
                                     <DropdownMenuSeparator className="bg-border/40" />
-                                    {hasSubscription ? (
-                                        <div className="flex items-center px-3 py-2">
-                                            <Rocket
-                                                className="mr-4 h-4 w-4 flex-shrink-0"
-                                                style={{ color: "currentColor" }}
-                                                aria-hidden="true"
-                                            />
-                                            <span className="font-bold text-sm">Grabient</span>
-                                            <span className="relative -mt-px ml-1">
-                                                <span className="text-base font-bold">Pro</span>
-                                                <span
-                                                    className="absolute left-0 right-0 bottom-[-2px] h-[4px]"
-                                                    style={{
-                                                        backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
-                                                    }}
-                                                />
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <DropdownMenuItem
-                                            asChild
-                                            className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 hover:bg-[var(--background)] focus:bg-[var(--background)] focus:text-foreground px-3"
-                                        >
-                                            <Link to="/pricing" className="flex items-center">
+                                    {proEnabled && (
+                                        hasSubscription ? (
+                                            <div className="flex items-center px-3 py-2">
                                                 <Rocket
-                                                    className="mr-2 h-4 w-4"
+                                                    className="mr-4 h-4 w-4 flex-shrink-0"
                                                     style={{ color: "currentColor" }}
                                                     aria-hidden="true"
                                                 />
-                                                <span className="flex items-baseline gap-1">
-                                                    <span className="font-medium text-sm">
-                                                        Upgrade to
-                                                    </span>
-                                                    <span className="relative -mt-px ml-px">
-                                                        <span className="text-base font-bold">Pro</span>
-                                                        <span
-                                                            className="absolute left-0 right-0 bottom-[-2px] h-[4px]"
-                                                            style={{
-                                                                backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
-                                                            }}
-                                                        />
-                                                    </span>
+                                                <span className="font-bold text-sm">Grabient</span>
+                                                <span className="relative -mt-px ml-1">
+                                                    <span className="text-base font-bold">Pro</span>
+                                                    <span
+                                                        className="absolute left-0 right-0 bottom-[-2px] h-[4px]"
+                                                        style={{
+                                                            backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
+                                                        }}
+                                                    />
                                                 </span>
-                                            </Link>
-                                        </DropdownMenuItem>
+                                            </div>
+                                        ) : (
+                                            <DropdownMenuItem
+                                                asChild
+                                                className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 hover:bg-[var(--background)] focus:bg-[var(--background)] focus:text-foreground px-3"
+                                            >
+                                                <Link to="/pricing" className="flex items-center">
+                                                    <Rocket
+                                                        className="mr-2 h-4 w-4"
+                                                        style={{ color: "currentColor" }}
+                                                        aria-hidden="true"
+                                                    />
+                                                    <span className="flex items-baseline gap-1">
+                                                        <span className="font-medium text-sm">
+                                                            Upgrade to
+                                                        </span>
+                                                        <span className="relative -mt-px ml-px">
+                                                            <span className="text-base font-bold">Pro</span>
+                                                            <span
+                                                                className="absolute left-0 right-0 bottom-[-2px] h-[4px]"
+                                                                style={{
+                                                                    backgroundImage: `linear-gradient(90deg, ${displayedColors.join(", ")})`,
+                                                                }}
+                                                            />
+                                                        </span>
+                                                    </span>
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        )
                                     )}
-                                    <DropdownMenuSeparator className="bg-border/40" />
+                                    {proEnabled && <DropdownMenuSeparator className="bg-border/40" />}
                                     <DropdownMenuItem
                                         asChild
                                         className="cursor-pointer relative h-9 min-h-[2.25rem] text-foreground/80 hover:text-foreground transition-colors duration-200 hover:bg-[var(--background)] focus:bg-[var(--background)] focus:text-foreground px-3"

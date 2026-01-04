@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { AppHeader } from "@/components/header/AppHeader";
 import { Footer } from "@/components/layout/Footer";
 import { cn } from "@/lib/utils";
@@ -10,8 +10,14 @@ import { useQueryClient } from "@tanstack/react-query";
 import { GradientBorderButton } from "@/components/GradientBorderButton";
 import { useStore } from "@tanstack/react-store";
 import { paletteAnimationStore } from "@/stores/palette-animation";
+import { isProEnabled } from "@/lib/feature-flags";
 
 export const Route = createFileRoute("/pricing")({
+    beforeLoad: () => {
+        if (!isProEnabled()) {
+            throw redirect({ to: "/" });
+        }
+    },
     component: PricingPage,
 });
 

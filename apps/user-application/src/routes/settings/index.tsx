@@ -30,6 +30,7 @@ import {
 } from "@/components/AvatarUpload";
 import { ConsentSection } from "@/components/settings/ConsentSection";
 import { useCustomerState } from "@/hooks/useCustomerState";
+import { useProEnabled } from "@/hooks/useProEnabled";
 
 const searchSchema = v.object({
     token: v.optional(v.string()),
@@ -57,6 +58,7 @@ function SettingsPage() {
 
     const updateUsernameMutation = useUpdateUsernameMutation();
     const { data: customerState, isLoading: customerStateLoading } = useCustomerState();
+    const proEnabled = useProEnabled();
 
     const fallbackText = user?.username
         ? user.username.charAt(0).toUpperCase()
@@ -184,7 +186,7 @@ function SettingsPage() {
     const navItems = [
         { id: "profile", label: "Profile" },
         ...(user ? [
-            { id: "subscription", label: "Subscription" },
+            ...(proEnabled ? [{ id: "subscription", label: "Subscription" }] : []),
             { id: "account", label: "Account" },
         ] : []),
         { id: "privacy", label: "Privacy" },
@@ -542,8 +544,8 @@ function SettingsPage() {
 
                     {user && (
                         <>
-                            {/* Subscription Section */}
-                            <Card id="subscription" className="scroll-mt-24">
+                            {/* Subscription Section - only show when Pro is enabled */}
+                            {proEnabled && <Card id="subscription" className="scroll-mt-24">
                                 <CardHeader>
                                     <div className="flex items-start justify-between">
                                         <div>
@@ -653,7 +655,7 @@ function SettingsPage() {
                                         </div>
                                     )}
                                 </CardContent>
-                            </Card>
+                            </Card>}
 
                             {/* Account Section */}
                             <Card id="account" className="scroll-mt-24">

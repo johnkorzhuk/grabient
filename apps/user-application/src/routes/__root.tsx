@@ -47,6 +47,8 @@ import { authClient } from "@/lib/auth-client";
 import { setUserRole, setUserTier } from "@/integrations/tracking/events";
 import { useHasActiveSubscription } from "@/hooks/useCustomerState";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
+import { isProEnabled } from "@/lib/feature-flags";
+import { ProEnabledContext } from "@/hooks/useProEnabled";
 
 function BreakpointIndicator() {
     return (
@@ -91,6 +93,11 @@ export const Route = createRootRouteWithContext<{
     validateSearch: searchValidatorSchema,
     search: {
         middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
+    },
+    loader: () => {
+        return {
+            proEnabled: isProEnabled(),
+        };
     },
     head: () => {
         return {
@@ -154,6 +161,7 @@ export const Route = createRootRouteWithContext<{
 });
 
 function RootComponent() {
+    const { proEnabled } = Route.useLoaderData();
     const isDragging = useStore(uiStore, (state) => state.isDragging);
     const [scrollbarWidth, setScrollbarWidth] = useState(0);
     const shouldDisableScroll = shouldDisableScrollLock();
@@ -198,17 +206,19 @@ function RootComponent() {
             scrollbarWidth={scrollbarWidth}
             shouldDisableScrollLock={shouldDisableScroll}
         >
-            <ThemeProvider>
-                <ZarazConsentInitializer />
-                <ExportStoreInitializer />
-                <SentryInitializer />
-                <PostHogInitializer />
-                <AnalyticsUserRoleInitializer />
-                <ThemeHotkeys />
-                <TooltipProvider delayDuration={500}>
-                    <Outlet />
-                </TooltipProvider>
-            </ThemeProvider>
+            <ProEnabledContext.Provider value={proEnabled}>
+                <ThemeProvider>
+                    <ZarazConsentInitializer />
+                    <ExportStoreInitializer />
+                    <SentryInitializer />
+                    <PostHogInitializer />
+                    <AnalyticsUserRoleInitializer />
+                    <ThemeHotkeys />
+                    <TooltipProvider delayDuration={500}>
+                        <Outlet />
+                    </TooltipProvider>
+                </ThemeProvider>
+            </ProEnabledContext.Provider>
         </RootDocument>
     );
 }
