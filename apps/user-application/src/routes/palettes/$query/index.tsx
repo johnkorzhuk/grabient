@@ -2,6 +2,7 @@ import {
     createFileRoute,
     stripSearchParams,
     Link,
+    type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { cn } from "@/lib/utils";
 import { useSuspenseQuery } from "@tanstack/react-query";
@@ -25,7 +26,7 @@ import {
 import { hexToColorName, HEX_CODE_REGEX } from "@repo/data-ops/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
 import { isValidSeed } from "@repo/data-ops/serialization";
-import { ArrowLeft, Search, Sparkles } from "lucide-react";
+import { ArrowLeft, Search, Sparkles, AlertTriangle, RefreshCw } from "lucide-react";
 import type { SizeType } from "@/stores/export";
 import { popularTagsQueryOptions } from "@/server-functions/popular-tags";
 import { SelectedButtonContainer } from "@/components/palettes/SelectedButtonContainer";
@@ -70,6 +71,80 @@ const SEARCH_DEFAULTS = {
     size: "auto" as SizeType,
     export: false,
 };
+
+function SearchErrorComponent({ error, reset }: ErrorComponentProps) {
+    const { query: compressedQuery } = Route.useParams();
+    const search = Route.useSearch();
+    const { sort, style, angle, steps, size } = search;
+    const query = getQuery(compressedQuery) ?? "";
+
+    const backNav = buildBackNavigation({ sort, style, angle, steps, size });
+
+    let errorMessage = "Something went wrong while searching.";
+    let isRateLimit = false;
+
+    if (error?.message) {
+        try {
+            const parsed = JSON.parse(error.message);
+            if (parsed.error === "Rate limit exceeded") {
+                isRateLimit = true;
+                errorMessage = "You've made too many requests. Please wait a moment and try again.";
+            }
+        } catch {
+            errorMessage = error.message;
+        }
+    }
+
+    return (
+        <AppLayout
+            style={style}
+            angle={angle}
+            steps={steps}
+            leftAction={
+                <BackButton
+                    sort={sort}
+                    style={style}
+                    angle={angle}
+                    steps={steps}
+                    size={size}
+                />
+            }
+            logoNavigation={backNav}
+            isExportOpen={false}
+        >
+            <div className="px-5 lg:px-14 mb-10 md:mb-12.5">
+                <h1 className="text-xl sm:text-3xl md:text-4xl font-bold text-foreground flex items-center flex-wrap gap-x-2 gap-y-1 min-w-0">
+                    <QueryDisplay query={query} />
+                    <span className="ml-1">palettes</span>
+                </h1>
+            </div>
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground px-5 lg:px-14">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-destructive/10 mb-4">
+                    <AlertTriangle className="h-6 w-6 text-destructive" />
+                </div>
+                <p className="text-lg font-medium text-foreground mb-2">
+                    {isRateLimit ? "Rate limit exceeded" : "Failed to load results"}
+                </p>
+                <p className="text-sm text-center max-w-md mb-6">{errorMessage}</p>
+                <button
+                    type="button"
+                    onClick={reset}
+                    className={cn(
+                        "inline-flex items-center justify-center gap-2 rounded-md",
+                        "font-bold text-sm h-9 px-4 border border-solid",
+                        "bg-primary text-primary-foreground",
+                        "hover:bg-primary/90",
+                        "transition-colors duration-200 cursor-pointer",
+                        "outline-none focus-visible:ring-2 focus-visible:ring-ring/70",
+                    )}
+                >
+                    <RefreshCw className="h-4 w-4" />
+                    Try Again
+                </button>
+            </div>
+        </AppLayout>
+    );
+}
 
 const exportValidator = v.pipe(
     v.optional(v.boolean(), false),
@@ -151,6 +226,7 @@ export const Route = createFileRoute("/palettes/$query/")({
     search: {
         middlewares: [stripSearchParams(SEARCH_DEFAULTS)],
     },
+    errorComponent: SearchErrorComponent,
     loader: async ({ context, params }) => {
         const query = getQuery(params.query);
         if (!query) {
