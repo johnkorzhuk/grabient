@@ -28,7 +28,6 @@ const palettesSchema = v.object({
 
 const basePalettesFunction = createServerFn({ method: "GET" }).middleware([
     optionalAuthFunctionMiddleware,
-    rateLimitFunctionMiddleware("paletteRead"),
 ]);
 
 export const getPalettesPaginated = basePalettesFunction
@@ -100,7 +99,6 @@ const userLikesSchema = v.object({
 
 const baseProtectedFunction = createServerFn({ method: "GET" }).middleware([
     protectedFunctionMiddleware,
-    rateLimitFunctionMiddleware("userPalettes"),
 ]);
 
 export const getUserLikedPalettes = baseProtectedFunction

@@ -49,6 +49,7 @@ import { getGradientAriaLabel, getUniqueColorNames } from "@repo/data-ops/color-
 import { detectDevice } from "@/lib/deviceDetection";
 import { useSearchFeedbackMutation } from "@/mutations/search-feedback";
 import { searchFeedbackStore, type FeedbackType } from "@/stores/search-feedback";
+import { useWindowVirtualizer } from "@tanstack/react-virtual";
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type StyleWithAuto = v.InferOutput<typeof styleWithAutoValidator>;
@@ -212,41 +213,6 @@ export function PalettesGrid({
         lastClickedSeedRef.current = palette.seed;
     };
 
-    const exportGridContent = (
-        <ol className="h-full w-full relative grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 3xl:grid-cols-4 gap-x-10 gap-y-20 auto-rows-[300px]">
-            {exportList.map((item, index) => {
-                const metadata = getPaletteMetadataBySeed(item.seed);
-                const exportPalette: AppPalette = {
-                    coeffs: item.coeffs,
-                    globals: item.globals,
-                    style: item.style,
-                    steps: item.steps,
-                    angle: item.angle,
-                    seed: item.seed,
-                    hexColors: item.hexColors,
-                    likesCount: metadata.likesCount,
-                    createdAt: metadata.createdAt,
-                };
-                return (
-                    <PaletteCard
-                        key={item.id}
-                        palette={exportPalette}
-                        index={index}
-                        urlStyle={item.style}
-                        urlAngle={item.angle}
-                        urlSteps={item.steps}
-                        previewStyle={null}
-                        previewAngle={null}
-                        previewSteps={null}
-                        onChannelOrderChange={onChannelOrderChange}
-                        likedSeeds={likedSeeds}
-                        onShiftClick={handleShiftClick}
-                    />
-                );
-            })}
-        </ol>
-    );
-
     const paletteGridContent = (
         <ol className="h-full w-full relative grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 4xl:grid-cols-6 gap-x-10 gap-y-20 auto-rows-[300px]">
             {initialPalettes.map((palette, index) => {
@@ -282,7 +248,8 @@ export function PalettesGrid({
     if (isExportOpen && exportList.length > 0) {
         return (
             <ExportView
-                exportGridContent={exportGridContent}
+                likedSeeds={likedSeeds}
+                getPaletteMetadataBySeed={getPaletteMetadataBySeed}
                 navigate={navigate}
             />
         );
@@ -295,18 +262,64 @@ export function PalettesGrid({
     );
 }
 
-interface ExportViewProps {
-    exportGridContent: React.ReactNode;
+export interface ExportViewProps {
+    likedSeeds: Set<string>;
+    getPaletteMetadataBySeed: (seed: string) => { likesCount?: number; createdAt: Date | null };
     navigate: ReturnType<typeof useNavigate>;
 }
 
-function ExportView({ exportGridContent, navigate }: ExportViewProps) {
+// Breakpoints for export grid (different from main grid - narrower due to side panel)
+function getExportColumnsForWidth(width: number): number {
+    if (width >= 1920) return 4;  // 3xl
+    if (width >= 1536) return 3;  // 2xl
+    if (width >= 1024) return 2;  // lg
+    return 1;
+}
+
+const EXPORT_ROW_HEIGHT = 380;
+const EXPORT_PALETTE_HEIGHT = 300;
+const EXPORT_GAP_X = 40;
+
+export function ExportView({ likedSeeds, getPaletteMetadataBySeed, navigate }: ExportViewProps) {
     const isMobile = !useMediaQuery("(min-width: 768px)");
     const [drawerOpen, setDrawerOpen] = useState(true);
     const devicePresetsState = useDevicePresetsState();
     const gap = useStore(exportStore, (state) => state.gap);
     const borderRadius = useStore(exportStore, (state) => state.borderRadius);
     const columns = useStore(exportStore, (state) => state.columns);
+    const exportList = useStore(exportStore, (state) => state.exportList);
+
+    // Virtualization state
+    const containerRef = useRef<HTMLOListElement>(null);
+    const [gridColumns, setGridColumns] = useState(1);
+    const [contentWidth, setContentWidth] = useState(0);
+
+    useEffect(() => {
+        const updateDimensions = () => {
+            if (containerRef.current) {
+                const width = containerRef.current.offsetWidth;
+                setContentWidth(width);
+                setGridColumns(getExportColumnsForWidth(window.innerWidth));
+            }
+        };
+
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+        return () => window.removeEventListener('resize', updateDimensions);
+    }, []);
+
+    const rowCount = Math.ceil(exportList.length / gridColumns);
+
+    const virtualizer = useWindowVirtualizer({
+        count: rowCount,
+        estimateSize: () => EXPORT_ROW_HEIGHT,
+        overscan: 1,
+        scrollMargin: containerRef.current?.offsetTop ?? 0,
+    });
+
+    const virtualRows = virtualizer.getVirtualItems();
+    const totalGapWidth = (gridColumns - 1) * EXPORT_GAP_X;
+    const columnWidth = contentWidth > 0 ? (contentWidth - totalGapWidth) / gridColumns : 0;
 
     const handleDrawerClose = () => {
         setDrawerOpen(false);
@@ -504,12 +517,88 @@ function ExportView({ exportGridContent, navigate }: ExportViewProps) {
         </div>
     );
 
+    // Build visible items from virtual rows
+    const visibleItems: Array<{
+        item: typeof exportList[number];
+        index: number;
+        row: number;
+        col: number;
+        yOffset: number;
+    }> = [];
+
+    for (const virtualRow of virtualRows) {
+        const rowStartIndex = virtualRow.index * gridColumns;
+        const yOffset = virtualRow.start - virtualizer.options.scrollMargin;
+
+        for (let col = 0; col < gridColumns; col++) {
+            const index = rowStartIndex + col;
+            if (index >= exportList.length) break;
+
+            const item = exportList[index];
+            if (item) {
+                visibleItems.push({
+                    item,
+                    index,
+                    row: virtualRow.index,
+                    col,
+                    yOffset,
+                });
+            }
+        }
+    }
+
     return (
         <section className="h-full w-full relative px-5 lg:px-14 pt-4 pb-20">
             <div className="flex gap-8">
                 {/* Grid container - full width on mobile, responsive on desktop */}
                 <div className="w-full md:w-3/5 lg:w-2/3 xl:w-2/3 2xl:w-3/4 3xl:w-4/5">
-                    {exportGridContent}
+                    <ol
+                        ref={containerRef}
+                        className="relative w-full"
+                        style={{
+                            height: `${virtualizer.getTotalSize()}px`,
+                        }}
+                    >
+                        {visibleItems.map(({ item, index, col, yOffset }) => {
+                            const metadata = getPaletteMetadataBySeed(item.seed);
+                            const exportPalette: AppPalette = {
+                                coeffs: item.coeffs,
+                                globals: item.globals,
+                                style: item.style,
+                                steps: item.steps,
+                                angle: item.angle,
+                                seed: item.seed,
+                                hexColors: item.hexColors,
+                                likesCount: metadata.likesCount,
+                                createdAt: metadata.createdAt,
+                            };
+                            const xOffset = col * (columnWidth + EXPORT_GAP_X);
+                            return (
+                                <PaletteCard
+                                    key={item.id}
+                                    palette={exportPalette}
+                                    index={index}
+                                    urlStyle={item.style}
+                                    urlAngle={item.angle}
+                                    urlSteps={item.steps}
+                                    previewStyle={null}
+                                    previewAngle={null}
+                                    previewSteps={null}
+                                    onChannelOrderChange={() => {}}
+                                    likedSeeds={likedSeeds}
+                                    onShiftClick={() => {}}
+                                    style={{
+                                        position: 'absolute',
+                                        top: 0,
+                                        left: 0,
+                                        width: `${columnWidth}px`,
+                                        height: `${EXPORT_PALETTE_HEIGHT}px`,
+                                        transform: `translate(${xOffset}px, ${yOffset}px)`,
+                                    }}
+                                />
+                            );
+                        })}
+                    </ol>
                 </div>
                 {/* Export panel - sticky on the right, hidden on mobile */}
                 <div className="hidden md:block md:w-2/5 lg:w-1/3 xl:w-1/3 2xl:w-1/4 3xl:w-1/5">

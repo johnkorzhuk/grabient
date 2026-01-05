@@ -66,7 +66,6 @@ const checkUsernameSchema = v.object({
 });
 
 export const checkUsernameAvailability = createServerFn({ method: "POST" })
-    .middleware([rateLimitFunctionMiddleware("usernameCheck")])
     .inputValidator((input) => v.parse(checkUsernameSchema, input))
     .handler(async (ctx) => {
         const { username } = ctx.data;

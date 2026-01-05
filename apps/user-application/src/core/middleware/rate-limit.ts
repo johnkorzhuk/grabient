@@ -2,26 +2,22 @@ import { DurableObjectNamespace } from "@cloudflare/workers-types";
 
 /**
  * Rate limit configuration for different endpoint types
+ *
+ * Note: D1 read-only queries don't need rate limiting since D1 reads
+ * are essentially free (25 billion/month included). Only rate limit
+ * operations with real costs or abuse potential.
  */
 export const rateLimitConfig = {
 	// Critical endpoints - most restrictive
 	contactForm: { requests: 5, window: 600 }, // 5 requests per 10 minutes
-	magicLink: { requests: 5, window: 60 }, // 5 requests per minute
 	avatarUpload: { requests: 10, window: 3600 }, // 10 uploads per hour
 
-	// High priority mutations
+	// Mutations - prevent abuse
 	toggleLike: { requests: 20, window: 60 }, // 20 requests per minute
-	searchFeedback: { requests: 100, window: 60 }, // 100 requests per minute
 	accountMutation: { requests: 30, window: 3600 }, // 30 requests per hour
 
-	// Read operations - lenient limits
-	usernameCheck: { requests: 50, window: 60 }, // 50 requests per minute
-	paletteRead: { requests: 100, window: 60 }, // 100 requests per minute
+	// AI/Vectorize operations - has compute costs
 	paletteSearch: { requests: 40, window: 60 }, // 40 requests per minute
-	userPalettes: { requests: 30, window: 60 }, // 30 requests per minute
-
-	// Low priority - lenient limits
-	general: { requests: 120, window: 60 }, // 120 requests per minute
 } as const;
 
 export type RateLimitType = keyof typeof rateLimitConfig;

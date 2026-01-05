@@ -8,14 +8,16 @@ import {
 import { useStore } from "@tanstack/react-store";
 import { uiStore } from "@/stores/ui";
 import { paletteAnimationStore } from "@/stores/palette-animation";
+import { exportStore } from "@/stores/export";
 import { useRef, useState, useEffect, useLayoutEffect } from "react";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
-import { PaletteCard } from "./palettes-grid";
+import { PaletteCard, ExportView } from "./palettes-grid";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate } from "@tanstack/react-router";
 import { Rocket } from "lucide-react";
 import { GradientBorderButton } from "@/components/GradientBorderButton";
 import { cn } from "@/lib/utils";
+import { useQueryClient } from "@tanstack/react-query";
 
 const FIXED_STOP_COUNT = 10;
 const TWEEN_DURATION = 2000;
@@ -77,19 +79,60 @@ export function VirtualizedPalettesGrid({
     urlStyle = "auto",
     urlAngle = "auto",
     urlSteps = "auto",
-    isExportOpen: _isExportOpen = false,
+    isExportOpen = false,
     searchQuery,
     onBadFeedback,
     skeletonCount = 0,
     showSubscribeCta = false,
 }: VirtualizedPalettesGridProps) {
-    void _isExportOpen;
-
     const previewStyle = useStore(uiStore, (state) => state.previewStyle);
     const previewAngle = useStore(uiStore, (state) => state.previewAngle);
     const previewSteps = useStore(uiStore, (state) => state.previewSteps);
     const targetColors = useStore(paletteAnimationStore, (state) => state.normalizedColors);
+    const exportList = useStore(exportStore, (state) => state.exportList);
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
+
+    // Get palette metadata from cache for export items
+    const getPaletteMetadataBySeed = (
+        seed: string,
+    ): { likesCount?: number; createdAt: Date | null } => {
+        const queries = queryClient.getQueriesData<{
+            palettes?: AppPalette[];
+            results?: AppPalette[];
+        }>({ queryKey: ["palettes"] });
+        for (const [queryKey, data] of queries) {
+            const isSearchQuery = queryKey[1] === "search";
+            const paletteList = isSearchQuery ? data?.results : data?.palettes;
+            if (paletteList) {
+                const found = paletteList.find((p) => p.seed === seed);
+                if (found) {
+                    return {
+                        likesCount: found.likesCount,
+                        createdAt: found.createdAt,
+                    };
+                }
+            }
+        }
+        const likedSeedsCache = queryClient.getQueryData<Set<string>>([
+            "user-liked-seeds",
+        ]);
+        if (likedSeedsCache?.has(seed)) {
+            return { likesCount: 1, createdAt: null };
+        }
+        return { createdAt: null };
+    };
+
+    // Close export mode if list becomes empty
+    useEffect(() => {
+        if (isExportOpen && exportList.length === 0) {
+            navigate({
+                to: ".",
+                search: (prev) => ({ ...prev, export: undefined }),
+                replace: true,
+            });
+        }
+    }, [isExportOpen, exportList.length, navigate]);
 
     const containerRef = useRef<HTMLOListElement>(null);
     const animationRef = useRef<number | null>(null);
@@ -162,7 +205,9 @@ export function VirtualizedPalettesGrid({
     const [contentWidth, setContentWidth] = useState(0);
 
     // Track window width for responsive columns and content width for positioning
-    useEffect(() => {
+    // useLayoutEffect runs synchronously after DOM mutations but before paint,
+    // so the user never sees stale dimensions when exiting export mode
+    useLayoutEffect(() => {
         const updateDimensions = () => {
             const windowWidth = window.innerWidth;
             setColumns(getColumnsForWidth(windowWidth));
@@ -173,9 +218,10 @@ export function VirtualizedPalettesGrid({
         };
 
         updateDimensions();
+
         window.addEventListener('resize', updateDimensions);
         return () => window.removeEventListener('resize', updateDimensions);
-    }, []);
+    }, [isExportOpen]);
 
     // Total items = CTA (if shown) + palettes + skeletons
     const ctaOffset = showSubscribeCta ? 1 : 0;
@@ -194,6 +240,17 @@ export function VirtualizedPalettesGrid({
     // Calculate column width based on content width and gaps
     const totalGapWidth = (columns - 1) * GAP_X;
     const columnWidth = contentWidth > 0 ? (contentWidth - totalGapWidth) / columns : 0;
+
+    // Export view - render when export mode is open and we have items
+    if (isExportOpen && exportList.length > 0) {
+        return (
+            <ExportView
+                likedSeeds={likedSeeds}
+                getPaletteMetadataBySeed={getPaletteMetadataBySeed}
+                navigate={navigate}
+            />
+        );
+    }
 
     if (totalItems === 0) {
         return null;
