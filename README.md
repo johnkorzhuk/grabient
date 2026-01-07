@@ -86,7 +86,7 @@ pnpm wrangler d1 migrations apply grabient-prod --remote
 
 ## Acknowledgments
 
-Built using [saas-kit](https://github.com/backpine/saas-kit) by Backpine (ISC License).
+Built using [saas-kit](https://github.com/backpine/saas-kit) by Backpine (MIT License).
 
 Color gradient generation inspired by [Inigo Quilez's cosine gradient technique](https://iquilezles.org/articles/palettes/) and [thi-ng/cgg](https://github.com/thi-ng/cgg).
 
