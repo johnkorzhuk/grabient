@@ -16,11 +16,11 @@ pnpm run dev:user-application
 
 ### Environments
 
-| Environment | Database | Deploy Command | Trigger |
-|-------------|----------|----------------|---------|
-| Local | SQLite (`.wrangler/`) | `pnpm dev:user-application` | Local dev server |
-| Staging | D1 `grabient` | `pnpm deploy:staging` | Manual or non-main branches |
-| Production | D1 `grabient-prod` | `pnpm deploy:production` | Push to `main` branch |
+| Environment | Database              | Deploy Command              | Trigger                     |
+| ----------- | --------------------- | --------------------------- | --------------------------- |
+| Local       | SQLite (`.wrangler/`) | `pnpm dev:user-application` | Local dev server            |
+| Staging     | D1 `grabient`         | `pnpm deploy:staging`       | Manual or non-main branches |
+| Production  | D1 `grabient-prod`    | `pnpm deploy:production`    | Push to `main` branch       |
 
 ### Manual Deployment
 
@@ -35,6 +35,7 @@ pnpm deploy:production
 ### Cloudflare CI
 
 Production deploys automatically when pushing to `main`. Configure in Cloudflare Dashboard:
+
 - Build command: `pnpm run build:data-ops && pnpm run --filter user-application build`
 - Deploy command: `wrangler deploy --env production`
 
@@ -85,7 +86,7 @@ pnpm wrangler d1 migrations apply grabient-prod --remote
 
 ## Acknowledgments
 
-Built using [saas-kit](https://github.com/backpine/saas-kit) by blackpine (ISC License).
+Built using [saas-kit](https://github.com/backpine/saas-kit) by Backpine (ISC License).
 
 Color gradient generation inspired by [Inigo Quilez's cosine gradient technique](https://iquilezles.org/articles/palettes/) and [thi-ng/cgg](https://github.com/thi-ng/cgg).
 

@@ -1,0 +1,31 @@
+What Grabient Does
+
+AI-Generated Palettes: Type a phrase like "sunset over the ocean" or "cyberpunk neon." Vector search finds matching palettes from a library of smooth, cosine-based color gradients.
+
+Community Library: Browse thousands of user-made and AI generated gradients. Search by keyword, color name, popularity, or newest.
+
+Full Customization: Choose Linear Gradient, Linear Swatches, Angular Gradient, or Angular Swatches; set the angle; add 2–50 color stops; tweak each RGB channel. Live preview updates instantly.
+
+One-Click Export: Copy CSS, download SVG, PNG, or JPEG. Export multiple gradients at once with custom grid layout, spacing, and border radius.
+
+Save & Like: Click a heart to add a palette to your personal collection for quick reuse.
+
+How It's Built
+
+Frontend: React 19 + TanStack (Start/Router/Query)
+
+Styling: Tailwind CSS v4 + shadcn/ui
+
+Database: Cloudflare D1
+
+Auth: Better Auth
+
+Search: Cloudflare Vectorize with embeddings from Workers AI
+
+Data Pipeline: LLM batch jobs generate and tag palettes; embeddings power semantic search
+
+Deployment: Cloudflare Workers
+
+Website: https://Grabient.com
+Check out the source code: https://github.com/johnkorzhuk/grabient
+
