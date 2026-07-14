@@ -71,14 +71,16 @@ function generateAngularGradientForGrid(
     })
     .join(",");
 
-  // Figma's transform - m02/m12 are the center in local coordinates
+  // Figma maps the unit square through this matrix, so the gradient center
+  // lands at M*(0.5, 0.5); offset the translation back by half the scaled
+  // basis vectors so the center sits at (centerX, centerY).
   const figmaScale = Math.max(width, height);
   const m00 = figmaScale * cos;
   const m01 = -figmaScale * sin;
-  const m02 = centerX;
   const m10 = figmaScale * sin;
   const m11 = figmaScale * cos;
-  const m12 = centerY;
+  const m02 = centerX - (m00 + m01) / 2;
+  const m12 = centerY - (m10 + m11) / 2;
 
   const gradientFillData = `{&quot;type&quot;:&quot;GRADIENT_ANGULAR&quot;,&quot;stops&quot;:[${gradientStops}],&quot;stopsVar&quot;:[${gradientStops}],&quot;transform&quot;:{&quot;m00&quot;:${m00.toFixed(6)},&quot;m01&quot;:${m01.toFixed(6)},&quot;m02&quot;:${m02.toFixed(6)},&quot;m10&quot;:${m10.toFixed(6)},&quot;m11&quot;:${m11.toFixed(6)},&quot;m12&quot;:${m12.toFixed(6)}},&quot;opacity&quot;:1.0,&quot;blendMode&quot;:&quot;NORMAL&quot;,&quot;visible&quot;:true}`;
 

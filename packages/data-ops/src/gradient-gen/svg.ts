@@ -244,8 +244,9 @@ export function generateSvgGradient(
             const foreignObjectSize = maxDim * 5.66;
             const foreignObjectHalf = foreignObjectSize / 2;
 
-            // Scale factor: how much to shrink the foreignObject to fit the target area
-            const scale = maxDim / foreignObjectSize;
+            // Scale so the conic div covers the full diagonal even when rotated
+            const diagonal = Math.sqrt(width * width + height * height);
+            const scale = diagonal / foreignObjectSize;
 
             // Rotation: angle 90° = no rotation (top), 0° = rotated -90° (right), etc.
             const rotationDeg = angle - 90;
@@ -278,14 +279,16 @@ export function generateSvgGradient(
                 })
                 .join(",");
 
-            // Figma transform for data attribute
+            // Figma transform for data attribute. Figma maps the unit square
+            // through this matrix, so the gradient center lands at M*(0.5, 0.5);
+            // offset the translation back by half the scaled basis vectors.
             const figmaScale = maxDim;
             const m00 = figmaScale * cos;
             const m01 = -figmaScale * sin;
-            const m02 = centerX;
             const m10 = figmaScale * sin;
             const m11 = figmaScale * cos;
-            const m12 = centerY;
+            const m02 = centerX - (m00 + m01) / 2;
+            const m12 = centerY - (m10 + m11) / 2;
 
             const gradientFillData = `{&quot;type&quot;:&quot;GRADIENT_ANGULAR&quot;,&quot;stops&quot;:[${gradientStops}],&quot;stopsVar&quot;:[${gradientStops}],&quot;transform&quot;:{&quot;m00&quot;:${m00.toFixed(6)},&quot;m01&quot;:${m01.toFixed(6)},&quot;m02&quot;:${m02.toFixed(6)},&quot;m10&quot;:${m10.toFixed(6)},&quot;m11&quot;:${m11.toFixed(6)},&quot;m12&quot;:${m12.toFixed(6)}},&quot;opacity&quot;:1.0,&quot;blendMode&quot;:&quot;NORMAL&quot;,&quot;visible&quot;:true}`;
 
