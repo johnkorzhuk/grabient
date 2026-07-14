@@ -106,7 +106,11 @@ function applyConsentSettings(analytics: boolean, sessionReplay: boolean) {
     }
 
     if (analytics) {
-        posthog.opt_in_capturing();
+        if (!posthog.has_opted_in_capturing()) {
+            // captureEventName: null suppresses the billable $opt_in event,
+            // which otherwise fires on every call (and the guard never trips for DNT users)
+            posthog.opt_in_capturing({ captureEventName: null });
+        }
 
         if (sessionReplay) {
             if (!posthog.sessionRecordingStarted()) {
