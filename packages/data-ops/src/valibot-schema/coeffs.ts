@@ -8,13 +8,22 @@ import * as v from "valibot";
 export const COEFF_PRECISION = 3 as const;
 
 /**
- * Cosine gradient formula: color(t) = a + b * cos(2π * (c*t + d))
- * All components maintain COEFF_PRECISION decimal places but can be any number
+ * Coefficient bounds come from the seed encoding: 18-bit fixed point at
+ * COEFF_PRECISION decimals. Values are clamped, not rejected, so repeated
+ * tare/tether operations saturate at the bound instead of erroring.
  */
-export const componentSchema = v.pipe(
-    v.number(),
-    v.transform((input) => Number(input.toFixed(COEFF_PRECISION))),
-);
+export const COEFF_MAX = ((1 << 17) - 1) / Math.pow(10, COEFF_PRECISION);
+export const COEFF_MIN = -(1 << 17) / Math.pow(10, COEFF_PRECISION);
+
+const clampComponent = (input: number) =>
+    Number(Math.min(COEFF_MAX, Math.max(COEFF_MIN, input)).toFixed(COEFF_PRECISION));
+
+/**
+ * Cosine gradient formula: color(t) = a + b * cos(2π * (c*t + d))
+ * All components maintain COEFF_PRECISION decimal places, clamped to
+ * [COEFF_MIN, COEFF_MAX]
+ */
+export const componentSchema = v.pipe(v.number(), v.transform(clampComponent));
 
 export const vectorSchema = v.tuple([
     componentSchema, // R component
@@ -27,9 +36,9 @@ export const vectorSchema = v.tuple([
 export const rawVectorInputSchema = v.pipe(
     v.tuple([v.number(), v.number(), v.number()]),
     v.transform((vec): [number, number, number, 1] => [
-        Number(vec[0].toFixed(COEFF_PRECISION)),
-        Number(vec[1].toFixed(COEFF_PRECISION)),
-        Number(vec[2].toFixed(COEFF_PRECISION)),
+        clampComponent(vec[0]),
+        clampComponent(vec[1]),
+        clampComponent(vec[2]),
         1,
     ]),
 );
