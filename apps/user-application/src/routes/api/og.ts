@@ -274,6 +274,8 @@ export const Route = createFileRoute("/api/og")({
       </svg>`;
 
                     // 8. Convert SVG to PNG using @cf-wasm/resvg
+                    // free() releases WASM linear memory; without it every
+                    // render leaks permanently since WASM memory never shrinks
                     const resvg = await Resvg.async(fullSvg, {
                         fitTo: {
                             mode: "width",
@@ -281,8 +283,17 @@ export const Route = createFileRoute("/api/og")({
                         },
                     });
 
-                    const pngData = resvg.render();
-                    const pngBuffer = pngData.asPng();
+                    let pngBuffer: Uint8Array;
+                    try {
+                        const pngData = resvg.render();
+                        try {
+                            pngBuffer = pngData.asPng();
+                        } finally {
+                            pngData.free();
+                        }
+                    } finally {
+                        resvg.free();
+                    }
 
                     // 9. Store in KV cache for future requests
                     if (env.OG_IMAGE_CACHE) {
