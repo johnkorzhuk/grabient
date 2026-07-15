@@ -20,7 +20,7 @@ describe('module cycle entered via valibot-schema', () => {
     ] as Parameters<typeof serializeCoeffs>[0];
 
     const seed = serializeCoeffs(coeffs, DEFAULT_GLOBALS);
-    // A TDZ/undefined read of COEFF_PRECISION makes the binary encoder bail
+    // A TDZ/undefined read of COEFF_PRECISION makes the aligned encoder bail
     // to the legacy format, so the prefix is the observable symptom here
     expect(seed.startsWith('_')).toBe(true);
     expect(v.is(seedValidator, seed)).toBe(true);

@@ -6,141 +6,78 @@ type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type GlobalModifiers = v.InferOutput<typeof globalsSchema>;
 
 /**
- * Binary seed format: '_' + base64url-encoded bit-packed payload.
+ * Char-aligned seed format: '_' + base64url payload where every value owns
+ * exact character positions, like a hex color code.
  *
- * Each of the 12 coefficient values is stored as fixed-point at COEFF_PRECISION
- * decimals with a 1-bit width selector: narrow 14-bit (±8.191) for typical values,
- * wide 24-bit (±8388.607) for values blown up by tare/tether operations.
- * Non-default globals append 4 × 12-bit values (their schema ranges fit exactly).
- * Values beyond the wide range fall back to the legacy lz-string format.
+ * Each of the 12 coefficients is 3 chars (18-bit fixed point at COEFF_PRECISION
+ * decimals, range ±131.071): chars 1-3 = base R, 4-6 = base G, 7-9 = base B,
+ * then the amplitude, frequency, and phase rows in the same RGB order.
+ * Non-default globals append 2 chars each (12-bit; schema ranges fit exactly):
+ * exposure, contrast, frequency, phase. Total 37 or 45 chars.
  *
- * The '_' prefix never appears in lz-string's URI-safe alphabet (A-Za-z0-9+-$),
- * so legacy seeds remain decodable and dispatch is unambiguous.
+ * Editing one char group changes exactly one value — URLs are hackable.
+ * Values beyond ±131.071 fall back to the legacy lz-string format.
+ *
+ * Seeds without the prefix decode as legacy lz-string CSV; '_' never appears
+ * in lz-string's URI-safe alphabet (A-Za-z0-9+-$), so dispatch is unambiguous.
  */
-const BINARY_SEED_PREFIX = '_';
+const ALIGNED_SEED_PREFIX = '_';
 const B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const B64_INDEX = new Map([...B64_ALPHABET].map((char, index) => [char, index]));
 
 const SCALE = Math.pow(10, COEFF_PRECISION);
-const NARROW_BITS = 14;
-const NARROW_OFFSET = 1 << (NARROW_BITS - 1);
-const WIDE_BITS = 24;
-const WIDE_OFFSET = 1 << (WIDE_BITS - 1);
-const GLOBAL_BITS = 12;
-const GLOBAL_OFFSET = 1 << (GLOBAL_BITS - 1);
-const GLOBALS_BLOCK_BITS = 4 * GLOBAL_BITS;
 const COEFF_COUNT = 12;
+const COEFF_OFFSET = 1 << 17; // 3 chars = 18 bits per coefficient
+const GLOBAL_OFFSET = 1 << 11; // 2 chars = 12 bits per global
+const COEFF_BLOCK_CHARS = COEFF_COUNT * 3;
+const GLOBALS_BLOCK_CHARS = 4 * 2;
 
-class BitWriter {
-  private chars = '';
-  private acc = 0;
-  private accBits = 0;
-
-  write(value: number, width: number): void {
-    this.acc = this.acc * Math.pow(2, width) + value;
-    this.accBits += width;
-    while (this.accBits >= 6) {
-      this.accBits -= 6;
-      const shift = Math.pow(2, this.accBits);
-      const charValue = Math.floor(this.acc / shift);
-      this.acc -= charValue * shift;
-      this.chars += B64_ALPHABET[charValue];
-    }
-  }
-
-  toString(): string {
-    if (this.accBits > 0) {
-      const charValue = this.acc * Math.pow(2, 6 - this.accBits);
-      return this.chars + B64_ALPHABET[charValue];
-    }
-    return this.chars;
-  }
-}
-
-class BitReader {
-  private pos = 0;
-  private acc = 0;
-  private accBits = 0;
-
-  constructor(private readonly payload: string) {}
-
-  remaining(): number {
-    return (this.payload.length - this.pos) * 6 + this.accBits;
-  }
-
-  read(width: number): number {
-    while (this.accBits < width) {
-      const charValue = B64_INDEX.get(this.payload[this.pos] as string);
-      if (charValue === undefined) {
-        throw new Error('Invalid seed: malformed binary payload');
-      }
-      this.pos++;
-      this.acc = this.acc * 64 + charValue;
-      this.accBits += 6;
-    }
-    this.accBits -= width;
-    const shift = Math.pow(2, this.accBits);
-    const value = Math.floor(this.acc / shift);
-    this.acc -= value * shift;
-    return value;
-  }
-}
-
-function encodeBinarySeed(coeffValues: number[], globalValues: number[] | null): string | null {
-  const writer = new BitWriter();
+function encodeAlignedSeed(coeffValues: number[], globalValues: number[] | null): string | null {
+  let out = ALIGNED_SEED_PREFIX;
 
   for (const value of coeffValues) {
-    const quantized = Math.round(value * SCALE);
-    if (quantized >= -NARROW_OFFSET && quantized < NARROW_OFFSET) {
-      writer.write(0, 1);
-      writer.write(quantized + NARROW_OFFSET, NARROW_BITS);
-    } else if (quantized >= -WIDE_OFFSET && quantized < WIDE_OFFSET) {
-      writer.write(1, 1);
-      writer.write(quantized + WIDE_OFFSET, WIDE_BITS);
-    } else {
-      return null;
-    }
+    const q = Math.round(value * SCALE) + COEFF_OFFSET;
+    if (q < 0 || q >= 1 << 18) return null;
+    out += B64_ALPHABET[q >> 12]! + B64_ALPHABET[(q >> 6) & 63]! + B64_ALPHABET[q & 63]!;
   }
 
   if (globalValues) {
     for (const value of globalValues) {
-      const quantized = Math.round(value * SCALE) + GLOBAL_OFFSET;
-      if (quantized < 0 || quantized >= 1 << GLOBAL_BITS) {
-        return null;
-      }
-      writer.write(quantized, GLOBAL_BITS);
+      const q = Math.round(value * SCALE) + GLOBAL_OFFSET;
+      if (q < 0 || q >= 1 << 12) return null;
+      out += B64_ALPHABET[q >> 6]! + B64_ALPHABET[q & 63]!;
     }
   }
 
-  return BINARY_SEED_PREFIX + writer.toString();
+  return out;
 }
 
-function decodeBinarySeed(seed: string): { coeffValues: number[]; globalValues: number[] } {
-  const reader = new BitReader(seed.slice(BINARY_SEED_PREFIX.length));
+function decodeAlignedSeed(seed: string): { coeffValues: number[]; globalValues: number[] } {
+  const payload = seed.slice(ALIGNED_SEED_PREFIX.length);
+  if (payload.length !== COEFF_BLOCK_CHARS && payload.length !== COEFF_BLOCK_CHARS + GLOBALS_BLOCK_CHARS) {
+    throw new Error(`Invalid seed: expected ${COEFF_BLOCK_CHARS} or ${COEFF_BLOCK_CHARS + GLOBALS_BLOCK_CHARS} payload chars, got ${payload.length}`);
+  }
+
+  const charAt = (i: number): number => {
+    const value = B64_INDEX.get(payload[i] as string);
+    if (value === undefined) throw new Error('Invalid seed: malformed character');
+    return value;
+  };
 
   const coeffValues: number[] = [];
   for (let i = 0; i < COEFF_COUNT; i++) {
-    if (reader.remaining() < 1 + NARROW_BITS) {
-      throw new Error('Invalid seed: truncated binary payload');
-    }
-    const wide = reader.read(1) === 1;
-    const quantized = wide
-      ? reader.read(WIDE_BITS) - WIDE_OFFSET
-      : reader.read(NARROW_BITS) - NARROW_OFFSET;
-    coeffValues.push(quantized / SCALE);
+    const q = (charAt(i * 3) << 12) | (charAt(i * 3 + 1) << 6) | charAt(i * 3 + 2);
+    coeffValues.push((q - COEFF_OFFSET) / SCALE);
   }
 
   let globalValues = [...DEFAULT_GLOBALS] as number[];
-  if (reader.remaining() >= GLOBALS_BLOCK_BITS) {
+  if (payload.length === COEFF_BLOCK_CHARS + GLOBALS_BLOCK_CHARS) {
     globalValues = [];
     for (let i = 0; i < 4; i++) {
-      globalValues.push((reader.read(GLOBAL_BITS) - GLOBAL_OFFSET) / SCALE);
+      const base = COEFF_BLOCK_CHARS + i * 2;
+      const q = (charAt(base) << 6) | charAt(base + 1);
+      globalValues.push((q - GLOBAL_OFFSET) / SCALE);
     }
-  }
-
-  // Base64 padding leaves at most 5 trailing bits; anything more is garbage
-  if (reader.remaining() >= 6) {
-    throw new Error('Invalid seed: unexpected trailing data');
   }
 
   return { coeffValues, globalValues };
@@ -172,9 +109,9 @@ export function serializeCoeffs(coeffs: CosineCoeffs, globals: GlobalModifiers):
   const coeffValues = validatedCoeffs.flatMap((vec) => [vec[0], vec[1], vec[2]]);
   const globalValues = useDefaultGlobals ? null : [...validatedGlobals];
 
-  const binarySeed = encodeBinarySeed(coeffValues, globalValues);
-  if (binarySeed !== null) {
-    return binarySeed;
+  const alignedSeed = encodeAlignedSeed(coeffValues, globalValues);
+  if (alignedSeed !== null) {
+    return alignedSeed;
   }
 
   const packed = [...coeffValues, ...(globalValues ?? [])].map(formatNumber).join(',');
@@ -219,8 +156,8 @@ function decodeLegacySeed(seed: string): { coeffValues: number[]; globalValues: 
 
 export function isValidSeed(seed: string): boolean {
   try {
-    if (seed.startsWith(BINARY_SEED_PREFIX)) {
-      const { globalValues } = decodeBinarySeed(seed);
+    if (seed.startsWith(ALIGNED_SEED_PREFIX)) {
+      const { globalValues } = decodeAlignedSeed(seed);
       // Keep isValidSeed and deserializeCoeffs in agreement: a crafted payload
       // can carry a globals block outside the schema ranges
       return v.is(globalsSchema, globalValues);
@@ -239,8 +176,8 @@ export const seedValidator = v.pipe(
 );
 
 export function deserializeCoeffs(seed: string) {
-  const { coeffValues, globalValues } = seed.startsWith(BINARY_SEED_PREFIX)
-    ? decodeBinarySeed(seed)
+  const { coeffValues, globalValues } = seed.startsWith(ALIGNED_SEED_PREFIX)
+    ? decodeAlignedSeed(seed)
     : decodeLegacySeed(seed);
 
   const coeffsWithAlpha = [];

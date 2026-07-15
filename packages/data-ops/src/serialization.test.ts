@@ -402,24 +402,48 @@ describe('serialization', () => {
       [0.12, 0.35, 0.83, 1],
     ];
 
-    it('should produce compact seeds with a _ prefix', () => {
+    it('should produce 37-char seeds with a _ prefix', () => {
       const seed = serializeCoeffs(coeffs, DEFAULT_GLOBALS);
       expect(seed.startsWith('_')).toBe(true);
-      expect(seed.length).toBe(31);
+      expect(seed.length).toBe(37);
     });
 
-    it('should produce 39-char seeds when globals are included', () => {
+    it('should produce 45-char seeds when globals are included', () => {
       const seed = serializeCoeffs(coeffs, [0.5, 1.2, 1.5, 0.8]);
       expect(seed.startsWith('_')).toBe(true);
-      expect(seed.length).toBe(39);
+      expect(seed.length).toBe(45);
     });
 
-    it('should round-trip wide-tier values from tether/tare operations', () => {
+    it('should map each coefficient to exactly one 3-char group', () => {
+      const seed = serializeCoeffs(coeffs, DEFAULT_GLOBALS);
+      const base = deserializeCoeffs(seed);
+
+      for (let value = 0; value < 12; value++) {
+        const groupStart = 1 + value * 3;
+        const chars = [...seed];
+        chars[groupStart] = chars[groupStart] === 'A' ? 'B' : 'A';
+        const edited = deserializeCoeffs(chars.join(''));
+
+        let changed = 0;
+        for (let row = 0; row < 4; row++) {
+          for (let ch = 0; ch < 3; ch++) {
+            if (edited.coeffs[row]![ch] !== base.coeffs[row]![ch]) changed++;
+          }
+        }
+        expect(changed).toBe(1);
+        expect(edited.coeffs[Math.floor(value / 3)]![value % 3]).not.toBe(
+          base.coeffs[Math.floor(value / 3)]![value % 3],
+        );
+        expect(edited.globals).toEqual(base.globals);
+      }
+    });
+
+    it('should round-trip large values from tether/tare operations', () => {
       const wideCoeffs: CosineCoeffs = [
         [0.5, 0.72, 0.51, 1],
         [0.48, 0.5, 0.49, 1],
         [13.888, 23.232, 12.608, 1],
-        [0.12, 0.35, 0.83, 1],
+        [0.12, 0.35, 131.071, 1],
       ];
 
       const seed = serializeCoeffs(wideCoeffs, DEFAULT_GLOBALS);
@@ -429,9 +453,9 @@ describe('serialization', () => {
       expect(result.coeffs).toEqual(wideCoeffs);
     });
 
-    it('should fall back to legacy format for values beyond the wide tier', () => {
+    it('should fall back to legacy format for values beyond ±131.071', () => {
       const extremeCoeffs: CosineCoeffs = [
-        [10000.5, 0.72, 0.51, 1],
+        [131.072, 0.72, 0.51, 1],
         [0.48, 0.5, 0.49, 1],
         [1.0, 1.2, 0.8, 1],
         [0.12, 0.35, 0.83, 1],
@@ -479,7 +503,7 @@ describe('serialization', () => {
       expect(result.globals).toEqual(decoded.globals);
     });
 
-    it('should reject malformed binary seeds', () => {
+    it('should reject malformed aligned seeds', () => {
       expect(isValidSeed('_')).toBe(false);
       expect(isValidSeed('_abc')).toBe(false);
       expect(isValidSeed('_!!!invalid!!!')).toBe(false);
@@ -498,9 +522,9 @@ describe('serialization', () => {
       for (let iteration = 0; iteration < 2000; iteration++) {
         const values = Array.from({ length: 12 }, () => {
           const roll = rand();
-          const range = roll < 0.7 ? 4 : roll < 0.9 ? 16.383 : 16777.215;
+          const range = roll < 0.7 ? 4 : roll < 0.95 ? 262.142 : 16777.215;
           const value = Number((rand() * range - range / 2).toFixed(3));
-          // Both formats normalize -0 to +0
+          // All formats normalize -0 to +0
           return value === 0 ? 0 : value;
         });
         const testCoeffs = [
