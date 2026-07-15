@@ -2,15 +2,11 @@ import { useState } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { generatePalettes, type GenerateEvent } from "@/server-functions/generate";
-import { trackAIGeneration } from "@/server-functions/subscription";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { generateHexColors } from "@/lib/paletteUtils";
 import { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabient";
 import { authClient } from "@/lib/auth-client";
-import { useCustomerState } from "@/hooks/useCustomerState";
 import { useRouter } from "@tanstack/react-router";
-import { useQueryClient } from "@tanstack/react-query";
-import { useHover } from "@mantine/hooks";
 import * as v from "valibot";
 import { useProEnabled } from "@/hooks/useProEnabled";
 
@@ -60,25 +56,11 @@ export function GenerateButton({
     buttonText = "Generate",
 }: GenerateButtonProps) {
     const { data: session, isPending: isAuthPending } = authClient.useSession();
-    const { data: customerState, isLoading: isCustomerLoading } = useCustomerState();
     const router = useRouter();
-    const queryClient = useQueryClient();
     const [isGenerating, setIsGenerating] = useState(false);
-    const { hovered, ref: hoverRef } = useHover();
     const proEnabled = useProEnabled();
 
     const isAuthenticated = !!session?.user;
-    const hasSubscription = (customerState?.activeSubscriptions?.length ?? 0) > 0;
-    const meter = customerState?.activeMeters?.find(m => m.creditedUnits > 0) ?? customerState?.activeMeters?.[0];
-    const subscription = customerState?.activeSubscriptions?.[0];
-
-    const consumed = meter?.consumedUnits ?? 0;
-    const credited = meter?.creditedUnits ?? 0;
-    const remaining = Math.max(0, credited - consumed);
-    // Show warning when 5 or fewer generations remaining, or when at 90%+ usage
-    const usagePercent = credited > 0 ? (consumed / credited) * 100 : 0;
-    const isNearingLimit = (remaining > 0 && remaining <= 5) || (usagePercent >= 90 && remaining > 0);
-    const hasNoCredits = hasSubscription && credited > 0 && remaining === 0;
 
     // Process SSE stream from server
     const processStream = async (response: Response): Promise<void> => {
@@ -168,27 +150,6 @@ export function GenerateButton({
 
             await processStream(response);
 
-            try {
-                await trackAIGeneration();
-                // Optimistically update the customer state cache immediately
-                // This ensures accurate display without waiting for Polar to process
-                // We don't invalidate because Polar takes time to process the event
-                // and an immediate refetch would return stale data, overwriting our update
-                queryClient.setQueryData(["customer-state"], (old: typeof customerState) => {
-                    if (!old?.activeMeters) return old;
-                    return {
-                        ...old,
-                        activeMeters: old.activeMeters.map(meter => ({
-                            ...meter,
-                            consumedUnits: meter.consumedUnits + 1,
-                            balance: meter.balance - 1,
-                        })),
-                    };
-                });
-            } catch (trackError) {
-                console.error("[GenerateButton] Failed to track usage:", trackError);
-            }
-
             onGenerateComplete();
         } catch (error) {
             console.error("[GenerateButton] Error:", error);
@@ -199,18 +160,6 @@ export function GenerateButton({
         }
     };
 
-    const formatResetDate = (dateString: string | Date | null | undefined) => {
-        if (!dateString) return null;
-        return new Date(dateString).toLocaleDateString("en-US", {
-            month: "short",
-            day: "numeric",
-        });
-    };
-
-    const resetDate = subscription?.currentPeriodEnd
-        ? formatResetDate(subscription.currentPeriodEnd)
-        : null;
-
     // Hide generate button entirely when Pro features are disabled
     if (!proEnabled) {
         return null;
@@ -219,10 +168,9 @@ export function GenerateButton({
     return (
         <div className={cn("relative inline-flex items-center", className)}>
             <button
-                ref={hoverRef}
                 type="button"
                 onClick={handleGenerate}
-                disabled={disabled || isGenerating || isAuthPending || isCustomerLoading || !hasSubscription || hasNoCredits}
+                disabled={disabled || isGenerating || isAuthPending}
                 style={{ backgroundColor: "var(--background)" }}
                 className={cn(
                     "disable-animation-on-theme-change",
@@ -247,30 +195,6 @@ export function GenerateButton({
                     </>
                 )}
             </button>
-            {isAuthenticated && hasSubscription && isNearingLimit && (
-                <p
-                    className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-amber-600 dark:text-amber-400 font-medium whitespace-nowrap"
-                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
-                >
-                    {remaining} generation{remaining !== 1 ? "s" : ""} left
-                </p>
-            )}
-            {isAuthenticated && hasSubscription && hasNoCredits && (
-                <p
-                    className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-red-600 dark:text-red-400 font-medium whitespace-nowrap"
-                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
-                >
-                    No generations left{resetDate ? ` · Resets ${resetDate}` : ""}
-                </p>
-            )}
-            {isAuthenticated && !isCustomerLoading && !hasSubscription && hovered && (
-                <p
-                    className="absolute top-full right-0 mt-1.5 pr-3 text-xs text-muted-foreground font-medium whitespace-nowrap"
-                    style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
-                >
-                    Pro subscription required
-                </p>
-            )}
         </div>
     );
 }

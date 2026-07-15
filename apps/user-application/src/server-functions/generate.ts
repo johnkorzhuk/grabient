@@ -2,7 +2,7 @@
 // This file is kept minimal to avoid importing server-only modules on the client
 
 import { createServerFn } from "@tanstack/react-start";
-import { creditsRequiredMiddleware } from "@/core/middleware/auth";
+import { protectedFunctionMiddleware } from "@/core/middleware/auth";
 import * as v from "valibot";
 import { paletteStyleValidator } from "@repo/data-ops/valibot-schema/grabient";
 
@@ -17,7 +17,7 @@ const generateRequestSchema = v.object({
 });
 
 export const generatePalettes = createServerFn({ method: "POST" })
-    .middleware([creditsRequiredMiddleware])
+    .middleware([protectedFunctionMiddleware])
     .inputValidator((input) => v.parse(generateRequestSchema, input))
     .handler(async (ctx) => {
         // Dynamic import to avoid bundling cloudflare:workers on client

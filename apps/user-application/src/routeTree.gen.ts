@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as PaletteListRouteImport } from './routes/_paletteList'
@@ -21,18 +20,14 @@ import { Route as PaletteListIndexRouteImport } from './routes/_paletteList/inde
 import { Route as SeedIndexRouteImport } from './routes/$seed/index'
 import { Route as PalettesQueryRouteImport } from './routes/palettes/$query'
 import { Route as ESplatRouteImport } from './routes/e.$'
-import { Route as CheckoutSuccessRouteImport } from './routes/checkout/success'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
 import { Route as PaletteListNewestRouteImport } from './routes/_paletteList/newest'
 import { Route as PalettesQueryIndexRouteImport } from './routes/palettes/$query/index'
 import { Route as PalettesQueryGenerateRouteImport } from './routes/palettes/$query/generate'
-import { Route as AppPolarSubscriptionsRouteImport } from './routes/app/polar/subscriptions'
-import { Route as AppPolarPortalRouteImport } from './routes/app/polar/portal'
 import { Route as ApiOgQueryRouteImport } from './routes/api/og.query'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth.$'
-import { Route as AppPolarCheckoutSuccessRouteImport } from './routes/app/polar/checkout.success'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -42,11 +37,6 @@ const TermsRoute = TermsRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PricingRoute = PricingRouteImport.update({
-  id: '/pricing',
-  path: '/pricing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -93,11 +83,6 @@ const ESplatRoute = ESplatRouteImport.update({
   path: '/e/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CheckoutSuccessRoute = CheckoutSuccessRouteImport.update({
-  id: '/checkout/success',
-  path: '/checkout/success',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiOgRoute = ApiOgRouteImport.update({
   id: '/api/og',
   path: '/api/og',
@@ -128,16 +113,6 @@ const PalettesQueryGenerateRoute = PalettesQueryGenerateRouteImport.update({
   path: '/generate',
   getParentRoute: () => PalettesQueryRoute,
 } as any)
-const AppPolarSubscriptionsRoute = AppPolarSubscriptionsRouteImport.update({
-  id: '/app/polar/subscriptions',
-  path: '/app/polar/subscriptions',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppPolarPortalRoute = AppPolarPortalRouteImport.update({
-  id: '/app/polar/portal',
-  path: '/app/polar/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ApiOgQueryRoute = ApiOgQueryRouteImport.update({
   id: '/query',
   path: '/query',
@@ -148,24 +123,17 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppPolarCheckoutSuccessRoute = AppPolarCheckoutSuccessRouteImport.update({
-  id: '/app/polar/checkout/success',
-  path: '/app/polar/checkout/success',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/$seed': typeof SeedRouteRouteWithChildren
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
-  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
-  '/checkout/success': typeof CheckoutSuccessRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
@@ -173,34 +141,26 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SettingsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/og/query': typeof ApiOgQueryRoute
-  '/app/polar/portal': typeof AppPolarPortalRoute
-  '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
   '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
   '/palettes/$query/': typeof PalettesQueryIndexRoute
-  '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
 }
 export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
-  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/newest': typeof PaletteListNewestRoute
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
-  '/checkout/success': typeof CheckoutSuccessRoute
   '/e/$': typeof ESplatRoute
   '/$seed': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
   '/settings': typeof SettingsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/og/query': typeof ApiOgQueryRoute
-  '/app/polar/portal': typeof AppPolarPortalRoute
-  '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
   '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
   '/palettes/$query': typeof PalettesQueryIndexRoute
-  '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -208,14 +168,12 @@ export interface FileRoutesById {
   '/_paletteList': typeof PaletteListRouteWithChildren
   '/contact': typeof ContactRoute
   '/login': typeof LoginRoute
-  '/pricing': typeof PricingRoute
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/_paletteList/newest': typeof PaletteListNewestRoute
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
-  '/checkout/success': typeof CheckoutSuccessRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
@@ -223,11 +181,8 @@ export interface FileRoutesById {
   '/settings/': typeof SettingsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/og/query': typeof ApiOgQueryRoute
-  '/app/polar/portal': typeof AppPolarPortalRoute
-  '/app/polar/subscriptions': typeof AppPolarSubscriptionsRoute
   '/palettes/$query/generate': typeof PalettesQueryGenerateRoute
   '/palettes/$query/': typeof PalettesQueryIndexRoute
-  '/app/polar/checkout/success': typeof AppPolarCheckoutSuccessRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -235,14 +190,12 @@ export interface FileRouteTypes {
     | '/$seed'
     | '/contact'
     | '/login'
-    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/newest'
     | '/oldest'
     | '/saved'
     | '/api/og'
-    | '/checkout/success'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -250,48 +203,38 @@ export interface FileRouteTypes {
     | '/settings'
     | '/api/auth/$'
     | '/api/og/query'
-    | '/app/polar/portal'
-    | '/app/polar/subscriptions'
     | '/palettes/$query/generate'
     | '/palettes/$query/'
-    | '/app/polar/checkout/success'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/contact'
     | '/login'
-    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/newest'
     | '/oldest'
     | '/saved'
     | '/api/og'
-    | '/checkout/success'
     | '/e/$'
     | '/$seed'
     | '/'
     | '/settings'
     | '/api/auth/$'
     | '/api/og/query'
-    | '/app/polar/portal'
-    | '/app/polar/subscriptions'
     | '/palettes/$query/generate'
     | '/palettes/$query'
-    | '/app/polar/checkout/success'
   id:
     | '__root__'
     | '/$seed'
     | '/_paletteList'
     | '/contact'
     | '/login'
-    | '/pricing'
     | '/privacy'
     | '/terms'
     | '/_paletteList/newest'
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
     | '/api/og'
-    | '/checkout/success'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -299,11 +242,8 @@ export interface FileRouteTypes {
     | '/settings/'
     | '/api/auth/$'
     | '/api/og/query'
-    | '/app/polar/portal'
-    | '/app/polar/subscriptions'
     | '/palettes/$query/generate'
     | '/palettes/$query/'
-    | '/app/polar/checkout/success'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -311,18 +251,13 @@ export interface RootRouteChildren {
   PaletteListRoute: typeof PaletteListRouteWithChildren
   ContactRoute: typeof ContactRoute
   LoginRoute: typeof LoginRoute
-  PricingRoute: typeof PricingRoute
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiOgRoute: typeof ApiOgRouteWithChildren
-  CheckoutSuccessRoute: typeof CheckoutSuccessRoute
   ESplatRoute: typeof ESplatRoute
   PalettesQueryRoute: typeof PalettesQueryRouteWithChildren
   SettingsIndexRoute: typeof SettingsIndexRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
-  AppPolarPortalRoute: typeof AppPolarPortalRoute
-  AppPolarSubscriptionsRoute: typeof AppPolarSubscriptionsRoute
-  AppPolarCheckoutSuccessRoute: typeof AppPolarCheckoutSuccessRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -339,13 +274,6 @@ declare module '@tanstack/react-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/pricing': {
-      id: '/pricing'
-      path: '/pricing'
-      fullPath: '/pricing'
-      preLoaderRoute: typeof PricingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -411,13 +339,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ESplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/checkout/success': {
-      id: '/checkout/success'
-      path: '/checkout/success'
-      fullPath: '/checkout/success'
-      preLoaderRoute: typeof CheckoutSuccessRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/og': {
       id: '/api/og'
       path: '/api/og'
@@ -460,20 +381,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PalettesQueryGenerateRouteImport
       parentRoute: typeof PalettesQueryRoute
     }
-    '/app/polar/subscriptions': {
-      id: '/app/polar/subscriptions'
-      path: '/app/polar/subscriptions'
-      fullPath: '/app/polar/subscriptions'
-      preLoaderRoute: typeof AppPolarSubscriptionsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/polar/portal': {
-      id: '/app/polar/portal'
-      path: '/app/polar/portal'
-      fullPath: '/app/polar/portal'
-      preLoaderRoute: typeof AppPolarPortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/api/og/query': {
       id: '/api/og/query'
       path: '/query'
@@ -486,13 +393,6 @@ declare module '@tanstack/react-router' {
       path: '/api/auth/$'
       fullPath: '/api/auth/$'
       preLoaderRoute: typeof ApiAuthSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/polar/checkout/success': {
-      id: '/app/polar/checkout/success'
-      path: '/app/polar/checkout/success'
-      fullPath: '/app/polar/checkout/success'
-      preLoaderRoute: typeof AppPolarCheckoutSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -557,18 +457,13 @@ const rootRouteChildren: RootRouteChildren = {
   PaletteListRoute: PaletteListRouteWithChildren,
   ContactRoute: ContactRoute,
   LoginRoute: LoginRoute,
-  PricingRoute: PricingRoute,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiOgRoute: ApiOgRouteWithChildren,
-  CheckoutSuccessRoute: CheckoutSuccessRoute,
   ESplatRoute: ESplatRoute,
   PalettesQueryRoute: PalettesQueryRouteWithChildren,
   SettingsIndexRoute: SettingsIndexRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
-  AppPolarPortalRoute: AppPolarPortalRoute,
-  AppPolarSubscriptionsRoute: AppPolarSubscriptionsRoute,
-  AppPolarCheckoutSuccessRoute: AppPolarCheckoutSuccessRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

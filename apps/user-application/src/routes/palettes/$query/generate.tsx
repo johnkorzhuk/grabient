@@ -41,7 +41,6 @@ import {
     PalettePageSubtitle,
     QueryDisplay,
 } from "@/components/palettes/PalettePageHeader";
-import { useHasActiveSubscription } from "@/hooks/useCustomerState";
 import { isProEnabled } from "@/lib/feature-flags";
 
 export type SearchSortOrder = "popular" | "newest" | "oldest";
@@ -296,7 +295,6 @@ interface SearchResultsProps {
     isGenerating: boolean;
     pendingPalettesCount: number;
     onBadFeedback: (seed: string) => void;
-    showSubscribeCta: boolean;
 }
 
 function SearchResultsGrid({
@@ -311,7 +309,6 @@ function SearchResultsGrid({
     isGenerating,
     pendingPalettesCount,
     onBadFeedback,
-    showSubscribeCta,
 }: SearchResultsProps) {
     // This will suspend until search results are ready
     const { data: searchData } = useSuspenseQuery(searchPalettesQueryOptions(query, 48));
@@ -354,7 +351,6 @@ function SearchResultsGrid({
             searchQuery={query}
             onBadFeedback={onBadFeedback}
             skeletonCount={isGenerating ? Math.max(0, 30 - pendingPalettesCount) : 0}
-            showSubscribeCta={showSubscribeCta}
         />
     );
 }
@@ -366,14 +362,11 @@ function GeneratePage() {
     const isExportOpen = search.export === true;
     const mounted = useMounted();
     const exportList = useStore(exportStore, (state) => state.exportList);
-    const { hasSubscription, isLoading: isSubscriptionLoading } = useHasActiveSubscription();
 
     const exportCount = mounted ? exportList.length : 0;
     const showExportUI = isExportOpen && exportCount > 0;
     const query = getQuery(compressedQuery) ?? "";
     const generationQuery = getQueryForGeneration(query);
-    // Show CTA for non-subscribers (only after loading completes)
-    const showSubscribeCta = !isSubscriptionLoading && !hasSubscription;
 
     // Palette type with generation metadata
     type VersionedPalette = AppPalette & { version: number; modelKey: string; theme: string };
@@ -589,7 +582,6 @@ function GeneratePage() {
                         searchQuery={query}
                         onBadFeedback={handleBadFeedback}
                         skeletonCount={48}
-                        showSubscribeCta={showSubscribeCta}
                     />
                 }
             >
@@ -605,7 +597,6 @@ function GeneratePage() {
                     isGenerating={isGenerating}
                     pendingPalettesCount={pendingRef.current.palettes.length}
                     onBadFeedback={handleBadFeedback}
-                    showSubscribeCta={showSubscribeCta}
                 />
             </Suspense>
             {!isExportOpen && <div className="py-3 mt-16" />}

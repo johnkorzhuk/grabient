@@ -152,24 +152,6 @@ export default {
                 drizzleDb: db,
                 provider: "sqlite",
             },
-            ...(env.POLAR_ENABLED === "true" && {
-                polar: {
-                    accessToken: env.POLAR_ACCESS_TOKEN,
-                    webhookSecret: env.POLAR_WEBHOOK_SECRET,
-                    server: (env.POLAR_SERVER as "sandbox" | "production") || "sandbox",
-                    products: {
-                        monthly: {
-                            productId: env.POLAR_PRODUCT_MONTHLY,
-                            slug: "pro-monthly",
-                        },
-                        yearly: {
-                            productId: env.POLAR_PRODUCT_YEARLY,
-                            slug: "pro-yearly",
-                        },
-                    },
-                    successUrl: "/checkout/success?checkout_id={CHECKOUT_ID}",
-                },
-            }),
             sendMagicLink: async (data) => {
                 try {
                     const response = await fetch(
