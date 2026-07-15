@@ -110,10 +110,24 @@ export const Route = createFileRoute("/$seed")({
         "cdn-cache-control": "max-age=3600, stale-while-revalidate=7200",
     }),
     beforeLoad: ({ params }) => {
+        let canonicalSeed: string;
         try {
             v.parse(seedValidator, params.seed);
+            const { coeffs, globals } = deserializeCoeffs(params.seed);
+            canonicalSeed = serializeCoeffs(coeffs, globals);
         } catch (error) {
             throw redirect({ to: "/" });
+        }
+
+        // Legacy-format seeds re-encode to the compact format the database
+        // was migrated to; send old links to the canonical URL
+        if (canonicalSeed !== params.seed) {
+            throw redirect({
+                to: "/$seed",
+                params: { seed: canonicalSeed },
+                search: (prev) => prev,
+                statusCode: 301,
+            });
         }
     },
     loader: async ({ context, params }) => {
