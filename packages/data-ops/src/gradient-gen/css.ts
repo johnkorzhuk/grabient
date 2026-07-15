@@ -1,4 +1,8 @@
-import { PALETTE_STYLES, FALLBACK_STYLES } from "../valibot-schema/grabient";
+import {
+    PALETTE_STYLES,
+    FALLBACK_STYLES,
+    auroraAnchors,
+} from "../valibot-schema/grabient";
 
 type GradientStyle = (typeof PALETTE_STYLES)[number];
 
@@ -193,6 +197,107 @@ export function generateCssGradient(
             });
 
             gradientString += ")";
+            return {
+                cssString: `${creditComment}\n\nbackground: ${gradientString};`,
+                styles: { background: gradientString },
+                gradientString,
+            };
+        }
+
+        case "radialGradient": {
+            let gradientString = `radial-gradient(circle at 50% 50%,`;
+
+            hexColors.forEach((color, index) => {
+                const position = (
+                    (index / (hexColors.length - 1)) *
+                    100
+                ).toFixed(3);
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
+                const colorValue = hexToRgba(color, alpha);
+                gradientString += ` ${colorValue} ${position}%`;
+                if (index < hexColors.length - 1) {
+                    gradientString += ",";
+                }
+            });
+
+            gradientString += ")";
+            return {
+                cssString: `${creditComment}\n\nbackground: ${gradientString};`,
+                styles: { background: gradientString },
+                gradientString,
+            };
+        }
+
+        case "radialSwatches": {
+            let gradientString = `radial-gradient(circle,`;
+            const segmentSize = 100 / hexColors.length;
+
+            hexColors.forEach((color, index) => {
+                const startPosNum = index * segmentSize;
+                const endPosNum = (index + 1) * segmentSize;
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
+                const colorValue = hexToRgba(color, alpha);
+
+                if (index === 0) {
+                    gradientString += ` ${colorValue} ${startPosNum.toFixed(3)}%`;
+                } else {
+                    // Apply antialiasing fix: use calc() for the start of each new ring
+                    gradientString += `, ${colorValue} calc(${startPosNum.toFixed(3)}% + 1px)`;
+                }
+
+                if (index < hexColors.length - 1) {
+                    gradientString += `, ${colorValue} ${endPosNum.toFixed(3)}%`;
+                } else {
+                    gradientString += ` ${endPosNum.toFixed(3)}%`;
+                }
+            });
+
+            gradientString += ")";
+            return {
+                cssString: `${creditComment}\n\nbackground: ${gradientString};`,
+                styles: { background: gradientString },
+                gradientString,
+            };
+        }
+
+        case "auroraMesh": {
+            const baseColor = hexColors[hexColors.length - 1]!;
+            const glowColors = hexColors.slice(0, -1);
+            const anchors = auroraAnchors(glowColors.length, angle);
+
+            const layerAlpha = (index: number) =>
+                typeof activeIndex === "number"
+                    ? index === activeIndex
+                        ? 1
+                        : inactiveAlpha
+                    : 1;
+
+            // Glows fade to a zero-alpha version of their own color (not the
+            // `transparent` keyword) so the falloff matches SVG stop-opacity
+            const layers = glowColors.map((color, index) => {
+                const anchor = anchors[index]!;
+                const peak = hexToRgba(color, layerAlpha(index));
+                const edge = hexToRgba(color, 0);
+                return `radial-gradient(at ${anchor.x}% ${anchor.y}%, ${peak} 0%, ${edge} 58%)`;
+            });
+
+            const baseValue = hexToRgba(
+                baseColor,
+                layerAlpha(hexColors.length - 1),
+            );
+            layers.push(`linear-gradient(${baseValue}, ${baseValue})`);
+
+            const gradientString = layers.join(", ");
             return {
                 cssString: `${creditComment}\n\nbackground: ${gradientString};`,
                 styles: { background: gradientString },

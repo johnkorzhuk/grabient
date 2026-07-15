@@ -12,6 +12,9 @@ export const PALETTE_STYLES = [
     "angularSwatches",
     "linearGradient",
     "linearSwatches",
+    "radialGradient",
+    "radialSwatches",
+    "auroraMesh",
 ] as const;
 
 export type PaletteStyle = (typeof PALETTE_STYLES)[number];
@@ -21,7 +24,30 @@ export const STYLE_LABELS: Record<PaletteStyle, string> = {
     angularSwatches: "Angular Swatches",
     linearGradient: "Linear Gradient",
     linearSwatches: "Linear Swatches",
+    radialGradient: "Radial Gradient",
+    radialSwatches: "Radial Swatches",
+    auroraMesh: "Aurora",
 };
+
+/**
+ * Aurora glow anchors: colors 0..n-2 become soft radial glows positioned on a
+ * ring around the element, the last color is the base coat. Shared by the CSS
+ * and SVG renderers so both formats place glows identically.
+ */
+export function auroraAnchors(
+    glowCount: number,
+    angle: number,
+): { x: number; y: number }[] {
+    const anchors: { x: number; y: number }[] = [];
+    for (let i = 0; i < glowCount; i++) {
+        const theta = ((angle - 90 + (i * 360) / glowCount) * Math.PI) / 180;
+        anchors.push({
+            x: Number((50 + 38 * Math.cos(theta)).toFixed(2)),
+            y: Number((50 + 38 * Math.sin(theta)).toFixed(2)),
+        });
+    }
+    return anchors;
+}
 
 /**
  * Fallback styles for non-CSS/SVG rendering

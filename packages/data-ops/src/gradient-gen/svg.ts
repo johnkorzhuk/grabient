@@ -1,4 +1,8 @@
-import { PALETTE_STYLES, FALLBACK_STYLES } from "../valibot-schema/grabient";
+import {
+    PALETTE_STYLES,
+    FALLBACK_STYLES,
+    auroraAnchors,
+} from "../valibot-schema/grabient";
 
 type GradientStyle = (typeof PALETTE_STYLES)[number];
 
@@ -375,6 +379,116 @@ ${creditComment}
         </svg>`;
 
             return svgContent;
+        }
+
+        case "radialGradient": {
+            // farthest-corner radius, matching the CSS default for circles
+            const radius = Math.sqrt(width * width + height * height) / 2;
+
+            let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+            ${creditComment}
+            <defs>
+              <radialGradient id="${getUniqueId("radial")}" gradientUnits="userSpaceOnUse" cx="${(width / 2).toFixed(3)}" cy="${(height / 2).toFixed(3)}" r="${radius.toFixed(3)}">
+        `;
+
+            hexColors.forEach((color, index) => {
+                const position = (index / (hexColors.length - 1)).toFixed(3);
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
+                const stopOpacity =
+                    alpha === 1 ? "" : ` stop-opacity="${alpha.toFixed(3)}"`;
+                svgContent += `<stop offset="${position}" stop-color="${color}"${stopOpacity} />`;
+            });
+
+            svgContent += `
+              </radialGradient>
+            </defs>
+            <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} fill="url(#${getUniqueId("radial")})" />
+          </svg>`;
+
+            return svgContent;
+        }
+
+        case "radialSwatches": {
+            const maxRadius = Math.sqrt(width * width + height * height) / 2;
+            const centerX = (width / 2).toFixed(3);
+            const centerY = (height / 2).toFixed(3);
+
+            let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+            ${creditComment}
+            <defs>
+              <clipPath id="${getUniqueId("ringBounds")}">
+                <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} />
+              </clipPath>
+            </defs>
+            <g clip-path="url(#${getUniqueId("ringBounds")})">`;
+
+            // Concentric circles drawn largest-first; each smaller circle
+            // covers the inner portion, leaving rings that match the CSS
+            // hard-stop radial-gradient
+            for (let index = hexColors.length - 1; index >= 0; index--) {
+                const color = hexColors[index]!;
+                const radius =
+                    ((index + 1) / hexColors.length) * maxRadius;
+                const alpha =
+                    typeof activeIndex === "number"
+                        ? index === activeIndex
+                            ? 1
+                            : inactiveAlpha
+                        : 1;
+
+                svgContent += `<circle cx="${centerX}" cy="${centerY}" r="${radius.toFixed(3)}" fill="${color}" fill-opacity="${alpha.toFixed(3)}" />`;
+            }
+
+            svgContent += `</g>
+          </svg>`;
+
+            return svgContent;
+        }
+
+        case "auroraMesh": {
+            const baseColor = hexColors[hexColors.length - 1]!;
+            const glowColors = hexColors.slice(0, -1);
+            const anchors = auroraAnchors(glowColors.length, angle);
+
+            const layerAlpha = (index: number) =>
+                typeof activeIndex === "number"
+                    ? index === activeIndex
+                        ? 1
+                        : inactiveAlpha
+                    : 1;
+
+            let defs = "";
+            let layers = "";
+            glowColors.forEach((color, index) => {
+                const anchor = anchors[index]!;
+                const glowId = getUniqueId(`aurora${index}`);
+                defs += `<radialGradient id="${glowId}" cx="${(anchor.x / 100).toFixed(4)}" cy="${(anchor.y / 100).toFixed(4)}" r="0.58">
+                <stop offset="0" stop-color="${color}" stop-opacity="${layerAlpha(index).toFixed(3)}" />
+                <stop offset="1" stop-color="${color}" stop-opacity="0" />
+              </radialGradient>`;
+                layers += `<rect x="0" y="0" width="${width}" height="${height}" fill="url(#${glowId})" />`;
+            });
+
+            const baseAlpha = layerAlpha(hexColors.length - 1);
+
+            return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+            ${creditComment}
+            <defs>
+              <clipPath id="${getUniqueId("auroraBounds")}">
+                <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} />
+              </clipPath>
+              ${defs}
+            </defs>
+            <g clip-path="url(#${getUniqueId("auroraBounds")})">
+              <rect x="0" y="0" width="${width}" height="${height}" fill="${baseColor}" fill-opacity="${baseAlpha.toFixed(3)}" />
+              ${layers}
+            </g>
+          </svg>`;
         }
 
         default:

@@ -173,6 +173,9 @@ export const Route = createFileRoute("/$seed")({
                 linearGradient: "linear gradient",
                 linearSwatches: "linear swatch",
                 angularSwatches: "angular swatch",
+                radialGradient: "radial gradient",
+                radialSwatches: "radial swatch",
+                auroraMesh: "aurora",
             };
             const styleName =
                 styleNames[style && style !== "auto" ? style : DEFAULT_STYLE] ??
