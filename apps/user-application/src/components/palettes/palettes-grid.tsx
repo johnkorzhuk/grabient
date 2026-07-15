@@ -1424,13 +1424,17 @@ function GradientPreview({
 
     return (
         <div className={cn("relative w-full overflow-visible pointer-events-none", heightClass)}>
-            {/* Glow effect layer */}
+            {/* Glow effect layer. Kept visibility:hidden until it can show:
+                unlike opacity-0, hidden elements are never rasterized, so idle
+                cards don't pay for a second blurred copy of their gradient */}
             {isMounted && (
                 <div
                     className={cn(
-                        "absolute transition-opacity duration-300 z-0 pointer-events-none rounded-xl flex items-center justify-center",
+                        "absolute transition-[opacity,visibility] duration-300 z-0 pointer-events-none rounded-xl flex items-center justify-center",
                         glowSize,
-                        !isActive ? `opacity-0 ${glowHoverOpacity}` : glowOpacity,
+                        !isActive
+                            ? `invisible opacity-0 group-hover:visible ${glowHoverOpacity}`
+                            : `visible ${glowOpacity}`,
                     )}
                     style={{
                         backgroundImage: gradientString,

@@ -1,10 +1,5 @@
 import { generateSvgGradient } from "@repo/data-ops/gradient-gen";
-
-type PaletteStyle =
-    | "linearGradient"
-    | "linearSwatches"
-    | "angularGradient"
-    | "angularSwatches";
+import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
 
 export interface PNGGenerationOptions {
     style: PaletteStyle;

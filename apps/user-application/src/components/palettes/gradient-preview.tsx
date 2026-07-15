@@ -177,14 +177,17 @@ export function GradientPreview({
                 role="img"
                 aria-label={getGradientAriaLabel(hexColors)}
             >
-                {/* Glow effect layer - duplicate gradient with blur */}
+                {/* Glow effect layer - duplicate gradient with blur. Hidden
+                    (not just transparent) while it can't show so the browser
+                    never rasterizes the extra blurred gradient copy */}
                 <div
                     className={cn(
-                        "absolute transition-opacity duration-300 z-0 pointer-events-none blur-lg flex items-center justify-center -inset-3",
+                        "absolute transition-[opacity,visibility] duration-300 z-0 pointer-events-none blur-lg flex items-center justify-center -inset-3",
                         displaySize !== "auto" ? "rounded-lg" : "lg:rounded-lg",
                         {
-                            "opacity-0 group-hover:opacity-40": !isActive,
-                            "opacity-40": isActive,
+                            "invisible opacity-0 group-hover:visible group-hover:opacity-40":
+                                !isActive,
+                            "visible opacity-40": isActive,
                         },
                     )}
                     aria-hidden="true"
