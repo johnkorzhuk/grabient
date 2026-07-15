@@ -50,6 +50,16 @@ Design tips: keep `a ± b` within [0,1] or colors clip. Pastels: a≈0.75, b≈0
 Vivid: a≈0.5, b≈0.5. Rainbow: c=1 with d = 0, 0.333, 0.667. Two-tone sweep:
 c=0.5 everywhere.
 
+### How the site samples colors
+
+Pages show `steps` discrete swatches (default **7**, range 2–50, `?steps=N`).
+Global modifiers are applied to the coefficients first, then swatch `i`
+(0-indexed) samples the formula at `t = i / (steps − 1)` — both endpoints
+included — and each channel clamps to [0,1] before converting to hex.
+To predict the rendered colors, evaluate at those exact t values. Note that
+with c = 1.0 the first and last swatch are identical (full cycle); use
+c = 0.5 for a gradient that ends on a different color than it starts.
+
 ### Encoding the seed
 
 Alphabet (index 0–63): `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`
