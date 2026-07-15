@@ -1,0 +1,1729 @@
+{
+  "source": "PostHog project 151620, event search_feedback",
+  "exported_at": "2026-07-14T22:28:14.200424+00:00",
+  "method": "per (distinct_id, query, seed): latest event wins (argMax by timestamp); clear votes discarded; aggregated to good/bad counts per (query, seed)",
+  "coverage": "events 2025-12-13 through export date; excludes DNT users and dev traffic",
+  "stats": {
+    "pairs": 286,
+    "good_votes": 234,
+    "bad_votes": 63
+  },
+  "labels": [
+    {
+      "query": "beige",
+      "seed": "HQJgnAHANMAsCMAGGFYFYYHZEhgNlgGYVDlhFIYldhqYKb5CaQ8Qg",
+      "good": 1,
+      "bad": 1
+    },
+    {
+      "query": "orange",
+      "seed": "LQOgnAHATANCDM8AsN7gGwFYZRABj1gQHZiYl89sQBGPFETGhvMM8KBsJeOJddEA",
+      "good": 2,
+      "bad": 0
+    },
+    {
+      "query": "pond",
+      "seed": "IwOgDA7AzANCCsEBMcBswCcMC0YTDDBzyXiJCVS1wWFhtQmGJABYxnxG5gCWwAHGCA",
+      "good": 1,
+      "bad": 1
+    },
+    {
+      "query": "red",
+      "seed": "HQFgDAjANBwKwE4DMUxWANggJhppAHKuiBNMNhGsGAkZnBidimEA",
+      "good": 1,
+      "bad": 1
+    },
+    {
+      "query": "gold",
+      "seed": "HQDgrAjANMYJwBYoOAZgGyphdAmGuA7CMmnPrAAxgypzraUVhhayGUwIi5A",
+      "good": 1,
+      "bad": 1
+    },
+    {
+      "query": "red",
+      "seed": "HQNgTAzANGwCwFYDsUAMVgIIzVnAHNOsGAsagJwUaUIbjTwjWpA",
+      "good": 2,
+      "bad": 0
+    },
+    {
+      "query": "cyan",
+      "seed": "LQJgdArAjCA0kAYrwgZgBwoCwHZ44DYF4CRkwy8xUDV4oBOPY8BBrWLMKdB2YqGATD4IdHARA",
+      "good": 2,
+      "bad": 0
+    },
+    {
+      "query": "blue",
+      "seed": "HQJgnA7ANMDMEFYa1gFhgi1gDYTQEZgDV05YAGGAyGCiWKEYCsMghqI2HKgWgotaRCqJhgwSAcFSwEQA",
+      "good": 2,
+      "bad": 0
+    },
+    {
+      "query": "blue",
+      "seed": "HQBgLCA0wKwgnNAHANkcATPD0wGYloMQcBGYUpGIsU6ENSMYAdhkI1BZ2ZbCSA",
+      "good": 2,
+      "bad": 0
+    },
+    {
+      "query": "metallic",
+      "seed": "HQJgbAjANKEKwxABmsOBOALDMB2EOAHNqAMxiKFIyma5TUjBJZSbASHpA",
+      "good": 0,
+      "bad": 2
+    },
+    {
+      "query": "silver",
+      "seed": "HQdgjAHANGwAwDYAsVQgKyoXAnFpYqY6m8O0wYchwAzCBQExWqM42K1A",
+      "good": 2,
+      "bad": 0
+    },
+    {
+      "query": "BLUE",
+      "seed": "HQBgjAHANMAsvQLQDZgFYwE4YhN4yATMlAOzoQDMUYwYlpOm0duMhmIMyahMmhUkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌵",
+      "seed": "HQNgDALANMCsCcBmGEAc8YEYLWGWATFhAOxSbAGpkWyIbCnLAkioyFmMgRA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "gaming",
+      "seed": "HQNgDGA0wBwdAmetnisALMp6vrdAKwCMIkxmGAzNDBhpFBRE8C9GAJzFA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "aqua",
+      "seed": "HQZg7GA0wKwGwCZoE4AczIFoAMwCMALErHHFrnmCOcAgajQtmTsAXA6yAta9mtGYggA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "sky",
+      "seed": "EwOg7ADALANAtARhANjMGSJZqYAOCHFMAVhkJAgE5kYQEIE6o8BmOkhKuqkwiIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "gray",
+      "seed": "HQDgDAbANMDsCsBGGsLWAZgJyxtsesIMiYGJ8xwiE8UALMAEz1YPPbtO1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "indigo green",
+      "seed": "HQVgTGA0wMwGwE5oHY4mgRjgBmggHDHgZBsHPksBtlMNgstACxhXLjRwwZA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "lavender",
+      "seed": "HQNgjArANAtMAM8CcsBMCAc8pmGEGUwSSAzFKQgOwAsRYiRqpY9jwV8VRt0xpNIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "สีม่วง",
+      "seed": "HQJgjArANKAMYxANgcJB2EMkA4AsMEAnAaDrDAMx7qKVJQjCwlR7Bg5FQXCXiEwDMMxDcAtLFEQgA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "melancholic",
+      "seed": "KwOmCYEYBoFoQGwA5zRAZgOxOqALMAAxoCckOIk5ahJCNJwpS9Ie6MIdeaE6QA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🍂",
+      "seed": "HQVgbALANMDMsEYoFpbAgDjDBYDsMsAnEhMAAx4GhjkwTnTALkBMM4TYrdwGWQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "transfer",
+      "seed": "HQdhFYBpQJgNkjYMQE5oEYvQMwZ5BsABzhTCo7rAAMqI0dCwVBwGpuIcQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "#C4161C",
+      "seed": "IwOmwNgGhBmWAsNgFZYwOywEzIJwbKQwAMBMKEKUoJJ1IKeeMsAHISAhG0A",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "white",
+      "seed": "HQdgDAHANMDMEE4oEZgDYIhgJjV0YALCsMrMcNgmjGNTMmGLdtg0zOSEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "only shades of green w.r.t. nature",
+      "seed": "HQRhHYBoWAGBOAHJYAmVIVlipnSwDMKArACxQH4mxm4moqEiPCIgBsQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "green",
+      "seed": "HQJgjALANMDsIFYYDZaymYYDM2UKUwAZZosi9giBOdLBO2VGealbZIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ethereal",
+      "seed": "HQZgTAbANMYAwhgTgTAjBRw4QOw1wBYBWGYpMKNYADiWmDTkOQiRkJBeGLEKA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "feb5bb",
+      "seed": "HQThGYBpgdgFgGzXkgtABmARneyHgAmdLaHPAxOfTOYm4OtTQu6dAVg+mJiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🍇",
+      "seed": "HQVgzAnANADFoQGxQIzBgFjnYB2Ry6S8ME0wKMK8iuYs8uKKQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "grape",
+      "seed": "HQJgDAjANKBs2ggVhrAHAFhkgnF4sA7CDAMwaEwimxVphQbARo5QMjBh4wQ4nAMOFBC4g2o2LAxA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "bonfire",
+      "seed": "LQOgjAzADANGIQgDhreUwFY4I6mIUAnEQWFNoUQGwEDsdlm1YqQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "turquoise charcoal blue",
+      "seed": "HQJgjAnANMCsDM8YQBzWJA7MsA2Gm8ALDGLNqCijONiHLiUcJmNfHLAAxQC0XGeGBi4QJMMETpUEIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "tech",
+      "seed": "HQFgzAbANKAcswKwHYQwAwE50eZp6YGIAjDJhPsOllBNYolCKOk9SSUA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "peach yellow olive",
+      "seed": "HQdgrAHANMEMxhmALARhsijgCYEwE40ZUAGZGUggNhNJxKxILhh1OqA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "beach",
+      "seed": "AwGgdAbALAnCC0YCMAOArCUYBMK5hhSXGBghGzCjSyWG03BjWLGCgGYg",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "blue and purple",
+      "seed": "HQNgrAzANMkExQLR2ATgg4ESYCwAYQoI0BGADhhFIHYYw5SZT9d78nZIZUxUg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌈",
+      "seed": "IwOgDBA0IKxQtCYA2Mk2lQDkqALGHtHnsNGAJzLTBgDM60A7ITWDEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "springtime",
+      "seed": "HQDgnAbANMYIxxiEAmGAGMBWDX0zgGZCYAWU6OYdFS6kHUERYOAdjWBRAiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cyan slate blue",
+      "seed": "HQVgbAHANAtAzMATATmsMcDsVRjFAFiUXyUwEYc5ztgAGZUkA25uHCMV5RIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "candy",
+      "seed": "HQDgrAzANMBsCcB2KBGYAGMsoFp3BXjBhXXRIgCZd8xEQbhKAWaPYK5d9CYjZrvkKUgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "pink",
+      "seed": "IwOgDBA0ICzGkBMIBsYDskEgKwE5glw8AOaGdMkAZhhmnnuxWB2hzBiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "blue indigo magenta",
+      "seed": "HQJgjArANKAMYxANgcJB2EMkA4AsMEAnAaDrDAMx7qKVJQjCwlR7Bg5FQXCXiEwDMMxDcAtLFEQgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "black",
+      "seed": "EwOgzAHADANCUDZhygFmaMB2MKG3gQEYUBOCGI8U1S+VEkVCWkYYV-VIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "melancholic",
+      "seed": "HQRgzADANAtMDs8BsUSgBzyqMAmbAnEmKqBOtkiNMBARWQCzby4rBFbCMSNA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "pink lemonade",
+      "seed": "IwOgDA7AzANCCsEBMcBswCcMC0YTDDBzyXiJCVS1wWFhtQmGJABYxnxG5gCWwAHGCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "aqua red",
+      "seed": "HQdgLArANAjMEA4xQAxWAJkbeTXrBg3RghBJTXgE5zgwRrUg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "citrus",
+      "seed": "IwOgDBA0IBwKwGZoOEs0AsA2YyBMSI2A7NMGIRjAJyTohZYyZzFA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cyan red",
+      "seed": "HQJgnA7ANMDMEFYa1gFhgi1gDYTQEZgDV05YAGGAyGCiWKEYCsMghqI2HKgWgotaRCqJhgwSAcFSwEQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "蓝红渐变",
+      "seed": "HQVgDGA0WhkIzAGxgBzQctlhgJzrDxjw7ExKqkwBMJQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "elegant",
+      "seed": "HQVgbA7ANAzMCcBGAHFYELzTMjbFwCY0AGAFlVGWOERL0WDMLDTLBrIlYLqA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "mocha",
+      "seed": "EwOgnMCsA0rAHGaBGE9kDZYgwZl9sHimrjCMgAzDQiVgDstV5kwytkVtALA7kA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "yellow",
+      "seed": "HQVgnAzANMAsIEYpmABlQdhvLcAc0KqATCNmHtiAGwwKrTAGwyoJJzUhA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "unfold",
+      "seed": "HQDgDGA0oMwCzQOwEYCc0BMGBs1kFYFhkYZpsDzVlJlgN8Rp8HoxENo5tUg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌵",
+      "seed": "HQNgnAjANMAsAcBWGBmJMIoAwwEyLAzFxjBQHYZFZlhF5C6t4qQc6Vcg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cyberpunk",
+      "seed": "HQBhFYBpgRgTgEzTgdgCyRqAzB4AOBKYNfEaANhnOCprWwsgFosK5sWRhxxysYMJsBTZOI-OPAIYkBKAQUgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "rose",
+      "seed": "HQdgHAzANMAsCsBOGBGAbGGaQphE8M8aADDAEwrl7gWIhYlnDwIwHlA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "white",
+      "seed": "HQDgrAbANKAs2gIyJoitUHYBMqAMAnDLAWMSAMwxiZV5TbB61SzDaJ5A",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "Light gradient",
+      "seed": "AwGgtATAdAbA7AZhARisdJQNgDgpkNATjkOWHygBYqBWAqHI0YIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "linear gradient(90deg, #efd5ff 0%, #515ada 100%)",
+      "seed": "HQDgrAzANMBsCcB2KBGYAGMsoFp3BXjBhXXRIgCZd8xEQbhKAWaPYK5d9CYjZrvkKUgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "nordic",
+      "seed": "LQRgdADCIDRgHAdgGxwJwgKw3PetJ4I4JlswQo5MAWRHMGgZibnjXKfbhqiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "blue",
+      "seed": "HQFgnA7ANMBMBsAGGZEGYYggRhvbyw2Y8MsasZ2AHDNmiHWgKwyLp0TxA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome red",
+      "seed": "HQJgzALANKIIwzgdgByKUmAGJXEgDYYwki5g4QQYBOMa4LE4pBYMAViSA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "purple",
+      "seed": "LQJgdALAHAnANMAzGArBADAlqqeYgdgDY4JIVMjUJE4x0YT6Yo6Gn10C4BGeiHnRgoeQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "plum green yellow",
+      "seed": "HQBgrATANMAcDsBOGA2EAWGiUGYYmxgEZ0wYIIiojgiw8adY9hEdNgciWQug",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome",
+      "seed": "HQTgDArANMDMDsYYKcAHPATDe9Y7xgEYwiYwQRyQA2GCGu4GxHIzIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "bioluminescent",
+      "seed": "GwOgjADAHANAtGEB2JAmGIAsSw1GYAVhlWQE5MNDNiQIzY6ykNNh0scMzhKRCkwIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "PASTEL",
+      "seed": "HQDgrAzANMBsCcB2KBGYAGMsoFp3BXjBhXXRIgCZd8xEQbhKAWaPYK5d9CYjZrvkKUgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "violet green beige",
+      "seed": "HQRgrA7ANMkCwzGAnDAHAJgzAzHEMGaADIRgGyLKWzgwTk67W7FpA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "white",
+      "seed": "HQThDYBpgdgDgCzTFWIAM0CMCvRhtOiHNAKyLboBM014to4ew9ZQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Red,orange,yellow,green,blue,purple and pink",
+      "seed": "LQRgdCCsBMA0wHYwAZonmALANgJy2ggTiVwA5JZxpptYJl0VcF7ldKxdNPcW2yAZiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "violet rose red",
+      "seed": "HQJgbAHANMYAwEYoOHRMDsIMwguuWMIAzAcPgCwz4makwCsAnOYws0A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "orange",
+      "seed": "LQJgdAnA7ADANGAHIgjHUYBsEAscDMkiArAlCnoTCmmDNAvYoxM0WyIvghCCEA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "Flowers",
+      "seed": "HQFgjArANMEgzFAnKMIYTAdhmADAEzKgAc0wAbEjmMFgUcPosPPI-GCyCUkA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "purple",
+      "seed": "HQJgbAjANKEKwxABmsALBAnDMB2EUAtEsAMxJqKliIAcSMpauUDIwSmlawEt2oNJWC44DYJlo1eKIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "rainbow",
+      "seed": "HQdgnArANMAcDMA2GsCMIYCZMAYatU30hhB2jkNPgBYYI0ZaNgxUIg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple",
+      "seed": "HQVgzAnANADFoQGxQIzBgFjnYB2Ry6S8ME0wKMK8iuYs8uKKQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "butt",
+      "seed": "IwOgbAzAHANCCsUIwLSmFATDUYywQgBYZMRgjkQAGATjDgmFrmGpPGCvkriTCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "azure red",
+      "seed": "HQNgDATANGXArATgBxQIzAs2sNdsGIgOxxEhklxqIAsMcITQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "sea",
+      "seed": "HQZhEYBpgVgNhNOB2RxwgJzRAFl9AEwpKEAMRmySAHAcDTYdOGfXckA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "arcade",
+      "seed": "HQFgrGA0wGwAwEZrig2dXqW+VgLgCZoC4S4BmEgDgHZoZqr8BOCoA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "red blue",
+      "seed": "HQVgzAjANCwGwBZoWABnVUcDsN4A44pVMx8xMJUFME59Lrb8BOYoA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "eclectic",
+      "seed": "HQFhEYBpgVnHowJwCZohW4BmA7E6ANhSlGxGmwA4DhwAGbRXexcUww8IA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cafe",
+      "seed": "HQdgnAjANKDMBsN4FYwwAwA4AsHMg3CgmG202NPQJOwgCYZYxknNXhnsg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "teal",
+      "seed": "AwGgdAbBCM4QzAdhKM8CsqBMBOVwcdwAWCYuCdFcdRWMYnLIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "skyline",
+      "seed": "HQFgjATANMDMFhrWAOJJZIJwHYZhWjiyLAAZNgcBWMmEHEGANmepmpzKA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌈",
+      "seed": "IwOgDBA0IKxQtKGAOMk2gGxmZATCACwDsh0Jw0wYlI1e60xwZoYAzDEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "sea",
+      "seed": "HQVgzAHANKDsCcMQAYCMUC0rhldHs6GywATMvqvLDKajTgGxhSnCMQvKvDLwAsMXCCFoo2fqRFZQ8CEA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "elegant",
+      "seed": "HQFgDAzANCoOwCYoFoLAKwjlAjMB4MwE6SsIAbDlMGAJwAcN96zjNOD1oYFNdcHEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cyan",
+      "seed": "HQJgnA7ANMDMEFYa1gFhgi1gDYTQEZgDV05YAGGAyGCiWKEYCsMghqI2HKgWgotaRCqJhgwSAcFSwEQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "dark academia",
+      "seed": "HQRhE4BpXBWaQHYBs0AMAOAzOjj1ZrSIAsRIoJATJBVlTcFiSdLLPsMleEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "BLUE app",
+      "seed": "AwGgdAjAbA7CFgExQiUYCsBmK8xYlTGAE45JgtwJgAWNcGU8KRCIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple mint teal",
+      "seed": "HQDgjALANMEMwCYYHYCsIoFoAMsJLGGwlS1zQE4Y4wMdgwEwzgE47cwwA2F5buC3QIgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌻",
+      "seed": "HQZgLCA0wKwGwAZphjaB2OAmaWCcc0AjABxHIk7BhZXp5Vw3QxFLDo1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Red",
+      "seed": "HQNgTAzANGwCwFYDsUAMVgIIzVnAHNOsGAsagJwUaUIbjTwjWpA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "olive navy charcoal",
+      "seed": "LQVgdAjAzAbANGATADggiEAMdwHYAs2YmMyCmAnCOpvnBGLlvWDFERVGq7AjLhSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "violet rose red",
+      "seed": "HQRgnArANADFwQCwDYolBMt4QOyuBjAA54QZEyYAmefSuYZZEIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ivory blue slate",
+      "seed": "CwOmFYE4BoQZnAdluC1RwEwDZacjCAIwAMRspcs2mm0RIUhwiwKAHCSq0A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Sunset",
+      "seed": "HQZgLCA0wKwGwAZphjaB2OAmaWCcc0AjABxHIk7BhZXp5Vw3QxFLDo1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "red",
+      "seed": "LQTgdAzATADANJAbAFjgRmZKB2dNISIIQCsE6mEaaCMIRaYAHDE7SLmPSQlBJ8mQggA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ethereal",
+      "seed": "HQVgbA7ANMBMCcBmKBaALMNb4zG6wADGGFCHCGjAIyFXWhjU2HPBgAcBiHyw8+IA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome red",
+      "seed": "EwOgzAjALANCAMB2WCBsAOGpiIneArAfrnBPLBOMjFfMGHFIvExJiEakA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "professional",
+      "seed": "HQVgLAHANMDMlQLQDZgE4QHYoEZgCZYAGGcWKTYTIsGItbA-NOhmZTW4ZZF9ZIkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "gold",
+      "seed": "IwOgDBA0IGwMwCZJmdBcDsqQBYM+jhixGChXAwE5kg",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "purple",
+      "seed": "HQThGYBpgdgFgGzXkgtABmARneyHgAmdLaHPAxOfTOYm4OtTQu6dAVg+mJgfTgAOSFmxdIhYLjzBB4dEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Space",
+      "seed": "HQJg7AjANMBsCsIZgBwAYYrBiwDMeS+ALBsGgJwowRrwyVg0XEywrShopA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome red",
+      "seed": "LQRgdADBIDTGBWEBOOYBsAmAHDTkJdwAWZVcaVMECTGSM+mgZnu3VjG03TfWKA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "green",
+      "seed": "HQRhHYBoWAGBOAHJYAmVIVlipnSwDMKArACxQH4mxm4moqEiPCIgBsQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "galaxy",
+      "seed": "MwOgbAjMA0IEwBYKwWADNUBWMdYQE4AOWLBA2NAikI4EkBOBrNLFJWdOIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "vanilla",
+      "seed": "HQdgrCA0xgDAbNAjAJgJzXY4AWF354AOZEWTHc4WNKYVO2IlaJooA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Light blue",
+      "seed": "EwOgzAbBA0CMIAYAcBOaIUFYHVLYY6Emm6CALEurAoSDTuLemEo8CuWSgkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "fantastical",
+      "seed": "HQVhBYBoFpgRgEx0sADATmcc6AcL0RUVxxjsA2ClOVBFAZgf1DpQHYL2OQ4g",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "marble",
+      "seed": "HQRgHADANMklJgDYCsAWGBmEB2GSAmAhYTTaUTJGCATmtAk3zXmQLBhRBCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "light red",
+      "seed": "IwOgDBA0IKwCwDZIGYTABwE5JmjDkATCOltHMtiIXMNMGHDvcMuYcEA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "turquoise charcoal blue",
+      "seed": "HQJgjAnANMEBzWAVgMwppA7DTKAsMEYAbBktqGBSHHFCMsQSskgAxR7CZhxA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "#F6F1E9",
+      "seed": "LQRgdATAbAnANMMIpTmKBWAzHCkMAsc4II8SMAHGiAAy031pZQ5gwDsHatGEPtGEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "soothing",
+      "seed": "HQdgLAzANMCsAcIYDZnygWgAzAIwE5YZcstiIAmTHWEdbYCya4SpPXIvfJBrMCkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ethereal",
+      "seed": "HQdgHAzANMAsCsBOGBGAbGGaQphE8M8aADDAEwrl7gWIhYlnDwIwHlA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cyan red",
+      "seed": "HQJgLAnANAtAjMArABmsA7HNIBsiohIghShw6lhwnBzIDMpiIcpyAHO6RDq0lkA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "violet",
+      "seed": "LQOgTGDsA0oTIAcAWAjNVJWoAwa7tFikTgJwBspZCFZeIOk6jkVSAzBUA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "lime magenta indigo",
+      "seed": "HQFgrAHANMDMFhmEAmJJYxWNwxgHYYAGATgDYtCYBGYy4ciB843AsGoA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "red cyan",
+      "seed": "HQJhHYBpgDgTjtOAWADNAzK50CMqRpUYA2aMDaGXAViQ12hOUWDl0eHBaA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "coral",
+      "seed": "HQNgDCA0wCwMxWAViQDmjATDDXpwE4B2aJEdWJHYIsMaAsJaczDOOIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome",
+      "seed": "HQZgTAbANMYAwhgTgTAjBRw4QOw1wBYBWGYpMKNYADiWmDTkOQiRkJBeGLEKA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "purple",
+      "seed": "IwOgLAbArANAzOA7ImBaUAGKLRynecDMGAJhAwA5YKBOFOiGO257StjJkSyjIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "brutalist",
+      "seed": "HQFhCYBpgZhgGaCAc0CM4brSd4prDwKSHwCsqwy4uwAbAJznT5UT1A",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "☁️",
+      "seed": "HQdgLAzANMCsAcIYDZnygWgAzAIwE5YZcstiIAmTHWEdbYCya4SpPXIvfJBrMCkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "orchid green lime",
+      "seed": "HQDgjALANMEMwCYYHYCsIoFoAMsJLGGwlS1zQE4Y4wMdgwEwzgE47cwwA2F5buC3QIgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "aged rose",
+      "seed": "HQDgzGA0C0wCwDYCMlgFYltQJjCSSw2mqYCA7KgJxIKpIAMDBR22q5clwDXqDIEEA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "天空安靜",
+      "seed": "HQFgHArANMBsBMYb3iKBaY8CcsPAGYBGJUbJTeWbfEI+GIgdjwOCLqiMKo24AZ+BKPy7BBogYPz0CQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "red cyan mint",
+      "seed": "HQVg7ATANAtMDMYy2JEVgDYCcAGKAjAvAYVgBwAsGE81wBu6wu2zBY+LB8G2VQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🎄",
+      "seed": "HQBgzAnANMAcBMIYDYwEYZuQFim4aIA7DBGTCBLJiEgYZrCcAKwQsqzJA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "yellow to red",
+      "seed": "LQJgdAbBAsA0YFYDMBGeSCccmQxeyA7PChgvAAx7oIawphVpgYAc+j1L0hQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "arcade",
+      "seed": "HQJg7AjANMAsEDYoWABnTAHGVzQWl2AlRBlQE4KZYBma0VWmSQoA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "red",
+      "seed": "IwOgDBA0CsIGwBZiRNBDJhvAHHF0cOKCRKYAnPiAgOzFY04YjBi1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "desert",
+      "seed": "HQdgHATANMAsCsBOGsKxhCYYGYCMOuaK+M886wS0VIAbChPLqkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🔮",
+      "seed": "HQDgTADANKAsCcN4GYQwIz3RsjgQHZkZZ01QIwYBWMc+SGwmANjFiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "red white and blue",
+      "seed": "HQVgLATANMYGwGYYgdYCCcAGGEwlwA4048oBGYLBMGORGSW0amQgdgiA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "#81D8D0",
+      "seed": "EwOg7ADALANAtARhANjMGSJZqYAOCHFMAVhkJAgE5kYQEIE6o8BmOkhKuqkwiIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "aged rose",
+      "seed": "HQVg7GA0wCwIwE5IDZgCY1OAZhs6aMAHCsAAxpzTJgyRzBjZTBxl04JnTZkvEggA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "berry",
+      "seed": "HQDhAYBpgdgTgKzRiAzNAjKk1xwGy5w4bABMcckpZqSNGUwq+ALNPgk+BiEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ethereal",
+      "seed": "HQJgHADANKBsCMMSwMwwrAnOg7G48Ii8wKArNCbKlCfBCOvLDGWGTACyaZA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "electric",
+      "seed": "HQFg7AjANAHMM2sArABlVFJm2ATmT02QCYTNwBmTVPANgroxRiNDBBolSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "coral gold yellow",
+      "seed": "IwOgDBA0IOwMwBZoCYAcSzRsgnNAbMstAvpuDvilOfqsSHQKxA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "pink",
+      "seed": "IwOgDAzAHANCCsYCcd4HYIwLRhMMYc+heawcUEKISALNVGgEza4BsYs4ZcTabQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome red",
+      "seed": "HQJgnADANMDMAc8YKaAjNYEDsYY72AFY0k0swQpyJ4A2GeAFiZiMRjojSA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "gray to gray",
+      "seed": "HQVjBpgNgJhyDsMAckAsBmADOzkR7ACMWGkJI5WO0aaksZ0MWQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "arcade",
+      "seed": "HQNg7ALANMEAwE4YTHZBmNwCsAOJOIWu6ATDNmAIwwjroxgK63Uz1VA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "dubai",
+      "seed": "HQZg7AjANMCsBsAOG9UoAzpieYMBYYAmATizhxlgiJjEULiOlHnSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌵",
+      "seed": "HQdgTAbANAtKIAYoGZgFYHKsZBOJAjMACy7ErBgK7bFpbAEJrbUAc2BBHwCYYtYsiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "dark blue",
+      "seed": "AwGgdALAzAbCC0UzAJx1JArJkSUA44wBGYAJnAgHYVxV1KyJx8rMg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome",
+      "seed": "HQFgjATANMDMFhrWAOJJZIJwHYZhWjiyLAAZNgcBWMmEHEGANmepmpzKA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "nordic",
+      "seed": "HQRgLATANMDMthgNnjEAOWaQFYomB1gE4Z0loCB2CaYABmKRlhHpZ3eCvtiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "latte",
+      "seed": "HQDgrAzANMBsCcB2KBGYAGMsoFp3BXjBhXXRIgCZd8xEQbhKAWaPYK5d9CYjZrvkKUgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "black",
+      "seed": "HQBg7GA0C0wMxwBwwEyhHS9EBYsDYco04BGFLUkELEATimCr2DAFYbhEVSs6R8QA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "coffee",
+      "seed": "HQVgLGA0ogjNYBMB2BsCc0DMXXCwGwAc0iRJoyW0BWI0yImwBs9MsQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "eoffice",
+      "seed": "HQNgTAHANMAsEFYZjLKBaADMAzARmi2DAE4QZYTDtY8wNswQSY8B2cvXJh4BE+ui6ZMOXngFRhENKEzRMQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "porcelain",
+      "seed": "HQTgTA7ANKYIwxAZgBwwAwFYQYGwBYMV0o5h0UFhslTy4wY4kTgIlC2IIg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "gaming",
+      "seed": "HQVgzAHANKAMCMMQHYCcUBMwPNlew8ALEftkSDPKsjGAGxgwby1GETpayql4C0sbLFJxRqHlFhA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌸",
+      "seed": "HQDhAYBpgdgTgKzRiAzNAjKk1xwGy5w4bABMcckpZqSNGUwq+ALNPgk+BiEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "GREEN",
+      "seed": "AwGgTAdA7AzALCAjBRA2RJSQKx1UlADgE4QVhszhj8IwwFQJsGy4Zgg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Neon",
+      "seed": "HQFgrADANAtAbMOB2ATLJxVysMcxQYCMAzAJxQAcmR2wJRawEZFwREIOclBwZlLv0pwgA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "royal charcoal",
+      "seed": "HQRgzArANAtMYA4AMtQBY1WAJgJwKhFCRCwHZdctsasQkw6lNgA2MlYBbU4CkIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "vaporwave",
+      "seed": "CwOgjAzMA0YgDI6ICsEzVGY9q9QGwDsyYSIwRAHMhEQEzKUCcep8KQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "White",
+      "seed": "HQRhCYBpgZgdhtArHJ0AsBOAHJAtAAzDiYBs+RMIuomihxm6Fw62zDBIm0MmUIWF2ilqkQVXKDwEaARgwgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "bonfire",
+      "seed": "HQVgTCA0wCwJwA5I1nAbNGCAMm0ZRAGYBGTMAdmjATGhOxmhDiOZF1jTCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome red",
+      "seed": "HQJgrGA0CMwCwhJADJYA2a0bwMxxTWQE5i1plVgSAONddJeYpZIA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "purple",
+      "seed": "HQJgjArANKAMYxANgcJB2EMkA4AsMEAnAaDrDAMx7qKVJQjCwlR7Bg5FQXCXiEwDMMxDcAtLFEQgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "紫",
+      "seed": "HQJgjArANKAMYxANgcJB2EMkA4AsMEAnAaDrDAMx7qKVJQjCwlR7Bg5FQXCXiEwDMMxDcAtLFEQgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "yellow",
+      "seed": "HQNgjGA0bADLB2SwBMKCsyDMBOLyAWCZHEHZMWKYMHTOHJYHApjADgqKA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "hiking",
+      "seed": "HQVgzAnANMBssAYYBYDsTjIBwYIzpQCZkpdgEQSyFYwZZ8UE7MssZD4g",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "cyberpunk",
+      "seed": "HQZgHA7ANMCsCMYr2ABnTAbCATDALAJwhSoEiEyyaXD6xLCb74yoRmpA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "turquoise",
+      "seed": "HQBgLCA0wKwgnNAHANkcATPD0wGYloMQcBGYUpGIsU6ENSMYAdhkI1BZ2ZbCSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "forest",
+      "seed": "HQFgjCA0C0BMwA4QAZJmAVlmSxYIUgGZMMi1QA2ATl0o1uGWsecty3OGrFVOSA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "purple black",
+      "seed": "HQJgjArANKAMYxANgcJB2EMkA4AsMEAnAaDrDAMx7qKVJQjCwlR7Bg5FQXCXiEwDMMxDcAtLFEQgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "magenta",
+      "seed": "HQFgzAbANKAcswKwHYQwAwE50eZp6YGIAjDJhPsOllBNYolCKOk9SSUA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "slate blue indigo",
+      "seed": "HQFgrAHANMDMFhmEAmJJYxWNwxgHYYAGATgDYtCYBGYy4ciB843AsGoA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "blue purple",
+      "seed": "HQJgjArANKAMYxANgcJB2EMkA4AsMEAnAaDrDAMx7qKVJQjCwlR7Bg5FQXCXiEwDMMxDcAtLFEQgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "login",
+      "seed": "EwOgDArMA0CMIHYBsZogMywCxxATlllyVjzViXXLBnDyTQgRxAjAA5GwWJsg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cyberpunk",
+      "seed": "AwGgLAdArDIQbAJniUkDMAOAjHLKJgBOTOYgdjjHUtGmEunniA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "navbar",
+      "seed": "HQdgjAHANGwAwDYAsVQgKyoXAnFpYqY6m8O0wYchwAzCBQExWqM42K1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "crimson",
+      "seed": "HQFgrA7ANGwSBGKwAMBOMyBsEszlgEzIKFLCEAcIJKNcp2Cly40waalQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "#EAB32E",
+      "seed": "IwOgDBA0C0ICxgJyQEwgMwoByTJU6A7OqhgKwqTwBsJ4iZVwYJe42V61iQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "marshmallow",
+      "seed": "HQRhCYBpgZgdhtArHJ0AsBOAHJAtAAzDiYBs+RMIuomihxm6Fw62zDBIm0MmUIWF2ilqkQVXKDwEaARgwgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "🌵",
+      "seed": "HQdgrAHANMEMxhmALARhsijgCYEwE40ZUAGZGUggNhNJxKxILhh1OqA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "retro",
+      "seed": "HQNg7AnANMCM8xAFhDArAZjOsAOGGaADInjEkrDLhvsAEwYnBhqqgQhA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "blue indigo magenta",
+      "seed": "HQFgjAbANADFowKzwMxNvMAOA7PXK8MAnHsDjHKCIVVmIkA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "orange",
+      "seed": "IwOgDBA0oGxgTJEBmeNJmiYz0pgKxIAshSwCSMA7NRksgBzBICcyBQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "chocolate khaki yellow",
+      "seed": "LQJgdADA7AjANMGYAcUDMcwFYCcy5pgwQhzjIw6YAsAbBpDrZhEzSFWDlNSzPESgQgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "blue",
+      "seed": "AwGgdAjAbA7CFgExQiUYCsBmK8xYlTGAE45JgtwJgAWNcGU8KRCIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "sepia",
+      "seed": "HQNg7AnANMDMEEYoNAFmsArAJicVByWEAHDLCJjKgmcAgAyrVjNpVaaZA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "canyon",
+      "seed": "HQFhEYBpgJgThNGFLlgDgAzQOwKQMzrSZxzTiaLDgEBs0d6UwdZjOMQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "rain",
+      "seed": "HQVgjADANMYBwCYoFozAeGAWAbEtYC0aA7AJxwwDMIOMkY9EVM4JMJV7wZYIQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "turquoise",
+      "seed": "HQBgnAbANMAcCsAWGB2EAmKBaEwCMII2ueKKM6AzNDsImJrRAccJWHq3uubSJbBggIKIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "pink",
+      "seed": "IwOgDBA0ICwGzEgWhATgEysmSp0FYB2XEADjFOhny3FVrFUpxGFIeHSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Verde",
+      "seed": "AwGgTAdA7AzALCAjBRA2RJSQKx1UlADgE4QVhszhj8IwwFQJsGy4Zgg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple blue",
+      "seed": "HQVgzAnANADFoQGxQIzBgFjnYB2Ry6S8ME0wKMK8iuYs8uKKQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "yellow olive green",
+      "seed": "HQVgDAbANMECxigDmAJgIwHYYiXGqqSyaq+sqIU6wcIVw6YAzDuucwJycxyYhA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "dark grey",
+      "seed": "HQJgnADANMDMAc8YKaAjNYEDsYY72AFY0k0swQpyJ4A2GeAFiZiMRjojSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Midnight",
+      "seed": "HQZg7AHANAtAjMATANmsArOuUkAYAsUiwcE2wAnCMjumGDrhRYxTRoocBPiDmLkRA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "💎",
+      "seed": "HQZgDAnANMYCwCYYHYCMAOGBWOcbrBBlWSNgk2AQWmGXSTtTzoheWqA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "紅茶",
+      "seed": "HQVgLGA0ogjNYBMB2BsCc0DMXXCwGwAc0iRJoyW0BWI0yImwBs9MsQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "navy lavender magenta",
+      "seed": "HQNgTGA0wMwgnNEBGADEkNozAdmrsosACzJakkCs01y0VekMpq6oJJ0yYXywbGvzbphIEEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple",
+      "seed": "HQFgnATANMEAwhgZgOwA4YEYCsHYmy22mGJIDZMlkU4ptg0JqRgqNNQxMg",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "turquoise pink orchid",
+      "seed": "HQFgrAHANMBsCM8q2GADNYBmA7DmATAQJzLDzgwjyY5YgxrGYSxZVr6i5A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple",
+      "seed": "HQDgrAzANMBsCcB2KBGYAGMsoFp3BXjBhXXRIgCZd8xEQbhKAWaPYK5d9CYjZrvkLVuPGPHgpUTZsxiVKKIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "modern",
+      "seed": "HQBgnAbANMAcCsAWGB2EAmKBaEwCMII2ueKKM6AzNDsImJrRAccJWHq3uubSJbBggIKIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "lila",
+      "seed": "HQDgjALANMDsBsBWKBmUsQwExhTADAJyyrBiz4zyxZWIln5gwgiExjEwQhZA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "🎃",
+      "seed": "HQDgLA7ANMYKwAYYEYJOMgnJmAmCueCAzFMsHAGyVmgiHnhgySnD7pZhA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "green mint cyan",
+      "seed": "HQDgjALANMEMwCYYHYCsIoFoAMsJLGGwlS1zQE4Y4wMdgwEwzgE47cwwA2F5buC3QIgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome red",
+      "seed": "HQFgrADANAtAbMOB2ATLJxVysMcxQYCMAzAJxQAcmR2wJRawEZFwREIOclBwZlLv0pwgA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "monochrome red",
+      "seed": "HQNgDATANGXArATgBxQIzAs2sNdsGIgOxxEhklxqIAsMcITQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "modern",
+      "seed": "HQFhEYBpgJgThNGFLlgDgAzQOwKQMzrSZxzTiaLDgEBs0d6UwdZjOMQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ivory blue slate",
+      "seed": "HQRhGYBpgJgdgJyRsADAVgCzVZqtw4dwZoFzoA2dEaceyEYOVADkeEsu02c3dCYiTcJlpNUkyAFpUadKyA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "salmon",
+      "seed": "HQNhFYBpgFhB2aAmADE6MCMVhMwTmX0OAA59Np8BmRTYTeEaePFzdYeFaoA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "moon",
+      "seed": "HQVg7AnANAzMBsECMUC0ThJgDisALDGLAktAEyYjQHkAMeSdDwdEuGzN+2xwE8OkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "arcade",
+      "seed": "AwGgjAdAzALAbCAtAJggVluCMAcUQQCcA7PlOnKBGMDAcmjgcIYQWFFTDFYTMkA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Blue",
+      "seed": "HQBgLCA0wKwgnNAHANkcATPD0wGYloMQcBGYUpGIsU6ENSMYAdhkI1BZ2ZbCSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ethereal",
+      "seed": "IwOgzADGA04EwxAFgKzGqOB2FthYDY8BOIkOYRYiMlLLWJAsp9ZYOIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "monochrome red",
+      "seed": "IwOgDBA0oJwBwCZIgGzAKyTJB4xNQBZhlCBmOZYMQ5MhE7EQgdkpA0KA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "pastel",
+      "seed": "MwOgbArAnANCAswBMMC0UQXgBhqJA7BHBITAIzaZTxzZQAccwUsI9BcOuIUYPreEA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "stars",
+      "seed": "HQNgDALANMCMDsAmGBmAHGGJEFYYUWmBRyJTD2EV1RFnwhS3iJBzCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Red purple",
+      "seed": "HQNgDATANGXArATgBxQIzAs2sNdsGIgOxxEhklxqIAsMcITQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "lavender yellow",
+      "seed": "HQDgbGA0oEwJzTgZgIzRQFiepNoAYQFQRtg4YywB2KYFI6cAVidSA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "indigo",
+      "seed": "LQOgHAnATANADDUlYEYQQGwBZ4zZnEFOQ4gVhhDggkrAGZaFwIsg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "minimalist",
+      "seed": "HQJgHGA0oOwJzRDAbNADAFisNBmbaYakAjMEamQKxonRW4bQkvTIZPBUZxA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "charcoal chocolate",
+      "seed": "HQJgbAjANKEKwxABmsOBOALDMB2EOAHNqAMxiKFIyma5TUjBJZSbASHqJzXCaYCENHGhIgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "indigo",
+      "seed": "HQNgjALANMCcEAYoFpgTGGEBMm4mjDQFY9sB2AZhmwXJjAWJmIA5nhjtYZWRsgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "bakery",
+      "seed": "HQDgLA7ANMCcBsAmGJ7xgRgKzWABiy0zCOAggGYYF1gxYrR5HnlgKQKg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "RED TEAL",
+      "seed": "HQNgHArANAtCwCYAMBmK8CMSFWCgLDgOyL75QTBgoCcuIGYuSNIuW0VESuYYbwfEXxA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "white",
+      "seed": "HQVg7AHANKlQtAFmARgAwpiFBmLuoRVE9gAmANmnIsRnVIrDJiYpggE5Og",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "orange",
+      "seed": "LQJgdAnADBA0xgCwEYr0gdgGywMyRVmSVwFYiwAOaWMGOOiS21ZWiLEWyrXb0rEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "pink coral gold",
+      "seed": "HQZgLCA0wKwGwAZphjaB2OAmaWCcc0AjABxHIk7BhZXp5Vw3QxFLDo1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "soil",
+      "seed": "HQZgnArANMAsGxiADANhgRjBmAmZAHJrCDAVjAOwGLBiq2XZWy4yr1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "coconut",
+      "seed": "HQVgTADANGwQnARiqAbPFAWMHHAMz4gpiYDsKi8mlE0wYqFcYyw2Nwi6QA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "vaporwave",
+      "seed": "HQFgDGA0oJwKyQIzAlZAmAHANicbYmkUKMM0YMRoI1iMJA7GIsUA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "bonfire",
+      "seed": "LQNgdATBIDRgrAZgnALATnjA7Jb60BGLBRVOABnWzngA4K0JE50KaEQ612g",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "blue",
+      "seed": "HQBgjAHANMAsvQLQDZgFYwE4YhN4yATMlAOzoQDMUYwYlpOm0duMhmIMyahMmhUkA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "gold yellow green",
+      "seed": "LQJgdAbBAsA0YFYDMBGeSCccmQxeyA7PChgvAAx7oIawphVpgYAc+j1L0hQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "tech",
+      "seed": "HQRgTCA0wKwMwHZoAYCcYUA4rDqgLNKsgGzT74wr6rRwlkzCpwawKaRzAnJhA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "forest",
+      "seed": "HQBgrAbANMDMsE4q1OGsDsAmdDZS2DwA4YQEMYsIAWGARjWA3suAglOBoWKA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ocean",
+      "seed": "HQBgLCA0wGwOxkgRmAVjjaIDMngA5sBOZYAJiX2iRCSyJNCL1Wytm0TRmyA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "plum crimson brown",
+      "seed": "HQVgbCA0xg7GkAsxYgEzQMxo6WskUAORLdaARgE4jKAGXEIzaEcaRKtIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "☀️",
+      "seed": "LQJgdAbBAsA0YFYDMBGeSCccmQxeyA7PChgvAAx7oIawphVpgYAc+j1L0hQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "loft",
+      "seed": "HQDgDAjANALKCcBWKwDsYDMKL3rYATDGCgRqihhiNmMmmCcBGDcDNSmPBEA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "#F96B5C",
+      "seed": "HQZgLCA0wKwGwAZphjaB2OAmaWCcc0AjABxHIk7BhZXp5Vw3QxFLDo1A",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple",
+      "seed": "HQFgzAbANMAMCcIYXvGBGAHGGCnACZ5pgBWU9GedNYFE04mCysgdniA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "brown peach yellow",
+      "seed": "LQJgdADA7AjANMGYAcUDMcwFYCcy5pgwQhzjIw6YAsAbBpDrZhEzSFWDlNSzPESgQgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "professional",
+      "seed": "HQFgHArANMBsBMYb3iKBaY8CcsPAGYBGJUbJTeWbfEI+GIgdjwOCLqiMKo24AZ+BKPy7BBogYPz0CQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "blue",
+      "seed": "HQRhGYBpgJgdgJyRsADAVgCzVZqtw4dwZoFzoA2dEaceyEYOVADkeEsu02c3dCYiTcJlpNUkyAFpUadKyA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "gold",
+      "seed": "HQZgTALANMCsBsBOGAGAjCGB2MWYhFlTHhgnjzWBVmSolj2CxGWHJW3jCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple",
+      "seed": "HQBgzALANAtKYEZYNATgKxRQJgOyqmADYRsptQAOaYBcQhCMQkVA4XI54SkTH3GCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "ocean",
+      "seed": "GwOgrAzAjANCAsZh2FZokCY4QBwAY558w58BOXIgdniPOQWurjF1nHIiA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "soft grey",
+      "seed": "HQVjBpgNgJhyDsMAckAsBmADOzkR7ACMWGkJI5WO0aaksZ0MWQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "fasfood",
+      "seed": "HQdgDGA0wMwIwBZpgGwE5p3ptLkCYBWaFfKYQmckfEaEFPYdY4BNQoA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "joyful",
+      "seed": "IwOgDA7AzANCCsEBMcBswCcMC0YTDDBzyXiJCVS1wWFhtQmGJABYxnxG5gCWwAHGCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "hot sauce",
+      "seed": "HQNgnAHANAtBwAYwKsAjGgTKtIDsU8eArCusWlGogCwGJj0RarHE2qMfCZjFA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "cyan red",
+      "seed": "HQJgDGA0wBwdA2ewAsylVu5bPipgMyGYIDsYQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "tea",
+      "seed": "HQVhCYBpQDgTmgNgMwAZoQOzQCxuspgsODNsAIwiLQWZTKjjojCJWQXA7iJA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Forest green to blue",
+      "seed": "HQJg7ADANMCsBsYawiZBOeMDM90wjAA4YAWI7MiEgRmGwaljhqVODG1ihGAnmxA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "monochrome",
+      "seed": "HQJgHGA0oOwJzRDAbNADAFisNBmbaYakAjMEamQKxonRW4bQkvTIZPBUZxA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "HQNgnAzANMBMEAYYBYwEYoFoHAmgHCmIdnGCDBBAOwyzLSk0a75KljLs4CssYQA",
+      "seed": "HQDgDGA0C0CswGYCMAmSwDsBONwUoDZIDEAWXfU9DUpdMLLakWdLJENsTvWWIA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "dark",
+      "seed": "HQJgHGA0oOwJzRDAbNADAFisNBmbaYakAjMEamQKxonRW4bQkvTIZPBUZxA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "vermelho",
+      "seed": "HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5VpPwp5msAgOQZSsIhCA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "maroon cyan",
+      "seed": "LQJgdALAHAnANMAzGArBADAlqqeYgdgDY4JIVMjUJE4x0YT6Yo6Gn10C4BGeiHnRgoeQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "chocolate charcoal turquoise",
+      "seed": "HQVgbALANMYOxxgZgAyOBEIZwEwE4YBGIlGCOADmJWliXUsvVzm2CVKA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Phantom Gradient",
+      "seed": "IwOg7ALAzANCEDYCccIFYE1ADgZkaADGnGgExhzCERxQSGoRmkIsFjZwKHBA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "magenta green yellow",
+      "seed": "HQDgbA7ANMCcDMYYQKwCZkEYAMz7xhABYDg1MiY0JMqwNc1htZKjhMRYg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "sunrise",
+      "seed": "HQDgbA7ANMCcDMYYQKwCZkEYAMz7xhABYDg1MiY0JMqwNc1htZKjhMRYg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "green blue",
+      "seed": "HQNgDGA0wBwdAmetnisALMp6vrdAKwCMIkxmGAzNDBhpFBRE8C9GAJzFA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "mint",
+      "seed": "EwOg7ADALANAtARhANjMGSJZqYAOCHFMAVhkJAgE5kYQEIE6o8BmOkhKuqkwiIA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "Pastel",
+      "seed": "HQDgjArANMDsCc1QGZ4zABjOjA2GeALFAEzCrGgZpjCInqYyyEjMglA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "turquoise pink",
+      "seed": "HQTgTA7ANKYIwxAZgBwwAwFYQYGwBYMV0o5h0UFhslTy4wY4kTgIlC2IIg",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "brutalist",
+      "seed": "LQRgdADCCsA0bRAJngZgOwluAHKgnPCOimCAGzrwT5VjoAsD8Oe1IO8+OWkEDQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "orange",
+      "seed": "HQZgjArANGwGwE5oBZRxFeCAcNjO11RAQCZNSINgwAGMTWhAdk2ebkwlOU2QgRA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "peaceful",
+      "seed": "HQFgHArANMBsBMYb3iKBaY8CcsPAGYBGJUbJTeWbfEI+GIgdjwOCLqiMKo24AZ+BKPy7BBogYPz0CQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "charcoal chocolate pink",
+      "seed": "LQZgdA7ALAHANGEMAMCYFZ5UhVYrIgICMyUJye6xAnAugGzoI0PH1RFisBMQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "cream",
+      "seed": "HQTgHAbANMYIwCYoGZgFY4BYYAY4HYZEwoFh800o5y4rgJ9pg4dsGR2Q5nNMcgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "purple",
+      "seed": "HQNgjALANMCcEAYoFpgTGGEBMm4mjDQFY9sB2AZhmwXJjAWJmIA5nhjtYZWRsgA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "aqua slate blue",
+      "seed": "HQJgnA7ANMDMEFYa1gFhgi1gDYTQEZgDV05YAGGAyGCiWKEYCsMghqI2HKgWgotaRCqJhgwSAcFSwEQA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "blue",
+      "seed": "HQZg7ArANMBMCcYYhAFhgNlk4ExIEZgDV1jFkQAGGAseWsEKWYK+dIkDGgWirYUiVEVCIQAHARip8QA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "Phantom Gradient",
+      "seed": "LQJgdALAHAnANMAzGArBADAlqqeYgdgDY4JIVMjUJE4x0YT6Yo6Gn10C4BGeiHnRgoeQA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "pink",
+      "seed": "LQVgdAzAjATANMCYAcMAMcpgGxRHbSbbOAFjBDRKwHYR8wo0G0BOEx5uMVkCb1qSjdsMUkA",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "cyan white",
+      "seed": "HQFgnA7ANMBMBsAGGZEGYYggRhvbyw2Y8MsasZ2AHDNmiHWgKwyLp0TxA",
+      "good": 1,
+      "bad": 0
+    },
+    {
+      "query": "sea",
+      "seed": "AwGgdAbALAnCC0YCMAOArCUYBMK5hhSXGBghGzCjSyWG03BjWLGCgGYg",
+      "good": 0,
+      "bad": 1
+    },
+    {
+      "query": "linear gradient(135deg, #6366F1, #22D3EE)",
+      "seed": "HQJgnA7ANMDMEFYa1gFhgi1gDYTQEZgDV05YAGGAyGCiWKEYCsMghqI2HKgWgotaRCqJhgwSAcFSwEQA",
+      "good": 1,
+      "bad": 0
+    }
+  ]
+}
