@@ -1,6 +1,6 @@
 import type { AppPalette } from "@/queries/palettes";
 import { cn } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, intervalToDuration } from "date-fns";
 import {
     generateCssGradient,
     generateSvgGradient,
@@ -50,6 +50,19 @@ import { detectDevice } from "@/lib/deviceDetection";
 import { useSearchFeedbackMutation } from "@/mutations/search-feedback";
 import { searchFeedbackStore, type FeedbackType } from "@/stores/search-feedback";
 import { useWindowVirtualizer } from "@tanstack/react-virtual";
+
+// Relative time while fresh; past a year it stops conveying recency,
+// so switch to the absolute month ("Apr 2025")
+function formatPaletteAge(date: Date): string {
+    const { years = 0 } = intervalToDuration({
+        start: date,
+        end: new Date(),
+    });
+    if (years < 1) {
+        return formatDistanceToNow(date).replace("about ", "");
+    }
+    return format(date, "MMM yyyy");
+}
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type StyleWithAuto = v.InferOutput<typeof styleWithAutoValidator>;
@@ -1212,12 +1225,9 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                                     className="text-sm text-muted-foreground pointer-events-none select-none"
                                     suppressHydrationWarning
                                 >
-                                    {formatDistanceToNow(
+                                    {formatPaletteAge(
                                         new Date(currentCreatedAt),
-                                        {
-                                            addSuffix: false,
-                                        },
-                                    ).replace("about", "")}
+                                    )}
                                 </span>
                             )}
                         </div>

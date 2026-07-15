@@ -177,7 +177,12 @@ export const Route = createFileRoute("/$seed")({
             const styleName =
                 styleNames[style && style !== "auto" ? style : DEFAULT_STYLE] ??
                 "gradient";
-            title = `${shownColors.slice(0, 3).join(" → ")} Gradient Palette | Grabient`;
+            // Title always samples 4 stops regardless of the steps param so the
+            // same seed gets a stable title; dedupe repeated hexes
+            const titleColors = [
+                ...new Set(generateHexColors(coeffs, globals, 4)),
+            ];
+            title = `${titleColors.join(" → ")} Gradient Palette | Grabient`;
             description = `A ${effectiveSteps}-color ${styleName} palette: ${shownColors.join(", ")}${hexColors.length > shownColors.length ? " and more" : ""}. Copy as CSS, SVG, or PNG, or customize the colors, angle, and steps in Grabient's gradient editor.`;
         } catch {
             // Invalid seed - beforeLoad redirects; keep generic meta

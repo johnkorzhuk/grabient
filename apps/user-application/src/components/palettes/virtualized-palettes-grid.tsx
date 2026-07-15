@@ -110,18 +110,20 @@ export function VirtualizedPalettesGrid({
 
     const containerRef = useRef<HTMLOListElement>(null);
 
-    // Track which palette seeds have been rendered (for fade-in animation)
-    // Seeds seen on initial render won't animate, only new ones added later will
-    const seenSeedsRef = useRef<Set<string>>(new Set());
+    // Track which palette seeds have appeared in the data (for fade-in animation).
+    // Marking seeds when the data changes — not when a card first renders — keeps
+    // virtualization from animating off-screen rows as they scroll into view
+    const seenSeedsRef = useRef<Set<string> | null>(null);
+    if (seenSeedsRef.current === null) {
+        seenSeedsRef.current = new Set(palettes.map((p) => p.seed));
+    }
+    const seenSeeds = seenSeedsRef.current;
 
-    // Initialize seen seeds on mount with current palettes (skip animation for initial data)
     useLayoutEffect(() => {
-        const newSeeds = new Set(seenSeedsRef.current);
         for (const p of palettes) {
-            newSeeds.add(p.seed);
+            seenSeeds.add(p.seed);
         }
-        seenSeedsRef.current = newSeeds;
-    }, []);
+    }, [palettes]);
     const [columns, setColumns] = useState(1);
     const [contentWidth, setContentWidth] = useState(0);
     const [scrollMargin, setScrollMargin] = useState(0);
@@ -259,11 +261,7 @@ export function VirtualizedPalettesGrid({
                     ? `${palette.seed}-v${palette.version}-${palette.modelKey ?? ""}-${item.globalIndex}`
                     : palette.seed;
 
-                // Check if this is a new palette that should animate
-                const isNew = !seenSeedsRef.current.has(palette.seed);
-                if (isNew) {
-                    seenSeedsRef.current.add(palette.seed);
-                }
+                const isNew = !seenSeeds.has(palette.seed);
 
                 return (
                     <PaletteCard
