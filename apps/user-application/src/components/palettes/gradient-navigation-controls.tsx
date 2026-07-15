@@ -174,6 +174,9 @@ export function GradientNavigationControls({
                             value={steps}
                             className="subpixel-antialiased lg:bg-background bg-background/80 backdrop-blur-sm disable-animation-on-theme-change hidden sm:flex"
                             onPreviewChange={onPreviewStepsChange}
+                            minPreset={
+                                actualStyle === "auroraMesh" ? 5 : undefined
+                            }
                         />
                         <StyleSelect
                             value={style}
@@ -246,6 +249,9 @@ export function GradientNavigationControls({
                             value={steps}
                             className="subpixel-antialiased lg:bg-background bg-background/80 backdrop-blur-sm disable-animation-on-theme-change"
                             onPreviewChange={onPreviewStepsChange}
+                            minPreset={
+                                actualStyle === "auroraMesh" ? 5 : undefined
+                            }
                         />
                         <div className="w-8 h-8" />
                     </div>

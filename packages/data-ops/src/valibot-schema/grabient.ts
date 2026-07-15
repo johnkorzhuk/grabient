@@ -26,13 +26,38 @@ export const STYLE_LABELS: Record<PaletteStyle, string> = {
     linearSwatches: "Linear Swatches",
     radialGradient: "Radial Gradient",
     radialSwatches: "Radial Swatches",
-    auroraMesh: "Aurora",
+    auroraMesh: "Aurora Mesh",
 };
 
 /**
- * Aurora glow anchors: colors 0..n-2 become soft radial glows positioned on a
- * ring around the element, the last color is the base coat. Shared by the CSS
- * and SVG renderers so both formats place glows identically.
+ * Fixed number of aurora glow layers. Steps deliberately has no effect on
+ * this style: a handful of large glows on a ring is the look, and denser
+ * layouts collapse into symmetric mud. The steps control is disabled in the
+ * UI while auroraMesh is selected.
+ */
+export const AURORA_MAX_GLOWS = 7;
+
+/**
+ * Evenly sample which palette indices become aurora glows. Colors 0..n-2 are
+ * glow candidates (the last color is the base coat); when there are more
+ * candidates than AURORA_MAX_GLOWS, pick a spread across the palette. Shared
+ * by the CSS and SVG renderers so both formats pick identical colors.
+ */
+export function auroraGlowIndices(colorCount: number): number[] {
+    const candidateCount = colorCount - 1;
+    if (candidateCount <= AURORA_MAX_GLOWS) {
+        return Array.from({ length: candidateCount }, (_, i) => i);
+    }
+    return Array.from({ length: AURORA_MAX_GLOWS }, (_, i) =>
+        Math.round((i * (candidateCount - 1)) / (AURORA_MAX_GLOWS - 1)),
+    );
+}
+
+/**
+ * Aurora glow anchors: sampled colors become soft radial glows positioned on
+ * a ring around the element, the last color is the base coat; `angle`
+ * rotates the ring. Shared by the CSS and SVG renderers so both formats
+ * place glows identically.
  */
 export function auroraAnchors(
     glowCount: number,

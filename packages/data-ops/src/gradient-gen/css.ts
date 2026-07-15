@@ -2,6 +2,7 @@ import {
     PALETTE_STYLES,
     FALLBACK_STYLES,
     auroraAnchors,
+    auroraGlowIndices,
 } from "../valibot-schema/grabient";
 
 type GradientStyle = (typeof PALETTE_STYLES)[number];
@@ -272,8 +273,8 @@ export function generateCssGradient(
 
         case "auroraMesh": {
             const baseColor = hexColors[hexColors.length - 1]!;
-            const glowColors = hexColors.slice(0, -1);
-            const anchors = auroraAnchors(glowColors.length, angle);
+            const glowIndices = auroraGlowIndices(hexColors.length);
+            const anchors = auroraAnchors(glowIndices.length, angle);
 
             const layerAlpha = (index: number) =>
                 typeof activeIndex === "number"
@@ -283,10 +284,13 @@ export function generateCssGradient(
                     : 1;
 
             // Glows fade to a zero-alpha version of their own color (not the
-            // `transparent` keyword) so the falloff matches SVG stop-opacity
-            const layers = glowColors.map((color, index) => {
-                const anchor = anchors[index]!;
-                const peak = hexToRgba(color, layerAlpha(index));
+            // `transparent` keyword) so the falloff matches SVG stop-opacity.
+            // CSS paints the first background layer on top, so glow 0 is the
+            // most prominent; the SVG renderer mirrors this stacking
+            const layers = glowIndices.map((colorIndex, anchorIndex) => {
+                const color = hexColors[colorIndex]!;
+                const anchor = anchors[anchorIndex]!;
+                const peak = hexToRgba(color, layerAlpha(colorIndex));
                 const edge = hexToRgba(color, 0);
                 return `radial-gradient(at ${anchor.x}% ${anchor.y}%, ${peak} 0%, ${edge} 58%)`;
             });
