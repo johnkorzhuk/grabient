@@ -83,18 +83,6 @@ function decodeAlignedSeed(seed: string): { coeffValues: number[]; globalValues:
   return { coeffValues, globalValues };
 }
 
-function formatNumber(num: number): string {
-  const formattedStr = num.toFixed(COEFF_PRECISION);
-
-  if (num > -1 && num < 1 && num !== 0) {
-    return formattedStr.replace(/^(-?)0\./, '$1.');
-  } else if (num === 0) {
-    return '0';
-  }
-
-  return formattedStr;
-}
-
 export function serializeCoeffs(coeffs: CosineCoeffs, globals: GlobalModifiers): string {
   const validatedCoeffs = v.parse(coeffsSchema, coeffs);
   const validatedGlobals = v.parse(globalsSchema, globals);
@@ -110,12 +98,12 @@ export function serializeCoeffs(coeffs: CosineCoeffs, globals: GlobalModifiers):
   const globalValues = useDefaultGlobals ? null : [...validatedGlobals];
 
   const alignedSeed = encodeAlignedSeed(coeffValues, globalValues);
-  if (alignedSeed !== null) {
-    return alignedSeed;
+  if (alignedSeed === null) {
+    // Unreachable: the schemas clamp coefficients to [COEFF_MIN, COEFF_MAX]
+    // and bound the globals, so every validated value is encodable
+    throw new Error('serializeCoeffs: validated values exceed encodable range');
   }
-
-  const packed = [...coeffValues, ...(globalValues ?? [])].map(formatNumber).join(',');
-  return LZString.compressToEncodedURIComponent(packed);
+  return alignedSeed;
 }
 
 function parseNumber(str: string): number {
