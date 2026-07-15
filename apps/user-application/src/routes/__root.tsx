@@ -48,6 +48,8 @@ import { setUserRole, setUserTier } from "@/integrations/tracking/events";
 import type { AuthUser } from "@repo/data-ops/auth/client-types";
 import { isProEnabled } from "@/lib/feature-flags";
 import { ProEnabledContext } from "@/hooks/useProEnabled";
+import poppins500Woff2 from "@fontsource/poppins/files/poppins-latin-500-normal.woff2?url";
+import poppins700Woff2 from "@fontsource/poppins/files/poppins-latin-700-normal.woff2?url";
 
 function BreakpointIndicator() {
     return (
@@ -121,8 +123,17 @@ export const Route = createRootRouteWithContext<{
             links: [
                 { rel: "stylesheet", href: appCss },
                 {
-                    rel: "preconnect",
-                    href: "https://fonts.gstatic.com",
+                    rel: "preload",
+                    as: "font",
+                    type: "font/woff2",
+                    href: poppins500Woff2,
+                    crossOrigin: "anonymous",
+                },
+                {
+                    rel: "preload",
+                    as: "font",
+                    type: "font/woff2",
+                    href: poppins700Woff2,
                     crossOrigin: "anonymous",
                 },
                 {
@@ -145,7 +156,36 @@ export const Route = createRootRouteWithContext<{
                 { rel: "manifest", href: "/site.webmanifest", color: "#fffff" },
                 { rel: "icon", href: "/favicon.ico" },
             ],
-            scripts: [],
+            scripts: [
+                {
+                    type: "application/ld+json",
+                    children: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "WebApplication",
+                        name: "Grabient",
+                        url: "https://grabient.com",
+                        description:
+                            "CSS gradient generator and color palette finder. Browse, search, and customize gradient palettes, then export them as CSS, SVG, or PNG.",
+                        applicationCategory: "DesignApplication",
+                        operatingSystem: "Web",
+                        offers: {
+                            "@type": "Offer",
+                            price: "0",
+                            priceCurrency: "USD",
+                        },
+                        potentialAction: {
+                            "@type": "SearchAction",
+                            target: {
+                                "@type": "EntryPoint",
+                                urlTemplate:
+                                    "https://grabient.com/palettes/{search_term_string}",
+                            },
+                            "query-input":
+                                "required name=search_term_string",
+                        },
+                    }),
+                },
+            ],
         };
     },
     errorComponent: (props) => {
@@ -166,23 +206,9 @@ function RootComponent() {
     const shouldDisableScroll = shouldDisableScrollLock();
 
     useEffect(() => {
-        const getScrollbarWidth = () => {
-            const outer = document.createElement("div");
-            outer.style.visibility = "hidden";
-            outer.style.overflow = "scroll";
-            document.body.appendChild(outer);
-
-            const inner = document.createElement("div");
-            outer.appendChild(inner);
-
-            const scrollbarWidth = outer.offsetWidth - inner.offsetWidth;
-
-            outer.parentNode?.removeChild(outer);
-
-            return scrollbarWidth;
-        };
-
-        setScrollbarWidth(getScrollbarWidth());
+        setScrollbarWidth(
+            window.innerWidth - document.documentElement.clientWidth,
+        );
     }, []);
 
     useEffect(() => {

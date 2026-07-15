@@ -1,11 +1,10 @@
 import { cn } from "@/lib/utils";
 import { useStore } from "@tanstack/react-store";
 import { exportStore } from "@/stores/export";
-import { useLocation, useRouter, useRouterState } from "@tanstack/react-router";
+import { useRouter, useRouterState } from "@tanstack/react-router";
 import {
     Tooltip,
     TooltipContent,
-    TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { ArrowRightFromLine, X } from "lucide-react";
@@ -18,18 +17,22 @@ interface SelectedButtonProps {
 
 export function SelectedButton({ className }: SelectedButtonProps) {
     const mounted = useMounted();
-    const exportList = useStore(exportStore, (state) => state.exportList);
+    const exportCountValue = useStore(
+        exportStore,
+        (state) => state.exportList.length,
+    );
     const router = useRouter();
-    const location = useLocation();
-    const routerState = useRouterState();
-    const isExportOpen = (routerState.location.search as { export?: boolean }).export === true;
+    const isExportOpen = useRouterState({
+        select: (state) =>
+            (state.location.search as { export?: boolean }).export === true,
+    });
 
     // Only show count after mount to avoid hydration mismatch
-    const exportCount = mounted ? exportList.length : 0;
+    const exportCount = mounted ? exportCountValue : 0;
 
     const handleClick = () => {
         router.navigate({
-            to: location.pathname,
+            to: ".",
             search: (prev) => ({ ...prev, export: !isExportOpen }),
             resetScroll: false,
             replace: true,
@@ -38,8 +41,7 @@ export function SelectedButton({ className }: SelectedButtonProps) {
 
     return (
         <div className={cn("flex items-center gap-2", className)}>
-            <TooltipProvider>
-                <Tooltip delayDuration={500}>
+            <Tooltip delayDuration={500}>
                     <TooltipTrigger asChild>
                         <button
                             aria-label={isExportOpen ? "Close export panel" : "Export selected palettes"}
@@ -72,7 +74,6 @@ export function SelectedButton({ className }: SelectedButtonProps) {
                         {isExportOpen && <Kbd className="ml-1.5">Esc</Kbd>}
                     </TooltipContent>
                 </Tooltip>
-            </TooltipProvider>
         </div>
     );
 }

@@ -1,14 +1,50 @@
 // See: https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/
+// Replay is loaded via lazyLoadIntegration so its code is tree-shaken out of
+// the bundled Sentry chunk and only fetched when the user consents.
 
 import { consentStore } from "@/stores/consent-store";
 
 const IDLE_TIMEOUT = 5000;
 
+type SentryModule = typeof import("./sentry-client");
+type ReplayInstance = ReturnType<
+    typeof import("@sentry/react").replayIntegration
+>;
+
 let sentryInitialized = false;
-let sentryModule: typeof import("@sentry/react") | null = null;
-let replayIntegration: ReturnType<typeof import("@sentry/react").replayIntegration> | null = null;
+let sentryModule: SentryModule | null = null;
+let replayInstance: ReplayInstance | null = null;
+let replayLoadPromise: Promise<void> | null = null;
 let currentAnalyticsConsent = false;
 let initPromise: Promise<void> | null = null;
+
+async function loadReplayIntegration(Sentry: SentryModule): Promise<void> {
+    if (replayInstance) {
+        return;
+    }
+    if (replayLoadPromise) {
+        return replayLoadPromise;
+    }
+
+    replayLoadPromise = (async () => {
+        try {
+            const replayFactory =
+                await Sentry.lazyLoadIntegration("replayIntegration");
+            const instance = replayFactory({
+                maskAllText: true,
+                maskAllInputs: true,
+                blockAllMedia: true,
+            }) as ReplayInstance;
+            replayInstance = instance;
+            Sentry.addIntegration(instance);
+        } catch {
+            // CDN blocked (ad-blocker) or offline - skip replay
+            replayLoadPromise = null;
+        }
+    })();
+
+    return replayLoadPromise;
+}
 
 export async function initializeSentry(): Promise<void> {
     if (sentryInitialized) {
@@ -31,35 +67,28 @@ export async function initializeSentry(): Promise<void> {
 
     initPromise = (async () => {
         try {
-            const Sentry = await import("@sentry/react");
+            const Sentry = await import("./sentry-client");
             sentryModule = Sentry;
 
             const state = consentStore.state;
             currentAnalyticsConsent = state.categories.analytics;
             const sessionReplayConsent = state.categories.sessionReplay;
 
-            if (sessionReplayConsent) {
-                replayIntegration = Sentry.replayIntegration({
-                    maskAllText: true,
-                    maskAllInputs: true,
-                    blockAllMedia: true,
-                });
-            }
-
             Sentry.init({
                 dsn,
-                integrations: [
-                    Sentry.browserTracingIntegration(),
-                    ...(replayIntegration ? [replayIntegration] : []),
-                ],
+                integrations: [Sentry.browserTracingIntegration()],
                 sendDefaultPii: currentAnalyticsConsent,
-                tracesSampleRate: import.meta.env.DEV ? 0.1 : 1.0,
+                tracesSampleRate: 0.1,
                 replaysSessionSampleRate: sessionReplayConsent ? (import.meta.env.DEV ? 0.01 : 0.1) : 0,
                 replaysOnErrorSampleRate: sessionReplayConsent ? 1.0 : 0,
                 debug: false,
             });
 
             sentryInitialized = true;
+
+            if (sessionReplayConsent) {
+                loadReplayIntegration(Sentry);
+            }
         } catch (error) {
             console.error("Failed to load Sentry:", error);
         }
@@ -101,31 +130,29 @@ export function setupLazySentryLoading(): void {
         removeListeners();
     };
 
-    const handleError = () => {
+    const handleError = (event: ErrorEvent) => {
         cancelIdleCallback();
-        doInit();
         removeListeners();
+        doInit().then(() => {
+            sentryModule?.captureException(event.error ?? event.message);
+        });
     };
 
-    const handleUnhandledRejection = () => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
         cancelIdleCallback();
-        doInit();
         removeListeners();
+        doInit().then(() => {
+            sentryModule?.captureException(event.reason);
+        });
     };
 
     const removeListeners = () => {
-        document.removeEventListener("scroll", handleInteraction);
-        document.removeEventListener("mousemove", handleInteraction);
-        document.removeEventListener("touchstart", handleInteraction);
         document.removeEventListener("click", handleInteraction);
         document.removeEventListener("keydown", handleInteraction);
         window.removeEventListener("error", handleError);
         window.removeEventListener("unhandledrejection", handleUnhandledRejection);
     };
 
-    document.addEventListener("scroll", handleInteraction, { once: true, passive: true });
-    document.addEventListener("mousemove", handleInteraction, { once: true, passive: true });
-    document.addEventListener("touchstart", handleInteraction, { once: true, passive: true });
     document.addEventListener("click", handleInteraction, { once: true });
     document.addEventListener("keydown", handleInteraction, { once: true });
 
@@ -148,7 +175,7 @@ export function setupLazySentryLoading(): void {
 }
 
 export function updateSentryConsent(): void {
-    if (!sentryInitialized || !replayIntegration || !sentryModule) {
+    if (!sentryInitialized || !sentryModule) {
         return;
     }
 
@@ -163,9 +190,15 @@ export function updateSentryConsent(): void {
     }
 
     if (state.categories.sessionReplay) {
-        replayIntegration.start();
+        if (replayInstance) {
+            replayInstance.start();
+        } else {
+            loadReplayIntegration(sentryModule).then(() => {
+                replayInstance?.start();
+            });
+        }
     } else {
-        replayIntegration.stop();
+        replayInstance?.stop();
     }
 }
 

@@ -293,19 +293,23 @@ export function ExportView({ likedSeeds, getPaletteMetadataBySeed, navigate }: E
     const containerRef = useRef<HTMLOListElement>(null);
     const [gridColumns, setGridColumns] = useState(1);
     const [contentWidth, setContentWidth] = useState(0);
+    const [scrollMargin, setScrollMargin] = useState(0);
 
     useEffect(() => {
-        const updateDimensions = () => {
-            if (containerRef.current) {
-                const width = containerRef.current.offsetWidth;
-                setContentWidth(width);
-                setGridColumns(getExportColumnsForWidth(window.innerWidth));
-            }
-        };
+        const el = containerRef.current;
+        if (!el) return;
 
-        updateDimensions();
-        window.addEventListener('resize', updateDimensions);
-        return () => window.removeEventListener('resize', updateDimensions);
+        setScrollMargin(el.offsetTop);
+
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (!entry) return;
+            setContentWidth(entry.contentRect.width);
+            setGridColumns(getExportColumnsForWidth(window.innerWidth));
+        });
+        observer.observe(el);
+
+        return () => observer.disconnect();
     }, []);
 
     const rowCount = Math.ceil(exportList.length / gridColumns);
@@ -314,7 +318,7 @@ export function ExportView({ likedSeeds, getPaletteMetadataBySeed, navigate }: E
         count: rowCount,
         estimateSize: () => EXPORT_ROW_HEIGHT,
         overscan: 1,
-        scrollMargin: containerRef.current?.offsetTop ?? 0,
+        scrollMargin,
     });
 
     const virtualRows = virtualizer.getVirtualItems();
@@ -1201,7 +1205,13 @@ export const PaletteCard = forwardRef<HTMLLIElement, PaletteCardProps>(
                                 </span>
                             )}
                             {currentCreatedAt && (
-                                <span className="text-sm text-muted-foreground pointer-events-none select-none">
+                                // Relative time depends on render time: cached SSR HTML
+                                // is older than hydration, so the text can differ and
+                                // would otherwise throw hydration error #418
+                                <span
+                                    className="text-sm text-muted-foreground pointer-events-none select-none"
+                                    suppressHydrationWarning
+                                >
                                     {formatDistanceToNow(
                                         new Date(currentCreatedAt),
                                         {
@@ -1377,16 +1387,25 @@ function GradientPreview({
 
     const { actualWidth, actualHeight } = useDimensions();
 
-    const svgString = isMounted
-        ? generateSvgGradient(
-              colorsToUse,
-              effectiveStyle,
-              effectiveAngle,
-              { seed: currentSeed, searchString: creditSearchString },
-              null,
-              { width: actualWidth, height: actualHeight, borderRadius },
-          )
-        : "";
+    const copyMenuId = `${idPrefix}${currentSeed}-${effectiveStyle}-${effectiveSteps}-${effectiveAngle}`;
+    const isCopyMenuOpen = useStore(
+        uiStore,
+        (state) => state.openCopyMenuId === copyMenuId,
+    );
+
+    // Building the SVG string is expensive; only do it while this card's copy
+    // menu is open (the only consumer) instead of on every render of every card
+    const svgString =
+        isMounted && isCopyMenuOpen
+            ? generateSvgGradient(
+                  colorsToUse,
+                  effectiveStyle,
+                  effectiveAngle,
+                  { seed: currentSeed, searchString: creditSearchString },
+                  null,
+                  { width: actualWidth, height: actualHeight, borderRadius },
+              )
+            : "";
 
     const heightClass = variant === "compact" ? "h-[180px]" : "h-[300px]";
     const glowOpacity = variant === "compact" ? "opacity-20" : "opacity-40";

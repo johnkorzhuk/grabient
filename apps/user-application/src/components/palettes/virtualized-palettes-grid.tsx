@@ -124,24 +124,28 @@ export function VirtualizedPalettesGrid({
     }, []);
     const [columns, setColumns] = useState(1);
     const [contentWidth, setContentWidth] = useState(0);
+    const [scrollMargin, setScrollMargin] = useState(0);
 
-    // Track window width for responsive columns and content width for positioning
+    // Measure layout via ResizeObserver (batched, no forced reflow) instead of
+    // reading offsetWidth/offsetTop during render or in a raw resize listener.
     // useLayoutEffect runs synchronously after DOM mutations but before paint,
     // so the user never sees stale dimensions when exiting export mode
     useLayoutEffect(() => {
-        const updateDimensions = () => {
-            const windowWidth = window.innerWidth;
-            setColumns(getColumnsForWidth(windowWidth));
-            if (containerRef.current) {
-                // Content width is the ol's width (section wrapper handles padding)
-                setContentWidth(containerRef.current.offsetWidth);
-            }
-        };
+        const el = containerRef.current;
+        if (!el) return;
 
-        updateDimensions();
+        setScrollMargin(el.offsetTop);
 
-        window.addEventListener('resize', updateDimensions);
-        return () => window.removeEventListener('resize', updateDimensions);
+        const observer = new ResizeObserver((entries) => {
+            const entry = entries[0];
+            if (!entry) return;
+            // Content width is the ol's width (section wrapper handles padding)
+            setContentWidth(entry.contentRect.width);
+            setColumns(getColumnsForWidth(window.innerWidth));
+        });
+        observer.observe(el);
+
+        return () => observer.disconnect();
     }, [isExportOpen]);
 
     const totalItems = palettes.length + skeletonCount;
@@ -151,7 +155,7 @@ export function VirtualizedPalettesGrid({
         count: rowCount,
         estimateSize: () => ROW_HEIGHT,
         overscan: 1,
-        scrollMargin: containerRef.current?.offsetTop ?? 0,
+        scrollMargin,
     });
 
     const virtualRows = virtualizer.getVirtualItems();

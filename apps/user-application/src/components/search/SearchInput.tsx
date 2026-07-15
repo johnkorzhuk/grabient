@@ -161,6 +161,10 @@ export function SearchInput({
     const [turnstileError, setTurnstileError] = useState(false);
     const [isVerifying, setIsVerifying] = useState(false);
     const [showChallenge, setShowChallenge] = useState(false);
+    // Turnstile loads the Cloudflare challenge script; keep it off the page
+    // until the user actually interacts with search. The submit handler
+    // already waits up to 3s for a token, which covers late mounting.
+    const [turnstileEnabled, setTurnstileEnabled] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const turnstileRef = useRef<TurnstileInstance>(null);
 
@@ -308,6 +312,7 @@ export function SearchInput({
                     value={localValue}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
+                    onFocus={() => setTurnstileEnabled(true)}
                     placeholder="Search palettes..."
                     suppressHydrationWarning
                     style={{ backgroundColor: "var(--background)" }}
@@ -341,6 +346,7 @@ export function SearchInput({
                     </button>
                 )}
             </form>
+            {turnstileEnabled && (
             <div className={cn("[&_iframe]:!w-full", showChallenge ? "mt-3" : "sr-only")}>
                 <Turnstile
                     ref={turnstileRef}
@@ -370,6 +376,7 @@ export function SearchInput({
                     }}
                 />
             </div>
+            )}
             {turnstileError && (
                 <p className="mt-2 text-xs text-red-500 text-center">
                     Verification failed. Please refresh.

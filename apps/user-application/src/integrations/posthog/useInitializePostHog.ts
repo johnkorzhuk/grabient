@@ -50,16 +50,13 @@ export function useInitializePostHog() {
         };
 
         const removeListeners = () => {
-            document.removeEventListener("scroll", handleInteraction);
-            document.removeEventListener("mousemove", handleInteraction);
-            document.removeEventListener("touchstart", handleInteraction);
             document.removeEventListener("click", handleInteraction);
             document.removeEventListener("keydown", handleInteraction);
         };
 
-        document.addEventListener("scroll", handleInteraction, { once: true, passive: true });
-        document.addEventListener("mousemove", handleInteraction, { once: true, passive: true });
-        document.addEventListener("touchstart", handleInteraction, { once: true, passive: true });
+        // Only real intent signals (click/keydown) trigger early init.
+        // mousemove/scroll/touchstart fire almost immediately and made the
+        // lazy load compete with hydration and scrolling on the main thread.
         document.addEventListener("click", handleInteraction, { once: true });
         document.addEventListener("keydown", handleInteraction, { once: true });
 

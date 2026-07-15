@@ -1,3 +1,23 @@
-# https://www.robotstxt.org/robotstxt.html
+# grabient.com - all crawlers welcome, including AI crawlers.
+# Note: crawler access is also governed by Cloudflare AI Crawl Control;
+# both must allow a bot for it to get through.
+
 User-agent: *
 Disallow:
+
+# Explicitly welcome AI search / assistant / training crawlers
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: meta-externalagent
+User-agent: CCBot
+Disallow:
+
+Sitemap: https://grabient.com/sitemap.xml

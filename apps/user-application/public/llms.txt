@@ -1,0 +1,29 @@
+# Grabient
+
+> Grabient is a free CSS gradient generator and color palette finder. Browse and search thousands of gradient color palettes, customize their style, angle, and step count, and export them as CSS, SVG, or PNG.
+
+Every palette is addressed by a compact seed in the URL. Palette pages are server-rendered: the page metadata lists the palette's hex colors, and the visible page includes copyable CSS output.
+
+## Main pages
+
+- [Popular palettes](https://grabient.com/): The home page, gradient palettes ranked by likes
+- [Newest palettes](https://grabient.com/newest): Recently added gradient palettes
+- [Oldest palettes](https://grabient.com/oldest): The earliest gradient palettes on the site
+- [Search](https://grabient.com/palettes/warm%20sunset): Semantic palette search — replace the last path segment with any descriptive query (colors, moods, themes)
+
+## URL structure
+
+- `https://grabient.com/{seed}` — a single palette's page with its gradient editor and CSS/SVG/PNG export
+- `https://grabient.com/palettes/{query}` — search results for a descriptive query
+- Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularSwatches), `angle` (0-360 degrees), `steps` (number of colors)
+- `https://grabient.com/api/og?seed={seed}` — a PNG preview image of any palette
+
+## Machine-readable resources
+
+- [Sitemap](https://grabient.com/sitemap.xml): The most popular palette pages plus the main list pages
+
+## Usage notes
+
+- Palettes are generated from cosine gradient coefficients; the seed encodes the full color definition
+- Exported CSS uses standard `linear-gradient()` / `conic-gradient()` syntax with hex color stops
+- Attribution is appreciated but not required; palette pages are free to reference and cite

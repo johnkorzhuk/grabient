@@ -69,26 +69,19 @@ const config = defineConfig({
           if (id.includes("posthog-js")) {
             return "posthog";
           }
-          // Separate Radix UI components
-          if (id.includes("@radix-ui")) {
-            return "radix-ui";
+          // Pin React core to its own chunk. Without this, rollup glues it
+          // into whatever vendor chunk references it first (previously
+          // dnd-kit), which then loads eagerly on every page.
+          if (
+            id.includes("/node_modules/react/") ||
+            id.includes("/node_modules/react-dom/") ||
+            id.includes("/node_modules/scheduler/")
+          ) {
+            return "react";
           }
-          // Separate DND kit
-          if (id.includes("@dnd-kit")) {
-            return "dnd-kit";
-          }
-          // Separate date-fns
-          if (id.includes("date-fns")) {
-            return "date-fns";
-          }
-          // Separate TanStack Query
-          if (id.includes("@tanstack/react-query") || id.includes("@tanstack/query-core")) {
-            return "tanstack-query";
-          }
-          // Separate TanStack Form
-          if (id.includes("@tanstack/react-form") || id.includes("@tanstack/form-core")) {
-            return "tanstack-form";
-          }
+          // Everything else (radix, dnd-kit, date-fns, tanstack-query/form)
+          // is left to rollup's import-graph splitting so libraries only load
+          // with the routes/components that actually use them.
         },
       },
     },

@@ -14,12 +14,16 @@ export function SelectedButtonContainer({
     className,
 }: SelectedButtonContainerProps) {
     const mounted = useMounted();
-    const exportList = useStore(exportStore, (state) => state.exportList);
-    const routerState = useRouterState();
-    const isExportOpen =
-        (routerState.location.search as { export?: boolean }).export === true;
+    const exportCount = useStore(
+        exportStore,
+        (state) => state.exportList.length,
+    );
+    const isExportOpen = useRouterState({
+        select: (state) =>
+            (state.location.search as { export?: boolean }).export === true,
+    });
     // Only check for selected items after mount to avoid hydration mismatch
-    const hasSelectedItems = mounted && exportList.length > 0;
+    const hasSelectedItems = mounted && exportCount > 0;
 
     // Always render the container with fixed height to prevent layout shift
     // This ensures the negative margin positioning works consistently

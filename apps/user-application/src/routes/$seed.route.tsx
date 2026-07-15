@@ -140,38 +140,56 @@ export const Route = createFileRoute("/$seed")({
             ogUrl.searchParams.set("angle", String(angle));
         }
 
+        // Per-palette title/description with the actual colors so crawlers
+        // and AI search can distinguish and cite individual palettes
+        let title = "Grabient - CSS Gradient Generator & Palette Finder";
+        let description =
+            "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.";
+        try {
+            const { coeffs, globals } = deserializeCoeffs(params.seed);
+            const effectiveSteps =
+                typeof steps === "number" ? steps : DEFAULT_STEPS;
+            const hexColors = generateHexColors(
+                coeffs,
+                globals,
+                effectiveSteps,
+            );
+            const shownColors = hexColors.slice(0, 6);
+            const styleNames: Record<string, string> = {
+                linearGradient: "linear gradient",
+                linearSwatches: "linear swatch",
+                angularSwatches: "angular swatch",
+            };
+            const styleName =
+                styleNames[style && style !== "auto" ? style : DEFAULT_STYLE] ??
+                "gradient";
+            title = `${shownColors.slice(0, 3).join(" → ")} Gradient Palette | Grabient`;
+            description = `A ${effectiveSteps}-color ${styleName} palette: ${shownColors.join(", ")}${hexColors.length > shownColors.length ? " and more" : ""}. Copy as CSS, SVG, or PNG, or customize the colors, angle, and steps in Grabient's gradient editor.`;
+        } catch {
+            // Invalid seed - beforeLoad redirects; keep generic meta
+        }
+
         return {
             meta: [
-                { title: "Grabient - CSS Gradient Generator & Palette Finder" },
+                { title },
+                { name: "description", content: description },
+                { property: "og:type", content: "website" },
+                { property: "og:title", content: title },
+                { property: "og:description", content: description },
+                { property: "og:image", content: ogUrl.toString() },
+                { property: "og:image:width", content: "1200" },
+                { property: "og:image:height", content: "630" },
                 {
-                    name: "description",
-                    content:
-                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
+                    property: "og:url",
+                    content: `${baseUrl}/${params.seed}`,
                 },
-                { name: "og:type", content: "website" },
-                {
-                    name: "og:title",
-                    content: "Grabient - CSS Gradient Generator & Palette Finder",
-                },
-                {
-                    name: "og:description",
-                    content:
-                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
-                },
-                { name: "og:image", content: ogUrl.toString() },
-                { name: "og:image:width", content: "1200" },
-                { name: "og:image:height", content: "630" },
                 { name: "twitter:card", content: "summary_large_image" },
-                {
-                    name: "twitter:title",
-                    content: "Grabient - CSS Gradient Generator & Palette Finder",
-                },
-                {
-                    name: "twitter:description",
-                    content:
-                        "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.",
-                },
+                { name: "twitter:title", content: title },
+                { name: "twitter:description", content: description },
                 { name: "twitter:image", content: ogUrl.toString() },
+            ],
+            links: [
+                { rel: "canonical", href: `${baseUrl}/${params.seed}` },
             ],
         };
     },
