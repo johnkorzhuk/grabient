@@ -15,7 +15,7 @@ Every palette is addressed by a compact seed in the URL. Palette pages are serve
 
 - `https://grabient.com/{seed}` — a single palette's page with its gradient editor and CSS/SVG/PNG export
 - `https://grabient.com/palettes/{query}` — search results for a descriptive query
-- Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularSwatches), `angle` (0-360 degrees), `steps` (number of colors)
+- Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularGradient | angularSwatches | radialGradient | radialSwatches | auroraMesh), `angle` (0-360 degrees), `steps` (number of colors)
 - `https://grabient.com/api/og?seed={seed}` — a PNG preview image of any palette
 
 ## Machine-readable resources
