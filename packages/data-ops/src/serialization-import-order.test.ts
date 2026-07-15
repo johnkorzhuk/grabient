@@ -1,8 +1,9 @@
 /**
- * serialization.ts and valibot-schema/grabient.ts import each other
- * (seedValidator uses isValidSeed). Entering the cycle via the schema module,
- * as the app bundle does, must not hit a TDZ ReferenceError from module-scope
- * reads of imported bindings. Import order here is the regression.
+ * Guards against reintroducing the grabient <-> serialization import cycle,
+ * which once broke the app bundle with a TDZ ReferenceError (masked as
+ * NaN/legacy-format fallback under vitest's module runner). Loading the
+ * schema module first, as the app bundle does, must still produce
+ * binary-format seeds.
  */
 import { describe, it, expect } from 'vitest';
 import { seedValidator, DEFAULT_GLOBALS } from './valibot-schema/grabient';

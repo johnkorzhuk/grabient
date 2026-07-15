@@ -1,6 +1,6 @@
 import * as v from 'valibot';
 import LZString from 'lz-string';
-import { coeffsSchema, globalsSchema, COEFF_PRECISION, DEFAULT_GLOBALS } from './valibot-schema/grabient';
+import { coeffsSchema, globalsSchema, COEFF_PRECISION, DEFAULT_GLOBALS } from './valibot-schema/coeffs';
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type GlobalModifiers = v.InferOutput<typeof globalsSchema>;
@@ -21,10 +21,7 @@ const BINARY_SEED_PREFIX = '_';
 const B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 const B64_INDEX = new Map([...B64_ALPHABET].map((char, index) => [char, index]));
 
-// Computed lazily: this module and valibot-schema/grabient import each other
-// (seedValidator uses isValidSeed), so imported bindings must not be read at
-// module scope
-const getScale = () => Math.pow(10, COEFF_PRECISION);
+const SCALE = Math.pow(10, COEFF_PRECISION);
 const NARROW_BITS = 14;
 const NARROW_OFFSET = 1 << (NARROW_BITS - 1);
 const WIDE_BITS = 24;
@@ -90,7 +87,6 @@ class BitReader {
 }
 
 function encodeBinarySeed(coeffValues: number[], globalValues: number[] | null): string | null {
-  const SCALE = getScale();
   const writer = new BitWriter();
 
   for (const value of coeffValues) {
@@ -120,7 +116,6 @@ function encodeBinarySeed(coeffValues: number[], globalValues: number[] | null):
 }
 
 function decodeBinarySeed(seed: string): { coeffValues: number[]; globalValues: number[] } {
-  const SCALE = getScale();
   const reader = new BitReader(seed.slice(BINARY_SEED_PREFIX.length));
 
   const coeffValues: number[] = [];
@@ -237,6 +232,11 @@ export function isValidSeed(seed: string): boolean {
     return false;
   }
 }
+
+export const seedValidator = v.pipe(
+  v.string(),
+  v.check(isValidSeed, 'Invalid seed: unable to deserialize'),
+);
 
 export function deserializeCoeffs(seed: string) {
   const { coeffValues, globalValues } = seed.startsWith(BINARY_SEED_PREFIX)
