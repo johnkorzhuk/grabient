@@ -339,8 +339,12 @@ function RouteComponent() {
 
     // Calculate the current seed based on the current coeffs and globals
     // This ensures we're always working with the most up-to-date seed,
-    // even if the URL hasn't updated yet due to debouncing
-    const currentSeed = serializeCoeffs(coeffs, globals);
+    // even if the URL hasn't updated yet due to debouncing.
+    // When nothing is edited, keep the URL seed verbatim: re-serializing a
+    // legacy-format seed would produce a different string and split its
+    // like/palette identity in the database
+    const currentSeed =
+        localCoeffs || localGlobals ? serializeCoeffs(coeffs, globals) : seed;
 
     const palette: AppPalette = {
         seed: currentSeed,

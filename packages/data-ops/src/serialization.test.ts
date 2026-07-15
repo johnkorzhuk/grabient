@@ -96,7 +96,7 @@ describe('serialization', () => {
         [0.123, 0.456, 0.789, 1],
         [-1.111, 2.222, -3.333, 1],
       ];
-      const globals: GlobalModifiers = [0.999, 1.999, 1.999, 3.141];
+      const globals: GlobalModifiers = [0.999, 1.999, 1.999, 0.999];
 
       const seed = serializeCoeffs(coeffs, globals);
       const result = deserializeCoeffs(seed);
@@ -288,7 +288,7 @@ describe('serialization', () => {
         -1, // Min exposure
         2,  // Max contrast
         2,  // Max frequency
-        3.141, // Near max phase
+        1,  // Max phase
       ];
 
       const seed = serializeCoeffs(coeffs, globals);
@@ -391,6 +391,129 @@ describe('serialization', () => {
       // When included, the values should round-trip (but may lose precision)
       expect(result2.globals[0]).toBeCloseTo(globalsJustAboveEpsilon[0], COEFF_PRECISION);
       expect(result2.globals).not.toEqual(DEFAULT_GLOBALS); // Should be different from defaults
+    });
+  });
+
+  describe('binary seed format', () => {
+    const coeffs: CosineCoeffs = [
+      [0.5, 0.72, 0.51, 1],
+      [0.48, 0.5, 0.49, 1],
+      [1.0, 1.2, 0.8, 1],
+      [0.12, 0.35, 0.83, 1],
+    ];
+
+    it('should produce compact seeds with a _ prefix', () => {
+      const seed = serializeCoeffs(coeffs, DEFAULT_GLOBALS);
+      expect(seed.startsWith('_')).toBe(true);
+      expect(seed.length).toBe(31);
+    });
+
+    it('should produce 39-char seeds when globals are included', () => {
+      const seed = serializeCoeffs(coeffs, [0.5, 1.2, 1.5, 0.8]);
+      expect(seed.startsWith('_')).toBe(true);
+      expect(seed.length).toBe(39);
+    });
+
+    it('should round-trip wide-tier values from tether/tare operations', () => {
+      const wideCoeffs: CosineCoeffs = [
+        [0.5, 0.72, 0.51, 1],
+        [0.48, 0.5, 0.49, 1],
+        [13.888, 23.232, 12.608, 1],
+        [0.12, 0.35, 0.83, 1],
+      ];
+
+      const seed = serializeCoeffs(wideCoeffs, DEFAULT_GLOBALS);
+      const result = deserializeCoeffs(seed);
+
+      expect(seed.startsWith('_')).toBe(true);
+      expect(result.coeffs).toEqual(wideCoeffs);
+    });
+
+    it('should fall back to legacy format for values beyond the wide tier', () => {
+      const extremeCoeffs: CosineCoeffs = [
+        [10000.5, 0.72, 0.51, 1],
+        [0.48, 0.5, 0.49, 1],
+        [1.0, 1.2, 0.8, 1],
+        [0.12, 0.35, 0.83, 1],
+      ];
+
+      const seed = serializeCoeffs(extremeCoeffs, DEFAULT_GLOBALS);
+      const result = deserializeCoeffs(seed);
+
+      expect(seed.startsWith('_')).toBe(false);
+      expect(isValidSeed(seed)).toBe(true);
+      expect(result.coeffs).toEqual(extremeCoeffs);
+    });
+
+    it('should still decode legacy lz-string seeds', () => {
+      const LZString = require('lz-string');
+      const legacyData = '.5,.72,.51,.48,.5,.49,1.000,1.200,.800,.120,.350,.830';
+      const legacySeed = LZString.compressToEncodedURIComponent(legacyData);
+
+      expect(isValidSeed(legacySeed)).toBe(true);
+      const result = deserializeCoeffs(legacySeed);
+      expect(result.coeffs).toEqual(coeffs);
+      expect(result.globals).toEqual(DEFAULT_GLOBALS);
+    });
+
+    it('should scale legacy -π..π phase when decoding legacy seeds', () => {
+      const LZString = require('lz-string');
+      const legacyData = '.5,.72,.51,.48,.5,.49,1.000,1.200,.800,.120,.350,.830,0,1,1,3.141';
+      const legacySeed = LZString.compressToEncodedURIComponent(legacyData);
+
+      const result = deserializeCoeffs(legacySeed);
+      expect(result.globals[3]).toBeCloseTo(3.141 / Math.PI, COEFF_PRECISION);
+    });
+
+    it('should re-encode a decoded legacy seed into the binary format losslessly', () => {
+      const LZString = require('lz-string');
+      const legacyData = '.5,.72,.51,.48,.5,.49,1.000,1.200,.800,.120,.350,.830';
+      const legacySeed = LZString.compressToEncodedURIComponent(legacyData);
+
+      const decoded = deserializeCoeffs(legacySeed);
+      const binarySeed = serializeCoeffs(decoded.coeffs, decoded.globals);
+      const result = deserializeCoeffs(binarySeed);
+
+      expect(binarySeed.startsWith('_')).toBe(true);
+      expect(result.coeffs).toEqual(decoded.coeffs);
+      expect(result.globals).toEqual(decoded.globals);
+    });
+
+    it('should reject malformed binary seeds', () => {
+      expect(isValidSeed('_')).toBe(false);
+      expect(isValidSeed('_abc')).toBe(false);
+      expect(isValidSeed('_!!!invalid!!!')).toBe(false);
+      const valid = serializeCoeffs(coeffs, DEFAULT_GLOBALS);
+      expect(isValidSeed(valid + 'AAAAAAAA')).toBe(false);
+      expect(isValidSeed(valid.slice(0, 10))).toBe(false);
+    });
+
+    it('should round-trip exact 3-decimal values across both tiers', () => {
+      let state = 123456789;
+      const rand = () => {
+        state = (state * 1103515245 + 12345) & 0x7fffffff;
+        return state / 0x7fffffff;
+      };
+
+      for (let iteration = 0; iteration < 2000; iteration++) {
+        const values = Array.from({ length: 12 }, () => {
+          const roll = rand();
+          const range = roll < 0.7 ? 4 : roll < 0.9 ? 16.383 : 16777.215;
+          const value = Number((rand() * range - range / 2).toFixed(3));
+          // Both formats normalize -0 to +0
+          return value === 0 ? 0 : value;
+        });
+        const testCoeffs = [
+          [values[0], values[1], values[2], 1],
+          [values[3], values[4], values[5], 1],
+          [values[6], values[7], values[8], 1],
+          [values[9], values[10], values[11], 1],
+        ] as CosineCoeffs;
+
+        const seed = serializeCoeffs(testCoeffs, DEFAULT_GLOBALS);
+        const result = deserializeCoeffs(seed);
+        expect(result.coeffs).toEqual(testCoeffs);
+      }
     });
   });
 });
