@@ -7,23 +7,27 @@ Stack: TanStack Start (file-based routing) + React 19 (React Compiler) + TanStac
 
 ---
 
-## 1. Core concept: URL-encoded cosine gradient palettes
+## 1. Core concept: the Gradient Hex — URL-encoded cosine palettes
 
 A palette is a **cosine gradient**: `color(t) = a + b * cos(2π * (c*t + d))` per RGB channel
 (`packages/data-ops/src/gradient-gen/cosine.ts`).
 
-The palette lives entirely in the URL — the `$seed` path param:
+The palette lives entirely in the URL — the `$seed` path param is its **Gradient Hex**:
+like a hex color code scaled up to a whole gradient, every value owns fixed character
+positions (`serializeCoeffs` / `deserializeCoeffs`, `packages/data-ops/src/serialization.ts`):
 
-- `serializeCoeffs` / `deserializeCoeffs` (`packages/data-ops/src/serialization.ts`): the 4 coefficient vectors (a, b, c, d) flatten to 12 numbers (3-decimal precision), optionally + 4 global modifiers, joined and compressed with `LZString.compressToEncodedURIComponent`.
-- 12-number seed = default globals; 16-number seed = custom globals `[exposure, contrast, frequency, phase]` (defaults `[0, 1, 1, 0]`).
-- `isValidSeed` gates routing (bad seed → redirect `/`) and distinguishes seed vs. text in search URLs.
-- Legacy compat: old seeds stored phase in `-π..π`; deserialization rescales to `-1..1`.
+- `_` + twelve 3-char base64url groups (18-bit fixed point, 3-decimal precision), row order `a` (base) → `b` (amplitude) → `c` (frequency) → `d` (phase), each row R,G,B — 37 chars total.
+- Non-default globals `[exposure, contrast, frequency, phase]` (defaults `[0, 1, 1, 0]`) append four 2-char groups (12-bit) — 45 chars.
+- **Positionally editable**: changing one char group changes exactly one coefficient, so URLs are hackable by hand. `public/llms.txt` documents the color model and encoding so LLMs can construct valid palette URLs from scratch (validated byte-exact against the encoder, including by cold-start agents given only the doc).
+- Coefficients **clamp** to `COEFF_MIN`/`COEFF_MAX` = ±131.072/131.071 in the valibot schemas (`valibot-schema/coeffs.ts`) — the encodable range is a hard invariant (`serializeCoeffs` throws otherwise); repeated tare/tether saturates instead of overflowing.
+- `isValidSeed` gates routing (bad seed → redirect `/`) and distinguishes seed vs. text in search URLs; `$seed.route.tsx` 301s any non-canonical seed to its canonical Gradient Hex.
+- Legacy compat: 2024-era lz-string seeds still decode (including the old `-π..π` phase rescale) and 301 to their Gradient Hex. The short-lived v2 bit-packed format (July 2026, also `_`-prefixed) is intentionally not decoded — those URLs bounce home.
 
 Rendering options are **search params** (valibot-validated, `packages/data-ops/src/valibot-schema/grabient.ts`), with defaults stripped from the URL (`stripSearchParams`):
 
 | Param | Values | Default |
 |---|---|---|
-| `style` | `linearGradient` \| `angularGradient` \| `linearSwatches` \| `angularSwatches` | `linearGradient` |
+| `style` | `linearGradient` \| `angularGradient` \| `linearSwatches` \| `angularSwatches` \| `radialGradient` \| `radialSwatches` \| `auroraMesh` | `linearGradient` |
 | `angle` | 0–360 | 90 |
 | `steps` | 2–50 | 7 |
 | `size` | [w, h] 40–6000 | [800, 400] |
@@ -122,6 +126,7 @@ Users multi-select palettes into an export list (shift-click range select) and e
 - **Theme**: system/light/dark, localStorage, no-FOUC inline script (`src/components/theme/`).
 - **GitHub stars** badge: fetched server-side, edge-cached 4h.
 - **SEO**: `src/utils/seo.ts` meta builder; per-route OG tags.
+- **llms.txt** (`public/llms.txt`): machine-readable site guide plus the full Gradient Hex spec — color model, per-value encoding algorithm with worked examples, design recipes, and verification URLs — so LLM agents can design palettes and emit working grabient.com links without touching the codebase.
 
 ## 10. Infrastructure bindings (wrangler.jsonc)
 
