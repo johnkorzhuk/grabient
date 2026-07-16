@@ -64,6 +64,7 @@ import {
     userLikedSeedsQueryOptions,
 } from "@/queries/palettes";
 import { useQuery } from "@tanstack/react-query";
+import { OG_RENDER_VERSION } from "@/lib/og-version";
 
 const SEARCH_DEFAULTS = {
     style: "auto" as const,
@@ -141,6 +142,9 @@ export const Route = createFileRoute("/$seed")({
         const baseUrl = import.meta.env.VITE_BASE_URL || "https://grabient.com";
         const ogUrl = new URL("/api/og", baseUrl);
         ogUrl.searchParams.set("seed", params.seed);
+        // CDN and social crawlers cache the PNG by full URL; the version
+        // param invalidates them when OG rendering changes
+        ogUrl.searchParams.set("v", String(OG_RENDER_VERSION));
 
         // Add search params to OG URL if they differ from defaults
         const { style, steps, angle } = match.search;

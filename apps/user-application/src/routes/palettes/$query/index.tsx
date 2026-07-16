@@ -25,6 +25,7 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import { hexToColorName, HEX_CODE_REGEX } from "@repo/data-ops/color-utils";
 import { getSeedColorData } from "@/lib/seed-color-data";
+import { OG_RENDER_VERSION } from "@/lib/og-version";
 import { isValidSeed } from "@repo/data-ops/serialization";
 import { ArrowLeft, Search, Sparkles, AlertTriangle, RefreshCw } from "lucide-react";
 import type { SizeType } from "@/stores/export";
@@ -255,6 +256,9 @@ export const Route = createFileRoute("/palettes/$query/")({
         const baseUrl = import.meta.env.VITE_BASE_URL || "https://grabient.com";
         const ogUrl = new URL("/api/og/query", baseUrl);
         ogUrl.searchParams.set("query", query);
+        // CDN and social crawlers cache the PNG by full URL; the version
+        // param invalidates them when OG rendering changes
+        ogUrl.searchParams.set("v", String(OG_RENDER_VERSION));
 
         const { style, steps, angle } = match.search;
         if (style && style !== "auto") {

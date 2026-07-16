@@ -19,12 +19,9 @@ import {
     paletteStyleValidator,
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
+import { OG_RENDER_VERSION } from "@/lib/og-version";
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
-
-// Bump whenever rendered output changes (style renderers, layout, logo) so
-// KV entries cached by older deployments stop being served for the same URL
-const OG_RENDER_VERSION = 2;
 
 // Theme colors matching the app
 const DARK_BG = "#0a0a0b";

@@ -18,6 +18,7 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
 import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
+import { OG_RENDER_VERSION } from "@/lib/og-version";
 
 const OG_CACHE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
@@ -44,7 +45,7 @@ function getOgCacheKey(
     angle: number | "auto",
 ): string {
     const normalizedQuery = replaceHexWithColorNames(query);
-    return `og-query:${normalizedQuery.toLowerCase().trim()}:${style}:${steps}:${angle}`;
+    return `og-query:v${OG_RENDER_VERSION}:${normalizedQuery.toLowerCase().trim()}:${style}:${steps}:${angle}`;
 }
 
 interface SearchResult {
