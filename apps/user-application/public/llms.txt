@@ -9,14 +9,14 @@ Every palette is addressed by a compact seed in the URL. Palette pages are serve
 - [Popular palettes](https://grabient.com/): The home page, gradient palettes ranked by likes
 - [Newest palettes](https://grabient.com/newest): Recently added gradient palettes
 - [Oldest palettes](https://grabient.com/oldest): The earliest gradient palettes on the site
-- [Search](https://grabient.com/palettes/warm%20sunset): Semantic palette search — replace the last path segment with any descriptive query (colors, moods, themes)
+- [Search](https://grabient.com/palettes/warm%20sunset): Semantic palette search -- replace the last path segment with any descriptive query (colors, moods, themes)
 
 ## URL structure
 
-- `https://grabient.com/{seed}` — a single palette's page with its gradient editor and CSS/SVG/PNG export
-- `https://grabient.com/palettes/{query}` — search results for a descriptive query
+- `https://grabient.com/{seed}` -- a single palette's page with its gradient editor and CSS/SVG/PNG export
+- `https://grabient.com/palettes/{query}` -- search results for a descriptive query
 - Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularGradient | angularSwatches | radialGradient | radialSwatches | auroraMesh), `angle` (0-360 degrees), `steps` (number of colors)
-- `https://grabient.com/api/og?seed={seed}` — a PNG preview image of any palette
+- `https://grabient.com/api/og?seed={seed}` -- a PNG preview image of any palette
 
 ## Machine-readable resources
 
@@ -35,59 +35,59 @@ You can design a palette and build its URL directly. A seed encodes 12 numbers
 
 ### The color model
 
-Each RGB channel follows `channel(t) = a + b * cos(2π * (c*t + d))` where t runs
-0→1 across the gradient and results clamp to [0,1]. You choose 4 vectors of
+Each RGB channel follows `channel(t) = a + b * cos(2 * pi * (c*t + d))` where t runs
+0->1 across the gradient and results clamp to [0,1]. You choose 4 vectors of
 [R, G, B] values, at most 3 decimal places each:
 
-1. `a` — base color the channel oscillates around (usually 0–1)
-2. `b` — amplitude: how far the channel swings (0 = flat, ~0.5 = vivid)
-3. `c` — frequency: 0.5 sweeps one way across the gradient, 1.0 loops back to the
+1. `a` -- base color the channel oscillates around (usually 0-1)
+2. `b` -- amplitude: how far the channel swings (0 = flat, ~0.5 = vivid)
+3. `c` -- frequency: 0.5 sweeps one way across the gradient, 1.0 loops back to the
    start color, 2.0 cycles twice
-4. `d` — phase: where in the cycle the channel starts (period 1; offsetting R/G/B
-   phases ~0.1–0.3 apart creates hue shifts)
+4. `d` -- phase: where in the cycle the channel starts (period 1; offsetting R/G/B
+   phases ~0.1-0.3 apart creates hue shifts)
 
-Design tips: keep `a ± b` within [0,1] or colors clip. Pastels: a≈0.75, b≈0.2.
-Vivid: a≈0.5, b≈0.5. Rainbow: c=1 with d = 0, 0.333, 0.667. Two-tone sweep:
+Design tips: keep `a +/- b` within [0,1] or colors clip. Pastels: a~0.75, b~0.2.
+Vivid: a~0.5, b~0.5. Rainbow: c=1 with d = 0, 0.333, 0.667. Two-tone sweep:
 c=0.5 everywhere.
 
 ### How the site samples colors
 
-Pages show `steps` discrete swatches (default **7**, range 2–50, `?steps=N`).
+Pages show `steps` discrete swatches (default **7**, range 2-50, `?steps=N`).
 Global modifiers are applied to the coefficients first, then swatch `i`
-(0-indexed) samples the formula at `t = i / (steps − 1)` — both endpoints
-included — and each channel clamps to [0,1] before converting to hex.
+(0-indexed) samples the formula at `t = i / (steps - 1)` -- both endpoints
+included -- and each channel clamps to [0,1] before converting to hex.
 To predict the rendered colors, evaluate at those exact t values. Note that
 with c = 1.0 the first and last swatch are identical (full cycle); use
 c = 0.5 for a gradient that ends on a different color than it starts.
 
 ### Encoding the seed
 
-Alphabet (index 0–63): `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`
+Alphabet (index 0-63): `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`
 
 Each of the 12 values (order: a-R a-G a-B, b-R b-G b-B, c-R c-G c-B, d-R d-G d-B)
 becomes exactly 3 characters:
 
-1. `q = round(value × 1000) + 131072` (valid values are −131.072 … +131.071)
+1. `q = round(value * 1000) + 131072` (valid values are -131.072 ... +131.071)
 2. chars are `alphabet[q >> 12]`, `alphabet[(q >> 6) & 63]`, `alphabet[q & 63]`
 
 Shortcut for the common case (|value| < 4.096): the first char is `g` for
-positive values and zero, or `f` for negative. Then let `r = value×1000` (if
-positive) or `r = 4096 + value×1000` (if negative) and the remaining two chars
+positive values and zero, or `f` for negative. Then let `r = value*1000` (if
+positive) or `r = 4096 + value*1000` (if negative) and the remaining two chars
 are `alphabet[floor(r / 64)]`, `alphabet[r mod 64]`.
 
-Worked examples: 0.55 → r=550 → 550/64 = 8 rem 38 → `gIm`. 1.0 → r=1000 →
-15 rem 40 → `gPo`. 0 → `gAA`. −0.1 → r = 4096−100 = 3996 → 62 rem 28 → `f-c`.
+Worked examples: 0.55 -> r=550 -> 550/64 = 8 rem 38 -> `gIm`. 1.0 -> r=1000 ->
+15 rem 40 -> `gPo`. 0 -> `gAA`. -0.1 -> r = 4096-100 = 3996 -> 62 rem 28 -> `f-c`.
 
 The seed is `_` + the twelve 3-char groups (37 chars total). Because every value
 owns fixed positions, editing one group changes exactly one number.
 
 ### Optional global modifiers
 
-Append 4 × 2-char groups only if they differ from the defaults [0, 1, 1, 0]:
-exposure (−1…1, adds to `a`), contrast (0…2, multiplies `b`), frequency (0…2,
-multiplies `c`), phase (−1…1, adds to `d`). Encode each as
-`q = round(value × 1000) + 2048` → `alphabet[q >> 6]`, `alphabet[q & 63]`.
-Example: exposure 0.2 → q=2248 → `jI`; the default 1.0 → q=3048 → `vo`.
+Append four 2-char groups only if they differ from the defaults [0, 1, 1, 0]:
+exposure (-1...1, adds to `a`), contrast (0...2, multiplies `b`), frequency (0...2,
+multiplies `c`), phase (-1...1, adds to `d`). Encode each as
+`q = round(value * 1000) + 2048` -> `alphabet[q >> 6]`, `alphabet[q & 63]`.
+Example: exposure 0.2 -> q=2248 -> `jI`; the default 1.0 -> q=3048 -> `vo`.
 With globals the seed is 45 chars.
 
 ### Verify your work
