@@ -112,6 +112,53 @@ function generateAngularGradientSvg(
     return paths;
 }
 
+/**
+ * Renders the SVG at a reduced width and returns the average relative
+ * luminance (0-1) of the pixels inside `region` (given in full-size
+ * coordinates). Sampling actual pixels works for every gradient style,
+ * including ones with no closed-form position->color mapping (aurora).
+ */
+async function sampleRegionLuminance(
+    svg: string,
+    fullWidth: number,
+    region: { x: number; y: number; width: number; height: number },
+): Promise<number> {
+    const SAMPLE_WIDTH = 300;
+    const scale = SAMPLE_WIDTH / fullWidth;
+    // free() releases WASM linear memory; without it every render leaks
+    // permanently since WASM memory never shrinks
+    const resvg = await Resvg.async(svg, {
+        fitTo: { mode: "width", value: SAMPLE_WIDTH },
+    });
+    try {
+        const image = resvg.render();
+        try {
+            const { pixels, width, height } = image;
+            const x0 = Math.max(0, Math.floor(region.x * scale));
+            const y0 = Math.max(0, Math.floor(region.y * scale));
+            const x1 = Math.min(width, Math.ceil((region.x + region.width) * scale));
+            const y1 = Math.min(height, Math.ceil((region.y + region.height) * scale));
+            let total = 0;
+            let count = 0;
+            for (let y = y0; y < y1; y++) {
+                for (let x = x0; x < x1; x++) {
+                    const i = (y * width + x) * 4;
+                    total +=
+                        0.2126 * (pixels[i] ?? 0) +
+                        0.7152 * (pixels[i + 1] ?? 0) +
+                        0.0722 * (pixels[i + 2] ?? 0);
+                    count++;
+                }
+            }
+            return count > 0 ? total / count / 255 : 0.5;
+        } finally {
+            image.free();
+        }
+    } finally {
+        resvg.free();
+    }
+}
+
 export const Route = createFileRoute("/api/og")({
     server: {
         handlers: {
@@ -173,10 +220,6 @@ export const Route = createFileRoute("/api/og")({
                 try {
                     const width = 1200;
                     const height = 630;
-                    const padding = 24;
-                    const headerHeight = 72; // Space for logo above palette
-                    const gap = 12;
-                    const borderRadius = 16;
 
                     // 1. Deserialize the seed to get coefficients
                     const { coeffs, globals } = deserializeCoeffs(seed);
@@ -190,23 +233,21 @@ export const Route = createFileRoute("/api/og")({
                         rgbToHex(r, g, b),
                     );
 
-                    // 4. Calculate average brightness and choose theme
+                    // 4. Underlay color for styles that don't paint the full
+                    // canvas (e.g. aurora glows)
                     const avgBrightness = calculateAverageBrightness(hexColors);
-                    const isDark = avgBrightness > 0.5; // If palette is bright, use dark background
-                    const bgColor = isDark ? DARK_BG : LIGHT_BG;
-                    const fgColor = isDark ? DARK_FG : LIGHT_FG;
+                    const isBright = avgBrightness > 0.5;
+                    const bgColor = isBright ? LIGHT_BG : DARK_BG;
 
-                    // 5. Generate the gradient SVG content
-                    const paletteWidth = width - padding * 2;
-                    const paletteHeight = height - padding * 2 - headerHeight - gap;
+                    // 5. Generate the gradient SVG content, edge to edge
                     let svgInnerContent = "";
 
                     if (style === "angularGradient") {
                         svgInnerContent = generateAngularGradientSvg(
                             hexColors,
                             angle,
-                            paletteWidth,
-                            paletteHeight,
+                            width,
+                            height,
                         );
                     } else {
                         const baseSvgString = generateSvgGradient(
@@ -215,7 +256,7 @@ export const Route = createFileRoute("/api/og")({
                             angle,
                             { seed, searchString: "" },
                             null,
-                            { width: paletteWidth, height: paletteHeight },
+                            { width, height },
                         );
 
                         if (
@@ -238,7 +279,29 @@ export const Route = createFileRoute("/api/og")({
                         }
                     }
 
-                    // 6. Create gradient stops for the logo bar
+                    // 6. Logo placement in the bottom-right corner.
+                    // Unscaled logo bounds: 220 wide, 50 tall (underline included)
+                    const logoScale = 1.3;
+                    const logoMargin = 32;
+                    const logoWidth = 220 * logoScale;
+                    const logoHeight = 50 * logoScale;
+                    const logoX = width - logoWidth - logoMargin;
+                    const logoY = height - logoHeight - logoMargin;
+
+                    // 7. Sample the rendered gradient under the logo and pick
+                    // black or white for legibility on that specific area
+                    const gradientOnlySvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+        <rect x="0" y="0" width="${width}" height="${height}" fill="${bgColor}"/>
+        ${svgInnerContent}
+      </svg>`;
+                    const logoLuminance = await sampleRegionLuminance(
+                        gradientOnlySvg,
+                        width,
+                        { x: logoX, y: logoY, width: logoWidth, height: logoHeight },
+                    );
+                    const fgColor = logoLuminance > 0.5 ? LIGHT_FG : DARK_FG;
+
+                    // 8. Create gradient stops for the logo underline bar
                     const gradientStops = hexColors
                         .map((color, index) => {
                             const offset = (index / (hexColors.length - 1)) * 100;
@@ -246,35 +309,25 @@ export const Route = createFileRoute("/api/og")({
                         })
                         .join("");
 
-                    // 7. Compose the final SVG with rounded palette and logo outside
-                    const paletteY = padding + headerHeight + gap;
+                    // 9. Compose the final SVG: full-bleed gradient with the
+                    // logo painted bottom-right
                     const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
-        <rect x="0" y="0" width="${width}" height="${height}" fill="${bgColor}"/>
         <defs>
-            <clipPath id="paletteClip">
-                <rect x="${padding}" y="${paletteY}" width="${paletteWidth}" height="${paletteHeight}" rx="${borderRadius}" ry="${borderRadius}" />
-            </clipPath>
             <linearGradient x1="0%" y1="0%" x2="100%" y2="0%" id="logoGradient">
                 ${gradientStops}
             </linearGradient>
         </defs>
-        <g clip-path="url(#paletteClip)">
-            <g transform="translate(${padding}, ${paletteY})">
-                ${svgInnerContent}
-            </g>
-        </g>
-        <!-- Logo in top left, outside palette -->
-        <g transform="translate(${padding}, ${padding + 6})">
-            <g transform="scale(1.3)">
-                <g fill="none" fill-rule="evenodd">
-                    <path d="${LOGO_PATH}" fill="${fgColor}" />
-                    <rect x="93" y="43" width="34" height="7" fill="url(#logoGradient)" />
-                </g>
+        <rect x="0" y="0" width="${width}" height="${height}" fill="${bgColor}"/>
+        ${svgInnerContent}
+        <g transform="translate(${logoX}, ${logoY}) scale(${logoScale})">
+            <g fill="none" fill-rule="evenodd">
+                <path d="${LOGO_PATH}" fill="${fgColor}" />
+                <rect x="93" y="43" width="34" height="7" fill="url(#logoGradient)" />
             </g>
         </g>
       </svg>`;
 
-                    // 8. Convert SVG to PNG using @cf-wasm/resvg
+                    // 10. Convert SVG to PNG using @cf-wasm/resvg
                     // free() releases WASM linear memory; without it every
                     // render leaks permanently since WASM memory never shrinks
                     const resvg = await Resvg.async(fullSvg, {
@@ -296,7 +349,7 @@ export const Route = createFileRoute("/api/og")({
                         resvg.free();
                     }
 
-                    // 9. Store in KV cache for future requests
+                    // 11. Store in KV cache for future requests
                     if (env.OG_IMAGE_CACHE) {
                         try {
                             await env.OG_IMAGE_CACHE.put(
@@ -309,7 +362,7 @@ export const Route = createFileRoute("/api/og")({
                         }
                     }
 
-                    // 10. Return PNG with caching headers
+                    // 12. Return PNG with caching headers
                     return new Response(new Uint8Array(pngBuffer), {
                         status: 200,
                         headers: {
