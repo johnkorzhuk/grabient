@@ -22,6 +22,10 @@ import * as v from "valibot";
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
+// Bump whenever rendered output changes (style renderers, layout, logo) so
+// KV entries cached by older deployments stop being served for the same URL
+const OG_RENDER_VERSION = 2;
+
 // Theme colors matching the app
 const DARK_BG = "#0a0a0b";
 const DARK_FG = "#fafafa";
@@ -41,7 +45,7 @@ function getCacheKey(
     steps: number,
     angle: number,
 ): string {
-    return `og:${seed}:${style}:${steps}:${angle}`;
+    return `og:v${OG_RENDER_VERSION}:${seed}:${style}:${steps}:${angle}`;
 }
 
 function generateAngularGradientSvg(
