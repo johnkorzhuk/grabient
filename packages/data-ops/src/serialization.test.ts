@@ -556,4 +556,86 @@ describe('serialization', () => {
       }
     });
   });
+
+  describe('decimal seed format', () => {
+    // The worked example published in llms.txt — keep both sides in sync with it
+    const decimalSeed = '0.5,0.4,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2';
+    const canonicalSeed = '_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI';
+
+    it('should decode the llms.txt worked example to its canonical aligned seed', () => {
+      const { coeffs, globals } = deserializeCoeffs(decimalSeed);
+
+      expect(coeffs).toEqual([
+        [0.5, 0.4, 0.4, 1],
+        [0.5, 0.4, 0.3, 1],
+        [0.5, 0.5, 0.5, 1],
+        [0.0, 0.1, 0.2, 1],
+      ]);
+      expect(globals).toEqual(DEFAULT_GLOBALS);
+      expect(serializeCoeffs(coeffs, globals)).toBe(canonicalSeed);
+    });
+
+    it('should re-encode to a different aligned seed, which drives the 301 redirect', () => {
+      const { coeffs, globals } = deserializeCoeffs(decimalSeed);
+      const reEncoded = serializeCoeffs(coeffs, globals);
+
+      expect(reEncoded).not.toBe(decimalSeed);
+      expect(reEncoded.startsWith('_')).toBe(true);
+    });
+
+    it('should parse the 16-number form as exposure, contrast, frequency, phase', () => {
+      const { globals } = deserializeCoeffs(`${decimalSeed},0.2,1.1,1.5,0.25`);
+      expect(globals).toEqual([0.2, 1.1, 1.5, 0.25]);
+
+      const { coeffs } = deserializeCoeffs(`${decimalSeed},0.2,1.1,1.5,0.25`);
+      expect(serializeCoeffs(coeffs, [0.2, 1.1, 1.5, 0.25]).length).toBe(45);
+    });
+
+    it('should accept tolerant number spellings', () => {
+      expect(isValidSeed('.5, 0.4,+0.4,0.5,0.4,0.3,0.5,0.5,0.5,-.25,1e-1,0.2')).toBe(true);
+
+      const { coeffs } = deserializeCoeffs('.5, 0.4,+0.4,0.5,0.4,0.3,0.5,0.5,0.5,-.25,1e-1,0.2');
+      expect(coeffs[0]![0]).toBe(0.5);
+      expect(coeffs[3]![0]).toBe(-0.25);
+      expect(coeffs[3]![1]).toBe(0.1);
+    });
+
+    it('should round extra precision and clamp out-of-range coefficients', () => {
+      const { coeffs } = deserializeCoeffs('0.33333,0.4,0.4,0.5,0.4,0.3,200,-200,0.5,0,0.1,0.2');
+      expect(coeffs[0]![0]).toBe(0.333);
+      expect(coeffs[2]![0]).toBe(131.071);
+      expect(coeffs[2]![1]).toBe(-131.072);
+    });
+
+    it('should treat |phase| > 1 as radians, matching legacy seeds', () => {
+      const { globals } = deserializeCoeffs(`${decimalSeed},0,1,1,3.14159`);
+      expect(globals[3]).toBeCloseTo(3.14159 / Math.PI, COEFF_PRECISION);
+    });
+
+    it('should reject malformed decimal seeds', () => {
+      const invalid = [
+        '0.5,0.4,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1', // 11 values
+        `${decimalSeed},0.2`, // 13 values
+        `${decimalSeed},0,1,1,0,9`, // 17 values
+        `${decimalSeed},`, // trailing comma
+        '0.5,,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2', // empty token
+        '0.5,abc,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2', // garbage token
+        '0.5,NaN,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2',
+        '0.5,Infinity,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2',
+        '0.5abc,0.4,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2', // trailing garbage
+        '0x1,0.4,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2', // hex
+      ];
+
+      for (const seed of invalid) {
+        expect(isValidSeed(seed)).toBe(false);
+        expect(() => deserializeCoeffs(seed)).toThrow();
+      }
+    });
+
+    it('should reject out-of-range globals', () => {
+      expect(isValidSeed(`${decimalSeed},0,3,1,0`)).toBe(false); // contrast > 2
+      expect(isValidSeed(`${decimalSeed},-2,1,1,0`)).toBe(false); // exposure < -1
+      expect(isValidSeed(`${decimalSeed},0,1,2.5,0`)).toBe(false); // frequency > 2
+    });
+  });
 });

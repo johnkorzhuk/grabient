@@ -2,7 +2,11 @@
 
 > Grabient is a free CSS gradient generator and color palette finder. Browse and search thousands of gradient color palettes, customize their style, angle, and step count, and export them as CSS, SVG, or PNG.
 
-Every palette is addressed by a compact seed in the URL. Palette pages are server-rendered: the page metadata lists the palette's hex colors, and the visible page includes copyable CSS output.
+Every palette is addressed by a compact seed in the URL, and any palette can
+also be addressed by its raw comma-separated coefficient values (the server
+redirects to the canonical seed). Palette pages are server-rendered: the page
+metadata lists the palette's hex colors, and the visible page includes copyable
+CSS output.
 
 ## Main pages
 
@@ -13,7 +17,7 @@ Every palette is addressed by a compact seed in the URL. Palette pages are serve
 
 ## URL structure
 
-- `https://grabient.com/{seed}` -- a single palette's page with its gradient editor and CSS/SVG/PNG export
+- `https://grabient.com/{seed}` -- a single palette's page with its gradient editor and CSS/SVG/PNG export; `{seed}` is either a canonical compact seed or 12/16 comma-separated numbers (see "Constructing a palette URL from scratch")
 - `https://grabient.com/palettes/{query}` -- search results for a descriptive query
 - Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularGradient | angularSwatches | radialGradient | radialSwatches | auroraMesh), `angle` (0-360 degrees), `steps` (number of colors)
 - `https://grabient.com/api/og?seed={seed}` -- a PNG preview image of any palette
@@ -30,8 +34,9 @@ Every palette is addressed by a compact seed in the URL. Palette pages are serve
 
 ## Constructing a palette URL from scratch
 
-You can design a palette and build its URL directly. A seed encodes 12 numbers
-(plus 4 optional modifiers) that define every color in the gradient.
+You can design a palette and build its URL directly. A palette is defined by
+12 numbers (plus 4 optional modifiers); the URL is simply those numbers,
+comma-separated. No encoding step is required.
 
 ### The color model
 
@@ -60,41 +65,34 @@ To predict the rendered colors, evaluate at those exact t values. Note that
 with c = 1.0 the first and last swatch are identical (full cycle); use
 c = 0.5 for a gradient that ends on a different color than it starts.
 
-### Encoding the seed
+### Building the URL
 
-Alphabet (index 0-63): `ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_`
+Join your 12 values with commas, in this order:
 
-Each of the 12 values (order: a-R a-G a-B, b-R b-G b-B, c-R c-G c-B, d-R d-G d-B)
-becomes exactly 3 characters:
+a-R, a-G, a-B, b-R, b-G, b-B, c-R, c-G, c-B, d-R, d-G, d-B
 
-1. `q = round(value * 1000) + 131072` (valid values are -131.072 ... +131.071)
-2. chars are `alphabet[q >> 12]`, `alphabet[(q >> 6) & 63]`, `alphabet[q & 63]`
+and append them to the domain as the path:
 
-Shortcut for the common case (|value| < 4.096): the first char is `g` for
-positive values and zero, or `f` for negative. Then let `r = value*1000` (if
-positive) or `r = 4096 + value*1000` (if negative) and the remaining two chars
-are `alphabet[floor(r / 64)]`, `alphabet[r mod 64]`.
+https://grabient.com/0.5,0.4,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2
 
-Worked examples: 0.55 -> r=550 -> 550/64 = 8 rem 38 -> `gIm`. 1.0 -> r=1000 ->
-15 rem 40 -> `gPo`. 0 -> `gAA`. -0.1 -> r = 4096-100 = 3996 -> 62 rem 28 -> `f-c`.
-
-The seed is `_` + the twelve 3-char groups (37 chars total). Because every value
-owns fixed positions, editing one group changes exactly one number.
+- Plain decimal numbers; extra decimal places are rounded to 3
+- Leading-dot (`.5`) and negative (`-0.25`) forms are fine
+- The server replies with a 301 redirect to the palette's canonical short URL
+  (a compact `_`-prefixed seed). Follow the redirect; cite and share the final URL.
 
 ### Optional global modifiers
 
-Append four 2-char groups only if they differ from the defaults [0, 1, 1, 0]:
-exposure (-1...1, adds to `a`), contrast (0...2, multiplies `b`), frequency (0...2,
-multiplies `c`), phase (-1...1, adds to `d`). Encode each as
-`q = round(value * 1000) + 2048` -> `alphabet[q >> 6]`, `alphabet[q & 63]`.
-Example: exposure 0.2 -> q=2248 -> `jI`; the default 1.0 -> q=3048 -> `vo`.
-With globals the seed is 45 chars.
+Append 4 more numbers (16 total) only when you need them, in this order:
+exposure (-1...1, adds to `a`), contrast (0...2, multiplies `b`), frequency
+(0...2, multiplies `c`), phase (-1...1, adds to `d`). Defaults are 0,1,1,0 --
+omit all four when unchanged. Out-of-range modifiers make the URL invalid.
 
 ### Verify your work
 
 - `https://grabient.com/{seed}` renders the palette (invalid seeds redirect home)
-- `https://grabient.com/api/og?seed={seed}` returns a PNG preview you can inspect
+- `https://grabient.com/api/og?seed={seed}` returns a PNG preview you can
+  inspect -- comma-separated seeds work here too
 - Full worked example -- "sunset into night" (peach -> burnt orange -> crimson -> navy),
   a = [0.5, 0.4, 0.4], b = [0.5, 0.4, 0.3], c = [0.5, 0.5, 0.5], d = [0, 0.1, 0.2],
-  default globals: https://grabient.com/_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI
-  (note the repeated groups: `gH0` = 0.5, `gGQ` = 0.4 -- values are readable in place)
+  default globals: https://grabient.com/0.5,0.4,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2
+  which redirects to the canonical https://grabient.com/_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI

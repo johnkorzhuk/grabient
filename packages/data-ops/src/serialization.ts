@@ -18,8 +18,12 @@ type GlobalModifiers = v.InferOutput<typeof globalsSchema>;
  * Editing one char group changes exactly one value — URLs are hackable.
  * Values beyond ±131.071 fall back to the legacy lz-string format.
  *
- * Seeds without the prefix decode as legacy lz-string CSV; '_' never appears
- * in lz-string's URI-safe alphabet (A-Za-z0-9+-$), so dispatch is unambiguous.
+ * Decoding accepts two more formats, though only the aligned one is produced:
+ * - Decimal CSV: 12 or 16 comma-separated plain numbers in the same order
+ *   (coeffs, then optional globals) — the human/LLM-writable form
+ * - Legacy lz-string CSV: everything else
+ * Dispatch is unambiguous: aligned seeds start with '_', and ',' appears in
+ * neither the aligned alphabet nor lz-string's URI-safe one (A-Za-z0-9+-$).
  */
 const ALIGNED_SEED_PREFIX = '_';
 const B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -116,15 +120,7 @@ function parseNumber(str: string): number {
   return parseFloat(str);
 }
 
-function decodeLegacySeed(seed: string): { coeffValues: number[]; globalValues: number[] } {
-  const decompressed = LZString.decompressFromEncodedURIComponent(seed);
-
-  if (!decompressed || decompressed.length === 0) {
-    throw new Error('Invalid seed: failed to decompress or empty result');
-  }
-
-  const numbers = decompressed.split(',').map(parseNumber);
-
+function splitSeedValues(numbers: number[]): { coeffValues: number[]; globalValues: number[] } {
   if (numbers.length !== 12 && numbers.length !== 16) {
     throw new Error(`Invalid seed format: expected 12 or 16 values, got ${numbers.length}`);
   }
@@ -142,12 +138,45 @@ function decodeLegacySeed(seed: string): { coeffValues: number[]; globalValues: 
   return { coeffValues, globalValues };
 }
 
+function decodeLegacySeed(seed: string): { coeffValues: number[]; globalValues: number[] } {
+  const decompressed = LZString.decompressFromEncodedURIComponent(seed);
+
+  if (!decompressed || decompressed.length === 0) {
+    throw new Error('Invalid seed: failed to decompress or empty result');
+  }
+
+  return splitSeedValues(decompressed.split(',').map(parseNumber));
+}
+
+const DECIMAL_TOKEN = /^[+-]?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/;
+
+function decodeDecimalSeed(seed: string): { coeffValues: number[]; globalValues: number[] } {
+  const numbers = seed.split(',').map((raw) => {
+    const token = raw.trim();
+    if (!DECIMAL_TOKEN.test(token)) {
+      throw new Error('Invalid decimal seed: malformed number');
+    }
+    const value = Number(token);
+    if (!Number.isFinite(value)) {
+      throw new Error('Invalid decimal seed: non-finite value');
+    }
+    return value;
+  });
+
+  return splitSeedValues(numbers);
+}
+
 export function isValidSeed(seed: string): boolean {
   try {
     if (seed.startsWith(ALIGNED_SEED_PREFIX)) {
       const { globalValues } = decodeAlignedSeed(seed);
       // Keep isValidSeed and deserializeCoeffs in agreement: a crafted payload
       // can carry a globals block outside the schema ranges
+      return v.is(globalsSchema, globalValues);
+    }
+
+    if (seed.includes(',')) {
+      const { globalValues } = decodeDecimalSeed(seed);
       return v.is(globalsSchema, globalValues);
     }
 
@@ -166,7 +195,9 @@ export const seedValidator = v.pipe(
 export function deserializeCoeffs(seed: string) {
   const { coeffValues, globalValues } = seed.startsWith(ALIGNED_SEED_PREFIX)
     ? decodeAlignedSeed(seed)
-    : decodeLegacySeed(seed);
+    : seed.includes(',')
+      ? decodeDecimalSeed(seed)
+      : decodeLegacySeed(seed);
 
   const coeffsWithAlpha = [];
   for (let i = 0; i < 12; i += 3) {
