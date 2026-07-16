@@ -21,3 +21,6 @@ User-agent: CCBot
 Disallow:
 
 Sitemap: https://grabient.com/sitemap.xml
+
+# Guide for LLMs and AI agents (site map + palette URL construction spec):
+# https://grabient.com/llms.txt

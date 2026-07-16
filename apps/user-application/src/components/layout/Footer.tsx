@@ -47,6 +47,13 @@ export function Footer({ className }: FooterProps) {
                         Terms
                     </Link>
                     <div className="h-4 w-px bg-muted-foreground/30"></div>
+                    <a
+                        href="/llms.txt"
+                        className="text-muted-foreground hover:text-foreground transition-colors duration-200 font-poppins text-base sm:text-lg"
+                    >
+                        llms.txt
+                    </a>
+                    <div className="h-4 w-px bg-muted-foreground/30"></div>
                     <GitHubStars />
                 </div>
 

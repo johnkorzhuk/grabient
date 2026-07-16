@@ -154,6 +154,12 @@ export const Route = createRootRouteWithContext<{
                     href: "/favicon-16x16.png",
                 },
                 { rel: "manifest", href: "/site.webmanifest", color: "#fffff" },
+                {
+                    rel: "alternate",
+                    type: "text/plain",
+                    href: "/llms.txt",
+                    title: "llms.txt — guide for LLMs and AI agents",
+                },
                 { rel: "icon", href: "/favicon.ico" },
             ],
             scripts: [

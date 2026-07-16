@@ -19,6 +19,7 @@ async function buildSitemap(): Promise<Response> {
         { loc: `${BASE_URL}/`, priority: "1.0" },
         { loc: `${BASE_URL}/newest`, priority: "0.8" },
         { loc: `${BASE_URL}/oldest`, priority: "0.5" },
+        { loc: `${BASE_URL}/llms.txt`, priority: "0.8" },
     ];
 
     const paletteUrls: { loc: string; priority: string }[] = [];
