@@ -94,4 +94,7 @@ With globals the seed is 45 chars.
 
 - `https://grabient.com/{seed}` renders the palette (invalid seeds redirect home)
 - `https://grabient.com/api/og?seed={seed}` returns a PNG preview you can inspect
-- Example, a sunset built by hand: https://grabient.com/_gImgFegHCgHCgFegFegPogPogPogAAgBkgD6
+- Full worked example -- "sunset into night" (peach -> burnt orange -> crimson -> navy),
+  a = [0.5, 0.4, 0.4], b = [0.5, 0.4, 0.3], c = [0.5, 0.5, 0.5], d = [0, 0.1, 0.2],
+  default globals: https://grabient.com/_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI
+  (note the repeated groups: `gH0` = 0.5, `gGQ` = 0.4 -- values are readable in place)
