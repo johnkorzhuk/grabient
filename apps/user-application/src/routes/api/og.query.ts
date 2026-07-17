@@ -19,6 +19,7 @@ import {
 import * as v from "valibot";
 import { replaceHexWithColorNames } from "@repo/data-ops/color-utils";
 import { OG_RENDER_VERSION } from "@/lib/og-version";
+import { normalizeEntityMangledParams } from "@/lib/og-params";
 
 const OG_CACHE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
@@ -315,8 +316,10 @@ export const Route = createFileRoute("/api/og/query")({
     server: {
         handlers: {
             GET: async ({ request }) => {
-                const url = new URL(request.url);
-                const queryParam = url.searchParams.get("query") || url.searchParams.get("q");
+                const searchParams = normalizeEntityMangledParams(
+                    new URL(request.url),
+                );
+                const queryParam = searchParams.get("query") || searchParams.get("q");
 
                 if (!queryParam || !queryParam.trim()) {
                     return new Response("Missing query parameter", {
@@ -328,14 +331,14 @@ export const Route = createFileRoute("/api/og/query")({
                 const limit = DEFAULT_PAGE_LIMIT;
 
                 // Parse style with fallback to auto
-                const styleParam = url.searchParams.get("style");
+                const styleParam = searchParams.get("style");
                 const styleResult = v.safeParse(paletteStyleValidator, styleParam);
                 const style: GradientStyle | "auto" = styleResult.success
                     ? styleResult.output
                     : "auto";
 
                 // Parse steps with fallback to auto
-                const stepsParam = url.searchParams.get("steps");
+                const stepsParam = searchParams.get("steps");
                 const parsedSteps = stepsParam ? parseInt(stepsParam, 10) : NaN;
                 const stepsResult = v.safeParse(stepsValidator, parsedSteps);
                 const steps: number | "auto" = stepsResult.success
@@ -343,7 +346,7 @@ export const Route = createFileRoute("/api/og/query")({
                     : "auto";
 
                 // Parse angle with fallback to auto
-                const angleParam = url.searchParams.get("angle");
+                const angleParam = searchParams.get("angle");
                 const parsedAngle = angleParam ? parseInt(angleParam, 10) : NaN;
                 const angleResult = v.safeParse(angleValidator, parsedAngle);
                 const angle: number | "auto" = angleResult.success

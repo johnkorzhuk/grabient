@@ -20,6 +20,7 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
 import { OG_RENDER_VERSION } from "@/lib/og-version";
+import { normalizeEntityMangledParams } from "@/lib/og-params";
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 7; // 7 days
 
@@ -115,8 +116,7 @@ function generateAngularGradientSvg(
 /**
  * Renders the SVG at a reduced width and returns the average relative
  * luminance (0-1) of the pixels inside `region` (given in full-size
- * coordinates). Sampling actual pixels works for every gradient style,
- * including ones with no closed-form position->color mapping (aurora).
+ * coordinates). Sampling actual pixels works for every gradient style.
  */
 async function sampleRegionLuminance(
     svg: string,
@@ -163,8 +163,10 @@ export const Route = createFileRoute("/api/og")({
     server: {
         handlers: {
             GET: async ({ request }) => {
-                const url = new URL(request.url);
-                const seedParam = url.searchParams.get("seed");
+                const searchParams = normalizeEntityMangledParams(
+                    new URL(request.url),
+                );
+                const seedParam = searchParams.get("seed");
 
                 // Validate seed first - only error if provided and invalid
                 if (seedParam) {
@@ -177,18 +179,18 @@ export const Route = createFileRoute("/api/og")({
                 const seed = seedParam || DEFAULT_SEED;
 
                 // Parse style with fallback to default
-                const styleParam = url.searchParams.get("style");
+                const styleParam = searchParams.get("style");
                 const styleResult = v.safeParse(paletteStyleValidator, styleParam);
                 const style = styleResult.success ? styleResult.output : DEFAULT_STYLE;
 
                 // Parse steps with fallback to default
-                const stepsParam = url.searchParams.get("steps");
+                const stepsParam = searchParams.get("steps");
                 const parsedSteps = stepsParam ? parseInt(stepsParam, 10) : NaN;
                 const stepsResult = v.safeParse(stepsValidator, parsedSteps);
                 const steps = stepsResult.success ? stepsResult.output : DEFAULT_STEPS;
 
                 // Parse angle with fallback to default
-                const angleParam = url.searchParams.get("angle");
+                const angleParam = searchParams.get("angle");
                 const parsedAngle = angleParam ? parseInt(angleParam, 10) : NaN;
                 const angleResult = v.safeParse(angleValidator, parsedAngle);
                 const angle = angleResult.success ? angleResult.output : DEFAULT_ANGLE;
@@ -234,7 +236,7 @@ export const Route = createFileRoute("/api/og")({
                     );
 
                     // 4. Underlay color for styles that don't paint the full
-                    // canvas (e.g. aurora glows)
+                    // canvas
                     const avgBrightness = calculateAverageBrightness(hexColors);
                     const isBright = avgBrightness > 0.5;
                     const bgColor = isBright ? LIGHT_BG : DARK_BG;

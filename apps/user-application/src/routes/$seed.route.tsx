@@ -165,32 +165,14 @@ export const Route = createFileRoute("/$seed")({
             "Create beautiful gradients with Grabient's intuitive gradient generator. Export to CSS, SVG, and more.";
         try {
             const { coeffs, globals } = deserializeCoeffs(params.seed);
-            const effectiveSteps =
-                typeof steps === "number" ? steps : DEFAULT_STEPS;
-            const hexColors = generateHexColors(
-                coeffs,
-                globals,
-                effectiveSteps,
-            );
-            const shownColors = hexColors.slice(0, 6);
-            const styleNames: Record<string, string> = {
-                linearGradient: "linear gradient",
-                linearSwatches: "linear swatch",
-                angularSwatches: "angular swatch",
-                radialGradient: "radial gradient",
-                radialSwatches: "radial swatch",
-                auroraMesh: "aurora",
-            };
-            const styleName =
-                styleNames[style && style !== "auto" ? style : DEFAULT_STYLE] ??
-                "gradient";
             // Title always samples 4 stops regardless of the steps param so the
             // same seed gets a stable title; dedupe repeated hexes
             const titleColors = [
                 ...new Set(generateHexColors(coeffs, globals, 4)),
             ];
             title = `${titleColors.join(" → ")} Gradient Palette | Grabient`;
-            description = `A ${effectiveSteps}-color ${styleName} palette: ${shownColors.join(", ")}${hexColors.length > shownColors.length ? " and more" : ""}. Copy as CSS, SVG, or PNG, or customize the colors, angle, and steps in Grabient's gradient editor.`;
+            description =
+                "Copy as CSS, SVG, or PNG, or customize the colors, angle, and steps in Grabient's gradient editor.";
         } catch {
             // Invalid seed - beforeLoad redirects; keep generic meta
         }
