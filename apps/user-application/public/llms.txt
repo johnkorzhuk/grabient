@@ -19,7 +19,7 @@ CSS output.
 
 - `https://grabient.com/{seed}` -- a single palette's page with its gradient editor and CSS/SVG/PNG export; `{seed}` is either a canonical compact seed or 12/16 comma-separated numbers (see "Constructing a palette URL from scratch")
 - `https://grabient.com/palettes/{query}` -- search results for a descriptive query
-- Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularGradient | angularSwatches | radialGradient | radialSwatches | auroraMesh), `angle` (0-360 degrees), `steps` (number of colors)
+- Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularGradient | angularSwatches | radialGradient | radialSwatches), `angle` (0-360 degrees), `steps` (number of colors)
 - `https://grabient.com/api/og?seed={seed}` -- a PNG preview image of any palette
 
 ## Machine-readable resources

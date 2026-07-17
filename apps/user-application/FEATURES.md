@@ -27,7 +27,7 @@ Rendering options are **search params** (valibot-validated, `packages/data-ops/s
 
 | Param | Values | Default |
 |---|---|---|
-| `style` | `linearGradient` \| `angularGradient` \| `linearSwatches` \| `angularSwatches` \| `radialGradient` \| `radialSwatches` \| `auroraMesh` | `linearGradient` |
+| `style` | `linearGradient` \| `angularGradient` \| `linearSwatches` \| `angularSwatches` \| `radialGradient` \| `radialSwatches` | `linearGradient` |
 | `angle` | 0–360 | 90 |
 | `steps` | 2–50 | 7 |
 | `size` | [w, h] 40–6000 | [800, 400] |

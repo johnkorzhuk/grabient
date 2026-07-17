@@ -14,7 +14,6 @@ export const PALETTE_STYLES = [
     "linearSwatches",
     "radialGradient",
     "radialSwatches",
-    "auroraMesh",
 ] as const;
 
 export type PaletteStyle = (typeof PALETTE_STYLES)[number];
@@ -26,53 +25,7 @@ export const STYLE_LABELS: Record<PaletteStyle, string> = {
     linearSwatches: "Linear Swatches",
     radialGradient: "Radial Gradient",
     radialSwatches: "Radial Swatches",
-    auroraMesh: "Aurora Mesh",
 };
-
-/**
- * Fixed number of aurora glow layers. Steps deliberately has no effect on
- * this style: a handful of large glows on a ring is the look, and denser
- * layouts collapse into symmetric mud. The steps control is disabled in the
- * UI while auroraMesh is selected.
- */
-export const AURORA_MAX_GLOWS = 7;
-
-/**
- * Evenly sample which palette indices become aurora glows. Colors 0..n-2 are
- * glow candidates (the last color is the base coat); when there are more
- * candidates than AURORA_MAX_GLOWS, pick a spread across the palette. Shared
- * by the CSS and SVG renderers so both formats pick identical colors.
- */
-export function auroraGlowIndices(colorCount: number): number[] {
-    const candidateCount = colorCount - 1;
-    if (candidateCount <= AURORA_MAX_GLOWS) {
-        return Array.from({ length: candidateCount }, (_, i) => i);
-    }
-    return Array.from({ length: AURORA_MAX_GLOWS }, (_, i) =>
-        Math.round((i * (candidateCount - 1)) / (AURORA_MAX_GLOWS - 1)),
-    );
-}
-
-/**
- * Aurora glow anchors: sampled colors become soft radial glows positioned on
- * a ring around the element, the last color is the base coat; `angle`
- * rotates the ring. Shared by the CSS and SVG renderers so both formats
- * place glows identically.
- */
-export function auroraAnchors(
-    glowCount: number,
-    angle: number,
-): { x: number; y: number }[] {
-    const anchors: { x: number; y: number }[] = [];
-    for (let i = 0; i < glowCount; i++) {
-        const theta = ((angle - 90 + (i * 360) / glowCount) * Math.PI) / 180;
-        anchors.push({
-            x: Number((50 + 38 * Math.cos(theta)).toFixed(2)),
-            y: Number((50 + 38 * Math.sin(theta)).toFixed(2)),
-        });
-    }
-    return anchors;
-}
 
 /**
  * Fallback styles for non-CSS/SVG rendering

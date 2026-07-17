@@ -30,8 +30,6 @@ interface StepsInputProps {
     popoverClassName?: string;
     onPreviewChange?: (steps: number | null) => void;
     disabled?: boolean;
-    /** Hide menu presets below this value (typed input is unaffected) */
-    minPreset?: number;
 }
 
 export function StepsInput({
@@ -40,7 +38,6 @@ export function StepsInput({
     popoverClassName,
     onPreviewChange,
     disabled = false,
-    minPreset,
 }: StepsInputProps) {
     const location = useLocation();
     const router = useRouter();
@@ -351,13 +348,7 @@ export function StepsInput({
                 >
                     <CommandGroup>
                         <CommandList>
-                            {presets
-                                .filter(
-                                    (preset) =>
-                                        minPreset === undefined ||
-                                        preset >= minPreset,
-                                )
-                                .map((preset) => (
+                            {presets.map((preset) => (
                                 <CommandItem
                                     key={preset}
                                     value={preset.toString()}

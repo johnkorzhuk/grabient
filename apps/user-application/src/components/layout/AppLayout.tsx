@@ -303,9 +303,6 @@ export function AppLayout({
                                     className="subpixel-antialiased hidden sm:flex"
                                     onPreviewChange={setPreviewSteps}
                                     disabled={isExportOpen}
-                                    minPreset={
-                                        style === "auroraMesh" ? 5 : undefined
-                                    }
                                 />
                                 <StyleSelect
                                     value={style}
@@ -428,9 +425,6 @@ export function AppLayout({
                                 className="subpixel-antialiased"
                                 onPreviewChange={setPreviewSteps}
                                 disabled={isExportOpen}
-                                minPreset={
-                                    style === "auroraMesh" ? 5 : undefined
-                                }
                             />
                         </div>
                     </div>

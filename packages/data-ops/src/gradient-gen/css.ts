@@ -1,8 +1,6 @@
 import {
     PALETTE_STYLES,
     FALLBACK_STYLES,
-    auroraAnchors,
-    auroraGlowIndices,
 } from "../valibot-schema/grabient";
 
 type GradientStyle = (typeof PALETTE_STYLES)[number];
@@ -264,44 +262,6 @@ export function generateCssGradient(
             });
 
             gradientString += ")";
-            return {
-                cssString: `${creditComment}\n\nbackground: ${gradientString};`,
-                styles: { background: gradientString },
-                gradientString,
-            };
-        }
-
-        case "auroraMesh": {
-            const baseColor = hexColors[hexColors.length - 1]!;
-            const glowIndices = auroraGlowIndices(hexColors.length);
-            const anchors = auroraAnchors(glowIndices.length, angle);
-
-            const layerAlpha = (index: number) =>
-                typeof activeIndex === "number"
-                    ? index === activeIndex
-                        ? 1
-                        : inactiveAlpha
-                    : 1;
-
-            // Glows fade to a zero-alpha version of their own color (not the
-            // `transparent` keyword) so the falloff matches SVG stop-opacity.
-            // CSS paints the first background layer on top, so glow 0 is the
-            // most prominent; the SVG renderer mirrors this stacking
-            const layers = glowIndices.map((colorIndex, anchorIndex) => {
-                const color = hexColors[colorIndex]!;
-                const anchor = anchors[anchorIndex]!;
-                const peak = hexToRgba(color, layerAlpha(colorIndex));
-                const edge = hexToRgba(color, 0);
-                return `radial-gradient(at ${anchor.x}% ${anchor.y}%, ${peak} 0%, ${edge} 58%)`;
-            });
-
-            const baseValue = hexToRgba(
-                baseColor,
-                layerAlpha(hexColors.length - 1),
-            );
-            layers.push(`linear-gradient(${baseValue}, ${baseValue})`);
-
-            const gradientString = layers.join(", ");
             return {
                 cssString: `${creditComment}\n\nbackground: ${gradientString};`,
                 styles: { background: gradientString },

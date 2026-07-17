@@ -1,8 +1,6 @@
 import {
     PALETTE_STYLES,
     FALLBACK_STYLES,
-    auroraAnchors,
-    auroraGlowIndices,
 } from "../valibot-schema/grabient";
 
 type GradientStyle = (typeof PALETTE_STYLES)[number];
@@ -449,56 +447,6 @@ ${creditComment}
           </svg>`;
 
             return svgContent;
-        }
-
-        case "auroraMesh": {
-            const baseColor = hexColors[hexColors.length - 1]!;
-            const glowIndices = auroraGlowIndices(hexColors.length);
-            const anchors = auroraAnchors(glowIndices.length, angle);
-
-            const layerAlpha = (index: number) =>
-                typeof activeIndex === "number"
-                    ? index === activeIndex
-                        ? 1
-                        : inactiveAlpha
-                    : 1;
-
-            // SVG paints later elements on top, while CSS paints the first
-            // background layer on top — iterate glows in reverse so glow 0
-            // ends up most prominent in both formats
-            let defs = "";
-            let layers = "";
-            for (
-                let anchorIndex = glowIndices.length - 1;
-                anchorIndex >= 0;
-                anchorIndex--
-            ) {
-                const colorIndex = glowIndices[anchorIndex]!;
-                const color = hexColors[colorIndex]!;
-                const anchor = anchors[anchorIndex]!;
-                const glowId = getUniqueId(`aurora${anchorIndex}`);
-                defs += `<radialGradient id="${glowId}" cx="${(anchor.x / 100).toFixed(4)}" cy="${(anchor.y / 100).toFixed(4)}" r="0.58">
-                <stop offset="0" stop-color="${color}" stop-opacity="${layerAlpha(colorIndex).toFixed(3)}" />
-                <stop offset="1" stop-color="${color}" stop-opacity="0" />
-              </radialGradient>`;
-                layers += `<rect x="0" y="0" width="${width}" height="${height}" fill="url(#${glowId})" />`;
-            }
-
-            const baseAlpha = layerAlpha(hexColors.length - 1);
-
-            return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
-            ${creditComment}
-            <defs>
-              <clipPath id="${getUniqueId("auroraBounds")}">
-                <rect x="0" y="0" width="${width}" height="${height}"${rxAttr} />
-              </clipPath>
-              ${defs}
-            </defs>
-            <g clip-path="url(#${getUniqueId("auroraBounds")})">
-              <rect x="0" y="0" width="${width}" height="${height}" fill="${baseColor}" fill-opacity="${baseAlpha.toFixed(3)}" />
-              ${layers}
-            </g>
-          </svg>`;
         }
 
         default:
