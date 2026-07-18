@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { drizzle } from "drizzle-orm/d1";
 import { and, asc, desc, eq, isNotNull, like, sql, type SQL } from "drizzle-orm";
 import {
+  counters,
   palettes,
   pairs,
   queries,
@@ -21,7 +22,126 @@ const HOUR_BUCKET = (col: unknown) =>
  * query text + palette stops, and a score histogram. Everything else the page
  * needs already exists (/api/stats, /api/coverage).
  */
+/** Training-readiness gates (mirrors TRAINING.md §6). */
+export const READINESS_TARGETS = {
+  sftPairs: 10000,
+  sftQueries: 8000,
+  golden: 300,
+  dpo: 1500,
+  headTermPct: 8,
+  nonEnglishPct: 5,
+} as const;
+
 export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
+  .get("/health", async (c) => {
+    const db = drizzle(c.env.DB);
+    const today = `triage-calls-${new Date().toISOString().slice(0, 10)}`;
+    const [
+      sft,
+      dpo,
+      goldenQ,
+      queryStats,
+      sourceCounts,
+      triageStats,
+      triageBudget,
+      humanRequests,
+    ] = await Promise.all([
+      db
+        .select({
+          pairs: sql<number>`count(*)`,
+          queries: sql<number>`count(distinct ${pairs.queryId})`,
+        })
+        .from(pairs)
+        .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed))
+        .where(
+          and(
+            eq(pairs.status, "scored"),
+            eq(pairs.verdict, "ok"),
+            sql`${pairs.score} >= 7`,
+            sql`${palettes.status} != 'rejected'`,
+            sql`(${pairs.humanLabel} is null or ${pairs.humanLabel} != 'bad-match')`,
+          ),
+        ),
+      db
+        .select({ n: sql<number>`count(*)` })
+        .from(
+          db
+            .select({ queryId: pairs.queryId })
+            .from(pairs)
+            .where(eq(pairs.status, "scored"))
+            .groupBy(pairs.queryId)
+            .having(
+              sql`count(*) >= 2 and max(${pairs.score}) - min(${pairs.score}) >= 3`,
+            )
+            .as("dpoq"),
+        ),
+      db
+        .select({ n: sql<number>`count(distinct ${pairs.queryId})` })
+        .from(pairs)
+        .where(eq(pairs.golden, true)),
+      db
+        .select({
+          total: sql<number>`count(*)`,
+          headTerms: sql<number>`sum(case when length(${queries.text}) - length(replace(${queries.text}, ' ', '')) + 1 <= 2 then 1 else 0 end)`,
+          nonEnglish: sql<number>`sum(case when ${queries.text} glob '*[^ -~]*' then 1 else 0 end)`,
+          emoji: sql<number>`sum(case when ${queries.styleHint} = 'emoji' then 1 else 0 end)`,
+          transitions: sql<number>`sum(case when ${queries.text} like '% into %' or ${queries.text} like '%fading%' or ${queries.text} like '%drifting%' or ${queries.text} like '%melting%' then 1 else 0 end)`,
+        })
+        .from(queries),
+      db
+        .select({ source: queries.source, n: sql<number>`count(*)` })
+        .from(queries)
+        .groupBy(queries.source),
+      db
+        .select({
+          triaged: sql<number>`count(*)`,
+          rejected: sql<number>`sum(case when ${pairs.status} = 'rejected' and ${pairs.judgeNotes} like 'triage:%' then 1 else 0 end)`,
+        })
+        .from(pairs)
+        .where(isNotNull(pairs.triagedAt)),
+      db.select({ value: counters.value }).from(counters).where(eq(counters.key, today)),
+      db
+        .select({
+          text: queries.text,
+          createdAt: queries.createdAt,
+          pairCount: sql<number>`count(${pairs.paletteSeed})`,
+          scored: sql<number>`sum(case when ${pairs.status} = 'scored' then 1 else 0 end)`,
+          best: sql<number | null>`max(${pairs.score})`,
+        })
+        .from(queries)
+        .leftJoin(pairs, eq(pairs.queryId, queries.id))
+        .where(eq(queries.source, "human"))
+        .groupBy(queries.id)
+        .orderBy(desc(queries.createdAt))
+        .limit(10),
+    ]);
+    const qs = queryStats[0]!;
+    const src = Object.fromEntries(sourceCounts.map((r) => [r.source, r.n]));
+    return c.json({
+      readiness: {
+        sftPairs: sft[0]?.pairs ?? 0,
+        sftQueries: sft[0]?.queries ?? 0,
+        golden: goldenQ[0]?.n ?? 0,
+        dpo: dpo[0]?.n ?? 0,
+        headTermPct: qs.total ? (100 * (qs.headTerms ?? 0)) / qs.total : 0,
+        nonEnglishPct: qs.total ? (100 * (qs.nonEnglish ?? 0)) / qs.total : 0,
+        targets: READINESS_TARGETS,
+      },
+      corpus: {
+        totalQueries: qs.total,
+        emoji: qs.emoji ?? 0,
+        transitionPct: qs.total ? (100 * (qs.transitions ?? 0)) / qs.total : 0,
+        sources: src,
+      },
+      triage: {
+        callsToday: triageBudget[0]?.value ?? 0,
+        cap: 1200,
+        triaged: triageStats[0]?.triaged ?? 0,
+        rejected: triageStats[0]?.rejected ?? 0,
+      },
+      humanRequests,
+    });
+  })
   .get("/explore", async (c) => {
     const db = drizzle(c.env.DB);
     const q = c.req.query();
@@ -75,6 +195,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
             source: sql<string>`''`,
             golden: sql<number>`max(${pairs.golden})`,
             humanLabel: sql<string | null>`null`,
+            triageVotes: sql<string | null>`null`,
             humanCount: sql<number>`sum(case when ${pairs.humanLabel} is not null then 1 else 0 end)`,
             paletteStatus: palettes.status,
             style: palettes.style,
@@ -102,6 +223,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
             humanLabel: pairs.humanLabel,
             humanCount: sql<number>`0`,
             paletteStatus: palettes.status,
+            triageVotes: pairs.triageVotes,
             style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
             steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
             angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
@@ -331,6 +453,21 @@ const DASHBOARD_HTML = `<!doctype html>
     border: 1px solid var(--border); border-radius: 7px; color: var(--ink);
     font: inherit; font-size: 13px; padding: 8px; resize: vertical; }
   #rq-result { font-size: 12px; color: var(--muted); min-height: 1.2em; margin-top: 6px; }
+  .gate { display: grid; grid-template-columns: 150px 1fr 110px; align-items: center;
+    gap: 10px; margin-bottom: 8px; }
+  .gate .name { color: var(--ink-2); font-size: 12px; }
+  .gate .track { height: 10px; background: var(--grid); border-radius: 5px; overflow: hidden; }
+  .gate .fill { height: 100%; background: var(--series); border-radius: 5px; min-width: 2px; }
+  .gate .fill.met { background: var(--good); }
+  .gate .n { color: var(--muted); font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
+  .hrow { display: flex; justify-content: space-between; font-size: 12px;
+    color: var(--ink-2); padding: 3px 0; border-bottom: 1px solid var(--grid); }
+  .hrow:last-child { border-bottom: none; }
+  .hrow .v { color: var(--ink); font-variant-numeric: tabular-nums; }
+  .hrow .v.warn { color: var(--warn); }
+  .badge-triage { color: #6aa5c9; font-size: 11px; }
+  #rq-list { margin-top: 10px; }
+  #rq-list .hrow .q { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
   #gate { display: none; margin: 60px auto; max-width: 380px; text-align: center; }
   #gate input { width: 100%; margin: 10px 0; padding: 8px 10px; background: var(--surface);
        border: 1px solid var(--border); border-radius: 8px; color: var(--ink); font: inherit; }
@@ -354,6 +491,16 @@ const DASHBOARD_HTML = `<!doctype html>
     <button id="logout" type="button">forget key</button>
   </header>
   <section><div class="tiles" id="tiles"></div></section>
+  <div class="cols">
+    <section class="panel">
+      <h2>Training readiness</h2>
+      <div id="gates"></div>
+    </section>
+    <section class="panel">
+      <h2>Pipeline health</h2>
+      <div id="health"></div>
+    </section>
+  </div>
   <section class="panel">
     <h2>Dataset growth (cumulative)</h2>
     <div id="growth"></div>
@@ -391,6 +538,7 @@ const DASHBOARD_HTML = `<!doctype html>
       <button id="rq-submit" type="button">Submit queries</button>
     </div>
     <div id="rq-result"></div>
+    <div id="rq-list"></div>
   </section>
   <section>
     <h2>Explore pairs</h2>
@@ -564,6 +712,11 @@ const DASHBOARD_HTML = `<!doctype html>
     var scoreText = pa.score == null ? "unscored" : pa.score;
     var badges = "";
     if (pa.golden) badges += '<span class="badge-golden">★ golden</span>';
+    if (pa.triageVotes && pa.triageVotes.length) {
+      badges += '<span class="badge-triage" title="free-model panel votes">🤖 ' +
+        pa.triageVotes.map(function (v) { return esc(String(v.vote).charAt(0)); }).join("/") +
+        "</span>";
+    }
     if (pa.humanLabel) badges += '<span class="badge-human">✋ ' + esc(pa.humanLabel) + "</span>";
     if (!pa.humanLabel && pa.humanCount) badges += '<span class="badge-human">✋ ' + pa.humanCount + "</span>";
     if (pa.paletteStatus === "rejected") badges += '<span class="badge-rejected">rejected</span>';
@@ -575,6 +728,58 @@ const DASHBOARD_HTML = `<!doctype html>
       '<div class="row"><span>' + esc(pa.category) + "</span><span>" + esc(pa.verdict || pa.status) + "</span>" +
       '<span class="score" style="color:' + scoreColor + '">' + esc(scoreText) + "</span></div>" +
       cardActionsHTML(pa, i) + "</div></div>";
+  }
+
+  function gateRow(name, value, target, isPct) {
+    var pct = Math.min(100, target > 0 ? (value / target) * 100 : 0);
+    var shown = isPct ? value.toFixed(1) + "%" : Math.round(value).toLocaleString();
+    var goal = isPct ? target + "%" : target.toLocaleString();
+    return '<div class="gate"><span class="name">' + name + '</span>' +
+      '<div class="track"><div class="fill' + (pct >= 100 ? " met" : "") +
+      '" style="width:' + Math.max(1, pct).toFixed(1) + '%"></div></div>' +
+      '<span class="n">' + shown + " / " + goal + "</span></div>";
+  }
+
+  function renderHealth(h) {
+    var r = h.readiness, t = r.targets;
+    document.getElementById("gates").innerHTML =
+      gateRow("SFT pairs", r.sftPairs, t.sftPairs, false) +
+      gateRow("Distinct queries", r.sftQueries, t.sftQueries, false) +
+      gateRow("Golden eval", r.golden, t.golden, false) +
+      gateRow("DPO pairs", r.dpo, t.dpo, false) +
+      gateRow("Head terms", r.headTermPct, t.headTermPct, true) +
+      gateRow("Non-English", r.nonEnglishPct, t.nonEnglishPct, true);
+
+    var c = h.corpus, tr = h.triage;
+    var ratio = (c.sources.caption || 0) && (c.sources.forward || 0)
+      ? ((c.sources.caption || 0) / Math.max(1, c.sources.forward || 0)).toFixed(1) + ":1"
+      : "—";
+    function hrow(name, value, warn) {
+      return '<div class="hrow"><span>' + name + '</span><span class="v' +
+        (warn ? " warn" : "") + '">' + value + "</span></div>";
+    }
+    document.getElementById("health").innerHTML =
+      hrow("Triage budget today", tr.callsToday + " / " + tr.cap + " calls",
+        tr.callsToday >= tr.cap) +
+      hrow("Triage screened / auto-rejected", tr.triaged + " / " + tr.rejected, false) +
+      hrow("Transition-phrase queries", c.transitionPct.toFixed(1) + "% (target <15%)",
+        c.transitionPct > 20) +
+      hrow("Caption : forward ratio", ratio + " (target ~3:1)", false) +
+      hrow("Emoji queries", c.emoji, false) +
+      hrow("Owner requests pending",
+        (h.humanRequests || []).filter(function (q) { return q.scored === 0; }).length,
+        false);
+
+    var reqs = h.humanRequests || [];
+    document.getElementById("rq-list").innerHTML = reqs.length
+      ? reqs.map(function (q) {
+          var state = q.pairCount === 0 ? "queued" :
+            q.scored === 0 ? q.pairCount + " palettes, judging…" :
+            q.scored + " scored, best " + (q.best == null ? "—" : q.best);
+          return '<div class="hrow"><span class="q" title="' + esc(q.text) + '">' +
+            esc(q.text) + '</span><span class="v">' + esc(state) + "</span></div>";
+        }).join("")
+      : "";
   }
 
   var GROWTH_SERIES = [
@@ -799,10 +1004,11 @@ const DASHBOARD_HTML = `<!doctype html>
 
   var timer = null;
   function refresh(withExplore) {
-    return Promise.all([api("/stats"), api("/coverage"), api("/recent")])
+    return Promise.all([api("/stats"), api("/coverage"), api("/recent"), api("/health")])
       .then(function (res) {
         gate.style.display = "none"; app.style.display = "block";
         render(res[0], res[1], res[2]);
+        renderHealth(res[3]);
         // Explore reloads on boot only; auto-refresh leaves your page/filters alone.
         if (withExplore) loadExplore();
       })
