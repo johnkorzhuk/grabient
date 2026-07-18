@@ -11,9 +11,8 @@ import sharp from "sharp";
 import { cosineGradient, rgbToHex } from "@repo/data-ops/gradient-gen";
 import { toCosineCoeffs } from "../src/lib/features";
 
-// Public endpoint, no secret; env override for when it moves to grabient.com.
-const PNG_BASE =
-  process.env.PNG_BASE_URL || "https://grabient3.jkorzhuk.workers.dev";
+// Public endpoint, no secret; env override for staging/local testing.
+const PNG_BASE = process.env.PNG_BASE_URL || "https://grabient.com";
 
 export const ROW_H = 96;
 export const ROW_W = 960;
