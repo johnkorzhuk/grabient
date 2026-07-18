@@ -736,8 +736,6 @@ const DASHBOARD_HTML = `<!doctype html>
     var row = exploreRows[Number(btn.getAttribute("data-i"))];
     var act = btn.getAttribute("data-act");
     if (!row) return;
-    if (act === "palette-reject" &&
-        !confirm("Reject this palette and all of its pairs?")) return;
     btn.disabled = true;
     var done = function () { btn.disabled = false; };
     if (act === "palette-reject" || act === "palette-restore") {
