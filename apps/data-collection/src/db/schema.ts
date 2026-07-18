@@ -29,6 +29,12 @@ export const QUERY_CATEGORIES = [
 export const STYLE_HINTS = ["short", "verbose", "typo", "casual"] as const;
 export const PAIR_STATUSES = ["pending", "scored", "rejected"] as const;
 export const VERDICTS = ["ok", "bad-match", "bad-palette"] as const;
+// grabient.com's presentation URL params (style/steps/angle). Palette rows
+// carry auto-derived defaults; pairs carry query-dictated overrides.
+export { PALETTE_STYLES as PRESENTATION_STYLES } from "@repo/data-ops/valibot-schema/grabient";
+import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
+// Judge-emitted: how constraining the query is on the palette space.
+export const AMBIGUITY_LEVELS = ["low", "medium", "high"] as const;
 
 // Candidate palette pool. seed (from serializeCoeffs) is the canonical id;
 // coeffs are stored globals-normalized so the 12 floats are the full training
@@ -45,6 +51,15 @@ export const palettes = sqliteTable(
     brightness: real("brightness").notNull(),
     contrast: real("contrast").notNull(),
     source: text("source").$type<(typeof PALETTE_SOURCES)[number]>().notNull(),
+    // Auto-derived presentation defaults (determinePaletteProperties with a
+    // deterministic seed). Columns are nullable for historical rows; ingest
+    // always fills them.
+    style: text("style").$type<PaletteStyle>(),
+    steps: integer("steps"),
+    angle: integer("angle"),
+    // LLM-authored semantic themes (caption skill). Coverage/eval metadata,
+    // never a training target — the query is the label.
+    themes: text("themes", { mode: "json" }).$type<string[]>(),
     status: text("status")
       .$type<(typeof PALETTE_STATUSES)[number]>()
       .notNull()
@@ -96,6 +111,14 @@ export const pairs = sqliteTable(
     score: real("score"),
     verdict: text("verdict").$type<(typeof VERDICTS)[number]>(),
     judgeNotes: text("judge_notes"),
+    // Query-dictated presentation ("5 color palette", "radial glow"); null
+    // unless the query text actually constrains it.
+    styleOverride: text("style_override").$type<PaletteStyle>(),
+    stepsOverride: integer("steps_override"),
+    angleOverride: integer("angle_override"),
+    ambiguity: text("ambiguity").$type<(typeof AMBIGUITY_LEVELS)[number]>(),
+    // Curated eval-set membership (audit promotion).
+    golden: integer("golden", { mode: "boolean" }).notNull().default(false),
     lockedAt: integer("locked_at"),
     lockedBy: text("locked_by"),
     runId: text("run_id"),
@@ -123,7 +146,7 @@ export const runs = sqliteTable("runs", {
 export const exports = sqliteTable("exports", {
   id: text("id").primaryKey(),
   r2Key: text("r2_key").notNull(),
-  kind: text("kind").$type<"sft" | "dpo">().notNull(),
+  kind: text("kind").$type<"sft" | "dpo" | "eval">().notNull(),
   count: integer("count").notNull(),
   filters: text("filters", { mode: "json" }).$type<Record<string, unknown>>(),
   createdAt: integer("created_at").notNull(),

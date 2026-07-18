@@ -4,7 +4,7 @@ import { TAG_CATEGORIES } from "@repo/data-ops/gradient-gen";
 import { palettes, queries, QUERY_CATEGORIES } from "@/db/schema";
 
 export interface CoverageGap {
-  kind: "tag" | "query-category" | "brightness-band" | "contrast-band";
+  kind: "tag" | "query-category" | "brightness-band" | "contrast-band" | "themes";
   value: string;
   count: number;
 }
@@ -15,6 +15,8 @@ export interface CoverageReport {
   queryCategoryCounts: Record<string, number>;
   brightnessBands: Record<string, number>;
   contrastBands: Record<string, number>;
+  /** Top LLM-authored themes + how many palettes still lack themes. */
+  themes: { top: Record<string, number>; palettesWithoutThemes: number };
   gaps: CoverageGap[];
 }
 
@@ -43,6 +45,7 @@ export async function buildCoverageReport(env: Env): Promise<CoverageReport> {
       tags: palettes.tags,
       brightness: palettes.brightness,
       contrast: palettes.contrast,
+      themes: palettes.themes,
     })
     .from(palettes)
     .where(sql`${palettes.status} != 'rejected'`);
@@ -56,13 +59,27 @@ export async function buildCoverageReport(env: Env): Promise<CoverageReport> {
     BAND_LABELS.map((b) => [b, 0]),
   );
 
+  const themeCounts: Record<string, number> = {};
+  let palettesWithoutThemes = 0;
   for (const row of paletteRows) {
     for (const tag of row.tags) {
       tagHistogram[tag] = (tagHistogram[tag] ?? 0) + 1;
     }
     brightnessBands[bandOf(row.brightness)]! += 1;
     contrastBands[bandOf(row.contrast)]! += 1;
+    if (row.themes && row.themes.length > 0) {
+      for (const theme of row.themes) {
+        themeCounts[theme] = (themeCounts[theme] ?? 0) + 1;
+      }
+    } else {
+      palettesWithoutThemes++;
+    }
   }
+  const topThemes = Object.fromEntries(
+    Object.entries(themeCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 30),
+  );
 
   const categoryRows = await db
     .select({
@@ -97,6 +114,16 @@ export async function buildCoverageReport(env: Env): Promise<CoverageReport> {
     .sort((a, b) => a.count - b.count)
     .slice(0, 12);
 
+  // Theme sparsity is appended after the sort so it stays visible regardless
+  // of magnitude — a large uncaptioned pool is a generation-steering signal.
+  if (palettesWithoutThemes > 0) {
+    gaps.push({
+      kind: "themes",
+      value: "palettes-without-themes",
+      count: palettesWithoutThemes,
+    });
+  }
+
   return {
     totals: {
       palettes: paletteRows.length,
@@ -106,6 +133,7 @@ export async function buildCoverageReport(env: Env): Promise<CoverageReport> {
     queryCategoryCounts,
     brightnessBands,
     contrastBands,
+    themes: { top: topThemes, palettesWithoutThemes },
     gaps,
   };
 }

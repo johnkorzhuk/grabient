@@ -8,6 +8,7 @@ import {
   FEATURE_DIMENSIONS,
 } from "../src/lib/features";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
+import { PALETTE_STYLES } from "@repo/data-ops/valibot-schema/grabient";
 import { splitFor } from "../src/lib/exporter";
 
 const SAMPLE = [0.5, 0.5, 0.5, 0.3, 0.25, 0.2, 1.0, 0.9, 0.8, 0.0, 0.15, 0.3];
@@ -44,6 +45,19 @@ describe("canonicalize", () => {
   it("flags degenerate palettes as invalid", () => {
     const black = [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0];
     expect(canonicalize(black).valid).toBe(false);
+  });
+
+  it("derives deterministic, in-range presentation properties", () => {
+    const a = canonicalize(SAMPLE);
+    const b = canonicalize(SAMPLE);
+    expect(a.style).toBe(b.style);
+    expect(a.steps).toBe(b.steps);
+    expect(a.angle).toBe(b.angle);
+    expect(PALETTE_STYLES).toContain(a.style);
+    expect(a.steps).toBeGreaterThanOrEqual(2);
+    expect(a.steps).toBeLessThanOrEqual(50);
+    expect(a.angle).toBeGreaterThanOrEqual(0);
+    expect(a.angle).toBeLessThanOrEqual(360);
   });
 });
 

@@ -1,5 +1,6 @@
 .dev.vars
 .wrangler/
+harness/.env
 harness/logs/
 harness/renders/
 node_modules/

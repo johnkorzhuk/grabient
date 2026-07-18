@@ -26,6 +26,12 @@ The loop has pre-rendered a random scored sample:
    `POST /api/judge/submit` with your score/verdict/notes and the invocation
    `run_id` as `runId` (this rejects the palette). Do NOT resubmit ordinary
    disagreements — score noise is expected; only correct structural failures.
-5. Print the summary: sample size, mean drift, count of ≥3 disagreements,
-   corrections submitted. If mean drift exceeds ±1.5, say prominently that the
-   judge rubric may be drifting and the threshold constants deserve a look.
+5. **Golden promotion**: pairs you independently scored **≥ 8** where the
+   stored verdict is `ok` and the stored score is also ≥ 7 have now passed two
+   blind reviews — promote them via `POST /api/judge/golden` `{runId, pairs:
+   [{queryId, seed}]}`. These become the curated eval set (target: ~300 golden
+   queries over time; don't force it per run).
+6. Print the summary: sample size, mean drift, count of ≥3 disagreements,
+   corrections submitted, pairs promoted to golden. If mean drift exceeds
+   ±1.5, say prominently that the judge rubric may be drifting and the
+   threshold constants deserve a look.

@@ -3,7 +3,7 @@ import * as v from "valibot";
 import { drizzle } from "drizzle-orm/d1";
 import { desc, eq, sql } from "drizzle-orm";
 import { buildCoverageReport } from "@/lib/coverage";
-import { exportSft, exportDpo } from "@/lib/exporter";
+import { exportSft, exportDpo, exportEval } from "@/lib/exporter";
 import { palettes, pairs, queries, runs } from "@/db/schema";
 
 const runBodySchema = v.object({
@@ -89,10 +89,14 @@ export const metaRoutes = new Hono<{ Bindings: Env }>()
   })
   .post("/export", async (c) => {
     const format = c.req.query("format") ?? "sft";
-    if (format !== "sft" && format !== "dpo") {
-      return c.json({ error: "format must be sft or dpo" }, 400);
+    if (format !== "sft" && format !== "dpo" && format !== "eval") {
+      return c.json({ error: "format must be sft, dpo, or eval" }, 400);
     }
     const result =
-      format === "sft" ? await exportSft(c.env) : await exportDpo(c.env);
+      format === "sft"
+        ? await exportSft(c.env)
+        : format === "dpo"
+          ? await exportDpo(c.env)
+          : await exportEval(c.env);
     return c.json(result);
   });

@@ -4,12 +4,15 @@ import {
   rgbToHex,
   calculateAverageBrightness,
   calculateContrast,
+  determinePaletteProperties,
   normalizeCoeffsToDefaults,
   analyzeCoefficients,
   tagsToArray,
   isValidPaletteCoeffs,
   type CosineCoeffs,
+  type PaletteAngle,
 } from "@repo/data-ops/gradient-gen";
+import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
 import { computeLabSamples } from "@repo/data-ops/similarity";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import {
@@ -59,7 +62,20 @@ export interface CanonicalPalette {
   tags: string[];
   brightness: number;
   contrast: number;
+  style: PaletteStyle;
+  steps: number;
+  angle: PaletteAngle;
   valid: boolean;
+}
+
+/** djb2 hash of the seed string mapped to [0, 1) so derived presentation is a
+ * pure function of the palette. */
+function seedToUnit(seed: string): number {
+  let hash = 5381;
+  for (let i = 0; i < seed.length; i++) {
+    hash = ((hash << 5) + hash + seed.charCodeAt(i)) | 0;
+  }
+  return (((hash % 1000) + 1000) % 1000) / 1000;
 }
 
 /**
@@ -78,6 +94,11 @@ export function canonicalize(flat12: number[]): CanonicalPalette {
   const seed = serializeCoeffs(coeffs, DEFAULT_GLOBALS);
   const stops = cosineGradient(HEX_STOP_COUNT, coeffs);
   const hexStops = stops.map(([r, g, b]) => rgbToHex(r, g, b));
+  const presentation = determinePaletteProperties(
+    coeffs,
+    hexStops,
+    seedToUnit(seed),
+  );
   return {
     seed,
     coeffs,
@@ -86,6 +107,9 @@ export function canonicalize(flat12: number[]): CanonicalPalette {
     tags: tagsToArray(analyzeCoefficients(coeffs)),
     brightness: calculateAverageBrightness(hexStops),
     contrast: calculateContrast(hexStops),
+    style: presentation.style,
+    steps: presentation.steps,
+    angle: presentation.angle,
     valid: isValidPaletteCoeffs(coeffs),
   };
 }

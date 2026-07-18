@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import * as v from "valibot";
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
-import { palettes, pairs, queries, VERDICTS } from "@/db/schema";
+import { AMBIGUITY_LEVELS, palettes, pairs, queries, VERDICTS } from "@/db/schema";
 import { LEASE_TTL_MS } from "./caption";
 
 export const APPROVE_SCORE = 7;
@@ -21,6 +21,7 @@ const submitBodySchema = v.object({
         seed: v.string(),
         score: v.pipe(v.number(), v.minValue(0), v.maxValue(10)),
         verdict: v.picklist(VERDICTS),
+        ambiguity: v.optional(v.picklist(AMBIGUITY_LEVELS)),
         notes: v.optional(v.string()),
       }),
     ),
@@ -88,6 +89,7 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
           status: "scored",
           score: result.score,
           verdict: result.verdict,
+          ambiguity: result.ambiguity ?? null,
           judgeNotes: result.notes ?? null,
           judgedAt: now,
           lockedAt: null,
@@ -127,6 +129,40 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
     }
 
     return c.json({ scored, approvedPalettes, rejectedPalettes });
+  })
+  // Audit promotion: flag independently re-confirmed pairs as golden eval-set
+  // members. Only scored, verdict-ok pairs are eligible.
+  .post("/golden", async (c) => {
+    const schema = v.object({
+      runId: v.nullish(v.string()),
+      pairs: v.pipe(
+        v.array(v.object({ queryId: v.string(), seed: v.string() })),
+        v.minLength(1),
+        v.maxLength(50),
+      ),
+    });
+    const body = v.safeParse(schema, await c.req.json());
+    if (!body.success) {
+      return c.json({ error: "invalid body", issues: body.issues }, 400);
+    }
+    const db = drizzle(c.env.DB);
+    let promoted = 0;
+    for (const p of body.output.pairs) {
+      const updated = await db
+        .update(pairs)
+        .set({ golden: true })
+        .where(
+          and(
+            eq(pairs.queryId, p.queryId),
+            eq(pairs.paletteSeed, p.seed),
+            eq(pairs.status, "scored"),
+            eq(pairs.verdict, "ok"),
+          ),
+        )
+        .returning({ queryId: pairs.queryId });
+      promoted += updated.length;
+    }
+    return c.json({ promoted, submitted: body.output.pairs.length });
   })
   // Random already-scored sample for the audit skill to re-judge blind.
   .get("/audit/sample", async (c) => {

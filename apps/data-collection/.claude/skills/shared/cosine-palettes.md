@@ -26,6 +26,32 @@ You may author palettes either as `{"coeffs": [12 floats]}` or as
 rejects `bad-fit` when the colors don't follow a smooth cosine-like path;
 smooth transitions fit well, hard neon jumps don't).
 
+## Presentation (style / steps / angle)
+
+Every palette automatically gets a **derived** `style`/`steps`/`angle`
+(computed server-side from its complexity — do not send these for the palette).
+You only act when **the query text itself dictates presentation** — then send
+**overrides on the pair**: `styleOverride`, `stepsOverride`, `angleOverride`.
+
+- Send an override ONLY for explicit signals: "5 color palette" →
+  `stepsOverride: 5`; "swatches" / "color scheme" → a `*Swatches` style;
+  "radial glow" / "sunburst" → `radialGradient`; "horizontal fade" →
+  `angleOverride: 90`. No signal → omit all three (most queries).
+- `styleOverride` — `linearGradient | linearSwatches | angularGradient |
+  angularSwatches | radialGradient | radialSwatches`.
+- `angleOverride` — integer 0–360, CSS convention (0 = bottom→top,
+  90 = left→right, 180 = top→bottom).
+- `stepsOverride` — integer 2–50 (site default 7); swatch styles read best
+  with the count the query implies (3–8).
+
+## Themes (caption only)
+
+When captioning, also send `themes`: 3–5 free-form lowercase phrases naming
+what the palette evokes ("rainy harbor", "70s kitchen", "citrus"). They steer
+semantic coverage and slice evals — they are never a training target, so favor
+honest associations over creative writing. Distinct from the deterministic
+`tags` (those measure visual properties).
+
 ## API
 
 All requests: `-H "Authorization: Bearer $DC_API_KEY"` against `$DC_API_URL`,
@@ -33,8 +59,9 @@ JSON bodies with `-H "Content-Type: application/json"`. Always pass the
 `run_id` you were invoked with as `runId`.
 
 - `GET /api/coverage` → `{tagHistogram, queryCategoryCounts, brightnessBands,
-  contrastBands, gaps: [{kind, value, count}]}` — gaps are the 12 least-covered
-  buckets, ascending.
+  contrastBands, themes: {top, palettesWithoutThemes}, gaps: [{kind, value,
+  count}]}` — gaps are the 12 least-covered buckets, ascending (plus a
+  `themes` sparsity entry when palettes lack themes).
 - `GET /api/stats` → totals per status.
 - `POST /api/palettes/similar` `{coeffs?|hexColors?, topK?}` →
   `{seed, isDuplicate, exactMatch, neighbors: [{seed, distance, reversed}]}`.
@@ -43,16 +70,21 @@ JSON bodies with `-H "Content-Type: application/json"`. Always pass the
   accepted/rejected with reasons (`duplicate` includes `nearestSeed`/`distance`).
 - `POST /api/submit/forward` `{runId, query: {text, category, styleHint?},
   candidates: [...]}` → `{query: outcome, accepted, rejected}`.
+  Candidates may carry `styleOverride`/`stepsOverride`/`angleOverride` (see
+  Presentation — only when the query dictates).
   Categories: scene | mood | aesthetic | color-explicit | object | nature |
   abstract | season-weather-time. styleHint: short | verbose | typo | casual.
 - `POST /api/caption/lease` `{runId, limit}` → `{palettes: [{seed, hexStops,
-  tags, brightness, contrast}]}`.
-- `POST /api/caption/submit` `{runId, seed, queries: [{text, category,
-  styleHint?}]}` → per-query inserted/duplicate (with existingText).
+  tags, brightness, contrast, style, steps, angle, themes}]}`.
+- `POST /api/caption/submit` `{runId, seed, themes?: [string], queries:
+  [{text, category, styleHint?, styleOverride?, stepsOverride?,
+  angleOverride?}]}` → per-query inserted/duplicate (with existingText).
 - `POST /api/judge/lease` `{runId, limit}` → `{pairs: [{queryId, seed,
   queryText, coeffs, hexStops, tags}]}`.
 - `POST /api/judge/submit` `{runId, results: [{queryId, seed, score 0-10,
-  verdict: ok|bad-match|bad-palette, notes?}]}`.
+  verdict: ok|bad-match|bad-palette, ambiguity?: low|medium|high, notes?}]}`.
+- `POST /api/judge/golden` `{runId, pairs: [{queryId, seed}]}` — audit only:
+  flags independently re-confirmed pairs as golden eval-set members.
 - `GET /api/judge/audit/sample?n=20` → scored pairs with storedScore/verdict.
 
 ## Rules for every skill

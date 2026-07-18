@@ -32,6 +32,12 @@ If `queue.json` is missing or empty, lease and work text-only via
 3. Be harsh. Target mean around 6 and use the whole scale; a wall of 7s and 8s
    makes the dataset unable to teach the difference between good and great.
    Score each pair independently — no curve within the batch.
+   Also emit `ambiguity` per pair — how constraining the QUERY is, independent
+   of this palette: `low` = query pins the palette down ("teal to burnt
+   orange"), `medium` = clear direction, many valid answers ("autumn forest"),
+   `high` = nearly anything defensible ("energy", "vibes"). This calibrates
+   eval scoring later: a miss on a low-ambiguity query is meaningful, on a
+   high-ambiguity one it isn't.
 4. Keep notes short and machine-readable, e.g. "too warm for 'arctic'",
    "clips to white at t>0.8".
 5. Submit all results in one `POST /api/judge/submit` (batch ≤ 50), passing the

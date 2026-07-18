@@ -4,10 +4,14 @@ import { submitRoutes } from "./routes/submit";
 import { captionRoutes } from "./routes/caption";
 import { judgeRoutes } from "./routes/judge";
 import { metaRoutes } from "./routes/meta";
+import { dashboardApiRoutes, dashboardPage } from "./routes/dashboard";
 
 export const app = new Hono<{ Bindings: Env }>();
 
 app.get("/health", (c) => c.json({ ok: true }));
+
+// Static shell, no data in it; the page itself calls the authed /api routes.
+app.route("/dashboard", dashboardPage);
 
 // Everything else mutates or reads dataset state: bearer auth required.
 app.use("/api/*", async (c, next) => {
@@ -24,6 +28,7 @@ app.route("/api/submit", submitRoutes);
 app.route("/api/caption", captionRoutes);
 app.route("/api/judge", judgeRoutes);
 app.route("/api", metaRoutes);
+app.route("/api", dashboardApiRoutes);
 
 app.onError((err, c) => {
   console.error("unhandled error", err);

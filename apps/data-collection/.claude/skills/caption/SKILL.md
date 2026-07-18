@@ -19,9 +19,13 @@ Use the `run_id` from your invocation in every request.
    - Different angles: literal color reading, scene/object association, mood.
    - Never mention coefficients, "gradient", "palette", or parrot tag names
      verbatim — users type "rainy window evening", not "cool dynamic journey".
-4. `POST /api/caption/submit` per seed. If a query comes back `duplicate`,
-   the concept is taken: replace it with a different association (or drop it),
-   don't just reword. One replacement pass max.
+4. `POST /api/caption/submit` per seed. Include `themes`: 3–5 free-form
+   lowercase phrases naming what the palette evokes (see the Themes section of
+   the shared reference) — honest associations, not creative writing. If one
+   of your queries explicitly constrains presentation ("as 5 swatches"), give
+   that query matching overrides; otherwise omit them. If a query comes back
+   `duplicate`, the concept is taken: replace it with a different association
+   (or drop it), don't just reword. One replacement pass max.
 5. Print the summary line: palettes captioned, queries inserted/duplicate.
 
 ## Quality bar
