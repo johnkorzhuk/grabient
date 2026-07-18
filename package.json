@@ -19,6 +19,9 @@
         "deploy:production": "pnpm run build:data-ops && pnpm run --filter user-application deploy:production",
         "dev:data-service": "pnpm run --filter data-service dev",
         "deploy:data-service": "pnpm run build:data-ops && pnpm run --filter data-service deploy",
+        "dev:data-collection": "pnpm run --filter data-collection dev",
+        "deploy:data-collection": "pnpm run build:data-ops && pnpm run --filter data-collection deploy",
+        "harness:loop": "pnpm run --filter data-collection harness:loop",
         "db:studio": "pnpm run --filter data-ops db:studio",
         "db:seed": "pnpm run --filter data-ops db:seed"
     },

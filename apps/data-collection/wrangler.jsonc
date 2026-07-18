@@ -1,0 +1,51 @@
+/**
+ * Training-data collection Worker for the query -> cosine-palette model.
+ * Resources are intentionally separate from prod (grabient-dc-* names).
+ * Run scripts/create-resources.sh once, then paste the D1 database_id below.
+ */
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "grabient-data-collection",
+  "account_id": "f846204052f664d57da7acde8f6803cd",
+  "main": "./src/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "observability": {
+    "enabled": true
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "grabient-dc",
+      "database_id": "72c91ad7-8705-4cf8-a5c6-a94e17d8a896",
+      "migrations_dir": "./drizzle"
+    }
+  ],
+
+  "vectorize": [
+    {
+      "binding": "PALETTE_INDEX",
+      "index_name": "grabient-dc-palettes",
+      "remote": true
+    },
+    {
+      "binding": "QUERY_INDEX",
+      "index_name": "grabient-dc-queries",
+      "remote": true
+    }
+  ],
+
+  "ai": {
+    "binding": "AI",
+    "remote": true
+  },
+
+  "r2_buckets": [
+    {
+      "binding": "EXPORTS",
+      "bucket_name": "grabient-dc-exports"
+    }
+  ]
+}

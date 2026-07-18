@@ -1,0 +1,2 @@
+# Copy to .dev.vars for local dev; set in prod with: wrangler secret put HARNESS_API_KEY
+HARNESS_API_KEY=change-me

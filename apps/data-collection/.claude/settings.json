@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(npx tsx harness/*)",
+      "Read(./harness/renders/**)",
+      "Read(./.claude/skills/**)"
+    ],
+    "deny": [
+      "Write",
+      "Edit"
+    ]
+  }
+}

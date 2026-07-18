@@ -1,0 +1,34 @@
+{
+  "name": "data-collection",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev --x-remote-bindings",
+    "start": "wrangler dev",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "cf-typegen": "wrangler types",
+    "drizzle:generate": "drizzle-kit generate --config drizzle.config.ts",
+    "db:migrate:local": "wrangler d1 migrations apply grabient-dc --local",
+    "db:migrate:remote": "wrangler d1 migrations apply grabient-dc --remote",
+    "harness:loop": "bash harness/loop.sh",
+    "harness:sample": "tsx harness/sample.ts",
+    "harness:render": "tsx harness/render.ts"
+  },
+  "dependencies": {
+    "@repo/data-ops": "workspace:*",
+    "drizzle-orm": "^0.44.5",
+    "hono": "^4.8.3",
+    "valibot": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.19",
+    "drizzle-kit": "^0.31.4",
+    "sharp": "^0.34.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.2",
+    "vitest": "~3.2.0",
+    "wrangler": "^4.44.0"
+  }
+}
