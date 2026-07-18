@@ -1,7 +1,12 @@
 import { drizzle } from "drizzle-orm/d1";
 import { createSimilarityKey } from "@repo/data-ops/similarity";
 import { fitCosinePalette, validateFit } from "@repo/data-ops/gradient-gen";
-import { canonicalize, toFlat12, type CanonicalPalette } from "./features";
+import {
+  applyBandingFloor,
+  canonicalize,
+  toFlat12,
+  type CanonicalPalette,
+} from "./features";
 import { findSimilarPalettes, upsertPaletteVector, type Neighbor } from "./dedup";
 import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
 import { palettes, type PALETTE_SOURCES } from "@/db/schema";
@@ -177,8 +182,14 @@ export async function ingestPalettes(
         brightness: canonical.brightness,
         contrast: canonical.contrast,
         source,
+        // LLM choice wins, but gradient styles get the banding floor applied
+        // to whatever steps value ends up effective.
         style: input.style ?? canonical.style,
-        steps: input.steps ?? canonical.steps,
+        steps: applyBandingFloor(
+          input.style ?? canonical.style,
+          input.steps ?? canonical.steps,
+          canonical.coeffs,
+        ),
         angle: input.angle ?? canonical.angle,
         runId,
         createdAt: now,

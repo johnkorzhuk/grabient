@@ -9,6 +9,8 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import sharp from "sharp";
+import { cosineGradient, rgbToHex } from "@repo/data-ops/gradient-gen";
+import { toCosineCoeffs } from "../src/lib/features";
 
 const API_URL = process.env.DC_API_URL;
 const API_KEY = process.env.DC_API_KEY;
@@ -33,9 +35,26 @@ interface QueuePair {
   queryId: string;
   seed: string;
   queryText: string;
+  coeffs?: number[];
   hexStops: string[];
   tags: string[];
   storedScore?: number | null;
+}
+
+/** The stored 8 hex stops alias high-frequency palettes into stripes the
+ * palette doesn't have — judging from that punishes frequency instead of
+ * quality. Render previews densely from the coefficients when available. */
+const PREVIEW_STOPS = 48;
+
+function previewStops(pair: QueuePair): string[] {
+  if (!pair.coeffs || pair.coeffs.length !== 12) return pair.hexStops;
+  try {
+    return cosineGradient(PREVIEW_STOPS, toCosineCoeffs(pair.coeffs)).map(
+      ([r, g, b]) => rgbToHex(r, g, b),
+    );
+  } catch {
+    return pair.hexStops;
+  }
 }
 
 const ROW_H = 96;
@@ -44,10 +63,11 @@ const LABEL_W = 40;
 const PER_IMAGE = 8;
 
 function rowSvg(pair: QueuePair, index: number, y: number): string {
-  const stops = pair.hexStops
+  const stopList = previewStops(pair);
+  const stops = stopList
     .map(
       (hex, i) =>
-        `<stop offset="${((i / (pair.hexStops.length - 1)) * 100).toFixed(1)}%" stop-color="${hex}"/>`,
+        `<stop offset="${((i / (stopList.length - 1)) * 100).toFixed(1)}%" stop-color="${hex}"/>`,
     )
     .join("");
   return `

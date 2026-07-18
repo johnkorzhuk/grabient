@@ -68,6 +68,34 @@ export interface CanonicalPalette {
   valid: boolean;
 }
 
+/** Linear interpolation between rendered stops undersamples fast cosine
+ * oscillation: below ~10 stops per cycle the on-site gradient shows banding
+ * the palette itself doesn't have. Gradient styles get their steps floored
+ * accordingly; swatch styles are exempt (discrete bands ARE the look). A
+ * deterministic floor keeps high-frequency palettes first-class — they just
+ * render with enough steps — without teaching the generator to avoid them. */
+export const STEPS_PER_CYCLE = 10;
+
+export function minGradientSteps(coeffs: CosineCoeffs): number {
+  const freq = coeffs[2];
+  const maxFreq = Math.max(
+    Math.abs(freq[0]),
+    Math.abs(freq[1]),
+    Math.abs(freq[2]),
+  );
+  return Math.min(50, Math.max(2, Math.ceil(maxFreq * STEPS_PER_CYCLE)));
+}
+
+export function applyBandingFloor(
+  style: PaletteStyle,
+  steps: number,
+  coeffs: CosineCoeffs,
+): number {
+  return style.endsWith("Gradient")
+    ? Math.max(steps, minGradientSteps(coeffs))
+    : steps;
+}
+
 /** djb2 hash of the seed string mapped to [0, 1) so derived presentation is a
  * pure function of the palette. */
 function seedToUnit(seed: string): number {
@@ -108,7 +136,7 @@ export function canonicalize(flat12: number[]): CanonicalPalette {
     brightness: calculateAverageBrightness(hexStops),
     contrast: calculateContrast(hexStops),
     style: presentation.style,
-    steps: presentation.steps,
+    steps: applyBandingFloor(presentation.style, presentation.steps, coeffs),
     angle: presentation.angle,
     valid: isValidPaletteCoeffs(coeffs),
   };

@@ -173,6 +173,7 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
         queryId: pairs.queryId,
         seed: pairs.paletteSeed,
         queryText: queries.text,
+        coeffs: palettes.coeffs,
         hexStops: palettes.hexStops,
         tags: palettes.tags,
         storedScore: pairs.score,

@@ -44,7 +44,9 @@ palette complexity; send them when you have a better read:
 - `angle` — integer 0–360, CSS convention (0 = bottom→top, 90 = left→right,
   180 = top→bottom); pick what flatters the palette's flow.
 - `steps` — integer 2–50 (site default 7); swatch styles read best at 3–8,
-  gradients at 6–16.
+  gradients at 6–16. For gradient styles the server enforces a minimum of
+  ~10 steps per frequency cycle (banding guard) — a high-frequency palette
+  is welcome, it just renders with more steps; don't fight the floor.
 
 ## Themes (caption only)
 

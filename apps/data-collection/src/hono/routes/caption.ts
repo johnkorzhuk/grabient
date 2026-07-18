@@ -3,6 +3,7 @@ import * as v from "valibot";
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { ingestQuery } from "@/lib/query-ingest";
+import { applyBandingFloor, toCosineCoeffs } from "@/lib/features";
 import { presentationFields } from "./submit";
 import { palettes, pairs, QUERY_CATEGORIES, STYLE_HINTS } from "@/db/schema";
 
@@ -91,11 +92,38 @@ export const captionRoutes = new Hono<{ Bindings: Env }>()
     const db = drizzle(c.env.DB);
 
     const palette = await db
-      .select({ seed: palettes.seed })
+      .select({
+        seed: palettes.seed,
+        coeffs: palettes.coeffs,
+        style: palettes.style,
+        steps: palettes.steps,
+      })
       .from(palettes)
       .where(eq(palettes.seed, seed))
       .limit(1);
     if (!palette[0]) return c.json({ error: "unknown seed" }, 404);
+
+    // Whatever style/steps end up effective, gradient styles keep the
+    // banding floor (see applyBandingFloor).
+    let flooredPresentation = presentation;
+    if (presentation) {
+      const effectiveStyle = presentation.style ?? palette[0].style;
+      const effectiveSteps = presentation.steps ?? palette[0].steps;
+      if (effectiveStyle && effectiveSteps != null) {
+        flooredPresentation = {
+          ...presentation,
+          ...(presentation.steps !== undefined || presentation.style !== undefined
+            ? {
+                steps: applyBandingFloor(
+                  effectiveStyle,
+                  effectiveSteps,
+                  toCosineCoeffs(palette[0].coeffs),
+                ),
+              }
+            : {}),
+        };
+      }
+    }
 
     const results = [];
     for (const input of queryInputs) {
@@ -121,9 +149,15 @@ export const captionRoutes = new Hono<{ Bindings: Env }>()
         captionLockedAt: null,
         updatedAt: Date.now(),
         ...(themes !== undefined && { themes }),
-        ...(presentation?.style !== undefined && { style: presentation.style }),
-        ...(presentation?.steps !== undefined && { steps: presentation.steps }),
-        ...(presentation?.angle !== undefined && { angle: presentation.angle }),
+        ...(flooredPresentation?.style !== undefined && {
+          style: flooredPresentation.style,
+        }),
+        ...(flooredPresentation?.steps !== undefined && {
+          steps: flooredPresentation.steps,
+        }),
+        ...(flooredPresentation?.angle !== undefined && {
+          angle: flooredPresentation.angle,
+        }),
       })
       .where(eq(palettes.seed, seed));
 

@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import {
+  applyBandingFloor,
   canonicalize,
   featureVector,
+  minGradientSteps,
   reversedFeatureVector,
   toCosineCoeffs,
   toFlat12,
@@ -58,6 +60,23 @@ describe("canonicalize", () => {
     expect(a.steps).toBeLessThanOrEqual(50);
     expect(a.angle).toBeGreaterThanOrEqual(0);
     expect(a.angle).toBeLessThanOrEqual(360);
+  });
+});
+
+describe("banding floor", () => {
+  it("scales the gradient-steps minimum with max frequency", () => {
+    const c1 = toCosineCoeffs(SAMPLE); // max freq 1.0
+    expect(minGradientSteps(c1)).toBe(10);
+    const fast = [...SAMPLE];
+    fast[6] = 2.0;
+    expect(minGradientSteps(toCosineCoeffs(fast))).toBe(20);
+  });
+
+  it("floors gradient styles but leaves swatch styles alone", () => {
+    const coeffs = toCosineCoeffs(SAMPLE);
+    expect(applyBandingFloor("linearGradient", 6, coeffs)).toBe(10);
+    expect(applyBandingFloor("linearGradient", 14, coeffs)).toBe(14);
+    expect(applyBandingFloor("linearSwatches", 6, coeffs)).toBe(6);
   });
 });
 
