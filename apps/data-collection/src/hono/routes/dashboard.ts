@@ -768,7 +768,7 @@ const DASHBOARD_HTML = `<!doctype html>
 
   document.getElementById("rq-submit").addEventListener("click", function () {
     var lines = document.getElementById("rq-text").value
-      .split("\n").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 20);
+      .split("\\n").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 20);
     if (lines.length === 0) return;
     var body = { texts: lines };
     var cat = document.getElementById("rq-category").value;
