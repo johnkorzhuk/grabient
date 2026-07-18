@@ -5,10 +5,12 @@ description: One judging iteration - score pending query-palette pairs 0-10 agai
 
 Read `.claude/skills/shared/cosine-palettes.md` first for API shapes and rules.
 
-The loop has already leased the queue and rendered it:
-- `harness/renders/judge/queue.json` — the pairs in index order
-- `harness/renders/judge/<n>.png` — preview strips, 8 rows per image, each row
-  labeled with its index
+The loop has already leased the queue and rendered it into the directory
+passed as `render_dir=<dir>` in your invocation (fallback:
+`harness/renders/judge`):
+- `<dir>/queue.json` — the pairs in index order
+- `<dir>/<n>.png` — preview strips, 8 rows per image, each row labeled with
+  its index
 
 If `queue.json` is missing or empty, lease and work text-only via
 `POST /api/judge/lease` (hexStops + tags are enough in a pinch).

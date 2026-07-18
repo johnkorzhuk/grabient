@@ -3,7 +3,7 @@ import * as v from "valibot";
 import { drizzle } from "drizzle-orm/d1";
 import { and, eq, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { ingestQuery } from "@/lib/query-ingest";
-import { overrideFields } from "./submit";
+import { presentationFields } from "./submit";
 import { palettes, pairs, QUERY_CATEGORIES, STYLE_HINTS } from "@/db/schema";
 
 export const LEASE_TTL_MS = 15 * 60 * 1000;
@@ -23,13 +23,15 @@ const submitBodySchema = v.object({
       v.maxLength(6),
     ),
   ),
+  // Better-fit presentation for the palette (LLM has looked at the colors;
+  // sampler-created palettes only have the heuristic derivation).
+  presentation: v.optional(v.object(presentationFields)),
   queries: v.pipe(
     v.array(
       v.object({
         text: v.string(),
         category: v.picklist(QUERY_CATEGORIES),
         styleHint: v.optional(v.picklist(STYLE_HINTS)),
-        ...overrideFields,
       }),
     ),
     v.minLength(1),
@@ -85,7 +87,7 @@ export const captionRoutes = new Hono<{ Bindings: Env }>()
     if (!body.success) {
       return c.json({ error: "invalid body", issues: body.issues }, 400);
     }
-    const { runId, seed, themes, queries: queryInputs } = body.output;
+    const { runId, seed, themes, presentation, queries: queryInputs } = body.output;
     const db = drizzle(c.env.DB);
 
     const palette = await db
@@ -105,9 +107,6 @@ export const captionRoutes = new Hono<{ Bindings: Env }>()
             queryId: outcome.id,
             paletteSeed: seed,
             source: "caption",
-            styleOverride: input.styleOverride ?? null,
-            stepsOverride: input.stepsOverride ?? null,
-            angleOverride: input.angleOverride ?? null,
             runId: runId ?? null,
             createdAt: Date.now(),
           })
@@ -122,6 +121,9 @@ export const captionRoutes = new Hono<{ Bindings: Env }>()
         captionLockedAt: null,
         updatedAt: Date.now(),
         ...(themes !== undefined && { themes }),
+        ...(presentation?.style !== undefined && { style: presentation.style }),
+        ...(presentation?.steps !== undefined && { steps: presentation.steps }),
+        ...(presentation?.angle !== undefined && { angle: presentation.angle }),
       })
       .where(eq(palettes.seed, seed));
 

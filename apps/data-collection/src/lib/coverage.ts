@@ -27,6 +27,26 @@ function bandOf(value: number): string {
   return BAND_LABELS[i]!;
 }
 
+// calculateContrast is heavily compressed for cosine palettes: a max-amplitude
+// rainbow measures ~0.31 and a full light-dark swing ~0.14, so uniform 0.2-wide
+// bands leave the top three permanently empty and poison gap-steering with an
+// unreachable target. These edges spread real palettes across all five bands.
+const CONTRAST_EDGES = [0.05, 0.1, 0.15, 0.25];
+const CONTRAST_LABELS = [
+  "0.00-0.05",
+  "0.05-0.10",
+  "0.10-0.15",
+  "0.15-0.25",
+  "0.25+",
+];
+
+function contrastBandOf(value: number): string {
+  for (let i = 0; i < CONTRAST_EDGES.length; i++) {
+    if (value < CONTRAST_EDGES[i]!) return CONTRAST_LABELS[i]!;
+  }
+  return CONTRAST_LABELS[CONTRAST_LABELS.length - 1]!;
+}
+
 function allKnownTags(): string[] {
   return Object.values(
     TAG_CATEGORIES as Record<string, { values?: readonly string[] } | readonly string[]>,
@@ -56,7 +76,7 @@ export async function buildCoverageReport(env: Env): Promise<CoverageReport> {
     BAND_LABELS.map((b) => [b, 0]),
   );
   const contrastBands: Record<string, number> = Object.fromEntries(
-    BAND_LABELS.map((b) => [b, 0]),
+    CONTRAST_LABELS.map((b) => [b, 0]),
   );
 
   const themeCounts: Record<string, number> = {};
@@ -66,7 +86,7 @@ export async function buildCoverageReport(env: Env): Promise<CoverageReport> {
       tagHistogram[tag] = (tagHistogram[tag] ?? 0) + 1;
     }
     brightnessBands[bandOf(row.brightness)]! += 1;
-    contrastBands[bandOf(row.contrast)]! += 1;
+    contrastBands[contrastBandOf(row.contrast)]! += 1;
     if (row.themes && row.themes.length > 0) {
       for (const theme of row.themes) {
         themeCounts[theme] = (themeCounts[theme] ?? 0) + 1;

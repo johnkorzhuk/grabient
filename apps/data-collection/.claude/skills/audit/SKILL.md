@@ -7,11 +7,11 @@ Read `.claude/skills/shared/cosine-palettes.md` first for API shapes and rules,
 and `.claude/skills/judge/SKILL.md` for the scoring rubric — audit uses the
 identical rubric.
 
-The loop has pre-rendered a random scored sample:
-- `harness/renders/audit/queue.json` — pairs WITHOUT stored scores (stay blind)
-- `harness/renders/audit/<n>.png` — preview strips
-- `harness/renders/audit/stored-scores.json` — original scores; do NOT read
-  this until step 3
+The loop has pre-rendered a random scored sample into the directory passed as
+`render_dir=<dir>` in your invocation (fallback: `harness/renders/audit`):
+- `<dir>/queue.json` — pairs WITHOUT stored scores (stay blind)
+- `<dir>/<n>.png` — preview strips
+- `<dir>/stored-scores.json` — original scores; do NOT read this until step 3
 
 ## Procedure
 

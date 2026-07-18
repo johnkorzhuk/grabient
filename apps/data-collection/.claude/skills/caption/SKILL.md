@@ -8,22 +8,35 @@ Use the `run_id` from your invocation in every request.
 
 ## Procedure
 
-1. `POST /api/caption/lease` with `{runId, limit: 12}`. If empty, print
+1. `POST /api/caption/lease` with `{runId, limit: 20}`. If empty, print
    "nothing to caption" and stop.
 2. For each palette, look at its `hexStops` (walk the colors in order — what
    does this gradient actually look like?), `tags`, `brightness`, `contrast`.
-3. Write **2–4 queries per palette**: text a real user would type into a
+3. Write **2–3 queries per palette**: text a real user would type into a
    palette search box *before* ever seeing this palette — and for which this
-   palette would be a satisfying result.
+   palette would be a satisfying result. At most ONE may be a literal
+   color-path reading ("indigo drifting into teal…") — the rest must come from
+   intent: a mood, a scene, a design use-case, a short head term ("dusk",
+   "deep sea"), or occasionally an emoji sequence mirroring the palette's
+   order and proportions (see the shared reference; styleHint "emoji"). Literal descriptions are the easy register and the
+   dataset drowns in them if every caption leans that way. Your users are designers and artists
+   worldwide: mix professional briefs ("packaging for herbal tea"), fuzzy
+   intent ("cozy but not childish"), evocative scenes/moods, and occasionally
+   a natural non-English query.
    - Different registers across the set: terse, descriptive sentence, casual.
-   - Different angles: literal color reading, scene/object association, mood.
+   - Different angles: literal color reading, scene/object association, mood,
+     design use-case.
    - Never mention coefficients, "gradient", "palette", or parrot tag names
      verbatim — users type "rainy window evening", not "cool dynamic journey".
+   - Never reuse example phrases from this file, and never dodge a duplicate
+     with suffixes/rewording — a duplicate means the concept is taken.
 4. `POST /api/caption/submit` per seed. Include `themes`: 3–5 free-form
    lowercase phrases naming what the palette evokes (see the Themes section of
-   the shared reference) — honest associations, not creative writing. If one
-   of your queries explicitly constrains presentation ("as 5 swatches"), give
-   that query matching overrides; otherwise omit them. If a query comes back
+   the shared reference) — honest associations, not creative writing. Queries
+   are strictly color exploration — never mention presentation ("radial",
+   "swatches", "gradient", counts, angles). If the leased palette's
+   `style`/`steps`/`angle` don't fit how it actually reads, include a
+   `presentation` object with better values. If a query comes back
    `duplicate`, the concept is taken: replace it with a different association
    (or drop it), don't just reword. One replacement pass max.
 5. Print the summary line: palettes captioned, queries inserted/duplicate.

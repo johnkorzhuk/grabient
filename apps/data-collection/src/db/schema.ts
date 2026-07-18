@@ -26,7 +26,7 @@ export const QUERY_CATEGORIES = [
   "abstract",
   "season-weather-time",
 ] as const;
-export const STYLE_HINTS = ["short", "verbose", "typo", "casual"] as const;
+export const STYLE_HINTS = ["short", "verbose", "typo", "casual", "emoji"] as const;
 export const PAIR_STATUSES = ["pending", "scored", "rejected"] as const;
 export const VERDICTS = ["ok", "bad-match", "bad-palette"] as const;
 // grabient.com's presentation URL params (style/steps/angle). Palette rows

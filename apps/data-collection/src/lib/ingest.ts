@@ -3,6 +3,7 @@ import { createSimilarityKey } from "@repo/data-ops/similarity";
 import { fitCosinePalette, validateFit } from "@repo/data-ops/gradient-gen";
 import { canonicalize, toFlat12, type CanonicalPalette } from "./features";
 import { findSimilarPalettes, upsertPaletteVector, type Neighbor } from "./dedup";
+import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
 import { palettes, type PALETTE_SOURCES } from "@/db/schema";
 
 /** Max fit error accepted when converting an authored hex list to coeffs.
@@ -10,9 +11,19 @@ import { palettes, type PALETTE_SOURCES } from "@/db/schema";
  * fitted gradient no longer resembles the colors the generator intended. */
 export const MAX_FIT_ERROR = 0.75;
 
-export type PaletteInput =
+/** LLM-chosen best-fit presentation for this palette (how it reads, never
+ * query-driven); the deterministic derivation fills anything omitted. */
+export interface PresentationInput {
+  style?: PaletteStyle;
+  steps?: number;
+  angle?: number;
+}
+
+export type PaletteInput = (
   | { coeffs: number[]; hexColors?: never }
-  | { hexColors: string[]; coeffs?: never };
+  | { hexColors: string[]; coeffs?: never }
+) &
+  PresentationInput;
 
 export type RejectReason =
   | "invalid-input"
@@ -166,9 +177,9 @@ export async function ingestPalettes(
         brightness: canonical.brightness,
         contrast: canonical.contrast,
         source,
-        style: canonical.style,
-        steps: canonical.steps,
-        angle: canonical.angle,
+        style: input.style ?? canonical.style,
+        steps: input.steps ?? canonical.steps,
+        angle: input.angle ?? canonical.angle,
         runId,
         createdAt: now,
         updatedAt: now,

@@ -1,6 +1,7 @@
 .dev.vars
 .wrangler/
 harness/.env
+harness/dc-api.sh
 harness/logs/
 harness/renders/
 node_modules/

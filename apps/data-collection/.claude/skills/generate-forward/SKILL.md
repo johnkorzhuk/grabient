@@ -24,30 +24,59 @@ purpose. Same bar applies: a real person could plausibly type it.
 
 1. `GET /api/coverage`. Pick the 2–3 most underrepresented gaps (mix kinds:
    a tag gap, a query-category gap, a brightness/contrast band).
-2. Author **6–8 queries** aimed at those gaps, spread across the taxonomy.
-   About **1 in 4 queries should explicitly constrain presentation** ("5 color
-   palette for…", "…swatches", "radial sunburst…", "horizontal ocean fade") —
-   these teach the model to map presentation language to parameters. The rest
-   must not mention presentation at all. Query kinds:
-   - concrete scenes ("sunset over the ocean", "foggy harbor at dawn")
-   - moods/emotions ("melancholy", "quiet optimism")
-   - aesthetics ("cyberpunk neon", "cottagecore", "vaporwave")
-   - color-explicit ("teal to burnt orange", "dusty pastels")
-   - objects/nature ("ripe peaches", "deep kelp forest")
-   - abstract/product ("energy", "calm finance dashboard")
-   - season/weather/time ("first frost", "golden hour in july")
+2. Author **8–10 queries** aimed at those gaps, spread across the taxonomy.
+   Queries are **strictly color exploration** (like Adobe Color search): what
+   the user wants to *see*, never how it should be rendered. No presentation
+   words — "radial", "swatches", "gradient", "conic", "5 color", angles — in
+   any query. Query kinds:
+   Imagine the whole population of people who search for color: designers,
+   illustrators, artists, hobbyists — worldwide. Mix WHO is typing:
+   - working designers with a brief: brand/UI/packaging/editorial/interior/
+     fashion/motion ("colors for a specialty coffee brand", "trustworthy but
+     not corporate fintech", "kids cereal box")
+   - fuzzy, underspecified intent — people often can't name what they want
+     ("something calm but expensive", "warm but not orange-y", "less loud
+     version of sunset colors")
+   - concrete scenes, objects, nature, moods, aesthetics, seasons — the
+     evocative register
+   - color-explicit requests naming actual hues
+   - global cultural references, not just anglo/US ones (festivals, cuisines,
+     places, crafts, film/music scenes from anywhere)
+   - roughly one query per iteration in a non-English language a real user
+     would type (rotate: es, pt, fr, de, ja, ko, zh, it, tr, id, hi, ar…),
+     natural phrasing, not a translation exercise
    Vary register deliberately: some terse (1–2 words), some verbose sentences,
-   one casual/typo'd ("sunst over ocean"). Set `category` and `styleHint`
-   honestly — they feed coverage stats.
+   one casual/typo'd, and **one emoji query** (see the Emoji queries section
+   of the shared reference — sequence is order, repetition is proportion;
+   styleHint "emoji"). Set `category` and `styleHint` honestly — they feed
+   coverage stats.
+
+   **Head terms**: real search traffic is Zipfian — "sunset", "ocean",
+   "forest", "neon", "pastel" get typed constantly. Include **2 short
+   high-traffic queries** (1–2 words) per iteration. These MAY already exist
+   in the dataset — that is fine and intended: the server links your new
+   candidates to the existing query, deepening its answer pool. When one comes
+   back `duplicate`, your candidates still land; just make them genuinely
+   different from what the dedup feedback shows.
+
+   Hard rules: never reuse or lightly reword the example phrases in this file
+   (they are documentation, not seeds — thousands of iterations copying them
+   collapses diversity). Never dodge a duplicate rejection by suffixing the
+   text ("(retry)", "v2", punctuation tweaks) — a duplicate means the CONCEPT
+   is taken; move to a different concept.
 3. For each query author **2–4 distinct candidates**. Distinct means different
    hue families or luminance shapes, not the same gradient nudged. Mix
    authoring modes: some as `hexColors` (easier to reason about), some as
    direct `coeffs`. A palette must plausibly satisfy the query — imagine a
-   user typing it and seeing the result. When (and only when) the query
-   dictates presentation, give each candidate matching `styleOverride` /
-   `stepsOverride` / `angleOverride` (see the Presentation section of the
-   shared reference); otherwise omit them — the server derives defaults.
-4. Submit each query with `POST /api/submit/forward`.
+   user typing it and seeing the result. Give each candidate the `style` /
+   `steps` / `angle` that best fit **that palette** — chosen from how the
+   palette reads, never from the query (see the Presentation section of the
+   shared reference). Omit them if unsure; the server derives defaults.
+4. Across the iteration include at least **2 vivid, high-contrast candidates**
+   (strong amplitudes, complementary hues — the 0.25+ contrast band) and
+   occasionally a very dark or very light palette; the pool skews mid-tone
+   without deliberate effort at the edges.
+5. Submit each query with `POST /api/submit/forward`.
 5. Read rejections. For `duplicate`: you now know the neighbor exists — author
    ONE genuinely different replacement (different hue family / structure) and
    resubmit that query once. For `bad-fit`/`invalid-range`: fix the authoring

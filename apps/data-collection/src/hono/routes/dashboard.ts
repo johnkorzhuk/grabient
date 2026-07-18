@@ -43,36 +43,67 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
       conditions.push(like(palettes.themes, `%"${q.theme.toLowerCase()}"%`));
     const where = conditions.length ? and(...conditions) : undefined;
 
+    const grouped_ = q.group === "palette";
     const order =
       q.sort === "score-desc"
-        ? [desc(pairs.score)]
+        ? [desc(grouped_ ? sql`avg(${pairs.score})` : pairs.score)]
         : q.sort === "score-asc"
-          ? [asc(pairs.score)]
-          : [desc(pairs.createdAt)];
+          ? [asc(grouped_ ? sql`avg(${pairs.score})` : pairs.score)]
+          : [desc(grouped_ ? sql`max(${pairs.createdAt})` : pairs.createdAt)];
 
-    const base = db
-      .select({
-        queryText: queries.text,
-        category: queries.category,
-        seed: palettes.seed,
-        hexStops: palettes.hexStops,
-        themes: palettes.themes,
-        score: pairs.score,
-        verdict: pairs.verdict,
-        status: pairs.status,
-        source: pairs.source,
-        golden: pairs.golden,
-        style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
-        steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
-        angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
-        createdAt: pairs.createdAt,
-      })
-      .from(pairs)
-      .innerJoin(queries, eq(pairs.queryId, queries.id))
-      .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed));
+    // group=palette collapses the pair-centric view: one card per palette
+    // with all of its queries aggregated (a palette legitimately has several
+    // queries — that is training signal, not duplication).
+    const grouped = q.group === "palette";
+    const base = grouped
+      ? db
+          .select({
+            queryText: sql<string>`group_concat(${queries.text}, ' • ')`,
+            category: sql<string>`cast(count(*) as text) || ' queries'`,
+            seed: palettes.seed,
+            hexStops: palettes.hexStops,
+            themes: palettes.themes,
+            score: sql<number | null>`round(avg(${pairs.score}), 1)`,
+            verdict: sql<string | null>`null`,
+            status: sql<string>`''`,
+            source: sql<string>`''`,
+            golden: sql<number>`max(${pairs.golden})`,
+            style: palettes.style,
+            steps: palettes.steps,
+            angle: palettes.angle,
+            createdAt: sql<number>`max(${pairs.createdAt})`,
+          })
+          .from(pairs)
+          .innerJoin(queries, eq(pairs.queryId, queries.id))
+          .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed))
+          .groupBy(palettes.seed)
+      : db
+          .select({
+            queryText: queries.text,
+            category: queries.category,
+            seed: palettes.seed,
+            hexStops: palettes.hexStops,
+            themes: palettes.themes,
+            score: pairs.score,
+            verdict: pairs.verdict,
+            status: pairs.status,
+            source: pairs.source,
+            golden: pairs.golden,
+            style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
+            steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
+            angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
+            createdAt: pairs.createdAt,
+          })
+          .from(pairs)
+          .innerJoin(queries, eq(pairs.queryId, queries.id))
+          .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed));
 
     const countQuery = db
-      .select({ count: sql<number>`count(*)` })
+      .select({
+        count: grouped
+          ? sql<number>`count(distinct ${pairs.paletteSeed})`
+          : sql<number>`count(*)`,
+      })
       .from(pairs)
       .innerJoin(queries, eq(pairs.queryId, queries.id))
       .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed));
@@ -336,6 +367,7 @@ const DASHBOARD_HTML = `<!doctype html>
       <input type="number" id="f-minscore" placeholder="min ★" min="0" max="10">
       <input type="text" id="f-theme" placeholder="theme…" style="min-width:100px">
       <label><input type="checkbox" id="f-golden"> golden</label>
+      <label><input type="checkbox" id="f-group"> one card per palette</label>
       <select id="f-sort">
         <option value="new">newest</option>
         <option value="score-desc">score ↓</option>
@@ -572,6 +604,7 @@ const DASHBOARD_HTML = `<!doctype html>
     add("minScore", document.getElementById("f-minscore").value);
     add("theme", document.getElementById("f-theme").value.trim());
     if (document.getElementById("f-golden").checked) add("golden", "1");
+    if (document.getElementById("f-group").checked) add("group", "palette");
     add("sort", document.getElementById("f-sort").value);
     params.push("limit=" + EXPLORE_LIMIT, "offset=" + exploreOffset);
     return params.join("&");

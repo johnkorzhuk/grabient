@@ -28,21 +28,23 @@ smooth transitions fit well, hard neon jumps don't).
 
 ## Presentation (style / steps / angle)
 
-Every palette automatically gets a **derived** `style`/`steps`/`angle`
-(computed server-side from its complexity — do not send these for the palette).
-You only act when **the query text itself dictates presentation** — then send
-**overrides on the pair**: `styleOverride`, `stepsOverride`, `angleOverride`.
+`style`/`steps`/`angle` are properties of the PALETTE — how it renders best on
+grabient.com. Choose them from how the palette itself reads, **never from the
+query**, and **never mention presentation in query text**: queries are strictly
+color exploration (colors, scenes, moods, objects — think Adobe Color search),
+so "radial", "swatches", "gradient", "5 color", angle talk etc. must not appear
+in any query. If you send no values the server derives sensible defaults from
+palette complexity; send them when you have a better read:
 
-- Send an override ONLY for explicit signals: "5 color palette" →
-  `stepsOverride: 5`; "swatches" / "color scheme" → a `*Swatches` style;
-  "radial glow" / "sunburst" → `radialGradient`; "horizontal fade" →
-  `angleOverride: 90`. No signal → omit all three (most queries).
-- `styleOverride` — `linearGradient | linearSwatches | angularGradient |
-  angularSwatches | radialGradient | radialSwatches`.
-- `angleOverride` — integer 0–360, CSS convention (0 = bottom→top,
-  90 = left→right, 180 = top→bottom).
-- `stepsOverride` — integer 2–50 (site default 7); swatch styles read best
-  with the count the query implies (3–8).
+- `style` — `linearGradient | linearSwatches | angularGradient |
+  angularSwatches | radialGradient | radialSwatches`. Smooth atmospheric
+  blends → gradients; discrete stripe-like color schemes → swatches; palettes
+  with a strong center-out or glow character → radial; busy multi-hue cycles →
+  angular.
+- `angle` — integer 0–360, CSS convention (0 = bottom→top, 90 = left→right,
+  180 = top→bottom); pick what flatters the palette's flow.
+- `steps` — integer 2–50 (site default 7); swatch styles read best at 3–8,
+  gradients at 6–16.
 
 ## Themes (caption only)
 
@@ -54,9 +56,16 @@ honest associations over creative writing. Distinct from the deterministic
 
 ## API
 
-All requests: `-H "Authorization: Bearer $DC_API_KEY"` against `$DC_API_URL`,
-JSON bodies with `-H "Content-Type: application/json"`. Always pass the
-`run_id` you were invoked with as `runId`.
+All requests go through the pre-authenticated wrapper `harness/dc-api.sh` —
+first argument is the API path, remaining arguments are extra curl flags:
+
+    harness/dc-api.sh /api/coverage
+    harness/dc-api.sh /api/submit/forward -X POST \
+      -H "Content-Type: application/json" -d '{"runId": "...", ...}'
+
+Do NOT construct curl commands with `$DC_API_URL`/`$DC_API_KEY` — env vars are
+not readable in this session. Always pass the `run_id` you were invoked with
+as `runId` in JSON bodies.
 
 - `GET /api/coverage` → `{tagHistogram, queryCategoryCounts, brightnessBands,
   contrastBands, themes: {top, palettesWithoutThemes}, gaps: [{kind, value,
@@ -70,15 +79,31 @@ JSON bodies with `-H "Content-Type: application/json"`. Always pass the
   accepted/rejected with reasons (`duplicate` includes `nearestSeed`/`distance`).
 - `POST /api/submit/forward` `{runId, query: {text, category, styleHint?},
   candidates: [...]}` → `{query: outcome, accepted, rejected}`.
-  Candidates may carry `styleOverride`/`stepsOverride`/`angleOverride` (see
-  Presentation — only when the query dictates).
+  Candidates may carry `style`/`steps`/`angle` — the best-fit presentation for
+  that palette (see Presentation).
   Categories: scene | mood | aesthetic | color-explicit | object | nature |
-  abstract | season-weather-time. styleHint: short | verbose | typo | casual.
+  abstract | season-weather-time. styleHint: short | verbose | typo | casual |
+  emoji.
+
+## Emoji queries
+
+Real users type emoji into search boxes — it is a language-independent color
+register. Rules for authoring them (styleHint: "emoji"):
+- **Sequence = gradient order**: ⚫🟣🔴 reads dark → purple → red.
+- **Repetition = proportion**: ⚫⚫⚫🟣🍎 means more than half dark, then
+  purple, ending in apple-red. Palettes for it should honor the weighting,
+  not just the hue list.
+- Object/nature emoji mean their characteristic color or scene: 🍎 red,
+  🌊 ocean blues, 🌅 sunrise, 🌿 leaf green, 🍑 peach, 🔥 fire.
+- Mixes with text are natural too: "🌊 sunset", "cozy 🍂".
+- Keep sequences 2–6 emoji; never use skin-tone or flag emoji.
 - `POST /api/caption/lease` `{runId, limit}` → `{palettes: [{seed, hexStops,
   tags, brightness, contrast, style, steps, angle, themes}]}`.
-- `POST /api/caption/submit` `{runId, seed, themes?: [string], queries:
-  [{text, category, styleHint?, styleOverride?, stepsOverride?,
-  angleOverride?}]}` → per-query inserted/duplicate (with existingText).
+- `POST /api/caption/submit` `{runId, seed, themes?: [string], presentation?:
+  {style?, steps?, angle?}, queries: [{text, category, styleHint?}]}` →
+  per-query inserted/duplicate (with existingText). Send `presentation` when
+  the leased palette's current values don't fit how it actually reads (common
+  for sampler-created palettes).
 - `POST /api/judge/lease` `{runId, limit}` → `{pairs: [{queryId, seed,
   queryText, coeffs, hexStops, tags}]}`.
 - `POST /api/judge/submit` `{runId, results: [{queryId, seed, score 0-10,
@@ -89,6 +114,10 @@ JSON bodies with `-H "Content-Type: application/json"`. Always pass the
 
 ## Rules for every skill
 
+- Call the API ONLY via `harness/dc-api.sh` (pre-authenticated). Never probe
+  or read env vars (`echo $VAR`, `env`, `printenv` — blocked, and there is no
+  human to approve anything). If a call fails, retry it once; do not fall
+  back to environment debugging or asking for approval.
 - Never write repo files; only call the API (and Read rendered PNGs when told).
 - Treat server rejections as information, not errors: a `duplicate` rejection
   tells you what already exists — diverge from it, don't retry cosmetically.

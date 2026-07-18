@@ -25,6 +25,9 @@ function argValue(flag: string): string | undefined {
 const mode = argValue("--mode") ?? "judge";
 const runId = argValue("--run-id") ?? `render-${Date.now()}`;
 const limit = Number(argValue("--limit") ?? 24);
+// Parallel judge loops must not share a render dir (rmSync below would nuke
+// a sibling's queue mid-run) - loop.sh passes a per-run dir.
+const outDir = argValue("--out-dir") ?? join("harness", "renders", mode);
 
 interface QueuePair {
   queryId: string;
@@ -74,7 +77,7 @@ async function fetchQueue(): Promise<QueuePair[]> {
 
 async function main() {
   const queue = await fetchQueue();
-  const dir = join("harness", "renders", mode);
+  const dir = outDir;
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
 

@@ -1,5 +1,5 @@
 import { drizzle } from "drizzle-orm/d1";
-import { eq, inArray } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
 import {
   createSimilarityKey,
   computeLabSamples,
@@ -86,13 +86,27 @@ export async function findSimilarPalettes(
   }
 
   const simKey = createSimilarityKey(candidate.coeffs);
-  const coarse = await db
-    .select({ seed: palettes.seed, hexStops: palettes.hexStops, status: palettes.status })
-    .from(palettes)
-    .where(eq(palettes.similarityKey, simKey))
-    .limit(20);
+  const [coarse, recent] = await Promise.all([
+    db
+      .select({ seed: palettes.seed, hexStops: palettes.hexStops, status: palettes.status })
+      .from(palettes)
+      .where(eq(palettes.similarityKey, simKey))
+      .limit(20),
+    // Vectorize indexes asynchronously: a palette inserted seconds ago may not
+    // be searchable yet, which let near-dupes from adjacent iterations slip
+    // through (measured: ~2.5% of the pool, all created <60s apart). Rescoring
+    // the newest rows exactly closes that race window.
+    db
+      .select({ seed: palettes.seed, hexStops: palettes.hexStops, status: palettes.status })
+      .from(palettes)
+      .orderBy(desc(palettes.createdAt))
+      .limit(150),
+  ]);
 
-  let candidateRows: StoredPalette[] = coarse;
+  let candidateRows: StoredPalette[] = [
+    ...coarse,
+    ...recent.filter((r) => !coarse.some((c) => c.seed === r.seed)),
+  ];
 
   try {
     const [fwd, rev] = await Promise.all([
