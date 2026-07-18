@@ -8,10 +8,20 @@ Use the `run_id` from your invocation in every request.
 
 ## Procedure
 
-1. `POST /api/caption/lease` with `{runId, limit: 20}`. If empty, print
-   "nothing to caption" and stop.
-2. For each palette, look at its `hexStops` (walk the colors in order — what
-   does this gradient actually look like?), `tags`, `brightness`, `contrast`.
+1. Lease palettes into a file, then render them so you can SEE them:
+   ```
+   harness/dc-api.sh /api/caption/lease -X POST -H "Content-Type: application/json" \
+     -d '{"runId":"<run_id>","limit":12}' > harness/renders/caption-<run_id>.lease.json
+   npx tsx harness/palette-strips.ts --in harness/renders/caption-<run_id>.lease.json \
+     --out harness/renders/caption-<run_id>
+   ```
+   (the strips tool creates the output directory). If the lease is empty,
+   print "nothing to caption" and stop.
+2. Read `harness/renders/caption-<run_id>/0.png` (and `1.png` if present) —
+   8 palettes per image, row index = order in `lease.json`. Caption from what
+   you SEE: these are true site renders with the palette's style/steps/angle
+   applied. Use `lease.json` (`hexStops`, `tags`, `brightness`, `contrast`)
+   as supporting data, not the primary source.
 3. Write **2–3 queries per palette**: text a real user would type into a
    palette search box *before* ever seeing this palette — and for which this
    palette would be a satisfying result. At most ONE may be a literal

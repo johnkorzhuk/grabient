@@ -55,6 +55,7 @@ LOG_DIR="harness/logs"
 mkdir -p "$LOG_DIR"
 
 # Housekeeping so an unattended loop doesn't fill the disk.
+mkdir -p harness/renders
 find "$LOG_DIR" -name '*.log' -mtime +7 -delete 2>/dev/null || true
 find harness/renders -type f -mtime +2 -delete 2>/dev/null || true
 

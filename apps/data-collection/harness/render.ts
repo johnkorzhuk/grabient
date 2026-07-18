@@ -2,15 +2,18 @@
  * Renders the judge/audit queue to PNG strips so the Claude judge can look at
  * the actual gradients instead of reasoning purely over hex codes.
  *
- * Writes harness/renders/<mode>/<n>.png (one image per batch of up to 8 pairs,
- * each row labeled with its index) plus harness/renders/<mode>/queue.json with
- * the pair payloads in the same order. Run via loop.sh before judge/audit.
+ * Rows are true site renders fetched from the public /api/png endpoint
+ * (style/steps/angle honored, no logo), with a dense local gradient as
+ * fallback — the stored 8 hex stops alias high-frequency palettes into
+ * stripes they don't have, so neither path judges from those directly.
+ *
+ * Writes <out-dir>/<n>.png (one image per batch of up to 8 pairs, each row
+ * labeled with its index) plus <out-dir>/queue.json with the pair payloads
+ * in the same order. Run via loop.sh before judge/audit.
  */
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import sharp from "sharp";
-import { cosineGradient, rgbToHex } from "@repo/data-ops/gradient-gen";
-import { toCosineCoeffs } from "../src/lib/features";
+import { buildStrips, writeQueue, type StripRow } from "./strips";
 
 const API_URL = process.env.DC_API_URL;
 const API_KEY = process.env.DC_API_KEY;
@@ -27,54 +30,15 @@ function argValue(flag: string): string | undefined {
 const mode = argValue("--mode") ?? "judge";
 const runId = argValue("--run-id") ?? `render-${Date.now()}`;
 const limit = Number(argValue("--limit") ?? 24);
-// Parallel judge loops must not share a render dir (rmSync below would nuke
-// a sibling's queue mid-run) - loop.sh passes a per-run dir.
+// Parallel judge loops must not share a render dir (buildStrips wipes its
+// out-dir first) - loop.sh passes a per-run dir.
 const outDir = argValue("--out-dir") ?? join("harness", "renders", mode);
 
-interface QueuePair {
+interface QueuePair extends StripRow {
   queryId: string;
-  seed: string;
   queryText: string;
-  coeffs?: number[];
-  hexStops: string[];
   tags: string[];
   storedScore?: number | null;
-}
-
-/** The stored 8 hex stops alias high-frequency palettes into stripes the
- * palette doesn't have — judging from that punishes frequency instead of
- * quality. Render previews densely from the coefficients when available. */
-const PREVIEW_STOPS = 48;
-
-function previewStops(pair: QueuePair): string[] {
-  if (!pair.coeffs || pair.coeffs.length !== 12) return pair.hexStops;
-  try {
-    return cosineGradient(PREVIEW_STOPS, toCosineCoeffs(pair.coeffs)).map(
-      ([r, g, b]) => rgbToHex(r, g, b),
-    );
-  } catch {
-    return pair.hexStops;
-  }
-}
-
-const ROW_H = 96;
-const ROW_W = 960;
-const LABEL_W = 40;
-const PER_IMAGE = 8;
-
-function rowSvg(pair: QueuePair, index: number, y: number): string {
-  const stopList = previewStops(pair);
-  const stops = stopList
-    .map(
-      (hex, i) =>
-        `<stop offset="${((i / (stopList.length - 1)) * 100).toFixed(1)}%" stop-color="${hex}"/>`,
-    )
-    .join("");
-  return `
-    <linearGradient id="g${index}" x1="0" y1="0" x2="1" y2="0">${stops}</linearGradient>
-    <rect x="0" y="${y}" width="${LABEL_W}" height="${ROW_H}" fill="#111"/>
-    <text x="${LABEL_W / 2}" y="${y + ROW_H / 2 + 6}" font-family="monospace" font-size="18" fill="#fff" text-anchor="middle">${index}</text>
-    <rect x="${LABEL_W}" y="${y + 4}" width="${ROW_W - LABEL_W - 4}" height="${ROW_H - 8}" fill="url(#g${index})"/>`;
 }
 
 async function fetchQueue(): Promise<QueuePair[]> {
@@ -97,34 +61,29 @@ async function fetchQueue(): Promise<QueuePair[]> {
 
 async function main() {
   const queue = await fetchQueue();
-  const dir = outDir;
-  rmSync(dir, { recursive: true, force: true });
-  mkdirSync(dir, { recursive: true });
+
+  const { siteRendered } = await buildStrips(queue, outDir);
 
   // Blind judging: strip stored scores from what the judge sees.
   const publicQueue = queue.map(({ storedScore: _s, ...rest }, i) => ({
     index: i,
     ...rest,
   }));
-  writeFileSync(join(dir, "queue.json"), JSON.stringify(publicQueue, null, 2));
+  writeQueue(outDir, publicQueue);
   if (mode === "audit") {
     writeFileSync(
-      join(dir, "stored-scores.json"),
-      JSON.stringify(queue.map((p, i) => ({ index: i, storedScore: p.storedScore ?? null })), null, 2),
+      join(outDir, "stored-scores.json"),
+      JSON.stringify(
+        queue.map((p, i) => ({ index: i, storedScore: p.storedScore ?? null })),
+        null,
+        2,
+      ),
     );
   }
 
-  for (let i = 0; i < queue.length; i += PER_IMAGE) {
-    const chunk = queue.slice(i, i + PER_IMAGE);
-    const height = chunk.length * ROW_H;
-    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${ROW_W}" height="${height}">
-      ${chunk.map((p, j) => rowSvg(p, i + j, j * ROW_H)).join("\n")}
-    </svg>`;
-    await sharp(Buffer.from(svg))
-      .png()
-      .toFile(join(dir, `${Math.floor(i / PER_IMAGE)}.png`));
-  }
-  console.log(`rendered ${queue.length} pairs to ${dir}`);
+  console.log(
+    `rendered ${queue.length} pairs to ${outDir} (${siteRendered} site renders, ${queue.length - siteRendered} fallbacks)`,
+  );
 }
 
 main().catch((err) => {

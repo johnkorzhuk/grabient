@@ -49,6 +49,9 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
         coeffs: palettes.coeffs,
         hexStops: palettes.hexStops,
         tags: palettes.tags,
+        style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
+        steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
+        angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
       })
       .from(pairs)
       .innerJoin(queries, eq(pairs.queryId, queries.id))
@@ -176,6 +179,9 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
         coeffs: palettes.coeffs,
         hexStops: palettes.hexStops,
         tags: palettes.tags,
+        style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
+        steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
+        angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
         storedScore: pairs.score,
         storedVerdict: pairs.verdict,
       })
