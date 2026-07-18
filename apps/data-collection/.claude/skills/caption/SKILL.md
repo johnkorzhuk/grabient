@@ -36,10 +36,18 @@ Use the `run_id` from your invocation in every request.
    - Different registers across the set: terse, descriptive sentence, casual.
    - Different angles: literal color reading, scene/object association, mood,
      design use-case.
-   - Never mention coefficients, "gradient", "palette", or parrot tag names
-     verbatim — users type "rainy window evening", not "cool dynamic journey".
+   - Never mention coefficients or parrot tag names verbatim — users type
+     "rainy window evening", not "cool dynamic journey". The bare nouns
+     "gradient"/"palette" are fine ("moody sunset gradient" is a real
+     search); parameter words (radial/angular/swatches/counts/angles) are
+     not.
    - Never reuse example phrases from this file, and never dodge a duplicate
      with suffixes/rewording — a duplicate means the concept is taken.
+   - **Anti-template rule**: transition narration ("X into Y", "fading",
+     "drifting", "melting", "…to…") is a machine crutch — it is already ~30%
+     of the corpus and real searchers rarely phrase things that way. At most
+     ONE transition-phrased query per palette; the rest must NAME things:
+     colors, scenes, moods, objects, use-cases.
 4. `POST /api/caption/submit` per seed. Include `themes`: 3–5 free-form
    lowercase phrases naming what the palette evokes (see the Themes section of
    the shared reference) — honest associations, not creative writing. Queries

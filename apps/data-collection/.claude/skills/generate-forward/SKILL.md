@@ -26,9 +26,11 @@ purpose. Same bar applies: a real person could plausibly type it.
    a tag gap, a query-category gap, a brightness/contrast band).
 2. Author **8–10 queries** aimed at those gaps, spread across the taxonomy.
    Queries are **strictly color exploration** (like Adobe Color search): what
-   the user wants to *see*, never how it should be rendered. No presentation
-   words — "radial", "swatches", "gradient", "conic", "5 color", angles — in
-   any query. Query kinds:
+   the user wants to *see*, never how it should be rendered. No
+   parameter-dictating words — "radial", "angular", "swatches", "conic",
+   step counts ("5 color"), or angles — in any query. The bare nouns
+   "gradient" and "palette" are fine (real users type them constantly); it's
+   rendering *parameters* that must stay out. Query kinds:
    Imagine the whole population of people who search for color: designers,
    illustrators, artists, hobbyists — worldwide. Mix WHO is typing:
    - working designers with a brief: brand/UI/packaging/editorial/interior/
@@ -58,6 +60,11 @@ purpose. Same bar applies: a real person could plausibly type it.
    candidates to the existing query, deepening its answer pool. When one comes
    back `duplicate`, your candidates still land; just make them genuinely
    different from what the dedup feedback shows.
+
+   Anti-template rule: transition narration ("X into Y", "fading",
+   "drifting", "melting") is over-represented in the corpus — at most one
+   such query per iteration; prefer queries that NAME colors, scenes, moods,
+   objects, or use-cases.
 
    Hard rules: never reuse or lightly reword the example phrases in this file
    (they are documentation, not seeds — thousands of iterations copying them

@@ -30,10 +30,10 @@ smooth transitions fit well, hard neon jumps don't).
 
 `style`/`steps`/`angle` are properties of the PALETTE — how it renders best on
 grabient.com. Choose them from how the palette itself reads, **never from the
-query**, and **never mention presentation in query text**: queries are strictly
-color exploration (colors, scenes, moods, objects — think Adobe Color search),
-so "radial", "swatches", "gradient", "5 color", angle talk etc. must not appear
-in any query. If you send no values the server derives sensible defaults from
+query**, and never put rendering *parameters* in query text: "radial",
+"angular", "swatches", "conic", step counts, angle talk must not appear in any
+query. The bare nouns "gradient"/"palette" are ordinary user vocabulary and
+are allowed. If you send no values the server derives sensible defaults from
 palette complexity; send them when you have a better read:
 
 - `style` — `linearGradient | linearSwatches | angularGradient |
