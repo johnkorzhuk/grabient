@@ -15,7 +15,7 @@ export const PALETTE_SOURCES = [
   "sampled",
   "perturbed",
 ] as const;
-export const QUERY_SOURCES = ["forward", "caption"] as const;
+export const QUERY_SOURCES = ["forward", "caption", "human"] as const;
 export const QUERY_CATEGORIES = [
   "scene",
   "mood",
@@ -35,6 +35,15 @@ export { PALETTE_STYLES as PRESENTATION_STYLES } from "@repo/data-ops/valibot-sc
 import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
 // Judge-emitted: how constraining the query is on the palette space.
 export const AMBIGUITY_LEVELS = ["low", "medium", "high"] as const;
+// Owner feedback from the dashboard. Negative labels are removals (absolute);
+// 'good' up-weights training; 'golden' is eval membership; 'not-golden' is a
+// standing veto against audit re-promotion.
+export const HUMAN_LABELS = [
+  "golden",
+  "not-golden",
+  "good",
+  "bad-match",
+] as const;
 
 // Candidate palette pool. seed (from serializeCoeffs) is the canonical id;
 // coeffs are stored globals-normalized so the 12 floats are the full training
@@ -117,8 +126,12 @@ export const pairs = sqliteTable(
     stepsOverride: integer("steps_override"),
     angleOverride: integer("angle_override"),
     ambiguity: text("ambiguity").$type<(typeof AMBIGUITY_LEVELS)[number]>(),
-    // Curated eval-set membership (audit promotion).
+    // Curated eval-set membership (audit promotion or human gold label).
     golden: integer("golden", { mode: "boolean" }).notNull().default(false),
+    // Owner feedback (see HUMAN_LABELS). Source of truth for export
+    // filtering - pair status changes are only a judge-queue optimization.
+    humanLabel: text("human_label").$type<(typeof HUMAN_LABELS)[number]>(),
+    humanAt: integer("human_at"),
     lockedAt: integer("locked_at"),
     lockedBy: text("locked_by"),
     runId: text("run_id"),
@@ -130,6 +143,7 @@ export const pairs = sqliteTable(
     index("pairs_palette_seed_idx").on(t.paletteSeed),
     index("pairs_status_idx").on(t.status),
     index("pairs_status_locked_idx").on(t.status, t.lockedAt),
+    index("pairs_human_label_idx").on(t.humanLabel),
   ],
 );
 

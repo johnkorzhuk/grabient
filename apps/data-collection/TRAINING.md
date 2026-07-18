@@ -86,9 +86,15 @@ the dashboard at `$BASE/dashboard`.
 ```json
 {"query":"burnt orange autumn","coeffs":[0.5,...12 floats],"seed":"_gEh...",
  "style":"linearSwatches","steps":9,"angle":45,
- "score":8,"tags":["warm","vivid"],"category":"season-weather-time",
+ "score":8,"weight":1,"tags":["warm","vivid"],"category":"season-weather-time",
  "styleHint":"short","ambiguity":"medium","source":"forward","split":"train"}
 ```
+
+- `weight`: SFT loss weight. 1.0 default; 3.0 for pairs the owner endorsed
+  from the dashboard (`human_label='good'`). Human-endorsed pairs also enter
+  at a lowered score threshold (≥5 instead of ≥7, judge verdict overridden) —
+  heavy human weight with an absolute judge floor. Owner-vetoed pairs
+  (`bad-match`) and pairs of owner-rejected palettes never appear.
 
 - `coeffs` is the training target. Already **canonicalized**: globals
   normalized to defaults, rounded to 3 decimals, one consistent parameter
@@ -133,9 +139,11 @@ got — check it).
 
 ## 4. Non-negotiable data rules
 
-1. **Exclude golden queries from all training data.** The split hashing does
-   not know about golden status — filter SFT/DPO rows whose query appears in
-   the eval file before training. The exam must stay unseen.
+1. **Exclude golden queries from all training data.** The exporter now
+   guarantees this server-side (golden queries — audit- or human-promoted —
+   are filtered out of SFT and DPO; manifest reports
+   `goldenQueriesExcluded`). Keep a training-time filter against the eval
+   file as defense-in-depth anyway. The exam must stay unseen.
 2. **Never train on `val`/`test` splits.** Use `val` for early stopping /
    hyperparameters; touch `test` once.
 3. **Loss belongs in perceptual space, not raw coefficient space** (or at

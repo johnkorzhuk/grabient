@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import * as v from "valibot";
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, lt, notInArray, or, sql } from "drizzle-orm";
 import { AMBIGUITY_LEVELS, palettes, pairs, queries, VERDICTS } from "@/db/schema";
 import { LEASE_TTL_MS } from "./caption";
 
@@ -63,6 +63,8 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
           or(isNull(pairs.lockedAt), lt(pairs.lockedAt, cutoff)),
         ),
       )
+      // Owner-requested queries jump the queue so their results land fast.
+      .orderBy(desc(sql`${queries.source} = 'human'`), asc(pairs.createdAt))
       .limit(limit);
 
     const now = Date.now();
@@ -160,6 +162,11 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
             eq(pairs.paletteSeed, p.seed),
             eq(pairs.status, "scored"),
             eq(pairs.verdict, "ok"),
+            // A human veto is standing: audit cannot re-promote it.
+            or(
+              isNull(pairs.humanLabel),
+              notInArray(pairs.humanLabel, ["not-golden", "bad-match"]),
+            ),
           ),
         )
         .returning({ queryId: pairs.queryId });

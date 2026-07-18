@@ -30,8 +30,17 @@ The loop has pre-rendered a random scored sample into the directory passed as
    stored verdict is `ok` and the stored score is also ≥ 7 have now passed two
    blind reviews — promote them via `POST /api/judge/golden` `{runId, pairs:
    [{queryId, seed}]}`. These become the curated eval set (target: ~300 golden
-   queries over time; don't force it per run).
-6. Print the summary: sample size, mean drift, count of ≥3 disagreements,
-   corrections submitted, pairs promoted to golden. If mean drift exceeds
-   ±1.5, say prominently that the judge rubric may be drifting and the
-   threshold constants deserve a look.
+   queries over time; don't force it per run). The endpoint refuses pairs the
+   owner has vetoed — `promoted < submitted` is expected.
+6. **Human calibration check**: `GET /api/feedback/summary`. Report the
+   disagreement counts — `humanBadJudgeHigh` (owner vetoed, judge scored ≥7
+   ok) and `humanGoodJudgeLow` (owner endorsed, judge scored <7) — and up to
+   5 example rows with query text and judge notes. This is calibration
+   feedback for the judge rubric, NOT a correction signal: never resubmit
+   scores based on it. If humanBadJudgeHigh exceeds ~20% of the owner's
+   bad-match labels, say prominently that the rubric is too lenient for
+   those query types.
+7. Print the summary: sample size, mean drift, count of ≥3 disagreements,
+   corrections submitted, pairs promoted to golden, human-calibration
+   counts. If mean drift exceeds ±1.5, say prominently that the judge rubric
+   may be drifting and the threshold constants deserve a look.

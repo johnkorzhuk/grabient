@@ -111,7 +111,14 @@ register. Rules for authoring them (styleHint: "emoji"):
 - `POST /api/judge/submit` `{runId, results: [{queryId, seed, score 0-10,
   verdict: ok|bad-match|bad-palette, ambiguity?: low|medium|high, notes?}]}`.
 - `POST /api/judge/golden` `{runId, pairs: [{queryId, seed}]}` — audit only:
-  flags independently re-confirmed pairs as golden eval-set members.
+  flags independently re-confirmed pairs as golden eval-set members. Pairs
+  the OWNER has vetoed (`not-golden`/`bad-match` human labels) are refused —
+  `promoted < submitted` is expected, not an error.
+- `GET /api/feedback/queries/wanted` → `{queries: [{id, text, category,
+  pairCount}]}` — owner-requested queries awaiting palettes; generate-forward
+  services these FIRST (submit candidates with the owner's text verbatim).
+- `GET /api/feedback/summary` → human-label counts + human-vs-judge
+  disagreement rows (audit calibration).
 - `GET /api/judge/audit/sample?n=20` → scored pairs with storedScore/verdict.
 
 ## Rules for every skill

@@ -1,9 +1,23 @@
 import { drizzle } from "drizzle-orm/d1";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { pairs, queries, palettes, exports as exportsTable } from "@/db/schema";
 
 export const MIN_SFT_SCORE = 7;
 export const MIN_DPO_GAP = 3;
+// Human 'good' up-weights training and lowers the score bar - heavy weight,
+// but the judge floor stays absolute.
+export const HUMAN_GOOD_MIN_SCORE = 5;
+export const HUMAN_GOOD_WEIGHT = 3;
+
+/** Golden queries are eval material - excluded from every training export so
+ * the exam stays unseen (server-side guarantee; training-time filtering in
+ * TRAINING.md remains as defense-in-depth). */
+function goldenQueryIds(db: ReturnType<typeof drizzle>) {
+  return db
+    .select({ id: pairs.queryId })
+    .from(pairs)
+    .where(eq(pairs.golden, true));
+}
 
 /** Deterministic split by query id so every pair of a query lands in the same
  * split and re-exports are stable: 90/5/5 train/val/test. */
@@ -29,6 +43,7 @@ interface ScoredPair {
   source: string;
   score: number;
   ambiguity: string | null;
+  humanLabel: string | null;
   style: string | null;
   steps: number | null;
   angle: number | null;
@@ -81,6 +96,7 @@ async function loadScoredPairs(env: Env, minScore: number): Promise<ScoredPair[]
       source: pairs.source,
       score: pairs.score,
       ambiguity: pairs.ambiguity,
+      humanLabel: pairs.humanLabel,
       style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
       steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
       angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
@@ -91,10 +107,19 @@ async function loadScoredPairs(env: Env, minScore: number): Promise<ScoredPair[]
     .where(
       and(
         eq(pairs.status, "scored"),
-        gte(pairs.score, minScore),
-        eq(pairs.verdict, "ok"),
         sql`${palettes.status} != 'rejected'`,
         eq(queries.status, "active"),
+        or(isNull(pairs.humanLabel), ne(pairs.humanLabel, "bad-match")),
+        notInArray(pairs.queryId, goldenQueryIds(db)),
+        or(
+          and(gte(pairs.score, minScore), eq(pairs.verdict, "ok")),
+          // Human endorsement lowers the bar (not to zero) and overrides
+          // a judge bad-match verdict.
+          and(
+            eq(pairs.humanLabel, "good"),
+            gte(pairs.score, HUMAN_GOOD_MIN_SCORE),
+          ),
+        ),
       ),
     );
   return rows.filter((r): r is ScoredPair => r.score !== null);
@@ -105,6 +130,10 @@ export async function exportSft(
   minScore = MIN_SFT_SCORE,
 ): Promise<{ r2Key: string; count: number }> {
   const rows = await loadScoredPairs(env, minScore);
+  const goldenExcluded = await drizzle(env.DB)
+    .select({ n: sql<number>`count(distinct ${pairs.queryId})` })
+    .from(pairs)
+    .where(eq(pairs.golden, true));
   const lines = rows.map((r) =>
     JSON.stringify({
       query: r.queryText,
@@ -114,6 +143,7 @@ export async function exportSft(
       steps: r.steps,
       angle: r.angle,
       score: r.score,
+      weight: r.humanLabel === "good" ? HUMAN_GOOD_WEIGHT : 1,
       tags: r.tags,
       category: r.category,
       styleHint: r.styleHint,
@@ -122,7 +152,13 @@ export async function exportSft(
       split: splitFor(r.queryId),
     }),
   );
-  return writeExport(env, "sft", lines, { minScore, coeffStats: coeffStats(rows) });
+  return writeExport(env, "sft", lines, {
+    minScore,
+    humanGoodMinScore: HUMAN_GOOD_MIN_SCORE,
+    humanGoodWeight: HUMAN_GOOD_WEIGHT,
+    goldenQueriesExcluded: goldenExcluded[0]?.n ?? 0,
+    coeffStats: coeffStats(rows),
+  });
 }
 
 export async function exportDpo(
@@ -143,7 +179,16 @@ export async function exportDpo(
     .from(pairs)
     .innerJoin(queries, eq(pairs.queryId, queries.id))
     .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed))
-    .where(and(eq(pairs.status, "scored"), eq(queries.status, "active")));
+    .where(
+      and(
+        eq(pairs.status, "scored"),
+        eq(queries.status, "active"),
+        notInArray(pairs.queryId, goldenQueryIds(db)),
+        // Never let a human-vetoed pair appear as either half of a
+        // preference pair.
+        or(isNull(pairs.humanLabel), ne(pairs.humanLabel, "bad-match")),
+      ),
+    );
 
   const byQuery = new Map<string, typeof rows>();
   for (const row of rows) {
@@ -203,7 +248,14 @@ export async function exportEval(
     .from(pairs)
     .innerJoin(queries, eq(pairs.queryId, queries.id))
     .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed))
-    .where(and(eq(pairs.golden, true), eq(queries.status, "active")));
+    .where(
+      and(
+        eq(pairs.golden, true),
+        eq(queries.status, "active"),
+        // Rejection is removal, even for a previously-golden pair's palette.
+        sql`${palettes.status} != 'rejected'`,
+      ),
+    );
 
   let rows = goldenRows;
   let source: "golden" | "test-split-fallback" = "golden";
@@ -220,6 +272,8 @@ export async function exportEval(
           gte(pairs.score, MIN_SFT_SCORE),
           eq(pairs.verdict, "ok"),
           eq(queries.status, "active"),
+          sql`${palettes.status} != 'rejected'`,
+          or(isNull(pairs.humanLabel), ne(pairs.humanLabel, "bad-match")),
         ),
       );
     rows = scored.filter((r) => splitFor(r.queryId) === "test");

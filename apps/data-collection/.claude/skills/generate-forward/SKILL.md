@@ -22,9 +22,16 @@ purpose. Same bar applies: a real person could plausibly type it.
 
 ## Procedure
 
-1. `GET /api/coverage`. Pick the 2–3 most underrepresented gaps (mix kinds:
+1. `harness/dc-api.sh /api/feedback/queries/wanted` — **owner-requested
+   queries come first.** For each returned query author 2–4 distinct
+   candidates and submit them via the normal `POST /api/submit/forward`,
+   using the owner's query text VERBATIM (the duplicate path links your
+   candidates to the existing query — a `duplicate` outcome here is success,
+   not a rejection). Then continue below with whatever iteration budget
+   remains.
+2. `GET /api/coverage`. Pick the 2–3 most underrepresented gaps (mix kinds:
    a tag gap, a query-category gap, a brightness/contrast band).
-2. Author **8–10 queries** aimed at those gaps, spread across the taxonomy.
+3. Author **8–10 queries** aimed at those gaps, spread across the taxonomy.
    Queries are **strictly color exploration** (like Adobe Color search): what
    the user wants to *see*, never how it should be rendered. No
    parameter-dictating words — "radial", "angular", "swatches", "conic",
@@ -71,7 +78,7 @@ purpose. Same bar applies: a real person could plausibly type it.
    collapses diversity). Never dodge a duplicate rejection by suffixing the
    text ("(retry)", "v2", punctuation tweaks) — a duplicate means the CONCEPT
    is taken; move to a different concept.
-3. For each query author **2–4 distinct candidates**. Distinct means different
+4. For each query author **2–4 distinct candidates**. Distinct means different
    hue families or luminance shapes, not the same gradient nudged. Mix
    authoring modes: some as `hexColors` (easier to reason about), some as
    direct `coeffs`. A palette must plausibly satisfy the query — imagine a
@@ -79,16 +86,16 @@ purpose. Same bar applies: a real person could plausibly type it.
    `steps` / `angle` that best fit **that palette** — chosen from how the
    palette reads, never from the query (see the Presentation section of the
    shared reference). Omit them if unsure; the server derives defaults.
-4. Across the iteration include at least **2 vivid, high-contrast candidates**
+5. Across the iteration include at least **2 vivid, high-contrast candidates**
    (strong amplitudes, complementary hues — the 0.25+ contrast band) and
    occasionally a very dark or very light palette; the pool skews mid-tone
    without deliberate effort at the edges.
-5. Submit each query with `POST /api/submit/forward`.
-5. Read rejections. For `duplicate`: you now know the neighbor exists — author
+6. Submit each query with `POST /api/submit/forward`.
+7. Read rejections. For `duplicate`: you now know the neighbor exists — author
    ONE genuinely different replacement (different hue family / structure) and
    resubmit that query once. For `bad-fit`/`invalid-range`: fix the authoring
    mistake once. No second retries.
-6. Print the summary line: queries submitted/duplicate, palettes
+8. Print the summary line: queries submitted/duplicate, palettes
    accepted/rejected by reason.
 
 ## Quality bar

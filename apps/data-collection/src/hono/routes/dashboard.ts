@@ -6,8 +6,10 @@ import {
   pairs,
   queries,
   runs,
+  HUMAN_LABELS,
   PAIR_STATUSES,
   QUERY_CATEGORIES,
+  QUERY_SOURCES,
   VERDICTS,
 } from "@/db/schema";
 
@@ -34,9 +36,12 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
       conditions.push(eq(pairs.status, q.status as (typeof PAIR_STATUSES)[number]));
     if (q.verdict && (VERDICTS as readonly string[]).includes(q.verdict))
       conditions.push(eq(pairs.verdict, q.verdict as (typeof VERDICTS)[number]));
-    if (q.source === "forward" || q.source === "caption")
-      conditions.push(eq(pairs.source, q.source));
+    if (q.source && (QUERY_SOURCES as readonly string[]).includes(q.source))
+      conditions.push(eq(queries.source, q.source as (typeof QUERY_SOURCES)[number]));
     if (q.golden === "1") conditions.push(eq(pairs.golden, true));
+    if (q.human === "any") conditions.push(isNotNull(pairs.humanLabel));
+    else if (q.human && (HUMAN_LABELS as readonly string[]).includes(q.human))
+      conditions.push(eq(pairs.humanLabel, q.human as (typeof HUMAN_LABELS)[number]));
     if (q.minScore !== undefined && q.minScore !== "")
       conditions.push(sql`${pairs.score} >= ${Number(q.minScore)}`);
     if (q.theme)
@@ -58,6 +63,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
     const base = grouped
       ? db
           .select({
+            queryId: sql<string | null>`null`,
             queryText: sql<string>`group_concat(${queries.text}, ' • ')`,
             category: sql<string>`cast(count(*) as text) || ' queries'`,
             seed: palettes.seed,
@@ -68,6 +74,9 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
             status: sql<string>`''`,
             source: sql<string>`''`,
             golden: sql<number>`max(${pairs.golden})`,
+            humanLabel: sql<string | null>`null`,
+            humanCount: sql<number>`sum(case when ${pairs.humanLabel} is not null then 1 else 0 end)`,
+            paletteStatus: palettes.status,
             style: palettes.style,
             steps: palettes.steps,
             angle: palettes.angle,
@@ -79,6 +88,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
           .groupBy(palettes.seed)
       : db
           .select({
+            queryId: sql<string | null>`${queries.id}`,
             queryText: queries.text,
             category: queries.category,
             seed: palettes.seed,
@@ -87,8 +97,11 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
             score: pairs.score,
             verdict: pairs.verdict,
             status: pairs.status,
-            source: pairs.source,
+            source: queries.source,
             golden: pairs.golden,
+            humanLabel: pairs.humanLabel,
+            humanCount: sql<number>`0`,
+            paletteStatus: palettes.status,
             style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
             steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
             angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
@@ -128,6 +141,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
       scoredGrowth,
       goldenCount,
       themedCount,
+      humanCounts,
     ] = await Promise.all([
       db.select().from(runs).orderBy(desc(runs.startedAt)).limit(20),
       db
@@ -181,6 +195,11 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
         .select({ count: sql<number>`count(*)` })
         .from(palettes)
         .where(isNotNull(palettes.themes)),
+      db
+        .select({ label: pairs.humanLabel, count: sql<number>`count(*)` })
+        .from(pairs)
+        .where(isNotNull(pairs.humanLabel))
+        .groupBy(pairs.humanLabel),
     ]);
     return c.json({
       runs: recentRuns,
@@ -193,6 +212,9 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
       },
       goldenCount: goldenCount[0]?.count ?? 0,
       themedCount: themedCount[0]?.count ?? 0,
+      humanCounts: Object.fromEntries(
+        humanCounts.map((r) => [r.label, r.count]),
+      ),
     });
   });
 
@@ -295,6 +317,20 @@ const DASHBOARD_HTML = `<!doctype html>
     color: var(--ink-2); padding: 3px 12px; cursor: pointer; font: inherit; font-size: 12px; }
   .pager button:disabled { opacity: 0.4; cursor: default; }
   .badge-golden { color: var(--warn); font-size: 11px; }
+  .badge-human { color: #b07cd8; font-size: 11px; }
+  .badge-rejected { color: var(--crit); font-size: 11px; }
+  .card .actions { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+  .card .actions button {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--ink-2); font-size: 12px; padding: 2px 8px; cursor: pointer; }
+  .card .actions button:hover { border-color: var(--muted); }
+  .card .actions button:disabled { opacity: 0.4; cursor: default; }
+  .card .actions .act-on { border-color: var(--warn); color: var(--warn); }
+  #rq-panel textarea {
+    width: 100%; min-height: 64px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 7px; color: var(--ink);
+    font: inherit; font-size: 13px; padding: 8px; resize: vertical; }
+  #rq-result { font-size: 12px; color: var(--muted); min-height: 1.2em; margin-top: 6px; }
   #gate { display: none; margin: 60px auto; max-width: 380px; text-align: center; }
   #gate input { width: 100%; margin: 10px 0; padding: 8px 10px; background: var(--surface);
        border: 1px solid var(--border); border-radius: 8px; color: var(--ink); font: inherit; }
@@ -342,6 +378,20 @@ const DASHBOARD_HTML = `<!doctype html>
     <h2>Recent runs</h2>
     <div style="overflow-x:auto"><table id="runs"></table></div>
   </section>
+  <section class="panel" id="rq-panel">
+    <h2>Request queries</h2>
+    <textarea id="rq-text" placeholder="one query per line (max 20) — the generation loop will author palettes for these next, and the judge scores them with priority"></textarea>
+    <div class="filters" style="margin-top:8px; margin-bottom:0">
+      <select id="rq-category">
+        <option value="">category: let it default</option>
+        <option>scene</option><option>mood</option><option>aesthetic</option>
+        <option>color-explicit</option><option>object</option><option>nature</option>
+        <option>abstract</option><option>season-weather-time</option>
+      </select>
+      <button id="rq-submit" type="button">Submit queries</button>
+    </div>
+    <div id="rq-result"></div>
+  </section>
   <section>
     <h2>Explore pairs</h2>
     <div class="filters">
@@ -362,7 +412,13 @@ const DASHBOARD_HTML = `<!doctype html>
       </select>
       <select id="f-source">
         <option value="">any source</option>
-        <option>forward</option><option>caption</option>
+        <option>forward</option><option>caption</option><option>human</option>
+      </select>
+      <select id="f-humanlabel">
+        <option value="">any human label</option>
+        <option value="any">human-labeled</option>
+        <option>golden</option><option>not-golden</option>
+        <option>good</option><option>bad-match</option>
       </select>
       <input type="number" id="f-minscore" placeholder="min ★" min="0" max="10">
       <input type="text" id="f-theme" placeholder="theme…" style="min-width:100px">
@@ -416,6 +472,20 @@ const DASHBOARD_HTML = `<!doctype html>
         return r.json();
       });
   }
+  function apiPost(path, body) {
+    return fetch("/api" + path, {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + key(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }).then(function (r) {
+      if (r.status === 401) throw new Error("unauthorized");
+      if (!r.ok) throw new Error("request failed: " + r.status);
+      return r.json();
+    });
+  }
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, function (ch) {
@@ -448,7 +518,31 @@ const DASHBOARD_HTML = `<!doctype html>
     el.innerHTML = html || '<p class="empty">no data yet</p>';
   }
 
-  function cardHTML(pa) {
+  function actionButton(i, act, label, title, on) {
+    return '<button data-i="' + i + '" data-act="' + act + '" title="' + title +
+      '"' + (on ? ' class="act-on"' : "") + ">" + label + "</button>";
+  }
+
+  function cardActionsHTML(pa, i) {
+    var buttons = "";
+    if (pa.queryId) {
+      buttons += actionButton(i, pa.golden ? "not-golden" : "golden", "★",
+        pa.golden ? "remove gold label" : "gold-label for the eval set", !!pa.golden);
+      buttons += actionButton(i, "good", "👍", "good match (3x training weight)",
+        pa.humanLabel === "good");
+      buttons += actionButton(i, "bad-match", "👎", "bad match (exclude from training)",
+        pa.humanLabel === "bad-match");
+      if (pa.humanLabel) buttons += actionButton(i, "clear", "✕", "clear human label", false);
+    }
+    if (pa.paletteStatus === "rejected") {
+      buttons += actionButton(i, "palette-restore", "↩", "restore this palette", false);
+    } else {
+      buttons += actionButton(i, "palette-reject", "🗑", "reject this palette entirely", false);
+    }
+    return '<div class="actions">' + buttons + "</div>";
+  }
+
+  function cardHTML(pa, i) {
     var stops = (pa.hexStops || []).join(", ");
     var cssAngle = pa.angle == null ? 90 : pa.angle;
     var grad = pa.style && pa.style.indexOf("radial") === 0
@@ -468,14 +562,19 @@ const DASHBOARD_HTML = `<!doctype html>
     var themes = pa.themes && pa.themes.length ? pa.themes.join(", ") : "";
     var scoreColor = pa.score == null ? "var(--muted)" : pa.score >= 7 ? "var(--good)" : pa.score < 4 ? "var(--crit)" : "var(--ink-2)";
     var scoreText = pa.score == null ? "unscored" : pa.score;
+    var badges = "";
+    if (pa.golden) badges += '<span class="badge-golden">★ golden</span>';
+    if (pa.humanLabel) badges += '<span class="badge-human">✋ ' + esc(pa.humanLabel) + "</span>";
+    if (!pa.humanLabel && pa.humanCount) badges += '<span class="badge-human">✋ ' + pa.humanCount + "</span>";
+    if (pa.paletteStatus === "rejected") badges += '<span class="badge-rejected">rejected</span>';
     return '<div class="card"><a class="swatch" style="background:' + grad +
       '" href="' + href + '" target="_blank" rel="noopener" title="open on grabient.com"></a>' +
       '<div class="body"><div class="q" title="' + esc(pa.queryText) + '">' + esc(pa.queryText) + "</div>" +
-      '<div class="row"><span title="' + esc(pres) + '">' + esc(pres) + "</span>" +
-      (pa.golden ? '<span class="badge-golden">★ golden</span>' : "") + "</div>" +
+      '<div class="row"><span title="' + esc(pres) + '">' + esc(pres) + "</span>" + badges + "</div>" +
       (themes ? '<div class="row"><span title="' + esc(themes) + '">' + esc(themes) + "</span></div>" : "") +
       '<div class="row"><span>' + esc(pa.category) + "</span><span>" + esc(pa.verdict || pa.status) + "</span>" +
-      '<span class="score" style="color:' + scoreColor + '">' + esc(scoreText) + "</span></div></div></div>";
+      '<span class="score" style="color:' + scoreColor + '">' + esc(scoreText) + "</span></div>" +
+      cardActionsHTML(pa, i) + "</div></div>";
   }
 
   var GROWTH_SERIES = [
@@ -536,6 +635,10 @@ const DASHBOARD_HTML = `<!doctype html>
       ["Queries", stats.queries, null],
       ["Avg score", stats.avgScore == null ? "—" : Number(stats.avgScore).toFixed(2), "scored pairs only"],
       ["Golden", recent.goldenCount || 0, "curated eval pairs"],
+      ["Human labels", sum(recent.humanCounts || {}),
+        ((recent.humanCounts || {}).golden || 0) + " gold · " +
+        ((recent.humanCounts || {}).good || 0) + " good · " +
+        ((recent.humanCounts || {})["bad-match"] || 0) + " bad"],
       ["Themed", recent.themedCount || 0,
         totalPalettes ? Math.round(((recent.themedCount || 0) / totalPalettes) * 100) + "% of palettes" : null],
       ["Last run", lastRun ? lastRun.mode : "—",
@@ -603,16 +706,22 @@ const DASHBOARD_HTML = `<!doctype html>
     add("source", document.getElementById("f-source").value);
     add("minScore", document.getElementById("f-minscore").value);
     add("theme", document.getElementById("f-theme").value.trim());
+    add("human", document.getElementById("f-humanlabel").value);
     if (document.getElementById("f-golden").checked) add("golden", "1");
     if (document.getElementById("f-group").checked) add("group", "palette");
     add("sort", document.getElementById("f-sort").value);
     params.push("limit=" + EXPLORE_LIMIT, "offset=" + exploreOffset);
     return params.join("&");
   }
+  var exploreRows = [];
+  function renderCards() {
+    document.getElementById("cards").innerHTML =
+      exploreRows.map(cardHTML).join("") || '<p class="empty">nothing matches these filters</p>';
+  }
   function loadExplore() {
     return api("/explore?" + exploreParams()).then(function (res) {
-      document.getElementById("cards").innerHTML =
-        (res.rows || []).map(cardHTML).join("") || '<p class="empty">nothing matches these filters</p>';
+      exploreRows = res.rows || [];
+      renderCards();
       var from = res.total === 0 ? 0 : res.offset + 1;
       var to = Math.min(res.offset + res.limit, res.total);
       document.getElementById("pg-info").textContent = from + "–" + to + " of " + res.total;
@@ -620,6 +729,63 @@ const DASHBOARD_HTML = `<!doctype html>
       document.getElementById("pg-next").disabled = to >= res.total;
     }).catch(function () {});
   }
+
+  document.getElementById("cards").addEventListener("click", function (e) {
+    var btn = e.target.closest ? e.target.closest("button[data-act]") : null;
+    if (!btn) return;
+    var row = exploreRows[Number(btn.getAttribute("data-i"))];
+    var act = btn.getAttribute("data-act");
+    if (!row) return;
+    if (act === "palette-reject" &&
+        !confirm("Reject this palette and all of its pairs?")) return;
+    btn.disabled = true;
+    var done = function () { btn.disabled = false; };
+    if (act === "palette-reject" || act === "palette-restore") {
+      apiPost("/feedback/palette", {
+        seed: row.seed,
+        action: act === "palette-reject" ? "reject" : "restore",
+      }).then(function (res) {
+        exploreRows.forEach(function (r) {
+          if (r.seed === row.seed) r.paletteStatus = res.status;
+        });
+        renderCards();
+      }).catch(function (err) {
+        done();
+        document.getElementById("updated").textContent = "action failed: " + err.message;
+      });
+    } else {
+      apiPost("/feedback/pair", { queryId: row.queryId, seed: row.seed, action: act })
+        .then(function (res) {
+          row.humanLabel = res.humanLabel;
+          row.golden = res.golden ? 1 : 0;
+          renderCards();
+        }).catch(function (err) {
+          done();
+          document.getElementById("updated").textContent = "action failed: " + err.message;
+        });
+    }
+  });
+
+  document.getElementById("rq-submit").addEventListener("click", function () {
+    var lines = document.getElementById("rq-text").value
+      .split("\n").map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 20);
+    if (lines.length === 0) return;
+    var body = { texts: lines };
+    var cat = document.getElementById("rq-category").value;
+    if (cat) body.category = cat;
+    var out = document.getElementById("rq-result");
+    out.textContent = "submitting…";
+    apiPost("/feedback/queries", body).then(function (res) {
+      var inserted = res.results.filter(function (r) { return r.status === "inserted"; }).length;
+      var dup = res.results.filter(function (r) { return r.status === "duplicate"; }).length;
+      out.textContent = inserted + " queued for generation" +
+        (dup ? " · " + dup + " already existed" : "") +
+        " — palettes arrive within a few generation iterations (filter source=human to track)";
+      if (inserted > 0) document.getElementById("rq-text").value = "";
+    }).catch(function (err) {
+      out.textContent = "failed: " + err.message;
+    });
+  });
   document.getElementById("f-apply").addEventListener("click", function () {
     exploreOffset = 0; loadExplore();
   });
