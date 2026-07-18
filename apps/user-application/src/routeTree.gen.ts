@@ -21,6 +21,7 @@ import { Route as PaletteListIndexRouteImport } from './routes/_paletteList/inde
 import { Route as SeedIndexRouteImport } from './routes/$seed/index'
 import { Route as PalettesQueryRouteImport } from './routes/palettes/$query'
 import { Route as ESplatRouteImport } from './routes/e.$'
+import { Route as ApiPngRouteImport } from './routes/api/png'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as PaletteListSavedRouteImport } from './routes/_paletteList/saved'
 import { Route as PaletteListOldestRouteImport } from './routes/_paletteList/oldest'
@@ -89,6 +90,11 @@ const ESplatRoute = ESplatRouteImport.update({
   path: '/e/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPngRoute = ApiPngRouteImport.update({
+  id: '/api/png',
+  path: '/api/png',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOgRoute = ApiOgRouteImport.update({
   id: '/api/og',
   path: '/api/og',
@@ -141,6 +147,7 @@ export interface FileRoutesByFullPath {
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/api/png': typeof ApiPngRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
@@ -161,6 +168,7 @@ export interface FileRoutesByTo {
   '/oldest': typeof PaletteListOldestRoute
   '/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/api/png': typeof ApiPngRoute
   '/e/$': typeof ESplatRoute
   '/$seed': typeof SeedIndexRoute
   '/': typeof PaletteListIndexRoute
@@ -183,6 +191,7 @@ export interface FileRoutesById {
   '/_paletteList/oldest': typeof PaletteListOldestRoute
   '/_paletteList/saved': typeof PaletteListSavedRoute
   '/api/og': typeof ApiOgRouteWithChildren
+  '/api/png': typeof ApiPngRoute
   '/e/$': typeof ESplatRoute
   '/palettes/$query': typeof PalettesQueryRouteWithChildren
   '/$seed/': typeof SeedIndexRoute
@@ -206,6 +215,7 @@ export interface FileRouteTypes {
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/api/png'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -226,6 +236,7 @@ export interface FileRouteTypes {
     | '/oldest'
     | '/saved'
     | '/api/og'
+    | '/api/png'
     | '/e/$'
     | '/$seed'
     | '/'
@@ -247,6 +258,7 @@ export interface FileRouteTypes {
     | '/_paletteList/oldest'
     | '/_paletteList/saved'
     | '/api/og'
+    | '/api/png'
     | '/e/$'
     | '/palettes/$query'
     | '/$seed/'
@@ -267,6 +279,7 @@ export interface RootRouteChildren {
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   ApiOgRoute: typeof ApiOgRouteWithChildren
+  ApiPngRoute: typeof ApiPngRoute
   ESplatRoute: typeof ESplatRoute
   PalettesQueryRoute: typeof PalettesQueryRouteWithChildren
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -357,6 +370,13 @@ declare module '@tanstack/react-router' {
       path: '/e/$'
       fullPath: '/e/$'
       preLoaderRoute: typeof ESplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/png': {
+      id: '/api/png'
+      path: '/api/png'
+      fullPath: '/api/png'
+      preLoaderRoute: typeof ApiPngRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/og': {
@@ -481,6 +501,7 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   ApiOgRoute: ApiOgRouteWithChildren,
+  ApiPngRoute: ApiPngRoute,
   ESplatRoute: ESplatRoute,
   PalettesQueryRoute: PalettesQueryRouteWithChildren,
   SettingsIndexRoute: SettingsIndexRoute,
