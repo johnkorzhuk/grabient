@@ -132,6 +132,13 @@ export const pairs = sqliteTable(
     // filtering - pair status changes are only a judge-queue optimization.
     humanLabel: text("human_label").$type<(typeof HUMAN_LABELS)[number]>(),
     humanAt: integer("human_at"),
+    // Free-model consensus panel votes ([{model, vote}]); unanimous-bad pairs
+    // are auto-rejected before the Opus judge ever sees them, everything else
+    // carries the votes as a hint.
+    triageVotes: text("triage_votes", { mode: "json" }).$type<
+      { model: string; vote: string }[]
+    >(),
+    triagedAt: integer("triaged_at"),
     lockedAt: integer("locked_at"),
     lockedBy: text("locked_by"),
     runId: text("run_id"),
@@ -155,6 +162,12 @@ export const runs = sqliteTable("runs", {
   status: text("status").notNull().default("running"),
   startedAt: integer("started_at").notNull(),
   finishedAt: integer("finished_at"),
+});
+
+/** Small named counters (e.g. daily triage AI-call budget). */
+export const counters = sqliteTable("counters", {
+  key: text("key").primaryKey(),
+  value: integer("value").notNull().default(0),
 });
 
 export const exports = sqliteTable("exports", {

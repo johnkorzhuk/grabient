@@ -12,6 +12,7 @@ import {
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { PALETTE_STYLES } from "@repo/data-ops/valibot-schema/grabient";
 import { splitFor } from "../src/lib/exporter";
+import { decideReject, parseVote } from "../src/lib/triage";
 
 const SAMPLE = [0.5, 0.5, 0.5, 0.3, 0.25, 0.2, 1.0, 0.9, 0.8, 0.0, 0.15, 0.3];
 
@@ -99,6 +100,27 @@ describe("featureVector", () => {
     const b = featureVector(canonicalize(dark).hexStops);
     const dist = Math.sqrt(a.reduce((s, v, i) => s + (v - (b[i] ?? 0)) ** 2, 0));
     expect(dist).toBeGreaterThan(10);
+  });
+});
+
+describe("triage decisions", () => {
+  it("parses the last recognizable keyword and tolerates narration", () => {
+    expect(parseVote("bad")).toBe("bad");
+    expect(parseVote("The colors are warm... overall: plausible")).toBe("plausible");
+    expect(parseVote("<think>bad?</think> good")).toBe("good");
+    expect(parseVote("I cannot answer")).toBe("unparseable");
+  });
+
+  it("rejects only on unanimous parseable bad votes", () => {
+    const vote = (m: string, v: string) => ({ model: m, vote: v }) as never;
+    expect(decideReject([vote("a", "bad"), vote("b", "bad")])).toBe(true);
+    expect(decideReject([vote("a", "bad"), vote("b", "plausible")])).toBe(false);
+    expect(decideReject([vote("a", "bad"), vote("b", "good")])).toBe(false);
+    expect(decideReject([vote("a", "bad"), vote("b", "unparseable")])).toBe(false);
+    expect(decideReject([vote("a", "bad")])).toBe(false);
+    expect(
+      decideReject([vote("a", "bad"), vote("b", "bad"), vote("c", "bad")]),
+    ).toBe(true);
   });
 });
 

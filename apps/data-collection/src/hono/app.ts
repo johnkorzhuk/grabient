@@ -5,6 +5,7 @@ import { captionRoutes } from "./routes/caption";
 import { judgeRoutes } from "./routes/judge";
 import { metaRoutes } from "./routes/meta";
 import { feedbackRoutes } from "./routes/feedback";
+import { triageRoutes } from "./routes/triage";
 import { dashboardApiRoutes, dashboardPage } from "./routes/dashboard";
 
 export const app = new Hono<{ Bindings: Env }>();
@@ -31,6 +32,7 @@ app.route("/api/judge", judgeRoutes);
 app.route("/api", metaRoutes);
 app.route("/api", dashboardApiRoutes);
 app.route("/api/feedback", feedbackRoutes);
+app.route("/api/triage", triageRoutes);
 
 app.onError((err, c) => {
   console.error("unhandled error", err);

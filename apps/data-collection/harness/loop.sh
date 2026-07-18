@@ -159,6 +159,18 @@ while true; do
   # the cost of a long opus session dying mid-run.
   render_dir=""
   if [ "$mode" = "judge" ] || [ "$mode" = "audit" ]; then
+    # Free-model consensus triage pre-cleans the queue (auto-rejects
+    # unanimous-bad pairs) so opus tokens go to pairs worth judging. Two
+    # batches per iteration; failures and budget exhaustion are silent
+    # no-ops - the judge just sees the queue as-is.
+    if [ "$mode" = "judge" ]; then
+      for _ in 1 2; do
+        curl -sf -X POST -H "Authorization: Bearer $DC_API_KEY" \
+          -H "Content-Type: application/json" -d '{}' \
+          "$DC_API_URL/api/triage/run" >>"$log_file" 2>&1 || true
+        echo >>"$log_file"
+      done
+    fi
     render_limit=24
     [ "$mode" = "judge" ] && render_limit=30
     render_dir="harness/renders/$run_id"

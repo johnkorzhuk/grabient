@@ -43,6 +43,11 @@ judging) against a Cloudflare Worker that owns all state:
   ≈ 6.6 with zero drift across the whole run (audited).
 - **Audit**: blind re-judging of random samples; promotes twice-confirmed
   pairs to the **golden** eval set; rejects slip-through bad palettes.
+- **Triage** (added 2026-07-18): a panel of free Workers AI models
+  pre-screens pending pairs; unanimous-"bad" pairs are auto-rejected
+  (`judge_notes` prefixed `triage:`, status `rejected` — they never reach
+  any export). Non-rejected pairs may carry `triage_votes` as metadata; it
+  is not exported and the Opus judge treats it as a weak hint only.
 - **Dedup**: three-tier (exact seed / Vectorize kNN over LAB features / exact
   avg-deltaE rescore, threshold 8). A Vectorize async-indexing race let ~2.5%
   near-dups in before 2026-07-18 ~12:30; those were swept (status

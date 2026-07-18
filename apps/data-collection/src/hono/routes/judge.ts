@@ -52,6 +52,7 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
         style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
         steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
         angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
+        triageVotes: pairs.triageVotes,
       })
       .from(pairs)
       .innerJoin(queries, eq(pairs.queryId, queries.id))

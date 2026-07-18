@@ -15,6 +15,11 @@ passed as `render_dir=<dir>` in your invocation (fallback:
 If `queue.json` is missing or empty, lease and work text-only via
 `POST /api/judge/lease` (hexStops + tags are enough in a pinch).
 
+Some pairs carry `triageVotes` — votes from a panel of small free models
+that pre-screened the queue. Treat them as a WEAK HINT at most: your eyes on
+the rendered gradient outrank the panel every time, and you must never
+lower a score merely because the panel leaned negative.
+
 ## Procedure
 
 1. Read `queue.json`, then Read each PNG and look at the actual gradients.
