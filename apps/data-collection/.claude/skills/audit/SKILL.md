@@ -22,6 +22,12 @@ The loop has pre-rendered a random scored sample into the directory passed as
    - mean drift (your mean − stored mean)
    - pairs where |your score − stored| ≥ 3
    - pairs you'd call `bad-palette` that are currently approved
+   - **per-judge-model split**: rows carry `storedJudgeModel` ("sonnet" =
+     easy-tier judge, "opus"/null = main judge). Report mean drift and the
+     ≥3-disagreement rate separately for sonnet-judged rows. If sonnet rows
+     show |mean drift| > 1.0 or a ≥3-disagreement rate above ~10% (and the
+     opus rows don't), say PROMINENTLY that the easy tier is miscalibrated
+     and the judge-easy loop should be paused pending a rubric fix.
 4. For any pair you scored `bad-palette`, submit the correction via
    `POST /api/judge/submit` with your score/verdict/notes and the invocation
    `run_id` as `runId` (this rejects the palette). Do NOT resubmit ordinary

@@ -20,6 +20,13 @@ that pre-screened the queue. Treat them as a WEAK HINT at most: your eyes on
 the rendered gradient outrank the panel every time, and you must never
 lower a score merely because the panel leaned negative.
 
+Your invocation may include `tier=easy|hard` and `judge_model=<model>`.
+`tier=easy` means every pair in this queue was voted unanimously "good" by
+the triage panel — that is why a faster model is judging them. It changes
+NOTHING about the rubric: score independently, use the whole scale, and if
+a pair is actually bad, say so — unanimous panel approval has been wrong
+before and catching that is exactly your job.
+
 ## Procedure
 
 1. Read `queue.json`, then Read each PNG and look at the actual gradients.
@@ -48,5 +55,7 @@ lower a score merely because the panel leaned negative.
 4. Keep notes short and machine-readable, e.g. "too warm for 'arctic'",
    "clips to white at t>0.8".
 5. Submit all results in one `POST /api/judge/submit` (batch ≤ 50), passing the
-   `run_id` you were invoked with as `runId`.
+   `run_id` you were invoked with as `runId`. If your invocation included
+   `judge_model=<model>`, include it as `judgeModel` in the body (this is how
+   audit measures per-model agreement — never omit or misstate it).
 6. Print the summary line: pairs scored, score histogram, bad-palette count.

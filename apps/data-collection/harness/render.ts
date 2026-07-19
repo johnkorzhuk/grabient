@@ -30,6 +30,7 @@ function argValue(flag: string): string | undefined {
 const mode = argValue("--mode") ?? "judge";
 const runId = argValue("--run-id") ?? `render-${Date.now()}`;
 const limit = Number(argValue("--limit") ?? 24);
+const tier = argValue("--tier");
 // Parallel judge loops must not share a render dir (buildStrips wipes its
 // out-dir first) - loop.sh passes a per-run dir.
 const outDir = argValue("--out-dir") ?? join("harness", "renders", mode);
@@ -39,6 +40,8 @@ interface QueuePair extends StripRow {
   queryText: string;
   tags: string[];
   storedScore?: number | null;
+  storedVerdict?: string | null;
+  storedJudgeModel?: string | null;
 }
 
 async function fetchQueue(): Promise<QueuePair[]> {
@@ -52,7 +55,10 @@ async function fetchQueue(): Promise<QueuePair[]> {
       Authorization: `Bearer ${API_KEY}`,
       "Content-Type": "application/json",
     },
-    body: mode === "audit" ? undefined : JSON.stringify({ runId, limit }),
+    body:
+      mode === "audit"
+        ? undefined
+        : JSON.stringify({ runId, limit, ...(tier ? { tier } : {}) }),
   });
   if (!res.ok) throw new Error(`queue fetch failed: ${res.status}`);
   const data = (await res.json()) as { pairs: QueuePair[] };
@@ -64,17 +70,24 @@ async function main() {
 
   const { siteRendered } = await buildStrips(queue, outDir);
 
-  // Blind judging: strip stored scores from what the judge sees.
-  const publicQueue = queue.map(({ storedScore: _s, ...rest }, i) => ({
-    index: i,
-    ...rest,
-  }));
+  // Blind judging: strip ALL stored-* fields from what the judge sees.
+  const publicQueue = queue.map(
+    ({ storedScore: _s, storedVerdict: _v, storedJudgeModel: _m, ...rest }, i) => ({
+      index: i,
+      ...rest,
+    }),
+  );
   writeQueue(outDir, publicQueue);
   if (mode === "audit") {
     writeFileSync(
       join(outDir, "stored-scores.json"),
       JSON.stringify(
-        queue.map((p, i) => ({ index: i, storedScore: p.storedScore ?? null })),
+        queue.map((p, i) => ({
+          index: i,
+          storedScore: p.storedScore ?? null,
+          storedVerdict: p.storedVerdict ?? null,
+          storedJudgeModel: p.storedJudgeModel ?? null,
+        })),
         null,
         2,
       ),

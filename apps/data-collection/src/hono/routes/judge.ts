@@ -10,7 +10,22 @@ export const APPROVE_SCORE = 7;
 const leaseBodySchema = v.object({
   runId: v.nullish(v.string()),
   limit: v.optional(v.pipe(v.number(), v.minValue(1), v.maxValue(50))),
+  // Tiered judging: "easy" = triage panel voted unanimously "good" (sonnet
+  // handles these); "hard" = everything else, with easy-eligible pairs
+  // ordered last as a fallback so they never starve if the easy loop is
+  // down. Omitted = legacy untiered behavior.
+  tier: v.optional(v.picklist(["easy", "hard"])),
 });
+
+/** Every triage seat voted "good" — no dissent, no unparseable, ≥2 votes. */
+const UNANIMOUS_GOOD = sql`(
+  ${pairs.triageVotes} is not null
+  and json_array_length(${pairs.triageVotes}) >= 2
+  and not exists (
+    select 1 from json_each(${pairs.triageVotes})
+    where json_extract(json_each.value, '$.vote') != 'good'
+  )
+)`;
 
 const submitBodySchema = v.object({
   runId: v.nullish(v.string()),
@@ -28,6 +43,7 @@ const submitBodySchema = v.object({
     v.minLength(1),
     v.maxLength(50),
   ),
+  judgeModel: v.optional(v.picklist(["opus", "sonnet"])),
 });
 
 export const judgeRoutes = new Hono<{ Bindings: Env }>()
@@ -62,10 +78,17 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
           eq(pairs.status, "pending"),
           sql`${palettes.status} != 'rejected'`,
           or(isNull(pairs.lockedAt), lt(pairs.lockedAt, cutoff)),
+          ...(body.output.tier === "easy" ? [UNANIMOUS_GOOD] : []),
         ),
       )
       // Owner-requested queries jump the queue so their results land fast.
-      .orderBy(desc(sql`${queries.source} = 'human'`), asc(pairs.createdAt))
+      // Hard tier pushes easy-eligible pairs to the back instead of
+      // excluding them: opus still drains them if the easy loop is down.
+      .orderBy(
+        desc(sql`${queries.source} = 'human'`),
+        ...(body.output.tier === "hard" ? [asc(UNANIMOUS_GOOD)] : []),
+        asc(pairs.createdAt),
+      )
       .limit(limit);
 
     const now = Date.now();
@@ -97,6 +120,9 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
           verdict: result.verdict,
           ambiguity: result.ambiguity ?? null,
           judgeNotes: result.notes ?? null,
+          // Only overwrite attribution when the caller states it (audit
+          // corrections omit it and must keep the original).
+          ...(body.output.judgeModel ? { judgeModel: body.output.judgeModel } : {}),
           judgedAt: now,
           lockedAt: null,
           lockedBy: null,
@@ -176,28 +202,49 @@ export const judgeRoutes = new Hono<{ Bindings: Env }>()
     return c.json({ promoted, submitted: body.output.pairs.length });
   })
   // Random already-scored sample for the audit skill to re-judge blind.
+  // Oversamples sonnet-judged pairs (up to half the sample) so the easy
+  // tier's agreement with the opus rubric is measured continuously.
   .get("/audit/sample", async (c) => {
     const n = Math.min(50, Number(c.req.query("n") ?? 20));
     const db = drizzle(c.env.DB);
-    const rows = await db
-      .select({
-        queryId: pairs.queryId,
-        seed: pairs.paletteSeed,
-        queryText: queries.text,
-        coeffs: palettes.coeffs,
-        hexStops: palettes.hexStops,
-        tags: palettes.tags,
-        style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
-        steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
-        angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
-        storedScore: pairs.score,
-        storedVerdict: pairs.verdict,
-      })
+    const sampleSelect = {
+      queryId: pairs.queryId,
+      seed: pairs.paletteSeed,
+      queryText: queries.text,
+      coeffs: palettes.coeffs,
+      hexStops: palettes.hexStops,
+      tags: palettes.tags,
+      style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
+      steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
+      angle: sql<number | null>`coalesce(${pairs.angleOverride}, ${palettes.angle})`,
+      storedScore: pairs.score,
+      storedVerdict: pairs.verdict,
+      storedJudgeModel: pairs.judgeModel,
+    };
+    const sonnetRows = await db
+      .select(sampleSelect)
       .from(pairs)
       .innerJoin(queries, eq(pairs.queryId, queries.id))
       .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed))
-      .where(eq(pairs.status, "scored"))
+      .where(and(eq(pairs.status, "scored"), eq(pairs.judgeModel, "sonnet")))
       .orderBy(sql`random()`)
-      .limit(n);
+      .limit(Math.ceil(n / 2));
+    const restRows = await db
+      .select(sampleSelect)
+      .from(pairs)
+      .innerJoin(queries, eq(pairs.queryId, queries.id))
+      .innerJoin(palettes, eq(pairs.paletteSeed, palettes.seed))
+      .where(
+        and(
+          eq(pairs.status, "scored"),
+          or(isNull(pairs.judgeModel), sql`${pairs.judgeModel} != 'sonnet'`),
+        ),
+      )
+      .orderBy(sql`random()`)
+      .limit(n - sonnetRows.length);
+    // Interleave-free shuffle so sonnet rows aren't a recognizable block.
+    const rows = [...sonnetRows, ...restRows].sort(
+      (a, b) => (a.seed < b.seed ? -1 : 1),
+    );
     return c.json({ pairs: rows });
   });

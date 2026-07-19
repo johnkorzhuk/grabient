@@ -90,6 +90,20 @@ while true; do
         continue
       fi
       ;;
+    judge-easy)
+      # Sonnet judge for the easy tier ONLY: pairs the free-model triage
+      # panel voted unanimously "good". Never audits (audit is the opus
+      # loop's quality control), never runs opus, so it does not violate the
+      # one-opus-judge rule. The render step leases with tier=easy; if the
+      # easy queue is empty the iteration is skipped before any claude spend.
+      if [ "$pending" -gt 0 ]; then
+        mode="judge"
+      else
+        echo "[$(date +%H:%M:%S)] judge-easy idle (pending: 0); sleeping ${JUDGE_IDLE_SLEEP}s"
+        sleep "$JUDGE_IDLE_SLEEP"
+        continue
+      fi
+      ;;
     generate)
       # Volume loop: never judges (a judge-role loop handles that). Backs off
       # when the judge queue is deep - unscored pairs are inventory, not
@@ -131,6 +145,18 @@ while true; do
     judge|audit) model="opus"   ;;
     *)           model="sonnet" ;;
   esac
+  # Tiered judging: the judge-easy role judges on sonnet, restricted to the
+  # triage-unanimous-good tier; the opus judge takes tier=hard (easy pairs
+  # ordered last as fallback, never excluded).
+  judge_tier=""
+  if [ "$mode" = "judge" ]; then
+    if [ "$LOOP_ROLE" = "judge-easy" ]; then
+      model="sonnet"
+      judge_tier="easy"
+    else
+      judge_tier="hard"
+    fi
+  fi
   max_turns=50
 
   # Decorrelate generation: fresh contexts given identical prompts converge on
@@ -140,10 +166,17 @@ while true; do
   if [ "$mode" = "generate-forward" ] && [ -s harness/themes.txt ]; then
     focus="$(shuf -n2 harness/themes.txt | paste -sd'|')"
   fi
+  # Second decorrelation channel: an angle of approach from the query-space
+  # map (scheme, vocabulary level, profession, movement, era, region). Rare
+  # schemes are weighted by line duplication in lenses.txt.
+  lens=""
+  if [ "$mode" = "generate-forward" ] && [ -s harness/lenses.txt ]; then
+    lens="$(shuf -n1 harness/lenses.txt)"
+  fi
 
   run_id="$(date +%Y%m%d-%H%M%S)-$$-$mode"
   log_file="$LOG_DIR/$run_id.log"
-  echo "[$(date +%H:%M:%S)] iteration $iteration mode=$mode model=$model run=$run_id (pending pairs: $pending)${focus:+ focus='$focus'}"
+  echo "[$(date +%H:%M:%S)] iteration $iteration mode=$mode model=$model run=$run_id (pending pairs: $pending)${focus:+ focus='$focus'}${lens:+ lens='$lens'}"
 
   curl -sf -X POST -H "Authorization: Bearer $DC_API_KEY" -H "Content-Type: application/json" \
     -d "{\"id\":\"$run_id\",\"mode\":\"$mode\"}" "$DC_API_URL/api/runs" >/dev/null || true
@@ -164,7 +197,11 @@ while true; do
     # batches per iteration; failures and budget exhaustion are silent
     # no-ops - the judge just sees the queue as-is.
     if [ "$mode" = "judge" ]; then
-      for _ in 1 2; do
+      # Opus judge feeds triage harder (2 batches) than the easy loop (1) -
+      # the shared daily cap is fail-closed either way.
+      triage_batches="1 2"
+      [ "$judge_tier" = "easy" ] && triage_batches="1"
+      for _ in $triage_batches; do
         curl -sf -X POST -H "Authorization: Bearer $DC_API_KEY" \
           -H "Content-Type: application/json" -d '{}' \
           "$DC_API_URL/api/triage/run" >>"$log_file" 2>&1 || true
@@ -172,12 +209,22 @@ while true; do
       done
     fi
     render_limit=24
-    [ "$mode" = "judge" ] && render_limit=30
+    [ "$mode" = "judge" ] && render_limit=40
     render_dir="harness/renders/$run_id"
-    npx tsx harness/render.ts --mode "$mode" --run-id "$run_id" --limit "$render_limit" --out-dir "$render_dir" >>"$log_file" 2>&1 || true
+    npx tsx harness/render.ts --mode "$mode" --run-id "$run_id" --limit "$render_limit" --out-dir "$render_dir" ${judge_tier:+--tier "$judge_tier"} >>"$log_file" 2>&1 || true
+    # An empty queue (e.g. no easy-tier pairs right now) is not worth a
+    # claude session: mark the run done and idle instead.
+    queued=$(python3 -c "import json;print(len(json.load(open('$render_dir/queue.json'))))" 2>/dev/null || echo 0)
+    if [ "$mode" = "judge" ] && [ "$queued" = "0" ]; then
+      curl -sf -X PATCH -H "Authorization: Bearer $DC_API_KEY" -H "Content-Type: application/json" \
+        -d '{"status":"done"}' "$DC_API_URL/api/runs/$run_id" >/dev/null || true
+      echo "[$(date +%H:%M:%S)] $LOOP_ROLE: empty queue for tier=${judge_tier:-any}; sleeping ${JUDGE_IDLE_SLEEP}s"
+      sleep "$JUDGE_IDLE_SLEEP"
+      continue
+    fi
   fi
 
-  if timeout "$ITERATION_TIMEOUT" claude -p "/$mode run_id=$run_id${render_dir:+ render_dir=$render_dir}${focus:+ focus=\"$focus\"}" \
+  if timeout "$ITERATION_TIMEOUT" claude -p "/$mode run_id=$run_id${render_dir:+ render_dir=$render_dir}${judge_tier:+ tier=$judge_tier judge_model=$model}${focus:+ focus=\"$focus\"}${lens:+ lens=\"$lens\"}" \
     --model "$model" \
     --allowedTools "Bash(curl:*),Bash(harness/dc-api.sh:*),Bash(bash harness/dc-api.sh:*),Bash(./harness/dc-api.sh:*),Bash(npx tsx harness/*),Read" \
     --max-turns "$max_turns" >>"$log_file" 2>&1; then
