@@ -281,14 +281,14 @@ export const Route = createFileRoute("/api/og")({
                         }
                     }
 
-                    // 6. Logo placement in the bottom-right corner.
+                    // 6. Logo placement in the top-left corner.
                     // Unscaled logo bounds: 220 wide, 50 tall (underline included)
                     const logoScale = 1.3;
                     const logoMargin = 32;
                     const logoWidth = 220 * logoScale;
                     const logoHeight = 50 * logoScale;
-                    const logoX = width - logoWidth - logoMargin;
-                    const logoY = height - logoHeight - logoMargin;
+                    const logoX = logoMargin;
+                    const logoY = logoMargin;
 
                     // 7. Sample the rendered gradient under the logo and pick
                     // black or white for legibility on that specific area
@@ -312,7 +312,7 @@ export const Route = createFileRoute("/api/og")({
                         .join("");
 
                     // 9. Compose the final SVG: full-bleed gradient with the
-                    // logo painted bottom-right
+                    // logo painted top-left
                     const fullSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
         <defs>
             <linearGradient x1="0%" y1="0%" x2="100%" y2="0%" id="logoGradient">
