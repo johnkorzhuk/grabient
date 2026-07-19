@@ -13,6 +13,27 @@ import {
   QUERY_SOURCES,
   VERDICTS,
 } from "@/db/schema";
+import { previewCss } from "@/lib/features";
+
+/** Attach the true-render CSS to a card row; empty string falls back to the
+ * client-side hexStops approximation for malformed historical coeffs. */
+function withPreviewCss<
+  T extends {
+    coeffs: number[];
+    style: string | null;
+    steps: number | null;
+    angle: number | null;
+  },
+>(row: T): Omit<T, "coeffs"> & { previewCss: string } {
+  const { coeffs, ...rest } = row;
+  let css = "";
+  try {
+    css = previewCss(coeffs, row.style, row.steps, row.angle);
+  } catch {
+    // fall through to the client-side approximation
+  }
+  return { ...rest, previewCss: css };
+}
 
 const HOUR_BUCKET = (col: unknown) =>
   sql<string>`strftime('%Y-%m-%dT%H:00', ${col} / 1000, 'unixepoch')`;
@@ -188,6 +209,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
             category: sql<string>`cast(count(*) as text) || ' queries'`,
             seed: palettes.seed,
             hexStops: palettes.hexStops,
+            coeffs: palettes.coeffs,
             themes: palettes.themes,
             score: sql<number | null>`round(avg(${pairs.score}), 1)`,
             verdict: sql<string | null>`null`,
@@ -214,6 +236,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
             category: queries.category,
             seed: palettes.seed,
             hexStops: palettes.hexStops,
+            coeffs: palettes.coeffs,
             themes: palettes.themes,
             score: pairs.score,
             verdict: pairs.verdict,
@@ -250,7 +273,12 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
         .offset(offset),
       where ? countQuery.where(where) : countQuery,
     ]);
-    return c.json({ total: total[0]?.count ?? 0, limit, offset, rows });
+    return c.json({
+      total: total[0]?.count ?? 0,
+      limit,
+      offset,
+      rows: rows.map(withPreviewCss),
+    });
   })
   .get("/recent", async (c) => {
     const db = drizzle(c.env.DB);
@@ -272,6 +300,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
           category: queries.category,
           seed: palettes.seed,
           hexStops: palettes.hexStops,
+          coeffs: palettes.coeffs,
           paletteStatus: palettes.status,
           style: sql<string | null>`coalesce(${pairs.styleOverride}, ${palettes.style})`,
           steps: sql<number | null>`coalesce(${pairs.stepsOverride}, ${palettes.steps})`,
@@ -325,7 +354,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
     ]);
     return c.json({
       runs: recentRuns,
-      pairs: recentPairs,
+      pairs: recentPairs.map(withPreviewCss),
       histogram,
       growth: {
         palettes: paletteGrowth,
@@ -693,11 +722,12 @@ const DASHBOARD_HTML = `<!doctype html>
   function cardHTML(pa, i) {
     var stops = (pa.hexStops || []).join(", ");
     var cssAngle = pa.angle == null ? 90 : pa.angle;
-    var grad = pa.style && pa.style.indexOf("radial") === 0
-      ? "radial-gradient(circle, " + stops + ")"
-      : pa.style && pa.style.indexOf("angular") === 0
-        ? "conic-gradient(from " + cssAngle + "deg, " + stops + ")"
-        : "linear-gradient(" + cssAngle + "deg, " + stops + ")";
+    var grad = pa.previewCss ||
+      (pa.style && pa.style.indexOf("radial") === 0
+        ? "radial-gradient(circle, " + stops + ")"
+        : pa.style && pa.style.indexOf("angular") === 0
+          ? "conic-gradient(from " + cssAngle + "deg, " + stops + ")"
+          : "linear-gradient(" + cssAngle + "deg, " + stops + ")");
     var params = [];
     if (pa.style) params.push("style=" + pa.style);
     if (pa.angle != null) params.push("angle=" + pa.angle);

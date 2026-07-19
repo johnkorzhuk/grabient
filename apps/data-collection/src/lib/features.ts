@@ -12,7 +12,13 @@ import {
   type CosineCoeffs,
   type PaletteAngle,
 } from "@repo/data-ops/gradient-gen";
-import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
+import { generateCssGradient } from "@repo/data-ops/gradient-gen/css";
+import {
+  DEFAULT_ANGLE,
+  DEFAULT_STEPS,
+  DEFAULT_STYLE,
+  type PaletteStyle,
+} from "@repo/data-ops/valibot-schema/grabient";
 import { computeLabSamples } from "@repo/data-ops/similarity";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import {
@@ -52,6 +58,30 @@ export function toFlat12(coeffs: CosineCoeffs): number[] {
 
 export function round3(n: number): number {
   return Number(n.toFixed(COEFF_PRECISION));
+}
+
+/**
+ * CSS background for a palette exactly as grabient.com renders it: colors
+ * sampled from the cosine coeffs at the pair's step count, styled by the
+ * shared generateCssGradient (hard bands for swatch styles, smooth blends
+ * for gradient styles). The stored 8-stop hexStops preview is NOT this —
+ * it ignores steps and style entirely.
+ */
+export function previewCss(
+  flat12: number[],
+  style: string | null,
+  steps: number | null,
+  angle: number | null,
+): string {
+  const coeffs = toCosineCoeffs(flat12);
+  const n = Math.max(2, Math.min(50, steps ?? DEFAULT_STEPS));
+  const hex = cosineGradient(n, coeffs).map(([r, g, b]) => rgbToHex(r, g, b));
+  return generateCssGradient(
+    hex,
+    (style ?? DEFAULT_STYLE) as PaletteStyle,
+    angle ?? DEFAULT_ANGLE,
+    { seed: "", searchString: "" },
+  ).gradientString;
 }
 
 export interface CanonicalPalette {
