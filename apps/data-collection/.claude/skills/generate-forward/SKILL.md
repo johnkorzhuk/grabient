@@ -16,9 +16,10 @@ real search.
 
 **Wildcard mandate**: 1–2 queries per iteration must be deliberately unusual —
 a niche subculture, an obscure material, a sensation, a specific unglamorous
-place ("hospital vending machine at 3am"), a wrong-but-evocative color pairing.
-The safe center of query-space fills itself; the edges only get covered on
-purpose. Same bar applies: a real person could plausibly type it.
+place, a wrong-but-evocative color pairing. The safe center of query-space
+fills itself; the edges only get covered on purpose. Same bar applies: a real
+person could plausibly type it. Invent these fresh each iteration — never
+reuse, paraphrase, or riff on any example phrase from this file in query text.
 
 ## Procedure
 
