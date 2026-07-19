@@ -3,4 +3,4 @@
 // param — the Cloudflare CDN edge cache and social crawlers (Telegram,
 // Twitter, Discord) cache by full URL, so a KV-only bump keeps serving stale
 // PNGs from those layers.
-export const OG_RENDER_VERSION = 6;
+export const OG_RENDER_VERSION = 7;
