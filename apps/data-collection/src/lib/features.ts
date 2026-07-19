@@ -13,6 +13,7 @@ import {
   type PaletteAngle,
 } from "@repo/data-ops/gradient-gen";
 import { generateCssGradient } from "@repo/data-ops/gradient-gen/css";
+import { detectHarmonies, type HarmonyType } from "@repo/data-ops/harmony";
 import {
   DEFAULT_ANGLE,
   DEFAULT_STEPS,
@@ -26,6 +27,31 @@ import {
   DEFAULT_GLOBALS,
   COEFF_PRECISION,
 } from "@repo/data-ops/valibot-schema/coeffs";
+
+/** Color-theory relationships detected from rendered stops (OkLCh hue
+ * angles, data-ops detectHarmonies). Stored in palettes.tags alongside the
+ * coefficient-derived visual tags so coverage can steer toward rare schemes. */
+export const HARMONY_TAGS = [
+  "monochromatic",
+  "analogous",
+  "complementary",
+  "split-complementary",
+  "triadic",
+  "tetradic",
+] as const satisfies readonly HarmonyType[];
+
+export function harmonyTags(hexStops: string[]): string[] {
+  return detectHarmonies(hexStops).map((h) => h.type);
+}
+
+/** Full tag rewrite from stored columns — used by the harmony backfill.
+ * Mirrors what canonicalize() derives for new palettes; idempotent. */
+export function recomputeTags(flat12: number[], hexStops: string[]): string[] {
+  return [
+    ...tagsToArray(analyzeCoefficients(toCosineCoeffs(flat12))),
+    ...harmonyTags(hexStops),
+  ];
+}
 
 export const HEX_STOP_COUNT = 8;
 export const FEATURE_SAMPLE_POINTS = 8;
@@ -162,7 +188,7 @@ export function canonicalize(flat12: number[]): CanonicalPalette {
     coeffs,
     flat12: roundedFlat,
     hexStops,
-    tags: tagsToArray(analyzeCoefficients(coeffs)),
+    tags: [...tagsToArray(analyzeCoefficients(coeffs)), ...harmonyTags(hexStops)],
     brightness: calculateAverageBrightness(hexStops),
     contrast: calculateContrast(hexStops),
     style: presentation.style,

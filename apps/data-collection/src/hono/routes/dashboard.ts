@@ -51,6 +51,7 @@ export const READINESS_TARGETS = {
   dpo: 1500,
   headTermPct: 8,
   nonEnglishPct: 5,
+  colorTheoryPct: 5,
 } as const;
 
 export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
@@ -63,6 +64,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
       goldenQ,
       queryStats,
       sourceCounts,
+      judgeModelCounts,
       triageStats,
       triageBudget,
       humanRequests,
@@ -107,12 +109,21 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
           nonEnglish: sql<number>`sum(case when ${queries.text} glob '*[^ -~]*' then 1 else 0 end)`,
           emoji: sql<number>`sum(case when ${queries.styleHint} = 'emoji' then 1 else 0 end)`,
           transitions: sql<number>`sum(case when ${queries.text} like '% into %' or ${queries.text} like '%fading%' or ${queries.text} like '%drifting%' or ${queries.text} like '%melting%' then 1 else 0 end)`,
+          colorTheory: sql<number>`sum(case when ${queries.category} = 'color-theory' then 1 else 0 end)`,
         })
         .from(queries),
       db
         .select({ source: queries.source, n: sql<number>`count(*)` })
         .from(queries)
         .groupBy(queries.source),
+      db
+        .select({
+          model: sql<string>`coalesce(${pairs.judgeModel}, 'opus')`,
+          n: sql<number>`count(*)`,
+        })
+        .from(pairs)
+        .where(eq(pairs.status, "scored"))
+        .groupBy(sql`coalesce(${pairs.judgeModel}, 'opus')`),
       db
         .select({
           triaged: sql<number>`count(*)`,
@@ -146,6 +157,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
         dpo: dpo[0]?.n ?? 0,
         headTermPct: qs.total ? (100 * (qs.headTerms ?? 0)) / qs.total : 0,
         nonEnglishPct: qs.total ? (100 * (qs.nonEnglish ?? 0)) / qs.total : 0,
+        colorTheoryPct: qs.total ? (100 * (qs.colorTheory ?? 0)) / qs.total : 0,
         targets: READINESS_TARGETS,
       },
       corpus: {
@@ -153,6 +165,7 @@ export const dashboardApiRoutes = new Hono<{ Bindings: Env }>()
         emoji: qs.emoji ?? 0,
         transitionPct: qs.total ? (100 * (qs.transitions ?? 0)) / qs.total : 0,
         sources: src,
+        judgedBy: Object.fromEntries(judgeModelCounts.map((r) => [r.model, r.n])),
       },
       triage: {
         callsToday: triageBudget[0]?.value ?? 0,
@@ -544,6 +557,8 @@ const DASHBOARD_HTML = `<!doctype html>
       <div class="gaps" id="gaps"></div>
       <h2 style="margin-top:16px">Query categories</h2>
       <div id="cats"></div>
+      <h2 style="margin-top:16px">Harmony coverage (palette tags)</h2>
+      <div id="harmony"></div>
     </section>
   </div>
   <div class="cols">
@@ -563,6 +578,7 @@ const DASHBOARD_HTML = `<!doctype html>
         <option>scene</option><option>mood</option><option>aesthetic</option>
         <option>color-explicit</option><option>object</option><option>nature</option>
         <option>abstract</option><option>season-weather-time</option>
+        <option>color-theory</option>
       </select>
       <button id="rq-submit" type="button">Submit queries</button>
     </div>
@@ -578,6 +594,7 @@ const DASHBOARD_HTML = `<!doctype html>
         <option>scene</option><option>mood</option><option>aesthetic</option>
         <option>color-explicit</option><option>object</option><option>nature</option>
         <option>abstract</option><option>season-weather-time</option>
+        <option>color-theory</option>
       </select>
       <select id="f-status">
         <option value="">any status</option>
@@ -778,7 +795,8 @@ const DASHBOARD_HTML = `<!doctype html>
       gateRow("Golden eval", r.golden, t.golden, false) +
       gateRow("DPO pairs", r.dpo, t.dpo, false) +
       gateRow("Head terms", r.headTermPct, t.headTermPct, true) +
-      gateRow("Non-English", r.nonEnglishPct, t.nonEnglishPct, true);
+      gateRow("Non-English", r.nonEnglishPct, t.nonEnglishPct, true) +
+      gateRow("Color theory", r.colorTheoryPct || 0, t.colorTheoryPct || 5, true);
 
     var c = h.corpus, tr = h.triage;
     var ratio = (c.sources.caption || 0) && (c.sources.forward || 0)
@@ -796,6 +814,8 @@ const DASHBOARD_HTML = `<!doctype html>
         c.transitionPct > 20) +
       hrow("Caption : forward ratio", ratio + " (target ~3:1)", false) +
       hrow("Emoji queries", c.emoji, false) +
+      hrow("Scored by opus : sonnet (easy tier)",
+        ((c.judgedBy || {}).opus || 0) + " : " + ((c.judgedBy || {}).sonnet || 0), false) +
       hrow("Owner requests pending",
         (h.humanRequests || []).filter(function (q) { return q.scored === 0; }).length,
         false);
@@ -910,6 +930,9 @@ const DASHBOARD_HTML = `<!doctype html>
 
     var cats = Object.entries(coverage.queryCategoryCounts || {});
     hbars(document.getElementById("cats"), cats, Math.max.apply(null, [1].concat(cats.map(function (c) { return c[1]; }))));
+    var HARMONIES = ["monochromatic", "analogous", "complementary", "split-complementary", "triadic", "tetradic"];
+    var harm = HARMONIES.map(function (name) { return [name, (coverage.tagHistogram || {})[name] || 0]; });
+    hbars(document.getElementById("harmony"), harm, Math.max.apply(null, [1].concat(harm.map(function (c) { return c[1]; }))));
     var br = Object.entries(coverage.brightnessBands || {});
     hbars(document.getElementById("bright"), br, Math.max.apply(null, [1].concat(br.map(function (c) { return c[1]; }))));
     var co = Object.entries(coverage.contrastBands || {});

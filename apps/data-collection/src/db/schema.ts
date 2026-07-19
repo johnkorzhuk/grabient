@@ -25,6 +25,7 @@ export const QUERY_CATEGORIES = [
   "nature",
   "abstract",
   "season-weather-time",
+  "color-theory",
 ] as const;
 export const STYLE_HINTS = ["short", "verbose", "typo", "casual", "emoji"] as const;
 export const PAIR_STATUSES = ["pending", "scored", "rejected"] as const;
@@ -120,6 +121,9 @@ export const pairs = sqliteTable(
     score: real("score"),
     verdict: text("verdict").$type<(typeof VERDICTS)[number]>(),
     judgeNotes: text("judge_notes"),
+    // Which model scored the pair. Tiered judging: "sonnet" for the
+    // triage-unanimous-good easy tier, "opus" otherwise; null = pre-tiering.
+    judgeModel: text("judge_model"),
     // Query-dictated presentation ("5 color palette", "radial glow"); null
     // unless the query text actually constrains it.
     styleOverride: text("style_override").$type<PaletteStyle>(),

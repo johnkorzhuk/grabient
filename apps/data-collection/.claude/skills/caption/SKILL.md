@@ -36,6 +36,14 @@ Use the `run_id` from your invocation in every request.
    - Different registers across the set: terse, descriptive sentence, casual.
    - Different angles: literal color reading, scene/object association, mood,
      design use-case.
+   - **Harmony carve-out**: when a leased palette's `tags` include a
+     color-theory scheme (monochromatic, analogous, complementary,
+     split-complementary, triadic, tetradic) AND you can see that
+     relationship in the render, at most ONE of its queries may use scheme
+     vocabulary — anchored to hues or a use-case, category
+     `"color-theory"` — and the scheme name may appear among `themes`. This
+     is the one exception to the no-tag-parroting rule: scheme words are
+     genuine user vocabulary, not internal jargon.
    - Never mention coefficients or parrot tag names verbatim — users type
      "rainy window evening", not "cool dynamic journey". The bare nouns
      "gradient"/"palette" are fine ("moody sunset gradient" is a real

@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/d1";
 import { sql } from "drizzle-orm";
 import { TAG_CATEGORIES } from "@repo/data-ops/gradient-gen";
 import { palettes, queries, QUERY_CATEGORIES } from "@/db/schema";
+import { HARMONY_TAGS } from "@/lib/features";
 
 export interface CoverageGap {
   kind: "tag" | "query-category" | "brightness-band" | "contrast-band" | "themes";
@@ -47,14 +48,16 @@ function contrastBandOf(value: number): string {
   return CONTRAST_LABELS[CONTRAST_LABELS.length - 1]!;
 }
 
-function allKnownTags(): string[] {
+export function allKnownTags(): string[] {
   return Object.values(
     TAG_CATEGORIES as Record<string, { values?: readonly string[] } | readonly string[]>,
-  ).flatMap((cat) => {
-    if (Array.isArray(cat)) return cat as string[];
-    const values = (cat as { values?: readonly string[] }).values;
-    return values ? [...values] : [];
-  });
+  )
+    .flatMap((cat) => {
+      if (Array.isArray(cat)) return cat as string[];
+      const values = (cat as { values?: readonly string[] }).values;
+      return values ? [...values] : [];
+    })
+    .concat(HARMONY_TAGS);
 }
 
 export async function buildCoverageReport(env: Env): Promise<CoverageReport> {

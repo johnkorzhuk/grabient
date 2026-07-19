@@ -5,6 +5,17 @@ import { desc, eq, sql } from "drizzle-orm";
 import { buildCoverageReport } from "@/lib/coverage";
 import { exportSft, exportDpo, exportEval } from "@/lib/exporter";
 import { palettes, pairs, queries, runs } from "@/db/schema";
+import { recomputeTags } from "@/lib/features";
+import { embedQuery } from "@/lib/embeddings";
+import { gt, asc } from "drizzle-orm";
+
+const embedBodySchema = v.object({
+  texts: v.pipe(
+    v.array(v.pipe(v.string(), v.minLength(2), v.maxLength(200))),
+    v.minLength(1),
+    v.maxLength(32),
+  ),
+});
 
 const runBodySchema = v.object({
   id: v.string(),
@@ -86,6 +97,62 @@ export const metaRoutes = new Hono<{ Bindings: Env }>()
       })
       .where(eq(runs.id, c.req.param("id")));
     return c.json({ ok: true });
+  })
+  // One-off, idempotent, cursor-paged: rewrites every palette's tags from
+  // stored coeffs/hexStops so pre-harmony rows gain harmony tags. Rows with
+  // no detectable harmony are legitimately rewritten to the same tag set.
+  .post("/backfill/harmony", async (c) => {
+    const limit = Math.min(
+      500,
+      Math.max(1, parseInt(c.req.query("limit") ?? "300", 10) || 300),
+    );
+    const cursor = c.req.query("cursor") ?? "";
+    const db = drizzle(c.env.DB);
+    const rows = await db
+      .select({
+        seed: palettes.seed,
+        coeffs: palettes.coeffs,
+        hexStops: palettes.hexStops,
+      })
+      .from(palettes)
+      .where(gt(palettes.seed, cursor))
+      .orderBy(asc(palettes.seed))
+      .limit(limit);
+    if (rows.length === 0) {
+      return c.json({ updated: 0, remaining: 0, cursor: null });
+    }
+    const statements = rows.map((row) =>
+      db
+        .update(palettes)
+        .set({ tags: recomputeTags(row.coeffs, row.hexStops) })
+        .where(eq(palettes.seed, row.seed)),
+    );
+    await db.batch(
+      statements as [(typeof statements)[number], ...typeof statements],
+    );
+    const next = rows[rows.length - 1]!.seed;
+    const remaining = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(palettes)
+      .where(gt(palettes.seed, next));
+    return c.json({
+      updated: rows.length,
+      remaining: remaining[0]?.count ?? 0,
+      cursor: next,
+    });
+  })
+  // Embedding probe for dedup validation (harness/dedup-probe.ts). Authed
+  // like everything else; capped small — this is a diagnostic, not an API.
+  .post("/debug/embed", async (c) => {
+    const body = v.safeParse(embedBodySchema, await c.req.json());
+    if (!body.success) {
+      return c.json({ error: "invalid body", issues: body.issues }, 400);
+    }
+    const vectors: number[][] = [];
+    for (const text of body.output.texts) {
+      vectors.push(await embedQuery(c.env, text));
+    }
+    return c.json({ vectors });
   })
   .post("/export", async (c) => {
     const format = c.req.query("format") ?? "sft";

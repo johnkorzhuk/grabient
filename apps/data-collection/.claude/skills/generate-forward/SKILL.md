@@ -4,7 +4,9 @@ description: One forward-generation iteration - invent user queries targeting co
 ---
 
 Read `.claude/skills/shared/cosine-palettes.md` first for the formula, API
-shapes, and rules. Use the `run_id` from your invocation in every request.
+shapes, and rules, and `.claude/skills/shared/query-space.md` for the axes of
+query space this system is trying to cover. Use the `run_id` from your
+invocation in every request.
 
 If your invocation includes a `focus="<theme>|<theme>"` argument (two themes
 separated by `|`), let them color this iteration: at least half of your
@@ -13,6 +15,14 @@ mood, or era it evokes), or, best of all, to their *collision*. The rest still
 target coverage gaps as usual. The themes exist to decorrelate iterations;
 don't mention them in query text verbatim unless it naturally reads like a
 real search.
+
+If your invocation includes a `lens="<lens>"` argument, it names an angle of
+approach from the query-space map (a scheme, a vocabulary level, a
+professional context, a movement, an era, a region). Route **2–3 queries**
+through that lens this iteration — queries a person inside that lens would
+actually type. The lens rotates per iteration to guarantee the prompt-steered
+axes all get visited; it composes with `focus` (a lens applied to a theme is
+often the best query of the batch).
 
 **Wildcard mandate**: 1–2 queries per iteration must be deliberately unusual —
 a niche subculture, an obscure material, a sensation, a specific unglamorous
@@ -68,6 +78,19 @@ reuse, paraphrase, or riff on any example phrase from this file in query text.
    candidates to the existing query, deepening its answer pool. When one comes
    back `duplicate`, your candidates still land; just make them genuinely
    different from what the dedup feedback shows.
+
+   **Color-theory mandate**: include **1–2 queries per iteration** written in
+   scheme vocabulary — the kind a design-literate user types (see axis 1 of
+   the query-space map: the six harmony names plus temperature contrast,
+   duotone, proportion rules, single-hue shade families). Anchor the scheme
+   word to concrete hues, a mood, or a use-case — a bare scheme name is a
+   head term and will dedup-collide; anchored phrasings embed apart. Set
+   `category: "color-theory"` on these (scheme vocabulary wins over
+   color-explicit when both apply). Check the coverage report's harmony tag
+   counts and prefer the RAREST schemes. The candidate palettes for a scheme
+   query must actually exhibit the named relationship — the server detects
+   harmonies from the rendered stops and tags palettes with them, so the
+   judge can see a mismatch.
 
    Anti-template rule: transition narration ("X into Y", "fading",
    "drifting", "melting") is over-represented in the corpus — at most one

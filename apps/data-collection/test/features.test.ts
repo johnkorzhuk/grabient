@@ -8,7 +8,11 @@ import {
   toCosineCoeffs,
   toFlat12,
   FEATURE_DIMENSIONS,
+  HARMONY_TAGS,
+  harmonyTags,
+  recomputeTags,
 } from "../src/lib/features";
+import { allKnownTags } from "../src/lib/coverage";
 import { deserializeCoeffs } from "@repo/data-ops/serialization";
 import { PALETTE_STYLES } from "@repo/data-ops/valibot-schema/grabient";
 import { splitFor } from "../src/lib/exporter";
@@ -134,5 +138,26 @@ describe("splitFor", () => {
     expect(counts.val).toBeGreaterThan(40);
     expect(counts.test).toBeGreaterThan(40);
     expect(splitFor("query-42")).toBe(splitFor("query-42"));
+  });
+});
+
+describe("harmony tags", () => {
+  it("detects complementary on an opposing-hue palette", () => {
+    const stops = ["#1a4fd6", "#3a6be0", "#e8923a", "#f2a852"];
+    expect(harmonyTags(stops)).toContain("complementary");
+  });
+
+  it("finds no harmony in a neutral gray ramp", () => {
+    expect(harmonyTags(["#222222", "#555555", "#999999", "#dddddd"])).toEqual([]);
+  });
+
+  it("keeps every harmony tag steerable via coverage", () => {
+    const known = allKnownTags();
+    for (const tag of HARMONY_TAGS) expect(known).toContain(tag);
+  });
+
+  it("recomputeTags matches canonicalize output", () => {
+    const canonical = canonicalize(SAMPLE);
+    expect(recomputeTags(canonical.flat12, canonical.hexStops)).toEqual(canonical.tags);
   });
 });
