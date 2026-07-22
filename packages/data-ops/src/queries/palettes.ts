@@ -1,4 +1,4 @@
-import { eq, desc, sql, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, sql, count, inArray } from "drizzle-orm";
 import { getDb } from "../database/setup";
 import { palettes, likes, type Palette, type Like } from "../drizzle/app-schema";
 import { deserializeCoeffs } from "../serialization";
@@ -69,6 +69,95 @@ export async function getPopularPalettesPaginated(
 }
 
 
+export async function getPalettesPaginatedByDate(
+  page = 1,
+  limit = 24,
+  order: "newest" | "oldest" = "newest",
+  dbInstance?: ReturnType<typeof getDb>
+): Promise<{ palettes: (Palette & { likesCount: number })[]; total: number }> {
+  const db = dbInstance || getDb();
+  const offset = (page - 1) * limit;
+  const likesCountSql = sql<number>`COUNT(DISTINCT ${likes.userId})`;
+  const orderFn = order === "newest" ? desc : asc;
+
+  const [palettesResult, countResult] = await Promise.all([
+    db
+      .select({
+        id: palettes.id,
+        style: palettes.style,
+        steps: palettes.steps,
+        angle: palettes.angle,
+        createdAt: palettes.createdAt,
+        likesCount: likesCountSql,
+      })
+      .from(palettes)
+      .leftJoin(likes, eq(palettes.id, likes.paletteId))
+      .groupBy(palettes.id)
+      .orderBy(orderFn(palettes.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(palettes),
+  ]);
+
+  return {
+    palettes: palettesResult,
+    total: countResult[0]?.count || 0,
+  };
+}
+
+
+export async function getPopularPalettesPage(
+  page = 1,
+  limit = 24,
+  dbInstance?: ReturnType<typeof getDb>
+): Promise<(Palette & { likesCount: number })[]> {
+  const db = dbInstance || getDb();
+  const likesCountSql = sql<number>`COUNT(DISTINCT ${likes.userId})`;
+  return await db
+    .select({
+      id: palettes.id,
+      style: palettes.style,
+      steps: palettes.steps,
+      angle: palettes.angle,
+      createdAt: palettes.createdAt,
+      likesCount: likesCountSql,
+    })
+    .from(palettes)
+    .leftJoin(likes, eq(palettes.id, likes.paletteId))
+    .groupBy(palettes.id)
+    .orderBy(desc(likesCountSql))
+    .limit(limit)
+    .offset((page - 1) * limit);
+}
+
+
+export async function getPalettesPageByDate(
+  page = 1,
+  limit = 24,
+  order: "newest" | "oldest" = "newest",
+  dbInstance?: ReturnType<typeof getDb>
+): Promise<(Palette & { likesCount: number })[]> {
+  const db = dbInstance || getDb();
+  const likesCountSql = sql<number>`COUNT(DISTINCT ${likes.userId})`;
+  const orderFn = order === "newest" ? desc : asc;
+  return await db
+    .select({
+      id: palettes.id,
+      style: palettes.style,
+      steps: palettes.steps,
+      angle: palettes.angle,
+      createdAt: palettes.createdAt,
+      likesCount: likesCountSql,
+    })
+    .from(palettes)
+    .leftJoin(likes, eq(palettes.id, likes.paletteId))
+    .groupBy(palettes.id)
+    .orderBy(orderFn(palettes.createdAt))
+    .limit(limit)
+    .offset((page - 1) * limit);
+}
+
+
 export async function getRecentPalettes(limit = 20): Promise<Palette[]> {
   const db = getDb();
   return await db.select().from(palettes).orderBy(desc(palettes.createdAt)).limit(limit);
@@ -119,6 +208,21 @@ export async function getUserLikedSeeds(userId: string, dbInstance?: ReturnType<
     .from(likes)
     .where(eq(likes.userId, userId));
   return result.map(r => r.paletteId);
+}
+
+export async function getPaletteLikeInfo(
+  seed: string,
+  userId?: string
+): Promise<{ likesCount: number; isLiked: boolean }> {
+  const db = getDb();
+  const [countResult, isLiked] = await Promise.all([
+    db
+      .select({ count: sql<number>`COUNT(DISTINCT ${likes.userId})` })
+      .from(likes)
+      .where(eq(likes.paletteId, seed)),
+    userId ? hasUserLiked(userId, seed) : Promise.resolve(false),
+  ]);
+  return { likesCount: countResult[0]?.count ?? 0, isLiked };
 }
 
 export async function hasUserLiked(userId: string, seed: string): Promise<boolean> {

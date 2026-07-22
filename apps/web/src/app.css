@@ -1,0 +1,857 @@
+@import "tailwindcss";
+
+@variant dark (.dark &);
+
+/* Design tokens extracted from grabient.com (apps/user-application/src/styles.css) —
+   shadcn Zinc in oklch, radius 10px base, Poppins 500/700 + system stack for numerals. */
+@theme {
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.141 0.005 285.823);
+  --color-muted: oklch(0.967 0.001 286.375);
+  --color-muted-foreground: oklch(0.552 0.016 285.938);
+  --color-border: oklch(0.92 0.004 286.32);
+  --color-input: oklch(0.92 0.004 286.32);
+  --color-ring: oklch(0.871 0.006 286.286);
+  --color-primary: oklch(0.21 0.006 285.885);
+  --color-primary-foreground: oklch(0.985 0 0);
+  --color-accent: oklch(0.967 0.001 286.375);
+  --color-accent-foreground: oklch(0.21 0.006 285.885);
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.875rem;
+
+  --font-sans: "Poppins", system-ui, sans-serif;
+  --font-system:
+    system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+    sans-serif;
+
+  --breakpoint-3xl: 120rem;
+  --breakpoint-4xl: 192rem;
+}
+
+.dark {
+  --color-background: oklch(0.141 0.005 285.823);
+  --color-foreground: oklch(0.98 0 0);
+  --color-muted: oklch(0.274 0.006 286.033);
+  --color-muted-foreground: oklch(0.705 0.015 286.067);
+  --color-border: oklch(0.274 0.006 286.033);
+  --color-input: oklch(0.274 0.006 286.033);
+  --color-ring: oklch(0.442 0.017 285.786);
+  --color-primary: oklch(0.98 0 0);
+  --color-primary-foreground: oklch(0.21 0.006 285.885);
+  --color-accent: oklch(0.274 0.006 286.033);
+  --color-accent-foreground: oklch(0.98 0 0);
+}
+
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url(/fonts/poppins-latin-500-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F,
+    U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Poppins";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url(/fonts/poppins-latin-700-normal.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F,
+    U+2074, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  /* Kill double-tap-zoom delay on everything tappable. */
+  a,
+  button,
+  input,
+  select,
+  label {
+    touch-action: manipulation;
+  }
+}
+
+/* Touch: larger slider thumb + taller hit strip, 16px number inputs (no iOS zoom). */
+@media (pointer: coarse) {
+  input[type="range"].mod-slider {
+    height: 28px;
+  }
+  input[type="range"].mod-slider::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -9px;
+  }
+  input[type="range"].mod-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+  input[type="number"] {
+    font-size: 16px;
+  }
+}
+
+/* Channel graph series colors — validated with the dataviz palette validator
+   (light surface #fafafa / dark #101014; green shifted to emerald for deutan
+   separation from red; obligations covered by direct labels + hover values). */
+:root {
+  --chart-red: #ef4444;
+  --chart-green: #10b981;
+  --chart-blue: #3b82f6;
+}
+.dark {
+  --chart-green: #059669;
+}
+
+/* Dashed horizontal rule (header divider / footer) — current site's recipe. */
+.dashed-rule {
+  height: 1px;
+  width: 100%;
+  opacity: 0.8;
+  background-image: linear-gradient(
+    to right,
+    var(--color-muted-foreground) 0%,
+    var(--color-muted-foreground) 2px,
+    transparent 2px,
+    transparent 12px
+  );
+  background-size: 6px 1px;
+}
+.dark .dashed-rule {
+  opacity: 0.5;
+}
+
+/* Dashed grid line for the channels graph (site's GraphBG recipe, --ring based). */
+.graph-gridline {
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    var(--color-ring) 0%,
+    var(--color-ring) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+}
+.dark .graph-gridline {
+  opacity: 0.6;
+}
+
+/* Swatch chips: equal-width grid, JS-fitted (nav layer fitSwatches):
+   wraps to 2 rows when chips get too narrow, rotates labels vertical when
+   still tight, hides them when tiny. Label gets a translucent pill for
+   readability on any color. */
+.swatch-label {
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+}
+.on-light .swatch-label {
+  background: rgb(255 255 255 / 0.35);
+}
+.on-dark .swatch-label {
+  background: rgb(0 0 0 / 0.25);
+}
+.swatches.sw-compact .swatch-label {
+  font-size: 10px;
+  letter-spacing: -0.01em;
+  padding: 2px 3px;
+}
+.swatches.sw-vertical .swatch-label {
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  padding: 4px 2px;
+}
+.swatches.sw-hide .swatch-label {
+  display: none;
+}
+
+/* Swatch text colors (luminance-picked server/client side). */
+.on-light {
+  color: rgb(0 0 0 / 0.72);
+}
+.on-dark {
+  color: rgb(255 255 255 / 0.85);
+}
+
+/* Modifier slider — current site's modifier-range-input visuals (midpoint fill,
+   center tick, thumb hollow at midpoint) over a fully accessible native range:
+   the input is a transparent overlay handling all interaction/keyboard; the
+   visual layers are driven by --p (thumb position %) and --mid (midpoint %). */
+.mslider {
+  position: relative;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  color: var(--color-muted-foreground);
+  transition: color 200ms;
+}
+.mslider:hover,
+.mslider:focus-within {
+  color: var(--color-foreground);
+}
+.mslider-track {
+  position: absolute;
+  inset-inline: 0;
+  height: 2px;
+  border-radius: 9999px;
+  background: var(--color-muted);
+}
+.mslider-fill {
+  position: absolute;
+  height: 2px;
+  border-radius: 9999px;
+  background: currentColor;
+  left: min(var(--mid), var(--p));
+  width: max(calc(var(--p) - var(--mid)), calc(var(--mid) - var(--p)));
+}
+.mslider-tick {
+  position: absolute;
+  left: var(--mid);
+  width: 2px;
+  height: 8px;
+  margin-left: -1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+.mslider-thumb {
+  position: absolute;
+  left: var(--p);
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  background: currentColor;
+  transition: transform 150ms;
+}
+.mslider[data-at-mid] .mslider-thumb {
+  background: var(--color-background);
+}
+.mslider:hover .mslider-thumb,
+.mslider:focus-within .mslider-thumb {
+  transform: scale(1.4);
+}
+.mslider:focus-within .mslider-thumb {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-ring) 70%, transparent);
+}
+.mslider > input[type="range"] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  cursor: pointer;
+  margin: 0;
+}
+@media (pointer: coarse) {
+  .mslider {
+    height: 32px;
+  }
+  .mslider-thumb {
+    width: 14px;
+    height: 14px;
+    margin-left: -7px;
+  }
+}
+
+/* Subheader: generous breathing room under the header's dashed rule at rest;
+   the sticky variant tightens to a compact bar (with a translucent blur) once
+   the page scrolls. */
+.subheader {
+  padding-top: 1.5rem;
+  padding-bottom: 0.75rem;
+  transition: padding-top 200ms ease;
+}
+/* The seed page's non-sticky subheader gets matching air below it. */
+.subheader:not(.sticky) {
+  padding-bottom: 1.5rem;
+}
+.subheader.is-scrolled {
+  padding-top: 0.75rem;
+  background: color-mix(in oklab, var(--color-background) 62%, transparent);
+  /* Standard property ONLY — hand-writing -webkit-backdrop-filter alongside it
+     makes lightningcss collapse the pair to just the -webkit- form (same
+     logical property, last wins), which Chrome ignores → no blur at all. The
+     minifier adds any needed prefixes itself. */
+  backdrop-filter: blur(12px) saturate(1.4);
+  border-bottom: 1px solid color-mix(in oklab, var(--color-foreground) 8%, transparent);
+}
+/* Solid backdrop-filter fallback: if the browser can't blur, stay opaque so
+   scrolled content never bleeds through as unreadable mush. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .subheader.is-scrolled {
+    background: var(--color-background);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .subheader {
+    transition: none;
+  }
+}
+
+input::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 0.7;
+}
+
+/* The options row scrolls horizontally on narrow screens (chip-carousel
+   pattern) — no visible scrollbar. */
+#opts {
+  scrollbar-width: none;
+}
+/* The reset button combines BTN_ICON's `inline-flex` with the toggled
+   `hidden` utility — same specificity, and Tailwind emits .inline-flex
+   AFTER .hidden, so hidden loses. Settle it explicitly. */
+#opts-reset.hidden {
+  display: none;
+}
+#opts::-webkit-scrollbar {
+  display: none;
+}
+
+/* Option controls: hovering (or focusing) ANYWHERE in a control's wrapper
+   styles the whole control — input, select trigger, and its chevron move
+   together, matching the enhanced select trigger's all-one-surface feel. */
+.ctrl-wrap:hover :is(input, button[role="combobox"]),
+.ctrl-wrap:focus-within :is(input, button[role="combobox"]) {
+  border-color: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent);
+  background: color-mix(in srgb, var(--color-background) 60%, transparent);
+  color: var(--color-foreground);
+}
+.preset-btn,
+.native-chevron {
+  transition: color 200ms;
+}
+.ctrl-wrap:hover :is(.preset-btn, .native-chevron),
+.ctrl-wrap:focus-within :is(.preset-btn, .native-chevron) {
+  color: var(--color-foreground);
+}
+
+/* Enhanced menus — current site's popover recipe (bg 80% + blur, input
+   border, p-1.5) with h-9 menu items. */
+.native-hidden {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+.menu-pop {
+  position: fixed;
+  z-index: 60;
+  max-height: 60vh;
+  overflow-y: auto;
+  border: 1px solid var(--color-input);
+  border-radius: 0.625rem;
+  padding: 6px;
+  background: color-mix(in oklab, var(--color-background) 92%, transparent);
+  backdrop-filter: blur(12px);
+  box-shadow:
+    0 10px 30px rgb(0 0 0 / 0.16),
+    0 2px 8px rgb(0 0 0 / 0.08);
+  transform-origin: top center;
+  animation: menu-in 120ms ease-out;
+}
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-pop {
+    animation: none;
+  }
+}
+/* Saving a palette pops the heart in — the original's animate-in zoom-in-75. */
+.heart-pop {
+  animation: heart-pop 200ms ease-out;
+}
+@keyframes heart-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.75);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heart-pop {
+    animation: none;
+  }
+}
+@media (pointer: coarse) {
+  .menu-item {
+    min-height: 44px;
+  }
+}
+.menu-item {
+  display: flex;
+  width: 100%;
+  min-height: 2.25rem;
+  cursor: pointer;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+  transition: color 200ms;
+  outline: none;
+}
+.menu-item:hover,
+.menu-item:focus-visible {
+  background: var(--color-background);
+  color: var(--color-foreground);
+}
+.menu-item[aria-selected="true"] {
+  color: var(--color-foreground);
+}
+/* Selected marker: a solid foreground bar that takes layout space (shifts the
+   label right) — replaces the checkmark. */
+.menu-item[aria-selected="true"]::before {
+  content: "";
+  align-self: stretch;
+  width: 3px;
+  margin-block: 6px;
+  margin-right: 8px;
+  border-radius: 2px;
+  background: var(--color-foreground);
+}
+
+/* RGB channel-order tabs + invert: the editor island portals its row here
+   (Solid's Portal wraps children in a plain div — lay it out from the
+   outside; full width so the invert button can right-align). */
+#rgb-tabs > div {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.25rem;
+}
+#preview-actions > div {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+#preview-actions-br > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+#mobile-dock > div {
+  display: flex;
+  width: 100%;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+/* ---- Seed "canvas mode" (below lg): the gradient becomes a full-viewport
+   backdrop of #seed-hero; header + controls + panels float over it. The
+   header ink flips light/dark from the same Rec.709 top-strip luminance the
+   OG image uses for its logo (computed SSR-side, live-updated by the
+   island). Panels collapse behind dock toggles as space shrinks. */
+@media (width < 64rem) {
+  .seed-hero {
+    height: 100dvh;
+    flex: none;
+  }
+  /* Full-bleed gradient behind everything in the hero (z:-1 inside the
+     hero's isolated stacking context — in-flow content needs no z lifts).
+     Only when NO explicit ?size is set — .has-size keeps the desktop-style
+     fitted box (aspect ratio respected, centered in the preview area). */
+  .seed-hero:not(.has-size) #preview-fit {
+    position: static;
+    width: auto !important;
+    height: auto !important;
+    aspect-ratio: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+  }
+  /* The gradient ends at the sliders sheet's top (the island measures the
+     sheet into --sheet-h) so centered styles (radial/angular) center within
+     the VISIBLE area, not behind the sheet. */
+  .seed-hero:not(.has-size) #edit-preview {
+    position: absolute;
+    inset: 0;
+    bottom: var(--sheet-h, 0px);
+    /* The element's h-full/w-full utilities would win the over-constrained
+       abs-pos resolution and make the browser IGNORE `bottom` — auto lets
+       the insets size the box. */
+    height: auto;
+    width: auto;
+    z-index: -1;
+    border: 0;
+    border-radius: 0;
+  }
+  .seed-hero #preview-box {
+    min-height: 0;
+    /* The box is `relative` for the desktop export dock's anchoring — but in
+       canvas mode the absolute #edit-preview must keep #seed-hero as its
+       containing block to go full-bleed, so neutralize it here. */
+    position: static;
+  }
+  .seed-hero #preview-actions,
+  .seed-hero #preview-actions-br {
+    display: none !important;
+  }
+  /* No dotted separator on small viewports — any route. */
+  header .dashed-rule {
+    display: none;
+  }
+  /* Header floats: transparent, no rule; logo AND its buttons render as
+     plain ink over the gradient (no surface, no border). */
+  .seed-hero > header {
+    position: static;
+    background: transparent;
+  }
+  /* Ink: the logo's text color, from the top-strip luminance (og math). */
+  .seed-hero.hero-ink-light {
+    --hero-ink: #fafafa;
+  }
+  .seed-hero.hero-ink-dark {
+    --hero-ink: #0a0a0b;
+  }
+  /* Header buttons run the SAME math over their own region (top-right):
+     their FILL is the ink the logo would wear there, glyphs inverted. */
+  .seed-hero.hero-btn-light {
+    --hero-btn-bg: #fafafa;
+    --hero-btn-fg: #0a0a0b;
+  }
+  .seed-hero.hero-btn-dark {
+    --hero-btn-bg: #0a0a0b;
+    --hero-btn-fg: #fafafa;
+  }
+  .seed-hero:not(.has-size) > header .logo {
+    color: var(--hero-ink);
+  }
+  .seed-hero:not(.has-size) > header button {
+    color: var(--hero-btn-fg);
+    background: var(--hero-btn-bg);
+    border-color: color-mix(in srgb, var(--hero-btn-fg) 15%, var(--hero-btn-bg));
+  }
+  .seed-hero:not(.has-size) > header button:hover {
+    background: color-mix(in srgb, var(--hero-btn-fg) 12%, var(--hero-btn-bg));
+  }
+  /* Subheader controls: theme-colored glass, legible over any gradient.
+     One shared surface recipe: translucent at rest, solid on hover/focus —
+     the enhanced select trigger (button[role=combobox]) included. The row
+     hugs the header (no rule between them anymore). */
+  .seed-hero .subheader {
+    padding-top: 0;
+    padding-bottom: 0.75rem;
+  }
+  .seed-hero .subheader :is(input, select, a, button[role="combobox"]),
+  .seed-hero .subheader #opts-reset {
+    background: color-mix(in srgb, var(--color-background) 62%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .seed-hero .subheader a:hover,
+  .seed-hero .subheader #opts-reset:hover,
+  .seed-hero .subheader .ctrl-wrap:hover :is(input, button[role="combobox"]),
+  .seed-hero .subheader .ctrl-wrap:focus-within :is(input, button[role="combobox"]) {
+    background: var(--color-background);
+  }
+  /* Narrow rows: the style select flexes down (its label truncates) so the
+     whole options row fits the viewport instead of clipping off the edge;
+     below its floor the row falls back to horizontal scroll. */
+  .seed-hero .subheader #opts {
+    flex-shrink: 1;
+    min-width: 0;
+  }
+  .seed-hero .subheader #opts .ctrl-wrap:has(select) {
+    flex: 1 1 auto;
+    min-width: 6.5rem;
+    max-width: 184px;
+  }
+  .seed-hero .subheader #opts .ctrl-wrap:has(select) button[role="combobox"] {
+    width: 100%;
+    min-width: 0;
+  }
+  /* Phone-narrow: the options wrap to two lines — angle/steps beside the
+     back button, the style select on its own full-width line (label never
+     truncates). The controls are a revealed overlay, so the extra height
+     floats over the gradient instead of costing layout. */
+  @media (width < 26.25rem) {
+    .seed-hero .subheader #opts {
+      flex: 1 1 auto;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      row-gap: 0.5rem;
+    }
+    .seed-hero .subheader #opts .ctrl-wrap:has(select) {
+      flex: 1 1 100%;
+      max-width: none;
+      order: -1; /* style on the top line, angle/steps below it */
+    }
+    .seed-hero .subheader > a[data-list-link] {
+      align-self: flex-start;
+    }
+  }
+  /* The stage fills the hero and scrolls internally when cramped (landscape
+     phones); the absolute gradient escapes the overflow since its containing
+     block is the hero. */
+  .seed-hero .seed-stage {
+    flex: 1 1 0%;
+    min-height: 0;
+    overflow-y: auto;
+    /* Never a horizontal bar: the full-bleed (negative-margin) cards sit
+       flush with the scrollport, so a transient vertical scrollbar would
+       otherwise trigger a horizontal one (classic-scrollbar flicker). */
+    overflow-x: hidden;
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  /* Flatten the two desktop columns into one stack so pieces from both can
+     be reordered: spacer → dock → toggled panel → sliders sheet. */
+  .seed-hero .seed-cols {
+    gap: 0.75rem;
+  }
+  .seed-hero .seed-cols > :is(div, aside) {
+    display: contents;
+  }
+  .seed-hero #mobile-dock {
+    order: 1;
+  }
+  .seed-hero #graph-panel {
+    order: 2;
+  }
+  /* Strip fuses BELOW the graph; same order as the card but DOM-earlier. */
+  .seed-hero #swatches-strip,
+  .seed-hero #editor-card {
+    order: 3;
+  }
+  .seed-hero .seed-cols noscript {
+    order: 4;
+  }
+  /* Sliders live in an opaque full-bleed bottom sheet — the gradient reads
+     as ending at its top edge (edge-to-edge and to the top only). */
+  .seed-hero #editor-card {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    gap: 1.125rem;
+    margin-inline: -1.25rem;
+    margin-bottom: calc(-1 * max(1rem, env(safe-area-inset-bottom)));
+    padding: 0.875rem 1.25rem max(1rem, env(safe-area-inset-bottom));
+    background: var(--color-background);
+    border: 1px solid var(--color-input);
+    border-bottom: 0;
+    border-radius: 1rem 1rem 0 0;
+  }
+  .seed-hero #tabs-row {
+    margin-top: 0;
+  }
+  /* Floating controls over the gradient (dock, back, the whole options
+     form) reveal on mouse-hover of the gradient area, or toggle with a tap
+     on it (touch) — .ui-show is managed in app.client.js. Focus always
+     reveals them. */
+  .seed-hero :is(#mobile-dock, .subheader a[data-list-link], #opts) {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms;
+  }
+  .seed-hero.ui-show :is(#mobile-dock, .subheader a[data-list-link], #opts),
+  .seed-hero #mobile-dock:focus-within,
+  .seed-hero #opts:focus-within,
+  .seed-hero .subheader a[data-list-link]:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* With a dims/download popup open, only its trigger stays — the other
+     dock buttons get out of the menu's way. */
+  .seed-hero #mobile-dock button {
+    transition-property: color, background-color, border-color, opacity;
+    transition-duration: 200ms;
+  }
+  .seed-hero.menu-open #mobile-dock button:not([aria-expanded="true"]) {
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Graph overlay (dock-toggled, hidden by default at every canvas-mode
+     width): one glass card — the RGB curves with the swatch strip fused to
+     its bottom edge. Swatch labels auto-hide when the chips get too small,
+     but the pills stay tappable (copy). */
+  .seed-hero #swatches-strip,
+  .seed-hero #graph-panel {
+    display: none;
+  }
+  /* The card runs edge-to-edge (cancels the stage's horizontal padding) to
+     use the full viewport width. */
+  .seed-hero.show-graph #graph-panel {
+    display: block;
+    flex: none;
+    min-height: 0;
+    height: 190px;
+    margin-inline: -1.25rem;
+    background: color-mix(in srgb, var(--color-background) 72%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in srgb, var(--color-input) 70%, transparent);
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    border-radius: 0;
+  }
+  .seed-hero.show-graph #swatches-strip {
+    display: block;
+    flex: none;
+    min-height: 0;
+    margin-top: -0.75rem; /* cancel the column gap above — fuse with the graph */
+    margin-bottom: -0.75rem; /* …and below — flush against the sliders sheet */
+    margin-inline: -1.25rem;
+    padding: 0; /* swatches run truly edge to edge */
+    background: color-mix(in srgb, var(--color-background) 72%, transparent);
+    backdrop-filter: blur(16px);
+    border: 1px solid color-mix(in srgb, var(--color-input) 70%, transparent);
+    border-top: 0;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 0;
+  }
+  /* Contiguous squared swatches — a stepped color axis under the curves.
+     Static: no hover scaling or lifts; the legend above is the feedback. */
+  .seed-hero.show-graph #swatches-strip .swatches {
+    gap: 0;
+  }
+  .seed-hero.show-graph #swatches-strip .swatches button {
+    height: 40px;
+    border-radius: 0;
+  }
+  .seed-hero.show-graph #swatches-strip .swatches button:hover {
+    transform: none;
+  }
+}
+
+/* Short canvas viewports (iPhone SE class): the coarse-pointer 56px slider
+   rows overflow the sheet — compress rows/gaps and flatten the dock's copy
+   stack so the gradient keeps meaningful space and every slider fits. */
+@media (width < 64rem) and (height <= 720px) {
+  .seed-hero #editor-card {
+    gap: 0.625rem;
+    padding-top: 0.625rem;
+    padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+  }
+  .seed-hero #editor-card #rgb-tabs {
+    height: 1.75rem;
+  }
+  .seed-hero #editor-island > div {
+    gap: 0.5rem;
+  }
+  .seed-hero #editor-island > div > div {
+    height: 42px;
+  }
+  .seed-hero #mobile-dock .flex-col {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* The export-code tab bar scrolls horizontally on narrow screens — never
+   show its scrollbar. */
+#export-code [role="tablist"] {
+  scrollbar-width: none;
+}
+#export-code [role="tablist"]::-webkit-scrollbar {
+  display: none;
+}
+
+/* Tooltip singleton (Base UI Tooltip port; shadcn surface on our tokens). */
+.ui-tip {
+  position: fixed;
+  z-index: 80;
+  display: none;
+  max-width: 260px;
+  pointer-events: none;
+  border-radius: 0.5rem;
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.35;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.12);
+}
+.ui-tip[data-open] {
+  display: block;
+  animation: menu-in 120ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ui-tip[data-open] {
+    animation: none;
+  }
+}
+
+/* Pending navigation bar. */
+html.pending::before {
+  content: "";
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, #ffd25f, #ff5f6d, #a17fff);
+  animation: pendbar 1s linear infinite alternate;
+  z-index: 99;
+}
+@keyframes pendbar {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.7);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .glow {
+    transition: none !important;
+  }
+}

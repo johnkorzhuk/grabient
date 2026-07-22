@@ -1,0 +1,44 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "grabient-lite",
+	"compatibility_date": "2025-09-02",
+	"compatibility_flags": ["nodejs_compat"],
+	"main": "./src/index.ts",
+	"rules": [{ "type": "Text", "globs": ["**/*.css"], "fallthrough": true }],
+	"assets": { "directory": "./dist/client" },
+	// Workers Cache (July 2026): edge cache in front of the worker — honors our
+	// CDN-Cache-Control TTLs, serves hits without executing the worker.
+	// cross_version_cache MUST stay false (the default, pinned here on purpose):
+	// the Worker version is then part of the cache key, so each deploy starts
+	// from an empty edge cache and pre-deploy HTML is never served again — no
+	// purge-on-deploy needed. Setting it true would trade that away for a warm
+	// cache across deploys and reintroduce stale-UI-after-deploy for up to the
+	// full CDN max-age + SWR window.
+	"cache": { "enabled": true, "cross_version_cache": false },
+	// Default environment (staging) - shares the existing staging D1
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "grabient",
+			"database_id": "acb5748b-2b55-404e-8a15-2718a8524b86",
+			"migrations_dir": "../../packages/data-ops/src/drizzle"
+		}
+	],
+	"env": {
+		"production": {
+			"name": "grabient-lite-production",
+			"workers_dev": true,
+			"assets": { "directory": "./dist/client" },
+			// See top-level cache comment: cross_version_cache must stay false.
+			"cache": { "enabled": true, "cross_version_cache": false },
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "grabient-prod",
+					"database_id": "8902a4a8-cca3-4a34-b456-7b35ad021985",
+					"migrations_dir": "../../packages/data-ops/src/drizzle"
+				}
+			]
+		}
+	}
+}
