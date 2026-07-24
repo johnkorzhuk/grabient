@@ -746,6 +746,14 @@ document.addEventListener("click", (e) => {
   const a = linkOf(e);
   if (!a) return;
   const u = new URL(a.href);
+  if (a.hasAttribute("data-search-tag")) {
+    const current = new URLSearchParams(location.search);
+    for (const key of ["style", "steps", "angle"]) {
+      const value = current.get(key);
+      value ? u.searchParams.set(key, value) : u.searchParams.delete(key);
+    }
+    u.searchParams.delete("page");
+  }
   e.preventDefault();
   if (u.pathname === location.pathname && u.search === location.search) {
     const el = u.hash && document.getElementById(u.hash.slice(1));

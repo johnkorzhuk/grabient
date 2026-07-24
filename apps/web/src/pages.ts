@@ -19,6 +19,7 @@ import { paletteOgImageUrl } from "./seo";
 import {
   POPULAR_SEARCHES,
   querySlug,
+  type QueryHeadingPart,
   type QueryResultContext,
 } from "./semantic-search";
 import {
@@ -278,6 +279,7 @@ export interface ListPageData {
   exportOpen?: boolean;
   /** Search pages reuse the list renderer with route-specific chrome/meta. */
   heading?: string;
+  headingParts?: QueryHeadingPart[];
   pageTitle?: string;
   pageDescription?: string;
   pageCanonical?: string;
@@ -375,10 +377,15 @@ function logoAnimStyle(items: CardItem[], params: ListSearch): string {
   return css ? `<style id="logo-list-animation">${css}</style>` : "";
 }
 
-function searchExplorer(currentQuery = ""): string {
+function searchExplorer(currentQuery = "", params?: ListSearch): string {
+  const search = new URLSearchParams();
+  if (params && params.style !== "auto") search.set("style", params.style);
+  if (params && params.steps !== "auto") search.set("steps", String(params.steps));
+  if (params && params.angle !== "auto") search.set("angle", String(params.angle));
+  const options = search.size ? `?${search}` : "";
   const popular = POPULAR_SEARCHES.map(
     (query) =>
-      `<a href="/palettes/${querySlug(query)}" class="inline-flex h-7 shrink-0 items-center rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs">${esc(query)}</a>`,
+      `<a data-search-tag href="/palettes/${querySlug(query)}${esc(options)}" class="inline-flex h-7 shrink-0 items-center rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs">${esc(query)}</a>`,
   ).join("");
   return `<section aria-label="Find gradient palettes" class="mb-10 flex flex-col items-center gap-3 md:mb-12 md:gap-5">
 <form id="palette-search" action="/palettes" method="get" role="search" class="relative w-full max-w-lg">
@@ -411,6 +418,18 @@ Showing results for seed:
   return `<p class="mb-8 mt-1.5 flex flex-wrap items-center gap-1.5 text-sm font-medium text-muted-foreground">Showing results for:${colors}</p>`;
 }
 
+function headingContent(d: ListPageData): string {
+  if (!d.headingParts?.length)
+    return esc(d.heading ?? SORT_TITLES[d.sort][1]);
+  return d.headingParts
+    .map((part) =>
+      part.kind === "text"
+        ? esc(part.value)
+        : `<span class="inline-flex items-center gap-1.5"><span aria-hidden="true" title="${esc(part.hex)}" class="inline-block h-4 w-4 shrink-0 rounded-full border border-input md:h-[18px] md:w-[18px]" style="background-color:${esc(part.hex)}"></span><span>${esc(part.value)}</span></span>`,
+    )
+    .join("");
+}
+
 export function listPage(d: ListPageData): string {
   const cards = d.items.map((i) => card(i, d.nowMs, d.params)).join("\n");
   const dataJson = JSON.stringify({
@@ -434,9 +453,9 @@ ${pagination(d.params, d.totalPages, d.path, d.paginationSearch)}`;
   const body = `${logoAnimStyle(d.items, d.params)}${header(undefined, d.user)}
 ${subHeader(d.subheaderLeft ?? sortNav(d.sort, d.params, d.exportOpen), d.params, d.path, true, d.exportOpen, d.hiddenFields)}
 <main class="flex-1 px-5 pb-5 pt-5 lg:px-14">
-${searchExplorer(d.searchQuery)}
+${searchExplorer(d.searchQuery, d.params)}
 <div class="${d.queryContext ? "" : "mb-8 "}flex items-center justify-between gap-3">
-<h1 id="list-h1" class="text-3xl font-bold text-foreground md:text-4xl">${esc(d.heading ?? SORT_TITLES[d.sort][1])}</h1>
+<h1 id="list-h1" class="text-3xl font-bold text-foreground md:text-4xl">${headingContent(d)}</h1>
 <div id="export-slot" class="flex shrink-0 items-center gap-2"></div>
 </div>
 ${d.queryContext ? queryContext(d.queryContext, d.params) : ""}

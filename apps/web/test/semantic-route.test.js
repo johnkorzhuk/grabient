@@ -64,12 +64,32 @@ describe("semantic search route", () => {
     expect(html).toContain('placeholder="Search palettes..."');
     expect(html).toContain('id="palette-search-input" name="q" type="text" value=""');
     expect(html).toContain("data-drag-scroll");
-    expect(html).toContain('href="/palettes/charcoal-%26-chocolate"');
+    expect(html).toContain(
+      'data-search-tag href="/palettes/charcoal-%26-chocolate?style=radialGradient"',
+    );
     expect(html).toContain('id="query-sort"');
     expect(html).toContain('<input type="hidden" name="sort" value="newest">');
     expect(html).toContain('"@type":"ItemList"');
     expect(html).toContain(`href="/${SEED}?style=radialGradient`);
     expect(html).not.toContain('<meta name="robots" content="noindex');
+    warn.mockRestore();
+  });
+
+  it("renders shared predefined-color swatches in a named-color heading", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const response = await app.request(
+      "http://local.test/palettes/blue-teal-rose",
+      {},
+      env(),
+    );
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(html).toContain('title="#0000ff"');
+    expect(html).toContain('title="#008080"');
+    expect(html).toContain('title="#ff007f"');
+    expect(html).toMatch(
+      /id="list-h1"[^>]*>.*Blue.*teal.*rose.*palettes<\/h1>/s,
+    );
     warn.mockRestore();
   });
 

@@ -203,8 +203,12 @@ describe("navigation", () => {
   });
 
   it("keeps Popular tags clickable through normal pointer jitter", async () => {
-    history.replaceState({}, "", "/");
-    document.body.innerHTML = `<nav data-drag-scroll><a href="/palettes/sunset">sunset</a></nav>`;
+    history.replaceState(
+      {},
+      "",
+      "/?style=radialGradient&steps=13&angle=45&page=3&export=true",
+    );
+    document.body.innerHTML = `<nav data-drag-scroll><a data-search-tag href="/palettes/sunset">sunset</a></nav>`;
     const tag = document.querySelector("[data-drag-scroll] a");
     fetchMock.mockResolvedValueOnce(
       respond(page("Sunset palettes", "SUNSETRESULTS"), { maxAge: 0 }),
@@ -240,6 +244,9 @@ describe("navigation", () => {
 
     await vi.waitFor(() => expect(document.body.textContent).toContain("SUNSETRESULTS"));
     expect(location.pathname).toBe("/palettes/sunset");
+    expect(location.search).toBe(
+      "?style=radialGradient&steps=13&angle=45",
+    );
   });
 
   it("sorts semantic results in place while preserving their view options", async () => {

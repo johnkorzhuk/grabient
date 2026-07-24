@@ -4,6 +4,7 @@ import {
   POPULAR_SEARCHES,
   queryFromParam,
   queryHeading,
+  queryHeadingParts,
   queryResultContext,
   querySlug,
   searchSemanticPalettes,
@@ -53,6 +54,14 @@ describe("semantic search", () => {
     expect(normalizeSemanticQuery("#ff0000 night")).toContain("red");
     expect(normalizeSemanticQuery(SEED)).not.toBe(SEED);
     expect(queryHeading("warm sunset")).toBe("Warm sunset palettes");
+    expect(queryHeadingParts("blue teal rose")).toEqual([
+      { kind: "color", value: "Blue", hex: "#0000ff" },
+      { kind: "text", value: " " },
+      { kind: "color", value: "teal", hex: "#008080" },
+      { kind: "text", value: " " },
+      { kind: "color", value: "rose", hex: "#ff007f" },
+      { kind: "text", value: " palettes" },
+    ]);
     expect(queryResultContext(SEED)).toEqual({ kind: "seed", seed: SEED });
     expect(queryResultContext("#ff0000 #00ff00")).toMatchObject({
       kind: "colors",

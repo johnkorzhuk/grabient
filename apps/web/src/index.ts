@@ -55,6 +55,7 @@ import { PRIVACY_HTML, TERMS_HTML } from "./legal";
 import {
   queryFromParam,
   queryHeading,
+  queryHeadingParts,
   queryResultContext,
   querySlug,
   searchSemanticPalettes,
@@ -411,6 +412,7 @@ async function handleSemanticSearch(
       emptyText: `No palettes found for “${query}”. Try a different color, mood, or theme.`,
       exportOpen: url.searchParams.get("export") === "true",
       heading,
+      headingParts: queryHeadingParts(query),
       pageTitle: `${heading} | Grabient`,
       pageDescription: `Explore ${heading.toLowerCase()} matched by color and mood. Customize each CSS gradient, then copy CSS or export SVG and PNG.`,
       pageCanonical: canonical,

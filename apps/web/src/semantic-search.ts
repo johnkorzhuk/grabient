@@ -1,4 +1,5 @@
 import {
+  colorNameToHex,
   hexToColorName,
   getUniqueColorNames,
   replaceHexWithColorNames,
@@ -66,6 +67,10 @@ export type QueryResultContext =
   | { kind: "seed"; seed: string }
   | { kind: "colors"; colors: Array<{ name: string; hex: string }> };
 
+export type QueryHeadingPart =
+  | { kind: "text"; value: string }
+  | { kind: "color"; value: string; hex: string };
+
 export const semanticSearchResultSchema = v.object({
   seed: seedValidator,
   tags: v.array(v.string()),
@@ -123,6 +128,30 @@ export function queryHeading(query: string): string {
   ];
   if (colorNames.length) return `${colorNames.join(", ")} palettes`;
   return `${query.charAt(0).toUpperCase()}${query.slice(1)} palettes`;
+}
+
+/**
+ * Split the human heading into text and recognized color names. This is the
+ * old PalettePageHeader behavior, backed by data-ops' shared BASIC_COLORS map
+ * so search headings and semantic normalization use the same vocabulary.
+ */
+export function queryHeadingParts(query: string): QueryHeadingPart[] {
+  const heading = queryHeading(query);
+  const parts: QueryHeadingPart[] = [];
+  let cursor = 0;
+  for (const match of heading.matchAll(/[a-z]+/gi)) {
+    const index = match.index ?? 0;
+    const word = match[0];
+    const hex = colorNameToHex(word);
+    if (!hex) continue;
+    if (index > cursor)
+      parts.push({ kind: "text", value: heading.slice(cursor, index) });
+    parts.push({ kind: "color", value: word, hex });
+    cursor = index + word.length;
+  }
+  if (cursor < heading.length)
+    parts.push({ kind: "text", value: heading.slice(cursor) });
+  return parts.length ? parts : [{ kind: "text", value: heading }];
 }
 
 /** Context shown only when the submitted value was converted before search. */

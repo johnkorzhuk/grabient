@@ -168,7 +168,7 @@ let measured = { w: 800, h: 400 };
 // The SSR h1 text for this page, captured per boot — the open view swaps the
 // h1 text in place ("N items selected") instead of rendering its own header,
 // so the row (and the grid below it) never moves on toggle.
-let baseTitle = "";
+let baseTitleMarkup = "";
 // The open dims popover (body-anchored, like the $seed route's Portal).
 let dimsPanel: HTMLElement | null = null;
 // Preset hover/focus previews only affect the composed preview. They never
@@ -233,10 +233,10 @@ function syncToggles(): void {
 // ---------------------------------------------------------------------------
 function syncH1(): void {
   const h1 = document.getElementById("list-h1");
-  if (h1)
-    h1.textContent = isOpen
-      ? `${items.length} item${items.length === 1 ? "" : "s"} selected`
-      : baseTitle;
+  if (!h1) return;
+  if (isOpen)
+    h1.textContent = `${items.length} item${items.length === 1 ? "" : "s"} selected`;
+  else h1.innerHTML = baseTitleMarkup;
 }
 
 function renderSlot(): void {
@@ -1206,7 +1206,7 @@ export function bootExport(): void {
   isOpen = exportOn() && items.length > 0;
   closing = false;
   // boot always runs on fresh SSR DOM, so the h1 still holds the page title.
-  baseTitle = document.getElementById("list-h1")?.textContent ?? "";
+  baseTitleMarkup = document.getElementById("list-h1")?.innerHTML ?? "";
   window.__popstateHandler = onPopstate;
   if (exportOn() && items.length === 0) {
     // Stale deep-link (the selection was cleared elsewhere): drop the flag.
