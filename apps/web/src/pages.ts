@@ -743,21 +743,22 @@ ${footer(d.stars)}`;
   );
 }
 
-// Contact page: same copy and field styling as the current site's /contact.
-// The original submits through Turnstile + Resend, which need secrets this
-// worker doesn't hold — the form composes a mailto to the same inbox instead
-// (app.client.js #contact-form handler).
+// Contact page: same copy and field styling and Turnstile + Resend flow as the
+// current site's /contact. app.client.js explicitly renders Turnstile so it
+// also works after a client-side body swap.
 const FIELD =
   "w-full h-10 px-3 text-sm bg-background border border-solid border-input rounded-md text-foreground placeholder:text-muted-foreground hover:border-muted-foreground/50 hover:bg-background/60 focus:border-muted-foreground/70 focus:bg-background/60 outline-none transition-colors duration-200";
 
-export function contactContent(): string {
+export function contactContent(
+  turnstileSiteKey = "0x4AAAAAABf2mUHr7C-mxWAl",
+): string {
   return `<div class="container mx-auto flex min-h-[500px] max-w-2xl flex-col justify-center px-5 py-8 lg:px-14">
 <div class="space-y-6">
-<div class="space-y-3 pb-6 text-center">
+<div id="contact-heading" class="space-y-3 pb-6 text-center">
 <h1 class="text-3xl font-bold text-foreground">Contact Us</h1>
 <p class="text-muted-foreground">We'd love to hear from you. Send us a message and we'll respond as soon as possible.</p>
 </div>
-<form id="contact-form" class="space-y-5">
+<form id="contact-form" class="space-y-5" data-turnstile-site-key="${esc(turnstileSiteKey)}">
 <div class="space-y-2">
 <label for="contact-email" class="text-sm font-medium text-foreground">Email</label>
 <input id="contact-email" name="email" type="email" autocomplete="email" class="${FIELD}" placeholder="your.email@example.com">
@@ -778,7 +779,9 @@ export function contactContent(): string {
 <label for="contact-message" class="text-sm font-medium text-foreground">Message*</label>
 <textarea id="contact-message" name="message" rows="6" required minlength="10" class="${FIELD} h-auto resize-none py-2" placeholder="Your message (required, min. 10 characters)"></textarea>
 </div>
-<button type="submit" class="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-md border border-solid border-input bg-background px-3 text-base font-medium text-muted-foreground transition-colors duration-200 outline-none hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70">Send Message</button>
+<div id="contact-status" role="alert" class="hidden text-sm font-medium text-red-500"></div>
+<button type="submit" disabled class="inline-flex h-10 w-full cursor-pointer items-center justify-center rounded-md border border-solid border-input bg-background px-3 text-base font-medium text-muted-foreground transition-colors duration-200 outline-none hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 disabled:cursor-not-allowed disabled:opacity-50">Send Message</button>
+<div id="contact-turnstile" class="flex min-h-[65px] justify-center"></div>
 </form>
 </div>
 </div>`;

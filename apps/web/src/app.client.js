@@ -1,5 +1,11 @@
 import { copyPaletteCard, downloadPaletteCard } from "./islands/card-actions";
 import { parseSearchInput, searchRouteSegment } from "./search-input";
+import {
+  setAnalyticsUser,
+  syncAnalyticsConsent,
+  trackEvent,
+  trackPageView,
+} from "./analytics";
 
 // Navigation + caching layer porting TanStack Router/Query behaviors to vanilla JS.
 // Constants and algorithms mirror @tanstack/router-core 1.141 + query-core 5.90:
@@ -347,6 +353,17 @@ document.addEventListener("change", (e) => {
   }
   const form = e.target.closest("#opts");
   if (!form) return;
+  if (["angle", "steps", "style"].includes(e.target.name)) {
+    const eventName = {
+      angle: "change_angle",
+      steps: "change_steps",
+      style: "change_style",
+    }[e.target.name];
+    trackEvent(eventName, {
+      [`new${e.target.name[0].toUpperCase()}${e.target.name.slice(1)}`]:
+        rawVal(e.target),
+    });
+  }
   const fields = {};
   for (const el of form.elements) if (el.name) fields[el.name] = rawVal(el);
   if (!LIST_PATHS.includes(location.pathname))
@@ -583,6 +600,21 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("click", (e) => {
+  const exportToggle =
+    e.target.closest && e.target.closest("[data-export-toggle]");
+  if (exportToggle) {
+    trackEvent(
+      exportToggle.getAttribute("aria-pressed") === "true"
+        ? "remove_from_export"
+        : "add_to_export",
+      {
+        seed: exportToggle.dataset.exportSeed,
+        style: exportToggle.dataset.exportStyle,
+        steps: Number(exportToggle.dataset.exportSteps),
+        angle: Number(exportToggle.dataset.exportAngle),
+      },
+    );
+  }
   const theme = e.target.closest && e.target.closest("#theme-toggle");
   if (theme) {
     toggleTheme();
@@ -627,6 +659,13 @@ document.addEventListener("click", (e) => {
   }
   const paletteCopy = e.target.closest && e.target.closest("[data-palette-copy]");
   if (paletteCopy) {
+    const card = paletteCopy.closest("[data-palette-card]");
+    trackEvent(`copy_${paletteCopy.dataset.paletteCopy}`, {
+      seed: card?.dataset.paletteSeed,
+      style: card?.dataset.paletteStyle,
+      steps: Number(card?.dataset.paletteSteps),
+      angle: Number(card?.dataset.paletteAngle),
+    });
     void copyPaletteCard(paletteCopy);
     return;
   }
@@ -643,7 +682,16 @@ document.addEventListener("click", (e) => {
           { value: "svg", label: "SVG" },
           { value: "png", label: "PNG" },
         ],
-        (kind) => void downloadPaletteCard(paletteDownload, kind),
+        (kind) => {
+          const card = paletteDownload.closest("[data-palette-card]");
+          trackEvent(`download_${kind}`, {
+            seed: card?.dataset.paletteSeed,
+            style: card?.dataset.paletteStyle,
+            steps: Number(card?.dataset.paletteSteps),
+            angle: Number(card?.dataset.paletteAngle),
+          });
+          void downloadPaletteCard(paletteDownload, kind);
+        },
       );
     }
     return;
@@ -1459,26 +1507,114 @@ fitSwatches();
 document.addEventListener("app:swap", syncThemeLabel);
 syncThemeLabel();
 
-// Contact form: no email backend in this worker (the original submits through
-// Turnstile + Resend), so compose a mailto to the same inbox the original
-// sends to, carrying subject and message.
-document.addEventListener("submit", (e) => {
-  const form = e.target.closest && e.target.closest("#contact-form");
-  if (!form) return;
-  e.preventDefault();
-  const message = form.querySelector("#contact-message")?.value?.trim() ?? "";
-  if (message.length < 10) {
-    announce("Message must be at least 10 characters");
-    form.querySelector("#contact-message")?.focus();
-    return;
-  }
-  const subject = form.querySelector("#contact-subject")?.value || "Contact";
-  const from = form.querySelector("#contact-email")?.value?.trim();
-  const body = message + (from ? `\n\nFrom: ${from}` : "");
-  location.href = `mailto:john@grabient.com?subject=${encodeURIComponent(
-    `Grabient Contact: ${subject}`,
-  )}&body=${encodeURIComponent(body)}`;
-});
+// Contact form: explicitly render Turnstile so it survives SPA body swaps,
+// then submit to the Worker's validated, rate-limited Resend endpoint.
+let turnstileLoader = null;
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+  if (turnstileLoader) return turnstileLoader;
+  turnstileLoader = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-grabient-turnstile]');
+    const script = existing || document.createElement("script");
+    script.addEventListener("load", () => resolve(window.turnstile), {
+      once: true,
+    });
+    script.addEventListener("error", reject, { once: true });
+    if (!existing) {
+      script.dataset.grabientTurnstile = "1";
+      script.src =
+        "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+      script.async = true;
+      script.defer = true;
+      document.head.append(script);
+    }
+  });
+  return turnstileLoader;
+}
+
+function bootContact() {
+  const form = document.getElementById("contact-form");
+  if (!form || form.dataset.wired) return;
+  form.dataset.wired = "1";
+  const submit = form.querySelector('button[type="submit"]');
+  const status = form.querySelector("#contact-status");
+  const widget = form.querySelector("#contact-turnstile");
+  let token = "";
+  let widgetId;
+  const showError = (message) => {
+    status.textContent = message;
+    status.classList.remove("hidden");
+    announce(message);
+  };
+  const syncSubmit = () => {
+    submit.disabled = !token || !form.checkValidity();
+  };
+  form.addEventListener("input", syncSubmit);
+  loadTurnstile()
+    .then((turnstile) => {
+      if (!turnstile || !widget?.isConnected) throw new Error("Unavailable");
+      widgetId = turnstile.render(widget, {
+        sitekey: form.dataset.turnstileSiteKey,
+        theme: "auto",
+        appearance: "interaction-only",
+        callback: (value) => {
+          token = value;
+          status.classList.add("hidden");
+          syncSubmit();
+        },
+        "expired-callback": () => {
+          token = "";
+          syncSubmit();
+        },
+        "error-callback": () => {
+          token = "";
+          syncSubmit();
+          showError("Verification failed. Please try again.");
+        },
+      });
+    })
+    .catch(() => showError("Verification could not load. Please refresh and try again."));
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (!form.reportValidity()) return;
+    if (!token) {
+      showError("Please complete the verification.");
+      return;
+    }
+    status.classList.add("hidden");
+    submit.disabled = true;
+    submit.textContent = "Sending...";
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: form.querySelector("#contact-email")?.value.trim() || undefined,
+          subject: form.querySelector("#contact-subject")?.value || undefined,
+          message: form.querySelector("#contact-message")?.value.trim(),
+          turnstileToken: token,
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Failed to send message.");
+      trackEvent("contact_form_submit");
+      document.getElementById("contact-heading").innerHTML =
+        '<div class="mb-4 flex items-center justify-center text-4xl" aria-hidden="true">✓</div>' +
+        '<h1 class="text-3xl font-bold text-foreground">Message Sent</h1>' +
+        '<p class="text-muted-foreground">Thank you!</p>' +
+        '<a href="/" class="mt-6 inline-flex h-10 items-center justify-center rounded-md border border-solid border-input bg-background px-4 text-sm font-medium text-muted-foreground hover:text-foreground">Back to Home</a>';
+      form.remove();
+      announce("Message sent");
+    } catch (error) {
+      token = "";
+      if (window.turnstile && widgetId != null) window.turnstile.reset(widgetId);
+      submit.textContent = "Send Message";
+      syncSubmit();
+      showError(error.message || "Failed to send message. Please try again later.");
+    }
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Auth + saved palettes. Cached pages are identical for every visitor, so ALL
@@ -1499,7 +1635,11 @@ function fetchSession() {
   if (!sessionPromise) {
     sessionPromise = fetch("/api/auth/get-session", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => (sessionUser = d && d.user ? d.user : null))
+      .then((d) => {
+        sessionUser = d && d.user ? d.user : null;
+        setAnalyticsUser(sessionUser);
+        return sessionUser;
+      })
       .catch(() => {
         // A transient failure must not latch "signed out" for the whole tab —
         // clear the memo so the next boot/swap retries.
@@ -1814,6 +1954,12 @@ document.addEventListener("click", async (e) => {
     else likedSeeds.delete(serverKey);
     renderLiked();
     if (typeof data.likesCount === "number") setCount(btn, data.likesCount);
+    trackEvent(data.liked ? "save_gradient" : "unsave_gradient", {
+      seed,
+      style,
+      steps,
+      angle,
+    });
     announce(data.liked ? "Palette saved" : "Palette removed from saved");
     // Unsaving on /saved removes the card with a 10s undo (the original's
     // UndoButton + ⌘Z); undo re-likes and reinserts it.
@@ -2419,6 +2565,15 @@ function syncConsentToZaraz() {
   } catch {}
 }
 
+function syncConsentToAnalytics() {
+  if (!consentState) return;
+  const analytics =
+    consentState.isGdprRegion && !consentState.hasInteracted
+      ? false
+      : consentState.categories.analytics;
+  syncAnalyticsConsent(analytics, analytics && consentState.categories.sessionReplay);
+}
+
 document.addEventListener("zarazConsentAPIReady", syncConsentToZaraz);
 
 function renderConsentToggles() {
@@ -2459,11 +2614,13 @@ function bootConsent() {
       saveConsent();
       renderConsentToggles();
       syncConsentToZaraz();
+      syncConsentToAnalytics();
     });
   }
   if (consentState && consentState.hasInteracted) {
     renderConsentToggles();
     syncConsentToZaraz();
+    syncConsentToAnalytics();
     return;
   }
   const apply = (isGdpr) => {
@@ -2472,6 +2629,7 @@ function bootConsent() {
     saveConsent();
     renderConsentToggles();
     syncConsentToZaraz();
+    syncConsentToAnalytics();
   };
   if (privacy && privacy.dataset.gdpr != null) {
     apply(privacy.dataset.gdpr === "1");
@@ -2483,6 +2641,7 @@ function bootConsent() {
   } else {
     renderConsentToggles();
     syncConsentToZaraz();
+    syncConsentToAnalytics();
   }
 }
 
@@ -2504,6 +2663,8 @@ document.addEventListener("app:swap", () => {
   syncLoginSend();
   bootSettings();
   bootConsent();
+  bootContact();
+  trackPageView();
 });
 
 bootAuth();
@@ -2512,6 +2673,8 @@ scheduleListLikeCounts();
 syncLoginSend();
 bootSettings();
 bootConsent();
+bootContact();
+trackPageView();
 
 syncListMemory();
 syncOptsReset();

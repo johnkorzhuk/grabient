@@ -343,6 +343,9 @@ importers:
       hono:
         specifier: ^4.8.3
         version: 4.11.1
+      posthog-js:
+        specifier: ^1.308.0
+        version: 1.308.0
       solid-js:
         specifier: ^1.9.14
         version: 1.9.14

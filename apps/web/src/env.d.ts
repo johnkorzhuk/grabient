@@ -24,4 +24,6 @@ interface Env {
   GOOGLE_CLIENT_SECRET: string;
   RESEND_API_KEY: string;
   EMAIL_FROM: string;
+  TURNSTILE_SECRET_KEY: string;
+  TURNSTILE_SITE_KEY?: string;
 }

@@ -44,6 +44,10 @@ function jsonLd(value: Record<string, unknown>): string {
 
 export function layout(meta: PageMeta, body: string): string {
   const siteUrl = new URL(meta.canonical).origin;
+  const zarazLoader =
+    new URL(siteUrl).hostname === "grabient.com"
+      ? '<script defer src="/cdn-cgi/zaraz/i.js"></script>'
+      : "";
   const image = meta.image ?? new URL("/grabber.png", meta.canonical).toString();
   const imageAlt = meta.imageAlt ?? "Grabient gradient palette generator";
   const structuredData = [
@@ -121,6 +125,7 @@ ${meta.themeColor ? `<meta name="theme-color" content="${esc(meta.themeColor)}">
 ${structuredData.map(jsonLd).join("\n")}
 <script>${THEME_SCRIPT}</script>
 <style>${styles}</style>
+${zarazLoader}
 ${SCRIPT_TAG}
 </head>
 <body class="flex min-h-dvh flex-col bg-background font-sans text-foreground${meta.noFooter ? " overflow-hidden" : ""}">

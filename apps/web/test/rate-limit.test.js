@@ -44,4 +44,17 @@ describe("production mutation rate limiter", () => {
     expect((await instance.fetch(request("toggleLike", "user:a"))).status).toBe(200);
     expect((await instance.fetch(request("toggleLike", "user:b"))).status).toBe(200);
   });
+
+  it("applies the original five-per-ten-minute contact budget", async () => {
+    const instance = limiter();
+    const { requests } = rateLimitConfig.contactForm;
+    for (let n = 0; n < requests; n++) {
+      expect(
+        (await instance.fetch(request("contactForm", "ip:203.0.113.1"))).status,
+      ).toBe(200);
+    }
+    expect(
+      (await instance.fetch(request("contactForm", "ip:203.0.113.1"))).status,
+    ).toBe(429);
+  });
 });

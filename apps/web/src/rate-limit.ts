@@ -1,5 +1,6 @@
 export const rateLimitConfig = {
   toggleLike: { requests: 20, window: 60 },
+  contactForm: { requests: 5, window: 600 },
 } as const;
 
 export type RateLimitType = keyof typeof rateLimitConfig;

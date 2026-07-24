@@ -77,6 +77,7 @@
 		"PUBLIC_ORIGIN": "https://grabient-lite.jkorzhuk.workers.dev",
 		"BETTER_AUTH_URL": "https://grabient-lite.jkorzhuk.workers.dev",
 		"EMAIL_FROM": "noreply@grabient.com",
+		"TURNSTILE_SITE_KEY": "0x4AAAAAABf2mUHr7C-mxWAl",
 		"R2_PUBLIC_URL": "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev"
 	},
 	"r2_buckets": [
@@ -132,6 +133,7 @@
 				"PUBLIC_ORIGIN": "https://grabient.com",
 				"BETTER_AUTH_URL": "https://grabient.com",
 				"EMAIL_FROM": "noreply@grabient.com",
+				"TURNSTILE_SITE_KEY": "0x4AAAAAABf2mUHr7C-mxWAl",
 				"R2_PUBLIC_URL": "https://cdn.grabient.com"
 			},
 			"r2_buckets": [

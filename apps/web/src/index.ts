@@ -63,6 +63,7 @@ import {
 } from "./semantic-search";
 import { parseSearchInput, searchRouteSegment } from "./search-input";
 import { checkRateLimit } from "./rate-limit";
+import { esc } from "./esc";
 
 export { RateLimiter } from "./rate-limit";
 
@@ -474,6 +475,162 @@ const NO_STORE = {
   "CDN-Cache-Control": "no-store",
 };
 
+const contactBody = v.object({
+  email: v.optional(
+    v.pipe(v.string(), v.maxLength(254), v.email("Invalid email address")),
+  ),
+  subject: v.optional(v.pipe(v.string(), v.maxLength(120))),
+  message: v.pipe(
+    v.string(),
+    v.minLength(10, "Message must be at least 10 characters long"),
+    v.maxLength(10_000, "Message is too long"),
+  ),
+  turnstileToken: v.pipe(v.string(), v.minLength(1), v.maxLength(2048)),
+});
+
+function clientIdentifier(c: Context<{ Bindings: Env }>): string {
+  return (
+    c.req.header("cf-connecting-ip") ||
+    c.req.header("x-real-ip") ||
+    "unknown"
+  );
+}
+
+app.post("/api/contact", async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = v.safeParse(contactBody, body);
+  if (!parsed.success) {
+    return c.json(
+      { error: parsed.issues[0]?.message ?? "Invalid contact form" },
+      400,
+      NO_STORE,
+    );
+  }
+
+  const rateLimit = await checkRateLimit(
+    c.env.RATE_LIMITER,
+    `ip:${clientIdentifier(c)}`,
+    "contactForm",
+  );
+  if (rateLimit && !rateLimit.success) {
+    c.header(
+      "Retry-After",
+      String(Math.max(0, rateLimit.reset - Math.floor(Date.now() / 1000))),
+    );
+    return c.json(
+      { error: "Too many messages. Please try again later." },
+      429,
+      NO_STORE,
+    );
+  }
+
+  const turnstile = new FormData();
+  turnstile.set("secret", c.env.TURNSTILE_SECRET_KEY);
+  turnstile.set("response", parsed.output.turnstileToken);
+  const remoteIp = clientIdentifier(c);
+  if (remoteIp !== "unknown") turnstile.set("remoteip", remoteIp);
+
+  const verification = await fetch(
+    "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+    { method: "POST", body: turnstile },
+  ).then((response) =>
+    response.json<{ success?: boolean }>().catch(() => ({ success: false })),
+  );
+  if (!verification.success) {
+    return c.json(
+      { error: "Verification failed. Please try again." },
+      400,
+      NO_STORE,
+    );
+  }
+
+  const { email, subject, message } = parsed.output;
+  const safeMessage = esc(message);
+  const safeEmail = email ? esc(email) : "Anonymous";
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${c.env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: c.env.EMAIL_FROM || "Contact Form <noreply@grabient.com>",
+      to: ["john@grabient.com"],
+      subject: subject
+        ? `Grabient Contact: ${subject.slice(0, 120)}`
+        : "Grabient Contact Form Message",
+      html:
+        '<div style="font-family:system-ui,-apple-system,sans-serif;max-width:600px;margin:0 auto">' +
+        '<h2 style="color:#333;margin-bottom:24px">New Contact Form Submission</h2>' +
+        `<p><strong>From:</strong> ${safeEmail}</p>` +
+        '<p style="margin-top:16px"><strong>Message:</strong></p>' +
+        `<div style="background:#f5f5f5;padding:16px;border-radius:8px;margin:16px 0;white-space:pre-wrap">${safeMessage}</div>` +
+        '<hr style="margin:24px 0;border:0;border-top:1px solid #e0e0e0">' +
+        '<p style="color:#666;font-size:14px;margin:0">This email was sent from the Grabient contact form.</p></div>',
+      ...(email ? { reply_to: email } : {}),
+    }),
+  });
+  if (!response.ok) {
+    console.error("contact: Resend rejected submission", response.status);
+    return c.json(
+      { error: "Failed to send message. Please try again later." },
+      502,
+      NO_STORE,
+    );
+  }
+  return c.json({ success: true }, 200, NO_STORE);
+});
+
+const POSTHOG_API_HOST = "us.i.posthog.com";
+const POSTHOG_ASSET_HOST = "us-assets.i.posthog.com";
+
+async function proxyPostHog(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  const path = url.pathname.replace(/^\/e/, "") || "/";
+  const asset = path.startsWith("/static/") || path.startsWith("/array/");
+  const target = new URL(
+    path + url.search,
+    `https://${asset ? POSTHOG_ASSET_HOST : POSTHOG_API_HOST}`,
+  );
+  const headers = new Headers(request.headers);
+  headers.delete("cookie");
+  headers.delete("host");
+  const ip =
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-real-ip");
+  if (ip) headers.set("x-forwarded-for", ip);
+  const upstream = await fetch(target, {
+    method: request.method,
+    headers,
+    body:
+      request.method === "GET" || request.method === "HEAD"
+        ? undefined
+        : request.body,
+  });
+  const responseHeaders = new Headers(upstream.headers);
+  responseHeaders.set("Access-Control-Allow-Origin", "*");
+  if (asset && upstream.ok) {
+    responseHeaders.set("Cache-Control", "public, max-age=86400");
+  }
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers: responseHeaders,
+  });
+}
+
+app.on(["GET", "POST"], ["/e", "/e/*"], (c) =>
+  proxyPostHog(c.req.raw),
+);
+app.on("OPTIONS", ["/e", "/e/*"], (c) =>
+  c.body(null, 204, {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Max-Age": "86400",
+  }),
+);
+
 app.on(["GET", "POST"], "/api/auth/*", async (c) => {
   const res = await initAuth(c.env).handler(c.req.raw);
   // better-auth's responses carry no cache headers, and Workers Cache
@@ -877,7 +1034,7 @@ app.get("/contact", (c) =>
     "/contact",
     "Contact — Grabient",
     "Get in touch with the Grabient team.",
-    contactContent(),
+    contactContent(c.env.TURNSTILE_SITE_KEY),
   ),
 );
 
