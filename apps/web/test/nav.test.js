@@ -10,6 +10,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { click, loadClient, page, respond } from "./setup";
 
 let fetchMock;
+const SEED = "_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKb";
 
 beforeAll(async () => {
   fetchMock = await loadClient();
@@ -70,6 +71,33 @@ describe("navigation", () => {
     );
   });
 
+  it("syncs canonical, description, robots, social metadata, and JSON-LD on swap", async () => {
+    document.head.insertAdjacentHTML(
+      "beforeend",
+      `<meta name="description" content="old"><meta name="robots" content="index"><meta property="og:url" content="https://example.com/old"><link rel="canonical" href="https://example.com/old"><script type="application/ld+json">{"name":"Old"}</script>`,
+    );
+    fetchMock.mockResolvedValueOnce(
+      respond(
+        `<html><head><title>New metadata</title><meta name="description" content="new"><meta name="robots" content="noindex,nofollow"><meta property="og:url" content="https://example.com/new"><meta name="twitter:title" content="New metadata"><link rel="canonical" href="https://example.com/new"><script type="application/ld+json">{"name":"New"}</script></head><body><main>NEWHEAD</main></body></html>`,
+        { maxAge: 300 },
+      ),
+    );
+    click(link("/new-head"));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("NEWHEAD"));
+    expect(document.querySelector('meta[name="description"]').content).toBe("new");
+    expect(document.querySelector('meta[name="robots"]').content).toBe("noindex,nofollow");
+    expect(document.querySelector('meta[property="og:url"]').content).toBe(
+      "https://example.com/new",
+    );
+    expect(document.querySelector('meta[name="twitter:title"]').content).toBe("New metadata");
+    expect(document.querySelector('link[rel="canonical"]').href).toBe(
+      "https://example.com/new",
+    );
+    expect(document.querySelector('script[type="application/ld+json"]').textContent).toContain(
+      '"name":"New"',
+    );
+  });
+
   it("does not intercept modified clicks (ctrl/meta) or external origins", () => {
     const a = link("/no-intercept");
     a.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }));
@@ -89,6 +117,143 @@ describe("navigation", () => {
     // Not intercepted: no preventDefault, no swap fetch of the txt file.
     expect(evt.defaultPrevented).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("turns the palette search form into a shareable semantic route", async () => {
+    history.replaceState({}, "", "/?style=radialGradient&page=3&export=true");
+    document.body.innerHTML = `<form id="palette-search"><input name="q" value="Warm Sunset"></form>`;
+    fetchMock.mockResolvedValueOnce(
+      respond(page("Warm sunset palettes", "SEARCHRESULTS"), { maxAge: 0 }),
+    );
+    document
+      .getElementById("palette-search")
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("SEARCHRESULTS"));
+    expect(location.pathname).toBe("/palettes/warm-sunset");
+    expect(location.search).toBe("?style=radialGradient");
+  });
+
+  it("parses pasted Grabient links and applies their palette options", async () => {
+    history.replaceState({}, "", "/newest?style=linearGradient&page=3");
+    document.body.innerHTML = `<form id="palette-search"><input name="q" value="https://grabient-lite.jkorzhuk.workers.dev/${SEED}?style=radialGradient&angle=45&steps=11"></form>`;
+    fetchMock.mockResolvedValueOnce(
+      respond(page("Seed color palettes", "PARSEDLINKRESULTS"), { maxAge: 0 }),
+    );
+    document
+      .getElementById("palette-search")
+      .dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("PARSEDLINKRESULTS"));
+    expect(location.pathname).toBe(`/palettes/${SEED}`);
+    expect(location.search).toBe(
+      "?style=radialGradient&sort=newest&angle=45&steps=11",
+    );
+  });
+
+  it("reveals and operates the search clear control as the user types", () => {
+    document.body.innerHTML = `<form><input id="palette-search-input"><button type="button" data-search-clear class="hidden">clear</button></form>`;
+    const input = document.getElementById("palette-search-input");
+    const clear = document.querySelector("[data-search-clear]");
+    input.value = "sunset";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    expect(clear.classList.contains("hidden")).toBe(false);
+    clear.click();
+    expect(input.value).toBe("");
+    expect(clear.classList.contains("hidden")).toBe(true);
+  });
+
+  it("drag-scrolls the Popular tag rail without activating the dragged link", () => {
+    history.replaceState({}, "", "/");
+    document.body.innerHTML = `<nav data-drag-scroll><a href="/palettes/sunset">sunset</a></nav>`;
+    const rail = document.querySelector("[data-drag-scroll]");
+    const tag = rail.querySelector("a");
+    rail.scrollLeft = 20;
+
+    tag.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        clientX: 120,
+        pointerId: 7,
+        pointerType: "mouse",
+      }),
+    );
+    tag.dispatchEvent(
+      new PointerEvent("pointermove", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 70,
+        pointerId: 7,
+        pointerType: "mouse",
+      }),
+    );
+    tag.dispatchEvent(
+      new PointerEvent("pointerup", {
+        bubbles: true,
+        clientX: 70,
+        pointerId: 7,
+        pointerType: "mouse",
+      }),
+    );
+
+    expect(rail.scrollLeft).toBe(70);
+    const clickAfterDrag = new MouseEvent("click", { bubbles: true, cancelable: true });
+    tag.dispatchEvent(clickAfterDrag);
+    expect(clickAfterDrag.defaultPrevented).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps Popular tags clickable through normal pointer jitter", async () => {
+    history.replaceState({}, "", "/");
+    document.body.innerHTML = `<nav data-drag-scroll><a href="/palettes/sunset">sunset</a></nav>`;
+    const tag = document.querySelector("[data-drag-scroll] a");
+    fetchMock.mockResolvedValueOnce(
+      respond(page("Sunset palettes", "SUNSETRESULTS"), { maxAge: 0 }),
+    );
+
+    tag.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        clientX: 120,
+        pointerId: 8,
+        pointerType: "mouse",
+      }),
+    );
+    tag.dispatchEvent(
+      new PointerEvent("pointermove", {
+        bubbles: true,
+        cancelable: true,
+        clientX: 115,
+        pointerId: 8,
+        pointerType: "mouse",
+      }),
+    );
+    tag.dispatchEvent(
+      new PointerEvent("pointerup", {
+        bubbles: true,
+        clientX: 115,
+        pointerId: 8,
+        pointerType: "mouse",
+      }),
+    );
+    tag.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain("SUNSETRESULTS"));
+    expect(location.pathname).toBe("/palettes/sunset");
+  });
+
+  it("sorts semantic results in place while preserving their view options", async () => {
+    history.replaceState({}, "", "/palettes/sunset?style=linearSwatches&page=2");
+    document.body.innerHTML = `<select id="query-sort"><option value="popular">Popular</option><option value="newest" selected>Newest</option></select>`;
+    fetchMock.mockResolvedValueOnce(
+      respond(page("Newest sunset palettes", "SORTEDRESULTS"), { maxAge: 0 }),
+    );
+    document
+      .getElementById("query-sort")
+      .dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.waitFor(() => expect(document.body.textContent).toContain("SORTEDRESULTS"));
+    expect(location.pathname).toBe("/palettes/sunset");
+    expect(location.search).toBe("?style=linearSwatches&sort=newest");
   });
 
   it("SWR: stale cached page renders instantly, then revalidates and re-swaps in background", async () => {

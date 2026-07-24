@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@cf-wasm/resvg": "^0.3.2",
     "@repo/data-ops": "workspace:^",
     "@tanstack/solid-query": "^5.101.4",
     "@tanstack/solid-virtual": "^3.13.34",

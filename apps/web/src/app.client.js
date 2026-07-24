@@ -1,3 +1,6 @@
+import { copyPaletteCard, downloadPaletteCard } from "./islands/card-actions";
+import { parseSearchInput, searchRouteSegment } from "./search-input";
+
 // Navigation + caching layer porting TanStack Router/Query behaviors to vanilla JS.
 // Constants and algorithms mirror @tanstack/router-core 1.141 + query-core 5.90:
 // intent preload (mouseenter+50ms / focus / touchstart, WeakMap timers),
@@ -116,6 +119,8 @@ document.addEventListener("touchstart", (e) => {
 // seed pages link back to lists without the palette's values sticking — the
 // current site's previousRoute store, persisted so it survives reloads.
 const LIST_PATHS = ["/", "/newest", "/oldest", "/saved"];
+const isPaletteListPath = (path = location.pathname) =>
+  LIST_PATHS.includes(path) || path.startsWith("/palettes/");
 const LKEY = "gl-list-search";
 
 function syncListMemory(changedField) {
@@ -162,6 +167,18 @@ const entrySrc = () => {
   return s ? s.getAttribute("src") : null;
 };
 
+const ROUTE_HEAD_SELECTOR = [
+  'meta[name="description"]',
+  'meta[name="keywords"]',
+  'meta[name="robots"]',
+  'meta[name="theme-color"]',
+  'meta[property^="og:"]',
+  'meta[name^="twitter:"]',
+  'link[rel="canonical"]',
+  "link[data-route-icon]",
+  'script[type="application/ld+json"]',
+].join(",");
+
 function swap(html, afterApply) {
   shownHtml = html;
   const doc = new DOMParser().parseFromString(html, "text/html");
@@ -176,9 +193,21 @@ function swap(html, afterApply) {
   }
   const apply = () => {
     document.title = doc.title;
-    const icon = document.querySelector('link[rel="icon"]');
-    const nextIcon = doc.querySelector('link[rel="icon"]');
-    if (icon && nextIcon) icon.setAttribute("href", nextIcon.getAttribute("href"));
+    // Route navigation must update the complete document head, not only the
+    // title. Keeping stale canonicals, social metadata, robots directives, or
+    // JSON-LD after a body swap gives crawlers and link previews the metadata
+    // of the page the visitor came from.
+    const nextHead = [...doc.head.querySelectorAll(ROUTE_HEAD_SELECTOR)];
+    document.head.querySelectorAll(ROUTE_HEAD_SELECTOR).forEach((node) => node.remove());
+    nextHead.forEach((node) => document.head.append(node.cloneNode(true)));
+
+    // Backwards-compatible fallback for cached pre-marker HTML during a
+    // rolling deploy. Fresh pages use data-route-icon and are already synced.
+    if (!nextHead.some((node) => node.hasAttribute("data-route-icon"))) {
+      const icon = document.querySelector('link[rel="icon"]');
+      const nextIcon = doc.querySelector('link[rel="icon"]');
+      if (icon && nextIcon) icon.setAttribute("href", nextIcon.getAttribute("href"));
+    }
     // A swap triggered while an options field is focused (arrow-key stepping,
     // preset pick) must not kick the user out of the input: remember the field
     // and refocus its replacement so key-repeat keeps flowing.
@@ -222,13 +251,20 @@ async function revalidate(href, seq) {
   } catch {}
 }
 
-async function navigate(href, push) {
+async function navigate(href, push, { preserveScroll = false } = {}) {
   const seq = ++navSeq;
   gc();
+  const preservedScroll = preserveScroll ? [scrollX, scrollY] : null;
   if (push) history.pushState({ k: Math.random().toString(36).slice(2, 8) }, "", href);
-  const finishScroll = push
-    ? () => restoreScroll(null)
-    : () => restoreScroll((history.state && history.state.k) || rel(location.href));
+  const finishScroll = preservedScroll
+    ? () => {
+        ignoreScroll = true;
+        scrollTo(preservedScroll[0], preservedScroll[1]);
+        setTimeout(() => (ignoreScroll = false), 0);
+      }
+    : push
+      ? () => restoreScroll(null)
+      : () => restoreScroll((history.state && history.state.k) || rel(location.href));
   const e = cache.get(href);
   if (e && e.html && !e.promise) {
     // A preloaded entry may have followed a redirect (legacy/decimal seed ->
@@ -260,7 +296,7 @@ async function navigate(href, push) {
 // from then on the baseline is all-auto. Per-field change events keep the
 // list-search memory's field-level merge semantics intact.
 let seedBoot = null;
-if (!LIST_PATHS.includes(location.pathname)) {
+if (!isPaletteListPath()) {
   const sp = new URLSearchParams(location.search);
   seedBoot = {
     angle: sp.get("angle") || "",
@@ -271,7 +307,7 @@ if (!LIST_PATHS.includes(location.pathname)) {
 document.addEventListener("app:swap", () => (seedBoot = null));
 
 function optsBaseline() {
-  return (!LIST_PATHS.includes(location.pathname) && seedBoot) || { angle: "", steps: "", style: "" };
+  return (!isPaletteListPath() && seedBoot) || { angle: "", steps: "", style: "" };
 }
 
 function syncOptsReset() {
@@ -281,13 +317,26 @@ function syncOptsReset() {
   const base = optsBaseline();
   let changed = false;
   for (const el of form.elements)
-    if (el.name && (base[el.name] ?? "") !== rawVal(el)) changed = true;
+    if (el.name && el.type !== "hidden" && (base[el.name] ?? "") !== rawVal(el))
+      changed = true;
   btn.classList.toggle("hidden", !changed);
 }
 window.__syncOptsReset = syncOptsReset;
 document.addEventListener("app:swap", syncOptsReset);
 
 document.addEventListener("change", (e) => {
+  // Semantic result pages sort the same result set without leaving the query.
+  if (e.target && e.target.id === "query-sort") {
+    const p = new URLSearchParams(location.search);
+    p.delete("page");
+    e.target.value === "popular"
+      ? p.delete("sort")
+      : p.set("sort", e.target.value);
+    navigate(location.pathname + (p.size ? `?${p}` : ""), true, {
+      preserveScroll: true,
+    });
+    return;
+  }
   // Sort dropdown (NavigationSelect equivalent): navigate to the chosen list
   // route, preserving user params, resetting page.
   if (e.target && e.target.id === "nav-select") {
@@ -306,8 +355,125 @@ document.addEventListener("change", (e) => {
   if (window.__paramsHandler) return window.__paramsHandler(fields);
   const p = new URLSearchParams(location.search);
   for (const k in fields) fields[k] ? p.set(k, fields[k]) : p.delete(k);
-  navigate(location.pathname + (p.size ? "?" + p : ""), true);
+  navigate(location.pathname + (p.size ? "?" + p : ""), true, {
+    preserveScroll: isPaletteListPath(),
+  });
 });
+
+document.addEventListener("submit", (e) => {
+  const form = e.target;
+  if (!form || form.id !== "palette-search") return;
+  const input = form.querySelector('input[name="q"]');
+  const parsed = parseSearchInput(input?.value ?? "", location.origin);
+  if (!parsed) return;
+  e.preventDefault();
+  const p = new URLSearchParams(location.search);
+  p.delete("page");
+  p.delete("limit");
+  p.delete("export");
+  p.delete("q");
+  if (location.pathname === "/newest") p.set("sort", "newest");
+  else if (location.pathname === "/oldest") p.set("sort", "oldest");
+  for (const [key, value] of Object.entries(parsed.searchParams)) p.set(key, value);
+  const slug = searchRouteSegment(parsed.query);
+  navigate(`/palettes/${slug}${p.size ? `?${p}` : ""}`, true);
+});
+
+document.addEventListener("input", (e) => {
+  if (e.target?.id !== "palette-search-input") return;
+  e.target
+    .closest("form")
+    ?.querySelector("[data-search-clear]")
+    ?.classList.toggle("hidden", !e.target.value);
+});
+
+document.addEventListener("click", (e) => {
+  const clear = e.target.closest && e.target.closest("[data-search-clear]");
+  if (!clear) return;
+  const input = clear.closest("form")?.querySelector("#palette-search-input");
+  if (!input) return;
+  input.value = "";
+  clear.classList.add("hidden");
+  input.focus();
+});
+
+// Horizontally overflowing chip rails use native touch panning, plus
+// mouse/pen drag-to-scroll on desktop. A moved pointer must not activate the
+// link it started over; a stationary press remains a normal click.
+const DRAG_SCROLL_THRESHOLD = 8;
+let dragScrollState = null;
+let suppressDragScrollClick = null;
+let suppressDragScrollTimer = 0;
+
+document.addEventListener("pointerdown", (e) => {
+  if (e.pointerType === "touch" || e.button !== 0) return;
+  const rail = e.target.closest && e.target.closest("[data-drag-scroll]");
+  if (!rail) return;
+  dragScrollState = {
+    rail,
+    pointerId: e.pointerId,
+    startX: e.clientX,
+    startScrollLeft: rail.scrollLeft,
+    moved: false,
+  };
+});
+
+document.addEventListener("pointermove", (e) => {
+  const state = dragScrollState;
+  if (!state || state.pointerId !== e.pointerId) return;
+  const delta = e.clientX - state.startX;
+  if (!state.moved) {
+    if (Math.abs(delta) < DRAG_SCROLL_THRESHOLD) return;
+    state.moved = true;
+    // Capturing on pointerdown can retarget an ordinary anchor click to the
+    // rail. Wait until this is unquestionably a drag so links stay links.
+    if (state.rail.setPointerCapture) {
+      try {
+        state.rail.setPointerCapture(e.pointerId);
+      } catch {}
+    }
+  }
+  e.preventDefault();
+  state.rail.classList.add("is-dragging");
+  state.rail.scrollLeft = state.startScrollLeft - delta;
+});
+
+function finishDragScroll(e) {
+  const state = dragScrollState;
+  if (!state || state.pointerId !== e.pointerId) return;
+  if (state.moved) {
+    suppressDragScrollClick = state.rail;
+    clearTimeout(suppressDragScrollTimer);
+    suppressDragScrollTimer = setTimeout(() => {
+      suppressDragScrollClick = null;
+    }, 0);
+  }
+  state.rail.classList.remove("is-dragging");
+  if (state.moved && state.rail.releasePointerCapture) {
+    try {
+      state.rail.releasePointerCapture(e.pointerId);
+    } catch {}
+  }
+  dragScrollState = null;
+}
+
+document.addEventListener("pointerup", finishDragScroll);
+document.addEventListener("pointercancel", finishDragScroll);
+document.addEventListener("dragstart", (e) => {
+  if (e.target.closest && e.target.closest("[data-drag-scroll]")) e.preventDefault();
+});
+document.addEventListener(
+  "click",
+  (e) => {
+    const rail = e.target.closest && e.target.closest("[data-drag-scroll]");
+    if (!rail || rail !== suppressDragScrollClick) return;
+    suppressDragScrollClick = null;
+    clearTimeout(suppressDragScrollTimer);
+    e.preventDefault();
+    e.stopImmediatePropagation();
+  },
+  true,
+);
 
 // Screen-reader announcements for copy/apply feedback (polite live region).
 function announce(msg) {
@@ -316,6 +482,9 @@ function announce(msg) {
   live.textContent = "";
   live.textContent = msg;
 }
+// Islands without access to this module's scope (export view) announce via
+// a CustomEvent instead.
+document.addEventListener("app:announce", (e) => announce(e.detail));
 
 // WAI-ARIA tabs pattern for the export-code bar: selection follows click or
 // arrow keys, with a roving tabindex on the tab buttons.
@@ -362,15 +531,61 @@ function syncThemeLabel() {
     );
 }
 
+function toggleTheme() {
+  const dark = document.documentElement.classList.toggle("dark");
+  document.documentElement.style.colorScheme = dark ? "dark" : "light";
+  try {
+    localStorage.setItem("theme", dark ? "dark" : "light");
+  } catch {}
+  syncThemeLabel();
+}
+
+function hotkeyTargetIsEditable(target) {
+  return !!(
+    target &&
+    target.closest &&
+    target.closest("input, textarea, select, [contenteditable]")
+  );
+}
+
+async function pickColorWithEyeDropper() {
+  if (typeof window.EyeDropper !== "function") return;
+  try {
+    const result = await new window.EyeDropper().open();
+    if (!result?.sRGBHex) return;
+    await navigator.clipboard.writeText(result.sRGBHex);
+    announce(`${result.sRGBHex} copied`);
+  } catch {
+    // The native picker rejects when the user cancels; that is not an error.
+  }
+}
+
+// Current Grabient global shortcuts. Inputs keep their native editing
+// shortcuts; these fire only from the page chrome/content.
+document.addEventListener("keydown", (e) => {
+  if (
+    e.defaultPrevented ||
+    e.repeat ||
+    !(e.metaKey || e.ctrlKey) ||
+    e.altKey ||
+    e.shiftKey ||
+    hotkeyTargetIsEditable(e.target)
+  )
+    return;
+  const key = e.key.toLowerCase();
+  if (key === "k") {
+    e.preventDefault();
+    toggleTheme();
+  } else if (key === "e") {
+    e.preventDefault();
+    void pickColorWithEyeDropper();
+  }
+});
+
 document.addEventListener("click", (e) => {
   const theme = e.target.closest && e.target.closest("#theme-toggle");
   if (theme) {
-    const dark = document.documentElement.classList.toggle("dark");
-    document.documentElement.style.colorScheme = dark ? "dark" : "light";
-    try {
-      localStorage.setItem("theme", dark ? "dark" : "light");
-    } catch {}
-    syncThemeLabel();
+    toggleTheme();
     return;
   }
   const toggle = e.target.closest && e.target.closest("[data-toggle]");
@@ -408,6 +623,29 @@ document.addEventListener("click", (e) => {
   const codeTab = e.target.closest && e.target.closest("[data-code-tab]");
   if (codeTab) {
     selectCodeTab(codeTab);
+    return;
+  }
+  const paletteCopy = e.target.closest && e.target.closest("[data-palette-copy]");
+  if (paletteCopy) {
+    void copyPaletteCard(paletteCopy);
+    return;
+  }
+  const paletteDownload =
+    e.target.closest && e.target.closest("[data-palette-download]");
+  if (paletteDownload) {
+    e.preventDefault();
+    if (paletteDownload.getAttribute("aria-expanded") === "true") {
+      closeMenu();
+    } else {
+      showMenu(
+        paletteDownload,
+        [
+          { value: "svg", label: "SVG" },
+          { value: "png", label: "PNG" },
+        ],
+        (kind) => void downloadPaletteCard(paletteDownload, kind),
+      );
+    }
     return;
   }
   const t = e.target.closest && e.target.closest("[data-copy]");
@@ -607,11 +845,34 @@ function placeGraphTip(fig, tip, clientX, clientY) {
 // is over the gradient area — anywhere in the hero except the sliders sheet
 // — and toggle with a tap on the gradient background for touch. Body-portal
 // panels/menus/tooltips don't count as "leaving".
-let lastPointerType = "mouse";
 document.addEventListener(
   "pointerdown",
   (e) => {
-    if (e.pointerType) lastPointerType = e.pointerType;
+    if (e.pointerType === "mouse") return;
+    const target = e.target;
+    if (!target || !target.closest) return;
+
+    const card = target.closest("[data-palette-card]");
+    document.querySelectorAll("[data-palette-card].actions-open").forEach((open) => {
+      if (open !== card) {
+        if (open.contains(document.activeElement) && document.activeElement.blur)
+          document.activeElement.blur();
+        open.classList.remove("actions-open");
+      }
+    });
+    if (card && !target.closest("[data-palette-card-action]")) {
+      if (
+        card.classList.contains("actions-open") &&
+        card.contains(document.activeElement) &&
+        document.activeElement.blur
+      )
+        document.activeElement.blur();
+      card.classList.toggle("actions-open");
+      return;
+    }
+
+    const hero = document.getElementById("seed-hero");
+    if (hero && target.closest("#edit-preview")) hero.classList.toggle("ui-show");
   },
   true,
 );
@@ -624,16 +885,6 @@ document.addEventListener("pointermove", (e) => {
     "ui-show",
     hero.contains(e.target) && !e.target.closest("#editor-card"),
   );
-});
-document.addEventListener("click", (e) => {
-  if (lastPointerType === "mouse") return;
-  const hero = document.getElementById("seed-hero");
-  const t = e.target;
-  if (!hero || !t || !t.closest || !hero.contains(t)) return;
-  // Only a tap on the gradient itself toggles — not taps on controls.
-  if (t.closest("button, a, input, select, label, #editor-card, #mobile-dock, #graph-panel, #swatches-strip"))
-    return;
-  hero.classList.toggle("ui-show");
 });
 
 // The fused swatch strip (canvas mode, graph open) is x-aligned with the
@@ -944,8 +1195,8 @@ function positionPop(pop, trigger) {
   const pw = pop.offsetWidth;
   let top = r.bottom + 8;
   if (top + ph > innerHeight - 8 && r.top - ph - 8 > 0) top = r.top - ph - 8;
-  let left = r.left;
-  if (left + pw > innerWidth - 8) left = Math.max(8, r.right - pw);
+  let left = trigger.dataset.menuAlign === "end" ? r.right - pw : r.left;
+  left = Math.max(8, Math.min(left, innerWidth - pw - 8));
   pop.style.top = top + "px";
   pop.style.left = left + "px";
 }
@@ -973,6 +1224,14 @@ function showMenu(trigger, items, onPick, anchor, onHover) {
   let typeahead = "";
   let typeTimer;
   items.forEach((it) => {
+    // Non-interactive category header (export size presets).
+    if (it.header) {
+      const d = document.createElement("div");
+      d.className = "menu-header";
+      d.textContent = it.label;
+      pop.append(d);
+      return;
+    }
     const b = document.createElement("button");
     b.type = "button";
     b.className = "menu-item";
@@ -991,7 +1250,7 @@ function showMenu(trigger, items, onPick, anchor, onHover) {
       b.addEventListener("focus", () => onHover(it.value));
     }
     b.addEventListener("keydown", (e) => {
-      const opts = [...pop.children];
+      const opts = [...pop.querySelectorAll(".menu-item")];
       const idx = opts.indexOf(document.activeElement);
       if (e.key === "ArrowDown") (opts[Math.min(idx + 1, opts.length - 1)] || b).focus();
       else if (e.key === "ArrowUp") (opts[Math.max(idx - 1, 0)] || b).focus();
@@ -1020,7 +1279,7 @@ function showMenu(trigger, items, onPick, anchor, onHover) {
   trigger.setAttribute("aria-expanded", "true");
   trigger.setAttribute("aria-controls", pop.id);
   openMenu = { pop, trigger, reposition, justOpened: false, onHover };
-  const sel = pop.querySelector('[aria-selected="true"]') || pop.firstElementChild;
+  const sel = pop.querySelector('[aria-selected="true"]') || pop.querySelector(".menu-item");
   if (sel) sel.focus();
 }
 
@@ -1058,6 +1317,11 @@ function menuTrigger(trigger, buildItems, onPick, anchor, onHover) {
   });
 }
 
+// Cross-module access for islands that render their own triggers (the export
+// view's Copy/Download/presets menus) — same window-hook pattern as
+// __paramsHandler/__popstateHandler.
+window.__menu = { showMenu, menuTrigger, closeMenu };
+
 function enhanceMenus() {
   closeMenu();
   document.querySelectorAll("select[data-enhance-select]").forEach((sel) => {
@@ -1066,6 +1330,7 @@ function enhanceMenus() {
     const wrap = sel.closest("span");
     const trigger = document.createElement("button");
     trigger.type = "button";
+    trigger.dataset.selectTrigger = "1";
     trigger.className =
       sel.className.replace("appearance-none", "") +
       " inline-flex items-center justify-between text-left";
@@ -1073,14 +1338,19 @@ function enhanceMenus() {
     trigger.setAttribute("aria-haspopup", "listbox");
     trigger.setAttribute("aria-expanded", "false");
     trigger.setAttribute("aria-label", sel.getAttribute("aria-label") || "");
+    trigger.disabled = sel.disabled;
     const syncLabel = () => {
-      const opt = sel.options[sel.selectedIndex];
-      const text = sel.value && opt ? opt.textContent : sel.dataset.placeholder || "";
+      const opt =
+        sel.options[sel.selectedIndex] ||
+        [...sel.options].find((o) => o.selected || o.defaultSelected) ||
+        sel.options[0];
+      const value = sel.value || (opt && opt.value) || "";
+      const text = value && opt ? opt.textContent : sel.dataset.placeholder || "";
       trigger.innerHTML =
         '<span class="truncate">' +
         text +
         '</span><svg class="ml-1.5 h-3.5 w-3.5 shrink-0 md:h-4 md:w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/></svg>';
-      trigger.classList.toggle("text-foreground!", !!sel.value && sel.value !== "");
+      trigger.classList.toggle("text-foreground!", value !== "");
     };
     syncLabel();
     // Islands restoring URL state (seed undo/redo) re-sync the trigger label.
@@ -1132,6 +1402,24 @@ function enhanceMenus() {
     );
   });
 }
+
+// Export mode keeps the subheader geometry stable: browse + palette options
+// remain rendered but disabled, while Reset is removed until export closes.
+window.__renderNavSelectForExport = (open) => {
+  // Tests and client swaps can mount fresh SSR markup after the initial boot.
+  // Ensure its select triggers exist before applying the shared disabled state.
+  enhanceMenus();
+  closeMenu();
+  const controls = document.querySelectorAll(
+    '#nav-select, #query-sort, button[data-select-trigger][aria-label="Browse palettes"], button[data-select-trigger][aria-label="Sort search results"], #opts input, #opts select, #opts button[data-select-trigger], #opts .preset-btn',
+  );
+  for (const control of controls) {
+    if ("disabled" in control) control.disabled = open;
+  }
+  const reset = document.getElementById("opts-reset");
+  if (reset) reset.classList.toggle("hidden", open);
+  if (!open) syncOptsReset();
+};
 
 document.addEventListener("app:swap", enhanceMenus);
 enhanceMenus();
@@ -1209,13 +1497,60 @@ const escHtml = (s) =>
 
 function fetchSession() {
   if (!sessionPromise) {
-    sessionPromise = fetch("/api/auth/get-session")
+    sessionPromise = fetch("/api/auth/get-session", { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => (sessionUser = d && d.user ? d.user : null))
-      .catch(() => (sessionUser = null));
+      .catch(() => {
+        // A transient failure must not latch "signed out" for the whole tab —
+        // clear the memo so the next boot/swap retries.
+        sessionUser = null;
+        sessionPromise = null;
+      });
   }
   return sessionPromise;
 }
+
+// A heart button has TWO seed values. data-like-seed is the coefficient key —
+// the palette's identity across all its stored seed aliases (legacy ids embed
+// view params, v3 ids embed tweaked globals); heart fill, labels and the
+// liked set all match on it. The STORAGE seed is what a like insert records:
+// the card's palettes-row id (data-like-row) so counts keep joining the row
+// they display on, or the live URL seed on the seed page (tracks edits).
+function heartKey(btn) {
+  return btn.dataset.likeSeed;
+}
+
+function heartSeed(btn) {
+  return btn.hasAttribute("data-like-current")
+    ? decodeURIComponent(location.pathname.slice(1))
+    : btn.dataset.likeRow || btn.dataset.likeSeed;
+}
+
+// Liked hearts get "Unsave palette", others "Save palette" — the original's
+// aria-label + tooltip pair. Patched on renderLiked and whenever island
+// re-renders swap in fresh heart DOM (observer below); the tooltip singleton
+// reads data-tip at hover time, so it follows automatically.
+function syncHeartLabels() {
+  document.querySelectorAll("[data-like-seed]").forEach((b) => {
+    const label = likedSeeds.has(heartKey(b)) ? "Unsave palette" : "Save palette";
+    if (b.getAttribute("aria-label") !== label) b.setAttribute("aria-label", label);
+    if (b.getAttribute("data-tip") !== label) b.setAttribute("data-tip", label);
+  });
+}
+
+let labelRaf = 0;
+new MutationObserver((recs) => {
+  for (const r of recs)
+    for (const n of r.addedNodes)
+      if (
+        n.nodeType === 1 &&
+        (n.hasAttribute?.("data-like-seed") || n.querySelector?.("[data-like-seed]"))
+      ) {
+        cancelAnimationFrame(labelRaf);
+        labelRaf = requestAnimationFrame(syncHeartLabels);
+        return;
+      }
+}).observe(document.body, { childList: true, subtree: true });
 
 function renderLiked() {
   let el = document.getElementById("liked-style");
@@ -1228,9 +1563,11 @@ function renderLiked() {
     ? [...likedSeeds].map((s) => `[data-like-seed=${JSON.stringify(s)}] .heart-i`).join(",") +
       `{fill:${LIKED_COLOR};stroke:${LIKED_COLOR}}`
     : "";
+  syncHeartLabels();
 }
 
 let likesFetchedAt = 0;
+let likeMutationVersion = 0;
 async function refreshLikes() {
   // Mirrors the original's 2-minute staleTime on user-liked-seeds — swaps
   // within that window reuse the in-memory set.
@@ -1247,8 +1584,42 @@ async function refreshLikes() {
   }
 }
 
+// List HTML is no-store so SSR paints current counts. Reconcile every visible
+// coefficient key as a safety net for a mutation racing the list query.
+// Schedule in a microtask so the Solid grid replaces #grid-ssr first.
+async function initListLikeCounts() {
+  const buttons = [
+    ...document.querySelectorAll("[data-like-seed]:not([data-like-info])"),
+  ];
+  if (!buttons.length) return;
+  const keys = [...new Set(buttons.map((btn) => heartKey(btn)).filter(Boolean))];
+  if (!keys.length) return;
+  const mutationVersion = likeMutationVersion;
+  try {
+    const r = await fetch(
+      `/api/like-counts?keys=${encodeURIComponent(keys.join(","))}`,
+    );
+    if (!r.ok) return;
+    const { counts = {} } = await r.json();
+    // Never let a response started before a click overwrite the authoritative
+    // toggle response or its optimistic state.
+    if (mutationVersion !== likeMutationVersion) return;
+    for (const btn of buttons) {
+      if (!btn.isConnected) continue;
+      const count = counts[heartKey(btn)];
+      if (typeof count === "number") setCount(btn, count);
+    }
+  } catch {}
+}
+
+function scheduleListLikeCounts() {
+  queueMicrotask(initListLikeCounts);
+}
+document.addEventListener("likes:refresh-counts", scheduleListLikeCounts);
+
 // The seed page can't SSR its like count (its HTML is edge-cached): fill count
-// + liked state per view. Uses the URL's seed, which tracks live edits.
+// + liked state per view. isLiked matches by coefficient key server-side, so
+// any alias of this palette lights the heart.
 async function initSeedLike() {
   const btn = document.querySelector("[data-like-info]");
   if (!btn) return;
@@ -1259,29 +1630,45 @@ async function initSeedLike() {
     const info = await r.json();
     // The page may have swapped while the fetch was in flight.
     if (!btn.isConnected) return;
-    btn.dataset.count = info.likesCount;
-    const span = btn.querySelector(".like-count");
-    if (span) {
-      span.textContent = info.likesCount > 0 ? info.likesCount : 1;
-      span.classList.toggle("opacity-0", !(info.likesCount > 0));
-    }
-    if (info.isLiked) likedSeeds.add(seed);
-    else likedSeeds.delete(seed);
+    setCount(btn, info.likesCount);
+    if (info.isLiked) likedSeeds.add(heartKey(btn));
+    else likedSeeds.delete(heartKey(btn));
     renderLiked();
   } catch {}
 }
 
-// Header slot: swap the SSR Sign in link for the avatar + dropdown once the
-// session is known. Runs again after every body swap (cached session).
+// Header slot: the SSR placeholder circle becomes the avatar + dropdown when
+// signed in, or the Sign in button when signed out. Runs again after every
+// body swap (cached session). Per-user pages (/saved, /settings) SSR the
+// avatar themselves — then there's nothing to swap.
+const SIGNIN_HTML = `<a href="/login" data-auth-signin class="inline-flex h-8 cursor-pointer select-none items-center rounded-md border border-transparent bg-foreground/80 px-2.5 text-xs font-medium text-background transition-colors duration-200 outline-none hover:bg-foreground/90 focus-visible:ring-2 focus-visible:ring-ring/70">Sign in</a>`;
+
 function applyAuthUi() {
   const slot = document.getElementById("auth-slot");
-  if (!slot || !sessionUser) return;
+  if (!slot) return;
+  if (!sessionUser) {
+    if (slot.querySelector("[data-auth-placeholder]")) slot.innerHTML = SIGNIN_HTML;
+    return;
+  }
   const u = sessionUser;
+  const existing = slot.querySelector("#avatar-btn");
+  if (existing) {
+    // SSR'd avatar (per-user pages): rewire the click, skip the re-render.
+    if (!existing.dataset.wired) {
+      existing.dataset.wired = "1";
+      existing.addEventListener("click", () => {
+        if (document.getElementById("avatar-pop")) return closeAvatarMenu();
+        openAvatarMenu(existing);
+      });
+    }
+    return;
+  }
   const face = u.image
     ? `<img src="${escHtml(u.image)}" alt="" referrerpolicy="no-referrer" class="h-full w-full rounded-full object-cover">`
     : `<span class="flex h-full w-full items-center justify-center rounded-full bg-muted text-xs font-bold text-foreground">${escHtml((u.username || u.email || "?").charAt(0).toUpperCase())}</span>`;
   slot.innerHTML = `<button id="avatar-btn" type="button" aria-label="User menu" aria-haspopup="menu" aria-expanded="false" class="h-8 w-8 shrink-0 cursor-pointer overflow-hidden rounded-full border border-solid border-input outline-none transition-colors duration-200 hover:border-muted-foreground/40 focus-visible:ring-2 focus-visible:ring-ring/70">${face}</button>`;
   const btn = slot.querySelector("#avatar-btn");
+  btn.dataset.wired = "1";
   btn.addEventListener("click", () => {
     if (document.getElementById("avatar-pop")) return closeAvatarMenu();
     openAvatarMenu(btn);
@@ -1293,6 +1680,18 @@ function closeAvatarMenu() {
   if (pop) pop.remove();
   const btn = document.getElementById("avatar-btn");
   if (btn) btn.setAttribute("aria-expanded", "false");
+}
+
+async function signOut() {
+  try {
+    await fetch("/api/auth/sign-out", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+  } catch {}
+  // Full load: clears every piece of per-session state at once.
+  location.href = "/";
 }
 
 function openAvatarMenu(btn) {
@@ -1307,22 +1706,13 @@ function openAvatarMenu(btn) {
     (u.username ? `<p class="text-sm font-medium text-foreground">${escHtml(u.username)}</p>` : "") +
     (u.email ? `<p class="pt-1 text-xs text-muted-foreground">${escHtml(u.email)}</p>` : "") +
     `</div><div class="my-1 h-px bg-border/40"></div>` +
+    `<a href="/settings" role="menuitem" class="menu-item block">Settings</a>` +
     `<a href="/saved" role="menuitem" class="menu-item block">Saved palettes</a>` +
     `<button type="button" id="signout-btn" role="menuitem" class="menu-item w-full text-left">Sign out</button>`;
   document.body.append(pop);
   positionPop(pop, btn);
   btn.setAttribute("aria-expanded", "true");
-  pop.querySelector("#signout-btn").addEventListener("click", async () => {
-    try {
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: "{}",
-      });
-    } catch {}
-    // Full load: clears every piece of per-session state at once.
-    location.href = "/";
-  });
+  pop.querySelector("#signout-btn").addEventListener("click", signOut);
   pop.addEventListener("keydown", (e) => {
     if (e.key === "Escape") {
       closeAvatarMenu();
@@ -1358,14 +1748,21 @@ document.addEventListener(
 
 // Heart clicks: optimistic toggle, server reconcile, rollback on failure.
 // Signed out -> /login with a redirect back here (like the original mutation).
-function bumpCount(btn, delta) {
-  const n = Math.max(0, (parseInt(btn.dataset.count, 10) || 0) + delta);
+// The server response carries the AUTHORITATIVE count: optimistic bumps are
+// corrected from it (a misjudged wasLiked used to leave the count off by 2 —
+// an "unlike" that displayed +1).
+function setCount(btn, n) {
+  n = Math.max(0, n | 0);
   btn.dataset.count = n;
   const span = btn.querySelector(".like-count");
   if (span) {
     span.textContent = n > 0 ? n : 1;
     span.classList.toggle("opacity-0", !(n > 0));
   }
+}
+
+function bumpCount(btn, delta) {
+  setCount(btn, (parseInt(btn.dataset.count, 10) || 0) + delta);
 }
 
 function heartPop(btn) {
@@ -1389,17 +1786,18 @@ document.addEventListener("click", async (e) => {
   }
   if (likeBusy) return;
   likeBusy = true;
-  // Seed-page button: the URL is the seed's source of truth (it follows live
-  // edits); user-set search params override the SSR'd data attrs.
-  const seed = btn.hasAttribute("data-like-current")
-    ? decodeURIComponent(location.pathname.slice(1))
-    : btn.dataset.likeSeed;
+  likeMutationVersion += 1;
+  // key = identity (fill/labels); seed = what a like insert stores (the card's
+  // palettes-row id, or the live URL seed on the seed page). User-set search
+  // params override the SSR'd data attrs, like the original's effective*.
+  const key = heartKey(btn);
+  const seed = heartSeed(btn);
   const sp = new URLSearchParams(location.search);
   const style = sp.get("style") || btn.dataset.likeStyle;
   const steps = parseInt(sp.get("steps") || btn.dataset.likeSteps, 10);
   const angle = parseFloat(sp.get("angle") || btn.dataset.likeAngle);
-  const wasLiked = likedSeeds.has(seed);
-  wasLiked ? likedSeeds.delete(seed) : likedSeeds.add(seed);
+  const wasLiked = likedSeeds.has(key);
+  wasLiked ? likedSeeds.delete(key) : likedSeeds.add(key);
   renderLiked();
   bumpCount(btn, wasLiked ? -1 : 1);
   if (!wasLiked) heartPop(btn);
@@ -1411,12 +1809,18 @@ document.addEventListener("click", async (e) => {
     });
     if (!r.ok) throw new Error(String(r.status));
     const data = await r.json();
-    if (data.liked) likedSeeds.add(seed);
-    else likedSeeds.delete(seed);
+    const serverKey = data.key || key;
+    if (data.liked) likedSeeds.add(serverKey);
+    else likedSeeds.delete(serverKey);
     renderLiked();
+    if (typeof data.likesCount === "number") setCount(btn, data.likesCount);
     announce(data.liked ? "Palette saved" : "Palette removed from saved");
+    // Unsaving on /saved removes the card with a 10s undo (the original's
+    // UndoButton + ⌘Z); undo re-likes and reinserts it.
+    if (!data.liked && location.pathname === "/saved")
+      showUndo({ seed, steps, style, angle, key: serverKey, ...removeCard(btn) });
   } catch {
-    wasLiked ? likedSeeds.add(seed) : likedSeeds.delete(seed);
+    wasLiked ? likedSeeds.add(key) : likedSeeds.delete(key);
     renderLiked();
     bumpCount(btn, wasLiked ? 1 : -1);
     announce("Could not update saved palettes");
@@ -1424,6 +1828,116 @@ document.addEventListener("click", async (e) => {
     likeBusy = false;
   }
 });
+
+// Undo-unsave: fixed toast with an Undo button, 10s window, ⌘Z hotkey. On
+// /saved the unliked card leaves the grid (that's the point of the page);
+// undo re-likes AND reinserts the stored <li> at its original position.
+let undoSaved = null; // { seed, steps, style, angle, key, node, parent, next, emptyNote, timer }
+
+// Remove the card <li> holding btn; returns the refs needed to reinsert it.
+// When the grid empties, swap in the SSR empty-state <p> (the <ol> stays in
+// the DOM, hidden, so reinsertion is trivial).
+function removeCard(btn) {
+  const li = btn.closest("li");
+  const parent = li && li.parentNode;
+  if (!li || !parent) return {};
+  const next = li.nextSibling;
+  li.remove();
+  let emptyNote = null;
+  if (!parent.querySelector("li")) {
+    emptyNote = document.createElement("p");
+    emptyNote.className = "py-16 text-center text-muted-foreground";
+    emptyNote.textContent = "You haven't saved any palettes yet.";
+    parent.style.display = "none";
+    parent.after(emptyNote);
+  }
+  return { node: li, parent, next, emptyNote };
+}
+
+function hideUndo() {
+  if (undoSaved) clearTimeout(undoSaved.timer);
+  undoSaved = null;
+  const el = document.getElementById("undo-unsave");
+  if (el) el.remove();
+}
+
+function showUndo(payload) {
+  hideUndo();
+  const el = document.createElement("div");
+  el.id = "undo-unsave";
+  el.className =
+    "fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-full border border-solid border-input bg-background py-2 pl-4 pr-2 text-sm text-foreground shadow-lg";
+  el.innerHTML =
+    `<span class="whitespace-nowrap">Palette removed</span>` +
+    `<button type="button" id="undo-unsave-btn" aria-keyshortcuts="Control+Z Meta+Z" data-tip="Undo (Ctrl/⌘ Z)" data-tip-side="top" class="inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-foreground px-3 text-sm font-medium text-background transition-colors duration-200 hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/70">` +
+    `<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11"/></svg>Undo</button>`;
+  document.body.append(el);
+  el.querySelector("#undo-unsave-btn").addEventListener("click", doUndo);
+  undoSaved = { ...payload, timer: setTimeout(hideUndo, 10000) };
+}
+
+async function doUndo() {
+  const item = undoSaved;
+  if (!item || likeBusy) return;
+  hideUndo();
+  likeBusy = true;
+  likeMutationVersion += 1;
+  try {
+    const r = await fetch("/api/likes/toggle", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        seed: item.seed,
+        steps: item.steps,
+        style: item.style,
+        angle: item.angle,
+      }),
+    });
+    if (!r.ok) throw new Error(String(r.status));
+    const data = await r.json();
+    if (data.liked) {
+      // Reinsert the card at its old spot (undoing the removeCard above).
+      if (item.node && item.parent) {
+        if (item.emptyNote) {
+          item.emptyNote.remove();
+          item.parent.style.display = "";
+        }
+        item.parent.insertBefore(
+          item.node,
+          item.next && item.next.isConnected ? item.next : null,
+        );
+      }
+      const serverKey = data.key || item.key || item.seed;
+      likedSeeds.add(serverKey);
+      renderLiked();
+      const btn = item.node && item.node.querySelector("[data-like-seed]");
+      if (btn) {
+        if (typeof data.likesCount === "number") setCount(btn, data.likesCount);
+        else bumpCount(btn, 1);
+      }
+      announce("Palette saved");
+    }
+  } catch {
+    announce("Could not update saved palettes");
+  } finally {
+    likeBusy = false;
+  }
+}
+
+document.addEventListener("keydown", (e) => {
+  if (
+    (e.metaKey || e.ctrlKey) &&
+    !e.shiftKey &&
+    e.key.toLowerCase() === "z" &&
+    undoSaved &&
+    !(e.target.closest && e.target.closest("input, textarea, select, [contenteditable]"))
+  ) {
+    e.preventDefault();
+    doUndo();
+  }
+});
+// Body swaps drop the toast element; navigating away abandons the undo window.
+document.addEventListener("app:swap", hideUndo);
 
 // Login page: Google OAuth + magic link against better-auth's REST endpoints.
 const loginRedirect = () => {
@@ -1514,6 +2028,464 @@ document.addEventListener("click", async (e) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Settings page: username editing (inline validation + 500ms-debounced
+// availability probe, the original's TanStack Form behavior), sign out, and
+// the two-step account delete (request -> emailed token link -> confirm).
+const USERNAME_RE = /^[a-zA-Z0-9_-]+$/;
+
+function usernameError(v) {
+  if (!v) return "";
+  if (v.length < 3) return "Username must be at least 3 characters";
+  if (v.length > 30) return "Username must be no more than 30 characters";
+  if (!USERNAME_RE.test(v))
+    return "Username can only contain letters, numbers, underscores, and hyphens";
+  return "";
+}
+
+// Avatar upload, ported from the original's AvatarUpload.tsx: client-side
+// canvas center-crop to a 256x256 webp (the original's imageCompression step
+// is redundant once the canvas downsamples), staged until "Save changes".
+let stagedAvatar = null; // { blob, previewUrl }
+let syncSaveBtn = () => {}; // wireUsernameForm installs its sync() here
+
+function processAvatarFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const size = 256;
+        const s = Math.min(img.naturalWidth, img.naturalHeight);
+        const canvas = document.createElement("canvas");
+        canvas.width = canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) throw new Error("no 2d context");
+        ctx.drawImage(
+          img,
+          (img.naturalWidth - s) / 2,
+          (img.naturalHeight - s) / 2,
+          s, s, 0, 0, size, size,
+        );
+        canvas.toBlob(
+          (b) => {
+            URL.revokeObjectURL(url);
+            if (b) resolve(b);
+            else reject(new Error("Failed to create blob"));
+          },
+          "image/webp",
+          0.9,
+        );
+      } catch (err) {
+        URL.revokeObjectURL(url);
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("decode failed"));
+    };
+    img.src = url;
+  });
+}
+
+function clearStagedAvatar() {
+  if (!stagedAvatar) return;
+  URL.revokeObjectURL(stagedAvatar.previewUrl);
+  stagedAvatar = null;
+  const face = document.getElementById("settings-avatar");
+  if (face && face.dataset.original) face.innerHTML = face.dataset.original;
+  const btn = document.getElementById("avatar-change");
+  if (btn) btn.textContent = "Change avatar";
+}
+
+function wireAvatarUpload() {
+  const input = document.getElementById("avatar-upload");
+  const btn = document.getElementById("avatar-change");
+  const face = document.getElementById("settings-avatar");
+  if (!input || !btn || !face) return;
+  if (!face.dataset.original) face.dataset.original = face.innerHTML;
+  if (btn.dataset.wired) return;
+  btn.dataset.wired = "1";
+  btn.addEventListener("click", () => {
+    if (stagedAvatar) {
+      clearStagedAvatar();
+      syncSaveBtn();
+    } else {
+      input.click();
+    }
+  });
+  input.addEventListener("change", async () => {
+    const file = input.files && input.files[0];
+    input.value = "";
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type))
+      return announce("Please select a valid image file (JPEG, PNG, or WebP)");
+    if (file.size > 5 * 1024 * 1024)
+      return announce("File size must be less than 5MB");
+    try {
+      const blob = await processAvatarFile(file);
+      clearStagedAvatar();
+      stagedAvatar = { blob, previewUrl: URL.createObjectURL(blob) };
+      face.innerHTML = `<img src="${stagedAvatar.previewUrl}" alt="Avatar preview" class="h-full w-full rounded-full object-cover">`;
+      btn.textContent = "Cancel";
+    } catch {
+      announce("Failed to process image. Please try again.");
+    }
+    syncSaveBtn();
+  });
+}
+
+async function uploadStagedAvatar() {
+  const r = await fetch("/api/settings/avatar", {
+    method: "POST",
+    headers: { "Content-Type": "image/webp" },
+    body: stagedAvatar.blob,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || "Avatar upload failed");
+  // Point the profile preview at the stored URL and make it the new restore
+  // point, then rebuild the header avatar with the new image.
+  const face = document.getElementById("settings-avatar");
+  if (face) {
+    face.innerHTML = `<img src="${d.imageUrl}" alt="Avatar" class="h-full w-full rounded-full object-cover">`;
+    face.dataset.original = face.innerHTML;
+  }
+  URL.revokeObjectURL(stagedAvatar.previewUrl);
+  stagedAvatar = null;
+  const changeBtn = document.getElementById("avatar-change");
+  if (changeBtn) changeBtn.textContent = "Change avatar";
+  if (sessionUser) sessionUser.image = d.imageUrl;
+  const headerBtn = document.getElementById("avatar-btn");
+  if (headerBtn) {
+    headerBtn.remove();
+    applyAuthUi();
+  }
+  return d.imageUrl;
+}
+
+function wireUsernameForm(form) {
+  const input = document.getElementById("settings-username");
+  const save = document.getElementById("settings-save");
+  const status = document.getElementById("username-status");
+  if (!input || !save || !status) return;
+  let checkTimer = 0;
+  let checkSeq = 0;
+  let checking = false;
+  let available = true;
+
+  const setStatus = (text, tone) => {
+    status.textContent = text;
+    status.className =
+      "font-system text-sm font-medium " +
+      (tone === "error"
+        ? "text-red-500"
+        : tone === "ok"
+          ? "text-green-600 dark:text-green-400"
+          : "text-muted-foreground");
+  };
+
+  const sync = () => {
+    const v = input.value.trim();
+    const changed = v !== (form.dataset.current || "");
+    const err = usernameError(v);
+    // A staged avatar also makes the form submittable (upload rides along).
+    save.disabled = (!changed || !!err || checking || !available) && !stagedAvatar;
+    return { v, changed, err };
+  };
+  syncSaveBtn = sync;
+
+  input.addEventListener("input", () => {
+    const { v, changed, err } = sync();
+    clearTimeout(checkTimer);
+    available = true;
+    if (status.textContent && status.textContent !== "Checking availability...")
+      setStatus("", null);
+    if (!v || err || !changed) return;
+    checkTimer = setTimeout(async () => {
+      const seq = ++checkSeq;
+      checking = true;
+      setStatus("Checking availability...", null);
+      sync();
+      try {
+        const r = await fetch("/api/settings/username/check", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: v }),
+        });
+        const d = await r.json();
+        if (seq !== checkSeq) return;
+        available = !!d.available;
+        setStatus(available ? "" : "Username already taken", available ? null : "error");
+      } catch {
+        if (seq !== checkSeq) return;
+        setStatus("Unable to check username availability", "error");
+      } finally {
+        if (seq === checkSeq) {
+          checking = false;
+          sync();
+        }
+      }
+    }, 500);
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const { v, changed, err } = sync();
+    const canUsername = changed && !err && !checking && available;
+    if (!canUsername && !stagedAvatar) return;
+    save.disabled = true;
+    save.textContent = "Saving...";
+    try {
+      // Avatar first, then the username — the original's submit order.
+      if (stagedAvatar) {
+        await uploadStagedAvatar();
+        setStatus("Avatar updated successfully", "ok");
+        announce("Avatar updated");
+      }
+      if (canUsername) {
+        const r = await fetch("/api/settings/username", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: v }),
+        });
+        const d = await r.json().catch(() => ({}));
+        if (r.status === 409) {
+          available = false;
+          setStatus("Username already taken", "error");
+        } else if (!r.ok) {
+          setStatus(d.error || "Failed to update username", "error");
+        } else {
+          form.dataset.current = v;
+          if (sessionUser) sessionUser.username = v;
+          applyAuthUi();
+          setStatus("Username updated successfully", "ok");
+          announce("Username updated");
+        }
+      }
+    } catch (e2) {
+      setStatus((e2 && e2.message) || "Failed to save changes", "error");
+    } finally {
+      save.textContent = "Save changes";
+      sync();
+    }
+  });
+}
+
+async function onDeleteAccount(e) {
+  const btn = e.currentTarget;
+  const title = document.getElementById("delete-title");
+  const desc = document.getElementById("delete-desc");
+  const setState = (t, d) => {
+    if (title) title.textContent = t;
+    if (desc) desc.textContent = d;
+  };
+  const token = btn.dataset.token;
+  btn.disabled = true;
+  if (!token) {
+    // Step 1: better-auth emails the confirmation link (/settings?token=…).
+    try {
+      const r = await fetch("/api/auth/delete-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+      if (!r.ok) throw new Error(String(r.status));
+      setState("Check your email", "We sent a confirmation link to your email address");
+    } catch {
+      btn.disabled = false;
+      setState("Delete account", "Failed to send the confirmation email — try again");
+    }
+    return;
+  }
+  // Step 2: back from the email with ?token= — confirm the deletion.
+  setState("Verifying...", "Deleting your account...");
+  try {
+    const r = await fetch("/api/settings/delete-account", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    if (!r.ok) throw new Error(String(r.status));
+    // The user no longer exists; clear the dead session cookie and leave.
+    try {
+      await fetch("/api/auth/sign-out", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      });
+    } catch {}
+    location.href = "/";
+  } catch {
+    btn.disabled = false;
+    setState("Verification failed", "This link may have expired or is invalid");
+  }
+}
+
+function bootSettings() {
+  // Arriving via the emailed deletion link: bring the danger zone into view.
+  const dz = document.getElementById("danger-zone");
+  if (dz && !dz.dataset.scrolled && new URLSearchParams(location.search).has("token")) {
+    dz.dataset.scrolled = "1";
+    dz.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+  const signoutBtn = document.getElementById("settings-signout");
+  if (signoutBtn && !signoutBtn.dataset.wired) {
+    signoutBtn.dataset.wired = "1";
+    signoutBtn.addEventListener("click", signOut);
+  }
+  const deleteBtn = document.getElementById("delete-account-btn");
+  if (deleteBtn && !deleteBtn.dataset.wired) {
+    deleteBtn.dataset.wired = "1";
+    deleteBtn.addEventListener("click", onDeleteAccount);
+  }
+  const form = document.getElementById("settings-username-form");
+  if (form && !form.dataset.wired) {
+    form.dataset.wired = "1";
+    wireUsernameForm(form);
+  }
+  wireAvatarUpload();
+}
+
+// ---------------------------------------------------------------------------
+// Consent preferences — port of the original's stores/consent-store.ts. Same
+// localStorage key + schema version so a visitor's choice carries between
+// this frontend and the React app; same Zaraz purpose IDs and sync semantics
+// (no-op where Zaraz isn't loaded, e.g. workers.dev).
+const CONSENT_KEY = "consent-preferences";
+const CONSENT_VERSION = 3;
+const ZARAZ_PURPOSE_IDS = { analytics: "HdWd", sessionReplay: "mxdH", advertising: "daJQ" };
+
+function consentDefaults(isGdpr) {
+  return {
+    version: CONSENT_VERSION,
+    timestamp: Date.now(),
+    categories: {
+      necessary: true,
+      analytics: !isGdpr,
+      sessionReplay: false,
+      advertising: !isGdpr,
+    },
+    hasInteracted: false,
+    isGdprRegion: isGdpr,
+  };
+}
+
+function loadConsent() {
+  try {
+    const raw = localStorage.getItem(CONSENT_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    const cats = s && s.categories;
+    if (
+      !s ||
+      s.version !== CONSENT_VERSION ||
+      !cats ||
+      typeof cats.analytics !== "boolean" ||
+      typeof cats.sessionReplay !== "boolean" ||
+      typeof cats.advertising !== "boolean"
+    ) {
+      localStorage.removeItem(CONSENT_KEY);
+      return null;
+    }
+    return s;
+  } catch {
+    return null;
+  }
+}
+
+let consentState = loadConsent();
+
+function saveConsent() {
+  try {
+    localStorage.setItem(CONSENT_KEY, JSON.stringify(consentState));
+  } catch {}
+}
+
+function syncConsentToZaraz() {
+  if (typeof zaraz === "undefined" || !zaraz.consent || !zaraz.consent.APIReady) return;
+  if (!consentState) return;
+  const available = zaraz.consent.purposes || {};
+  const useDefaults = consentState.isGdprRegion && !consentState.hasInteracted;
+  const prefs = {};
+  for (const name of Object.keys(ZARAZ_PURPOSE_IDS)) {
+    const id = ZARAZ_PURPOSE_IDS[name];
+    if (id in available) prefs[id] = useDefaults ? false : consentState.categories[name];
+  }
+  if (!Object.keys(prefs).length) return;
+  try {
+    zaraz.consent.set(prefs);
+    if (consentState.hasInteracted) zaraz.consent.sendQueuedEvents();
+  } catch {}
+}
+
+document.addEventListener("zarazConsentAPIReady", syncConsentToZaraz);
+
+function renderConsentToggles() {
+  if (!consentState) return;
+  for (const btn of document.querySelectorAll("[data-consent]")) {
+    const on = !!consentState.categories[btn.dataset.consent];
+    btn.dataset.state = on ? "checked" : "unchecked";
+    btn.setAttribute("aria-checked", on ? "true" : "false");
+    const thumb = btn.firstElementChild;
+    if (thumb) thumb.dataset.state = on ? "checked" : "unchecked";
+  }
+}
+
+// First-visit defaults come from the request's geo. The settings page carries
+// it in #privacy[data-gdpr] (per-user SSR); elsewhere we ask /api/geo — but
+// only when nothing is stored, so regular page loads never pay the fetch.
+function bootConsent() {
+  // Same gate as bootAuth: bare test/embed documents skip the network.
+  if (!document.getElementById("auth-slot")) return;
+  const privacy = document.getElementById("privacy");
+  // Wiring must run on every boot path — the hasInteracted early-return below
+  // used to skip it, leaving dead toggles for anyone with a stored choice.
+  for (const btn of document.querySelectorAll("[data-consent]")) {
+    if (btn.dataset.wired) continue;
+    btn.dataset.wired = "1";
+    btn.addEventListener("click", () => {
+      if (!consentState)
+        consentState = consentDefaults(
+          !!(privacy && privacy.dataset.gdpr === "1"),
+        );
+      const key = btn.dataset.consent;
+      consentState = {
+        ...consentState,
+        timestamp: Date.now(),
+        categories: { ...consentState.categories, [key]: !consentState.categories[key] },
+        hasInteracted: true,
+      };
+      saveConsent();
+      renderConsentToggles();
+      syncConsentToZaraz();
+    });
+  }
+  if (consentState && consentState.hasInteracted) {
+    renderConsentToggles();
+    syncConsentToZaraz();
+    return;
+  }
+  const apply = (isGdpr) => {
+    if (consentState && consentState.hasInteracted) return; // raced a toggle click
+    consentState = consentDefaults(isGdpr);
+    saveConsent();
+    renderConsentToggles();
+    syncConsentToZaraz();
+  };
+  if (privacy && privacy.dataset.gdpr != null) {
+    apply(privacy.dataset.gdpr === "1");
+  } else if (!consentState) {
+    fetch("/api/geo")
+      .then((r) => r.json())
+      .then((d) => apply(!!d.isGdprRegion))
+      .catch(() => apply(false));
+  } else {
+    renderConsentToggles();
+    syncConsentToZaraz();
+  }
+}
+
 // Session boot is gated on the header's auth slot being present: every real
 // page has one, while bare test/embed documents skip the network entirely.
 function bootAuth() {
@@ -1525,14 +2497,21 @@ function bootAuth() {
 }
 
 document.addEventListener("app:swap", () => {
+  stagedAvatar = null; // staged file + preview die with the swapped-out DOM
   bootAuth();
   initSeedLike();
+  scheduleListLikeCounts();
   syncLoginSend();
+  bootSettings();
+  bootConsent();
 });
 
 bootAuth();
 initSeedLike();
+scheduleListLikeCounts();
 syncLoginSend();
+bootSettings();
+bootConsent();
 
 syncListMemory();
 syncOptsReset();

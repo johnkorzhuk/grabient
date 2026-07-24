@@ -32,6 +32,11 @@ export function canonicalSeed(seed: string): string | null {
   }
 }
 
+// Like identity is coefficient-based: legacy ids embed view params and v3 ids
+// embed non-default globals, so one palette has many stored seed strings.
+// Re-exported from data-ops for the SSR pages and the grid island alike.
+export { paletteCoeffKey } from "@repo/data-ops/serialization";
+
 export function renderPalette(
   seed: string,
   style: PaletteStyle = DEFAULT_STYLE,
@@ -95,6 +100,86 @@ export function svgSnippet(
 /** Copyable list of the palette's hex colors, one wrapping line. */
 export function colorsSnippet(hexColors: string[]): string {
   return `[${hexColors.map((h) => `"${h}"`).join(", ")}]`;
+}
+
+// ---------------------------------------------------------------------------
+// Export selection (multi-palette grid export). The localStorage list on
+// grabient.com holds {id, coeffs, globals, style, steps, angle, seed,
+// hexColors} where id = fnv1a(JSON.stringify({seed, coeffs, style, steps,
+// angle})) — we reproduce both EXACTLY so selections survive the custom-domain
+// cutover in either direction (field order in the hashed JSON matters).
+export interface ExportItemData {
+  id: string;
+  coeffs: CosineCoeffs;
+  globals: GlobalModifiers;
+  style: PaletteStyle;
+  steps: number;
+  angle: number;
+  seed: string;
+  hexColors: string[];
+}
+
+function fnv1a(str: string): string {
+  let hash = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    hash ^= str.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+const exportIdCache = new Map<string, string>();
+
+export function exportItemId(
+  seed: string,
+  coeffs: CosineCoeffs,
+  style: PaletteStyle,
+  steps: number,
+  angle: number,
+): string {
+  const hashData = JSON.stringify({ seed, coeffs, style, steps, angle });
+  let id = exportIdCache.get(hashData);
+  if (id === undefined) {
+    id = fnv1a(hashData);
+    if (exportIdCache.size >= 1000) {
+      const first = exportIdCache.keys().next().value;
+      if (first !== undefined) exportIdCache.delete(first);
+    }
+    exportIdCache.set(hashData, id);
+  }
+  return id;
+}
+
+/**
+ * Build the stored export-list entry for a card: coeffs + globals come from
+ * the seed; hexColors are sampled at the card's EFFECTIVE style/steps/angle
+ * (user-set view params included), matching the original's createExportItem.
+ * Returns null for unparseable seeds (button stays a no-op).
+ */
+export function exportItemData(
+  seed: string,
+  style: PaletteStyle,
+  steps: number,
+  angle: number,
+): ExportItemData | null {
+  try {
+    const { coeffs, globals } = deserializeCoeffs(seed);
+    const hexColors = cosineGradient(steps, applyGlobals(coeffs, globals)).map(([r, g, b]) =>
+      rgbToHex(r, g, b),
+    );
+    return {
+      id: exportItemId(seed, coeffs, style, steps, angle),
+      coeffs,
+      globals,
+      style,
+      steps,
+      angle,
+      seed,
+      hexColors,
+    };
+  } catch {
+    return null;
+  }
 }
 
 const v3 = (row: readonly number[] | undefined) =>

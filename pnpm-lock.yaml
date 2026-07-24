@@ -328,6 +328,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@cf-wasm/resvg':
+        specifier: ^0.3.2
+        version: 0.3.3
       '@repo/data-ops':
         specifier: workspace:^
         version: link:../../packages/data-ops

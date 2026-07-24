@@ -8,10 +8,27 @@ import { initDatabase, getDb } from "@repo/data-ops/database/setup";
 
 export type { Session };
 
+// Both auth emails go through Resend exactly like the current site's
+// server.ts — same sender, same templates.
+async function sendEmail(env: Env, to: string, subject: string, html: string) {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ from: env.EMAIL_FROM, to, subject, html }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to send email: ${await response.text()}`);
+  }
+}
+
 export function initAuth(env: Env) {
   initDatabase(env.DB);
   return setAuth({
     secret: env.BETTER_AUTH_SECRET,
+    baseURL: env.BETTER_AUTH_URL,
     socialProviders: {
       google: {
         clientId: env.GOOGLE_CLIENT_ID,
@@ -20,17 +37,11 @@ export function initAuth(env: Env) {
     },
     adapter: { drizzleDb: getDb(), provider: "sqlite" },
     sendMagicLink: async (data) => {
-      const response = await fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${env.RESEND_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          from: env.EMAIL_FROM,
-          to: data.email,
-          subject: "Sign in to Grabient",
-          html: `
+      await sendEmail(
+        env,
+        data.email,
+        "Sign in to Grabient",
+        `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   <h2>Sign in to Grabient</h2>
   <p>Click the button below to sign in to your account:</p>
@@ -47,11 +58,36 @@ export function initAuth(env: Env) {
     ${data.url}
   </p>
 </div>`,
-        }),
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to send email: ${await response.text()}`);
-      }
+      );
+    },
+    // Account-deletion confirmation, ported from the current site's server.ts:
+    // the email links to /settings?token=… (NOT better-auth's default callback)
+    // so the user reviews the danger zone and confirms there. The origin is
+    // BETTER_AUTH_URL — the same value Google OAuth redirects use — so the
+    // link always lands on this deployment, never on a derived request URL.
+    sendDeleteAccountVerification: async (data) => {
+      const origin = env.BETTER_AUTH_URL || "https://grabient.com";
+      const url = `${origin}/settings?token=${data.token}`;
+      await sendEmail(
+        env,
+        data.user.email,
+        "Confirm Account Deletion - Grabient",
+        `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  <h2 style="color: #dc2626;">Confirm Account Deletion</h2>
+  <p>You requested to delete your Grabient account (${data.user.email}).</p>
+  <p><strong>This action is permanent and cannot be undone.</strong></p>
+  <p>Click the button below to complete the deletion. You'll need to be logged in to confirm.</p>
+  <a href="${url}"
+     style="display: inline-block; padding: 12px 24px; background-color: #dc2626;
+            color: white; text-decoration: none; border-radius: 5px; margin: 20px 0;">
+    Delete My Account
+  </a>
+  <p style="color: #666; font-size: 14px;">
+    This link will expire in 24 hours.
+  </p>
+</div>`,
+      );
     },
   });
 }

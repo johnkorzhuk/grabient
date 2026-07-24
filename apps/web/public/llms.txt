@@ -13,12 +13,12 @@ CSS output.
 - [Popular palettes](https://grabient.com/): The home page, gradient palettes ranked by likes
 - [Newest palettes](https://grabient.com/newest): Recently added gradient palettes
 - [Oldest palettes](https://grabient.com/oldest): The earliest gradient palettes on the site
-- [Search](https://grabient.com/palettes/warm%20sunset): Semantic palette search -- replace the last path segment with any descriptive query (colors, moods, themes)
+- [Semantic palette search](https://grabient.com/palettes/warm-sunset): Replace the final path segment with colors, moods, or themes
 
 ## URL structure
 
 - `https://grabient.com/{seed}` -- a single palette's page with its gradient editor and CSS/SVG/PNG export; `{seed}` is either a canonical compact seed or 12/16 comma-separated numbers (see "Constructing a palette URL from scratch")
-- `https://grabient.com/palettes/{query}` -- search results for a descriptive query
+- `https://grabient.com/palettes/{query}` -- semantic palette results for a descriptive query; use hyphens between words
 - Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularGradient | angularSwatches | radialGradient | radialSwatches), `angle` (0-360 degrees), `steps` (number of colors)
 - `https://grabient.com/api/og?seed={seed}` -- a PNG preview image of any palette
 
@@ -89,7 +89,7 @@ omit all four when unchanged. Out-of-range modifiers make the URL invalid.
 
 ### Verify your work
 
-- `https://grabient.com/{seed}` renders the palette (invalid seeds redirect home)
+- `https://grabient.com/{seed}` renders the palette (invalid seeds return a 404 page)
 - `https://grabient.com/api/og?seed={seed}` returns a PNG preview you can
   inspect -- comma-separated seeds work here too
 - Full worked example -- "sunset into night" (peach -> burnt orange -> crimson -> navy),

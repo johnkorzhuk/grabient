@@ -4,6 +4,7 @@ import { magicLink } from "better-auth/plugins";
 export const createBetterAuth = (config: {
   database: BetterAuthOptions["database"];
   secret?: BetterAuthOptions["secret"];
+  baseURL?: BetterAuthOptions["baseURL"];
   socialProviders?: BetterAuthOptions["socialProviders"];
   emailAndPassword?: { enabled: boolean; requireEmailVerification?: boolean };
   sendMagicLink?: (data: { email: string; url: string; token: string }, ctx?: GenericEndpointContext) => void | Promise<void>;
@@ -35,6 +36,7 @@ export const createBetterAuth = (config: {
   return betterAuth({
     database: config.database,
     secret: config.secret,
+    baseURL: config.baseURL,
     emailAndPassword: config.emailAndPassword ?? {
       enabled: false,
     },

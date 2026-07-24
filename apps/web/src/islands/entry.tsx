@@ -4,6 +4,7 @@ import "../app.client.js";
 import { GridIsland, type ListData } from "./grid";
 import { listKey, setPreviewPatch, syncFromLocation, updateKey } from "./params";
 import { parseListSearch } from "../search";
+import { applyStaticListPreview } from "./static-list-preview";
 
 // One client for the whole session — the cache survives page swaps, which is
 // what makes list -> seed -> back feel like a persistent client app.
@@ -74,6 +75,18 @@ function mountIslands() {
     window.__previewHandler = (fields) => {
       setPreviewPatch(fields ? fieldsToPatch(fields) : null);
     };
+  } else if (dataEl?.hasAttribute("data-static-preview")) {
+    // Authenticated Saved pages intentionally keep their SSR grid/pagination
+    // instead of querying the public palettes endpoint. They still get the
+    // same instant style/steps/angle hover preview by repainting those cards
+    // from the serialized SSR palette data.
+    const initial = JSON.parse(dataEl.textContent || "{}") as ListData;
+    window.__previewHandler = (fields) => {
+      const params = fields
+        ? fieldsToPatch(fields)
+        : parseListSearch(new URLSearchParams(location.search));
+      applyStaticListPreview(initial.palettes, params);
+    };
   }
 
   const editorHost = document.getElementById("editor-island");
@@ -97,6 +110,12 @@ function mountIslands() {
         ),
       );
     });
+  }
+
+  // Multi-palette export: list pages only (seed pages never pay for it).
+  // Plain DOM, no Solid — bootExport re-syncs selection/view state per swap.
+  if (document.getElementById("export-slot")) {
+    void import("./export").then((m) => m.bootExport());
   }
 }
 

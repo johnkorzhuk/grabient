@@ -110,6 +110,22 @@ export function serializeCoeffs(coeffs: CosineCoeffs, globals: GlobalModifiers):
   return alignedSeed;
 }
 
+/**
+ * Palette identity across seed encodings. Legacy ids embed the view params
+ * (style/steps/angle) and v3 ids embed non-default global modifiers, so one
+ * palette exists under MANY stored seed strings. Likes reference whichever
+ * alias was current when clicked — matching them requires stripping everything
+ * but the coefficients. Returns null for unparseable seeds.
+ */
+export function paletteCoeffKey(seed: string): string | null {
+  try {
+    const { coeffs } = deserializeCoeffs(seed);
+    return serializeCoeffs(coeffs, DEFAULT_GLOBALS);
+  } catch {
+    return null;
+  }
+}
+
 function parseNumber(str: string): number {
   if (str.startsWith('.')) {
     return parseFloat('0' + str);

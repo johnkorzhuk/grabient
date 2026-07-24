@@ -9,12 +9,131 @@ beforeAll(async () => {
 });
 
 describe("delegated UI handlers", () => {
+  it("supports the current app's theme and eyedropper shortcuts outside editable fields", async () => {
+    document.documentElement.classList.remove("dark");
+    document.body.innerHTML = `<div id="live"></div>
+      <button id="theme-toggle" aria-label="Toggle theme"></button>
+      <input id="editable">`;
+
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(document.getElementById("theme-toggle").getAttribute("aria-label")).toBe(
+      "Switch to light theme",
+    );
+
+    document.getElementById("editable").dispatchEvent(
+      new KeyboardEvent("keydown", { key: "k", ctrlKey: true, bubbles: true, cancelable: true }),
+    );
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+
+    const open = vi.fn(async () => ({ sRGBHex: "#12abef" }));
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(window, "EyeDropper", {
+      value: class {
+        open() {
+          return open();
+        }
+      },
+      configurable: true,
+    });
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    document.body.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "e", metaKey: true, bubbles: true, cancelable: true }),
+    );
+    await vi.waitFor(() => expect(writeText).toHaveBeenCalledWith("#12abef"));
+    expect(document.getElementById("live").textContent).toBe("#12abef copied");
+    delete window.EyeDropper;
+    document.documentElement.classList.remove("dark");
+  });
+
   it("copies data-copy content and restores label", async () => {
     document.body.innerHTML = `<button id="c" data-copy="#aabbcc">#aabbcc</button>`;
     const writeText = vi.fn(() => Promise.resolve());
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     document.getElementById("c").click();
     expect(writeText).toHaveBeenCalledWith("#aabbcc");
+  });
+
+  it("copies CSS, SVG, and PNG from palette-list format buttons", async () => {
+    document.body.innerHTML = `<div id="live"></div>
+      <div data-palette-card data-palette-seed="HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5UIg" data-palette-style="linearGradient" data-palette-steps="7" data-palette-angle="90">
+        <button data-palette-card-action data-palette-copy="css">CSS</button>
+        <button data-palette-card-action data-palette-copy="svg">SVG</button>
+        <button data-palette-card-action data-palette-copy="png">PNG</button>
+      </div>`;
+    const writeText = vi.fn(() => Promise.resolve());
+    const write = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText, write },
+      configurable: true,
+    });
+    const gradient = { addColorStop: vi.fn() };
+    const context = {
+      createLinearGradient: vi.fn(() => gradient),
+      fillRect: vi.fn(),
+      set fillStyle(_value) {},
+    };
+    const getContext = vi
+      .spyOn(HTMLCanvasElement.prototype, "getContext")
+      .mockReturnValue(context);
+    const toBlob = vi
+      .spyOn(HTMLCanvasElement.prototype, "toBlob")
+      .mockImplementation((callback) => callback(new Blob(["png"], { type: "image/png" })));
+    class TestClipboardItem {
+      constructor(data) {
+        this.data = data;
+      }
+    }
+    Object.defineProperty(globalThis, "ClipboardItem", {
+      value: TestClipboardItem,
+      configurable: true,
+    });
+
+    document.querySelector('[data-palette-copy="css"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(writeText.mock.calls[0][0]).toContain("linear-gradient");
+    document.querySelector('[data-palette-copy="svg"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(writeText.mock.calls[1][0]).toContain("<svg");
+    document.querySelector('[data-palette-copy="png"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(write).toHaveBeenCalledTimes(1);
+    expect(document.getElementById("live").textContent).toBe("PNG copied to clipboard");
+
+    getContext.mockRestore();
+    toBlob.mockRestore();
+  });
+
+  it("opens an aligned palette download menu and downloads SVG", async () => {
+    document.body.innerHTML = `<div id="live"></div>
+      <div data-palette-card data-palette-seed="HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5UIg" data-palette-style="linearGradient" data-palette-steps="7" data-palette-angle="90">
+        <button data-palette-card-action data-palette-download data-menu-align="end" aria-expanded="false">Download</button>
+      </div>`;
+    const createObjectURL = vi.fn(() => "blob:test");
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, "createObjectURL", { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, "revokeObjectURL", { value: revokeObjectURL, configurable: true });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+    const trigger = document.querySelector("[data-palette-download]");
+    trigger.click();
+    expect(trigger.getAttribute("aria-expanded")).toBe("true");
+    expect([...document.querySelectorAll(".menu-item")].map((item) => item.textContent)).toEqual([
+      "SVG",
+      "PNG",
+    ]);
+    document.querySelector(".menu-item").click();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    expect(document.getElementById("live").textContent).toBe("SVG download started");
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+
+    click.mockRestore();
   });
 
   it("swatch copy swaps only the label text, keeping the pill span intact", async () => {
@@ -113,6 +232,39 @@ describe("delegated UI handlers", () => {
     delete window.__paramsHandler;
   });
 
+  it("reconciles edge-cached list counts from the write-fresh count endpoint", async () => {
+    const keyA = "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x";
+    const keyB = "_gJDgH1gIagIjgL4gJtgDZgFrgDFgAAgguhBd";
+    document.body.innerHTML =
+      `<button data-like-seed="${keyA}" data-count="41"><span class="like-count">41</span></button>` +
+      `<button data-like-seed="${keyB}" data-count="9"><span class="like-count">9</span></button>`;
+    const previousFetch = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation(async (href) => {
+      const url = String(href);
+      if (url.includes("/api/like-counts"))
+        return {
+          ok: true,
+          json: async () => ({ counts: { [keyA]: 42, [keyB]: 0 } }),
+        };
+      if (url.includes("/api/auth/get-session"))
+        return { ok: true, json: async () => null };
+      return { ok: true, json: async () => ({}) };
+    });
+
+    document.dispatchEvent(new CustomEvent("app:swap"));
+    await new Promise((r) => setTimeout(r, 0));
+
+    const first = document.querySelector(`[data-like-seed="${keyA}"]`);
+    const second = document.querySelector(`[data-like-seed="${keyB}"]`);
+    expect(first.dataset.count).toBe("42");
+    expect(first.querySelector(".like-count").textContent).toBe("42");
+    expect(second.dataset.count).toBe("0");
+    expect(second.querySelector(".like-count").classList.contains("opacity-0")).toBe(true);
+
+    fetchMock.mockImplementation(previousFetch);
+    fetchMock.mockClear();
+  });
+
   it("arrow-key hold spins the value per press, previews live, and commits one change after release", () => {
     vi.useFakeTimers();
     document.body.innerHTML = `<form id="opts"><input name="angle" data-step-keys data-wrap data-suffix="°" data-min="0" data-max="359" value=""></form>`;
@@ -190,15 +342,36 @@ describe("delegated UI handlers", () => {
     const hero = document.getElementById("seed-hero");
     const gradient = document.getElementById("edit-preview");
     gradient.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
-    gradient.dispatchEvent(new MouseEvent("click", { bubbles: true }));
     expect(hero.classList.contains("ui-show")).toBe(true);
-    gradient.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    gradient.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
     expect(hero.classList.contains("ui-show")).toBe(false);
     // Mouse hover over the gradient reveals; over the sliders sheet hides.
     gradient.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerType: "mouse" }));
     expect(hero.classList.contains("ui-show")).toBe(true);
-    // Reset pointer type so later tests' clicks read as mouse again.
-    gradient.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "mouse" }));
+  });
+
+  it("touch taps toggle one palette card's actions without activating its controls", () => {
+    document.body.innerHTML = `<div data-palette-card id="one"><div class="card"></div><a data-palette-card-action href="/edit">edit</a></div>
+      <div data-palette-card id="two"><div class="card"></div><button data-palette-card-action>copy</button></div>`;
+    const one = document.getElementById("one");
+    const two = document.getElementById("two");
+    const surface = one.querySelector(".card");
+    surface.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    expect(one.classList.contains("actions-open")).toBe(true);
+    one.querySelector("a").focus();
+    surface.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    expect(one.classList.contains("actions-open")).toBe(false);
+    expect(one.contains(document.activeElement)).toBe(false);
+    surface.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    one.querySelector("a").dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }),
+    );
+    expect(one.classList.contains("actions-open")).toBe(true);
+    two.querySelector(".card").dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }),
+    );
+    expect(one.classList.contains("actions-open")).toBe(false);
+    expect(two.classList.contains("actions-open")).toBe(true);
   });
 
   it("hovering the fused swatch strip drives the graph legend (canvas mode)", () => {

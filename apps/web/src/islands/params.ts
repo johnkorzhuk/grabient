@@ -48,7 +48,15 @@ export function viewParams(): ListKey {
 export function updateKey(patch: Partial<ListKey>, opts: { push?: boolean } = {}): void {
   const next = { ...listKey(), ...patch };
   const path = next.sort === "popular" ? "/" : `/${next.sort}`;
-  history[opts.push ? "pushState" : "replaceState"](history.state, "", path + keyToSearch(next));
+  // keyToSearch only knows view params — carry the export view's URL flag
+  // forward so changing options/paging while it's open doesn't drop it.
+  const qs = keyToSearch(next);
+  const keepExport = new URLSearchParams(location.search).get("export") === "true";
+  history[opts.push ? "pushState" : "replaceState"](
+    history.state,
+    "",
+    path + qs + (keepExport ? `${qs ? "&" : "?"}export=true` : ""),
+  );
   // Keep the nav layer's list-search memory current (island updates bypass swap()).
   try {
     sessionStorage.setItem("gl-list-search", location.search);

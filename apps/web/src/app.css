@@ -16,6 +16,8 @@
   --color-primary-foreground: oklch(0.985 0 0);
   --color-accent: oklch(0.967 0.001 286.375);
   --color-accent-foreground: oklch(0.21 0.006 285.885);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-destructive-foreground: oklch(0.985 0 0);
 
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
@@ -41,6 +43,8 @@
   --color-ring: oklch(0.442 0.017 285.786);
   --color-primary: oklch(0.98 0 0);
   --color-primary-foreground: oklch(0.21 0.006 285.885);
+  --color-destructive: oklch(0.704 0.191 22.216);
+  --color-destructive-foreground: oklch(0.985 0 0);
   --color-accent: oklch(0.274 0.006 286.033);
   --color-accent-foreground: oklch(0.98 0 0);
 }
@@ -288,6 +292,11 @@
 .subheader:not(.sticky) {
   padding-bottom: 1.5rem;
 }
+@media (width >= 64rem) {
+  .seed-hero .seed-stage {
+    padding-top: 1rem;
+  }
+}
 .subheader.is-scrolled {
   padding-top: 0.75rem;
   background: color-mix(in oklab, var(--color-background) 62%, transparent);
@@ -334,8 +343,8 @@ input::placeholder {
 /* Option controls: hovering (or focusing) ANYWHERE in a control's wrapper
    styles the whole control — input, select trigger, and its chevron move
    together, matching the enhanced select trigger's all-one-surface feel. */
-.ctrl-wrap:hover :is(input, button[role="combobox"]),
-.ctrl-wrap:focus-within :is(input, button[role="combobox"]) {
+.ctrl-wrap:hover :is(input:not(:disabled), button[role="combobox"]:not(:disabled)),
+.ctrl-wrap:focus-within :is(input:not(:disabled), button[role="combobox"]:not(:disabled)) {
   border-color: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent);
   background: color-mix(in srgb, var(--color-background) 60%, transparent);
   color: var(--color-foreground);
@@ -344,8 +353,25 @@ input::placeholder {
 .native-chevron {
   transition: color 200ms;
 }
+.preset-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
 .ctrl-wrap:hover :is(.preset-btn, .native-chevron),
 .ctrl-wrap:focus-within :is(.preset-btn, .native-chevron) {
+  color: var(--color-foreground);
+}
+/* Number-input placeholders must be indistinguishable from the enhanced
+   select trigger's placeholder text (real text content): same rest color —
+   no 0.7 opacity — and the same brighten-to-foreground on hover/focus of
+   the wrapper. The global input::placeholder rule above stays for fields. */
+.ctrl-wrap input::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 1;
+  transition: color 200ms;
+}
+.ctrl-wrap:hover input::placeholder,
+.ctrl-wrap:focus-within input::placeholder {
   color: var(--color-foreground);
 }
 
@@ -412,6 +438,153 @@ input::placeholder {
     min-height: 44px;
   }
 }
+/* Category headers inside portal menus (export size presets). */
+.menu-header {
+  padding: 8px 12px 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-muted-foreground);
+  white-space: nowrap;
+  user-select: none;
+}
+/* Export selection toggle: the minus icon is hidden until the client's
+   generated #export-style sheet marks the item selected (plus/minus swap). */
+.export-toggle .xp-minus {
+  display: none;
+}
+
+/* Palette-list cards use one balanced overlay rather than making the whole
+   gradient a link: edit at top-left, export at top-right, and the three
+   explicit copy formats together at bottom-right. */
+.palette-card-control {
+  position: absolute;
+  z-index: 20;
+  opacity: 0;
+  pointer-events: none;
+}
+[data-palette-card]:hover .palette-card-control,
+[data-palette-card]:focus-within .palette-card-control,
+[data-palette-card].actions-open .palette-card-control {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette-card-edit,
+.palette-card-export,
+.palette-card-download,
+.palette-card-format {
+  display: inline-flex;
+  height: 2rem;
+  min-width: 2rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-input);
+  border-radius: 0.5rem;
+  background: var(--color-background);
+  color: var(--color-muted-foreground);
+  outline: none;
+  transition:
+    color 200ms,
+    background-color 200ms,
+    border-color 200ms;
+}
+.palette-card-edit:hover,
+.palette-card-export:hover,
+.palette-card-download:hover,
+.palette-card-format:hover {
+  border-color: color-mix(in srgb, var(--color-muted-foreground) 30%, transparent);
+  background: color-mix(in srgb, var(--color-background) 60%, transparent);
+  color: var(--color-foreground);
+}
+.palette-card-edit:active,
+.palette-card-export:active,
+.palette-card-download:active,
+.palette-card-format:active {
+  border-color: color-mix(in srgb, var(--color-muted-foreground) 40%, transparent);
+  background: color-mix(in srgb, var(--color-muted) 60%, transparent);
+}
+.palette-card-edit:focus-visible,
+.palette-card-export:focus-visible,
+.palette-card-download:focus-visible,
+.palette-card-format:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-ring) 70%, transparent);
+}
+.palette-card-edit {
+  left: 0.75rem;
+  top: 0.75rem;
+  width: 2rem;
+}
+.palette-card-export {
+  right: 0.75rem;
+  top: 0.75rem;
+  width: 2rem;
+  padding: 0;
+}
+.palette-card-download {
+  right: 0.75rem;
+  top: 3.125rem;
+  width: 2rem;
+  padding: 0;
+}
+.palette-card-download[aria-expanded="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+.palette-card-copy-group {
+  right: 0.75rem;
+  bottom: 0.75rem;
+  display: flex;
+  gap: 0.375rem;
+}
+.palette-card-format {
+  position: static;
+  padding-inline: 0.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.625rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+}
+@media (pointer: coarse) {
+  /* Touch browsers keep :hover sticky. The explicit class is the sole source
+     of truth so a second tap reliably hides every action again. */
+  [data-palette-card]:hover .palette-card-control {
+    opacity: 0;
+    pointer-events: none;
+  }
+  [data-palette-card].actions-open .palette-card-control {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .palette-card-edit,
+  .palette-card-export,
+  .palette-card-download,
+  .palette-card-format {
+    height: 2.25rem;
+    min-width: 2.25rem;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--color-background) 70%, transparent);
+    backdrop-filter: blur(12px);
+  }
+  .palette-card-edit,
+  .palette-card-export,
+  .palette-card-download {
+    width: 2.25rem;
+  }
+  .palette-card-edit:hover,
+  .palette-card-export:hover,
+  .palette-card-download:hover,
+  .palette-card-format:hover {
+    background: var(--color-background);
+  }
+}
+/* Export preview: the composed SVG grid letterboxes into the panel box.
+   Direct-child only — the overlay copy/download buttons carry their own
+   (fixed-size) icon svgs. */
+#export-preview > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
 .menu-item {
   display: flex;
   width: 100%;
@@ -470,6 +643,26 @@ input::placeholder {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+.seed-hero.ui-show #preview-actions,
+.seed-hero.ui-show #preview-actions-br {
+  display: flex;
+}
+@media (pointer: coarse) {
+  /* Neutralize sticky touch-hover on the desktop/tablet seed canvas. */
+  #preview-box:hover :is(#preview-actions, #preview-actions-br) {
+    display: none;
+  }
+  .seed-hero.ui-show #preview-actions,
+  .seed-hero.ui-show #preview-actions-br {
+    display: flex;
+  }
+}
+/* Dimension/download popovers are body portals, so moving into a menu leaves
+   the preview's hover tree. Keep the stack containing the owning trigger
+   rendered for the full open state. */
+.seed-hero.menu-open #preview-actions {
+  display: flex;
 }
 #mobile-dock > div {
   display: flex;
@@ -683,6 +876,7 @@ input::placeholder {
     transition: opacity 200ms;
   }
   .seed-hero.ui-show :is(#mobile-dock, .subheader a[data-list-link], #opts),
+  .seed-hero.menu-open #mobile-dock,
   .seed-hero #mobile-dock:focus-within,
   .seed-hero #opts:focus-within,
   .seed-hero .subheader a[data-list-link]:focus-visible {
@@ -770,10 +964,6 @@ input::placeholder {
   }
   .seed-hero #editor-island > div > div {
     height: 42px;
-  }
-  .seed-hero #mobile-dock .flex-col {
-    flex-direction: row;
-    align-items: center;
   }
 }
 

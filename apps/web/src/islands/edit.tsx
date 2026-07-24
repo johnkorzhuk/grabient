@@ -25,7 +25,13 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import { channelsGraphSvg } from "../graph";
 import { logoStops } from "../icons";
-import { coeffsJsonSnippet, colorsSnippet, heroInk, shadertoySnippet } from "../palette";
+import {
+  coeffsJsonSnippet,
+  colorsSnippet,
+  exportItemData,
+  heroInk,
+  shadertoySnippet,
+} from "../palette";
 import {
   MAX_DIM,
   MIN_DIM,
@@ -35,6 +41,11 @@ import {
   sizeParam,
   type PreviewSize,
 } from "../search";
+import {
+  MAX_EXPORT_ITEMS,
+  readExportList,
+  toggleExportItem,
+} from "./export-store";
 
 interface Modifier {
   key: "exposure" | "contrast" | "frequency" | "phase";
@@ -82,6 +93,7 @@ const SIZE_PRESETS: { label: string; dims: [number, number] }[] = [
 // text all shift together on hover, with the matching active states.
 const ACTION_BTN =
   "inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-solid border-input bg-background text-muted-foreground transition-colors duration-200 outline-none hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground active:border-muted-foreground/40 active:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70";
+const ACTION_BTN_ON = " border-muted-foreground/30 bg-background/60 text-foreground";
 // Mobile-dock buttons float over the gradient: glass surface at rest that
 // goes solid on hover (the canvas-mode subheader-control behavior), larger
 // touch target. Active toggles brighten like BTN_ACTIVE.
@@ -197,13 +209,15 @@ export function EditorIsland(props: EditorProps) {
   const [previewSize, setPreviewSizeSig] = createSignal<PreviewSize>(
     parseSize(new URLSearchParams(location.search).get("size")),
   );
+  const [previewSizeHover, setPreviewSizeHover] = createSignal<PreviewSize | null>(null);
+  const renderedPreviewSize = (): PreviewSize => previewSizeHover() ?? previewSize();
   const [containerDims, setContainerDims] = createSignal<[number, number]>([800, 400]);
 
   const applyFit = () => {
     const box = document.getElementById("preview-box");
     const fit = document.getElementById("preview-fit");
     if (!box || !fit) return;
-    const s = previewSize();
+    const s = renderedPreviewSize();
     // Canvas mode goes full-bleed only when no explicit size is set — with
     // one, .has-size reverts the overrides and the fitted box renders framed.
     document.getElementById("seed-hero")?.classList.toggle("has-size", s !== "auto");
@@ -220,6 +234,7 @@ export function EditorIsland(props: EditorProps) {
   };
 
   const commitSize = (s: PreviewSize) => {
+    setPreviewSizeHover(null);
     setPreviewSizeSig(s);
     const q = new URLSearchParams(location.search);
     const p = sizeParam(s);
@@ -242,6 +257,31 @@ export function EditorIsland(props: EditorProps) {
       }).styles.background,
   );
   const graphSvg = createMemo(() => channelsGraphSvg(applied(), view().steps, hexColors()));
+  const [exportIds, setExportIds] = createSignal<Set<string>>(new Set());
+  const exportItem = createMemo(() =>
+    exportItemData(seed(), view().style, view().steps, view().angle),
+  );
+  const exportSelected = createMemo(() => {
+    const item = exportItem();
+    return !!item && exportIds().has(item.id);
+  });
+  const syncExportIds = () =>
+    setExportIds(new Set(readExportList().map((item) => item.id)));
+  const toggleSeedExport = () => {
+    const item = exportItem();
+    if (!item) return;
+    const result = toggleExportItem(item);
+    setExportIds(new Set(result.items.map((entry) => entry.id)));
+    const live = document.getElementById("live");
+    if (live) {
+      live.textContent = "";
+      live.textContent = !result.selected
+        ? "Removed from export selection"
+        : result.dropped
+          ? `Added — oldest selection dropped (${MAX_EXPORT_ITEMS} max)`
+          : "Added to export selection";
+    }
+  };
 
   // Throttled URL writes; instant everything else. Seed changes create
   // HISTORY ENTRIES so Back/Forward acts as undo/redo: writes more than
@@ -645,6 +685,17 @@ export function EditorIsland(props: EditorProps) {
       .getElementById("seed-hero")
       ?.classList.toggle("menu-open", dimsOpen() || dlOpen());
   });
+  createEffect(() => {
+    if (!dimsOpen() && previewSizeHover() !== null) {
+      setPreviewSizeHover(null);
+      queueMicrotask(applyFit);
+    }
+  });
+
+  const previewDimensions = (size: PreviewSize | null) => {
+    setPreviewSizeHover(size);
+    applyFit();
+  };
 
   const clampDim = (raw: string): number | null => {
     const n = Number.parseInt(raw, 10);
@@ -702,6 +753,12 @@ export function EditorIsland(props: EditorProps) {
   };
 
   onMount(() => {
+    syncExportIds();
+    const syncStorage = (event: StorageEvent) => {
+      if (!event.key || event.key === "export-list") syncExportIds();
+    };
+    addEventListener("storage", syncStorage);
+    onCleanup(() => removeEventListener("storage", syncStorage));
     measureSheet();
     updateStaticSurfaces(seed());
     applyFit();
@@ -734,6 +791,13 @@ export function EditorIsland(props: EditorProps) {
     };
     document.addEventListener("pointerdown", closeDims);
     onCleanup(() => document.removeEventListener("pointerdown", closeDims));
+    const closeGraphOnEscape = (e: KeyboardEvent) => {
+      if (e.key !== "Escape" || e.defaultPrevented || !graphOn()) return;
+      e.preventDefault();
+      toggleGraph();
+    };
+    document.addEventListener("keydown", closeGraphOnEscape);
+    onCleanup(() => document.removeEventListener("keydown", closeGraphOnEscape));
     const repositionDims = () => {
       if (dimsOpen()) positionPanel();
       if (dlOpen()) positionDl();
@@ -835,7 +899,7 @@ export function EditorIsland(props: EditorProps) {
   // identical height. Unselected = the four globals; selected = the chosen
   // global on top + its R/G/B channel rows — same row structure, so selecting
   // a modifier never changes the panel height.
-  const ROW = "flex h-11 flex-col pointer-coarse:h-[56px]";
+  const ROW = "flex h-12 flex-col gap-1 pointer-coarse:h-[60px]";
   const LABEL_ROW = "flex h-6 items-baseline justify-between";
 
   const globalRow = (m: Modifier) => (
@@ -1142,8 +1206,9 @@ export function EditorIsland(props: EditorProps) {
           <Portal mount={mount()}>
             <button
               type="button"
-              data-tip={graphOn() ? "Close graph" : "Open graph"}
+              data-tip={graphOn() ? "Close graph (Esc)" : "Open graph"}
               aria-label={graphOn() ? "Close graph" : "Open graph"}
+              aria-keyshortcuts="Escape"
               aria-pressed={graphOn()}
               class={`${DOCK_BTN}${graphOn() ? DOCK_BTN_ON : ""}`}
               onClick={toggleGraph}
@@ -1183,14 +1248,15 @@ export function EditorIsland(props: EditorProps) {
                 </svg>
               </Show>
             </button>
-            <div class="ml-auto flex flex-col items-end gap-2">
-            <button
+          <div class="ml-auto flex flex-col items-end gap-2">
+          <div class="order-2 flex items-center gap-2" data-mobile-format-actions>
+          <button
               type="button"
               data-tip="Copy CSS"
               aria-label="Copy CSS"
               class={DOCK_BTN}
               onClick={() => copyCode("css")}
-            >
+          >
               <Show
                 when={copied() !== "css"}
                 fallback={
@@ -1267,8 +1333,32 @@ export function EditorIsland(props: EditorProps) {
               >
                 <span class="text-[10px] font-bold">PNG</span>
               </Show>
+          </button>
+          </div>
+          <div class="order-1 flex flex-col items-end gap-2" data-mobile-primary-actions>
+          <button
+              type="button"
+              data-seed-export-toggle
+              data-tip={exportSelected() ? "Remove from export selection" : "Add to export selection"}
+              aria-label={exportSelected() ? "Remove from export selection" : "Add to export selection"}
+              aria-pressed={exportSelected()}
+              class={`${DOCK_BTN}${exportSelected() ? DOCK_BTN_ON : ""}`}
+              onClick={toggleSeedExport}
+            >
+              <Show
+                when={!exportSelected()}
+                fallback={
+                  <svg class="xp-minus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12h14" />
+                  </svg>
+                }
+              >
+                <svg class="xp-plus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+              </Show>
             </button>
-            <div class="flex items-center gap-2">
             <div class="relative" ref={(el) => (mDimsWrap = el)}>
               <button
                 type="button"
@@ -1276,7 +1366,7 @@ export function EditorIsland(props: EditorProps) {
                 aria-label="Preview dimensions"
                 aria-haspopup="dialog"
                 aria-expanded={dimsOpen()}
-                class={`${DOCK_BTN}${previewSize() !== "auto" ? DOCK_BTN_ON : ""}`}
+                class={`${DOCK_BTN}${previewSize() !== "auto" || dimsOpen() ? DOCK_BTN_ON : ""}`}
                 onClick={(e) => {
                   dimsBtn = e.currentTarget;
                   setDimsOpen(!dimsOpen());
@@ -1306,7 +1396,7 @@ export function EditorIsland(props: EditorProps) {
                 aria-label="Download gradient"
                 aria-haspopup="menu"
                 aria-expanded={dlOpen()}
-                class={DOCK_BTN}
+                class={`${DOCK_BTN}${dlOpen() ? DOCK_BTN_ON : ""}`}
                 onClick={(e) => {
                   dlBtn = e.currentTarget;
                   setDlOpen(!dlOpen());
@@ -1334,7 +1424,7 @@ export function EditorIsland(props: EditorProps) {
           </Portal>
         )}
       </Show>
-      <Show when={actionsMount}>
+      <Show when={brMount}>
         {(mount) => (
           <Portal mount={mount()}>
             <button
@@ -1424,9 +1514,32 @@ export function EditorIsland(props: EditorProps) {
           </Portal>
         )}
       </Show>
-      <Show when={brMount}>
+      <Show when={actionsMount}>
         {(mount) => (
           <Portal mount={mount()}>
+            <button
+              type="button"
+              data-seed-export-toggle
+              data-tip={exportSelected() ? "Remove from export selection" : "Add to export selection"}
+              aria-label={exportSelected() ? "Remove from export selection" : "Add to export selection"}
+              aria-pressed={exportSelected()}
+              class={`${ACTION_BTN}${exportSelected() ? ACTION_BTN_ON : ""}`}
+              onClick={toggleSeedExport}
+            >
+              <Show
+                when={!exportSelected()}
+                fallback={
+                  <svg class="xp-minus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M5 12h14" />
+                  </svg>
+                }
+              >
+                <svg class="xp-plus h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="M12 5v14" />
+                </svg>
+              </Show>
+            </button>
             <div class="relative" ref={(el) => (dimsWrap = el)}>
               <button
                 type="button"
@@ -1435,7 +1548,7 @@ export function EditorIsland(props: EditorProps) {
                 aria-haspopup="dialog"
                 aria-expanded={dimsOpen()}
                 ref={(el) => (dimsBtn = el)}
-                class={`${ACTION_BTN}${previewSize() !== "auto" ? " border-muted-foreground/30 text-foreground" : ""}`}
+                class={`${ACTION_BTN}${previewSize() !== "auto" || dimsOpen() ? ACTION_BTN_ON : ""}`}
                 onClick={(e) => {
                   dimsBtn = e.currentTarget;
                   setDimsOpen(!dimsOpen());
@@ -1521,6 +1634,11 @@ export function EditorIsland(props: EditorProps) {
                     class="menu-item"
                     role="option"
                     aria-selected={previewSize() === "auto"}
+                    data-preview-dims="auto"
+                    onMouseEnter={() => previewDimensions("auto")}
+                    onMouseLeave={() => previewDimensions(null)}
+                    onFocus={() => previewDimensions("auto")}
+                    onBlur={() => previewDimensions(null)}
                     onClick={() => {
                       commitSize("auto");
                       setDimsOpen(false);
@@ -1540,6 +1658,11 @@ export function EditorIsland(props: EditorProps) {
                           class="menu-item"
                           role="option"
                           aria-selected={isSel()}
+                          data-preview-dims={`${p.dims[0]}x${p.dims[1]}`}
+                          onMouseEnter={() => previewDimensions(p.dims)}
+                          onMouseLeave={() => previewDimensions(null)}
+                          onFocus={() => previewDimensions(p.dims)}
+                          onBlur={() => previewDimensions(null)}
                           onClick={() => {
                             commitSize(isSel() ? "auto" : p.dims);
                             setDimsOpen(false);
@@ -1566,7 +1689,7 @@ export function EditorIsland(props: EditorProps) {
                 aria-haspopup="menu"
                 aria-expanded={dlOpen()}
                 ref={(el) => (dlBtn = el)}
-                class={ACTION_BTN}
+                class={`${ACTION_BTN}${dlOpen() ? ACTION_BTN_ON : ""}`}
                 onClick={(e) => {
                   dlBtn = e.currentTarget;
                   setDlOpen(!dlOpen());

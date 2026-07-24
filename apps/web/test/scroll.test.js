@@ -82,4 +82,25 @@ describe("scroll restoration", () => {
     await vi.advanceTimersByTimeAsync(10);
     expect(window.scrollTo).toHaveBeenCalledWith(0, 800);
   });
+
+  it("preserves scroll when list options use the document-swap fallback", async () => {
+    vi.useFakeTimers();
+    delete window.__paramsHandler;
+    history.replaceState(null, "", "/saved");
+    document.body.innerHTML = `<form id="opts">
+      <input name="angle" value="">
+      <input name="steps" value="">
+      <select name="style"><option value=""></option></select>
+    </form>`;
+    setScroll(18, 920);
+    window.scrollTo.mockClear();
+
+    const angle = document.querySelector('[name="angle"]');
+    angle.value = "135";
+    angle.dispatchEvent(new Event("change", { bubbles: true }));
+    await vi.advanceTimersByTimeAsync(10);
+
+    expect(location.pathname + location.search).toBe("/saved?angle=135");
+    expect(window.scrollTo).toHaveBeenCalledWith(18, 920);
+  });
 });

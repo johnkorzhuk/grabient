@@ -4,6 +4,12 @@
 	"compatibility_date": "2025-09-02",
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "./src/index.ts",
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": ["RateLimiter"]
+		}
+	],
 	"rules": [{ "type": "Text", "globs": ["**/*.css"], "fallthrough": true }],
 	"assets": { "directory": "./dist/client" },
 	// Workers Cache (July 2026): edge cache in front of the worker — honors our
@@ -24,9 +30,65 @@
 			"migrations_dir": "../../packages/data-ops/src/drizzle"
 		}
 	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "RATE_LIMITER",
+				"class_name": "RateLimiter"
+			}
+		]
+	},
+	// SEO query cards reuse the current app's semantic-search bindings and
+	// caches so /api/og/query produces the same social previews.
+	"vectorize": [
+		{
+			"binding": "VECTORIZE",
+			"index_name": "grabient-palettes",
+			"remote": true
+		}
+	],
+	"ai": {
+		"binding": "AI",
+		"remote": true
+	},
+	"kv_namespaces": [
+		{
+			"binding": "SEARCH_CACHE",
+			"id": "04596938aa91477eb1c38d45f3d1b9f3",
+			"remote": true
+		},
+		{
+			"binding": "OG_IMAGE_CACHE",
+			"id": "a06cc24c512d4994a88593436387f5f1",
+			"remote": true
+		}
+	],
+	// Avatar uploads: same bucket as the live site (grabient3 default env).
+	// Each bucket's r2.dev public URL fronts ONLY that bucket — pub-a081a47d…
+	// serves grabient-uploads-dev (staging), pub-f6df953a… serves
+	// grabient-uploads (prod). Pairing them wrong writes URLs that 404.
+	// Stored image URLs in D1 use this base, so it must match exactly for
+	// old-avatar cleanup to find keys.
+	// "remote": true — wrangler dev talks to the REAL dev bucket instead of a
+	// local simulation, so locally uploaded avatars resolve at R2_PUBLIC_URL
+	// (mirrors the original's local flow, which presigns into the real bucket).
+	// Dev-only flag: ignored by wrangler deploy. D1 intentionally stays local.
+	"vars": {
+		"PUBLIC_ORIGIN": "https://grabient-lite.jkorzhuk.workers.dev",
+		"BETTER_AUTH_URL": "https://grabient-lite.jkorzhuk.workers.dev",
+		"EMAIL_FROM": "noreply@grabient.com",
+		"R2_PUBLIC_URL": "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev"
+	},
+	"r2_buckets": [
+		{
+			"binding": "UPLOADS",
+			"bucket_name": "grabient-uploads-dev",
+			"remote": true
+		}
+	],
 	"env": {
 		"production": {
-			"name": "grabient-lite-production",
+			"name": "grabient-production",
 			"workers_dev": true,
 			"assets": { "directory": "./dist/client" },
 			// See top-level cache comment: cross_version_cache must stay false.
@@ -37,6 +99,45 @@
 					"database_name": "grabient-prod",
 					"database_id": "8902a4a8-cca3-4a34-b456-7b35ad021985",
 					"migrations_dir": "../../packages/data-ops/src/drizzle"
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "RATE_LIMITER",
+						"class_name": "RateLimiter"
+					}
+				]
+			},
+			"vectorize": [
+				{
+					"binding": "VECTORIZE",
+					"index_name": "grabient-palettes"
+				}
+			],
+			"ai": {
+				"binding": "AI"
+			},
+			"kv_namespaces": [
+				{
+					"binding": "SEARCH_CACHE",
+					"id": "e8a90572e8584a0c9587011bacf50d7a"
+				},
+				{
+					"binding": "OG_IMAGE_CACHE",
+					"id": "f43a67e1a657473fbe09db8c94e77ed9"
+				}
+			],
+			"vars": {
+				"PUBLIC_ORIGIN": "https://grabient.com",
+				"BETTER_AUTH_URL": "https://grabient.com",
+				"EMAIL_FROM": "noreply@grabient.com",
+				"R2_PUBLIC_URL": "https://cdn.grabient.com"
+			},
+			"r2_buckets": [
+				{
+					"binding": "UPLOADS",
+					"bucket_name": "grabient-uploads"
 				}
 			]
 		}
