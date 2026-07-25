@@ -95,6 +95,18 @@ describe("semantic search route", () => {
     expect(html).toContain('data-search-feedback="bad"');
     expect(html).toContain('data-tip="Poor match"');
     expect(html).not.toContain('<meta name="robots" content="noindex');
+    const ogImage = html
+      .match(/<meta property="og:image" content="([^"]+)">/)?.[1]
+      ?.replaceAll("&amp;", "&");
+    expect(ogImage).toBeDefined();
+    const ogUrl = new URL(ogImage);
+    expect(ogUrl.pathname).toBe("/api/og/query");
+    expect(ogUrl.searchParams.get("query")).toBe("warm sunset");
+    expect(ogUrl.searchParams.get("style")).toBe("radialGradient");
+    expect(ogUrl.searchParams.get("steps")).toBe("11");
+    expect(ogUrl.searchParams.get("angle")).toBe("45");
+    expect(ogUrl.searchParams.get("v")).toBe("10");
+    expect(ogUrl.searchParams.has("sort")).toBe(false);
     warn.mockRestore();
   });
 

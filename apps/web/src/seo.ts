@@ -30,7 +30,7 @@ export const SEO_BASE_URL = "https://grabient.com";
 
 // The version is part of the public og:image URL and the query-image KV key, so
 // crawlers cannot retain an earlier renderer after a visual refresh.
-export const OG_RENDER_VERSION = 9;
+export const OG_RENDER_VERSION = 10;
 
 export function robotsTxt(origin = SEO_BASE_URL): string {
   const base = origin.replace(/\/+$/, "");
@@ -218,11 +218,42 @@ export function queryOgSvg(
 ): string {
   const width = 1200;
   const height = 630;
-  const bandWidth = width / 3;
-  const bandRows = [2, 4, 8] as const;
-  const tileCount = bandRows.reduce((total, rows) => total + rows, 0);
+  const phi = (1 + Math.sqrt(5)) / 2;
+  const majorWidth = Math.round(width / phi);
+  const minorWidth = width - majorWidth;
+  const majorHeight = Math.round(height / phi);
+  const minorHeight = height - majorHeight;
+  const lowerMajorWidth = Math.round(majorWidth / phi);
+  const lowerMinorWidth = majorWidth - lowerMajorWidth;
+  const rightMajorHeight = Math.round(majorHeight / phi);
+  const rightMinorHeight = majorHeight - rightMajorHeight;
+  // A shallow golden-ratio subdivision: enough variation to establish the
+  // rhythm without recursively shrinking any palette into a decorative strip.
+  const tiles = [
+    { x: 0, y: 0, width: majorWidth, height: majorHeight },
+    { x: 0, y: majorHeight, width: lowerMajorWidth, height: minorHeight },
+    {
+      x: lowerMajorWidth,
+      y: majorHeight,
+      width: lowerMinorWidth,
+      height: minorHeight,
+    },
+    { x: majorWidth, y: 0, width: minorWidth, height: minorHeight },
+    {
+      x: majorWidth,
+      y: minorHeight,
+      width: minorWidth,
+      height: rightMajorHeight,
+    },
+    {
+      x: majorWidth,
+      y: minorHeight + rightMajorHeight,
+      width: minorWidth,
+      height: rightMinorHeight,
+    },
+  ] as const;
   const views = results
-    .slice(0, tileCount)
+    .slice(0, tiles.length)
     .map((result) =>
       renderPalette(
         result.seed,
@@ -234,30 +265,24 @@ export function queryOgSvg(
     .filter((view): view is RenderedPalette => view !== null);
 
   let cells = "";
-  let index = 0;
-  for (const [band, rows] of bandRows.entries()) {
-    const cellHeight = height / rows;
-    for (let row = 0; row < rows; row++, index++) {
-      const x = band * bandWidth;
-      const y = row * cellHeight;
-      const view = views.length ? views[index % views.length] : undefined;
-      const content = view
-        ? gradientLayer(view, bandWidth, cellHeight, index)
-        : `<rect width="${bandWidth}" height="${cellHeight}" fill="#0a0a0b"/>`;
-      cells += `<defs><clipPath id="og-cell-${index}"><rect x="${x}" y="${y}" width="${bandWidth}" height="${cellHeight}"/></clipPath></defs>
-<g clip-path="url(#og-cell-${index})"><g transform="translate(${x} ${y})">${content}</g></g>`;
-    }
+  for (const [index, tile] of tiles.entries()) {
+    const view = views.length ? views[index % views.length] : undefined;
+    const content = view
+      ? gradientLayer(view, tile.width, tile.height, index)
+      : `<rect width="${tile.width}" height="${tile.height}" fill="#0a0a0b"/>`;
+    cells += `<defs><clipPath id="og-cell-${index}"><rect x="${tile.x}" y="${tile.y}" width="${tile.width}" height="${tile.height}"/></clipPath></defs>
+<g clip-path="url(#og-cell-${index})"><g transform="translate(${tile.x} ${tile.y})">${content}</g></g>`;
   }
 
   const logoColors = views[0]?.hexColors ?? ["#ffd25f", "#ff5f6d", "#a17fff"];
+  const logoForeground =
+    calculateAverageBrightness(logoColors) > 0.5 ? "#0a0a0b" : "#fafafa";
   const logo = LOGO(logoColors, "")
     .replace('<svg class=""', '<svg x="32" y="30" width="286" height="65"')
-    .replaceAll("currentColor", "#fafafa")
+    .replaceAll("currentColor", logoForeground)
     .replace(' role="img" aria-label="Grabient"', ' aria-hidden="true"');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 ${cells}
-<defs><linearGradient id="og-logo-shade" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0a0a0b" stop-opacity=".82"/><stop offset=".58" stop-color="#0a0a0b" stop-opacity=".52"/><stop offset="1" stop-color="#0a0a0b" stop-opacity="0"/></linearGradient></defs>
-<path d="M0 0H400V150C300 132 150 150 0 225Z" fill="url(#og-logo-shade)"/>
 ${logo}
 </svg>`;
 }

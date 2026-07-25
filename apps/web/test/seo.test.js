@@ -68,7 +68,7 @@ describe("SEO parity", () => {
     expect(svg).toContain(view.hexColors[0]);
   });
 
-  it("renders a full-bleed 2/4/8 search-query palette mosaic", () => {
+  it("renders a full-bleed, shallow golden-ratio search-query mosaic", () => {
     const svg = queryOgSvg(
       [
         {
@@ -88,13 +88,39 @@ describe("SEO parity", () => {
     );
     expect(svg).toContain('width="1200" height="630"');
     expect(svg).toContain('id="og-cell-0"');
-    expect(svg).toContain('id="og-cell-13"');
-    expect(svg).not.toContain('id="og-cell-14"');
-    expect(svg).toContain('<rect x="0" y="0" width="400" height="315"');
-    expect(svg).toContain('<rect x="400" y="0" width="400" height="157.5"');
-    expect(svg).toContain('<rect x="800" y="0" width="400" height="78.75"');
-    expect(svg).toContain('id="og-logo-shade"');
+    expect(svg).toContain('id="og-cell-5"');
+    expect(svg).not.toContain('id="og-cell-6"');
+    expect(svg).toContain('<rect x="0" y="0" width="742" height="389"');
+    expect(svg).toContain('<rect x="0" y="389" width="459" height="241"');
+    expect(svg).toContain('<rect x="742" y="481" width="458" height="149"');
+    expect(svg).not.toContain('id="og-logo-shade"');
     expect(svg).toContain('id="logoG"');
+  });
+
+  it("applies forced query style, steps, and angle to every OG palette", () => {
+    const svg = queryOgSvg(
+      [
+        {
+          seed: SEED,
+          tags: ["blue"],
+          style: "radialGradient",
+          steps: 7,
+          angle: 135,
+          likesCount: 1,
+          createdAt: 0,
+          score: 1,
+        },
+      ],
+      "linearGradient",
+      2,
+      45,
+    );
+    const firstGradient = svg.match(
+      /<linearGradient id="gradient_0" x1="0\.146" y1="0\.854" x2="0\.854" y2="0\.146">([\s\S]*?)<\/linearGradient>/,
+    );
+    expect(firstGradient).not.toBeNull();
+    expect(firstGradient?.[1].match(/<stop /g)).toHaveLength(2);
+    expect(svg).not.toContain('id="radial_0"');
   });
 
   it("publishes the current crawler policy and canonical sitemap entries", () => {
