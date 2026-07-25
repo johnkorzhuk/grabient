@@ -90,10 +90,11 @@ describe("SEO parity", () => {
     expect(svg).toContain('id="og-cell-0"');
     expect(svg).toContain('id="og-cell-7"');
     expect(svg).not.toContain('id="og-cell-8"');
-    expect(svg).toContain('<rect x="0" y="0" width="459" height="389"');
-    expect(svg).toContain('<rect x="459" y="0" width="283" height="389"');
-    expect(svg).toContain('<rect x="0" y="389" width="459" height="241"');
-    expect(svg).toContain('<rect x="1025" y="0" width="175" height="241"');
+    expect(svg).toContain('<rect x="0" y="0" width="742" height="389"');
+    expect(svg).toContain('<rect x="0" y="389" width="284" height="241"');
+    expect(svg).toContain('<rect x="284" y="389" width="175" height="241"');
+    expect(svg).toContain('<rect x="742" y="241" width="283" height="240"');
+    expect(svg).toContain('<rect x="1025" y="241" width="175" height="240"');
     expect(svg).toContain('<rect x="742" y="481" width="458" height="149"');
     expect(svg).not.toContain('id="og-logo-shade"');
     expect(svg).toContain('id="logoG"');

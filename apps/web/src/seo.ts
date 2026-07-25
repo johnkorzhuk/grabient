@@ -31,7 +31,7 @@ export const SEO_BASE_URL = "https://grabient.com";
 
 // The version is part of the public og:image URL and the query-image KV key, so
 // crawlers cannot retain an earlier renderer after a visual refresh.
-export const OG_RENDER_VERSION = 12;
+export const OG_RENDER_VERSION = 13;
 
 export function robotsTxt(origin = SEO_BASE_URL): string {
   const base = origin.replace(/\/+$/, "");
@@ -226,38 +226,40 @@ export function queryOgSvg(
   const minorHeight = height - majorHeight;
   const innerMajorWidth = Math.round(majorWidth / phi);
   const innerMinorWidth = majorWidth - innerMajorWidth;
-  const rightUpperMajorWidth = Math.round(minorWidth / phi);
-  const rightUpperMinorWidth = minorWidth - rightUpperMajorWidth;
+  const lowerMajorWidth = Math.round(innerMajorWidth / phi);
+  const lowerMinorWidth = innerMajorWidth - lowerMajorWidth;
+  const rightMajorWidth = Math.round(minorWidth / phi);
+  const rightMinorWidth = minorWidth - rightMajorWidth;
   const rightMajorHeight = Math.round(majorHeight / phi);
   const rightMinorHeight = majorHeight - rightMajorHeight;
   // A shallow golden-ratio subdivision: enough variation to establish the
   // rhythm without recursively shrinking any palette into a decorative strip.
   const tiles = [
-    { x: 0, y: 0, width: innerMajorWidth, height: majorHeight },
-    { x: innerMajorWidth, y: 0, width: innerMinorWidth, height: majorHeight },
-    { x: 0, y: majorHeight, width: innerMajorWidth, height: minorHeight },
+    { x: 0, y: 0, width: majorWidth, height: majorHeight },
+    { x: 0, y: majorHeight, width: lowerMajorWidth, height: minorHeight },
+    {
+      x: lowerMajorWidth,
+      y: majorHeight,
+      width: lowerMinorWidth,
+      height: minorHeight,
+    },
     {
       x: innerMajorWidth,
       y: majorHeight,
       width: innerMinorWidth,
       height: minorHeight,
     },
-    {
-      x: majorWidth,
-      y: 0,
-      width: rightUpperMajorWidth,
-      height: minorHeight,
-    },
-    {
-      x: majorWidth + rightUpperMajorWidth,
-      y: 0,
-      width: rightUpperMinorWidth,
-      height: minorHeight,
-    },
+    { x: majorWidth, y: 0, width: minorWidth, height: minorHeight },
     {
       x: majorWidth,
       y: minorHeight,
-      width: minorWidth,
+      width: rightMajorWidth,
+      height: rightMajorHeight,
+    },
+    {
+      x: majorWidth + rightMajorWidth,
+      y: minorHeight,
+      width: rightMinorWidth,
       height: rightMajorHeight,
     },
     {
