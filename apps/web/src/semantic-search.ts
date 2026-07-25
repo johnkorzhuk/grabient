@@ -15,43 +15,12 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import * as v from "valibot";
 import { canonicalSeed, renderPalette } from "./palette";
+export { POPULAR_SEARCHES } from "./popular-searches";
 
 const CACHE_TTL_SECONDS = 60 * 60 * 24 * 3;
 const SEED_SEARCH_STEPS = 11;
 export const SEMANTIC_SEARCH_LIMIT = 48;
 export const SEARCH_QUERY_MAX_LENGTH = 100;
-
-export const POPULAR_SEARCHES = [
-  "sunset",
-  "ocean",
-  "forest",
-  "pastel",
-  "neon",
-  "warm",
-  "cool",
-  "monochrome",
-  "tea",
-  "blue",
-  "purple",
-  "cyan",
-  "rose",
-  "alpine",
-  "indigo",
-  "charcoal & chocolate",
-  "synthwave",
-  "teal, azure, navy",
-  "glossy",
-  "party",
-  "lagoon",
-  "artisan",
-  "refined",
-  "dark academia",
-  "punk",
-  "winter",
-  "prairie",
-  "saffron",
-  "sandstone",
-] as const;
 
 const HEX_CODE_REGEX = /#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})\b/g;
 

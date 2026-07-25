@@ -65,6 +65,7 @@ import {
 import { parseSearchInput, searchRouteSegment } from "./search-input";
 import { checkRateLimit } from "./rate-limit";
 import { esc } from "./esc";
+import { getPopularSearchSuggestions } from "./popular-searches";
 
 export { RateLimiter } from "./rate-limit";
 
@@ -289,15 +290,21 @@ async function handleList(
   const normalized = normalizeSearch(url.searchParams);
   if (normalized !== null) return cachedRedirect(c, `${path}${normalized}`, 301, 86_400);
 
-  const [data, stars] = await Promise.all([listData(c, sort), githubStars()]);
+  const nowMs = Date.now();
+  const [data, stars, popularSearches] = await Promise.all([
+    listData(c, sort),
+    githubStars(),
+    getPopularSearchSuggestions(c.env.SEARCH_CACHE, nowMs),
+  ]);
   if (data.params.page > data.totalPages) return renderNotFound(c);
   return c.html(
     listPage({
       sort,
       path,
       origin: publicOrigin(c),
-      nowMs: Date.now(),
+      nowMs,
       stars,
+      popularSearches,
       exportOpen: url.searchParams.get("export") === "true",
       ...data,
     }),
@@ -403,7 +410,11 @@ async function handleSemanticSearch(
     sort === "popular"
       ? ""
       : `<input type="hidden" name="sort" value="${sort}">`;
-  const stars = await githubStars();
+  const nowMs = Date.now();
+  const [stars, popularSearches] = await Promise.all([
+    githubStars(),
+    getPopularSearchSuggestions(c.env.SEARCH_CACHE, nowMs),
+  ]);
   return c.html(
     listPage({
       sort: "popular",
@@ -413,8 +424,9 @@ async function handleSemanticSearch(
       total,
       totalPages,
       origin,
-      nowMs: Date.now(),
+      nowMs,
       stars,
+      popularSearches,
       island: false,
       feedbackQuery: query,
       emptyText: `No palettes found for “${query}”. Try a different color, mood, or theme.`,
@@ -779,9 +791,11 @@ app.get("/saved", async (c) => {
   // Same shape as the current site's getUserLikedPalettes: fetch up to 1000
   // likes (with per-palette counts) and paginate in memory. Aliases of one
   // palette (liked under different seed encodings) merge to the most recent.
-  const [allLikes, stars] = await Promise.all([
+  const nowMs = Date.now();
+  const [allLikes, stars, popularSearches] = await Promise.all([
     getUserLikesWithCounts(session.user.id, 1000).then(mergeLikeAliases),
     githubStars(),
+    getPopularSearchSuggestions(c.env.SEARCH_CACHE, nowMs),
   ]);
   const total = allLikes.length;
   const totalPages = Math.max(1, Math.ceil(total / params.limit));
@@ -829,8 +843,9 @@ app.get("/saved", async (c) => {
       total,
       totalPages,
       origin: publicOrigin(c),
-      nowMs: Date.now(),
+      nowMs,
       stars,
+      popularSearches,
       island: false,
       emptyText: "You haven't saved any palettes yet.",
       user: session.user,

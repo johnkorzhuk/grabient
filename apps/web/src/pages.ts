@@ -18,11 +18,14 @@ import { logoAnimationCss } from "./logo-animation";
 import { paletteOgImageUrl } from "./seo";
 import {
   colorTextParts,
-  POPULAR_SEARCHES,
   querySlug,
   type QueryHeadingPart,
   type QueryResultContext,
 } from "./semantic-search";
+import {
+  POPULAR_SEARCHES,
+  type PopularSearchSuggestion,
+} from "./popular-searches";
 import {
   coeffsJsonSnippet,
   colorsSnippet,
@@ -302,6 +305,8 @@ export interface ListPageData {
   /** Query attached to per-result relevance controls (without filling search). */
   feedbackQuery?: string;
   queryContext?: QueryResultContext | null;
+  /** Hour-stable suggestions supplied by the cached provider. */
+  popularSearches?: readonly PopularSearchSuggestion[];
 }
 
 const SORT_TITLES: Record<Sort, [string, string]> = {
@@ -387,27 +392,36 @@ function logoAnimStyle(items: CardItem[], params: ListSearch): string {
   return css ? `<style id="logo-list-animation">${css}</style>` : "";
 }
 
-function popularQueryContent(query: string): string {
-  const colors = colorTextParts(query).filter((part) => part.kind === "color");
-  if (!colors.length) return esc(query);
+function popularQueryContent(suggestion: PopularSearchSuggestion): string {
+  const inferred = colorTextParts(suggestion.query)
+    .filter((part) => part.kind === "color")
+    .map(({ hex }) => hex);
+  const colors = suggestion.swatches?.length ? suggestion.swatches : inferred;
+  if (!colors.length) return esc(suggestion.query);
   const swatches = colors
     .map(
-      ({ hex }) =>
+      (hex) =>
         `<span title="${esc(hex)}" class="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-input" style="background-color:${esc(hex)}"></span>`,
     )
     .join("");
-  return `<span aria-hidden="true" class="inline-flex items-center gap-0.5">${swatches}</span><span>${esc(query)}</span>`;
+  return `<span aria-hidden="true" class="inline-flex items-center gap-0.5">${swatches}</span><span>${esc(suggestion.query)}</span>`;
 }
 
-function searchExplorer(currentQuery = "", params?: ListSearch): string {
+function searchExplorer(
+  currentQuery = "",
+  params?: ListSearch,
+  suggestions: readonly PopularSearchSuggestion[] = POPULAR_SEARCHES.map((query) => ({
+    query,
+  })),
+): string {
   const search = new URLSearchParams();
   if (params && params.style !== "auto") search.set("style", params.style);
   if (params && params.steps !== "auto") search.set("steps", String(params.steps));
   if (params && params.angle !== "auto") search.set("angle", String(params.angle));
   const options = search.size ? `?${search}` : "";
-  const popular = POPULAR_SEARCHES.map(
-    (query) =>
-      `<a data-search-tag href="/palettes/${querySlug(query)}${esc(options)}" class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs">${popularQueryContent(query)}</a>`,
+  const popular = suggestions.map(
+    (suggestion) =>
+      `<a data-search-tag href="/palettes/${querySlug(suggestion.query)}${esc(options)}" class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs">${popularQueryContent(suggestion)}</a>`,
   ).join("");
   return `<section aria-label="Find gradient palettes" class="mb-10 flex flex-col items-center gap-3 md:mb-12 md:gap-5">
 <form id="palette-search" action="/palettes" method="get" role="search" class="relative w-full max-w-lg">
@@ -477,7 +491,7 @@ ${pagination(d.params, d.totalPages, d.path, d.paginationSearch)}`;
   const body = `${logoAnimStyle(d.items, d.params)}${header(undefined, d.user)}
 ${subHeader(d.subheaderLeft ?? sortNav(d.sort, d.params, d.exportOpen), d.params, d.path, true, d.exportOpen, d.hiddenFields)}
 <main class="flex-1 px-5 pb-5 pt-5 lg:px-14">
-${searchExplorer(d.searchQuery, d.params)}
+${searchExplorer(d.searchQuery, d.params, d.popularSearches)}
 <div class="${d.queryContext ? "" : "mb-8 "}flex items-center justify-between gap-3">
 <h1 id="list-h1" class="text-3xl font-bold text-foreground md:text-4xl">${headingContent(d)}</h1>
 <div id="export-slot" class="flex shrink-0 items-center gap-2"></div>
