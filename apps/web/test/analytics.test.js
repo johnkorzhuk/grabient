@@ -65,6 +65,7 @@ describe("first-party analytics bridge", () => {
 
     state.instance.__loaded = true;
     state.config.loaded(state.instance);
+    expect(state.instance.opt_in_capturing).not.toHaveBeenCalled();
     await analytics.initializeAnalytics();
 
     expect(state.instance.opt_in_capturing).toHaveBeenCalledWith({

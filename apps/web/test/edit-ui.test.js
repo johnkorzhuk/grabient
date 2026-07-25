@@ -120,6 +120,22 @@ describe("$seed preview dimensions", () => {
     expect(JSON.parse(localStorage.getItem("export-list")).items).toHaveLength(0);
     expect(exportTrigger.getAttribute("aria-pressed")).toBe("false");
 
+    const preview = document.getElementById("edit-preview");
+    const beforeInvert = preview.style.background;
+    document.querySelector('button[aria-label="Invert gradient colors"]').click();
+    expect(preview.style.background).not.toBe(beforeInvert);
+
+    const beforeSwap = preview.style.background;
+    const firstChannel = document.querySelector("#rgb-tabs [data-ch]");
+    firstChannel.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(preview.style.background).not.toBe(beforeSwap);
+
     const trigger = document.querySelector(
       '#preview-actions button[aria-label="Preview dimensions"]',
     );

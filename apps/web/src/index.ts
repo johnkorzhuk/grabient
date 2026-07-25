@@ -171,6 +171,13 @@ async function githubStars(): Promise<number> {
 }
 
 async function renderNotFound(c: Context<{ Bindings: Env }>) {
+  // Missing hashed assets can briefly fall through to the Worker while a new
+  // version is propagating. Never turn that transient miss into a cached 404:
+  // the editor and export islands share chunks, so one poisoned response can
+  // disable several otherwise unrelated controls until the cache expires.
+  if (new URL(c.req.url).pathname.startsWith("/assets/")) {
+    return c.text("Asset not found", 404, NO_STORE);
+  }
   const [stars] = await Promise.all([githubStars()]);
   return c.html(
     notFoundPage({

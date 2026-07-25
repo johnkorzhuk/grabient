@@ -91,7 +91,9 @@ describe("semantic search route", () => {
     expect(html).toContain('data-search-feedback-group data-query="warm sunset"');
     expect(html).toContain(`data-seed="${SEED}"`);
     expect(html).toContain('data-search-feedback="good"');
+    expect(html).toContain('data-tip="Good match"');
     expect(html).toContain('data-search-feedback="bad"');
+    expect(html).toContain('data-tip="Poor match"');
     expect(html).not.toContain('<meta name="robots" content="noindex');
     warn.mockRestore();
   });

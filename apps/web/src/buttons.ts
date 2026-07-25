@@ -64,9 +64,9 @@ ${ICON.heart("heart-i w-[22px] h-[22px] transition-all duration-200")}
 export function searchFeedbackButtons(query: string, seed: string): string {
   const shortQuery = query.length > 16 ? `${query.slice(0, 16)}...` : query;
   return `<div data-palette-card-action data-search-feedback-group data-query="${esc(query)}" data-seed="${esc(seed)}" class="palette-card-control palette-card-feedback" role="group" aria-label="Does this palette fit ${esc(shortQuery)}?">
-<button type="button" data-search-feedback="good" aria-label="Good fit for &quot;${esc(shortQuery)}&quot;" aria-pressed="false">${ICON.thumbUp()}</button>
+<button type="button" data-search-feedback="good" aria-label="Good fit for &quot;${esc(shortQuery)}&quot;" aria-pressed="false" data-tip="Good match" data-tip-side="top">${ICON.thumbUp()}</button>
 <span aria-hidden="true"></span>
-<button type="button" data-search-feedback="bad" aria-label="Bad fit for &quot;${esc(shortQuery)}&quot;" aria-pressed="false">${ICON.thumbDown()}</button>
+<button type="button" data-search-feedback="bad" aria-label="Bad fit for &quot;${esc(shortQuery)}&quot;" aria-pressed="false" data-tip="Poor match" data-tip-side="top">${ICON.thumbDown()}</button>
 </div>`;
 }
 

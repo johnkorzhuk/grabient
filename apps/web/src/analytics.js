@@ -26,16 +26,6 @@ function enabled() {
   return ENABLED_HOSTS.has(location.hostname);
 }
 
-function publishStatus(stage) {
-  window.__grabientAnalytics = {
-    stage,
-    consentResolved: analyticsConsentResolved,
-    analyticsConsent,
-    posthogLoaded: !!posthog?.__loaded,
-    posthogOptedIn: !!posthog?.has_opted_in_capturing?.(),
-  };
-}
-
 function currentSearchQuery(pathname = location.pathname) {
   const match = pathname.match(/^\/palettes\/(.+)$/);
   if (!match?.[1]) return undefined;
@@ -149,8 +139,8 @@ function flushPosthogEvents() {
 
 export async function initializeAnalytics() {
   if (!enabled()) return null;
-  if (posthog?.__loaded) return posthog;
   if (initPromise) return initPromise;
+  if (posthog?.__loaded) return posthog;
   initPromise = import("posthog-js")
     .then(
       ({ default: instance }) =>
@@ -163,12 +153,17 @@ export async function initializeAnalytics() {
             // Match PostHog's standard snippet behavior. This also gives
             // consent/debug tooling one canonical initialized instance.
             window.posthog = posthog;
-            applyConsent();
-            identifyPosthogUser();
-            capturePosthogPageView();
-            flushPosthogEvents();
-            publishStatus("posthog-loaded");
-            resolve(posthog);
+            // Let PostHog finish its own loaded-callback lifecycle before
+            // changing opt-in state. Calling opt_in_capturing synchronously
+            // inside that callback can be overwritten by the remainder of
+            // initialization, leaving consented production users opted out.
+            setTimeout(() => {
+              applyConsent();
+              identifyPosthogUser();
+              capturePosthogPageView();
+              flushPosthogEvents();
+              resolve(posthog);
+            }, 0);
           };
           posthog = instance;
           instance.init(POSTHOG_KEY, {
@@ -191,10 +186,6 @@ export async function initializeAnalytics() {
             advanced_disable_decide: false,
             loaded: onLoaded,
           });
-          // Current posthog-js sets __loaded during init. The explicit
-          // callback is still the source of truth, while this keeps mocked or
-          // future synchronous implementations from leaving the promise open.
-          if (instance.__loaded) onLoaded(instance);
         }),
     )
     .catch((error) => {
@@ -221,7 +212,6 @@ export function syncAnalyticsConsent(analytics, sessionReplay) {
       analyticsConsent ? pendingUser?.id ?? null : null,
     );
   } catch {}
-  publishStatus("consent-synced");
 }
 
 export function setAnalyticsUser(user) {
