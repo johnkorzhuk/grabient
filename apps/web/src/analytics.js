@@ -26,6 +26,16 @@ function enabled() {
   return ENABLED_HOSTS.has(location.hostname);
 }
 
+function publishStatus(stage) {
+  window.__grabientAnalytics = {
+    stage,
+    consentResolved: analyticsConsentResolved,
+    analyticsConsent,
+    posthogLoaded: !!posthog?.__loaded,
+    posthogOptedIn: !!posthog?.has_opted_in_capturing?.(),
+  };
+}
+
 function currentSearchQuery(pathname = location.pathname) {
   const match = pathname.match(/^\/palettes\/(.+)$/);
   if (!match?.[1]) return undefined;
@@ -157,6 +167,7 @@ export async function initializeAnalytics() {
             identifyPosthogUser();
             capturePosthogPageView();
             flushPosthogEvents();
+            publishStatus("posthog-loaded");
             resolve(posthog);
           };
           posthog = instance;
@@ -210,6 +221,7 @@ export function syncAnalyticsConsent(analytics, sessionReplay) {
       analyticsConsent ? pendingUser?.id ?? null : null,
     );
   } catch {}
+  publishStatus("consent-synced");
 }
 
 export function setAnalyticsUser(user) {
