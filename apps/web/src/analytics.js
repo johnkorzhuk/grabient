@@ -13,6 +13,7 @@ let analyticsConsent = false;
 let analyticsConsentResolved = false;
 let sessionReplayConsent = false;
 let pendingUser;
+let identifiedPosthogUserId = null;
 let pendingPageView = location.href;
 let lastPosthogPageView = "";
 // Zaraz owns the initial document pageview. Manual Pageview events are only
@@ -89,14 +90,24 @@ function identifyPosthogUser() {
   )
     return;
   if (pendingUser?.id) {
-    posthog.identify(pendingUser.id, {
-      email: pendingUser.email,
-      username: pendingUser.username,
-      role: pendingUser.role,
-      tier: pendingUser.tier || "free",
-    });
-  } else {
+    if (identifiedPosthogUserId !== pendingUser.id)
+      posthog.identify(pendingUser.id, {
+        email: pendingUser.email,
+        username: pendingUser.username,
+        role: pendingUser.role,
+        tier: pendingUser.tier || "free",
+      });
+    identifiedPosthogUserId = pendingUser.id;
+  } else if (
+    identifiedPosthogUserId ||
+    posthog.get_property?.("$user_id")
+  ) {
+    // reset() is a logout operation in PostHog and also clears its consent
+    // record. Do not run it for an ordinary anonymous page load; when a real
+    // identified session ends, restore the still-valid app consent afterward.
     posthog.reset();
+    identifiedPosthogUserId = null;
+    applyConsent();
   }
 }
 

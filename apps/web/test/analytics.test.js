@@ -7,6 +7,7 @@ const state = vi.hoisted(() => {
     capture: vi.fn(),
     identify: vi.fn(),
     reset: vi.fn(),
+    get_property: vi.fn(),
     has_opted_in_capturing: vi.fn(() => false),
     opt_in_capturing: vi.fn(),
     opt_out_capturing: vi.fn(),
@@ -31,6 +32,7 @@ beforeEach(() => {
     if (typeof value?.mockClear === "function") value.mockClear();
   state.instance.has_opted_in_capturing.mockReturnValue(false);
   state.instance.sessionRecordingStarted.mockReturnValue(false);
+  state.instance.get_property.mockReturnValue(undefined);
   state.instance.init.mockImplementation((_key, config) => {
     state.config = config;
   });
@@ -110,5 +112,35 @@ describe("first-party analytics bridge", () => {
         searchQuery: "cool ocean",
       }),
     );
+  });
+
+  it("does not reset PostHog for initial anonymous users, but resets a signed-out identity", async () => {
+    const analytics = await import("../src/analytics");
+    analytics.syncAnalyticsConsent(true, false);
+    analytics.setAnalyticsUser(null);
+
+    const initializing = analytics.initializeAnalytics();
+    await vi.waitFor(() => expect(state.config).not.toBeNull());
+    state.instance.__loaded = true;
+    state.config.loaded(state.instance);
+    await initializing;
+
+    expect(state.instance.reset).not.toHaveBeenCalled();
+
+    analytics.setAnalyticsUser({
+      id: "user-1",
+      email: "person@example.com",
+      username: "person",
+      role: "user",
+      tier: "free",
+    });
+    expect(state.instance.identify).toHaveBeenCalledWith(
+      "user-1",
+      expect.objectContaining({ username: "person" }),
+    );
+
+    analytics.setAnalyticsUser(null);
+    expect(state.instance.reset).toHaveBeenCalledTimes(1);
+    expect(state.instance.opt_in_capturing).toHaveBeenCalledTimes(2);
   });
 });
