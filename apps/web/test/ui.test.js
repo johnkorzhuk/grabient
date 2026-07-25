@@ -413,7 +413,7 @@ describe("delegated UI handlers", () => {
   });
 
   it("tapping the gradient toggles the floating controls (canvas mode)", () => {
-    document.body.innerHTML = `<div id="seed-hero" class="seed-hero"><div id="preview-box"><div id="preview-fit"><section id="edit-preview"></section></div><button id="preview-action">copy</button></div><div id="mobile-dock"></div></div>`;
+    document.body.innerHTML = `<div id="seed-hero" class="seed-hero"><div id="preview-box"><div id="preview-fit"><section id="edit-preview"></section></div><button id="preview-action">copy</button></div><div id="mobile-dock"><div id="mobile-dock-blank"><button id="mobile-action">copy</button></div></div></div>`;
     const hero = document.getElementById("seed-hero");
     const gradient = document.getElementById("edit-preview");
     const wrapper = document.getElementById("preview-box");
@@ -425,7 +425,15 @@ describe("delegated UI handlers", () => {
       .getElementById("preview-action")
       .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
     expect(hero.classList.contains("ui-show")).toBe(true);
-    gradient.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    // The revealed dock spans the gradient. Its blank area must toggle closed,
+    // while tapping one of its actual controls must leave the dock visible.
+    document
+      .getElementById("mobile-action")
+      .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    expect(hero.classList.contains("ui-show")).toBe(true);
+    document
+      .getElementById("mobile-dock-blank")
+      .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
     expect(hero.classList.contains("ui-show")).toBe(false);
     // Mouse hover over the gradient reveals; over the sliders sheet hides.
     gradient.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, pointerType: "mouse" }));

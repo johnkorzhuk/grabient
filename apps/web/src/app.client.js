@@ -1041,10 +1041,15 @@ function isSeedGradientTap(event, target, hero) {
   if (!hero.contains(target)) return false;
   if (
     target.closest(
-      "button, a, input, select, textarea, [role='button'], [role='dialog'], [role='menu'], .menu-pop, .ui-tip, #editor-card, #graph-panel, #swatches-strip, #mobile-dock",
+      "button, a, input, select, textarea, [role='button'], [role='dialog'], [role='menu'], .menu-pop, .ui-tip, #editor-card, #graph-panel, #swatches-strip",
     )
   )
     return false;
+
+  // The revealed mobile dock is a full-width transparent row. Its blank space
+  // still looks like (and sits over) the gradient, so it must remain a toggle
+  // target; the interactive descendants were excluded above.
+  if (target.closest("#mobile-dock")) return true;
 
   // In small-screen canvas mode #edit-preview sits at z:-1. The browser then
   // targets one of its wrappers even though the user visibly tapped the
