@@ -126,6 +126,10 @@ describe("semantic search route", () => {
     expect(html).toMatch(
       /id="list-h1"[^>]*>.*Blue.*purple.*cyan.*rose.*palettes<\/h1>/s,
     );
+    const heading = html.match(/<h1 id="list-h1"[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? "";
+    expect(heading).toContain('class="whitespace-nowrap"');
+    expect(heading).toContain("align-middle");
+    expect(heading).not.toContain("inline-flex items-center gap-1.5");
     warn.mockRestore();
   });
 
