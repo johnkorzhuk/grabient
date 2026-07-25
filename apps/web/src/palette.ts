@@ -47,8 +47,8 @@ export function paletteSharePath(
   return `/${encodeURIComponent(seed)}?${search}`;
 }
 
-// Like identity is coefficient-based: legacy ids embed view params and v3 ids
-// embed non-default globals, so one palette has many stored seed strings.
+// Like identity is the globals-free rendered palette: globals are baked into
+// the coefficient rows so a custom-global URL and its tared URL share a key.
 // Re-exported from data-ops for the SSR pages and the grid island alike.
 export { paletteCoeffKey } from "@repo/data-ops/serialization";
 

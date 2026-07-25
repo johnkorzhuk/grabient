@@ -1,26 +1,54 @@
-// Regression: one palette exists under MANY stored seed strings (legacy ids
-// embed view params, v3 ids embed non-default globals). Like identity must
-// unify them — these are real aliases observed in the production likes table.
+// Regression: one rendered palette exists under MANY stored seed strings.
+// Globals can be stored separately or tared into coefficient rows; like
+// identity must bake them into one globals-free seed.
 import { describe, expect, it } from "vitest";
 import { paletteCoeffKey } from "../src/palette";
 import { likeCoeffKeys, mergeLikeAliases } from "../src/likes";
 import {
   aggregateLikesByKey,
+  getPaletteLikeInfo,
   getLikesKeyTotals,
 } from "@repo/data-ops/queries/palettes";
+import { serializeCoeffs } from "@repo/data-ops/serialization";
+import { tareModifier } from "@repo/data-ops/gradient-gen/cosine";
+import { DEFAULT_GLOBALS } from "@repo/data-ops/valibot-schema/grabient";
 
-const CANONICAL = "_gJDgH1gIagIjgL4gJtgDZgFrgDFgAAgguhBd";
-const ALIASES = [
-  "HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5UIg",
-  "HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5VpPwp5msAgOQZSsIhCA",
-  "HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5VoBaWT2CCjxmybE1iSofMniA",
-  "HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5VpnYQkI0eMzBsAtLE7cgA",
-  CANONICAL,
+const TARE_COEFFS = [
+  [0.5, 0.4, 0.6, 1],
+  [0.3, 0.5, 0.4, 1],
+  [1.1, 0.8, 1.2, 1],
+  [0.1, 0.3, 0.7, 1],
 ];
+const TARE_GLOBALS = [0.2, 1.4, 0.75, -0.15];
+const CUSTOM_GLOBAL_SEED = serializeCoeffs(TARE_COEFFS, TARE_GLOBALS);
+let tared = { coeffs: TARE_COEFFS, globals: TARE_GLOBALS };
+for (let index = 0; index < 4; index += 1)
+  tared = tareModifier(tared.coeffs, tared.globals, index, DEFAULT_GLOBALS[index]);
+const TARED_SEED = serializeCoeffs(tared.coeffs, tared.globals);
+const DECIMAL_CUSTOM_SEED = [
+  ...TARE_COEFFS.flatMap((row) => row.slice(0, 3)),
+  ...TARE_GLOBALS,
+].join(",");
+const CANONICAL = TARED_SEED;
+const ALIASES = [CUSTOM_GLOBAL_SEED, DECIMAL_CUSTOM_SEED, TARED_SEED];
+const OTHER = "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x";
 
 describe("paletteCoeffKey", () => {
-  it("unifies every stored alias of a palette to one coefficient key", () => {
+  it("unifies aligned, decimal, and tared aliases of one rendered palette", () => {
     for (const id of ALIASES) expect(paletteCoeffKey(id)).toBe(CANONICAL);
+  });
+
+  it("gives a custom-global URL and its visually identical tared URL one key", () => {
+    expect(TARED_SEED).not.toBe(CUSTOM_GLOBAL_SEED);
+    expect(paletteCoeffKey(CUSTOM_GLOBAL_SEED)).toBe(TARED_SEED);
+    expect(paletteCoeffKey(TARED_SEED)).toBe(TARED_SEED);
+  });
+
+  it("keeps the same raw coefficients with different rendered globals apart", () => {
+    const defaultGlobalSeed = serializeCoeffs(TARE_COEFFS, DEFAULT_GLOBALS);
+    expect(paletteCoeffKey(defaultGlobalSeed)).not.toBe(
+      paletteCoeffKey(CUSTOM_GLOBAL_SEED),
+    );
   });
 
   it("returns null for unparseable seeds (callers fall back to the raw seed)", () => {
@@ -30,10 +58,9 @@ describe("paletteCoeffKey", () => {
 
 describe("likeCoeffKeys", () => {
   it("maps stored seeds to coefficient keys, deduped, order kept", () => {
-    const other = "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x";
-    expect(likeCoeffKeys([ALIASES[0], ALIASES[2], other, ALIASES[1]])).toEqual([
+    expect(likeCoeffKeys([ALIASES[0], ALIASES[2], OTHER, ALIASES[1]])).toEqual([
       CANONICAL,
-      other,
+      OTHER,
     ]);
   });
 });
@@ -42,13 +69,13 @@ describe("mergeLikeAliases", () => {
   it("collapses alias rows to the most recent one per palette", () => {
     const likes = [
       { paletteId: ALIASES[2], createdAtMs: 3 },
-      { paletteId: "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x", createdAtMs: 2 },
+      { paletteId: OTHER, createdAtMs: 2 },
       { paletteId: ALIASES[0], createdAtMs: 1 },
     ];
     const merged = mergeLikeAliases(likes);
     expect(merged).toHaveLength(2);
     expect(merged[0].paletteId).toBe(ALIASES[2]);
-    expect(merged[1].paletteId).toBe("_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x");
+    expect(merged[1].paletteId).toBe(OTHER);
   });
 });
 
@@ -65,11 +92,27 @@ describe("aggregateLikesByKey", () => {
   it("counts a user who liked multiple aliases only once", () => {
     const totals = aggregateLikesByKey([
       { paletteId: ALIASES[0], userId: "u1" },
-      { paletteId: ALIASES[3], userId: "u1" },
+      { paletteId: ALIASES[2], userId: "u1" },
       { paletteId: CANONICAL, userId: "u1" },
       { paletteId: ALIASES[1], userId: "u2" },
     ]);
     expect(totals.get(CANONICAL)?.size).toBe(2);
+  });
+
+  it("finds a like stored under the tared seed while viewing its custom-global URL", async () => {
+    const rows = [
+      { paletteId: TARED_SEED, userId: "u1" },
+      { paletteId: TARED_SEED, userId: "u2" },
+    ];
+    const db = {
+      select: () => ({
+        from: async () => rows,
+      }),
+    };
+    await expect(getPaletteLikeInfo(CUSTOM_GLOBAL_SEED, "u1", db)).resolves.toEqual({
+      likesCount: 2,
+      isLiked: true,
+    });
   });
 
   it("keeps different palettes apart and falls back to raw id for unparseable seeds", () => {

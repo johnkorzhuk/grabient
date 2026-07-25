@@ -31,7 +31,7 @@ export const SEO_BASE_URL = "https://grabient.com";
 
 // The version is part of the public og:image URL and the query-image KV key, so
 // crawlers cannot retain an earlier renderer after a visual refresh.
-export const OG_RENDER_VERSION = 14;
+export const OG_RENDER_VERSION = 15;
 
 export function robotsTxt(origin = SEO_BASE_URL): string {
   const base = origin.replace(/\/+$/, "");
@@ -224,49 +224,34 @@ export function queryOgSvg(
   const minorWidth = width - majorWidth;
   const majorHeight = Math.round(height / phi);
   const minorHeight = height - majorHeight;
-  const innerMajorWidth = Math.round(majorWidth / phi);
-  const innerMinorWidth = majorWidth - innerMajorWidth;
-  const rightUpperMajorWidth = Math.round(minorWidth / phi);
-  const rightUpperMinorWidth = minorWidth - rightUpperMajorWidth;
-  const rightMajorHeight = Math.round(majorHeight / phi);
-  const rightMinorHeight = majorHeight - rightMajorHeight;
-  // A shallow golden-ratio subdivision: enough variation to establish the
-  // rhythm without recursively shrinking any palette into a decorative strip.
+  const partition = (offset: number, span: number, count: number) =>
+    Array.from({ length: count }, (_, index) => {
+      const start = offset + Math.round((span * index) / count);
+      const end = offset + Math.round((span * (index + 1)) / count);
+      return { start, size: end - start };
+    });
+  const leftBottomColumns = partition(0, majorWidth, 3);
+  const rightColumns = partition(majorWidth, minorWidth, 3);
+  const rightRows = partition(0, height, 4);
+  // One dominant palette and three supporting palettes on the left; a dense
+  // 3×4 result grid on the right shows the breadth of the search query.
   const tiles = [
-    { x: 0, y: 0, width: innerMajorWidth, height: majorHeight },
-    { x: innerMajorWidth, y: 0, width: innerMinorWidth, height: majorHeight },
-    { x: 0, y: majorHeight, width: innerMajorWidth, height: minorHeight },
-    {
-      x: innerMajorWidth,
+    { x: 0, y: 0, width: majorWidth, height: majorHeight },
+    ...leftBottomColumns.map((column) => ({
+      x: column.start,
       y: majorHeight,
-      width: innerMinorWidth,
+      width: column.size,
       height: minorHeight,
-    },
-    {
-      x: majorWidth,
-      y: 0,
-      width: rightUpperMajorWidth,
-      height: minorHeight,
-    },
-    {
-      x: majorWidth + rightUpperMajorWidth,
-      y: 0,
-      width: rightUpperMinorWidth,
-      height: minorHeight,
-    },
-    {
-      x: majorWidth,
-      y: minorHeight,
-      width: minorWidth,
-      height: rightMajorHeight,
-    },
-    {
-      x: majorWidth,
-      y: minorHeight + rightMajorHeight,
-      width: minorWidth,
-      height: rightMinorHeight,
-    },
-  ] as const;
+    })),
+    ...rightRows.flatMap((row) =>
+      rightColumns.map((column) => ({
+        x: column.start,
+        y: row.start,
+        width: column.size,
+        height: row.size,
+      })),
+    ),
+  ];
   const views = results
     .slice(0, tiles.length)
     .map((result) =>

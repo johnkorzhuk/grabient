@@ -1,6 +1,7 @@
 // Auth + saved-palettes SSR surfaces: login page, like buttons, /saved list.
 import { describe, expect, it } from "vitest";
 import { listPage, loginPage, seedPage, settingsPage } from "../src/pages";
+import { paletteCoeffKey } from "../src/palette";
 
 const SEED = "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x";
 // Deliberately NOT SEED: the heart's identity (coefficient key) and the row
@@ -111,6 +112,21 @@ describe("saved page", () => {
   });
 });
 
+describe("palette list page titles", () => {
+  it.each([
+    ["popular", "/", "Grabient — Gradient Generator & Color Palettes"],
+    ["newest", "/newest", "Grabient — Newest Gradient Palettes"],
+    ["oldest", "/oldest", "Grabient — Classic Gradient Palettes"],
+    ["saved", "/saved", "Grabient — Saved Gradient Palettes"],
+  ])("starts the %s title with Grabient", (sort, path, title) => {
+    const html = page([], { sort, path });
+    expect(html).toContain(`<title>${title.replace("&", "&amp;")}</title>`);
+    expect(html).toContain(
+      `<meta property="og:title" content="${title.replace("&", "&amp;")}">`,
+    );
+  });
+});
+
 describe("nav select", () => {
   it("offers Saved on regular list pages too", () => {
     expect(page([item(1)])).toContain('<option value="/saved">Saved</option>');
@@ -131,6 +147,23 @@ describe("seed page like button", () => {
     expect(html).toContain("data-like-info");
     expect(html).toContain(`data-like-seed="${SEED}"`);
     expect(html).toContain("lg:pt-4");
+  });
+
+  it("stores a custom-global palette under its globals-free key", () => {
+    const customSeed =
+      "HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5VpPwp5msAgOQZSsIhCA";
+    const key = paletteCoeffKey(customSeed);
+    const html = seedPage({
+      seed: customSeed,
+      params: { style: "auto", steps: "auto", angle: "auto", page: 1, limit: 24 },
+      size: "auto",
+      graph: false,
+      origin: "https://example.com",
+      stars: 0,
+    });
+    expect(key).not.toBe(customSeed);
+    expect(html).toContain(`data-like-seed="${key}"`);
+    expect(html).toContain(`data-like-row="${key}"`);
   });
 });
 

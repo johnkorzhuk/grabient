@@ -1,6 +1,7 @@
 import * as v from 'valibot';
 import LZString from 'lz-string';
 import { coeffsSchema, globalsSchema, COEFF_PRECISION, DEFAULT_GLOBALS } from './valibot-schema/coeffs';
+import { applyGlobals } from './gradient-gen/apply-globals';
 
 type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
 type GlobalModifiers = v.InferOutput<typeof globalsSchema>;
@@ -111,16 +112,17 @@ export function serializeCoeffs(coeffs: CosineCoeffs, globals: GlobalModifiers):
 }
 
 /**
- * Palette identity across seed encodings. Legacy ids embed the view params
- * (style/steps/angle) and v3 ids embed non-default global modifiers, so one
- * palette exists under MANY stored seed strings. Likes reference whichever
- * alias was current when clicked — matching them requires stripping everything
- * but the coefficients. Returns null for unparseable seeds.
+ * Palette identity across seed encodings.
+ *
+ * Global modifiers can be tared into the coefficient rows without changing
+ * the rendered palette. Bake those modifiers into the coefficients and
+ * serialize under DEFAULT_GLOBALS so every visually equivalent tared URL maps
+ * to the same globals-free seed. Returns null for unparseable seeds.
  */
 export function paletteCoeffKey(seed: string): string | null {
   try {
-    const { coeffs } = deserializeCoeffs(seed);
-    return serializeCoeffs(coeffs, DEFAULT_GLOBALS);
+    const { coeffs, globals } = deserializeCoeffs(seed);
+    return serializeCoeffs(applyGlobals(coeffs, globals), DEFAULT_GLOBALS);
   } catch {
     return null;
   }

@@ -4,11 +4,12 @@ import { relativeAge } from "../src/relative-age";
 const NOW = Date.UTC(2026, 6, 21); // 2026-07-21
 
 describe("relativeAge", () => {
-  it("uses compact relative units under a year", () => {
-    expect(relativeAge(NOW - 90 * 1000, NOW)).toBe("1m ago");
-    expect(relativeAge(NOW - 3 * 3600 * 1000, NOW)).toBe("3h ago");
-    expect(relativeAge(NOW - 5 * 86400 * 1000, NOW)).toBe("5d ago");
-    expect(relativeAge(NOW - 90 * 86400 * 1000, NOW)).toBe("3mo ago");
+  it("uses the previous app's long relative units under a year", () => {
+    expect(relativeAge(NOW - 90 * 1000, NOW)).toBe("1 minute");
+    expect(relativeAge(NOW - 3 * 3600 * 1000, NOW)).toBe("3 hours");
+    expect(relativeAge(NOW - 5 * 86400 * 1000, NOW)).toBe("5 days");
+    expect(relativeAge(NOW - 90 * 86400 * 1000, NOW)).toBe("3 months");
+    expect(relativeAge(NOW - 210 * 86400 * 1000, NOW)).toBe("7 months");
   });
 
   it("switches to an absolute month past a year", () => {

@@ -1,13 +1,17 @@
-import * as v from "valibot";
-import { coeffsSchema, globalsSchema, type PaletteStyle, PALETTE_STYLES } from "../valibot-schema/grabient";
+import { type PaletteStyle, PALETTE_STYLES } from "../valibot-schema/grabient";
+import {
+    applyGlobals,
+    type CosineCoeffs,
+    type GlobalModifiers,
+} from "./apply-globals";
+
+export { applyGlobals };
+export type { CosineCoeffs, GlobalModifiers };
 
 const TAU = Math.PI * 2;
 
 // RGB color tuple - always exactly 3 numbers [r, g, b]
 export type RGB = [number, number, number];
-
-export type CosineCoeffs = v.InferOutput<typeof coeffsSchema>;
-export type GlobalModifiers = v.InferOutput<typeof globalsSchema>;
 
 export function cosineGradient(numStops: number, coeffs: CosineCoeffs) {
     const result: RGB[] = [];
@@ -130,39 +134,6 @@ export function calculateContrast(hexColors: string[]): number {
     }
     
     return totalDiff / (hexColors.length - 1);
-}
-
-export function applyGlobals(
-    cosCoeffs: CosineCoeffs,
-    globals: GlobalModifiers,
-): CosineCoeffs {
-    return cosCoeffs.map((coeff, i) => {
-        const alpha = coeff[3] ?? 1;
-        switch (i) {
-            case 0:
-                return [
-                    ...coeff.slice(0, 3).map((v) => v + (globals[0] ?? 0)),
-                    alpha,
-                ];
-            case 1:
-                return [
-                    ...coeff.slice(0, 3).map((v) => v * (globals[1] ?? 1)),
-                    alpha,
-                ];
-            case 2:
-                return [
-                    ...coeff.slice(0, 3).map((v) => v * (globals[2] ?? 1)),
-                    alpha,
-                ];
-            case 3:
-                return [
-                    ...coeff.slice(0, 3).map((v) => v + (globals[3] ?? 0)),
-                    alpha,
-                ];
-            default:
-                return coeff;
-        }
-    }) as CosineCoeffs;
 }
 
 export function applyInverseGlobal(

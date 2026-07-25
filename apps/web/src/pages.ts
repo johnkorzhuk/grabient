@@ -310,10 +310,10 @@ export interface ListPageData {
 }
 
 const SORT_TITLES: Record<Sort, [string, string]> = {
-  popular: ["CSS Gradient Generator & Palette Finder | Grabient", "Popular palettes"],
-  newest: ["Newest CSS Gradient Palettes | Grabient", "Newest palettes"],
-  oldest: ["Classic CSS Gradient Palettes | Grabient", "Oldest palettes"],
-  saved: ["Saved Gradient Palettes | Grabient", "Saved palettes"],
+  popular: ["Grabient — Gradient Generator & Color Palettes", "Popular palettes"],
+  newest: ["Grabient — Newest Gradient Palettes", "Newest palettes"],
+  oldest: ["Grabient — Classic Gradient Palettes", "Oldest palettes"],
+  saved: ["Grabient — Saved Gradient Palettes", "Saved palettes"],
 };
 
 const SORT_DESCRIPTIONS: Record<Sort, string> = {
@@ -620,6 +620,7 @@ export function seedPage(d: SeedPageData): string {
   // and SVG code below the fold. Small screens stack and scroll naturally.
   const backBtn = `<a data-list-link href="/" class="${BTN_ICON} shrink-0" data-tip="Back to palettes" data-tip-side="bottom" aria-label="Back to palettes">${ICON.arrowLeft()}</a>`;
   const ink = heroInk(view);
+  const likeKey = paletteCoeffKey(d.seed) ?? d.seed;
   // The header buttons run the ink math over THEIR region (top-right strip).
   const btnInk = heroInk(view, 430, 860, 76, 430 * 0.55, 430);
   // Below lg the hero is "canvas mode": the gradient becomes a full-viewport
@@ -652,7 +653,7 @@ ${subHeader(backBtn, d.params, `/${d.seed}`, false)}
 <div id="editor-card" class="lg:contents">
 <div id="tabs-row" class="-mt-2 flex items-start justify-between">
 <div id="rgb-tabs" class="flex h-7 items-center pointer-coarse:h-9" aria-label="Channel order and invert"></div>
-${likeButton(d.seed, paletteCoeffKey(d.seed) ?? d.seed, view.style, view.steps, view.angle, 0, " data-like-current data-like-info")}
+${likeButton(likeKey, likeKey, view.style, view.steps, view.angle, 0, " data-like-current data-like-info")}
 </div>
 <div id="editor-island" class="shrink-0 lg:mt-auto" data-seed="${esc(d.seed)}" data-style="${view.style}" data-steps="${view.steps}" data-angle="${view.angle}">${modifierRowsStatic(view.globals)}</div>
 </div>

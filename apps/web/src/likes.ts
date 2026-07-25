@@ -1,9 +1,8 @@
 import { paletteCoeffKey } from "./palette";
 
-// One palette exists under MANY stored seed strings: legacy ids embed the
-// view params (style/steps/angle) and v3 ids embed non-default global
-// modifiers, and a like records whichever alias was current at click time.
-// The coefficient key is the shared identity across all of them.
+// One rendered palette can exist under MANY stored seed strings because global
+// modifiers may be stored separately or tared into the coefficient rows. The
+// globals-free coefficient key is the shared identity across all of them.
 
 /** Map stored seed strings to their coefficient keys, deduped, order kept. */
 export function likeCoeffKeys(seeds: string[]): string[] {

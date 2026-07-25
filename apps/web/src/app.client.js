@@ -1826,19 +1826,17 @@ function fetchSession() {
   return sessionPromise;
 }
 
-// A heart button has TWO seed values. data-like-seed is the coefficient key —
-// the palette's identity across all its stored seed aliases (legacy ids embed
-// view params, v3 ids embed tweaked globals); heart fill, labels and the
-// liked set all match on it. The STORAGE seed is what a like insert records:
-// the card's palettes-row id (data-like-row) so counts keep joining the row
-// they display on, or the live URL seed on the seed page (tracks edits).
+// data-like-seed is the globals-free rendered-palette identity. On the editor,
+// custom globals are baked into this seed so taring a modifier cannot change
+// the heart. Gallery cards still store their palettes-row id; the editor stores
+// the globals-free key.
 function heartKey(btn) {
   return btn.dataset.likeSeed;
 }
 
 function heartSeed(btn) {
   return btn.hasAttribute("data-like-current")
-    ? btn.dataset.likeRow || decodeURIComponent(location.pathname.slice(1))
+    ? btn.dataset.likeSeed
     : btn.dataset.likeRow || btn.dataset.likeSeed;
 }
 
@@ -1964,7 +1962,9 @@ function syncSeedLikePalette(detail, fetchNow = false) {
   const btn = document.querySelector("[data-like-info]");
   if (!btn || !detail?.seed) return;
   const key = paletteCoeffKey(detail.seed) || detail.seed;
-  const changed = heartKey(btn) !== key;
+  const previousKey = heartKey(btn);
+  const changed = previousKey !== key;
+  if (changed) likedSeeds.delete(previousKey);
   btn.dataset.likeSeed = key;
   btn.dataset.likeRow = detail.seed;
   if (detail.style) btn.dataset.likeStyle = detail.style;
@@ -2151,8 +2151,8 @@ document.addEventListener("click", async (e) => {
   likeBusy = true;
   likeMutationVersion += 1;
   // key = identity (fill/labels); seed = what a like insert stores (the card's
-  // palettes-row id, or the live URL seed on the seed page). User-set search
-  // params override the SSR'd data attrs, like the original's effective*.
+  // palettes-row id, or the globals-free key on the seed page). User-set
+  // search params override the SSR'd data attrs.
   const key = heartKey(btn);
   const seed = heartSeed(btn);
   const sp = new URLSearchParams(location.search);
@@ -2168,7 +2168,13 @@ document.addEventListener("click", async (e) => {
     const r = await fetch("/api/likes/toggle", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ seed, steps, style, angle }),
+      body: JSON.stringify({
+        seed,
+        steps,
+        style,
+        angle,
+        exact: btn.hasAttribute("data-like-current"),
+      }),
     });
     if (!r.ok) throw new Error(String(r.status));
     const data = await r.json();

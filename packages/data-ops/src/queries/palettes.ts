@@ -210,13 +210,11 @@ export async function getUserLikedSeeds(userId: string, dbInstance?: ReturnType<
 }
 
 /**
- * Cross-alias like totals. One palette exists under MANY stored seed strings
- * (legacy ids embed view params; v3 ids embed non-default globals), so counting
- * likes per exact palette_id splits one palette's total across its aliases —
- * and any count taken under the canonical id alone reads ~0 for palettes whose
- * likes predate v3. Identity is the coefficient key (paletteCoeffKey); the
- * likes table is small (~1k rows), so aggregate it in JS: key → distinct
- * users. Pure helper, unit-tested in apps/web.
+ * Cross-alias like totals. One rendered palette can have MANY seed strings:
+ * global modifiers may be stored separately or tared into the coefficients.
+ * Counting exact palette_id values splits its total across those aliases.
+ * paletteCoeffKey bakes globals into a globals-free identity; the likes table
+ * is small (~1k rows), so aggregate it in JS: key → distinct users.
  */
 export function aggregateLikesByKey(
   rows: { paletteId: string; userId: string }[]
@@ -292,10 +290,12 @@ async function withKeyCounts<T extends { likesCount: number }>(
 
 export async function getPaletteLikeInfo(
   seed: string,
-  userId?: string
+  userId?: string,
+  dbInstance?: ReturnType<typeof getDb>
 ): Promise<{ likesCount: number; isLiked: boolean }> {
+  const db = dbInstance || getDb();
   const key = paletteCoeffKey(seed) ?? seed;
-  const totals = await getLikesKeyTotals();
+  const totals = await getLikesKeyTotals(db);
   const users = totals.get(key);
   return {
     likesCount: users?.size ?? 0,
@@ -411,16 +411,13 @@ export async function toggleLikePalette(
 }
 
 /**
- * Alias-aware variant of toggleLikePalette. One palette exists under MANY
- * stored seed strings: legacy ids embed the view params, v3 ids embed
- * non-default globals, and a like records whichever alias was current at
- * click time. Matching by exact id therefore misses (an "unlike" inserted a
- * duplicate instead of deleting — the count went UP). Identity here is the
- * coefficient key: unlike deletes EVERY like row this user has for the
- * palette (any alias); like inserts keyed by the seed as sent, so counts keep
- * joining the id the caller displays. Returns the coefficient key (client
- * hearts are keyed by it) and the palette's cross-alias distinct-user total
- * (the same total list cards and the seed page display).
+ * Alias-aware variant of toggleLikePalette. One rendered palette can have
+ * MANY seed strings because globals can be stored separately or tared into
+ * the coefficient rows. Matching by exact id therefore misses an existing
+ * like. Identity here is the globals-free coefficient key: unlike deletes
+ * EVERY like row this user has for the palette (any alias); like inserts under
+ * the seed sent by the caller. The seed editor sends the globals-free key,
+ * while list cards retain their stored row id.
  */
 export async function toggleLikePaletteByKey(
   userId: string,

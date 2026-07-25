@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import manifest from "../dist/client/.vite/manifest.json";
 import { seedPage } from "../src/pages";
+import { paletteCoeffKey } from "../src/palette";
 
 const store = new Map();
 Object.defineProperty(globalThis, "localStorage", {
@@ -105,6 +106,44 @@ describe("$seed preview dimensions", () => {
       ),
     );
 
+    const heart = document.querySelector("[data-like-info]");
+    const initialHeartSeed = heart.dataset.likeRow;
+    const exposure = document.querySelector(
+      'input[type="range"][aria-label="exposure"]',
+    );
+    exposure.value = "0.1";
+    exposure.dispatchEvent(new Event("input", { bubbles: true }));
+    await vi.waitFor(() => expect(heart.dataset.likeRow).not.toBe(initialHeartSeed));
+    await vi.waitFor(() =>
+      expect(decodeURIComponent(location.pathname.slice(1))).toBe(heart.dataset.likeRow),
+    );
+    expect(heart.dataset.likeSeed).toBe(paletteCoeffKey(heart.dataset.likeRow));
+    expect(heart.dataset.likeSeed).not.toBe(heart.dataset.likeRow);
+
+    const afterGlobalSeed = heart.dataset.likeRow;
+    const exposureTab = [...document.querySelectorAll('button[aria-expanded]')].find(
+      (button) => button.textContent.trim() === "exposure",
+    );
+    exposureTab.click();
+    await vi.waitFor(() =>
+      expect(
+        document.querySelector(
+          'input[type="range"][aria-label="exposure Red channel"]',
+        ),
+      ).not.toBeNull(),
+    );
+    const red = document.querySelector(
+      'input[type="range"][aria-label="exposure Red channel"]',
+    );
+    const currentRed = Number(red.value);
+    red.value = String(currentRed > 0.8 ? currentRed - 0.1 : currentRed + 0.1);
+    red.dispatchEvent(new Event("input", { bubbles: true }));
+    await vi.waitFor(() => expect(heart.dataset.likeRow).not.toBe(afterGlobalSeed));
+    await vi.waitFor(() =>
+      expect(decodeURIComponent(location.pathname.slice(1))).toBe(heart.dataset.likeRow),
+    );
+    expect(heart.dataset.likeSeed).toBe(paletteCoeffKey(heart.dataset.likeRow));
+
     const exportTrigger = document.querySelector(
       "#preview-actions [data-seed-export-toggle]",
     );
@@ -113,7 +152,7 @@ describe("$seed preview dimensions", () => {
     const selected = JSON.parse(localStorage.getItem("export-list"));
     expect(selected.version).toBe(1);
     expect(selected.items).toHaveLength(1);
-    expect(selected.items[0].seed).toBe(SEED);
+    expect(selected.items[0].seed).toBe(heart.dataset.likeRow);
     expect(exportTrigger.getAttribute("aria-pressed")).toBe("true");
     expect(exportTrigger.querySelector(".xp-minus")).not.toBeNull();
     exportTrigger.click();
@@ -147,9 +186,10 @@ describe("$seed preview dimensions", () => {
 
     const fit = document.getElementById("preview-fit");
     const preset = document.querySelector('[data-preview-dims="1920x1080"]');
+    const searchBeforePreset = location.search;
     preset.dispatchEvent(new MouseEvent("mouseenter"));
     expect(fit.style.getPropertyValue("aspect-ratio").replaceAll(" ", "")).toBe("1920/1080");
-    expect(location.search).toBe("");
+    expect(location.search).toBe(searchBeforePreset);
 
     preset.dispatchEvent(new MouseEvent("mouseleave"));
     expect(fit.style.getPropertyValue("aspect-ratio")).toBe("");

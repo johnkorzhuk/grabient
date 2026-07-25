@@ -433,7 +433,7 @@ async function handleSemanticSearch(
       exportOpen: url.searchParams.get("export") === "true",
       heading,
       headingParts: queryHeadingParts(query),
-      pageTitle: `${heading} | Grabient`,
+      pageTitle: `Grabient — ${heading}`,
       pageDescription: `Explore ${heading.toLowerCase()} matched by color and mood. Customize each CSS gradient, then copy CSS or export SVG and PNG.`,
       pageCanonical: canonical,
       pageImage: og.toString(),
@@ -678,22 +678,16 @@ app.get("/api/likes", async (c) => {
   return c.json({ seeds: likeCoeffKeys(seeds) }, 200, NO_STORE);
 });
 
-// Per-seed count + liked flag for the seed page (its HTML is edge-cached, so
-// the count can't be SSR'd). Mirrors getPaletteLikeInfo on the current site,
-// except isLiked matches by coefficient key across seed aliases.
+// Globals-free palette count + liked flag for the editor (its HTML is
+// edge-cached, so the count can't be SSR'd). Custom-global and tared URLs for
+// the same rendered palette intentionally share one save state.
 app.get("/api/like-info", async (c) => {
   const seed = canonicalSeed(c.req.query("seed") ?? "");
   if (!seed) return c.json({ error: "Invalid seed" }, 400, NO_STORE);
   initDatabase(c.env.DB);
   const session = await getSession(c.env, c.req.raw.headers);
-  const info = await getPaletteLikeInfo(seed, undefined);
-  let isLiked = false;
-  if (session) {
-    const key = paletteCoeffKey(seed) ?? seed;
-    const seeds = await getUserLikedSeeds(session.user.id);
-    isLiked = seeds.some((s) => (paletteCoeffKey(s) ?? s) === key);
-  }
-  return c.json({ likesCount: info.likesCount, isLiked }, 200, NO_STORE);
+  const info = await getPaletteLikeInfo(seed, session?.user.id);
+  return c.json(info, 200, NO_STORE);
 });
 
 // Public, write-fresh totals for list-page cards. List HTML is also no-store so
@@ -713,6 +707,7 @@ const likeBody = v.object({
   steps: stepsValidator,
   style: paletteStyleValidator,
   angle: angleValidator,
+  exact: v.optional(v.boolean(), false),
 });
 
 app.post("/api/likes/toggle", async (c) => {
@@ -748,12 +743,21 @@ app.post("/api/likes/toggle", async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = v.safeParse(likeBody, body);
   if (!parsed.success) return c.json({ error: "Invalid body" }, 400, NO_STORE);
-  const { seed, steps, style, angle } = parsed.output;
+  const { seed, steps, style, angle, exact } = parsed.output;
   initDatabase(c.env.DB);
+  // Seed-page clients set `exact`; keep accepting that wire field during
+  // rollout, but canonicalize storage to the globals-free rendered palette.
+  const storageSeed = exact ? (paletteCoeffKey(seed) ?? seed) : seed;
   // Alias-aware toggle: matches the user's existing like by coefficient key
   // (one palette has many stored seed aliases), so an unlike always deletes.
   // key + likesCount are authoritative — the client sets both from this.
-  const result = await toggleLikePaletteByKey(session.user.id, seed, steps, style, angle);
+  const result = await toggleLikePaletteByKey(
+    session.user.id,
+    storageSeed,
+    steps,
+    style,
+    angle,
+  );
   return c.json(
     { liked: result.liked, key: result.key, likesCount: result.likesCount },
     200,

@@ -62,7 +62,7 @@ describe("delegated UI handlers", () => {
       }),
     );
     const heart = document.querySelector("[data-like-info]");
-    expect(heart.dataset.likeSeed).toBe(paletteCoeffKey(nextSeed));
+    expect(heart.dataset.likeSeed).toBe(nextSeed);
     expect(heart.dataset.likeRow).toBe(nextSeed);
     expect(heart.dataset.likeStyle).toBe("radialGradient");
     expect(heart.dataset.likeSteps).toBe("9");

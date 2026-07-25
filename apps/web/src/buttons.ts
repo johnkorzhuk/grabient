@@ -40,12 +40,11 @@ export const PRIMARY_SM =
 // by a client-generated stylesheet keyed on data-like-seed, so it survives
 // island re-renders.
 //
-// data-like-seed is the palette's COEFFICIENT KEY (one palette = many stored
-// seed aliases; the key is what /api/likes returns and hearts match on).
+// data-like-seed is the palette's GLOBALS-FREE KEY (custom-global and tared
+// URLs share it; the key is what /api/likes returns and hearts match on).
 // data-like-row is the stored row id the toggle should INSERT under, so like
 // counts keep joining the palettes row they're displayed from. `extra`
-// carries per-context attrs (data-like-current on the seed page marks "read
-// the storage seed from the URL at click time" to follow live edits).
+// carries per-context attrs (data-like-current marks the live seed editor).
 export function likeButton(
   seed: string,
   key: string,

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import app from "../src/index";
+import { OG_RENDER_VERSION } from "../src/seo";
 
 const SEED = "_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKb";
 
@@ -56,7 +57,7 @@ describe("semantic search route", () => {
     );
     const html = await response.text();
     expect(response.status).toBe(200);
-    expect(html).toContain("<title>Warm sunset palettes | Grabient</title>");
+    expect(html).toContain("<title>Grabient — Warm sunset palettes</title>");
     expect(html).toContain(
       '<link rel="canonical" href="https://grabient-lite.jkorzhuk.workers.dev/palettes/warm-sunset">',
     );
@@ -105,7 +106,7 @@ describe("semantic search route", () => {
     expect(ogUrl.searchParams.get("style")).toBe("radialGradient");
     expect(ogUrl.searchParams.get("steps")).toBe("11");
     expect(ogUrl.searchParams.get("angle")).toBe("45");
-    expect(ogUrl.searchParams.get("v")).toBe("14");
+    expect(ogUrl.searchParams.get("v")).toBe(String(OG_RENDER_VERSION));
     expect(ogUrl.searchParams.has("sort")).toBe(false);
     warn.mockRestore();
   });
