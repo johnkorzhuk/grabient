@@ -121,6 +121,7 @@ describe("SEO parity", () => {
     expect(firstGradient).not.toBeNull();
     expect(firstGradient?.[1].match(/<stop /g)).toHaveLength(2);
     expect(svg).not.toContain('id="radial_0"');
+    expect(svg).toContain('<path fill="#fafafa"');
   });
 
   it("publishes the current crawler policy and canonical sitemap entries", () => {

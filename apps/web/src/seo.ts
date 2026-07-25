@@ -15,6 +15,7 @@ import { LOGO } from "./icons";
 import {
   DEFAULT_PALETTE,
   canonicalSeed,
+  heroInk,
   renderPalette,
   type RenderedPalette,
 } from "./palette";
@@ -30,7 +31,7 @@ export const SEO_BASE_URL = "https://grabient.com";
 
 // The version is part of the public og:image URL and the query-image KV key, so
 // crawlers cannot retain an earlier renderer after a visual refresh.
-export const OG_RENDER_VERSION = 10;
+export const OG_RENDER_VERSION = 11;
 
 export function robotsTxt(origin = SEO_BASE_URL): string {
   const base = origin.replace(/\/+$/, "");
@@ -275,8 +276,10 @@ export function queryOgSvg(
   }
 
   const logoColors = views[0]?.hexColors ?? ["#ffd25f", "#ff5f6d", "#a17fff"];
-  const logoForeground =
-    calculateAverageBrightness(logoColors) > 0.5 ? "#0a0a0b" : "#fafafa";
+  const logoInk = views[0]
+    ? heroInk(views[0], tiles[0].width, tiles[0].height, 112, 24, 340).ink
+    : "light";
+  const logoForeground = logoInk === "dark" ? "#0a0a0b" : "#fafafa";
   const logo = LOGO(logoColors, "")
     .replace('<svg class=""', '<svg x="32" y="30" width="286" height="65"')
     .replaceAll("currentColor", logoForeground)
