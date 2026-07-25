@@ -330,6 +330,9 @@ input::placeholder {
 #opts {
   scrollbar-width: none;
 }
+.subheader-left {
+  margin-right: auto;
+}
 /* The reset button combines BTN_ICON's `inline-flex` with the toggled
    `hidden` utility — same specificity, and Tailwind emits .inline-flex
    AFTER .hidden, so hidden loses. Settle it explicitly. */
@@ -342,29 +345,66 @@ input::placeholder {
 @media (width < 48rem) {
   .subheader {
     max-width: 100%;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    display: block;
+    padding-top: 0.75rem;
+    padding-bottom: 0.5rem;
     overflow-x: hidden;
   }
   .subheader #opts {
-    flex: 1 1 100%;
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    gap: 0.5rem;
     width: 100%;
     min-width: 0;
     max-width: 100%;
     margin: 0;
-    padding: 0.25rem 0;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    padding: 0;
     overflow-x: visible;
   }
-  /* Angle and steps retain their compact fixed widths. Style absorbs the
-     remaining line width down to a readable floor, then wraps as a unit. */
+  .subheader-left {
+    grid-column: 1 / 3;
+    grid-row: 1;
+    margin-right: 0;
+    align-self: center;
+  }
+  .subheader-left .browse-wrap {
+    width: 8.5rem;
+    max-width: 100%;
+    flex: 1 1 auto;
+  }
+  .subheader-left .browse-wrap :is(select, button[role="combobox"]) {
+    width: 100%;
+    min-width: 0;
+  }
   .subheader #opts .style-wrap {
-    flex: 1 1 6.5rem;
-    min-width: 6.5rem;
-    max-width: 11.5rem;
+    grid-column: 3;
+    grid-row: 1;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
   }
   .subheader #opts .style-wrap :is(select, button[role="combobox"]) {
+    width: 100%;
+    min-width: 0;
+  }
+  .subheader #opts-reset {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .subheader #opts .angle-wrap {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .subheader #opts-reset.hidden + .angle-wrap {
+    grid-column: 1 / 3;
+  }
+  .subheader #opts .steps-wrap {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .subheader #opts :is(.angle-wrap, .steps-wrap),
+  .subheader #opts :is(.angle-wrap, .steps-wrap) > input {
     width: 100%;
     min-width: 0;
   }
@@ -849,9 +889,8 @@ input::placeholder {
   .seed-hero .subheader .ctrl-wrap:focus-within :is(input, button[role="combobox"]) {
     background: var(--color-background);
   }
-  /* Narrow rows: the style select flexes down (its label truncates) so the
-     whole options row fits the viewport instead of clipping off the edge;
-     below its floor the row falls back to horizontal scroll. */
+  /* Between phone and desktop widths the style select flexes down so the
+     whole options row remains compact. Phones use the grid above. */
   .seed-hero .subheader #opts {
     flex-shrink: 1;
     min-width: 0;
@@ -864,27 +903,6 @@ input::placeholder {
   .seed-hero .subheader #opts .style-wrap button[role="combobox"] {
     width: 100%;
     min-width: 0;
-  }
-  /* Phone-narrow: the options wrap to two lines — angle/steps beside the
-     back button, the style select on its own full-width line (label never
-     truncates). The controls are a revealed overlay, so the extra height
-     floats over the gradient instead of costing layout. */
-  @media (width < 26.25rem) {
-    .seed-hero .subheader #opts {
-      flex: 1 1 100%;
-      width: 100%;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-      row-gap: 0.5rem;
-    }
-    .seed-hero .subheader #opts .style-wrap {
-      flex: 1 1 100%;
-      max-width: none;
-      order: -1; /* style on the top line, angle/steps below it */
-    }
-    .seed-hero .subheader > a[data-list-link] {
-      align-self: flex-start;
-    }
   }
   /* The stage fills the hero and scrolls internally when cramped (landscape
      phones); the absolute gradient escapes the overflow since its containing

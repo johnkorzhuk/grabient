@@ -369,7 +369,8 @@ describe("export view (DOM flow)", () => {
       true,
     );
     expect(document.getElementById("opts-reset").classList.contains("hidden")).toBe(true);
-    expect(document.getElementById("opts").classList.contains("ml-auto")).toBe(true);
+    expect(document.getElementById("opts").classList.contains("w-full")).toBe(true);
+    expect(nav.closest(".subheader-left")).not.toBeNull();
     // Live preview renders the composed SVG grid
     await vi.waitFor(() =>
       expect(document.querySelector("#export-preview svg")).not.toBeNull(),
@@ -392,7 +393,8 @@ describe("export view (DOM flow)", () => {
     expect(nav.parentElement.hidden).toBe(false);
     expect(nav.parentElement.style.display).toBe("");
     expect(nav.disabled).toBe(false);
-    expect(document.getElementById("opts").classList.contains("ml-auto")).toBe(true);
+    expect(document.getElementById("opts").classList.contains("w-full")).toBe(true);
+    expect(nav.closest(".subheader-left")).not.toBeNull();
     expect(nav.parentElement.querySelectorAll("button[data-select-trigger]")).toHaveLength(1);
     expect(nav.parentElement.querySelector("button[data-select-trigger]").disabled).toBe(false);
     expect(document.querySelector('#opts input[name="angle"]').disabled).toBe(false);

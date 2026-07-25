@@ -145,16 +145,16 @@ function subHeader(
     ),
   ].join("");
 
-  return `<div class="subheader ${sticky ? "sticky top-[69px] z-40 md:top-[73px] lg:top-[89px] " : ""}flex items-center justify-between gap-2 px-5 lg:px-14">
-${left}
-<form id="opts" method="get" action="${esc(path)}" class="-m-1 ml-auto flex shrink-0 items-center gap-1.5 overflow-x-auto p-1">
+  return `<div class="subheader ${sticky ? "sticky top-[69px] z-40 md:top-[73px] lg:top-[89px] " : ""}flex items-center px-5 lg:px-14">
+<form id="opts" method="get" action="${esc(path)}" class="flex w-full min-w-0 items-center gap-1.5">
+<span class="subheader-left flex min-w-0 shrink-0 items-center">${left}</span>
 ${hiddenFields}
 <button type="button" id="opts-reset" data-tip="Reset options" data-tip-side="bottom" aria-label="Reset options" class="${BTN_ICON} shrink-0${exportOpen || !sticky || (params.style === "auto" && params.steps === "auto" && params.angle === "auto") ? " hidden" : ""}">${ICON.rotate()}</button>
-<span class="ctrl-wrap relative inline-flex shrink-0">
+<span class="ctrl-wrap angle-wrap relative inline-flex shrink-0">
 <input type="text" name="angle" inputmode="numeric" autocomplete="off" data-step-keys data-wrap data-suffix="°" data-min="${MIN_ANGLE}" data-max="${MAX_ANGLE}" placeholder="angle" aria-label="Angle" class="${CTRL} w-[84px] pl-3 pr-7 text-left md:w-[96px]${params.angle === "auto" ? "" : " text-foreground!"}" value="${params.angle === "auto" ? "" : `${params.angle}°`}"${exportOpen ? " disabled" : ""}>
 <button type="button" tabindex="-1" data-presets="0,45,90,135,180,225,270,315" data-preset-suffix="°" data-tip="Angle presets" data-tip-side="bottom" aria-label="Angle presets" class="preset-btn absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-foreground"${exportOpen ? " disabled" : ""}>${ICON.chevrons()}</button>
 </span>
-<span class="ctrl-wrap relative inline-flex shrink-0">
+<span class="ctrl-wrap steps-wrap relative inline-flex shrink-0">
 <input type="number" name="steps" inputmode="numeric" data-step-keys data-min="${MIN_STEPS}" data-max="${MAX_STEPS}" min="${MIN_STEPS}" max="${MAX_STEPS}" placeholder="steps" aria-label="Steps" class="${CTRL} w-[78px] pl-3 pr-7 text-left md:w-[88px] [&::-webkit-inner-spin-button]:appearance-none${params.steps === "auto" ? "" : " text-foreground!"}" value="${params.steps === "auto" ? "" : params.steps}"${exportOpen ? " disabled" : ""}>
 <button type="button" tabindex="-1" data-presets="3,5,8,13,21,34" data-tip="Steps presets" data-tip-side="bottom" aria-label="Steps presets" class="preset-btn absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-foreground"${exportOpen ? " disabled" : ""}>${ICON.chevrons()}</button>
 </span>
@@ -168,7 +168,7 @@ ${hiddenFields}
 }
 
 function sortNav(active: Sort, _params: ListSearch, exportOpen = false): string {
-  return `<span class="ctrl-wrap relative inline-flex shrink-0">
+  return `<span class="ctrl-wrap browse-wrap relative inline-flex min-w-0 shrink">
 <select id="nav-select" aria-label="Browse palettes" data-enhance-select class="${CTRL} w-[110px] cursor-pointer appearance-none pr-8 md:w-[130px]"${exportOpen ? " disabled" : ""}>${SORT_LINKS.map(
     ([sort, href, label]) =>
       `<option value="${href}"${sort === active ? " selected" : ""}>${label}</option>`,
@@ -185,7 +185,7 @@ export function searchSortNav(active: SearchSort, exportOpen = false): string {
     ["newest", "Newest"],
     ["oldest", "Oldest"],
   ];
-  return `<span class="ctrl-wrap relative inline-flex shrink-0">
+  return `<span class="ctrl-wrap browse-wrap relative inline-flex min-w-0 shrink">
 <select id="query-sort" aria-label="Sort search results" data-enhance-select class="${CTRL} w-[110px] cursor-pointer appearance-none pr-8 md:w-[130px]"${exportOpen ? " disabled" : ""}>${options
     .map(
       ([value, label]) =>
@@ -201,7 +201,7 @@ export function searchSubheaderLeft(
   backHref: string,
   exportOpen = false,
 ): string {
-  return `<span class="flex shrink-0 items-center gap-2">
+  return `<span class="search-nav-wrap flex min-w-0 shrink items-center gap-2">
 <a href="${esc(backHref)}" data-list-link aria-label="Back to palettes" data-tip="Back to palettes" data-tip-side="bottom" class="${BTN_ICON} shrink-0">${ICON.arrowLeft("h-[18px] w-[18px]")}</a>
 ${searchSortNav(active, exportOpen)}
 </span>`;
@@ -490,7 +490,7 @@ ${pagination(d.params, d.totalPages, d.path, d.paginationSearch)}`;
 <script type="application/json" id="__DATA__">${dataJson}</script>`;
   const body = `${logoAnimStyle(d.items, d.params)}${header(undefined, d.user)}
 ${subHeader(d.subheaderLeft ?? sortNav(d.sort, d.params, d.exportOpen), d.params, d.path, true, d.exportOpen, d.hiddenFields)}
-<main class="flex-1 px-5 pb-5 pt-5 lg:px-14">
+<main class="flex-1 px-5 pb-5 pt-3 md:pt-5 lg:px-14">
 ${searchExplorer(d.searchQuery, d.params, d.popularSearches)}
 <div class="${d.queryContext ? "" : "mb-8 "}flex items-center justify-between gap-3">
 <h1 id="list-h1" class="text-3xl font-bold text-foreground md:text-4xl">${headingContent(d)}</h1>

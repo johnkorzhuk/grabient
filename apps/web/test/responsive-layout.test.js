@@ -25,18 +25,25 @@ const html = listPage({
 });
 
 describe("responsive subheader", () => {
-  it("marks the flexible style control and wraps the options form on phones", () => {
+  it("uses a compact two-row grid with a full browse label on phones", () => {
     expect(html).toMatch(
-      /id="opts"[\s\S]*class="ctrl-wrap style-wrap relative inline-flex shrink-0"/,
+      /id="opts"[\s\S]*class="subheader-left[\s\S]*class="ctrl-wrap browse-wrap/,
     );
+    expect(html).toContain("ctrl-wrap angle-wrap");
+    expect(html).toContain("ctrl-wrap steps-wrap");
+    expect(html).toContain("ctrl-wrap style-wrap");
 
-    expect(appCss).toContain("flex-wrap: wrap");
     expect(appCss).toContain(".subheader #opts");
-    expect(appCss).toContain("flex: 1 1 100%");
+    expect(appCss).toContain(
+      "grid-template-columns: 2.75rem minmax(0, 1fr) minmax(0, 1fr)",
+    );
+    expect(appCss).toContain("grid-template-rows: auto auto");
     expect(appCss).toContain("max-width: 100%");
     expect(appCss).toContain("margin: 0");
     expect(appCss).toContain("overflow-x: visible");
     expect(appCss).toContain(".subheader #opts .style-wrap");
-    expect(appCss).toContain("min-width: 6.5rem");
+    expect(appCss).toContain(".subheader #opts-reset.hidden + .angle-wrap");
+    expect(appCss).toContain(".subheader-left .browse-wrap");
+    expect(appCss).toContain("width: 8.5rem");
   });
 });
