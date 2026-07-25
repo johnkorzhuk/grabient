@@ -305,10 +305,10 @@ export interface ListPageData {
 }
 
 const SORT_TITLES: Record<Sort, [string, string]> = {
-  popular: ["CSS Gradient Generator & Palette Finder | Grabient", "Popular gradients"],
-  newest: ["Newest CSS Gradient Palettes | Grabient", "Newest gradients"],
-  oldest: ["Classic CSS Gradient Palettes | Grabient", "Oldest gradients"],
-  saved: ["Saved Gradient Palettes | Grabient", "Saved gradients"],
+  popular: ["CSS Gradient Generator & Palette Finder | Grabient", "Popular palettes"],
+  newest: ["Newest CSS Gradient Palettes | Grabient", "Newest palettes"],
+  oldest: ["Classic CSS Gradient Palettes | Grabient", "Oldest palettes"],
+  saved: ["Saved Gradient Palettes | Grabient", "Saved palettes"],
 };
 
 const SORT_DESCRIPTIONS: Record<Sort, string> = {

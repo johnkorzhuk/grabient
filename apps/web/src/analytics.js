@@ -150,6 +150,9 @@ export async function initializeAnalytics() {
             if (ready) return;
             ready = true;
             posthog = loadedInstance || instance;
+            // Match PostHog's standard snippet behavior. This also gives
+            // consent/debug tooling one canonical initialized instance.
+            window.posthog = posthog;
             applyConsent();
             identifyPosthogUser();
             capturePosthogPageView();

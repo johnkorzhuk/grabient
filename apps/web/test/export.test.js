@@ -223,7 +223,7 @@ describe("export selection (DOM flow)", () => {
     expect(stored.items[0].id).toBe(itemA().id);
     // Slot + toggle state
     expect(document.querySelector("#export-slot #export-open")).not.toBeNull();
-    expect(document.getElementById("list-h1").textContent).toBe("Popular gradients");
+    expect(document.getElementById("list-h1").textContent).toBe("Popular palettes");
     const btn = document.querySelector(`[data-export-seed="${SEED_A}"]`);
     expect(btn.getAttribute("aria-pressed")).toBe("true");
     expect(btn.getAttribute("aria-label")).toBe("Remove from export selection");
@@ -384,7 +384,7 @@ describe("export view (DOM flow)", () => {
     document.body.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
     expect(location.search).toBe("");
     expect(document.getElementById("export-root").hidden).toBe(true);
-    expect(document.getElementById("list-h1").textContent).toBe("Popular gradients");
+    expect(document.getElementById("list-h1").textContent).toBe("Popular palettes");
     expect(document.getElementById("grid-island").hidden).toBe(false);
     expect(document.getElementById("logo-export-animation")).toBeNull();
     expect(document.querySelector("#export-slot #export-open")).not.toBeNull(); // still 1 selected
@@ -417,7 +417,7 @@ describe("export view (DOM flow)", () => {
     history.replaceState(history.state, "", "/");
     dispatchEvent(new PopStateEvent("popstate"));
     expect(document.getElementById("export-root").hidden).toBe(true);
-    expect(document.getElementById("list-h1").textContent).toBe("Popular gradients");
+    expect(document.getElementById("list-h1").textContent).toBe("Popular palettes");
   });
 
   it("strips a stale ?export=true when the list is empty", async () => {

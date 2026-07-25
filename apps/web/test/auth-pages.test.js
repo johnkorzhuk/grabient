@@ -93,7 +93,7 @@ describe("card like button", () => {
 describe("saved page", () => {
   it("renders without the grid island and with the Saved nav state", () => {
     const html = page([item(1)], { sort: "saved", path: "/saved", island: false });
-    expect(html).toContain("Saved gradients");
+    expect(html).toContain("Saved palettes");
     expect(html).not.toContain('id="grid-island"');
     expect(html).toContain('id="__DATA__" data-static-preview');
     expect(html).toMatch(/<option value="\/saved" selected>Saved<\/option>/);
