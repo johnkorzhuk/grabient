@@ -325,8 +325,8 @@ input::placeholder {
   opacity: 0.7;
 }
 
-/* The options row scrolls horizontally on narrow screens (chip-carousel
-   pattern) — no visible scrollbar. */
+/* Keep the desktop options row compact. Phones switch to wrapping below so
+   this control group can never widen the document viewport. */
 #opts {
   scrollbar-width: none;
 }
@@ -338,6 +338,36 @@ input::placeholder {
 }
 #opts::-webkit-scrollbar {
   display: none;
+}
+@media (width < 48rem) {
+  .subheader {
+    max-width: 100%;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    overflow-x: hidden;
+  }
+  .subheader #opts {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    margin: 0;
+    padding: 0.25rem 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    overflow-x: visible;
+  }
+  /* Angle and steps retain their compact fixed widths. Style absorbs the
+     remaining line width down to a readable floor, then wraps as a unit. */
+  .subheader #opts .style-wrap {
+    flex: 1 1 6.5rem;
+    min-width: 6.5rem;
+    max-width: 11.5rem;
+  }
+  .subheader #opts .style-wrap :is(select, button[role="combobox"]) {
+    width: 100%;
+    min-width: 0;
+  }
 }
 
 /* Option controls: hovering (or focusing) ANYWHERE in a control's wrapper
@@ -826,12 +856,12 @@ input::placeholder {
     flex-shrink: 1;
     min-width: 0;
   }
-  .seed-hero .subheader #opts .ctrl-wrap:has(select) {
+  .seed-hero .subheader #opts .style-wrap {
     flex: 1 1 auto;
     min-width: 6.5rem;
     max-width: 184px;
   }
-  .seed-hero .subheader #opts .ctrl-wrap:has(select) button[role="combobox"] {
+  .seed-hero .subheader #opts .style-wrap button[role="combobox"] {
     width: 100%;
     min-width: 0;
   }
@@ -841,12 +871,13 @@ input::placeholder {
      floats over the gradient instead of costing layout. */
   @media (width < 26.25rem) {
     .seed-hero .subheader #opts {
-      flex: 1 1 auto;
+      flex: 1 1 100%;
+      width: 100%;
       flex-wrap: wrap;
       justify-content: flex-end;
       row-gap: 0.5rem;
     }
-    .seed-hero .subheader #opts .ctrl-wrap:has(select) {
+    .seed-hero .subheader #opts .style-wrap {
       flex: 1 1 100%;
       max-width: none;
       order: -1; /* style on the top line, angle/steps below it */

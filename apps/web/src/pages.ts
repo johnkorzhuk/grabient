@@ -158,7 +158,7 @@ ${hiddenFields}
 <input type="number" name="steps" inputmode="numeric" data-step-keys data-min="${MIN_STEPS}" data-max="${MAX_STEPS}" min="${MIN_STEPS}" max="${MAX_STEPS}" placeholder="steps" aria-label="Steps" class="${CTRL} w-[78px] pl-3 pr-7 text-left md:w-[88px] [&::-webkit-inner-spin-button]:appearance-none${params.steps === "auto" ? "" : " text-foreground!"}" value="${params.steps === "auto" ? "" : params.steps}"${exportOpen ? " disabled" : ""}>
 <button type="button" tabindex="-1" data-presets="3,5,8,13,21,34" data-tip="Steps presets" data-tip-side="bottom" aria-label="Steps presets" class="preset-btn absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-foreground"${exportOpen ? " disabled" : ""}>${ICON.chevrons()}</button>
 </span>
-<span class="ctrl-wrap relative inline-flex shrink-0">
+<span class="ctrl-wrap style-wrap relative inline-flex shrink-0">
 <select name="style" aria-label="Gradient style" data-enhance-select data-allow-clear data-placeholder="style" class="${CTRL} w-[164px] cursor-pointer appearance-none pr-8 lg:w-[184px]${params.style === "auto" ? "" : " text-foreground!"}"${exportOpen ? " disabled" : ""}>${styleOptions}</select>
 <span class="native-chevron pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">${ICON.chevrons()}</span>
 </span>
