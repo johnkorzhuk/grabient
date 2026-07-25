@@ -68,7 +68,7 @@ describe("SEO parity", () => {
     expect(svg).toContain(view.hexColors[0]);
   });
 
-  it("renders the current app's 4x3 search-query social card", () => {
+  it("renders a full-bleed 2/4/8 search-query palette mosaic", () => {
     const svg = queryOgSvg(
       [
         {
@@ -88,7 +88,12 @@ describe("SEO parity", () => {
     );
     expect(svg).toContain('width="1200" height="630"');
     expect(svg).toContain('id="og-cell-0"');
-    expect(svg).toContain('id="og-cell-11"');
+    expect(svg).toContain('id="og-cell-13"');
+    expect(svg).not.toContain('id="og-cell-14"');
+    expect(svg).toContain('<rect x="0" y="0" width="400" height="315"');
+    expect(svg).toContain('<rect x="400" y="0" width="400" height="157.5"');
+    expect(svg).toContain('<rect x="800" y="0" width="400" height="78.75"');
+    expect(svg).toContain('id="og-logo-shade"');
     expect(svg).toContain('id="logoG"');
   });
 
