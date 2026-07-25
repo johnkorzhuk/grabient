@@ -128,7 +128,9 @@ describe("semantic search route", () => {
     );
     const heading = html.match(/<h1 id="list-h1"[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? "";
     expect(heading).toContain('class="whitespace-nowrap"');
-    expect(heading).toContain("align-middle");
+    expect(heading).toContain("mr-2");
+    expect(heading).toContain("align-[0.1em]");
+    expect(heading).toContain("border-2 border-background ring-1 ring-foreground/40");
     expect(heading).not.toContain("inline-flex items-center gap-1.5");
     warn.mockRestore();
   });

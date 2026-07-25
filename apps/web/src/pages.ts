@@ -461,7 +461,7 @@ function headingContent(d: ListPageData): string {
     .map((part) =>
       part.kind === "text"
         ? esc(part.value)
-        : `<span class="whitespace-nowrap"><span aria-hidden="true" title="${esc(part.hex)}" class="mr-1.5 inline-block h-4 w-4 align-middle rounded-full border border-input md:h-[18px] md:w-[18px]" style="background-color:${esc(part.hex)}"></span>${esc(part.value)}</span>`,
+        : `<span class="whitespace-nowrap"><span aria-hidden="true" title="${esc(part.hex)}" class="mr-2 inline-block h-4 w-4 align-[0.1em] rounded-full border-2 border-background ring-1 ring-foreground/40 md:h-[18px] md:w-[18px]" style="background-color:${esc(part.hex)}"></span>${esc(part.value)}</span>`,
     )
     .join("");
 }
