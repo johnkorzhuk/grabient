@@ -61,6 +61,15 @@ ${ICON.heart("heart-i w-[22px] h-[22px] transition-all duration-200")}
 </button>`;
 }
 
+export function searchFeedbackButtons(query: string, seed: string): string {
+  const shortQuery = query.length > 16 ? `${query.slice(0, 16)}...` : query;
+  return `<div data-palette-card-action data-search-feedback-group data-query="${esc(query)}" data-seed="${esc(seed)}" class="palette-card-control palette-card-feedback" role="group" aria-label="Does this palette fit ${esc(shortQuery)}?">
+<button type="button" data-search-feedback="good" aria-label="Good fit for &quot;${esc(shortQuery)}&quot;" aria-pressed="false">${ICON.thumbUp()}</button>
+<span aria-hidden="true"></span>
+<button type="button" data-search-feedback="bad" aria-label="Bad fit for &quot;${esc(shortQuery)}&quot;" aria-pressed="false">${ICON.thumbDown()}</button>
+</div>`;
+}
+
 // Multi-select export toggle (original's ExportButton): plus when idle, minus
 // when the palette is in the export selection. Sits in div.relative next to
 // the anchor (NOT inside it — invalid HTML, and the click must not navigate).
@@ -96,5 +105,6 @@ export function paletteCardActions(
 <button type="button" data-palette-card-action data-palette-copy="css" aria-label="Copy CSS" data-tip="Copy CSS" data-tip-side="top" class="palette-card-format">CSS</button>
 <button type="button" data-palette-card-action data-palette-copy="svg" aria-label="Copy SVG" data-tip="Copy SVG" data-tip-side="top" class="palette-card-format">SVG</button>
 <button type="button" data-palette-card-action data-palette-copy="png" aria-label="Copy PNG" data-tip="Copy PNG" data-tip-side="top" class="palette-card-format">PNG</button>
+<button type="button" data-palette-card-action data-palette-copy="url" aria-label="Copy URL" data-tip="Copy URL" data-tip-side="top" class="palette-card-format">URL</button>
 </div>`;
 }

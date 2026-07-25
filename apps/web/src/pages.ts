@@ -17,6 +17,7 @@ import { ICON, LOGO } from "./icons";
 import { logoAnimationCss } from "./logo-animation";
 import { paletteOgImageUrl } from "./seo";
 import {
+  colorTextParts,
   POPULAR_SEARCHES,
   querySlug,
   type QueryHeadingPart,
@@ -66,6 +67,7 @@ import {
   exportToggle,
   likeButton,
   paletteCardActions,
+  searchFeedbackButtons,
 } from "./buttons";
 
 const SORT_LINKS: [Sort, string, string][] = [
@@ -202,7 +204,12 @@ ${searchSortNav(active, exportOpen)}
 </span>`;
 }
 
-function card(item: CardItem, nowMs: number, params: ListSearch): string {
+function card(
+  item: CardItem,
+  nowMs: number,
+  params: ListSearch,
+  searchQuery?: string,
+): string {
   // The like records what the card SHOWS: user-set params override the
   // palette's own values (the current site's effectiveStyle/Steps/Angle).
   const effStyle = params.style === "auto" ? item.style : params.style;
@@ -221,6 +228,7 @@ function card(item: CardItem, nowMs: number, params: ListSearch): string {
 <div class="card relative z-10 block h-[300px] overflow-hidden rounded-xl" style="background:${esc(item.background)}" role="img" aria-label="Gradient palette: ${esc(description)}"></div>
 ${paletteCardActions(item.href, description)}
 ${exp ? exportToggle(exp.id, item.seed, effStyle, effSteps, effAngle, true) : ""}
+${searchQuery ? searchFeedbackButtons(searchQuery, item.seed) : ""}
 </div>
 <div class="flex min-h-[28px] items-center justify-between pt-4">
 <span class="text-sm font-medium text-muted-foreground">${relativeAge(item.createdAtMs, nowMs)}</span>
@@ -291,6 +299,8 @@ export interface ListPageData {
   hiddenFields?: string;
   paginationSearch?: Record<string, string>;
   searchQuery?: string;
+  /** Query attached to per-result relevance controls (without filling search). */
+  feedbackQuery?: string;
   queryContext?: QueryResultContext | null;
 }
 
@@ -377,6 +387,18 @@ function logoAnimStyle(items: CardItem[], params: ListSearch): string {
   return css ? `<style id="logo-list-animation">${css}</style>` : "";
 }
 
+function popularQueryContent(query: string): string {
+  const colors = colorTextParts(query).filter((part) => part.kind === "color");
+  if (!colors.length) return esc(query);
+  const swatches = colors
+    .map(
+      ({ hex }) =>
+        `<span title="${esc(hex)}" class="inline-block h-2.5 w-2.5 shrink-0 rounded-full border border-input" style="background-color:${esc(hex)}"></span>`,
+    )
+    .join("");
+  return `<span aria-hidden="true" class="inline-flex items-center gap-0.5">${swatches}</span><span>${esc(query)}</span>`;
+}
+
 function searchExplorer(currentQuery = "", params?: ListSearch): string {
   const search = new URLSearchParams();
   if (params && params.style !== "auto") search.set("style", params.style);
@@ -385,7 +407,7 @@ function searchExplorer(currentQuery = "", params?: ListSearch): string {
   const options = search.size ? `?${search}` : "";
   const popular = POPULAR_SEARCHES.map(
     (query) =>
-      `<a data-search-tag href="/palettes/${querySlug(query)}${esc(options)}" class="inline-flex h-7 shrink-0 items-center rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs">${esc(query)}</a>`,
+      `<a data-search-tag href="/palettes/${querySlug(query)}${esc(options)}" class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs">${popularQueryContent(query)}</a>`,
   ).join("");
   return `<section aria-label="Find gradient palettes" class="mb-10 flex flex-col items-center gap-3 md:mb-12 md:gap-5">
 <form id="palette-search" action="/palettes" method="get" role="search" class="relative w-full max-w-lg">
@@ -431,7 +453,9 @@ function headingContent(d: ListPageData): string {
 }
 
 export function listPage(d: ListPageData): string {
-  const cards = d.items.map((i) => card(i, d.nowMs, d.params)).join("\n");
+  const cards = d.items
+    .map((i) => card(i, d.nowMs, d.params, d.feedbackQuery))
+    .join("\n");
   const dataJson = JSON.stringify({
     palettes: d.items,
     total: d.total,

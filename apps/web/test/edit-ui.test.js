@@ -41,6 +41,11 @@ describe("$seed preview dimensions", () => {
     }));
     globalThis.fetch = vi.fn(async () => ({ ok: false, json: async () => null }));
     window.scrollTo = vi.fn();
+    const writeText = vi.fn(async () => {});
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
 
     const html = seedPage({
       seed: SEED,
@@ -71,7 +76,7 @@ describe("$seed preview dimensions", () => {
       [...document.querySelectorAll("#preview-actions-br button")].map((button) =>
         button.getAttribute("aria-label"),
       ),
-    ).toEqual(["Copy CSS", "Copy SVG", "Copy PNG to clipboard"]);
+    ).toEqual(["Copy CSS", "Copy SVG", "Copy PNG to clipboard", "Copy URL"]);
     const mobilePrimary = document.querySelector("[data-mobile-primary-actions]");
     const mobileFormats = document.querySelector("[data-mobile-format-actions]");
     expect(mobilePrimary.className).toContain("order-1");
@@ -91,7 +96,14 @@ describe("$seed preview dimensions", () => {
       [...mobileFormats.querySelectorAll("button")].map((button) =>
         button.getAttribute("aria-label"),
       ),
-    ).toEqual(["Copy CSS", "Copy SVG", "Copy PNG to clipboard"]);
+    ).toEqual(["Copy CSS", "Copy SVG", "Copy PNG to clipboard", "Copy URL"]);
+
+    document.querySelector('#preview-actions-br button[aria-label="Copy URL"]').click();
+    await vi.waitFor(() =>
+      expect(writeText).toHaveBeenCalledWith(
+        `http://localhost/${SEED}?style=linearGradient&steps=7&angle=90`,
+      ),
+    );
 
     const exportTrigger = document.querySelector(
       "#preview-actions [data-seed-export-toggle]",

@@ -1,5 +1,10 @@
 import { copyPaletteCard, downloadPaletteCard } from "./islands/card-actions";
+import { paletteCoeffKey } from "./palette";
 import { parseSearchInput, searchRouteSegment } from "./search-input";
+import {
+  getSearchFeedback,
+  toggleSearchFeedback,
+} from "./search-feedback";
 import {
   setAnalyticsUser,
   syncAnalyticsConsent,
@@ -334,10 +339,13 @@ document.addEventListener("change", (e) => {
   // Semantic result pages sort the same result set without leaving the query.
   if (e.target && e.target.id === "query-sort") {
     const p = new URLSearchParams(location.search);
+    const fromSort = p.get("sort") || "popular";
+    const toSort = e.target.value;
     p.delete("page");
     e.target.value === "popular"
       ? p.delete("sort")
       : p.set("sort", e.target.value);
+    trackEvent("change_sort", { fromSort, toSort });
     navigate(location.pathname + (p.size ? `?${p}` : ""), true, {
       preserveScroll: true,
     });
@@ -347,7 +355,12 @@ document.addEventListener("change", (e) => {
   // route, preserving user params, resetting page.
   if (e.target && e.target.id === "nav-select") {
     const p = new URLSearchParams(location.search);
+    const fromSort =
+      location.pathname === "/" ? "popular" : location.pathname.slice(1);
+    const toSort =
+      e.target.value === "/" ? "popular" : e.target.value.replace(/^\//, "");
     p.delete("page");
+    trackEvent("change_sort", { fromSort, toSort });
     navigate(e.target.value + (p.size ? "?" + p : ""), true);
     return;
   }
@@ -392,6 +405,10 @@ document.addEventListener("submit", (e) => {
   if (location.pathname === "/newest") p.set("sort", "newest");
   else if (location.pathname === "/oldest") p.set("sort", "oldest");
   for (const [key, value] of Object.entries(parsed.searchParams)) p.set(key, value);
+  trackEvent("search_query", {
+    query: parsed.query,
+    isCustomQuery: true,
+  });
   const slug = searchRouteSegment(parsed.query);
   navigate(`/palettes/${slug}${p.size ? `?${p}` : ""}`, true);
 });
@@ -571,10 +588,27 @@ async function pickColorWithEyeDropper() {
     const result = await new window.EyeDropper().open();
     if (!result?.sRGBHex) return;
     await navigator.clipboard.writeText(result.sRGBHex);
+    trackEvent("eyedropper_select_color", { color: result.sRGBHex });
     announce(`${result.sRGBHex} copied`);
   } catch {
     // The native picker rejects when the user cancels; that is not an error.
   }
+}
+
+function renderSearchFeedback(group) {
+  const current = getSearchFeedback(group.dataset.query, group.dataset.seed);
+  group.querySelectorAll("[data-search-feedback]").forEach((button) => {
+    button.setAttribute(
+      "aria-pressed",
+      String(button.dataset.searchFeedback === current),
+    );
+  });
+}
+
+function syncSearchFeedback() {
+  document
+    .querySelectorAll("[data-search-feedback-group]")
+    .forEach(renderSearchFeedback);
 }
 
 // Current Grabient global shortcuts. Inputs keep their native editing
@@ -600,6 +634,36 @@ document.addEventListener("keydown", (e) => {
 });
 
 document.addEventListener("click", (e) => {
+  const feedback =
+    e.target.closest && e.target.closest("[data-search-feedback]");
+  if (feedback) {
+    e.preventDefault();
+    const group = feedback.closest("[data-search-feedback-group]");
+    const card = feedback.closest("[data-palette-card]");
+    if (!group || !card) return;
+    const result = toggleSearchFeedback(
+      group.dataset.query,
+      group.dataset.seed,
+      feedback.dataset.searchFeedback,
+    );
+    renderSearchFeedback(group);
+    trackEvent("search_feedback", {
+      query: group.dataset.query,
+      seed: group.dataset.seed,
+      style: card.dataset.paletteStyle,
+      steps: Number(card.dataset.paletteSteps),
+      angle: Number(card.dataset.paletteAngle),
+      feedback: result.event,
+    });
+    announce(
+      result.event === "clear"
+        ? "Palette feedback cleared"
+        : result.event === "good"
+          ? "Marked as a good match"
+          : "Marked as a poor match",
+    );
+    return;
+  }
   const exportToggle =
     e.target.closest && e.target.closest("[data-export-toggle]");
   if (exportToggle) {
@@ -660,7 +724,8 @@ document.addEventListener("click", (e) => {
   const paletteCopy = e.target.closest && e.target.closest("[data-palette-copy]");
   if (paletteCopy) {
     const card = paletteCopy.closest("[data-palette-card]");
-    trackEvent(`copy_${paletteCopy.dataset.paletteCopy}`, {
+    const kind = paletteCopy.dataset.paletteCopy;
+    trackEvent(kind === "url" ? "copy_link" : `copy_${kind}`, {
       seed: card?.dataset.paletteSeed,
       style: card?.dataset.paletteStyle,
       steps: Number(card?.dataset.paletteSteps),
@@ -699,6 +764,34 @@ document.addEventListener("click", (e) => {
   const t = e.target.closest && e.target.closest("[data-copy]");
   if (t && navigator.clipboard) {
     navigator.clipboard.writeText(t.getAttribute("data-copy")).then(() => {
+      const info = document.querySelector("[data-like-info]");
+      const current = info
+        ? {
+            seed: heartSeed(info),
+            style: info.dataset.likeStyle,
+            steps: Number(info.dataset.likeSteps),
+            angle: Number(info.dataset.likeAngle),
+          }
+        : {};
+      const codePanel = t.closest("#export-code");
+      if (codePanel) {
+        const activeId = codePanel
+          .querySelector("[data-code-panel]:not(.hidden)")
+          ?.getAttribute("data-code-panel");
+        const eventName = {
+          "css-code": "copy_css",
+          "svg-code": "copy_svg",
+          "colors-code": "copy_colors",
+          "shader-code": "copy_vectors",
+          "coeffs-code": "copy_vectors",
+        }[activeId];
+        if (eventName) trackEvent(eventName, current);
+      } else if (t.closest(".swatch-item")) {
+        trackEvent("copy_colors", {
+          ...current,
+          color: t.getAttribute("data-copy"),
+        });
+      }
       announce("Copied to clipboard");
       // Swap text on the inner label (swatch pill / copy-label) when there is
       // one — writing on the button itself would destroy sibling markup like
@@ -722,6 +815,14 @@ document.addEventListener("click", (e) => {
     if (snap) {
       const { fig, best } = snap;
       navigator.clipboard.writeText(best.hex).then(() => {
+        const info = document.querySelector("[data-like-info]");
+        trackEvent("copy_colors", {
+          seed: info ? heartSeed(info) : undefined,
+          style: info?.dataset.likeStyle,
+          steps: Number(info?.dataset.likeSteps),
+          angle: Number(info?.dataset.likeAngle),
+          color: best.hex,
+        });
         announce(`Copied ${best.hex}`);
         const tip = fig.querySelector(".graph-tip");
         if (!tip) return;
@@ -746,6 +847,28 @@ document.addEventListener("click", (e) => {
   const a = linkOf(e);
   if (!a) return;
   const u = new URL(a.href);
+  const sourceRoute = location.pathname;
+  const sourceSearch = new URLSearchParams(location.search);
+  const paletteEdit = a.closest("[data-palette-card]")?.querySelector(
+    "a.palette-card-edit",
+  );
+  if (paletteEdit === a) {
+    const card = a.closest("[data-palette-card]");
+    trackEvent("view_gradient", {
+      seed: card?.dataset.paletteSeed,
+      style: card?.dataset.paletteStyle,
+      steps: Number(card?.dataset.paletteSteps),
+      angle: Number(card?.dataset.paletteAngle),
+      sourceRoute,
+    });
+  }
+  if (a.closest(".pages")) {
+    trackEvent("paginate", {
+      sourceRoute,
+      fromPage: Number(sourceSearch.get("page") || 1),
+      toPage: Number(u.searchParams.get("page") || 1),
+    });
+  }
   if (a.hasAttribute("data-search-tag")) {
     const current = new URLSearchParams(location.search);
     for (const key of ["style", "steps", "angle"]) {
@@ -753,6 +876,13 @@ document.addEventListener("click", (e) => {
       value ? u.searchParams.set(key, value) : u.searchParams.delete(key);
     }
     u.searchParams.delete("page");
+    trackEvent("search_query", {
+      query: decodeURIComponent(u.pathname.replace(/^\/palettes\//, "")).replace(
+        /-/g,
+        " ",
+      ),
+      isCustomQuery: false,
+    });
   }
   e.preventDefault();
   if (u.pathname === location.pathname && u.search === location.search) {
@@ -762,6 +892,12 @@ document.addEventListener("click", (e) => {
   }
   navigate(u.pathname + u.search, true);
 });
+
+addEventListener("storage", (event) => {
+  if (event.key === "search-feedback") syncSearchFeedback();
+});
+document.addEventListener("app:swap", syncSearchFeedback);
+syncSearchFeedback();
 
 addEventListener("popstate", () => {
   // A mounted island may own this transition (seed-route undo/redo restores
@@ -1670,7 +1806,7 @@ function heartKey(btn) {
 
 function heartSeed(btn) {
   return btn.hasAttribute("data-like-current")
-    ? decodeURIComponent(location.pathname.slice(1))
+    ? btn.dataset.likeRow || decodeURIComponent(location.pathname.slice(1))
     : btn.dataset.likeRow || btn.dataset.likeSeed;
 }
 
@@ -1768,22 +1904,68 @@ document.addEventListener("likes:refresh-counts", scheduleListLikeCounts);
 // The seed page can't SSR its like count (its HTML is edge-cached): fill count
 // + liked state per view. isLiked matches by coefficient key server-side, so
 // any alias of this palette lights the heart.
-async function initSeedLike() {
-  const btn = document.querySelector("[data-like-info]");
-  if (!btn) return;
-  const seed = decodeURIComponent(location.pathname.slice(1));
+let seedLikeRequestVersion = 0;
+let seedLikeTimer = 0;
+
+async function fetchSeedLikeInfo(btn, seed) {
+  const requestVersion = ++seedLikeRequestVersion;
   try {
     const r = await fetch(`/api/like-info?seed=${encodeURIComponent(seed)}`);
     if (!r.ok) return;
     const info = await r.json();
-    // The page may have swapped while the fetch was in flight.
-    if (!btn.isConnected) return;
+    // The palette may have changed, or the page may have swapped, while the
+    // request was in flight.
+    if (
+      requestVersion !== seedLikeRequestVersion ||
+      !btn.isConnected ||
+      btn.dataset.likeRow !== seed
+    )
+      return;
     setCount(btn, info.likesCount);
     if (info.isLiked) likedSeeds.add(heartKey(btn));
     else likedSeeds.delete(heartKey(btn));
     renderLiked();
   } catch {}
 }
+
+function syncSeedLikePalette(detail, fetchNow = false) {
+  const btn = document.querySelector("[data-like-info]");
+  if (!btn || !detail?.seed) return;
+  const key = paletteCoeffKey(detail.seed) || detail.seed;
+  const changed = heartKey(btn) !== key;
+  btn.dataset.likeSeed = key;
+  btn.dataset.likeRow = detail.seed;
+  if (detail.style) btn.dataset.likeStyle = detail.style;
+  if (Number.isFinite(detail.steps)) btn.dataset.likeSteps = String(detail.steps);
+  if (Number.isFinite(detail.angle)) btn.dataset.likeAngle = String(detail.angle);
+  if (changed) setCount(btn, 0);
+  renderLiked();
+  clearTimeout(seedLikeTimer);
+  seedLikeTimer = setTimeout(
+    () => void fetchSeedLikeInfo(btn, detail.seed),
+    fetchNow ? 0 : 250,
+  );
+}
+
+function initSeedLike() {
+  const btn = document.querySelector("[data-like-info]");
+  if (!btn) return;
+  const seed = decodeURIComponent(location.pathname.slice(1));
+  const sp = new URLSearchParams(location.search);
+  syncSeedLikePalette(
+    {
+      seed,
+      style: sp.get("style") || btn.dataset.likeStyle,
+      steps: Number(sp.get("steps") || btn.dataset.likeSteps),
+      angle: Number(sp.get("angle") || btn.dataset.likeAngle),
+    },
+    true,
+  );
+}
+
+document.addEventListener("palette:change", (event) => {
+  syncSeedLikePalette(event.detail);
+});
 
 // Header slot: the SSR placeholder circle becomes the avatar + dropdown when
 // signed in, or the Sign in button when signed out. Runs again after every
@@ -1838,6 +2020,7 @@ async function signOut() {
       body: "{}",
     });
   } catch {}
+  trackEvent("logout");
   // Full load: clears every piece of per-session state at once.
   location.href = "/";
 }
@@ -2569,7 +2752,11 @@ function syncConsentToZaraz() {
   if (!Object.keys(prefs).length) return;
   try {
     zaraz.consent.set(prefs);
-    if (consentState.hasInteracted) zaraz.consent.sendQueuedEvents();
+    // Non-GDPR defaults are an affirmative resolved choice too. Flush events
+    // Zaraz queued while /api/geo was resolving; GDPR defaults stay queued
+    // until the visitor explicitly opts in.
+    if (consentState.hasInteracted || !useDefaults)
+      zaraz.consent.sendQueuedEvents();
   } catch {}
 }
 

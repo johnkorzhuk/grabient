@@ -405,7 +405,7 @@ export function GridIsland(props: { initial: ListData; initialKey: string }) {
                           role="group"
                           aria-label="Copy gradient"
                         >
-                          <For each={["css", "svg", "png"] as const}>
+                          <For each={["css", "svg", "png", "url"] as const}>
                             {(kind) => (
                               <button
                                 type="button"

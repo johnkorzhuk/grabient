@@ -1,5 +1,11 @@
 import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
-import { cssSnippet, renderPalette, svgSnippet, type RenderedPalette } from "../palette";
+import {
+  cssSnippet,
+  paletteSharePath,
+  renderPalette,
+  svgSnippet,
+  type RenderedPalette,
+} from "../palette";
 
 const WIDTH = 800;
 const HEIGHT = 400;
@@ -132,6 +138,13 @@ export async function copyPaletteCard(trigger: HTMLElement): Promise<void> {
       await navigator.clipboard.write([
         new ClipboardItem({ "image/png": pngBlob(palette) }),
       ]);
+    } else if (kind === "url") {
+      await navigator.clipboard.writeText(
+        new URL(
+          paletteSharePath(palette.seed, palette.style, palette.steps, palette.angle),
+          location.origin,
+        ).toString(),
+      );
     } else {
       return;
     }

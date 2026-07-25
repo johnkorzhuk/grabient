@@ -38,6 +38,7 @@ import {
 import { exportItemData, paletteCoeffKey, type ExportItemData } from "../palette";
 import { MAX_DIM, MIN_DIM } from "../search";
 import { clearLogoAnimation, syncLogoAnimation } from "./logo-animation.client";
+import { trackEvent } from "../analytics";
 import {
   MAX_EXPORT_ITEMS,
   readExportList,
@@ -848,6 +849,15 @@ async function doCopy(kind: CopyKind, trigger: HTMLElement): Promise<void> {
       if (!blob) throw new Error("canvas unavailable");
       await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
     }
+    const { width, height } = dims();
+    trackEvent(
+      kind === "png"
+        ? "copy_png_grid"
+        : kind === "svg"
+          ? "copy_svg_grid"
+          : "copy_data_grid",
+      { exportCount: items.length, width, height },
+    );
     flashCheck(trigger);
     announce(
       kind === "data" ? "Palette data copied" : `${kind.toUpperCase()} grid copied to clipboard`,
@@ -878,6 +888,12 @@ async function doDownload(kind: "svg" | "png"): Promise<void> {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  const { width, height } = dims();
+  trackEvent(`download_${kind}_grid`, {
+    exportCount: items.length,
+    width,
+    height,
+  });
   announce(`${kind.toUpperCase()} grid download started`);
 }
 
@@ -1138,6 +1154,7 @@ function wireOnce(): void {
       const n = items.length;
       items = [];
       writeExportList(items);
+      trackEvent("clear_export_list", { exportCount: n });
       announce(`Cleared ${n} palette${n === 1 ? "" : "s"} from the export selection`);
       afterMutation();
     } else if (el.id === "export-dims") {

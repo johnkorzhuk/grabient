@@ -31,7 +31,10 @@ export const POPULAR_SEARCHES = [
   "cool",
   "monochrome",
   "tea",
+  "blue",
   "purple",
+  "cyan",
+  "rose",
   "alpine",
   "indigo",
   "charcoal & chocolate",
@@ -130,28 +133,32 @@ export function queryHeading(query: string): string {
   return `${query.charAt(0).toUpperCase()}${query.slice(1)} palettes`;
 }
 
+/** Split text into plain text and recognized names from the shared BASIC_COLORS map. */
+export function colorTextParts(text: string): QueryHeadingPart[] {
+  const parts: QueryHeadingPart[] = [];
+  let cursor = 0;
+  for (const match of text.matchAll(/[a-z]+/gi)) {
+    const index = match.index ?? 0;
+    const word = match[0];
+    const hex = colorNameToHex(word);
+    if (!hex) continue;
+    if (index > cursor)
+      parts.push({ kind: "text", value: text.slice(cursor, index) });
+    parts.push({ kind: "color", value: word, hex });
+    cursor = index + word.length;
+  }
+  if (cursor < text.length)
+    parts.push({ kind: "text", value: text.slice(cursor) });
+  return parts.length ? parts : [{ kind: "text", value: text }];
+}
+
 /**
  * Split the human heading into text and recognized color names. This is the
  * old PalettePageHeader behavior, backed by data-ops' shared BASIC_COLORS map
  * so search headings and semantic normalization use the same vocabulary.
  */
 export function queryHeadingParts(query: string): QueryHeadingPart[] {
-  const heading = queryHeading(query);
-  const parts: QueryHeadingPart[] = [];
-  let cursor = 0;
-  for (const match of heading.matchAll(/[a-z]+/gi)) {
-    const index = match.index ?? 0;
-    const word = match[0];
-    const hex = colorNameToHex(word);
-    if (!hex) continue;
-    if (index > cursor)
-      parts.push({ kind: "text", value: heading.slice(cursor, index) });
-    parts.push({ kind: "color", value: word, hex });
-    cursor = index + word.length;
-  }
-  if (cursor < heading.length)
-    parts.push({ kind: "text", value: heading.slice(cursor) });
-  return parts.length ? parts : [{ kind: "text", value: heading }];
+  return colorTextParts(queryHeading(query));
 }
 
 /** Context shown only when the submitted value was converted before search. */

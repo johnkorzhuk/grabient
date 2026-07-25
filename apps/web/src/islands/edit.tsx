@@ -30,6 +30,7 @@ import {
   colorsSnippet,
   exportItemData,
   heroInk,
+  paletteSharePath,
   shadertoySnippet,
 } from "../palette";
 import {
@@ -46,6 +47,7 @@ import {
   readExportList,
   toggleExportItem,
 } from "./export-store";
+import { trackEvent } from "../analytics";
 
 interface Modifier {
   key: "exposure" | "contrast" | "frequency" | "phase";
@@ -122,6 +124,7 @@ function MidpointSlider(props: {
   color?: string;
   label: string;
   onValue: (n: number) => void;
+  onCommit?: () => void;
 }) {
   const pct = () => `${(((props.value - props.min) / (props.max - props.min)) * 100).toFixed(2)}%`;
   const mid = () => `${(((0 - props.min) / (props.max - props.min)) * 100).toFixed(2)}%`;
@@ -162,6 +165,7 @@ function MidpointSlider(props: {
         aria-label={props.label}
         aria-valuetext={props.value.toFixed(3)}
         onInput={(e) => props.onValue(Number(e.currentTarget.value))}
+        onChange={() => props.onCommit?.()}
         onKeyDown={keydown}
       />
     </div>
@@ -267,11 +271,21 @@ export function EditorIsland(props: EditorProps) {
   });
   const syncExportIds = () =>
     setExportIds(new Set(readExportList().map((item) => item.id)));
+  const gradientEvent = () => ({
+    seed: seed(),
+    style: view().style,
+    steps: view().steps,
+    angle: view().angle,
+  });
   const toggleSeedExport = () => {
     const item = exportItem();
     if (!item) return;
     const result = toggleExportItem(item);
     setExportIds(new Set(result.items.map((entry) => entry.id)));
+    trackEvent(result.selected ? "add_to_export" : "remove_from_export", {
+      ...gradientEvent(),
+      newExportCount: result.items.length,
+    });
     const live = document.getElementById("live");
     if (live) {
       live.textContent = "";
@@ -322,7 +336,6 @@ export function EditorIsland(props: EditorProps) {
       } else {
         history.replaceState(history.state, "", url);
       }
-      updateStaticSurfaces(next);
     }, URL_THROTTLE_MS);
   };
   onCleanup(() => clearTimeout(urlTimer));
@@ -434,8 +447,25 @@ export function EditorIsland(props: EditorProps) {
       )
       .join("")}</ul>`;
 
+  const notifyPaletteChange = (currentSeed: string) => {
+    const current = view();
+    document.dispatchEvent(
+      new CustomEvent("palette:change", {
+        detail: {
+          seed: currentSeed,
+          style: current.style,
+          steps: current.steps,
+          angle: current.angle,
+        },
+      }),
+    );
+  };
+
   const live = () => {
-    updateStaticSurfaces(seed());
+    const currentSeed = serializeCoeffs(coeffs(), globals());
+    setSeed(currentSeed);
+    updateStaticSurfaces(currentSeed);
+    notifyPaletteChange(currentSeed);
     writeUrl();
   };
 
@@ -512,7 +542,10 @@ export function EditorIsland(props: EditorProps) {
   let copiedT: ReturnType<typeof setTimeout> | undefined;
   const copyCode = (kind: "css" | "svg") => {
     const text = document.getElementById(`${kind}-code`)?.textContent ?? "";
-    void navigator.clipboard?.writeText(text).then(() => flashCopied(kind));
+    void navigator.clipboard?.writeText(text).then(() => {
+      trackEvent(`copy_${kind}`, gradientEvent());
+      flashCopied(kind);
+    });
   };
   // PNG/SVG export (port of the original generatePNG + copyPNGToClipboard):
   // angularGradient uses a direct canvas conic (its SVG relies on a
@@ -584,7 +617,31 @@ export function EditorIsland(props: EditorProps) {
   const copyPng = () => {
     void pngBlob()
       .then((blob) => navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]))
-      .then(() => flashCopied("png"))
+      .then(() => {
+        const [width, height] = exportDims();
+        trackEvent("copy_png", {
+          ...gradientEvent(),
+          width,
+          height,
+          colorCount: hexColors().length,
+        });
+        flashCopied("png");
+      })
+      .catch(() => {});
+  };
+  const copyUrl = () => {
+    const current = view();
+    void navigator.clipboard
+      .writeText(
+        new URL(
+          paletteSharePath(seed(), current.style, current.steps, current.angle),
+          location.origin,
+        ).toString(),
+      )
+      .then(() => {
+        trackEvent("copy_link", gradientEvent());
+        flashCopied("url");
+      })
       .catch(() => {});
   };
   const downloadBlob = (blob: Blob, name: string) => {
@@ -594,14 +651,21 @@ export function EditorIsland(props: EditorProps) {
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   };
-  const downloadSvg = () =>
+  const downloadSvg = () => {
+    const [width, height] = exportDims();
     downloadBlob(
       new Blob([exportSvgString()], { type: "image/svg+xml" }),
       `grabient-${seed().slice(0, 16)}.svg`,
     );
+    trackEvent("download_svg", { ...gradientEvent(), width, height });
+  };
   const downloadPng = () => {
     void pngBlob()
-      .then((b) => downloadBlob(b, `grabient-${seed().slice(0, 16)}.png`))
+      .then((b) => {
+        const [width, height] = exportDims();
+        downloadBlob(b, `grabient-${seed().slice(0, 16)}.png`);
+        trackEvent("download_png", { ...gradientEvent(), width, height });
+      })
       .catch(() => {});
   };
 
@@ -825,6 +889,7 @@ export function EditorIsland(props: EditorProps) {
       const qs = q.toString() ? `?${q}` : "";
       history.replaceState(history.state, "", `/${seed()}${qs}`);
       updateStaticSurfaces(seed());
+      notifyPaletteChange(seed());
     };
     const previewFields = (fields: Record<string, string> | null) => {
       setOverlay(fields ? resolveFields(fields).state : null);
@@ -863,6 +928,7 @@ export function EditorIsland(props: EditorProps) {
       lastWriteAt = 0;
       prevEntryUrl = null;
       updateStaticSurfaces(nextSeed);
+      notifyPaletteChange(nextSeed);
       // Subheader fields mirror the restored URL's params.
       const form = document.getElementById("opts");
       if (form) {
@@ -901,6 +967,12 @@ export function EditorIsland(props: EditorProps) {
   // a modifier never changes the panel height.
   const ROW = "flex h-12 flex-col gap-1 pointer-coarse:h-[60px]";
   const LABEL_ROW = "flex h-6 items-baseline justify-between";
+  const trackModifier = (modifier: Modifier, channel?: string) =>
+    trackEvent("change_modifier", {
+      ...gradientEvent(),
+      modifier: modifier.key,
+      ...(channel ? { channel } : {}),
+    });
 
   const globalRow = (m: Modifier) => (
     <div class={`${ROW} group/row`}>
@@ -940,7 +1012,13 @@ export function EditorIsland(props: EditorProps) {
             data-tip="Tare — fold into channels"
             aria-label={`Tare ${m.key}: fold its effect into the channels`}
             class="inline-flex size-4 shrink-0 cursor-pointer items-center justify-center text-muted-foreground opacity-0 transition-[color,opacity] duration-200 outline-none hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/70 group-hover/row:opacity-100 pointer-coarse:opacity-100"
-            onClick={() => tare(m)}
+            onClick={() => {
+              tare(m);
+              trackEvent("tare_modifier", {
+                ...gradientEvent(),
+                modifier: m.key,
+              });
+            }}
           >
             <svg
               width="14"
@@ -973,6 +1051,7 @@ export function EditorIsland(props: EditorProps) {
           onChange={(e) => {
             if (!setModifier(m, Number(e.currentTarget.value)))
               e.currentTarget.value = globals()[m.idx]!.toFixed(3);
+            else trackModifier(m);
           }}
         />
       </div>
@@ -982,6 +1061,7 @@ export function EditorIsland(props: EditorProps) {
         value={globals()[m.idx]!}
         label={m.key}
         onValue={(n) => setModifier(m, n)}
+        onCommit={() => trackModifier(m)}
       />
     </div>
   );
@@ -1005,7 +1085,10 @@ export function EditorIsland(props: EditorProps) {
           onKeyDown={(ev) => channelKeydown(m, c.ch, ev)}
           onChange={(ev) => {
             const n = Number(ev.currentTarget.value);
-            if (Number.isFinite(n)) setChannel(m, c.ch, n);
+            if (Number.isFinite(n)) {
+              setChannel(m, c.ch, n);
+              trackModifier(m, c.label.toLowerCase());
+            }
             else ev.currentTarget.value = (applied()[m.idx]?.[c.ch] ?? 0).toFixed(3);
           }}
         />
@@ -1017,6 +1100,7 @@ export function EditorIsland(props: EditorProps) {
         color={c.color}
         label={`${m.key} ${c.label} channel`}
         onValue={(n) => setChannel(m, c.ch, n)}
+        onCommit={() => trackModifier(m, c.label.toLowerCase())}
       />
     </div>
   );
@@ -1048,6 +1132,11 @@ export function EditorIsland(props: EditorProps) {
       }) as CosineCoeffs,
     );
     live();
+    trackEvent("swap_rgb_channels", {
+      ...gradientEvent(),
+      firstChannel: CHANNELS[i]?.label,
+      secondChannel: CHANNELS[j]?.label,
+    });
   };
 
   // Invert the palette colors (photo-negative): applied a' = 1 - a, b' = -b.
@@ -1064,6 +1153,7 @@ export function EditorIsland(props: EditorProps) {
       }) as CosineCoeffs,
     );
     live();
+    trackEvent("invert_palette", gradientEvent());
   };
 
   const [drag, setDrag] = createSignal<{ ch: number; dx: number; target: number | null } | null>(
@@ -1334,6 +1424,34 @@ export function EditorIsland(props: EditorProps) {
                 <span class="text-[10px] font-bold">PNG</span>
               </Show>
           </button>
+            <button
+              type="button"
+              data-tip="Copy URL"
+              aria-label="Copy URL"
+              class={DOCK_BTN}
+              onClick={copyUrl}
+            >
+              <Show
+                when={copied() !== "url"}
+                fallback={
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                }
+              >
+                <span class="text-[10px] font-bold">URL</span>
+              </Show>
+            </button>
           </div>
           <div class="order-1 flex flex-col items-end gap-2" data-mobile-primary-actions>
           <button
@@ -1509,6 +1627,34 @@ export function EditorIsland(props: EditorProps) {
                 }
               >
                 <span class="text-[10px] font-bold">PNG</span>
+              </Show>
+            </button>
+            <button
+              type="button"
+              data-tip="Copy URL"
+              aria-label="Copy URL"
+              class={ACTION_BTN}
+              onClick={copyUrl}
+            >
+              <Show
+                when={copied() !== "url"}
+                fallback={
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                }
+              >
+                <span class="text-[10px] font-bold">URL</span>
               </Show>
             </button>
           </Portal>

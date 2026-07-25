@@ -32,6 +32,21 @@ export function canonicalSeed(seed: string): string | null {
   }
 }
 
+/** A stable, copyable link to one exact palette view. */
+export function paletteSharePath(
+  seed: string,
+  style: PaletteStyle,
+  steps: number,
+  angle: number,
+): string {
+  const search = new URLSearchParams({
+    style,
+    steps: String(steps),
+    angle: String(angle),
+  });
+  return `/${encodeURIComponent(seed)}?${search}`;
+}
+
 // Like identity is coefficient-based: legacy ids embed view params and v3 ids
 // embed non-default globals, so one palette has many stored seed strings.
 // Re-exported from data-ops for the SSR pages and the grid island alike.

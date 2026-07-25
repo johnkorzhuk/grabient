@@ -323,7 +323,7 @@ describe("export view (DOM flow)", () => {
     expect(document.querySelectorAll("#export-cards [data-like-seed]")).toHaveLength(2);
     expect(document.querySelectorAll("#export-cards a.card")).toHaveLength(0);
     expect(document.querySelectorAll("#export-cards .palette-card-edit")).toHaveLength(2);
-    expect(document.querySelectorAll("#export-cards [data-palette-copy]")).toHaveLength(6);
+    expect(document.querySelectorAll("#export-cards [data-palette-copy]")).toHaveLength(8);
     expect(document.querySelectorAll("#export-cards [data-palette-download]")).toHaveLength(2);
     expect(document.getElementById("export-cards").classList.contains("mb-12")).toBe(true);
     await vi.waitFor(() => {

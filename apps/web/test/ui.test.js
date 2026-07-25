@@ -1,14 +1,82 @@
 // UI delegation handlers that must work on every page type.
 import { beforeAll, describe, expect, it, vi } from "vitest";
+import { paletteCoeffKey } from "../src/palette";
 import { loadClient } from "./setup";
 
 let fetchMock;
+const storedValues = new Map();
+Object.defineProperty(globalThis, "localStorage", {
+  value: {
+    getItem: (key) => storedValues.get(key) ?? null,
+    setItem: (key, value) => storedValues.set(key, String(value)),
+    removeItem: (key) => storedValues.delete(key),
+    clear: () => storedValues.clear(),
+  },
+  configurable: true,
+  writable: true,
+});
 
 beforeAll(async () => {
   fetchMock = await loadClient();
 });
 
 describe("delegated UI handlers", () => {
+  it("persists query feedback and clears it when the same thumb is clicked twice", () => {
+    localStorage.removeItem("search-feedback");
+    document.body.innerHTML = `<div data-palette-card data-palette-style="linearGradient" data-palette-steps="7" data-palette-angle="90">
+      <div data-palette-card-action data-search-feedback-group data-query="warm sunset" data-seed="seed-a">
+        <button data-search-feedback="good" aria-pressed="false">Good</button>
+        <button data-search-feedback="bad" aria-pressed="false">Bad</button>
+      </div>
+    </div>`;
+    const good = document.querySelector('[data-search-feedback="good"]');
+    good.click();
+    expect(good.getAttribute("aria-pressed")).toBe("true");
+    expect(JSON.parse(localStorage.getItem("search-feedback")).data["warm sunset"]["seed-a"].feedback)
+      .toBe("good");
+    good.click();
+    expect(good.getAttribute("aria-pressed")).toBe("false");
+    expect(JSON.parse(localStorage.getItem("search-feedback")).data).toEqual({});
+  });
+
+  it("re-keys and refreshes the seed-page heart when the live palette changes", async () => {
+    const oldSeed = "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x";
+    const nextSeed = "_gJDgH1gIagIjgL4gJtgDZgFrgDFgAAgguhBd";
+    history.replaceState(null, "", `/${oldSeed}`);
+    document.body.innerHTML = `<button data-like-info data-like-current data-like-seed="${paletteCoeffKey(oldSeed)}" data-like-row="${oldSeed}" data-like-style="linearGradient" data-like-steps="7" data-like-angle="90" data-count="18"><span class="like-count">18</span><svg class="heart-i"></svg></button>`;
+    const previousFetch = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation(async (href) => {
+      if (String(href).includes("/api/like-info"))
+        return { ok: true, json: async () => ({ likesCount: 3, isLiked: false }) };
+      return { ok: true, json: async () => ({}) };
+    });
+
+    document.dispatchEvent(
+      new CustomEvent("palette:change", {
+        detail: {
+          seed: nextSeed,
+          style: "radialGradient",
+          steps: 9,
+          angle: 45,
+        },
+      }),
+    );
+    const heart = document.querySelector("[data-like-info]");
+    expect(heart.dataset.likeSeed).toBe(paletteCoeffKey(nextSeed));
+    expect(heart.dataset.likeRow).toBe(nextSeed);
+    expect(heart.dataset.likeStyle).toBe("radialGradient");
+    expect(heart.dataset.likeSteps).toBe("9");
+    expect(heart.dataset.likeAngle).toBe("45");
+    expect(heart.dataset.count).toBe("0");
+    await vi.waitFor(() => expect(heart.dataset.count).toBe("3"));
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/like-info?seed=${encodeURIComponent(nextSeed)}`,
+    );
+
+    fetchMock.mockImplementation(previousFetch);
+    fetchMock.mockClear();
+  });
+
   it("supports the current app's theme and eyedropper shortcuts outside editable fields", async () => {
     document.documentElement.classList.remove("dark");
     document.body.innerHTML = `<div id="live"></div>
@@ -59,12 +127,13 @@ describe("delegated UI handlers", () => {
     expect(writeText).toHaveBeenCalledWith("#aabbcc");
   });
 
-  it("copies CSS, SVG, and PNG from palette-list format buttons", async () => {
+  it("copies CSS, SVG, PNG, and URL from palette-list format buttons", async () => {
     document.body.innerHTML = `<div id="live"></div>
       <div data-palette-card data-palette-seed="HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5UIg" data-palette-style="linearGradient" data-palette-steps="7" data-palette-angle="90">
         <button data-palette-card-action data-palette-copy="css">CSS</button>
         <button data-palette-card-action data-palette-copy="svg">SVG</button>
         <button data-palette-card-action data-palette-copy="png">PNG</button>
+        <button data-palette-card-action data-palette-copy="url">URL</button>
       </div>`;
     const writeText = vi.fn(() => Promise.resolve());
     const write = vi.fn(() => Promise.resolve());
@@ -104,6 +173,12 @@ describe("delegated UI handlers", () => {
     await new Promise((r) => setTimeout(r, 0));
     expect(write).toHaveBeenCalledTimes(1);
     expect(document.getElementById("live").textContent).toBe("PNG copied to clipboard");
+    document.querySelector('[data-palette-copy="url"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(writeText.mock.calls[2][0]).toBe(
+      "http://localhost/HQVg7AnANKAMCMMQGYAcSAsYZgGyxlwCZFgTthldkZ4JsCjhYIMoNh5UIg?style=linearGradient&steps=7&angle=90",
+    );
+    expect(document.getElementById("live").textContent).toBe("URL copied to clipboard");
 
     getContext.mockRestore();
     toBlob.mockRestore();

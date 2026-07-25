@@ -409,6 +409,7 @@ async function handleSemanticSearch(
       nowMs: Date.now(),
       stars,
       island: false,
+      feedbackQuery: query,
       emptyText: `No palettes found for “${query}”. Try a different color, mood, or theme.`,
       exportOpen: url.searchParams.get("export") === "true",
       heading,

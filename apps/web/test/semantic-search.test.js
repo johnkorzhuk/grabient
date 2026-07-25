@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  colorTextParts,
   normalizeSemanticQuery,
   POPULAR_SEARCHES,
   queryFromParam,
@@ -54,13 +55,22 @@ describe("semantic search", () => {
     expect(normalizeSemanticQuery("#ff0000 night")).toContain("red");
     expect(normalizeSemanticQuery(SEED)).not.toBe(SEED);
     expect(queryHeading("warm sunset")).toBe("Warm sunset palettes");
-    expect(queryHeadingParts("blue teal rose")).toEqual([
+    expect(queryHeadingParts("blue purple cyan rose")).toEqual([
       { kind: "color", value: "Blue", hex: "#0000ff" },
       { kind: "text", value: " " },
-      { kind: "color", value: "teal", hex: "#008080" },
+      { kind: "color", value: "purple", hex: "#800080" },
+      { kind: "text", value: " " },
+      { kind: "color", value: "cyan", hex: "#00ffff" },
       { kind: "text", value: " " },
       { kind: "color", value: "rose", hex: "#ff007f" },
       { kind: "text", value: " palettes" },
+    ]);
+    expect(colorTextParts("teal, azure, navy")).toEqual([
+      { kind: "color", value: "teal", hex: "#008080" },
+      { kind: "text", value: ", " },
+      { kind: "color", value: "azure", hex: "#f0ffff" },
+      { kind: "text", value: ", " },
+      { kind: "color", value: "navy", hex: "#000080" },
     ]);
     expect(queryResultContext(SEED)).toEqual({ kind: "seed", seed: SEED });
     expect(queryResultContext("#ff0000 #00ff00")).toMatchObject({
@@ -68,6 +78,9 @@ describe("semantic search", () => {
     });
     expect(queryResultContext("warm sunset")).toBeNull();
     expect(POPULAR_SEARCHES.length).toBeGreaterThan(20);
+    expect(POPULAR_SEARCHES).toEqual(
+      expect.arrayContaining(["blue", "purple", "cyan", "rose"]),
+    );
     expect(queryFromParam("")).toBeNull();
   });
 

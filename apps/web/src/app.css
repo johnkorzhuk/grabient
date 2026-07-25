@@ -544,6 +544,47 @@ input::placeholder {
   font-weight: 800;
   letter-spacing: 0.035em;
 }
+.palette-card-feedback {
+  bottom: 0.75rem;
+  left: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--color-input);
+  border-radius: 0.5rem;
+  background: var(--color-background);
+  color: var(--color-muted-foreground);
+}
+.palette-card-feedback > button {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  outline: none;
+  transition:
+    color 150ms,
+    background-color 150ms;
+}
+.palette-card-feedback > button:hover {
+  background: color-mix(in srgb, var(--color-background) 60%, transparent);
+  color: var(--color-foreground);
+}
+.palette-card-feedback > button:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--color-ring);
+}
+.palette-card-feedback > button[aria-pressed="true"] {
+  color: var(--color-foreground);
+}
+.palette-card-feedback > span {
+  width: 1px;
+  height: 1rem;
+  background: var(--color-border);
+}
 @media (pointer: coarse) {
   /* Touch browsers keep :hover sticky. The explicit class is the sole source
      of truth so a second tap reliably hides every action again. */
@@ -558,7 +599,8 @@ input::placeholder {
   .palette-card-edit,
   .palette-card-export,
   .palette-card-download,
-  .palette-card-format {
+  .palette-card-format,
+  .palette-card-feedback > button {
     height: 2.25rem;
     min-width: 2.25rem;
     border-radius: 0.5rem;

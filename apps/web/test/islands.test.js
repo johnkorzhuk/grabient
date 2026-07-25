@@ -48,7 +48,7 @@ describe("islands integration (built bundle)", () => {
       true,
     );
     expect(cards[0].querySelector(".palette-card-edit").getAttribute("href")).toBe("/_test1");
-    expect(cards[0].querySelectorAll("[data-palette-copy]")).toHaveLength(3);
+    expect(cards[0].querySelectorAll("[data-palette-copy]")).toHaveLength(4);
     expect(cards[0].querySelectorAll("[data-palette-download]")).toHaveLength(1);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0][0])).toContain("/api/like-counts?keys=");
