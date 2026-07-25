@@ -1037,6 +1037,32 @@ function placeGraphTip(fig, tip, clientX, clientY) {
 // is over the gradient area — anywhere in the hero except the sliders sheet
 // — and toggle with a tap on the gradient background for touch. Body-portal
 // panels/menus/tooltips don't count as "leaving".
+function isSeedGradientTap(event, target, hero) {
+  if (!hero.contains(target)) return false;
+  if (
+    target.closest(
+      "button, a, input, select, textarea, [role='button'], [role='dialog'], [role='menu'], .menu-pop, .ui-tip, #editor-card, #graph-panel, #swatches-strip, #mobile-dock",
+    )
+  )
+    return false;
+
+  // In small-screen canvas mode #edit-preview sits at z:-1. The browser then
+  // targets one of its wrappers even though the user visibly tapped the
+  // gradient, so DOM ancestry alone is not a reliable hit test.
+  if (target.closest("#edit-preview, #preview-fit, #preview-box")) return true;
+  const preview = document.getElementById("edit-preview");
+  if (!preview) return false;
+  const rect = preview.getBoundingClientRect();
+  return (
+    rect.width > 0 &&
+    rect.height > 0 &&
+    event.clientX >= rect.left &&
+    event.clientX <= rect.right &&
+    event.clientY >= rect.top &&
+    event.clientY <= rect.bottom
+  );
+}
+
 document.addEventListener(
   "pointerdown",
   (e) => {
@@ -1064,7 +1090,8 @@ document.addEventListener(
     }
 
     const hero = document.getElementById("seed-hero");
-    if (hero && target.closest("#edit-preview")) hero.classList.toggle("ui-show");
+    if (hero && isSeedGradientTap(e, target, hero))
+      hero.classList.toggle("ui-show");
   },
   true,
 );

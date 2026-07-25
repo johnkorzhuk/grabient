@@ -692,7 +692,7 @@ input::placeholder {
 }
 @media (pointer: coarse) {
   /* Neutralize sticky touch-hover on the desktop/tablet seed canvas. */
-  #preview-box:hover :is(#preview-actions, #preview-actions-br) {
+  #preview-box:hover :where(#preview-actions, #preview-actions-br) {
     display: none;
   }
   .seed-hero.ui-show #preview-actions,

@@ -413,10 +413,17 @@ describe("delegated UI handlers", () => {
   });
 
   it("tapping the gradient toggles the floating controls (canvas mode)", () => {
-    document.body.innerHTML = `<div id="seed-hero" class="seed-hero"><div id="preview-box"><section id="edit-preview"></section></div><div id="mobile-dock"></div></div>`;
+    document.body.innerHTML = `<div id="seed-hero" class="seed-hero"><div id="preview-box"><div id="preview-fit"><section id="edit-preview"></section></div><button id="preview-action">copy</button></div><div id="mobile-dock"></div></div>`;
     const hero = document.getElementById("seed-hero");
     const gradient = document.getElementById("edit-preview");
-    gradient.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    const wrapper = document.getElementById("preview-box");
+    // Canvas mode puts the gradient behind the hero, so a real touch commonly
+    // targets this wrapper rather than the section itself.
+    wrapper.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
+    expect(hero.classList.contains("ui-show")).toBe(true);
+    document
+      .getElementById("preview-action")
+      .dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
     expect(hero.classList.contains("ui-show")).toBe(true);
     gradient.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerType: "touch" }));
     expect(hero.classList.contains("ui-show")).toBe(false);
