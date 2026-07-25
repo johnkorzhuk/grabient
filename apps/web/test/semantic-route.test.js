@@ -105,7 +105,7 @@ describe("semantic search route", () => {
     expect(ogUrl.searchParams.get("style")).toBe("radialGradient");
     expect(ogUrl.searchParams.get("steps")).toBe("11");
     expect(ogUrl.searchParams.get("angle")).toBe("45");
-    expect(ogUrl.searchParams.get("v")).toBe("11");
+    expect(ogUrl.searchParams.get("v")).toBe("12");
     expect(ogUrl.searchParams.has("sort")).toBe(false);
     warn.mockRestore();
   });
