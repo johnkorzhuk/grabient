@@ -122,7 +122,13 @@ app.use("*", async (c, next) => {
   c.header("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   c.header("X-Content-Type-Options", "nosniff");
   c.header("Referrer-Policy", "strict-origin-when-cross-origin");
-  c.header("X-Frame-Options", "DENY");
+  // Allow iframe embedding only from trusted referrers (cssgradient.io sends
+  // significant traffic via an embed); frame-ancestors replaces X-Frame-Options
+  // so per-origin whitelisting is possible.
+  c.header(
+    "Content-Security-Policy",
+    "frame-ancestors 'self' https://cssgradient.io https://*.cssgradient.io",
+  );
 });
 
 // Explicit cache headers on redirects: Workers Cache heuristically caches
