@@ -1,6 +1,7 @@
 import { render } from "solid-js/web";
 import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
 import "../app.client.js";
+import "../embed-notice.js";
 import { GridIsland, type ListData } from "./grid";
 import { listKey, setPreviewPatch, syncFromLocation, updateKey } from "./params";
 import { parseListSearch } from "../search";
