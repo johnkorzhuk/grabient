@@ -223,14 +223,22 @@ function swap(html, afterApply) {
     // preset pick) must not kick the user out of the input: remember the field
     // and refocus its replacement so key-repeat keeps flowing.
     const ae = document.activeElement;
-    const refocus = ae && ae.name && ae.closest && ae.closest("#opts") ? ae.name : null;
+    const focusedOptions =
+      ae && ae.name && ae.closest
+        ? ae.closest("#opts, [data-palette-options]")
+        : null;
+    const refocus = focusedOptions
+      ? { formId: focusedOptions.id, name: ae.name }
+      : null;
     document.body.replaceChildren(...doc.body.childNodes);
     // Scroll restoration must happen INSIDE the view-transition update so the
     // new snapshot is captured at the target scroll position — otherwise the
     // page visibly jumps after the crossfade finishes.
     if (afterApply) afterApply();
     if (refocus) {
-      const el = document.querySelector(`#opts [name="${refocus}"]`);
+      const el = document
+        .getElementById(refocus.formId)
+        ?.querySelector(`[name="${refocus.name}"]`);
       if (el) el.focus({ preventScroll: true });
     }
     document.dispatchEvent(new CustomEvent("app:swap"));
@@ -335,6 +343,21 @@ function syncOptsReset() {
 window.__syncOptsReset = syncOptsReset;
 document.addEventListener("app:swap", syncOptsReset);
 
+function syncPaletteOptionForms(source, fields) {
+  document
+    .querySelectorAll("[data-palette-options]")
+    .forEach((form) => {
+      if (form === source) return;
+      for (const el of form.elements) {
+        if (!el.name || !(el.name in fields)) continue;
+        if (el.tagName === "SELECT") {
+          el.value = fields[el.name];
+          if (el.__syncLabel) el.__syncLabel();
+        } else setVal(el, fields[el.name]);
+      }
+    });
+}
+
 document.addEventListener("change", (e) => {
   // Semantic result pages sort the same result set without leaving the query.
   if (e.target && e.target.id === "query-sort") {
@@ -364,7 +387,7 @@ document.addEventListener("change", (e) => {
     navigate(e.target.value + (p.size ? "?" + p : ""), true);
     return;
   }
-  const form = e.target.closest("#opts");
+  const form = e.target.closest("#opts, [data-palette-options]");
   if (!form) return;
   if (["angle", "steps", "style"].includes(e.target.name)) {
     const eventName = {
@@ -379,6 +402,7 @@ document.addEventListener("change", (e) => {
   }
   const fields = {};
   for (const el of form.elements) if (el.name) fields[el.name] = rawVal(el);
+  syncPaletteOptionForms(form, fields);
   if (!LIST_PATHS.includes(location.pathname))
     syncListMemory({ name: e.target.name, value: rawVal(e.target) });
   syncOptsReset();
@@ -392,7 +416,12 @@ document.addEventListener("change", (e) => {
 
 document.addEventListener("submit", (e) => {
   const form = e.target;
-  if (!form || form.id !== "palette-search") return;
+  if (
+    !form ||
+    (form.id !== "palette-search" &&
+      !form.hasAttribute("data-palette-search"))
+  )
+    return;
   const input = form.querySelector('input[name="q"]');
   const parsed = parseSearchInput(input?.value ?? "", location.origin);
   if (!parsed) return;
@@ -414,7 +443,11 @@ document.addEventListener("submit", (e) => {
 });
 
 document.addEventListener("input", (e) => {
-  if (e.target?.id !== "palette-search-input") return;
+  if (
+    e.target?.id !== "palette-search-input" &&
+    !e.target?.hasAttribute?.("data-palette-search-input")
+  )
+    return;
   e.target
     .closest("form")
     ?.querySelector("[data-search-clear]")
@@ -424,7 +457,11 @@ document.addEventListener("input", (e) => {
 document.addEventListener("click", (e) => {
   const clear = e.target.closest && e.target.closest("[data-search-clear]");
   if (!clear) return;
-  const input = clear.closest("form")?.querySelector("#palette-search-input");
+  const input = clear
+    .closest("form")
+    ?.querySelector(
+      'input[name="q"], [data-palette-search-input], #palette-search-input',
+    );
   if (!input) return;
   input.value = "";
   clear.classList.add("hidden");
@@ -937,7 +974,8 @@ document.addEventListener("keydown", (e) => {
     else v = Math.max(min, Math.min(max, v));
     setVal(el, String(v));
     // Palettes preview the stepped value live; the commit follows on release.
-    if (el.name && el.closest("#opts")) previewOpts(el.name, rawVal(el));
+    if (el.name && el.closest("#opts, [data-palette-options]"))
+      previewOpts(el.name, rawVal(el));
     if (commitEl && commitEl !== el) flushCommit();
     commitEl = el;
     clearTimeout(commitTimer);
@@ -982,7 +1020,12 @@ document.addEventListener("input", (e) => {
 // commit still waits for change/Enter/blur).
 document.addEventListener("input", (e) => {
   const el = e.target;
-  if (!el || !el.matches || !el.matches("#opts input[name]")) return;
+  if (
+    !el ||
+    !el.matches ||
+    !el.matches("#opts input[name], [data-palette-options] input[name]")
+  )
+    return;
   previewOpts(el.name, rawVal(el));
 });
 
@@ -1514,10 +1557,14 @@ document.addEventListener("pointerdown", (e) => {
 
 function menuTrigger(trigger, buildItems, onPick, anchor, onHover) {
   const open = () => {
+    if (trigger.disabled || trigger.getAttribute("aria-disabled") === "true")
+      return null;
     showMenu(trigger, buildItems(), onPick, anchor, onHover);
     return openMenu;
   };
   trigger.addEventListener("pointerdown", (e) => {
+    if (trigger.disabled || trigger.getAttribute("aria-disabled") === "true")
+      return;
     // Mouse-only fast open (Base UI feel); touch must not block scroll and
     // opens via the click that follows the tap.
     if (e.pointerType !== "mouse" || e.button !== 0) return;
@@ -1528,12 +1575,16 @@ function menuTrigger(trigger, buildItems, onPick, anchor, onHover) {
     }
   });
   trigger.addEventListener("click", () => {
+    if (trigger.disabled || trigger.getAttribute("aria-disabled") === "true")
+      return;
     if (openMenu && openMenu.trigger === trigger) {
       if (openMenu.justOpened) openMenu.justOpened = false;
       else closeMenu();
     } else open();
   });
   trigger.addEventListener("keydown", (e) => {
+    if (trigger.disabled || trigger.getAttribute("aria-disabled") === "true")
+      return;
     if (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       open();
@@ -1596,7 +1647,7 @@ function enhanceMenus() {
         sel.dispatchEvent(new Event("change", { bubbles: true }));
       },
       undefined,
-      sel.name && sel.closest("#opts")
+      sel.name && sel.closest("#opts, [data-palette-options]")
         ? (v) => (v === null ? previewOpts(null) : previewOpts(sel.name, v))
         : undefined,
     );
@@ -1620,7 +1671,7 @@ function enhanceMenus() {
         input.dispatchEvent(new Event("change", { bubbles: true }));
       },
       input,
-      input.name && input.closest("#opts")
+      input.name && input.closest("#opts, [data-palette-options]")
         ? (v) => (v === null ? previewOpts(null) : previewOpts(input.name, v))
         : undefined,
     );
@@ -1635,7 +1686,7 @@ window.__renderNavSelectForExport = (open) => {
   enhanceMenus();
   closeMenu();
   const controls = document.querySelectorAll(
-    '#nav-select, #query-sort, button[data-select-trigger][aria-label="Browse palettes"], button[data-select-trigger][aria-label="Sort search results"], #opts input, #opts select, #opts button[data-select-trigger], #opts .preset-btn',
+    '#nav-select, #query-sort, button[data-select-trigger][aria-label="Browse palettes"], button[data-select-trigger][aria-label="Sort search results"], #opts input, #opts select, #opts button[data-select-trigger], #opts .preset-btn, [data-palette-options] input, [data-palette-options] select, [data-palette-options] button[data-select-trigger], [data-palette-options] .preset-btn',
   );
   for (const control of controls) {
     if ("disabled" in control) control.disabled = open;
@@ -1673,6 +1724,30 @@ addEventListener(
 );
 document.addEventListener("app:swap", syncScrolled);
 syncScrolled();
+
+// Keep the mobile search at the viewport bottom until its reserved home below
+// pagination reaches it. From there it scrolls naturally above the footer.
+let searchDockRaf = 0;
+function syncSearchDock() {
+  const home = document.querySelector("[data-mobile-search-dock-home]");
+  const dock = home?.querySelector('[data-search-placement="mobile"]');
+  if (!home || !dock) return;
+  const dockHeight = dock.offsetHeight;
+  // Pointer-coarse controls are taller, and safe-area insets vary by device.
+  // Keep the resting slot equal to the dock's real rendered height.
+  if (home.offsetHeight !== dockHeight) home.style.height = `${dockHeight}px`;
+  const homeTop = home.getBoundingClientRect().top;
+  dock.classList.toggle("is-home", homeTop <= innerHeight - dockHeight);
+}
+function queueSearchDockSync() {
+  cancelAnimationFrame(searchDockRaf);
+  searchDockRaf = requestAnimationFrame(syncSearchDock);
+}
+addEventListener("scroll", queueSearchDockSync, { passive: true });
+addEventListener("resize", queueSearchDockSync);
+document.addEventListener("app:swap", syncSearchDock);
+syncSearchDock();
+
 let fitRaf = 0;
 addEventListener("resize", () => {
   cancelAnimationFrame(fitRaf);

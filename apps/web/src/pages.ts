@@ -136,6 +136,7 @@ function subHeader(
   sticky = true,
   exportOpen = false,
   hiddenFields = "",
+  mobileOptionsDocked = false,
 ): string {
   const styleOptions = [
     `<option value="" hidden${params.style === "auto" ? " selected" : ""}></option>`,
@@ -145,8 +146,8 @@ function subHeader(
     ),
   ].join("");
 
-  return `<div class="subheader ${sticky ? "sticky top-[69px] z-40 md:top-[73px] lg:top-[89px] " : ""}flex items-center px-5 lg:px-14">
-<form id="opts" method="get" action="${esc(path)}" class="flex w-full min-w-0 items-center gap-1.5">
+  return `<div class="subheader${mobileOptionsDocked ? " mobile-options-docked" : ""} ${sticky ? "sticky top-[69px] z-40 md:top-[73px] lg:top-[89px] " : ""}flex items-center px-5 lg:px-14">
+<form id="opts" data-palette-options method="get" action="${esc(path)}" class="flex w-full min-w-0 items-center gap-1.5">
 <span class="subheader-left flex min-w-0 shrink-0 items-center">${left}</span>
 ${hiddenFields}
 <button type="button" id="opts-reset" data-tip="Reset options" data-tip-side="bottom" aria-label="Reset options" class="${BTN_ICON} shrink-0${exportOpen || !sticky || (params.style === "auto" && params.steps === "auto" && params.angle === "auto") ? " hidden" : ""}">${ICON.rotate()}</button>
@@ -165,6 +166,35 @@ ${hiddenFields}
 <noscript><button class="${BTN}">Apply</button></noscript>
 </form>
 </div>`;
+}
+
+function mobilePaletteOptions(
+  params: ListSearch,
+  exportOpen = false,
+): string {
+  const styleOptions = [
+    `<option value="" hidden${params.style === "auto" ? " selected" : ""}></option>`,
+    ...PALETTE_STYLES.map(
+      (style) =>
+        `<option value="${style}"${params.style === style ? " selected" : ""}>${STYLE_LABELS[style]}</option>`,
+    ),
+  ].join("");
+  const disabled = exportOpen ? " disabled" : "";
+
+  return `<form id="opts-mobile" data-palette-options class="flex w-full min-w-0 items-center gap-2">
+<span class="ctrl-wrap style-wrap relative inline-flex min-w-0 flex-[1.1]">
+<select name="style" aria-label="Gradient style" data-enhance-select data-allow-clear data-placeholder="style" class="${CTRL} w-full min-w-0 cursor-pointer appearance-none pr-8${params.style === "auto" ? "" : " text-foreground!"}"${disabled}>${styleOptions}</select>
+<span class="native-chevron pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground">${ICON.chevrons()}</span>
+</span>
+<span class="ctrl-wrap angle-wrap relative inline-flex min-w-0 flex-1">
+<input type="text" name="angle" inputmode="numeric" autocomplete="off" data-step-keys data-wrap data-suffix="°" data-min="${MIN_ANGLE}" data-max="${MAX_ANGLE}" placeholder="angle" aria-label="Angle" class="${CTRL} w-full min-w-0 pl-3 pr-7 text-left${params.angle === "auto" ? "" : " text-foreground!"}" value="${params.angle === "auto" ? "" : `${params.angle}°`}"${disabled}>
+<button type="button" tabindex="-1" data-presets="0,45,90,135,180,225,270,315" data-preset-suffix="°" data-tip="Angle presets" data-tip-side="top" aria-label="Angle presets" class="preset-btn absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-foreground"${disabled}>${ICON.chevrons()}</button>
+</span>
+<span class="ctrl-wrap steps-wrap relative inline-flex min-w-0 flex-1">
+<input type="number" name="steps" inputmode="numeric" data-step-keys data-min="${MIN_STEPS}" data-max="${MAX_STEPS}" min="${MIN_STEPS}" max="${MAX_STEPS}" placeholder="steps" aria-label="Steps" class="${CTRL} w-full min-w-0 pl-3 pr-7 text-left [&::-webkit-inner-spin-button]:appearance-none${params.steps === "auto" ? "" : " text-foreground!"}" value="${params.steps === "auto" ? "" : params.steps}"${disabled}>
+<button type="button" tabindex="-1" data-presets="3,5,8,13,21,34" data-tip="Steps presets" data-tip-side="top" aria-label="Steps presets" class="preset-btn absolute right-1 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 cursor-pointer items-center justify-center rounded text-muted-foreground hover:text-foreground"${disabled}>${ICON.chevrons()}</button>
+</span>
+</form>`;
 }
 
 function sortNav(active: Sort, _params: ListSearch, exportOpen = false): string {
@@ -413,7 +443,18 @@ function searchExplorer(
   suggestions: readonly PopularSearchSuggestion[] = POPULAR_SEARCHES.map((query) => ({
     query,
   })),
+  placement: "desktop" | "mobile" = "desktop",
+  mobileOptions = "",
 ): string {
+  const mobile = placement === "mobile";
+  const suffix = mobile ? "-mobile" : "";
+  const sectionClass = mobile
+    ? "mobile-search-dock fixed inset-x-0 bottom-0 z-30 flex flex-col items-center gap-4 border-t border-dashed border-border bg-background px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-4 md:hidden"
+    : "mb-12 hidden flex-col items-center gap-5 md:flex";
+  const formClass = mobile ? "relative w-full" : "relative w-full max-w-lg";
+  const suggestionsClass = mobile
+    ? "flex w-full items-center gap-2 overflow-hidden"
+    : "flex w-full max-w-3xl items-center gap-2 overflow-hidden";
   const search = new URLSearchParams();
   if (params && params.style !== "auto") search.set("style", params.style);
   if (params && params.steps !== "auto") search.set("steps", String(params.steps));
@@ -423,14 +464,15 @@ function searchExplorer(
     (suggestion) =>
       `<a data-search-tag href="/palettes/${querySlug(suggestion.query)}${esc(options)}" class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs">${popularQueryContent(suggestion)}</a>`,
   ).join("");
-  return `<section aria-label="Find gradient palettes" class="mb-10 flex flex-col items-center gap-3 md:mb-12 md:gap-5">
-<form id="palette-search" action="/palettes" method="get" role="search" class="relative w-full max-w-lg">
-<label for="palette-search-input" class="sr-only">Search gradient palettes</label>
+  return `<section data-search-placement="${placement}" aria-label="Find gradient palettes" class="${sectionClass}">
+${mobileOptions}
+<form id="palette-search${suffix}" data-palette-search action="/palettes" method="get" role="search" class="${formClass}">
+<label for="palette-search-input${suffix}" class="sr-only">Search gradient palettes</label>
 <span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground md:left-4">${ICON.search("h-[18px] w-[18px] md:h-5 md:w-5")}</span>
-<input id="palette-search-input" name="q" type="text" value="${esc(currentQuery)}" required autocomplete="off" enterkeyhint="search" placeholder="Search palettes..." class="${CTRL} h-10 w-full rounded-full pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground placeholder:opacity-55 focus:placeholder:opacity-0 md:h-11 md:pl-11 md:pr-10 md:text-base">
+<input id="palette-search-input${suffix}" name="q" type="text" value="${esc(currentQuery)}" data-palette-search-input required autocomplete="off" enterkeyhint="search" placeholder="Search palettes..." class="${CTRL} h-10 w-full rounded-full pl-10 pr-9 text-sm text-foreground placeholder:text-muted-foreground placeholder:opacity-55 focus:placeholder:opacity-0 md:h-11 md:pl-11 md:pr-10 md:text-base">
 <button type="button" data-search-clear aria-label="Clear search" class="${currentQuery ? "" : "hidden "}absolute right-3.5 top-1/2 -translate-y-1/2 cursor-pointer rounded p-0.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/70 md:right-4">${ICON.x("h-5 w-5")}</button>
 </form>
-<div class="flex w-full max-w-3xl items-center gap-2 overflow-hidden">
+<div class="${suggestionsClass}">
 <span class="hidden shrink-0 text-sm font-medium text-muted-foreground md:inline">Popular</span>
 <nav data-drag-scroll aria-label="Popular palette searches" class="flex min-w-0 flex-1 cursor-grab touch-pan-x select-none gap-1.5 overflow-x-auto active:cursor-grabbing [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">${popular}</nav>
 </div>
@@ -489,9 +531,9 @@ ${pagination(d.params, d.totalPages, d.path, d.paginationSearch)}`;
       : `<div id="grid-island"></div>
 <script type="application/json" id="__DATA__">${dataJson}</script>`;
   const body = `${logoAnimStyle(d.items, d.params)}${header(undefined, d.user)}
-${subHeader(d.subheaderLeft ?? sortNav(d.sort, d.params, d.exportOpen), d.params, d.path, true, d.exportOpen, d.hiddenFields)}
+${subHeader(d.subheaderLeft ?? sortNav(d.sort, d.params, d.exportOpen), d.params, d.path, true, d.exportOpen, d.hiddenFields, true)}
 <main class="flex-1 px-5 pb-5 pt-3 md:pt-5 lg:px-14">
-${searchExplorer(d.searchQuery, d.params, d.popularSearches)}
+${searchExplorer(d.searchQuery, d.params, d.popularSearches, "desktop")}
 <div class="${d.queryContext ? "" : "mb-8 "}flex items-center justify-between gap-3">
 <h1 id="list-h1" class="text-3xl font-bold text-foreground md:text-4xl">${headingContent(d)}</h1>
 <div id="export-slot" class="flex shrink-0 items-center gap-2"></div>
@@ -503,6 +545,9 @@ ${grid}
 ${island}
 <div id="export-root" hidden></div>
 </main>
+<div data-mobile-search-dock-home class="relative h-[calc(11rem+env(safe-area-inset-bottom))] shrink-0 md:hidden">
+${searchExplorer(d.searchQuery, d.params, d.popularSearches, "mobile", mobilePaletteOptions(d.params, d.exportOpen))}
+</div>
 ${footer(d.stars)}`;
   return layout(
     {

@@ -358,9 +358,18 @@ describe("export view (DOM flow)", () => {
     expect(dl.dataset.menuAlign).toBe("end");
     // Browse + palette options retain their layout but are disabled in export mode.
     const nav = document.getElementById("nav-select");
+    const navTrigger = nav.parentElement.querySelector("button[data-select-trigger]");
     expect(nav.parentElement.hidden).toBe(false);
     expect(nav.disabled).toBe(true);
-    expect(nav.parentElement.querySelector("button[data-select-trigger]").disabled).toBe(true);
+    expect(navTrigger.disabled).toBe(true);
+    navTrigger.dispatchEvent(
+      new PointerEvent("pointerdown", {
+        bubbles: true,
+        button: 0,
+        pointerType: "mouse",
+      }),
+    );
+    expect(document.querySelector(".menu-pop")).toBeNull();
     expect(document.querySelector('#opts input[name="angle"]').disabled).toBe(true);
     expect(document.querySelector('#opts input[name="steps"]').disabled).toBe(true);
     expect(document.querySelector('#opts select[name="style"]').disabled).toBe(true);
@@ -368,6 +377,17 @@ describe("export view (DOM flow)", () => {
     expect([...document.querySelectorAll("#opts .preset-btn")].every((button) => button.disabled)).toBe(
       true,
     );
+    expect(document.querySelector('#opts-mobile input[name="angle"]').disabled).toBe(true);
+    expect(document.querySelector('#opts-mobile input[name="steps"]').disabled).toBe(true);
+    expect(document.querySelector('#opts-mobile select[name="style"]').disabled).toBe(true);
+    expect(
+      document.querySelector('#opts-mobile button[data-select-trigger]').disabled,
+    ).toBe(true);
+    expect(
+      [...document.querySelectorAll("#opts-mobile .preset-btn")].every(
+        (button) => button.disabled,
+      ),
+    ).toBe(true);
     expect(document.getElementById("opts-reset").classList.contains("hidden")).toBe(true);
     expect(document.getElementById("opts").classList.contains("w-full")).toBe(true);
     expect(nav.closest(".subheader-left")).not.toBeNull();
@@ -400,6 +420,9 @@ describe("export view (DOM flow)", () => {
     expect(document.querySelector('#opts input[name="angle"]').disabled).toBe(false);
     expect(document.querySelector('#opts input[name="steps"]').disabled).toBe(false);
     expect(document.querySelector('#opts select[name="style"]').disabled).toBe(false);
+    expect(document.querySelector('#opts-mobile input[name="angle"]').disabled).toBe(false);
+    expect(document.querySelector('#opts-mobile input[name="steps"]').disabled).toBe(false);
+    expect(document.querySelector('#opts-mobile select[name="style"]').disabled).toBe(false);
     expect(nav.parentElement.querySelector("button[data-select-trigger]").textContent).toContain(
       "Popular",
     );

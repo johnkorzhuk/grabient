@@ -307,6 +307,36 @@ describe("delegated UI handlers", () => {
     delete window.__paramsHandler;
   });
 
+  it("applies mobile dock options and keeps the desktop controls in sync", () => {
+    document.body.innerHTML = `
+      <form id="opts" data-palette-options>
+        <select name="style"><option value=""></option><option value="radialGradient" selected>R</option></select>
+        <input name="angle" data-suffix="°" value="45°">
+        <input name="steps" value="5">
+      </form>
+      <form id="opts-mobile" data-palette-options>
+        <select name="style"><option value=""></option><option value="radialGradient" selected>R</option></select>
+        <input name="angle" data-suffix="°" value="45°">
+        <input name="steps" value="5">
+      </form>`;
+    const handler = vi.fn();
+    window.__paramsHandler = handler;
+    const mobileAngle = document.querySelector(
+      '#opts-mobile input[name="angle"]',
+    );
+    mobileAngle.value = "90°";
+    mobileAngle.dispatchEvent(new Event("change", { bubbles: true }));
+    expect(document.querySelector('#opts input[name="angle"]').value).toBe(
+      "90°",
+    );
+    expect(handler).toHaveBeenCalledWith({
+      style: "radialGradient",
+      angle: "90",
+      steps: "5",
+    });
+    delete window.__paramsHandler;
+  });
+
   it("reconciles edge-cached list counts from the write-fresh count endpoint", async () => {
     const keyA = "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x";
     const keyB = "_gJDgH1gIagIjgL4gJtgDZgFrgDFgAAgguhBd";

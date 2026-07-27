@@ -307,6 +307,22 @@
   backdrop-filter: blur(12px) saturate(1.4);
   border-bottom: 1px solid color-mix(in oklab, var(--color-foreground) 8%, transparent);
 }
+
+/* The mobile search stays pinned while results scroll, then returns to its
+   reserved home between pagination and the footer divider. */
+.mobile-search-dock.is-home {
+  position: absolute;
+}
+.mobile-search-dock #opts-mobile :is(input, select, button[role="combobox"]) {
+  font-size: 0.875rem;
+}
+.mobile-search-dock #opts-mobile button[role="combobox"] {
+  padding-right: 0.5rem;
+}
+.mobile-search-dock #opts-mobile button[role="combobox"] > svg {
+  margin-left: auto;
+}
+
 /* Solid backdrop-filter fallback: if the browser can't blur, stay opaque so
    scrolled content never bleeds through as unreadable mush. */
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
@@ -407,6 +423,27 @@ input::placeholder {
   .subheader #opts :is(.angle-wrap, .steps-wrap) > input {
     width: 100%;
     min-width: 0;
+  }
+
+  /* List routes move palette controls into the bottom search dock. Keep the
+     sticky top row focused on Back/Browse while seed routes retain the full
+     two-row editor above. */
+  .subheader.mobile-options-docked #opts {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .subheader.mobile-options-docked {
+    padding-top: 0;
+  }
+  .subheader.mobile-options-docked
+    #opts
+    > :is(.angle-wrap, .steps-wrap, .style-wrap) {
+    display: none;
+  }
+  .subheader.mobile-options-docked .subheader-left {
+    width: auto;
+    margin-right: auto;
   }
 }
 
