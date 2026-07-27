@@ -1,6 +1,25 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
-	"name": "grabient-lite",
+
+	// ---------------------------------------------------------------------------
+	// This top level is NOT a deploy target.
+	//
+	// Cloudflare does not inherit bindings or vars into named environments, so
+	// every binding is declared per environment below. Deliberately, none live up
+	// here: a bare `wrangler deploy` therefore cannot reach grabient-lite or
+	// grabient-production. It would publish this inert "grabient-web-root" script
+	// instead, which has no database and fails fast.
+	//
+	// Always pass --env:
+	//   pnpm dev                 -> wrangler dev --env staging   (local, local D1)
+	//   pnpm deploy:staging      -> grabient-lite
+	//   pnpm deploy:production   -> grabient-production  (grabient.com)
+	//
+	// Two applications once both claimed the name "grabient-production", so
+	// whichever deployed last won. Keeping the root inert is what prevents that
+	// class of accident from recurring.
+	// ---------------------------------------------------------------------------
+	"name": "grabient-web-root",
 	"compatibility_date": "2025-09-02",
 	"compatibility_flags": ["nodejs_compat"],
 	"main": "./src/index.ts",
@@ -23,73 +42,103 @@
 	// cache across deploys and reintroduce stale-UI-after-deploy for up to the
 	// full CDN max-age + SWR window.
 	"cache": { "enabled": true, "cross_version_cache": false },
-	// Default environment (staging) - shares the existing staging D1
-	"d1_databases": [
-		{
-			"binding": "DB",
-			"database_name": "grabient",
-			"database_id": "acb5748b-2b55-404e-8a15-2718a8524b86",
-			"migrations_dir": "../../packages/data-ops/src/drizzle"
-		}
-	],
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "RATE_LIMITER",
-				"class_name": "RateLimiter"
-			}
-		]
-	},
-	// SEO query cards reuse the current app's semantic-search bindings and
-	// caches so /api/og/query produces the same social previews.
-	"vectorize": [
-		{
-			"binding": "VECTORIZE",
-			"index_name": "grabient-palettes",
-			"remote": true
-		}
-	],
-	"ai": {
-		"binding": "AI",
-		"remote": true
-	},
-	"kv_namespaces": [
-		{
-			"binding": "SEARCH_CACHE",
-			"id": "04596938aa91477eb1c38d45f3d1b9f3",
-			"remote": true
-		},
-		{
-			"binding": "OG_IMAGE_CACHE",
-			"id": "a06cc24c512d4994a88593436387f5f1",
-			"remote": true
-		}
-	],
-	// Avatar uploads: same bucket as the live site (grabient3 default env).
-	// Each bucket's r2.dev public URL fronts ONLY that bucket — pub-a081a47d…
-	// serves grabient-uploads-dev (staging), pub-f6df953a… serves
-	// grabient-uploads (prod). Pairing them wrong writes URLs that 404.
-	// Stored image URLs in D1 use this base, so it must match exactly for
-	// old-avatar cleanup to find keys.
-	// "remote": true — wrangler dev talks to the REAL dev bucket instead of a
-	// local simulation, so locally uploaded avatars resolve at R2_PUBLIC_URL
-	// (mirrors the original's local flow, which presigns into the real bucket).
-	// Dev-only flag: ignored by wrangler deploy. D1 intentionally stays local.
-	"vars": {
-		"PUBLIC_ORIGIN": "https://grabient-lite.jkorzhuk.workers.dev",
-		"BETTER_AUTH_URL": "https://grabient-lite.jkorzhuk.workers.dev",
-		"EMAIL_FROM": "noreply@grabient.com",
-		"TURNSTILE_SITE_KEY": "0x4AAAAAABf2mUHr7C-mxWAl",
-		"R2_PUBLIC_URL": "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev"
-	},
-	"r2_buckets": [
-		{
-			"binding": "UPLOADS",
-			"bucket_name": "grabient-uploads-dev",
-			"remote": true
-		}
-	],
+	// Workers Logs. Without this, every console.error in index.ts, auth.ts,
+	// seo.ts and semantic-search.ts is discarded and the only way to see a
+	// production error is to already be running `wrangler tail`.
+	"observability": { "enabled": true, "head_sampling_rate": 1 },
+	// Runaway guard, not a tuning knob. /api/og and /api/og/query rasterize PNGs
+	// through @cf-wasm/resvg; normal requests are single- to low-triple-digit ms,
+	// so 10s of CPU is far above anything legitimate while still bounding a
+	// pathological render. Raise it before optimizing against it.
+	"limits": { "cpu_ms": 10000 },
+
 	"env": {
+		// -------------------------------------------------------------------------
+		// staging — worker grabient-lite. Also the config `wrangler dev` uses.
+		//
+		// Bindings marked "remote": true talk to the real staging resource even
+		// under `wrangler dev`, because Vectorize, Workers AI, KV and R2 have no
+		// local simulation worth using. D1 intentionally stays local, so local
+		// development never writes to the staging database.
+		// -------------------------------------------------------------------------
+		"staging": {
+			"name": "grabient-lite",
+			"workers_dev": true,
+			"assets": { "directory": "./dist/client" },
+			// See top-level cache comment: cross_version_cache must stay false.
+			"cache": { "enabled": true, "cross_version_cache": false },
+			"d1_databases": [
+				{
+					"binding": "DB",
+					"database_name": "grabient",
+					"database_id": "acb5748b-2b55-404e-8a15-2718a8524b86",
+					"migrations_dir": "../../packages/data-ops/src/drizzle"
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "RATE_LIMITER",
+						"class_name": "RateLimiter"
+					}
+				]
+			},
+			// SEO query cards reuse the current app's semantic-search bindings and
+			// caches so /api/og/query produces the same social previews.
+			"vectorize": [
+				{
+					"binding": "VECTORIZE",
+					"index_name": "grabient-palettes",
+					"remote": true
+				}
+			],
+			"ai": {
+				"binding": "AI",
+				"remote": true
+			},
+			"kv_namespaces": [
+				{
+					"binding": "SEARCH_CACHE",
+					"id": "04596938aa91477eb1c38d45f3d1b9f3",
+					"remote": true
+				},
+				{
+					"binding": "OG_IMAGE_CACHE",
+					"id": "a06cc24c512d4994a88593436387f5f1",
+					"remote": true
+				}
+			],
+			// Avatar uploads. Each bucket's r2.dev public URL fronts ONLY that
+			// bucket — pub-a081a47d… serves grabient-uploads-dev (staging),
+			// pub-f6df953a… serves grabient-uploads (prod). Pairing them wrong
+			// writes URLs that 404. Stored image URLs in D1 use this base, so it
+			// must match exactly for old-avatar cleanup to find keys.
+			// "remote": true — wrangler dev talks to the REAL dev bucket instead of
+			// a local simulation, so locally uploaded avatars resolve at
+			// R2_PUBLIC_URL. Dev-only flag: ignored by wrangler deploy.
+			"r2_buckets": [
+				{
+					"binding": "UPLOADS",
+					"bucket_name": "grabient-uploads-dev",
+					"remote": true
+				}
+			],
+			"vars": {
+				"PUBLIC_ORIGIN": "https://grabient-lite.jkorzhuk.workers.dev",
+				"BETTER_AUTH_URL": "https://grabient-lite.jkorzhuk.workers.dev",
+				"EMAIL_FROM": "noreply@grabient.com",
+				"TURNSTILE_SITE_KEY": "0x4AAAAAABf2mUHr7C-mxWAl",
+				"R2_PUBLIC_URL": "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev"
+			}
+		},
+
+		// -------------------------------------------------------------------------
+		// production — worker grabient-production, serves grabient.com.
+		//
+		// The grabient.com hostname is attached to this worker in the Cloudflare
+		// dashboard, not in this file. There is no routes[] or custom_domain key
+		// here; adding one would change routing, so don't add one casually.
+		// -------------------------------------------------------------------------
 		"production": {
 			"name": "grabient-production",
 			"workers_dev": true,
@@ -131,19 +180,22 @@
 					"id": "f43a67e1a657473fbe09db8c94e77ed9"
 				}
 			],
+			// pub-f6df953a… is the r2.dev URL for this bucket; cdn.grabient.com is
+			// the custom domain in front of it. See the staging note above — these
+			// must never be swapped.
+			"r2_buckets": [
+				{
+					"binding": "UPLOADS",
+					"bucket_name": "grabient-uploads"
+				}
+			],
 			"vars": {
 				"PUBLIC_ORIGIN": "https://grabient.com",
 				"BETTER_AUTH_URL": "https://grabient.com",
 				"EMAIL_FROM": "noreply@grabient.com",
 				"TURNSTILE_SITE_KEY": "0x4AAAAAABf2mUHr7C-mxWAl",
 				"R2_PUBLIC_URL": "https://cdn.grabient.com"
-			},
-			"r2_buckets": [
-				{
-					"binding": "UPLOADS",
-					"bucket_name": "grabient-uploads"
-				}
-			]
+			}
 		}
 	}
 }
