@@ -160,4 +160,25 @@ describe("aggregateLikesByKey", () => {
     };
     expect((await getLikeTotalsByKeys([], db)).size).toBe(0);
   });
+
+  // Regression: /saved passes up to 1,000 keys and D1 rejects queries with
+  // more than 100 bound parameters — the totals read must chunk its IN list.
+  it("chunks large key lists below D1's bound-parameter limit", async () => {
+    const keys = Array.from({ length: 250 }, (_, i) => `key-${i}`);
+    let queries = 0;
+    const db = {
+      select: () => ({
+        from: () => ({
+          where: () => ({
+            groupBy: async () => {
+              queries += 1;
+              return [];
+            },
+          }),
+        }),
+      }),
+    };
+    await getLikeTotalsByKeys(keys, db);
+    expect(queries).toBe(3); // 90 + 90 + 70
+  });
 });

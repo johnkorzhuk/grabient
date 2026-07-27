@@ -261,6 +261,10 @@ export function aggregateLikesByKey(
 // matching the requested keys through likes_coeff_key_idx. It still reads the
 // durable rows on every call (never memoized per isolate — a toggle can write
 // through one isolate while the next request lands on another).
+// D1 rejects queries with more than 100 bound parameters, and /saved can ask
+// for up to 1,000 keys at once — chunk the IN list well under the limit.
+const LIKE_KEYS_CHUNK = 90;
+
 export async function getLikeTotalsByKeys(
   keys: string[],
   dbInstance?: ReturnType<typeof getDb>
@@ -268,16 +272,19 @@ export async function getLikeTotalsByKeys(
   const unique = [...new Set(keys)];
   if (!unique.length) return new Map();
   const db = dbInstance || getDb();
-  const rows = await db
-    .select({
-      key: likes.coeffKey,
-      total: sql<number>`COUNT(DISTINCT ${likes.userId})`,
-    })
-    .from(likes)
-    .where(inArray(likes.coeffKey, unique))
-    .groupBy(likes.coeffKey);
   const totals = new Map<string, number>();
-  for (const row of rows) if (row.key) totals.set(row.key, row.total);
+  for (let start = 0; start < unique.length; start += LIKE_KEYS_CHUNK) {
+    const chunk = unique.slice(start, start + LIKE_KEYS_CHUNK);
+    const rows = await db
+      .select({
+        key: likes.coeffKey,
+        total: sql<number>`COUNT(DISTINCT ${likes.userId})`,
+      })
+      .from(likes)
+      .where(inArray(likes.coeffKey, chunk))
+      .groupBy(likes.coeffKey);
+    for (const row of rows) if (row.key) totals.set(row.key, row.total);
+  }
   return totals;
 }
 
