@@ -14,6 +14,8 @@
 	"assets": { "directory": "./dist/client" },
 	// Workers Cache (July 2026): edge cache in front of the worker — honors our
 	// CDN-Cache-Control TTLs, serves hits without executing the worker.
+	// All redirects must set an explicit cache policy. In particular, the
+	// HTTP→HTTPS redirect is no-store so it cannot poison the HTTPS cache key.
 	// cross_version_cache MUST stay false (the default, pinned here on purpose):
 	// the Worker version is then part of the cache key, so each deploy starts
 	// from an empty edge cache and pre-deploy HTML is never served again — no

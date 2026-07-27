@@ -16,4 +16,15 @@ describe("palette list cache policy", () => {
     expect(response.headers.get("Cache-Control")).toBe("private, no-store");
     expect(response.headers.get("CDN-Cache-Control")).toBe("no-store");
   });
+
+  it("never caches the HTTP to HTTPS redirect", async () => {
+    const response = await app.request("http://grabient.com/", {
+      headers: { "x-forwarded-proto": "http" },
+    });
+
+    expect(response.status).toBe(301);
+    expect(response.headers.get("Location")).toBe("https://grabient.com/");
+    expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(response.headers.get("CDN-Cache-Control")).toBe("no-store");
+  });
 });

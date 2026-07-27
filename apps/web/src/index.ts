@@ -116,6 +116,11 @@ app.use("*", async (c, next) => {
   if (requestProtocol(c) === "http") {
     const target = new URL(c.req.url);
     target.protocol = "https:";
+    // Workers Cache otherwise applies its heuristic TTL to this headerless
+    // 301. HTTP and HTTPS can resolve to the same Worker cache key, turning
+    // the canonical HTTPS URL into a cached self-redirect.
+    c.header("Cache-Control", NO_STORE["Cache-Control"]);
+    c.header("CDN-Cache-Control", NO_STORE["CDN-Cache-Control"]);
     return c.redirect(target.toString(), 301);
   }
   await next();
