@@ -231,10 +231,14 @@ export function queryOgSvg(
       return { start, size: end - start };
     });
   const leftBottomColumns = partition(0, majorWidth, 3);
-  const rightColumns = partition(majorWidth, minorWidth, 3);
-  const rightRows = partition(0, height, 4);
-  // One dominant palette and three supporting palettes on the left; a dense
-  // 3×4 result grid on the right shows the breadth of the search query.
+  // The right rail reads as a stack of palette strips: full-bleed bands of
+  // uniform height, so each result shows its whole gradient left to right
+  // instead of being cropped into a square. Keeping 12 of them preserves the
+  // number of results the card advertises.
+  const RIGHT_BAND_COUNT = 12;
+  const rightBands = partition(0, height, RIGHT_BAND_COUNT);
+  // One dominant palette and three supporting palettes on the left; a stack of
+  // full-width result bands on the right shows the breadth of the search query.
   const tiles = [
     { x: 0, y: 0, width: majorWidth, height: majorHeight },
     ...leftBottomColumns.map((column) => ({
@@ -243,14 +247,12 @@ export function queryOgSvg(
       width: column.size,
       height: minorHeight,
     })),
-    ...rightRows.flatMap((row) =>
-      rightColumns.map((column) => ({
-        x: column.start,
-        y: row.start,
-        width: column.size,
-        height: row.size,
-      })),
-    ),
+    ...rightBands.map((band) => ({
+      x: majorWidth,
+      y: band.start,
+      width: minorWidth,
+      height: band.size,
+    })),
   ];
   const views = results
     .slice(0, tiles.length)

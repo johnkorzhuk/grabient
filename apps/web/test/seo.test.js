@@ -68,7 +68,7 @@ describe("SEO parity", () => {
     expect(svg).toContain(view.hexColors[0]);
   });
 
-  it("renders a hero, three lower palettes, and a 3-by-4 query grid", () => {
+  it("renders a hero, three lower palettes, and a stack of full-width query bands", () => {
     const svg = queryOgSvg(
       [
         {
@@ -94,8 +94,13 @@ describe("SEO parity", () => {
     expect(svg).toContain('<rect x="0" y="389" width="247" height="241"');
     expect(svg).toContain('<rect x="247" y="389" width="248" height="241"');
     expect(svg).toContain('<rect x="495" y="389" width="247" height="241"');
-    expect(svg).toContain('<rect x="742" y="0" width="153" height="158"');
-    expect(svg).toContain('<rect x="1047" y="473" width="153" height="157"');
+    // Right rail: 12 full-bleed bands, each spanning the whole minor column so
+    // a result shows its entire gradient rather than a cropped square.
+    expect(svg).toContain('<rect x="742" y="0" width="458" height="53"');
+    expect(svg).toContain('<rect x="742" y="578" width="458" height="52"');
+    // No band is ever narrower than the full rail.
+    expect(svg).not.toContain('<rect x="895"');
+    expect(svg).not.toContain('<rect x="1047"');
     expect(svg).not.toContain('id="og-logo-shade"');
     expect(svg).toContain('id="logoG"');
   });
