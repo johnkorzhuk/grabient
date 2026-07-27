@@ -9,15 +9,14 @@
     "**/.classpath",
     "**/.settings",
     "**/node_modules",
-    "**/reference-repos"
+    "**/.wrangler",
+    "**/dist"
   ],
   "lsp": {
     "typescript-language-server": {
       "initialization_options": {
         "preferences": {
-          "excludeDirectories": [
-            "**/reference-repos"
-          ]
+          "excludeDirectories": ["**/node_modules", "**/.wrangler"]
         }
       }
     }

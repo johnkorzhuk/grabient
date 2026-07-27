@@ -1,6 +1,11 @@
 # Search Refactor — Verified Research Findings
 
-Companion to `apps/user-application/FEATURES.md` and `apps/grabient-ops/SYNTHETIC_DATA.md`.
+Original research on the text-to-palette search refactor: 108 claims from 22 sources,
+three-vote adversarial verification (15 confirmed, 2 refuted, 8 unverified).
+
+Informs the semantic search path in `apps/web/src/semantic-search.ts`. The two companion
+documents it originally referenced (`apps/user-application/FEATURES.md`,
+`apps/grabient-ops/SYNTHETIC_DATA.md`) belonged to retired apps and no longer exist.
 Output of a deep-research pass (multi-source web research with 3-vote adversarial verification per claim) on the planned text→palette search refactor: color index + concept→color KB + RRF fusion + MMR + rerank, on Cloudflare Workers/Vectorize/KV/D1/Workers AI, no LLM in the hot path.
 
 Stats: 108 claims extracted from 22 sources; 15 confirmed (survived 3-vote adversarial verification), 2 refuted, 8 unverified (verification aborted by usage limits — all sourced from official Cloudflare docs or a standard IR paper; re-check against docs during implementation).
@@ -48,7 +53,7 @@ From Mukherjee, Rogers & Schloss (https://arxiv.org/abs/2406.17781) and the colo
 - GPT-4 estimates **match or beat state-of-the-art image-based methods** (r .80 vs .79 for Rathore et al. image method; .80 vs .71 for Hu et al. colorization-network method) — LLMs are a valid substitute for image-derived concept→color pipelines.
 - Alignment varies enormously by concept (max r ≈ .93, min r ≈ .08) and is **predicted by concept specificity** (peakiness of the color distribution), not concreteness. Broad/multimodal concepts are least reliable.
 - Category-level: LLMs are **strong on concrete/scene-like categories** (landscape, rhythm/materials), **weakest on emotions**.
-- Human–LLM divergence is **systematic, not random noise** → ensembling helps only if it spans **model families** (grabient-ops' 4-provider roster qualifies), not repeated samples of one model.
+- Human–LLM divergence is **systematic, not random noise** → ensembling helps only if it spans **model families** (a multi-provider roster qualifies), not repeated samples of one model.
 - LLM color accuracy improves across generations, but even GPT-4o with visual input hits only ~50% median at predicting the top human-voted word per color (10% chance level) — treat LLM colors as a query hint refined by color-space retrieval, never ground truth.
 
 **Design upgrade derived from this**: store a **per-concept confidence score** in the KB — the OKLab spread of the ensemble's outputs (tight cluster = specific concept = trustworthy). Condition fusion on it: color channel dominates for high-confidence concepts; text channel + more target palettes carry low-confidence (mood/abstract) concepts.

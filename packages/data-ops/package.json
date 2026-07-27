@@ -47,21 +47,9 @@
       "types": "./dist/gradient-gen/*.d.ts",
       "default": "./dist/gradient-gen/*.js"
     },
-    "./scripts/*": {
-      "types": "./dist/scripts/*.d.ts",
-      "default": "./dist/scripts/*.js"
-    },
     "./color-utils": {
       "types": "./dist/color-utils.d.ts",
       "default": "./dist/color-utils.js"
-    },
-    "./prompts": {
-      "types": "./dist/prompts/index.d.ts",
-      "default": "./dist/prompts/index.js"
-    },
-    "./prompts/*": {
-      "types": "./dist/prompts/*.d.ts",
-      "default": "./dist/prompts/*.js"
     },
     "./similarity": {
       "types": "./dist/similarity.d.ts",
@@ -73,7 +61,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json --outDir ./dist && tsc-alias",
+    "clean": "rm -rf dist",
+    "build": "pnpm run clean && tsc -p tsconfig.json --outDir ./dist && tsc-alias",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",

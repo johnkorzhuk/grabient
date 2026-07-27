@@ -40,16 +40,21 @@ async function seedLocalDatabase() {
   const { existsSync } = await import('fs');
   const { join } = await import('path');
 
-  // Find local database
-  const possiblePaths = [
-    join(process.cwd(), '../../apps/user-application/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/06e073622537963f86456202fc971f89fca54fa5b0fbb83f4b3b5287163bc841.sqlite'),
-    join(process.cwd(), '../apps/user-application/.wrangler/state/v3/d1/miniflare-D1DatabaseObject/06e073622537963f86456202fc971f89fca54fa5b0fbb83f4b3b5287163bc841.sqlite'),
+  const { readdirSync } = await import('fs');
+
+  // Miniflare names the SQLite file after the D1 database id, so glob the
+  // directory rather than hardcoding the hash.
+  const stateDirs = [
+    join(process.cwd(), '../../apps/web/.wrangler/state/v3/d1/miniflare-D1DatabaseObject'),
+    join(process.cwd(), '../apps/web/.wrangler/state/v3/d1/miniflare-D1DatabaseObject'),
   ];
 
   let dbPath: string | null = null;
-  for (const p of possiblePaths) {
-    if (existsSync(p)) {
-      dbPath = p;
+  for (const dir of stateDirs) {
+    if (!existsSync(dir)) continue;
+    const sqlite = readdirSync(dir).find((f) => f.endsWith('.sqlite'));
+    if (sqlite) {
+      dbPath = join(dir, sqlite);
       break;
     }
   }
@@ -57,7 +62,7 @@ async function seedLocalDatabase() {
   if (!dbPath) {
     throw new Error(
       'Could not find local database file.\n' +
-      'Make sure you have run `pnpm dev:user-application` at least once to initialize the database.'
+      'Run `pnpm dev` at least once to initialize the local D1 database.'
     );
   }
 
