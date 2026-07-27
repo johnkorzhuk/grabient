@@ -66,6 +66,13 @@ export interface PopularSearchContext {
  */
 export interface PopularSearchProvider {
   id: string;
+  /**
+   * KV-cache the generated batch. Defaults to true — the layer an LLM
+   * provider needs. The curated provider sets false: its output is a pure
+   * deterministic function of the hour, so a KV read per render (which the
+   * shared code computes locally as the fallback anyway) is pure cost.
+   */
+  cacheable?: boolean;
   generate(
     context: PopularSearchContext,
   ): PopularSearchSuggestion[] | Promise<PopularSearchSuggestion[]>;
@@ -418,6 +425,7 @@ function curatedSuggestions(hour: number, count: number): PopularSearchSuggestio
 
 export const curatedPopularSearchProvider: PopularSearchProvider = {
   id: "curated-v1",
+  cacheable: false,
   generate: ({ hour, count }) => curatedSuggestions(hour, count),
 };
 
@@ -493,6 +501,7 @@ export async function getPopularSearchSuggestions(
   const hour = Math.floor(nowMs / HOUR_MS);
   const fallback = curatedSuggestions(hour, safeCount);
   const key = providerCacheKey(provider, hour);
+  if (provider.cacheable === false) cache = undefined;
 
   if (cache) {
     try {

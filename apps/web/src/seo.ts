@@ -365,6 +365,53 @@ function parsedInteger(
   return result.success ? result.output : fallback;
 }
 
+function pngResponseHeaders(cacheState?: "HIT" | "MISS"): Record<string, string> {
+  return {
+    "Content-Type": "image/png",
+    "Cache-Control": "public, max-age=86400, s-maxage=604800",
+    "CDN-Cache-Control": "max-age=604800",
+    "X-Content-Type-Options": "nosniff",
+    ...(cacheState ? { "X-Cache": cacheState } : {}),
+  };
+}
+
+// KV cache for finished PNGs, shared by the OG cards and the raw /api/png
+// family. The edge cache in front is version-keyed (cross_version_cache:
+// false), so every deploy would otherwise re-rasterize the whole long tail —
+// rasterizing is the most CPU-expensive thing this worker does, and a KV read
+// costs an order of magnitude less than a resvg render. Keys carry
+// OG_RENDER_VERSION (raw renders share it; a bump just re-renders them), and
+// the 7-day TTL bounds storage for unpopular keys.
+const PNG_CACHE_TTL_SECONDS = 60 * 60 * 24 * 7;
+
+async function kvPngGet(
+  cache: KVNamespace | undefined,
+  key: string | null,
+): Promise<Response | null> {
+  if (!cache || !key) return null;
+  try {
+    const cached = await cache.get(key, "arrayBuffer");
+    if (cached) return new Response(cached, { headers: pngResponseHeaders("HIT") });
+  } catch (error) {
+    console.warn("PNG cache read error:", error);
+  }
+  return null;
+}
+
+async function kvPngPut(
+  cache: KVNamespace | undefined,
+  key: string | null,
+  response: Response,
+): Promise<void> {
+  if (!cache || !key || !response.ok) return;
+  try {
+    const bytes = await response.clone().arrayBuffer();
+    await cache.put(key, bytes, { expirationTtl: PNG_CACHE_TTL_SECONDS });
+  } catch (error) {
+    console.warn("PNG cache write error:", error);
+  }
+}
+
 async function renderPng(
   svg: string,
   cacheState?: "HIT" | "MISS",
@@ -386,13 +433,7 @@ async function renderPng(
     resvg.free();
   }
   return new Response(new Uint8Array(png), {
-    headers: {
-      "Content-Type": "image/png",
-      "Cache-Control": "public, max-age=86400, s-maxage=604800",
-      "CDN-Cache-Control": "max-age=604800",
-      "X-Content-Type-Options": "nosniff",
-      ...(cacheState ? { "X-Cache": cacheState } : {}),
-    },
+    headers: pngResponseHeaders(cacheState),
   });
 }
 
@@ -404,7 +445,7 @@ async function renderPng(
  * itself, meant to be embedded, fed to a vision model, or composited.
  * Honors style/steps/angle plus w/h.
  */
-export async function palettePngResponse(requestUrl: string): Promise<Response> {
+export async function palettePngResponse(requestUrl: string, env?: Env): Promise<Response> {
   const params = normalizeEntityMangledParams(new URL(requestUrl));
   const requestedSeed = params.get("seed") ?? DEFAULT_PALETTE.seed;
   const seed = canonicalSeed(requestedSeed);
@@ -419,8 +460,20 @@ export async function palettePngResponse(requestUrl: string): Promise<Response> 
   const view = renderPalette(seed, style, steps, angle);
   if (!view) return new Response("Invalid seed format", { status: 400 });
 
+  // Only the default 1200x630 render is KV-cached: w/h are caller-chosen, and
+  // an unbounded key space means unbounded KV writes. Custom sizes still get
+  // the edge cache.
+  const cacheKey =
+    width === OG_WIDTH && height === OG_HEIGHT
+      ? `png-seed:v${OG_RENDER_VERSION}:${seed}:${style}:${steps}:${angle}`
+      : null;
+  const hit = await kvPngGet(env?.OG_IMAGE_CACHE, cacheKey);
+  if (hit) return hit;
+
   try {
-    return await renderPng(paletteBareSvg(view, width, height), undefined, width);
+    const response = await renderPng(paletteBareSvg(view, width, height), undefined, width);
+    await kvPngPut(env?.OG_IMAGE_CACHE, cacheKey, response);
+    return response;
   } catch (error) {
     console.error("Error generating palette PNG:", error);
     return new Response("Error generating image", { status: 500 });
@@ -442,26 +495,37 @@ export async function queryPngResponse(requestUrl: string, env: Env): Promise<Re
   const width = pngDimension(params, "w", OG_WIDTH);
   const height = pngDimension(params, "h", OG_HEIGHT);
 
+  const normalizedQuery = normalizeSemanticQuery(query);
+  const cacheKey =
+    width === OG_WIDTH && height === OG_HEIGHT
+      ? `png-query:v${OG_RENDER_VERSION}:${normalizedQuery.toLowerCase()}:${style}:${steps}:${angle}`
+      : null;
+  const hit = await kvPngGet(env?.OG_IMAGE_CACHE, cacheKey);
+  if (hit) return hit;
+
   let results: SemanticSearchResult[] = [];
   try {
-    results = await searchSemanticPalettes(env, normalizeSemanticQuery(query), DEFAULT_PAGE_LIMIT);
+    results = await searchSemanticPalettes(env, normalizedQuery, DEFAULT_PAGE_LIMIT);
   } catch (error) {
     console.warn("Query PNG search error:", error);
   }
 
   try {
-    return await renderPng(
+    const response = await renderPng(
       queryBareSvg(results, style, steps, angle, width, height),
       undefined,
       width,
     );
+    // An empty montage (search outage) must not persist for 7 days.
+    if (results.length) await kvPngPut(env?.OG_IMAGE_CACHE, cacheKey, response);
+    return response;
   } catch (error) {
     console.error("Error generating query PNG:", error);
     return new Response("Error generating image", { status: 500 });
   }
 }
 
-export async function paletteOgResponse(requestUrl: string): Promise<Response> {
+export async function paletteOgResponse(requestUrl: string, env?: Env): Promise<Response> {
   const params = normalizeEntityMangledParams(new URL(requestUrl));
   const requestedSeed = params.get("seed") ?? DEFAULT_PALETTE.seed;
   const seed = canonicalSeed(requestedSeed);
@@ -474,8 +538,14 @@ export async function paletteOgResponse(requestUrl: string): Promise<Response> {
   const view = renderPalette(seed, style, steps, angle);
   if (!view) return new Response("Invalid seed format", { status: 400 });
 
+  const cacheKey = `og-seed:v${OG_RENDER_VERSION}:${seed}:${style}:${steps}:${angle}`;
+  const hit = await kvPngGet(env?.OG_IMAGE_CACHE, cacheKey);
+  if (hit) return hit;
+
   try {
-    return await renderPng(paletteOgSvg(view));
+    const response = await renderPng(paletteOgSvg(view), "MISS");
+    await kvPngPut(env?.OG_IMAGE_CACHE, cacheKey, response);
+    return response;
   } catch (error) {
     console.error("Error generating OG image:", error);
     return new Response("Error generating image", { status: 500 });
@@ -495,24 +565,8 @@ export async function queryOgResponse(requestUrl: string, env: Env): Promise<Res
   const angle = Number.isNaN(parsedAngle) ? "auto" : parsedAngle;
   const normalizedQuery = normalizeSemanticQuery(query);
   const cacheKey = `og-query:v${OG_RENDER_VERSION}:${normalizedQuery.toLowerCase()}:${style}:${steps}:${angle}`;
-
-  if (env.OG_IMAGE_CACHE) {
-    try {
-      const cached = await env.OG_IMAGE_CACHE.get(cacheKey, "arrayBuffer");
-      if (cached)
-        return new Response(cached, {
-          headers: {
-            "Content-Type": "image/png",
-            "Cache-Control": "public, max-age=86400, s-maxage=604800",
-            "CDN-Cache-Control": "max-age=604800",
-            "X-Content-Type-Options": "nosniff",
-            "X-Cache": "HIT",
-          },
-        });
-    } catch (error) {
-      console.warn("OG query cache read error:", error);
-    }
-  }
+  const hit = await kvPngGet(env.OG_IMAGE_CACHE, cacheKey);
+  if (hit) return hit;
 
   let results: SemanticSearchResult[] = [];
   try {
@@ -525,12 +579,7 @@ export async function queryOgResponse(requestUrl: string, env: Env): Promise<Res
   if (!results.length) return new Response("No results found", { status: 404 });
   try {
     const response = await renderPng(queryOgSvg(results, style, steps, angle), "MISS");
-    if (env.OG_IMAGE_CACHE) {
-      const bytes = await response.clone().arrayBuffer();
-      await env.OG_IMAGE_CACHE.put(cacheKey, bytes, {
-        expirationTtl: 60 * 60 * 24 * 7,
-      });
-    }
+    await kvPngPut(env.OG_IMAGE_CACHE, cacheKey, response);
     return response;
   } catch (error) {
     console.error("Error generating query OG image:", error);

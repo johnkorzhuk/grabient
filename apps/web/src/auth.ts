@@ -92,10 +92,13 @@ export function initAuth(env: Env) {
   });
 }
 
+// Honors the signed cookie cache (see session.cookieCache in data-ops
+// auth/setup.ts): within its 5-minute window this is pure HMAC verification,
+// no D1 read. The cache cookie itself is set/refreshed by the /api/auth/*
+// handler responses the client already fetches on every load and swap;
+// Set-Cookie headers from this server-side call are dropped, which only means
+// a refresh waits for the next /api/auth/get-session round-trip.
 export async function getSession(env: Env, headers: Headers): Promise<Session | null> {
   const auth = initAuth(env);
-  return (await auth.api.getSession({
-    headers,
-    query: { disableCookieCache: true },
-  })) as Session | null;
+  return (await auth.api.getSession({ headers })) as Session | null;
 }

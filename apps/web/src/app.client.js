@@ -1984,8 +1984,9 @@ async function refreshLikes() {
   }
 }
 
-// List HTML is no-store so SSR paints current counts. Reconcile every visible
-// coefficient key as a safety net for a mutation racing the list query.
+// List HTML is edge-cached, so its SSR'd totals can be up to the CDN TTL
+// stale. This reconciliation pass is the freshness authority: it repaints
+// every visible coefficient key with live counts on each load and swap.
 // Schedule in a microtask so the Solid grid replaces #grid-ssr first.
 async function initListLikeCounts() {
   const buttons = [

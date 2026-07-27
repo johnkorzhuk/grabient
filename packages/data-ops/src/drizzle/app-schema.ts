@@ -20,6 +20,10 @@ export const likes = sqliteTable(
   {
     userId: text("user_id").notNull(),
     paletteId: text("palette_id").notNull(),
+    // paletteCoeffKey(paletteId) ?? paletteId, materialized at write time so
+    // cross-alias totals are one indexed GROUP BY instead of a full scan.
+    // Nullable only for pre-backfill rows (see 0020 migration header).
+    coeffKey: text("coeff_key"),
     steps: integer("steps").notNull(),
     style: text("style").notNull().$type<typeof PALETTE_STYLES[number]>(),
     angle: integer("angle").notNull(),
@@ -29,6 +33,7 @@ export const likes = sqliteTable(
     pk: primaryKey({ columns: [table.userId, table.paletteId] }),
     paletteIdIdx: index("likes_palette_id_idx").on(table.paletteId),
     userIdIdx: index("likes_user_id_idx").on(table.userId),
+    coeffKeyIdx: index("likes_coeff_key_idx").on(table.coeffKey),
   })
 );
 

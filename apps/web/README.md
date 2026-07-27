@@ -62,16 +62,24 @@ The like button exists twice — `likeButton()` in `src/buttons.ts` and the Soli
 mirror in `src/islands/grid.tsx`. `test/like-button-parity.test.js` asserts they
 stay identical.
 
-**2. Anything containing live like counts must not be cached.** List HTML embeds
-live totals, so `LIST_HEADERS` is `no-store`. Every redirect sets an explicit
-cache policy, because Workers Cache applies a heuristic TTL to header-less 3xx
-responses. Two incidents came from this: an anonymous `get-session` response was
-edge-cached and served to signed-in users, and the HTTP→HTTPS 301 was cached
-against a key the canonical HTTPS URL shared, turning it into a self-redirect.
+**2. Every response must state its cache policy explicitly.** Workers Cache
+applies a heuristic TTL to header-less responses. Two incidents came from this:
+an anonymous `get-session` response was edge-cached and served to signed-in
+users, and the HTTP→HTTPS 301 was cached against a key the canonical HTTPS URL
+shared, turning it into a self-redirect.
+
+List HTML/JSON is edge-cached (`LIST_HEADERS`: browser 60s, CDN 300s +
+SWR 900s). That is safe because the markup is identical for every visitor —
+session UI and live like totals are applied client-side, and the
+`/api/like-counts` reconciliation pass repaints SSR'd totals on every load and
+swap. Truly per-user responses (`/saved`, `/api/likes*`, `/api/auth/*`,
+settings) stay `no-store`.
 
 `cross_version_cache` is pinned to `false` in `wrangler.jsonc` so the worker
 version is part of the cache key and every deploy starts from a cold edge cache.
-`test/cache-policy.test.js` pins this contract.
+Finished OG/PNG renders survive deploys in the `OG_IMAGE_CACHE` KV instead
+(keys carry `OG_RENDER_VERSION`). `test/cache-policy.test.js` pins this
+contract.
 
 ## Build
 
@@ -107,8 +115,11 @@ See `src/env.d.ts` for the full contract — it is hand-maintained, not generate
 - `src/search-feedback.js` records thumbs up/down into `localStorage` and nothing
   ever reads or transmits it. The backing table was dropped. It currently
   collects into the void — either wire it to an ingestion route or remove it.
-- `getLikesCountsByKeys` aggregates the entire likes table in JS. Fine at ~1.2k
-  rows; it will not be fine at 100k.
+- Like totals read the materialized `likes.coeff_key` column (indexed
+  `COUNT(DISTINCT user_id)`), so counting no longer scans the whole table. New
+  rows write the key; historical rows need
+  `scripts/backfill-like-coeff-keys.mts` run once per database after data-ops
+  migration 0020.
 - No tests cover `/api/og*`, `/sitemap.xml`, or the `/e` PostHog proxy.
 - `posthog-js` is 168 KB, the largest dependency, for what is a fire-and-forget
   event pipe already proxied through `/e`.

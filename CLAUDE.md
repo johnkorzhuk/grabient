@@ -32,11 +32,15 @@ attached in the Cloudflare dashboard; adding them here would change live routing
 
 - **Duplicated bindings across environments.** Cloudflare does not inherit
   bindings into named environments. The duplication is required.
-- **`disableCookieCache: true` on every session check.** Deliberate; it costs a
-  D1 read per request but prevents stale sessions.
-- **`no-store` on list pages and every redirect.** List HTML embeds live like
-  counts. See the cache section in `apps/web/README.md` — two production
-  incidents came from getting this wrong.
+- **Session checks honor the signed cookie cache** (`session.cookieCache` in
+  `packages/data-ops/src/auth/setup.ts`, 5-minute maxAge): within the window
+  `getSession` verifies the cookie HMAC and never touches D1. Remote
+  revocation can lag by at most that window; sign-out on the device itself
+  clears the cookie immediately.
+- **Explicit cache policy on every response, including redirects.** List HTML
+  is edge-cached (like totals are reconciled client-side); per-user responses
+  are `no-store`. See the cache section in `apps/web/README.md` — two
+  production incidents came from getting this wrong.
 - **`cross_version_cache: false`.** Pinned on purpose so each deploy starts from
   a cold edge cache.
 - **The two r2.dev URLs.** Each fronts exactly one bucket. Pairing the staging

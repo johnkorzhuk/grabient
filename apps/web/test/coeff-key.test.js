@@ -7,7 +7,7 @@ import { likeCoeffKeys, mergeLikeAliases } from "../src/likes";
 import {
   aggregateLikesByKey,
   getPaletteLikeInfo,
-  getLikesKeyTotals,
+  getLikeTotalsByKeys,
 } from "@repo/data-ops/queries/palettes";
 import { serializeCoeffs } from "@repo/data-ops/serialization";
 import { tareModifier } from "@repo/data-ops/gradient-gen/cosine";
@@ -100,13 +100,18 @@ describe("aggregateLikesByKey", () => {
   });
 
   it("finds a like stored under the tared seed while viewing its custom-global URL", async () => {
-    const rows = [
-      { paletteId: TARED_SEED, userId: "u1" },
-      { paletteId: TARED_SEED, userId: "u2" },
-    ];
+    // Likes stored under the TARED alias carry coeff_key = CANONICAL; a query
+    // arriving via the custom-global URL must resolve to the same key. The
+    // mock mimics the two bounded reads: the keyed GROUP BY total and the
+    // single-row isLiked probe.
     const db = {
       select: () => ({
-        from: async () => rows,
+        from: () => ({
+          where: () => ({
+            groupBy: async () => [{ key: CANONICAL, total: 2 }],
+            limit: async () => [{ userId: "u1" }],
+          }),
+        }),
       }),
     };
     await expect(getPaletteLikeInfo(CUSTOM_GLOBAL_SEED, "u1", db)).resolves.toEqual({
@@ -126,23 +131,33 @@ describe("aggregateLikesByKey", () => {
   });
 
   it("re-reads durable rows instead of serving a stale per-isolate total", async () => {
-    let rows = [{ paletteId: CANONICAL, userId: "u1" }];
+    let total = 1;
     let reads = 0;
     const db = {
       select: () => ({
-        from: async () => {
-          reads += 1;
-          return rows;
-        },
+        from: () => ({
+          where: () => ({
+            groupBy: async () => {
+              reads += 1;
+              return [{ key: CANONICAL, total }];
+            },
+          }),
+        }),
       }),
     };
 
-    expect((await getLikesKeyTotals(db)).get(CANONICAL)?.size).toBe(1);
-    rows = [
-      { paletteId: CANONICAL, userId: "u1" },
-      { paletteId: ALIASES[0], userId: "u2" },
-    ];
-    expect((await getLikesKeyTotals(db)).get(CANONICAL)?.size).toBe(2);
+    expect((await getLikeTotalsByKeys([CANONICAL], db)).get(CANONICAL)).toBe(1);
+    total = 2;
+    expect((await getLikeTotalsByKeys([CANONICAL], db)).get(CANONICAL)).toBe(2);
     expect(reads).toBe(2);
+  });
+
+  it("returns nothing for an empty key list without touching the database", async () => {
+    const db = {
+      select: () => {
+        throw new Error("must not query");
+      },
+    };
+    expect((await getLikeTotalsByKeys([], db)).size).toBe(0);
   });
 });

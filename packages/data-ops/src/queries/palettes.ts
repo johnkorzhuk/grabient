@@ -1,4 +1,4 @@
-import { eq, desc, asc, sql, count, inArray } from "drizzle-orm";
+import { eq, desc, asc, sql, count, inArray, and } from "drizzle-orm";
 import { getDb } from "../database/setup";
 import { palettes, likes, type Palette, type Like } from "../drizzle/app-schema";
 import { deserializeCoeffs, paletteCoeffKey } from "../serialization";
@@ -160,6 +160,27 @@ export async function getPalettesPageByDate(
 }
 
 
+/**
+ * Popularity-ordered palette ids and nothing else — for the sitemap, which
+ * needs 1,000 ids and no like counts. One query instead of ten paginated
+ * ones, and none of the per-page key-count work list rendering does.
+ */
+export async function getPopularPaletteIds(
+  limit = 1000,
+  dbInstance?: ReturnType<typeof getDb>
+): Promise<string[]> {
+  const db = dbInstance || getDb();
+  const rows = await db
+    .select({ id: palettes.id })
+    .from(palettes)
+    .leftJoin(likes, eq(palettes.id, likes.paletteId))
+    .groupBy(palettes.id)
+    .orderBy(desc(sql<number>`COUNT(DISTINCT ${likes.userId})`))
+    .limit(limit);
+  return rows.map((r) => r.id);
+}
+
+
 export async function getRecentPalettes(limit = 20): Promise<Palette[]> {
   const db = getDb();
   return await db.select().from(palettes).orderBy(desc(palettes.createdAt)).limit(limit);
@@ -186,6 +207,7 @@ export async function getUserLikesWithCounts(
     .select({
       userId: likes.userId,
       paletteId: likes.paletteId,
+      coeffKey: likes.coeffKey,
       steps: likes.steps,
       style: likes.style,
       angle: likes.angle,
@@ -213,8 +235,9 @@ export async function getUserLikedSeeds(userId: string, dbInstance?: ReturnType<
  * Cross-alias like totals. One rendered palette can have MANY seed strings:
  * global modifiers may be stored separately or tared into the coefficients.
  * Counting exact palette_id values splits its total across those aliases.
- * paletteCoeffKey bakes globals into a globals-free identity; the likes table
- * is small (~1k rows), so aggregate it in JS: key → distinct users.
+ * paletteCoeffKey bakes globals into a globals-free identity. Kept as the
+ * pure-JS reference aggregation (and for callers that already hold rows);
+ * the hot paths read the materialized coeff_key column instead.
  */
 export function aggregateLikesByKey(
   rows: { paletteId: string; userId: string }[]
@@ -232,17 +255,30 @@ export function aggregateLikesByKey(
   return byKey;
 }
 
-// Always read the durable aggregate rather than memoizing it per isolate.
-// A toggle can write through one Worker isolate while the next page/count
-// request lands on another isolate, so counts must read the durable rows.
-export async function getLikesKeyTotals(
+// Bounded replacement for the old full-table getLikesKeyTotals scan: D1 bills
+// one row-read per row SCANNED, so aggregating the whole likes table in JS on
+// every request scaled the bill with total likes. This reads only the rows
+// matching the requested keys through likes_coeff_key_idx. It still reads the
+// durable rows on every call (never memoized per isolate — a toggle can write
+// through one isolate while the next request lands on another).
+export async function getLikeTotalsByKeys(
+  keys: string[],
   dbInstance?: ReturnType<typeof getDb>
-): Promise<Map<string, Set<string>>> {
+): Promise<Map<string, number>> {
+  const unique = [...new Set(keys)];
+  if (!unique.length) return new Map();
   const db = dbInstance || getDb();
   const rows = await db
-    .select({ paletteId: likes.paletteId, userId: likes.userId })
-    .from(likes);
-  return aggregateLikesByKey(rows);
+    .select({
+      key: likes.coeffKey,
+      total: sql<number>`COUNT(DISTINCT ${likes.userId})`,
+    })
+    .from(likes)
+    .where(inArray(likes.coeffKey, unique))
+    .groupBy(likes.coeffKey);
+  const totals = new Map<string, number>();
+  for (const row of rows) if (row.key) totals.set(row.key, row.total);
+  return totals;
 }
 
 export async function getLikesCountByKey(
@@ -250,20 +286,18 @@ export async function getLikesCountByKey(
   dbInstance?: ReturnType<typeof getDb>
 ): Promise<number> {
   const key = paletteCoeffKey(seed) ?? seed;
-  const totals = await getLikesKeyTotals(dbInstance);
-  return totals.get(key)?.size ?? 0;
+  const totals = await getLikeTotalsByKeys([key], dbInstance);
+  return totals.get(key) ?? 0;
 }
 
 export async function getLikesCountsByKeys(
   seeds: string[],
   dbInstance?: ReturnType<typeof getDb>
 ): Promise<Record<string, number>> {
-  const totals = await getLikesKeyTotals(dbInstance);
+  const keys = [...new Set(seeds)].map((seed) => paletteCoeffKey(seed) ?? seed);
+  const totals = await getLikeTotalsByKeys(keys, dbInstance);
   const counts: Record<string, number> = {};
-  for (const seed of new Set(seeds)) {
-    const key = paletteCoeffKey(seed) ?? seed;
-    counts[key] = totals.get(key)?.size ?? 0;
-  }
+  for (const key of keys) counts[key] = totals.get(key) ?? 0;
   return counts;
 }
 
@@ -280,12 +314,12 @@ async function withKeyCounts<T extends { likesCount: number }>(
   dbInstance?: ReturnType<typeof getDb>
 ): Promise<T[]> {
   if (!rows.length) return rows;
-  const totals = await getLikesKeyTotals(dbInstance);
-  return rows.map((r) => {
+  const keyOf = (r: T) => {
     const id = getId(r);
-    const key = paletteCoeffKey(id) ?? id;
-    return { ...r, likesCount: totals.get(key)?.size ?? 0 };
-  });
+    return paletteCoeffKey(id) ?? id;
+  };
+  const totals = await getLikeTotalsByKeys(rows.map(keyOf), dbInstance);
+  return rows.map((r) => ({ ...r, likesCount: totals.get(keyOf(r)) ?? 0 }));
 }
 
 export async function getPaletteLikeInfo(
@@ -295,11 +329,19 @@ export async function getPaletteLikeInfo(
 ): Promise<{ likesCount: number; isLiked: boolean }> {
   const db = dbInstance || getDb();
   const key = paletteCoeffKey(seed) ?? seed;
-  const totals = await getLikesKeyTotals(db);
-  const users = totals.get(key);
+  const [totals, likedRows] = await Promise.all([
+    getLikeTotalsByKeys([key], db),
+    userId
+      ? db
+          .select({ userId: likes.userId })
+          .from(likes)
+          .where(and(eq(likes.coeffKey, key), eq(likes.userId, userId)))
+          .limit(1)
+      : Promise.resolve([]),
+  ]);
   return {
-    likesCount: users?.size ?? 0,
-    isLiked: userId ? (users?.has(userId) ?? false) : false,
+    likesCount: totals.get(key) ?? 0,
+    isLiked: likedRows.length > 0,
   };
 }
 
@@ -396,6 +438,7 @@ export async function toggleLikePalette(
     await db.insert(likes).values({
       paletteId: seed,
       userId,
+      coeffKey: paletteCoeffKey(seed) ?? seed,
       steps,
       style,
       angle,
@@ -431,6 +474,10 @@ export async function toggleLikePaletteByKey(
   const key = paletteCoeffKey(seed) ?? seed;
 
   try {
+    // Alias detection deliberately scans the user's OWN rows (indexed by
+    // user_id, bounded by their like count) and matches keys in JS rather
+    // than trusting coeff_key: it stays correct even for rows the backfill
+    // has not touched.
     const rows = await db
       .select({ paletteId: likes.paletteId })
       .from(likes)
@@ -458,6 +505,7 @@ export async function toggleLikePaletteByKey(
       await db.insert(likes).values({
         paletteId: seed,
         userId,
+        coeffKey: key,
         steps,
         style,
         angle,

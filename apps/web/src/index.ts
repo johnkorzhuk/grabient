@@ -5,6 +5,7 @@ import {
   getPalettesCount,
   getPalettesPageByDate,
   getPopularPalettesPage,
+  getPopularPaletteIds,
   getPaletteLikeInfo,
   getLikesCountsByKeys,
   getUserLikedSeeds,
@@ -73,22 +74,30 @@ export { RateLimiter } from "./rate-limit";
 
 // HTML caching strategy:
 //
-// - Palette-list HTML and JSON contain live like totals, so neither the browser
-//   nor the edge may cache them. Otherwise a hard refresh paints an old total
-//   before the no-store reconciliation request visibly corrects it.
+// - List HTML and /api/palettes JSON are identical for every visitor (all
+//   session UI is applied client-side), so the edge may cache them. The SSR'd
+//   like totals can then be up to CDN max-age stale; the client's
+//   /api/like-counts reconciliation pass — which already runs on every load
+//   and swap, guarded against racing a toggle — repaints current totals.
+//   Every edge HIT here skips the worker entirely: no D1 reads, no KV reads,
+//   no CPU. Under bot traffic (which never noticed live totals anyway) that
+//   is the difference between one D1-backed render per URL per 5 minutes and
+//   one per request.
 //
-// - Seed HTML can stay edge-cached because it omits the live total and fills it
-//   from /api/like-info. Its browser TTL stays short with no SWR:
-//   the browser cache is NOT invalidated by a deploy. With the old
-//   max-age=600 + swr=1800 on seeds, hover-preloads and prior visits let the
-//   browser serve pre-deploy HTML for up to 40 minutes after a deploy — the
-//   "old UI until manual refresh" bug. 60s bounds that window to a minute;
-//   browser misses land on the (version-keyed, worker-skipping) edge cache, so
-//   this costs zero worker CPU / D1 reads. Note the client nav layer also
-//   reads this max-age to decide when to revalidate its in-tab cache.
+// - Browser TTLs stay short with no SWR on HTML: the browser cache is NOT
+//   invalidated by a deploy. With the old max-age=600 + swr=1800 on seeds,
+//   hover-preloads and prior visits let the browser serve pre-deploy HTML for
+//   up to 40 minutes after a deploy — the "old UI until manual refresh" bug.
+//   60s bounds that window to a minute; browser misses land on the
+//   (version-keyed, worker-skipping) edge cache. Note the client nav layer
+//   also reads this max-age to decide when to revalidate its in-tab cache.
+//
+// - Lists get a shorter CDN TTL than seeds: their content actually changes
+//   (new palettes, popularity reordering), whereas a seed page is static
+//   apart from the count it already defers to /api/like-info.
 export const LIST_HEADERS = {
-  "Cache-Control": "no-store",
-  "CDN-Cache-Control": "no-store",
+  "Cache-Control": "public, max-age=60",
+  "CDN-Cache-Control": "max-age=300, stale-while-revalidate=900",
 };
 const SEED_HEADERS = {
   "Cache-Control": "public, max-age=60",
@@ -151,34 +160,43 @@ function cachedRedirect(
   return c.redirect(url, status);
 }
 
-// GitHub star count for the footer — same approach as the current site's
-// github-stars server function: Cache API with a 4h TTL, tolerant of failure
-// (0 hides the star chip). Cached per-colo; the page HTML edge cache in front
-// makes actual GitHub hits rare.
+// GitHub star count for the footer — Cache API entry per colo, tolerant of
+// failure (0 hides the star chip). Entries live 24h but count as fresh for 4h:
+// a stale hit returns immediately and refreshes via waitUntil, so the GitHub
+// round-trip leaves the render path everywhere except a truly cold colo.
 const STARS_CACHE_URL = "https://grabient-lite.internal/__github-stars";
+const STARS_FRESH_MS = 4 * 60 * 60 * 1000;
 
-async function githubStars(): Promise<number> {
+async function fetchAndCacheStars(): Promise<number> {
+  const res = await fetch("https://api.github.com/repos/johnkorzhuk/grabient", {
+    headers: { Accept: "application/vnd.github.v3+json", "User-Agent": "Grabient-App" },
+  });
+  if (!res.ok) return 0;
+  const data = (await res.json()) as { stargazers_count: number };
+  const stars = data.stargazers_count;
+  await caches.default.put(
+    new Request(STARS_CACHE_URL),
+    new Response(JSON.stringify({ stars, at: Date.now() }), {
+      headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=86400" },
+    }),
+  );
+  return stars;
+}
+
+async function githubStars(c: Context<{ Bindings: Env }>): Promise<number> {
   try {
-    const cache = caches.default;
-    const key = new Request(STARS_CACHE_URL);
-    const hit = await cache.match(key);
+    const hit = await caches.default.match(new Request(STARS_CACHE_URL));
     if (hit) {
-      const data = (await hit.json()) as { stars: number };
+      const data = (await hit.json()) as { stars: number; at?: number };
+      if (!data.at || Date.now() - data.at > STARS_FRESH_MS) {
+        // executionCtx throws outside workerd (vitest); stale-but-served is fine.
+        try {
+          c.executionCtx.waitUntil(fetchAndCacheStars().catch(() => {}));
+        } catch {}
+      }
       return data.stars;
     }
-    const res = await fetch("https://api.github.com/repos/johnkorzhuk/grabient", {
-      headers: { Accept: "application/vnd.github.v3+json", "User-Agent": "Grabient-App" },
-    });
-    if (!res.ok) return 0;
-    const data = (await res.json()) as { stargazers_count: number };
-    const stars = data.stargazers_count;
-    await cache.put(
-      key,
-      new Response(JSON.stringify({ stars }), {
-        headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=14400" },
-      }),
-    );
-    return stars;
+    return await fetchAndCacheStars();
   } catch {
     return 0;
   }
@@ -192,7 +210,7 @@ async function renderNotFound(c: Context<{ Bindings: Env }>) {
   if (new URL(c.req.url).pathname.startsWith("/assets/")) {
     return c.text("Asset not found", 404, NO_STORE);
   }
-  const [stars] = await Promise.all([githubStars()]);
+  const stars = await githubStars(c);
   return c.html(
     notFoundPage({
       origin: publicOrigin(c),
@@ -306,7 +324,7 @@ async function handleList(
   const nowMs = Date.now();
   const [data, stars, popularSearches] = await Promise.all([
     listData(c, sort),
-    githubStars(),
+    githubStars(c),
     getPopularSearchSuggestions(c.env.SEARCH_CACHE, nowMs),
   ]);
   if (data.params.page > data.totalPages) return renderNotFound(c);
@@ -425,7 +443,7 @@ async function handleSemanticSearch(
       : `<input type="hidden" name="sort" value="${sort}">`;
   const nowMs = Date.now();
   const [stars, popularSearches] = await Promise.all([
-    githubStars(),
+    githubStars(c),
     getPopularSearchSuggestions(c.env.SEARCH_CACHE, nowMs),
   ]);
   return c.html(
@@ -487,7 +505,7 @@ async function staticPage(
   description: string,
   content: string,
 ) {
-  const stars = await githubStars();
+  const stars = await githubStars(c);
   return c.html(
     legalPage({
       title,
@@ -792,7 +810,7 @@ app.get("/login", async (c) => {
     c.header("Cache-Control", "private, no-store");
     return c.redirect(redirect ?? "/", 302);
   }
-  const stars = await githubStars();
+  const stars = await githubStars(c);
   return c.html(loginPage({ redirect, origin: publicOrigin(c), stars }), 200, NO_STORE);
 });
 
@@ -811,7 +829,7 @@ app.get("/saved", async (c) => {
   const nowMs = Date.now();
   const [allLikes, stars, popularSearches] = await Promise.all([
     getUserLikesWithCounts(session.user.id, 1000).then(mergeLikeAliases),
-    githubStars(),
+    githubStars(c),
     getPopularSearchSuggestions(c.env.SEARCH_CACHE, nowMs),
   ]);
   const total = allLikes.length;
@@ -976,7 +994,7 @@ app.get("/settings", async (c) => {
   const token = url.searchParams.get("token");
   const [session, stars] = await Promise.all([
     getSession(c.env, c.req.raw.headers),
-    githubStars(),
+    githubStars(c),
   ]);
   return c.html(
     settingsPage({
@@ -1004,19 +1022,15 @@ app.get("/robots.txt", (c) =>
   }),
 );
 
-// Dynamic sitemap from the current app: the crawlable shell routes plus the
-// 1,000 most popular palettes. Ten bounded queries avoid a single oversized
-// D1 result while the edge cache makes generation infrequent.
+// Dynamic sitemap: the crawlable shell routes plus the 1,000 most popular
+// palettes. Ids only — the sitemap shows no like counts, so it skips the
+// key-count work list rendering pays for; the edge cache makes generation
+// infrequent on top of that.
 app.get("/sitemap.xml", async (c) => {
   initDatabase(c.env.DB);
-  const seeds: string[] = [];
+  let seeds: string[] = [];
   try {
-    for (let page = 1; page <= 10; page++) {
-      const palettes = await getPopularPalettesPage(page, 100);
-      if (!palettes.length) break;
-      seeds.push(...palettes.map((palette) => palette.id));
-      if (palettes.length < 100) break;
-    }
+    seeds = await getPopularPaletteIds(1000);
   } catch (error) {
     console.error("sitemap: failed to load palettes", error);
   }
@@ -1027,7 +1041,7 @@ app.get("/sitemap.xml", async (c) => {
   });
 });
 
-app.get("/api/og", (c) => paletteOgResponse(c.req.url));
+app.get("/api/og", (c) => paletteOgResponse(c.req.url, c.env));
 app.get("/api/og/query", (c) => queryOgResponse(c.req.url, c.env));
 
 // Raw renders: the image itself, no Grabient mark. /api/png is the long-standing
@@ -1035,7 +1049,7 @@ app.get("/api/og/query", (c) => queryOgResponse(c.req.url, c.env));
 // .png suffix routes below are the guessable equivalents, so an agent that knows
 // a page URL can get its image by appending .png. Both accept style/steps/angle
 // and w/h.
-app.get("/api/png", (c) => palettePngResponse(c.req.url));
+app.get("/api/png", (c) => palettePngResponse(c.req.url, c.env));
 app.get("/api/png/query", (c) => queryPngResponse(c.req.url, c.env));
 
 // No-JS fallback for the semantic-search form. The query itself lives in the
@@ -1100,7 +1114,7 @@ app.get("/contact", (c) =>
 app.get("/:seed{.+\\.png}", (c) => {
   const url = new URL(c.req.url);
   url.searchParams.set("seed", c.req.param("seed").slice(0, -".png".length));
-  return palettePngResponse(url.toString());
+  return palettePngResponse(url.toString(), c.env);
 });
 
 // Legacy /:seed/edit URLs redirect to the seed page (the editor lives there now).
@@ -1120,7 +1134,7 @@ app.get("/:seed", async (c) => {
   if (canonical !== seed || normalized !== null)
     return cachedRedirect(c, `/${canonical}${normalized ?? url.search}`, 301, 86_400);
 
-  const stars = await githubStars();
+  const stars = await githubStars(c);
   return c.html(
     seedPage({
       seed,
