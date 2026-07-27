@@ -85,22 +85,16 @@ describe("contact form", () => {
 });
 
 describe("analytics delivery", () => {
-  it("loads Zaraz on production HTML but not workers.dev", () => {
+  it("never emits a manual Zaraz loader (the zone auto-injects it)", () => {
+    // Cloudflare injects the Zaraz bootstrap inline for real browsers on
+    // grabient.com; a manual /cdn-cgi/zaraz/i.js tag double-initializes and
+    // logs "zaraz is loaded twice".
     const meta = {
       title: "Grabient",
       description: "Gradients",
       canonical: "https://grabient.com/contact",
     };
-    expect(layout(meta, "")).toContain('/cdn-cgi/zaraz/i.js');
-    expect(
-      layout(
-        {
-          ...meta,
-          canonical: "https://grabient-lite.jkorzhuk.workers.dev/contact",
-        },
-        "",
-      ),
-    ).not.toContain('/cdn-cgi/zaraz/i.js');
+    expect(layout(meta, "")).not.toContain('/cdn-cgi/zaraz/i.js');
   });
 
   it("proxies PostHog ingestion through the same-origin /e route", async () => {
