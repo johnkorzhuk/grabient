@@ -158,6 +158,17 @@ packages/data-ops/src/data/prod-*.jsonl
 snapshot.zip
 .seed-production.sql
 
-# Ops apps (not ready for production)
+# Retired Convex ops apps. Deleted from the tree, kept ignored so any copy
+# still sitting in a working directory can never be staged.
 apps/grabient-ops/
 apps/grabient-ops-local/
+
+# Local-only data-collection app. Runs against its own Cloudflare account
+# resources and is deliberately never published to the remote.
+apps/data-collection/
+
+# Agent tooling that holds credentials in plaintext. .codex/config.toml
+# carries a live API token — never let this get staged.
+.codex/
+.agents/
+.claude/settings.json

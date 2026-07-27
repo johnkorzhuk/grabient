@@ -5,8 +5,9 @@
   "scripts": {
     "build:css": "tailwindcss -i src/app.css -o dist/styles.css --minify",
     "build": "pnpm build:css && vite build",
-    "dev": "pnpm build && wrangler dev --port 3001",
-    "deploy": "pnpm build && wrangler deploy",
+    "dev": "pnpm build && wrangler dev --env staging --port 3001",
+    "deploy:staging": "pnpm build && wrangler deploy --env staging",
+    "deploy:production": "pnpm build && wrangler deploy --env production",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.islands.json",
     "test": "vitest run"
   },
