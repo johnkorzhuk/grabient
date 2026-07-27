@@ -4,6 +4,7 @@
 // self/top reference comparison — universal across browsers, unlike the
 // Sec-Fetch-Dest header (absent in older Safari).
 
+/** @type {HTMLDivElement | null} */
 let noticeEl = null;
 let dismissed = false;
 

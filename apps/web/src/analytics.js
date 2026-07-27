@@ -7,19 +7,34 @@ const ENABLED_HOSTS = new Set(["grabient.com", "www.grabient.com"]);
 const IDLE_TIMEOUT = 5000;
 const MAX_PENDING_EVENTS = 100;
 
+/**
+ * @typedef {{ id?: string, email?: string, username?: string, role?: string, tier?: string }} AnalyticsUser
+ * @typedef {Record<string, unknown>} EventProperties
+ * @typedef {[string, EventProperties]} QueuedEvent
+ */
+
+// The posthog-js instance is deliberately `any`: this file drives it through
+// its snippet-era surface (__loaded, get_property, reset) rather than the
+// typed module export, and it is loaded lazily.
+/** @type {any} */
 let posthog = null;
+/** @type {Promise<any> | null} */
 let initPromise = null;
 let analyticsConsent = false;
 let analyticsConsentResolved = false;
 let sessionReplayConsent = false;
+/** @type {AnalyticsUser | null | undefined} */
 let pendingUser;
+/** @type {string | null} */
 let identifiedPosthogUserId = null;
 let pendingPageView = location.href;
 let lastPosthogPageView = "";
 // Zaraz owns the initial document pageview. Manual Pageview events are only
 // needed after the app swaps routes without a full document navigation.
 let lastZarazPageView = location.href;
+/** @type {QueuedEvent[]} */
 let pendingEvents = [];
+/** @type {QueuedEvent[]} */
 let pendingZarazEvents = [];
 const lastEvents = new Map();
 
@@ -40,6 +55,10 @@ function currentSearchQuery(pathname = location.pathname) {
 // Zaraz custom-event properties must be flat. Keep the shared event payload
 // deliberately small and primitive so the same object is valid for GA4 and
 // PostHog.
+/**
+ * @param {Record<string, unknown>} properties
+ * @returns {EventProperties}
+ */
 function flatProperties(properties) {
   return Object.fromEntries(
     Object.entries(properties).filter(
@@ -51,6 +70,10 @@ function flatProperties(properties) {
   );
 }
 
+/**
+ * @param {Record<string, any>} [properties]
+ * @returns {EventProperties}
+ */
 function contextProperties(properties = {}) {
   const searchQuery = currentSearchQuery();
   return flatProperties({
@@ -62,6 +85,10 @@ function contextProperties(properties = {}) {
   });
 }
 
+/**
+ * @param {string} eventName
+ * @param {EventProperties} properties
+ */
 function sendZaraz(eventName, properties) {
   try {
     if (typeof window.zaraz?.track === "function") {
@@ -157,6 +184,7 @@ export async function initializeAnalytics() {
       ({ default: instance }) =>
         new Promise((resolve) => {
           let ready = false;
+          /** @param {any} loadedInstance */
           const onLoaded = (loadedInstance) => {
             if (ready) return;
             ready = true;
@@ -208,6 +236,10 @@ export async function initializeAnalytics() {
   return initPromise;
 }
 
+/**
+ * @param {boolean | undefined} analytics
+ * @param {boolean | undefined} sessionReplay
+ */
 export function syncAnalyticsConsent(analytics, sessionReplay) {
   analyticsConsentResolved = true;
   analyticsConsent = !!analytics;
@@ -218,18 +250,19 @@ export function syncAnalyticsConsent(analytics, sessionReplay) {
   capturePosthogPageView();
   flushPosthogEvents();
   try {
-    window.zaraz?.set(
+    window.zaraz?.set?.(
       "user_id",
       analyticsConsent ? pendingUser?.id ?? null : null,
     );
   } catch {}
 }
 
+/** @param {AnalyticsUser | null | undefined} user */
 export function setAnalyticsUser(user) {
   pendingUser = user;
   identifyPosthogUser();
   try {
-    window.zaraz?.set("user_id", analyticsConsent ? user?.id ?? null : null);
+    window.zaraz?.set?.("user_id", analyticsConsent ? user?.id ?? null : null);
   } catch {}
 }
 
@@ -254,6 +287,10 @@ export function trackPageView() {
   void initializeAnalytics();
 }
 
+/**
+ * @param {string} eventName
+ * @param {Record<string, any>} [properties]
+ */
 export function trackEvent(eventName, properties = {}) {
   if (!enabled()) return;
   const seed = properties.seed || "";

@@ -9,10 +9,19 @@
     "strict": true,
     "noEmit": true,
     "allowJs": true,
-    "checkJs": false,
+    // Client-side .js is type checked via JSDoc. src/app.client.js opts out
+    // with @ts-nocheck and explains why in its header.
+    "checkJs": true,
     "skipLibCheck": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src/islands", "src/search.ts"]
+  "include": [
+    "src/islands",
+    "src/search.ts",
+    "src/client-globals.d.ts",
+    "src/analytics.js",
+    "src/embed-notice.js",
+    "src/search-feedback.js"
+  ]
 }

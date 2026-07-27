@@ -1,9 +1,20 @@
 export const SEARCH_FEEDBACK_KEY = "search-feedback";
 
+/**
+ * @typedef {"good" | "bad"} SearchFeedback
+ * @typedef {{ feedback: SearchFeedback, createdAt: number }} SearchFeedbackEntry
+ * @typedef {{ version: 1, data: Record<string, Record<string, SearchFeedbackEntry>> }} SearchFeedbackStore
+ */
+
+/** @returns {SearchFeedbackStore} */
 function emptyStore() {
   return { version: 1, data: {} };
 }
 
+/**
+ * @param {Storage} storage
+ * @returns {SearchFeedbackStore}
+ */
 function readStore(storage) {
   try {
     const raw = storage.getItem(SEARCH_FEEDBACK_KEY);
@@ -22,11 +33,25 @@ function readStore(storage) {
   }
 }
 
+/**
+ * @param {string} query
+ * @param {string} seed
+ * @param {Storage} [storage]
+ * @returns {SearchFeedback | null}
+ */
 export function getSearchFeedback(query, seed, storage = localStorage) {
   const value = readStore(storage).data[query]?.[seed]?.feedback;
   return value === "good" || value === "bad" ? value : null;
 }
 
+/**
+ * @param {string} query
+ * @param {string} seed
+ * @param {SearchFeedback} feedback
+ * @param {Storage} [storage]
+ * @param {number} [createdAt]
+ * @returns {{ current: SearchFeedback | null, event: SearchFeedback | "clear" }}
+ */
 export function toggleSearchFeedback(
   query,
   seed,
