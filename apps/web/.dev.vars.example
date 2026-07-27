@@ -1,0 +1,26 @@
+# Copy to .dev.vars and fill in. .dev.vars is gitignored — never commit real values.
+#
+# Deployed environments do NOT read this file. Set each of these per environment
+# with:  wrangler secret put <NAME> --env staging|production
+#
+# Non-secret configuration (PUBLIC_ORIGIN, R2_PUBLIC_URL, EMAIL_FROM,
+# TURNSTILE_SITE_KEY) lives in the `vars` block of wrangler.jsonc instead.
+
+# Signs session cookies. Any long random string; `openssl rand -base64 32`.
+# The deployed value intentionally differs from your local one, so a cookie
+# minted locally will not validate against staging or production.
+BETTER_AUTH_SECRET=
+
+# Google OAuth credentials, from the Google Cloud console.
+# Authorized redirect URI: <origin>/api/auth/callback/google
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+
+# Resend API key. Sends magic-link sign-in and account-deletion emails.
+RESEND_API_KEY=
+EMAIL_FROM=noreply@grabient.com
+
+# Cloudflare Turnstile secret, paired with the public TURNSTILE_SITE_KEY in
+# wrangler.jsonc. Without it, POST /api/contact fails closed with
+# "Verification failed" — the contact form will not work locally.
+TURNSTILE_SECRET_KEY=

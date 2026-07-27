@@ -12,9 +12,9 @@ Save & Like: Click a heart to add a palette to your personal collection for quic
 
 How It's Built
 
-Frontend: React 19 + TanStack (Start/Router/Query)
+Frontend: Server-rendered HTML from a Hono worker, with Solid.js islands for the interactive parts
 
-Styling: Tailwind CSS v4 + shadcn/ui
+Styling: Tailwind CSS v4
 
 Database: Cloudflare D1
 
