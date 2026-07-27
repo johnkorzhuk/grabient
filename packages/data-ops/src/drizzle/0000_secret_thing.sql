@@ -1,3 +1,15 @@
+-- DO NOT regenerate this file from the current schema.
+--
+-- Applied migrations are history, not a description of the current schema. This
+-- file must keep matching what the staging and production databases actually
+-- ran, or a fresh database can no longer be bootstrapped.
+--
+-- Specifically: auth_user.name is deliberately absent here and is added later by
+-- 0010_add_name_column.sql. It was once regenerated into this file, which made
+-- 0010 fail with "duplicate column name: name" on every new database while the
+-- already-migrated remotes kept working — so the breakage was invisible in
+-- staging and production.
+
 CREATE TABLE `auth_account` (
 	`id` text PRIMARY KEY NOT NULL,
 	`account_id` text NOT NULL,
@@ -30,7 +42,6 @@ CREATE TABLE `auth_session` (
 CREATE UNIQUE INDEX `auth_session_token_unique` ON `auth_session` (`token`);--> statement-breakpoint
 CREATE TABLE `auth_user` (
 	`id` text PRIMARY KEY NOT NULL,
-	`name` text NOT NULL,
 	`email` text NOT NULL,
 	`email_verified` integer DEFAULT false NOT NULL,
 	`image` text,
