@@ -23,29 +23,41 @@ CSS output.
 
 ## PNG images
 
-Every page has a matching PNG you can fetch directly and inspect. Both return
-`image/png` at 1200x630, need no authentication, and accept the same optional
-`style`, `angle` and `steps` parameters as the pages themselves.
+Every page has a matching PNG you can fetch directly. All of these need no
+authentication, return `image/png`, and accept the same optional `style`,
+`angle` and `steps` parameters as the pages themselves.
 
-- `https://grabient.com/api/og?seed={seed}` -- renders one palette. `{seed}` may be
-  a canonical compact seed or the 12/16 comma-separated coefficient form, so you
-  can render a palette you constructed without visiting the page first. Omitting
-  `seed` renders the site's default palette; an unparseable seed returns 400.
-- `https://grabient.com/api/og/query?query={query}` -- renders the top results for
-  a semantic search, laid out as one large palette plus a stack of result strips.
-  `q` is accepted as an alias. Use hyphens or spaces between words. A missing or
-  empty query returns 400.
+**Append `.png` to any page URL** to get the raw image of that page -- the
+gradient itself, with no logo or branding. This is the form to use when
+embedding, analysing, or feeding an image to a model.
 
-These are the same images referenced by the `og:image` meta tag on the
-corresponding `/{seed}` and `/palettes/{query}` pages, so either source is
-authoritative. The `v` parameter on those tags is a cache-busting render
-version -- it is optional when you request the URL yourself.
+- `https://grabient.com/{seed}.png` -- the palette, rendered edge to edge
+- `https://grabient.com/palettes/{query}.png` -- the top search results as one
+  large palette plus a stack of result strips
+
+The same two renders are also available as explicit endpoints, which additionally
+accept `w` and `h` (pixels, 16-2400, default 1200x630):
+
+- `https://grabient.com/api/png?seed={seed}&w=960&h=88`
+- `https://grabient.com/api/png/query?query={query}`
+
+`{seed}` may be a canonical compact seed *or* the 12/16 comma-separated
+coefficient form, so you can render a palette you constructed without visiting a
+page first. An unparseable seed returns 400; a missing or empty query returns
+400. On the query endpoints `q` is accepted as an alias for `query`.
+
+Separately, `https://grabient.com/api/og?seed={seed}` and
+`https://grabient.com/api/og/query?query={query}` return the **branded** social
+card -- the same image as the page's `og:image` meta tag, with the Grabient
+wordmark drawn on top. Prefer the `.png` forms above unless you specifically
+want the social card. The `v` parameter on `og:image` is a cache-busting render
+version and is optional when you request the URL yourself.
 
 ## Machine-readable resources
 
 - [Sitemap](https://grabient.com/sitemap.xml): The most popular palette pages plus the main list pages
-- [Palette PNG](https://grabient.com/api/og?seed=_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI): PNG render of a single palette; swap the seed
-- [Search results PNG](https://grabient.com/api/og/query?query=warm-sunset): PNG render of a semantic search; swap the query
+- [Palette PNG](https://grabient.com/_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI.png): unbranded render of a single palette; swap the seed
+- [Search results PNG](https://grabient.com/palettes/warm-sunset.png): unbranded render of a semantic search; swap the query
 
 ## Usage notes
 

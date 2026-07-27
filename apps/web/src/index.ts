@@ -34,7 +34,9 @@ import { avatarKey, avatarKeyFromUrl, isWebpBuffer } from "./avatar";
 import {
   OG_RENDER_VERSION,
   paletteOgResponse,
+  palettePngResponse,
   queryOgResponse,
+  queryPngResponse,
   robotsTxt,
   sitemapXml,
 } from "./seo";
@@ -1028,6 +1030,14 @@ app.get("/sitemap.xml", async (c) => {
 app.get("/api/og", (c) => paletteOgResponse(c.req.url));
 app.get("/api/og/query", (c) => queryOgResponse(c.req.url, c.env));
 
+// Raw renders: the image itself, no Grabient mark. /api/png is the long-standing
+// form the data-collection harness and vision-captioning pipeline call; the
+// .png suffix routes below are the guessable equivalents, so an agent that knows
+// a page URL can get its image by appending .png. Both accept style/steps/angle
+// and w/h.
+app.get("/api/png", (c) => palettePngResponse(c.req.url));
+app.get("/api/png/query", (c) => queryPngResponse(c.req.url, c.env));
+
 // No-JS fallback for the semantic-search form. The query itself lives in the
 // path so every result set has a shareable, indexable landing page.
 app.get("/palettes", (c) => {
@@ -1041,6 +1051,13 @@ app.get("/palettes", (c) => {
     302,
     300,
   );
+});
+// Must precede /palettes/:query — that pattern would otherwise swallow the
+// ".png" as part of the query text.
+app.get("/palettes/:query{.+\\.png}", (c) => {
+  const url = new URL(c.req.url);
+  url.searchParams.set("query", c.req.param("query").slice(0, -".png".length));
+  return queryPngResponse(url.toString(), c.env);
 });
 app.get("/palettes/:query", (c) =>
   handleSemanticSearch(c, c.req.param("query")),
@@ -1077,6 +1094,14 @@ app.get("/contact", (c) =>
     contactContent(c.env.TURNSTILE_SITE_KEY),
   ),
 );
+
+// Must precede the /:seed catch-all, which would otherwise treat "abc.png" as a
+// seed named "abc.png" and 404.
+app.get("/:seed{.+\\.png}", (c) => {
+  const url = new URL(c.req.url);
+  url.searchParams.set("seed", c.req.param("seed").slice(0, -".png".length));
+  return palettePngResponse(url.toString());
+});
 
 // Legacy /:seed/edit URLs redirect to the seed page (the editor lives there now).
 app.get("/:seed/edit", async (c) => {

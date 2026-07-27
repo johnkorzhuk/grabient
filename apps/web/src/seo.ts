@@ -63,9 +63,14 @@ Sitemap: ${base}/sitemap.xml
 # Guide for LLMs and AI agents (site map + palette URL construction spec):
 # ${base}/llms.txt
 #
-# PNG renders, no auth, image/png at 1200x630. Both accept style/angle/steps:
-#   ${base}/api/og?seed={seed}          single palette (compact or comma-separated seed)
-#   ${base}/api/og/query?query={query}  top results for a semantic search
+# PNG renders, no auth, image/png. Append .png to any page URL for the raw,
+# unbranded image; add ?style=&angle=&steps= to change how it renders:
+#   ${base}/{seed}.png              a single palette
+#   ${base}/palettes/{query}.png    top results for a semantic search
+# Explicit endpoints, same renders, also accept w= and h= (16-2400):
+#   ${base}/api/png?seed={seed}
+#   ${base}/api/png/query?query={query}
+# /api/og and /api/og/query return the branded social card instead.
 `;
 }
 
@@ -196,6 +201,33 @@ function gradientLayer(
   );
 }
 
+export const OG_WIDTH = 1200;
+export const OG_HEIGHT = 630;
+// Raw PNG dimension bounds. The upper bound exists because resvg rasterizes on
+// the request's CPU budget; the lower one keeps a stray w=0 from producing an
+// empty image.
+const PNG_MIN_DIMENSION = 16;
+const PNG_MAX_DIMENSION = 2400;
+
+function pngDimension(params: URLSearchParams, key: string, fallback: number): number {
+  const raw = params.get(key);
+  if (raw === null) return fallback;
+  const parsed = Number.parseInt(raw, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(PNG_MAX_DIMENSION, Math.max(PNG_MIN_DIMENSION, parsed));
+}
+
+/** Just the gradient — no logo, no padding. The raw render of a palette. */
+export function paletteBareSvg(
+  view: RenderedPalette,
+  width: number,
+  height: number,
+): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+${gradientLayer(view, width, height)}
+</svg>`;
+}
+
 export function paletteOgSvg(view: RenderedPalette): string {
   const background =
     calculateAverageBrightness(view.hexColors) > 0.5 ? "#ffffff" : "#0a0a0b";
@@ -222,8 +254,30 @@ export function queryOgSvg(
   steps: number | "auto",
   angle: number | "auto",
 ): string {
-  const width = 1200;
-  const height = 630;
+  return queryTilesSvg(results, style, steps, angle, OG_WIDTH, OG_HEIGHT, true);
+}
+
+/** The same montage without branding, for the raw /api/png family. */
+export function queryBareSvg(
+  results: readonly SemanticSearchResult[],
+  style: PaletteStyle | "auto",
+  steps: number | "auto",
+  angle: number | "auto",
+  width: number,
+  height: number,
+): string {
+  return queryTilesSvg(results, style, steps, angle, width, height, false);
+}
+
+function queryTilesSvg(
+  results: readonly SemanticSearchResult[],
+  style: PaletteStyle | "auto",
+  steps: number | "auto",
+  angle: number | "auto",
+  width: number,
+  height: number,
+  withLogo: boolean,
+): string {
   const phi = (1 + Math.sqrt(5)) / 2;
   const majorWidth = Math.round(width / phi);
   const minorWidth = width - majorWidth;
@@ -281,15 +335,18 @@ export function queryOgSvg(
 <g clip-path="url(#og-cell-${index})"><g transform="translate(${tile.x} ${tile.y})">${content}</g></g>`;
   }
 
-  const logoColors = views[0]?.hexColors ?? ["#ffd25f", "#ff5f6d", "#a17fff"];
-  const logoInk = views[0]
-    ? heroInk(views[0], tiles[0].width, tiles[0].height, 112, 24, 340).ink
-    : "light";
-  const logoForeground = logoInk === "dark" ? "#0a0a0b" : "#fafafa";
-  const logo = LOGO(logoColors, "")
-    .replace('<svg class=""', '<svg x="32" y="30" width="286" height="65"')
-    .replaceAll("currentColor", logoForeground)
-    .replace(' role="img" aria-label="Grabient"', ' aria-hidden="true"');
+  let logo = "";
+  if (withLogo) {
+    const logoColors = views[0]?.hexColors ?? ["#ffd25f", "#ff5f6d", "#a17fff"];
+    const logoInk = views[0]
+      ? heroInk(views[0], tiles[0].width, tiles[0].height, 112, 24, 340).ink
+      : "light";
+    const logoForeground = logoInk === "dark" ? "#0a0a0b" : "#fafafa";
+    logo = LOGO(logoColors, "")
+      .replace('<svg class=""', '<svg x="32" y="30" width="286" height="65"')
+      .replaceAll("currentColor", logoForeground)
+      .replace(' role="img" aria-label="Grabient"', ' aria-hidden="true"');
+  }
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
 ${cells}
 ${logo}
@@ -308,10 +365,14 @@ function parsedInteger(
   return result.success ? result.output : fallback;
 }
 
-async function renderPng(svg: string, cacheState?: "HIT" | "MISS"): Promise<Response> {
+async function renderPng(
+  svg: string,
+  cacheState?: "HIT" | "MISS",
+  fitWidth = OG_WIDTH,
+): Promise<Response> {
   const { Resvg } = await import("@cf-wasm/resvg/workerd");
   const resvg = await Resvg.async(svg, {
-    fitTo: { mode: "width", value: 1200 },
+    fitTo: { mode: "width", value: fitWidth },
   });
   let png: Uint8Array;
   try {
@@ -333,6 +394,71 @@ async function renderPng(svg: string, cacheState?: "HIT" | "MISS"): Promise<Resp
       ...(cacheState ? { "X-Cache": cacheState } : {}),
     },
   });
+}
+
+/**
+ * Raw palette PNG — the gradient and nothing else, no Grabient mark.
+ *
+ * This is what /api/png and /{seed}.png serve. Kept separate from the OG card
+ * on purpose: OG images are branded social previews, while this is the image
+ * itself, meant to be embedded, fed to a vision model, or composited.
+ * Honors style/steps/angle plus w/h.
+ */
+export async function palettePngResponse(requestUrl: string): Promise<Response> {
+  const params = normalizeEntityMangledParams(new URL(requestUrl));
+  const requestedSeed = params.get("seed") ?? DEFAULT_PALETTE.seed;
+  const seed = canonicalSeed(requestedSeed);
+  if (!seed) return new Response("Invalid seed format", { status: 400 });
+
+  const styleResult = v.safeParse(paletteStyleValidator, params.get("style"));
+  const style: PaletteStyle = styleResult.success ? styleResult.output : DEFAULT_STYLE;
+  const steps = parsedInteger(params, "steps", stepsValidator, DEFAULT_STEPS);
+  const angle = parsedInteger(params, "angle", angleValidator, DEFAULT_ANGLE);
+  const width = pngDimension(params, "w", OG_WIDTH);
+  const height = pngDimension(params, "h", OG_HEIGHT);
+  const view = renderPalette(seed, style, steps, angle);
+  if (!view) return new Response("Invalid seed format", { status: 400 });
+
+  try {
+    return await renderPng(paletteBareSvg(view, width, height), undefined, width);
+  } catch (error) {
+    console.error("Error generating palette PNG:", error);
+    return new Response("Error generating image", { status: 500 });
+  }
+}
+
+/** Raw search-results PNG — same montage as the query card, without the mark. */
+export async function queryPngResponse(requestUrl: string, env: Env): Promise<Response> {
+  const params = normalizeEntityMangledParams(new URL(requestUrl));
+  const query = (params.get("query") ?? params.get("q") ?? "").trim();
+  if (!query) return new Response("Missing query parameter", { status: 400 });
+
+  const styleResult = v.safeParse(paletteStyleValidator, params.get("style"));
+  const style: PaletteStyle | "auto" = styleResult.success ? styleResult.output : "auto";
+  const parsedSteps = parsedInteger(params, "steps", stepsValidator, Number.NaN);
+  const steps = Number.isNaN(parsedSteps) ? "auto" : parsedSteps;
+  const parsedAngle = parsedInteger(params, "angle", angleValidator, Number.NaN);
+  const angle = Number.isNaN(parsedAngle) ? "auto" : parsedAngle;
+  const width = pngDimension(params, "w", OG_WIDTH);
+  const height = pngDimension(params, "h", OG_HEIGHT);
+
+  let results: SemanticSearchResult[] = [];
+  try {
+    results = await searchSemanticPalettes(env, normalizeSemanticQuery(query), DEFAULT_PAGE_LIMIT);
+  } catch (error) {
+    console.warn("Query PNG search error:", error);
+  }
+
+  try {
+    return await renderPng(
+      queryBareSvg(results, style, steps, angle, width, height),
+      undefined,
+      width,
+    );
+  } catch (error) {
+    console.error("Error generating query PNG:", error);
+    return new Response("Error generating image", { status: 500 });
+  }
 }
 
 export async function paletteOgResponse(requestUrl: string): Promise<Response> {

@@ -1,6 +1,6 @@
 // Inline SVG icons (lucide path data, stroke 2.5 per site convention).
-const svg = (paths: string, cls = "w-4 h-4") =>
-  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
+const svg = (paths: string, cls = "w-4 h-4", strokeWidth = 2.5) =>
+  `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${strokeWidth}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths}</svg>`;
 
 export const ICON = {
   search: (cls = "w-4 h-4") =>
@@ -10,15 +10,21 @@ export const ICON = {
       `<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>`,
       cls,
     ),
+  // Lighter stroke than the 2.5 site default: these are the only icons that get
+  // filled to show state, and at 2.5 the filled thumb reads as a fat blob while
+  // its unfilled partner stays thin — the weight mismatch is what made the pair
+  // look clumsy. 1.75 keeps the outline crisp and the filled shape legible.
   thumbUp: (cls = "w-4 h-4") =>
     svg(
       `<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/>`,
       cls,
+      1.75,
     ),
   thumbDown: (cls = "w-4 h-4") =>
     svg(
       `<path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22h0a3.13 3.13 0 0 1-3-3.88Z"/>`,
       cls,
+      1.75,
     ),
   arrowLeft: (cls = "w-4 h-4") => svg(`<path d="m12 19-7-7 7-7"/><path d="M19 12H5"/>`, cls),
   undo: (cls = "w-4 h-4") =>
