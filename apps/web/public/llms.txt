@@ -20,11 +20,32 @@ CSS output.
 - `https://grabient.com/{seed}` -- a single palette's page with its gradient editor and CSS/SVG/PNG export; `{seed}` is either a canonical compact seed or 12/16 comma-separated numbers (see "Constructing a palette URL from scratch")
 - `https://grabient.com/palettes/{query}` -- semantic palette results for a descriptive query; use hyphens between words
 - Optional URL parameters on most pages: `style` (linearGradient | linearSwatches | angularGradient | angularSwatches | radialGradient | radialSwatches), `angle` (0-360 degrees), `steps` (number of colors)
-- `https://grabient.com/api/og?seed={seed}` -- a PNG preview image of any palette
+
+## PNG images
+
+Every page has a matching PNG you can fetch directly and inspect. Both return
+`image/png` at 1200x630, need no authentication, and accept the same optional
+`style`, `angle` and `steps` parameters as the pages themselves.
+
+- `https://grabient.com/api/og?seed={seed}` -- renders one palette. `{seed}` may be
+  a canonical compact seed or the 12/16 comma-separated coefficient form, so you
+  can render a palette you constructed without visiting the page first. Omitting
+  `seed` renders the site's default palette; an unparseable seed returns 400.
+- `https://grabient.com/api/og/query?query={query}` -- renders the top results for
+  a semantic search, laid out as one large palette plus a stack of result strips.
+  `q` is accepted as an alias. Use hyphens or spaces between words. A missing or
+  empty query returns 400.
+
+These are the same images referenced by the `og:image` meta tag on the
+corresponding `/{seed}` and `/palettes/{query}` pages, so either source is
+authoritative. The `v` parameter on those tags is a cache-busting render
+version -- it is optional when you request the URL yourself.
 
 ## Machine-readable resources
 
 - [Sitemap](https://grabient.com/sitemap.xml): The most popular palette pages plus the main list pages
+- [Palette PNG](https://grabient.com/api/og?seed=_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI): PNG render of a single palette; swap the seed
+- [Search results PNG](https://grabient.com/api/og/query?query=warm-sunset): PNG render of a semantic search; swap the query
 
 ## Usage notes
 

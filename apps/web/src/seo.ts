@@ -62,6 +62,10 @@ Sitemap: ${base}/sitemap.xml
 
 # Guide for LLMs and AI agents (site map + palette URL construction spec):
 # ${base}/llms.txt
+#
+# PNG renders, no auth, image/png at 1200x630. Both accept style/angle/steps:
+#   ${base}/api/og?seed={seed}          single palette (compact or comma-separated seed)
+#   ${base}/api/og/query?query={query}  top results for a semantic search
 `;
 }
 
