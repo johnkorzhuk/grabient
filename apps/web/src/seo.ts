@@ -31,7 +31,8 @@ export const SEO_BASE_URL = "https://grabient.com";
 
 // The version is part of the public og:image URL and the query-image KV key, so
 // crawlers cannot retain an earlier renderer after a visual refresh.
-export const OG_RENDER_VERSION = 15;
+// 16: query card right rail became full-width bands instead of a 3x4 grid.
+export const OG_RENDER_VERSION = 16;
 
 export function robotsTxt(origin = SEO_BASE_URL): string {
   const base = origin.replace(/\/+$/, "");
