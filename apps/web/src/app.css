@@ -684,8 +684,27 @@ input::placeholder {
 .palette-card-feedback > button:focus-visible {
   box-shadow: inset 0 0 0 2px var(--color-ring);
 }
-.palette-card-feedback > button[aria-pressed="true"] {
-  color: var(--color-foreground);
+/* A set thumb has to be unmistakable. The previous pressed state only shifted
+   the icon from muted to foreground, which on a 16px outline glyph was easy to
+   miss entirely — people re-clicked because they could not tell it had stuck.
+   Pressed now inverts the whole chip and fills the glyph, so the selection
+   reads at a glance and survives the coarse-pointer overrides below (the
+   attribute selector outranks them).
+   The [aria-pressed="true"] pair keeps hover from washing the state back out. */
+.palette-card-feedback > button svg {
+  fill: transparent;
+  transition:
+    fill 150ms,
+    transform 150ms;
+}
+.palette-card-feedback > button[aria-pressed="true"],
+.palette-card-feedback > button[aria-pressed="true"]:hover {
+  background: var(--color-foreground);
+  color: var(--color-background);
+}
+.palette-card-feedback > button[aria-pressed="true"] svg {
+  fill: currentColor;
+  transform: scale(1.06);
 }
 .palette-card-feedback > span {
   width: 1px;
