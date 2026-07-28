@@ -1233,7 +1233,6 @@ document.addEventListener("pointerleave", (e) => {
   if (tip) tip.classList.add("hidden");
   if (cross) cross.style.opacity = "0";
   plot.querySelectorAll(".graph-dot").forEach((d) => (d.style.opacity = "0"));
-  markActiveSwatch(-1);
 }, true);
 
 history.scrollRestoration = "manual";
