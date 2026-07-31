@@ -548,9 +548,8 @@ export function EditorIsland(props: EditorProps) {
     });
   };
   // PNG/SVG export (port of the original generatePNG + copyPNGToClipboard):
-  // angularGradient uses a direct canvas conic (its SVG relies on a
-  // foreignObject conic div, which canvas refuses to rasterize); every other
-  // style draws the SVG to canvas.
+  // angularGradient uses a direct canvas conic (exact, vs the SVG's wedge-fan
+  // approximation); every other style draws the SVG to canvas.
   const exportDims = (): [number, number] => {
     const s = previewSize();
     if (s !== "auto") return s.map(Math.round) as [number, number];

@@ -221,35 +221,9 @@ export function generateSvgGradient(
         }
 
         case "angularGradient": {
-            // Build color stops for CSS conic-gradient
-            const colorStops: string[] = [];
-            hexColors.forEach((color, index) => {
-                const position = (
-                    (index / (hexColors.length - 1)) *
-                    360
-                ).toFixed(6);
-                const alpha =
-                    typeof activeIndex === "number"
-                        ? index === activeIndex
-                            ? 1
-                            : inactiveAlpha
-                        : 1;
-                const rgbString = hexToRgb(color);
-                colorStops.push(`rgba(${rgbString}, ${alpha}) ${position}deg`);
-            });
-
             const centerX = width / 2;
             const centerY = height / 2;
-
-            // Figma uses a large foreignObject (~5.66x the max dimension) centered at origin
-            // then scales it down to fit
             const maxDim = Math.max(width, height);
-            const foreignObjectSize = maxDim * 5.66;
-            const foreignObjectHalf = foreignObjectSize / 2;
-
-            // Scale so the conic div covers the full diagonal even when rotated
-            const diagonal = Math.sqrt(width * width + height * height);
-            const scale = diagonal / foreignObjectSize;
 
             // Rotation: angle 90° = no rotation (top), 0° = rotated -90° (right), etc.
             const rotationDeg = angle - 90;
@@ -257,13 +231,55 @@ export function generateSvgGradient(
             const cos = Math.cos(rotationRad);
             const sin = Math.sin(rotationRad);
 
-            // SVG transform matrix: matrix(a, b, c, d, e, f)
-            const a = scale * cos;
-            const b = scale * sin;
-            const c = -scale * sin;
-            const d = scale * cos;
-            const e = centerX;
-            const f = centerY;
+            // Native conic approximation: a fan of thin wedges with linearly
+            // interpolated colors (same technique as the OG/PNG renderer's
+            // angularGradientLayer). The previous foreignObject conic-gradient
+            // div only rendered inside live browser documents — every other
+            // consumer (Illustrator, Inkscape, <img>, rasterizers) ignored it
+            // and the fallback shape inherited fill="none", so copied/
+            // downloaded angular SVGs came out empty. Figma skips this group
+            // (data-figma-skip-parse) and rebuilds the true angular gradient
+            // from the data-figma-gradient-fill carrier below.
+            const radius = Math.sqrt(width * width + height * height) / 2 + 2;
+            const segmentsPerPair = 36;
+            const totalSegments = (hexColors.length - 1) * segmentsPerPair;
+            const segmentAngle = 360 / totalSegments;
+            const stopAlpha = (index: number) =>
+                typeof activeIndex === "number"
+                    ? index === activeIndex
+                        ? 1
+                        : inactiveAlpha
+                    : 1;
+            let wedgePaths = "";
+            for (let i = 0; i < totalSegments; i++) {
+                const pair = Math.floor(i / segmentsPerPair);
+                const progress = (i % segmentsPerPair) / segmentsPerPair;
+                const from = hexColors[pair] ?? "#000000";
+                const to =
+                    hexColors[Math.min(pair + 1, hexColors.length - 1)] ?? from;
+                const channel = (offset: number) =>
+                    Math.round(
+                        parseInt(from.slice(offset, offset + 2), 16) +
+                            (parseInt(to.slice(offset, offset + 2), 16) -
+                                parseInt(from.slice(offset, offset + 2), 16)) *
+                                progress,
+                    );
+                const color = `#${[channel(1), channel(3), channel(5)]
+                    .map((value) => value.toString(16).padStart(2, "0"))
+                    .join("")}`;
+                const alpha =
+                    stopAlpha(pair) +
+                    (stopAlpha(Math.min(pair + 1, hexColors.length - 1)) -
+                        stopAlpha(pair)) *
+                        progress;
+                const opacityAttr =
+                    alpha === 1 ? "" : ` fill-opacity="${alpha.toFixed(3)}"`;
+                // +0.5° overdraw on each wedge end hides hairline seams.
+                const start = ((angle - 90 + i * segmentAngle) * Math.PI) / 180;
+                const end =
+                    ((angle - 90 + (i + 1) * segmentAngle + 0.5) * Math.PI) / 180;
+                wedgePaths += `<path d="M ${centerX},${centerY} L ${(centerX + radius * Math.cos(start)).toFixed(2)},${(centerY + radius * Math.sin(start)).toFixed(2)} A ${radius.toFixed(2)},${radius.toFixed(2)} 0 0 1 ${(centerX + radius * Math.cos(end)).toFixed(2)},${(centerY + radius * Math.sin(end)).toFixed(2)} Z" fill="${color}"${opacityAttr}/>`;
+            }
 
             // Build Figma gradient metadata for data-figma-gradient-fill attribute
             const gradientStops = hexColors
@@ -297,11 +313,23 @@ export function generateSvgGradient(
 
             const clipPathId = getUniqueId("paint0_angular_clip_path");
 
+            // The gradient carrier and clip MUST be <path>, not <rect>:
+            // Figma's importer only reattaches data-figma-gradient-fill to
+            // path elements — a rect carrier pastes as a dead black shape
+            // (verified 2026-07-30 with a variant matrix against a Figma
+            // export; escapes/transform/number formatting all proved fine).
+            // Same outline Figma emits, rounded when a border radius is set.
+            const r = borderRadiusPx;
+            const shapeD =
+                r > 0
+                    ? `M${width - r} 0H${r}A${r} ${r} 0 0 0 0 ${r}V${height - r}A${r} ${r} 0 0 0 ${r} ${height}H${width - r}A${r} ${r} 0 0 0 ${width} ${height - r}V${r}A${r} ${r} 0 0 0 ${width - r} 0Z`
+                    : `M${width} 0H0V${height}H${width}V0Z`;
+
             return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" fill="none" xmlns="http://www.w3.org/2000/svg">
 ${creditComment}
-<g clip-path="url(#${clipPathId})" data-figma-skip-parse="true"><g transform="matrix(${a.toFixed(6)} ${b.toFixed(6)} ${c.toFixed(6)} ${d.toFixed(6)} ${e.toFixed(6)} ${f.toFixed(6)})"><foreignObject x="${-foreignObjectHalf}" y="${-foreignObjectHalf}" width="${foreignObjectSize}" height="${foreignObjectSize}"><div xmlns="http://www.w3.org/1999/xhtml" style="background:conic-gradient(from 90deg,${colorStops.join(",")});height:100%;width:100%;opacity:1"></div></foreignObject></g></g><rect width="${width}" height="${height}"${rxAttr} data-figma-gradient-fill="${gradientFillData}"/>
+<g clip-path="url(#${clipPathId})" data-figma-skip-parse="true">${wedgePaths}</g><path d="${shapeD}" data-figma-gradient-fill="${gradientFillData}"/>
 <defs>
-<clipPath id="${clipPathId}"><rect width="${width}" height="${height}"${rxAttr}/></clipPath>
+<clipPath id="${clipPathId}"><path d="${shapeD}"/></clipPath>
 </defs>
 </svg>`;
         }

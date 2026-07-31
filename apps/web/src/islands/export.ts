@@ -534,7 +534,11 @@ ${SIZE_PRESETS.map(
 
 // ---------------------------------------------------------------------------
 // SVG grid — ported from the original's generateSVGGrid.ts nearly verbatim
-// (proven Figma compatibility, incl. the angular foreignObject + metadata).
+// (proven Figma compatibility via the angular metadata rect). Angular tiles
+// now flow through generateSvgGradient like every other style: its wedge-fan
+// output renders everywhere, where the old foreignObject conic div only
+// rendered in live browser documents (copied/downloaded grids came out with
+// empty angular tiles).
 // ---------------------------------------------------------------------------
 interface SVGGridOptions {
   exportList: ExportItem[];
@@ -543,63 +547,6 @@ interface SVGGridOptions {
   gap?: number;
   borderRadius?: number;
   columns?: number;
-}
-
-function generateAngularGradientForGrid(
-  hexColors: string[],
-  angle: number,
-  width: number,
-  height: number,
-  index: number,
-): { content: string; defs: string } {
-  const colorStops = hexColors.map((color, i) => {
-    const position = ((i / (hexColors.length - 1)) * 360).toFixed(6);
-    const r = parseInt(color.slice(1, 3), 16);
-    const g = parseInt(color.slice(3, 5), 16);
-    const b = parseInt(color.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, 1) ${position}deg`;
-  });
-
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const diagonal = Math.sqrt(width * width + height * height);
-  const foreignObjectSize = diagonal * 4;
-  const foreignObjectHalf = foreignObjectSize / 2;
-  const scale = diagonal / foreignObjectSize;
-  const rotationRad = ((angle - 90) * Math.PI) / 180;
-  const cos = Math.cos(rotationRad);
-  const sin = Math.sin(rotationRad);
-  const a = scale * cos;
-  const b = scale * sin;
-  const c = -scale * sin;
-  const d = scale * cos;
-
-  const clipPathId = `paint${index}_angular_clip_path`;
-  const clipDef = `<clipPath id="${clipPathId}"><rect width="${width}" height="${height}"/></clipPath>`;
-
-  const gradientStops = hexColors
-    .map((color, i) => {
-      const position = i / (hexColors.length - 1);
-      const r = parseInt(color.slice(1, 3), 16) / 255;
-      const g = parseInt(color.slice(3, 5), 16) / 255;
-      const bVal = parseInt(color.slice(5, 7), 16) / 255;
-      return `{&quot;color&quot;:{&quot;r&quot;:${r},&quot;g&quot;:${g},&quot;b&quot;:${bVal},&quot;a&quot;:1},&quot;position&quot;:${position}}`;
-    })
-    .join(",");
-
-  const figmaScale = Math.max(width, height);
-  const m00 = figmaScale * cos;
-  const m01 = -figmaScale * sin;
-  const m10 = figmaScale * sin;
-  const m11 = figmaScale * cos;
-  const m02 = centerX - (m00 + m01) / 2;
-  const m12 = centerY - (m10 + m11) / 2;
-
-  const gradientFillData = `{&quot;type&quot;:&quot;GRADIENT_ANGULAR&quot;,&quot;stops&quot;:[${gradientStops}],&quot;stopsVar&quot;:[${gradientStops}],&quot;transform&quot;:{&quot;m00&quot;:${m00.toFixed(6)},&quot;m01&quot;:${m01.toFixed(6)},&quot;m02&quot;:${m02.toFixed(6)},&quot;m10&quot;:${m10.toFixed(6)},&quot;m11&quot;:${m11.toFixed(6)},&quot;m12&quot;:${m12.toFixed(6)}},&quot;opacity&quot;:1.0,&quot;blendMode&quot;:&quot;NORMAL&quot;,&quot;visible&quot;:true}`;
-
-  const content = `<g clip-path="url(#${clipPathId})" data-figma-skip-parse="true"><g transform="matrix(${a.toFixed(6)} ${b.toFixed(6)} ${c.toFixed(6)} ${d.toFixed(6)} ${centerX.toFixed(6)} ${centerY.toFixed(6)})"><foreignObject x="${-foreignObjectHalf}" y="${-foreignObjectHalf}" width="${foreignObjectSize}" height="${foreignObjectSize}"><div xmlns="http://www.w3.org/1999/xhtml" style="background:conic-gradient(from 90deg,${colorStops.join(",")});height:100%;width:100%;opacity:1"></div></foreignObject></g></g><rect width="${width}" height="${height}" data-figma-gradient-fill="${gradientFillData}"/>`;
-
-  return { content, defs: clipDef };
 }
 
 export function generateSVGGrid(options: SVGGridOptions): string {
@@ -644,35 +591,23 @@ export function generateSVGGrid(options: SVGGridOptions): string {
     }
     const clipPathAttr = borderRadiusPx > 0 ? ` clip-path="url(#${clipPathId})"` : "";
 
-    if (item.style === "angularGradient") {
-      const { content, defs } = generateAngularGradientForGrid(
-        item.hexColors,
-        item.angle,
-        itemWidth,
-        itemHeight,
-        index,
-      );
-      allContent.push(`<g transform="translate(${x}, ${y})"${clipPathAttr}>${content}</g>`);
-      allDefs.push(defs);
-    } else {
-      const itemSVG = generateSvgGradient(
-        item.hexColors,
-        item.style,
-        item.angle,
-        { seed: item.seed, searchString: "" },
-        null,
-        { width: itemWidth, height: itemHeight, gridItemIndex: index },
-      );
-      const svgMatch = itemSVG.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
-      if (svgMatch && svgMatch[1]) {
-        let innerSVG = svgMatch[1];
-        const defsMatch = innerSVG.match(/<defs>([\s\S]*?)<\/defs>/);
-        if (defsMatch && defsMatch[1]) {
-          allDefs.push(defsMatch[1]);
-          innerSVG = innerSVG.replace(/<defs>[\s\S]*?<\/defs>/, "");
-        }
-        allContent.push(`<g transform="translate(${x}, ${y})"${clipPathAttr}>${innerSVG}</g>`);
+    const itemSVG = generateSvgGradient(
+      item.hexColors,
+      item.style,
+      item.angle,
+      { seed: item.seed, searchString: "" },
+      null,
+      { width: itemWidth, height: itemHeight, gridItemIndex: index },
+    );
+    const svgMatch = itemSVG.match(/<svg[^>]*>([\s\S]*)<\/svg>/);
+    if (svgMatch && svgMatch[1]) {
+      let innerSVG = svgMatch[1];
+      const defsMatch = innerSVG.match(/<defs>([\s\S]*?)<\/defs>/);
+      if (defsMatch && defsMatch[1]) {
+        allDefs.push(defsMatch[1]);
+        innerSVG = innerSVG.replace(/<defs>[\s\S]*?<\/defs>/, "");
       }
+      allContent.push(`<g transform="translate(${x}, ${y})"${clipPathAttr}>${innerSVG}</g>`);
     }
   }
 
