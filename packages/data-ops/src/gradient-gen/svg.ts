@@ -46,7 +46,12 @@ export function generateSvgGradient(
     const borderRadiusPx = (borderRadius / 100) * (minDimension / 2);
     const rxAttr = borderRadiusPx > 0 ? ` rx="${borderRadiusPx}" ry="${borderRadiusPx}"` : "";
     const baseUrl = creditProps.baseUrl ?? "https://grabient.com";
-    const creditComment = `<!-- ${baseUrl}/${creditProps.seed}${creditProps.searchString} -->`;
+    // XML forbids "--" inside comments, and v3 seeds can legitimately contain
+    // adjacent hyphens; strict parsers (resvg behind /api/png and the OG
+    // renderer) reject the whole document over it. Percent-encode the second
+    // hyphen — the URL still resolves to the same seed.
+    const creditPath = `${creditProps.seed}${creditProps.searchString}`.replace(/--/g, "-%2D");
+    const creditComment = `<!-- ${baseUrl}/${creditPath} -->`;
 
     const getUniqueId = (baseId: string) =>
         typeof gridItemIndex === "number"

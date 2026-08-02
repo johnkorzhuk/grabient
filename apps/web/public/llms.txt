@@ -35,8 +35,11 @@ embedding, analysing, or feeding an image to a model.
 - `https://grabient.com/palettes/{query}.png` -- the top search results as one
   large palette plus a stack of result strips
 
-The same two renders are also available as explicit endpoints, which additionally
-accept `w` and `h` (pixels, 16-2400, default 1200x630):
+Every PNG form also accepts `w` and `h` (pixels, 16-2400, default 1200x630).
+Values outside that range are clamped rather than rejected.
+
+The same two renders are available as explicit endpoints, which is the form to
+use when you have a seed or query rather than a URL to append to:
 
 - `https://grabient.com/api/png?seed={seed}&w=960&h=88`
 - `https://grabient.com/api/png/query?query={query}`
