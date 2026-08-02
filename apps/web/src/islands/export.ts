@@ -488,6 +488,9 @@ ${SIZE_PRESETS.map(
   document.body.append(p);
   dimsPanel = p;
   positionDimsPanel();
+  // The panel is appended to <body>, so Tab from the trigger tours the whole
+  // page before reaching it — move focus inside on open.
+  p.querySelector<HTMLElement>("input")?.focus();
   p.querySelectorAll<HTMLInputElement>("[data-dim-axis]").forEach((input) => {
     const axis = Number(input.getAttribute("data-dim-axis")) as 0 | 1;
     input.addEventListener("focus", () => input.select());
@@ -526,6 +529,30 @@ ${SIZE_PRESETS.map(
     if (e.key === "Escape") {
       e.stopPropagation();
       closeDims(true);
+    } else if (e.key === "Tab") {
+      // Cycle Tab/Shift+Tab inside the dialog while it's open; leaving it
+      // would strand focus on a portaled element at the end of <body>.
+      const els = [...p.querySelectorAll<HTMLElement>("input, button")];
+      if (els.length === 0) return;
+      const first = els[0]!;
+      const last = els[els.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      // Listbox-style arrows between presets; the dim inputs keep their own
+      // arrow stepping (dimKeydown).
+      const opts = [...p.querySelectorAll<HTMLElement>("[role='option']")];
+      const idx = opts.indexOf(document.activeElement as HTMLElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      const next =
+        e.key === "ArrowDown" ? Math.min(idx + 1, opts.length - 1) : Math.max(idx - 1, 0);
+      opts[next]?.focus();
     }
   });
   addEventListener("scroll", positionDimsPanel, true);

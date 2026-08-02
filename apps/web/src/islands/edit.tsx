@@ -1518,6 +1518,14 @@ export function EditorIsland(props: EditorProps) {
                   dlBtn = e.currentTarget;
                   setDlOpen(!dlOpen());
                 }}
+                onKeyDown={(e) => {
+                  // Menu-button pattern: ArrowDown opens and lands in the menu.
+                  if (e.key === "ArrowDown" && !dlOpen()) {
+                    e.preventDefault();
+                    dlBtn = e.currentTarget;
+                    setDlOpen(true);
+                  }
+                }}
               >
                 <svg
                   width="15"
@@ -1723,12 +1731,47 @@ export function EditorIsland(props: EditorProps) {
                   class="fixed z-[70] max-h-[60vh] w-56 overflow-y-auto rounded-[10px] border border-solid border-input bg-background/90 p-1.5 shadow-lg backdrop-blur-md"
                   ref={(el) => {
                     panelEl = el;
-                    queueMicrotask(positionPanel);
+                    queueMicrotask(() => {
+                      positionPanel();
+                      // The panel is portaled to document.body, so Tab from
+                      // the trigger tours the whole page before reaching it —
+                      // move focus inside on open (matches __menu's showMenu).
+                      el.querySelector<HTMLElement>("input")?.focus();
+                    });
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Escape") {
                       setDimsOpen(false);
                       dimsBtn?.focus();
+                    } else if (e.key === "Tab") {
+                      // Keep Tab/Shift+Tab cycling inside the dialog while
+                      // it's open; leaving it would strand focus on a
+                      // portaled element at the end of <body>.
+                      const els = panelEl?.querySelectorAll<HTMLElement>("input, button");
+                      if (!els || els.length === 0) return;
+                      const first = els[0]!;
+                      const last = els[els.length - 1]!;
+                      if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                      } else if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                      }
+                    } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                      // Listbox-style arrows between presets; the dim inputs
+                      // keep their own arrow stepping (dimKeydown).
+                      const opts = [
+                        ...(panelEl?.querySelectorAll<HTMLElement>("[role='option']") ?? []),
+                      ];
+                      const idx = opts.indexOf(document.activeElement as HTMLElement);
+                      if (idx === -1) return;
+                      e.preventDefault();
+                      const next =
+                        e.key === "ArrowDown"
+                          ? Math.min(idx + 1, opts.length - 1)
+                          : Math.max(idx - 1, 0);
+                      opts[next]?.focus();
                     }
                   }}
                 >
@@ -1787,6 +1830,7 @@ export function EditorIsland(props: EditorProps) {
                     onClick={() => {
                       commitSize("auto");
                       setDimsOpen(false);
+                      dimsBtn?.focus();
                     }}
                   >
                     <span class="flex-1 text-left">auto</span>
@@ -1811,6 +1855,7 @@ export function EditorIsland(props: EditorProps) {
                           onClick={() => {
                             commitSize(isSel() ? "auto" : p.dims);
                             setDimsOpen(false);
+                            dimsBtn?.focus();
                           }}
                         >
                           <span class="flex-1 text-left">{p.label}</span>
@@ -1839,6 +1884,14 @@ export function EditorIsland(props: EditorProps) {
                   dlBtn = e.currentTarget;
                   setDlOpen(!dlOpen());
                 }}
+                onKeyDown={(e) => {
+                  // Menu-button pattern: ArrowDown opens and lands in the menu.
+                  if (e.key === "ArrowDown" && !dlOpen()) {
+                    e.preventDefault();
+                    dlBtn = e.currentTarget;
+                    setDlOpen(true);
+                  }
+                }}
               >
                 <svg
                   width="15"
@@ -1864,12 +1917,38 @@ export function EditorIsland(props: EditorProps) {
                     class="fixed z-[70] w-40 rounded-[10px] border border-solid border-input bg-background/90 p-1.5 shadow-lg backdrop-blur-md"
                     ref={(el) => {
                       dlPanel = el;
-                      queueMicrotask(positionDl);
+                      queueMicrotask(() => {
+                        positionDl();
+                        // Portaled to document.body — move focus into the
+                        // menu on open, like __menu's showMenu does.
+                        el.querySelector<HTMLElement>("[role='menuitem']")?.focus();
+                      });
                     }}
                     onKeyDown={(e) => {
                       if (e.key === "Escape") {
                         setDlOpen(false);
                         dlBtn?.focus();
+                      } else if (e.key === "Tab") {
+                        setDlOpen(false);
+                      } else if (
+                        e.key === "ArrowDown" ||
+                        e.key === "ArrowUp" ||
+                        e.key === "Home" ||
+                        e.key === "End"
+                      ) {
+                        e.preventDefault();
+                        const items = [
+                          ...(dlPanel?.querySelectorAll<HTMLElement>("[role='menuitem']") ?? []),
+                        ];
+                        if (items.length === 0) return;
+                        const idx = items.indexOf(document.activeElement as HTMLElement);
+                        let next = 0;
+                        if (e.key === "ArrowDown")
+                          next = idx === -1 ? 0 : Math.min(idx + 1, items.length - 1);
+                        else if (e.key === "ArrowUp")
+                          next = idx === -1 ? items.length - 1 : Math.max(idx - 1, 0);
+                        else if (e.key === "End") next = items.length - 1;
+                        items[next]?.focus();
                       }
                     }}
                   >
@@ -1880,6 +1959,7 @@ export function EditorIsland(props: EditorProps) {
                       onClick={() => {
                         downloadPng();
                         setDlOpen(false);
+                        dlBtn?.focus();
                       }}
                     >
                       Download PNG
@@ -1891,6 +1971,7 @@ export function EditorIsland(props: EditorProps) {
                       onClick={() => {
                         downloadSvg();
                         setDlOpen(false);
+                        dlBtn?.focus();
                       }}
                     >
                       Download SVG
