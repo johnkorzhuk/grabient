@@ -59,3 +59,48 @@ describe("angular gradient svg smoke", () => {
         expect(svg).toContain("fill-opacity=");
     });
 });
+
+describe("radial swatches svg", () => {
+    const svg = generateSvgGradient(
+        ["#ff0000", "#00ff00", "#0000ff"],
+        "radialSwatches",
+        90,
+        { seed: "test", searchString: "" },
+        null,
+        { width: 800, height: 400 },
+    );
+
+    it("draws every ring as an annulus, not a stacked disc", () => {
+        // Stacked discs paint the same picture but share their area: deleting
+        // the centre swatch in a vector editor would reveal the ring beneath
+        // instead of leaving a hole.
+        expect(svg).not.toContain("<circle");
+        expect((svg.match(/<path /g) ?? []).length).toBe(3);
+
+        // maxRadius = hypot(800, 400) / 2 = 447.214; bands are thirds of it
+        const innermost = /d="M 250\.929,200\.000 A 149\.071,149\.071[^"]*" fill="#ff0000"/;
+        expect(svg).toMatch(innermost);
+
+        // Every ring but the first carries a second subpath for its hole
+        const subpathCounts = [...svg.matchAll(/<path d="([^"]*)"/g)].map(
+            (m) => (m[1]!.match(/M /g) ?? []).length,
+        );
+        expect(subpathCounts).toEqual([1, 2, 2]);
+    });
+
+    it("winds the hole opposite to the ring so it cuts under either fill-rule", () => {
+        const middle = [...svg.matchAll(/<path d="([^"]*)"/g)][1]![1]!;
+        const [outer, inner] = middle.split(/(?=M )/).slice(-2);
+        // sweep flag is the last flag before the endpoint of each arc
+        expect(outer).toContain("0 1 1");
+        expect(inner).toContain("0 1 0");
+        // the hole matches the previous ring's outer edge exactly
+        expect(inner).toContain("149.071,149.071");
+    });
+
+    it("keeps the frame clip so the outermost ring stays inside the canvas", () => {
+        // outer radius is the half-diagonal, so it overhangs every edge
+        expect(svg).toContain('<g clip-path="url(#ringBounds)">');
+        expect(svg).toContain("447.214,447.214");
+    });
+});

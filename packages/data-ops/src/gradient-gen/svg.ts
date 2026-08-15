@@ -447,8 +447,19 @@ ${creditComment}
 
         case "radialSwatches": {
             const maxRadius = Math.sqrt(width * width + height * height) / 2;
-            const centerX = (width / 2).toFixed(3);
-            const centerY = (height / 2).toFixed(3);
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // One closed circular subpath, drawn as two half arcs. `sweep`
+            // flips the winding direction, so an inner subpath punches a hole
+            // through an outer one under either fill-rule.
+            const circleSubpath = (r: number, sweep: 0 | 1) => {
+                const left = (centerX - r).toFixed(3);
+                const right = (centerX + r).toFixed(3);
+                const y = centerY.toFixed(3);
+                const rr = r.toFixed(3);
+                return `M ${left},${y} A ${rr},${rr} 0 1 ${sweep} ${right},${y} A ${rr},${rr} 0 1 ${sweep} ${left},${y} Z`;
+            };
 
             let svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
             ${creditComment}
@@ -459,13 +470,13 @@ ${creditComment}
             </defs>
             <g clip-path="url(#${getUniqueId("ringBounds")})">`;
 
-            // Concentric circles drawn largest-first; each smaller circle
-            // covers the inner portion, leaving rings that match the CSS
-            // hard-stop radial-gradient
-            for (let index = hexColors.length - 1; index >= 0; index--) {
-                const color = hexColors[index]!;
-                const radius =
-                    ((index + 1) / hexColors.length) * maxRadius;
+            // Each swatch is an annulus covering exactly its own band, rather
+            // than a filled disc stacked over the ones beneath it. The painted
+            // result is identical, but deleting a ring in a vector editor now
+            // leaves a hole instead of revealing the next colour down.
+            hexColors.forEach((color, index) => {
+                const innerRadius = (index / hexColors.length) * maxRadius;
+                const outerRadius = ((index + 1) / hexColors.length) * maxRadius;
                 const alpha =
                     typeof activeIndex === "number"
                         ? index === activeIndex
@@ -473,8 +484,13 @@ ${creditComment}
                             : inactiveAlpha
                         : 1;
 
-                svgContent += `<circle cx="${centerX}" cy="${centerY}" r="${radius.toFixed(3)}" fill="${color}" fill-opacity="${alpha.toFixed(3)}" />`;
-            }
+                const pathData =
+                    index === 0
+                        ? circleSubpath(outerRadius, 1)
+                        : `${circleSubpath(outerRadius, 1)} ${circleSubpath(innerRadius, 0)}`;
+
+                svgContent += `<path d="${pathData}" fill="${color}" fill-opacity="${alpha.toFixed(3)}" />`;
+            });
 
             svgContent += `</g>
           </svg>`;
