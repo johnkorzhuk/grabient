@@ -18,6 +18,16 @@ export const auth_user = sqliteTable("auth_user", {
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+  // First-touch attribution, written once at account creation from the gb_attr
+  // cookie and never updated — see the create hook in auth/setup.ts. Null for
+  // every account made before migration 0021, and null for anyone who arrived
+  // with no campaign tags and no referrer (i.e. direct traffic).
+  attributionSource: text("attribution_source"),
+  attributionMedium: text("attribution_medium"),
+  attributionCampaign: text("attribution_campaign"),
+  attributionReferrer: text("attribution_referrer"),
+  attributionLanding: text("attribution_landing"),
+  attributionAt: integer("attribution_at", { mode: "timestamp_ms" }),
 });
 
 export const auth_session = sqliteTable("auth_session", {

@@ -20,6 +20,7 @@ import {
   setAnalyticsUser,
   syncAnalyticsConsent,
   trackEvent,
+  trackAuthConversion,
   trackPageView,
 } from "./analytics";
 
@@ -1892,6 +1893,36 @@ let likedSeeds = new Set();
 const escHtml = (s) =>
   String(s).replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
+
+// Distinguishing a sign-up from a sign-in has to happen here rather than at the
+// button: both go through the same better-auth endpoint, and for Google the
+// account is created during an OAuth callback on a page this code never runs
+// on. The session payload carries the account's createdAt, so a brand-new
+// account is one whose row is younger than this page load by a wide margin.
+//
+// The window is generous (5 minutes) because the OAuth round trip, the emailed
+// magic link and a slow first render all sit between account creation and this
+// fetch. sessionStorage guards against re-firing on every route swap within the
+// tab; a duplicate would inflate the one conversion number that matters most.
+const SIGNUP_WINDOW_MS = 5 * 60 * 1000;
+
+/** @param {any} user */
+function maybeTrackSignUp(user) {
+  if (!user?.createdAt) return;
+  const createdAt = new Date(user.createdAt).getTime();
+  if (!Number.isFinite(createdAt)) return;
+  if (Date.now() - createdAt > SIGNUP_WINDOW_MS) return;
+  try {
+    const key = `gb_su_${user.id}`;
+    if (sessionStorage.getItem(key)) return;
+    sessionStorage.setItem(key, "1");
+  } catch {
+    // Private mode with storage disabled: better to risk a duplicate than to
+    // lose the event entirely.
+  }
+  trackAuthConversion("sign_up", "session");
+}
+
 function fetchSession() {
   if (!sessionPromise) {
     sessionPromise = fetch("/api/auth/get-session", { cache: "no-store" })
@@ -1899,6 +1930,7 @@ function fetchSession() {
       .then((d) => {
         sessionUser = d && d.user ? d.user : null;
         setAnalyticsUser(sessionUser);
+        maybeTrackSignUp(sessionUser);
         return sessionUser;
       })
       .catch(() => {
@@ -2449,6 +2481,10 @@ document.addEventListener("submit", async (e) => {
   send.disabled = true;
   send.textContent = "Sending...";
   try {
+    // Fired when the link is requested rather than when it is followed: the
+    // sign-in completes on a later page load from the emailed URL, where this
+    // handler never runs.
+    trackAuthConversion("login", "magic_link");
     const r = await fetch("/api/auth/sign-in/magic-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2475,6 +2511,9 @@ document.addEventListener("click", async (e) => {
   if (!g) return;
   g.disabled = true;
   try {
+    // Fired before the redirect to Google — once location.href changes there is
+    // no further chance to send anything from this page.
+    trackAuthConversion("login", "google");
     const r = await fetch("/api/auth/sign-in/social", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

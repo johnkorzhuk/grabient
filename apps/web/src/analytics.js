@@ -153,18 +153,21 @@ function applyConsent() {
   }
 }
 
+/**
+ * PostHog pageviews are deliberately NOT sent.
+ *
+ * Zaraz already delivers every pageview to GA4, so PostHog's copy was a second
+ * ingestion of the same fact — at ~166k pageviews a day that is roughly 5M
+ * events a month against a 1M free tier, i.e. essentially the entire quota
+ * spent duplicating a number GA4 already had. Route changes still reach GA4
+ * through sendZaraz in trackPageView.
+ *
+ * The interaction events in trackEvent are the ones PostHog is actually useful
+ * for, and they are a rounding error next to pageviews. Kept as a no-op rather
+ * than deleted so the call sites keep documenting where a pageview happens.
+ */
 function capturePosthogPageView() {
-  if (
-    !posthog?.__loaded ||
-    !analyticsConsent ||
-    pendingPageView === lastPosthogPageView
-  )
-    return;
   lastPosthogPageView = pendingPageView;
-  posthog.capture("$pageview", {
-    $current_url: pendingPageView,
-    route: new URL(pendingPageView).pathname,
-  });
 }
 
 function flushPosthogEvents() {
@@ -173,6 +176,124 @@ function flushPosthogEvents() {
   pendingEvents = [];
   for (const [eventName, properties] of events)
     posthog.capture(eventName, properties);
+}
+
+
+// ---------------------------------------------------------------------------
+// First-touch attribution.
+//
+// Written to a first-party cookie rather than localStorage because Google
+// sign-in is a redirect flow: the account row is created inside a server-side
+// OAuth callback, where no client storage exists. A cookie is the only thing
+// that survives the round trip. SameSite=Lax is required — Strict is not sent on
+// the return leg from Google, so every social signup would record as direct.
+//
+// FIRST touch, never overwritten. Someone who arrives from a campaign, leaves,
+// and returns a week later via search still credits the campaign. Last-touch
+// would credit the search and make the campaign look like it converted nobody.
+//
+// The server reads and clears nothing here; it copies the values onto the user
+// row once, at creation (see readAttribution in @repo/data-ops auth/setup.ts).
+// ---------------------------------------------------------------------------
+const ATTRIBUTION_COOKIE = "gb_attr";
+const ATTRIBUTION_MAX_AGE = 60 * 60 * 24 * 90;
+
+/** @type {Record<string, string | number> | null} */
+let pendingAttribution = null;
+
+function hasAttributionCookie() {
+  return new RegExp(`(?:^|;\\s*)${ATTRIBUTION_COOKIE}=`).test(document.cookie);
+}
+
+/**
+ * Snapshot the campaign tags, referrer and landing path for THIS page load.
+ * Called at module load so document.referrer is still the real one — by the
+ * time consent resolves the visitor may already have navigated.
+ */
+function captureAttribution() {
+  if (!enabled() || hasAttributionCookie()) return;
+  const params = new URLSearchParams(location.search);
+  /** @type {Record<string, string | number>} */
+  const attribution = { t: Date.now(), l: location.pathname.slice(0, 200) };
+
+  const source = params.get("utm_source");
+  const medium = params.get("utm_medium");
+  const campaign = params.get("utm_campaign");
+  if (source) attribution.s = source.slice(0, 200);
+  if (medium) attribution.m = medium.slice(0, 200);
+  if (campaign) attribution.c = campaign.slice(0, 200);
+
+  // Only an external referrer is interesting; an internal one just means they
+  // clicked a link on the site, which is not how they found us.
+  if (document.referrer) {
+    try {
+      const host = new URL(document.referrer).hostname;
+      if (host && host !== location.hostname) attribution.r = host.slice(0, 200);
+    } catch {
+      /* unparseable referrer — ignore */
+    }
+  }
+
+  // Nothing worth attributing: no campaign, no external referrer. Direct
+  // traffic is recorded as landing path + timestamp only, which still answers
+  // "which page did signups come in on".
+  pendingAttribution = attribution;
+}
+
+/**
+ * Persist the snapshot. Gated on analytics consent to match the site's existing
+ * model — in GDPR regions that means after opt-in, elsewhere it is on by
+ * default under legitimate interest, exactly like every other analytics cookie
+ * described in the privacy policy.
+ */
+function persistAttribution() {
+  if (!pendingAttribution || !analyticsConsent || hasAttributionCookie()) return;
+  try {
+    const value = encodeURIComponent(JSON.stringify(pendingAttribution));
+    document.cookie = `${ATTRIBUTION_COOKIE}=${value}; path=/; max-age=${ATTRIBUTION_MAX_AGE}; samesite=lax; secure`;
+    pendingAttribution = null;
+  } catch {
+    /* cookies unavailable — attribution is best-effort, never a blocker */
+  }
+}
+
+/** The campaign tags flattened onto conversion events, for GA4 and PostHog. */
+function attributionProperties() {
+  const source = pendingAttribution || readAttributionCookie();
+  if (!source) return {};
+  return flatProperties({
+    attributionSource: source.s,
+    attributionMedium: source.m,
+    attributionCampaign: source.c,
+    attributionReferrer: source.r,
+    attributionLanding: source.l,
+  });
+}
+
+/** @returns {Record<string, any> | null} */
+function readAttributionCookie() {
+  const match = new RegExp(`(?:^|;\\s*)${ATTRIBUTION_COOKIE}=([^;]+)`).exec(document.cookie);
+  if (!match?.[1]) return null;
+  try {
+    return JSON.parse(decodeURIComponent(match[1]));
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Auth conversions. Liking was already tracked (as save_gradient/unsave_gradient
+ * in app.client.js), but signing in and signing up were not — so the single most
+ * important funnel step was invisible to GA4 and PostHog, observable only by
+ * querying D1 directly. The attribution tags ride along so a conversion can be
+ * grouped by campaign in GA4 as well as in the admin dashboard.
+ *
+ * @param {"sign_up" | "login"} eventName
+ * @param {string} method — "google", "magic_link", or "session" for the
+ *   post-hoc sign-up detection in app.client.js
+ */
+export function trackAuthConversion(eventName, method) {
+  trackEvent(eventName, { method, ...attributionProperties() });
 }
 
 export async function initializeAnalytics() {
@@ -222,7 +343,11 @@ export async function initializeAnalytics() {
             opt_out_capturing_by_default: true,
             opt_out_persistence_by_default: true,
             disable_session_recording: true,
-            advanced_disable_decide: false,
+            // No feature flags or experiments are used on this site, and the
+            // decide/flags endpoint was being hit ~41k times a day — on the
+            // order of 1.2M requests a month against a 1M free tier, for a
+            // response nothing reads. Turning it off is pure savings.
+            advanced_disable_decide: true,
             loaded: onLoaded,
           });
         }),
@@ -243,6 +368,7 @@ export async function initializeAnalytics() {
 export function syncAnalyticsConsent(analytics, sessionReplay) {
   analyticsConsentResolved = true;
   analyticsConsent = !!analytics;
+  persistAttribution();
   sessionReplayConsent = !!sessionReplay;
   if (!analyticsConsent) pendingEvents = [];
   applyConsent();
@@ -322,6 +448,7 @@ function scheduleInit() {
     addEventListener("load", () => setTimeout(early, 0), { once: true });
 }
 
+captureAttribution();
 document.addEventListener("zarazConsentAPIReady", flushZaraz);
 addEventListener("load", flushZaraz, { once: true });
 scheduleInit();
