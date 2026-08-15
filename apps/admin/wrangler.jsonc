@@ -1,0 +1,84 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+
+	// ---------------------------------------------------------------------------
+	// grabient-admin — the internal metrics dashboard on admin.grabient.com.
+	//
+	// Unlike apps/web this config is flat (no named environments) on purpose:
+	// there is exactly one deploy target, and the worker name cannot collide with
+	// grabient-lite or grabient-production. The "always pass --env" rule in
+	// CLAUDE.md exists because two apps once both claimed the name
+	// grabient-production; that failure mode needs two targets sharing a name, so
+	// it cannot arise here. Do NOT copy this flat shape back into apps/web.
+	//
+	// This worker ships ZERO client code: no assets directory, no bundler, no
+	// islands. Every byte the browser receives is HTML, inlined CSS, and inlined
+	// SVG generated per request by the worker itself. There is nothing here for
+	// an unauthenticated visitor to download even if they find the hostname.
+	// ---------------------------------------------------------------------------
+	"name": "grabient-admin",
+	"main": "./src/index.ts",
+	"compatibility_date": "2025-09-02",
+	"compatibility_flags": ["nodejs_compat"],
+
+	// The Tailwind build output is imported as a text module and inlined into a
+	// <style> tag, exactly like apps/web does. Keeps the response self-contained
+	// and means no static asset ever needs to be served.
+	"rules": [{ "type": "Text", "globs": ["**/*.css"], "fallthrough": true }],
+
+	// MUST stay false. Cloudflare Access is bound to the admin.grabient.com
+	// hostname; a workers.dev URL is a different hostname and would NOT be
+	// covered by that policy, handing anyone who guesses it an unauthenticated
+	// route straight to production data. The in-worker JWT check in access.ts is
+	// the second layer that makes this safe either way — but do not rely on it
+	// alone by flipping this to true.
+	"workers_dev": false,
+
+	// Read-only by convention: this worker only ever issues SELECTs. Note there
+	// is deliberately no migrations_dir — admin must never be able to migrate the
+	// production database. Migrations belong to apps/web.
+	//
+	// "remote": true is the opposite of the apps/web choice, deliberately.
+	// apps/web keeps D1 local under `wrangler dev` because it WRITES, and local
+	// development must never write to a shared database. This worker only reads,
+	// and a dashboard pointed at an empty local simulation shows four charts of
+	// zeroes — useless for the one thing it exists to do. Dev-only flag: ignored
+	// by `wrangler deploy`.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "grabient-prod",
+			"database_id": "8902a4a8-cca3-4a34-b456-7b35ad021985",
+			"remote": true
+		}
+	],
+
+	"observability": { "enabled": true, "head_sampling_rate": 1 }
+
+	// ---------------------------------------------------------------------------
+	// There is deliberately NO "vars" block.
+	//
+	// This repository is public, and all three values this worker needs identify
+	// either a person or our Zero Trust setup:
+	//
+	//   CF_ACCESS_TEAM_DOMAIN  our team domain
+	//   CF_ACCESS_AUD          the Access application's audience tag
+	//   ADMIN_EMAILS           the operator allow-list — real email addresses
+	//
+	// None of them are signing keys: the tokens are signed by Cloudflare and
+	// verified against its public JWKS, so there is no shared secret in this
+	// system and knowing these values does not let anyone forge an assertion.
+	// They are still not going in git. They are set as encrypted secrets:
+	//
+	//   pnpm --filter admin exec wrangler secret put CF_ACCESS_TEAM_DOMAIN
+	//   pnpm --filter admin exec wrangler secret put CF_ACCESS_AUD
+	//   pnpm --filter admin exec wrangler secret put ADMIN_EMAILS
+	//
+	// Keeping them out of "vars" entirely also removes any question about which
+	// source wins at deploy time. Locally they live in .dev.vars (gitignored).
+	//
+	// Until all three are set the worker answers 503 to everything — see
+	// access.ts. An unconfigured deploy is an unprotected one, so it serves
+	// nothing rather than failing open.
+	// ---------------------------------------------------------------------------
+}

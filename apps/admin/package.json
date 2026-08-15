@@ -1,0 +1,26 @@
+{
+  "name": "admin",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:css": "tailwindcss -i src/app.css -o dist/styles.css --minify",
+    "build": "pnpm build:css",
+    "dev": "pnpm build && wrangler dev --port 3002",
+    "deploy": "pnpm build && wrangler deploy",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@tanstack/charts": "^0.14.0",
+    "d3-scale": "^4.0.2",
+    "hono": "^4.8.3",
+    "jose": "^6.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260727.1",
+    "@tailwindcss/cli": "^4.3.3",
+    "@types/d3-scale": "^4.0.9",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.112.0"
+  }
+}

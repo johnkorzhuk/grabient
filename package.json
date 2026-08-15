@@ -10,9 +10,11 @@
         "test": "pnpm run --filter data-ops test && pnpm run --filter web test",
         "test:watch": "pnpm run --filter data-ops test:watch",
         "test:coverage": "pnpm run --filter data-ops test:coverage",
-        "typecheck": "pnpm run --filter web typecheck",
+        "typecheck": "pnpm run --filter web typecheck && pnpm run --filter admin typecheck",
         "deploy:staging": "pnpm run build:data-ops && pnpm run --filter web deploy:staging",
         "deploy:production": "pnpm run build:data-ops && pnpm run --filter web deploy:production",
+        "dev:admin": "pnpm run --filter admin dev",
+        "deploy:admin": "pnpm run --filter admin deploy",
         "db:studio": "pnpm run --filter data-ops db:studio",
         "db:seed": "pnpm run --filter data-ops db:seed"
     },

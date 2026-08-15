@@ -1,0 +1,434 @@
+// Real site traffic, from Cloudflare's zone analytics.
+//
+// Why not GA4 or PostHog. GA4 is configured through Cloudflare Zaraz and has no
+// credentials in this repo; reading it would mean a Google service account and
+// the GA4 Data API. PostHog is over its ingestion quota. Cloudflare already
+// counts every request that reaches the zone, needs only a scoped read token,
+// and is the same edge that serves the site — so it is both the cheapest and the
+// least disputable source.
+//
+// What the numbers are, precisely, because it matters for how they are read:
+//   uniques   — distinct client IPs seen that day. NOT distinct people, and not
+//               comparable across days by adding them up: the same visitor on
+//               three days counts three times. Only ever shown as a daily
+//               series or an average of daily values, never summed.
+//   pageViews — requests Cloudflare classifies as page loads rather than assets.
+//               Includes bots and crawlers; there is no bot filter on this
+//               dataset, which is the main caveat on every ratio derived below.
+
+const ENDPOINT = "https://api.cloudflare.com/client/v4/graphql";
+
+/**
+ * Zone analytics retains ~200 days. Ask for 180 so the per-month conversion
+ * series has half a year of complete months to work with — at 90 it had three
+ * bars, which is not a trend.
+ */
+const WINDOW_DAYS = 180;
+
+export interface TrafficDay {
+  date: string;
+  uniques: number;
+  pageViews: number;
+  /** Pageviews whose user agent is a recognized web browser. */
+  browserPageViews: number;
+  /** Named crawlers plus everything that did not identify as a browser. */
+  automatedPageViews: number;
+}
+
+export interface Traffic {
+  daily: TrafficDay[];
+  /** Keyed "YYYY-MM". */
+  monthly: Map<
+    string,
+    { pageViews: number; browserPageViews: number; avgDailyUniques: number; days: number }
+  >;
+}
+
+const QUERY = `query($zoneTag: String!, $since: Date!, $until: Date!) {
+  viewer {
+    zones(filter: {zoneTag: $zoneTag}) {
+      httpRequests1dGroups(limit: 200, filter: {date_geq: $since, date_leq: $until}, orderBy: [date_ASC]) {
+        dimensions { date }
+        sum { pageViews browserMap { pageViews uaBrowserFamily } }
+        uniq { uniques }
+      }
+    }
+  }
+}`;
+
+/**
+ * Splitting real people from automated clients.
+ *
+ * Cloudflare's actual bot score needs the Bot Management add-on, which this zone
+ * does not have — querying `botScoreSrcName` returns a permission error. What IS
+ * available on every plan is `browserMap`, a per-day pageview breakdown by
+ * user-agent family, and that turns out to be enough: it names crawlers
+ * explicitly (GoogleBot, BingBot, AppleBot…) and buckets everything that did not
+ * present as a browser under "Unknown".
+ *
+ * "Unknown" is the interesting one and it is not a rounding error — it is about
+ * half of all pageviews, and it is spiky in exactly the way automated traffic is
+ * (it went from ~9k to ~159k pageviews a day in August while distinct IPs
+ * *fell*, i.e. far more requests from far fewer clients).
+ *
+ * So: anything that identifies as a real browser counts as a person, everything
+ * else counts as automated. This is a heuristic, not a bot score. It will
+ * misfile a privacy-tool user with a stripped user agent as automated, and it
+ * will not catch a scraper that spoofs a Chrome user agent. It is a floor on
+ * automated traffic, not an exact figure — hence the deliberately hedged
+ * "recognized browsers" / "bots & unidentified" labels in the UI rather than
+ * "humans" / "bots".
+ */
+const BOT_PATTERN = /bot|crawl|spider|slurp|curl|wget|headless|fetch|python|java|http/i;
+
+function isBrowser(family: string): boolean {
+  if (!family || family === "Unknown") return false;
+  return !BOT_PATTERN.test(family);
+}
+
+// The dashboard is a handful of loads a day by one person, but a refresh
+// shouldn't re-bill a GraphQL round trip. Memoized per isolate; short enough
+// that the numbers are never meaningfully stale.
+let cache: { at: number; value: Traffic } | null = null;
+const TTL_MS = 5 * 60 * 1000;
+
+function isoDay(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+/**
+ * Returns null when traffic is not configured or the API call fails. The
+ * dashboard degrades to its D1-only sections rather than erroring — the
+ * database half is the part that must always render.
+ */
+export async function loadTraffic(env: Env, now: Date): Promise<Traffic | null> {
+  const token = env.CF_ANALYTICS_TOKEN?.trim();
+  const zoneTag = env.CF_ZONE_ID?.trim();
+  if (!token || !zoneTag) return null;
+
+  if (cache && now.getTime() - cache.at < TTL_MS) return cache.value;
+
+  const until = new Date(now);
+  const since = new Date(now);
+  since.setUTCDate(since.getUTCDate() - WINDOW_DAYS);
+
+  let payload: any;
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        query: QUERY,
+        variables: { zoneTag, since: isoDay(since), until: isoDay(until) },
+      }),
+    });
+    if (!res.ok) {
+      console.error(`Cloudflare analytics HTTP ${res.status}`);
+      return null;
+    }
+    payload = await res.json();
+  } catch (err) {
+    console.error("Cloudflare analytics fetch failed", err);
+    return null;
+  }
+
+  // GraphQL reports failures in a 200 body, so the status check above is not
+  // enough on its own.
+  if (payload?.errors?.length) {
+    console.error("Cloudflare analytics GraphQL error", JSON.stringify(payload.errors));
+    return null;
+  }
+
+  const groups = payload?.data?.viewer?.zones?.[0]?.httpRequests1dGroups;
+  if (!Array.isArray(groups)) {
+    console.error("Cloudflare analytics returned an unexpected shape");
+    return null;
+  }
+
+  const daily: TrafficDay[] = groups.map((row: any) => {
+    const pageViews = row.sum?.pageViews ?? 0;
+    const families: { pageViews: number; uaBrowserFamily: string }[] = row.sum?.browserMap ?? [];
+    const browserPageViews = families
+      .filter((f) => isBrowser(f.uaBrowserFamily))
+      .reduce((sum, f) => sum + f.pageViews, 0);
+    return {
+      date: row.dimensions.date,
+      uniques: row.uniq?.uniques ?? 0,
+      pageViews,
+      browserPageViews,
+      // Derived by subtraction rather than by summing the bot families, so a
+      // family the pattern fails to recognize lands in "automated" instead of
+      // vanishing from both totals.
+      automatedPageViews: Math.max(0, pageViews - browserPageViews),
+    };
+  });
+
+  const monthly = new Map<
+    string,
+    { pageViews: number; browserPageViews: number; avgDailyUniques: number; days: number }
+  >();
+  for (const day of daily) {
+    const key = day.date.slice(0, 7);
+    const entry = monthly.get(key) ?? {
+      pageViews: 0,
+      browserPageViews: 0,
+      avgDailyUniques: 0,
+      days: 0,
+    };
+    entry.pageViews += day.pageViews;
+    entry.browserPageViews += day.browserPageViews;
+    // Accumulate the sum here and divide once the month is complete — summing
+    // daily uniques and calling it a monthly total would be wrong.
+    entry.avgDailyUniques += day.uniques;
+    entry.days += 1;
+    monthly.set(key, entry);
+  }
+  for (const entry of monthly.values()) {
+    entry.avgDailyUniques = entry.days > 0 ? Math.round(entry.avgDailyUniques / entry.days) : 0;
+  }
+
+  const value: Traffic = { daily, monthly };
+  cache = { at: now.getTime(), value };
+  return value;
+}
+
+/** Mean of the last `days` daily unique counts. */
+export function recentDailyUniques(traffic: Traffic, days: number): number {
+  return meanOfLast(traffic, days, (d) => d.uniques);
+}
+
+/** Mean daily pageviews from recognized browsers over the last `days`. */
+export function recentBrowserPageViews(traffic: Traffic, days: number): number {
+  return meanOfLast(traffic, days, (d) => d.browserPageViews);
+}
+
+/** Share of pageviews over the last `days` that did not come from a browser. */
+export function automatedShare(traffic: Traffic, days: number): number {
+  const slice = traffic.daily.slice(-days);
+  const total = slice.reduce((sum, d) => sum + d.pageViews, 0);
+  if (total === 0) return 0;
+  const automated = slice.reduce((sum, d) => sum + d.automatedPageViews, 0);
+  return (automated / total) * 100;
+}
+
+function meanOfLast(traffic: Traffic, days: number, pick: (d: TrafficDay) => number): number {
+  const slice = traffic.daily.slice(-days);
+  if (slice.length === 0) return 0;
+  return Math.round(slice.reduce((sum, d) => sum + pick(d), 0) / slice.length);
+}
+
+// ---------------------------------------------------------------------------
+// Acquisition breakdowns.
+//
+// A deliberate note on what is NOT here: `refererHost` is not available on this
+// zone's plan (the API rejects the field outright), so there is no channel or
+// campaign attribution in this file and there cannot be. Cloudflare can tell you
+// WHERE visitors are and WHAT they looked at, never HOW they arrived. Closing
+// that gap needs first-party capture in apps/web — see the marketing section in
+// README.md. Do not add a "traffic sources" section here backed by a guess.
+// ---------------------------------------------------------------------------
+
+export interface Breakdown {
+  label: string;
+  count: number;
+}
+
+export interface Acquisition {
+  countries: Breakdown[];
+  devices: Breakdown[];
+  pages: Breakdown[];
+  /** Requests considered, for turning the above into shares. */
+  total: number;
+  days: number;
+}
+
+/**
+ * One day, and not by choice: this plan caps the adaptive-groups dataset at a
+ * 1-day time range ("cannot request a time range wider than 1d"). So every
+ * breakdown below is a 24-hour snapshot, which is short enough that a single
+ * crawler run can reorder the country list. Say so wherever it is displayed.
+ */
+const ACQ_DAYS = 1;
+
+const ACQ_QUERY = `query { viewer { zones(filter: {zoneTag: "ZONE"}) {
+  countries: httpRequestsAdaptiveGroups(limit: 12, filter: FILTER, orderBy: [count_DESC]) {
+    count dimensions { clientCountryName }
+  }
+  devices: httpRequestsAdaptiveGroups(limit: 5, filter: FILTER, orderBy: [count_DESC]) {
+    count dimensions { clientDeviceType }
+  }
+  pages: httpRequestsAdaptiveGroups(limit: 60, filter: FILTER, orderBy: [count_DESC]) {
+    count dimensions { clientRequestPath }
+  }
+} } }`;
+
+/**
+ * Paths that are machinery rather than content. The raw top-paths list is
+ * otherwise entirely internal endpoints — every page load fires a session
+ * check, a like-info lookup, a geo lookup and several analytics beacons, so
+ * they outrank every real page by an order of magnitude and the list tells you
+ * nothing about what people actually read.
+ */
+const NON_CONTENT =
+  /^\/(api|e|cdn-cgi|metrics|_|favicon|robots|sitemap|fonts|assets)|\.(js|css|png|svg|ico|woff2?|xml|txt|json|webmanifest)$/i;
+
+let acqCache: { at: number; value: Acquisition } | null = null;
+
+export async function loadAcquisition(env: Env, now: Date): Promise<Acquisition | null> {
+  const token = env.CF_ANALYTICS_TOKEN?.trim();
+  const zoneTag = env.CF_ZONE_ID?.trim();
+  if (!token || !zoneTag) return null;
+  if (acqCache && now.getTime() - acqCache.at < TTL_MS) return acqCache.value;
+
+  const until = new Date(now);
+  const since = new Date(now);
+  since.setUTCDate(since.getUTCDate() - ACQ_DAYS);
+
+  // Filters are inlined rather than passed as variables: the three sub-queries
+  // reuse one filter object and the adaptive-groups filter type is per-field-set,
+  // so a shared $f variable does not typecheck server-side.
+  const filter = `{datetime_geq: "${since.toISOString()}", datetime_leq: "${until.toISOString()}", clientRequestHTTPHost: "grabient.com"}`;
+  const query = ACQ_QUERY.replace(/ZONE/g, zoneTag).replace(/FILTER/g, filter);
+
+  let payload: any;
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+    });
+    if (!res.ok) {
+      console.error(`Cloudflare acquisition HTTP ${res.status}`);
+      return null;
+    }
+    payload = await res.json();
+  } catch (err) {
+    console.error("Cloudflare acquisition fetch failed", err);
+    return null;
+  }
+  if (payload?.errors?.length) {
+    console.error(
+      "Cloudflare acquisition GraphQL error",
+      JSON.stringify(payload.errors).slice(0, 300),
+    );
+    return null;
+  }
+
+  const zone = payload?.data?.viewer?.zones?.[0];
+  if (!zone) return null;
+
+  const map = (rows: any[], key: string): Breakdown[] =>
+    (rows ?? []).map((r) => ({ label: String(r.dimensions[key] ?? "—"), count: r.count }));
+
+  const countries = map(zone.countries, "clientCountryName");
+  const value: Acquisition = {
+    countries,
+    devices: map(zone.devices, "clientDeviceType"),
+    pages: map(zone.pages, "clientRequestPath")
+      .filter((p) => !NON_CONTENT.test(p.label))
+      .slice(0, 12),
+    total: countries.reduce((sum, c) => sum + c.count, 0),
+    days: ACQ_DAYS,
+  };
+  acqCache = { at: now.getTime(), value };
+  return value;
+}
+
+// ---------------------------------------------------------------------------
+// Traffic sources, from Cloudflare Web Analytics (RUM).
+//
+// This is the answer to the question the rest of this file could not answer.
+// The zone request dataset has no refererHost on this plan, but the RUM dataset
+// does — and it lives at the ACCOUNT level (`viewer.accounts`), not the zone
+// level, which is why an earlier zone-scoped query reported it as an unknown
+// field. It needs the Web Analytics site to be enabled; RUM was switched on for
+// grabient.com on 2026-08-15, so nothing exists before that date.
+//
+// A second, unplanned benefit: RUM is a browser beacon, so crawlers that do not
+// execute JavaScript never appear. These counts are already bot-free, without
+// the user-agent heuristic the pageview split has to rely on.
+// ---------------------------------------------------------------------------
+
+export interface ReferrerRow {
+  label: string;
+  count: number;
+  /** True for the bucket that is not a real acquisition source. */
+  direct: boolean;
+}
+
+/** Hosts that are our own round trips, not somewhere a visitor came from. */
+const SELF_REFERRERS = /^(www\.)?grabient\.com$|^accounts\.google\.com$|cloudflareaccess\.com$/i;
+
+const RUM_DAYS = 7;
+
+let refCache: { at: number; value: ReferrerRow[] } | null = null;
+
+export async function loadReferrers(env: Env, now: Date): Promise<ReferrerRow[] | null> {
+  const token = env.CF_ANALYTICS_TOKEN?.trim();
+  const accountTag = env.CF_ACCOUNT_ID?.trim();
+  if (!token || !accountTag) return null;
+  if (refCache && now.getTime() - refCache.at < TTL_MS) return refCache.value;
+
+  const until = new Date(now);
+  const since = new Date(now);
+  since.setUTCDate(since.getUTCDate() - RUM_DAYS);
+
+  const query = `query($accountTag: String!, $since: Time!, $until: Time!) {
+    viewer { accounts(filter: {accountTag: $accountTag}) {
+      rumPageloadEventsAdaptiveGroups(limit: 40, filter: {datetime_geq: $since, datetime_leq: $until}, orderBy: [count_DESC]) {
+        count dimensions { refererHost }
+      }
+    } }
+  }`;
+
+  let payload: any;
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        variables: { accountTag, since: since.toISOString(), until: until.toISOString() },
+      }),
+    });
+    if (!res.ok) {
+      console.error(`Cloudflare RUM HTTP ${res.status}`);
+      return null;
+    }
+    payload = await res.json();
+  } catch (err) {
+    console.error("Cloudflare RUM fetch failed", err);
+    return null;
+  }
+  if (payload?.errors?.length) {
+    console.error("Cloudflare RUM GraphQL error", JSON.stringify(payload.errors).slice(0, 300));
+    return null;
+  }
+
+  const groups = payload?.data?.viewer?.accounts?.[0]?.rumPageloadEventsAdaptiveGroups;
+  if (!Array.isArray(groups)) return null;
+
+  // Fold every self-referral into the direct bucket rather than dropping it:
+  // an OAuth return trip or an internal link is a real pageview, it just is not
+  // an acquisition source, and silently discarding it would make the source
+  // percentages add up to less than the traffic.
+  let direct = 0;
+  const external: ReferrerRow[] = [];
+  for (const row of groups) {
+    const host = String(row.dimensions?.refererHost ?? "").trim();
+    if (!host || SELF_REFERRERS.test(host)) direct += row.count;
+    else external.push({ label: host, count: row.count, direct: false });
+  }
+  external.sort((a, b) => b.count - a.count);
+
+  const value: ReferrerRow[] = [
+    { label: "Direct / no referrer", count: direct, direct: true },
+    ...external.slice(0, 11),
+  ].filter((row) => row.count > 0);
+
+  refCache = { at: now.getTime(), value };
+  return value;
+}

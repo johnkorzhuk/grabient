@@ -1,0 +1,13 @@
+# Copy to `.dev.vars` (gitignored) to run `wrangler dev`.
+#
+# That is the entire local configuration — one line. The three Access values
+# (CF_ACCESS_TEAM_DOMAIN, CF_ACCESS_AUD, ADMIN_EMAILS) are NOT needed locally and
+# should never be put here: nothing sits in front of `wrangler dev`, so there is
+# no assertion to verify. access.ts takes the bypass below instead.
+#
+# The literal string is required — any other value falls through to the real
+# verification path and every request 503s.
+#
+# Never move this key into wrangler.jsonc. That file IS deployed, and it would
+# disable the gate in production.
+DEV_UNSAFE_SKIP_ACCESS=i-am-running-wrangler-dev
