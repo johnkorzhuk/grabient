@@ -1,5 +1,52 @@
 # Infra + SEO action plan, 2026-08-17
 
+## Status: shipped 2026-08-17
+
+Merged to master as `1988c09` and deployed to grabient-production
+(`336b0a06`). Verified live.
+
+**Done — code (in production):**
+
+- Query landing pages gated; junk queries `noindex,follow`, curated indexable
+- Ten hub links on every palette page (seed pages previously linked none)
+- robots.txt withholds the client-only JSON and `/cdn-cgi/`
+- `s-maxage` removed from PNG/JSON so stale-if-error works again
+- Palette naming live: titles are now "Lavender pink to cloudy blue Gradient
+  Palette" rather than four hex codes
+- Split sitemaps, `/{seed}.json` and `/api/search.json` now serve (were 404)
+- **Spend bounds:** uncurated query renders redirect to the static card,
+  over-length queries 400 before the embedding model, per-style pixel budget
+- ads.txt cache policy
+
+**Done — Cloudflare dashboard:**
+
+- Always Use HTTPS on. Verified: `http://` and `www` now 301 to the canonical
+- Minimum TLS 1.2; HSTS enabled at 12 months with includeSubDomains, no preload
+- `skip-machine-readable` (order 1) — robots/llms/sitemap/ads/favicon/.well-known
+- `block-credential-scanners` (order 3) — 275 events in its first two hours
+- `api-burst-brake` extended to `/palettes/`, closing the unrate-limited
+  Vectorize path. Verified: 297 through, 103 `429`, normal browsing unaffected
+
+**Measured effect:** worst unauthenticated request 13.2s -> 2.08s; novel query
+render 2.0s -> 0.12s redirect; 7,430 production requests post-deploy with zero
+errors.
+
+**Still open, in rough priority order:**
+
+1. Index `grabient-dc` — 91.5M D1 rows/day from 4,320 queries (21,181 rows per
+   query, a full scan). It is 75% of account row reads and is the ML project,
+   not the website.
+2. Rotate the `grabient-gsc-reader` service-account key (surfaced in transcripts
+   twice).
+3. GSC Links export (100k rows, manual — there is no Links API). Report was
+   still "processing data" on 2026-08-17.
+4. Bing AI Performance + Backlinks reports — populate ~48h after signup.
+5. Bounded query vocabulary as a product decision, paired with the palette
+   curation agent.
+6. `admin/analytics-mcp` branch — WIP, deliberately unmerged.
+
+---
+
 Synthesis of four research reports and direct measurement against production.
 Every claim here is either measured (marked **[measured]**) or cited in the
 source report. Cost of everything below: **$0**.
