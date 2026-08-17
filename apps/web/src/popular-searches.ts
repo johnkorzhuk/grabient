@@ -44,6 +44,30 @@ export const POPULAR_SEARCHES = [
   "prairie",
   "saffron",
   "sandstone",
+  // Color names: the only query class Search Console shows real demand for, and
+  // /palettes/{slug} renders any of them without new content. These reach the
+  // sitemap only — the visible chip rotation comes from the suggestion provider,
+  // not this list.
+  "green",
+  "pink",
+  "red",
+  "orange",
+  "yellow",
+  "black",
+  "gold",
+  "silver",
+  "teal",
+  "navy",
+  "mint",
+  "lavender",
+  "beige",
+  "cream",
+  "sky blue",
+  "dark blue",
+  "dark purple",
+  "sage green",
+  "hot pink",
+  "blue purple",
 ] as const;
 
 export interface PopularSearchSuggestion {
@@ -428,6 +452,46 @@ export const curatedPopularSearchProvider: PopularSearchProvider = {
   cacheable: false,
   generate: ({ hour, count }) => curatedSuggestions(hour, count),
 };
+
+/**
+ * Every query we are willing to publish a landing page for, normalized once.
+ *
+ * `/palettes/{query}` renders whatever text is in the path into the <title>,
+ * the <h1> and og:title, so an unrestricted route lets anyone mint an indexable
+ * grabient.com page saying anything — a doorway attack needs no cooperation
+ * from us beyond a link. Membership here is what makes a query page
+ * indexable; see isPublishableQuery.
+ */
+const PUBLISHABLE_QUERIES: ReadonlySet<string> = new Set(
+  [...POPULAR_SEARCHES, ...FEATURED_QUERIES, ...CURATED_THEMES, ...EMOJI_QUERIES].map(
+    (query) => query.toLowerCase().replace(/\s+/g, " ").trim(),
+  ),
+);
+
+/**
+ * Is this query one we vouch for?
+ *
+ * Deliberately not a relevance-score threshold. Measured against the live
+ * index, the top match for the weakest real query ("lagoon", 0.3796) sits
+ * 0.006 above the strongest junk query ("zzzzz", 0.3734) — a margin that is
+ * luck, not signal. Mean-of-16 overlaps outright. So the score can only be a
+ * secondary, high-confidence escape hatch (see PUBLISHABLE_SCORE), never the
+ * primary gate.
+ */
+export function isPublishableQuery(query: string): boolean {
+  return PUBLISHABLE_QUERIES.has(query.toLowerCase().replace(/\s+/g, " ").trim());
+}
+
+/**
+ * Top-match score a non-curated query must clear to be indexable anyway, so a
+ * genuinely good novel query is not permanently locked out of the index.
+ *
+ * 0.45 measured 2026-08-17 against grabient-palettes: every junk probe scored
+ * at or below 0.3734, so this clears the observed junk ceiling by 0.077 while
+ * still admitting most real queries (15 of 18 probes). Re-measure with
+ * scratch calibration if the embedding model or the corpus changes.
+ */
+export const PUBLISHABLE_SCORE = 0.45;
 
 function normalizeSuggestion(value: unknown): PopularSearchSuggestion | null {
   if (!value || typeof value !== "object") return null;

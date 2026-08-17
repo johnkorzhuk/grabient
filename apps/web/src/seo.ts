@@ -41,7 +41,21 @@ export function robotsTxt(origin = SEO_BASE_URL): string {
 # both must allow a bot for it to get through.
 
 User-agent: *
-Disallow:
+# Per-visitor JSON the client fetches after render. Measured 2026-08-17,
+# Googlebot spent most of a 1,152 req/day budget on these plus the analytics
+# loader rather than on palettes, because rendering a page triggers them.
+# None affect what the page says, so blocking them does not withhold a
+# rendering resource. The agent-facing endpoints (.json, /api/png, /api/og)
+# stay open on purpose.
+Disallow: /api/like-info
+Disallow: /api/like-counts
+Disallow: /api/geo
+Disallow: /api/auth/
+Disallow: /api/palettes
+# The zone auto-injects Zaraz; its loader was Googlebot's single most-fetched
+# URL here (249/day). It is analytics, not a rendering resource, and keeping
+# crawlers out of it also keeps them out of GA4.
+Disallow: /cdn-cgi/
 
 # Explicitly welcome AI search / assistant / training crawlers
 User-agent: GPTBot
@@ -92,35 +106,97 @@ function xmlEscape(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function sitemapXml(
-  paletteSeeds: readonly string[],
-  origin = SEO_BASE_URL,
+/**
+ * The sitemap is an index over three children rather than one flat file.
+ *
+ * Sitemaps carry no way to say what KIND of URL a <loc> is — a seed permalink
+ * (a compact encoding of the cosine coefficients) is indistinguishable from a
+ * search landing page to a crawler. Splitting by family is the closest
+ * available signal, and it buys the thing that actually matters: Search
+ * Console reports indexing per submitted file, so "are the query pages being
+ * indexed?" and "are the 866 permalinks being indexed?" become separate,
+ * answerable questions instead of one blended number.
+ */
+export interface PaletteSitemapEntry {
+  id: string;
+  createdAt?: Date | number | null;
+}
+
+export const SITEMAP_CHILDREN = [
+  "/sitemap-pages.xml",
+  "/sitemap-searches.xml",
+  "/sitemap-palettes.xml",
+] as const;
+
+function urlset(
+  entries: ReadonlyArray<{ loc: string; priority: string; lastmod?: string }>,
 ): string {
+  const body = entries
+    .map(
+      ({ loc, priority, lastmod }) =>
+        `  <url><loc>${xmlEscape(loc)}</loc>${
+          lastmod ? `<lastmod>${lastmod}</lastmod>` : ""
+        }<priority>${priority}</priority></url>`,
+    )
+    .join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+}
+
+/** W3C date, the form Google reads; anything unparseable is simply omitted. */
+function lastmodDate(value: Date | number | null | undefined): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  const iso = date.toISOString();
+  return Number.isNaN(date.getTime()) ? undefined : iso.slice(0, 10);
+}
+
+export function sitemapIndexXml(origin = SEO_BASE_URL): string {
   const base = origin.replace(/\/+$/, "");
-  const staticUrls = [
+  const entries = SITEMAP_CHILDREN.map(
+    (path) => `  <sitemap><loc>${xmlEscape(`${base}${path}`)}</loc></sitemap>`,
+  ).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</sitemapindex>\n`;
+}
+
+export function staticSitemapXml(origin = SEO_BASE_URL): string {
+  const base = origin.replace(/\/+$/, "");
+  return urlset([
     { loc: `${base}/`, priority: "1.0" },
     { loc: `${base}/newest`, priority: "0.8" },
     { loc: `${base}/oldest`, priority: "0.5" },
     { loc: `${base}/contact`, priority: "0.3" },
-  ];
-  const paletteUrls = paletteSeeds
-    .map(canonicalSeed)
-    .filter((seed): seed is string => !!seed)
-    .map((seed) => ({
-      loc: `${base}/${encodeURIComponent(seed)}`,
-      priority: "0.6",
-    }));
-  const searchUrls = POPULAR_SEARCHES.map((query) => ({
-    loc: `${base}/palettes/${querySlug(query)}`,
-    priority: "0.6",
-  }));
-  const entries = [...staticUrls, ...searchUrls, ...paletteUrls]
-    .map(
-      ({ loc, priority }) =>
-        `  <url><loc>${xmlEscape(loc)}</loc><priority>${priority}</priority></url>`,
-    )
-    .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+  ]);
+}
+
+export function searchSitemapXml(origin = SEO_BASE_URL): string {
+  const base = origin.replace(/\/+$/, "");
+  return urlset(
+    POPULAR_SEARCHES.map((query) => ({
+      loc: `${base}/palettes/${querySlug(query)}`,
+      priority: "0.7",
+    })),
+  );
+}
+
+export function paletteSitemapXml(
+  palettes: readonly (string | PaletteSitemapEntry)[],
+  origin = SEO_BASE_URL,
+): string {
+  const base = origin.replace(/\/+$/, "");
+  return urlset(
+    palettes
+      .map((entry) => (typeof entry === "string" ? { id: entry } : entry))
+      .map((entry) => ({ seed: canonicalSeed(entry.id), createdAt: entry.createdAt }))
+      .filter(
+        (entry): entry is { seed: string; createdAt: Date | number | null | undefined } =>
+          !!entry.seed,
+      )
+      .map(({ seed, createdAt }) => ({
+        loc: `${base}/${encodeURIComponent(seed)}`,
+        priority: "0.6",
+        lastmod: lastmodDate(createdAt),
+      })),
+  );
 }
 
 export function paletteOgImageUrl(
@@ -368,9 +444,17 @@ function parsedInteger(
 function pngResponseHeaders(cacheState?: "HIT" | "MISS"): Record<string, string> {
   return {
     "Content-Type": "image/png",
-    "Cache-Control": "public, max-age=86400, s-maxage=604800",
+    // No s-maxage here on purpose. CDN-Cache-Control already outranks it at the
+    // edge, so it bought nothing — but its presence disables stale-while-
+    // revalidate AND stale-if-error, including the default serve-stale-on-
+    // worker-error. Rasterizing is the most CPU-expensive thing this worker
+    // does, so serving a stale PNG through an error is exactly the behaviour
+    // worth keeping.
+    "Cache-Control": "public, max-age=86400",
     "CDN-Cache-Control": "max-age=604800",
     "X-Content-Type-Options": "nosniff",
+    // No CORS header here: isPublicApiPath in index.ts already sets it for
+    // every .png/.json/api render in one place.
     ...(cacheState ? { "X-Cache": cacheState } : {}),
   };
 }
