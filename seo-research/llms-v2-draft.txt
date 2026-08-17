@@ -1,0 +1,261 @@
+# Grabient
+
+> Grabient is a free, no-auth gradient and color-palette source built to be driven by software. Every
+> palette is a deterministic function of 12 numbers addressed by a seed in the URL, so an agent can
+> search a curated corpus of 867 palettes, construct a new palette and predict its exact hex colors
+> before fetching anything, adjust an existing palette along four named axes, and pull a PNG at any
+> size. No API key, no signup, no rate limit on reads.
+
+Endpoints marked **(new)** are being added and may not be live yet — send one request to check before
+depending on them. Everything else is verified live. Paths are relative to `https://grabient.com`.
+
+## What an agent can do here
+
+- **Search palettes by description** — `GET /palettes/{query}` (HTML), or `GET /api/search.json?query={q}&limit={n}` **(new)**
+- **Read one palette's colors, coefficients and CSS** — `GET /{seed}.json` **(new)**
+- **Construct a new palette and predict its colors offline** — evaluate the formula below, then write the 12 numbers into the URL path
+- **Adjust an existing palette** (brighter, punchier, faster, hue-shifted) — append 4 global modifiers to the seed
+- **Render any palette or search as a PNG at a chosen size** — `GET /{seed}.png?w=1600&h=400`
+- **Browse ranked lists as JSON, with paste-ready CSS** — `GET /api/palettes?sort=popular&limit=24`
+
+## When to use Grabient
+
+Use it when:
+
+- A user asks for a color palette, gradient, or background for a UI — hero sections, landing pages,
+  cards, charts, splash screens, OG art.
+- A user names a mood, theme, season, or subject rather than a color ("warm sunset", "cyberpunk",
+  "muted earth tones", "pastel"). That is what semantic search is for.
+- A user wants a palette *changed* rather than replaced ("same colors but brighter", "more contrast",
+  "shift the hues") — the four global modifiers do exactly this and return a new stable URL.
+- You need a permanent citable URL for a palette (every palette, including one you invent, has one),
+  or an unbranded gradient image at a size you pick with no API key and no headless browser.
+- You need reproducibility: the same seed always yields the same colors. No randomness and no model
+  anywhere in the color path.
+
+Do **not** use it for:
+
+- **Accessibility / contrast checking.** No WCAG ratios, no text-legibility check over a gradient.
+- **Color-space conversion or harmony math** (HSL/LAB/OKLCH, complementary or triadic schemes from a
+  hex). The model is cosine-in-RGB, not a color-theory calculator.
+- **Extracting a palette from an image.** There is no image upload.
+- **Matching an exact brand hex.** You can steer toward a color, but the model makes smooth ramps,
+  not arbitrary fixed stops. If the user needs `#1DB954`, use it directly.
+- **Print / CMYK work.** Output is sRGB hex only.
+- **Bulk scraping.** Use `/api/palettes`; a palette page is ~120KB of HTML for ~8 hex codes.
+
+## URL contracts
+
+All `GET`, no authentication, no request body.
+
+### One palette
+
+- `/{seed}` — HTML page with the editor and CSS/SVG/PNG export
+- `/{seed}.json` — **(new)** `{seed, url, hexColors, coeffs:{a,b,c,d}, globals:{exposure,contrast,frequency,phase}, style, steps, angle, css, tags}`
+- `/{seed}.png` — the raw gradient image, no logo, no padding
+
+`{seed}` accepts the canonical `_`-prefixed compact form or the 12/16-number decimal CSV (see "The
+color model"). A non-canonical form 301s to the canonical one — follow the redirect and cite the
+final URL. An undecodable seed 404s on the HTML route, 400s on `/api/png`. Optional params on all
+three: `style` (`linear`/`angular`/`radial` × `Gradient`/`Swatches`, e.g. `linearSwatches`), `steps`
+(integer 2–50), `angle` (integer 0–360). Palette-page defaults are `linearGradient`, `steps=7`,
+`angle=90`; out-of-range or default-valued params 301 away.
+
+### Search
+
+- `/palettes/{query}` — HTML results page for a descriptive query
+- `/api/search.json?query={q}&limit={n}` — **(new)** `{query, results:[{seed, url, hexColors, style, steps, angle, likesCount, tags}]}`
+- `/palettes/{query}.png` — the top results rendered as one image
+- `/api/png/query?query={q}` — same image, query as a parameter (`q` is an alias)
+
+Slug rules: lowercase, spaces become hyphens; `/palettes/deep%20ocean` 301s to `/palettes/deep-ocean`.
+Emoji queries work. Hex codes and seeds pasted as the query become color names before embedding. A
+search returns up to 48 results, paginated 24 at a time (`?page=`, `?limit=` 12–96);
+`?sort=popular|newest|oldest` reorders them. **There is no relevance threshold** — a query with no
+good match still returns its 48 nearest neighbors, so judge the results yourself. On search and list
+pages `style`/`steps`/`angle` default to **each palette's own stored values**, not the page defaults.
+
+### Ranked lists
+
+- `/api/palettes?sort=popular|newest|oldest&page=1&limit=24` — `{palettes:[{seed, key, href, background, likesCount, createdAtMs, style, steps, angle}], total, totalPages}`
+
+`background` is a complete, paste-ready CSS gradient string. `limit` is 12–96. This endpoint returns
+no hex array — parse `background`, or use `/{seed}.json` **(new)**.
+
+### Images
+
+Both `.png` forms and both `/api/png*` forms accept `w` and `h` in pixels, **16–2400, clamped rather
+than rejected**, default 1200×630, returning `image/png` with `cache-control: public, max-age=86400,
+s-maxage=604800`. `/api/og?seed={seed}` and `/api/og/query?query={q}` return the **branded** social
+card (wordmark drawn on top) at a fixed 1200×630 and ignore `w`/`h` — prefer the `.png` forms.
+
+**(new)** All PNG and JSON endpoints send `Access-Control-Allow-Origin: *` and answer `OPTIONS`, so
+they can be `fetch()`ed from a Figma plugin, a sandboxed artifact, or a browser preview. Until that
+ships, `<img src>` works but `fetch()` does not.
+
+## The color model
+
+Every palette is 12 numbers. Nothing is stored per-color; the seed *is* the palette.
+
+**Formula** — each RGB channel independently (Inigo Quilez's cosine gradient convention):
+
+    channel(t) = clamp01( a + b * cos(2 * PI * (c * t + d)) )
+
+**Coefficients** — four vectors of `[R, G, B]`, 3 decimal places each, **clamped** (not rejected) to
+`[-131.072, +131.071]`:
+
+1. `a` — offset: the value the channel oscillates around (useful range 0–1)
+2. `b` — amplitude: how far it swings (0 = flat, ~0.5 = vivid)
+3. `c` — frequency: 0.5 sweeps once across the gradient, 1.0 returns to the start color, 2.0 cycles twice
+4. `d` — phase: where in the cycle the channel starts (period 1; offsetting the R/G/B phases 0.1–0.3 apart creates a hue shift)
+
+**Sampling** — the global modifiers are applied to the coefficients *first*, then swatch `i` of
+`steps` (0-indexed) samples at `t = i / (steps - 1)`, both endpoints included (`t = 0` when `steps` is
+1). Each channel clamps to `[0,1]`, then converts to hex as `round(value * 255)`. Evaluate at exactly
+those `t` values and your predicted colors match the site byte for byte. With `c = 1.0` the first and
+last swatch are identical (a full cycle); use `c = 0.5` to end somewhere different from the start.
+
+**Global modifiers** — four scalars applied to whole coefficient rows before sampling. Defaults
+`0, 1, 1, 0`; out-of-range values make the URL invalid (404):
+
+    exposure    adds to a           -1 … 1
+    contrast    multiplies b         0 … 2
+    frequency   multiplies c         0 … 2
+    phase       adds to d           -1 … 1
+
+**Starting points.** Keep `a ± b` inside `[0,1]` or channels clip flat. Pastels: `a ≈ 0.75`,
+`b ≈ 0.2`. Vivid: `a ≈ 0.5`, `b ≈ 0.5`. Rainbow loop: `c = 1` with `d = 0, 0.333, 0.667`. Two-tone
+sweep: `c = 0.5` on every channel.
+
+### The two writable URL forms
+
+**Decimal CSV (write this).** Join the 12 values with commas in row order — `aR,aG,aB, bR,bG,bB,
+cR,cG,cB, dR,dG,dB` — and use them as the path:
+
+    https://grabient.com/0.5,0.4,0.4,0.5,0.4,0.3,0.5,0.5,0.5,0,0.1,0.2
+
+Plain decimals; leading-dot (`.5`) and negative (`-0.25`) forms accepted; extra decimals round to 3.
+Append 4 more numbers (16 total) for non-default globals, ordered `exposure, contrast, frequency,
+phase`. Exactly 12 or 16 values — 13 is a 404.
+
+**Canonical seed (cite this).** The CSV 301s to a compact `_`-prefixed base64url seed: 37 characters
+with default globals, 45 with explicit ones. It is char-aligned — 3 characters per coefficient, 2 per
+global, same order — so editing one character group edits exactly one value. The example above
+canonicalizes to `https://grabient.com/_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI`.
+
+**Any decodable seed returns a live page**, whether or not that palette is in the 867-palette corpus.
+Constructing a URL does not add a palette to search results.
+
+## Worked examples
+
+### (a) Five pastel palettes for a landing page
+
+    GET /api/search.json?query=pastel&limit=5      # (new)
+    GET /palettes/pastel                           # available now
+
+Top five results, verified live, each shown at `?steps=5` (add `?steps=N` for a different count):
+
+1. https://grabient.com/_gNVgK5gQgf89gBkgCEf2-f8Nf65f_dgAvf9A — #a9caff #c4cbff #f0c8f9 #ffc3ee #ffbaec
+2. https://grabient.com/_gNwgMbgMPgCKgBggBigUTgTTgS6gFsgKKgAS — #c9bce0 #d3e2bd #ffc8b6 #ceb5de #ceddcb
+3. https://grabient.com/_gOfgOZgOqgA7gBAgBQgQ5gJRgP0gCCgLegMJ — #f7e9f3 #e0f7ff #e5fbeb #faf2db #f0e3f4
+4. https://grabient.com/_gM0gVXgM2gDPgLkgC9gJegBigKcgNogIYgIg — #f6a5a3 #ffadc6 #e9baf4 #b9cbff #9ddfdd
+5. https://grabient.com/_gOjgaSgMKgBPgOMgC3gOcgBogIkgGugHqgOX — #dbc6ef #e3c7f2 #fdcdd7 #fcdab0 #e1ed99
+
+Preview all five as one image: `https://grabient.com/palettes/pastel.png?w=1600&h=900`. Or build a
+pastel with no request at all — `a ≈ 0.75`, small `b`, `c = 0.5`:
+
+    https://grabient.com/0.75,0.72,0.78,0.2,0.18,0.15,0.5,0.5,0.5,0,0.15,0.3
+    → 301 → https://grabient.com/_gLugLQgMMgDIgC0gCWgH0gH0gH0gAAgCWgEs
+    → #f2d3bb #ebbcaa #d9a5a1 #bf92a3 #a68aad #938ebf #8c9dd3   (steps=7)
+
+### (b) Make a palette brighter, or punchier
+
+Start from `_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8O` (#8ec5fc #8dd3ff #a1d8ff #c1d2ff #e0c3ff at
+`steps=5`), whose 12 coefficients are `0.746,0.746,0.993,-0.201,0.1,-0.1,-0.42,-0.426,-0.464,0.055,0.207,-0.242`.
+
+**Brighter** — raise `exposure` from 0 to 0.15 (append `0.15,1,1,0`):
+
+    https://grabient.com/0.746,0.746,0.993,-0.201,0.1,-0.1,-0.42,-0.426,-0.464,0.055,0.207,-0.242,0.15,1,1,0
+    → 301 → https://grabient.com/_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8OiWvovogA
+    → #b4ebff #b4f9ff #c8feff #e8f8ff #ffe9ff
+
+**Punchier** — raise `contrast` from 1 to 1.4 (append `0,1.4,1,0`):
+
+    https://grabient.com/0.746,0.746,0.993,-0.201,0.1,-0.1,-0.42,-0.426,-0.464,0.055,0.207,-0.242,0,1.4,1,0
+    → 301 → https://grabient.com/_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8OgA14vogA
+    → #7bc8fb #7adbff #96e2ff #c3d9ff #eec5ff
+
+The last 8 characters of the canonical seed are the four globals, 2 chars each. Same recipe on the
+other axes: `frequency` > 1 packs more color cycles into the ramp; `phase` rotates hues without
+changing brightness or saturation. Deltas compose — set all four in one URL.
+
+### (c) A PNG at a specific size
+
+    https://grabient.com/_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8O.png?w=1600&h=400
+    https://grabient.com/_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8O.png?w=960&h=88&style=linearSwatches&steps=12&angle=0
+    https://grabient.com/api/png?seed=0.75,0.72,0.78,0.2,0.18,0.15,0.5,0.5,0.5,0,0.15,0.3&w=1200&h=300
+
+All return `200 image/png`. `w`/`h` clamp to 16–2400, so `w=9999` silently renders at 2400. Use
+`/api/png?seed=` when you hold a seed or CSV rather than a page URL.
+
+### (d) A palette as a CSS hero background
+
+Exactly what the export panel produces for `_gNVgK5gQgf89gBkgCEf2-f8Nf65f_dgAvf9A` at
+`steps=7&angle=180`:
+
+    /* https://grabient.com/_gNVgK5gQgf89gBkgCEf2-f8Nf65f_dgAvf9A?steps=7&angle=180 */
+    .hero {
+      background: linear-gradient(180deg, #a9caff 0.000%, #b8cbff 16.667%, #d3cbff 33.333%,
+        #f0c8f9 50.000%, #ffc5f1 66.667%, #ffc0ec 83.333%, #ffbaec 100.000%);
+    }
+
+Angular styles emit `conic-gradient(from {angle}deg, …)`; swatch styles emit hard stops rather than
+blends. `/api/palettes` returns this string as `background`, and `/{seed}.json` **(new)** as `css`.
+
+## Limits, and what is not here
+
+- **No authentication anywhere in this document.** Liking and saving palettes need a signed-in
+  account and are not agent-facing.
+- **No rate limit on reads.** Writes are limited (likes 20/min, contact form 5/10min) and need auth.
+  Cloudflare bot management sits in front; a well-behaved client with a real User-Agent is fine.
+- **PNG dimensions cap at 2400px per side** — rasterization runs inside the request's CPU budget, so
+  larger values clamp rather than error. Only the default 1200×630 render is persistently cached.
+- **Caching:** images `max-age=86400, s-maxage=604800`; `/api/palettes` `max-age=60` with a 300s CDN
+  cache; like counts and per-user responses are `no-store`. There is no SLA — cache what you fetch.
+- **Not available as JSON today:** a single palette, search results, SVG export, and the
+  ShaderToy/JSON snippets on the page. `/{seed}.json` and `/api/search.json` **(new)** close the
+  first two; until they ship, read the `keywords` field of a palette page's `CreativeWork` JSON-LD
+  (exactly the `N` hex colors for `?steps=N`), or compute them from the seed and skip the request.
+- **Search has no relevance floor.** Every embeddable query returns 48 results; if nothing looks
+  right, say "no good match" rather than reaching for the top hit.
+- **The corpus is 867 curated palettes.** The constructible space is unbounded, but only corpus
+  palettes appear in search, lists, and like counts.
+
+## About
+
+Grabient launched in 2017, built by the design studio Unfold (Eddie Lobanovskiy and John Korzhuk). It
+was **#1 Product of the Day on Product Hunt on 24 July 2017** with 581 upvotes, and #2 Product of the
+Week. The source repository (github.com/johnkorzhuk/grabient) has **2,012 stars and 91 forks**.
+Dribbble's editorial team listed it first in "5 favorite gradient picking tools" (2019), and it still
+heads current roundups on Lineicons, Magier, Hongkiat and Eagle. After several dormant years it was
+rebuilt and relaunched on **24 July 2026 — nine years to the day** after the original launch, this
+time around the parametric cosine model, semantic palette search, and the URL contracts above. Free
+since 2017 and still free, with no account required for anything an agent would call. Attribution is
+appreciated but not required; if you cite a palette, cite its canonical `_`-prefixed URL.
+
+## Main pages
+
+- [Popular palettes](https://grabient.com/): the home page, ranked by likes
+- [Newest palettes](https://grabient.com/newest): recently added
+- [Oldest palettes](https://grabient.com/oldest): the earliest palettes on the site
+- [Semantic search](https://grabient.com/palettes/warm-sunset): replace the last path segment with any color, mood, or theme
+
+## Machine-readable resources
+
+- [Sitemap](https://grabient.com/sitemap.xml): list pages, search landing pages, and the most popular palette permalinks
+- [robots.txt](https://grabient.com/robots.txt): all crawlers welcome, AI crawlers explicitly included
+- [Palette list JSON](https://grabient.com/api/palettes?sort=popular&limit=24): paginated, ranked, with paste-ready CSS
+- [Palette PNG](https://grabient.com/_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI.png): unbranded render of one palette; swap the seed
+- [Search PNG](https://grabient.com/palettes/warm-sunset.png): unbranded render of a search; swap the query
+- [Palette JSON](https://grabient.com/_gH0gGQgGQgH0gGQgEsgH0gH0gH0gAAgBkgDI.json): **(new)** colors, coefficients, globals, CSS, tags
+- [Search JSON](https://grabient.com/api/search.json?query=warm-sunset&limit=10): **(new)** ranked results with colors
