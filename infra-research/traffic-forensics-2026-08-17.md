@@ -406,6 +406,49 @@ response.
 
 ---
 
+## 9b. Where the real humans come from — the embed beats Google 2.8 to 1
+
+Everything above counts requests, which is mostly bots. This section counts
+*people*: `rumPageloadEventsAdaptiveGroups` is a JavaScript beacon, so a client
+that does not execute JS never appears. Seven days to 2026-08-17:
+
+```
+46,617 total pageloads   (~6,660/day — corroborates the 4-6k human baseline)
+45,101  direct / internal / no referrer   (96.7%)
+
+EXTERNAL referrers:
+  1,051  cssgradient.io          <- the iframe embed
+    380  www.google.com          <- the entirety of organic search
+     12  ai.quark.cn                10  m.baidu.com
+     10  www.toools.design           8  www.bing.com
+      5  gemini.google.com           4  chatgpt.com
+      4  liginc.co.jp                4  freesourc.es
+      3  webdesign-trends.net        2  photoshopvip.net
+   ...everything else in single digits
+```
+
+**One embed partnership sends 2.8x the traffic of all organic search.** That
+reframes the SEO work: it is upside from a very low base (380 sessions/week),
+not optimisation of a channel that already performs. The cssgradient.io
+relationship is currently the most valuable acquisition asset the site has, and
+nothing in this repo treats it as one.
+
+It also establishes the AI-visibility baseline as a real number rather than an
+aspiration: **chatgpt.com 4, gemini.google.com 5** in a week. Near zero, but
+non-zero and now trackable week over week.
+
+Caveat on the 96.7%: `refererHost` is empty for most pageloads. Some is genuine
+direct traffic, but a large share is someone opening a URL shared privately —
+the expected pattern for a tool whose product *is* a shareable link. It is not
+evidence that nobody links to us.
+
+**How to re-run this.** The query is account-scoped, and `grabient-admin-analytics`
+was `Zone.Analytics` on one zone only, which is why `loadReferrers` in
+`apps/admin/src/traffic.ts` returned null and I had wrongly blamed "RUM just
+enabled". The token was widened with `Account / Account Analytics / Read` on
+2026-08-17; editing permissions does not change a token's value, so no secret
+needed rotating. The dashboard will populate once `admin/analytics-mcp` ships.
+
 ## 10. Cost is not the constraint
 
 August month-to-date across the whole account: **$3.97**, projected **$5.60**.

@@ -31,6 +31,14 @@ Merged to master as `1988c09` and deployed to grabient-production
 render 2.0s -> 0.12s redirect; 7,430 production requests post-deploy with zero
 errors.
 
+**The finding that should steer what comes next.** Real-user referrers (RUM, a
+JS beacon, so bots excluded) over seven days: **cssgradient.io 1,051 vs
+www.google.com 380.** The embed sends 2.8x the traffic of all organic search.
+Everything in this plan is upside from a 380/week base, not repair of a working
+channel — and the embed relationship, which nothing in this repo treats as an
+asset, is currently the most valuable acquisition channel the site has. See
+§9b of `traffic-forensics-2026-08-17.md`.
+
 **Still open, in rough priority order:**
 
 1. Index `grabient-dc` — 91.5M D1 rows/day from 4,320 queries (21,181 rows per
