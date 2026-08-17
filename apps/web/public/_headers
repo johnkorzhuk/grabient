@@ -9,6 +9,19 @@
 # tolerate the staleness (none are load-bearing for app behavior). These rules
 # only apply to static assets — same-named dynamic worker routes (e.g.
 # /{seed}.png) are untouched.
+# Workers Assets serves .txt as bare "text/plain", and browsers then decode it
+# with a legacy single-byte charset — any UTF-8 character above ASCII renders as
+# mojibake. The file is ASCII-only for belt and braces, but the header is the
+# actual fix and keeps it true if a non-ASCII character ever lands there.
+/llms.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
+# AdSense re-crawls this periodically and it changes ~never. Without a policy
+# it served max-age=0, must-revalidate, so every fetch was a REVALIDATED round
+# trip. A day of browser cache is well inside AdSense's own re-check cadence.
+/ads.txt
+  Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=86400
 /favicon.ico
   Cache-Control: public, max-age=604800
 /favicon.png

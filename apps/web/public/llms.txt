@@ -194,7 +194,8 @@ changing brightness or saturation. Deltas compose - set all four in one URL.
     https://grabient.com/_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8O.png?w=960&h=88&style=linearSwatches&steps=12&angle=0
     https://grabient.com/api/png?seed=0.75,0.72,0.78,0.2,0.18,0.15,0.5,0.5,0.5,0,0.15,0.3&w=1200&h=300
 
-All return `200 image/png`. `w`/`h` clamp to 16-2400, so `w=9999` silently renders at 2400. Use
+All return `200 image/png`. `w`/`h` clamp to 16-2400 per side, and the total is capped at about 3
+megapixels - a request over that is scaled down proportionally, keeping your aspect ratio. Use
 `/api/png?seed=` when you hold a seed or CSV rather than a page URL.
 
 ### (d) A palette as a CSS hero background
@@ -218,8 +219,14 @@ blends. `/api/palettes` returns this string as `background`, and `/{seed}.json` 
 - **Reads are rate limited to 300 requests per 10 seconds per IP** across `/api/*`, `*.png` and
   `*.json`. Over that you get `429` for 10 seconds - back off and retry rather than treating it as a
   failure. Verified crawlers are exempt. Writes (likes 20/min, contact form 5/10min) need auth.
-- **PNG dimensions cap at 2400px per side** - rasterization runs inside the request's CPU budget, so
-  larger values clamp rather than error. Only the default 1200x630 render is persistently cached.
+- **PNG dimensions cap at 2400px per side and ~3 megapixels total** - rasterization runs inside the
+  request's CPU budget, so larger values scale down rather than error. Only the default 1200x630
+  render is persistently cached; custom sizes are re-rendered per request, so prefer the default if
+  you are fetching many.
+- **`/api/png/query` and `/api/og/query` only render curated queries.** Anything else redirects to a
+  static brand image. Each novel query costs an embedding, a vector search and a rasterization that
+  cannot be cached, so the montage endpoints are limited to the query set in the sitemap. Per-palette
+  renders (`/{seed}.png`, `/api/png?seed=`) work for any seed and are unaffected.
 - **Caching:** images `max-age=86400` browser with a 604800s CDN cache; `/api/palettes` `max-age=60` with a 300s CDN
   cache; like counts and per-user responses are `no-store`. There is no SLA - cache what you fetch.
 - **Not available as JSON:** SVG export and the ShaderToy snippet, which exist only as copy blocks on

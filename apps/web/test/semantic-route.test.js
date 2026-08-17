@@ -103,13 +103,28 @@ describe("semantic search route", () => {
       ?.replaceAll("&amp;", "&");
     expect(ogImage).toBeDefined();
     const ogUrl = new URL(ogImage);
+    // "warm sunset" is not in the curated vocabulary, so it advertises the
+    // static brand card rather than a bespoke montage. Rendering one costs an
+    // embedding, a vector search and a rasterization that cannot be cached, and
+    // pointing og:image at a URL queryRenderGate would redirect anyway just
+    // spends a scraper round trip. Both "warm" and "sunset" are curated
+    // individually — the phrase is not — so adding it to CURATED_THEMES is the
+    // lever if this query ever deserves its own card.
+    expect(ogUrl.pathname).toBe("/grabient.png");
+    warn.mockRestore();
+  });
+
+  it("still renders a bespoke card for a curated query", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const response = await app.request("http://local.test/palettes/sunset", {}, env());
+    const html = await response.text();
+    const ogImage = html
+      .match(/<meta property="og:image" content="([^"]+)">/)?.[1]
+      ?.replaceAll("&amp;", "&");
+    const ogUrl = new URL(ogImage);
     expect(ogUrl.pathname).toBe("/api/og/query");
-    expect(ogUrl.searchParams.get("query")).toBe("warm sunset");
-    expect(ogUrl.searchParams.get("style")).toBe("radialGradient");
-    expect(ogUrl.searchParams.get("steps")).toBe("11");
-    expect(ogUrl.searchParams.get("angle")).toBe("45");
+    expect(ogUrl.searchParams.get("query")).toBe("sunset");
     expect(ogUrl.searchParams.get("v")).toBe(String(OG_RENDER_VERSION));
-    expect(ogUrl.searchParams.has("sort")).toBe(false);
     warn.mockRestore();
   });
 

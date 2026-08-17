@@ -567,7 +567,12 @@ async function handleSemanticSearch(
       pageTitle: `${heading} — ${styleNoun(params.style)} | Grabient`,
       pageDescription: `Explore ${heading.toLowerCase()} matched by color and mood. Customize each CSS gradient, then copy CSS or export SVG and PNG.`,
       pageCanonical: canonical,
-      pageImage: og.toString(),
+      // Match queryRenderGate in seo.ts. That gate can only afford the cheap
+      // check — deciding by relevance score would require running the search it
+      // is trying to avoid — so it keys off the curated list alone. Pointing
+      // og:image at a URL that would redirect anyway just spends a scraper
+      // round trip, so non-curated queries advertise the static card directly.
+      pageImage: isPublishableQuery(query) ? og.toString() : `${origin}/grabient.png`,
       pageImageAlt: `${heading} from Grabient`,
       // Vectorize returns nearest neighbours for any input, so `total` is
       // almost never zero and the old check never fired. See indexableQuery.

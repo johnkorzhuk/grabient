@@ -24,8 +24,10 @@ import {
   POPULAR_SEARCHES,
   querySlug,
   searchSemanticPalettes,
+  SEARCH_QUERY_MAX_LENGTH,
   type SemanticSearchResult,
 } from "./semantic-search";
+import { isPublishableQuery } from "./popular-searches";
 
 export const SEO_BASE_URL = "https://grabient.com";
 
@@ -285,12 +287,96 @@ export const OG_HEIGHT = 630;
 const PNG_MIN_DIMENSION = 16;
 const PNG_MAX_DIMENSION = 2400;
 
+/**
+ * Total pixels one render may rasterize, per style.
+ *
+ * Clamping each axis to 2400 independently still permits 2400x2400 = 5.76M
+ * pixels, and resvg's cost tracks pixel AREA rather than content. Measured
+ * against staging at a constant 2000x1500 (~3.0M pixels), one style is not like
+ * the others:
+ *
+ *     linearGradient    1.08s     angularGradient   0.95s
+ *     linearSwatches    1.02s     angularSwatches   7.45s   <-- 6-12x
+ *     radialGradient    0.62s     radialSwatches    1.19s
+ *
+ * angularSwatches is the only style that wraps the whole canvas in a
+ * feGaussianBlur (the antiGap filter in packages/data-ops/src/gradient-gen/svg.ts,
+ * which hides seams between the wedges). A blur is a neighbourhood operation
+ * over every pixel, so it turns area into real work in a way the other styles
+ * do not.
+ *
+ * A single flat cap would therefore either leave angularSwatches taking
+ * multiple seconds or needlessly shrink five cheap styles. Budgeting per style
+ * equalises the worst case instead: cheap styles get 4x the default card area,
+ * the blurred one gets 1x, and both land near a second. Oversized requests
+ * scale down proportionally rather than erroring, so callers keep their aspect
+ * ratio.
+ */
+const PNG_MAX_PIXELS = OG_WIDTH * OG_HEIGHT * 4;
+const PNG_MAX_PIXELS_BLURRED = OG_WIDTH * OG_HEIGHT;
+
 function pngDimension(params: URLSearchParams, key: string, fallback: number): number {
   const raw = params.get(key);
   if (raw === null) return fallback;
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(PNG_MAX_DIMENSION, Math.max(PNG_MIN_DIMENSION, parsed));
+}
+
+/**
+ * Refuse to spend a full render on a query we would not index.
+ *
+ * `/api/og/query` and `/api/png/query` are the most expensive URLs on the site
+ * and the only ones whose input space is unbounded *text*. Each novel query
+ * costs a KV read, a Workers AI embedding, a Vectorize query, a resvg
+ * rasterization and a KV write, and because the cache key contains the query
+ * string, a caller supplying fresh strings never hits cache. Measured against
+ * production: ~2.0 s per novel query versus 0.098 s for a cached PNG.
+ *
+ * That latency is itself why the edge rate limit does not help. The rule is
+ * 300 requests / 10 s per IP, but at 2 s per request a single machine holding
+ * 40 connections sustains only ~20/s — comfortably under the threshold while
+ * running the most expensive path on the site. The limit clamps hardest on
+ * cached PNGs that cost nothing and not at all on this. Cloudflare offers no
+ * hard spend cap, and on a Free zone rate limiting rules cannot match on query
+ * string at all, so the bound has to live here.
+ *
+ * Two gates, cheapest first. Anything longer than the search input allows is
+ * rejected outright — the HTML route enforces that cap in queryFromParam, but
+ * these routes never did, so `?query=<2000 chars>` reached the embedding model.
+ * Then: a query we would not publish a landing page for gets the static brand
+ * image instead of a bespoke montage. Sharing a niche search yields the
+ * Grabient card rather than a custom one, which is a fair trade for removing an
+ * unbounded, uncacheable spend surface.
+ */
+function queryRenderGate(query: string): Response | null {
+  if (query.length > SEARCH_QUERY_MAX_LENGTH)
+    return new Response("Query too long", { status: 400 });
+  if (isPublishableQuery(query)) return null;
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: "/grabient.png",
+      "Cache-Control": "public, max-age=86400",
+      "CDN-Cache-Control": "max-age=604800",
+    },
+  });
+}
+
+/** Scale a requested size down to this style's budget, preserving aspect ratio. */
+function fitPixelBudget(
+  width: number,
+  height: number,
+  style: PaletteStyle | "auto",
+): [number, number] {
+  const budget = style === "angularSwatches" ? PNG_MAX_PIXELS_BLURRED : PNG_MAX_PIXELS;
+  const pixels = width * height;
+  if (pixels <= budget) return [width, height];
+  const scale = Math.sqrt(budget / pixels);
+  return [
+    Math.max(PNG_MIN_DIMENSION, Math.round(width * scale)),
+    Math.max(PNG_MIN_DIMENSION, Math.round(height * scale)),
+  ];
 }
 
 /** Just the gradient — no logo, no padding. The raw render of a palette. */
@@ -539,8 +625,11 @@ export async function palettePngResponse(requestUrl: string, env?: Env): Promise
   const style: PaletteStyle = styleResult.success ? styleResult.output : DEFAULT_STYLE;
   const steps = parsedInteger(params, "steps", stepsValidator, DEFAULT_STEPS);
   const angle = parsedInteger(params, "angle", angleValidator, DEFAULT_ANGLE);
-  const width = pngDimension(params, "w", OG_WIDTH);
-  const height = pngDimension(params, "h", OG_HEIGHT);
+  const [width, height] = fitPixelBudget(
+    pngDimension(params, "w", OG_WIDTH),
+    pngDimension(params, "h", OG_HEIGHT),
+    style,
+  );
   const view = renderPalette(seed, style, steps, angle);
   if (!view) return new Response("Invalid seed format", { status: 400 });
 
@@ -569,6 +658,8 @@ export async function queryPngResponse(requestUrl: string, env: Env): Promise<Re
   const params = normalizeEntityMangledParams(new URL(requestUrl));
   const query = (params.get("query") ?? params.get("q") ?? "").trim();
   if (!query) return new Response("Missing query parameter", { status: 400 });
+  const gate = queryRenderGate(query);
+  if (gate) return gate;
 
   const styleResult = v.safeParse(paletteStyleValidator, params.get("style"));
   const style: PaletteStyle | "auto" = styleResult.success ? styleResult.output : "auto";
@@ -576,8 +667,11 @@ export async function queryPngResponse(requestUrl: string, env: Env): Promise<Re
   const steps = Number.isNaN(parsedSteps) ? "auto" : parsedSteps;
   const parsedAngle = parsedInteger(params, "angle", angleValidator, Number.NaN);
   const angle = Number.isNaN(parsedAngle) ? "auto" : parsedAngle;
-  const width = pngDimension(params, "w", OG_WIDTH);
-  const height = pngDimension(params, "h", OG_HEIGHT);
+  const [width, height] = fitPixelBudget(
+    pngDimension(params, "w", OG_WIDTH),
+    pngDimension(params, "h", OG_HEIGHT),
+    style,
+  );
 
   const normalizedQuery = normalizeSemanticQuery(query);
   const cacheKey =
@@ -640,6 +734,8 @@ export async function queryOgResponse(requestUrl: string, env: Env): Promise<Res
   const params = normalizeEntityMangledParams(new URL(requestUrl));
   const query = (params.get("query") ?? params.get("q") ?? "").trim();
   if (!query) return new Response("Missing query parameter", { status: 400 });
+  const gate = queryRenderGate(query);
+  if (gate) return gate;
 
   const styleResult = v.safeParse(paletteStyleValidator, params.get("style"));
   const style: PaletteStyle | "auto" = styleResult.success ? styleResult.output : "auto";
