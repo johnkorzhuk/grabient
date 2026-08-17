@@ -31,13 +31,23 @@ Merged to master as `1988c09` and deployed to grabient-production
 render 2.0s -> 0.12s redirect; 7,430 production requests post-deploy with zero
 errors.
 
-**The finding that should steer what comes next.** Real-user referrers (RUM, a
-JS beacon, so bots excluded) over seven days: **cssgradient.io 1,051 vs
-www.google.com 380.** The embed sends 2.8x the traffic of all organic search.
-Everything in this plan is upside from a 380/week base, not repair of a working
-channel — and the embed relationship, which nothing in this repo treats as an
-asset, is currently the most valuable acquisition channel the site has. See
-§9b of `traffic-forensics-2026-08-17.md`.
+**Correction to a claim in the previous revision.** An earlier version of this
+plan said the cssgradient.io embed sends 2.8x the traffic of organic search,
+based on Cloudflare RUM referrers. **That is backwards.** RUM reports no
+referrer for 91% of pageloads and captured roughly a third of the traffic GA4
+saw, so it is not an attribution system. GA4 over the same 28 days:
+**google 5,110 sessions vs cssgradient.io 222 — search is 23x the embed**, and
+Organic Search is the largest channel by pageviews (76,614) ahead of Direct.
+
+So the SEO work is optimisation of the channel that already dominates, not a
+gamble on a negligible one. The embed remains the largest non-search referrer
+and is worth nurturing, but it is not the primary channel. See §9b of
+`traffic-forensics-2026-08-17.md`.
+
+**The AI baseline is real.** GA4's AI Assistant channel: 205 sessions and 2,040
+pageviews in 28 days — chatgpt.com 164, doubao.com 53, gemini.google.com 39.
+About 7 sessions a day. Small next to 5,438 from search, but a measurable
+number to move rather than an aspiration.
 
 **Still open, in rough priority order:**
 

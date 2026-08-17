@@ -406,48 +406,82 @@ response.
 
 ---
 
-## 9b. Where the real humans come from — the embed beats Google 2.8 to 1
+## 9b. Where the real humans come from — GA4, not RUM
 
-Everything above counts requests, which is mostly bots. This section counts
-*people*: `rumPageloadEventsAdaptiveGroups` is a JavaScript beacon, so a client
-that does not execute JS never appears. Seven days to 2026-08-17:
+**This section replaces an earlier version that was wrong.** I first answered
+this from Cloudflare RUM referrers and concluded "the cssgradient.io embed
+sends 2.8x the traffic of all organic search." That is backwards, and the
+error is instructive enough to keep on the record.
+
+### What RUM said, and why it misleads
+
+`rumPageloadEventsAdaptiveGroups`, 28 days:
 
 ```
-46,617 total pageloads   (~6,660/day — corroborates the 4-6k human baseline)
-45,101  direct / internal / no referrer   (96.7%)
-
-EXTERNAL referrers:
-  1,051  cssgradient.io          <- the iframe embed
-    380  www.google.com          <- the entirety of organic search
-     12  ai.quark.cn                10  m.baidu.com
-     10  www.toools.design           8  www.bing.com
-      5  gemini.google.com           4  chatgpt.com
-      4  liginc.co.jp                4  freesourc.es
-      3  webdesign-trends.net        2  photoshopvip.net
-   ...everything else in single digits
+  (direct/none)     42,900 pageloads   42,900 visits
+  cssgradient.io       900                900
+  www.google.com       390                390
+  grabient.com       2,890                  0   (internal navigation)
 ```
 
-**One embed partnership sends 2.8x the traffic of all organic search.** That
-reframes the SEO work: it is upside from a very low base (380 sessions/week),
-not optimisation of a channel that already performs. The cssgradient.io
-relationship is currently the most valuable acquisition asset the site has, and
-nothing in this repo treats it as one.
+Two things disqualify this for channel attribution. **91% of pageloads report
+no referrer at all**, and RUM captured ~47k pageloads over a window where GA4
+recorded ~145k — roughly a third. The beacon is not seeing most traffic, and
+it is not resolving referrers on most of what it does see. Cloudflare RUM is
+fine for Core Web Vitals; it is not an attribution system.
 
-It also establishes the AI-visibility baseline as a real number rather than an
-aspiration: **chatgpt.com 4, gemini.google.com 5** in a week. Near zero, but
-non-zero and now trackable week over week.
+### What GA4 says
 
-Caveat on the 96.7%: `refererHost` is empty for most pageloads. Some is genuine
-direct traffic, but a large share is someone opening a URL shared privately —
-the expected pattern for a tool whose product *is* a shareable link. It is not
-evidence that nobody links to us.
+Sessions and pageviews by channel, 28 days:
 
-**How to re-run this.** The query is account-scoped, and `grabient-admin-analytics`
+| channel | sessions | pageviews |
+|---|---:|---:|
+| Direct | 6,714 | 52,817 |
+| **Organic Search** | **5,438** | **76,614** |
+| Referral | 741 | 12,926 |
+| **AI Assistant** | **205** | **2,040** |
+| Organic Social | 54 | 273 |
+
+By source:
+
+```
+  (direct)              6,714        chatgpt.com            164
+  google                5,110        webdesign-trends.net    67
+  bing                    234        doubao.com              53
+  cssgradient.io          222        jp.eagle.cool           44
+                                     gemini.google.com       39
+```
+
+**Google sends 5,110 sessions to cssgradient.io's 222 — organic search is 23x
+the embed, not a third of it.** Organic Search is also the single largest
+channel by pageviews (76,614), ahead of Direct.
+
+So the SEO work is not upside from a negligible base — it is optimisation of
+the channel that already dominates, which is a much better place to be. The
+embed is a real and worthwhile referrer, the largest non-search one, but it is
+not the primary channel.
+
+### The AI baseline is real and larger than expected
+
+GA4 has an **AI Assistant** channel and it is not empty: **205 sessions and
+2,040 pageviews in 28 days**, led by chatgpt.com (164), doubao.com (53) and
+gemini.google.com (39). RUM had suggested single digits. Roughly 7 sessions a
+day arrive from an assistant today — small against 5,438 from search, but a
+measurable baseline to move rather than an aspiration.
+
+### The lesson
+
+Two sources disagreed and I quoted the wrong one. RUM undercounts and
+under-attributes here; GA4 is the attribution system. Where they conflict on
+"where did this person come from", GA4 wins. Reach for RUM only for the things
+GA4 cannot answer — Core Web Vitals in particular.
+
+**How to re-run this.** GA4 via the Data API (`sessionDefaultChannelGroup`,
+`sessionSource`). The RUM query is account-scoped and `grabient-admin-analytics`
 was `Zone.Analytics` on one zone only, which is why `loadReferrers` in
-`apps/admin/src/traffic.ts` returned null and I had wrongly blamed "RUM just
-enabled". The token was widened with `Account / Account Analytics / Read` on
-2026-08-17; editing permissions does not change a token's value, so no secret
-needed rotating. The dashboard will populate once `admin/analytics-mcp` ships.
+`apps/admin/src/traffic.ts` returned null; the token gained
+`Account / Account Analytics / Read` on 2026-08-17. Editing a token's
+permissions does not change its value, so no secret needed rotating.
 
 ## 10. Cost is not the constraint
 
