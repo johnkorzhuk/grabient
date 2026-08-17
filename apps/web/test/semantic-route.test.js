@@ -57,7 +57,9 @@ describe("semantic search route", () => {
     );
     const html = await response.text();
     expect(response.status).toBe(200);
-    expect(html).toContain("<title>Grabient — Warm sunset palettes</title>");
+    expect(html).toContain(
+      "<title>Warm sunset gradient palettes — CSS Gradients | Grabient</title>",
+    );
     expect(html).toContain(
       '<link rel="canonical" href="https://grabient-lite.jkorzhuk.workers.dev/palettes/warm-sunset">',
     );
@@ -101,13 +103,28 @@ describe("semantic search route", () => {
       ?.replaceAll("&amp;", "&");
     expect(ogImage).toBeDefined();
     const ogUrl = new URL(ogImage);
+    // "warm sunset" is not in the curated vocabulary, so it advertises the
+    // static brand card rather than a bespoke montage. Rendering one costs an
+    // embedding, a vector search and a rasterization that cannot be cached, and
+    // pointing og:image at a URL queryRenderGate would redirect anyway just
+    // spends a scraper round trip. Both "warm" and "sunset" are curated
+    // individually — the phrase is not — so adding it to CURATED_THEMES is the
+    // lever if this query ever deserves its own card.
+    expect(ogUrl.pathname).toBe("/grabient.png");
+    warn.mockRestore();
+  });
+
+  it("still renders a bespoke card for a curated query", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const response = await app.request("http://local.test/palettes/sunset", {}, env());
+    const html = await response.text();
+    const ogImage = html
+      .match(/<meta property="og:image" content="([^"]+)">/)?.[1]
+      ?.replaceAll("&amp;", "&");
+    const ogUrl = new URL(ogImage);
     expect(ogUrl.pathname).toBe("/api/og/query");
-    expect(ogUrl.searchParams.get("query")).toBe("warm sunset");
-    expect(ogUrl.searchParams.get("style")).toBe("radialGradient");
-    expect(ogUrl.searchParams.get("steps")).toBe("11");
-    expect(ogUrl.searchParams.get("angle")).toBe("45");
+    expect(ogUrl.searchParams.get("query")).toBe("sunset");
     expect(ogUrl.searchParams.get("v")).toBe(String(OG_RENDER_VERSION));
-    expect(ogUrl.searchParams.has("sort")).toBe(false);
     warn.mockRestore();
   });
 
@@ -125,7 +142,7 @@ describe("semantic search route", () => {
     expect(html).toContain('title="#00ffff"');
     expect(html).toContain('title="#ff007f"');
     expect(html).toMatch(
-      /id="list-h1"[^>]*>.*Blue.*purple.*cyan.*rose.*palettes<\/h1>/s,
+      /id="list-h1"[^>]*>.*Blue.*purple.*cyan.*rose.*gradient palettes<\/h1>/s,
     );
     const heading = html.match(/<h1 id="list-h1"[^>]*>([\s\S]*?)<\/h1>/)?.[1] ?? "";
     expect(heading).toContain('class="whitespace-nowrap"');
@@ -170,5 +187,66 @@ describe("semantic search route", () => {
     expect(html).toContain(`href="/${SEED}?style=radialGradient`);
     expect(html).not.toContain(`${paletteUrl} palettes`);
     warn.mockRestore();
+  });
+});
+
+// `/palettes/{query}` renders the path into <title>, <h1> and og:title, so an
+// ungated route lets anyone mint an indexable grabient.com page saying
+// anything. The guard used to key off result count, but Vectorize returns
+// nearest neighbours for any input at all, so it never fired.
+describe("query landing pages are only indexable when we vouch for the query", () => {
+  function envScoring(score) {
+    const bindings = env();
+    bindings.VECTORIZE.query = vi.fn(async () => ({
+      matches: [
+        {
+          score,
+          metadata: {
+            seed: SEED,
+            tags: ["sunset"],
+            style: "linearGradient",
+            steps: 7,
+            angle: 135,
+            likesCount: 12,
+            createdAt: 1_700_000_000_000,
+          },
+        },
+      ],
+    }));
+    return bindings;
+  }
+
+  async function robotsFor(query, score) {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const response = await app.request(
+      `http://local.test/palettes/${query}`,
+      {},
+      envScoring(score),
+    );
+    const html = await response.text();
+    warn.mockRestore();
+    return html.match(/<meta name="robots" content="([^"]*)"/)?.[1] ?? null;
+  }
+
+  it("noindexes an injected query even though results came back", async () => {
+    // 0.29 is roughly what "buy cheap viagra" actually scored against the live
+    // index on 2026-08-17.
+    expect(await robotsFor("buy-cheap-viagra", 0.29)).toBe("noindex,follow");
+  });
+
+  it("keeps a curated query indexable at a weak score", async () => {
+    // "lagoon" is curated and genuinely scores low (0.3796 measured), so the
+    // curated list has to win over the score, not the other way round.
+    expect(await robotsFor("lagoon", 0.3796)).toBeNull();
+  });
+
+  it("lets a novel query in on a confident score alone", async () => {
+    expect(await robotsFor("bioluminescent-abyss", 0.61)).toBeNull();
+  });
+
+  it("follows even when it does not index, so seed pages stay reachable", async () => {
+    // Seed pages have no other inbound links; dropping `follow` would strand
+    // them entirely.
+    expect(await robotsFor("free-crypto-giveaway", 0.2766)).toContain("follow");
   });
 });

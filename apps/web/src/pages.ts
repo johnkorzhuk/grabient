@@ -16,6 +16,9 @@ import { channelsGraphSvg } from "./graph";
 import { ICON, LOGO } from "./icons";
 import { logoAnimationCss } from "./logo-animation";
 import { paletteOgImageUrl } from "./seo";
+import { seedPaletteText, type SeedPaletteText } from "./palette-json";
+import { paletteDescription, styleLabel, TITLE_SUFFIX } from "./palette-name";
+import { bestInk } from "@repo/data-ops/color-utils";
 import {
   colorTextParts,
   querySlug,
@@ -33,11 +36,11 @@ import {
   exportItemData,
   faviconDataUri,
   heroInk,
-  hexLuminance,
   paletteCoeffKey,
   renderPalette,
   shadertoySnippet,
   svgSnippet,
+  type RenderedPalette,
 } from "./palette";
 
 export type Sort = "popular" | "newest" | "oldest" | "saved";
@@ -137,6 +140,7 @@ function subHeader(
   exportOpen = false,
   hiddenFields = "",
   mobileOptionsDocked = false,
+  graphDock = false,
 ): string {
   const styleOptions = [
     `<option value="" hidden${params.style === "auto" ? " selected" : ""}></option>`,
@@ -165,6 +169,7 @@ ${hiddenFields}
 </span>
 <noscript><button class="${BTN}">Apply</button></noscript>
 </form>
+${graphDock ? `<span id="graph-dock" class="hidden shrink-0"></span>` : ""}
 </div>`;
 }
 
@@ -373,6 +378,39 @@ const FOOT_LINK =
   "text-muted-foreground hover:text-foreground transition-colors duration-200 text-base sm:text-lg";
 const FOOT_SEP = `<div class="h-4 w-px bg-muted-foreground/30"></div>`;
 
+/**
+ * Hub pages every palette links to. Drawn from POPULAR_SEARCHES so each target
+ * is also in the sitemap and passes isPublishableQuery — a link into a
+ * noindex page would waste the crawl it earns.
+ */
+const BROWSE_HUBS = POPULAR_SEARCHES.slice(0, 10);
+
+/**
+ * The only crawlable path between palettes.
+ *
+ * Measured 2026-08-17: a seed page carried nine `<a href>`s and not one of them
+ * pointed at another palette, so every palette in the corpus was an orphan
+ * reachable only from the sitemap — which is why Search Console reported no
+ * referring page for them and why Googlebot spent 1,152 req/day almost entirely
+ * off-content.
+ *
+ * These links are deliberately the same on every page rather than derived from
+ * the current palette. A per-palette "related" strip existed once and was
+ * removed because it went stale the moment a modifier slider rewrote the route
+ * without a reload; anything recomputed per palette reintroduces exactly that
+ * bug. A fixed set cannot go stale, and it is enough: each hub lists 24 seeds,
+ * so every palette sits two hops from every other.
+ */
+function browseHubs(): string {
+  const links = BROWSE_HUBS.map(
+    (query) =>
+      `<a href="/palettes/${querySlug(query)}" class="${FOOT_LINK}">${esc(query)}</a>`,
+  ).join(FOOT_SEP);
+  return `<nav class="px-5 pb-5 lg:px-14" aria-label="Browse palettes by theme">
+<div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:justify-start sm:gap-x-6">${links}</div>
+</nav>`;
+}
+
 export function footer(stars: number): string {
   const year = new Date().getFullYear();
   const starChip =
@@ -381,6 +419,7 @@ export function footer(stars: number): string {
       : "";
   return `<footer class="relative mt-auto pb-8 pt-0 lg:pb-13">
 <div class="px-5 lg:px-14"><div class="dashed-rule"></div></div>
+${browseHubs()}
 <div class="flex flex-col items-center justify-between gap-4 px-5 pb-2 pt-5 sm:flex-row sm:gap-0 lg:px-14 lg:pt-13">
 <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-start sm:gap-6">
 <a href="https://iquilezles.org/articles/palettes/" target="_blank" rel="noopener noreferrer" class="${FOOT_LINK}">About</a>
@@ -585,13 +624,18 @@ function resolveSeedView(d: SeedPageData) {
   );
 }
 
-// Equal-width single-row grid — never scrolls; container queries rotate the
-// hex labels vertical when chips get narrow (high step counts / small screens).
+// One fused strip: equal-width chips flush against each other, a single radius
+// on the container, and a faint dotted rule where two colors meet. Never
+// scrolls — fitSwatches (app.client.js) wraps to two rows and sizes or rotates
+// the hex labels from measured chip dimensions.
+//
+// Must stay identical to swatchesHtml() in islands/edit.tsx, which re-renders
+// this strip on every slider tick.
 function swatches(hexColors: string[]): string {
-  return `<ul class="swatches grid w-full gap-1.5" style="grid-template-columns:repeat(${hexColors.length},minmax(0,1fr))" aria-label="Palette colors">${hexColors
+  return `<ul class="swatches grid w-full overflow-hidden rounded-lg" style="grid-template-columns:repeat(${hexColors.length},minmax(0,1fr))" aria-label="Palette colors">${hexColors
     .map((hex) => {
-      const dark = hexLuminance(hex) > 0.55;
-      return `<li class="swatch-item min-w-0"><button type="button" data-copy="${hex}" aria-label="Copy ${hex}" class="${dark ? "on-light" : "on-dark"} flex h-14 w-full cursor-pointer items-center justify-center overflow-hidden rounded-md font-mono text-xs font-semibold shadow-sm outline-none transition-transform duration-150 hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-ring/70 pointer-coarse:h-16 lg:h-20" style="background:${hex}"><span class="swatch-label">${hex}</span></button></li>`;
+      const ink = bestInk(hex);
+      return `<li class="swatch-item min-w-0"><button type="button" data-copy="${hex}" aria-label="Copy ${hex}" class="${ink === "black" ? "on-light" : "on-dark"} flex h-14 w-full cursor-pointer items-center justify-center overflow-hidden font-mono font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70 pointer-coarse:h-16 lg:h-20" style="background:${hex}"><span class="swatch-label">${hex}</span></button></li>`;
     })
     .join("")}</ul>`;
 }
@@ -642,6 +686,29 @@ ${panels}
 </section>`;
 }
 
+/**
+ * What distinguishes this palette page from the other 866.
+ *
+ * Search Console's URL Inspection reports half the seed corpus as "Discovered -
+ * currently not indexed" — Google's verdict on pages it reads as templated. The
+ * editor is identical everywhere and the hex codes live in SVG attributes, so
+ * there is nothing textual to tell two palettes apart.
+ *
+ * The heading is the palette's name. The description under it is sr-only: it
+ * is a text alternative for a purely visual thing — the same reason the h1 is
+ * sr-only — and it reads for a screen reader or a crawler rather than a
+ * designer, who can already see the gradient and has the hex codes in the
+ * swatch strip and the export panel.
+ */
+function paletteContext(view: RenderedPalette, text: SeedPaletteText): string {
+  const { headline, tags } = text;
+
+  return `<section class="px-5 pt-10 lg:px-14" aria-labelledby="palette-about">
+<h2 id="palette-about" class="text-xl font-bold text-foreground">${esc(headline)}</h2>
+<p id="palette-description" class="sr-only">${esc(paletteDescription(headline, view.style, view.steps, view.angle, view.hexColors, tags))}</p>
+</section>`;
+}
+
 export function seedPage(d: SeedPageData): string {
   const view = resolveSeedView(d);
   if (!view)
@@ -655,6 +722,9 @@ export function seedPage(d: SeedPageData): string {
       `${header()}<main class="flex-1 px-5 lg:px-14 py-10"><p>Invalid palette.</p></main>`,
     );
 
+  // One analysis for the h1, the h2, the sr-only description, the <title> and
+  // the meta description — they all describe the same palette.
+  const text = seedPaletteText(view);
   const graph = channelsGraphSvg(view.appliedCoeffs, view.steps, view.hexColors);
   const search = searchString(d.params, { page: 1 });
   const css = cssSnippet(view, search);
@@ -673,9 +743,9 @@ export function seedPage(d: SeedPageData): string {
   // driven by CSS in app.css. Desktop layout is untouched.
   const body = `<div id="seed-hero" class="seed-hero hero-ink-${ink.ink} hero-btn-${btnInk.ink}${d.size === "auto" ? "" : " has-size"}${d.graph ? " show-graph" : ""} relative isolate flex min-h-0 flex-1 flex-col">
 ${header(view.hexColors)}
-${subHeader(backBtn, d.params, `/${d.seed}`, false)}
+${subHeader(backBtn, d.params, `/${d.seed}`, false, false, "", false, true)}
 <main class="seed-stage flex min-h-0 flex-col gap-3 px-5 pb-4 lg:h-[calc(100dvh-174px)] lg:min-h-[520px] lg:px-14 lg:pt-4">
-<h1 class="sr-only">Gradient palette editor — ${view.hexColors[0] ?? ""} to ${view.hexColors[view.hexColors.length - 1] ?? ""}</h1>
+<h1 id="palette-h1" class="sr-only">${esc(text.headline)} gradient palette editor</h1>
 <div class="seed-cols flex min-h-0 flex-1 flex-col gap-4 lg:flex-row lg:gap-8 xl:gap-10">
 <div class="flex min-h-0 min-w-0 flex-1 flex-col gap-3">
 <div id="preview-box" class="group relative flex min-h-[36dvh] flex-1 lg:min-h-0">
@@ -707,6 +777,7 @@ ${likeButton(likeKey, likeKey, view.style, view.steps, view.angle, 0, " data-lik
 </div>
 </main>
 </div>
+${paletteContext(view, text)}
 <section class="px-5 pb-14 pt-10 lg:px-14" aria-label="Export code">
 ${codeTabs([
   { id: "css-code", label: "CSS", code: css },
@@ -723,18 +794,27 @@ ${footer(d.stars)}`;
       renderPalette(d.seed, view.style, 4, view.angle)?.hexColors ?? view.hexColors,
     ),
   ];
-  const title = `${titleColors.join(" → ")} Gradient Palette | Grabient`;
+  // Names, not hex. Hex codes are near-perfectly unique but almost nobody
+  // searches them; "cream to coral pink gradient" is a real query shape.
+  // Measured over all 866 palettes: names collide on 2.4% of pages (hex: 0.7%),
+  // and the colliding pages are genuinely near-identical palettes — adding the
+  // texture and contrast tags to the title did not separate a single one. The
+  // hex codes stay in the description and the sr-only text, so a hex search
+  // still matches the page.
+  const headline = text.titleHeadline;
+  const title = `${headline}${TITLE_SUFFIX}`;
   const canonical = `${d.origin}/${d.seed}`;
   const image = paletteOgImageUrl(d.origin, view);
 
   return layout(
     {
       title,
-      description:
-        "Copy as CSS, SVG, or PNG, or customize the colors, angle, and steps in Grabient's gradient editor.",
+      // Per-palette, not the shared constant this used to be: 866 pages sharing
+      // one description is a large part of why Google files them as templated.
+      description: `${text.metaHeadline} ${styleLabel(view.style)} in ${view.steps} steps — ${titleColors.join(", ")}. Copy the CSS, or export SVG and PNG.`,
       canonical,
       image,
-      imageAlt: `${titleColors.join(" to ")} gradient palette`,
+      imageAlt: `${text.headline} gradient palette`,
       keywords: `${view.hexColors.join(", ")}, CSS gradient, color palette, gradient generator`,
       structuredData: {
         "@context": "https://schema.org",

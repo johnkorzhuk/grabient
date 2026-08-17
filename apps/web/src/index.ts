@@ -15,6 +15,7 @@ import {
 import { isUsernameAvailable, updateUserImage, updateUsername } from "@repo/data-ops/queries/account";
 import { updateUsernameSchema } from "@repo/data-ops/valibot-schema/auth";
 import {
+  DEFAULT_PAGE_LIMIT,
   angleValidator,
   paletteStyleValidator,
   seedValidator,
@@ -29,6 +30,12 @@ import {
   type ListSearch,
 } from "./search";
 import { canonicalSeed, paletteCoeffKey, resolvePaletteView } from "./palette";
+import { paletteMcpHandler } from "./mcp";
+import {
+  SEARCH_JSON_HEADERS,
+  paletteJson,
+  paletteJsonResponse,
+} from "./palette-json";
 import { likeCoeffKeys, mergeLikeAliases } from "./likes";
 import { isGdprRegion } from "./geo";
 import { avatarKey, avatarKeyFromUrl, isWebpBuffer } from "./avatar";
@@ -39,7 +46,10 @@ import {
   queryOgResponse,
   queryPngResponse,
   robotsTxt,
-  sitemapXml,
+  sitemapIndexXml,
+  staticSitemapXml,
+  searchSitemapXml,
+  paletteSitemapXml,
 } from "./seo";
 import {
   contactContent,
@@ -62,13 +72,19 @@ import {
   queryResultContext,
   querySlug,
   searchSemanticPalettes,
+  normalizeSemanticQuery,
   SEMANTIC_SEARCH_LIMIT,
+  type QueryResultContext,
   type SemanticSearchResult,
 } from "./semantic-search";
 import { parseSearchInput, searchRouteSegment } from "./search-input";
 import { checkRateLimit } from "./rate-limit";
 import { esc } from "./esc";
-import { getPopularSearchSuggestions } from "./popular-searches";
+import {
+  getPopularSearchSuggestions,
+  isPublishableQuery,
+  PUBLISHABLE_SCORE,
+} from "./popular-searches";
 
 export { RateLimiter } from "./rate-limit";
 
@@ -145,7 +161,60 @@ app.use("*", async (c, next) => {
     "Content-Security-Policy",
     "frame-ancestors 'self' https://cssgradient.io https://*.cssgradient.io",
   );
+  // workers.dev hosts serve the whole site (staging by design, production
+  // incidentally — both env blocks set workers_dev:true). Staging must stay
+  // reachable for the mandated pre-production smoke test, so keep the hosts and
+  // deny indexing at the header instead: two full-corpus duplicates otherwise.
+  if (new URL(c.req.url).hostname.endsWith(".workers.dev"))
+    c.header("X-Robots-Tag", "noindex, nofollow");
+  // Public read-only renders and palette data, open to any origin. Without this
+  // header a browser-sandboxed caller — a Figma plugin (null origin), an app
+  // preview iframe, an assistant's code sandbox — can display /{seed}.png in an
+  // <img> but cannot fetch() it or read the JSON at all. Nothing here is
+  // user-specific or authenticated, so there is no cookie to protect: the
+  // credentialed forms (/api/like-info, /api/palettes) are deliberately absent
+  // from the match below.
+  if (isPublicApiPath(new URL(c.req.url).pathname))
+    c.header("Access-Control-Allow-Origin", "*");
 });
+
+/** The unauthenticated render/data surface: PNG, OG card, and palette JSON. */
+function isPublicApiPath(pathname: string): boolean {
+  return (
+    pathname.endsWith(".png") ||
+    pathname.endsWith(".json") ||
+    pathname.startsWith("/api/png") ||
+    pathname.startsWith("/api/og")
+  );
+}
+
+// Preflight for the same surface. A fetch() carrying no custom headers is a
+// "simple request" and never preflights, but callers that set Accept or
+// Content-Type do, and a 404 here fails them before the GET is ever attempted.
+app.options("/*", (c) => {
+  if (!isPublicApiPath(new URL(c.req.url).pathname)) return c.body(null, 404);
+  return c.body(null, 204, {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+    "Access-Control-Allow-Headers": "Accept, Content-Type",
+    "Access-Control-Max-Age": "86400",
+    // Same-URL responses differ by Origin only in the header, never the body,
+    // so this stays cacheable.
+    "Cache-Control": "public, max-age=86400",
+  });
+});
+
+/**
+ * What the results on this page actually are, for the title.
+ *
+ * "auto" is the canonical form — no style in the URL, so every result renders
+ * in its own stored style and the page is a mix of both. Pinning a style makes
+ * the page one thing or the other, and the title should say which.
+ */
+function styleNoun(style: string): string {
+  if (style === "auto") return "CSS Gradients & Swatches";
+  return style.endsWith("Swatches") ? "Color Swatches" : "CSS Gradients";
+}
 
 // Explicit cache headers on redirects: Workers Cache heuristically caches
 // header-less responses (2h for cacheable statuses), so always be explicit.
@@ -344,6 +413,34 @@ async function handleList(
   );
 }
 
+/**
+ * May this query page enter the index?
+ *
+ * `/palettes/{query}` echoes the path into <title>, <h1> and og:title, so an
+ * ungated route is a keyword-injection surface: anyone who can link to
+ * /palettes/buy-cheap-viagra can mint an indexable grabient.com page saying
+ * that. The earlier guard keyed off result count, but Vectorize returns
+ * nearest neighbours for literally any input, so it never fired.
+ *
+ * Three ways in, cheapest check first:
+ *   - a query we curate and already publish in the sitemap
+ *   - a color name, hex or seed, where the query IS the subject matter
+ *   - a novel query whose top match clears PUBLISHABLE_SCORE
+ *
+ * Everything else is `noindex,follow` rather than a 404: the page is still
+ * useful to a human who lands on it, and `follow` keeps the crawl path to the
+ * seed pages open, which matters while those pages have no other inbound links.
+ */
+function indexableQuery(
+  query: string,
+  ranked: ReadonlyArray<{ score: number }>,
+  context: QueryResultContext | null,
+): boolean {
+  if (isPublishableQuery(query)) return true;
+  if (context) return true;
+  return (ranked[0]?.score ?? 0) >= PUBLISHABLE_SCORE;
+}
+
 async function handleSemanticSearch(
   c: Context<{ Bindings: Env }>,
   routeParam: string,
@@ -427,6 +524,7 @@ async function handleSemanticSearch(
 
   const origin = publicOrigin(c);
   const heading = queryHeading(query);
+  const context = queryResultContext(query);
   const canonical = `${origin}${path}${params.page > 1 ? `?page=${params.page}` : ""}`;
   const og = new URL("/api/og/query", origin);
   og.searchParams.set("query", query);
@@ -464,24 +562,38 @@ async function handleSemanticSearch(
       exportOpen: url.searchParams.get("export") === "true",
       heading,
       headingParts: queryHeadingParts(query),
-      pageTitle: `Grabient — ${heading}`,
+      // Head term first, brand last: the title's leading words carry the most
+      // weight, and every measured page-1 competitor leads with the keyword.
+      pageTitle: `${heading} — ${styleNoun(params.style)} | Grabient`,
       pageDescription: `Explore ${heading.toLowerCase()} matched by color and mood. Customize each CSS gradient, then copy CSS or export SVG and PNG.`,
       pageCanonical: canonical,
-      pageImage: og.toString(),
+      // Match queryRenderGate in seo.ts. That gate can only afford the cheap
+      // check — deciding by relevance score would require running the search it
+      // is trying to avoid — so it keys off the curated list alone. Pointing
+      // og:image at a URL that would redirect anyway just spends a scraper
+      // round trip, so non-curated queries advertise the static card directly.
+      pageImage: isPublishableQuery(query) ? og.toString() : `${origin}/grabient.png`,
       pageImageAlt: `${heading} from Grabient`,
-      pageRobots: total ? undefined : "noindex,follow",
+      // Vectorize returns nearest neighbours for any input, so `total` is
+      // almost never zero and the old check never fired. See indexableQuery.
+      // `results` is in Vectorize's score order; `ranked` has been re-sorted by
+      // likes, so only the former's head is the top match.
+      pageRobots: indexableQuery(query, results, context) ? undefined : "noindex,follow",
       pageStructuredData: {
         "@context": "https://schema.org",
         "@type": "ItemList",
         name: heading,
-        numberOfItems: total,
+        // numberOfItems must describe what itemListElement actually contains —
+        // `total` counts the whole result set, not this page's slice. URLs are
+        // the seed pages' bare canonicals, not the parameterized card hrefs.
+        numberOfItems: items.length,
         itemListElement: items.map((item, index) => ({
           "@type": "ListItem",
           position: start + index + 1,
-          url: `${origin}${item.href}`,
+          url: `${origin}/${encodeURIComponent(canonicalSeed(item.seed) ?? item.seed)}`,
         })),
       },
-      queryContext: queryResultContext(query),
+      queryContext: context,
       subheaderLeft: searchSubheaderLeft(sort, backHref, url.searchParams.get("export") === "true"),
       hiddenFields,
       paginationSearch: sort === "popular" ? {} : { sort },
@@ -1015,6 +1127,60 @@ app.get("/api/palettes", async (c) => {
   return c.json({ palettes: items, total, totalPages }, 200, LIST_HEADERS);
 });
 
+// Machine-readable palettes. /{seed}.json mirrors /{seed}.png: an agent that
+// knows a page URL can get its data by changing the suffix, without a second
+// spec to learn. /api/palette.json is the query-param spelling, symmetric with
+// /api/png. Both are pure functions of the seed — no D1, no Vectorize.
+app.get("/api/palette.json", (c) => paletteJsonResponse(c.req.url, publicOrigin(c)));
+
+// The MCP server. Mounted on the same Worker as everything else — the protocol
+// went stateless in the 2026-07-28 revision, so there is no session to keep and
+// no Durable Object to bind. `viewer` stays null while every tool is public;
+// see mcp.ts for how the account-gated path attaches later.
+app.all("/mcp", (c) =>
+  paletteMcpHandler(c.env, publicOrigin(c), new URL(c.req.url).hostname).fetch(c.req.raw),
+);
+
+app.get("/api/search.json", async (c) => {
+  const query = normalizeSemanticQuery((c.req.query("query") ?? c.req.query("q") ?? "").trim());
+  if (!query)
+    return c.json({ error: "Missing query parameter" }, 400, {
+      "Cache-Control": "no-store",
+      "CDN-Cache-Control": "no-store",
+    });
+
+  const requested = Number.parseInt(c.req.query("limit") ?? "", 10);
+  const limit = Number.isFinite(requested)
+    ? Math.min(SEMANTIC_SEARCH_LIMIT, Math.max(1, requested))
+    : DEFAULT_PAGE_LIMIT;
+
+  const origin = publicOrigin(c);
+  let results: Awaited<ReturnType<typeof searchSemanticPalettes>> = [];
+  try {
+    results = await searchSemanticPalettes(c.env, query, limit);
+  } catch (error) {
+    console.error("search.json failed", error);
+    return c.json({ error: "Search temporarily unavailable" }, 503, {
+      "Cache-Control": "no-store",
+      "CDN-Cache-Control": "no-store",
+    });
+  }
+
+  return c.json(
+    {
+      query,
+      count: results.length,
+      results: results.slice(0, limit).map((result) => ({
+        ...paletteJson(result.seed, result.style, result.steps, result.angle, origin),
+        likesCount: result.likesCount,
+        score: result.score,
+      })),
+    },
+    200,
+    SEARCH_JSON_HEADERS,
+  );
+});
+
 app.get("/robots.txt", (c) =>
   c.text(robotsTxt(publicOrigin(c)), 200, {
     "Cache-Control": "public, max-age=86400",
@@ -1022,23 +1188,45 @@ app.get("/robots.txt", (c) =>
   }),
 );
 
-// Dynamic sitemap: the crawlable shell routes plus the 1,000 most popular
-// palettes. Ids only — the sitemap shows no like counts, so it skips the
-// key-count work list rendering pays for; the edge cache makes generation
-// infrequent on top of that.
-app.get("/sitemap.xml", async (c) => {
+const SITEMAP_HEADERS = {
+  "Content-Type": "application/xml; charset=utf-8",
+  "Cache-Control": "public, max-age=3600",
+  "CDN-Cache-Control": "max-age=86400, stale-while-revalidate=86400",
+};
+
+// One index over three per-family children, so Search Console reports indexing
+// separately for the shell routes, the search landing pages and the palette
+// permalinks. A crawler cannot be told what kind of URL a seed is; this is the
+// nearest available substitute.
+app.get("/sitemap.xml", (c) => c.body(sitemapIndexXml(publicOrigin(c)), 200, SITEMAP_HEADERS));
+
+app.get("/sitemap-pages.xml", (c) =>
+  c.body(staticSitemapXml(publicOrigin(c)), 200, SITEMAP_HEADERS),
+);
+
+app.get("/sitemap-searches.xml", (c) =>
+  c.body(searchSitemapXml(publicOrigin(c)), 200, SITEMAP_HEADERS),
+);
+
+// The 1,000 most popular palettes. Ids and timestamps only — the sitemap shows
+// no like counts, so it skips the key-count work list rendering pays for; the
+// edge cache makes generation infrequent on top of that.
+app.get("/sitemap-palettes.xml", async (c) => {
   initDatabase(c.env.DB);
-  let seeds: string[] = [];
   try {
-    seeds = await getPopularPaletteIds(1000);
+    const palettes = await getPopularPaletteIds(1000);
+    // An empty result is a D1 failure, not an empty site. Serving it as a
+    // cacheable 200 would publish a sitemap missing 96% of the corpus and hold
+    // it at the edge for a day.
+    if (!palettes.length) throw new Error("no palettes returned");
+    return c.body(paletteSitemapXml(palettes, publicOrigin(c)), 200, SITEMAP_HEADERS);
   } catch (error) {
     console.error("sitemap: failed to load palettes", error);
+    return c.text("Sitemap temporarily unavailable", 503, {
+      "Cache-Control": NO_STORE["Cache-Control"],
+      "CDN-Cache-Control": NO_STORE["CDN-Cache-Control"],
+    });
   }
-  return c.body(sitemapXml(seeds, publicOrigin(c)), 200, {
-    "Content-Type": "application/xml; charset=utf-8",
-    "Cache-Control": "public, max-age=3600",
-    "CDN-Cache-Control": "max-age=86400, stale-while-revalidate=86400",
-  });
 });
 
 app.get("/api/og", (c) => paletteOgResponse(c.req.url, c.env));
@@ -1115,6 +1303,13 @@ app.get("/:seed{.+\\.png}", (c) => {
   const url = new URL(c.req.url);
   url.searchParams.set("seed", c.req.param("seed").slice(0, -".png".length));
   return palettePngResponse(url.toString(), c.env);
+});
+
+// Same reason as the .png route above: must precede the /:seed catch-all.
+app.get("/:seed{.+\\.json}", (c) => {
+  const url = new URL(c.req.url);
+  url.searchParams.set("seed", c.req.param("seed").slice(0, -".json".length));
+  return paletteJsonResponse(url.toString(), publicOrigin(c));
 });
 
 // Legacy /:seed/edit URLs redirect to the seed page (the editor lives there now).

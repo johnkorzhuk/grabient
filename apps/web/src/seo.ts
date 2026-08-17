@@ -24,8 +24,10 @@ import {
   POPULAR_SEARCHES,
   querySlug,
   searchSemanticPalettes,
+  SEARCH_QUERY_MAX_LENGTH,
   type SemanticSearchResult,
 } from "./semantic-search";
+import { isPublishableQuery } from "./popular-searches";
 
 export const SEO_BASE_URL = "https://grabient.com";
 
@@ -41,7 +43,21 @@ export function robotsTxt(origin = SEO_BASE_URL): string {
 # both must allow a bot for it to get through.
 
 User-agent: *
-Disallow:
+# Per-visitor JSON the client fetches after render. Measured 2026-08-17,
+# Googlebot spent most of a 1,152 req/day budget on these plus the analytics
+# loader rather than on palettes, because rendering a page triggers them.
+# None affect what the page says, so blocking them does not withhold a
+# rendering resource. The agent-facing endpoints (.json, /api/png, /api/og)
+# stay open on purpose.
+Disallow: /api/like-info
+Disallow: /api/like-counts
+Disallow: /api/geo
+Disallow: /api/auth/
+Disallow: /api/palettes
+# The zone auto-injects Zaraz; its loader was Googlebot's single most-fetched
+# URL here (249/day). It is analytics, not a rendering resource, and keeping
+# crawlers out of it also keeps them out of GA4.
+Disallow: /cdn-cgi/
 
 # Explicitly welcome AI search / assistant / training crawlers
 User-agent: GPTBot
@@ -92,35 +108,97 @@ function xmlEscape(value: string): string {
     .replace(/"/g, "&quot;");
 }
 
-export function sitemapXml(
-  paletteSeeds: readonly string[],
-  origin = SEO_BASE_URL,
+/**
+ * The sitemap is an index over three children rather than one flat file.
+ *
+ * Sitemaps carry no way to say what KIND of URL a <loc> is — a seed permalink
+ * (a compact encoding of the cosine coefficients) is indistinguishable from a
+ * search landing page to a crawler. Splitting by family is the closest
+ * available signal, and it buys the thing that actually matters: Search
+ * Console reports indexing per submitted file, so "are the query pages being
+ * indexed?" and "are the 866 permalinks being indexed?" become separate,
+ * answerable questions instead of one blended number.
+ */
+export interface PaletteSitemapEntry {
+  id: string;
+  createdAt?: Date | number | null;
+}
+
+export const SITEMAP_CHILDREN = [
+  "/sitemap-pages.xml",
+  "/sitemap-searches.xml",
+  "/sitemap-palettes.xml",
+] as const;
+
+function urlset(
+  entries: ReadonlyArray<{ loc: string; priority: string; lastmod?: string }>,
 ): string {
+  const body = entries
+    .map(
+      ({ loc, priority, lastmod }) =>
+        `  <url><loc>${xmlEscape(loc)}</loc>${
+          lastmod ? `<lastmod>${lastmod}</lastmod>` : ""
+        }<priority>${priority}</priority></url>`,
+    )
+    .join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
+}
+
+/** W3C date, the form Google reads; anything unparseable is simply omitted. */
+function lastmodDate(value: Date | number | null | undefined): string | undefined {
+  if (value === null || value === undefined) return undefined;
+  const date = value instanceof Date ? value : new Date(value);
+  const iso = date.toISOString();
+  return Number.isNaN(date.getTime()) ? undefined : iso.slice(0, 10);
+}
+
+export function sitemapIndexXml(origin = SEO_BASE_URL): string {
   const base = origin.replace(/\/+$/, "");
-  const staticUrls = [
+  const entries = SITEMAP_CHILDREN.map(
+    (path) => `  <sitemap><loc>${xmlEscape(`${base}${path}`)}</loc></sitemap>`,
+  ).join("\n");
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</sitemapindex>\n`;
+}
+
+export function staticSitemapXml(origin = SEO_BASE_URL): string {
+  const base = origin.replace(/\/+$/, "");
+  return urlset([
     { loc: `${base}/`, priority: "1.0" },
     { loc: `${base}/newest`, priority: "0.8" },
     { loc: `${base}/oldest`, priority: "0.5" },
     { loc: `${base}/contact`, priority: "0.3" },
-  ];
-  const paletteUrls = paletteSeeds
-    .map(canonicalSeed)
-    .filter((seed): seed is string => !!seed)
-    .map((seed) => ({
-      loc: `${base}/${encodeURIComponent(seed)}`,
-      priority: "0.6",
-    }));
-  const searchUrls = POPULAR_SEARCHES.map((query) => ({
-    loc: `${base}/palettes/${querySlug(query)}`,
-    priority: "0.6",
-  }));
-  const entries = [...staticUrls, ...searchUrls, ...paletteUrls]
-    .map(
-      ({ loc, priority }) =>
-        `  <url><loc>${xmlEscape(loc)}</loc><priority>${priority}</priority></url>`,
-    )
-    .join("\n");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${entries}\n</urlset>\n`;
+  ]);
+}
+
+export function searchSitemapXml(origin = SEO_BASE_URL): string {
+  const base = origin.replace(/\/+$/, "");
+  return urlset(
+    POPULAR_SEARCHES.map((query) => ({
+      loc: `${base}/palettes/${querySlug(query)}`,
+      priority: "0.7",
+    })),
+  );
+}
+
+export function paletteSitemapXml(
+  palettes: readonly (string | PaletteSitemapEntry)[],
+  origin = SEO_BASE_URL,
+): string {
+  const base = origin.replace(/\/+$/, "");
+  return urlset(
+    palettes
+      .map((entry) => (typeof entry === "string" ? { id: entry } : entry))
+      .map((entry) => ({ seed: canonicalSeed(entry.id), createdAt: entry.createdAt }))
+      .filter(
+        (entry): entry is { seed: string; createdAt: Date | number | null | undefined } =>
+          !!entry.seed,
+      )
+      .map(({ seed, createdAt }) => ({
+        loc: `${base}/${encodeURIComponent(seed)}`,
+        priority: "0.6",
+        lastmod: lastmodDate(createdAt),
+      })),
+  );
 }
 
 export function paletteOgImageUrl(
@@ -209,12 +287,96 @@ export const OG_HEIGHT = 630;
 const PNG_MIN_DIMENSION = 16;
 const PNG_MAX_DIMENSION = 2400;
 
+/**
+ * Total pixels one render may rasterize, per style.
+ *
+ * Clamping each axis to 2400 independently still permits 2400x2400 = 5.76M
+ * pixels, and resvg's cost tracks pixel AREA rather than content. Measured
+ * against staging at a constant 2000x1500 (~3.0M pixels), one style is not like
+ * the others:
+ *
+ *     linearGradient    1.08s     angularGradient   0.95s
+ *     linearSwatches    1.02s     angularSwatches   7.45s   <-- 6-12x
+ *     radialGradient    0.62s     radialSwatches    1.19s
+ *
+ * angularSwatches is the only style that wraps the whole canvas in a
+ * feGaussianBlur (the antiGap filter in packages/data-ops/src/gradient-gen/svg.ts,
+ * which hides seams between the wedges). A blur is a neighbourhood operation
+ * over every pixel, so it turns area into real work in a way the other styles
+ * do not.
+ *
+ * A single flat cap would therefore either leave angularSwatches taking
+ * multiple seconds or needlessly shrink five cheap styles. Budgeting per style
+ * equalises the worst case instead: cheap styles get 4x the default card area,
+ * the blurred one gets 1x, and both land near a second. Oversized requests
+ * scale down proportionally rather than erroring, so callers keep their aspect
+ * ratio.
+ */
+const PNG_MAX_PIXELS = OG_WIDTH * OG_HEIGHT * 4;
+const PNG_MAX_PIXELS_BLURRED = OG_WIDTH * OG_HEIGHT;
+
 function pngDimension(params: URLSearchParams, key: string, fallback: number): number {
   const raw = params.get(key);
   if (raw === null) return fallback;
   const parsed = Number.parseInt(raw, 10);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(PNG_MAX_DIMENSION, Math.max(PNG_MIN_DIMENSION, parsed));
+}
+
+/**
+ * Refuse to spend a full render on a query we would not index.
+ *
+ * `/api/og/query` and `/api/png/query` are the most expensive URLs on the site
+ * and the only ones whose input space is unbounded *text*. Each novel query
+ * costs a KV read, a Workers AI embedding, a Vectorize query, a resvg
+ * rasterization and a KV write, and because the cache key contains the query
+ * string, a caller supplying fresh strings never hits cache. Measured against
+ * production: ~2.0 s per novel query versus 0.098 s for a cached PNG.
+ *
+ * That latency is itself why the edge rate limit does not help. The rule is
+ * 300 requests / 10 s per IP, but at 2 s per request a single machine holding
+ * 40 connections sustains only ~20/s — comfortably under the threshold while
+ * running the most expensive path on the site. The limit clamps hardest on
+ * cached PNGs that cost nothing and not at all on this. Cloudflare offers no
+ * hard spend cap, and on a Free zone rate limiting rules cannot match on query
+ * string at all, so the bound has to live here.
+ *
+ * Two gates, cheapest first. Anything longer than the search input allows is
+ * rejected outright — the HTML route enforces that cap in queryFromParam, but
+ * these routes never did, so `?query=<2000 chars>` reached the embedding model.
+ * Then: a query we would not publish a landing page for gets the static brand
+ * image instead of a bespoke montage. Sharing a niche search yields the
+ * Grabient card rather than a custom one, which is a fair trade for removing an
+ * unbounded, uncacheable spend surface.
+ */
+function queryRenderGate(query: string): Response | null {
+  if (query.length > SEARCH_QUERY_MAX_LENGTH)
+    return new Response("Query too long", { status: 400 });
+  if (isPublishableQuery(query)) return null;
+  return new Response(null, {
+    status: 302,
+    headers: {
+      Location: "/grabient.png",
+      "Cache-Control": "public, max-age=86400",
+      "CDN-Cache-Control": "max-age=604800",
+    },
+  });
+}
+
+/** Scale a requested size down to this style's budget, preserving aspect ratio. */
+function fitPixelBudget(
+  width: number,
+  height: number,
+  style: PaletteStyle | "auto",
+): [number, number] {
+  const budget = style === "angularSwatches" ? PNG_MAX_PIXELS_BLURRED : PNG_MAX_PIXELS;
+  const pixels = width * height;
+  if (pixels <= budget) return [width, height];
+  const scale = Math.sqrt(budget / pixels);
+  return [
+    Math.max(PNG_MIN_DIMENSION, Math.round(width * scale)),
+    Math.max(PNG_MIN_DIMENSION, Math.round(height * scale)),
+  ];
 }
 
 /** Just the gradient — no logo, no padding. The raw render of a palette. */
@@ -368,9 +530,17 @@ function parsedInteger(
 function pngResponseHeaders(cacheState?: "HIT" | "MISS"): Record<string, string> {
   return {
     "Content-Type": "image/png",
-    "Cache-Control": "public, max-age=86400, s-maxage=604800",
+    // No s-maxage here on purpose. CDN-Cache-Control already outranks it at the
+    // edge, so it bought nothing — but its presence disables stale-while-
+    // revalidate AND stale-if-error, including the default serve-stale-on-
+    // worker-error. Rasterizing is the most CPU-expensive thing this worker
+    // does, so serving a stale PNG through an error is exactly the behaviour
+    // worth keeping.
+    "Cache-Control": "public, max-age=86400",
     "CDN-Cache-Control": "max-age=604800",
     "X-Content-Type-Options": "nosniff",
+    // No CORS header here: isPublicApiPath in index.ts already sets it for
+    // every .png/.json/api render in one place.
     ...(cacheState ? { "X-Cache": cacheState } : {}),
   };
 }
@@ -455,8 +625,11 @@ export async function palettePngResponse(requestUrl: string, env?: Env): Promise
   const style: PaletteStyle = styleResult.success ? styleResult.output : DEFAULT_STYLE;
   const steps = parsedInteger(params, "steps", stepsValidator, DEFAULT_STEPS);
   const angle = parsedInteger(params, "angle", angleValidator, DEFAULT_ANGLE);
-  const width = pngDimension(params, "w", OG_WIDTH);
-  const height = pngDimension(params, "h", OG_HEIGHT);
+  const [width, height] = fitPixelBudget(
+    pngDimension(params, "w", OG_WIDTH),
+    pngDimension(params, "h", OG_HEIGHT),
+    style,
+  );
   const view = renderPalette(seed, style, steps, angle);
   if (!view) return new Response("Invalid seed format", { status: 400 });
 
@@ -485,6 +658,8 @@ export async function queryPngResponse(requestUrl: string, env: Env): Promise<Re
   const params = normalizeEntityMangledParams(new URL(requestUrl));
   const query = (params.get("query") ?? params.get("q") ?? "").trim();
   if (!query) return new Response("Missing query parameter", { status: 400 });
+  const gate = queryRenderGate(query);
+  if (gate) return gate;
 
   const styleResult = v.safeParse(paletteStyleValidator, params.get("style"));
   const style: PaletteStyle | "auto" = styleResult.success ? styleResult.output : "auto";
@@ -492,8 +667,11 @@ export async function queryPngResponse(requestUrl: string, env: Env): Promise<Re
   const steps = Number.isNaN(parsedSteps) ? "auto" : parsedSteps;
   const parsedAngle = parsedInteger(params, "angle", angleValidator, Number.NaN);
   const angle = Number.isNaN(parsedAngle) ? "auto" : parsedAngle;
-  const width = pngDimension(params, "w", OG_WIDTH);
-  const height = pngDimension(params, "h", OG_HEIGHT);
+  const [width, height] = fitPixelBudget(
+    pngDimension(params, "w", OG_WIDTH),
+    pngDimension(params, "h", OG_HEIGHT),
+    style,
+  );
 
   const normalizedQuery = normalizeSemanticQuery(query);
   const cacheKey =
@@ -556,6 +734,8 @@ export async function queryOgResponse(requestUrl: string, env: Env): Promise<Res
   const params = normalizeEntityMangledParams(new URL(requestUrl));
   const query = (params.get("query") ?? params.get("q") ?? "").trim();
   if (!query) return new Response("Missing query parameter", { status: 400 });
+  const gate = queryRenderGate(query);
+  if (gate) return gate;
 
   const styleResult = v.safeParse(paletteStyleValidator, params.get("style"));
   const style: PaletteStyle | "auto" = styleResult.success ? styleResult.output : "auto";

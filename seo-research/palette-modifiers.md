@@ -1,0 +1,589 @@
+# Palette modifiers
+
+Status: implemented, uncommitted, in the working tree. 2026-08-16.
+
+Palette names carried color names and nothing else: "Pale blue to dark magenta
+to bright sky blue". This adds the adjectives — *monochrome*, *duotone*,
+*pastel*, *neon*, *earthy*, *rainbow* — and, more importantly, a rule for
+deciding which one to say.
+
+Everything below is measured against all **866 live seeds** (from
+`https://grabient.com/sitemap.xml`), rendered at **3, 7, 13 and 24 steps**, in
+OkLCh. Lightness `L` runs 0-1; chroma `C` runs 0 to about 0.32 for an in-gamut
+sRGB color; hue `h` is degrees.
+
+The three consumers, in ascending order of consequence: the `<h2>` on a palette
+page, the `<title>`, and the embedding text behind semantic search. The third is
+why "close enough" is not good enough — a duotone described as "gray" is a
+duotone that nobody retrieves.
+
+---
+
+## 0. Headline finding: `monochrome` currently means the wrong thing
+
+`palette-tags.ts` emits `texture: 'monochrome'` when average saturation is under
+0.05. That is **grayscale** — one *saturation* — not monochrome, which in every
+design reference means one *hue* across many shades.
+
+MEASURED, over all 866 palettes:
+
+| | fires on | share |
+|---|---|---|
+| `texture: 'monochrome'` (saturation-based, shipped) | 18 | 2.1% |
+| hue-based monochrome (one hue cluster, span < 30°) | 148 | 17.1% |
+| **both** | **2** | 0.2% |
+
+The shipped tag misses **146 of 148** real monochrome palettes — 98.6%. A
+navy-through-powder-blue ramp is the textbook case and it is tagged `subtle`.
+
+This is the single highest-value correction here, because `/palettes/monochrome`
+already exists as a sitemap entry and "monochrome" is a term with real demand.
+The new `monochrome` is emitted as an **additive serve-time tag**; the old
+`texture` value is left exactly as it is, because it is mirrored into Vectorize.
+Correcting it is a reindex — see §7.
+
+---
+
+## 1. Prior art
+
+| source | what it gives | what it lacks here |
+|---|---|---|
+| xkcd / CSS Color 4 corpus (already in repo) | 843 names, and they already encode tone: *pale*, *dusty*, *deep*, *neon* | says nothing about the palette as a whole |
+| Coolors, Adobe Color, Sessions College color calculator | the 12-segment wheel: analogous ±30°, complementary 180°, triadic 120° | built for hand-picked discrete swatches, not a continuous ramp |
+| chroma.js / culori | conversions and interpolation | no classification layer |
+| name-that-color | nearest-name lookup | single colors only |
+| Common pastel definition (HSL `S < 40%`, `L > 75%`) | the shape of the rule: pastel needs light **and** unsaturated together | HSL saturation is not perceptual; the constants do not transfer to OkLCh |
+| Duotone/monochrome photography literature | the distinction that matters: monochrome = one hue, duotone = two | — |
+
+The useful import is the *structure* of the definitions, not the constants. Every
+threshold below is a measured percentile of this corpus, because a constant
+borrowed from an HSL blog post has no reason to split 866 cosine palettes well.
+
+**Rule applied throughout:** a modifier firing on more than 60% or fewer than 2%
+of the corpus carries no information and is not worth a word.
+
+---
+
+## 2. What the corpus actually looks like
+
+MEASURED, per-palette aggregates. The 7/13/24-step columns are nearly identical,
+which is the first hint that tone is step-stable and structure is not.
+
+| quantity | p10 | p25 | p50 | p75 | p90 |
+|---|---|---|---|---|---|
+| mean L | 0.416 | 0.531 | 0.629 | 0.745 | 0.841 |
+| L range | 0.119 | 0.206 | 0.339 | 0.491 | 0.641 |
+| mean C | 0.039 | 0.065 | 0.102 | 0.143 | 0.174 |
+| max C | 0.069 | 0.100 | 0.154 | 0.202 | 0.246 |
+
+The corpus is **not very saturated**: median mean-chroma is 0.10 against an sRGB
+ceiling near 0.32. A "neon" threshold imported from a design tool (C ≥ 0.3) would
+fire on almost nothing here. At p90 of max-chroma (0.24) it fires on 9.8%.
+
+Hue span — the smallest arc containing every chromatic stop:
+
+```
+   0- 10°   56   6.5%  #######
+  10- 20°   48   5.5%  ######
+  20- 30°   63   7.3%  ########
+  30- 45°   65   7.5%  ########
+  45- 60°   56   6.5%  #######
+  60- 90°  119  13.7%  ###############
+  90-120°   89  10.3%  ###########
+ 120-180°  190  21.9%  ########################
+ 180-240°  139  16.1%  #################
+ 240-300°   36   4.2%  #####
+ 300+       5   0.6%  #
+```
+
+---
+
+## 3. The step-stability trap
+
+**Hue structure read off the displayed `steps` is a sampling artifact.** Cutting
+the hue circle at gaps wider than 40°, measured on the rendered stops:
+
+| structure | 3 steps | 7 steps | 13 steps | 24 steps |
+|---|---|---|---|---|
+| duotone | 42.3% | 31.2% | 24.9% | 19.5% |
+| multicolor | 21.8% | 19.1% | 15.5% | 14.3% |
+
+A monotonic drift with step count is not a property of the palettes; it is
+sparse sampling opening gaps that a denser sample fills. Per-palette agreement
+between 7 and 13 steps was only 79.9%.
+
+**Fix: structure is measured on a fixed dense sample (N=48) of the applied
+coefficients, independent of `steps`.** A palette is a continuous function;
+`steps` is a view of it. After the change, cluster counts agree 97.7% between
+N=32 and N=48, and 99.0% between N=48 and N=64 — and the resulting structure tags
+are **identical at 3, 7, 13 and 24 steps** (0 disagreements across 866 palettes).
+
+Tone stays on the rendered stops, because tone is what you actually see, and it
+is 98.6%+ step-stable regardless.
+
+Color *names* remain steps-aware, as shipped previously: at 3 steps you genuinely
+see three colors. So a palette can be "Duotone eggshell and green blue" at 13
+steps and name different colors at 3, while never changing its structure.
+
+---
+
+## 4. Every candidate, measured
+
+28 candidates were implemented and swept. `bits` is self-information
+`-log2(prevalence)` — how much saying the word tells a reader.
+
+| descriptor | axis | fires | share | bits | 7v13 stable | verdict |
+|---|---|---|---|---|---|---|
+| grayscale | structure | 24 | 2.8% | 5.2 | 100.0% | keep |
+| monochrome | structure | 144 | 16.6% | 2.6 | 100.0% | keep |
+| analogous | structure | 252 | 29.1% | 1.8 | 100.0% | keep, unspoken |
+| duotone | structure | 68 | 7.9% | 3.7 | 100.0% | keep |
+| complementary | structure | 80 | 9.2% | 3.4 | 100.0% | keep, spoken as "duotone" |
+| multicolor | structure | 221 | 25.5% | 2.0 | 100.0% | keep, unspoken |
+| rainbow | structure | 129 | 14.9% | 2.7 | 100.0% | keep |
+| **splitComplement** | structure | **0** | **0.0%** | — | — | **DROP — never occurs** |
+| **triadic** | structure | **2** | **0.2%** | 8.8 | 100.0% | **DROP — under 2%** |
+| warm | temperature | 396 | 45.7% | 1.1 | 100.0% | keep, unspoken |
+| cool | temperature | 310 | 35.8% | 1.5 | 100.0% | keep, unspoken |
+| pastel | tone | 72 | 8.3% | 3.6 | 99.9% | keep |
+| neon | tone | 85 | 9.8% | 3.3 | 99.5% | keep |
+| muted | tone | 90 | 10.4% | 3.3 | 99.2% | keep |
+| earthy | tone | 94 | 10.9% | 3.2 | 99.7% | keep |
+| dark | tone | 93 | 10.7% | 3.2 | 99.1% | keep |
+| light | tone | 142 | 16.4% | 2.6 | 99.7% | keep, unspoken |
+| vivid | tone | 190 | 21.9% | 2.2 | 98.6% | keep, unspoken |
+| high-contrast | contrast | 107 | 12.4% | 3.0 | 99.9% | keep, unspoken |
+| low-contrast | contrast | 88 | 10.2% | 3.3 | 99.3% | keep, unspoken |
+| ramp | shape | 507 | 58.5% | 0.8 | 100.0% | keep, unspoken |
+| arch | shape | 277 | 32.0% | 1.6 | 100.0% | keep, unspoken |
+| wavy | shape | 82 | 9.5% | 3.4 | 100.0% | keep, unspoken |
+| saturating | trajectory | 208 | 24.0% | 2.1 | 100.0% | keep, unspoken |
+| desaturating | trajectory | 157 | 18.1% | 2.5 | 100.0% | keep, unspoken |
+| seamless | surface | 40 | 4.6% | 4.4 | 100.0% | keep, unspoken |
+| clipped | surface | 350 | 40.4% | 1.3 | 100.0% | keep, unspoken |
+| **cyclic** (hue travel ≥ 400°) | motion | **6** | **0.7%** | 7.2 | 100.0% | **DROP — under 2%** |
+
+### On the harmony classes the brief asked for
+
+- **analogous** and **complementary** are delivered — as *structure* values,
+  since they are hue geometries. Emitting them on a second "harmony" axis
+  double-counted analogous to 46.7%.
+- **triadic** fires on 2 of 866 palettes and **split-complementary on none**. A
+  cosine ramp sweeps hue continuously, so it lands on three evenly-spaced
+  *isolated* clusters only by accident. Both are dropped under the 2% rule.
+  This is a property of the generator, not an oversight.
+
+### Modifiers from raw coefficients vs from rendered hex
+
+- **From coefficients** (via the dense sample): all hue geometry, lightness-ramp
+  shape (`ramp`/`arch`/`wavy`), `seamless` (do the ends meet — only visible on a
+  conic gradient, where a mismatch is a hard seam at 0°), `clipped` (share of the
+  ramp pinned flat by the model's `clamp01`), chroma trajectory.
+- **From rendered hex in OkLCh**: everything tonal — `pastel`, `neon`, `muted`,
+  `earthy`, `dark`, `light`, `vivid`, and the contrast pair.
+
+---
+
+## 4b. Second pass: is the colour-theory corpus actually covered?
+
+Thirteen more candidates, measured the same way. The question was whether
+anything in the classical vocabulary was still missing.
+
+| candidate | fires | share | bits | 7v13 | verdict |
+|---|---|---|---|---|---|
+| **tetradic** | 0 | **0.0%** | — | 100% | **DROP — never occurs** |
+| **square** | 0 | **0.0%** | — | 100% | **DROP — never occurs** |
+| sunset | 122 | 14.1% | 2.8 | 99.8% | **ADD (spoken)** |
+| ocean | 85 | 9.8% | 3.4 | 99.9% | **ADD (spoken)** |
+| autumn | 22 | 2.5% | 5.3 | 99.9% | **ADD (spoken)** |
+| high-key | 169 | 19.5% | 2.4 | 99.8% | ADD (tag) |
+| low-key | 47 | 5.4% | 4.2 | 99.9% | ADD (tag) |
+| wcag-aa | 357 | 41.2% | 1.3 | 99.7% | ADD (tag) |
+| **forest** | 15 | **1.7%** | 5.9 | 99.9% | **DROP — under 2%** |
+| **even** (ΔE CV < 0.35) | 531 | **61.3%** | 0.7 | 95.4% | **DROP — too broad** |
+| **uneven** (CV > 0.9) | 12 | **1.4%** | 6.2 | 99.7% | **DROP — under 2%** |
+| **accented-analogous** | 55 | 6.4% | 4.0 | 100% | **DROP — subset of duotone** |
+| **hue-turn** | 471 | 54.4% | 0.9 | 100% | **DROP — 0.9 bits** |
+
+### The answer: yes for harmony, no for families
+
+**Harmony is exhausted, not sampled.** Every classical scheme has now been
+implemented and measured. Monochromatic, analogous and complementary are well
+populated; triadic (0.2%), split-complementary (0%), tetradic (0%) and square
+(0%) are effectively absent. This is a fact about the generator: a cosine ramp
+sweeps hue *continuously*, so it can only land on three or four evenly-spaced
+**isolated** clusters by accident. Nothing is missing — the schemes are.
+
+**The gap was the named families.** `sunset`, `ocean` and `autumn` are not
+derivable from the axes already present — "sunset" is a specific arc of the hue
+circle held at real chroma, which is a different claim from "warm" — and they
+are the highest-demand modifiers measured. `/palettes/sunset` and
+`/palettes/ocean` already exist as sitemap entries, and both appear in the
+Tier-1 list in [demand-longtail.md](./demand-longtail.md).
+
+They needed a second gate. Hue window alone let any washed-out palette that
+landed in the band steal the word — "Duotone forest silver and gunmetal",
+"Ocean sky to light lavender" — so a family now also requires `meanChroma ≥
+0.08` and 85% of its stops inside the window. Hue says where a palette is;
+chroma says whether it is there *enough to be named after it*.
+
+`forest` is the closest miss in the whole registry. Gated to the same standard
+as its siblings it fires on 1.7% — green-dominant palettes are simply rare here
+— and loosening it to clear 2% is exactly what produced the silver-and-gunmetal
+forest. It goes the way of triadic: measured, documented, not shipped.
+
+### Also rejected, with reasons
+
+- **`even` / `uneven`** (coefficient of variation of consecutive ΔE): the CV
+  distribution is p10 0.12, p50 0.31, p90 0.51 — tightly packed, so any cut
+  either catches most of the corpus or almost none.
+- **`accented-analogous`**: informative at 4.0 bits, but a strict subset of
+  duotone — it is always two clusters, just lopsided — so the tag would only
+  ever co-occur with `duotone` and add no new token.
+- **`hue-turn`** (hue direction reverses): true of 54.4%, worth 0.9 bits. A
+  coin flip is not a description.
+
+### Registry after both passes
+
+32 descriptors on nine axes. Coverage of headings went **50.9% → 68.4%**; the
+modifier words now spoken are duotone 16.5%, monochrome 15.7%, sunset 13.0%,
+ocean 8.4%, rainbow 8.1%, earthy 7.5%, neon 6.0%, muted 4.5%, pastel 2.3%,
+autumn 1.8%, dark 1.7%, grayscale 0.6%.
+
+```
+Sunset cream to salmon to fire brick
+Sunset sand to burnt sienna to mahogany
+Neon ocean vibrant blue to light blue
+Ocean monochrome night blue to bright blue
+Autumn burnt siena to goldenrod to pale peach
+Autumn sandy to orange brown to claret
+```
+
+Every declared prevalence in the registry is re-measured against the live corpus
+and matches to 0.0pp; `palette-name.test.js` fails the build if any drifts
+outside the 2–60% band.
+
+---
+
+---
+
+## 4c. Third pass: the duotone bug, and why the harmony ocean is dry
+
+Prompted by a palette named from the editor with the frequency slider up:
+**"Neon duotone yellowish tan and black"** — for a palette visibly passing
+through red, green, cyan, magenta and purple.
+
+### The bug: cluster count is not hue count
+
+`classifyStructure` tested how many hue *clusters* a palette had before testing
+how *wide* they were. A cluster is just everything between two 40° gaps, so a
+cluster can itself be a broad arc — and a palette sweeping 248° of the wheel
+still lands in two of them. Reproduced by taking corpus seeds and raising
+frequency, exactly as a user does:
+
+```
+before   Earthy duotone eggshell and coral pink        clusters=2 span=248°
+         free names: eggshell, maroon, dark maroon, black,
+                     dark blue green, bluish green, aqua marine, coral pink
+after    Earthy rainbow eggshell to black to dark blue green to coral pink
+```
+
+The `NAMES_FOR_STRUCTURE` cap made it worse: duotone caps the name at two
+colours, so a misclassification silently threw away six of the eight.
+
+**Fix:** two groups only make a duotone when each group is itself narrow
+(< 60°, two segments of the 12-segment wheel). Otherwise it is a sweep and gets
+classified by span. This moved duotone 7.7% → 5.3%, complementary 9.2% → 5.3%,
+rainbow 9.4% → 13.5%, multicolor 25.4% → 27.4%; the structure axis still
+partitions to 1.000 and every class stays 100% step-stable.
+
+### `complementary` is now spoken
+
+It was computed, tagged, and then aliased to the word "duotone" in prose on the
+grounds that harmony jargon has no measured search demand. That hid a real term
+from the one surface a designer reads. It now speaks its own name:
+
+```
+Complementary dark brown and sapphire
+Earthy complementary almost black and dark blue gray
+Sunset complementary pale teal and dark pink
+```
+
+### Why triadic, tetradic and split-complementary are genuinely unreachable
+
+The §4b measurement covered the 866 *stored* palettes, which is the wrong
+population — the editor's sliders reach far outside it. Re-measured over
+**11,200 reachable palettes** (400 seeds × 7 frequencies × 4 phases):
+
+| class | stored | reachable |
+|---|---|---|
+| complementary | 5.8% | 3.20% |
+| duotone | 5.3% | 4.51% |
+| 3 clusters (any) | 0.5% | 0.92% |
+| **split-complementary** | 0.0% | **0.04%** |
+| **triadic** | 0.0% | **0.05%** |
+| **tetradic** | 0.0% | **0.02%** |
+| **4+ clusters** | 0.0% | **0.05%** |
+
+Not corpus bias — **structural**, and there is a mechanism. Hue clusters form
+where the trajectory *dwells*, and a cosine dwells at its turning points. One
+cosine has two turning points per cycle, so the model produces two dwell
+regions per cycle. Two hues is what a sinusoid gives you; three or four
+evenly-spaced isolated hues would need the path to park at three or four
+places, which a smooth sinusoid cannot do at any frequency or phase.
+
+So the classical harmony corpus is not partially covered — it is **fully
+covered, and the remaining classes are unreachable by construction**. Adding
+them would mean shipping detectors that fire on roughly 1 palette in 2,000.
+
+### Also added
+
+`iso-luminant` (5.7%, tag-only): hue moves while lightness does not — the
+classical "vibrating colour" condition. Distinct from `low-contrast`, which
+says values are close but nothing about whether hue is moving.
+
+---
+
+---
+
+## 5. Choosing what to say
+
+Detecting is easy; the hard part is that saying all 25 true things produces
+noise. Four gates, in order:
+
+**1. Information.** Rank by `-log2(prevalence) × demand`. A word must clear
+**2 bits** (≤25% prevalence) to be spoken at all. This alone retires `warm`
+(45.7%), `cool` (35.8%), `analogous` (29.1%) and `ramp` (58.5%) from prose while
+keeping them as tags — and it means adding descriptors makes names *more*
+selective, never longer.
+
+**2. Demand.** MEASURED against the autocomplete grammar in
+[demand-longtail.md](./demand-longtail.md): the observed `{color} gradient
+{modifier}` set contains *pastel, neon, dark, light, rainbow* — and never
+*analogous*, *complementary* or *triadic*. So harmony jargon is demoted and left
+unspoken; `pastel`/`neon` get a 1.4× lift, `dark` 1.3×, `rainbow` 1.3×.
+`complementary` is **indexed** under its own name and **spoken** as "duotone".
+
+**3. Diversity.** One word per axis, and a specific word shadows its general one
+(`pastel` ⊃ `light`, 93% overlap measured; `neon` ⊃ `vivid`, 87%). Max two words
+— English tolerates two stacked adjectives before a name reads as a list. Same
+greedy-under-diversity shape as the MMR pass in palette search.
+
+**4. Prose.** Two vetoes the selector cannot know about:
+- *Redundancy* — the 843-name corpus already says it. "Pastel pale pink to baby
+  blue", "Dark dark navy". This is why `dark` reaches only **1.3%** of names
+  despite a 10.7% tag rate: the color names usually got there first.
+- *Contradiction* — "Neon warm blue to **pale** violet red". Both classifications
+  are true of the palette; the aggregate loses to the specific and stays quiet.
+
+Plus one coherence rule: **the structure word must match the shape of the name.**
+A duotone shown with five color names ("Duotone mocha to grayish teal to sea blue
+to marine blue to midnight") reads as a bug, and is one — those five names are
+lightness steps within two hues. Structure now caps the name's color count
+(duotone → 2, analogous → 3, rainbow → 4), giving "Duotone mocha and midnight".
+And where the dense measurement and the visible colors disagree — a wide hue
+sweep held at low chroma — the word is dropped, not the measurement:
+"Rainbow light sage to light blue gray" does not ship.
+
+Connector encodes structure without jargon: two isolated hues get **"and"**
+(a pair), everything else **"to"** (a journey).
+
+### Result
+
+MEASURED over 866 palettes, at 13 steps:
+
+| | heading | title |
+|---|---|---|
+| mean length | 38.5 | 34.9 |
+| max length | 72 (budget 80) | 44 (budget 44) |
+| over budget | 0 | 0 |
+| name collisions | 1.5% | 1.5% |
+
+**50.9%** of headings carry at least one modifier; the rest were already fully
+described by their colors. Word frequencies in headings: monochrome 16.6%,
+duotone 16.6%, rainbow 8.1%, earthy 8.1%, neon 5.1%, muted 3.8%, pastel 2.2%,
+dark 1.5%, grayscale 0.6%.
+
+The gap between a descriptor's tag rate and its spoken rate is the redundancy
+veto working: `dark` is true of 10.7% of palettes and reaches 1.5% of names,
+because the color corpus usually said "dark navy" first.
+
+Samples:
+
+```
+Duotone mocha and midnight
+Muted duotone silver and gunmetal
+Monochrome light violet to rebecca purple
+Neon monochrome vibrant blue to light blue
+Pastel monochrome antique white to rosy brown
+Earthy rainbow black to light mustard to burnt umber
+Rainbow marine to dull blue to pale teal to strawberry
+Grayscale gainsboro to mushroom
+Earthy golden brown to grayish teal to gunmetal
+```
+
+---
+
+## 5b. The title, re-measured
+
+Not part of the original brief, but modifiers touch the `<title>` and the budget
+turned out to be wrong — and wrong on the average case, not just the worst one.
+
+`TITLE_HEADLINE.maxChars` was 44 while `" Gradient Palette | Grabient"` spent 28,
+so titles ran to 72 characters against Google's ~60-character truncation.
+MEASURED at budget 44: **mean title 62.7 characters, 67.9% of the corpus
+truncating.** Two thirds of pages were losing the end of their title.
+
+### Why shrinking the budget alone was not the answer
+
+The budget trades against duplicate titles, which are the same templated-page
+signal this whole change exists to fight. Both curves, with the suffix counted:
+
+| budget | mean title | max | over 60 | title collisions |
+|---|---|---|---|---|
+| 28 | 50.3 | 56 | 0.0% | 6.2% |
+| 30 | 52.0 | 58 | 0.0% | 3.5% |
+| 32 | 54.1 | 60 | 0.0% | 2.3% |
+| 34 | 55.7 | 62 | 11.9% | 2.1% |
+| 44 (was) | 62.7 | 72 | 67.9% | 1.5% |
+
+32 is the only budget that fits, but at 32 there is no room for both a modifier
+and the colors: **29.7% of pages had a modifier in the heading and lost it in
+the title** — 257 pages dropping a search term from the surface where it counts
+most. Reordering to keep modifiers instead pushed 30.7% of titles down to a
+single color name and collisions to 6.9%. There is no ordering that fixes a
+budget that is simply too small.
+
+### The suffix was the real cost
+
+Every character of the suffix is one the palette does not get. Measured at the
+budget each suffix leaves, so that suffix + budget = 60 in every row:
+
+| suffix | budget | titles keeping a modifier | 1-name titles | collisions | mean length |
+|---|---|---|---|---|---|
+| `" Gradient Palette \| Grabient"` (28) | 32 | 21.9% | 5.2% | 2.5% | 53.9 |
+| `" Gradient \| Grabient"` (20) | 40 | 44.8% | 1.3% | 1.7% | 51.7 |
+| `" Palette \| Grabient"` (19) | 41 | 46.7% | 1.3% | 1.7% | 51.4 |
+| **`" Gradient Palette"` (17)** | **43** | **49.7%** | **1.2%** | **1.7%** | **50.5** |
+
+**Dropping the brand wins on every axis.** It also keeps the two tokens the
+Tier-1 targets in [demand-longtail.md](./demand-longtail.md) are built from —
+those queries are `{color} gradient color palette`, not `{color} grabient`. A
+deep palette page does not need to rank for the brand; the homepage does, and
+Google commonly appends the site name to a SERP title on its own. If the brand
+is wanted back, `" Gradient \| Grabient"` at budget 40 is the next best row and
+costs about 5 points of modifier retention.
+
+`TITLE_SUFFIX` now lives in `palette-name.ts` and is imported by both the server
+render and the editor island, which had been carrying separate copies of the
+string.
+
+### Two more rules the measurement forced
+
+- **Shorten the color list to keep the modifier — but never below two names.**
+  In the title a modifier is a search term with its own `/palettes/` page; a
+  third color name is a detail. Letting that go to *one* name is what produced
+  the original "Light steel blue" bug and took collisions to 6.9%, so the floor
+  is two.
+- **The meta description opener was decoupled from the title.** It had shared
+  `TITLE_HEADLINE`, coupling two surfaces with nothing in common: a description
+  gets ~155 characters and the opener is followed by the style, the step count
+  and four hex codes. It keeps 44 as `META_HEADLINE` — mean 136.0, max 146.
+
+### Shipped result
+
+| | before | after |
+|---|---|---|
+| mean `<title>` | 62.7 | **50.5** |
+| max `<title>` | 72 | **60** |
+| titles over 60 | 67.9% | **0.0%** |
+| titles carrying a modifier | 21.9% | **49.7%** |
+| title collisions | 1.5% | 1.7% |
+| meta description | mean 136.5, max 146 | mean 136.0, max 146 |
+
+```
+Duotone eggshell and green blue Gradient Palette            (48)
+Monochrome light violet to rebecca purple Gradient Palette  (58)
+Rainbow black to sand to burnt umber Gradient Palette       (53)
+Duotone mocha and midnight Gradient Palette                 (43)
+```
+
+---
+
+## 6. Where the code lives
+
+| file | role |
+|---|---|
+| `packages/data-ops/src/gradient-gen/palette-modifiers.ts` | **new.** Feature extraction, the descriptor registry with measured prevalences, and `selectModifiers`. |
+| `apps/web/src/palette-name.ts` | The prose layer: budgets, redundancy/contradiction vetoes, connector, `describePaletteName`. Now the single home for naming. |
+| `apps/web/src/palette-json.ts` | Imports from `palette-name.ts` — the duplication is gone. Adds `seedPaletteText`, one analysis per page render instead of six. |
+| `apps/web/src/islands/edit.tsx` | Names client-side on every tick; the `/{seed}.json` fetch is deleted. |
+| `apps/web/test/palette-name.test.js` | 18 regression tests, including step-invariance of structure on a real seed per class. |
+
+`palette-tags.ts` is **untouched**.
+
+### Client cost
+
+MEASURED. The edit island is lazily loaded; `entry` is unchanged at 62.57 KiB
+gzip.
+
+| | before | after | delta |
+|---|---|---|---|
+| `edit-*.js` raw | 45.91 KB | 76.11 KB | +30.20 KB |
+| `edit-*.js` gzip | 12.97 KB | **25.40 KB** | **+12.43 KB** |
+
+Of the +12.43 KiB, **6.45 KiB is the packed 843-name color corpus** — exactly the
+figure the earlier estimate predicted — and the remaining ~5.8 KiB is the naming
+and modifier logic. Note the estimate in the handoff (+6.45 KiB) counted only the
+corpus; the true cost of client-side naming is roughly double that. It buys the
+removal of one fetch per URL write and a heading that tracks the sliders instead
+of lagging them. **Worth re-confirming with the owner before production.**
+
+---
+
+## 7. Reindex impact — read before shipping search changes
+
+The Vectorize index is written by a pipeline **outside this repo** from
+`palette-tags.ts` output. Classification:
+
+### Serve-time additive — no reindex (everything shipped here)
+
+All modifier tags, the names, the headings, `<title>`, meta descriptions, the
+sr-only description, and `/{seed}.json`. These are computed per request from the
+seed. Nothing that Vectorize already stores changes value.
+
+### Requires a reindex — NOT done here
+
+1. **Putting modifier tags into the embedding text.** This is the change with the
+   real payoff — it is what makes "duotone", "pastel", "monochrome" and "earthy"
+   *retrievable* rather than merely displayed. Until the indexing pipeline emits
+   them and the corpus is re-embedded, semantic search cannot find a palette by
+   any of these words.
+2. **Correcting `texture: 'monochrome'` → `'grayscale'`.** Changes an existing
+   stored value; doing it in isolation desyncs the index. It should ship in the
+   same reindex as (1), where the hue-based `monochrome` replaces it and the
+   146 currently-mislabelled palettes become findable.
+
+Both are one reindex, and they should be the same one. Nothing in this change
+depends on it — the names and tags are correct on the page today; only
+*retrieval* waits.
+
+---
+
+## 8. Open questions for the owner
+
+1. **The +12.43 KiB client cost** is double the estimate that was approved. It is
+   on a lazily-loaded island, and it removes a per-edit fetch. Confirm, or move
+   naming back to the server and accept the lag.
+2. **Related links.** The chips were removed, and seed pages now have no outbound
+   links. Structure classes are natural link targets — 148 monochrome palettes,
+   147 duotones — and would restore internal linking as a *visual* row (gradients,
+   not word pills), which is what was asked for.
+3. **`/palettes/{modifier}` routes.** SchemeColor's ranking advantage is
+   multiplying modifiers over colors. `pastel-blue`, `dark-purple`,
+   `monochrome-blue` are now computable for every palette, and the demand doc
+   rates that grammar Tier 1. This is the largest remaining SEO move and it is
+   gated on the reindex in §7.
+4. **Should `seamless` be spoken on conic gradients only?** It carries 4.4 bits
+   and is genuinely useful there (a mismatch is a visible seam), but it is
+   meaningless on a linear gradient. Currently tag-only.

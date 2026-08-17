@@ -9,7 +9,12 @@ import {
   paletteOgSvg,
   queryOgSvg,
   robotsTxt,
-  sitemapXml,
+  sitemapIndexXml,
+  staticSitemapXml,
+  searchSitemapXml,
+  paletteSitemapXml,
+  queryOgResponse,
+  queryPngResponse,
 } from "../src/seo";
 
 const SEED = "_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKb";
@@ -137,17 +142,34 @@ describe("SEO parity", () => {
     expect(ROBOTS_TXT).toContain("User-agent: ClaudeBot");
     expect(ROBOTS_TXT).toContain("Sitemap: https://grabient.com/sitemap.xml");
 
-    const xml = sitemapXml([SEED, "not-a-seed"]);
-    expect(xml).toContain("<loc>https://grabient.com/</loc>");
-    expect(xml).toContain("<loc>https://grabient.com/newest</loc>");
-    expect(xml).toContain("<loc>https://grabient.com/palettes/sunset</loc>");
-    expect(xml).toContain(`<loc>https://grabient.com/${SEED}</loc>`);
-    expect(xml).not.toContain("not-a-seed");
-    expect(xml).not.toContain("/llms.txt</loc>");
+    const index = sitemapIndexXml();
+    expect(index).toContain("<sitemapindex");
+    expect(index).toContain("<loc>https://grabient.com/sitemap-pages.xml</loc>");
+    expect(index).toContain("<loc>https://grabient.com/sitemap-searches.xml</loc>");
+    expect(index).toContain("<loc>https://grabient.com/sitemap-palettes.xml</loc>");
+
+    const pages = staticSitemapXml();
+    expect(pages).toContain("<loc>https://grabient.com/</loc>");
+    expect(pages).toContain("<loc>https://grabient.com/newest</loc>");
+    expect(pages).not.toContain("/llms.txt</loc>");
+
+    const searches = searchSitemapXml();
+    expect(searches).toContain("<loc>https://grabient.com/palettes/sunset</loc>");
+    // Color names carry the measured search demand, so they must be listed.
+    expect(searches).toContain("<loc>https://grabient.com/palettes/green</loc>");
+    expect(searches).toContain("<loc>https://grabient.com/palettes/hot-pink</loc>");
+
+    const created = new Date("2026-02-03T10:20:30.000Z");
+    const palettes = paletteSitemapXml([{ id: SEED, createdAt: created }, "not-a-seed"]);
+    expect(palettes).toContain(`<loc>https://grabient.com/${SEED}</loc>`);
+    expect(palettes).toContain("<lastmod>2026-02-03</lastmod>");
+    expect(palettes).not.toContain("not-a-seed");
+    // Plain ids stay valid and simply carry no lastmod.
+    expect(paletteSitemapXml([SEED])).not.toContain("<lastmod>");
 
     const staging = "https://grabient-lite.jkorzhuk.workers.dev";
     expect(robotsTxt(staging)).toContain(`Sitemap: ${staging}/sitemap.xml`);
-    expect(sitemapXml([SEED], staging)).toContain(`<loc>${staging}/${SEED}</loc>`);
+    expect(paletteSitemapXml([SEED], staging)).toContain(`<loc>${staging}/${SEED}</loc>`);
   });
 
   it("normalizes entity-mangled OG parameters from social crawlers", () => {
@@ -155,5 +177,35 @@ describe("SEO parity", () => {
       new URL("https://grabient.com/api/og?seed=x&amp;style=radialGradient"),
     );
     expect(params.get("style")).toBe("radialGradient");
+  });
+});
+
+// The most expensive URLs on the site are the only ones whose input space is
+// unbounded text: each novel query costs an embedding, a vector search, a
+// rasterization and a KV write, and the cache key contains the query, so a
+// caller feeding fresh strings never hits cache. The edge rate limit does not
+// catch it either — at ~2s per render a single machine stays under 300 req/10s
+// while running the most expensive path on the site.
+//
+// Both cases below are refused before any binding is touched, which is why they
+// need no env mock. The positive case (a curated query really does render) is
+// covered by the staging smoke test rather than here, because asserting it
+// means running resvg for real.
+describe("expensive render endpoints are bounded", () => {
+  it("redirects an uncurated query to the static card instead of rendering", async () => {
+    const res = await queryOgResponse(
+      "https://local.test/api/og/query?query=buy-cheap-viagra",
+      undefined,
+    );
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toBe("/grabient.png");
+  });
+
+  it("rejects an oversized query before it reaches the embedding model", async () => {
+    const res = await queryPngResponse(
+      `https://local.test/api/png/query?query=${"a".repeat(2099)}`,
+      undefined,
+    );
+    expect(res.status).toBe(400);
   });
 });
