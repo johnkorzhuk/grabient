@@ -1,6 +1,8 @@
 # Color corpus and palette naming
 
 Status: implemented, uncommitted, in the working tree. 2026-08-16.
+Updated 2026-08-17: the taste filter is retired — 77 names restored, corpus
+843 → 920, 23 aliases added (see §1).
 
 Three things changed: the naming corpus went from 41 names to 843, nearest-name
 search moved from RGB to OkLab, and `paletteHeadline()` now names as many
@@ -15,7 +17,8 @@ difference and 0.4 spans black to white.
 
 ## 1. The corpus
 
-**Chosen: 843 entries — filtered xkcd ∪ CSS Color 4 ∪ the existing 41.**
+**Chosen at ship (2026-08-16): 843 entries — filtered xkcd ∪ CSS Color 4 ∪ the
+existing 41. Since 2026-08-17: 920 — same union, taste filter retired.**
 
 | source | kept | license | provenance |
 |---|---|---|---|
@@ -23,8 +26,15 @@ difference and 0.4 spans black to white.
 | CSS Color 4 `<named-color>` | 103 | spec values are uncopyrightable facts; list taken from meodai `color-name-lists` key `html`, MIT-packaged | 148 keywords, de-concatenated for display |
 | existing `BASIC_COLORS` | 41 | in-repo | added first, so no existing name→hex answer moved |
 
-Plus 173 aliases that resolve but never display: CSS single-token spellings
-(`cornflowerblue`), British `grey`, and the colloquial forms filtered below.
+*(Table is the 2026-08-16 ship state. After the restore the split is 774 xkcd /
+105 CSS / 41 basic = 920 — `indian red` and `navajo white` carry the CSS
+keyword values, so they count to CSS; the other 75 restored hexes are
+byte-exact from the survey file.)*
+
+Plus 154 aliases that resolve but never display — the shipped version of this
+doc said "173", a script recount says 154; the restore adds 23 more for 177:
+CSS single-token spellings (`cornflowerblue`), British `grey`, misspellings
+(`liliac`, since 2026-08-17), and the colloquial forms filtered below.
 
 No attribution or share-alike obligation attaches to any of it.
 
@@ -56,19 +66,44 @@ CSS earns its 103 slots on the pale/neutral end, where survey participants
 rarely bothered to name anything, and because CSS keywords are what this site's
 developer audience actually types.
 
-### The filter — 150 source names removed
+### The filter — technical-only since 2026-08-17 (48 names; shipped as "150")
 
-| class | examples | why |
-|---|---|---|
-| scatological | `booger`, `baby shit brown`, `diarrhea`, `poo brown` | 32 entries |
-| pejorative | `ugly blue`, `dirty green`, `muddy brown`, `swamp`, `nasty green` | reads as an insult applied to a user's palette, and nobody searches it |
-| morbid | `blood`, `dried blood` | `blood red` and `blood orange` kept — both are ordinary color terms |
-| ethnically loaded | `indian red`, `navajowhite` | |
-| **trademarks** | `barbie pink`, `kermit green`, `windows blue`, `tiffany blue` | a palette page is commercial surface. `olive drab`, `apple green`, `coral` stay — generic terms, not marks |
-| survey artifacts | `blue blue`, `light light green`, `grey/green`, `blue with a hint of purple` | unreadable in a headline |
-| misspellings | `liliac`, `light lavendar`, `terracota`, `toupe`, `ocre`, `kelley green` | correct spellings already present |
-| bare modifiers | `dark`, `pale`, `bluish`, `greyish`, `tealish`, `royal` | "Dark to silver" is not a palette name |
-| colloquial `-y` | `reddy brown`, `bluey grey`, `purpley pink`, `darkish red` (29) | 27 of 29 have an `-ish`/`light`/`dark` twin already in the corpus |
+**Restoration, 2026-08-17.** The owner requested the unfiltered survey
+vocabulary restored, so every name filtered on taste went back in: 77 display
+entries (scatological 32, pejorative 27, morbid 2, ethnically loaded 2,
+trademarks 6, undocumented removals 6, colloquial with no twin 2), merged
+sort-verified, corpus 843 → 920. Nine of them sit within 0.01 OkLab of a kept
+name (`dried blood` beside `mahogany` at 0.003) and were restored anyway — the
+corpus already tolerated `peach`/`peach puff` at an identical hex. A script
+recount against the source found the shipped counts off: **151** xkcd names
+were filtered, not 150, plus the two CSS keywords `indianred`/`navajowhite`.
+
+**Undocumented removals.** Six of the restored names had been silently dropped
+without fitting any documented class: `azul`, `bluegray`, `grayblue`, `manila`,
+`rosa`, `velvet`. `bluegrey`/`greyblue` were apparently mistaken for
+misspellings, but xkcd's other concatenated forms (`bluegreen`, `greenblue`,
+`darkblue`…) were kept and they are genuinely distinct colors (`bluegrey` is
+0.127 from `blue gray`). `manila` vanished entirely because the survey spells
+it `manilla` and the correct spelling was not present. `azul`, `rosa` (real
+foreign-language color words) and `velvet` fit no class at all.
+
+Historical class table (2026-08-16 ship state), with dispositions:
+
+| class | examples | why | since 2026-08-17 |
+|---|---|---|---|
+| scatological | `booger`, `baby shit brown`, `diarrhea`, `poo brown` | 32 entries | **restored** |
+| pejorative | `ugly blue`, `dirty green`, `muddy brown`, `swamp`, `nasty green` | reads as an insult applied to a user's palette, and nobody searches it | **restored** |
+| morbid | `blood`, `dried blood` | `blood red` and `blood orange` kept — both are ordinary color terms | **restored** |
+| ethnically loaded | `indian red`, `navajowhite` | | **restored** (display `indian red` / `navajo white`, CSS keyword values) |
+| **trademarks** | `barbie pink`, `kermit green`, `windows blue`, `tiffany blue` | a palette page is commercial surface. `olive drab`, `apple green`, `coral` stay — generic terms, not marks | **restored** |
+| survey artifacts | `blue blue`, `light light green`, `grey/green`, `blue with a hint of purple` | unreadable in a headline | still filtered (15) |
+| misspellings | `liliac`, `light lavendar`, `terracota`, `toupe`, `ocre`, `kelley green` | correct spellings already present | still filtered (9, + variant spelling `ocher`) — all alias to the correct form now |
+| bare modifiers | `dark`, `pale`, `bluish`, `greyish`, `tealish`, `royal` | "Dark to silver" is not a palette name | still filtered (15) |
+| colloquial `-y` | `reddy brown`, `bluey grey`, `purpley pink`, `darkish red` (29) | 27 of 29 have an `-ish`/`light`/`dark` twin already in the corpus | still filtered where the twin exists (8 more now aliased: `blurple`, `bluey grey`, `pinky`…); `orangey yellow` and `tealish green` had no twin and were restored |
+
+What remains is the technical filter — 48 names that cannot work as display
+strings: 15 survey artifacts, 9 misspellings plus the variant spelling `ocher`
+(aliased), 15 bare modifiers, 8 twinned colloquial forms (aliased).
 
 **The filter is nearly free**: unfiltered 0.0245 mean vs shipped 0.0264. The
 whole safety and readability pass costs 0.002 OkLab — a tenth of a JND. This was
@@ -76,6 +111,13 @@ the main thing worth measuring, because the naive worry is that stripping 150
 names from the yellow-green-brown region (where the crude names cluster) would
 leave a hole. It does not; `olive`, `mustard`, `khaki`, `moss`, `army green`,
 `camo green` and `ochre` already cover it.
+
+*(Post-restore check, different base: over the 867-seed prose fixture — 20,864
+distinct colors at 3/5/7/9/11/13 steps — the 920 corpus measures mean 0.0268 /
+p95 0.0521 vs the 843 corpus's 0.0273 / 0.0531 on the same base, and a restored
+name becomes the nearest name for 5.5% of colors. Headlines, `<title>`s and
+aria labels on existing pages can change accordingly; that is the stated intent
+of the restore.)*
 
 Normalization: xkcd is 100% British `grey`, CSS ships both. Two spellings would
 enter as two competing entries a hundredth of a deltaE apart and split naming
@@ -384,7 +426,9 @@ generated the text from the corpus itself (the seed heading) opts in.
 3. **`bluegrey` and `kelley green` resolve to `null`.** Both are filtered
    misspellings that did not get alias entries. Harmless — nobody types them —
    but inconsistent with the other filtered forms, which all alias to their
-   standard spelling.
+   standard spelling. *(Fixed 2026-08-17: both are among the 23 aliases added
+   with the restore — `bluegrey` → the restored `bluegray` display entry,
+   `kelley green` → `kelly green`.)*
 
 ### Out of scope but worth flagging
 

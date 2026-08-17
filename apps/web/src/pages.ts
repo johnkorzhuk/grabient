@@ -379,36 +379,45 @@ const FOOT_LINK =
 const FOOT_SEP = `<div class="h-4 w-px bg-muted-foreground/30"></div>`;
 
 /**
- * Hub pages every palette links to. Drawn from POPULAR_SEARCHES so each target
- * is also in the sitemap and passes isPublishableQuery — a link into a
- * noindex page would waste the crawl it earns.
+ * The only crawlable path between palettes.
+ *
+ * A seed page carries nine `<a href>`s and, without these, not one points at
+ * another palette — every palette becomes an orphan reachable only from the
+ * sitemap, which is why Search Console reported no referring page for them and
+ * why Googlebot spent 1,152 req/day almost entirely off-content. A sitemap says
+ * a URL exists; only a link says it matters.
+ *
+ * They sit under the palette's name rather than in the footer because that is
+ * where the orphaned pages are: list pages already link to these same hubs from
+ * the Popular row, so the seed page was the only gap.
+ *
+ * Three renderings have been rejected: a footer row of text pills, a per-palette
+ * "related" strip (went stale the moment a modifier slider rewrote the route
+ * without a reload), and a footer row of gradient tiles. What stayed is the
+ * link set, which is fixed rather than derived — anything recomputed per palette
+ * reintroduces the staleness bug, and each hub lists 24 seeds, so a fixed set
+ * still puts every palette two hops from every other.
+ *
+ * Drawn from POPULAR_SEARCHES so each target is also in the sitemap and passes
+ * isPublishableQuery — a link into a noindex page would waste the crawl it earns.
  */
 const BROWSE_HUBS = POPULAR_SEARCHES.slice(0, 10);
 
 /**
- * The only crawlable path between palettes.
- *
- * Measured 2026-08-17: a seed page carried nine `<a href>`s and not one of them
- * pointed at another palette, so every palette in the corpus was an orphan
- * reachable only from the sitemap — which is why Search Console reported no
- * referring page for them and why Googlebot spent 1,152 req/day almost entirely
- * off-content.
- *
- * These links are deliberately the same on every page rather than derived from
- * the current palette. A per-palette "related" strip existed once and was
- * removed because it went stale the moment a modifier slider rewrote the route
- * without a reload; anything recomputed per palette reintroduces exactly that
- * bug. A fixed set cannot go stale, and it is enough: each hub lists 24 seeds,
- * so every palette sits two hops from every other.
+ * Styled as the search chips are, minus their colour swatches. Real links in a
+ * <nav>, not `role="tablist"`: these navigate to another page rather than
+ * switching a panel, and announcing them as tabs would promise keyboard
+ * behaviour they do not have.
  */
+const HUB_TAB =
+  "inline-flex h-7 shrink-0 items-center rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs";
+
 function browseHubs(): string {
-  const links = BROWSE_HUBS.map(
+  const tabs = BROWSE_HUBS.map(
     (query) =>
-      `<a href="/palettes/${querySlug(query)}" class="${FOOT_LINK}">${esc(query)}</a>`,
-  ).join(FOOT_SEP);
-  return `<nav class="px-5 pb-5 lg:px-14" aria-label="Browse palettes by theme">
-<div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 sm:justify-start sm:gap-x-6">${links}</div>
-</nav>`;
+      `<a href="/palettes/${querySlug(query)}" class="${HUB_TAB}">${esc(query)}</a>`,
+  ).join("");
+  return `<nav class="mt-4 flex flex-wrap gap-2" aria-label="Browse palettes by theme">${tabs}</nav>`;
 }
 
 export function footer(stars: number): string {
@@ -419,7 +428,6 @@ export function footer(stars: number): string {
       : "";
   return `<footer class="relative mt-auto pb-8 pt-0 lg:pb-13">
 <div class="px-5 lg:px-14"><div class="dashed-rule"></div></div>
-${browseHubs()}
 <div class="flex flex-col items-center justify-between gap-4 px-5 pb-2 pt-5 sm:flex-row sm:gap-0 lg:px-14 lg:pt-13">
 <div class="flex flex-wrap items-center justify-center gap-3 sm:justify-start sm:gap-6">
 <a href="https://iquilezles.org/articles/palettes/" target="_blank" rel="noopener noreferrer" class="${FOOT_LINK}">About</a>
@@ -706,6 +714,7 @@ function paletteContext(view: RenderedPalette, text: SeedPaletteText): string {
   return `<section class="px-5 pt-10 lg:px-14" aria-labelledby="palette-about">
 <h2 id="palette-about" class="text-xl font-bold text-foreground">${esc(headline)}</h2>
 <p id="palette-description" class="sr-only">${esc(paletteDescription(headline, view.style, view.steps, view.angle, view.hexColors, tags))}</p>
+${browseHubs()}
 </section>`;
 }
 

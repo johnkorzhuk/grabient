@@ -297,6 +297,89 @@ describe("delegated UI handlers", () => {
     expect(ul.children[5].style.gridColumnStart).toBe("");
   });
 
+  it("marks the chips that need no separator drawn on them", () => {
+    // The strip is fused, so each chip draws its own trailing rule. A chip on
+    // the right edge must not, or the rule lands on the container's border.
+    document.body.innerHTML = `<ul class="swatches">${Array.from({ length: 10 }, () => `<li class="swatch-item"></li>`).join("")}</ul>`;
+    const ul = document.querySelector("ul.swatches");
+    Object.defineProperty(ul, "clientWidth", { value: 300, configurable: true });
+    window.__fitSwatches();
+    // 2 rows of 5, row 2 reversed: right edge is index 4 (row 1) and 5 (row 2).
+    expect(ul.children[4].classList.contains("sw-last-col")).toBe(true);
+    expect(ul.children[5].classList.contains("sw-last-col")).toBe(true);
+    expect(ul.children[9].classList.contains("sw-last-col")).toBe(false);
+    expect(ul.children[0].classList.contains("sw-row-2")).toBe(false);
+    expect(ul.children[9].classList.contains("sw-row-2")).toBe(true);
+  });
+
+  it("stretches the last chip over the cell an odd count leaves empty", () => {
+    // With gaps this was an invisible blank; fused, it is a hole punched in
+    // the strip's bottom corner.
+    document.body.innerHTML = `<ul class="swatches">${Array.from({ length: 9 }, () => `<li class="swatch-item"></li>`).join("")}</ul>`;
+    const ul = document.querySelector("ul.swatches");
+    Object.defineProperty(ul, "clientWidth", { value: 300, configurable: true });
+    window.__fitSwatches();
+    // 9 chips -> 5 columns, row 2 holds 4 and runs right-to-left to column 2.
+    expect(ul.style.gridTemplateColumns).toBe("repeat(5,minmax(0,1fr))");
+    expect(ul.children[8].style.gridColumnStart).toBe("1");
+    expect(ul.children[8].style.gridColumnEnd).toBe("3");
+  });
+
+  it("merges neighbouring chips that carry the same hex", () => {
+    // Clipping makes a ramp repeat itself. Two chips with the same hex are one
+    // colour drawn twice, and the merged width also reports how much of the
+    // gradient that colour actually holds.
+    const hexes = ["#000000", "#000000", "#000000", "#112233", "#445566"];
+    document.body.innerHTML = `<ul class="swatches">${hexes
+      .map((h) => `<li class="swatch-item"><button data-copy="${h}"></button></li>`)
+      .join("")}</ul>`;
+    const ul = document.querySelector("ul.swatches");
+    Object.defineProperty(ul, "clientWidth", { value: 1000, configurable: true });
+    window.__fitSwatches();
+    // One row of 5 columns: the black run becomes a single chip spanning 3.
+    expect(ul.children[0].style.gridColumnStart).toBe("1");
+    expect(ul.children[0].style.gridColumnEnd).toBe("4");
+    expect(ul.children[1].style.display).toBe("none");
+    expect(ul.children[2].style.display).toBe("none");
+    expect(ul.children[3].style.display).toBe("");
+    expect(ul.children[4].classList.contains("sw-last-col")).toBe(true);
+  });
+
+  it("does not merge a repeated colour across the row break", () => {
+    // Two chips on different rows are not adjacent on screen, and merging them
+    // would span both rows — which is why this runs after the row split.
+    const hexes = Array.from({ length: 10 }, () => "#123456");
+    document.body.innerHTML = `<ul class="swatches">${hexes
+      .map((h) => `<li class="swatch-item"><button data-copy="${h}"></button></li>`)
+      .join("")}</ul>`;
+    const ul = document.querySelector("ul.swatches");
+    Object.defineProperty(ul, "clientWidth", { value: 300, configurable: true });
+    window.__fitSwatches();
+    // 2 rows of 5: one merged chip per row, not one chip spanning both.
+    expect(ul.children[0].style.gridRowStart).toBe("1");
+    expect(ul.children[0].style.gridColumnStart).toBe("1");
+    expect(ul.children[0].style.gridColumnEnd).toBe("6");
+    expect(ul.children[5].style.gridRowStart).toBe("2");
+    expect(ul.children[5].style.display).toBe("");
+    expect(ul.children[6].style.display).toBe("none");
+  });
+
+  it("sizes the hex label from the space a chip actually has", () => {
+    document.body.innerHTML = `<ul class="swatches">${Array.from({ length: 4 }, () => `<li class="swatch-item"><button></button></li>`).join("")}</ul>`;
+    const ul = document.querySelector("ul.swatches");
+    Object.defineProperty(ul, "clientWidth", { value: 1200, configurable: true });
+    window.__fitSwatches();
+    const roomy = parseFloat(ul.style.getPropertyValue("--sw-font"));
+    expect(roomy).toBeGreaterThan(12); // 300px chips: bigger than the old fixed 12px
+    // …but the ceiling holds. A hex code is caption text, and an oversized one
+    // shifts how the swatch under it reads — the label must not outweigh the
+    // colour it describes.
+    expect(roomy).toBeLessThanOrEqual(13);
+    Object.defineProperty(ul, "clientWidth", { value: 260, configurable: true });
+    window.__fitSwatches();
+    expect(parseFloat(ul.style.getPropertyValue("--sw-font"))).toBeLessThan(roomy);
+  });
+
   it("delegates #opts changes to the island params handler, stripping input masks", () => {
     document.body.innerHTML = `<form id="opts"><select name="style"><option value="radialGradient" selected>R</option></select><input name="steps" value="5"><input name="angle" data-suffix="°" value="45°"></form>`;
     const handler = vi.fn();

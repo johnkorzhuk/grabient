@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { listPage } from "../src/pages";
+import { listPage, seedPage } from "../src/pages";
 
 const appCss = readFileSync(resolve(process.cwd(), "src/app.css"), "utf8");
 
@@ -117,5 +117,95 @@ describe("responsive search placement", () => {
     expect(html.match(/id="palette-search-mobile"/g)).toHaveLength(1);
     expect(html.match(/id="palette-search-input"/g)).toHaveLength(1);
     expect(html.match(/id="palette-search-input-mobile"/g)).toHaveLength(1);
+  });
+});
+
+describe("canvas-mode graph is a mode", () => {
+  const seedHtml = seedPage({
+    seed: "_gDXgDJgEFgKggKsgJSgEYgFbgDsgguhBdgAAlBoEwFfn",
+    params: { style: "auto", steps: "auto", angle: "auto", page: 1, limit: 24 },
+    size: "auto",
+    graph: false,
+    origin: "https://grabient.com",
+    stars: 0,
+  });
+
+  it("puts the close button's slot outside the form it has to outlive", () => {
+    // Graph mode hides #opts wholesale, so a slot nested inside it would go
+    // with it. The slot is the form's sibling for exactly that reason.
+    expect(seedHtml).toMatch(/<\/form>\s*<span id="graph-dock"/);
+  });
+
+  it("hides the whole options form rather than listing its children", () => {
+    expect(appCss).toMatch(/\.seed-hero\.show-graph #opts\s*\{\s*display: none;/);
+    expect(appCss).toMatch(
+      /\.seed-hero\.show-graph #graph-dock\s*\{\s*display: flex;/,
+    );
+    // The dock is empty once its button moves, and an empty flex item still
+    // spends a row gap.
+    expect(appCss).toMatch(
+      /\.seed-hero\.show-graph #mobile-dock\s*\{\s*display: none;/,
+    );
+  });
+
+  it("relocates only the graph toggle, not the whole dock", () => {
+    // The dock portal held the toggle AND copy/export/dimensions/download.
+    // Re-pointing that one portal dragged every one of them into the subheader.
+    // Two portals now: the toggle moves, the rest is anchored to #mobile-dock.
+    const island = readFileSync(resolve(process.cwd(), "src/islands/edit.tsx"), "utf8");
+    const toggle = island.indexOf("graphBtnMount()");
+    const rest = island.indexOf("<Show when={dockMount}>");
+    expect(toggle).toBeGreaterThan(-1);
+    expect(rest).toBeGreaterThan(toggle);
+    // The format buttons must sit in the anchored portal, after it opens.
+    expect(island.indexOf("data-mobile-format-actions")).toBeGreaterThan(rest);
+    // Solid wraps each portal in a div; two portals into one mount would stack
+    // unless the wrappers are dissolved.
+    expect(appCss).toMatch(
+      /#mobile-dock > div,\s*#graph-dock > div \{\s*display: contents;/,
+    );
+  });
+
+  it("separates the view toggle from the export cluster in the dock", () => {
+    // A view control on the end of the export row is the wrong group, and the
+    // toggle arrives from its own portal — so its position is set by `order`,
+    // not by whichever portal happens to mount first.
+    const island = readFileSync(resolve(process.cwd(), "src/islands/edit.tsx"), "utf8");
+    expect(island).toContain("data-graph-toggle");
+    expect(appCss).toMatch(
+      /#mobile-dock \[data-graph-toggle\] \{\s*order: -1;/,
+    );
+    expect(appCss).toMatch(/#mobile-dock \{[^}]*justify-content: space-between;/);
+    // Icon actions sit in a row above the format chips: two parallel lines, not
+    // a column wrapped round the corner of one.
+    expect(island).toMatch(
+      /class="order-1 flex items-center gap-2" data-mobile-primary-actions/,
+    );
+  });
+
+  it("gives the seed subheader one icon rail and one content column", () => {
+    // The seed page has no browse select, so a two-column .subheader-left left
+    // row 1 as a lone back button, a dead gap, then the style select.
+    expect(appCss).toMatch(
+      /\.subheader:not\(\.sticky\) \.subheader-left \{\s*grid-column: 1;/,
+    );
+    expect(appCss).toMatch(
+      /\.subheader:not\(\.sticky\) #opts \.style-wrap \{\s*grid-column: 2 \/ 4;/,
+    );
+  });
+
+  it("gates every rule that reveals the preview stacks on graph mode", () => {
+    // Four rules turn these on and they all share a specificity, so a later
+    // display:none wins or loses on source order. Gating the positives leaves
+    // one answer instead of a race.
+    const reveals = appCss.match(
+      /^\s*\.seed-hero\.(?:ui-show|menu-open)[^{]*#preview-actions[^{]*\{/gm,
+    );
+    expect(reveals).not.toBeNull();
+    for (const rule of reveals) expect(rule).toContain(":not(.show-graph)");
+    // …and the Tailwind group-hover utility on the markup is closed too.
+    expect(appCss).toMatch(
+      /\.seed-hero\.show-graph :is\(#preview-actions, #preview-actions-br\)/,
+    );
   });
 });

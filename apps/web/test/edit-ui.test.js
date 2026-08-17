@@ -81,7 +81,11 @@ describe("$seed preview dimensions", () => {
     const mobilePrimary = document.querySelector("[data-mobile-primary-actions]");
     const mobileFormats = document.querySelector("[data-mobile-format-actions]");
     expect(mobilePrimary.className).toContain("order-1");
-    expect(mobilePrimary.className).toContain("flex-col");
+    // A ROW, not a column. Stacked above the format chips it wrapped the dock
+    // round the corner in an L; two parallel right-aligned rows read as one
+    // block. See responsive-layout.test.js for the rest of the dock contract.
+    expect(mobilePrimary.className).toContain("items-center");
+    expect(mobilePrimary.className).not.toContain("flex-col");
     expect(
       [...mobilePrimary.querySelectorAll("button")].map((button) =>
         button.getAttribute("aria-label"),

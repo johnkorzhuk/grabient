@@ -23,8 +23,15 @@ import {
   DEFAULT_STYLE,
   type PaletteStyle,
 } from "@repo/data-ops/valibot-schema/grabient";
+import { bestInk } from "@repo/data-ops/color-utils";
 import { channelsGraphSvg } from "../graph";
 import { logoStops } from "../icons";
+import {
+  describePaletteName,
+  paletteDescription,
+  TITLE_HEADLINE,
+  TITLE_SUFFIX,
+} from "../palette-name";
 import {
   coeffsJsonSnippet,
   colorsSnippet,
@@ -102,13 +109,6 @@ const ACTION_BTN_ON = " border-muted-foreground/30 bg-background/60 text-foregro
 const DOCK_BTN =
   "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-solid border-input bg-background/70 text-muted-foreground backdrop-blur-md transition-colors duration-200 outline-none hover:border-muted-foreground/30 hover:bg-background hover:text-foreground active:border-muted-foreground/40 active:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70";
 const DOCK_BTN_ON = " border-muted-foreground/40 bg-background/85 text-foreground";
-
-function luminance(hex: string): number {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  return 0.299 * r + 0.587 * g + 0.114 * b;
-}
 
 export interface EditorProps {
   seed: string;
@@ -437,13 +437,57 @@ export function EditorIsland(props: EditorProps) {
       strip.innerHTML = swatchesHtml(hexColors());
       window.__fitSwatches?.();
     }
+    describeSurfaces();
   };
 
+  /**
+   * The palette's prose — heading, sr-only description, `document.title`.
+   *
+   * This used to be a fetch of /{seed}.json fired from the throttled URL write,
+   * which kept the 843-name color corpus off the client but made the name the
+   * one surface that lagged the sliders: the gradient, graph and swatches moved
+   * on every tick and the heading arrived later, describing a palette you had
+   * already dragged past. Naming is a pure function of the coefficients and the
+   * rendered colors, so it belongs here with the rest of them. Measured cost of
+   * shipping the corpus and the modifier analysis to the browser is in
+   * seo-research/palette-modifiers.md.
+   *
+   * Identical code to the server render (palette-name.ts), so the text a
+   * crawler gets and the text a visitor edits into cannot drift.
+   */
+  const describeSurfaces = () => {
+    const current = view();
+    const colors = hexColors();
+    const described = describePaletteName(applied(), colors);
+    const heading = document.getElementById("palette-about");
+    if (heading) heading.textContent = described.name;
+    const h1 = document.getElementById("palette-h1");
+    if (h1) h1.textContent = `${described.name} gradient palette editor`;
+    const description = document.getElementById("palette-description");
+    if (description)
+      description.textContent = paletteDescription(
+        described.name,
+        current.style,
+        current.steps,
+        current.angle,
+        colors,
+        described.tags,
+      );
+    // The title has its own, tighter budget — same rule as the server. Reusing
+    // the analysis keeps a slider drag to one dense sample per tick, not two.
+    const titleName = describePaletteName(applied(), colors, {
+      ...TITLE_HEADLINE,
+      features: described.features,
+    }).name;
+    document.title = `${titleName}${TITLE_SUFFIX}`;
+  };
+
+  /** Must stay identical to swatches() in pages.ts — same strip, two renderers. */
   const swatchesHtml = (colors: string[]) =>
-    `<ul class="swatches grid w-full gap-1.5" style="grid-template-columns:repeat(${colors.length},minmax(0,1fr))" aria-label="Palette colors">${colors
+    `<ul class="swatches grid w-full overflow-hidden rounded-lg" style="grid-template-columns:repeat(${colors.length},minmax(0,1fr))" aria-label="Palette colors">${colors
       .map(
         (hex) =>
-          `<li class="swatch-item min-w-0"><button type="button" data-copy="${hex}" aria-label="Copy ${hex}" class="${luminance(hex) > 0.55 ? "on-light" : "on-dark"} flex h-14 w-full cursor-pointer items-center justify-center overflow-hidden rounded-md font-mono text-xs font-semibold shadow-sm outline-none transition-transform duration-150 hover:scale-[1.03] focus-visible:ring-2 focus-visible:ring-ring/70 pointer-coarse:h-16 lg:h-20" style="background:${hex}"><span class="swatch-label">${hex}</span></button></li>`,
+          `<li class="swatch-item min-w-0"><button type="button" data-copy="${hex}" aria-label="Copy ${hex}" class="${bestInk(hex) === "black" ? "on-light" : "on-dark"} flex h-14 w-full cursor-pointer items-center justify-center overflow-hidden font-mono font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/70 pointer-coarse:h-16 lg:h-20" style="background:${hex}"><span class="swatch-label">${hex}</span></button></li>`,
       )
       .join("")}</ul>`;
 
@@ -720,6 +764,14 @@ export function EditorIsland(props: EditorProps) {
     document.getElementById("seed-hero")?.classList.toggle("show-graph", on);
     if (on) window.__fitSwatches?.();
   };
+  // Canvas mode is a media query, and the graph's close button has to know
+  // about it: below lg with the graph open it moves out of the dock and into
+  // the subheader slot the back button vacates.
+  const canvasQuery = matchMedia("(width < 64rem)");
+  const [canvas, setCanvas] = createSignal(canvasQuery.matches);
+  const onCanvasChange = (e: MediaQueryListEvent) => setCanvas(e.matches);
+  canvasQuery.addEventListener("change", onCanvasChange);
+  onCleanup(() => canvasQuery.removeEventListener("change", onCanvasChange));
   const toggleGraph = () => {
     const next = !graphOn();
     applyGraph(next);
@@ -1114,6 +1166,11 @@ export function EditorIsland(props: EditorProps) {
   const actionsMount = document.getElementById("preview-actions");
   const brMount = document.getElementById("preview-actions-br");
   const dockMount = document.getElementById("mobile-dock");
+  const graphDockMount = document.getElementById("graph-dock");
+  /** Where the graph toggle lives: the subheader once it is a close button. */
+  const graphBtnMount = createMemo(() =>
+    graphOn() && canvas() && graphDockMount ? graphDockMount : dockMount,
+  );
   const tabOrder = createMemo(() => {
     const cols = cosineGradient(10, applied());
     const totals = [0, 0, 0].map((_, ch) => cols.reduce((s, c) => s + (c[ch] ?? 0), 0));
@@ -1290,11 +1347,12 @@ export function EditorIsland(props: EditorProps) {
           </Portal>
         )}
       </Show>
-      <Show when={dockMount}>
+      <Show when={graphBtnMount()} keyed>
         {(mount) => (
-          <Portal mount={mount()}>
+          <Portal mount={mount}>
             <button
               type="button"
+              data-graph-toggle
               data-tip={graphOn() ? "Close graph (Esc)" : "Open graph"}
               aria-label={graphOn() ? "Close graph" : "Open graph"}
               aria-keyshortcuts="Escape"
@@ -1337,6 +1395,15 @@ export function EditorIsland(props: EditorProps) {
                 </svg>
               </Show>
             </button>
+          </Portal>
+        )}
+      </Show>
+      {/* The rest of the dock — copy, export, dimensions, download — stays put.
+          Only the graph toggle relocates; moving the whole portal dragged every
+          one of these into the subheader with it. */}
+      <Show when={dockMount}>
+        {(mount) => (
+          <Portal mount={mount()}>
           <div class="ml-auto flex flex-col items-end gap-2">
           <div class="order-2 flex items-center gap-2" data-mobile-format-actions>
           <button
@@ -1452,7 +1519,7 @@ export function EditorIsland(props: EditorProps) {
               </Show>
             </button>
           </div>
-          <div class="order-1 flex flex-col items-end gap-2" data-mobile-primary-actions>
+          <div class="order-1 flex items-center gap-2" data-mobile-primary-actions>
           <button
               type="button"
               data-seed-export-toggle

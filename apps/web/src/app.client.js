@@ -446,7 +446,13 @@ document.addEventListener("submit", (e) => {
   if (location.pathname === "/newest") p.set("sort", "newest");
   else if (location.pathname === "/oldest") p.set("sort", "oldest");
   for (const [key, value] of Object.entries(parsed.searchParams)) p.set(key, value);
-  trackEvent("search_query", {
+  // GA4's built-in Search Term dimension is populated only by a `search_term`
+  // parameter on the `view_search_results` event. We were firing `search_query`
+  // with a `query` param — neither name matched, so 28 days of site searches
+  // (5,242 of them) landed in GA4 as an unnamed custom event with no readable
+  // term. `query` stays alongside for continuity with existing PostHog data.
+  trackEvent("view_search_results", {
+    search_term: parsed.query,
     query: parsed.query,
     isCustomQuery: true,
   });
@@ -925,11 +931,16 @@ document.addEventListener("click", (e) => {
       value ? u.searchParams.set(key, value) : u.searchParams.delete(key);
     }
     u.searchParams.delete("page");
-    trackEvent("search_query", {
-      query: decodeURIComponent(u.pathname.replace(/^\/palettes\//, "")).replace(
-        /-/g,
-        " ",
-      ),
+    const tagQuery = decodeURIComponent(u.pathname.replace(/^\/palettes\//, "")).replace(
+      /-/g,
+      " ",
+    );
+    // Same event as a typed search — a chip click is still a search, and
+    // `isCustomQuery` is what separates the two in reporting. Splitting them
+    // across event names would hide half the demand signal.
+    trackEvent("view_search_results", {
+      search_term: tagQuery,
+      query: tagQuery,
       isCustomQuery: false,
     });
   }
@@ -1291,59 +1302,128 @@ function fitSwatches() {
     if (!n) return;
     const w = ul.clientWidth;
     if (!w) return;
-    const cs = getComputedStyle(ul);
-    const gap = parseFloat(cs.columnGap) || 0;
-    const chip1 = (w - gap * (n - 1)) / n;
+    // The strip is fused: chips sit flush, so a chip is just the width share.
+    const chip1 = w / n;
     // Canvas mode (seed hero below lg): the strip is fused under the graph
     // and must stay a single row — chips shrink and labels drop instead.
     const oneRow =
       !!ul.closest(".seed-hero") && matchMedia("(width < 64rem)").matches;
     const cols = !oneRow && chip1 < 56 ? Math.ceil(n / 2) : n;
-    const chip = (w - gap * (cols - 1)) / cols;
     ul.style.gridTemplateColumns = `repeat(${cols},minmax(0,1fr))`;
-    // Prefer horizontal labels: shrink them first (sw-compact) and rotate
-    // vertical only when a chip is genuinely too narrow for 7 hex chars.
-    // MEASURE the rendered label width (font stacks and user font scaling
-    // vary too much for px-constant thresholds) with a hidden probe.
-    let wNormal = 62;
-    let wCompact = 48;
+    const wrapped = cols !== n;
+
+    // Two rows flow serpentine (row 2 right-to-left) so the color sequence
+    // continues directly beneath where row 1 ended — following the gradient.
+    const colOf = (idx) => {
+      if (!wrapped) return idx;
+      const row = Math.floor(idx / cols);
+      return row % 2 === 0 ? idx % cols : cols - 1 - (idx % cols);
+    };
+
+    // MERGE runs of identical colors. Clipping and high step counts make a ramp
+    // repeat itself, and two chips carrying the same hex are one color drawn
+    // twice — duplicate labels, and a strip that misreports how much of the
+    // gradient that color actually holds. Merged, the chip's width says it.
+    //
+    // Client-side rather than in the markup because "adjacent" only means
+    // something once the row split is known: a run that straddles the wrap is
+    // not adjacent on screen, and merging it would span both rows.
+    const items = Array.prototype.slice.call(ul.children);
+    const hexOf = (li) => {
+      const b = li.querySelector && li.querySelector("button");
+      return b ? b.getAttribute("data-copy") : null;
+    };
+    let narrowest = cols;
+    for (let i = 0; i < n; ) {
+      const row = wrapped ? Math.floor(i / cols) : 0;
+      const rowEnd = wrapped ? Math.min(n, (row + 1) * cols) : n;
+      const hex = hexOf(items[i]);
+      let j = i + 1;
+      while (hex !== null && j < rowEnd && hexOf(items[j]) === hex) j++;
+
+      const a = colOf(i);
+      const b = colOf(j - 1);
+      let left = Math.min(a, b);
+      const right = Math.max(a, b);
+      // An odd count leaves the short row one cell shy. With gaps that was an
+      // invisible blank; fused, it is a hole punched in the strip's corner, so
+      // the final chip stretches across it.
+      if (j === n && wrapped && row > 0 && left > 0) left = 0;
+
+      const item = items[i];
+      if (wrapped || right - left > 0) {
+        item.style.gridRowStart = wrapped ? String(row + 1) : "";
+        item.style.gridColumnStart = String(left + 1);
+        item.style.gridColumnEnd = String(right + 2);
+      } else {
+        item.style.gridRowStart = "";
+        item.style.gridColumnStart = "";
+        item.style.gridColumnEnd = "";
+      }
+      item.style.display = "";
+      // Separators are drawn per chip, so each one has to know whether it sits
+      // against the strip's right edge or below another row.
+      item.classList.toggle("sw-last-col", right === cols - 1);
+      item.classList.toggle("sw-row-2", row > 0);
+      for (let m = i + 1; m < j; m++) items[m].style.display = "none";
+
+      narrowest = Math.min(narrowest, right - left + 1);
+      i = j;
+    }
+
+    // Label sizing goes off the narrowest chip on screen, so every label fits.
+    const chip = (w / cols) * narrowest;
+
+    // SIZE the label rather than picking from fixed steps. Measure "#000000"
+    // once at a reference size — font stacks and user font scaling vary too
+    // much for px constants — then solve for the largest font that still fits.
+    // Wrapping to two rows makes chips tall, and a vertical label in a tall
+    // chip has room to spare; the old fixed 10px left most of it unused.
+    const REF = 12;
+    // Fallbacks for when nothing is laid out yet: 7 monospace chars at 12px.
+    let run = 52;
+    let line = 15;
     const btn = ul.querySelector("button");
     if (btn) {
       const probe = document.createElement("span");
       probe.className = "swatch-label";
       probe.textContent = "#000000";
       probe.style.cssText =
-        "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;writing-mode:horizontal-tb;font-size:.75rem;padding:2px 6px;letter-spacing:normal";
+        "position:absolute;left:-9999px;top:0;visibility:hidden;white-space:nowrap;" +
+        "writing-mode:horizontal-tb;font-size:12px;letter-spacing:normal";
       btn.appendChild(probe);
-      wNormal = probe.offsetWidth || wNormal;
-      probe.style.fontSize = "10px";
-      probe.style.padding = "2px 3px";
-      wCompact = probe.offsetWidth || wCompact;
+      run = probe.offsetWidth || run;
+      line = probe.offsetHeight || line;
       probe.remove();
     }
-    const fitsNormal = chip >= wNormal + 6;
-    const fitsCompact = chip >= wCompact + 4;
-    // Vertical labels are ~as tall as a compact label is wide — a short chip
-    // (e.g. the strip inside the mobile graph card) can't fit one either.
     const chipH = (btn && btn.offsetHeight) || 56;
-    const fitsVertical = chip >= 26 && chipH >= wCompact + 4;
-    ul.classList.toggle("sw-compact", !fitsNormal && fitsCompact);
-    ul.classList.toggle("sw-vertical", !fitsNormal && !fitsCompact && fitsVertical);
-    ul.classList.toggle("sw-hide", !fitsNormal && !fitsCompact && !fitsVertical);
-    // Two rows flow serpentine (row 2 right-to-left) so the color sequence
-    // continues directly beneath where row 1 ended — following the gradient.
-    const wrapped = cols !== n;
-    Array.prototype.forEach.call(ul.children, (li, idx) => {
-      if (!wrapped) {
-        li.style.gridRowStart = "";
-        li.style.gridColumnStart = "";
-        return;
-      }
-      const row = Math.floor(idx / cols);
-      const col = row % 2 === 0 ? idx % cols : cols - 1 - (idx % cols);
-      li.style.gridRowStart = String(row + 1);
-      li.style.gridColumnStart = String(col + 1);
-    });
+    // Largest REF-scaled font whose text run and line box both fit. Horizontal
+    // runs across the chip; vertical runs down it and is bounded by the width.
+    const at = (available, basis) => (REF * available) / basis;
+    const horizontal = Math.min(at(chip - 10, run), at(chipH - 6, line));
+    const vertical = Math.min(at(chipH - 10, run), at(chip - 6, line));
+    const MIN = 10;
+    // A hex code is reference text, not a headline, and the ceiling has to say
+    // so — "as large as fits" put 16px semibold slabs over the swatches and the
+    // labels started competing with the colours for attention. Worse than
+    // untidy: a heavy dark block over a mid-tone shifts how that swatch reads
+    // against its neighbour (simultaneous contrast), so in a colour tool an
+    // oversized label corrupts the thing it is labelling. Small and
+    // high-contrast is the pattern; big and high-contrast is shouting.
+    const MAX = 13;
+    const hide = horizontal < MIN && vertical < MIN;
+    // Prefer horizontal — it reads faster — but not when turning the label
+    // sideways buys a materially larger one. At ~21 chips the horizontal label
+    // squeaks in right on the 10px floor while a vertical one has room for 14,
+    // so "does it fit" is the wrong question; "which way is it legible" is.
+    const rotate =
+      !hide && vertical >= MIN && (horizontal < MIN || vertical > horizontal * 1.25);
+    const size = Math.min(MAX, Math.max(MIN, rotate ? vertical : horizontal));
+    ul.style.setProperty("--sw-font", `${size.toFixed(1)}px`);
+    ul.classList.toggle("sw-vertical", rotate);
+    ul.classList.toggle("sw-compact", !rotate && !hide && size < 11);
+    ul.classList.toggle("sw-hide", hide);
+
   });
 }
 window.__fitSwatches = fitSwatches;

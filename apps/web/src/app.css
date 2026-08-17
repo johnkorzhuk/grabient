@@ -162,42 +162,113 @@
   opacity: 0.6;
 }
 
-/* Swatch chips: equal-width grid, JS-fitted (nav layer fitSwatches):
-   wraps to 2 rows when chips get too narrow, rotates labels vertical when
-   still tight, hides them when tiny. Label gets a translucent pill for
-   readability on any color. */
+/* Swatch chips: ONE FUSED STRIP. Equal-width chips flush against each other,
+   a single radius on the <ul>, and a faint dotted rule where two colors meet.
+   JS-fitted (nav layer fitSwatches): wraps to 2 rows when chips get too narrow,
+   rotates labels vertical when still tight, hides them when tiny.
+
+   The label used to sit on a translucent pill for readability. The pill reads
+   as a control on a strip this dense, so legibility now comes from the
+   luminance-picked ink colour below plus a shadow thrown the opposite way —
+   same guarantee, nothing drawn. */
+.swatches {
+  --sw-font: 0.75rem;
+}
+/* Subordinate to the colour on purpose: the swatch is the content, the code is
+   a reference you consult once you have picked one. Small, full-contrast and
+   light-weight reads cleanly without altering how the colour beneath it looks. */
 .swatch-label {
-  border-radius: 4px;
-  padding: 2px 6px;
   white-space: nowrap;
+  font-size: var(--sw-font);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 .on-light .swatch-label {
-  background: rgb(255 255 255 / 0.35);
+  text-shadow: 0 1px 0 rgb(255 255 255 / 0.45);
 }
 .on-dark .swatch-label {
-  background: rgb(0 0 0 / 0.25);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.45);
 }
 .swatches.sw-compact .swatch-label {
-  font-size: 10px;
   letter-spacing: -0.01em;
-  padding: 2px 3px;
 }
 .swatches.sw-vertical .swatch-label {
   writing-mode: vertical-rl;
-  font-size: 10px;
-  letter-spacing: 0.03em;
-  padding: 4px 2px;
+  letter-spacing: 0.04em;
 }
 .swatches.sw-hide .swatch-label {
   display: none;
 }
 
-/* Swatch text colors (luminance-picked server/client side). */
+/* The separator is drawn on each chip's own trailing edge, so it always
+   carries that chip's contrast colour rather than one compromise colour that
+   has to survive both sides of the seam.
+
+   `border: dotted` cannot express the site's dot rhythm: it draws 1px dots with
+   1px gaps, which at this density reads as a solid hairline. The graph's
+   gridlines and the header rule both use a 2px dash on a 6px period — 2 on, 4
+   off — so the separators are painted the same way, from the same recipe. That
+   also frees the chips from carrying a border, so the last column no longer
+   needs a transparent one to keep every chip the same width. */
+.swatches .swatch-item > button {
+  position: relative;
+}
+.swatches .swatch-item > button::after {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  right: 0;
+  width: 1px;
+  background-image: linear-gradient(
+    to bottom,
+    var(--sw-rule) 0%,
+    var(--sw-rule) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  background-size: 1px 6px;
+  background-repeat: repeat-y;
+}
+.swatches .swatch-item.sw-last-col > button::after {
+  display: none;
+}
+.swatches .swatch-item.sw-row-2 > button::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 1px;
+  background-image: linear-gradient(
+    to right,
+    var(--sw-rule) 0%,
+    var(--sw-rule) 2px,
+    transparent 2px,
+    transparent 6px
+  );
+  background-size: 6px 1px;
+  background-repeat: repeat-x;
+}
+/* No hover decoration on the strip. A ring boxes the chip off from neighbours
+   the fused layout just joined, an underline reads as a tab, and anything that
+   tints the chip is lying about the value it exists to show. The cursor is the
+   affordance and the label swapping to "Copied" is the feedback. */
+
+/* Swatch ink, chosen server/client side by `bestInk` — whichever of black or
+   white has the higher WCAG contrast on that exact swatch.
+
+   Full strength on purpose. These were 72% and 85% alpha, which threw away a
+   chunk of the contrast the choice had just won: black at 72% over a mid-tone
+   purple is a grey, and grey on purple is the illegibility that showed up on
+   the blue-violet ramps. If the ink is the maximum-contrast colour there is no
+   reason to then fade it. `--sw-rule` is the same decision at low alpha, for
+   the dotted separators, where faint IS the intent. */
 .on-light {
-  color: rgb(0 0 0 / 0.72);
+  color: rgb(0 0 0);
+  --sw-rule: rgb(0 0 0 / 0.28);
 }
 .on-dark {
-  color: rgb(255 255 255 / 0.85);
+  color: rgb(255 255 255);
+  --sw-rule: rgb(255 255 255 / 0.32);
 }
 
 /* Modifier slider — current site's modifier-range-input visuals (midpoint fill,
@@ -399,6 +470,18 @@ input::placeholder {
     width: 100%;
     min-width: 0;
     max-width: none;
+  }
+  /* The seed page has no browse select, so its .subheader-left is just the back
+     button rattling around a two-column span — which left row 1 as a lone
+     button, a dead gap, and the style select, while row 2 below it filled
+     evenly. Narrowing the left cell to the icon rail lets the style select take
+     the full content width and line up with the angle/steps pair beneath it:
+     one 44px rail down the left, one content column beside it. */
+  .subheader:not(.sticky) .subheader-left {
+    grid-column: 1;
+  }
+  .subheader:not(.sticky) #opts .style-wrap {
+    grid-column: 2 / 4;
   }
   .subheader #opts .style-wrap :is(select, button[role="combobox"]) {
     width: 100%;
@@ -812,8 +895,14 @@ input::placeholder {
   align-items: center;
   gap: 0.5rem;
 }
-.seed-hero.ui-show #preview-actions,
-.seed-hero.ui-show #preview-actions-br {
+/* Every rule that REVEALS the preview stacks is gated on :not(.show-graph)
+   rather than being overridden by a later display:none. Four rules turn these
+   on — this one, its coarse-pointer twin, .menu-open, and Tailwind's
+   group-hover utility — and they all land on the same specificity, so a
+   competing "hide" rule wins or loses on source order alone. Gating the
+   positives leaves exactly one answer to "is this visible in graph mode". */
+.seed-hero.ui-show:not(.show-graph) #preview-actions,
+.seed-hero.ui-show:not(.show-graph) #preview-actions-br {
   display: flex;
 }
 @media (pointer: coarse) {
@@ -821,22 +910,49 @@ input::placeholder {
   #preview-box:hover :where(#preview-actions, #preview-actions-br) {
     display: none;
   }
-  .seed-hero.ui-show #preview-actions,
-  .seed-hero.ui-show #preview-actions-br {
+  .seed-hero.ui-show:not(.show-graph) #preview-actions,
+  .seed-hero.ui-show:not(.show-graph) #preview-actions-br {
     display: flex;
   }
 }
 /* Dimension/download popovers are body portals, so moving into a menu leaves
    the preview's hover tree. Keep the stack containing the owning trigger
    rendered for the full open state. */
-.seed-hero.menu-open #preview-actions {
+.seed-hero.menu-open:not(.show-graph) #preview-actions {
   display: flex;
 }
-#mobile-dock > div {
-  display: flex;
-  width: 100%;
-  align-items: flex-end;
-  gap: 0.5rem;
+/* The Tailwind group-hover/group-focus-within utilities on the markup are the
+   fourth way in; graph mode has to close that one too. */
+.seed-hero.show-graph :is(#preview-actions, #preview-actions-br) {
+  display: none;
+}
+/* The dock is fed by TWO portals now — the graph toggle (which relocates to
+   the subheader in graph mode) and everything else (which never moves). Solid
+   wraps each portal's children in a plain div, so the row lives on #mobile-dock
+   itself and the wrappers are dissolved; otherwise the two would stack. */
+/* THE CANVAS-MODE DOCK. Two kinds of thing live here and they are not peers:
+   the graph toggle switches what you are LOOKING at, everything else gets the
+   palette OUT. Grouping them in one run put a view control on the end of the
+   export row, and stacking the icon actions above the format chips wrapped the
+   whole lot round the corner in an L.
+
+   So: toggle hard left, export cluster hard right, and the cluster is two
+   parallel right-aligned rows (icon actions over format chips) that read as one
+   block. `order` rather than DOM position, because the toggle arrives from a
+   different portal and may mount either side of the cluster.
+
+   NOTE the dock's own `display` is NOT set here. `#mobile-dock` is an ID
+   selector and would outrank the `lg:hidden` utility on the element, so a
+   global `display: flex` un-hides the dock on desktop — where these buttons
+   already exist in the preview's own stacks. The row lives in the canvas-mode
+   media query with the rest of that layout; only order and the wrapper
+   dissolve are safe to state unconditionally. */
+#mobile-dock [data-graph-toggle] {
+  order: -1;
+}
+#mobile-dock > div,
+#graph-dock > div {
+  display: contents;
 }
 
 /* ---- Seed "canvas mode" (below lg): the gradient becomes a full-viewport
@@ -981,8 +1097,14 @@ input::placeholder {
   .seed-hero .seed-cols > :is(div, aside) {
     display: contents;
   }
+  /* The dock's row, scoped to the mode that has a dock. */
   .seed-hero #mobile-dock {
     order: 1;
+    display: flex;
+    width: 100%;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem;
   }
   .seed-hero #graph-panel {
     order: 2;
@@ -1048,6 +1170,31 @@ input::placeholder {
   .seed-hero #graph-panel {
     display: none;
   }
+
+  /* GRAPH MODE IS A MODE. Reading the curves is a different task from setting
+     up an export, and the screen is too small to serve both: the graph, the
+     strip and the sliders already fill it, and everything else was chrome
+     floating over a gradient the user has stopped looking at.
+
+     The whole options form goes — that is the back link, reset, angle, steps
+     and style in one rule, rather than a list of children that has to be kept
+     in sync with the markup. #graph-dock is the form's SIBLING precisely so it
+     can survive that, and it holds the close button the island re-mounts into
+     it. One row, one control, one way out. */
+  .seed-hero.show-graph #opts {
+    display: none;
+  }
+  .seed-hero.show-graph #graph-dock {
+    display: flex;
+    align-items: center;
+    opacity: 1;
+    pointer-events: auto;
+  }
+  /* The dock is empty once its one button has moved, and an empty flex item
+     still spends a row gap. */
+  .seed-hero.show-graph #mobile-dock {
+    display: none;
+  }
   /* The card runs edge-to-edge (cancels the stage's horizontal padding) to
      use the full viewport width. */
   .seed-hero.show-graph #graph-panel {
@@ -1080,17 +1227,18 @@ input::placeholder {
     border-right: 0;
     border-radius: 0;
   }
-  /* Contiguous squared swatches — a stepped color axis under the curves.
-     Static: no hover scaling or lifts; the legend above is the feedback. */
+  /* A stepped color axis under the curves. The strip is already fused, so all
+     that is left is squaring off the container — it runs to both viewport
+     edges here — and shortening the chips. Static: the legend above is the
+     feedback, so the hover ring stays off. */
   .seed-hero.show-graph #swatches-strip .swatches {
-    gap: 0;
+    border-radius: 0;
   }
   .seed-hero.show-graph #swatches-strip .swatches button {
     height: 40px;
-    border-radius: 0;
   }
   .seed-hero.show-graph #swatches-strip .swatches button:hover {
-    transform: none;
+    box-shadow: none;
   }
 }
 
