@@ -22,6 +22,7 @@ import { cumulative } from "./queries";
 import { automatedShare, recentBrowserPageViews, recentDailyUniques } from "./traffic";
 import type { Acquisition, ReferrerRow, Traffic } from "./traffic";
 import type { SearchConsole } from "./search-console";
+import type { Ga4 } from "./ga4";
 
 export interface Brief {
   generated_at: string;
@@ -35,6 +36,7 @@ export interface Brief {
   attribution: Record<string, unknown>;
   definitions: Record<string, string>;
   caveats: string[];
+  ga4: Ga4 | null;
   unavailable: string[];
 }
 
@@ -50,6 +52,7 @@ export function buildBrief(
   search: SearchConsole | null = null,
   attribution: AttributionRow[] = [],
   referrers: ReferrerRow[] | null = null,
+  ga4: Ga4 | null = null,
 ): Brief {
   const { totals, signups, likers, cohorts, currentMonth } = metrics;
   const lastSignups = signups.at(-1);
@@ -147,15 +150,7 @@ export function buildBrief(
           requests_considered: acquisition.total,
           countries: acquisition.countries,
           devices: acquisition.devices,
-          search_console_top_queries:
-        "The actual search terms that produced impressions and clicks, from Google Search Console. This is the only source in this brief that names HOW people arrived.",
-      average_position:
-        "Mean Google result position, weighted by impressions. A plain mean would let a keyword with three impressions at position 1 outrank the whole site.",
-      attribution_by_first_touch_source:
-        "Signups grouped by the utm_source (or external referrer host, or 'direct') recorded on their FIRST visit, with how many later liked a palette. The activation column is the point: the loudest channel and the channel that sends people who stay are routinely different.",
-      traffic_sources_by_referrer:
-        "Pageviews grouped by referring host, from the Cloudflare Web Analytics browser beacon. Already excludes bots (crawlers do not execute JavaScript), unlike every pageview figure in the traffic section. 'Direct / no referrer' also absorbs internal navigation and the OAuth round trip so the parts sum to the whole.",
-      top_content_paths: acquisition.pages,
+          top_content_paths: acquisition.pages,
         }
       : null,
 
@@ -219,6 +214,14 @@ export function buildBrief(
         "Signups in a month divided by that month's browser pageviews, times 100,000. Only computed for months fully covered by both sources.",
       top_content_paths:
         "Most-requested paths on grabient.com over the window, after removing API endpoints, analytics beacons and static assets.",
+      search_console_top_queries:
+        "The actual search terms that produced impressions and clicks, from Google Search Console. This is the only source in this brief that names HOW people arrived.",
+      average_position:
+        "Mean Google result position, weighted by impressions. A plain mean would let a keyword with three impressions at position 1 outrank the whole site.",
+      attribution_by_first_touch_source:
+        "Signups grouped by the utm_source (or external referrer host, or 'direct') recorded on their FIRST visit, with how many later liked a palette. The activation column is the point: the loudest channel and the channel that sends people who stay are routinely different.",
+      traffic_sources_by_referrer:
+        "Pageviews grouped by referring host, from the Cloudflare Web Analytics browser beacon. Already excludes bots (crawlers do not execute JavaScript), unlike every pageview figure in the traffic section. 'Direct / no referrer' also absorbs internal navigation and the OAuth round trip so the parts sum to the whole.",
     },
 
     caveats: [
@@ -236,10 +239,20 @@ export function buildBrief(
       "The acquisition breakdowns (country, device, top paths) cover only the last 24 hours: this plan caps that dataset at a 1-day query range. A single crawler run can reorder them, so do not read a one-day ranking as a trend.",
     ],
 
+    // The only bot-filtered headcount in the brief; every other traffic figure
+    // here includes automation unless it says otherwise.
+    ga4,
+
     unavailable: [
       "Per-visitor journeys. Traffic sources are aggregate counts and first-touch attribution is per-account, so you can see that a referring site sent N visits and that M accounts carry a campaign tag, but not which individual visit became which signup.",
       "Sessions, bounce rate and time on page. Not derivable from Cloudflare request logs; auth_session is a login record with a rolling retention window, not a web analytics session.",
-      "Anything from GA4 or PostHog. GA4 runs through Cloudflare Zaraz with no API credentials in this project, and PostHog is over its ingestion quota. Neither is queried here.",
+      ...(ga4
+        ? [
+            "Anything from PostHog, which is over its ingestion quota and is not queried here.",
+          ]
+        : [
+            "Anything from GA4 or PostHog. GA4 needs GA4_PROPERTY_ID set and the service account granted Viewer on the property; PostHog is over its ingestion quota.",
+          ]),
       ...(search
         ? search.queries.length === 0
           ? [

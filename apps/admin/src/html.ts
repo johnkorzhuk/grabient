@@ -248,6 +248,47 @@ export function brand(): string {
 
 export const fmt = (n: number) => n.toLocaleString("en-US");
 
+/** One row of links above everything they scope. Server-rendered, URL-driven. */
+export function rangeSelector(
+  path: string,
+  current: string,
+  options: readonly { key: string; label: string }[],
+): string {
+  return `<div class="flex flex-wrap items-center gap-2">
+  <span class="text-[11px] font-bold tracking-[0.1em] text-ink-muted uppercase">Range</span>
+  <div class="flex items-center gap-1">${options
+    .map((option) => {
+      const active = option.key === current;
+      return `<a href="${path}?range=${option.key}"${active ? ' aria-current="true"' : ""} class="rounded-md px-2 py-0.5 text-xs font-bold transition-colors ${
+        active ? "bg-ink text-surface" : "text-ink-muted hover:text-ink"
+      }">${esc(option.label)}</a>`;
+    })
+    .join("")}</div>
+</div>`;
+}
+
+/**
+ * A period-over-period badge that refuses to overclaim.
+ *
+ * When the movement is inside one standard deviation of a counting process it
+ * is rendered in muted ink as "flat" rather than as a coloured arrow. On a site
+ * doing ~160 signups a month, ordinary variance produces double-digit percent
+ * swings; painting those green or red invites decisions the data cannot support.
+ */
+export function changeBadge(
+  result: { pct: number | null; withinNoise: boolean },
+  label: string,
+): string {
+  if (result.pct === null) {
+    return `<span class="text-ink-muted">no prior period to compare</span>`;
+  }
+  if (result.withinNoise) {
+    return `<span class="text-ink-muted">flat (${result.pct > 0 ? "+" : ""}${result.pct}%, within noise) ${esc(label)}</span>`;
+  }
+  const up = result.pct > 0;
+  return `<span class="${up ? "text-good" : "text-critical"} font-bold">${up ? "▲" : "▼"} ${Math.abs(result.pct)}%</span> <span class="text-ink-muted">${esc(label)}</span>`;
+}
+
 /**
  * A delta never relies on hue alone — the arrow and the trailing label carry the
  * same information for anyone who cannot separate the two colors.
@@ -284,13 +325,15 @@ export function statTile(opts: {
 }
 
 /** Swatch + label pairs, so identity is never carried by color alone. */
-export function legend(items: readonly { color: string; label: string }[]): string {
+export function legend(
+  items: readonly { color: string; label: string; faint?: boolean }[],
+): string {
   return `<div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">${items
     .map(
       (i) =>
-        `<span class="flex items-center gap-1.5 text-xs text-ink-secondary"><span aria-hidden="true" class="inline-block h-2 w-2 rounded-full" style="background:${i.color}"></span>${esc(
-          i.label,
-        )}</span>`,
+        `<span class="flex items-center gap-1.5 text-xs text-ink-secondary"><span aria-hidden="true" class="inline-block h-2 w-2 rounded-full" style="background:${i.color}${
+          i.faint ? ";opacity:0.35" : ""
+        }"></span>${esc(i.label)}</span>`,
     )
     .join("")}</div>`;
 }

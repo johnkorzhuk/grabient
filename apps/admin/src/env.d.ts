@@ -12,6 +12,14 @@ interface Env {
   /** Comma-separated allow-list, checked on top of the Access policy. */
   ADMIN_EMAILS?: string;
   /**
+   * Comma-separated allow-list of Access SERVICE TOKEN names (the token's
+   * `common_name`), for headless clients — an MCP client, a cron job — that
+   * cannot complete a browser SSO round trip. Empty or unset means no service
+   * token is accepted, which is the correct default: minting a token in the
+   * Cloudflare dashboard must not by itself grant access to production data.
+   */
+  ADMIN_SERVICE_TOKENS?: string;
+  /**
    * Cloudflare API token with Zone → Analytics → Read on grabient.com, and the
    * zone's id. Both optional: without them the traffic sections are omitted and
    * the D1-backed half of the dashboard still renders. See src/traffic.ts.
@@ -35,6 +43,12 @@ interface Env {
    * account can read several properties for the same host.
    */
   GSC_PROPERTY?: string;
+  /**
+   * GA4 property id (digits only, e.g. "371413172"). Read by the same service
+   * account, which needs Viewer on the property and the Analytics Data API
+   * enabled on the Cloud project. Without it the GA4 sections are omitted.
+   */
+  GA4_PROPERTY_ID?: string;
   /**
    * Local development escape hatch. Set ONLY in .dev.vars (which is gitignored
    * and never uploaded by `wrangler deploy`) to the literal string

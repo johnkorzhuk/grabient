@@ -10,10 +10,13 @@
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0",
     "@tanstack/charts": "^0.14.0",
+    "agents": "0.20.1",
     "d3-scale": "^4.0.2",
     "hono": "^4.8.3",
-    "jose": "^6.1.0"
+    "jose": "^6.1.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260727.1",

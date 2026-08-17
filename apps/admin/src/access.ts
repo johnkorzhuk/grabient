@@ -66,20 +66,43 @@ export async function verifyAccess(req: Request, env: Env): Promise<AccessResult
   if (!token) return { ok: false, status: 403, reason: "no Access assertion" };
 
   let email: string;
+  let serviceToken: string | null = null;
   try {
     const { payload } = await jwtVerify(token, jwksFor(teamDomain), {
       issuer: `https://${teamDomain}`,
       audience,
     });
-    // Identity-based logins carry `email`; service tokens carry `common_name`
-    // instead and are deliberately not accepted here.
-    if (typeof payload.email !== "string" || !payload.email) {
-      return { ok: false, status: 403, reason: "assertion has no email claim" };
+    // Identity logins carry `email`. Service tokens carry `common_name` and no
+    // email — that is how a headless client (an MCP client, a cron job) reaches
+    // this worker, since no browser is present to complete an SSO round trip.
+    // Both were minted by Access against the same application policy; the
+    // difference is only which allow-list they are checked against below.
+    if (typeof payload.email === "string" && payload.email) {
+      email = payload.email.toLowerCase();
+    } else if (typeof payload.common_name === "string" && payload.common_name) {
+      serviceToken = payload.common_name.toLowerCase();
+      email = `service:${serviceToken}`;
+    } else {
+      return { ok: false, status: 403, reason: "assertion has no email or common_name" };
     }
-    email = payload.email.toLowerCase();
   } catch (err) {
     console.error("Access token verification failed", err);
     return { ok: false, status: 403, reason: "invalid Access assertion" };
+  }
+
+  // Service tokens get their own allow-list, so creating a token in the
+  // dashboard is not by itself enough to read production numbers — the same
+  // two-key posture the email path has. Absent list means no service token is
+  // accepted, which is the safe default for a dashboard that had none until now.
+  if (serviceToken) {
+    const allowedTokens = (env.ADMIN_SERVICE_TOKENS ?? "")
+      .split(",")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter(Boolean);
+    if (!allowedTokens.includes(serviceToken)) {
+      return { ok: false, status: 403, reason: `service token ${serviceToken} is not allowed` };
+    }
+    return { ok: true, email };
   }
 
   // Second gate. The Access policy already decided who may reach the worker;
