@@ -102,17 +102,22 @@ export async function trendCard(
   );
 
   const days = [...new Set(series.flatMap((s) => s.raw.map((p) => p.day)))].sort().reverse();
+  // Up to 120 dated rows per chart — sortable so "which day was worst" is a
+  // click rather than a scroll. Indexed by day first: the previous find()
+  // inside a map was quadratic over the window.
+  const byDay = series.map((s) => new Map(s.raw.map((p) => [p.day, p.value])));
   const table = dataTable(
     ["Date", ...series.map((s) => s.label)],
     days
       .slice(0, 120)
       .map((day) => [
         day,
-        ...series.map((s) => {
-          const point = s.raw.find((p) => p.day === day);
-          return point === undefined ? "—" : spec.unitFormat(point.value);
+        ...byDay.map((index) => {
+          const value = index.get(day);
+          return value === undefined ? "—" : spec.unitFormat(value);
         }),
       ]),
+    true,
   );
 
   const chartLegend =

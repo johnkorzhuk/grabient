@@ -35,11 +35,20 @@ describe("href", () => {
     }
   });
 
-  it("does not push a range onto pages that ignore it", () => {
+  it("carries the range even through pages that ignore it — losing it is how state dies", () => {
+    // /goals does not read a range, but a reader who set 90d, detoured through
+    // Goals and came back must not silently land on 28d. Pass-through costs a
+    // few characters; dropping it costs the reader their place.
     const state = at("/?range=7d");
     for (const path of ["/goals", "/campaigns", "/brief", "/ops"]) {
-      expect(href(path, state)).toBe(path);
+      expect(href(path, state)).toBe(`${path}?range=7d`);
     }
+  });
+
+  it("round-trips the range through a page that ignores it", () => {
+    const start = at("/trends?range=90d");
+    const viaGoals = at(href("/goals", start));
+    expect(href("/trends", viaGoals)).toBe("/trends?range=90d");
   });
 
   it("omits defaults so one view has exactly one URL", () => {
@@ -54,10 +63,18 @@ describe("href", () => {
     expect(href("/", state, { range: "7d" })).toBe("/?range=7d&globe=threats");
   });
 
-  it("never leaks the globe layer onto a page that cannot draw it", () => {
+  it("carries the globe layer through pages that cannot draw it, so returning restores it", () => {
     const state = at("/?range=90d&globe=threats");
-    expect(href("/trends", state)).toBe("/trends?range=90d");
-    expect(href("/trends", state)).not.toContain("globe");
+    expect(href("/trends", state)).toBe("/trends?range=90d&globe=threats");
+    // And it survives the detour: back on the overview, the layer is intact.
+    expect(parseState(new URL(href("/trends", state), "https://a.b")).globe).toBe("threats");
+  });
+
+  it("still keeps page-scoped keys off other pages", () => {
+    // kind means nothing outside the archive, so it does NOT pass through.
+    const state = at("/reports?kind=digest&range=7d");
+    expect(href("/trends", state)).not.toContain("kind");
+    expect(href("/trends", state)).toContain("range=7d");
   });
 
   it("keeps the archive filter on the archive only", () => {

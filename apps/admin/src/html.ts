@@ -1,12 +1,26 @@
 import styles from "../dist/styles.css";
+// The island bundle, inlined rather than served. This worker has no assets
+// binding on purpose (wrangler.jsonc), so a <script src> would have nothing to
+// fetch — and static assets are served BEFORE worker code, which would skip
+// the second Access gate. Inlining keeps the page one self-contained response
+// with both gates applying to every byte. ~18KB gzipped, for one reader.
+import islandBundle from "../dist/islands.js";
 import { href, type DashboardState } from "./url-state";
 
+/**
+ * Escapes a value for HTML text or an attribute of either quote style.
+ *
+ * The apostrophe matters: several payloads ride in SINGLE-quoted attributes
+ * (data-chart, data-globe), and before this each of those hand-rolled its own
+ * apostrophe replace. Three copies happened to agree; the fourth would not.
+ */
 export function esc(value: string): string {
   return value
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 /**
@@ -259,6 +273,7 @@ export function layout(title: string, body: string): string {
 <body class="min-h-dvh bg-page font-sans text-ink antialiased">
 ${body}
 <script>${CHART_SCRIPT}</script>
+<script type="module">${islandBundle}</script>
 </body>
 </html>`;
 }
@@ -446,8 +461,18 @@ export function eventsDisclosure(
 /**
  * The table view is not a nicety here. These charts are static SVG with no
  * tooltips, so without it there is no way to read an exact value.
+ *
+ * With `enhance`, the finished static table is wrapped in an island host and
+ * shipped alongside a JSON copy of its own cells; the Solid island swaps in a
+ * TanStack table with sortable headers and a filter box. The static markup is
+ * what renders first and what remains if the bundle never runs, so sorting is
+ * strictly an upgrade — the accessible path is the one the server drew.
  */
-export function dataTable(headers: readonly string[], rows: readonly string[][]): string {
+export function dataTable(
+  headers: readonly string[],
+  rows: readonly string[][],
+  enhance = false,
+): string {
   const head = headers
     .map(
       (h, i) =>
@@ -469,7 +494,27 @@ export function dataTable(headers: readonly string[], rows: readonly string[][])
           .join("")}</tr>`,
     )
     .join("");
-  return `<table class="data-table w-full text-xs"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  const table = `<table class="data-table w-full text-xs"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+  // Below a handful of rows, sorting and filtering are noise.
+  if (!enhance || rows.length < 6) return table;
+
+  // Which columns are numeric decides how they sort. Judged from the rendered
+  // values rather than declared by every caller: a column is numeric when
+  // every non-placeholder cell in it parses as one.
+  const numeric = headers
+    .map((_, column) => column)
+    .filter((column) =>
+      rows.every((row) => {
+        const cell = row[column] ?? "";
+        return cell === "" || cell === "—" || /^[-+]?[\d,.]+\s*(%|B|KB|MB|GB|TB)?$/.test(cell.trim());
+      }),
+    );
+
+  const payload = JSON.stringify({ headers, rows, numeric })
+    // The JSON sits inside a <script>, so the only escape that matters is the
+    // one that could close the tag early.
+    .replace(/<\/script/gi, "<\\/script");
+  return `<div data-island="table">${table}<script type="application/json">${payload}</script></div>`;
 }
 
 export function errorPage(status: number, heading: string, detail: string): string {

@@ -4,11 +4,12 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "lib": [
-      "ES2022"
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
     ],
-    "types": [
-      "@cloudflare/workers-types"
-    ],
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
     "strict": true,
     "noEmit": true,
     "skipLibCheck": true,
@@ -16,10 +17,6 @@
     "verbatimModuleSyntax": true
   },
   "include": [
-    "src"
-  ],
-  "exclude": [
-    "src/islands",
-    "test"
+    "src/islands"
   ]
 }

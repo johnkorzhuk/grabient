@@ -128,33 +128,66 @@ export async function upsertGoal(
   }
   const ts = now.getTime();
   try {
+    if (!existing) {
+      // A plain INSERT, not an upsert: SQLite evaluates NOT NULL against the
+      // candidate row before it ever considers the conflict clause, so
+      // COALESCE inside DO UPDATE cannot rescue a null here — the insert fails
+      // first. Create and update are genuinely different statements.
+      await db
+        .prepare(
+          `INSERT INTO goal (slug, title, metric_key, direction, aggregate, window_days,
+                             baseline_value, baseline_day, target_value, target_day, status,
+                             notes, created_at, updated_at)
+           VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?13)`,
+        )
+        .bind(
+          input.slug,
+          input.title!,
+          input.metric_key!,
+          input.direction!,
+          input.aggregate ?? "last",
+          input.window_days ?? 28,
+          input.baseline_value!,
+          input.baseline_day!,
+          input.target_value!,
+          input.target_day!,
+          input.status ?? "active",
+          input.notes ?? null,
+          ts,
+        )
+        .run();
+      return { ok: true };
+    }
+
+    // Update: every column keeps its stored value unless the caller sent a new
+    // one. `aggregate` and `window_days` are the dangerous pair — they used to
+    // be bound with `?? "last"` / `?? 28`, so any update that omitted them
+    // silently rewrote a sum-over-28-days goal into a last-value goal and
+    // collapsed its reported progress.
     await db
       .prepare(
-        `INSERT INTO goal (slug, title, metric_key, direction, aggregate, window_days,
-                           baseline_value, baseline_day, target_value, target_day, status,
-                           notes, created_at, updated_at)
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?13)
-         ON CONFLICT(slug) DO UPDATE SET
-           title = COALESCE(?2, goal.title),
-           metric_key = COALESCE(?3, goal.metric_key),
-           direction = COALESCE(?4, goal.direction),
-           aggregate = COALESCE(?5, goal.aggregate),
-           window_days = COALESCE(?6, goal.window_days),
-           baseline_value = COALESCE(?7, goal.baseline_value),
-           baseline_day = COALESCE(?8, goal.baseline_day),
-           target_value = COALESCE(?9, goal.target_value),
-           target_day = COALESCE(?10, goal.target_day),
-           status = COALESCE(?11, goal.status),
-           notes = COALESCE(?12, goal.notes),
-           updated_at = ?13`,
+        `UPDATE goal SET
+           title = COALESCE(?2, title),
+           metric_key = COALESCE(?3, metric_key),
+           direction = COALESCE(?4, direction),
+           aggregate = COALESCE(?5, aggregate),
+           window_days = COALESCE(?6, window_days),
+           baseline_value = COALESCE(?7, baseline_value),
+           baseline_day = COALESCE(?8, baseline_day),
+           target_value = COALESCE(?9, target_value),
+           target_day = COALESCE(?10, target_day),
+           status = COALESCE(?11, status),
+           notes = COALESCE(?12, notes),
+           updated_at = ?13
+         WHERE slug = ?1`,
       )
       .bind(
         input.slug,
         input.title ?? null,
         input.metric_key ?? null,
         input.direction ?? null,
-        input.aggregate ?? "last",
-        input.window_days ?? 28,
+        input.aggregate ?? null,
+        input.window_days ?? null,
         input.baseline_value ?? null,
         input.baseline_day ?? null,
         input.target_value ?? null,

@@ -37,13 +37,20 @@ const GLOBE_VALUES: readonly GlobeMetric[] = ["requests", "people", "threats", "
 const DEFAULT_GLOBE: GlobeMetric = "requests";
 
 /**
- * Which state keys each path reads. A key absent here is not emitted into
- * that path's links — the alternative is every URL carrying every parameter,
- * which turns a shared link into a puzzle.
+ * Which state keys each path READS — i.e. which ones change what it renders.
  *
- * `before` is intentionally nowhere: a cursor is a position inside one
- * listing, and carrying it onto another page would land the reader mid-list
- * for no reason. It is added explicitly by the one link that needs it.
+ * This is not the same as which keys its links carry. `range` and `globe` are
+ * PASS-THROUGH: they ride along on every link whether or not the target reads
+ * them, because dropping them is how state dies. Set 90d on /trends, click
+ * Goals, click Trends, and without pass-through you are silently back on 28d —
+ * the very bug this module was written to prevent, reintroduced one layer
+ * down. Carrying an unread parameter costs a few characters in the URL; losing
+ * it costs the reader their place.
+ *
+ * `kind` is genuinely page-scoped (it means nothing off the archive) and
+ * `before` is nowhere: a cursor is a position inside one listing, and carrying
+ * it elsewhere would land the reader mid-list for no reason. It is added
+ * explicitly by the one link that needs it.
  */
 const PARAMS: Record<string, readonly (keyof DashboardState)[]> = {
   "/": ["range", "globe"],
@@ -56,6 +63,9 @@ const PARAMS: Record<string, readonly (keyof DashboardState)[]> = {
   "/brief": [],
   "/ops": [],
 };
+
+/** Keys that survive every navigation, read or not. */
+const PASS_THROUGH: readonly (keyof DashboardState)[] = ["range", "globe"];
 
 export function parseState(url: URL): DashboardState {
   const params = url.searchParams;
@@ -83,17 +93,19 @@ export function href(
   state: DashboardState,
   overrides: Partial<{ range: RangeKey; globe: GlobeMetric; kind?: string; before?: string }> = {},
 ): string {
-  const allowed = PARAMS[path] ?? [];
+  const reads = PARAMS[path] ?? [];
+  const allowed = (key: keyof DashboardState) =>
+    reads.includes(key) || PASS_THROUGH.includes(key);
   const params = new URLSearchParams();
 
   const range = overrides.range ?? state.range.key;
-  if (allowed.includes("range") && range !== DEFAULT_RANGE) params.set("range", range);
+  if (allowed("range") && range !== DEFAULT_RANGE) params.set("range", range);
 
   const globe = overrides.globe ?? state.globe;
-  if (allowed.includes("globe") && globe !== DEFAULT_GLOBE) params.set("globe", globe);
+  if (allowed("globe") && globe !== DEFAULT_GLOBE) params.set("globe", globe);
 
   const kind = "kind" in overrides ? overrides.kind : state.kind;
-  if (allowed.includes("kind") && kind) params.set("kind", kind);
+  if (allowed("kind") && kind) params.set("kind", kind);
 
   // Cursors are per-link, never inherited — see the note on PARAMS.
   if (overrides.before) params.set("before", overrides.before);

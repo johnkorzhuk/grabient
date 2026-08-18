@@ -165,15 +165,22 @@ export function resolveWindow(
 ): ResolvedWindow {
   const dayMs = 86_400_000;
   const today = new Date(now.getTime());
-  const named: Record<string, Date> = {
+  // A null-prototype map: on an object literal, `named["constructor"]` and
+  // `named["toString"]` are truthy, so end:"toString" returned a FUNCTION and
+  // the next line threw "until.getTime is not a function" at the agent.
+  const named: Record<string, Date> = Object.assign(Object.create(null), {
     today,
     yesterday: new Date(now.getTime() - dayMs),
-  };
+  });
 
   const parse = (value: string | undefined): Date | null => {
     if (!value) return null;
-    if (named[value]) return named[value]!;
-    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null;
+    if (named[value] instanceof Date) return named[value]!;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
+    // The regex admits impossible dates (2026-13-45), which become an Invalid
+    // Date and then a RangeError inside toISOString().
+    const parsed = new Date(`${value}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
   };
 
   const until = parse(options.end) ?? new Date(now.getTime() - defaults.lagDays * dayMs);
@@ -182,7 +189,12 @@ export function resolveWindow(
   let since = parse(options.start) ?? new Date(until.getTime() - (requested - 1) * dayMs);
   if (since > until) since = new Date(until.getTime());
 
-  const days = Math.round((until.getTime() - since.getTime()) / dayMs) + 1;
+  // Both ends floored to UTC midnight before differencing: `until` carries a
+  // time-of-day when it defaults from `now`, and the fraction rounded up past
+  // noon — so an afternoon query compared a 19-day window against a 20-day one
+  // and called the difference a change.
+  const floor = (d: Date) => Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+  const days = Math.round((floor(until) - floor(since)) / dayMs) + 1;
   const prevUntil = new Date(since.getTime() - dayMs);
   const prevSince = new Date(prevUntil.getTime() - (days - 1) * dayMs);
 

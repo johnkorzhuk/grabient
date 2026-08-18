@@ -3,6 +3,16 @@ declare module "*.css" {
   export default text;
 }
 
+/**
+ * The Vite island bundle, imported as a text module and inlined — see html.ts.
+ * A wildcard pattern because TypeScript matches ambient module declarations
+ * against the specifier string, and an exact relative path never matches.
+ */
+declare module "*/islands.js" {
+  const text: string;
+  export default text;
+}
+
 interface Env {
   DB: D1Database;
   /**

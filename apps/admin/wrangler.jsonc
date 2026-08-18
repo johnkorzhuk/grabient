@@ -11,20 +11,31 @@
 	// grabient-production; that failure mode needs two targets sharing a name, so
 	// it cannot arise here. Do NOT copy this flat shape back into apps/web.
 	//
-	// This worker ships ZERO client code: no assets directory, no bundler, no
-	// islands. Every byte the browser receives is HTML, inlined CSS, and inlined
-	// SVG generated per request by the worker itself. There is nothing here for
-	// an unauthenticated visitor to download even if they find the hostname.
+	// This worker ships NO STATIC ASSETS: no assets directory, no asset binding,
+	// no separately-fetched file of any kind. Every byte the browser receives —
+	// HTML, CSS, SVG, and since 2026-08-18 a Solid/TanStack island bundle built
+	// by Vite — is inlined into the one response the worker generates. That is a
+	// security property, not tidiness: static assets are served BEFORE worker
+	// code runs, so an assets binding would hand out bytes without the in-worker
+	// Access check in access.ts ever executing. Pages are fully server-rendered
+	// and every island is an enhancement over markup that already works.
 	// ---------------------------------------------------------------------------
 	"name": "grabient-admin",
 	"main": "./src/index.ts",
 	"compatibility_date": "2025-09-02",
 	"compatibility_flags": ["nodejs_compat"],
 
-	// The Tailwind build output is imported as a text module and inlined into a
-	// <style> tag, exactly like apps/web does. Keeps the response self-contained
-	// and means no static asset ever needs to be served.
-	"rules": [{ "type": "Text", "globs": ["**/*.css"], "fallthrough": true }],
+	// The Tailwind build output and the Vite island bundle are imported as text
+	// modules and inlined into <style>/<script> tags. Keeps the response
+	// self-contained and means no static asset ever needs to be served — which
+	// is not just tidiness: assets are served BEFORE worker code runs, so an
+	// assets binding would hand out bytes without the in-worker Access check in
+	// access.ts ever executing. The glob is the exact build output, not **/*.js,
+	// so no source file can be swept into the bundle as text by accident.
+	"rules": [
+		{ "type": "Text", "globs": ["**/*.css"], "fallthrough": true },
+		{ "type": "Text", "globs": ["dist/islands.js"], "fallthrough": true }
+	],
 
 	// MUST stay false. Cloudflare Access is bound to the admin.grabient.com
 	// hostname; a workers.dev URL is a different hostname and would NOT be

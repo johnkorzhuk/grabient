@@ -94,6 +94,24 @@ export async function upsertCampaign(
 ): Promise<{ campaign: CampaignRow | null; created: boolean; warnings: string[]; refused?: string }> {
   const warnings: string[] = [];
   const existing = await getCampaign(db, input.id);
+  if (!existing) {
+    // getCampaign filters soft-deleted rows, so without this the "create"
+    // branch runs, ON CONFLICT(id) fires on the deleted row, and the caller is
+    // handed a campaign that appears in no listing because deleted_at is still
+    // set.
+    const deleted = await db
+      .prepare(`SELECT id FROM campaign WHERE id = ?1 AND deleted_at IS NOT NULL`)
+      .bind(input.id)
+      .first<{ id: string }>();
+    if (deleted) {
+      return {
+        campaign: null,
+        created: false,
+        warnings,
+        refused: `Campaign '${input.id}' was deleted. Pick a new id rather than reusing this one — its events and reports still point at the old row.`,
+      };
+    }
+  }
   const ts = now.getTime();
 
   if (!existing) {
@@ -178,10 +196,14 @@ export async function upsertCampaign(
       )
       .bind(
         input.id,
-        input.utm_campaign ?? null,
-        input.platform ?? null,
+        // These three fall back to the stored row like every other column:
+        // binding a bare null made the NOT NULL check fail on the candidate
+        // row before ON CONFLICT was ever considered, so recording spend on an
+        // existing campaign was impossible.
+        input.utm_campaign ?? existing?.utm_campaign ?? null,
+        input.platform ?? existing?.platform ?? null,
         landing,
-        input.starts_on ?? null,
+        input.starts_on ?? existing?.starts_on ?? null,
         endsOn,
         status,
         budget,
@@ -200,8 +222,13 @@ export async function upsertCampaign(
   } catch (err) {
     const message = String(err);
     // The CHECK constraints fire at runtime; translate the two likely ones.
-    const refused = /utm_campaign/.test(message)
-      ? "utm_campaign was refused by the schema: lowercase a-z, 0-9, hyphen and underscore only, 2-64 chars. The site stores utm_campaign verbatim off the URL, so a capital letter is a silent zero-row join."
+    // Order matters: a UNIQUE violation also mentions utm_campaign, and
+    // telling someone their tag is malformed when it is actually taken sends
+    // them to fix the wrong thing.
+    const refused = /UNIQUE constraint failed: campaign\.utm_campaign/.test(message)
+      ? `The tag '${input.utm_campaign}' already belongs to another campaign. Tags must be unique — an ambiguous tag makes its attribution unresolvable forever. Run this one under a new tag.`
+      : /CHECK constraint failed/.test(message) && /utm_campaign/.test(message)
+        ? "utm_campaign was refused by the schema: lowercase a-z, 0-9, hyphen and underscore only, 2-64 chars. The site stores utm_campaign verbatim off the URL, so a capital letter is a silent zero-row join."
       : /outcome/.test(message)
         ? "The schema refused: status 'evaluated' requires a non-empty outcome."
         : `The database refused the write: ${message.slice(0, 200)}`;

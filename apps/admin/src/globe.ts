@@ -351,6 +351,8 @@ export function worldDistributionCard(input: {
     })
     .join("");
 
+  // 220 countries: the one table on the dashboard that genuinely needs
+  // sorting and a filter box.
   const table = dataTable(
     ["Country", spec.label, "Share"],
     rows.map((row) => [
@@ -358,6 +360,7 @@ export function worldDistributionCard(input: {
       spec.format(row.value),
       `${share(row.value).toFixed(1)}%`,
     ]),
+    true,
   );
 
   return `<section class="flex flex-col rounded-xl border border-edge bg-surface p-5">

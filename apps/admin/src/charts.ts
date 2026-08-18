@@ -20,6 +20,7 @@ import { scaleBand, scaleLinear, scaleUtc } from "d3-scale";
 import { monthDate, type CohortRow, type LikersRow, type MonthRow } from "./queries";
 import type { Breakdown, TrafficDay } from "./traffic";
 import { rollingMean } from "./range";
+import { esc } from "./html";
 
 // The disclosure that spells out the markers lives with the other markup
 // helpers, next to the "Table view" disclosure it is shaped after. It is
@@ -141,12 +142,12 @@ function render(
         if (seen.has(key)) return null;
         seen.add(key);
         return {
-          m: meta?.n ?? "",
+          m: tipText(meta?.n ?? ""),
           c: meta?.c ?? SERIES,
           x: Math.round(p.x * 100) / 100,
           y: Math.round(p.y * 100) / 100,
-          l: hover.formatX(p.xValue),
-          v: hover.formatY(p.yValue),
+          l: tipText(hover.formatX(p.xValue)),
+          v: tipText(hover.formatY(p.yValue)),
         };
       })
       .filter(Boolean);
@@ -163,9 +164,7 @@ function render(
 
     // Single-quoted attribute, so only the quote and & need escaping.
     const json = JSON.stringify(payload).replace(/&/g, "&amp;").replace(/'/g, "&#39;");
-    return `<div class="chart-hover" data-chart='${json}' tabindex="0" role="group" aria-label="${
-      ariaLabel
-    }. Use arrow keys to read values.">${svg}</div>`;
+    return `<div class="chart-hover" data-chart='${json}' tabindex="0" role="group" aria-label="${esc(ariaLabel)}. Use arrow keys to read values.">${svg}</div>`;
   } finally {
     runtime.destroy();
   }
@@ -1021,17 +1020,23 @@ export function rankedBarChart(
       className: "chart-svg",
       tabIndex: -1,
     });
+    // tipText, not raw: these labels are request paths, search queries and
+    // referrer URLs — none of them ours — and the hover script writes them
+    // with innerHTML. expandLabel is usually decodeURIComponent, so a
+    // percent-encoded payload arrives here already decoded into markup.
+    // Anyone who can send a request to grabient.com can put a path in this
+    // card's top-12.
     const points = (scene as any).points.map((p: any) => ({
       m: "",
       c: SERIES,
       x: Math.round(p.x * 100) / 100,
       y: Math.round(p.y * 100) / 100,
-      l: expandLabel(String(p.yValue)),
-      v: formatValue(p.xValue),
+      l: tipText(expandLabel(String(p.yValue))),
+      v: tipText(formatValue(p.xValue)),
     }));
     const payload = { w: WIDTH, h: height, plot: (scene as any).chart, points, axis: "y" };
     const json = JSON.stringify(payload).replace(/&/g, "&amp;").replace(/'/g, "&#39;");
-    return `<div class="chart-hover" data-chart='${json}' tabindex="0" role="group" aria-label="${ariaLabel}. Use arrow keys to read values.">${svg}</div>`;
+    return `<div class="chart-hover" data-chart='${json}' tabindex="0" role="group" aria-label="${esc(ariaLabel)}. Use arrow keys to read values.">${svg}</div>`;
   } finally {
     runtime.destroy();
   }

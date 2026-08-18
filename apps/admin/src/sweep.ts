@@ -21,7 +21,19 @@ const DAILY_QUOTA = 2000;
 /** Kept back for ad-hoc MCP url inspections after the sweep runs. */
 const QUOTA_RESERVE = 400;
 const PER_MINUTE_TARGET = 480;
-const CONCURRENCY = 5;
+const CONCURRENCY = 6;
+/**
+ * Stop and close the books at 11 minutes.
+ *
+ * A cron invocation is killed at 15 with no catch block running, which loses
+ * the in-memory counters and — because the quota ledger is summed from them —
+ * makes the day's spend unknowable. Throughput here is 6/latency, so a slow
+ * Google (4s+) puts a 920-URL corpus past that ceiling. Finishing early and
+ * honestly beats being killed: the sweep records what it did, publishes
+ * nothing (partial), and tomorrow's rotation starts with the URLs this run
+ * never reached.
+ */
+const DEADLINE_MS = 11 * 60_000;
 
 const XML_ENTITIES: Record<string, string> = {
   "&amp;": "&",
@@ -65,6 +77,14 @@ export async function fetchCorpus(): Promise<Corpus | null> {
         return null; // a partial corpus would make the denominator lie
       }
       const childUrls = locs(await res.text());
+      if (childUrls.length === 0) {
+        // A 200 that parses to nothing is the dangerous case: the corpus
+        // shrinks, mode still reads "full" because both sides shrank together,
+        // and the sweep publishes a fabricated de-indexation cliff. An empty
+        // child is never legitimate here — every one of the three has content.
+        console.error(`child sitemap parsed to zero URLs: ${child}`);
+        return null;
+      }
       byChild[new URL(child).pathname] = childUrls.length;
       urls.push(...childUrls);
     }
@@ -105,10 +125,23 @@ export interface SweepResult {
   note?: string;
 }
 
+/**
+ * Quota spent today, counting an abandoned run at what it may have spent.
+ *
+ * A killed invocation leaves status='running' with whatever the last batch
+ * checkpointed. Assuming it stopped there would under-count; assuming it
+ * burned its whole corpus over-counts. Take the checkpointed value but treat a
+ * stale running row as at least its corpus size, because the honest failure
+ * here is refusing to sweep, not silently overrunning a shared quota.
+ */
 async function quotaUsedToday(db: D1Database, day: string): Promise<number> {
   try {
     const row = await db
-      .prepare(`SELECT COALESCE(SUM(inspected), 0) AS used FROM index_sweep WHERE day = ?1`)
+      .prepare(
+        `SELECT COALESCE(SUM(CASE WHEN status = 'running' THEN MAX(inspected, corpus_size)
+                                  ELSE inspected END), 0) AS used
+           FROM index_sweep WHERE day = ?1`,
+      )
       .bind(day)
       .first<{ used: number }>();
     return row?.used ?? 0;
@@ -144,6 +177,23 @@ export async function runSweep(
   };
   if (!db) return { ...empty, note: "ADMIN_DB is not configured." };
 
+  // One sweep at a time. Two concurrent sweeps both read a stale quota ledger
+  // and then contend for the 600/min property limit shared with the human's
+  // Search Console tab.
+  const inflight = await db
+    .prepare(
+      `SELECT id, started_at FROM index_sweep WHERE status = 'running'
+        AND started_at > ?1 ORDER BY id DESC LIMIT 1`,
+    )
+    .bind(now.getTime() - 3_600_000)
+    .first<{ id: number; started_at: number }>();
+  if (inflight) {
+    return {
+      ...empty,
+      note: `Sweep #${inflight.id} has been running since ${new Date(inflight.started_at).toISOString()}. Refusing to start a second one — they would share the 600/min property quota and each would under-count the other's spend.`,
+    };
+  }
+
   const used = await quotaUsedToday(db, day);
   const budgetCap = Number(env.SWEEP_BUDGET ?? "1400");
   const remaining = Math.max(0, DAILY_QUOTA - QUOTA_RESERVE - used);
@@ -157,6 +207,36 @@ export async function runSweep(
   }
 
   const corpus = await fetchCorpus();
+  // A corpus that collapsed against the last known-good sweep is not a
+  // de-indexation, it is a bad fetch. Refuse rather than publish the cliff.
+  if (corpus) {
+    const previous = await db
+      .prepare(
+        `SELECT corpus_size FROM index_sweep WHERE status = 'complete' AND corpus_size > 0
+          ORDER BY id DESC LIMIT 1`,
+      )
+      .first<{ corpus_size: number }>();
+    const floor = (previous?.corpus_size ?? 0) * 0.7;
+    if (floor > 0 && corpus.urls.length < floor) {
+      await persist("index_sweep shrunk-corpus", async () => {
+        await db
+          .prepare(
+            `INSERT INTO index_sweep (day, started_at, finished_at, status, mode, trigger, corpus_size, note)
+             VALUES (?1, ?2, ?2, 'failed', 'full', ?3, ?4, ?5)`,
+          )
+          .bind(day, now.getTime(), options.trigger, corpus.urls.length,
+            `corpus collapsed to ${corpus.urls.length} from ${previous?.corpus_size} — refused, zero quota spent`)
+          .run();
+      });
+      return {
+        ...empty,
+        corpusSize: corpus.urls.length,
+        quotaUsedToday: used,
+        quotaRemainingToday: remaining,
+        note: `Refused: the sitemap returned ${corpus.urls.length} URLs against ${previous?.corpus_size} last sweep. That is a fetch problem, not a de-indexation, and publishing it would fake a cliff on the headline chart.`,
+      };
+    }
+  }
   if (!corpus) {
     await persist("index_sweep failed row", async () => {
       await db
@@ -171,8 +251,27 @@ export async function runSweep(
   }
 
   const cap = Math.min(corpus.urls.length, remaining, budgetCap, options.maxUrls ?? Infinity);
-  const urls = corpus.urls.slice(0, cap);
-  const mode = urls.length < corpus.urls.length ? "rotation" : "full";
+  const mode = cap < corpus.urls.length ? "rotation" : "full";
+  // Rotation has to actually rotate. slice(0, cap) re-swept the same head of
+  // the list every night, so anything past the cap was never inspected at all.
+  // Prioritise URLs we know least about: never-seen first, then oldest-seen —
+  // one indexed query, and it converges on full coverage over a few nights.
+  let urls = corpus.urls;
+  if (mode === "rotation") {
+    const seen = new Map<string, number>();
+    try {
+      const res = await db
+        .prepare(`SELECT url, MAX(sweep_id) AS last FROM index_url_status GROUP BY url`)
+        .all<{ url: string; last: number }>();
+      for (const row of res.results ?? []) seen.set(row.url, row.last);
+    } catch (err) {
+      console.error("rotation ordering unavailable, falling back to list order", err);
+    }
+    urls = [...corpus.urls].sort(
+      (a, b) => (seen.get(a) ?? -1) - (seen.get(b) ?? -1),
+    );
+  }
+  urls = urls.slice(0, cap);
 
   const sweepRow = await db
     .prepare(
@@ -210,8 +309,14 @@ export async function runSweep(
   // shared with a human clicking around Search Console.
   const BATCH = 40;
   const minBatchMs = (BATCH / PER_MINUTE_TARGET) * 60_000;
+  const startedAt = Date.now();
+  let ranOutOfTime = false;
   try {
     for (let start = 0; start < urls.length; start += BATCH) {
+      if (Date.now() - startedAt > DEADLINE_MS) {
+        ranOutOfTime = true;
+        break;
+      }
       const batch = urls.slice(start, start + BATCH);
       const batchStarted = Date.now();
       const rows: unknown[][] = [];
@@ -250,6 +355,15 @@ export async function runSweep(
         }
       }
       await persist("index_url_status batch", () => writeRows(rows));
+      // Checkpoint the counters every batch. A cron invocation is killed at 15
+      // minutes with no catch block running, so anything held only in memory is
+      // lost — including the quota ledger, which is summed from `inspected`.
+      await persist("index_sweep progress", async () => {
+        await db
+          .prepare(`UPDATE index_sweep SET inspected = ?2, api_errors = ?3 WHERE id = ?1`)
+          .bind(sweepId, inspected, apiErrors)
+          .run();
+      });
       const elapsed = Date.now() - batchStarted;
       if (elapsed < minBatchMs && start + BATCH < urls.length) {
         await new Promise((resolve) => setTimeout(resolve, minBatchMs - elapsed));
@@ -283,10 +397,19 @@ export async function runSweep(
   }
 
   const indexed = buckets["indexed"] ?? 0;
+  // Writes go through persist(), which logs and swallows — so a D1 outage
+  // leaves the in-memory counts intact and the table empty. Confirm the rows
+  // exist before publishing anything derived from them.
+  const persisted = await db
+    .prepare(`SELECT COUNT(*) AS n FROM index_url_status WHERE sweep_id = ?1`)
+    .bind(sweepId)
+    .first<{ n: number }>();
+  const rowsPersisted = persisted?.n ?? 0;
   const errorShare = inspected > 0 ? apiErrors / inspected : 1;
   // >5% API errors means the counts are materially understated — record the
   // sweep but do not publish a dip that is really a Google hiccup.
-  const complete = mode === "full" && errorShare <= 0.05;
+  const complete =
+    mode === "full" && !ranOutOfTime && errorShare <= 0.05 && rowsPersisted >= inspected;
   const status = complete ? "complete" : "partial";
 
   await persist("index_sweep close", async () => {
@@ -313,7 +436,8 @@ export async function runSweep(
     const stale = await db
       .prepare(
         `SELECT COUNT(*) AS n FROM index_url_status
-          WHERE sweep_id = ?1 AND (last_crawl_at IS NULL OR last_crawl_at < ?2)`,
+          WHERE sweep_id = ?1 AND bucket <> 'error'
+            AND (last_crawl_at IS NULL OR last_crawl_at < ?2)`,
       )
       .bind(sweepId, staleCutoff)
       .first<{ n: number }>();
@@ -342,7 +466,13 @@ export async function runSweep(
     buckets,
     quotaUsedToday: used + inspected,
     quotaRemainingToday: Math.max(0, remaining - inspected),
-    ...(complete ? {} : { note: "Partial sweep: recorded, but no index.* metrics published." }),
+    ...(complete
+      ? {}
+      : {
+          note: ranOutOfTime
+            ? `Stopped at the ${DEADLINE_MS / 60_000}-minute deadline after ${inspected} of ${corpus.urls.length} URLs. Recorded, no index.* metrics published; tomorrow's rotation starts with the URLs this run did not reach.`
+            : "Partial sweep: recorded, but no index.* metrics published.",
+        }),
   };
 }
 

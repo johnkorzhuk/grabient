@@ -169,8 +169,11 @@ app.get("/acquisition", async (c) => {
 // clients via a service token. Same policy as the dashboard, one place to
 // grant or revoke. The verified identity rides along so write tools can stamp
 // created_by with something real.
-app.all("/mcp", (c) =>
-  analyticsMcpHandler(c.env, new URL(c.req.url).hostname, c.get("email")).fetch(c.req.raw),
+app.all("/mcp", async (c) =>
+  // Sealed like every other response: this is the endpoint that returns the
+  // MOST production data, and the invariant above said "every response" while
+  // this one was the exception.
+  seal(await analyticsMcpHandler(c.env, new URL(c.req.url).hostname, c.get("email")).fetch(c.req.raw)),
 );
 
 // The agent-facing endpoint. Same numbers as the pages, plus the definitions,
@@ -437,7 +440,7 @@ app.get("/campaigns", async (c) => {
 
 // The report archive. Raw-markdown route registers FIRST — Hono's :slug
 // would otherwise swallow the .md suffix.
-app.get("/reports/:file{[a-z0-9][a-z0-9-]*\\.md}", async (c) => {
+app.get("/reports/:file{[a-zA-Z0-9][a-zA-Z0-9-]*\\.md}", async (c) => {
   const slug = c.req.param("file").slice(0, -3);
   const report = await getReport(c.env.ADMIN_DB, slug);
   if (!report) return seal(c.html(errorPage(404, "Not found", "No such report."), 404));
@@ -450,7 +453,7 @@ app.get("/reports/:file{[a-z0-9][a-z0-9-]*\\.md}", async (c) => {
   );
 });
 
-app.get("/reports/:slug{[a-z0-9][a-z0-9-]*}", async (c) => {
+app.get("/reports/:slug{[a-zA-Z0-9][a-zA-Z0-9-]*}", async (c) => {
   const report = await getReport(c.env.ADMIN_DB, c.req.param("slug"));
   if (!report) return seal(c.html(errorPage(404, "Not found", "No such report."), 404));
   const { html: body, headings } = renderMarkdown(report.body);
@@ -681,6 +684,7 @@ function acquisitionPage(
             pct(row.ctr),
             row.position.toFixed(1),
           ]),
+          true,
         ),
       })}
 ${chartCard({
@@ -710,6 +714,7 @@ ${chartCard({
       pct(row.ctr),
       row.position.toFixed(1),
     ]),
+    true,
   ),
 })}`;
 
