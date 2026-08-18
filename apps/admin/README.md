@@ -1,7 +1,53 @@
 # apps/admin — internal metrics dashboard
 
-`grabient-admin`, served at **admin.grabient.com**. A read-only view of the
-production D1 database: user growth, activation, and engagement.
+`grabient-admin`, served at **admin.grabient.com**. The analytics surface for
+grabient.com — dashboard pages for a human, an MCP server for agents — reading
+Search Console, GA4, Cloudflare analytics, Bing and the production D1, and
+writing history into its own database so trend questions have answers.
+
+## The 2026-08 rewrite, in one map
+
+Two databases, one boundary:
+
+- **`DB` → grabient-prod.** Read-only, no `migrations_dir`, every query a
+  SELECT. Admin can never migrate or write production; that invariant is
+  mechanical, not conventional.
+- **`ADMIN_DB` → grabient-admin.** Admin-owned and writable. Holds only
+  derived or workspace data: `metric_daily` (the trend store), `index_sweep` +
+  `index_url_status` (Google indexation sweeps), `event` + `campaign` (the
+  marker system), `goal`, `reports` (agent-written markdown + cron digests),
+  `job_run` (cron observability). Migrations live in `d1/admin-migrations/` —
+  a deliberately NON-default directory name, so
+  `wrangler d1 migrations apply grabient-prod` fails instead of applying admin
+  DDL to production. Apply with `pnpm --filter admin migrate:remote` (the
+  `deploy` script chains it).
+
+Three crons (see `CRON` in `src/scheduled.ts` — the strings must match
+`wrangler.jsonc` character for character):
+
+| cron (UTC) | job |
+|---|---|
+| 04:20 | metric snapshot — every collector re-writes a trailing window so upstream revisions self-heal |
+| 05:40 | indexation sweep — the whole sitemap corpus through the URL Inspection API, paced under the 600/min quota |
+| 06:10 | digests — `periodsClosing()` decides which periods ended (weekly Mondays, monthly 1sts, quarterly) |
+
+`/ops` shows the last runs and hosts the backfill button;
+`POST /ops/backfill` reconstructs the whole metric archive from the upstream
+APIs (idempotent, ~5 subrequests).
+
+The MCP server at `/mcp` carries 18 tools in six modules (`src/mcp/`):
+digest + history (`brief`, `metrics_history`), Google (`search_console`,
+`ga4`, `referrers`), Cloudflare (`traffic`, `crawlers`, `cloudflare_graphql`),
+indexation (`indexation`, `corpus`), the write surface (`events`, `campaigns`,
+`campaign_report`, `goals`, `report_write`, `reports`), and `capabilities` +
+`bing`. Writes touch `ADMIN_DB` only, are additive or soft-delete, and stamp
+`created_by` with the Access identity. Agent-written reports land at
+`/reports/{slug}` — the write tool returns that URL; hand it to the owner.
+
+The pages: `/` (overview), `/trends` (persisted series with event markers),
+`/indexation` (the headline: pages indexed over time), `/acquisition`
+(including referring domains from GA4), `/goals`, `/campaigns`, `/reports`,
+`/brief`, `/ops`.
 
 ## Why it is a separate worker
 
@@ -72,6 +118,13 @@ identify either a person or our Zero Trust setup:
 | `ADMIN_EMAILS` | comma-separated operator allow-list |
 | `CF_ANALYTICS_TOKEN` | API token, Zone → Analytics → Read on grabient.com |
 | `CF_ZONE_ID` | grabient.com's zone id |
+| `CF_ACCOUNT_ID` | account tag (RUM dataset is account-scoped) |
+| `GSC_SERVICE_ACCOUNT` | Google service-account JSON (GSC + GA4; contains an RSA key) |
+| `GA4_PROPERTY_ID` | GA4 property id, digits only |
+| `ADMIN_SERVICE_TOKENS` | comma-separated Access service-token names for headless clients |
+| `BING_API_KEY` | optional; Bing Webmaster API key — per-user, grants writes, so the read-only boundary is the hardcoded method allow-list in `src/bing.ts` |
+| `CF_DEPLOY_TOKEN` | optional; Account → Workers Scripts → Read, for labelled deploy markers |
+| `SWEEP_BUDGET` | optional; per-run sweep ceiling, default 1400 |
 
 The last two are optional: without them the traffic and acquisition sections are
 omitted and the D1-backed half still renders.
