@@ -171,11 +171,23 @@ const ANALOGOUS_SPAN = 95;
 const COMPLEMENTARY_SEPARATION = 150;
 const RAINBOW_SPAN = 200;
 /**
- * How wide a single hue cluster may be and still count as one hue. 60° is two
- * segments of the 12-segment wheel every colour-theory tool divides the circle
- * into — adjacent enough to read as one colour family.
+ * How wide a single hue cluster may be and still count as one hue.
+ *
+ * Was 60° (two segments of the 12-segment wheel). Re-measured 2026-08-18 after
+ * visual QA: a cluster may not be WIDER THAN THE GAP that defines a cluster, or
+ * "group" stops meaning anything. At 60 a pale sweep running sand, yellow-
+ * green, green, sage, gray-blue, lilac, pink came back `duotone` with a 53.9°
+ * "single colour" cluster that crossed the yellow/green band edge, and the
+ * description told a reader it "uses two colors and skips everything between
+ * them" over an image that skips nothing.
+ *
+ * Sweep over the 867-seed fixture (duotone + complementary counts): 60 → 46+47,
+ * 50 → 42+38, 45 → 38+33, 40 → 30+29, 35 → 25+23. The 33 palettes released at
+ * 40 are continuous sweeps by eye (navy → sky → cream, orange → tan → gray →
+ * light blue, violet → lavender → white); the ones that stay are two poles with
+ * a crossing. CLUSTER_GAP rather than a new number, because that is the rule.
  */
-const DUOTONE_CLUSTER_WIDTH = 60;
+const DUOTONE_CLUSTER_WIDTH = CLUSTER_GAP;
 const CHROMATIC_FRACTION = 0.15;
 
 const GRAYSCALE_CHROMA = 0.025;
@@ -213,6 +225,20 @@ const FAMILY_CHROMA = 0.08;
 const FAMILY_SATURATION = 0.6;
 /** How much of the palette must sit inside the family's hue window. */
 const FAMILY_BAND = 0.85;
+
+/**
+ * How much of a sunset's chromatic mass has to sit in the orange/gold half of
+ * its arc (2026-08-18, visual QA).
+ *
+ * The band test alone asks whether the palette stays inside 300°-100°, and a
+ * purely magenta-pink palette scores 1.000 on it without owning a single warm
+ * stop: cream → pale pink → orchid → hot pink → magenta shipped as "A neon
+ * sunset gradient color palette", with 48.9% of its mass in magenta/violet and
+ * 6.4% in the 20°-100° band. A sunset has sun in it. Measured over the fixture,
+ * this conjunct costs 17 of 134 sunsets (15.5% → 13.5%); the sweep is flat
+ * around it (0.05 → 120, 0.10 → 117, 0.15 → 111, 0.20 → 105).
+ */
+const SUNSET_WARM_SHARE = 0.1;
 
 /** Earth pigments are low-chroma warm hues held below full lightness. */
 const EARTHY_HUE = [20, 110] as const;
@@ -291,7 +317,9 @@ export const THRESHOLDS = {
   CHROMA_FLOOR,
   SATURATION_FLOOR,
   GRAYSCALE_SAT,
+  FAMILY_CHROMA,
   FAMILY_SATURATION,
+  FAMILY_BAND,
   GRAYSCALE_CHROMA,
   DARK_LIGHTNESS,
   LIGHT_LIGHTNESS,
@@ -375,6 +403,15 @@ export interface PaletteFeatures {
    * (measured 4.2% of the run above NEON_CHROMA) and put the word in its name.
    */
   denseChromaP90: number;
+  /**
+   * The most chromatic dense sample, whole.
+   *
+   * Where the palette's colour identity lives, and therefore what it should be
+   * NAMED after: the same argument D18 makes for the chip row (a ramp's
+   * achromatic end describes its edge, not the palette). Dense, so the answer
+   * does not move with the step count. Null only for a palette with no samples.
+   */
+  chromaPeak: OkLch | null;
 
   // --- The relative reading of the same three (2026-08-17, D19). Saturation is
   // chroma over the sRGB ceiling at that stop's own lightness and hue, so it
@@ -920,6 +957,13 @@ export function paletteFeatures(
     contrastRatio:
       (Math.max(...luminances) + 0.05) / (Math.min(...luminances) + 0.05),
     denseChromaP90,
+    chromaPeak: denseLch[chromaPeakI]
+      ? {
+          L: denseLch[chromaPeakI]!.L,
+          C: denseLch[chromaPeakI]!.C,
+          h: denseLch[chromaPeakI]!.h,
+        }
+      : null,
     clusterHues: geometry.clusters,
     firstHue,
     lastHue,
@@ -1063,13 +1107,16 @@ export function spokenWord(d: Descriptor): string {
  */
 export const DESCRIPTORS: readonly Descriptor[] = [
   // --- structure: exactly one is always true
+  // Re-measured 2026-08-18 after the ladder fix (rainbow needs one cluster, a
+  // cluster may not be wider than the gap between clusters): duotone 46 → 30,
+  // complementary 47 → 29, rainbow 121 → 78, and multicolor absorbs all 76.
   structural('grayscale', 0.022, 1, true),
   structural('monochrome', 0.152, 1.2, true),
-  structural('duotone', 0.053, 1, true),
-  structural('complementary', 0.054, 1, true),
-  structural('rainbow', 0.14, 1.3, true),
+  structural('duotone', 0.035, 1, true),
+  structural('complementary', 0.033, 1, true),
+  structural('rainbow', 0.09, 1.3, true),
   structural('analogous', 0.28, 0.6, false),
-  structural('multicolor', 0.299, 0.8, false),
+  structural('multicolor', 0.388, 0.8, false),
 
   // --- named families: a hue window plus a tone constraint.
   //
@@ -1086,12 +1133,13 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // through pale peach, and the band test is already narrow.
     word: 'sunset',
     axis: 'family',
-    prevalence: 0.155,
+    prevalence: 0.135,
     spoken: true,
     demand: 1.4,
     implies: ['warm'],
     test: (f) =>
       hueBandShare(f, 300, 100) >= 0.8 &&
+      hueBandShare(f, 20, 100) >= SUNSET_WARM_SHARE &&
       f.hueSpan >= 40 &&
       familyColour(f, 0.07),
   },
@@ -1167,13 +1215,25 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // Loudness, entirely: neon means a colour brighter than the page around
     // it, which is an absolute amount of chroma. A tint at 100% of a ceiling
     // of 0.04 is not neon, and relative saturation would call it that.
+    //
+    // But loudness is also a claim about the PALETTE, and maxChroma is one
+    // sample: a steel-blue-to-dusty-rose ramp whose final stop alone reaches
+    // 0.2471 (4.2% of the run above the bar, per-stop saturations 0.46 0.54
+    // 0.46 0.40 0.49 0.75 1.00) shipped as "A neon gradient color palette"
+    // beside six muted stops. The loudest TENTH has to clear the bar too, so
+    // the word describes something a viewer can see a stretch of. Measured:
+    // 85 → 71 of 867 (9.8% → 8.2%), and the palettes it drops are exactly the
+    // one-stop cases (the true neons sit at 20-40% of the run above NEON).
     word: 'neon',
     axis: 'tone',
-    prevalence: 0.098,
+    prevalence: 0.082,
     spoken: true,
     demand: 1.4,
     implies: ['vivid'],
-    test: (f) => f.maxChroma >= NEON_CHROMA && f.meanLightness > NEON_LIGHTNESS,
+    test: (f) =>
+      f.maxChroma >= NEON_CHROMA &&
+      f.denseChromaP90 >= NEON_CHROMA &&
+      f.meanLightness > NEON_LIGHTNESS,
   },
   {
     // Same split as autumn: EARTHY_CHROMA is the loudness ceiling (pigment,
@@ -1521,15 +1581,30 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   },
   {
     // All three channels pinned low at once: the ramp renders pure black for a
-    // tenth of its length or more. The white twin measured 0.7% — below the 2%
-    // floor — so only the black plateau gets a word; allWhiteShare stays a
-    // feature for the editor, where high exposure walks straight into it.
+    // tenth of its length or more.
     word: 'pure-black-plateau',
     axis: 'channel',
     prevalence: 0.024,
     spoken: false,
     demand: 1,
     test: (f) => f.allBlackShare >= PLATEAU_SHARE,
+  },
+  {
+    // The white twin, added 2026-08-18 after visual QA. It was left out at 0.7%
+    // on the 2% prevalence floor, which is the rule for what may be SPOKEN and
+    // was the wrong rule for a fact prose has to be able to SEE: a palette
+    // whose middle 46% renders pure white was described as "two colors" that
+    // "skip everything between them", and what sits between them is the largest
+    // block in the image. Nothing speaks this word (spoken: false, like its
+    // twin); the duotone sentence reads it as a veto and the white-block
+    // impression states it. 6 of 867 fixture seeds clear the floor, all 6 at
+    // 25% or more of the run.
+    word: 'pure-white-plateau',
+    axis: 'channel',
+    prevalence: 0.007,
+    spoken: false,
+    demand: 1,
+    test: (f) => f.allWhiteShare >= PLATEAU_SHARE,
   },
   {
     // The coefficient-level guarantee, stronger than "didn't clip on this

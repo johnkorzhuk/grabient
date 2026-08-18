@@ -437,3 +437,38 @@ Grabient` (`pages.ts`, ~line 760). Hex codes have almost no search volume;
 "light gold to peachy pink to candy pink gradient" has some. `paletteHeadline`
 is already computed on that render and is now good enough to carry a title.
 Changing it is a live SEO decision, so it was left alone.
+
+---
+
+## 9. 2026-08-18 — the family tie-break, and one entry moved to the aliases
+
+Visual QA (see [palette-prose.md](./palette-prose.md) §7) found nearest-name
+answering a CATEGORICAL question with a PERCEPTUAL metric. Two cases, both
+inside a JND:
+
+| stop | was | distance | should be | distance | gap |
+|---|---|---|---|---|---|
+| `#1c1b24` (L 0.227, C 0.017, 13% of its achievable chroma) | dark brown | 0.0723 | almost black | 0.0777 | 0.0054 |
+| `#dff2cb` (L 0.937, C 0.055, hue 128.6 — the green band) | beige | 0.0383 | very pale green | 0.0446 | 0.0063 |
+
+At that separation the metric is noise and the WORD is not: "brown" claims a
+warm hue, "beige" claims a warm neutral, and the wrong one propagated into the
+h1, the meta description and a chip. `nearestNamed` now keeps a second answer
+per lookup — the nearest entry whose colour class matches — and prefers it
+within half a JND (`NAME_TIE` 0.01). A colour's class takes both readings
+(chroma floor OR saturation floor, so a pale sky tint stays blue); a NAME's
+class takes absolute chroma, because that is what the word itself claims.
+
+Measured over the 867-seed fixture's 5,895 distinct rendered stops: **9.9%
+renamed**, nearly all laterally ("grayblue" → "bluegray", "terra cotta" →
+"terracotta", "misty rose" → "gainsboro" on a warm off-white at hue 68). At a
+full JND it is 15.7% and starts moving names that were not in dispute.
+
+**One display entry moved to the alias list**, leaving 919: `macaroni and
+cheese` is a dish, not a colour word, and a machine translator renders it as the
+food (ES *macarrones con queso*), which D20.4 makes disqualifying for a string
+that reaches the title, the meta description and a `/palettes/` chip. It still
+resolves as a query; its hex now names as "dark yellow", 0.007 away. The
+survey's other food words ("chocolate", "salmon", "peach", "mustard") are
+ordinary colour words in translation and stay.
+

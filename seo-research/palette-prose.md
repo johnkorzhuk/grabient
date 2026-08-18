@@ -355,3 +355,78 @@ identical renders, skeleton floor, Jaccard bounds, relatedSearches
 determinism/bounds/vocabulary membership, slug parity with `querySlug` over
 every possible label (>900), and the one-analysis-pass contract of
 `describePalette`.
+
+---
+
+## 7. Visual QA round 1 (2026-08-18) — thirteen defects, fixed at the gate
+
+Three graders read the rendered PNG beside the generated text for a stratified
+sample of the fixture and filed 13 failures and 11 minors. Every one was fixed
+where the wrong claim is licensed, never on the seed. What moved:
+
+| # | claim the image contradicted | root | fix |
+|---|---|---|---|
+| F1 | "dark brown (#1c1b24)" on a cold near-black | `nearestNamed` is an unweighted OkLab NN; "dark brown" won by 0.0054, a quarter of a JND | family tie-break inside half a JND (`NAME_TIE`), colour class from both readings |
+| F2 | "beige" on a pale yellow-green | same | same (won by 0.0063) |
+| F3 | "The red fades from light to dark" over a cream end | `fade` named the family from the MEAN hue while the ends sat in two bands | ends must share a band; else the neighbors row speaks |
+| F4 | "one range of magenta" on a lavender-to-plum purple | no `purple` in the family words (sRGB purple IS magenta hue) | `gatedFamily`: purple = dark magenta, per research §1.2 |
+| F5 | "It holds one orange" on chocolate-to-cream | brown deliberately excluded from the band vocabulary | `gatedFamily`: brown = dark low-chroma orange |
+| F6 | "two colors and skips everything between them" over a 46% white block | hue clustering cannot see achromatic samples; no white twin to `pure-black-plateau` | `pure-white-plateau` descriptor + `white-block` impression + plateau veto on `two-colors` |
+| F7 | chips "deep brown / dark brown / dark" on a 69%-black palette | D18's universal demotion inverts when the universal IS the palette | dominant-plateau label leads the row above 40% |
+| F8 | "duotone … skips everything between them" over a continuous 7-hue sweep | `DUOTONE_CLUSTER_WIDTH` 60° let a cluster be wider than the gap defining a cluster | width bound is now `CLUSTER_GAP` (40°) |
+| F9 | "rainbow" over teal → red → brown with a 161° hole | the ladder fell through to a span test whenever two clusters failed the width bound | `rainbow` is a one-cluster classification |
+| F10 | "deep and intense" over periwinkle and light orchid | `isJewel` bounds the MEAN at 0.6; the ramp reached 0.72 | stops must stay under `JEWEL_STOP_CEILING` 0.7 |
+| F11 | "neon" from a single electric stop (4.2% of the run) | `maxChroma` is one sample | the loudest tenth (`denseChromaP90`) must clear `NEON_CHROMA` too |
+| F12 | "a single orange" on a cream-to-taupe ramp at C 0.034 | a family word was a hue lookup with no floor | `gatedFamily` returns null under `FAMILY_CHROMA`/`FAMILY_SATURATION`; the row stays silent |
+| F13 | "sunset" on a cream-to-magenta bubblegum ramp | the 300°-100° band test never checked the warm half was occupied | `SUNSET_WARM_SHARE`: ≥10% of the chromatic mass in 20°-100° |
+
+Minors fixed the same way: the temperature sentence now needs most of the
+chromatic mass inside the arc (a purple 5° inside the warm boundary said "the
+colors are warm"); `one-color` conflicts with the direction and journey rows
+(it claims "only how light it is"); the identity verbs are down to `running`
+and `sweeping` (D20.4 — "easing" translates as *to relieve*); the neighbors row
+dropped "and stays there", which nothing in its gate established; "macaroni and
+cheese" became a lookup alias (a dish, not a colour word); `pink` joined brown
+and purple as a tone gate, so a stop the corpus calls "pinkish gray" is no
+longer announced as red; and `warm-gray` reached prose because its detector was
+carrying the same absolute-chroma ceiling D19 exists to remove (2.0% → 3.6%).
+
+**Not fixed, with evidence.** (a) A turquoise ramp still reads "one green":
+h 164 is inside the green band, whose edge is 168.5, and the fix would need the
+full gated-name table (turquoise/mint/teal) that the family-word comment
+deliberately rejects — a band-edge dispute, not a tone gate. (b) The `pastel`
+chip on a palette with a mustard focal stop: a peak-chroma ceiling that catches
+it (p90 0.138) also catches the palette the OWNER called pastel (p90 0.121), so
+the statistic does not separate them and the mean gate stays as D19.5 recorded
+it.
+
+### Re-measured after the round (867 seeds, default view)
+
+| | before | after |
+|---|---|---|
+| structure: duotone / complementary / rainbow / multicolor | 46 / 47 / 121 / 259 | 30 / 29 / 78 / 336 |
+| neon (13 steps) | 85 (9.8%) | 71 (8.2%) |
+| sunset (13 steps) | 134 (15.5%) | 117 (13.5%) |
+| paragraph length p0 / p50 / p95 / max | 237 / 293 / 327 / 358 | 212 / 291 / 329 / 363 |
+| one-impression descriptions | 6 | 22 |
+| distinct skeletons | 568 | 581 |
+| trigram Jaccard mean / max | 0.285 / 0.550 | 0.299 / 0.545 |
+| identical paragraphs (same palette twice) | 3 | 3 |
+| form sentence changed across 3/7/13/24 steps | 0 of 2,601 | 0 of 2,601 |
+| whole selection step-invariant | 77.0% | 78.2% |
+| distinct compound chips / rows carrying one | 34 / 217 | 33 / 172 |
+
+Every impression prevalence and every registry prevalence was re-measured and
+re-pinned; `palette-prose.test.js` and `palette-name.test.js` fail on drift.
+The rainbow fixture seed in `palette-name.test.js` was replaced (the old one
+renders brown → sage → teal → navy, which is why it stopped classifying as a
+rainbow).
+
+### Naming: what the tie-break costs
+
+9.9% of the fixture's 5,895 distinct rendered stops get a different name. Nearly
+all are lateral ("grayblue" → "bluegray", "terra cotta" → "terracotta", "misty
+rose" → "gainsboro" on a warm off-white); the ones that matter are the category
+errors the graders caught. At a full JND the churn is 15.7% and starts moving
+names that were not in dispute, which is why the window is half.
+

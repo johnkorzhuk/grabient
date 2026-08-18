@@ -26,7 +26,13 @@ import { PROSE_SEEDS } from "./prose-corpus.js";
 
 const SEEDS = {
   complementary: "_gB5gIZgFtgBRgGKgG2gG9gAxgGShcdgIzg4D",
-  rainbow: "_gEngEngEngFigFRgFMgJjgJMgJUhNtgckg6x",
+  // Replaced 2026-08-18: the old rainbow seed (_gEngEngEngFigFRgFMgJjgJMgJU…)
+  // renders brown → sage → teal → navy → near-black, two hue clusters with a
+  // 158° hole between them, and only reached `rainbow` through the span test
+  // the classifier no longer applies to multi-cluster palettes. This one is a
+  // real sweep: red → orange → yellow → green → cyan → blue, one cluster,
+  // hueSpan 325.
+  rainbow: "_gJOgHUgHfgIRgIHgIYgLmgKlgMXf-BgKwgIVesvowngA",
   duotone: "_gJ0gHlgDgf7Cf7YgHyf5kf7zgCwgVgf3ifxH",
   monochrome: "_gDXgDJgEFgKggKsgJSgEYgFbgDsgguhBdgAAlBoEwFfn",
   analogous: "_gJDgH1gIagIjgL4gJtgDZgFrgDFgAAgguhBd",

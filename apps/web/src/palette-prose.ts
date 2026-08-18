@@ -42,19 +42,22 @@
 // STEP BEHAVIOR. Structure is a dense-sample fact and is byte-identical at every
 // step count, and over the fixture at 3/7/13/24 steps the form-slot sentence
 // never changed into a DIFFERENT form sentence (0 events in 2,601 re-renders):
-// it only appeared or vanished as the budget filled (39) or as the rendered-stop
-// series detector found a series a coarser sample had missed (12). The tone and
+// it only appeared or vanished as the budget filled (56) or as the rendered-stop
+// series detector found a series a coarser sample had missed (11). The tone and
 // motion rows read rendered means, exactly as the NAME does, so the full
-// two-sentence selection is identical at all four step counts for 77.0% of the
+// two-sentence selection is identical at all four step counts for 78.2% of the
 // fixture. Color names legitimately track steps (documented behavior of the name
 // system); the view sentence is the only one allowed to mention steps, style or
 // angle, and it never enters embedText.
 
 import {
+  colorFamily,
   getUniqueColorNames,
   hexToColorName,
   hexToOkLch,
   relativeLuminance,
+  relativeSaturation,
+  type OkLch,
 } from "@repo/data-ops/color-utils";
 import {
   classifyStructure,
@@ -134,6 +137,13 @@ const EVEN_SPREAD = 0.5;
 const VISIBLE_MOVEMENT = 0.25;
 
 /**
+ * How light the lightest stop may be before "deep" stops being true of the
+ * palette rather than of its mean. isJewel's band ceiling (mean L 0.6) plus the
+ * room a rendered ramp needs to peak once past it. See the `rich` row.
+ */
+const JEWEL_STOP_CEILING = 0.7;
+
+/**
  * WCAG 2.1 AA for normal text, applied to INK on a stop rather than to the two
  * stops against each other. The old sentence printed the end-to-end ratio,
  * which answers a question nobody asks: you do not set text in one end of a
@@ -154,42 +164,78 @@ const LIGHT_INK_LUMINANCE = 1.05 / 4.5 - 0.05; // ≤ this and white text clears
  * over the eight IS the eight-family band partition (band edges fall at
  * anchor midpoints).
  *
- * Deliberately NOT the wider name list (gold, teal, sky, pink, purple…):
- * those are anchor + TONE-gate names — pink and sky are tint regions
- * (L > 0.75), gold needs L 0.8–0.92, teal L < 0.60 — and a family word is
- * chosen by hue alone, so using them here named dark palettes after tints
- * (measured on the live fixture: wine-dark ramps read "around pink" at
- * region L 0.45, navy ramps "into sky" at L 0.50, a near-black olive ramp
- * "into gold" at L 0.29). The conflation rule is "name by gate, never by hue
- * alone"; the eight family-band words are the gate-free vocabulary — a
- * family names WHERE on the wheel, never how light — and the gated names
- * stay the color-name corpus's job. These double as relatedSearches backfill
+ * Deliberately NOT the wider name list (gold, teal, sky, chartreuse…): those
+ * are anchor + TONE-gate names — sky is a tint region (L > 0.75), gold needs
+ * L 0.8–0.92, teal L < 0.60 — and THIS function is chosen by hue alone, so
+ * using them here named dark palettes after tints (measured on the live
+ * fixture: navy ramps "into sky" at L 0.50, a near-black olive ramp "into
+ * gold" at L 0.29). Three of them are back as gates rather than as bands, in
+ * `gatedFamily` below: brown, purple and pink are the same hue at a different
+ * tone, so they can be tested rather than guessed. The eight words here stay
+ * the gate-free vocabulary, and they double as relatedSearches backfill
  * labels, so the list is part of the bounded link vocabulary.
  */
-const FAMILY_ANCHORS: readonly (readonly [string, number])[] = [
-  ["red", 29],
-  ["orange", 53],
-  ["yellow", 110],
-  ["green", 142],
-  ["cyan", 195],
-  ["blue", 264],
-  ["violet", 294],
-  ["magenta", 328],
-];
-
 export function familyWord(hue: number): string {
-  const h = ((hue % 360) + 360) % 360;
-  let best = FAMILY_ANCHORS[0]![0];
-  let bestDist = Infinity;
-  for (const [word, anchor] of FAMILY_ANCHORS) {
-    const d = Math.abs(h - anchor) % 360;
-    const dist = d > 180 ? 360 - d : d;
-    if (dist < bestDist) {
-      bestDist = dist;
-      best = word;
-    }
-  }
-  return best;
+  // colorFamily IS that partition, and it lives in color-utils because the
+  // naming corpus needs it too (a name and the colour it names have to agree on
+  // which family they are in). One definition, two consumers.
+  return colorFamily(hue);
+}
+
+/**
+ * The three names that are the SAME hue at a different lightness or chroma.
+ *
+ * research-colorTheory §1.2 measured them through this repo's own conversion:
+ * brown IS orange (h 54.7), sRGB purple IS magenta (h 328.4), pink is a tint
+ * region of red. The conflation law in §9 is "name by gate, never by hue
+ * alone", and until now the prose said the band word whatever the tone, which
+ * produced "It holds one orange and changes only how light it is" over a
+ * chocolate-to-cream ramp, "The colors stay inside one range of magenta" over a
+ * lavender-to-plum purple, and "It moves from red into yellow" starting on a
+ * stop the corpus had just called pinkish gray.
+ *
+ * Gates verbatim from the research table: brown L < 0.55 with C 0.04-0.13,
+ * purple L < 0.55 with C >= 0.12, pink L > 0.75 with C 0.04-0.15.
+ */
+const BROWN_MAX_L = 0.55;
+const BROWN_CHROMA: readonly [number, number] = [0.04, 0.13];
+const PURPLE_MAX_L = 0.55;
+const PURPLE_MIN_CHROMA = 0.12;
+const PINK_MIN_L = 0.75;
+const PINK_CHROMA: readonly [number, number] = [0.04, 0.15];
+
+/**
+ * What to CALL a region of the palette, or null when it has no colour to name.
+ *
+ * The null is the point. A family word is an identity claim, so it takes the
+ * registry's own family floor in both readings (FAMILY_CHROMA or, for the tints
+ * that sit at the sRGB ceiling, FAMILY_SATURATION), and a cream-to-taupe ramp
+ * at C 0.034 clears neither: it used to be announced as "a single orange", and
+ * now the form sentence stays silent and the description spends its budget on
+ * something true. Silence is a correct outcome (D20.1), a wrong word is not.
+ */
+function gatedFamily(stop: OkLch | null): string | null {
+  if (!stop) return null;
+  const band = familyWord(stop.h);
+  if (
+    band === "orange" &&
+    stop.L < BROWN_MAX_L &&
+    stop.C >= BROWN_CHROMA[0] &&
+    stop.C <= BROWN_CHROMA[1]
+  )
+    return "brown";
+  if (band === "magenta" && stop.L < PURPLE_MAX_L && stop.C >= PURPLE_MIN_CHROMA)
+    return "purple";
+  if (
+    band === "red" &&
+    stop.L > PINK_MIN_L &&
+    stop.C >= PINK_CHROMA[0] &&
+    stop.C < PINK_CHROMA[1]
+  )
+    return "pink";
+  return stop.C >= T.FAMILY_CHROMA || relativeSaturation(stop) >= T.FAMILY_SATURATION
+    ? band
+    : null;
 }
 
 // =============================================================================
@@ -216,21 +262,22 @@ type MeasureFirstUse = "prose" | "embed" | "silent";
 /**
  * Measured rates (867 fixture seeds at the default view, 2026-08-17). The
  * research predicted ombre, sepia, jewel and deep as survivors; the fixture
- * kept seven of nine in the 2%–60% band and overturned two predictions:
+ * kept eight of nine in the 2%–60% band and overturned two predictions:
  * BRILLIANT survived at 8.3% (the corpus has more light-and-vivid palettes
  * than the low-chroma p50 suggested) and SEPIA died at 0.9% — brown
  * monochromes narrow enough for the gate are rarer live than on paper — so
- * sepia is embedding-tail vocabulary only, joined by WARM-GRAY at 1.96%
- * after the D19 fix stopped it reading pastel rainbows as grays (it measured
- * 3.23% while a palette could be near its gamut ceiling and still count as
- * neutral).
+ * sepia is the only embedding-tail word left. WARM-GRAY was there too, at
+ * 1.96%, until the 2026-08-18 QA round found the reason: the detector carried
+ * an absolute chroma ceiling beside its saturation test, which is the same
+ * conflation D19 exists to fix. Without it the rate is 3.58% and the word
+ * speaks (see grayLean and the `tinted-gray` impression).
  */
 const MEASURE_FIRST: Record<string, { use: MeasureFirstUse; rate: number }> = {
   deep: { use: "prose", rate: 0.0542 },
   jewel: { use: "prose", rate: 0.1223 },
   sepia: { use: "embed", rate: 0.0092 },
   ombre: { use: "prose", rate: 0.1765 },
-  "warm-gray": { use: "embed", rate: 0.0196 },
+  "warm-gray": { use: "prose", rate: 0.0358 },
   "opponent-axis": { use: "prose", rate: 0.4106 },
   "warm-cool-contrast": { use: "prose", rate: 0.2353 },
   "saturation-contrast": { use: "prose", rate: 0.1061 },
@@ -303,14 +350,24 @@ const isBrilliant = (f: PaletteFeatures) =>
  * for, already computed.
  */
 function grayLean(f: PaletteFeatures): "warm" | "cool" | null {
-  // D19: "is this a gray at all" is an IDENTITY question, so it needs both
-  // readings, the same conjunction `isGrayscale` uses. On absolute chroma alone
-  // this band — 0.008 to 0.03 — is exactly where near-ceiling pale tints live,
-  // and the palette that exposed the bug (#ceeaff, #fcd3d4, #deffff: plainly
-  // blue, pink and cyan, mean chroma 0.029) sat inside it. Calling that a warm
-  // gray is the same mistake as calling it grayscale.
+  // D19: "is this a gray at all" is an IDENTITY question, so it takes the
+  // relative reading — the same GRAYSCALE_SAT conjunct `isGrayscale` uses. The
+  // palette that exposed the original bug (#ceeaff, #fcd3d4, #deffff: plainly
+  // blue, pink and cyan, mean chroma 0.029) sits at 0.75 mean saturation and is
+  // excluded by it; calling that a warm gray is the same mistake as calling it
+  // grayscale.
+  //
+  // The absolute CEILING that used to sit beside it (C < CHROMA_FLOOR, from the
+  // research table) came off on 2026-08-18. It was the chroma-not-saturation
+  // conflation again, one layer down: a greige ramp at C 0.034 has no more
+  // colour in it than one at C 0.029, and the detector was blind to it. Rate
+  // over the fixture 2.0% → 3.6%, which lifts the word over the 2% floor and
+  // into prose, which is where the QA round wanted it: a warm beige-to-taupe
+  // ramp was being described as "grayscale ... the colors stay light", and its
+  // warmth is the most characterising thing about it. The floor at 0.008 stays:
+  // below it the mean vector is numerical residue and has no lean at all.
   if (f.denseMeanSaturation >= T.GRAYSCALE_SAT) return null;
-  if (f.denseMeanChroma < 0.008 || f.denseMeanChroma >= T.CHROMA_FLOOR) return null;
+  if (f.denseMeanChroma < 0.008) return null;
   if (f.meanHue >= 330 || f.meanHue < 120) return "warm";
   if (f.meanHue >= 150 && f.meanHue < 300) return "cool";
   return null;
@@ -341,10 +398,15 @@ const warmCoolContrast = (f: PaletteFeatures) =>
 const saturationContrast = (f: PaletteFeatures) =>
   f.denseChromaRange >= 0.15 && f.maxChroma - f.denseChromaRange < 0.04;
 
-interface SeriesReading {
-  kind: "tints and shades" | "tints" | "shades" | "tones";
-  base: string;
-}
+/**
+ * Which transformation relates a monochrome palette's stops. The BASE it is a
+ * series of is `Ctx.base`, the tone-gated word for the most chromatic sample:
+ * a monochrome palette has one hue, so the paragraph must use one word for it,
+ * and reading the base here as well let the two disagree across a band edge
+ * (measured: a 21° red-orange mono read "orange" in one sentence and "red" in
+ * the next before this was pinned to a single source).
+ */
+type SeriesKind = "tints and shades" | "tints" | "shades" | "tones";
 
 /**
  * The tint/shade/tone series detector (research-colorTheory §2), meaningful
@@ -353,7 +415,7 @@ interface SeriesReading {
  * word — a transformation noun always takes "of + base", and the base must have
  * usable chroma to be named at all.
  */
-function seriesReading(f: PaletteFeatures, hexColors: readonly string[]): SeriesReading | null {
+function seriesReading(f: PaletteFeatures, hexColors: readonly string[]): SeriesKind | null {
   const stops = hexColors.map(hexToOkLch);
   if (stops.length < 3) return null;
   const byL = [...stops].sort((a, b) => a.L - b.L);
@@ -405,19 +467,10 @@ function seriesReading(f: PaletteFeatures, hexColors: readonly string[]): Series
     bottom.L > NEAR_BLACK_L &&
     top.L < NEAR_WHITE_L;
 
-  // The base WORD is the family of the mean hue — the same quantity the form
-  // impressions read — not the most chromatic stop's own hue. A monochrome
-  // palette has one hue, so the paragraph must use one word for it, and the two
-  // readings can disagree across an anchor boundary (measured: a 21° red-orange
-  // mono read "orange" in one sentence and "red" in the next before this pinned
-  // them together). familyWord returns only the eight gate-free band words, so
-  // the series base always passes its family gate — the transformation-noun
-  // rule ("tints OF a base that earns its name") holds by construction.
-  const base = familyWord(f.meanHue);
-  if (tint && shade) return { kind: "tints and shades", base };
-  if (tint) return { kind: "tints", base };
-  if (shade) return { kind: "shades", base };
-  if (tone) return { kind: "tones", base };
+  if (tint && shade) return "tints and shades";
+  if (tint) return "tints";
+  if (shade) return "shades";
+  if (tone) return "tones";
   return null;
 }
 
@@ -510,6 +563,22 @@ const plainPhrase = (phrase: string) =>
 const deg = (x: number) => String(Math.round(x));
 
 /**
+ * The identity sentence's verb. Two words, both of which survive translation.
+ *
+ * It used to be four, keyed to the ramp's shape: "easing", "arcing", "weaving",
+ * "winding", "circling". Every one of them is an English motion idiom whose
+ * dictionary translation means something else — "easing from marine to soft
+ * blue" comes back as "relieving" (ES aliviar, FR soulager, DE erleichtern) —
+ * and D20.4 makes translatability binding, so a vivid verb loses to a plain one
+ * whenever both are true. The shape they encoded is not lost: the motion
+ * impressions ("the brightness changes direction more than once") say it in
+ * words a translator can carry. What remains distinguishes a ramp that travels
+ * the value scale from one that does not, which is the fact a reader can see.
+ */
+const journeyVerb = (f: PaletteFeatures) =>
+  f.lightnessRange >= OMBRE_RANGE ? "sweeping" : "running";
+
+/**
  * Default the stored-vocabulary tags when the caller brought none — the same
  * import seedPaletteText and the edit island use, so the journey wording can
  * never diverge from the stored index. Before this default, describePalette
@@ -552,7 +621,26 @@ interface Ctx {
   /** Spread small enough that a mean-based tone claim speaks for every stop. */
   evenSpread: boolean;
   journey: "warming" | "cooling" | null;
-  series: SeriesReading | null;
+  series: SeriesKind | null;
+  /**
+   * What to call the palette's colour: the tone-gated family word of its most
+   * chromatic dense sample, or null when nothing in it earns a colour word.
+   * Dense, so it is the same at every step count.
+   */
+  base: string | null;
+  /** The same word for the two ends of the hue chain (the journey anchors). */
+  firstFamily: string | null;
+  lastFamily: string | null;
+  /**
+   * The ends' plain hue BANDS. Whether the palette changes family is a question
+   * about hue, so it is asked here; what to CALL each end is a question about
+   * tone, so it is answered by firstFamily/lastFamily. Keeping them apart
+   * matters: an ombré runs from a dark end to a light one, and the two ends of
+   * one hue routinely take different tone-gated words ("brown" and "orange"),
+   * which is not a change of family and must not read as one.
+   */
+  firstBand: string | null;
+  lastBand: string | null;
   /** The name's modifier phrase, for the echo veto. */
   phrase: string;
   darkInkReads: boolean;
@@ -637,10 +725,31 @@ const IMPRESSIONS: readonly Impression[] = [
     // to say about which color it is.
     id: "gray",
     slot: "tone",
-    prevalence: 0.0219,
-    when: (c) => c.structure === "grayscale",
+    prevalence: 0.0069,
+    when: (c) => c.structure === "grayscale" && grayLean(c.f) === null,
     say: () => "It is nearly gray, with very little color in it.",
     echoes: ["grayscale"],
+  },
+  {
+    // A near-neutral with a lean. The two facts fuse: "there is no real color
+    // here" and "what little there is leans warm" are one impression, and the
+    // lean is the half a reader can see. It carries no echo list on purpose —
+    // the name may already say `grayscale`, and this sentence says the thing
+    // the name does not.
+    // ...and only where the palette IS a gray. The detector clears the 2% band
+    // on 31 palettes, but 18 of those are merely washed out: a pale green to
+    // slate to dusty rose sweep measures 21% of its achievable chroma and still
+    // shows two ends a viewer would name as colours, and "the colors are cool
+    // grays" reads as a claim about all of them. The structure test is the
+    // system's own answer to "is this a gray", so the sentence waits for it.
+    id: "tinted-gray",
+    slot: "tone",
+    prevalence: 0.015,
+    when: (c) =>
+      useOf("warm-gray") === "prose" &&
+      c.structure === "grayscale" &&
+      grayLean(c.f) !== null,
+    say: (c) => `The colors are ${grayLean(c.f)} grays.`,
   },
   {
     // pastel (light + low absolute chroma) AND high-key (the spread is small
@@ -672,16 +781,27 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "neon",
     slot: "tone",
-    prevalence: 0.0934,
+    prevalence: 0.0796,
     when: (c) => c.has("neon"),
     say: () => "Its strongest colors are bright enough to look neon.",
     echoes: ["neon"],
   },
   {
+    // "The colors are deep and intense" is a claim about every stop, and it was
+    // printed over a ramp whose lightest three are periwinkle, light orchid and
+    // dusty rose. isJewel bounds the MEAN lightness at 0.6, which a ramp
+    // reaching 0.72 clears comfortably, so the universal claim needs the STOPS
+    // inside the band too. 0.7 is that ceiling plus the room a rendered ramp
+    // needs to peak once. Measured: 106 licensed palettes → 43, and the 63 it
+    // drops end in lavender-white, bright cyan or neon magenta.
     id: "rich",
     slot: "tone",
-    prevalence: 0.1223,
-    when: (c) => useOf("jewel") === "prose" && isJewel(c.f),
+    prevalence: 0.0484,
+    when: (c) =>
+      useOf("jewel") === "prose" &&
+      isJewel(c.f) &&
+      c.evenSpread &&
+      Math.max(...c.stopL) <= JEWEL_STOP_CEILING,
     say: () => "The colors are deep and intense.",
   },
   {
@@ -728,7 +848,7 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "strong",
     slot: "tone",
-    prevalence: 0.0323,
+    prevalence: 0.0358,
     when: (c) =>
       c.has("vivid") && !c.has("neon") && !isBrilliant(c.f) && !isJewel(c.f),
     say: () => "The colors are strong and clear.",
@@ -777,18 +897,27 @@ const IMPRESSIONS: readonly Impression[] = [
     // JOURNEY: "the colors are cool, and it grows cooler" is one fact said
     // twice, and the journey is the better half of it. That gate is what drops
     // them from 46%/36% to the rates below.
+    // They also need the palette's colour to actually BE there: the registry
+    // tags read the mean hue, and a mean five degrees inside the warm arc put
+    // "The colors are warm" over a lavender-to-plum purple ramp (measured
+    // meanHue 335.4, warm arc from 330). The tags are the indexed `warmth`
+    // formula and cannot move, so the SENTENCE takes the stricter test — most
+    // of the chromatic mass inside the arc, the same hueBandShare machinery the
+    // families use. It costs the pair 399 → 205 and 312 → 194 candidates.
     id: "warm",
     slot: "tone",
-    prevalence: 0.1096,
-    when: (c) => c.has("warm") && c.journey === null,
+    prevalence: 0.0646,
+    when: (c) =>
+      c.has("warm") && c.journey === null && hueBandShare(c.f, 330, 120) >= T.FAMILY_BAND,
     say: () => "The colors are warm.",
     echoes: ["sunset", "autumn"],
   },
   {
     id: "cool",
     slot: "tone",
-    prevalence: 0.105,
-    when: (c) => c.has("cool") && c.journey === null,
+    prevalence: 0.0704,
+    when: (c) =>
+      c.has("cool") && c.journey === null && hueBandShare(c.f, 150, 300) >= T.FAMILY_BAND,
     say: () => "The colors are cool.",
     echoes: ["ocean"],
   },
@@ -799,69 +928,117 @@ const IMPRESSIONS: readonly Impression[] = [
   // every row here is byte-identical at any step count. The series rows state a
   // SET fact ("one blue lightened with white") rather than a direction, so they
   // never argue with a motion sentence about which way the ramp runs.
+  //
+  // Every row that NAMES a family reads `c.base`, the tone-gated word for the
+  // palette's most coloured sample, and stays silent when that is null. A
+  // sentence about "one orange" over a chocolate-to-cream ramp is worse than no
+  // sentence at all, and the budget spends itself elsewhere.
+  //
+  // The four series rows and one-color also declare the lightness-direction
+  // rows as conflicts: "changes only how light it is" followed by "it becomes
+  // lighter from start to end" spends two thirds of the description on one
+  // axis, which is the checklist rhythm this rewrite exists to remove. The fade
+  // row has always carried that list; its siblings did not.
   {
     id: "tints-and-shades",
     slot: "form",
     prevalence: 0,
-    when: (c) => c.series?.kind === "tints and shades",
-    say: (c) => `It is a single ${c.series!.base}, both lightened and darkened.`,
+    when: (c) => c.series === "tints and shades" && c.base !== null,
+    say: (c) => `It is a single ${c.base}, both lightened and darkened.`,
+    conflicts: ["brightens", "darkens", "full-range"],
   },
   {
     id: "tints",
     slot: "form",
-    prevalence: 0.0173,
-    when: (c) => c.series?.kind === "tints",
-    say: (c) => `It is a single ${c.series!.base} lightened with white.`,
+    prevalence: 0.0127,
+    when: (c) => c.series === "tints" && c.base !== null,
+    say: (c) => `It is a single ${c.base} lightened with white.`,
+    conflicts: ["brightens", "darkens", "full-range"],
   },
   {
     id: "shades",
     slot: "form",
     prevalence: 0.0012,
-    when: (c) => c.series?.kind === "shades",
-    say: (c) => `It is a single ${c.series!.base} darkened with black.`,
+    when: (c) => c.series === "shades" && c.base !== null,
+    say: (c) => `It is a single ${c.base} darkened with black.`,
+    conflicts: ["brightens", "darkens", "full-range"],
   },
   {
     id: "tones",
     slot: "form",
-    prevalence: 0.0173,
-    when: (c) => c.series?.kind === "tones",
-    say: (c) => `It is a single ${c.series!.base} softened with gray.`,
+    prevalence: 0.0161,
+    when: (c) => c.series === "tones" && c.base !== null,
+    say: (c) => `It is a single ${c.base} softened with gray.`,
+    conflicts: ["brightens", "darkens", "full-range"],
   },
   {
     id: "one-color",
     slot: "form",
-    prevalence: 0.1165,
-    when: (c) => c.structure === "monochrome" && !c.series,
-    say: (c) =>
-      `It holds one ${familyWord(c.f.meanHue)} and changes only how light it is.`,
+    prevalence: 0.1015,
+    when: (c) => c.structure === "monochrome" && !c.series && c.base !== null,
+    say: (c) => `It holds one ${c.base} and changes only how light it is.`,
+    // "ONLY how light" is an exclusive claim, so it also rules out the
+    // temperature journey: "it holds one blue and changes only how light it is"
+    // followed by "it becomes cooler as it moves" is a palette arguing with
+    // itself two sentences apart. The series rows make no such exclusive claim
+    // (a white-mix drifts hue by up to 22°, which is the Abney effect and not a
+    // contradiction), so they keep the pair.
+    conflicts: ["brightens", "darkens", "full-range", "warming", "cooling"],
   },
   {
     // Ombré over an analogous span: the series rows own the monochrome case,
     // and their SET wording cannot carry a fade, so this one keeps the journey.
+    //
+    // "The red fades from light to dark" was printed over a cream-to-crimson
+    // sweep, because the family came from the MEAN hue while the ends sat in
+    // two different bands (an analogous span may be 95° wide, and a band is
+    // ~45°). So the ends have to agree, exactly as the one-family row already
+    // required; when they do not, the neighbors row says the true thing.
     id: "fade",
     slot: "form",
-    prevalence: 0.1165,
+    prevalence: 0.015,
     when: (c) =>
       useOf("ombre") === "prose" &&
       isOmbre(c.f, c.structure) &&
-      c.structure === "analogous",
+      c.structure === "analogous" &&
+      c.base !== null &&
+      c.firstBand === c.lastBand,
     say: (c) =>
       c.f.lightnessDelta > 0
-        ? `The ${familyWord(c.f.meanHue)} fades from dark to light.`
-        : `The ${familyWord(c.f.meanHue)} fades from light to dark.`,
+        ? `The ${c.base} fades from dark to light.`
+        : `The ${c.base} fades from light to dark.`,
     conflicts: ["brightens", "darkens", "full-range"],
   },
   {
+    // "Skips everything between them" is a claim about the space BETWEEN the
+    // two hues, and a clamp plateau fills that space with the largest block in
+    // the image: one palette spent 46% of its run at pure #ffffff between a
+    // pale cyan and a rose and was described as skipping what was between them.
+    // Hue clustering cannot see it — achromatic samples carry no hue — so the
+    // plateau tags are read here as a veto, and the white-block/black-block
+    // rows say what is actually there.
     id: "two-colors",
     slot: "form",
-    prevalence: 0.0531,
-    when: (c) => c.structure === "duotone",
-    say: () => "It uses two colors and skips everything between them.",
+    prevalence: 0.0334,
+    when: (c) =>
+      c.structure === "duotone" &&
+      !c.has("pure-white-plateau") &&
+      !c.has("pure-black-plateau"),
+    // Two shapes, one gate. "Skips everything between them" asserts a JUMP, and
+    // a cosine ramp usually gets from one hue pole to the other by fading
+    // through neutral instead: a slate-blue to mauve duotone spends 56% of its
+    // run with no usable hue at all, and the image is a smooth fade, not a
+    // break. So the jump wording waits for a run that keeps its hue the whole
+    // way, and the crossing gets said out loud otherwise.
+    say: (c) =>
+      c.f.chromaticFraction >= 1
+        ? "It uses two colors and skips everything between them."
+        : "It holds two colors that meet through a gray middle.",
   },
   {
     id: "opposite-colors",
     slot: "form",
-    prevalence: 0.0542,
+    prevalence: 0.0334,
     when: (c) => c.structure === "complementary",
     say: () => "Its two colors sit on opposite sides of the color wheel.",
   },
@@ -875,7 +1052,7 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "rainbow",
     slot: "form",
-    prevalence: 0.1153,
+    prevalence: 0.0669,
     when: (c) => c.structure === "rainbow" && !c.has("full-wheel"),
     say: () => "It runs through many colors, like a rainbow.",
     echoes: ["rainbow"],
@@ -898,40 +1075,58 @@ const IMPRESSIONS: readonly Impression[] = [
     say: () => "The colors move back and forth instead of forward.",
   },
   {
+    // "and stays there" came off on 2026-08-18: the row is gated on structure
+    // and on the two ends belonging to different families, neither of which
+    // says anything about a plateau, and the fixture's hue chains mostly
+    // advance at a near-constant rate to the last sample. At 24.0% it was the
+    // most common sentence in the table, so the clause was also the most often
+    // false. What remains is what the gate actually establishes.
     id: "neighbors",
     slot: "form",
-    prevalence: 0.2399,
+    prevalence: 0.1442,
     when: (c) =>
       c.structure === "analogous" &&
-      c.f.firstHue !== null &&
-      c.f.lastHue !== null &&
-      familyWord(c.f.firstHue) !== familyWord(c.f.lastHue),
-    say: (c) =>
-      `It moves from ${familyWord(c.f.firstHue!)} into ${familyWord(c.f.lastHue!)} and stays there.`,
+      c.firstBand !== c.lastBand &&
+      c.firstFamily !== null &&
+      c.lastFamily !== null,
+    say: (c) => `It moves from ${c.firstFamily} into ${c.lastFamily}.`,
   },
   {
+    // "The colors stay inside one range of magenta" was both wrong (the palette
+    // is a purple, which is the same hue at a lower lightness) and a noun stack
+    // a translator has to guess at. The plain sentence carries the same fact.
     id: "one-family",
     slot: "form",
-    prevalence: 0.0404,
+    prevalence: 0.0392,
     when: (c) =>
       c.structure === "analogous" &&
-      (c.f.firstHue === null ||
-        c.f.lastHue === null ||
-        familyWord(c.f.firstHue) === familyWord(c.f.lastHue)),
-    say: (c) => `The colors stay inside one range of ${familyWord(c.f.meanHue)}.`,
+      c.base !== null &&
+      (c.firstBand === null || c.lastBand === null || c.firstBand === c.lastBand),
+    say: (c) => `All the colors are ${c.base}.`,
   },
   {
+    // A JUMP has to be a jump. Isolated hue groups are not enough on their own,
+    // because the usual way a cosine ramp gets from one group to another is by
+    // fading through gray: hue is undefined there, so the samples drop out of
+    // the clustering and leave a "gap" the eye never sees as a break. A palette
+    // running pale green, sage, gray-blue, slate, plum came back with two
+    // clusters and was told it "jumps between separate groups of color" over an
+    // image that is one continuous wash. So the run must keep a usable hue the
+    // whole way: no achromatic crossing, no fade, an actual break.
     id: "groups",
     slot: "form",
-    prevalence: 0.0254,
-    when: (c) => c.structure === "multicolor" && c.f.hueClusters >= 2,
+    prevalence: 0.0069,
+    when: (c) =>
+      c.structure === "multicolor" && c.f.hueClusters >= 2 && c.f.chromaticFraction >= 1,
     say: () => "It jumps between separate groups of color.",
   },
   {
     id: "several-colors",
     slot: "form",
-    prevalence: 0.2734,
-    when: (c) => c.structure === "multicolor" && c.f.hueClusters < 2,
+    prevalence: 0.3806,
+    when: (c) =>
+      c.structure === "multicolor" &&
+      !(c.f.hueClusters >= 2 && c.f.chromaticFraction >= 1),
     say: () => "It passes through several colors between its ends.",
   },
 
@@ -944,6 +1139,17 @@ const IMPRESSIONS: readonly Impression[] = [
     prevalence: 0.0242,
     when: (c) => c.has("pure-black-plateau"),
     say: () => "Part of it is solid black.",
+  },
+  {
+    // Its twin at the other end of the clamp. Rarer (0.7% against 2.4%), and
+    // the rarity is why it was missing: the 2% floor decides what may be
+    // SPOKEN of a palette in general, and this is a fact about the largest
+    // block in six particular images.
+    id: "white-block",
+    slot: "motion",
+    prevalence: 0.0069,
+    when: (c) => c.has("pure-white-plateau"),
+    say: () => "Part of it is solid white.",
   },
   {
     // Both ends inside their value bands, not merely a wide range: keyed to the
@@ -1090,10 +1296,11 @@ const READING_ORDER: Record<ImpressionSlot, number> = {
  * palette: at two sentences the paragraph reads as a description and at four it
  * reads as a report. D20's budget is 2 to 4 sentences and roughly 150 to 400
  * characters. Measured over the fixture: the body (identity plus impressions)
- * runs p0 132, p50 188, p95 222, max 253, and the page paragraph, which adds the
- * view sentence, runs p0 237, p50 293, p95 327, max 358. 861 of 867 palettes
- * spend both sentences; 6 are plain enough to have one true thing worth saying,
- * which is the correct outcome and not a failure.
+ * runs p0 107, p50 186, p95 224, max 258, and the page paragraph, which adds the
+ * view sentence, runs p0 212, p50 291, p95 329, max 363. 845 of 867 palettes
+ * spend both sentences; 22 are plain enough (or too washed out to name a
+ * family) to have one true thing worth saying, which is the correct outcome and
+ * not a failure.
  */
 const BUDGET = 2;
 
@@ -1122,7 +1329,7 @@ function chooseImpressions(c: Ctx): Impression[] {
     // Echoes are DEMOTED, not removed: a palette whose only other true fact is
     // "the colors are cool" is better served by repeating the name's word than
     // by saying nothing. Measured over the fixture: 300 echoed candidates fired,
-    // 2 were spoken anyway (99.3% silenced), and those two had nothing else
+    // 3 were spoken anyway (98.9% silenced), and those three had nothing else
     // competing for the slot.
     const e = isEcho(a) - isEcho(b);
     if (e !== 0) return e;
@@ -1185,6 +1392,11 @@ function buildCtx(
     // version of it.
     softChroma: f.meanChroma < T.PASTEL_CHROMA && f.maxChroma < T.NEON_CHROMA,
     evenSpread: f.lightnessRange < EVEN_SPREAD,
+    base: gatedFamily(f.chromaPeak),
+    firstFamily: gatedFamily(f.firstChromatic),
+    lastFamily: gatedFamily(f.lastChromatic),
+    firstBand: f.firstHue === null ? null : familyWord(f.firstHue),
+    lastBand: f.lastHue === null ? null : familyWord(f.lastHue),
     journey: baseTags?.includes("warming")
       ? "warming"
       : baseTags?.includes("cooling")
@@ -1269,7 +1481,7 @@ function buildParts(
     if (names.length >= 2 && endName === names[0]) {
       // The ramp leaves its opening color and returns to it.
       const out = names.slice(1).join(" and ");
-      return `${opener} circling from ${first} through ${out} and back.`;
+      return `${opener} running from ${first} through ${out} and back.`;
     }
     if (names.length === 2 && (structure === "complementary" || structure === "duotone")) {
       const second = `${names[1]}${endHex}`;
@@ -1277,21 +1489,10 @@ function buildParts(
         ? `${opener} built on two opposite colors: ${first} against ${second}.`
         : `${opener} pairing ${first} with ${second}.`;
     }
-    if (names.length === 2) {
-      // Verb keyed to the ramp's own shape — no synonym rotation.
-      const verb =
-        f.turns >= 2
-          ? "weaving"
-          : f.turns === 1
-            ? "arcing"
-            : f.lightnessRange >= OMBRE_RANGE
-              ? "sweeping"
-              : "easing";
-      return `${opener} ${verb} from ${first} to ${names[1]}${endHex}.`;
-    }
-    const verb = f.turns >= 2 ? "winding" : "running";
+    if (names.length === 2)
+      return `${opener} ${journeyVerb(f)} from ${first} to ${names[1]}${endHex}.`;
     const middles = names.slice(1, -1).join(" and ");
-    return `${opener} ${verb} from ${first} through ${middles} to ${names[lastIdx]}${endHex}.`;
+    return `${opener} ${journeyVerb(f)} from ${first} through ${middles} to ${names[lastIdx]}${endHex}.`;
   };
 
   const chosen = chooseImpressions(ctx);
@@ -1362,7 +1563,7 @@ export function paletteProseParts(
  * LAST impression (they are ordered for reading, but the ranking put the more
  * informative one first within a slot pair, and dropping the tail keeps the
  * sentence that characterises the palette).
- * Measured over the fixture: p50 293, p95 327, max 358 before the ladder,
+ * Measured over the fixture: p50 291, p95 329, max 363 before the ladder,
  * which is why it never fires today. It exists so a corpus change cannot
  * quietly reintroduce the wall of text this rewrite removed.
  */
@@ -1501,6 +1702,21 @@ export function relatedSearchSlug(label: string): string {
 const UNIVERSAL_NAMES = new Set(["white", "black", "gray", "grey"]);
 
 /**
+ * How much of the run has to render pure black (or pure white) before that
+ * universal stops being the ramp's edge and becomes its subject.
+ *
+ * Two fifths, and the floor is set by the owner's own judgement rather than by
+ * a percentile: the palette that produced "white isnt a good suggested tag for
+ * this palette" (#ffffff, #ffffff, #ffffeb, #fffbc9, #ffd7cc, #e5b8f4, #bca2ff)
+ * is 27.1% pure white, and the palette this rule exists for is 68.8% pure
+ * black with nothing else in it but two thin brown edges. So the boundary sits
+ * between them, where the flat block stops being a passage and becomes the
+ * image. Measured over the fixture, 5 palettes clear it on black and 3 on
+ * white; the shares run 0.021 to 1.000 with no gap to hide the line in.
+ */
+const PLATEAU_DOMINANT = 0.4;
+
+/**
  * Chip ordering by SLOT, so a compound reads as English (D17): tone before
  * family before structure, the same order palette-name.ts sorts a name's
  * adjectives into. "pastel rainbow", never "rainbow pastel".
@@ -1570,6 +1786,22 @@ export function relatedSearches(
       return { name, i, C: lch?.C ?? 0, L: lch?.L ?? 0.5 };
     })
     .sort((a, b) => b.C - a.C || a.i - b.i);
+
+  // ...unless the universal IS the palette. D18's demotion was written for
+  // "white on a pastel palette", where the white stop describes the ramp's edge,
+  // and it inverts on a palette that renders pure black for two thirds of its
+  // length: there the chips spent both top slots on near-synonyms for the two
+  // thin brown edges ("deep brown", "dark brown") and never offered the colour
+  // a visitor is actually looking at. 8 of the 867 fixture seeds are at least a
+  // quarter pure black, 6 at least a tenth pure white, so this is a class and
+  // not a one-off. The dominant word leads the row, ahead of the chroma ranking.
+  const dominant =
+    features.allBlackShare >= PLATEAU_DOMINANT
+      ? "black"
+      : features.allWhiteShare >= PLATEAU_DOMINANT
+        ? "white"
+        : null;
+  if (dominant) add(dominant);
 
   const demoted = (s: { name: string; C: number; L: number }) =>
     UNIVERSAL_NAMES.has(s.name.toLowerCase()) ||

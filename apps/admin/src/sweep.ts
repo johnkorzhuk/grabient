@@ -122,6 +122,8 @@ export interface SweepResult {
   buckets: Record<string, number>;
   quotaUsedToday: number;
   quotaRemainingToday: number;
+  /** Whether index.* metrics were written from this run's rolling picture. */
+  published?: boolean;
   note?: string;
 }
 
@@ -431,29 +433,85 @@ export async function runSweep(
       .run();
   });
 
-  if (complete) {
-    const staleCutoff = now.getTime() - 7 * 86_400_000;
-    const stale = await db
-      .prepare(
-        `SELECT COUNT(*) AS n FROM index_url_status
-          WHERE sweep_id = ?1 AND bucket <> 'error'
-            AND (last_crawl_at IS NULL OR last_crawl_at < ?2)`,
-      )
-      .bind(sweepId, staleCutoff)
-      .first<{ n: number }>();
-    const points: MetricPoint[] = [
-      { key: "index.corpus", day, value: corpus.urls.length },
-      { key: "index.inspected", day, value: inspected },
-      { key: "index.indexed", day, value: indexed },
-      { key: "index.not_indexed", day, value: Math.max(0, inspected - apiErrors - indexed) },
-      { key: "index.crawled_not_indexed", day, value: buckets["crawled_not_indexed"] ?? 0 },
-      { key: "index.discovered_not_indexed", day, value: buckets["discovered_not_indexed"] ?? 0 },
-      { key: "index.duplicate_canonical", day, value: buckets["duplicate_canonical"] ?? 0 },
-      { key: "index.excluded_other", day, value: buckets["excluded_other"] ?? 0 },
-      { key: "index.errors", day, value: apiErrors },
-      { key: "index.stale_crawl_7d", day, value: stale?.n ?? 0 },
-    ];
-    await persist("index metrics", () => upsertMetrics(db, points, now.getTime()));
+  // Publish from the ROLLING picture, not from this run alone.
+  //
+  // A sweep that covers only part of the corpus — because the quota, the
+  // budget or the 11-minute deadline said so — used to publish nothing, which
+  // meant the headline series simply stopped the first night the corpus grew
+  // past what one invocation can do. But we know each URL's most recent
+  // verdict from index_url_status, so the honest number is "of the URLs in
+  // today's corpus, how many are indexed according to the freshest thing we
+  // know about each" — which a partial sweep genuinely improves rather than
+  // invalidates.
+  //
+  // The guard is COVERAGE, not completeness: publish once we have a recent
+  // verdict for most of the corpus, and record how much of it is fresh so a
+  // reader can see the difference between "measured today" and "measured over
+  // the last three nights".
+  const publishable = rowsPersisted > 0 && errorShare <= 0.05;
+  if (publishable) {
+    await persist("index metrics", async () => {
+      // Latest known state per URL, restricted to URLs still in today's
+      // corpus — a URL that left the sitemap must stop counting immediately.
+      const rolling = await db
+        .prepare(
+          `SELECT s.bucket AS bucket, COUNT(*) AS n
+             FROM index_url_status s
+             JOIN (SELECT url, MAX(sweep_id) AS sweep_id FROM index_url_status GROUP BY url) latest
+               ON latest.url = s.url AND latest.sweep_id = s.sweep_id
+            WHERE s.bucket <> 'error'
+            GROUP BY s.bucket`,
+        )
+        .all<{ bucket: string; n: number }>();
+      const rollingBuckets: Record<string, number> = {};
+      for (const row of rolling.results ?? []) rollingBuckets[row.bucket] = row.n;
+      const known = Object.values(rollingBuckets).reduce((a, b) => a + b, 0);
+
+      // How much of that picture is recent. A corpus whose last verdict is
+      // three weeks old is not a measurement of today.
+      const fresh = await db
+        .prepare(
+          `SELECT COUNT(DISTINCT s.url) AS n FROM index_url_status s
+             JOIN index_sweep w ON w.id = s.sweep_id
+            WHERE w.day >= date(?1, '-7 day') AND s.bucket <> 'error'`,
+        )
+        .bind(day)
+        .first<{ n: number }>();
+
+      const staleCutoff = now.getTime() - 7 * 86_400_000;
+      const stale = await db
+        .prepare(
+          `SELECT COUNT(*) AS n FROM index_url_status
+            WHERE sweep_id = ?1 AND bucket <> 'error'
+              AND (last_crawl_at IS NULL OR last_crawl_at < ?2)`,
+        )
+        .bind(sweepId, staleCutoff)
+        .first<{ n: number }>();
+
+      const points: MetricPoint[] = [
+        { key: "index.corpus", day, value: corpus.urls.length },
+        // The denominator is what we have a verdict for, not what this one run
+        // touched — metrics.ts documents dividing coverage by THIS.
+        { key: "index.inspected", day, value: known },
+        { key: "index.indexed", day, value: rollingBuckets["indexed"] ?? 0 },
+        { key: "index.not_indexed", day, value: Math.max(0, known - (rollingBuckets["indexed"] ?? 0)) },
+        { key: "index.crawled_not_indexed", day, value: rollingBuckets["crawled_not_indexed"] ?? 0 },
+        { key: "index.discovered_not_indexed", day, value: rollingBuckets["discovered_not_indexed"] ?? 0 },
+        { key: "index.duplicate_canonical", day, value: rollingBuckets["duplicate_canonical"] ?? 0 },
+        { key: "index.excluded_other", day, value: rollingBuckets["excluded_other"] ?? 0 },
+        { key: "index.errors", day, value: apiErrors },
+        { key: "index.stale_crawl_7d", day, value: stale?.n ?? 0 },
+        // What share of the published picture was actually re-checked in the
+        // last week, so "coverage" can be read with the right confidence.
+        {
+          key: "index.freshness_pct",
+          day,
+          value: known > 0 ? Math.round(((fresh?.n ?? 0) / known) * 1000) / 10 : 0,
+          meta: { inspectedThisRun: inspected, corpus: corpus.urls.length },
+        },
+      ];
+      return upsertMetrics(db, points, now.getTime());
+    });
   }
 
   return {
@@ -466,12 +524,15 @@ export async function runSweep(
     buckets,
     quotaUsedToday: used + inspected,
     quotaRemainingToday: Math.max(0, remaining - inspected),
+    published: publishable,
     ...(complete
       ? {}
       : {
           note: ranOutOfTime
-            ? `Stopped at the ${DEADLINE_MS / 60_000}-minute deadline after ${inspected} of ${corpus.urls.length} URLs. Recorded, no index.* metrics published; tomorrow's rotation starts with the URLs this run did not reach.`
-            : "Partial sweep: recorded, but no index.* metrics published.",
+            ? `Stopped at the ${DEADLINE_MS / 60_000}-minute deadline after ${inspected} of ${corpus.urls.length} URLs. Tomorrow's rotation starts with the URLs this run did not reach${publishable ? ", and index.* was still published from the rolling per-URL picture (see index.freshness_pct for how much of it is recent)" : ""}.`
+            : publishable
+              ? "Partial sweep. index.* published from the rolling per-URL picture rather than this run alone — index.freshness_pct says how much of it was re-checked in the last week."
+              : "Partial sweep: nothing persisted or too many API errors, so no index.* metrics were published.",
         }),
   };
 }

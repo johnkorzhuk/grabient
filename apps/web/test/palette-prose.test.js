@@ -41,9 +41,12 @@ import {
 import { querySlug } from "../src/semantic-search.ts";
 import { PROSE_SEEDS } from "./prose-corpus.js";
 import {
+  colorFamily,
   hexToOkLch,
+  isColorName,
   NAMED_COLORS,
   relativeLuminance,
+  relativeSaturation,
 } from "@repo/data-ops/color-utils";
 
 const T = THRESHOLDS;
@@ -178,8 +181,9 @@ describe("step behavior", () => {
         // The form sentence may appear or vanish (the budget is filled by
         // rank, and the tone/motion rows read rendered means), and the series
         // detector legitimately reads rendered stops — but a palette may never
-        // change from one form sentence to a DIFFERENT one. Measured over the
-        // whole fixture: 0 such events in 2,601 re-renders.
+        // change from one form sentence to a DIFFERENT one. Re-measured over
+        // the whole fixture 2026-08-18: 0 such events in 2,601 re-renders (56
+        // appearances, 30 of them vanishings, 11 series swaps).
         const a = formOf(base);
         const b = formOf(p);
         if (a && b && a !== b)
@@ -228,8 +232,35 @@ const EVEN_SPREAD = 0.5;
 const VISIBLE_MOVEMENT = 0.25;
 
 /** id → an independent recomputation of the licensing conjunction. */
+/**
+ * The tone-gated family word (research-colorTheory §1.2): brown IS a dark
+ * low-chroma orange, purple IS a dark magenta, pink IS a light low-chroma red,
+ * and a band word may only be used where there is colour to name. Recomputed
+ * here rather than imported, like every other gate in this table.
+ */
+const gatedFamily = (stop) => {
+  if (!stop) return null;
+  const band = familyWord(stop.h);
+  if (band === "orange" && stop.L < 0.55 && stop.C >= 0.04 && stop.C <= 0.13) return "brown";
+  if (band === "magenta" && stop.L < 0.55 && stop.C >= 0.12) return "purple";
+  if (band === "red" && stop.L > 0.75 && stop.C >= 0.04 && stop.C < 0.15) return "pink";
+  return stop.C >= T.FAMILY_CHROMA || relativeSaturation(stop) >= T.FAMILY_SATURATION
+    ? band
+    : null;
+};
+const grayLean = (f) =>
+  f.denseMeanSaturation < T.GRAYSCALE_SAT && f.denseMeanChroma >= 0.008
+    ? f.meanHue >= 330 || f.meanHue < 120
+      ? "warm"
+      : f.meanHue >= 150 && f.meanHue < 300
+        ? "cool"
+        : null
+    : null;
+const band = (h) => (h === null ? null : familyWord(h));
+
 const GATES = {
-  gray: (c) => c.structure === "grayscale",
+  gray: (c) => c.structure === "grayscale" && grayLean(c.f) === null,
+  "tinted-gray": (c) => c.structure === "grayscale" && grayLean(c.f) !== null,
   "pale-soft": (c) =>
     c.has("pastel") &&
     c.has("high-key") &&
@@ -238,7 +269,8 @@ const GATES = {
   pale: (c) => c.has("pastel") && !c.has("high-key"),
   "bright-strong": (c) => isBrilliant(c.f) && c.f.lightnessRange < EVEN_SPREAD,
   neon: (c) => c.has("neon"),
-  rich: (c) => isJewel(c.f),
+  rich: (c) =>
+    isJewel(c.f) && c.f.lightnessRange < EVEN_SPREAD && Math.max(...c.stopL) <= 0.7,
   "dark-strong": (c) => isDeep(c.f) && c.f.lightnessRange < EVEN_SPREAD,
   "dark-even": (c) => c.has("low-key") && !isDeep(c.f),
   dark: (c) => c.has("dark") && !isDeep(c.f) && !c.has("low-key"),
@@ -254,15 +286,24 @@ const GATES = {
     !isBrilliant(c.f),
   "color-beside-gray": (c) => saturationContrast(c.f),
   "warm-and-cool": (c) => warmCoolContrast(c.f),
-  warm: (c) => c.has("warm") && !c.journey,
-  cool: (c) => c.has("cool") && !c.journey,
-  "tints-and-shades": (c) => c.structure === "monochrome",
-  tints: (c) => c.structure === "monochrome",
-  shades: (c) => c.structure === "monochrome",
-  tones: (c) => c.structure === "monochrome",
-  "one-color": (c) => c.structure === "monochrome",
-  fade: (c) => c.structure === "analogous" && isOmbre(c.f, c.structure),
-  "two-colors": (c) => c.structure === "duotone",
+  warm: (c) =>
+    c.has("warm") && !c.journey && hueBandShare(c.f, 330, 120) >= T.FAMILY_BAND,
+  cool: (c) =>
+    c.has("cool") && !c.journey && hueBandShare(c.f, 150, 300) >= T.FAMILY_BAND,
+  "tints-and-shades": (c) => c.structure === "monochrome" && c.base !== null,
+  tints: (c) => c.structure === "monochrome" && c.base !== null,
+  shades: (c) => c.structure === "monochrome" && c.base !== null,
+  tones: (c) => c.structure === "monochrome" && c.base !== null,
+  "one-color": (c) => c.structure === "monochrome" && c.base !== null,
+  fade: (c) =>
+    c.structure === "analogous" &&
+    isOmbre(c.f, c.structure) &&
+    c.base !== null &&
+    band(c.f.firstHue) === band(c.f.lastHue),
+  "two-colors": (c) =>
+    c.structure === "duotone" &&
+    !c.has("pure-white-plateau") &&
+    !c.has("pure-black-plateau"),
   "opposite-colors": (c) => c.structure === "complementary",
   "whole-wheel": (c) => c.has("full-wheel"),
   rainbow: (c) => c.structure === "rainbow" && !c.has("full-wheel"),
@@ -272,17 +313,22 @@ const GATES = {
   "back-and-forth": (c) => c.has("hue-wandering"),
   neighbors: (c) =>
     c.structure === "analogous" &&
-    c.f.firstHue !== null &&
-    c.f.lastHue !== null &&
-    familyWord(c.f.firstHue) !== familyWord(c.f.lastHue),
+    band(c.f.firstHue) !== band(c.f.lastHue) &&
+    gatedFamily(c.f.firstChromatic) !== null &&
+    gatedFamily(c.f.lastChromatic) !== null,
   "one-family": (c) =>
     c.structure === "analogous" &&
+    c.base !== null &&
     (c.f.firstHue === null ||
       c.f.lastHue === null ||
-      familyWord(c.f.firstHue) === familyWord(c.f.lastHue)),
-  groups: (c) => c.structure === "multicolor" && c.f.hueClusters >= 2,
-  "several-colors": (c) => c.structure === "multicolor" && c.f.hueClusters < 2,
+      band(c.f.firstHue) === band(c.f.lastHue)),
+  groups: (c) =>
+    c.structure === "multicolor" && c.f.hueClusters >= 2 && c.f.chromaticFraction >= 1,
+  "several-colors": (c) =>
+    c.structure === "multicolor" &&
+    !(c.f.hueClusters >= 2 && c.f.chromaticFraction >= 1),
   "black-block": (c) => c.has("pure-black-plateau"),
+  "white-block": (c) => c.has("pure-white-plateau"),
   "full-range": (c) =>
     c.f.lightnessRange > T.HIGH_CONTRAST_RANGE &&
     Math.min(...c.stopL) < 0.18 &&
@@ -320,6 +366,7 @@ const gateCtx = (seed) => {
     f,
     structure: classifyStructure(f),
     has: (w) => tags.includes(w),
+    base: gatedFamily(f.chromaPeak),
     stopL: view.hexColors.map((h) => hexToOkLch(h).L),
     lum: view.hexColors.map(relativeLuminance),
     // The journey value the page uses comes from the stored palette-tags
@@ -418,11 +465,15 @@ describe("impression gating", () => {
         }
         expect(fires[imp.id], `${seed}/${imp.id}`).toBe(GATES[imp.id](c));
       }
-      // A monochrome palette gets exactly one of the five monochrome rows.
+      // A monochrome palette gets AT MOST one of the five monochrome rows: they
+      // partition the transformations, and all five now also require a
+      // nameable base, so a monochrome too washed out to have a colour word
+      // (measured: 11 of the fixture's 132) gets none of them and spends its
+      // budget on something it can say truthfully.
       const mono = ["tints", "shades", "tones", "tints-and-shades", "one-color"].filter(
         (id) => fires[id],
       );
-      expect(mono.length, seed).toBe(c.structure === "monochrome" ? 1 : 0);
+      expect(mono.length, seed).toBeLessThanOrEqual(c.structure === "monochrome" ? 1 : 0);
     }
   });
 });
@@ -507,23 +558,25 @@ describe("banned tokens", () => {
  * bounded vocabulary) and are stripped before the check.
  */
 const ALLOWED_WORDS = new Set([
-  "a", "against", "almost", "an", "and", "arcing", "are", "areas", "as",
+  "a", "against", "all", "almost", "an", "and", "are", "areas", "as",
   "at", "autumn", "back", "background", "barely", "becomes", "behind",
   "below", "between", "black", "blue", "both", "break", "bright",
-  "brightest", "brightness", "built", "change", "changes", "circling",
+  "brightest", "brightness", "brown", "built", "change", "changes",
   "clear", "codes", "color", "colorless", "colors", "cool", "cooler", "copy",
   "css", "cyan", "dark", "darkened", "darker", "darkest", "deep",
-  "direction", "duotone", "earthy", "easing", "end", "ends", "enough",
+  "direction", "duotone", "earthy", "end", "ends", "enough",
   "every", "everything", "export", "fades", "forth", "forward", "from",
-  "full", "gradient", "gray", "grayscale", "green", "groups", "held", "here",
+  "full", "gradient", "gray", "grays", "grayscale", "green", "groups", "held",
+  "here",
   "hex", "holds", "how", "in", "inside", "instead", "intense", "into", "is",
   "it", "its", "jumps", "light", "lightened", "lighter", "like", "linear",
   "little", "look", "loops", "magenta", "many", "match", "middle",
-  "monochrome", "more", "mostly", "move", "moves", "muted", "nearly", "neon",
+  "meet", "monochrome", "more", "mostly", "move", "moves", "muted", "nearly",
+  "neon",
   "next", "no", "ocean", "of", "on", "once", "one", "only", "opposite", "or",
-  "orange", "pairing", "pale", "palette", "part", "passes", "pastel", "png",
-  "rainbow", "range", "readable", "ready", "red", "renders", "return",
-  "running", "runs", "same", "separate", "several", "shown", "sides",
+  "orange", "pairing", "pale", "palette", "part", "passes", "pastel", "pink",
+  "png", "purple", "rainbow", "range", "readable", "ready", "red", "renders",
+  "return", "running", "runs", "same", "separate", "several", "shown", "sides",
   "single", "sit", "sits", "skips", "so", "soft", "softened", "solid",
   "start", "stay", "stays", "steps", "stop", "strong", "strongest", "sunset",
   "svg", "sweeping", "text", "than", "that", "the", "them", "there",
@@ -573,9 +626,9 @@ describe("translation friendliness", () => {
 
 describe("budget", () => {
   it("spends 2 to 4 sentences and stays inside the measured length band", () => {
-    // Measured over the fixture (2026-08-18): paragraph p0 237, p5 267,
-    // p50 293, p95 327, max 358; body (identity + impressions) p0 132,
-    // p50 188, max 253; meta max 158; embed max 466. D20 asks for 2 to 4
+    // Re-measured after the visual-QA round (2026-08-18): paragraph p0 212,
+    // p5 260, p50 291, p95 329, max 363; body (identity + impressions) p0 107,
+    // p50 186, max 258; meta max 157; embed max 463. D20 asks for 2 to 4
     // sentences and roughly 150 to 400 characters, and the ladder in
     // paletteProse never fires at these lengths.
     const lengths = [];
@@ -603,7 +656,9 @@ describe("budget", () => {
 
   it("gives a plain palette a short description rather than padding it", () => {
     // D20.1: a palette with nothing unusual gets one sentence of character.
-    // Measured: 6 of 867. If this ever reaches zero, something is padding.
+    // Measured: 22 of 867, up from 6 now that a palette too washed out to name
+    // a family says nothing about its family. If this ever reaches zero,
+    // something is padding.
     const single = PROSE_SEEDS.filter(
       (seed) => caseFor(seed).parts.impressions.length < 2,
     );
@@ -634,13 +689,8 @@ describe("solid-color veto", () => {
     const body = prose.paragraph.replace(parts.view, "").trim();
     for (const journey of [
       " to ",
-      "easing",
       "running",
       "sweeping",
-      "winding",
-      "arcing",
-      "weaving",
-      "circling",
       "becomes",
       "fades",
       "travels",
@@ -710,7 +760,7 @@ describe("corpus acceptance (the templated-page test)", () => {
 
   it("varies the skeleton, not just the fill", () => {
     // Strip everything palette-specific — digits, hexes, the palette's own
-    // color names, the family words — and count what remains. Measured: 568
+    // color names, the family words — and count what remains. Measured: 581
     // distinct skeletons over the 867 seeds, down from 836 with three times
     // the text; 50 is the acceptance floor at which the corpus stops reading
     // as one fill-in-the-blanks template. Shorter text buys variety through
@@ -762,7 +812,7 @@ describe("corpus acceptance (the templated-page test)", () => {
       sum += j;
       max = Math.max(max, j);
     }
-    // Measured over this sampling: mean 0.285, max 0.550. The bound is the one
+    // Measured over this sampling: mean 0.299, max 0.545. The bound is the one
     // the long paragraphs met (mean 0.35 / max 0.80), and the short ones still
     // meet it: the shared view sentence is a larger share of a shorter text,
     // and sharper selection paid for it.
@@ -807,6 +857,10 @@ describe("relatedSearches", () => {
       for (const label of labels) {
         const ok =
           named.colorNames.includes(label) ||
+          // The dominant-plateau label ("black" on a palette that renders two
+          // thirds pure black) is a corpus name that the ramp's own naming may
+          // not have chosen — still bounded, still a colour-name query.
+          isColorName(label) ||
           SPOKEN_WORDS.has(label) ||
           familyWords.has(label) ||
           isCompound(label);
@@ -823,7 +877,13 @@ describe("relatedSearches", () => {
         const hex = named.stops.find((h) => nameOf(h) === name);
         return hex ? hexToOkLch(hex).C : 0;
       };
-      const names = labels.filter((l) => named.colorNames.includes(l));
+      // The dominant-plateau label leads the row by share, not by chroma, so
+      // it is excluded from the chroma ordering it deliberately breaks.
+      const dominant =
+        features.allBlackShare >= 0.4 ? "black" : features.allWhiteShare >= 0.4 ? "white" : null;
+      const names = labels.filter(
+        (l) => named.colorNames.includes(l) && l !== dominant,
+      );
       for (let i = 1; i < names.length; i++)
         expect(
           chromaOf(names[i - 1]) >= chromaOf(names[i]) - 1e-9,
@@ -832,21 +892,38 @@ describe("relatedSearches", () => {
     }
   });
 
-  it("never chips a bare universal while two better labels exist (D18)", () => {
+  it("chips a bare universal only as a last resort or as the palette itself", () => {
     let lastResort = 0;
+    let dominant = 0;
     for (const seed of PROSE_SEEDS) {
       const { features, named } = caseFor(seed);
       const labels = relatedSearches(features, named, modifierTags(features));
       const universal = labels.filter((l) => UNIVERSALS.includes(l.toLowerCase()));
       if (!universal.length) continue;
-      lastResort++;
-      // Only ever as a last resort: the row had fewer than two other labels.
-      expect(labels.length, `${seed}: ${labels.join(", ")}`).toBeLessThanOrEqual(2);
+      // Two ways in, and only two. Either the row had nothing better to say
+      // (D18.2's fallback), or the flat block IS the palette: a ramp that
+      // renders 68.8% pure black used to spend both top chips on near-synonyms
+      // for its two thin brown edges and never offer the colour a visitor sees.
+      const isDominant =
+        features.allBlackShare >= 0.4 || features.allWhiteShare >= 0.4;
+      if (isDominant) {
+        dominant++;
+        expect(labels[0], seed).toBe(features.allBlackShare >= 0.4 ? "black" : "white");
+      } else {
+        lastResort++;
+        expect(labels.length, `${seed}: ${labels.join(", ")}`).toBeLessThanOrEqual(2);
+      }
     }
-    // Measured: 1 of 867 rows (a pure-white solid palette, whose only other
-    // label is "grayscale"), and it is exactly the case D18.2 keeps the
-    // fallback for — an empty chip row would be worse.
-    expect(lastResort).toBe(1);
+    // Measured: 8 dominant rows (five at 63-69% pure black, three at 44-100%
+    // pure white) and no last-resort ones — the solid-white palette that used
+    // to be the only fallback row is now the dominant case instead, which is
+    // the same chip for a better reason. The fallback branch stays because the
+    // editor reaches states the sitemap never sampled; the grayscale row test
+    // below is what proves no palette renders an empty nav. The owner's
+    // counter-example, a pastel ramp that is 27.1% white, is under the floor
+    // and chips its colours instead, which is the test after that.
+    expect(lastResort).toBe(0);
+    expect(dominant).toBe(8);
   });
 
   it("chips the screenshot palette without white", () => {
@@ -911,8 +988,8 @@ describe("relatedSearches", () => {
     // rows. The frontier is bounded by construction (spoken words squared,
     // filtered to co-firing non-contradictory pairs), which is what keeps the
     // crawl surface finite.
-    expect(distinct.size).toBe(34);
-    expect(rowsWithCompound).toBe(217);
+    expect(distinct.size).toBe(33);
+    expect(rowsWithCompound).toBe(172);
     expect([...distinct.keys()]).toContain("pastel rainbow");
   });
 
@@ -938,25 +1015,42 @@ describe("relatedSearches", () => {
 });
 
 const nameOf = (hex) => {
-  // The corpus answer for a single stop, the same function the chip ranking
-  // uses to find which stop a name names.
-  let best = NAMED_COLORS[0];
-  let min = Infinity;
+  // The corpus answer for a single stop, the same rule the chip ranking uses to
+  // find which stop a name names — nearest in OkLab, with the family tie-break
+  // inside half a JND: a name carries a category, and at the bottom of the
+  // lightness scale two candidates a quarter of a JND apart can be a brown and
+  // a black. Recomputed here rather than imported, like every other gate.
   const { L, C, h } = hexToOkLch(hex);
   const rad = (h * Math.PI) / 180;
   const lab = [L, C * Math.cos(rad), C * Math.sin(rad)];
+  const coloured =
+    C >= T.CHROMA_FLOOR || relativeSaturation({ L, C, h }) >= T.SATURATION_FLOOR;
+  const family = coloured ? colorFamily(h) : "neutral";
+  let best = NAMED_COLORS[0];
+  let min = Infinity;
+  let sameFamily = null;
+  let sameMin = Infinity;
   for (const color of NAMED_COLORS) {
     const d = Math.hypot(
       lab[0] - color.lab[0],
       lab[1] - color.lab[1],
       lab[2] - color.lab[2],
     );
+    const cC = Math.hypot(color.lab[1], color.lab[2]);
+    const cFamily =
+      cC >= T.CHROMA_FLOOR
+        ? colorFamily((Math.atan2(color.lab[2], color.lab[1]) * 180) / Math.PI)
+        : "neutral";
     if (d < min) {
       min = d;
       best = color;
     }
+    if (cFamily === family && d < sameMin) {
+      sameMin = d;
+      sameFamily = color;
+    }
   }
-  return best.name;
+  return sameFamily && sameMin <= min + 0.01 ? sameFamily.name : best.name;
 };
 
 describe("describePalette (the canonical triple)", () => {

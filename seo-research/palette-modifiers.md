@@ -587,3 +587,65 @@ depends on it — the names and tags are correct on the page today; only
 4. **Should `seamless` be spoken on conic gradients only?** It carries 4.4 bits
    and is genuinely useful there (a mismatch is a visible seam), but it is
    meaningless on a linear gradient. Currently tag-only.
+
+---
+
+## 9. 2026-08-18 — the ladder, re-measured after visual QA
+
+Three graders read rendered palettes beside the generated names and found two
+structure classifications that the geometry never established. Both were the
+same shape of error: a test that measured a DISTANCE and was read as a JOURNEY.
+
+**`rainbow` is now a one-cluster classification.** The ladder used to fall
+through to `hueSpan >= RAINBOW_SPAN` whenever a two-cluster palette failed the
+duotone width bound, so a palette with clusters at 226° and 27° and a 161°
+EMPTY gap between them measured a span of 200.4 and was named "Sunset rainbow
+dirty blue to tomato red to cocoa" — teal, a flat block of red, brown, and no
+yellow, green, blue or purple anywhere in it. 43 of the 121 rainbows were that
+shape (brown → sage → navy; white → blue-gray → teal). Span only means a
+journey when the palette has no hole in it, which is exactly `hueClusters === 1`.
+
+**A cluster may not be wider than the gap that separates clusters.**
+`DUOTONE_CLUSTER_WIDTH` was 60° (two segments of the 12-segment wheel) against a
+`CLUSTER_GAP` of 40°, so a "single hue" group could span two family bands: a
+pale sweep running sand, yellow-green, green, sage, gray-blue, lilac, pink came
+back `duotone` with a 53.9° cluster and told the reader it "uses two colors and
+skips everything between them". The bound is now `CLUSTER_GAP` itself.
+
+| structure | before | after |
+|---|---|---|
+| grayscale | 19 | 19 |
+| monochrome | 132 | 132 |
+| duotone | 46 | 30 |
+| complementary | 47 | 29 |
+| rainbow | 121 | 78 |
+| analogous | 243 | 243 |
+| multicolor | 259 | 336 |
+
+The 33 palettes released from duotone/complementary are continuous sweeps by eye
+(navy → sky → cream, orange → tan → gray → light blue, violet → lavender →
+white); the ones that stay are two poles with a crossing.
+
+### Three gates that measured one sample
+
+- **`neon`** tested `maxChroma`, so one electric stop made a palette neon: a
+  steel-blue-to-dusty-rose ramp with per-stop saturations 0.46 0.54 0.46 0.40
+  0.49 0.75 1.00 shipped as "A neon gradient color palette". Now the loudest
+  TENTH of the dense run (`denseChromaP90`, a new feature) must clear
+  `NEON_CHROMA` as well: 85 → 71 of 867. The true neons sit at 20-40% of the run
+  above the bar; the ones dropped are at 2-4%.
+- **`sunset`** tested only that the palette stayed inside 300°-100°, which a
+  purely magenta-pink ramp satisfies with a score of 1.000. A sunset has sun in
+  it: ≥10% of the chromatic mass must sit in 20°-100° (`SUNSET_WARM_SHARE`).
+  134 → 117, and the sweep is flat around the threshold (0.05 → 120, 0.15 → 111).
+- **`pure-white-plateau`** was measured at 0.7% and left out on the 2%
+  prevalence floor. That floor governs what may be SPOKEN; the prose layer
+  needed to SEE the fact, because a palette whose middle 46% renders pure white
+  was being described as two colors that "skip everything between them". It
+  exists now with `spoken: false`, like its black twin.
+
+`chromaPeak`, `firstChromatic` and `lastChromatic` were added at the same time:
+the tone-gated names prose uses (brown is a dark low-chroma orange, purple a
+dark magenta, pink a light low-chroma red) need L and C where the palette's
+colour actually lives, not only a hue angle.
+
