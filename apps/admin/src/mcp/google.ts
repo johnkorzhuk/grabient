@@ -28,7 +28,11 @@ export function registerGoogle(server: McpServer, env: Env) {
         "comparing two calls (aggregation moves impressions up to 3x). Days on or " +
         "after firstIncompleteDate are still filling — a decline at the right edge " +
         "is usually that. compare:true adds the equal-length prior window plus " +
-        "per-key movers, where a NEGATIVE position delta is an IMPROVEMENT. " +
+        "per-key movers, where a NEGATIVE position delta is an IMPROVEMENT — but " +
+        "movers are computed over the ROWS RETURNED, not the whole query " +
+        "universe, so with the default limit a query that merely slipped past " +
+        "the cut reads as 'lost' and one that rose into it reads as 'new'. " +
+        "Raise limit before concluding a query died. " +
         "Retention is 16 months, but THIS property has data only since 2026-08-14 " +
         "(the property is young, not the site).",
       inputSchema: z.object({
@@ -66,10 +70,17 @@ export function registerGoogle(server: McpServer, env: Env) {
       annotations: { readOnlyHint: true },
     },
     async (args) => {
-      const result = await querySearchConsole(env, new Date(), {
-        ...args,
-        compare: args.compare ?? false,
-      });
+      let result;
+      try {
+        result = await querySearchConsole(env, new Date(), {
+          ...args,
+          compare: args.compare ?? false,
+        });
+      } catch (error) {
+        // Framed like every other failure here rather than leaking a bare
+        // exception string at the agent.
+        return refused("Search Console", "exception", (error as Error).message);
+      }
       if (!result) {
         return notConfigured("Search Console", "GSC_SERVICE_ACCOUNT, and the account added in Search Console users");
       }
@@ -98,9 +109,12 @@ export function registerGoogle(server: McpServer, env: Env) {
         const lost = result.previous.rows
           .filter((p) => !seen.has(p.key))
           .map((p) => ({ key: p.key, clicksDelta: -p.clicks, impressionsDelta: -p.impressions, status: "lost" }));
-        movers = [...rows, ...lost]
-          .sort((a, b) => Math.abs(b.clicksDelta) - Math.abs(a.clicksDelta))
-          .slice(0, 25);
+        movers = {
+          scope: `top ${args.limit ?? 25} rows of each window — 'new' and 'lost' mean "entered/left this page", not the index`,
+          rows: [...rows, ...lost]
+            .sort((a, b) => Math.abs(b.clicksDelta) - Math.abs(a.clicksDelta))
+            .slice(0, 25),
+        };
       }
       return json(movers ? { ...result, movers } : result);
     },
@@ -173,7 +187,9 @@ export function registerGoogle(server: McpServer, env: Env) {
         "said the cssgradient.io embed beat search 2.8x; GA4 says search beats the " +
         "embed 23x). Self-referrals and (not set) are excluded and COUNTED in " +
         "`excluded` rather than dropped. Counts sessions, not links: a domain " +
-        "absent here may still link to us and simply send nobody.",
+        "absent here may still link to us and simply send nobody. Domains under " +
+        "minSessions (default 2) are dropped from rows but still counted in " +
+        "totalReferralSessions, so the rows will not sum to the total.",
       inputSchema: z.object({
         days: z.number().int().min(1).max(365).optional(),
         start: isoDate.optional(),

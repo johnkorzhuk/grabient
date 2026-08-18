@@ -208,8 +208,8 @@ const PACKED_COLORS =
     "4de,light tan:fbeeac,light teal:90e4c1,light turquoise:7ef4cc,light urple:b36ff6,light viole" +
     "t:d6b4fc,light yellow:ffffe0,light yellow green:ccfd7f,light yellowish green:c2ff89,lightblu" +
     "e:7bc8f6,lighter green:75fd63,lighter purple:a55af4,lightgreen:76ff7b,lilac:cea2fd,lime:00ff" +
-    "00,lime green:32cd32,lime yellow:d0fe1d,linen:faf0e6,lipstick:d5174e,lipstick red:c0022f,mac" +
-    "aroni and cheese:efb435,magenta:ff00ff,mahogany:4a0100,maize:f4d054,mango:ffa62b,manila:fffa" +
+    "00,lime green:32cd32,lime yellow:d0fe1d,linen:faf0e6,lipstick:d5174e,lipstick red:c0022f,mag" +
+    "enta:ff00ff,mahogany:4a0100,maize:f4d054,mango:ffa62b,manila:fffa" +
     "86,marigold:fcc006,marine:042e60,marine blue:01386a,maroon:800000,mauve:ae7181,medium aquama" +
     "rine:66cdaa,medium blue:0000cd,medium brown:7f5112,medium gray:7d7f7c,medium green:39ad48,me" +
     "dium orchid:ba55d3,medium pink:f36196,medium purple:9370db,medium sea green:3cb371,medium sl" +
@@ -293,6 +293,15 @@ const PACKED_COLORS =
 // ("cornflowerblue"), British "grey", misspellings ("liliac", "terracota"),
 // and the colloquial forms filtered above. A user who types one still gets the
 // right swatch.
+//
+// "macaroni and cheese" joined them on 2026-08-18, the one entry moved out of
+// the display list since the restore, and for a technical reason rather than
+// taste: it is a DISH, not a colour word, so a machine translator renders it as
+// the food (ES "macarrones con queso"), and D20.4 makes translatability binding
+// on every generated string — this one reached the h1, the meta description and
+// a /palettes/ chip. The survey's other food words ("chocolate", "salmon",
+// "peach", "mustard") are ordinary colour words in translation and stay. Its
+// hex now names as "dark yellow", the next entry 0.007 away in OkLab.
 const PACKED_ALIASES =
     "aliceblue=alice blue,antiquewhite=antique white,darkcyan=dark cyan,darkturquoise=dark turquo" +
     "ise,deepskyblue=deep sky blue,mediumblue=medium blue,mediumspringgreen=medium spring green,s" +
@@ -322,7 +331,8 @@ const PACKED_ALIASES =
     "teal=gray teal,light grey green=light gray green,reddish grey=reddish gray,darkish pink=dark" +
     " pink,battleship grey=battleship gray,browny green=brownish green,charcoal grey=charcoal gra" +
     "y,browny orange=brownish orange,greyish teal=grayish teal,cool grey=cool gray,darkish purple" +
-    "=dark purple,dark blue grey=dark blue gray,darkish red=dark red,reddy brown=reddish brown,li" +
+    "=dark purple,dark blue grey=dark blue gray,darkish red=dark red,macaroni and cheese=dark yel" +
+    "low,reddy brown=reddish brown,li" +
     "ght blue grey=light blue gray,lightish purple=light purple,lightish red=light red,yellowy br" +
     "own=yellowish brown,brown grey=brown gray,dark grey blue=dark gray blue,greeny brown=greenis" +
     "h brown,light grey blue=light gray blue,pale grey=pale gray,purply pink=purplish pink,greeny" +

@@ -28,9 +28,14 @@ export function registerWorkspace(server: McpServer, env: Env, actor: string) {
         "ad with kind anything — use the campaigns tool, which carries the utm " +
         "tag that makes it measurable. Writes are IDEMPOTENT: same kind+date+" +
         "label updates rather than duplicates (a retried call is safe); pass " +
-        "allow_duplicate:true for a genuine same-day twin. delete soft-deletes; " +
-        "nothing is ever hard-deleted. Events assert something HAPPENED, never " +
-        "that it caused anything — correlation is your inference.",
+        "allow_duplicate:true for a genuine same-day twin. The dedupe key is " +
+        "source+kind+date+the first 40 characters of the label, so two long " +
+        "labels sharing a prefix collide, and the same event logged by a human " +
+        "and by an agent produces two rows (different source). Re-logging " +
+        "updates the label, detail and ends_on but NOT the date — correct a " +
+        "date by deleting and re-logging. delete soft-deletes; nothing is ever " +
+        "hard-deleted. Events assert something HAPPENED, never that it caused " +
+        "anything — correlation is your inference.",
       inputSchema: z.object({
         action: z.enum(["log", "list", "delete"]).optional(),
         kind: z.enum(["deploy", "decision", "external", "incident"]).optional(),
@@ -277,6 +282,14 @@ export function registerWorkspace(server: McpServer, env: Env, actor: string) {
         }
         case "checkin": {
           if (!args.slug) return toolError("action:'checkin' needs a slug.");
+          const known = await listGoals(adminDb, now, true);
+          if (!known.some((g) => g.slug === args.slug)) {
+            // Otherwise the goal_checkin foreign key fires and the agent gets a
+            // raw D1_ERROR instead of something it can act on.
+            return toolError(
+              `No goal '${args.slug}'. goals action:'list' shows what exists; action:'upsert' creates one.`,
+            );
+          }
           await checkinGoal(adminDb, args.slug, now, args.value, args.notes);
           const goals = await listGoals(adminDb, now, true);
           return json({ goal: goals.find((g) => g.slug === args.slug) ?? null });

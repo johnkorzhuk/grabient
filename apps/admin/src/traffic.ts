@@ -665,7 +665,14 @@ export async function runCloudflareGraphQL(
     // The analytics schema exposes no mutations; refusing the keyword makes the
     // read-only contract explicit rather than incidental.
     if (/\bmutation\b/i.test(query)) {
-        return { errors: [{ message: "Mutations are not permitted by this tool." }] };
+        return {
+            data: null,
+            errors: [{ message: "Mutations are not permitted by this tool." }],
+            // The tool description promises every response carries caveats;
+            // the refusal path used to be the one that did not.
+            caveats: ["Refused before reaching Cloudflare. The analytics schema exposes no mutations anyway."],
+            zoneTag: env.CF_ZONE_ID ?? null,
+        };
     }
 
     const caveats = DATASET_CAVEATS.filter(({ match }) => match.test(query)).map(

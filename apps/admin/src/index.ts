@@ -248,7 +248,7 @@ app.get("/trends", async (c) => {
     await Promise.all([
       trendCard(db, { title: "Search clicks", note: "Daily clicks from Google search results.", idPrefix: "t-gc", unitFormat: compact, metrics: [{ key: "gsc.clicks", label: "Clicks" }] }, since, until, markers, eventsHtml),
       trendCard(db, { title: "Search impressions", note: "How often grabient.com appeared in results.", idPrefix: "t-gi", unitFormat: compact, metrics: [{ key: "gsc.impressions", label: "Impressions" }] }, since, until, markers, eventsHtml),
-      trendCard(db, { title: "Average position", note: "Impressions-weighted mean result position. LOWER is better.", idPrefix: "t-gp", unitFormat: (n) => n.toFixed(1), metrics: [{ key: "gsc.position", label: "Position" }], zeroBase: false }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Average position", note: "Impressions-weighted mean result position. LOWER IS BETTER, and the axis is NOT inverted — a line going UP means ranking got worse.", idPrefix: "t-gp", unitFormat: (n) => n.toFixed(1), metrics: [{ key: "gsc.position", label: "Position" }], zeroBase: false }, since, until, markers, eventsHtml),
       trendCard(db, { title: "Sessions by channel", note: "GA4 bot-filtered sessions for the four channels that matter.", idPrefix: "t-ch", unitFormat: compact, metrics: [
         { key: "ga4.sessions.organic_search", label: "Organic search" },
         { key: "ga4.sessions.direct", label: "Direct" },

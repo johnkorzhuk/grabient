@@ -143,7 +143,9 @@ export function registerIndexation(server: McpServer, env: Env) {
     },
     async ({ live }) => {
       const thirtyDaysAgo = Date.now() - 30 * 86_400_000;
-      const [totals, styles, liked] = await env.DB.batch<any>([
+      let totals: any, styles: any, liked: any;
+      try {
+        [totals, styles, liked] = await env.DB.batch<any>([
         env.DB.prepare(
           `SELECT COUNT(*) AS palettes, COUNT(DISTINCT style) AS styles,
                   MIN(created_at) AS oldest_ms, MAX(created_at) AS newest_ms,
@@ -151,8 +153,13 @@ export function registerIndexation(server: McpServer, env: Env) {
              FROM palettes`,
         ).bind(thirtyDaysAgo),
         env.DB.prepare(`SELECT style, COUNT(*) AS n FROM palettes GROUP BY style ORDER BY n DESC`),
-        env.DB.prepare(`SELECT COUNT(DISTINCT palette_id) AS liked FROM likes`),
-      ]);
+          env.DB.prepare(`SELECT COUNT(DISTINCT palette_id) AS liked FROM likes`),
+        ]);
+      } catch (error) {
+        return toolError(
+          `The production database refused the corpus query: ${(error as Error).message}. That is a database problem, not an empty corpus.`,
+        );
+      }
       const corpus = live === false ? null : await fetchCorpus();
       return json({
         generated_at: new Date().toISOString(),
