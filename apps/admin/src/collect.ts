@@ -210,18 +210,24 @@ export async function collectD1(
   // day's cumulative total was written FINAL at 04:20, when the day was 18%
   // over.
   const emit = (rows: Array<{ day: string; n: number }>, dailyKey: string | null, cumulativeKey: string | null) => {
+    const byDay = new Map(rows.filter((r) => r.day && r.day <= today).map((r) => [r.day, r.n]));
+    const first = rows.find((r) => r.day && r.day <= today)?.day;
+    if (!first) return;
+
+    // A CUMULATIVE series gets a point every single day, not just days with
+    // activity. A quiet Sunday does not mean the account count stopped
+    // existing — but an absent row is indistinguishable from a failed
+    // collection, so leaving the hole made the charts and metrics_history
+    // report a gap on a day nothing was wrong with. Daily counts, by
+    // contrast, are genuinely zero on a quiet day and are written as zero.
     let total = 0;
-    for (const row of rows) {
-      if (!row.day || row.day > today) continue;
-      total += row.n;
-      const provisional = row.day >= today;
-      if (dailyKey) points.push({ key: dailyKey, day: row.day, value: row.n, provisional });
-      if (cumulativeKey) points.push({ key: cumulativeKey, day: row.day, value: total, provisional });
-    }
-    // Carry the cumulative value to today so "last" reads are current even on
-    // a day with no new rows.
-    if (cumulativeKey && rows.length && rows[rows.length - 1]!.day < today) {
-      points.push({ key: cumulativeKey, day: today, value: total, provisional: true });
+    for (let t = Date.parse(`${first}T00:00:00Z`); t <= Date.parse(`${today}T00:00:00Z`); t += dayMs) {
+      const day = new Date(t).toISOString().slice(0, 10);
+      const n = byDay.get(day) ?? 0;
+      total += n;
+      const provisional = day >= today;
+      if (dailyKey) points.push({ key: dailyKey, day, value: n, provisional });
+      if (cumulativeKey) points.push({ key: cumulativeKey, day, value: total, provisional });
     }
   };
   emit(signups.results ?? [], "d1.signups", "d1.users");
