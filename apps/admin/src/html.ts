@@ -217,12 +217,18 @@ const CHART_SCRIPT = String.raw`
 /** Top-level pages, in nav order. */
 export const PAGES = [
   { href: "/", label: "Overview" },
+  { href: "/trends", label: "Trends" },
+  { href: "/indexation", label: "Indexation" },
   { href: "/acquisition", label: "Acquisition" },
-  { href: "/brief", label: "Agent brief" },
+  { href: "/goals", label: "Goals" },
+  { href: "/campaigns", label: "Campaigns" },
+  { href: "/reports", label: "Reports" },
+  { href: "/brief", label: "Brief" },
+  { href: "/ops", label: "Ops" },
 ] as const;
 
 export function nav(current: string): string {
-  return `<nav class="flex items-center gap-1" aria-label="Sections">${PAGES.map((page) => {
+  return `<nav class="flex flex-wrap items-center gap-1" aria-label="Sections">${PAGES.map((page) => {
     const active = page.href === current;
     return `<a href="${page.href}"${active ? ' aria-current="page"' : ""} class="rounded-md px-2.5 py-1 text-xs font-bold tracking-wide uppercase transition-colors ${
       active ? "bg-ink text-surface" : "text-ink-muted hover:text-ink"

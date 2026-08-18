@@ -467,6 +467,74 @@ export async function loadReferrers(env: Env, now: Date): Promise<ReferrerRow[] 
   return value;
 }
 
+// ---------------------------------------------------------------------------
+// The world map's data: 7 days of per-country requests from the DAILY rollup
+// — unsampled, ~a year of retention, and a stable ranking, where the 24-hour
+// adaptive snapshot gets reordered by a single crawler run. 220 countries in
+// one query.
+// ---------------------------------------------------------------------------
+
+export interface WorldDistribution {
+  rows: Array<{ code: string; requests: number }>;
+  total: number;
+  days: number;
+}
+
+let worldCache: { at: number; value: WorldDistribution } | null = null;
+
+export async function loadWorld(env: Env, now: Date): Promise<WorldDistribution | null> {
+  const token = env.CF_ANALYTICS_TOKEN?.trim();
+  const zoneTag = env.CF_ZONE_ID?.trim();
+  if (!token || !zoneTag) return null;
+  if (worldCache && now.getTime() - worldCache.at < TTL_MS) return worldCache.value;
+
+  const until = new Date(now);
+  const since = new Date(now.getTime() - 6 * 86_400_000);
+  const query = `query($zoneTag: String!, $since: Date!, $until: Date!) {
+    viewer { zones(filter: {zoneTag: $zoneTag}) {
+      httpRequests1dGroups(limit: 7, filter: {date_geq: $since, date_leq: $until}) {
+        sum { countryMap { clientCountryName requests } }
+      }
+    } }
+  }`;
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        query,
+        variables: { zoneTag, since: isoDay(since), until: isoDay(until) },
+      }),
+    });
+    const payload: any = await res.json();
+    if (payload?.errors?.length) {
+      console.error("world query errors", JSON.stringify(payload.errors).slice(0, 200));
+      return null;
+    }
+    const byCountry = new Map<string, number>();
+    for (const day of payload?.data?.viewer?.zones?.[0]?.httpRequests1dGroups ?? []) {
+      for (const entry of day.sum?.countryMap ?? []) {
+        const code = String(entry.clientCountryName ?? "").trim();
+        if (code.length !== 2) continue;
+        byCountry.set(code, (byCountry.get(code) ?? 0) + (entry.requests ?? 0));
+      }
+    }
+    const rows = [...byCountry.entries()]
+      .map(([code, requests]) => ({ code, requests }))
+      .sort((a, b) => b.requests - a.requests);
+    const value: WorldDistribution = {
+      rows,
+      total: rows.reduce((sum, row) => sum + row.requests, 0),
+      days: 7,
+    };
+    worldCache = { at: now.getTime(), value };
+    return value;
+  } catch (err) {
+    console.error("world query threw", err);
+    return null;
+  }
+}
+
 /**
  * What this zone's analytics token can actually query.
  *

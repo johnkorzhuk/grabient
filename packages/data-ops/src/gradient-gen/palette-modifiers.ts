@@ -55,6 +55,8 @@ import {
   rgbToOklab,
   oklabDistance,
   relativeLuminance,
+  relativeSaturation,
+  type OkLch,
 } from '../color-utils';
 
 // =============================================================================
@@ -65,8 +67,48 @@ import {
  * Below this chroma a stop has no usable hue: the angle is numerical noise
  * around a gray. p25 of per-stop chroma across the corpus is 0.019, so this
  * discards roughly the bottom quarter of stops from the hue geometry only.
+ *
+ * ABSOLUTE chroma alone is not the whole test — see SATURATION_FLOOR. A stop
+ * can be under this floor and still be the most colourful thing sRGB can
+ * render at its lightness.
  */
 const CHROMA_FLOOR = 0.03;
+
+/**
+ * The other half of hue validity: chroma as a fraction of the gamut ceiling at
+ * the stop's own lightness and hue (`relativeSaturation` in color-utils).
+ *
+ * WHY BOTH. The sRGB solid is lopsided — at L 0.92 it holds C ≈ 0.04, at L 0.5
+ * about 0.14 — so one absolute floor cannot serve both ends. Held to
+ * CHROMA_FLOOR alone the classifier called #ceeaff,#fcd3d4,#ffffed,#ffffff,
+ * #deffff,#d5e3f6 grayscale: mean chroma 0.029, yet its stops measure 69-100%
+ * of the chroma achievable at their lightness, and the render is plainly blue,
+ * pink, cream and cyan.
+ *
+ * 0.35 by sweep over the 867-seed fixture (13 steps, dense 48). Stops promoted
+ * to hue-valid, and the resulting grayscale count:
+ *
+ *   floor   promoted stops   grayscale palettes   monochrome   analogous
+ *   0.25    4.30%            12 (1.4%)            152          253
+ *   0.30    3.75%            12 (1.4%)            152          253
+ *   0.35    3.29%            12 (1.4%)            152          253
+ *   0.40    2.85%            13 (1.5%)            152          253
+ *
+ * The classification is flat across the whole swept range — the palettes this
+ * rescues are not marginal, they sit near the ceiling — so 0.35 is taken from
+ * the middle of the flat region rather than an edge.
+ */
+const SATURATION_FLOOR = 0.35;
+
+/**
+ * Mean saturation under which a palette reads as neutral regardless of what
+ * its ceiling allows. The companion to GRAYSCALE_CHROMA in `isGrayscale`,
+ * which now needs BOTH to be low: absolute says "there is little chroma here",
+ * relative says "and there was little to be had". Lower than SATURATION_FLOOR
+ * because it is applied to a mean rather than a single stop, and a palette
+ * that dips through neutral drags its mean down without being gray.
+ */
+const GRAYSCALE_SAT = 0.25;
 
 /**
  * Hue degrees that separate two clusters. 40° sits in the flat middle of the
@@ -99,6 +141,14 @@ const PASTEL_CHROMA = 0.09;
 const NEON_CHROMA = 0.24;
 const NEON_LIGHTNESS = 0.45;
 const MUTED_CHROMA = 0.055;
+/**
+ * `muted` is a DULLED claim, so it needs both readings to agree: little chroma
+ * in absolute terms and little of what was available. Without the relative
+ * bound every pale tint near the top of the gamut answered to "muted" purely
+ * because the ceiling up there is low. Measured over the fixture, adding it
+ * takes muted from 10.4% to 9.5% of the corpus.
+ */
+const MUTED_SATURATION = 0.5;
 const VIVID_CHROMA = 0.15;
 const HIGH_CONTRAST_RANGE = 0.6;
 const LOW_CONTRAST_RANGE = 0.12;
@@ -111,6 +161,15 @@ const LOW_CONTRAST_RANGE = 0.12;
  * says whether it is there enough to be named after it.
  */
 const FAMILY_CHROMA = 0.08;
+/**
+ * The relative half of the same test. A pale sky-and-cyan palette can sit at
+ * 90% of its achievable chroma and never reach FAMILY_CHROMA, and refusing to
+ * call that ocean is the same conflation D19 fixes elsewhere. Set high on
+ * purpose: at 0.6 the palettes it admits are near their ceiling, so the
+ * incident this gate exists for stays fixed — "Duotone forest silver and
+ * gunmetal" measures 0.15 mean saturation, nowhere near it.
+ */
+const FAMILY_SATURATION = 0.6;
 /** How much of the palette must sit inside the family's hue window. */
 const FAMILY_BAND = 0.85;
 
@@ -187,6 +246,10 @@ const MIN_BITS_TO_SPEAK = 2;
  */
 export const THRESHOLDS = {
   CHROMA_FLOOR,
+  SATURATION_FLOOR,
+  GRAYSCALE_SAT,
+  MUTED_SATURATION,
+  FAMILY_SATURATION,
   GRAYSCALE_CHROMA,
   DARK_LIGHTNESS,
   LIGHT_LIGHTNESS,
@@ -250,12 +313,28 @@ export interface PaletteFeatures {
   maxClusterWidth: number;
   /** Chroma-weighted circular mean hue, degrees. */
   meanHue: number;
+  /**
+   * Share of stops with a usable hue — now `C ≥ CHROMA_FLOOR` OR
+   * `saturation ≥ SATURATION_FLOOR`, so a light tint at the top of the gamut
+   * counts as coloured (D19).
+   */
   chromaticFraction: number;
   meanLightness: number;
   lightnessRange: number;
   meanChroma: number;
   maxChroma: number;
   denseMeanChroma: number;
+
+  // --- The relative reading of the same three (2026-08-17, D19). Saturation is
+  // chroma over the sRGB ceiling at that stop's own lightness and hue, so it
+  // answers "is there colour here" where chroma answers "how loud is it".
+
+  /** Mean per-stop saturation over the RENDERED stops, 0-1. */
+  meanSaturation: number;
+  /** The most saturated rendered stop, 0-1. */
+  maxSaturation: number;
+  /** Mean per-stop saturation over the dense sample — step-independent. */
+  denseMeanSaturation: number;
   /** Direction changes in the lightness ramp: 0 ramp, 1 arch, 2+ wavy. */
   turns: number;
   /** OkLab distance from the first stop to the last. */
@@ -440,6 +519,27 @@ function labOf(hex: string) {
   return rgbToOklab(r, g, b);
 }
 
+/** A stop in OkLCh plus `S`, the same chroma read against its gamut ceiling. */
+interface Stop extends OkLch {
+  S: number;
+}
+
+const stopOf = (hex: string): Stop => {
+  const lch = hexToOkLch(hex);
+  return { L: lch.L, C: lch.C, h: lch.h, S: relativeSaturation(lch) };
+};
+
+/**
+ * Whether a stop's hue angle means anything.
+ *
+ * Either reading suffices, and that disjunction is the whole D19 fix: absolute
+ * chroma catches the ordinary case, saturation catches the tints and shades
+ * that are as colourful as sRGB gets at their lightness but never clear an
+ * absolute bar. Everything downstream — clusters, span, the hue chain, the
+ * histogram, chromaticFraction — walks this one predicate, so the two readings
+ * cannot disagree about which stops have a hue.
+ */
+const hasUsableHue = (s: Stop) => s.C >= CHROMA_FLOOR || s.S >= SATURATION_FLOOR;
 
 /**
  * Single-linkage clustering on the hue circle.
@@ -449,11 +549,8 @@ function labOf(hex: string) {
  * enclosing arc — so one pass yields both the clusters and the span. Walking
  * from just after the widest gap keeps a cluster that straddles 0° in one piece.
  */
-function hueGeometry(colors: readonly string[]) {
-  const chromatic = colors
-    .map(hexToOkLch)
-    .filter((c) => c.C >= CHROMA_FLOOR)
-    .sort((a, b) => a.h - b.h);
+function hueGeometry(stops: readonly Stop[]) {
+  const chromatic = stops.filter(hasUsableHue).sort((a, b) => a.h - b.h);
 
   if (chromatic.length === 0)
     return {
@@ -508,7 +605,7 @@ function hueGeometry(colors: readonly string[]) {
     clusters,
     span: 360 - widest,
     maxClusterWidth,
-    chromaticFraction: chromatic.length / colors.length,
+    chromaticFraction: chromatic.length / stops.length,
   };
 }
 

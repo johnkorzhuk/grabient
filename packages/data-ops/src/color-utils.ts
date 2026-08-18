@@ -461,6 +461,119 @@ export function oklabDistance(a: Oklab, b: Oklab): number {
     return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]);
 }
 
+// =============================================================================
+// The sRGB gamut ceiling — chroma vs saturation
+// =============================================================================
+
+/**
+ * OkLab back to LINEAR sRGB. The exact inverse of the matrices in `rgbToOklab`
+ * (Ottosson's published pair), stopping before the sRGB transfer function
+ * because every caller here only asks "is this inside [0,1]?", and clipping is
+ * decided in linear light.
+ */
+function oklabToLinearRgb(L: number, a: number, b: number): [number, number, number] {
+    const lp = L + 0.3963377774 * a + 0.2158037573 * b;
+    const mp = L - 0.1055613458 * a - 0.0638541728 * b;
+    const sp = L - 0.0894841775 * a - 1.291485548 * b;
+    const l = lp * lp * lp;
+    const m = mp * mp * mp;
+    const s = sp * sp * sp;
+    return [
+        4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+        -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+        -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s,
+    ];
+}
+
+/** Slack on the [0,1] gamut test, in linear light: below one part in a million. */
+const GAMUT_EPSILON = 1e-6;
+
+/**
+ * Chroma above every sRGB color: the OkLab a/b plane never reaches 0.4 inside
+ * the cube (the far corner is the blue primary at C ≈ 0.313), so this is a
+ * safe upper bracket for the search below.
+ */
+const MAX_POSSIBLE_CHROMA = 0.4;
+
+/**
+ * Bisection steps. From a bracket of 0.4 this resolves to 0.4/2^24 ≈ 2.4e-8,
+ * which is exact for any use here; 16 steps was measured at 0.06% worst-case
+ * relative error and 12 steps at 0.87%, so the last few are nearly free
+ * insurance rather than a tuning knob.
+ */
+const GAMUT_BISECTIONS = 24;
+
+/**
+ * The largest chroma sRGB can hold at this lightness and hue.
+ *
+ * WHY THIS EXISTS. Chroma is an absolute distance from the neutral axis;
+ * saturation is that distance as a fraction of what the display can actually
+ * produce there, and the two are not interchangeable because the sRGB gamut is
+ * a lopsided solid: at L 0.92 it holds barely C 0.04 in the blues, at L 0.5 it
+ * holds C 0.14, and at the primaries' cusps more than 0.3. Reading absolute
+ * chroma as "how much colour is here" therefore calls every light tint gray.
+ * That is not hypothetical — the palette #ceeaff,#fcd3d4,#ffffed,#ffffff,
+ * #deffff,#d5e3f6 (plainly blue, pink, cream, cyan on screen) classified
+ * `grayscale` because its mean chroma is 0.029, while its stops sit at 90-101%
+ * of the chroma sRGB physically permits at their own lightness.
+ *
+ * HOW. Binary search on chroma along the (L, h) ray, testing the OkLab →
+ * linear-sRGB matrices above. No table, deliberately: a precomputed 32x36 grid
+ * with bilinear interpolation (the first design) was measured against exact
+ * bisection over 6,960 real palette stops at mean 1.6% / p99 16.3% / max 48.2%
+ * relative error, worst exactly where this bug lives (L 0.99 near the yellow
+ * cusp, where max chroma is a sharp tent in L that no coarse grid can follow),
+ * and it cost 7.8 ms to build at module load — a cold-start tax on every
+ * isolate. Even a 129x180 grid still peaked at 15.6% error for 32 ms of build.
+ * Exact bisection costs 0.047 ms per palette of lookups (70 lookups, 24 steps
+ * each) and nothing at load, so accuracy is simply cheaper here.
+ */
+export function maxChromaFor(L: number, hue: number): number {
+    if (!(L > 0) || L >= 1) return 0; // black and white hold no chroma at all
+    const rad = (hue * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    let lo = 0;
+    let hi = MAX_POSSIBLE_CHROMA;
+    for (let i = 0; i < GAMUT_BISECTIONS; i++) {
+        const mid = (lo + hi) * 0.5;
+        const [r, g, b] = oklabToLinearRgb(L, mid * cos, mid * sin);
+        const inside =
+            r >= -GAMUT_EPSILON &&
+            r <= 1 + GAMUT_EPSILON &&
+            g >= -GAMUT_EPSILON &&
+            g <= 1 + GAMUT_EPSILON &&
+            b >= -GAMUT_EPSILON &&
+            b <= 1 + GAMUT_EPSILON;
+        if (inside) lo = mid;
+        else hi = mid;
+    }
+    return lo;
+}
+
+/**
+ * Where the ceiling itself stops meaning anything. One 8-bit step away from
+ * white or black moves chroma by roughly 0.001, so under 1e-4 both the stop's
+ * chroma and its ceiling are floating-point residue and their ratio is noise:
+ * pure white measured 9.2% saturation before this guard (C 2.7e-8 over a
+ * ceiling of 2.9e-7), which would have made white a colour.
+ */
+const MIN_MEANINGFUL_CEILING = 1e-4;
+
+/**
+ * Relative saturation: chroma as a fraction of the gamut ceiling at that
+ * lightness and hue, 0 (neutral) to 1 (as colorful as sRGB gets there).
+ *
+ * Clamped at 1 because the ceiling is measured in linear light while the stop
+ * came back through an 8-bit hex, so a stop sitting exactly on the boundary
+ * rounds to 1.01 about as often as to 0.99.
+ */
+export function relativeSaturation(color: OkLch): number {
+    const ceiling = maxChromaFor(color.L, color.h);
+    if (ceiling < MIN_MEANINGFUL_CEILING) return 0;
+    return Math.min(1, color.C / ceiling);
+}
+
 export interface NamedColor {
     name: string;
     r: number;

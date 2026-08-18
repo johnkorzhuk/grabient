@@ -67,16 +67,19 @@ import {
   type AttributionRow,
   type Metrics,
 } from "./queries";
+import { worldDistributionCard } from "./globe";
 import {
   automatedShare,
   loadAcquisition,
   loadReferrers,
   loadTraffic,
+  loadWorld,
   recentBrowserPageViews,
   recentDailyUniques,
   type Acquisition,
   type ReferrerRow,
   type Traffic,
+  type WorldDistribution,
 } from "./traffic";
 
 const app = new Hono<{ Bindings: Env; Variables: { email: string } }>();
@@ -120,11 +123,12 @@ app.get("/", async (c) => {
   // Independent sources, so fetch them together. Traffic resolves to null when
   // it is not configured or the API is unhappy; the page drops those sections
   // rather than failing.
-  const [metrics, traffic] = await Promise.all([
+  const [metrics, traffic, world] = await Promise.all([
     loadMetrics(c.env.DB, now),
     loadTraffic(c.env, now),
+    loadWorld(c.env, now),
   ]);
-  return seal(c.html(dashboard(metrics, traffic, range, c.get("email"))));
+  return seal(c.html(dashboard(metrics, traffic, world, range, c.get("email"))));
 });
 
 app.get("/acquisition", async (c) => {
@@ -811,6 +815,7 @@ function briefPage(brief: ReturnType<typeof buildBrief>, now: Date, email: strin
 function dashboard(
   metrics: Metrics,
   traffic: Traffic | null,
+  world: WorldDistribution | null,
   range: RangeOption,
   email: string,
 ): string {
@@ -1042,6 +1047,8 @@ function dashboard(
   <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 ${tiles}
   </div>
+
+  ${world ? `<div class="mt-4">${worldDistributionCard(world.rows, { total: world.total, days: world.days })}</div>` : ""}
 
   <div class="mt-4 grid gap-4 lg:grid-cols-2">
 ${charts}

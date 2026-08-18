@@ -335,19 +335,53 @@ function markerLayer(markers: ChartMarkers, scene: any): MarkerLayer | null {
   const mapX = scene.scales.x.map as (value: unknown) => number;
   const rules = clusters.map((cluster, index) => {
     const at = new Date(Math.round(cluster.sum / cluster.labels.length));
-    const flip = mapX(at) > plot.x + plot.width - EDGE_PX;
     return {
       id: `rule-${index}`,
       at,
+      px: mapX(at),
       top: yHi,
       // A count is the caller telling us this marker already stands for several
       // events, so it aggregates the same way a cluster does.
       label: cluster.total > 1 ? `${cluster.total} changes` : cluster.labels[0]!,
       detail: cluster.total > 1 ? cluster.labels : undefined,
-      anchor: (flip ? "end" : "start") as "end" | "start",
-      dx: flip ? -3 : 3,
     };
   });
+
+  // A label is only allowed the room between its own rule and whatever is next
+  // to it. Text is measured by estimate, not by the renderer, so the estimate is
+  // deliberately pessimistic — a label that overruns its neighbour is worse than
+  // one that ends in an ellipsis, and the full text is in the tooltip and the
+  // events disclosure either way.
+  //
+  // ~6px per glyph at the 10px label size is the pessimistic figure: wide
+  // enough for caps and digits, so real text usually comes in under it. Fewer
+  // than four characters of room means no label at all — "SE…" identifies
+  // nothing, and the rule plus its tooltip still mark the event.
+  const fitLabel = (label: string, room: number): string | null => {
+    const glyphs = Math.floor(room / 6);
+    if (glyphs >= label.length) return label;
+    if (glyphs < 4) return null;
+    return `${label.slice(0, glyphs - 1).trimEnd()}…`;
+  };
+  const labels = rules
+    .map((rule, index) => {
+      const flip = rule.px > plot.x + plot.width - EDGE_PX;
+      const room = flip
+        ? rule.px - Math.max(plot.x, rules[index - 1]?.px ?? plot.x) - 6
+        : Math.min(plot.x + plot.width, rules[index + 1]?.px ?? Infinity) - rule.px - 6;
+      const label = fitLabel(rule.label, room);
+      return label
+        ? {
+            id: rule.id,
+            at: rule.at,
+            top: rule.top,
+            label,
+            anchor: (flip ? "end" : "start") as "end" | "start",
+            dx: flip ? -3 : 3,
+          }
+        : null;
+    })
+    .filter((label): label is NonNullable<typeof label> => label !== null);
 
   if (bands.length === 0 && rules.length === 0) return null;
 
@@ -368,7 +402,7 @@ function markerLayer(markers: ChartMarkers, scene: any): MarkerLayer | null {
       ]
     : [];
 
-  const over = rules.length
+  const over: unknown[] = rules.length
     ? [
         ruleX(rules, {
           id: "marker-rule",
@@ -378,7 +412,7 @@ function markerLayer(markers: ChartMarkers, scene: any): MarkerLayer | null {
           strokeDasharray: "3 3",
           strokeOpacity: 0.65,
         }),
-        text(rules, {
+        text(labels, {
           id: "marker-label",
           x: "at",
           y: "top",
