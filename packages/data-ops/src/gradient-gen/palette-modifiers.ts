@@ -366,6 +366,15 @@ export interface PaletteFeatures {
   meanChroma: number;
   maxChroma: number;
   denseMeanChroma: number;
+  /**
+   * Chroma of the loudest tenth of the dense sample (the 90th percentile).
+   *
+   * Between the mean, which a single loud stop cannot move, and the max, which
+   * a single loud stop IS. Loudness claims about the palette as a whole read
+   * this one: `neon` fired on a palette whose only electric sample was its last
+   * (measured 4.2% of the run above NEON_CHROMA) and put the word in its name.
+   */
+  denseChromaP90: number;
 
   // --- The relative reading of the same three (2026-08-17, D19). Saturation is
   // chroma over the sRGB ceiling at that stop's own lightness and hue, so it
@@ -415,6 +424,16 @@ export interface PaletteFeatures {
   firstHue: number | null;
   /** Hue of the last chromatic dense sample — the "into {family}" anchor. */
   lastHue: number | null;
+  /**
+   * The whole stops those two hues came from, L and C included.
+   *
+   * `firstHue`/`lastHue` answer WHERE on the wheel; the tone-gated names prose
+   * uses ("brown" is a dark low-chroma orange, "pink" a light low-chroma red)
+   * need HOW LIGHT and HOW MUCH as well, and reading them off the rendered end
+   * stops instead would mix two samples in one sentence.
+   */
+  firstChromatic: OkLch | null;
+  lastChromatic: OkLch | null;
   /**
    * Signed hue rotation summed over consecutive chromatic dense samples,
    * degrees. The chain resets across achromatic gaps — hue is undefined
@@ -750,6 +769,11 @@ export function paletteFeatures(
   let prevHue: number | null = null;
   let firstHue: number | null = null;
   let lastHue: number | null = null;
+  // The stops those two hues were read from, kept whole. A family word is an
+  // L/C claim as much as a hue one ("brown" is a dark low-chroma orange), so
+  // prose that names the two ends needs the ends, not just their angles.
+  let firstChromatic: OkLch | null = null;
+  let lastChromatic: OkLch | null = null;
   for (const c of denseLch) {
     if (!hasUsableHue(c)) {
       prevHue = null;
@@ -761,8 +785,12 @@ export function paletteFeatures(
       hueTravel += Math.abs(arc);
     }
     prevHue = c.h;
-    if (firstHue === null) firstHue = c.h;
+    if (firstHue === null) {
+      firstHue = c.h;
+      firstChromatic = { L: c.L, C: c.C, h: c.h };
+    }
     lastHue = c.h;
+    lastChromatic = { L: c.L, C: c.C, h: c.h };
   }
 
   // Extremum positions on the dense grid. Strict comparisons, so the first
@@ -843,6 +871,14 @@ export function paletteFeatures(
   const meanOf = (list: typeof denseLch) =>
     list.reduce((s, c) => s + c.C, 0) / list.length;
 
+  // The loudest tenth of the run. A mean hides a peak and a max IS one: a
+  // palette whose single last stop touches neon chroma is not a neon palette,
+  // and the sentence "its strongest colors look neon" should hold for a
+  // visible part of the ramp rather than for one sample. Same tenth-of-the-run
+  // reading PLATEAU_SHARE uses for the clamp plateaus.
+  const sortedC = denseLch.map((c) => c.C).sort((a, b) => b - a);
+  const denseChromaP90 = sortedC[Math.floor(sortedC.length * 0.1)]!;
+
   const hueHistogram = new Array<number>(HUE_BINS).fill(0);
   const chromatic = denseLch.filter(hasUsableHue);
   for (const c of chromatic) {
@@ -883,9 +919,12 @@ export function paletteFeatures(
     hueHistogram,
     contrastRatio:
       (Math.max(...luminances) + 0.05) / (Math.min(...luminances) + 0.05),
+    denseChromaP90,
     clusterHues: geometry.clusters,
     firstHue,
     lastHue,
+    firstChromatic,
+    lastChromatic,
     hueNet,
     hueTravel,
     hueConsistency: hueTravel > 0 ? Math.abs(hueNet) / hueTravel : 1,
@@ -972,7 +1011,18 @@ export function classifyStructure(f: PaletteFeatures): string {
     return f.clusterSeparation >= COMPLEMENTARY_SEPARATION
       ? 'complementary'
       : 'duotone';
-  return f.hueSpan >= RAINBOW_SPAN ? 'rainbow' : 'multicolor';
+  // Everything else is multicolour, INCLUDING wide spans. `rainbow` is a
+  // one-cluster classification now (2026-08-18, visual QA): reaching the span
+  // test from here meant the palette had a hole wider than CLUSTER_GAP inside
+  // its own span, so the span measured a distance rather than a journey. The
+  // palette that exposed it runs dusty teal to a flat block of red to brown:
+  // two clusters at 226° and 27° with a 161° EMPTY gap between them, hueSpan
+  // 200.4 clearing RAINBOW_SPAN by 0.2%, named "Sunset rainbow dirty blue to
+  // tomato red to cocoa" with no yellow, green, blue or purple anywhere in it.
+  // 43 of the fixture's 121 rainbows were that shape (brown to sage to navy,
+  // white to blue-gray to teal); rainbow drops to 78 and multicolor absorbs
+  // them, which is what they look like.
+  return 'multicolor';
 }
 
 const structural = (

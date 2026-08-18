@@ -174,7 +174,9 @@ export function goalCard(goal: GoalWithProgress): string {
   const badge =
     goal.status !== "active"
       ? `<span class="rounded-md border border-edge px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-ink-muted uppercase">${esc(goal.status)}</span>`
-      : goal.on_track === null
+      : goal.incomplete_window
+        ? `<span class="text-xs text-ink-muted">window still filling</span>`
+        : goal.on_track === null
         ? `<span class="text-xs text-ink-muted">not measurable yet</span>`
         : goal.on_track
           ? `<span class="text-xs font-bold text-good">on track</span>`
@@ -196,7 +198,7 @@ export function goalCard(goal: GoalWithProgress): string {
     <div class="h-full rounded-full" style="width:${clamped}%;background:var(--series-1)"></div>
   </div>
   <p class="mt-2 text-xs text-ink-muted">
-    ${pct === null ? "No data for this metric yet — the series starts when collection does." : `${pct}% of the way from baseline (${esc(goal.baseline_day)}) to target (${esc(goal.target_day)})${goal.as_of ? `, as of ${esc(goal.as_of)}` : ""}.`}
+    ${goal.incomplete_window ? esc(goal.incomplete_window) : pct === null ? "No data for this metric yet — the series starts when collection does." : `${pct}% of the way from baseline (${esc(goal.baseline_day)}) to target (${esc(goal.target_day)})${goal.as_of ? `, as of ${esc(goal.as_of)}` : ""}.`}
   </p>
   ${goal.notes ? `<p class="mt-2 text-xs leading-snug text-ink-secondary">${esc(goal.notes)}</p>` : ""}
 </section>`;

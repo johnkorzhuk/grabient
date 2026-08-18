@@ -70,8 +70,8 @@ export const BASIC_COLORS: Array<{ name: string; r: number; g: number; b: number
 // "green" and a burnt orange lands on "brown". This corpus takes that to 0.026,
 // and the names are ones people type into a search box.
 //
-// Composition (920 entries, all permissively licensed):
-//   xkcd colour survey   774  CC0-1.0  https://xkcd.com/color/rgb.txt
+// Composition (919 entries, all permissively licensed):
+//   xkcd colour survey   773  CC0-1.0  https://xkcd.com/color/rgb.txt
 //   CSS Color 4 keywords 105  spec facts, de-concatenated for display
 //   BASIC_COLORS          41  first, so existing name->hex answers do not move
 //
@@ -86,12 +86,13 @@ export const BASIC_COLORS: Array<{ name: string; r: number; g: number; b: number
 // sit within 0.01 OkLab of a kept name ("dried blood" beside "mahogany"; the
 // corpus already tolerated that — "peach" and "peach puff" share a hex).
 //
-// What remains display-filtered is technical only: 48 names that cannot work
+// What remains display-filtered is technical only: 49 names that cannot work
 // as display strings — 15 survey artifacts ("blue blue", "grey/green"), 9
 // misspellings and the variant spelling "ocher" (all aliased to the correct
-// form), 15 bare modifiers with no hue ("dark"), and 8 colloquial "-y" forms
+// form), 15 bare modifiers with no hue ("dark"), 8 colloquial "-y" forms
 // whose twin is already present ("blurple" → "blue purple") — those 8 now
-// alias like the 27 colloquial forms that always did. Restoration moves the
+// alias like the 27 colloquial forms that always did — and one dish name that
+// machine-translates as food (see the alias block). Restoration moves the
 // nearest-name mean toward the 0.0245 unfiltered-union figure: over the
 // 867-seed prose fixture (20,864 distinct colours at 3/5/7/9/11/13 steps) it
 // is 0.0273 → 0.0268, and a restored name becomes the nearest name for 5.5% of
@@ -596,13 +597,99 @@ export function relativeSaturation(color: OkLch): number {
     return Math.min(1, color.C / ceiling);
 }
 
+// =============================================================================
+// Naming is categorical, and OkLab distance alone is not
+// =============================================================================
+
+/**
+ * The eight hue bands, as anchors. These are the sRGB primaries and secondaries
+ * plus #ff8000/#8000ff measured through the conversion above, and nearest-anchor
+ * over them IS the eight-band partition of the wheel (band edges fall at anchor
+ * midpoints: red 358.5-41, orange 41-81.5, yellow 81.5-126, green 126-168.5,
+ * cyan 168.5-229.5, blue 229.5-279, violet 279-311, magenta 311-358.5).
+ *
+ * Used here only to ask whether a NAME and a colour belong to the same family;
+ * the prose generator keeps its own word list for the same partition, because
+ * there the eight words are spoken vocabulary and here they are a test.
+ */
+const FAMILY_ANCHOR_HUES: readonly (readonly [string, number])[] = [
+    ["red", 29],
+    ["orange", 53],
+    ["yellow", 110],
+    ["green", 142],
+    ["cyan", 195],
+    ["blue", 264],
+    ["violet", 294],
+    ["magenta", 328],
+];
+
+/** Which of the eight hue bands an angle falls in. */
+export function colorFamily(hue: number): string {
+    const h = ((hue % 360) + 360) % 360;
+    let best = FAMILY_ANCHOR_HUES[0]![0];
+    let bestDist = Infinity;
+    for (const [word, anchor] of FAMILY_ANCHOR_HUES) {
+        const d = Math.abs(h - anchor) % 360;
+        const dist = d > 180 ? 360 - d : d;
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = word;
+        }
+    }
+    return best;
+}
+
+/**
+ * The chroma and saturation floors below which a colour has no usable hue.
+ *
+ * These are palette-modifiers' CHROMA_FLOOR and SATURATION_FLOOR, restated
+ * rather than imported: that module imports THIS one, and the corpus classes
+ * below are computed at module load, where a circular import would still be
+ * undefined. color-utils.test.ts asserts the two pairs agree, so they cannot
+ * drift apart silently.
+ */
+export const NAME_CHROMA_FLOOR = 0.03;
+export const NAME_SATURATION_FLOOR = 0.35;
+
+/**
+ * How close a second candidate has to be before the metric stops deciding.
+ *
+ * Nearest-neighbour in OkLab is a PERCEPTUAL answer to a CATEGORICAL question.
+ * A name carries a family ("brown" is a warm hue, "beige" is a warm neutral),
+ * and at the bottom of the lightness scale the distance between two candidates
+ * is far smaller than the distance between the two words: #1c1b24 (a cold
+ * near-black, C 0.017 at 13% of its achievable chroma) measured 0.0723 from
+ * "dark brown" and 0.0777 from "almost black", so a 0.0054 gap — a quarter of a
+ * JND — put a brown name on a black stop, and that name then propagated into
+ * the h1, the meta description and a chip. The same 0.0063 gap called the pale
+ * yellow-green #dff2cb "beige" over "very pale green".
+ *
+ * So: inside half a JND (OkLab dE is about 0.02 at threshold) the ranking is
+ * noise, and the tie goes to a candidate whose colour CLASS matches. Half a JND
+ * covers both observed errors with margin and renames 9.9% of the fixture's
+ * rendered stops, nearly all of them to a synonym of what they had ("grayblue"
+ * to "bluegray", "terra cotta" to "terracotta"); at a full JND it is 15.7% and
+ * starts moving names that were not in dispute.
+ */
+const NAME_TIE = 0.01;
+
 export interface NamedColor {
     name: string;
     r: number;
     g: number;
     b: number;
     lab: Oklab;
+    /**
+     * The class this NAME speaks for: one of the eight families, or "neutral"
+     * when the entry's own chroma is under the floor (a near-neutral name is a
+     * near-neutral colour, whatever its lightness allows — "almost black" and
+     * "gainsboro" are neutral words, "dark brown" is not).
+     */
+    family: string;
 }
+
+/** The class of a colour with no usable hue: a gray, not a family. */
+const NEUTRAL_FAMILY = "neutral";
 
 function parseCorpus(): NamedColor[] {
     const out: NamedColor[] = [];
@@ -613,7 +700,13 @@ function parseCorpus(): NamedColor[] {
         const r = parseInt(hex.slice(0, 2), 16);
         const g = parseInt(hex.slice(2, 4), 16);
         const b = parseInt(hex.slice(4, 6), 16);
-        out.push({ name, r, g, b, lab: rgbToOklab(r, g, b) });
+        const lab = rgbToOklab(r, g, b);
+        const C = Math.hypot(lab[1], lab[2]);
+        const family =
+            C >= NAME_CHROMA_FLOOR
+                ? colorFamily((Math.atan2(lab[2], lab[1]) * 180) / Math.PI)
+                : NEUTRAL_FAMILY;
+        out.push({ name, r, g, b, lab, family });
     }
     return out;
 }
@@ -629,19 +722,45 @@ for (const entry of PACKED_ALIASES.split(",")) {
     if (target) NAMED_COLOR_MAP.set(entry.slice(0, cut), target);
 }
 
-/** Nearest corpus entry to a color already in OkLab. */
+/**
+ * Nearest corpus entry to a color already in OkLab, with the family tie-break.
+ *
+ * One pass keeps two answers: the nearest entry outright, and the nearest whose
+ * class agrees with the colour's own. The second wins when it is within
+ * NAME_TIE, so the guard can never move a name by more than half a JND — it
+ * only decides which of two indistinguishable candidates gets to speak.
+ *
+ * Which class the COLOUR is in takes both readings (D19): a stop is coloured
+ * when its chroma clears the floor OR it sits near the sRGB ceiling for its own
+ * lightness, so a pale sky tint keeps its blue name instead of being pushed
+ * onto a gray. Which class a NAME is in reads absolute chroma only, because
+ * that is what the word itself claims.
+ */
 function nearestNamed(lab: Oklab): NamedColor {
+    const C = Math.hypot(lab[1], lab[2]);
+    const hue = (Math.atan2(lab[2], lab[1]) * 180) / Math.PI;
+    const coloured =
+        C >= NAME_CHROMA_FLOOR ||
+        relativeSaturation({ L: lab[0], C, h: hue }) >= NAME_SATURATION_FLOOR;
+    const family = coloured ? colorFamily(hue) : NEUTRAL_FAMILY;
+
     let closest = NAMED_COLORS[0]!;
     let min = Infinity;
+    let sameFamily: NamedColor | null = null;
+    let sameMin = Infinity;
     for (const color of NAMED_COLORS) {
         const dist = oklabDistance(lab, color.lab);
         if (dist < min) {
             min = dist;
             closest = color;
         }
-        if (dist === 0) break;
+        if (color.family === family && dist < sameMin) {
+            sameMin = dist;
+            sameFamily = color;
+        }
+        if (dist === 0) return color;
     }
-    return closest;
+    return sameFamily && sameMin <= min + NAME_TIE ? sameFamily : closest;
 }
 
 export function hexToColorName(hex: string): string {

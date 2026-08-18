@@ -32,6 +32,8 @@ export interface GoalWithProgress extends GoalRow {
   progress_pct: number | null;
   /** Straight-line arithmetic against remaining time — not a forecast. */
   on_track: boolean | null;
+  /** Set when the window has fewer days than it needs; progress is withheld. */
+  incomplete_window?: string;
   metric_caveat: string | null;
 }
 
@@ -59,6 +61,13 @@ export async function listGoals(
                               WHERE m.metric_key = g.metric_key AND m.day <= ?1
                               ORDER BY m.day DESC LIMIT 1)
           END AS current,
+          -- How many days the window ACTUALLY has. A 7-day sum over 4 days of
+          -- history is not a 43% shortfall, it is an incomplete window, and
+          -- reporting it as progress invents a decline.
+          (SELECT COUNT(*) FROM metric_daily m
+            WHERE m.metric_key = g.metric_key
+              AND m.day > date(?1, '-' || g.window_days || ' day')
+              AND m.day <= ?1) AS window_days_present,
           (SELECT MAX(m.day) FROM metric_daily m
             WHERE m.metric_key = g.metric_key AND m.day <= ?1) AS as_of
          FROM goal g
@@ -66,13 +75,21 @@ export async function listGoals(
         ORDER BY g.target_day`,
       )
       .bind(today)
-      .all<GoalRow & { current: number | null; as_of: string | null }>();
+      .all<
+        GoalRow & { current: number | null; as_of: string | null; window_days_present: number }
+      >();
 
     return (res.results ?? []).map((g) => {
       const span = g.target_value - g.baseline_value;
+      // A windowed aggregate needs a FULL window before it can be compared to
+      // a baseline measured over one. Until then the number exists but the
+      // comparison does not, so report the value and withhold the verdict
+      // rather than printing a decline the data does not show.
+      const windowIncomplete =
+        g.aggregate !== "last" && g.window_days_present < g.window_days;
       const current = g.current;
       const progress =
-        current === null || span === 0
+        current === null || span === 0 || windowIncomplete
           ? null
           : Math.round(((current - g.baseline_value) / span) * 1000) / 10;
       const totalDays = daysBetween(g.baseline_day, g.target_day);
@@ -85,6 +102,11 @@ export async function listGoals(
         progress_pct: progress,
         on_track:
           progress === null || expectedPct === null ? null : progress >= Math.min(expectedPct, 100),
+        ...(windowIncomplete
+          ? {
+              incomplete_window: `${g.window_days_present} of ${g.window_days} days collected — the value is a partial ${g.aggregate}, so it is not comparable to a baseline measured over a full window. Progress resumes once the series fills.`,
+            }
+          : {}),
         metric_caveat: metricDef(g.metric_key)?.caveat ?? null,
       };
     });
