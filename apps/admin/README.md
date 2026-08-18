@@ -83,12 +83,44 @@ closed: unset config, missing token, unknown signer, and unlisted email all deny
 > admin.grabient.com; a `workers.dev` URL is a different hostname and would not
 > be covered by it.
 
-## Almost no client JavaScript
+## No static assets, and almost no client JavaScript
 
-No bundle, no asset directory, no Vite step. Charts are built with
-`@tanstack/charts` and rendered to SVG strings in the worker via
-`renderChartSvg`, which needs no DOM. Tailwind's output is imported as a text
-module and inlined into a `<style>` tag.
+There is no asset directory and no asset binding, and that is a security
+property rather than tidiness: **static assets are served before worker code
+runs**, so an assets binding would hand out bytes without the in-worker Access
+check in `access.ts` ever executing. Everything the browser receives is inlined
+into the one response the worker generates.
+
+Charts are built with `@tanstack/charts` and rendered to SVG strings in the
+worker via `renderChartSvg`, which needs no DOM. Tailwind's output is imported
+as a text module and inlined into a `<style>` tag.
+
+### Islands
+
+Since 2026-08-18 there is a Vite step, but it produces exactly one file:
+`src/islands/entry.tsx` builds to `dist/islands.js` (Solid + TanStack Table,
+~18KB gzipped), which `html.ts` imports as a text module and inlines into a
+`<script type="module">` — the same mechanism as the CSS. `inlineDynamicImports`
+in `vite.config.ts` forbids a second chunk, because a second chunk would have
+nothing to serve it.
+
+**Islands only ever upgrade markup that already works.** Each host contains the
+finished server-rendered element plus a JSON copy of its data; if the bundle
+fails to parse or never runs, the reader still has the static version. Today
+that means `dataTable(headers, rows, true)` — the long tables (220 countries,
+120-day trend tables, Search Console queries) gain sorting and a filter box,
+and short ones are left alone because sorting six rows is noise.
+
+Client code is typechecked separately (`tsconfig.islands.json`, DOM + JSX);
+`tsconfig.json` excludes `src/islands` because the worker has no DOM.
+
+### The one rule for anything that reaches the browser
+
+Interpolated values are escaped at the boundary, not by convention at call
+sites. A stored-XSS hole shipped here on 2026-08-18: the ranked-bar tooltip
+payload carried `clientRequestPath` — a string any stranger can put in a URL —
+unescaped into `innerHTML`. Use `esc()` for markup and `tipText()` for the
+chart payloads; `test/escaping.test.ts` pins both.
 
 The one exception is `CHART_SCRIPT` in `html.ts`: a hand-written ~2KB inline
 hover layer (crosshair, tooltip, arrow-key navigation). The charting library's
