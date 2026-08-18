@@ -30,11 +30,12 @@
 	// self-contained and means no static asset ever needs to be served — which
 	// is not just tidiness: assets are served BEFORE worker code runs, so an
 	// assets binding would hand out bytes without the in-worker Access check in
-	// access.ts ever executing. The glob is the exact build output, not **/*.js,
-	// so no source file can be swept into the bundle as text by accident.
+	// access.ts ever executing. The glob names the one built file rather than
+	// **/*.js, so no source module can be swept in as text by accident — nothing
+	// under src/ is named islands.js.
 	"rules": [
 		{ "type": "Text", "globs": ["**/*.css"], "fallthrough": true },
-		{ "type": "Text", "globs": ["dist/islands.js"], "fallthrough": true }
+		{ "type": "Text", "globs": ["**/islands.js"], "fallthrough": true }
 	],
 
 	// MUST stay false. Cloudflare Access is bound to the admin.grabient.com

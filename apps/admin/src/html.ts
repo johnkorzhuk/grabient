@@ -511,9 +511,15 @@ export function dataTable(
     );
 
   const payload = JSON.stringify({ headers, rows, numeric })
-    // The JSON sits inside a <script>, so the only escape that matters is the
-    // one that could close the tag early.
-    .replace(/<\/script/gi, "<\\/script");
+    // The JSON sits inside a <script>, where the parser reads raw text — so
+    // markup in a cell is inert and the only sequences that matter are the
+    // ones that end that state. `</script` closes it; `<!--<script` flips the
+    // tokenizer into script-data-double-escaped, after which a later
+    // `</script>` no longer closes the element. Both are neutralised, and
+    // JSON.parse reads the backslash form back as the original text.
+    .replace(/<\/script/gi, "<\\/script")
+    .replace(/<!--/g, "<\\!--")
+    .replace(/<script/gi, "<\\script");
   return `<div data-island="table">${table}<script type="application/json">${payload}</script></div>`;
 }
 
