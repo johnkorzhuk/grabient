@@ -13,7 +13,7 @@
 // Note the axis option shape: `ticks` and `tickLabels` live under `axis`, not at
 // the top of the axis object. Setting `format` one level too high silently does
 // nothing (the labels just render with d3's defaults), so keep them nested.
-import { areaX, areaY, barX, barY, defineChart, lineY } from "@tanstack/charts";
+import { areaX, areaY, barX, barY, defineChart, lineY, rect, ruleX, text } from "@tanstack/charts";
 import { createChartRuntime } from "@tanstack/charts/runtime";
 import { renderChartSvg } from "@tanstack/charts/svg";
 import { scaleBand, scaleLinear, scaleUtc } from "d3-scale";

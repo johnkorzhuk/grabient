@@ -30,6 +30,7 @@ import { buildBrief } from "./brief";
 import { loadSearchConsole, type SearchConsole } from "./search-console";
 import { loadGa4 } from "./ga4";
 import { analyticsMcpHandler } from "./mcp";
+import { scheduled } from "./scheduled";
 import {
   cumulative,
   loadAttribution,
@@ -117,9 +118,10 @@ app.get("/acquisition", async (c) => {
 // The MCP server. Mounted AFTER the Access middleware above, so a tool only
 // ever runs for a caller Access already authorized — people via SSO, headless
 // clients via a service token. Same policy as the dashboard, one place to
-// grant or revoke.
+// grant or revoke. The verified identity rides along so write tools can stamp
+// created_by with something real.
 app.all("/mcp", (c) =>
-  analyticsMcpHandler(c.env, new URL(c.req.url).hostname).fetch(c.req.raw),
+  analyticsMcpHandler(c.env, new URL(c.req.url).hostname, c.get("email")).fetch(c.req.raw),
 );
 
 // The agent-facing endpoint. Same numbers as the pages, plus the definitions,
@@ -728,4 +730,9 @@ ${charts}
   );
 }
 
-export default app;
+// A Hono app object exposes only fetch; the cron needs the scheduled handler
+// on the default export or it silently never runs.
+export default {
+  fetch: app.fetch,
+  scheduled,
+} satisfies ExportedHandler<Env>;

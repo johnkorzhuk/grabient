@@ -52,8 +52,23 @@ enters `embedText`. R2/R3 order is earned by `descriptorScore` comparison
 
 `describePalette()` is the canonical triple (title / description / tags) for
 future consumers; `relatedSearches()` produces the chip-row labels from bounded
-vocabularies only (corpus names ∪ registry spoken words ∪ 12 family anchors),
-so the crawl frontier is finite by construction.
+vocabularies only (corpus names ∪ registry spoken words ∪ the 8 family-anchor
+words), so the crawl frontier is finite by construction.
+
+Two composition rules added by the 2026-08-17 truth-lens pass:
+
+- **Family words are the gate-free eight** (red/orange/yellow/green/cyan/blue/
+  violet/magenta — the registry's measured anchors). The original 12-anchor
+  list included gold, teal, sky, pink and purple, which are anchor+tone-gate
+  NAMES (pink/sky are tint regions, L > 0.75; gold needs L 0.8–0.92) — chosen
+  by hue alone they named dark palettes after tints on 29 live pages ("around
+  pink" at region L 0.45). Family words name where on the wheel, never how
+  light; the gated names remain the color-name corpus's job.
+- **`baseTags` defaults inside the module** from the same
+  `tagsToArray(analyzeCoefficients(...))` import the server and island pass
+  explicitly, so `describePalette`/`paletteProse` produce the page's paragraph
+  (journey wording included) for every caller — previously the canonical API
+  silently returned a journey-less variant on 71.2% of palettes.
 
 The page ladder drops R4 clauses from the end (least-informative survivor
 first), then R2 extras, until the paragraph fits 800. `embedText` is never
@@ -64,26 +79,27 @@ approached (max 1,247 of 1,600).
 
 ## 2. Measured distributions (867 seeds, default view)
 
-### Lengths (chars)
+### Lengths (chars) — re-measured after the truth-lens rewording pass
 
 | surface | p5 | p25 | p50 | p75 | p95 | max | bound |
 |---|---|---|---|---|---|---|---|
-| paragraph | 505 | 591 | 658 | 712 | 779 | 875 | target 350–800; test ≤900 |
+| paragraph | 506 | 594 | 660 | 715 | 777 | 800 | target 350–800; test ≤900 |
 | metaDescription | 99 | 111 | 120 | 128 | 147 | 158 | ≤160 |
-| embedText | 539 | 650 | 738 | 819 | 955 | 1,247 | ≤1,600 |
+| embedText | 503 | 617 | 706 | 792 | 936 | 1,142 | ≤1,600 |
 
-Paragraph min 353; sentences per paragraph p50 6, range 4–9. Three seeds
-(0.35%) exceed the 800 target after the ladder exhausts its droppable clauses
-— their base sentences alone run long; the hard test bound (900) still holds
-with 25 chars of headroom.
+Paragraph min 353. The rewording pass (equalC-gated cycles clause, floored
+WCAG print, journey-only Tags merge) shortened the over-800 tail to zero —
+every paragraph now fits the 350–800 target. embedText shrank ~100 chars at
+the tail because the Tags line no longer carries the whole base-tag list
+(see §4).
 
 ### The templated-page test
 
 | metric | measured | acceptance |
 |---|---|---|
 | identical paragraphs | 2 pairs, **both are the same palette twice** (applied coeffs differ ≤4e-4, byte-identical renders): `…IVesvowngA`/`…IV` and `…NFdKuu5rgG`/`…NL` | collisions only between identical renders |
-| distinct stripped skeletons (digits/hex/color names/family words removed) | **833** of 867 | ≥50 |
-| word-trigram Jaccard, 300 LCG-sampled pairs | mean **0.210**, max **0.423** | mean <0.35, max <0.80 |
+| distinct stripped skeletons (digits/hex/color names/family words removed) | **836** of 867 | ≥50 |
+| word-trigram Jaccard, 200 LCG-sampled pairs | mean **0.209**, max **0.431** | mean <0.35, max <0.80 |
 | "gradient color palette" in every R1 | 867/867 | required |
 
 ### R2 template census (the seven structure shapes)
@@ -187,6 +203,63 @@ mean chroma crosses `muted`, the min/max stops move the WCAG ratio across 4.5,
 truthfully described by either side — a flip is a rewording, never a lie —
 and the sentence with the number in it is correct for the render it describes.
 
+### Island bundle cost (the D10 before/after, recorded late)
+
+The spec required a before/after gzip measurement of the edit island chunk
+with a **+4 KB gzip budget**; the measurement was skipped at ship time and is
+recorded here from the review pass (vite 7.3.0, `pnpm build` in apps/web):
+
+| build | edit chunk raw | gzip | delta |
+|---|---|---|---|
+| pre-prose baseline (palette-modifiers.md "Client cost") | 76.11 KB | 25.40 KB | — |
+| description system as shipped | 102.64 KB | 35.15 KB | +9.75 KB |
+| same build with palette-prose stubbed (review isolation) | 87.06 KB | 29.08 KB | prose graph alone = **+6.07 KB** |
+| after the truth-lens fixes (current) | 103.53 KB | **35.51 KB** | +10.11 KB vs baseline |
+
+**The +4 KB budget is exceeded** (~2.5×). Known contributors beyond the prose
+string tables: the D8 corpus restore (~+1.3 KiB, separately budgeted), the
+palette-tags import that baseTags parity requires (already in the island graph
+for other reasons), and the D13 chip-row wiring. The island stays lazy-loaded
+and the editor was already shipping the 920-name corpus, but the budget
+decision was never put to the owner — **open owner decision**: accept the
+overshoot, or diet the prose tables (the only real lever; the module is
+~straight string data).
+
+### Truth-lens rewording pass (2026-08-17, after the adversarial review)
+
+Fourteen verified findings were fixed in place; every change is a wording or
+gate correction, no detector thresholds moved (measure-first rates pinned by
+the test are byte-identical). The load-bearing ones:
+
+- muted/pastel chroma bounds say **"mean chroma"** (the tests bound the mean;
+  stops peak past the printed bound on 91 pages).
+- static temperature reads **"warm/cool overall"**, never "throughout" (mean-
+  hue claim; 124 pages held ≥25% opposite-pole mass).
+- bare dark lead reads **"dark overall"** ("throughout" stays with the key
+  words, whose tests bound the spread).
+- "spanning deep shadow to near-white" now requires both endpoints in their
+  bands (L < 0.18 / > 0.87); otherwise "crossing most of the value scale".
+- "high-key and soft" / "A soft wash…" gated on chroma (soft is a chroma
+  claim); vivid high-key palettes read "brilliant…" / "A bright, even field…".
+- ombré's "hue held steady" is monochrome-only; analogous ombrés read "the
+  hue confined to its own neighborhood".
+- multicolor R2: "Hue **spans** N° in one connected **arc**" (span number
+  under a span verb), connected wording only for the single-cluster case;
+  multi-cluster palettes read "falls into N separate clusters…".
+- rainbow cycles clause requires **equalC** (unequal frequencies are a
+  non-repeating Lissajous — nothing repeats).
+- grayscale R2's per-stop wording only when chromaticFraction = 0; otherwise
+  the measured fraction is stated ("Color registers on only N% of the run…").
+- WCAG ratio prints **floored**; clears/short runs on the raw ratio (no false
+  conformance at 4.45–4.4999).
+- family words = the gate-free eight anchors (see §1).
+- embedText Tags line merges only the stored **journey** value from base tags
+  (see §4).
+- `baseTags` defaults inside the module → `describePalette` = page text.
+- exported-API guards: empty `hexColors` renders the two real end stops
+  instead of fabricating #000000; `hueBandShare` folds its edges onto the bin
+  ring (a band edge in (355, 360] used to loop forever).
+
 ---
 
 ## 3. Truth spot-check (10 LCG-chosen seeds, every claim recomputed)
@@ -203,8 +276,8 @@ three cases worth recording:
 | `_gMrgLHgJcgBA…` | monochrome | PASS | tone leads (pastel 5.03 > monochrome 3.11); no lead adjective at L̄ 0.784 < 0.80 — correct; 21° arc of orange (h̄ 65.6) |
 | `_gAAgCngTtgAA…` | monochrome | PASS | deep+jewel gates verified; **ladder case**: 3 clauses selected, page trims the clip clause (756 chars final), embedText keeps it (953 chars) — by design |
 | `_gJOgHUgHfgIR…cr5WxzjG` | rainbow | PASS | saturation-contrast exact (black stop beside C 0.26); R4 cap 3 spends budget on rarer facts, generic clip clause never selected |
-| `_gA7fche-agS_…` | analogous | PASS | one wording tension: ombré's "hue held steady" beside R2's "drifts 36°" — the gate admits analogous by design (research-colorTheory §7); flagged, not a falsehood (36° across 0.71 of lightness travel) |
-| `_gIogJNgJ2gIP…` | multicolor | PASS | **boundary-honesty case**: ratio 4.4668 prints 4.5, clears/short computed on the printed value so the sentence can never read "4.5:1, short of 4.5:1" |
+| `_gA7fche-agS_…` | analogous | PASS | the tension this row originally flagged (ombré's "hue held steady" beside R2's measured drift) is CLOSED: the steady wording is now monochrome-only, analogous ombrés read "the hue confined to its own neighborhood" |
+| `_gIogJNgJ2gIP…` | multicolor | PASS | ratio 4.4668 now prints **floored** ("4.4:1, short of") — the earlier round-half-up print ("4.5:1 — clears") was a false AA-conformance claim; floor keeps print, verdict and the wcag-aa tag consistent (floor(x·10)/10 ≥ 4.5 ⟺ x ≥ 4.5) |
 | `_gH1gIagAdgL4…` | complementary | PASS | 158° apart; opponent-axis correctly silent (mass off-axis); 12.2:1 clears |
 | `_gD5f4jgKCgLr…` | monochrome | PASS | 20° arc of yellow (h̄ 119.9: yellow 108 beats green 142); "most vivid mid-ramp" (denseChromaRange 0.044 ≥ 0.04, peak t 0.57); zero R4 clauses — correctly empty |
 
@@ -223,10 +296,15 @@ Everything in this system is serve-time additive **except** retrieval. Three
 changes are staged and must ship together on ONE Vectorize rebuild:
 
 1. **Index text → `paletteEmbedText()`** (`palette-prose.ts`). The canonical
-   composition: prose body (no R6, no hex) + `Tags:` (modifierTags ∪ stored
-   base tags ∪ sub-band tail words like sepia/warm-gray) + `Colors:` (≤6).
-   Today's index was embedded from `palette-tags` text and has never seen this
-   vocabulary.
+   composition: prose body (no R6, no hex) + `Tags:` (modifierTags ∪ the
+   stored **journey** value ∪ sub-band tail words like sepia/warm-gray) +
+   `Colors:` (≤6). From the base tags only journey rides along — the one axis
+   the registry lacks; merging the whole list echoed the legacy
+   `texture:'monochrome'` (a saturation claim) beside the structural
+   vocabulary where monochrome means one hue, reintroducing at index time the
+   exact collision this reindex corrects. Base colors are carried by the
+   Colors line, warmth/contrast by the registry words. Today's index was
+   embedded from `palette-tags` text and has never seen this vocabulary.
 2. **Query-side mirror** (`semantic-search.ts`, `normalizeSemanticQuery` seed
    branch). Stays names-only until #1 ships — enriching only the query side
    degrades matching (index/query asymmetry). At cutover: names + spoken
