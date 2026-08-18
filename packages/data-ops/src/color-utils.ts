@@ -534,9 +534,11 @@ const GAMUT_BISECTIONS = 24;
  * saturation the fix depends on, and it charges every isolate a cold-start tax
  * to be wrong. Exact bisection measures 360 ns per lookup, 61 lookups per
  * palette (48 dense + 13 rendered stops) = 22 us, and costs nothing at load.
- * Inside paletteFeatures that is 59.5 us → 81.2 us per palette; against the
- * pre-fix code (78.4 us) the net is +3.6%, because passing stops around with
- * their saturation attached also removed a duplicate hex → OkLCh pass.
+ * Inside paletteFeatures (min of 15 passes over the 867-seed fixture) that is
+ * 59.5 us per palette with the lookups stubbed out against 81.2 us with them.
+ * The pre-fix module measures 78-83 us across runs, so the pass costs what it
+ * did before: attaching saturation to the stops also removed a duplicate
+ * hex → OkLCh conversion that paid for the gamut work.
  */
 export function maxChromaFor(L: number, hue: number): number {
     if (!(L > 0) || L >= 1) return 0; // black and white hold no chroma at all

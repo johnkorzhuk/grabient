@@ -1,34 +1,34 @@
 {
-    "name": "grabient",
-    "version": "2.0.0",
-    "description": "",
-    "scripts": {
-        "setup": "pnpm i && pnpm run build:data-ops",
-        "build:data-ops": "pnpm run --filter data-ops build",
-        "dev": "pnpm run --filter web dev",
-        "build": "pnpm run build:data-ops && pnpm run --filter web build",
-        "test": "pnpm run --filter data-ops test && pnpm run --filter web test",
-        "test:watch": "pnpm run --filter data-ops test:watch",
-        "test:coverage": "pnpm run --filter data-ops test:coverage",
-        "typecheck": "pnpm run --filter web typecheck && pnpm run --filter admin typecheck",
-        "deploy:staging": "pnpm run build:data-ops && pnpm run --filter web deploy:staging",
-        "deploy:production": "pnpm run build:data-ops && pnpm run --filter web deploy:production",
-        "dev:admin": "pnpm run --filter admin dev",
-        "deploy:admin": "pnpm run --filter admin deploy",
-        "db:studio": "pnpm run --filter data-ops db:studio",
-        "db:seed": "pnpm run --filter data-ops db:seed"
-    },
-    "keywords": [],
-    "author": "John Korzhuk",
-    "license": "FSL-1.1-ALv2",
-    "packageManager": "pnpm@10.14.0",
-    "devDependencies": {
-        "@types/node": "^24.9.1",
-        "typescript": "^5.9.3"
-    },
-    "pnpm": {
-        "overrides": {
-            "@types/node": "^24.9.1"
-        }
+  "name": "grabient",
+  "version": "2.0.0",
+  "description": "",
+  "scripts": {
+    "setup": "pnpm i && pnpm run build:data-ops",
+    "build:data-ops": "pnpm run --filter data-ops build",
+    "dev": "pnpm run --filter web dev",
+    "build": "pnpm run build:data-ops && pnpm run --filter web build",
+    "test": "pnpm run --filter data-ops test && pnpm run --filter web test && pnpm run --filter admin test",
+    "test:watch": "pnpm run --filter data-ops test:watch",
+    "test:coverage": "pnpm run --filter data-ops test:coverage",
+    "typecheck": "pnpm run --filter web typecheck && pnpm run --filter admin typecheck",
+    "deploy:staging": "pnpm run build:data-ops && pnpm run --filter web deploy:staging",
+    "deploy:production": "pnpm run build:data-ops && pnpm run --filter web deploy:production",
+    "dev:admin": "pnpm run --filter admin dev",
+    "deploy:admin": "pnpm run --filter admin deploy",
+    "db:studio": "pnpm run --filter data-ops db:studio",
+    "db:seed": "pnpm run --filter data-ops db:seed"
+  },
+  "keywords": [],
+  "author": "John Korzhuk",
+  "license": "FSL-1.1-ALv2",
+  "packageManager": "pnpm@10.14.0",
+  "devDependencies": {
+    "@types/node": "^24.9.1",
+    "typescript": "^5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@types/node": "^24.9.1"
     }
+  }
 }

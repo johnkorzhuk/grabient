@@ -146,8 +146,14 @@ const REDUNDANT_WITH: Record<string, readonly string[]> = {
  * classifications are then true of it — but "Neon warm blue to pale violet red"
  * reads as a contradiction rather than as a range. The aggregate lost an
  * argument with the specific, so the aggregate stays quiet.
+ *
+ * Exported since D17: the compound chip grammar in palette-prose.ts joins two
+ * fired modifier words ("pastel rainbow"), and a compound is exactly a pair of
+ * words said next to each other, so it excludes the same pairs this table
+ * excludes. One table, two consumers — a new entry here closes the compound as
+ * well as the name.
  */
-const CONTRADICTED_BY: Record<string, readonly string[]> = {
+export const CONTRADICTED_BY: Record<string, readonly string[]> = {
   pastel: ["dark", "deep", "black", "midnight", "burnt", "rich"],
   neon: ["pale", "faded", "dusty", "muted", "grayish", "greyish", "washed"],
   muted: ["neon", "bright", "electric", "vivid"],
@@ -264,6 +270,15 @@ export interface NamedPalette {
   modifierPhrase: string;
   /** The color names that survived, in ramp order. */
   colorNames: string[];
+  /**
+   * The rendered stops the names were read off, ramp order.
+   *
+   * getUniqueColorNames returns names without saying which stop produced each
+   * one, and D18's chip ranking needs that link: a name is ranked by the chroma
+   * of the stop it names. Carrying the stops here keeps the answer derivable
+   * without a second render, and every caller already had them.
+   */
+  stops: string[];
   /** Every descriptor that is true, spoken or not — the tag list. */
   tags: string[];
   features: PaletteFeatures;
@@ -377,6 +392,7 @@ export function describePaletteName(
     name: `${headline.charAt(0).toUpperCase()}${headline.slice(1)}`,
     modifierPhrase: phrase,
     colorNames: names,
+    stops: colors,
     tags,
     features,
   };

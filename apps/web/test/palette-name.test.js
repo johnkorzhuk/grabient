@@ -17,7 +17,12 @@ import {
   descriptorScore,
   paletteFeatures,
   selectModifiers,
+  stopHasHue,
+  stopSaturation,
+  THRESHOLDS,
 } from "@repo/data-ops/gradient-gen/palette-modifiers";
+import { hexToOkLch, maxChromaFor } from "@repo/data-ops/color-utils";
+import { PROSE_SEEDS } from "./prose-corpus.js";
 
 const SEEDS = {
   complementary: "_gB5gIZgFtgBRgGKgG2gG9gAxgGShcdgIzg4D",
@@ -194,6 +199,21 @@ describe("the registry", () => {
     expect(total).toBeLessThan(1.03);
   });
 
+  it("re-measures every prevalence it ships", () => {
+    // The registry contract: prevalences are MEASURED, never estimated, and
+    // measured over this fixture at 13 steps. This is the assertion that makes
+    // that contract enforceable — a threshold change that moves a fire rate
+    // fails here until the value beside it is updated.
+    const views = PROSE_SEEDS.map((seed) => renderPalette(seed, "linearGradient", 13, 90));
+    const features = views.map((v) => paletteFeatures(v.appliedCoeffs, v.hexColors));
+    for (const d of DESCRIPTORS) {
+      const rate = features.filter((f) => d.test(f)).length / features.length;
+      expect(Number(rate.toFixed(3)), `${d.word} measures ${rate.toFixed(4)}`).toBe(
+        d.prevalence,
+      );
+    }
+  });
+
   it("lets each axis speak at most once", () => {
     for (const seed of Object.values(SEEDS)) {
       const view = renderPalette(seed, "linearGradient", 13, 90);
@@ -201,5 +221,87 @@ describe("the registry", () => {
       const axes = chosen.map((d) => d.axis);
       expect(new Set(axes).size).toBe(axes.length);
     }
+  });
+});
+
+describe("saturation, not chroma (D19)", () => {
+  // The bug: absolute chroma read as "is there colour here". The sRGB solid is
+  // lopsided, so a light tint can be the most colourful thing the display can
+  // render at its lightness and still measure a chroma the classifier called
+  // gray. This palette is the owner's evidence: plainly blue, pink, cream and
+  // cyan on screen, classified `grayscale` before the fix.
+  const EVIDENCE = [
+    "#ceeaff",
+    "#fcd3d4",
+    "#ffffed",
+    "#ffffff",
+    "#deffff",
+    "#d5e3f6",
+  ];
+
+  it("reads the evidence stops as coloured, not gray", () => {
+    // Measured per stop: chroma under the absolute floor, saturation at or near
+    // the ceiling. #ffffff is the exception on purpose — pure white has no hue
+    // at any reading, and the ceiling guard in color-utils keeps its ratio at 0
+    // rather than letting floating-point residue make white a colour.
+    for (const hex of EVIDENCE) {
+      const { L, C, h } = hexToOkLch(hex);
+      const ceiling = maxChromaFor(L, h);
+      if (hex === "#ffffff") {
+        expect(stopSaturation(hex)).toBe(0);
+        expect(stopHasHue(hex)).toBe(false);
+        continue;
+      }
+      expect(stopSaturation(hex), hex).toBeGreaterThanOrEqual(0.65);
+      expect(C / ceiling, hex).toBeCloseTo(stopSaturation(hex), 5);
+      expect(stopHasHue(hex), hex).toBe(true);
+    }
+    // And the reading that produced the bug: averaged, this palette carries
+    // less chroma than a single stop needs to keep its hue (0.029 against a
+    // 0.03 floor), while sitting at three quarters of everything sRGB has at
+    // those lightnesses. One number says gray, the other says blue and pink.
+    const stops = EVIDENCE.map(hexToOkLch);
+    const meanChroma = stops.reduce((s, c) => s + c.C, 0) / stops.length;
+    const meanSaturation =
+      EVIDENCE.reduce((s, hex) => s + stopSaturation(hex), 0) / EVIDENCE.length;
+    expect(meanChroma).toBeLessThan(THRESHOLDS.CHROMA_FLOOR);
+    expect(meanSaturation).toBeGreaterThan(THRESHOLDS.GRAYSCALE_SAT);
+  });
+
+  it("never calls a stop near its gamut ceiling achromatic", () => {
+    // The property the fix guarantees, swept over every rendered stop in the
+    // fixture: 70% of achievable chroma is colour by any definition.
+    for (const seed of PROSE_SEEDS) {
+      for (const hex of renderPalette(seed, "linearGradient", 13, 90).hexColors) {
+        if (stopSaturation(hex) >= 0.7) expect(stopHasHue(hex), `${seed} ${hex}`).toBe(true);
+      }
+    }
+  });
+
+  it("classifies the pale end of the corpus by what it looks like", () => {
+    // A live seed of the same class as the evidence: mean chroma 0.025, but its
+    // stops sit at half their ceiling and it renders pale blue to pale sage.
+    // It read `grayscale` before the fix and reads `monochrome` after, which is
+    // what "Monochrome lavender to light gray" should say.
+    const view = renderPalette(
+      "_gLEgGFgaXgELgLAgRugEogBggBkgAWgBkgFbdgwsl1ff",
+      "linearGradient",
+      13,
+      90,
+    );
+    const f = paletteFeatures(view.appliedCoeffs, view.hexColors);
+    expect(f.denseMeanChroma).toBeLessThan(THRESHOLDS.GRAYSCALE_CHROMA);
+    expect(f.denseMeanSaturation).toBeGreaterThan(THRESHOLDS.GRAYSCALE_SAT);
+    expect(classifyStructure(f)).toBe("monochrome");
+  });
+
+  it("still calls an actual neutral ramp grayscale", () => {
+    // The other side of the conjunction: low on BOTH readings. A warm greige
+    // ramp measures 0.24 mean saturation against a 0.25 floor, so this is also
+    // the assertion that catches GRAYSCALE_SAT drifting down.
+    const view = renderPalette(SEEDS.grayscale, "linearGradient", 13, 90);
+    const f = paletteFeatures(view.appliedCoeffs, view.hexColors);
+    expect(f.denseMeanSaturation).toBeLessThan(THRESHOLDS.GRAYSCALE_SAT);
+    expect(classifyStructure(f)).toBe("grayscale");
   });
 });

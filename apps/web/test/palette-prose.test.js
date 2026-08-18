@@ -1,13 +1,23 @@
-// The prose generator: determinism, step behavior, number truth, corpus-level
-// anti-template acceptance, the measure-first prevalence contract, and the
-// canonical describePalette triple. Fixture = the 867 live-sitemap seeds in
-// prose-corpus.js, rendered at the default view (linearGradient, 7 steps, 90°)
-// — the view an uncustomized seed page serves. Every asserted band below was
-// MEASURED over that fixture on 2026-08-17; re-measure before moving one.
+// The description generator: what it is allowed to SAY, and when.
+//
+// The old suite pinned numbers, because the old paragraph printed them. D20
+// removed every number from the prose, so the contract moved: what has to hold
+// now is that each impression phrase appears ONLY when its full predicate
+// conjunction holds, that the analysis vocabulary never reaches a reader, and
+// that the words are ones a machine translator can carry. Those are the three
+// suites below; determinism, step behavior, lengths, the anti-template corpus
+// bar, the measure-first bands and the canonical triple are unchanged in intent.
+//
+// Fixture = the 867 live-sitemap seeds in prose-corpus.js, rendered at the
+// default view (linearGradient, 7 steps, 90°) — the view an uncustomized seed
+// page serves. Every asserted band below was MEASURED over that fixture on
+// 2026-08-18; re-measure before moving one.
 import { describe, expect, it, vi } from "vitest";
 import { renderPalette } from "../src/palette.ts";
 import { cosineGradient, rgbToHex } from "@repo/data-ops/gradient-gen/cosine";
 import {
+  classifyStructure,
+  hueBandShare,
   modifierTags,
   paletteFeatures,
   DESCRIPTORS,
@@ -18,6 +28,8 @@ import { describePaletteName } from "../src/palette-name.ts";
 import {
   describePalette,
   familyWord,
+  impressionFires,
+  IMPRESSIONS,
   measureFirstFires,
   MEASURE_FIRST,
   paletteEmbedText,
@@ -28,9 +40,13 @@ import {
 } from "../src/palette-prose.ts";
 import { querySlug } from "../src/semantic-search.ts";
 import { PROSE_SEEDS } from "./prose-corpus.js";
-import { hexToOkLch, NAMED_COLORS } from "@repo/data-ops/color-utils";
+import {
+  hexToOkLch,
+  NAMED_COLORS,
+  relativeLuminance,
+} from "@repo/data-ops/color-utils";
 
-const caseHexL = (hex) => hexToOkLch(hex).L;
+const T = THRESHOLDS;
 
 // Counts real analysis passes so the one-pass contract of describePalette is
 // verifiable. The wrapper delegates to the actual implementation, so every
@@ -88,6 +104,14 @@ const lcg = (seed) => {
 };
 
 const stripHex = (s) => s.replace(/#[0-9a-fA-F]{6}/g, "");
+/** The prose body of the embedding text: everything before the Tags line. */
+const embedBody = (s) => s.split(" Tags:")[0];
+/** Every surface a reader sees, for the vocabulary scans. */
+const readerText = (prose) => [
+  prose.paragraph,
+  prose.metaDescription,
+  embedBody(prose.embedText),
+];
 
 describe("determinism and purity", () => {
   it("is byte-identical across repeated calls", () => {
@@ -103,11 +127,12 @@ describe("determinism and purity", () => {
     }
   });
 
-  it("keeps steps, style and angle out of everything except R6", () => {
+  it("keeps steps, style and angle out of everything except the view sentence", () => {
     for (const seed of PROSE_SEEDS.filter((_, i) => i % 97 === 0)) {
       const { view, prose } = caseFor(seed);
-      // The paragraph's view sentence is R6 and only R6.
-      expect(prose.paragraph).toContain("Shown here as a linear gradient in 7 steps at 90°");
+      expect(prose.paragraph).toContain(
+        "Shown here as a linear gradient in 7 steps at 90°",
+      );
       // embedText: no hex, no view tokens — the index describes the palette,
       // not this render of it.
       expect(prose.embedText).not.toMatch(/#[0-9a-fA-F]{6}/);
@@ -115,9 +140,8 @@ describe("determinism and purity", () => {
       expect(prose.embedText).not.toContain(" steps");
       expect(prose.embedText).not.toContain("linear gradient");
       expect(prose.metaDescription).not.toMatch(/#[0-9a-fA-F]{6}/);
-      // identity is the no-hex R1.
       expect(prose.identity).not.toMatch(/#[0-9a-fA-F]{6}/);
-      // The paragraph opens on the same R1 the identity is (hexes aside).
+      // The paragraph opens on the same identity sentence (hexes aside).
       expect(prose.paragraph.slice(0, 30)).toBe(prose.identity.slice(0, 30));
       // embedText is view-independent for style/angle (steps legitimately
       // move the rendered names), and paletteEmbedText is that composition.
@@ -133,11 +157,14 @@ describe("determinism and purity", () => {
 });
 
 describe("step behavior", () => {
-  it("holds R2 and the structure word byte-identical at 3/7/13/24 steps", () => {
+  it("holds the structure and the form sentence across 3/7/13/24 steps", () => {
     // 22 seeds at a fixed stride — wide enough to cover every structure class
-    // (the fixture holds 24 grayscale seeds as its rarest class).
+    // (the fixture holds 19 grayscale seeds as its rarest class).
     const sample = PROSE_SEEDS.filter((_, i) => i % 40 === 0);
     expect(sample.length).toBeGreaterThanOrEqual(20);
+    const SERIES = new Set(["tints", "shades", "tones", "tints-and-shades"]);
+    const formOf = (parts) =>
+      parts.impressions.find((id) => slotOf(id) === "form") ?? "";
     for (const seed of sample) {
       const at = (steps) => {
         const v = render(seed, steps);
@@ -146,94 +173,442 @@ describe("step behavior", () => {
       const base = at(7);
       for (const steps of [3, 13, 24]) {
         const p = at(steps);
+        // Structure is a dense-sample fact: it cannot move at all.
         expect(p.structure, `${seed} @ ${steps}`).toBe(base.structure);
-        expect(p.r2, `${seed} @ ${steps}`).toBe(base.r2);
+        // The form sentence may appear or vanish (the budget is filled by
+        // rank, and the tone/motion rows read rendered means), and the series
+        // detector legitimately reads rendered stops — but a palette may never
+        // change from one form sentence to a DIFFERENT one. Measured over the
+        // whole fixture: 0 such events in 2,601 re-renders.
+        const a = formOf(base);
+        const b = formOf(p);
+        if (a && b && a !== b)
+          expect(
+            SERIES.has(a) || SERIES.has(b),
+            `${seed} @ ${steps}: ${a} -> ${b}`,
+          ).toBe(true);
       }
     }
   });
 });
 
-describe("number round-trip", () => {
-  // Every printed number is recomputed from the features at its stated
-  // precision. Each row is (context regex → expected values); after all rows
-  // run, no digit may remain unclaimed in the paragraph — a new number needs
-  // a new row, which is the point.
-  const f2 = (x) => x.toFixed(2);
-  const f1 = (x) => x.toFixed(1);
-  const ceil2 = (x) => (Math.ceil(x * 100 - 1e-9) / 100).toFixed(2);
-  // WCAG ratio prints floored (never a false "clears" at 4.45–4.4999); the
-  // helper mirrors floor1 in palette-prose.ts.
-  const floor1 = (x) => (Math.floor(x * 10 + 1e-6) / 10).toFixed(1);
+const slotOf = (id) => IMPRESSIONS.find((i) => i.id === id)?.slot;
 
-  it("recomputes every printed number at its stated precision", () => {
+// =============================================================================
+// (a) Impression gating — the heart of the contract
+// =============================================================================
+//
+// Every phrase in the paragraph is an impression, and an impression may be
+// spoken only when its FULL conjunction holds. The predicates below are
+// recomputed here from features, tags and stops — deliberately NOT by calling
+// the module's own `when`, which would assert nothing — so a loosened gate in
+// palette-prose.ts fails here.
+//
+// The four series rows are the one partial check: reproducing the tint/shade/
+// tone detector would be copying it, so they assert the part that is
+// independently checkable (monochrome structure, and the base word is the
+// palette's family word) plus mutual exclusivity.
+
+const isDeep = (f) => f.meanLightness < 0.45 && f.meanChroma >= 0.08;
+const isJewel = (f) =>
+  f.meanLightness >= 0.3 &&
+  f.meanLightness <= 0.6 &&
+  f.meanChroma >= 0.12 &&
+  f.maxChroma >= 0.15;
+const isBrilliant = (f) => f.meanChroma >= T.VIVID_CHROMA && f.meanLightness >= 0.7;
+const saturationContrast = (f) =>
+  f.denseChromaRange >= 0.15 && f.maxChroma - f.denseChromaRange < 0.04;
+const warmCoolContrast = (f) =>
+  hueBandShare(f, 330, 120) >= 0.25 && hueBandShare(f, 150, 300) >= 0.25;
+const isOmbre = (f, structure) =>
+  (structure === "monochrome" || structure === "analogous") &&
+  f.turns === 0 &&
+  f.lightnessRange >= 0.34;
+const EVEN_SPREAD = 0.5;
+const VISIBLE_MOVEMENT = 0.25;
+
+/** id → an independent recomputation of the licensing conjunction. */
+const GATES = {
+  gray: (c) => c.structure === "grayscale",
+  "pale-soft": (c) =>
+    c.has("pastel") &&
+    c.has("high-key") &&
+    c.f.meanChroma < T.PASTEL_CHROMA &&
+    c.f.maxChroma < T.NEON_CHROMA,
+  pale: (c) => c.has("pastel") && !c.has("high-key"),
+  "bright-strong": (c) => isBrilliant(c.f) && c.f.lightnessRange < EVEN_SPREAD,
+  neon: (c) => c.has("neon"),
+  rich: (c) => isJewel(c.f),
+  "dark-strong": (c) => isDeep(c.f) && c.f.lightnessRange < EVEN_SPREAD,
+  "dark-even": (c) => c.has("low-key") && !isDeep(c.f),
+  dark: (c) => c.has("dark") && !isDeep(c.f) && !c.has("low-key"),
+  earthy: (c) => c.has("earthy"),
+  muted: (c) => c.has("muted") && !c.has("earthy"),
+  strong: (c) =>
+    c.has("vivid") && !c.has("neon") && !isBrilliant(c.f) && !isJewel(c.f),
+  light: (c) =>
+    c.has("light") &&
+    c.has("high-key") &&
+    !c.has("pastel") &&
+    !c.has("neon") &&
+    !isBrilliant(c.f),
+  "color-beside-gray": (c) => saturationContrast(c.f),
+  "warm-and-cool": (c) => warmCoolContrast(c.f),
+  warm: (c) => c.has("warm") && !c.journey,
+  cool: (c) => c.has("cool") && !c.journey,
+  "tints-and-shades": (c) => c.structure === "monochrome",
+  tints: (c) => c.structure === "monochrome",
+  shades: (c) => c.structure === "monochrome",
+  tones: (c) => c.structure === "monochrome",
+  "one-color": (c) => c.structure === "monochrome",
+  fade: (c) => c.structure === "analogous" && isOmbre(c.f, c.structure),
+  "two-colors": (c) => c.structure === "duotone",
+  "opposite-colors": (c) => c.structure === "complementary",
+  "whole-wheel": (c) => c.has("full-wheel"),
+  rainbow: (c) => c.structure === "rainbow" && !c.has("full-wheel"),
+  repeats: (c) =>
+    c.f.equalC &&
+    (c.f.channelCycles[0] + c.f.channelCycles[1] + c.f.channelCycles[2]) / 3 >= 1.5,
+  "back-and-forth": (c) => c.has("hue-wandering"),
+  neighbors: (c) =>
+    c.structure === "analogous" &&
+    c.f.firstHue !== null &&
+    c.f.lastHue !== null &&
+    familyWord(c.f.firstHue) !== familyWord(c.f.lastHue),
+  "one-family": (c) =>
+    c.structure === "analogous" &&
+    (c.f.firstHue === null ||
+      c.f.lastHue === null ||
+      familyWord(c.f.firstHue) === familyWord(c.f.lastHue)),
+  groups: (c) => c.structure === "multicolor" && c.f.hueClusters >= 2,
+  "several-colors": (c) => c.structure === "multicolor" && c.f.hueClusters < 2,
+  "black-block": (c) => c.has("pure-black-plateau"),
+  "full-range": (c) =>
+    c.f.lightnessRange > T.HIGH_CONTRAST_RANGE &&
+    Math.min(...c.stopL) < 0.18 &&
+    Math.max(...c.stopL) > 0.87,
+  "bright-middle": (c) => c.has("bright-middle"),
+  "dark-middle": (c) => c.has("dark-middle"),
+  wavy: (c) => c.f.turns >= 2,
+  "flat-brightness": (c) => c.has("iso-luminant"),
+  steady: (c) => c.has("low-contrast") && !c.has("iso-luminant"),
+  brightens: (c) =>
+    c.has("brightening") && c.f.denseLightnessRange >= VISIBLE_MOVEMENT,
+  darkens: (c) => c.has("darkening") && c.f.denseLightnessRange >= VISIBLE_MOVEMENT,
+  warming: (c) => c.journey === "warming",
+  cooling: (c) => c.journey === "cooling",
+  "light-background": (c) =>
+    c.has("high-key") &&
+    c.f.meanChroma < T.PASTEL_CHROMA &&
+    c.f.maxChroma < T.NEON_CHROMA &&
+    Math.max(...c.lum) >= 4.5 * 0.05 - 0.05,
+  "dark-background": (c) =>
+    (c.has("dark") || c.has("low-key")) &&
+    c.f.lightnessRange < 0.3 &&
+    Math.min(...c.lum) <= 1.05 / 4.5 - 0.05,
+  "text-both-ends": (c) =>
+    Math.max(...c.lum) >= 4.5 * 0.05 - 0.05 &&
+    Math.min(...c.lum) <= 1.05 / 4.5 - 0.05 &&
+    c.f.lightnessRange > 0.3,
+  loops: (c) => c.has("seamless") && !c.has("solid"),
+};
+
+const gateCtx = (seed) => {
+  const { view, features: f, prose } = caseFor(seed);
+  const tags = modifierTags(f);
+  return {
+    f,
+    structure: classifyStructure(f),
+    has: (w) => tags.includes(w),
+    stopL: view.hexColors.map((h) => hexToOkLch(h).L),
+    lum: view.hexColors.map(relativeLuminance),
+    // The journey value the page uses comes from the stored palette-tags
+    // vocabulary; the embed Tags line carries it, which is where this reads it.
+    journey: /(?:^| )Tags:[^.]*\bwarming\b/.test(prose.embedText)
+      ? "warming"
+      : /(?:^| )Tags:[^.]*\bcooling\b/.test(prose.embedText)
+        ? "cooling"
+        : null,
+  };
+};
+
+describe("impression gating", () => {
+  it("covers every impression with an independent gate", () => {
+    expect(Object.keys(GATES).sort()).toEqual(IMPRESSIONS.map((i) => i.id).sort());
+  });
+
+  it("speaks an impression only when its full conjunction holds", () => {
+    const spoken = Object.fromEntries(IMPRESSIONS.map((i) => [i.id, 0]));
     for (const seed of PROSE_SEEDS) {
-      const { view, features: f, prose, named } = caseFor(seed);
-      const meanCycles = (f.channelCycles[0] + f.channelCycles[1] + f.channelCycles[2]) / 3;
-      const endL = [view.hexColors[0], view.hexColors[view.hexColors.length - 1]].map(
-        (h) => caseHexL(h),
-      );
-      const allL = view.hexColors.map((h) => caseHexL(h));
-      void named;
-
-      const rows = [
-        [/fits inside a (\d+)° arc/g, () => [String(Math.round(f.hueSpan))]],
-        [/sit (\d+)° apart/g, () => [String(Math.round(f.clusterSeparation))]],
-        [/drifts (\d+)°/g, () => [String(Math.round(f.hueSpan))]],
-        [/spans (\d+)° in one connected arc/g, () => [String(Math.round(f.hueSpan))]],
-        [
-          /falls into (\d+) separate clusters spread across (\d+)°/g,
-          () => [String(f.hueClusters), String(Math.round(f.hueSpan))],
-        ],
-        [/covers (\d+)° of the hue circle/g, () => [String(Math.round(f.hueSpan))]],
-        [/(\d+)° of hue in one pass/g, () => [String(Math.round(f.hueSpan))]],
-        [/completes (\d+\.\d) full cycles/g, () => [f1(meanCycles)]],
-        [/repeats (\d+\.\d)× along the ramp/g, () => [f1(meanCycles)]],
-        [
-          /(\d+\.\d\d) of lightness between its darkest and lightest (?:gray|stop)/g,
-          () => [f2(f.denseLightnessRange)],
-        ],
-        [
-          /registers on only (\d+)% of the run/g,
-          () => [String(Math.round(f.chromaticFraction * 100))],
-        ],
-        [/lightness travels (\d+\.\d\d) of its scale/g, () => [f2(f.lightnessRange)]],
-        [
-          // R3 capitalizes "Lightness…" when no lead adjective earned a colon.
-          /[Ll]ightness (?:climbs|falls)(?: only)? from (\d\.\d\d) to (\d\.\d\d)/g,
-          () => [f2(endL[0]), f2(endL[1])],
-        ],
-        [/stays nearly flat, (\d\.\d\d) to (\d\.\d\d)/g, () => [f2(endL[0]), f2(endL[1])]],
-        [
-          /bends once between (\d\.\d\d) and (\d\.\d\d)/g,
-          () => [f2(Math.min(...allL)), f2(Math.max(...allL))],
-        ],
-        [/changing direction (\d+) times/g, () => [String(f.turns)]],
-        [/holds at lightness (\d\.\d\d) and chroma (\d\.\d\d)/g, () => null], // solid only; not in fixture
-        [/mean chroma held below (\d\.\d\d)/g, () => [f2(THRESHOLDS.PASTEL_CHROMA)]],
-        [/mean chroma under (\d\.\d\d)/g, () => [ceil2(THRESHOLDS.MUTED_CHROMA)]],
-        [/chroma never rising above (\d\.\d\d)/g, () => [f2(f.maxChroma)]],
-        [/jewel tones \(mean (\d\.\d\d)\)/g, () => [f2(f.meanChroma)]],
-        [/mean chroma (\d\.\d\d)/g, () => [f2(f.meanChroma)]],
-        [/peaking at (\d\.\d\d)/g, () => [f2(f.maxChroma)]],
-        [/measure (\d+\.\d):1/g, () => [floor1(f.contrastRatio)]],
-        [/the (4\.5):1 WCAG AA threshold/g, () => ["4.5"]],
-        [/(\d+)% of the run is pinned/g, () => [String(Math.round(f.clipped * 100))]],
-        [/in (\d+) steps at (\d+)°/g, () => [String(VIEW.steps), String(Math.round(VIEW.angle))]],
-      ];
-
-      let text = stripHex(prose.paragraph);
-      for (const [re, expected] of rows) {
-        text = text.replace(re, (m, ...groups) => {
-          const want = expected();
-          if (want) {
-            const got = groups.slice(0, want.length);
-            expect(got, `${seed}: ${m}`).toEqual(want);
-          }
-          return m.replace(/\d/g, "•"); // claim the digits
-        });
+      const { parts } = caseFor(seed);
+      const c = gateCtx(seed);
+      for (const id of parts.impressions) {
+        spoken[id] += 1;
+        expect(GATES[id](c), `${seed}: spoke "${id}" without its predicate`).toBe(true);
       }
-      expect(text, `${seed}: unclaimed number in "${text}"`).not.toMatch(/\d/);
+      // Solid palettes veto every slot except `use`: no journey, no shape.
+      if (c.has("solid"))
+        for (const id of parts.impressions) expect(slotOf(id), seed).toBe("use");
+      // One sentence per slot, at most two sentences, and reading order.
+      const slots = parts.impressions.map(slotOf);
+      expect(new Set(slots).size, seed).toBe(slots.length);
+      expect(parts.impressions.length, seed).toBeLessThanOrEqual(2);
+      const order = { tone: 0, form: 1, motion: 2, use: 3 };
+      expect([...slots].sort((a, b) => order[a] - order[b]), seed).toEqual(slots);
+      // Every chosen impression's sentence is actually rendered, on the page
+      // and in the embedding body, and nothing else sits between the identity
+      // sentence and the view sentence.
+      const { prose } = caseFor(seed);
+      const body = prose.paragraph
+        .replace(parts.identityWithHex, "")
+        .replace(parts.view, "")
+        .trim();
+      expect(body, seed).toBe(parts.sentences.join(" "));
+      for (const sentence of parts.sentences) {
+        expect(prose.paragraph, seed).toContain(sentence);
+        expect(embedBody(prose.embedText), seed).toContain(sentence);
+      }
     }
+    // Spot-check coverage: an impression the fixture never speaks is a phrase
+    // no one has ever read, so the count is recorded rather than assumed.
+    const silent = Object.entries(spoken)
+      .filter(([, n]) => n === 0)
+      .map(([id]) => id);
+    // tints-and-shades needs a tint AND a shade series at once (0 of 867 live
+    // seeds; the editor reaches it) and two-colors is the duotone row, spoken
+    // 46 times. Anything else joining this list means a gate went dead.
+    expect(silent).toEqual(["tints-and-shades"]);
+  });
+
+  it("re-measures every prevalence it ships", () => {
+    const counts = Object.fromEntries(IMPRESSIONS.map((i) => [i.id, 0]));
+    for (const seed of PROSE_SEEDS) {
+      const { view, features, named } = caseFor(seed);
+      const fires = impressionFires(view.appliedCoeffs, view.hexColors, {
+        features,
+        named,
+      });
+      for (const [id, v] of Object.entries(fires)) if (v) counts[id] += 1;
+    }
+    for (const imp of IMPRESSIONS) {
+      const measured = counts[imp.id] / PROSE_SEEDS.length;
+      // The fixture is fixed, so a recorded prevalence is exact, not a band:
+      // it IS the ranking, and a stale number silently reorders the site.
+      expect(
+        Math.abs(measured - imp.prevalence),
+        `${imp.id}: measured ${measured.toFixed(4)}, table ${imp.prevalence}`,
+      ).toBeLessThan(0.0006);
+    }
+  });
+
+  it("keeps the fired set identical to the gates over the whole fixture", () => {
+    for (const seed of PROSE_SEEDS) {
+      const { view, features, named } = caseFor(seed);
+      const fires = impressionFires(view.appliedCoeffs, view.hexColors, {
+        features,
+        named,
+      });
+      const c = gateCtx(seed);
+      for (const imp of IMPRESSIONS) {
+        // The series rows have partial gates (see GATES), so they are asserted
+        // one way only: firing implies monochrome, not the converse.
+        if (["tints", "shades", "tones", "tints-and-shades", "one-color"].includes(imp.id)) {
+          if (fires[imp.id]) expect(GATES[imp.id](c), `${seed}/${imp.id}`).toBe(true);
+          continue;
+        }
+        expect(fires[imp.id], `${seed}/${imp.id}`).toBe(GATES[imp.id](c));
+      }
+      // A monochrome palette gets exactly one of the five monochrome rows.
+      const mono = ["tints", "shades", "tones", "tints-and-shades", "one-color"].filter(
+        (id) => fires[id],
+      );
+      expect(mono.length, seed).toBe(c.structure === "monochrome" ? 1 : 0);
+    }
+  });
+});
+
+// =============================================================================
+// (b) The banned-token scan
+// =============================================================================
+
+/**
+ * D20.3's list, plus the words a reader would recognise as the instrument
+ * showing through. The scan runs on the paragraph, the meta description and
+ * the embed BODY — never the embed's "Tags:" and "Colors:" lines, which carry
+ * the technical vocabulary on purpose (D20.7).
+ */
+const BANNED_WORDS = [
+  "hue", "hues", "chroma", "saturation", "saturated", "lightness", "value",
+  "values", "wcag", "channel", "channels", "clip", "clipped", "clipping",
+  "gamut", "cycle", "cycles", "frequency", "phase", "amplitude", "iso-luminant",
+  "seam", "seamless", "ramp", "arch", "monotone", "monotonic", "span", "spans",
+  "degree", "degrees", "cluster", "clusters", "opponent", "spectral",
+  "analogous", "complementary", "tetradic", "triadic", "mean", "median",
+  "luminance", "luma", "ratio", "contrast", "threshold", "percent",
+];
+
+describe("banned tokens", () => {
+  it("never lets the analysis vocabulary reach a reader", () => {
+    for (const seed of PROSE_SEEDS) {
+      const { prose } = caseFor(seed);
+      for (const text of readerText(prose)) {
+        const words = new Set(text.toLowerCase().match(/[a-z][a-z'-]*/g) ?? []);
+        for (const banned of BANNED_WORDS)
+          expect(words.has(banned), `${seed}: "${banned}" in "${text}"`).toBe(false);
+      }
+    }
+  });
+
+  it("bans em dashes and en dashes everywhere, Tags line included", () => {
+    for (const seed of PROSE_SEEDS) {
+      const { prose } = caseFor(seed);
+      for (const text of [
+        prose.paragraph,
+        prose.metaDescription,
+        prose.embedText,
+        prose.identity,
+      ])
+        expect(/[–—]/.test(text), `${seed}: ${text}`).toBe(false);
+    }
+  });
+
+  it("prints no number except the end hexes and the steps/angle", () => {
+    for (const seed of PROSE_SEEDS) {
+      const { prose } = caseFor(seed);
+      // The paragraph: hex codes in the identity sentence, and the view
+      // sentence's step count and angle. Nothing else may carry a digit.
+      const paragraph = stripHex(prose.paragraph).replace(
+        / in \d+ steps? at \d+°/,
+        "",
+      );
+      expect(paragraph, seed).not.toMatch(/\d/);
+      // The meta description and the embed body carry neither.
+      expect(prose.metaDescription, seed).not.toMatch(/\d/);
+      expect(embedBody(prose.embedText), seed).not.toMatch(/\d/);
+    }
+  });
+});
+
+// =============================================================================
+// (c) Translation friendliness
+// =============================================================================
+
+/**
+ * Every word the description templates can produce, reviewed once.
+ *
+ * The audience is global and much of this text is read through machine
+ * translation, so the vocabulary is short, common and concrete: no idiom, no
+ * metaphor that does not travel, no phrasal verb where a single verb exists.
+ * This list IS that review — it was generated from the fixture and read
+ * through by hand — and asserting the corpus stays inside it means a new
+ * phrasing has to be added here deliberately rather than slipping in.
+ *
+ * Color names are exempt (they come from the 920-name corpus, a separate
+ * bounded vocabulary) and are stripped before the check.
+ */
+const ALLOWED_WORDS = new Set([
+  "a", "against", "almost", "an", "and", "arcing", "are", "areas", "as",
+  "at", "autumn", "back", "background", "barely", "becomes", "behind",
+  "below", "between", "black", "blue", "both", "break", "bright",
+  "brightest", "brightness", "built", "change", "changes", "circling",
+  "clear", "codes", "color", "colorless", "colors", "cool", "cooler", "copy",
+  "css", "cyan", "dark", "darkened", "darker", "darkest", "deep",
+  "direction", "duotone", "earthy", "easing", "end", "ends", "enough",
+  "every", "everything", "export", "fades", "forth", "forward", "from",
+  "full", "gradient", "gray", "grayscale", "green", "groups", "held", "here",
+  "hex", "holds", "how", "in", "inside", "instead", "intense", "into", "is",
+  "it", "its", "jumps", "light", "lightened", "lighter", "like", "linear",
+  "little", "look", "loops", "magenta", "many", "match", "middle",
+  "monochrome", "more", "mostly", "move", "moves", "muted", "nearly", "neon",
+  "next", "no", "ocean", "of", "on", "once", "one", "only", "opposite", "or",
+  "orange", "pairing", "pale", "palette", "part", "passes", "pastel", "png",
+  "rainbow", "range", "readable", "ready", "red", "renders", "return",
+  "running", "runs", "same", "separate", "several", "shown", "sides",
+  "single", "sit", "sits", "skips", "so", "soft", "softened", "solid",
+  "start", "stay", "stays", "steps", "stop", "strong", "strongest", "sunset",
+  "svg", "sweeping", "text", "than", "that", "the", "them", "there",
+  "through", "time", "to", "travels", "two", "under", "uses", "very",
+  "violet", "visible", "warm", "warmer", "weaving", "wheel", "while",
+  "white", "whole", "winding", "with", "within", "works", "yellow",
+]);
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+describe("translation friendliness", () => {
+  it("stays inside the reviewed word list", () => {
+    const unexpected = new Map();
+    for (const seed of PROSE_SEEDS) {
+      const { prose, named } = caseFor(seed);
+      for (const text of readerText(prose)) {
+        let t = text.toLowerCase().replace(/#[0-9a-f]{6}/g, " ");
+        // Whole-word removal: substring removal turned "earthy" into "y" when
+        // the palette was also named "earth".
+        for (const name of [...named.colorNames].sort((a, b) => b.length - a.length))
+          t = t.replace(new RegExp(`\\b${escapeRe(name.toLowerCase())}\\b`, "g"), " ");
+        for (const w of t.match(/[a-z][a-z'-]*/g) ?? [])
+          if (!ALLOWED_WORDS.has(w)) unexpected.set(w, seed);
+      }
+    }
+    expect([...unexpected.entries()]).toEqual([]);
+  });
+
+  it("keeps sentences short enough to translate", () => {
+    // One idea per clause, under ~15 words. The identity sentence is the
+    // exception the owner approved: it lists the palette's color names, so it
+    // grows with the palette and is measured separately (max 27 words over the
+    // fixture, almost all of them color names and hex codes).
+    for (const seed of PROSE_SEEDS) {
+      const { parts } = caseFor(seed);
+      for (const sentence of parts.sentences) {
+        const words = sentence.split(/\s+/).filter(Boolean);
+        expect(words.length, `${seed}: ${sentence}`).toBeLessThanOrEqual(15);
+      }
+    }
+  });
+});
+
+// =============================================================================
+// (d) Shape: sentence counts and lengths
+// =============================================================================
+
+describe("budget", () => {
+  it("spends 2 to 4 sentences and stays inside the measured length band", () => {
+    // Measured over the fixture (2026-08-18): paragraph p0 237, p5 267,
+    // p50 293, p95 327, max 358; body (identity + impressions) p0 132,
+    // p50 188, max 253; meta max 158; embed max 466. D20 asks for 2 to 4
+    // sentences and roughly 150 to 400 characters, and the ladder in
+    // paletteProse never fires at these lengths.
+    const lengths = [];
+    for (const seed of PROSE_SEEDS) {
+      const { prose, parts } = caseFor(seed);
+      lengths.push(prose.paragraph.length);
+      // identity + 1..2 impressions + view sentence.
+      const sentences = 2 + parts.impressions.length;
+      expect(sentences, seed).toBeGreaterThanOrEqual(2);
+      expect(sentences, seed).toBeLessThanOrEqual(4);
+      expect(prose.paragraph.length, seed).toBeGreaterThanOrEqual(180);
+      expect(prose.paragraph.length, seed).toBeLessThanOrEqual(420);
+      expect(prose.metaDescription.length, seed).toBeLessThanOrEqual(160);
+      expect(prose.embedText.length, seed).toBeLessThanOrEqual(1600);
+      // The body a reader is asked to read, without the boilerplate close.
+      const body = prose.paragraph.replace(parts.view, "").trim();
+      expect(body.length, seed).toBeLessThanOrEqual(300);
+    }
+    lengths.sort((a, b) => a - b);
+    const q = (p) => lengths[Math.min(lengths.length - 1, Math.floor(p * lengths.length))];
+    expect(q(0.5)).toBeGreaterThanOrEqual(250);
+    expect(q(0.5)).toBeLessThanOrEqual(340);
+    expect(q(0.95)).toBeLessThanOrEqual(400);
+  });
+
+  it("gives a plain palette a short description rather than padding it", () => {
+    // D20.1: a palette with nothing unusual gets one sentence of character.
+    // Measured: 6 of 867. If this ever reaches zero, something is padding.
+    const single = PROSE_SEEDS.filter(
+      (seed) => caseFor(seed).parts.impressions.length < 2,
+    );
+    expect(single.length).toBeGreaterThan(0);
+    expect(single.length).toBeLessThan(60);
   });
 });
 
@@ -250,9 +625,13 @@ describe("solid-color veto", () => {
 
   it("states the degenerate case and drops every journey construction", () => {
     const prose = paletteProse(coeffs, hexColors, VIEW);
+    const parts = paletteProseParts(coeffs, hexColors, VIEW);
     expect(new Set(hexColors).size).toBe(1);
     expect(prose.paragraph).toContain("one solid color");
     expect(prose.paragraph).toContain("at every stop");
+    // The view sentence is boilerplate ("ready to copy below"), so the journey
+    // scan runs on the described palette, not on the page furniture.
+    const body = prose.paragraph.replace(parts.view, "").trim();
     for (const journey of [
       " to ",
       "easing",
@@ -262,70 +641,16 @@ describe("solid-color veto", () => {
       "arcing",
       "weaving",
       "circling",
-      "brightens",
-      "darkens",
-      "advance",
-      "wanders",
+      "becomes",
+      "fades",
+      "travels",
+      "changes",
     ])
-      expect(prose.paragraph, journey).not.toContain(journey);
-    // Stops after R3/R5: no R7 close, but the page still gets its R6.
+      expect(body, journey).not.toContain(journey);
+    // The page still gets its view sentence, and the index still gets its tags.
     expect(prose.paragraph).toContain("Shown here as");
     expect(prose.embedText).toContain("Tags:");
     expect(prose.embedText).toContain("solid");
-  });
-});
-
-describe("length bounds", () => {
-  it("holds every surface inside its measured band", () => {
-    // Paragraph target is 350–800; measured over the fixture after the trim
-    // ladder (live composition, journey wording included): p0 353, p5 506,
-    // p50 660, p95 777, max 800 — the truth-lens rewording pass shortened the
-    // over-800 tail to zero. The hard bounds below bracket that measurement;
-    // the percentile assertions pin the distribution so a regression cannot
-    // hide in the tails.
-    const lengths = [];
-    for (const seed of PROSE_SEEDS) {
-      const { prose } = caseFor(seed);
-      lengths.push(prose.paragraph.length);
-      expect(prose.paragraph.length, seed).toBeGreaterThanOrEqual(350);
-      expect(prose.paragraph.length, seed).toBeLessThanOrEqual(900);
-      expect(prose.metaDescription.length, seed).toBeLessThanOrEqual(160);
-      expect(prose.embedText.length, seed).toBeLessThanOrEqual(1600);
-    }
-    lengths.sort((a, b) => a - b);
-    const q = (p) => lengths[Math.min(lengths.length - 1, Math.floor(p * lengths.length))];
-    expect(q(0.05)).toBeGreaterThanOrEqual(450);
-    expect(q(0.5)).toBeGreaterThanOrEqual(350);
-    expect(q(0.5)).toBeLessThanOrEqual(800);
-    expect(q(0.95)).toBeLessThanOrEqual(800);
-  });
-});
-
-describe("template coverage", () => {
-  it("exercises all seven R2 shapes across the fixture", () => {
-    // Fixture census: multicolor 238, analogous 252, rainbow 117, monochrome
-    // 144, grayscale 24, complementary 46, duotone 46.
-    const signatures = {
-      monochrome: /Every stop shares one hue/,
-      // Two value forms: per-stop wording when NO dense sample clears the
-      // chroma floor, the measured-fraction wording when a few do (the
-      // chromaticFraction < 0.15 disjunct of the classification).
-      grayscale: /(reads as pure value|comes across as value more than color)/,
-      duotone: /The two families sit \d+° apart/,
-      complementary: /The two hues sit \d+° apart/,
-      analogous: /Hue drifts \d+°/,
-      // Connected-arc wording only for the single-cluster case; the
-      // fallthrough's multi-cluster palettes state their cluster count.
-      multicolor: /Hue (spans \d+° in one connected arc|falls into \d+ separate clusters)/,
-      rainbow: /(covers \d+° of the hue circle|sweeps the entire color wheel)/,
-    };
-    const seen = new Set();
-    for (const seed of PROSE_SEEDS) {
-      const { parts } = caseFor(seed);
-      seen.add(parts.structure);
-      expect(parts.r2, `${seed} (${parts.structure})`).toMatch(signatures[parts.structure]);
-    }
-    expect([...seen].sort()).toEqual(Object.keys(signatures).sort());
   });
 });
 
@@ -341,9 +666,12 @@ describe("measure-first prevalence contract", () => {
       const measured = counts[word] / PROSE_SEEDS.length;
       // The fixture is fixed, so the recorded rate is exact, not a band.
       expect(Math.abs(measured - rate), `${word}: ${measured}`).toBeLessThan(0.0005);
-      // The band rule that placed each word: 2%–60% speaks in prose, under
-      // 2% is embedding-tail only, over 60% would say nothing and stay silent.
-      const expectedUse = measured >= 0.02 && measured <= 0.6 ? "prose" : measured < 0.02 ? "embed" : "silent";
+      // The band rule that placed each word: 2%–60% is eligible for prose,
+      // under 2% is embedding-tail only, over 60% would say nothing.
+      // Eligibility is necessary, not sufficient — `opponent-axis` clears the
+      // band and still has no impression, because its only phrasing is jargon.
+      const expectedUse =
+        measured >= 0.02 && measured <= 0.6 ? "prose" : measured < 0.02 ? "embed" : "silent";
       expect(use, word).toBe(expectedUse);
     }
   });
@@ -351,12 +679,12 @@ describe("measure-first prevalence contract", () => {
 
 describe("corpus acceptance (the templated-page test)", () => {
   it("never repeats a paragraph across distinct palettes", () => {
-    // Two seed PAIRS in the live sitemap are the same palette twice — applied
-    // coefficients differing by ≤ 4e-4 (globals-baking float residue below
-    // the 3-decimal quantum), byte-identical at 7 steps. A deterministic
-    // generator must describe the same palette the same way, so collisions
-    // are asserted to occur ONLY between identical renders, and only those
-    // two known pairs exist.
+    // Three seed PAIRS in the live sitemap are the same palette twice: applied
+    // coefficients differing by float residue below the 3-decimal quantum, so
+    // the renders agree to at most one 8-bit step on one channel of one stop.
+    // A deterministic generator must describe the same palette the same way,
+    // so collisions are asserted to occur ONLY between renders that close, and
+    // only those three pairs exist.
     const byParagraph = new Map();
     let collisions = 0;
     for (const seed of PROSE_SEEDS) {
@@ -364,19 +692,29 @@ describe("corpus acceptance (the templated-page test)", () => {
       const prev = byParagraph.get(prose.paragraph);
       if (prev) {
         collisions++;
-        expect(prev.hexColors, `${prev.seed} vs ${seed}`).toEqual(view.hexColors);
+        expect(prev.hexColors.length, `${prev.seed} vs ${seed}`).toBe(
+          view.hexColors.length,
+        );
+        for (let i = 0; i < view.hexColors.length; i++) {
+          const a = hexToOkLch(prev.hexColors[i]);
+          const b = hexToOkLch(view.hexColors[i]);
+          const d = Math.hypot(a.L - b.L, a.C - b.C);
+          expect(d, `${prev.seed} vs ${seed} @ stop ${i}`).toBeLessThan(0.01);
+        }
       } else {
         byParagraph.set(prose.paragraph, { seed, hexColors: view.hexColors });
       }
     }
-    expect(collisions).toBeLessThanOrEqual(2);
+    expect(collisions).toBeLessThanOrEqual(3);
   });
 
   it("varies the skeleton, not just the fill", () => {
     // Strip everything palette-specific — digits, hexes, the palette's own
-    // color names, the family words — and count what remains. Measured: 836
-    // distinct skeletons over the 867 seeds; 50 is the acceptance floor at
-    // which the corpus stops reading as one fill-in-the-blanks template.
+    // color names, the family words — and count what remains. Measured: 568
+    // distinct skeletons over the 867 seeds, down from 836 with three times
+    // the text; 50 is the acceptance floor at which the corpus stops reading
+    // as one fill-in-the-blanks template. Shorter text buys variety through
+    // sharper selection (48 impressions over 4 slots), never through padding.
     const familyWords = [...new Set(Array.from({ length: 360 }, (_, h) => familyWord(h)))];
     const skeletons = new Set();
     for (const seed of PROSE_SEEDS) {
@@ -424,12 +762,15 @@ describe("corpus acceptance (the templated-page test)", () => {
       sum += j;
       max = Math.max(max, j);
     }
-    // Measured over this sampling: mean 0.21, max 0.43.
+    // Measured over this sampling: mean 0.285, max 0.550. The bound is the one
+    // the long paragraphs met (mean 0.35 / max 0.80), and the short ones still
+    // meet it: the shared view sentence is a larger share of a shorter text,
+    // and sharper selection paid for it.
     expect(sum / PAIRS).toBeLessThan(0.35);
     expect(max).toBeLessThan(0.8);
   });
 
-  it("carries the demand phrase in every R1", () => {
+  it("carries the demand phrase in every identity sentence", () => {
     for (const seed of PROSE_SEEDS) {
       const { prose } = caseFor(seed);
       expect(prose.identity).toContain("gradient color palette");
@@ -438,10 +779,22 @@ describe("corpus acceptance (the templated-page test)", () => {
   });
 });
 
+// =============================================================================
+// Chips: D18 ranking and D17 compounds
+// =============================================================================
+
+const SPOKEN_WORDS = new Set(
+  DESCRIPTORS.filter((d) => d.spoken).map((d) => spokenWord(d)),
+);
+const UNIVERSALS = ["white", "black", "gray", "grey"];
+const isCompound = (label) => {
+  const parts = label.split(" ");
+  return parts.length === 2 && parts.every((w) => SPOKEN_WORDS.has(w));
+};
+
 describe("relatedSearches", () => {
   it("returns deterministic, bounded, deduped labels from the bounded vocabularies", () => {
     const familyWords = new Set(Array.from({ length: 360 }, (_, h) => familyWord(h)));
-    const spokenWords = new Set(DESCRIPTORS.filter((d) => d.spoken).map((d) => spokenWord(d)));
     for (const seed of PROSE_SEEDS) {
       const { features, named } = caseFor(seed);
       const tags = modifierTags(features);
@@ -454,25 +807,128 @@ describe("relatedSearches", () => {
       for (const label of labels) {
         const ok =
           named.colorNames.includes(label) ||
-          spokenWords.has(label) ||
-          familyWords.has(label);
+          SPOKEN_WORDS.has(label) ||
+          familyWords.has(label) ||
+          isCompound(label);
         expect(ok, `${seed}: "${label}" outside the bounded vocabularies`).toBe(true);
       }
-      // Ramp order first: the leading labels are the color names themselves.
-      expect(labels[0]).toBe(named.colorNames[0]);
     }
+  });
+
+  it("ranks color names by the chroma of the stop they name (D18)", () => {
+    for (const seed of PROSE_SEEDS) {
+      const { features, named } = caseFor(seed);
+      const labels = relatedSearches(features, named, modifierTags(features));
+      const chromaOf = (name) => {
+        const hex = named.stops.find((h) => nameOf(h) === name);
+        return hex ? hexToOkLch(hex).C : 0;
+      };
+      const names = labels.filter((l) => named.colorNames.includes(l));
+      for (let i = 1; i < names.length; i++)
+        expect(
+          chromaOf(names[i - 1]) >= chromaOf(names[i]) - 1e-9,
+          `${seed}: ${names.join(" > ")} out of chroma order`,
+        ).toBe(true);
+    }
+  });
+
+  it("never chips a bare universal while two better labels exist (D18)", () => {
+    let lastResort = 0;
+    for (const seed of PROSE_SEEDS) {
+      const { features, named } = caseFor(seed);
+      const labels = relatedSearches(features, named, modifierTags(features));
+      const universal = labels.filter((l) => UNIVERSALS.includes(l.toLowerCase()));
+      if (!universal.length) continue;
+      lastResort++;
+      // Only ever as a last resort: the row had fewer than two other labels.
+      expect(labels.length, `${seed}: ${labels.join(", ")}`).toBeLessThanOrEqual(2);
+    }
+    // Measured: 1 of 867 rows (a pure-white solid palette, whose only other
+    // label is "grayscale"), and it is exactly the case D18.2 keeps the
+    // fallback for — an empty chip row would be worse.
+    expect(lastResort).toBe(1);
+  });
+
+  it("chips the screenshot palette without white", () => {
+    // The owner's report: a pastel white → cream → pink → lavender palette
+    // chipped "white" first because ramp order ranked it first. The white stop
+    // is achromatic and extreme, so it is demoted; the chromatic stops name it.
+    const seed = "_gBwgF1gI_gHyf7Yf7CgDBf7af4cf_tgGIgUVpq0ky8gh";
+    const { view, features, named } = caseFor(seed);
+    expect(view.hexColors).toContain("#ffffff");
+    const labels = relatedSearches(features, named, modifierTags(features));
+    expect(labels.length).toBeGreaterThanOrEqual(2);
+    for (const l of labels) expect(UNIVERSALS).not.toContain(l.toLowerCase());
+    expect(labels).toContain("pastel");
+  });
+
+  it("still chips a grayscale palette", () => {
+    const grayscale = PROSE_SEEDS.filter(
+      (seed) => classifyStructure(caseFor(seed).features) === "grayscale",
+    );
+    expect(grayscale.length).toBeGreaterThan(5);
+    for (const seed of grayscale) {
+      const { features, named } = caseFor(seed);
+      const labels = relatedSearches(features, named, modifierTags(features));
+      expect(labels.length, seed).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("emits compounds only from co-fired, non-contradictory pairs (D17)", () => {
+    const distinct = new Map();
+    let rowsWithCompound = 0;
+    const SLOT = { temperature: 0, tone: 1, family: 2, structure: 3 };
+    for (const seed of PROSE_SEEDS) {
+      const { features, named } = caseFor(seed);
+      const tags = modifierTags(features);
+      const labels = relatedSearches(features, named, tags);
+      const compounds = labels.filter(isCompound);
+      expect(compounds.length, seed).toBeLessThanOrEqual(2);
+      if (compounds.length) rowsWithCompound++;
+      for (const label of compounds) {
+        distinct.set(label, (distinct.get(label) ?? 0) + 1);
+        const [a, b] = label.split(" ");
+        // Both halves are true of this palette.
+        const da = DESCRIPTORS.find((d) => d.spoken && spokenWord(d) === a && tags.includes(d.word));
+        const db = DESCRIPTORS.find((d) => d.spoken && spokenWord(d) === b && tags.includes(d.word));
+        expect(da, `${seed}: "${a}" did not fire`).toBeTruthy();
+        expect(db, `${seed}: "${b}" did not fire`).toBeTruthy();
+        // Word order is SLOT order, and only the three permitted axis pairs.
+        expect(SLOT[da.axis], label).toBeLessThan(SLOT[db.axis]);
+        expect(
+          [`tone-structure`, `tone-family`, `temperature-family`],
+          label,
+        ).toContain(`${da.axis}-${db.axis}`);
+        // A compound outranks its parts: when one is emitted it comes before
+        // either single word in the row.
+        for (const part of [a, b]) {
+          const iPart = labels.indexOf(part);
+          if (iPart >= 0) expect(iPart, `${seed}: ${label} after ${part}`).toBeGreaterThan(labels.indexOf(label));
+        }
+      }
+    }
+    // Measured over the fixture: 34 distinct compound labels on 217 of the 867
+    // rows. The frontier is bounded by construction (spoken words squared,
+    // filtered to co-firing non-contradictory pairs), which is what keeps the
+    // crawl surface finite.
+    expect(distinct.size).toBe(34);
+    expect(rowsWithCompound).toBe(217);
+    expect([...distinct.keys()]).toContain("pastel rainbow");
   });
 
   it("slugs every possible label exactly as querySlug does", () => {
     // The island links the chips with relatedSearchSlug (it cannot import
     // semantic-search — Env-typed search client vs the islands typecheck), so
     // the two rules must agree over the ENTIRE bounded label vocabulary:
-    // corpus color names ∪ registry spoken words ∪ the family anchors. This
-    // also proves no label decodes as a seed (querySlug's other branch).
+    // corpus color names ∪ registry spoken words ∪ family anchors ∪ the
+    // compound grammar. This also proves no label decodes as a seed
+    // (querySlug's other branch).
+    const spoken = [...SPOKEN_WORDS];
     const labels = new Set([
       ...NAMED_COLORS.map((c) => c.name),
-      ...DESCRIPTORS.filter((d) => d.spoken).map((d) => spokenWord(d)),
+      ...spoken,
       ...Array.from({ length: 360 }, (_, h) => familyWord(h)),
+      ...spoken.flatMap((a) => spoken.map((b) => `${a} ${b}`)),
     ]);
     expect(labels.size).toBeGreaterThan(900);
     for (const label of labels) {
@@ -480,6 +936,28 @@ describe("relatedSearches", () => {
     }
   });
 });
+
+const nameOf = (hex) => {
+  // The corpus answer for a single stop, the same function the chip ranking
+  // uses to find which stop a name names.
+  let best = NAMED_COLORS[0];
+  let min = Infinity;
+  const { L, C, h } = hexToOkLch(hex);
+  const rad = (h * Math.PI) / 180;
+  const lab = [L, C * Math.cos(rad), C * Math.sin(rad)];
+  for (const color of NAMED_COLORS) {
+    const d = Math.hypot(
+      lab[0] - color.lab[0],
+      lab[1] - color.lab[1],
+      lab[2] - color.lab[2],
+    );
+    if (d < min) {
+      min = d;
+      best = color;
+    }
+  }
+  return best.name;
+};
 
 describe("describePalette (the canonical triple)", () => {
   it("returns a non-empty, consistent triple for every fixture seed", () => {

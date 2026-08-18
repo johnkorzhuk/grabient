@@ -145,7 +145,13 @@ const SATURATION_FLOOR = 0.35;
  *
  * Measured over the fixture, this one conjunct is what rescues the palettes:
  * grayscale falls 24 → 19 of 867 with it, and stays at 24 without it no matter
- * where SATURATION_FLOOR sits.
+ * where SATURATION_FLOOR sits. Swept, grayscale counts run
+ *
+ *   0.15 → 13   0.20 → 18   0.25 → 19   0.30 → 22   0.35 → 23   0.40 → 23
+ *
+ * so 0.25 sits in the flat middle: the boundary moves by one palette per 0.05
+ * step around it, and by 0.40 the rescue is undone. Below 0.20 it starts
+ * taking real grays (a warm greige ramp measures 0.24).
  */
 const GRAYSCALE_SAT = 0.25;
 
@@ -403,8 +409,8 @@ export interface PaletteFeatures {
    */
   clusterHues: number[];
   /**
-   * Hue of the first dense sample with usable chroma (C ≥ CHROMA_FLOOR), or
-   * null when no sample has any: the "from {family}" anchor.
+   * Hue of the first dense sample with a usable hue (`hasUsableHue`, so either
+   * reading), or null when no sample has one: the "from {family}" anchor.
    */
   firstHue: number | null;
   /** Hue of the last chromatic dense sample — the "into {family}" anchor. */

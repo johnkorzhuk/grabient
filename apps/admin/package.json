@@ -8,7 +8,8 @@
     "dev": "pnpm build && wrangler dev --port 3002",
     "migrate:remote": "wrangler d1 migrations apply grabient-admin --remote",
     "deploy": "pnpm build && pnpm migrate:remote && wrangler deploy",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "2.0.0",
@@ -26,6 +27,7 @@
     "@types/d3-scale": "^4.0.9",
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
-    "wrangler": "^4.112.0"
+    "wrangler": "^4.112.0",
+    "vitest": "^3.2.4"
   }
 }
