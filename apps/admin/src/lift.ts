@@ -36,6 +36,8 @@ export interface LiftResult {
   withinNoise: boolean | null;
   sigmas: number | null;
   noiseFloor: number | null;
+  /** Which floor won — "empirical" means the series is noisier than Poisson. */
+  noiseModel?: "poisson" | "empirical";
   baselineWeeksRequested: number;
   baselineWeeksUsed: number;
   minimumDetectableEffect: { absolute: number; pct: number } | null;
@@ -100,23 +102,30 @@ export function computeLift(options: {
   let expected = 0;
   let observedDays = 0;
   let weeksUsedMin = Infinity;
+  // Variance of the day-level expectation, accumulated from the same matched
+  // samples. Summed across days because the window total is a sum of
+  // independent-ish day totals.
+  let empiricalVariance = 0;
   for (const day of days) {
     const value = series.get(day);
     if (value === undefined) continue;
     observed += value;
     observedDays += 1;
-    let sum = 0;
-    let n = 0;
+    const samples: number[] = [];
     for (let k = 1; k <= K; k++) {
-      const prior = shiftDays(day, -7 * k);
-      const pv = series.get(prior);
-      if (pv !== undefined) {
-        sum += pv;
-        n += 1;
+      const pv = series.get(shiftDays(day, -7 * k));
+      if (pv !== undefined) samples.push(pv);
+    }
+    weeksUsedMin = Math.min(weeksUsedMin, samples.length);
+    if (samples.length > 0) {
+      const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+      expected += mean;
+      if (samples.length > 1) {
+        // Sample variance of this weekday's history.
+        empiricalVariance +=
+          samples.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (samples.length - 1);
       }
     }
-    weeksUsedMin = Math.min(weeksUsedMin, n);
-    if (n > 0) expected += sum / n;
   }
   const weeksUsed = Number.isFinite(weeksUsedMin) ? weeksUsedMin : 0;
 
@@ -142,9 +151,22 @@ export function computeLift(options: {
     };
   }
 
-  // Var(observed - expected^) = expected + expected/K, for a Poisson sum with
-  // a K-sample estimated baseline.
-  const noiseFloor = Math.sqrt(expected * (1 + 1 / weeksUsed));
+  // Two floors, and the wider one wins.
+  //
+  // Poisson: Var = expected, plus expected/K because the baseline is itself
+  // estimated from K samples rather than known.
+  //
+  // Empirical: the observed spread of those same matched-weekday samples. This
+  // matters because web traffic is not Poisson — it has a coefficient of
+  // variation around 0.1-0.2, where Poisson implies 1/sqrt(n). At 5,000
+  // sessions Poisson calls 1.4% a standard deviation, so an ordinary 5% weekly
+  // drift would clear two sigma and get reported as clear-movement under
+  // whatever campaign happened to be running. Taking the max keeps the
+  // small-count behaviour (where Poisson is right and the sample variance is
+  // noisy) and stops the engine over-claiming on large ones.
+  const poissonFloor = Math.sqrt(expected * (1 + 1 / weeksUsed));
+  const empiricalFloor = Math.sqrt(empiricalVariance * (1 + 1 / weeksUsed));
+  const noiseFloor = Math.max(poissonFloor, empiricalFloor);
   const lift = observed - expected;
   const sigmas = lift / noiseFloor;
   const mdeAbs = 2 * noiseFloor;
@@ -163,6 +185,7 @@ export function computeLift(options: {
     withinNoise: ch.withinNoise,
     sigmas: round1(sigmas),
     noiseFloor: round1(noiseFloor),
+    noiseModel: empiricalFloor > poissonFloor ? "empirical" : "poisson",
     baselineWeeksRequested: options.baselineWeeks,
     baselineWeeksUsed: weeksUsed,
     minimumDetectableEffect: {
@@ -187,23 +210,29 @@ export function minimumDetectableEffect(options: {
   const K = Math.max(MIN_BASELINE_K, options.baselineWeeks);
   let expected = 0;
   let covered = 0;
+  let variance = 0;
+  // The ACHIEVED number of baseline weeks, not the requested one: asking for 8
+  // when only 2 exist used to widen the denominator and understate the floor.
+  let weeksUsed = Infinity;
   for (const day of days) {
-    let sum = 0;
-    let n = 0;
+    const samples: number[] = [];
     for (let k = 1; k <= K; k++) {
       const pv = options.series.get(shiftDays(day, -7 * k));
-      if (pv !== undefined) {
-        sum += pv;
-        n += 1;
-      }
+      if (pv !== undefined) samples.push(pv);
     }
-    if (n >= MIN_BASELINE_K) {
-      expected += sum / n;
+    if (samples.length >= MIN_BASELINE_K) {
+      const mean = samples.reduce((a, b) => a + b, 0) / samples.length;
+      expected += mean;
+      variance += samples.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (samples.length - 1);
+      weeksUsed = Math.min(weeksUsed, samples.length);
       covered += 1;
     }
   }
-  if (covered < MIN_WINDOW || expected < MIN_EXPECTED) return null;
-  const floor = Math.sqrt(expected * (1 + 1 / K));
+  if (covered < MIN_WINDOW || expected < MIN_EXPECTED || !Number.isFinite(weeksUsed)) return null;
+  const floor = Math.max(
+    Math.sqrt(expected * (1 + 1 / weeksUsed)),
+    Math.sqrt(variance * (1 + 1 / weeksUsed)),
+  );
   return {
     absolute: Math.ceil(2 * floor),
     pct: round1(((2 * floor) / expected) * 100),

@@ -480,8 +480,11 @@ export async function campaignReport(
   const spendCents = campaign.spend_cents ?? campaign.budget_cents;
   const signups = Number(d1Tagged["d1_landed_in_window_signups"] ?? 0);
   if (spendCents && signups > 0) {
-    const signupLift = lift.find((l) => l.metric === "d1.signups");
-    const floor = signupLift?.noiseFloor ?? Math.sqrt(signups);
+    // sqrt of the TAGGED count, not the site-wide floor. The lift entry's
+    // noiseFloor is computed over every signup the site had in the window, so
+    // borrowing it for a 7-signup campaign produced a range like [spend/32,
+    // spend/1] — a 32x spread presented as an uncertainty interval.
+    const floor = Math.sqrt(signups);
     const low = Math.max(1, Math.round(signups - floor));
     const high = Math.round(signups + floor);
     cost = {

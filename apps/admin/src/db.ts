@@ -56,10 +56,22 @@ export interface MetricPoint {
  */
 export async function upsertMetrics(
   db: D1Database,
-  points: readonly MetricPoint[],
+  input: readonly MetricPoint[],
   capturedAt: number,
 ): Promise<{ written: number; revised: number }> {
+  let points: readonly MetricPoint[] = input;
   if (points.length === 0) return { written: 0, revised: 0 };
+  // Collapse duplicate (key, day) pairs first. Two rows for the same key in
+  // one statement resolve last-write-wins, not sum — and slugify can map two
+  // distinct upstream labels ("(other)" and "Other") onto one key, which would
+  // silently drop the smaller bucket instead of adding it.
+  const merged = new Map<string, MetricPoint>();
+  for (const point of points) {
+    const id = `${point.key}\u0000${point.day}`;
+    const prior = merged.get(id);
+    merged.set(id, prior ? { ...point, value: prior.value + point.value } : point);
+  }
+  points = [...merged.values()];
   const perStmt = rowsPerStatement(6); // 6 bound columns -> 15 rows/statement
   const statements = chunk(points, perStmt).map((group) => {
     const placeholders = group.map(() => "(?,?,?,?,?,?)").join(",");
