@@ -33,7 +33,15 @@ import {
   THRESHOLDS,
   type PaletteFeatures,
 } from "@repo/data-ops/gradient-gen/palette-modifiers";
-import type { CosineCoeffs } from "@repo/data-ops/gradient-gen/cosine";
+import {
+  analyzeCoefficients,
+  tagsToArray,
+} from "@repo/data-ops/gradient-gen/palette-tags";
+import {
+  cosineGradient,
+  rgbToHex,
+  type CosineCoeffs,
+} from "@repo/data-ops/gradient-gen/cosine";
 import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
 import {
   describePaletteName,
@@ -71,26 +79,34 @@ const NEAR_BLACK_L = 0.18;
 const NEAR_WHITE_L = 0.87;
 
 /**
- * Family words for prose: deterministic nearest-anchor lookup on OkLCh hue.
- * The 12 anchors extend the registry's measured 8 (red 29, orange 53, yellow
- * 110, green 142, cyan 195, blue 264, violet 294, magenta 328) with the
- * common-usage names between them; word distribution over the 867-seed corpus
- * is recorded in palette-prose.test.js. These double as relatedSearches
- * backfill labels, so the list is part of the bounded link vocabulary.
+ * Family words for prose: deterministic nearest-anchor lookup on OkLCh hue
+ * over the registry's measured eight anchors — the sRGB primaries/secondaries
+ * plus #ff8000/#8000ff, verified with this repo's own hexToOkLch (the family
+ * comment in palette-modifiers.ts records the same values). Nearest-anchor
+ * over the eight IS the eight-family band partition (band edges fall at
+ * anchor midpoints).
+ *
+ * Deliberately NOT the wider name list (gold, teal, sky, pink, purple…):
+ * those are anchor + TONE-gate names — pink and sky are tint regions
+ * (L > 0.75), gold needs L 0.8–0.92, teal L < 0.60 — and a family word is
+ * chosen by hue alone, so using them here named dark palettes after tints
+ * (measured on the live fixture: wine-dark ramps read "around pink" at
+ * region L 0.45, navy ramps "into sky" at L 0.50, a near-black olive ramp
+ * "into gold" at L 0.29). The conflation rule is "name by gate, never by hue
+ * alone"; the eight family-band words are the gate-free vocabulary — a
+ * family names WHERE on the wheel, never how light — and the gated names
+ * stay the color-name corpus's job. These double as relatedSearches backfill
+ * labels, so the list is part of the bounded link vocabulary.
  */
 const FAMILY_ANCHORS: readonly (readonly [string, number])[] = [
-  ["red", 25],
-  ["orange", 55],
-  ["gold", 85],
-  ["yellow", 108],
+  ["red", 29],
+  ["orange", 53],
+  ["yellow", 110],
   ["green", 142],
-  ["teal", 170],
   ["cyan", 195],
-  ["sky", 230],
   ["blue", 264],
   ["violet", 294],
-  ["purple", 315],
-  ["pink", 345],
+  ["magenta", 328],
 ];
 
 export function familyWord(hue: number): string {
@@ -305,7 +321,10 @@ function seriesReading(f: PaletteFeatures, hexColors: readonly string[]): Series
   // monochrome palette has one hue, so the paragraph must use one word for
   // it, and the two readings can disagree across an anchor boundary
   // (measured: a 21° red-orange mono read "arc of orange" in R2 and "tints
-  // of red" here before this pinned them together).
+  // of red" here before this pinned them together). familyWord returns only
+  // the eight gate-free band words, so the series base always passes its
+  // family gate — the transformation-noun rule ("tints OF a base that earns
+  // its name") holds by construction.
   const base = familyWord(f.meanHue);
   if (tint && shade) return { kind: "tints and shades", base };
   if (tint) return { kind: "tints", base };
@@ -331,6 +350,18 @@ const pct = (x: number) => String(Math.round(x * 100));
  */
 const ceil2 = (x: number) => (Math.ceil(x * 100 - 1e-9) / 100).toFixed(2);
 
+/**
+ * The WCAG ratio prints as a FLOOR for the mirrored reason: round-half-up
+ * printed a true 4.4668 as "4.5:1 — clears", a false AA-conformance claim
+ * (WCAG 2.1 defines conformance on the actual ratio, and the wcag-aa tag in
+ * the same embedText tests the raw value). floor(x·10)/10 ≥ 4.5 exactly when
+ * x ≥ 4.5, so the printed figure and the clears/short verdict can never
+ * disagree with each other or with the standard. The 1e-6 nudge only absorbs
+ * float representation dust (7.3·10 = 72.999…), far below the ratio
+ * granularity 8-bit luminances can produce.
+ */
+const floor1 = (x: number) => (Math.floor(x * 10 + 1e-6) / 10).toFixed(1);
+
 // =============================================================================
 // The sentence tables
 // =============================================================================
@@ -350,12 +381,37 @@ export interface ProseOptions {
    * tagsToArray(analyzeCoefficients(coeffs)) from palette-tags — the STORED
    * vocabulary. Only the journey value (warming/cooling) is read, and only
    * from here: the stored Vectorize `journey` tag uses that formula, and a
-   * serve-time recompute with a different formula could disagree with the
-   * index. When absent the prose simply omits temperature-journey language
-   * rather than recomputing it differently.
+   * serve-time recompute with a DIFFERENT formula could disagree with the
+   * index. When absent it is computed here with the same palette-tags import
+   * (never a reimplementation), so every entry point — describePalette
+   * included — yields the paragraph the page renders; passing it is purely a
+   * reuse optimization, exactly like `features`/`named`.
    */
   baseTags?: readonly string[];
 }
+
+/**
+ * Default the stored-vocabulary tags when the caller brought none — the same
+ * import seedPaletteText and the edit island use, so the journey wording can
+ * never diverge from the stored index. Before this default, describePalette
+ * (the canonical API) silently produced a different paragraph from the live
+ * page on every warming/cooling palette — 71.2% of the fixture.
+ */
+const withBaseTags = (coeffs: CosineCoeffs, options: ProseOptions): ProseOptions =>
+  options.baseTags
+    ? options
+    : { ...options, baseTags: tagsToArray(analyzeCoefficients(coeffs)) };
+
+/**
+ * Public-API guard: app surfaces always pass ≥2 rendered stops, but the
+ * exported functions may be handed none. Render the two end stops from the
+ * coefficients (ends are step-invariant) instead of fabricating a #000000
+ * stop — the fabricated stop mixed made-up rendered-stop claims ("held
+ * within black", "mean chroma 0.00") into real dense-sample claims in one
+ * paragraph.
+ */
+const fallbackStops = (coeffs: CosineCoeffs): string[] =>
+  cosineGradient(2, coeffs).map(([r, g, b]) => rgbToHex(r, g, b));
 
 export interface PaletteProse {
   /** R1 alone, no parenthetical hexes — the meta-description opener. */
@@ -411,9 +467,10 @@ function buildParts(
   coeffs: CosineCoeffs,
   hexColors: readonly string[],
   view: ProseView | null,
-  options: ProseOptions = {},
+  rawOptions: ProseOptions = {},
 ): ProseParts {
-  const colors = hexColors.length ? [...hexColors] : ["#000000"];
+  const options = withBaseTags(coeffs, rawOptions);
+  const colors = hexColors.length >= 2 ? [...hexColors] : fallbackStops(coeffs);
   const named =
     options.named ?? describePaletteName(coeffs, colors, { features: options.features });
   const f = options.features ?? named.features;
@@ -421,6 +478,12 @@ function buildParts(
   const tags = modifierTags(f);
   const has = (w: string) => tags.includes(w);
   const solid = has("solid");
+  // "soft" is a chroma claim (a wash is a pale LOW-chroma passage) that the
+  // high-key test never makes — it measures value level and spread only — so
+  // soft language carries its own gate: under the pastel bound with no neon
+  // peak. Without it, 38 fixture palettes read "soft" and "vividly saturated"
+  // in the same sentence.
+  const softChroma = f.meanChroma < T.PASTEL_CHROMA && f.maxChroma < T.NEON_CHROMA;
 
   const names = named.colorNames;
   const endLch = { first: hexToOkLch(colors[0]!), last: hexToOkLch(colors[colors.length - 1]!) };
@@ -508,7 +571,16 @@ function buildParts(
         // but maxChroma tracks the rendered steps; the step-invariance
         // contract moves that figure to R3 and keeps R2 on dense facts.
         const lean = useOf("warm-gray") === "prose" ? grayLean(f) : null;
-        return `Chroma stays below the threshold where hue registers, so it reads as pure value — ${f2(f.denseLightnessRange)} of lightness between its darkest and lightest gray${lean ? `, leaning faintly ${lean}` : ""}.`;
+        const leanTail = lean ? `, leaning faintly ${lean}` : "";
+        // The classification's chromaticFraction < 0.15 disjunct admits a few
+        // visibly chromatic samples (dense C up to 0.098 on live seeds whose
+        // own names said brown), so the per-stop "below the threshold where
+        // hue registers" wording is reserved for palettes where it is true of
+        // EVERY dense sample; the rest state the measured fraction rather
+        // than calling their chromatic stops gray.
+        return f.chromaticFraction === 0
+          ? `Chroma stays below the threshold where hue registers, so it reads as pure value — ${f2(f.denseLightnessRange)} of lightness between its darkest and lightest gray${leanTail}.`
+          : `Color registers on only ${pct(f.chromaticFraction)}% of the run — the rest sits below the threshold where hue reads — so it comes across as value more than color, ${f2(f.denseLightnessRange)} of lightness between its darkest and lightest stop${leanTail}.`;
       }
       case "duotone":
         return `The two families sit ${deg(f.clusterSeparation)}° apart on the color wheel, each held inside a narrow band, with the hues between them left out entirely.${axisClause}`;
@@ -522,17 +594,30 @@ function buildParts(
           : `Hue drifts ${deg(f.hueSpan)}° through neighboring families, ${a} into ${b}, without ever splitting into separate groups.`;
       }
       case "multicolor": {
+        // The fallthrough class is NOT always one connected cluster: wide
+        // two-cluster palettes and 3+-cluster palettes land here too (17 live
+        // seeds), so the connected wording is reserved for the single-cluster
+        // case it is true of. "spans", not "travels": the number is the SPAN,
+        // and actual travel exceeds it whenever the hue doubles back —
+        // f.hueTravel carries that fact and the wander clause states it, so a
+        // travel verb on the span read as the wrong measurement.
+        if (f.hueClusters >= 2)
+          return `Hue falls into ${f.hueClusters} separate clusters spread across ${deg(f.hueSpan)}°, with stretches of skipped hue between them.`;
         const a = fam(f.firstHue);
         const b = fam(f.lastHue);
         return a === b
-          ? `Hue travels ${deg(f.hueSpan)}° in one connected sweep around ${a}.`
-          : `Hue travels ${deg(f.hueSpan)}° in one connected sweep, wide enough to cross from ${a} to ${b}.`;
+          ? `Hue spans ${deg(f.hueSpan)}° in one connected arc around ${a}.`
+          : `Hue spans ${deg(f.hueSpan)}° in one connected arc, wide enough to cross from ${a} to ${b}.`;
       }
       default: {
-        // rainbow — |net| ≥ FULL_WHEEL_NET upgrades the opener, and the
-        // cycles clause fires when the color wave actually repeats.
+        // rainbow — |net| ≥ FULL_WHEEL_NET upgrades the opener. The cycles
+        // clause needs the SAME license as R4's exact-repeat line: equal
+        // frequencies. Without equalC the RGB path is a non-repeating
+        // Lissajous — no channel completes the mean count and nothing
+        // repeats (a live seed with cycles [1.96, 0.66, 5.80] printed
+        // "completes 2.8 full cycles" before this gate).
         const cyc =
-          meanCycles >= 1.5
+          f.equalC && meanCycles >= 1.5
             ? `, and the underlying color wave completes ${f1(meanCycles)} full cycles, so hues return in repeating bands`
             : "";
         cyclesClauseFired = cyc !== "";
@@ -564,7 +649,15 @@ function buildParts(
       r2Extras.push(`The range it holds is sepia — the browned monochrome of an aged photograph.`);
     if (useOf("ombre") === "prose" && isOmbre(f, structure) && r2Extras.length < 2)
       r2Extras.push(
-        `The effect is ombré: the hue held steady while lightness travels ${f2(f.lightnessRange)} of its scale.`,
+        // The gate admits analogous structures (hue span up to 95°), where
+        // "held steady" contradicted the R2 drift measurement one sentence
+        // earlier on 80 live seeds — the steady wording belongs to the
+        // monochrome branch alone.
+        `The effect is ombré: ${
+          structure === "monochrome"
+            ? "the hue held steady"
+            : "the hue confined to its own neighborhood"
+        } while lightness travels ${f2(f.lightnessRange)} of its scale.`,
       );
   }
 
@@ -588,19 +681,27 @@ function buildParts(
 
     // Lead adjective: key words outrank plain dark/light because they also
     // constrain the spread; measure-first survivors sharpen them further.
+    // "throughout" is reserved for the key words, whose tests bound the
+    // SPREAD (range < 0.3) as well as the mean; the bare dark branch is a
+    // mean claim only, so it says "overall" — before that distinction, 14
+    // live palettes read "dark throughout: lightness climbs from 0.09 to
+    // 0.74", the universal refuted by the movement clause beside it.
     let lead = "";
     if (f.meanLightness < T.DARK_LIGHTNESS) {
       lead = has("low-key")
         ? "low-key throughout"
         : useOf("deep") === "prose" && isDeep(f)
           ? "deep, dark with real color held in it"
-          : "dark throughout";
+          : "dark overall";
     } else if (f.meanLightness > T.LIGHT_LIGHTNESS) {
-      lead = has("high-key")
-        ? "high-key and soft"
-        : useOf("brilliant") === "prose" && isBrilliant(f)
-          ? "brilliant, vividly lit and saturated at once"
-          : "light";
+      lead =
+        has("high-key") && softChroma
+          ? "high-key and soft"
+          : useOf("brilliant") === "prose" && isBrilliant(f)
+            ? "brilliant, vividly lit and saturated at once"
+            : has("high-key")
+              ? "high-key"
+              : "light";
     } else if (useOf("deep") === "prose" && isDeep(f)) {
       // deep's gate (L̄ < 0.45) reaches slightly past the dark band's 0.42.
       lead = "deep, dark with real color held in it";
@@ -610,6 +711,7 @@ function buildParts(
     // direction is real (dense range guard) and the direction verbs otherwise.
     const L0 = endLch.first.L;
     const L1 = endLch.last.L;
+    const stopLs = colors.map((c) => hexToOkLch(c).L);
     let movement: string;
     if (f.turns === 0) {
       if (f.lightnessRange < T.LOW_CONTRAST_RANGE)
@@ -617,46 +719,60 @@ function buildParts(
       else {
         const only = f.lightnessRange < 0.3 ? " only" : "";
         movement = `lightness ${L1 >= L0 ? "climbs" : "falls"}${only} from ${f2(L0)} to ${f2(L1)}`;
+        // The range fact licenses a contrast claim; the shadow/near-white
+        // gloss additionally needs both ENDPOINTS inside their value bands
+        // (near-black < 0.18, near-white > 0.87) — keyed to the range alone
+        // it called a stop at L 0.74 "near-white" and one at 0.39 "deep
+        // shadow", the true endpoints printed immediately before.
         if (f.lightnessRange > T.HIGH_CONTRAST_RANGE)
-          movement += ", spanning deep shadow to near-white";
+          movement +=
+            Math.min(...stopLs) < NEAR_BLACK_L && Math.max(...stopLs) > NEAR_WHITE_L
+              ? ", spanning deep shadow to near-white"
+              : ", crossing most of the value scale";
       }
     } else if (f.turns === 1) {
       if (has("bright-middle"))
         movement = "lightness rises and falls once, glowing brightest through the middle";
       else if (has("dark-middle"))
         movement = "lightness dips dark through the middle and recovers";
-      else {
-        const Ls = colors.map((c) => hexToOkLch(c).L);
-        movement = `lightness bends once between ${f2(Math.min(...Ls))} and ${f2(Math.max(...Ls))}`;
-      }
+      else
+        movement = `lightness bends once between ${f2(Math.min(...stopLs))} and ${f2(Math.max(...stopLs))}`;
     } else {
       movement = `lightness oscillates, changing direction ${f.turns} times`;
     }
 
     // Temperature: the stored journey outranks the static adjective — it is
-    // rarer, and it is the value the index already carries. The adjective
-    // drops its "throughout" when the lead already spent the word ("low-key
-    // throughout … cool throughout" read as an echo).
-    const throughoutUsed = lead.includes("throughout");
+    // rarer, and it is the value the index already carries. The static word
+    // is a MEAN-hue claim (the registry test), so it reads "overall", never
+    // "throughout": 124 live palettes carried ≥25% of their chromatic mass at
+    // the opposite pole — 52 printing the warm–cool-contrast clause in the
+    // same paragraph — where a universal reading contradicted the paragraph's
+    // own facts. The adjective drops its "overall" when the lead already
+    // spent the word ("dark overall … warm overall" reads as an echo).
+    const overallUsed = lead.includes("overall");
     const temp = journey
       ? `${journey} as it runs`
       : has("warm")
-        ? throughoutUsed
+        ? overallUsed
           ? "warm"
-          : "warm throughout"
+          : "warm overall"
         : has("cool")
-          ? throughoutUsed
+          ? overallUsed
             ? "cool"
-            : "cool throughout"
+            : "cool overall"
           : "";
 
     // Chroma: one band speaks, sharpened by the measure-first survivors.
     // Participial ("rising", "held") because every piece hangs off "with".
+    // The pastel/muted bounds are MEAN claims — the registry tests bound
+    // meanChroma only, and rendered stops routinely peak past them (59 live
+    // paragraphs said "under 0.06" with a stop above it) — so both say
+    // "mean", exactly as the vivid branch always has.
     let chroma: string;
     if (structure === "grayscale")
       chroma = `chroma never rising above ${f2(f.maxChroma)}`;
-    else if (has("pastel")) chroma = `chroma held below ${f2(T.PASTEL_CHROMA)}`;
-    else if (has("muted")) chroma = `chroma under ${ceil2(T.MUTED_CHROMA)}`;
+    else if (has("pastel")) chroma = `mean chroma held below ${f2(T.PASTEL_CHROMA)}`;
+    else if (has("muted")) chroma = `mean chroma under ${ceil2(T.MUTED_CHROMA)}`;
     else if (useOf("jewel") === "prose" && isJewel(f))
       chroma = `chroma held in the deep, saturated range of jewel tones (mean ${f2(f.meanChroma)})`;
     else if (has("vivid")) chroma = `vividly saturated (mean chroma ${f2(f.meanChroma)})`;
@@ -790,11 +906,14 @@ function buildParts(
   // ---------------------------------------------------------------------------
   // R5 — surface facts: the WCAG number always, the seam only when it closes.
   // ---------------------------------------------------------------------------
-  // The clears/short comparison runs on the ROUNDED ratio so the sentence can
-  // never read "4.5:1, short of the 4.5:1 threshold" — boundary honesty over
-  // raw precision.
-  const printedCR = f1(f.contrastRatio);
-  const clears = Number(printedCR) >= WCAG_AA;
+  // The ratio prints FLOORED (see floor1) and the verdict runs on the raw
+  // value; the two agree by construction — floor(x·10)/10 ≥ 4.5 exactly when
+  // x ≥ 4.5 — so "4.5:1, short of the 4.5:1 threshold" stays unwritable AND
+  // the verdict matches WCAG 2.1 conformance on the actual ratio. The old
+  // round-half-up print told palettes at 4.45–4.4999 they "clear" a
+  // threshold they fail, while the same embedText omitted the wcag-aa tag.
+  const printedCR = floor1(f.contrastRatio);
+  const clears = f.contrastRatio >= WCAG_AA;
   let r5 = clears
     ? `The lightest and darkest stops measure ${printedCR}:1 — clears the ${f1(WCAG_AA)}:1 WCAG AA threshold for text.`
     : `The lightest and darkest stops measure ${printedCR}:1, short of the ${f1(WCAG_AA)}:1 WCAG AA threshold for text.`;
@@ -814,7 +933,12 @@ function buildParts(
     // Gate 1 of the research table (contrastRatio ≥ 4.5 → "ends pair as text
     // and background") is skipped by construction: R5 always states clears/
     // short, so the row would restate the sentence directly above it.
-    if (has("high-key")) return "A soft wash that works as a page background under dark text.";
+    if (has("high-key"))
+      // "soft wash" is chroma language (same gate as the R3 lead); a vivid
+      // high-key palette gets the value-and-spread claim its test makes.
+      return softChroma
+        ? "A soft wash that works as a page background under dark text."
+        : "A bright, even field that works as a page background under dark text.";
     if ((has("dark") || has("low-key")) && f.lightnessRange < 0.3)
       return "A low, even backdrop that stays out of the way of lighter foreground elements.";
     if (has("seamless")) return "Made for conic and ring renders, where its matched ends close the loop.";
@@ -964,7 +1088,7 @@ export function paletteProseParts(
  * the fixture corpus before the ladder existed: p50 655, p95 830, max 1098 —
  * so the ladder bites on roughly the top decile and nothing else changes.
  * The embedding text is NOT trimmed: retrieval wants every true clause, and
- * its own ceiling (1,600 chars) was never approached (measured max 1,205).
+ * its own ceiling (1,600 chars) was never approached (measured max 1,142).
  */
 const PARAGRAPH_MAX = 800;
 
@@ -974,11 +1098,11 @@ export function paletteProse(
   view: ProseView,
   options: ProseOptions = {},
 ): PaletteProse {
-  const colors = hexColors.length ? [...hexColors] : ["#000000"];
+  const colors = hexColors.length >= 2 ? [...hexColors] : fallbackStops(coeffs);
   const named =
     options.named ?? describePaletteName(coeffs, colors, { features: options.features });
   const f = options.features ?? named.features;
-  const opts = { ...options, named, features: f };
+  const opts = withBaseTags(coeffs, { ...options, named, features: f });
 
   const parts = buildParts(coeffs, colors, view, opts);
   const full = assemble(parts, f, parts.clauses, parts.r2Extras);
@@ -1009,7 +1133,7 @@ export function paletteProse(
     metaDescription = shorterParts.r1Identity;
   }
 
-  const embedText = composeEmbedText(identity, bodySentences, parts, f, colors, options.baseTags);
+  const embedText = composeEmbedText(identity, bodySentences, parts, f, colors, opts.baseTags);
   return { identity, paragraph, metaDescription, embedText };
 }
 
@@ -1032,14 +1156,14 @@ export function paletteEmbedText(
   hexColors: readonly string[],
   options: ProseOptions = {},
 ): string {
-  const colors = hexColors.length ? [...hexColors] : ["#000000"];
+  const colors = hexColors.length >= 2 ? [...hexColors] : fallbackStops(coeffs);
   const named =
     options.named ?? describePaletteName(coeffs, colors, { features: options.features });
   const f = options.features ?? named.features;
-  const opts = { ...options, named, features: f };
+  const opts = withBaseTags(coeffs, { ...options, named, features: f });
   const parts = buildParts(coeffs, colors, null, opts);
   const { identity, bodySentences } = assemble(parts, f, parts.clauses, parts.r2Extras);
-  return composeEmbedText(identity, bodySentences, parts, f, colors, options.baseTags);
+  return composeEmbedText(identity, bodySentences, parts, f, colors, opts.baseTags);
 }
 
 function composeEmbedText(
@@ -1050,9 +1174,18 @@ function composeEmbedText(
   colors: readonly string[],
   baseTags: readonly string[] | undefined,
 ): string {
+  // From the stored vocabulary only the JOURNEY value rides along — the one
+  // axis the registry lacks. Merging the whole base list echoed the legacy
+  // texture:'monochrome' (an avgSat < 0.05 claim, i.e. grayscale) beside the
+  // structural vocabulary where monochrome means one hue — the exact
+  // collision the pending reindex exists to correct, reintroduced at the
+  // moment of correction (conflation law: never echo the legacy tag into
+  // text). Base colors are carried by the Colors line, warmth and contrast
+  // by the registry words.
+  const journey = baseTags?.find((w) => w === "warming" || w === "cooling");
   const tagWords: string[] = [];
   const seen = new Set<string>();
-  for (const w of [...modifierTags(f), ...(baseTags ?? []), ...parts.embedTailTags]) {
+  for (const w of [...modifierTags(f), ...(journey ? [journey] : []), ...parts.embedTailTags]) {
     const key = w.toLowerCase();
     if (!seen.has(key)) {
       seen.add(key);
@@ -1184,10 +1317,13 @@ export function describePalette(
   view: ProseView,
   options: ProseOptions = {},
 ): PaletteDescription {
-  const colors = hexColors.length ? [...hexColors] : ["#000000"];
+  const colors = hexColors.length >= 2 ? [...hexColors] : fallbackStops(coeffs);
   const named =
     options.named ?? describePaletteName(coeffs, colors, { features: options.features });
   const features = options.features ?? named.features;
+  // paletteProse defaults baseTags from the stored vocabulary when absent, so
+  // this description is byte-equal to the page's (the journey wording
+  // included) whether or not the caller supplied the tags.
   const prose = paletteProse(coeffs, colors, view, { ...options, named, features });
   return {
     title: named.name,

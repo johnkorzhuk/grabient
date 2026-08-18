@@ -55,7 +55,13 @@ const render = (seed, steps = VIEW.steps, style = VIEW.style, angle = VIEW.angle
   return view;
 };
 
-/** One shared analysis per seed — the fixture is walked many times below. */
+/**
+ * One shared analysis per seed — the fixture is walked many times below.
+ * baseTags is deliberately NOT passed: paletteProse defaults it internally
+ * from the same palette-tags import seedPaletteText uses, so this fixture
+ * exercises the LIVE page composition (journey wording included) rather than
+ * a journey-less variant.
+ */
 const caseCache = new Map();
 const caseFor = (seed) => {
   let c = caseCache.get(seed);
@@ -155,6 +161,9 @@ describe("number round-trip", () => {
   const f2 = (x) => x.toFixed(2);
   const f1 = (x) => x.toFixed(1);
   const ceil2 = (x) => (Math.ceil(x * 100 - 1e-9) / 100).toFixed(2);
+  // WCAG ratio prints floored (never a false "clears" at 4.45–4.4999); the
+  // helper mirrors floor1 in palette-prose.ts.
+  const floor1 = (x) => (Math.floor(x * 10 + 1e-6) / 10).toFixed(1);
 
   it("recomputes every printed number at its stated precision", () => {
     for (const seed of PROSE_SEEDS) {
@@ -170,14 +179,22 @@ describe("number round-trip", () => {
         [/fits inside a (\d+)° arc/g, () => [String(Math.round(f.hueSpan))]],
         [/sit (\d+)° apart/g, () => [String(Math.round(f.clusterSeparation))]],
         [/drifts (\d+)°/g, () => [String(Math.round(f.hueSpan))]],
-        [/travels (\d+)° in one connected sweep/g, () => [String(Math.round(f.hueSpan))]],
+        [/spans (\d+)° in one connected arc/g, () => [String(Math.round(f.hueSpan))]],
+        [
+          /falls into (\d+) separate clusters spread across (\d+)°/g,
+          () => [String(f.hueClusters), String(Math.round(f.hueSpan))],
+        ],
         [/covers (\d+)° of the hue circle/g, () => [String(Math.round(f.hueSpan))]],
         [/(\d+)° of hue in one pass/g, () => [String(Math.round(f.hueSpan))]],
         [/completes (\d+\.\d) full cycles/g, () => [f1(meanCycles)]],
         [/repeats (\d+\.\d)× along the ramp/g, () => [f1(meanCycles)]],
         [
-          /(\d+\.\d\d) of lightness between its darkest and lightest gray/g,
+          /(\d+\.\d\d) of lightness between its darkest and lightest (?:gray|stop)/g,
           () => [f2(f.denseLightnessRange)],
+        ],
+        [
+          /registers on only (\d+)% of the run/g,
+          () => [String(Math.round(f.chromaticFraction * 100))],
         ],
         [/lightness travels (\d+\.\d\d) of its scale/g, () => [f2(f.lightnessRange)]],
         [
@@ -192,13 +209,13 @@ describe("number round-trip", () => {
         ],
         [/changing direction (\d+) times/g, () => [String(f.turns)]],
         [/holds at lightness (\d\.\d\d) and chroma (\d\.\d\d)/g, () => null], // solid only; not in fixture
-        [/chroma held below (\d\.\d\d)/g, () => [f2(THRESHOLDS.PASTEL_CHROMA)]],
-        [/chroma under (\d\.\d\d)/g, () => [ceil2(THRESHOLDS.MUTED_CHROMA)]],
+        [/mean chroma held below (\d\.\d\d)/g, () => [f2(THRESHOLDS.PASTEL_CHROMA)]],
+        [/mean chroma under (\d\.\d\d)/g, () => [ceil2(THRESHOLDS.MUTED_CHROMA)]],
         [/chroma never rising above (\d\.\d\d)/g, () => [f2(f.maxChroma)]],
         [/jewel tones \(mean (\d\.\d\d)\)/g, () => [f2(f.meanChroma)]],
         [/mean chroma (\d\.\d\d)/g, () => [f2(f.meanChroma)]],
         [/peaking at (\d\.\d\d)/g, () => [f2(f.maxChroma)]],
-        [/measure (\d+\.\d):1/g, () => [f1(f.contrastRatio)]],
+        [/measure (\d+\.\d):1/g, () => [floor1(f.contrastRatio)]],
         [/the (4\.5):1 WCAG AA threshold/g, () => ["4.5"]],
         [/(\d+)% of the run is pinned/g, () => [String(Math.round(f.clipped * 100))]],
         [/in (\d+) steps at (\d+)°/g, () => [String(VIEW.steps), String(Math.round(VIEW.angle))]],
@@ -261,9 +278,11 @@ describe("solid-color veto", () => {
 describe("length bounds", () => {
   it("holds every surface inside its measured band", () => {
     // Paragraph target is 350–800; measured over the fixture after the trim
-    // ladder: p0 353, p5 503, p50 652, p95 776, max 875. The hard bounds
-    // below bracket that measurement; the percentile assertions pin the
-    // distribution so a regression cannot hide in the tails.
+    // ladder (live composition, journey wording included): p0 353, p5 506,
+    // p50 660, p95 777, max 800 — the truth-lens rewording pass shortened the
+    // over-800 tail to zero. The hard bounds below bracket that measurement;
+    // the percentile assertions pin the distribution so a regression cannot
+    // hide in the tails.
     const lengths = [];
     for (const seed of PROSE_SEEDS) {
       const { prose } = caseFor(seed);
@@ -288,11 +307,16 @@ describe("template coverage", () => {
     // 144, grayscale 24, complementary 46, duotone 46.
     const signatures = {
       monochrome: /Every stop shares one hue/,
-      grayscale: /reads as pure value/,
+      // Two value forms: per-stop wording when NO dense sample clears the
+      // chroma floor, the measured-fraction wording when a few do (the
+      // chromaticFraction < 0.15 disjunct of the classification).
+      grayscale: /(reads as pure value|comes across as value more than color)/,
       duotone: /The two families sit \d+° apart/,
       complementary: /The two hues sit \d+° apart/,
       analogous: /Hue drifts \d+°/,
-      multicolor: /Hue travels \d+° in one connected sweep/,
+      // Connected-arc wording only for the single-cluster case; the
+      // fallthrough's multi-cluster palettes state their cluster count.
+      multicolor: /Hue (spans \d+° in one connected arc|falls into \d+ separate clusters)/,
       rainbow: /(covers \d+° of the hue circle|sweeps the entire color wheel)/,
     };
     const seen = new Set();
@@ -350,7 +374,7 @@ describe("corpus acceptance (the templated-page test)", () => {
 
   it("varies the skeleton, not just the fill", () => {
     // Strip everything palette-specific — digits, hexes, the palette's own
-    // color names, the family words — and count what remains. Measured: 824
+    // color names, the family words — and count what remains. Measured: 836
     // distinct skeletons over the 867 seeds; 50 is the acceptance floor at
     // which the corpus stops reading as one fill-in-the-blanks template.
     const familyWords = [...new Set(Array.from({ length: 360 }, (_, h) => familyWord(h)))];
@@ -400,7 +424,7 @@ describe("corpus acceptance (the templated-page test)", () => {
       sum += j;
       max = Math.max(max, j);
     }
-    // Measured over this sampling: mean 0.21, max 0.44.
+    // Measured over this sampling: mean 0.21, max 0.43.
     expect(sum / PAIRS).toBeLessThan(0.35);
     expect(max).toBeLessThan(0.8);
   });

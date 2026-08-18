@@ -1,5 +1,8 @@
 # Palette naming & modifiers — passoff
 
+> Historical passoff. The description system this led to is documented, with
+> its acceptance measurements, in [seo-research/palette-prose.md](./seo-research/palette-prose.md).
+
 Owner of this task: whoever picks it up next. Written 2026-08-16 mid-stream, so
 the tree is in a known half-state described below. The analytics/dashboard work
 continues in a separate session — **do not touch `apps/admin/`**.

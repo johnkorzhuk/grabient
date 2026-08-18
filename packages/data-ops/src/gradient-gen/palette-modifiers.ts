@@ -370,10 +370,19 @@ const BIN_WIDTH = 360 / HUE_BINS;
 /**
  * Share of the palette's chromatic stops with a hue in [lo, hi), degrees.
  * Wraps: `hueBandShare(f, 300, 100)` is the warm arc through 0°.
+ *
+ * Both edges fold onto the bin ring BEFORE the walk: an edge in (355, 360]
+ * used to round to bin 36, which the wrapped cursor can never equal — an
+ * infinite loop in an exported API (demonstrated with hi = 360; no in-repo
+ * call site passes one, but the hazard was live for external callers). A
+ * degenerate full-circle band (lo ≡ hi mod 360) reads as empty, matching the
+ * half-open [lo, hi) contract.
  */
 export function hueBandShare(f: PaletteFeatures, lo: number, hi: number): number {
-  const from = Math.round(lo / BIN_WIDTH);
-  const to = Math.round(hi / BIN_WIDTH);
+  const bin = (edge: number) =>
+    ((Math.round(edge / BIN_WIDTH) % HUE_BINS) + HUE_BINS) % HUE_BINS;
+  const from = bin(lo);
+  const to = bin(hi);
   let total = 0;
   for (let i = from; i !== to; i = (i + 1) % HUE_BINS)
     total += f.hueHistogram[i] ?? 0;

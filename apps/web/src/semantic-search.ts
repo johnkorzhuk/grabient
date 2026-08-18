@@ -79,9 +79,9 @@ export function normalizeSemanticQuery(query: string): string {
   const seed = canonicalSeed(query);
   if (seed) {
     const view = renderPalette(seed, DEFAULT_STYLE, SEED_SEARCH_STEPS, DEFAULT_ANGLE);
-    // Wider than a heading: the embedding is not read by anyone, so a fifth
-    // distinct region is signal rather than clutter. It still stops well short
-    // of one name per stop, which used to hand the model a run of synonyms.
+    // Names-only, at the corpus default budget (4): this string is embedded
+    // against the LIVE index, so its shape stays exactly what that index has
+    // been serving — a briefly-shipped fifth name was rolled back unmeasured.
     //
     // REINDEX-GATED (D7): this branch must stay names-only until the Vectorize
     // index is rebuilt from paletteEmbedText (palette-prose.ts) — the live
@@ -91,7 +91,7 @@ export function normalizeSemanticQuery(query: string): string {
     // corrects the legacy texture:'monochrome' tag — change this to
     // names + spoken modifiers + structure word, mirroring the head of the
     // indexed text while staying terse.
-    if (view) return getUniqueColorNames(view.hexColors, { max: 5 }).join(" ");
+    if (view) return getUniqueColorNames(view.hexColors).join(" ");
   }
   return replaceHexWithColorNames(query)
     .replace(/[\[\]"{}]/g, "")

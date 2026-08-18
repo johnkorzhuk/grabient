@@ -110,19 +110,19 @@ export function createAnalyticsServer(env: Env) {
         limit: z.number().int().min(1).max(25000).optional(),
         startRow: z.number().int().min(0).optional(),
         type: z.enum(["web", "image", "video", "news", "discover"]).optional(),
-        dataState: z.enum(["final", "all", "hourlyAll"]).optional(),
+        dataState: z.enum(["final", "all"]).optional(),
       },
     },
     async ({ dimensions, days, limit, startRow, type, dataState }) => {
+      // Hourly grouping needs the hourly_all wire value; querySearchConsole
+      // infers it from the dimensions so the caller never has to know.
       const result = await querySearchConsole(env, new Date(), {
         dimensions,
         days,
         limit,
         startRow,
         type,
-        // Grouping by hour is only valid with hourlyAll, so infer it rather
-        // than making the caller remember.
-        dataState: dimensions?.includes("hour") ? "hourlyAll" : dataState,
+        dataState,
       });
       return result ? json(result) : unavailable("Search Console");
     },

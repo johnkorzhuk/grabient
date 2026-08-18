@@ -50,8 +50,48 @@
 			"database_name": "grabient-prod",
 			"database_id": "8902a4a8-cca3-4a34-b456-7b35ad021985",
 			"remote": true
+			// Unchanged: still read-only, still no migrations_dir. Admin must
+			// never be able to migrate the production database.
+		},
+		{
+			// Admin-owned, WRITABLE. Everything in here is derived data — metric
+			// snapshots, indexation sweeps, briefs, events, goals — and almost
+			// every row is reconstructable by re-running POST /ops/backfill
+			// against the upstream APIs. That is what makes "remote": true safe
+			// here and not in apps/web: a wrangler dev session cannot destroy
+			// anything that cannot be regenerated. (Events and goals are the
+			// exception — `wrangler d1 export grabient-admin` before destructive
+			// experiments.)
+			//
+			// migrations_dir is deliberately NOT the wrangler default
+			// ("./migrations"). Wrangler resolves the directory per binding and
+			// falls back to the default when unset — so if admin migrations
+			// lived at ./migrations, running
+			//   wrangler d1 migrations apply grabient-prod --remote
+			// from this directory would apply them to PRODUCTION. With a
+			// non-default name that command fails with "no migrations folder"
+			// instead. This is the mechanism behind the rule above, not a
+			// preference.
+			"binding": "ADMIN_DB",
+			"database_name": "grabient-admin",
+			"database_id": "110d79aa-b27f-424c-9898-751f21d35117",
+			"migrations_dir": "./d1/admin-migrations",
+			"remote": true
 		}
 	],
+
+	// Five schedules, dispatched in one scheduled() handler. The strings here
+	// are matched CHARACTER FOR CHARACTER against CRON in src/scheduled.ts —
+	// editing one side without the other silently disables the job (the switch
+	// falls through and nothing runs). Off the hour on purpose: :00 triggers
+	// are the most contended and most likely to be delayed.
+	"triggers": {
+		"crons": [
+			"20 4 * * *", // daily metric snapshot (trailing-window upsert)
+			"40 5 * * *", // indexation sweep (80min later so the two never overlap on D1)
+			"10 6 * * *" // digests — periodsClosing() in code decides which periods closed today
+		]
+	},
 
 	"observability": { "enabled": true, "head_sampling_rate": 1 }
 

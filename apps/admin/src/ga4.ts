@@ -18,6 +18,7 @@ import {
   accessToken,
   parseServiceAccount,
 } from "./google-auth";
+import { resolveWindow } from "./range";
 
 const API_BASE = "https://analyticsdata.googleapis.com/v1beta";
 const WINDOW_DAYS = 28;
@@ -213,23 +214,69 @@ export async function loadGa4(env: Env, now: Date): Promise<Ga4 | null> {
   return value;
 }
 
+export interface Ga4QueryOptions {
+  dimensions?: string[];
+  metrics?: string[];
+  /** Explicit inclusive ISO dates win over `days`. `end` accepts "today"/"yesterday". */
+  start?: string;
+  end?: string;
+  days?: number;
+  /** Adds the equal-length window immediately before as `previous`. */
+  compare?: boolean;
+  /**
+   * REQUIRED for any top-N reading: without it GA4 returns its own ordering
+   * over (currently) ~15,700 distinct paths, and "top pages" is just "25
+   * arbitrary pages". Field names are matched against `metrics` to decide
+   * whether to sort as a metric or a dimension.
+   */
+  orderBy?: Array<{ field: string; desc?: boolean }>;
+  /** Raw GA4 FilterExpression objects, passed through verbatim. */
+  filter?: Record<string, unknown>;
+  metricFilter?: Record<string, unknown>;
+  limit?: number;
+  offset?: number;
+}
+
+export interface Ga4Window {
+  start: string;
+  end: string;
+  rows: Array<Record<string, string | number>>;
+  /** GA4's own TOTAL aggregation row — true totals, not a sum of the page. */
+  totals: Record<string, number> | null;
+  /** Rows matching the query, of which `rows.length` were returned. */
+  rowCount: number;
+}
+
+export interface Ga4QueryResult extends Ga4Window {
+  property: string;
+  previous: Ga4Window | null;
+  meta: {
+    timeZone: string | null;
+    /** True when rows were WITHHELD for privacy thresholds — absent ≠ zero. */
+    thresholded: boolean;
+    /** True when low-frequency values were rolled into "(other)" — breakdown lossy, totals right. */
+    otherRow: boolean;
+    sampled: boolean;
+    quota: { tokensRemainingDay: number | null; tokensRemainingHour: number | null };
+  };
+}
+
 /**
  * Arbitrary GA4 reports, for the MCP tools. Same reasoning as
  * `querySearchConsole`: the dashboard wants one fixed shape, an agent wants the
  * API's. Dimension and metric names are passed through to Google, which
  * validates them and returns a descriptive error for a typo — better than
  * maintaining a partial allow-list here that goes stale.
+ *
+ * Dates are property-local (this property: America/Los_Angeles), echoed in
+ * `meta.timeZone` — a GA4 "day" and a Cloudflare UTC "day" are up to 8 hours
+ * apart, which matters for same-day joins, not for trends.
  */
 export async function queryGa4(
   env: Env,
   now: Date,
-  options: {
-    dimensions?: string[];
-    metrics?: string[];
-    days?: number;
-    limit?: number;
-  } = {},
-): Promise<{ property: string; rows: Array<Record<string, string | number>> } | null> {
+  options: Ga4QueryOptions = {},
+): Promise<Ga4QueryResult | null> {
   const account = parseServiceAccount(env.GSC_SERVICE_ACCOUNT);
   if (!account) return null;
   const propertyId = env.GA4_PROPERTY_ID?.trim();
@@ -239,41 +286,96 @@ export async function queryGa4(
 
   const property = `properties/${propertyId.replace(/^properties\//, "")}`;
   const dimensions = (options.dimensions ?? []).map((name) => ({ name }));
-  const metrics = (options.metrics?.length ? options.metrics : ["sessions"]).map((name) => ({
-    name,
-  }));
-  const days = Math.max(1, Math.min(365, options.days ?? WINDOW_DAYS));
+  const metricNames = options.metrics?.length ? options.metrics : ["sessions"];
+  const metrics = metricNames.map((name) => ({ name }));
+  const window = resolveWindow(now, options, { days: WINDOW_DAYS, lagDays: 1, maxDays: 365 });
 
-  const res = await fetch(`${API_BASE}/${property}:runReport`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
-      dimensions,
-      metrics,
-      limit: Math.max(1, Math.min(500, options.limit ?? 25)),
-    }),
-  });
-  if (!res.ok) {
-    const detail = (await res.text()).slice(0, 400);
-    console.error(`GA4 query failed (${res.status})`, detail);
-    throw new Error(`GA4 rejected the report: ${detail}`);
+  const orderBys = (options.orderBy ?? []).map(({ field, desc }) =>
+    metricNames.includes(field)
+      ? { metric: { metricName: field }, desc: desc ?? true }
+      : { dimension: { dimensionName: field } , desc: desc ?? true },
+  );
+
+  const runWindow = async (start: string, end: string): Promise<{ payload: any } > => {
+    const res = await fetch(`${API_BASE}/${property}:runReport`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dateRanges: [{ startDate: start, endDate: end }],
+        dimensions,
+        metrics,
+        ...(orderBys.length ? { orderBys } : {}),
+        ...(options.filter ? { dimensionFilter: options.filter } : {}),
+        ...(options.metricFilter ? { metricFilter: options.metricFilter } : {}),
+        limit: Math.max(1, Math.min(1000, options.limit ?? 25)),
+        offset: Math.max(0, options.offset ?? 0),
+        metricAggregations: ["TOTAL"],
+        returnPropertyQuota: true,
+      }),
+    });
+    if (!res.ok) {
+      const detail = (await res.text()).slice(0, 400);
+      console.error(`GA4 query failed (${res.status})`, detail);
+      throw new Error(`GA4 rejected the report: ${detail}`);
+    }
+    return { payload: await res.json() };
+  };
+
+  const mapWindow = (payload: any, start: string, end: string): Ga4Window => {
+    const dimHeaders: string[] = (payload.dimensionHeaders ?? []).map((h: any) => h.name);
+    const metHeaders: string[] = (payload.metricHeaders ?? []).map((h: any) => h.name);
+    const totalsRow = payload.totals?.[0];
+    return {
+      start,
+      end,
+      rows: (payload.rows ?? []).map((row: any) => {
+        const out: Record<string, string | number> = {};
+        dimHeaders.forEach((name, i) => {
+          out[name] = row.dimensionValues?.[i]?.value ?? "";
+        });
+        metHeaders.forEach((name, i) => {
+          out[name] = Number(row.metricValues?.[i]?.value ?? 0);
+        });
+        return out;
+      }),
+      totals: totalsRow
+        ? Object.fromEntries(
+            metHeaders.map((name, i) => [name, Number(totalsRow.metricValues?.[i]?.value ?? 0)]),
+          )
+        : null,
+      rowCount: payload.rowCount ?? (payload.rows?.length ?? 0),
+    };
+  };
+
+  const { payload } = await runWindow(window.since, window.until);
+  const current = mapWindow(payload, window.since, window.until);
+
+  let previous: Ga4Window | null = null;
+  if (options.compare) {
+    try {
+      const prev = await runWindow(window.prevSince, window.prevUntil);
+      previous = mapWindow(prev.payload, window.prevSince, window.prevUntil);
+    } catch {
+      // A refused comparison window degrades to "no comparison", not a failure
+      // of the primary answer.
+      previous = null;
+    }
   }
 
-  const payload: any = await res.json();
-  const dimHeaders: string[] = (payload.dimensionHeaders ?? []).map((h: any) => h.name);
-  const metHeaders: string[] = (payload.metricHeaders ?? []).map((h: any) => h.name);
+  const quota = payload.propertyQuota ?? {};
   return {
     property,
-    rows: (payload.rows ?? []).map((row: any) => {
-      const out: Record<string, string | number> = {};
-      dimHeaders.forEach((name, i) => {
-        out[name] = row.dimensionValues?.[i]?.value ?? "";
-      });
-      metHeaders.forEach((name, i) => {
-        out[name] = Number(row.metricValues?.[i]?.value ?? 0);
-      });
-      return out;
-    }),
+    ...current,
+    previous,
+    meta: {
+      timeZone: payload.metadata?.timeZone ?? null,
+      thresholded: payload.metadata?.subjectToThresholding === true,
+      otherRow: payload.metadata?.dataLossFromOtherRow === true,
+      sampled: (payload.metadata?.samplingMetadatas ?? []).length > 0,
+      quota: {
+        tokensRemainingDay: quota.tokensPerDay?.remaining ?? null,
+        tokensRemainingHour: quota.tokensPerHour?.remaining ?? null,
+      },
+    },
   };
 }

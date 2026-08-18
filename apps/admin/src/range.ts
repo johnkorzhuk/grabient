@@ -130,3 +130,67 @@ export function change(current: number, previous: number): Change {
 export function sum(values: readonly number[]): number {
   return values.reduce((total, value) => total + value, 0);
 }
+
+/** "2026-08-17" — the only date shape the daily APIs and metric_daily speak. */
+export function isoDay(date: Date): string {
+  return date.toISOString().slice(0, 10);
+}
+
+export interface ResolvedWindow {
+  /** Inclusive ISO dates. */
+  since: string;
+  until: string;
+  days: number;
+  /** Equal-length window immediately before `since`, for compare mode. */
+  prevSince: string;
+  prevUntil: string;
+}
+
+/**
+ * One window arithmetic for every tool, because two implementations disagreed:
+ * the old code computed `since = until - days`, which with inclusive endpoints
+ * covers days+1 days — harmless for one aggregate, wrong the moment a
+ * "previous N days" window is built the same way, since the two then overlap
+ * by a day. Here `days: 28` is exactly 28 dates and the previous window abuts
+ * without overlap.
+ *
+ * `end` accepts "today"/"yesterday" so callers can reach fresher-than-default
+ * data (hourly Search Console) without every caller re-deriving dates.
+ * Explicit start/end win over `days`; `lagDays` only shapes the default end.
+ */
+export function resolveWindow(
+  now: Date,
+  options: { start?: string; end?: string; days?: number },
+  defaults: { days: number; lagDays: number; maxDays: number },
+): ResolvedWindow {
+  const dayMs = 86_400_000;
+  const today = new Date(now.getTime());
+  const named: Record<string, Date> = {
+    today,
+    yesterday: new Date(now.getTime() - dayMs),
+  };
+
+  const parse = (value: string | undefined): Date | null => {
+    if (!value) return null;
+    if (named[value]) return named[value]!;
+    return /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : null;
+  };
+
+  const until = parse(options.end) ?? new Date(now.getTime() - defaults.lagDays * dayMs);
+
+  const requested = Math.max(1, Math.min(defaults.maxDays, options.days ?? defaults.days));
+  let since = parse(options.start) ?? new Date(until.getTime() - (requested - 1) * dayMs);
+  if (since > until) since = new Date(until.getTime());
+
+  const days = Math.round((until.getTime() - since.getTime()) / dayMs) + 1;
+  const prevUntil = new Date(since.getTime() - dayMs);
+  const prevSince = new Date(prevUntil.getTime() - (days - 1) * dayMs);
+
+  return {
+    since: isoDay(since),
+    until: isoDay(until),
+    days,
+    prevSince: isoDay(prevSince),
+    prevUntil: isoDay(prevUntil),
+  };
+}

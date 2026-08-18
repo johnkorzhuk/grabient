@@ -33,6 +33,18 @@ export interface TrafficDay {
   browserPageViews: number;
   /** Named crawlers plus everything that did not identify as a browser. */
   automatedPageViews: number;
+  /** Every request that day, assets included — the load number. */
+  requests: number;
+  /**
+   * Per-family pageviews for everything that is NOT a browser — named crawlers
+   * (GoogleBot, BingBot, AppleBot…) plus the "Unknown" bucket. Verified live:
+   * browserMap names the search crawlers explicitly, but the AI crawlers
+   * (meta-webindexer, GPTBot, ClaudeBot) present no browser family and land in
+   * Unknown — tracking those needs the adaptive dataset's verifiedBotCategory,
+   * which only sees 24h at a time. This map is what makes "is Googlebot
+   * crawling us more" answerable over months from one cached query.
+   */
+  botFamilies: Record<string, number>;
 }
 
 export interface Traffic {
@@ -47,9 +59,9 @@ export interface Traffic {
 const QUERY = `query($zoneTag: String!, $since: Date!, $until: Date!) {
   viewer {
     zones(filter: {zoneTag: $zoneTag}) {
-      httpRequests1dGroups(limit: 200, filter: {date_geq: $since, date_leq: $until}, orderBy: [date_ASC]) {
+      httpRequests1dGroups(limit: 400, filter: {date_geq: $since, date_leq: $until}, orderBy: [date_ASC]) {
         dimensions { date }
-        sum { pageViews browserMap { pageViews uaBrowserFamily } }
+        sum { pageViews requests browserMap { pageViews uaBrowserFamily } }
         uniq { uniques }
       }
     }
@@ -154,6 +166,13 @@ export async function loadTraffic(env: Env, now: Date): Promise<Traffic | null> 
     const browserPageViews = families
       .filter((f) => isBrowser(f.uaBrowserFamily))
       .reduce((sum, f) => sum + f.pageViews, 0);
+    const botFamilies: Record<string, number> = {};
+    for (const f of families) {
+      if (!isBrowser(f.uaBrowserFamily)) {
+        botFamilies[f.uaBrowserFamily || "Unknown"] =
+          (botFamilies[f.uaBrowserFamily || "Unknown"] ?? 0) + f.pageViews;
+      }
+    }
     return {
       date: row.dimensions.date,
       uniques: row.uniq?.uniques ?? 0,
@@ -163,6 +182,8 @@ export async function loadTraffic(env: Env, now: Date): Promise<Traffic | null> 
       // family the pattern fails to recognize lands in "automated" instead of
       // vanishing from both totals.
       automatedPageViews: Math.max(0, pageViews - browserPageViews),
+      requests: row.sum?.requests ?? 0,
+      botFamilies,
     };
   });
 
@@ -240,8 +261,14 @@ export interface Acquisition {
   countries: Breakdown[];
   devices: Breakdown[];
   pages: Breakdown[];
-  /** Requests considered, for turning the above into shares. */
+  /**
+   * ALL requests in the window, from a dedicated no-dimension aggregate — the
+   * previous implementation summed the top-12 countries and used that as the
+   * denominator, which overstated every share and let device shares exceed 100%.
+   */
   total: number;
+  /** 1 means unsampled; Cloudflare has already extrapolated counts, never re-multiply. */
+  sampleInterval: number;
   days: number;
 }
 
@@ -254,6 +281,9 @@ export interface Acquisition {
 const ACQ_DAYS = 1;
 
 const ACQ_QUERY = `query { viewer { zones(filter: {zoneTag: "ZONE"}) {
+  total: httpRequestsAdaptiveGroups(limit: 1, filter: FILTER) {
+    count avg { sampleInterval }
+  }
   countries: httpRequestsAdaptiveGroups(limit: 12, filter: FILTER, orderBy: [count_DESC]) {
     count dimensions { clientCountryName }
   }
@@ -330,7 +360,11 @@ export async function loadAcquisition(env: Env, now: Date): Promise<Acquisition 
     pages: map(zone.pages, "clientRequestPath")
       .filter((p) => !NON_CONTENT.test(p.label))
       .slice(0, 12),
-    total: countries.reduce((sum, c) => sum + c.count, 0),
+    // The dedicated no-dimension aggregate is the true denominator. Falling
+    // back to the top-12 sum keeps the page rendering if the aggregate is ever
+    // refused, at the cost of the old overstatement.
+    total: zone.total?.[0]?.count ?? countries.reduce((sum, c) => sum + c.count, 0),
+    sampleInterval: zone.total?.[0]?.avg?.sampleInterval ?? 1,
     days: ACQ_DAYS,
   };
   acqCache = { at: now.getTime(), value };
@@ -509,7 +543,7 @@ const DATASET_CAVEATS: Array<{ match: RegExp; caveat: string }> = [
     {
         match: /httpRequestsAdaptiveGroups|httpRequestsOverviewAdaptiveGroups/,
         caveat:
-            "Adaptive dataset: SAMPLED (read sampleInterval and multiply), 8-day retention, 24-HOUR maximum query window on this plan. Bot scores need Enterprise Bot Management and are unavailable; verifiedBotCategory IS available and is the trustworthy bot signal here.",
+            "Adaptive dataset: SAMPLED (check sampleInterval; counts are already extrapolated, never re-multiply), 7-day retention, 24-HOUR maximum query window on this plan. Bot scores need Enterprise Bot Management and are unavailable; verifiedBotCategory IS available (confirmed in this zone's availableFields) and is the trustworthy bot signal here.",
     },
     {
         match: /firewallEvents/,

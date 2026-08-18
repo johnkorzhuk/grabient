@@ -5,6 +5,13 @@ declare module "*.css" {
 
 interface Env {
   DB: D1Database;
+  /**
+   * Admin-owned, writable store: metric snapshots, indexation sweeps, briefs,
+   * events, goals. Optional at the type level on purpose — every read path
+   * must degrade to "not yet collected" when the binding or its tables are
+   * missing, so a deploy can precede the migration without a 500.
+   */
+  ADMIN_DB?: D1Database;
   /** Zero Trust team domain, e.g. "grabient.cloudflareaccess.com". */
   CF_ACCESS_TEAM_DOMAIN?: string;
   /** Access application audience (AUD) tag. */
@@ -49,6 +56,23 @@ interface Env {
    * enabled on the Cloud project. Without it the GA4 sections are omitted.
    */
   GA4_PROPERTY_ID?: string;
+  /**
+   * Bing Webmaster Tools API key (32-hex, generated in BWT settings). NOTE:
+   * the key is per-USER and carries full read+write with no scoping — the
+   * read-only contract lives in our code as a hardcoded method allow-list,
+   * exactly as runCloudflareGraphQL refuses mutations. Optional: without it
+   * the bing tool answers configured:false with what to set.
+   */
+  BING_API_KEY?: string;
+  /**
+   * Cloudflare API token with Account -> Workers Scripts -> Read, for deploy
+   * markers from the deployments API. Account-scoped (there is no zone
+   * variant) and it also permits downloading Worker source — mint it for this
+   * worker only. Optional: without it deploy markers degrade to manual events.
+   */
+  CF_DEPLOY_TOKEN?: string;
+  /** Sweep ceiling per run; default 1400. Guards the 2,000/day GSC quota. */
+  SWEEP_BUDGET?: string;
   /**
    * Local development escape hatch. Set ONLY in .dev.vars (which is gitignored
    * and never uploaded by `wrangler deploy`) to the literal string

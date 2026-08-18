@@ -18,6 +18,7 @@ import {
   accessToken,
   parseServiceAccount,
 } from "./google-auth";
+import { resolveWindow } from "./range";
 
 const API_BASE = "https://searchconsole.googleapis.com/webmasters/v3/sites";
 
@@ -77,6 +78,26 @@ async function discoverProperty(token: string): Promise<string | null> {
     console.error("GSC site list threw", err);
     return null;
   }
+}
+
+/**
+ * The property string, memoized for the isolate's lifetime.
+ *
+ * Every caller used to run its own `sites.list` discovery per request, which is
+ * limited to 200/minute — a batch of URL inspections (600/minute allowed)
+ * exhausted the DISCOVERY quota long before the inspection quota. The property
+ * effectively never changes, so cache it beside the OAuth token. A null result
+ * is deliberately not cached: it usually means a permissions hiccup, and the
+ * next request should retry rather than pin the failure for the isolate's life.
+ */
+let propertyCache: string | null = null;
+
+async function resolveProperty(env: Env, token: string): Promise<string | null> {
+  const configured = env.GSC_PROPERTY?.trim();
+  if (configured) return configured;
+  if (propertyCache) return propertyCache;
+  propertyCache = await discoverProperty(token);
+  return propertyCache;
 }
 
 /**
@@ -203,7 +224,7 @@ export async function loadSearchConsole(env: Env, now: Date): Promise<SearchCons
 
   // Explicit config wins; otherwise ask the API which property this account can
   // actually read, so there is one less value to get wrong.
-  const property = env.GSC_PROPERTY?.trim() || (await discoverProperty(token));
+  const property = await resolveProperty(env, token);
   if (!property) return null;
 
   const until = new Date(now);
@@ -252,83 +273,226 @@ export async function loadSearchConsole(env: Env, now: Date): Promise<SearchCons
   }
 }
 
+export interface GscFilter {
+  dimension: "query" | "page" | "country" | "device" | "searchAppearance";
+  operator:
+    | "equals"
+    | "notEquals"
+    | "contains"
+    | "notContains"
+    | "includingRegex"
+    | "excludingRegex";
+  expression: string;
+}
+
+export interface GscQueryOptions {
+  dimensions?: Array<
+    "query" | "page" | "device" | "country" | "date" | "searchAppearance" | "hour"
+  >;
+  /** Explicit inclusive ISO dates win over `days`. `end` accepts "today". */
+  start?: string;
+  end?: string;
+  days?: number;
+  /** Adds the equal-length window immediately before, rows and totals both. */
+  compare?: boolean;
+  /** ANDed — the API has no OR. Regex operators are RE2. */
+  filters?: GscFilter[];
+  /** Moves impressions up to 3x on the same query; echoed back so two calls are comparable. */
+  aggregationType?: "auto" | "byPage" | "byProperty";
+  limit?: number;
+  startRow?: number;
+  type?: "web" | "image" | "video" | "news" | "googleNews" | "discover";
+  /** `final` is settled but ~2 days behind; `all` includes fresh partial data. */
+  dataState?: "final" | "all";
+}
+
+export interface GscWindowResult {
+  since: string;
+  until: string;
+  /**
+   * The property's true totals for the window, from a separate no-dimension
+   * query. Summing dimensioned rows under-reports (~20% here): Google withholds
+   * anonymized queries from rows while counting them in totals. Null when that
+   * call failed or was skipped (pagination continuations skip it to save quota).
+   */
+  siteTotals: SearchConsole["totals"] | null;
+  rows: SearchRow[];
+  rowCount: number;
+  /** True when the page is full — more rows likely exist past startRow+limit. */
+  hasMore: boolean;
+}
+
+export interface GscQueryResult extends GscWindowResult {
+  property: string;
+  dataState: string;
+  responseAggregationType: string | null;
+  /** Days on/after this are still filling; a "decline" at the edge is usually this. */
+  firstIncompleteDate: string | null;
+  previous: GscWindowResult | null;
+  /** Set when Google refused the request — distinguish from "not configured". */
+  refused?: { status: number; message: string };
+}
+
+async function searchAnalytics(
+  property: string,
+  token: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: true; payload: any } | { ok: false; status: number; message: string }> {
+  const res = await fetch(`${API_BASE}/${encodeURIComponent(property)}/searchAnalytics/query`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const message = (await res.text()).slice(0, 400);
+    console.error(`GSC query failed (${res.status})`, message);
+    return { ok: false, status: res.status, message };
+  }
+  return { ok: true, payload: await res.json() };
+}
+
+const mapRows = (payload: any, type: string): SearchRow[] =>
+  (payload.rows ?? []).map((row: any) => ({
+    key: (row.keys ?? []).join(" | ") || "—",
+    clicks: row.clicks ?? 0,
+    impressions: row.impressions ?? 0,
+    ctr: (row.ctr ?? 0) * 100,
+    // Discover and Google News have no position; zero would read as rank #1,
+    // so the field is omitted rather than defaulted.
+    ...(type === "discover" || type === "googleNews"
+      ? {}
+      : { position: row.position ?? 0 }),
+  }));
+
 /**
  * Arbitrary Search Console queries, for the MCP tools.
  *
  * `loadSearchConsole` above is shaped for the dashboard: a fixed 28-day window,
- * two dimensions, 15 rows. An agent asking "which pages lost position on mobile
- * last week" needs to choose its own dimensions, range and row count, so this
- * exposes the API's own shape instead. Same auth, same property discovery, no
- * cache — a one-off question does not benefit from a 30-minute TTL and would
- * pollute it for the dashboard.
+ * two dimensions, 15 rows. An agent needs the API's own shape: explicit dates,
+ * dimension filters, aggregation control, paired site totals, and an optional
+ * prior-window comparison. No cache — a one-off question does not benefit from
+ * a 30-minute TTL and would pollute it for the dashboard.
+ *
+ * Grouping by hour requires the wire value `hourly_all` (the proto enum's JSON
+ * form — `hourlyAll` 400s), and hourly data is the ONLY way to see today, so
+ * the window for hourly queries ends today rather than at the usual lag.
  */
 export async function querySearchConsole(
   env: Env,
   now: Date,
-  options: {
-    dimensions?: Array<
-      "query" | "page" | "device" | "country" | "date" | "searchAppearance" | "hour"
-    >;
-    days?: number;
-    limit?: number;
-    startRow?: number;
-    type?: "web" | "image" | "video" | "news" | "discover";
-    /**
-     * `final` is settled but ~2 days behind; `all` includes fresh partial data.
-     * `hourlyAll` is REQUIRED when grouping by hour and is the only way to see
-     * today at all — the API serves up to 10 days of hourly rows even though
-     * the UI shows 24 hours.
-     */
-    dataState?: "final" | "all" | "hourlyAll";
-  } = {},
-): Promise<{ property: string; since: string; until: string; rows: SearchRow[] } | null> {
+  options: GscQueryOptions = {},
+): Promise<GscQueryResult | null> {
   const account = parseServiceAccount(env.GSC_SERVICE_ACCOUNT);
   if (!account) return null;
   const token = await accessToken(account, SCOPE_SEARCH_CONSOLE, now);
   if (!token) return null;
-  const property = env.GSC_PROPERTY?.trim() || (await discoverProperty(token));
+  const property = await resolveProperty(env, token);
   if (!property) return null;
 
-  const until = new Date(now);
-  until.setUTCDate(until.getUTCDate() - LAG_DAYS);
-  const since = new Date(until);
-  since.setUTCDate(since.getUTCDate() - Math.max(1, Math.min(480, options.days ?? WINDOW_DAYS)));
+  const hourly = options.dimensions?.includes("hour") ?? false;
+  const window = resolveWindow(
+    now,
+    // Hourly serves at most ~10 days and exists to see today.
+    hourly
+      ? { start: options.start, end: options.end ?? "today", days: Math.min(options.days ?? 2, 10) }
+      : options,
+    { days: WINDOW_DAYS, lagDays: hourly ? 0 : LAG_DAYS, maxDays: hourly ? 10 : 480 },
+  );
 
   const dimensions = options.dimensions?.length ? options.dimensions : ["query"];
-  const res = await fetch(
-    `${API_BASE}/${encodeURIComponent(property)}/searchAnalytics/query`,
-    {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        startDate: isoDay(since),
-        endDate: isoDay(until),
-        dimensions,
-        rowLimit: Math.max(1, Math.min(25000, options.limit ?? 25)),
-        // Paging past 25,000 rows is how you reach the 50,000/day ceiling; the
-        // default of 0 keeps the common case unchanged.
-        startRow: Math.max(0, options.startRow ?? 0),
-        type: options.type ?? "web",
-        dataState: options.dataState ?? "all",
-      }),
-    },
-  );
-  if (!res.ok) {
-    console.error(`GSC query failed (${res.status})`, (await res.text()).slice(0, 200));
-    return null;
+  const limit = Math.max(1, Math.min(25000, options.limit ?? 25));
+  const startRow = Math.max(0, options.startRow ?? 0);
+  const wireState = hourly ? "hourly_all" : (options.dataState ?? "all");
+  const base: Record<string, unknown> = {
+    type: options.type ?? "web",
+    dataState: wireState,
+    ...(options.filters?.length
+      ? { dimensionFilterGroups: [{ groupType: "and", filters: options.filters }] }
+      : {}),
+    ...(options.aggregationType && options.aggregationType !== "auto"
+      ? { aggregationType: options.aggregationType }
+      : {}),
+  };
+
+  const fetchWindow = async (since: string, until: string): Promise<
+    | { ok: true; value: GscWindowResult; meta: any }
+    | { ok: false; status: number; message: string }
+  > => {
+    const rowsRes = await searchAnalytics(property, token, {
+      ...base,
+      startDate: since,
+      endDate: until,
+      dimensions,
+      rowLimit: limit,
+      startRow,
+    });
+    if (!rowsRes.ok) return rowsRes;
+    // The paired no-dimension call is what makes totals true rather than a
+    // row-sum floor. Skipped on pagination continuations (the first page
+    // already fetched it) and for hourly (totals are a daily concept).
+    let siteTotals: SearchConsole["totals"] | null = null;
+    if (startRow === 0 && !hourly) {
+      const totalsRes = await searchAnalytics(property, token, {
+        ...base,
+        startDate: since,
+        endDate: until,
+      });
+      const row = totalsRes.ok ? totalsRes.payload.rows?.[0] : null;
+      if (row) {
+        siteTotals = {
+          clicks: row.clicks ?? 0,
+          impressions: row.impressions ?? 0,
+          ctr: (row.ctr ?? 0) * 100,
+          position: row.position ?? 0,
+        };
+      }
+    }
+    const rows = mapRows(rowsRes.payload, String(base.type));
+    return {
+      ok: true,
+      meta: rowsRes.payload,
+      value: {
+        since,
+        until,
+        siteTotals,
+        rows,
+        rowCount: rows.length,
+        hasMore: rows.length === limit,
+      },
+    };
+  };
+
+  const current = await fetchWindow(window.since, window.until);
+  if (!current.ok) {
+    return {
+      property,
+      since: window.since,
+      until: window.until,
+      dataState: wireState,
+      responseAggregationType: null,
+      firstIncompleteDate: null,
+      siteTotals: null,
+      rows: [],
+      rowCount: 0,
+      hasMore: false,
+      previous: null,
+      refused: { status: current.status, message: current.message },
+    };
   }
-  const payload: any = await res.json();
+
+  let previous: GscWindowResult | null = null;
+  if (options.compare && !hourly) {
+    const prev = await fetchWindow(window.prevSince, window.prevUntil);
+    previous = prev.ok ? prev.value : null;
+  }
+
   return {
     property,
-    since: isoDay(since),
-    until: isoDay(until),
-    rows: (payload.rows ?? []).map((row: any) => ({
-      key: (row.keys ?? []).join(" | ") || "—",
-      clicks: row.clicks ?? 0,
-      impressions: row.impressions ?? 0,
-      ctr: (row.ctr ?? 0) * 100,
-      position: row.position ?? 0,
-    })),
+    ...current.value,
+    dataState: wireState,
+    responseAggregationType: current.meta.responseAggregationType ?? null,
+    firstIncompleteDate: current.meta.metadata?.firstIncompleteDate ?? null,
+    previous,
   };
 }
 
@@ -350,7 +514,7 @@ export async function inspectUrl(
   if (!account) return null;
   const token = await accessToken(account, SCOPE_SEARCH_CONSOLE, now);
   if (!token) return null;
-  const property = env.GSC_PROPERTY?.trim() || (await discoverProperty(token));
+  const property = await resolveProperty(env, token);
   if (!property) return null;
 
   const res = await fetch("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", {
@@ -371,13 +535,20 @@ export async function inspectUrl(
     coverageState: index.coverageState ?? null,
     robotsTxtState: index.robotsTxtState ?? null,
     indexingState: index.indexingState ?? null,
+    // Separates "Googlebot got a 5xx / was blocked" from "fetched fine" — the
+    // field that says whether a FAIL is our server's fault or Google's choice.
+    pageFetchState: index.pageFetchState ?? null,
     lastCrawlTime: index.lastCrawlTime ?? null,
     crawledAs: index.crawledAs ?? null,
     googleCanonical: index.googleCanonical ?? null,
     userCanonical: index.userCanonical ?? null,
     sitemaps: index.sitemap ?? [],
     referringUrls: index.referringUrls ?? [],
-    mobileUsability: payload?.inspectionResult?.mobileUsabilityResult?.verdict ?? null,
+    // Deep link into Search Console's own UI for this URL — for handing a human.
+    inspectionResultLink: payload?.inspectionResult?.inspectionResultLink ?? null,
+    // mobileUsability is deliberately NOT here: Google retired that report on
+    // 2023-12-01 and the API now always answers VERDICT_UNSPECIFIED — a
+    // permanent non-finding that read as a finding.
     richResults: payload?.inspectionResult?.richResultsResult?.verdict ?? null,
   };
 }
@@ -391,7 +562,7 @@ export async function listSitemaps(
   if (!account) return null;
   const token = await accessToken(account, SCOPE_SEARCH_CONSOLE, now);
   if (!token) return null;
-  const property = env.GSC_PROPERTY?.trim() || (await discoverProperty(token));
+  const property = await resolveProperty(env, token);
   if (!property) return null;
 
   const res = await fetch(`${API_BASE}/${encodeURIComponent(property)}/sitemaps`, {
