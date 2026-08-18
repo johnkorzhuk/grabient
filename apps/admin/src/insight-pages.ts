@@ -124,10 +124,14 @@ export async function trendCard(
   // click rather than a scroll. Indexed by day first: the previous find()
   // inside a map was quadratic over the window.
   const byDay = series.map((s) => new Map(s.raw.map((p) => [p.day, p.value])));
+  const shown = days.slice(0, 120);
   const table = dataTable(
-    ["Date", ...series.map((s) => s.label)],
-    days
-      .slice(0, 120)
+    // Say so when rows were dropped: at range=180d a third of them used to
+    // vanish with no indication.
+    ["Date", ...series.map((s) => s.label)].map((h, i) =>
+      i === 0 && shown.length < days.length ? `Date (newest ${shown.length} of ${days.length})` : h,
+    ),
+    shown
       .map((day) => [
         day,
         ...byDay.map((index) => {

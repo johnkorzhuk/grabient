@@ -75,7 +75,7 @@ import {
   type AttributionRow,
   type Metrics,
 } from "./queries";
-import { worldDistributionCard } from "./globe";
+import { countryName, worldDistributionCard } from "./globe";
 import {
   automatedShare,
   loadAcquisition,
@@ -555,18 +555,10 @@ const shortMonth = (month: string) =>
 
 
 
-/**
- * "SG" -> "Singapore". Cloudflare returns ISO country codes; the axis has room
- * for the code, the tooltip has room for the name. Intl has the full table, so
- * no country list needs maintaining here.
- */
-const countryName = (code: string): string => {
-  try {
-    return new Intl.DisplayNames(["en"], { type: "region" }).of(code) ?? code;
-  } catch {
-    return code;
-  }
-};
+// "SG" -> "Singapore" is imported from globe.ts, which hoists the Intl
+// instance into a module constant. This file used to build a fresh
+// Intl.DisplayNames on every call — twice per country row, across two charts —
+// and its copy disagreed with globe.ts about what an unknown code returns.
 
 /**
  * Wordmark, section nav, provenance line — and the ONE range control.

@@ -49,10 +49,18 @@ export interface MetricPoint {
 }
 
 /**
- * Idempotent daily upsert. The WHERE on DO UPDATE skips rows whose value did
- * not change, which makes `meta.changes` a free count of how many days the
- * source REVISED — logged into job_run.detail, so the self-healing behaviour
- * is observable instead of assumed.
+ * Idempotent daily upsert.
+ *
+ * The WHERE on DO UPDATE skips rows whose value did not change, so what comes
+ * back is a free signal about how much the sources moved — with two caveats
+ * worth stating here, because /ops prints these numbers as facts:
+ *
+ *   changes      counts inserts AND updates, so on a fresh day it equals the
+ *                number of new rows rather than the number of revisions. Read
+ *                it as "rows the statement touched".
+ *   rows_written is D1's own figure and includes INDEX writes; metric_daily
+ *                carries its primary key plus metric_daily_day_idx, so expect
+ *                roughly 3x the logical row count.
  */
 export async function upsertMetrics(
   db: D1Database,

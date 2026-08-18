@@ -210,13 +210,15 @@ export async function writeReport(
       ? periodSlug(input.period.type, input.period.start)
       : `${isoDay(now)}-${kebab(input.title)}`;
   let slug = baseSlug;
-  for (let n = 2; ; n++) {
+  // Bounded: one SELECT per attempt, and a pathological title must not be able
+  // to spin. Past the cap, disambiguate with a random suffix instead.
+  for (let n = 2; n <= 25; n++) {
     const taken = await db
       .prepare(`SELECT 1 FROM reports WHERE slug = ?1`)
       .bind(slug)
       .first();
     if (!taken) break;
-    slug = `${baseSlug}-${n}`;
+    slug = n === 25 ? `${baseSlug}-${crypto.randomUUID().slice(0, 6)}` : `${baseSlug}-${n}`;
   }
 
   await db
