@@ -31,6 +31,10 @@ export interface DashboardState {
   kind?: "report" | "digest";
   /** Reports keyset cursor. Deliberately NOT propagated across pages. */
   before?: string;
+  /** /search drill-down: one query's history. */
+  query?: string;
+  /** /search drill-down: one landing page's history. */
+  page?: string;
 }
 
 const GLOBE_VALUES: readonly GlobeMetric[] = ["requests", "people", "threats", "data"];
@@ -57,6 +61,7 @@ const PARAMS: Record<string, readonly (keyof DashboardState)[]> = {
   "/trends": ["range"],
   "/indexation": ["range"],
   "/acquisition": ["range"],
+  "/search": ["range", "query", "page"],
   "/goals": [],
   "/campaigns": [],
   "/reports": ["kind"],
@@ -76,6 +81,10 @@ export function parseState(url: URL): DashboardState {
     globe: GLOBE_VALUES.includes(globe as GlobeMetric) ? (globe as GlobeMetric) : DEFAULT_GLOBE,
     kind: kind === "report" || kind === "digest" ? kind : undefined,
     before: params.get("before") ?? undefined,
+    // Bounded: these reach Search Console as filter expressions, which cap at
+    // 500 characters, and an unbounded value here would just be refused there.
+    query: params.get("query")?.slice(0, 400) || undefined,
+    page: params.get("page")?.slice(0, 400) || undefined,
   };
 }
 
@@ -91,7 +100,14 @@ export function parseState(url: URL): DashboardState {
 export function href(
   path: string,
   state: DashboardState,
-  overrides: Partial<{ range: RangeKey; globe: GlobeMetric; kind?: string; before?: string }> = {},
+  overrides: Partial<{
+    range: RangeKey;
+    globe: GlobeMetric;
+    kind?: string;
+    before?: string;
+    query?: string;
+    page?: string;
+  }> = {},
 ): string {
   const reads = PARAMS[path] ?? [];
   const allowed = (key: keyof DashboardState) =>
@@ -106,6 +122,16 @@ export function href(
 
   const kind = "kind" in overrides ? overrides.kind : state.kind;
   if (allowed("kind") && kind) params.set("kind", kind);
+
+  // A drill-down subject belongs to the page it was opened from, so it is
+  // page-scoped like `kind` rather than pass-through. Passing null clears it,
+  // which is how the "all queries" link gets back.
+  const subject = (key: "query" | "page") => {
+    const value = key in overrides ? overrides[key] : state[key];
+    if (allowed(key) && value) params.set(key, value);
+  };
+  subject("query");
+  subject("page");
 
   // Cursors are per-link, never inherited — see the note on PARAMS.
   if (overrides.before) params.set("before", overrides.before);

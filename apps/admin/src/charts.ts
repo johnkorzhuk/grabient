@@ -1016,6 +1016,14 @@ export function rankedBarChart(
    * prints "125% of tracked" on a tick past the largest bar.
    */
   formatTick: (n: number) => string = compact,
+  /**
+   * Makes each row a link. Rendered as absolutely-positioned anchors OVER the
+   * SVG rather than as SVG <a> wrappers: the bars are post-processed into
+   * paths already, and matching a rewritten path back to its row would be
+   * fragile. An overlay is a real focusable link, works with the keyboard,
+   * and leaves the chart markup untouched.
+   */
+  rowHref?: (label: string) => string | null,
 ): string {
   const height = Math.max(120, rows.length * 26 + 30);
   // Category labels are drawn RIGHT-ALIGNED ending at the plot edge, so a long
@@ -1076,7 +1084,33 @@ export function rankedBarChart(
     }));
     const payload = { w: WIDTH, h: height, plot: (scene as any).chart, points, axis: "y" };
     const json = JSON.stringify(payload).replace(/&/g, "&amp;").replace(/'/g, "&#39;");
-    return `<div class="chart-hover" data-chart='${json}' tabindex="0" role="group" aria-label="${esc(ariaLabel)}. Use arrow keys to read values.">${svg}</div>`;
+
+    // One transparent anchor per row, positioned in PERCENTAGES because the
+    // SVG is scaled to its container by CSS — pixel offsets would drift the
+    // moment the card changes width.
+    let overlay = "";
+    if (rowHref) {
+      // Band height derived from the plot rect and the row count, not from the
+      // scale: the scene exposes a resolved scale wrapper, not a raw d3 band
+      // scale, so it has no bandwidth(). Rows are evenly spaced, so the step
+      // is the plot height over the row count — and the link uses the FULL
+      // step rather than the padded bar height, so there are no dead gaps
+      // between adjacent targets.
+      const plot = (scene as any).chart;
+      const band = plot.height / Math.max(1, fitted.length);
+      overlay = (scene as any).points
+        .map((p: any) => {
+          const original = originalByFitted.get(String(p.yValue)) ?? String(p.yValue);
+          const target = rowHref(original);
+          if (!target) return "";
+          const top = ((p.y - band / 2) / height) * 100;
+          if (!Number.isFinite(top)) return "";
+          return `<a class="chart-row-link" href="${esc(target)}" style="top:${top.toFixed(2)}%;height:${((band / height) * 100).toFixed(2)}%" aria-label="${esc(expandLabel(original))} — see its history"></a>`;
+        })
+        .join("");
+    }
+
+    return `<div class="chart-hover" data-chart='${json}' tabindex="0" role="group" aria-label="${esc(ariaLabel)}. Use arrow keys to read values.">${svg}${overlay}</div>`;
   } finally {
     runtime.destroy();
   }

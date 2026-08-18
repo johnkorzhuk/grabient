@@ -233,6 +233,7 @@ const CHART_SCRIPT = String.raw`
 export const PAGES = [
   { href: "/", label: "Overview" },
   { href: "/trends", label: "Trends" },
+  { href: "/search", label: "Search" },
   { href: "/indexation", label: "Indexation" },
   { href: "/acquisition", label: "Acquisition" },
   { href: "/goals", label: "Goals" },

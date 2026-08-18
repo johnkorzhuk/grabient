@@ -68,6 +68,7 @@ import {
   DESCRIPTORS,
   descriptorScore,
   hueBandShare,
+  MIN_BITS_TO_SPEAK,
   modifierTags,
   spokenWord,
   stopHasHue,
@@ -801,7 +802,7 @@ const fallbackStops = (coeffs: CosineCoeffs): string[] =>
  * how strong the colour is and where it lives — the one axis the old four
  * sentences could barely reach.
  */
-type ImpressionSlot = "tone" | "form" | "motion" | "intensity";
+type ImpressionSlot = "tone" | "form" | "wheel" | "motion" | "intensity";
 
 /** Everything an impression may read. One analysis, computed once per call. */
 interface Ctx {
@@ -1027,6 +1028,86 @@ function duotoneCrossing(c: Ctx): {
             : "none";
   return { neutral, shape };
 }
+
+/**
+ * What to call an END stop's place on the value scale, or null for a midtone.
+ *
+ * The ladder is the file's existing end-band constants plus the registry's own
+ * LIGHT_LIGHTNESS and DARK_LIGHTNESS, so a word here means what the same word
+ * means everywhere else in the system. Midtones get no word at all: "It opens
+ * mid and ends mid" is a sentence about nothing.
+ */
+const depthBand = (L: number): string | null =>
+  L > NEAR_WHITE_L
+    ? "near white"
+    : L >= T.LIGHT_LIGHTNESS
+      ? "bright"
+      : L < NEAR_BLACK_L
+        ? "in deep shadow"
+        : L < T.DARK_LIGHTNESS
+          ? "dark"
+          : null;
+
+/**
+ * The direction rows' depth wording: where the run opens and where it arrives.
+ *
+ * This IS the transformation D21.2 ordered. The deleted usage rows read the two
+ * end luminances to decide which end takes dark text and which takes light;
+ * the same two ends, read the same way, now choose the words the motion
+ * sentence uses, and the sentence describes instead of advising. Null when
+ * either end is a midtone or both ends land in one band, in which case the row
+ * falls back to its plain direction sentence.
+ *
+ * The extreme pair also has to clear the ink reading. OkLCh lightness is a
+ * perceptual scale and says nothing about how much light leaves the screen, so
+ * "near white" and "in deep shadow" wait for the WCAG luminances to agree;
+ * below that bar the words demote to "bright" and "dark", which the L bands
+ * alone can carry. Measured over the fixture: 38 palettes reach an extreme
+ * band pair and 38 of them also clear the ink test, so the guard costs nothing
+ * today and exists because the two scales genuinely come apart in the editor,
+ * where a slider can put a stop at L 0.88 with a luminance of 0.55.
+ */
+function depthSentence(c: Ctx, direction: "lighter" | "darker"): string | null {
+  const soften = (band: string) =>
+    band === "near white" ? "bright" : band === "in deep shadow" ? "dark" : band;
+  const inkAgrees = c.endDarkInkReads && c.endLightInkReads;
+  const banded = (L: number) => {
+    const b = depthBand(L);
+    return b === null ? null : inkAgrees ? b : soften(b);
+  };
+  const open = banded(c.stopL[0]!);
+  const close = banded(c.stopL[c.stopL.length - 1]!);
+  // Two rungs. Both ends named is the strongest thing the row can say; the
+  // ARRIVAL alone is the next best, and it earns its own rung because the end
+  // of a run is the part a reader looks at last and remembers. A named START
+  // with an unnamed arrival gets nothing: "It opens dark" and then silence
+  // about where it went is a sentence that stops halfway.
+  if (open !== null && close !== null && open !== close)
+    return `It opens ${open} and ends ${close}.`;
+  if (close !== null)
+    return `It becomes ${direction} from start to end, closing ${close}.`;
+  return null;
+}
+
+/** The middle third of the run, where a peak or a valley is worth naming. */
+const middleThird = (t: number) => t > 1 / 3 && t < 2 / 3;
+
+/**
+ * Chroma movement a viewer can actually see, for the intensity rows.
+ *
+ * The registry's TRAJECTORY_DELTA (0.04) bounds the difference between the two
+ * HALVES' mean chroma, which a ramp can clear while every sample sits inside a
+ * narrow band. This is the peak-to-valley bound on the same dense sample: 0.05
+ * for a direction (it costs 0 of the 208 saturating and 0 of the 157
+ * desaturating fixture palettes today, so it is a guard against a threshold
+ * move rather than a filter) and 0.08 for naming WHERE the strongest or
+ * weakest colour sits, which is a claim about one point and needs the
+ * difference to be obvious: at 0.05 the peak row fires on 152 palettes, at 0.08
+ * on 104, and the 48 it drops are ramps whose "strongest" sample is a tenth of
+ * a JND above its neighbours.
+ */
+const VISIBLE_CHROMA_MOVE = 0.05;
+const NAMEABLE_CHROMA_MOVE = 0.08;
 
 /**
  * The table. Each row is {phrase, the conjunction that licenses it, measured
@@ -1279,13 +1360,15 @@ const IMPRESSIONS: readonly Impression[] = [
     say: () => "The colors stay light, and hold an even brightness.",
   },
   {
-  {
     // Itten's cold-warm contrast: both poles present at once, not a drift.
     id: "warm-and-cool",
     slot: "tone",
     prevalence: 0.2284,
     when: (c) => useOf("warm-cool-contrast") === "prose" && warmCoolContrast(c.f),
-    say: () => "It holds warm and cool colors at the same time.",
+    // The gate is a quarter of the chromatic mass in EACH arc, so neither pole
+    // can be a garnish: the second clause is the other half of that same
+    // measurement, not an addition to it.
+    say: () => "It holds warm and cool colors at once, with neither side taking over.",
     conflicts: ["warming", "cooling"],
   },
   {
@@ -1486,12 +1569,26 @@ const IMPRESSIONS: readonly Impression[] = [
     // the reader could not otherwise have ("It holds warm and cool colors at
     // the same time"). Rare by construction, and the row it protects is the
     // one the whole two-sentence budget was going to.
+    // ...and since D21 the mid branches also say where the COLOUR is loudest,
+    // which is the intensity slot's peak and valley rows exactly: "Its color is
+    // strongest in the middle and fades to gray at both ends. Its strongest
+    // color sits in the middle of the run." is one fact printed twice. That
+    // half of the veto does not depend on the neutral having a value, so it
+    // sits outside the gray check.
     conflictsIn: (c) => {
       const { neutral, shape } = duotoneCrossing(c);
-      if (neutral === "gray") return [];
-      if (shape === "mid-valley") return neutral === "black" ? ["dark-middle"] : ["bright-middle"];
-      if (shape === "mid-peak") return neutral === "black" ? ["bright-middle"] : ["dark-middle"];
-      return [];
+      const intensity =
+        shape === "mid-valley"
+          ? ["palest-middle"]
+          : shape === "mid-peak"
+            ? ["strongest-middle"]
+            : [];
+      if (neutral === "gray") return intensity;
+      if (shape === "mid-valley")
+        return [...intensity, neutral === "black" ? "dark-middle" : "bright-middle"];
+      if (shape === "mid-peak")
+        return [...intensity, neutral === "black" ? "bright-middle" : "dark-middle"];
+      return intensity;
     },
   },
   {
@@ -1508,16 +1605,27 @@ const IMPRESSIONS: readonly Impression[] = [
     restates: (c) => c.names.length === 2,
     say: () => "Its two colors sit on opposite sides of the color wheel.",
   },
+  // --- wheel: where the colors sit on the circle, and how they travel it ----
+  //
+  // Split out of `form` on 2026-08-18. Two questions were sharing one slot and
+  // the structural half kept winning it: `several-colors` at 1.40 bits is the
+  // form floor and a multicolor palette therefore had nothing to say about its
+  // colours at all, while a duotone spent its one form sentence on the pairing
+  // and never mentioned that the two hues sit a quarter of the wheel apart.
+  // Measured before the split, 564 of the 867 fixture palettes (65%) had no
+  // form row clearing the name's 2-bit bar. Construction facts (how the palette
+  // is built) stay in `form`; everything about the hue circle lives here, so
+  // the two can never restate each other across slots.
   {
     id: "whole-wheel",
-    slot: "form",
+    slot: "wheel",
     prevalence: 0.0242,
     when: (c) => c.has("full-wheel"),
     say: () => "It travels the whole color wheel, passing every family on the way.",
   },
   {
     id: "rainbow",
-    slot: "form",
+    slot: "wheel",
     prevalence: 0.0634,
     when: (c) => c.structure === "rainbow" && !c.has("full-wheel"),
     say: () => "It runs through many colors, like a rainbow.",
@@ -1577,7 +1685,7 @@ const IMPRESSIONS: readonly Impression[] = [
     // most common sentence in the table, so the clause was also the most often
     // false. What remains is what the gate actually establishes.
     id: "neighbors",
-    slot: "form",
+    slot: "wheel",
     prevalence: 0.0577,
     when: (c) =>
       c.structure === "analogous" &&
@@ -1623,7 +1731,7 @@ const IMPRESSIONS: readonly Impression[] = [
     // is a purple, which is the same hue at a lower lightness) and a noun stack
     // a translator has to guess at. The plain sentence carries the same fact.
     id: "one-family",
-    slot: "form",
+    slot: "wheel",
     prevalence: 0.0173,
     when: (c) =>
       c.structure === "analogous" &&
@@ -1637,6 +1745,52 @@ const IMPRESSIONS: readonly Impression[] = [
       // actually gets repeated.
       !c.names.some((n) => n.toLowerCase().includes(c.base!)),
     say: (c) => `All the colors are ${c.base}.`,
+  },
+  {
+    // Direction on the circle, which is a fact about the sequence and not about
+    // its width: a palette can cover one neighbourhood and still walk it in
+    // order. The registry's own tags, gated at 90° of travel with 0.8
+    // consistency, so the run genuinely keeps going one way.
+    //
+    // "Rainbow order" rather than "forward": D20.4 retired an earlier sentence
+    // for saying "instead of forward" with no referent in it, and a rainbow is
+    // the referent every reader already has for the order of the wheel. The
+    // word is on the everyday list D20.3 keeps (`rainbow` is a search term
+    // here), and it translates as a noun everywhere.
+    id: "wheel-forward",
+    slot: "wheel",
+    prevalence: 0.1776,
+    when: (c) => c.has("hue-advancing"),
+    say: () => "Its colors run forward through the rainbow order, without turning back.",
+    echoes: ["rainbow"],
+  },
+  {
+    id: "wheel-back",
+    slot: "wheel",
+    prevalence: 0.173,
+    when: (c) => c.has("hue-reversing"),
+    say: () => "Its colors run backward through the rainbow order, without turning back.",
+    echoes: ["rainbow"],
+  },
+  {
+    // How WIDE the palette is on the circle, for the palettes whose structure
+    // class says nothing about it. Both rows need a colour to be talking about:
+    // hueSpan is computed over the chromatic samples only, so an achromatic
+    // run reports a span of 0 and would otherwise be told its colours sit close
+    // together on the wheel, which is the D19 error one level up.
+    id: "broad-arc",
+    slot: "wheel",
+    prevalence: 0.2191,
+    when: (c) => c.f.hueSpan >= 180 && !c.has("full-wheel") && c.base !== null,
+    say: () => "Its colors cover more than half the color wheel.",
+  },
+  {
+    id: "narrow-arc",
+    slot: "wheel",
+    prevalence: 0.2411,
+    when: (c) => c.f.hueSpan < 45 && c.base !== null && !c.solid,
+    say: () => "All of its colors sit close together on the wheel, within one family.",
+    echoes: ["monochrome", "grayscale"],
   },
   // The `groups` row lived here until 2026-08-18: "It jumps between separate
   // groups of color", fired on multicolor palettes with two or more isolated
@@ -1675,6 +1829,22 @@ const IMPRESSIONS: readonly Impression[] = [
     when: (c) => c.structure === "multicolor",
     restates: (c) => c.names.length >= 3,
     say: () => "It passes through several colors between its ends.",
+  },
+  {
+    // The coefficient-level guarantee, which nothing spoke before: a ± |b|
+    // inside [0,1] on every channel means the clamp can never fire, at any
+    // frequency or phase, so the run holds no pinned stretch. That is a fact
+    // about the blend a designer can see and use, and it is the honest opposite
+    // of the plateau rows: `black-block` names the flat stretch when there is
+    // one, this names its guaranteed absence. Not a claim about smoothness in
+    // general (a cosine turning point is a soft extremum, not a flat stretch),
+    // which is why the sentence says flat spots rather than banding.
+    id: "smooth",
+    slot: "form",
+    prevalence: 0.1788,
+    when: (c) => c.f.inGamutAlways && !c.solid,
+    say: () => "It blends cleanly the whole way, with no flat spots in the run.",
+    conflicts: ["black-block", "white-block"],
   },
 
   {
@@ -1837,28 +2007,55 @@ const IMPRESSIONS: readonly Impression[] = [
     // fixture went undescribed while its palette spent a sentence on "It passes
     // through several colors between its ends". `rampDominates` is the missing
     // distinction, and it reads the same two numbers the tag does.
-    // ...and since 2026-08-18 they say WHERE the run starts and where it
-    // arrives whenever both ends have a name (D21.2). "It becomes darker from
-    // start to end" is the direction with the picture removed, and the two end
-    // luminances that used to license the deleted text-pairing sentence are
-    // exactly what names the two ends. See depthBand for the ladder and for
-    // which band pairs may be spoken.
-    id: "brightens",
+    // ...and since 2026-08-18 each of them is TWO rows, because it says two
+    // different things (D21.2). Where both ends have a name on the value ladder
+    // the sentence names them ("It opens bright and ends in deep shadow"), and
+    // that is a rarer and far more informative claim than the bare direction:
+    // measured over the fixture, brightening splits 195 plain / 96 anchored and
+    // darkening 106 / 35, which is 2.15 against 3.17 bits and 3.03 against 4.63.
+    // Ranking is by measured rarity and the score has to be the rarity of the
+    // SENTENCE, not of the gate that produced it, or the anchored sentences
+    // inherit the plain row's 1.58 bits and lose every slot they compete for.
+    // The two end luminances that used to license the deleted text-pairing
+    // advice are exactly what names the two ends here. See depthSentence.
+    id: "brightens-into",
     slot: "motion",
-    prevalence: 0.3356,
+    prevalence: 0.1107,
     when: (c) =>
       (c.has("brightening") || (c.f.turns === 1 && c.f.lightnessDelta > 0)) &&
-      rampDominates(c.f),
-    say: (c) => depthSentence(c) ?? "It becomes lighter from start to end.",
+      rampDominates(c.f) &&
+      depthSentence(c, "lighter") !== null,
+    say: (c) => depthSentence(c, "lighter")!,
+  },
+  {
+    id: "brightens",
+    slot: "motion",
+    prevalence: 0.2249,
+    when: (c) =>
+      (c.has("brightening") || (c.f.turns === 1 && c.f.lightnessDelta > 0)) &&
+      rampDominates(c.f) &&
+      depthSentence(c, "lighter") === null,
+    say: () => "It becomes lighter from start to end.",
+  },
+  {
+    id: "darkens-into",
+    slot: "motion",
+    prevalence: 0.0404,
+    when: (c) =>
+      (c.has("darkening") || (c.f.turns === 1 && c.f.lightnessDelta < 0)) &&
+      rampDominates(c.f) &&
+      depthSentence(c, "darker") !== null,
+    say: (c) => depthSentence(c, "darker")!,
   },
   {
     id: "darkens",
     slot: "motion",
-    prevalence: 0.1626,
+    prevalence: 0.1223,
     when: (c) =>
       (c.has("darkening") || (c.f.turns === 1 && c.f.lightnessDelta < 0)) &&
-      rampDominates(c.f),
-    say: (c) => depthSentence(c) ?? "It becomes darker from start to end.",
+      rampDominates(c.f) &&
+      depthSentence(c, "darker") === null,
+    say: () => "It becomes darker from start to end.",
   },
   {
     // Temperature JOURNEY comes from the stored palette-tags formula, never a
@@ -1890,6 +2087,114 @@ const IMPRESSIONS: readonly Impression[] = [
     say: () => "It becomes cooler as it moves.",
   },
 
+  // --- intensity: how strong the color is, and where it lives ---------------
+  //
+  // The axis the old table could barely reach. `color-beside-gray` was its only
+  // row and it sat in the tone slot, competing for words with the palette's
+  // character; everything else about colour STRENGTH went unsaid, which is why
+  // a ramp that starts neutral and arrives at full colour was described only by
+  // its brightness. D21.2 asked for the retired usage rows' saturation
+  // knowledge to come back as description, and this is where it went.
+  //
+  // Every row here reads chroma (D19: "how loud is it" takes the absolute
+  // reading), and none of them reads lightness, so an intensity sentence can
+  // never restate a motion one. What they CAN restate is a form row that
+  // already claims the colour is held or spent, so the series rows, `one-color`
+  // and the two duotone crossing branches declare them as conflicts.
+  {
+    // Itten's contrast of saturation: pure color beside near-gray, in the two
+    // words a designer would use for it.
+    id: "color-beside-gray",
+    slot: "intensity",
+    prevalence: 0.1061,
+    when: (c) => useOf("saturation-contrast") === "prose" && saturationContrast(c.f),
+    say: () => "Strong color sits next to almost colorless areas.",
+  },
+  {
+    // The registry's own trajectory tags, which nothing spoke before: chroma in
+    // the second half of the run minus chroma in the first. The branch names
+    // the ARRIVAL when one end is near neutral, because that is the half of it
+    // a reader sees first.
+    id: "intensity-rises",
+    slot: "intensity",
+    prevalence: 0.24,
+    when: (c) => c.has("saturating") && c.f.denseChromaRange >= VISIBLE_CHROMA_MOVE,
+    say: (c) =>
+      c.stopC[0]! < T.MUTED_CHROMA
+        ? "It starts close to neutral and gains color as it runs."
+        : "The color grows stronger as it runs.",
+    // A pale or gray palette moves its chroma inside a band no one would call
+    // strong, and "the color grows stronger" beside "no strong color anywhere
+    // in it" is the paragraph arguing with itself. Same argument for the mix
+    // rows: "lightened with white" is already a statement about where the
+    // colour goes.
+    conflicts: [
+      "gray",
+      "tinted-gray",
+      "pale-soft",
+      "pale",
+      "one-color",
+      "tints",
+      "shades",
+      "tones",
+      "tints-and-shades",
+    ],
+  },
+  {
+    id: "intensity-falls",
+    slot: "intensity",
+    prevalence: 0.181,
+    when: (c) => c.has("desaturating") && c.f.denseChromaRange >= VISIBLE_CHROMA_MOVE,
+    say: (c) =>
+      c.stopC[c.stopC.length - 1]! < T.MUTED_CHROMA
+        ? "It starts in full color and fades toward neutral."
+        : "The color loses strength as it runs.",
+    conflicts: [
+      "gray",
+      "tinted-gray",
+      "pale-soft",
+      "pale",
+      "one-color",
+      "tints",
+      "shades",
+      "tones",
+      "tints-and-shades",
+    ],
+  },
+  {
+    // WHERE the colour is loudest, which is a different question from where the
+    // brightness peaks and routinely has a different answer: a ramp can be
+    // brightest at its pale end and most colourful in its middle.
+    id: "strongest-middle",
+    slot: "intensity",
+    prevalence: 0.12,
+    when: (c) =>
+      middleThird(c.f.chromaPeakT) && c.f.denseChromaRange >= NAMEABLE_CHROMA_MOVE,
+    say: () => "Its strongest color sits in the middle of the run.",
+    conflicts: ["one-color"],
+  },
+  {
+    id: "palest-middle",
+    slot: "intensity",
+    prevalence: 0.121,
+    when: (c) =>
+      middleThird(c.f.chromaValleyT) && c.f.denseChromaRange >= NAMEABLE_CHROMA_MOVE,
+    say: () => "Its color thins through the middle and returns at both ends.",
+    conflicts: ["one-color"],
+  },
+  {
+    // The opposite fact, and the rarer one: real colour that never changes
+    // strength. MUTED_CHROMA is the registry's line for "there is colour here
+    // at all", so a grayscale run cannot come through this door and claim to
+    // hold a strength it does not have.
+    id: "even-intensity",
+    slot: "intensity",
+    prevalence: 0.038,
+    when: (c) => c.f.denseChromaRange < 0.03 && c.f.meanChroma >= T.MUTED_CHROMA,
+    say: () => "The color holds one strength from end to end.",
+    conflicts: ["one-color"],
+  },
+
 ];
 
 export { IMPRESSIONS };
@@ -1903,26 +2208,51 @@ export { IMPRESSIONS };
 const READING_ORDER: Record<ImpressionSlot, number> = {
   tone: 0,
   form: 1,
-  motion: 2,
-  use: 3,
+  wheel: 2,
+  intensity: 3,
+  motion: 4,
 };
 
 /**
- * How many impressions a description may spend. Two.
+ * How many impressions a description may spend. Four, and it is a CEILING.
  *
- * The identity sentence is demand-bearing and always present, the view sentence
- * closes the page variant, and everything in between is the character of the
- * palette: at two sentences the paragraph reads as a description and at four it
- * reads as a report. D20's budget is 2 to 4 sentences and roughly 150 to 400
- * characters. Measured over the fixture: the body (identity plus impressions)
- * runs p0 95, p50 189, max 262, and the page paragraph, which adds the view
- * sentence, runs p0 200, p50 294, p95 333, max 367. 809 of 867 palettes spend
- * both sentences; 55 have one true thing worth saying and 3 have none, which is
- * the correct outcome and not a failure. The count rose from 22 over the second
- * and third visual-QA rounds, where several sentences that were firing on
- * palettes they were not true of lost their gates.
+ * D21.4 raised it from two: the owner read the live page and asked for "a
+ * decently long descriptor as if it were a color theory expert describing the
+ * palette". D21.7 is the other half of that instruction, given in the same
+ * session: "the descriptor doesnt have to be long if its a simple palette". So
+ * the budget is never a quota. A palette spends a sentence only on a fact that
+ * is true, that no other chosen sentence has said, and (past the first) that
+ * carries at least EARNED_BITS of information. A two-stop pale wash says one
+ * thing and stops; a run that cycles, clips and reverses fills all four.
+ *
+ * Four slots, at most one sentence each, so the description can never spend two
+ * sentences on lightness. Measured over the fixture at this setting: the page
+ * paragraph runs p0 PLACEHOLDER, and the sentence count runs PLACEHOLDER.
  */
-const BUDGET = 2;
+const BUDGET = 4;
+
+/**
+ * How many sentences a description may spend before a row has to earn its
+ * place, and the bar it then has to clear.
+ *
+ * The bar is the registry's own MIN_BITS_TO_SPEAK, imported rather than copied
+ * (D12): 2 bits is a prevalence of 25%, the line past which the registry
+ * retires a word from the visible NAME because it "applies to a quarter of
+ * everything and stops being a description". D21.7 asks for exactly that bar on
+ * sentences, and the split direction rows above exist so a row is scored by the
+ * rarity of the sentence it will actually print.
+ *
+ * It starts at the THIRD sentence because the first two are the description the
+ * owner reviewed and kept ("the first half is fine"): the identity sentence
+ * plus two impressions is what D20 shipped, and D21 raised the ceiling rather
+ * than rewriting what was already approved. The sentences the higher ceiling
+ * buys are the ones that have to be worth reading, so those are the ones held
+ * to the name's bar. Measured over the fixture, the bar removes 291 candidate
+ * third and fourth sentences, every one of them from the four floor rows
+ * (`several-colors` 1.40 bits, `brightens` 2.15 only when it lost its anchor,
+ * `warming` 1.96, `cooling` 1.88).
+ */
+const FREE_SENTENCES = 2;
 
 /**
  * See chooseImpressions: the three temperature rows are a floor, not a
@@ -1950,14 +2280,14 @@ const TEMPERATURE_FLOOR = new Set(["warm", "cool", "warm-and-cool"]);
 function chooseImpressions(c: Ctx): Impression[] {
   const isEcho = (i: Impression) => (i.echoes?.some((w) => echoed(c.phrase, w)) ? 1 : 0);
   // A solid palette has no journey, no shape and no second color: the identity
-  // sentence states the degenerate case in full, and every other slot would be
-  // describing a gradient that is not there ("nearly gray, with very little
-  // color in it" on a pure white field). Only the USE slot survives, because a
-  // single flat color is the most background-like palette there is. The rule
-  // has to bind here rather than on the chosen pair, or the budget fills with
-  // sentences that are then thrown away and the palette says nothing at all.
-  const eligible = (i: Impression) =>
-    i.when(c) && !i.restates?.(c) && (!c.solid || i.slot === "use");
+  // sentence states the degenerate case in full ("that renders as one solid
+  // color: X at every stop"), and every slot would be describing a gradient
+  // that is not there ("nearly gray, with very little color in it" on a pure
+  // white field). It used to keep the USE slot, on the argument that a flat
+  // color is the most background-like palette there is; D21.1 retired that slot
+  // and the argument with it, so a solid palette is now the shortest
+  // description the system emits, which is the honest length for it.
+  const eligible = (i: Impression) => i.when(c) && !i.restates?.(c) && !c.solid;
   const fired = IMPRESSIONS.filter(eligible).sort((a, b) => {
     // Echoes are DEMOTED, not removed: a palette whose only other true fact is
     // "the colors are cool" is better served by repeating the name's word than
@@ -2008,6 +2338,16 @@ function chooseImpressions(c: Ctx): Impression[] {
   for (const imp of fired) {
     if (chosen.length >= BUDGET) break;
     if (slots.has(imp.slot)) continue;
+    // Past the first sentence, a row has to be worth reading (D21.7). Without
+    // this the budget behaves as a quota and every palette runs to four
+    // sentences, three of which say what is true of a third of the site
+    // ("It passes through several colors between its ends" at 1.40 bits,
+    // "It becomes lighter from start to end" at 1.57). The reserved tone
+    // sentence is exempt for the same reason it is reserved: it is the
+    // palette's character, and the reserve exists because rarity alone ranks a
+    // seam ahead of it.
+    if (chosen.length >= FREE_SENTENCES && impressionScore(imp) < MIN_BITS_TO_SPEAK)
+      continue;
     if (
       chosen.some(
         (other) => vetoes(other).includes(imp.id) || vetoes(imp).includes(other.id),
@@ -2294,12 +2634,20 @@ function buildParts(
 
   const chosen = chooseImpressions(ctx);
 
-  // The view sentence: the ONE place steps, style and angle may appear, and the
-  // carrier of the "hex codes / CSS" demand tokens. Page surfaces only.
+  // The view sentence: the ONE place steps, style and angle may appear. Page
+  // surfaces only.
+  //
+  // It used to end ", with the hex codes, CSS, and SVG ready to copy below",
+  // which is where the export demand tokens lived. D21.3 cut that clause: the
+  // export panel is directly under the paragraph, so telling a reader it is
+  // there is telling them what they can already see. The tokens still ship to
+  // crawlers, in the meta description's action clause (META_ACTION) and in the
+  // JSON-LD, which is the right home for a line written for machines; the test
+  // suite asserts they appear THERE and nowhere in the prose.
   const viewSentence = view
     ? `Shown here as a ${styleLabel(view.style)} in ${view.steps} ${
         view.steps === 1 ? "step" : "steps"
-      } at ${deg(view.angle)}°, with the hex codes, CSS, and SVG ready to copy below.`
+      } at ${deg(view.angle)}°.`
     : null;
 
   // Embedding-tail vocabulary: true facts whose measured rate fell below the

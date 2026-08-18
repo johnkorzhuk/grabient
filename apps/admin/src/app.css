@@ -290,6 +290,25 @@
   stroke: var(--surface);
   stroke-width: 2;
 }
+/* Row links over a ranked chart. Transparent until hovered or focused: the
+   bar is the data and must keep its own colour, so the affordance is a faint
+   wash behind it plus the normal focus ring. */
+.chart-row-link {
+  position: absolute;
+  left: 0;
+  right: 0;
+  display: block;
+  border-radius: 4px;
+  transition: background-color 120ms ease;
+}
+.chart-row-link:hover {
+  background: color-mix(in oklab, var(--ink-muted) 12%, transparent);
+}
+.chart-row-link:focus-visible {
+  outline: 2px solid var(--series-1);
+  outline-offset: 1px;
+}
+
 .chart-tip {
   position: absolute;
   z-index: 10;

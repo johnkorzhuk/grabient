@@ -28,7 +28,7 @@ import {
 import { change, RANGES, rollingMean, splitPeriods, sum } from "./range";
 import { href as stateHref, parseState, RANGE_AWARE, type DashboardState, type GlobeMetric } from "./url-state";
 import { buildBrief } from "./brief";
-import { loadSearchConsole, type SearchConsole } from "./search-console";
+import { loadSearchConsole, querySearchConsole, type SearchConsole } from "./search-console";
 import { loadGa4, loadGa4Countries, type Ga4 } from "./ga4";
 import { analyticsMcpHandler } from "./mcp";
 import { runBackfill } from "./backfill";
@@ -44,6 +44,7 @@ import {
   trendCard,
 } from "./insight-pages";
 import { renderMarkdown } from "./markdown";
+import { searchDetailCards, searchRankedCards, searchTrendCards } from "./search-page";
 import { isoDay } from "./range";
 import { getReport, listReports, toMeta } from "./reports";
 import { backfillResultPage, opsPage, reportPage, reportsArchivePage } from "./report-pages";
@@ -435,6 +436,96 @@ app.get("/campaigns", async (c) => {
       : `<div class="mt-6 grid items-start gap-4 lg:grid-cols-2">${campaigns.map(campaignCard).join("\n")}</div>`;
   return seal(
     c.html(layoutPage("/campaigns", "Campaigns — Grabient admin", stamp(now), c.get("email"), body, state)),
+  );
+});
+
+
+// Search: the one page where CTR and average position are series rather than
+// numbers in a caveat, and where every ranked row opens its own history.
+app.get("/search", async (c) => {
+  const now = new Date();
+  const state = parseState(new URL(c.req.url));
+  const range = state.range;
+  const until = isoDay(now);
+  const since = isoDay(new Date(now.getTime() - (range.days - 1) * 86_400_000));
+  const markerRows = await loadMarkers(c.env.ADMIN_DB, since, until);
+  const markers = toChartMarkers(markerRows);
+  const eventsHtml = markerEventsList(markerRows);
+
+  const subject = state.query
+    ? ({ kind: "query", value: state.query } as const)
+    : state.page
+      ? ({ kind: "page", value: state.page } as const)
+      : null;
+
+  // The drill-down is a LIVE Search Console call rather than a read of the
+  // metric store: per-query history is not persisted (query x day would be a
+  // large table for a property this young), and the API answers it directly
+  // over its full 16-month retention.
+  if (subject) {
+    const result = await querySearchConsole(c.env, now, {
+      dimensions: ["date"],
+      days: range.days,
+      limit: 1000,
+      filters: [
+        subject.kind === "query"
+          ? { dimension: "query", operator: "equals", expression: subject.value }
+          : // Google stores page URLs percent-encoded and absolute, so match
+            // that form rather than the decoded path the chart displayed.
+            {
+              dimension: "page",
+              operator: "equals",
+              expression: `https://grabient.com${encodeURI(subject.value).replace(/,/g, "%2C")}`,
+            },
+      ],
+    });
+    const body = !result
+      ? emptyState("Search Console is not configured, so there is no history to show.")
+      : result.refused
+        ? emptyState(`Search Console refused the request (${result.refused.status}): ${result.refused.message}`)
+        : searchDetailCards(subject, result.rows, since, until, markers, eventsHtml);
+    return seal(
+      c.html(
+        layoutPage(
+          "/search",
+          `${subject.value} — Grabient admin`,
+          stamp(now),
+          c.get("email"),
+          `<div class="mt-5 flex flex-wrap items-baseline justify-between gap-3">
+  <div>
+    <p class="text-[11px] font-bold tracking-[0.1em] text-ink-muted uppercase">${esc(subject.kind === "query" ? "Search query" : "Landing page")}</p>
+    <h1 class="mt-1 text-2xl font-bold tracking-tight">${esc(subject.value)}</h1>
+  </div>
+  <a href="${esc(stateHref("/search", state, { query: undefined, page: undefined }))}" class="text-xs text-ink-muted underline hover:text-ink">← All queries and pages</a>
+</div>
+${body}`,
+          state,
+        ),
+      ),
+    );
+  }
+
+  const [trends, search] = await Promise.all([
+    c.env.ADMIN_DB
+      ? searchTrendCards({ db: c.env.ADMIN_DB, since, until, markers, eventsHtml })
+      : Promise.resolve(emptyState("ADMIN_DB is not bound, so there is no stored history.")),
+    loadSearchConsole(c.env, now, range.days),
+  ]);
+
+  const ranked = !search
+    ? emptyState("Search Console is not configured.")
+    : search.queries.length === 0
+      ? emptyState(
+          "Search Console is connected and authenticating, but has returned no rows for this window yet. That is a wait, not a missing integration.",
+        )
+      : searchRankedCards(search.queries, search.pages, search.days, (kind, value) =>
+          stateHref("/search", state, { [kind]: value } as never),
+        );
+
+  return seal(
+    c.html(
+      layoutPage("/search", "Search — Grabient admin", stamp(now), c.get("email"), `${trends}${ranked}`, state),
+    ),
   );
 });
 

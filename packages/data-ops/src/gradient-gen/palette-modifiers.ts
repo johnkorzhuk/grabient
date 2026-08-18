@@ -380,13 +380,18 @@ const EQUAL_C_TOLERANCE = 0.01;
 /**
  * A descriptor must carry this much information to be worth a word in a name.
  *
+ * Exported since 2026-08-18: palette-prose.ts holds its sentences to the same
+ * bar (D21.7 — "a row must clear the same information bar the name's selector
+ * uses"), and D12 says a consumer imports a registry constant rather than
+ * copying its value.
+ *
  * 2 bits is a prevalence of 25%: past that the word applies to a quarter of
  * everything and stops being a description. It is the cutoff that silently
  * retires `warm` (46.0%), `cool` (36.0%), `analogous` (28.0%) and `ramp`
  * (58.6%) from the visible name without removing them as tags, and it is why
  * the name gets quieter rather than longer as the registry grows.
  */
-const MIN_BITS_TO_SPEAK = 2;
+export const MIN_BITS_TO_SPEAK = 2;
 
 /**
  * The measured thresholds, exported read-only for the prose generator
