@@ -4,7 +4,7 @@
 // HTML disabled; the styles ride inline with the page rather than in app.css
 // so they stay scoped to report bodies and cannot drift the dashboard.
 
-import { esc, layout, nav, brand } from "./html";
+import { dataTable, esc, layout, nav, brand } from "./html";
 import { href, type DashboardState } from "./url-state";
 import type { Heading } from "./markdown";
 import type { ReportMeta } from "./reports";
@@ -199,6 +199,39 @@ export function opsPage(
       <form method="post" action="/ops/backfill?dry=1"><button class="rounded-md border border-edge px-3 py-1.5 text-xs font-bold hover:border-ink-muted">Dry run</button></form>
       <form method="post" action="/ops/backfill"><button class="rounded-md bg-ink px-3 py-1.5 text-xs font-bold text-surface">Run full backfill</button></form>
     </div>
+  </section>
+</main>`,
+  );
+}
+
+/** What the backfill did, as a page rather than a JSON blob in the address bar. */
+export function backfillResultPage(
+  report: { ok: boolean; dry: boolean; sources: Record<string, Record<string, unknown>> },
+  options: { stamp: string; email: string; state: DashboardState },
+): string {
+  const rows = Object.entries(report.sources).map(([name, entry]) => [
+    name,
+    String(entry.points ?? 0),
+    entry.firstDay ? `${entry.firstDay} \u2192 ${entry.lastDay}` : "\u2014",
+    entry.written === undefined ? "\u2014" : String(entry.written),
+    entry.revised === undefined ? "\u2014" : String(entry.revised),
+    entry.error ? String(entry.error) : "ok",
+  ]);
+  return layout(
+    "Backfill \u2014 Grabient admin",
+    `<main class="mx-auto max-w-4xl px-6 py-8 sm:py-10">
+  ${pageHeader("/ops", options.stamp, options.email, options.state)}
+  <section class="mt-6 rounded-xl border border-edge bg-surface p-5">
+    <h2 class="text-base font-bold tracking-tight">${report.dry ? "Backfill plan" : "Backfill complete"}</h2>
+    <p class="mt-1.5 text-sm leading-snug text-ink-secondary">${
+      report.dry
+        ? "Nothing was written \u2014 this is what a real run would collect."
+        : report.ok
+          ? "Every source finished. Re-running is safe: the upsert is idempotent, so an unchanged day writes nothing."
+          : "At least one source failed; the others still wrote. Re-run to retry \u2014 nothing double-counts."
+    }</p>
+    <div class="mt-4">${dataTable(["Source", "Points", "Range", "Written", "Revised", "Status"], rows)}</div>
+    <p class="mt-4"><a href="/ops" class="text-xs text-ink-muted underline hover:text-ink">\u2190 Back to ops</a></p>
   </section>
 </main>`,
   );

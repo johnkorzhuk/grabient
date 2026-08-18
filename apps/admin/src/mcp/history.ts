@@ -8,11 +8,24 @@ import { loadMarkers } from "../events";
 import { listGoals } from "../goals";
 import { beforeAfter } from "../lift";
 import { METRIC, metricDef } from "../metrics";
-import { change, isoDay, resolveWindow, rollingMean } from "../range";
+import { change, isoDay, resolveWindow } from "../range";
 import { getReport, listReports, toMeta } from "../reports";
 import { json, notConfigured, toolError } from "./helpers";
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/**
+ * Trailing mean that respects gaps: any window containing a missing day is
+ * null rather than an average over fewer days pretending to be seven.
+ */
+function sparseRollingMean(values: readonly (number | null)[], window = 7): (number | null)[] {
+  return values.map((_, i) => {
+    if (i < window - 1) return null;
+    const slice = values.slice(i - window + 1, i + 1);
+    if (slice.some((v) => v === null)) return null;
+    return (slice as number[]).reduce((a, b) => a + b, 0) / window;
+  });
+}
 
 export function registerHistory(server: McpServer, env: Env, actor: string) {
   server.registerTool(
@@ -56,32 +69,69 @@ export function registerHistory(server: McpServer, env: Env, actor: string) {
       const series = [];
       for (const key of metrics) {
         const def = metricDef(key);
-        const points = await readSeries(db, key, window.since, window.until);
-        const values = points.map((p) => p.value);
-        const smoothed = smooth === false || points.length < 21 ? null : rollingMean(values);
+        const rows = await readSeries(db, key, window.since, window.until);
+        // Densify to one entry per calendar day before smoothing: a failed
+        // collection leaves no row, and averaging over rows would quietly
+        // span the hole and report a 7-day mean built from 7 rows across 9
+        // days. A gap stays null and breaks the mean, which is the honest
+        // shape.
+        const byDay = new Map(rows.map((p) => [p.day, p]));
+        const points: Array<{ day: string; value: number; provisional: boolean } | null> = [];
+        for (
+          let t = Date.parse(`${window.since}T00:00:00Z`);
+          t <= Date.parse(`${window.until}T00:00:00Z`);
+          t += 86_400_000
+        ) {
+          points.push(byDay.get(new Date(t).toISOString().slice(0, 10)) ?? null);
+        }
+        const smoothed =
+          smooth === false || rows.length < 21
+            ? null
+            : sparseRollingMean(points.map((p) => (p ? p.value : null)));
         let comparison: unknown;
         if (compare && def && (def.agg === "sum" || def.agg === "avg")) {
           const prev = await readSeries(db, key, window.prevSince, window.prevUntil);
           const agg = (list: number[]) =>
             def.agg === "avg" ? (list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0) : list.reduce((a, b) => a + b, 0);
-          comparison = change(Math.round(agg(values)), Math.round(agg(prev.map((p) => p.value))));
+          comparison = change(
+            Math.round(agg(rows.map((p) => p.value))),
+            Math.round(agg(prev.map((p) => p.value))),
+          );
         }
-        const expected =
-          Math.round((Date.parse(window.until) - Date.parse(window.since)) / 86_400_000) + 1;
+        const expected = points.length;
+        const gaps = points
+          .map((p, i) => (p === null ? i : -1))
+          .filter((i) => i >= 0)
+          .map((i) => new Date(Date.parse(`${window.since}T00:00:00Z`) + i * 86_400_000).toISOString().slice(0, 10));
         series.push({
           metric: key,
           label: def?.label ?? key,
           agg: def?.agg,
           caveat: def?.caveat,
-          points: points.map((p) => ({
-            day: p.day,
-            value: p.value,
-            ...(p.provisional ? { provisional: true } : {}),
-            ...(smoothed
-              ? { mean7: smoothed[points.indexOf(p)] === null ? null : Math.round(smoothed[points.indexOf(p)]! * 10) / 10 }
-              : {}),
-          })),
-          coverage: { expectedDays: expected, presentDays: points.length },
+          points: points
+            .map((p, i) =>
+              p === null
+                ? null
+                : {
+                    day: p.day,
+                    value: p.value,
+                    ...(p.provisional ? { provisional: true } : {}),
+                    ...(smoothed
+                      ? {
+                          mean7:
+                            smoothed[i] === null ? null : Math.round(smoothed[i]! * 10) / 10,
+                        }
+                      : {}),
+                  },
+            )
+            .filter((p): p is NonNullable<typeof p> => p !== null),
+          coverage: {
+            expectedDays: expected,
+            presentDays: rows.length,
+            // Named, not just counted: "which day is missing" is the question
+            // that follows "some days are missing".
+            ...(gaps.length ? { gaps: gaps.slice(0, 40) } : {}),
+          },
           ...(comparison ? { change: comparison } : {}),
         });
       }
@@ -150,7 +200,9 @@ export function registerHistory(server: McpServer, env: Env, actor: string) {
         slug: z.string().optional(),
         limit: z.number().int().min(1).max(50).optional(),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+      // NOT idempotent: action:'generate' writes an archive row per call for
+      // a day period, so a retry leaves two.
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     async ({ action, period, save, slug, limit }) => {
       const now = new Date();

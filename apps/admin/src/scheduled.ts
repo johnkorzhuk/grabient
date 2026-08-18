@@ -55,7 +55,15 @@ export async function scheduled(
         const periods = periodsClosing(now);
         const results = [];
         for (const period of periods) {
-          results.push({ period, result: await generateDigest(env, now, period, "cron") });
+          // Per-period, because two can close on the same morning (1 October
+          // closes both the month and the quarter) and one failing must not
+          // take the other with it.
+          try {
+            results.push({ period, result: await generateDigest(env, now, period, "cron") });
+          } catch (err) {
+            console.error(`digest ${period} failed`, err);
+            results.push({ period, result: { ok: false, error: String(err).slice(0, 300) } });
+          }
         }
         return { rowsWritten: results.length, detail: results.length ? results : "no periods closed today" };
       });

@@ -45,7 +45,10 @@ export function registerIndexation(server: McpServer, env: Env) {
         maxUrls: z.number().int().min(1).max(300).optional(),
         limit: z.number().int().min(1).max(500).optional(),
       }),
-      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+      // NOT idempotent: action:'sweep' spends real Google quota that is shared
+      // with the owner's own Search Console tab, so a retry costs something
+      // real. Everything else here is a read.
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false },
     },
     async ({ action, url, bucket, maxUrls, limit }) => {
       const now = new Date();
@@ -61,6 +64,7 @@ export function registerIndexation(server: McpServer, env: Env) {
               );
         }
         case "sweep": {
+          if (!db) return notConfigured("The metric store", "ADMIN_DB binding + migrations");
           const result = await runSweep(env, now, { trigger: "mcp", maxUrls: maxUrls ?? 50 });
           return json(result);
         }

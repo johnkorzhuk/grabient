@@ -46,7 +46,7 @@ import {
 import { renderMarkdown } from "./markdown";
 import { isoDay } from "./range";
 import { getReport, listReports, toMeta } from "./reports";
-import { opsPage, reportPage, reportsArchivePage } from "./report-pages";
+import { backfillResultPage, opsPage, reportPage, reportsArchivePage } from "./report-pages";
 import { scheduled } from "./scheduled";
 import { listSweeps } from "./sweep";
 
@@ -508,10 +508,26 @@ app.get("/ops", async (c) => {
 // an agent retrying a backfill in a loop is a quota risk; a human is not.
 app.post("/ops/backfill", async (c) => {
   const source = c.req.query("source") as any;
-  const days = c.req.query("days") ? Number(c.req.query("days")) : undefined;
+  // Guarded: ?days=x made this NaN, which reached resolveWindow and threw a
+  // RangeError out of toISOString().
+  const raw = Number(c.req.query("days"));
+  const days = Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : undefined;
   const dry = c.req.query("dry") === "1";
   const report = await runBackfill(c.env, new Date(), { source, days, dry });
-  return seal(c.json(report));
+  // A form POST from /ops used to land the reader on a raw JSON blob with no
+  // way back. Machines asking for JSON still get JSON.
+  if ((c.req.header("accept") ?? "").includes("application/json")) {
+    return seal(c.json(report));
+  }
+  return seal(
+    c.html(
+      backfillResultPage(report, {
+        stamp: stamp(new Date()),
+        email: c.get("email"),
+        state: parseState(new URL(c.req.url)),
+      }),
+    ),
+  );
 });
 
 app.notFound((c) => seal(c.html(errorPage(404, "Not found", "No such page."), 404)));

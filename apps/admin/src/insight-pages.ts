@@ -47,12 +47,30 @@ export function markerEventsList(markers: MarkerRow[]): string {
   );
 }
 
-const toPoints = (series: SeriesPoint[]) =>
-  series.map((p) => ({
-    date: new Date(`${p.day}T00:00:00Z`),
-    value: p.value,
-    provisional: p.provisional,
-  }));
+/**
+ * Rows -> one point per CALENDAR day, with `null` where collection failed.
+ *
+ * The charts and the trailing mean both have careful gap handling that was
+ * unreachable: metric_daily.value is NOT NULL and a failed collection leaves
+ * no row at all, so the series arrived dense-but-short and the line was drawn
+ * straight across the hole. A reader saw no outage, and the 7-day mean at the
+ * far side averaged seven ROWS spanning eight days.
+ */
+const toPoints = (series: SeriesPoint[], since: string, until: string) => {
+  const byDay = new Map(series.map((p) => [p.day, p]));
+  const out: Array<{ date: Date; value: number | null; provisional?: boolean }> = [];
+  const end = Date.parse(`${until}T00:00:00Z`);
+  for (let t = Date.parse(`${since}T00:00:00Z`); t <= end; t += dayMs) {
+    const day = new Date(t).toISOString().slice(0, 10);
+    const point = byDay.get(day);
+    out.push({
+      date: new Date(t),
+      value: point ? point.value : null,
+      ...(point?.provisional ? { provisional: true } : {}),
+    });
+  }
+  return out;
+};
 
 export interface TrendChartSpec {
   title: string;
@@ -84,7 +102,7 @@ export async function trendCard(
     const m = spec.metrics[i]!;
     const points = await readSeries(db, m.key, since, until);
     if (points.length) {
-      series.push({ label: m.label, points: toPoints(points), color: seriesColor(i), raw: points, key: m.key });
+      series.push({ label: m.label, points: toPoints(points, since, until), color: seriesColor(i), raw: points, key: m.key });
     }
   }
   if (series.length === 0) return null;
@@ -128,14 +146,15 @@ export async function trendCard(
   return chartCard({
     title: spec.title,
     note: spec.note,
+    // Dedupe first, THEN cap: slicing before the Set meant a three-series card
+    // showed series[0]'s caveat and dropped the others without saying so.
     caveat: [
       spec.caveat,
-      ...new Set(
-        series
-          .map((s) => metricDef(s.key)?.caveat)
-          .filter((c): c is string => Boolean(c))
-          .slice(0, 1),
-      ),
+      ...[
+        ...new Set(
+          series.map((s) => metricDef(s.key)?.caveat).filter((c): c is string => Boolean(c)),
+        ),
+      ].slice(0, 2),
     ]
       .filter(Boolean)
       .join(" "),

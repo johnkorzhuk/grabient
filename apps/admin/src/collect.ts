@@ -92,13 +92,31 @@ export async function collectGa4(
     );
   }
 
-  const channels = await queryGa4(env, now, {
-    dimensions: ["date", "sessionDefaultChannelGroup"],
-    metrics: ["sessions", "screenPageViews"],
-    days,
-    limit: 1000,
-  });
-  for (const row of channels?.rows ?? []) {
+  // Channels are date x channel, so the row count is days x ~10 and the API
+  // caps a response at 1,000 rows. A 430-day backfill therefore returned about
+  // 100 days in GA4's own order and reported success — silently truncating the
+  // exact series two of the five goals are measured on. Page through it.
+  const channelRows: Array<Record<string, string | number>> = [];
+  for (let offset = 0; ; offset += 1000) {
+    const page = await queryGa4(env, now, {
+      dimensions: ["date", "sessionDefaultChannelGroup"],
+      metrics: ["sessions", "screenPageViews"],
+      days,
+      limit: 1000,
+      offset,
+    });
+    const rows = page?.rows ?? [];
+    channelRows.push(...rows);
+    if (page?.meta.otherRow) {
+      console.error(
+        "GA4 folded low-frequency channels into (other); per-channel history for this window is lossy.",
+      );
+    }
+    // Stop on a short page, or once every matching row has been collected.
+    if (rows.length < 1000 || channelRows.length >= (page?.rowCount ?? 0)) break;
+    if (offset > 20_000) break; // hard stop; nothing legitimate reaches this
+  }
+  for (const row of channelRows) {
     const day = ga4Day(String(row.date ?? ""));
     if (!day) continue;
     const channel = slugify(String(row.sessionDefaultChannelGroup ?? "unassigned"));
@@ -184,16 +202,24 @@ export async function collectD1(
 
   const today = isoDay(now);
   const points: MetricPoint[] = [];
+  // One rule for every point, whichever branch produced it: today is still
+  // being written, everything older is settled. The previous version had this
+  // backwards — a carry-forward on a quiet day was marked provisional and,
+  // because a quiet day has no activity row, was never re-upserted, so the
+  // dashed "still settling" tail became a dashed history; meanwhile an active
+  // day's cumulative total was written FINAL at 04:20, when the day was 18%
+  // over.
   const emit = (rows: Array<{ day: string; n: number }>, dailyKey: string | null, cumulativeKey: string | null) => {
     let total = 0;
     for (const row of rows) {
       if (!row.day || row.day > today) continue;
       total += row.n;
-      if (dailyKey) points.push({ key: dailyKey, day: row.day, value: row.n });
-      if (cumulativeKey) points.push({ key: cumulativeKey, day: row.day, value: total });
+      const provisional = row.day >= today;
+      if (dailyKey) points.push({ key: dailyKey, day: row.day, value: row.n, provisional });
+      if (cumulativeKey) points.push({ key: cumulativeKey, day: row.day, value: total, provisional });
     }
-    // Carry the cumulative value forward to today so "last" reads are current
-    // even on days with no new rows.
+    // Carry the cumulative value to today so "last" reads are current even on
+    // a day with no new rows.
     if (cumulativeKey && rows.length && rows[rows.length - 1]!.day < today) {
       points.push({ key: cumulativeKey, day: today, value: total, provisional: true });
     }

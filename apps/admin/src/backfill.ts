@@ -57,27 +57,33 @@ export async function runBackfill(
   if (source === "all" || source === "bing") plan.push(["bing", () => collectBing(env, now)]);
 
   let totalWritten = 0;
-  for (const [name, collect] of plan) {
-    try {
-      const points = await collect();
-      const days = points.map((p) => p.day).sort();
-      const entry: BackfillReport["sources"][string] = {
-        points: points.length,
-        firstDay: days[0],
-        lastDay: days[days.length - 1],
-      };
-      if (!dry && points.length) {
-        const { written, revised } = await upsertMetrics(db, points, now.getTime());
-        entry.written = written;
-        entry.revised = revised;
-        totalWritten += written;
+  try {
+    for (const [name, collect] of plan) {
+      try {
+        const points = await collect();
+        const days = points.map((p) => p.day).sort();
+        const entry: BackfillReport["sources"][string] = {
+          points: points.length,
+          firstDay: days[0],
+          lastDay: days[days.length - 1],
+        };
+        if (!dry && points.length) {
+          const { written, revised } = await upsertMetrics(db, points, now.getTime());
+          entry.written = written;
+          entry.revised = revised;
+          totalWritten += written;
+        }
+        report.sources[name] = entry;
+      } catch (err) {
+        report.ok = false;
+        report.sources[name] = { points: 0, error: String(err).slice(0, 300) };
       }
-      report.sources[name] = entry;
-    } catch (err) {
-      report.ok = false;
-      report.sources[name] = { points: 0, error: String(err).slice(0, 300) };
     }
+  } finally {
+    // In a finally so a kill mid-run still closes the books. Without it the row
+    // stays ok=NULL and /ops shows "running" forever — on the page that exists
+    // to tell a stalled job from a live one.
+    if (!dry) await closeRun(db, runId, report.ok, totalWritten, report.sources);
   }
-  if (!dry) await closeRun(db, runId, report.ok, totalWritten, report.sources);
   return report;
 }

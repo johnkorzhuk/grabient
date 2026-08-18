@@ -41,10 +41,17 @@ const tokenCache = new Map<string, { expiresAt: number; token: string }>();
 export async function accessToken(
   account: ServiceAccount,
   scope: string,
-  now: Date,
+  _now: Date,
 ): Promise<string | null> {
+  // Deliberately NOT the caller's `now`. In a scheduled handler that value is
+  // controller.scheduledTime and never advances, so freshness would compare a
+  // constant against a constant: a sweep still running an hour later would
+  // keep presenting a dead token and count the 401s as inspection errors. The
+  // day-stamping elsewhere still wants scheduledTime; token lifetime wants the
+  // real clock.
+  const nowMs = Date.now();
   const cached = tokenCache.get(scope);
-  if (cached && now.getTime() < cached.expiresAt - 60_000) return cached.token;
+  if (cached && nowMs < cached.expiresAt - 60_000) return cached.token;
 
   let assertion: string;
   try {
@@ -56,8 +63,8 @@ export async function accessToken(
       .setProtectedHeader({ alg: "RS256" })
       .setIssuer(account.client_email)
       .setAudience(TOKEN_URL)
-      .setIssuedAt(Math.floor(now.getTime() / 1000))
-      .setExpirationTime(Math.floor(now.getTime() / 1000) + 3600)
+      .setIssuedAt(Math.floor(nowMs / 1000))
+      .setExpirationTime(Math.floor(nowMs / 1000) + 3600)
       .sign(key);
   } catch (err) {
     console.error("Google assertion signing failed", err);
@@ -83,7 +90,7 @@ export async function accessToken(
     }
     tokenCache.set(scope, {
       token: payload.access_token,
-      expiresAt: now.getTime() + (payload.expires_in ?? 3600) * 1000,
+      expiresAt: Date.now() + (payload.expires_in ?? 3600) * 1000,
     });
     return payload.access_token as string;
   } catch (err) {
