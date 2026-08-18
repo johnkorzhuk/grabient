@@ -518,15 +518,25 @@ const GAMUT_BISECTIONS = 24;
  * of the chroma sRGB physically permits at their own lightness.
  *
  * HOW. Binary search on chroma along the (L, h) ray, testing the OkLab →
- * linear-sRGB matrices above. No table, deliberately: a precomputed 32x36 grid
- * with bilinear interpolation (the first design) was measured against exact
- * bisection over 6,960 real palette stops at mean 1.6% / p99 16.3% / max 48.2%
- * relative error, worst exactly where this bug lives (L 0.99 near the yellow
- * cusp, where max chroma is a sharp tent in L that no coarse grid can follow),
- * and it cost 7.8 ms to build at module load — a cold-start tax on every
- * isolate. Even a 129x180 grid still peaked at 15.6% error for 32 ms of build.
- * Exact bisection costs 0.047 ms per palette of lookups (70 lookups, 24 steps
- * each) and nothing at load, so accuracy is simply cheaper here.
+ * linear-sRGB matrices above.
+ *
+ * NO TABLE, DELIBERATELY, against the obvious instinct to precompute. Measured
+ * against exact bisection over 6,960 real palette stops (2026-08-17):
+ *
+ *   grid       build     mean err   p95     p99      worst
+ *   32x36      14.2 ms   1.60%      8.26%   16.31%   48.15% @ L 0.992 h 113
+ *   65x144     57.6 ms   0.40%      2.36%   10.19%   11.97% @ L 0.063 h 264
+ *   129x180    100.7 ms  0.29%      1.55%    6.90%   15.60% @ L 0.361 h 264
+ *
+ * A grid fails exactly where this bug lives: near the cusps the ceiling is a
+ * sharp tent in L (at L 0.99 around yellow it collapses from 0.04 to 0.02 in a
+ * hundredth of a unit), so interpolation misreads the light tints whose
+ * saturation the fix depends on, and it charges every isolate a cold-start tax
+ * to be wrong. Exact bisection measures 360 ns per lookup, 61 lookups per
+ * palette (48 dense + 13 rendered stops) = 22 us, and costs nothing at load.
+ * Inside paletteFeatures that is 59.5 us → 81.2 us per palette; against the
+ * pre-fix code (78.4 us) the net is +3.6%, because passing stops around with
+ * their saturation attached also removed a duplicate hex → OkLCh pass.
  */
 export function maxChromaFor(L: number, hue: number): number {
     if (!(L > 0) || L >= 1) return 0; // black and white hold no chroma at all

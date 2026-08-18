@@ -175,32 +175,99 @@ function landDots(): (readonly [number, number])[] {
  * rather than a continuous scale because past four sizes nobody can tell two
  * dots apart, and the list beside the map carries the exact numbers anyway.
  */
-const STEP_RADIUS = [3.2, 4.4, 5.8, 7.4] as const;
+/**
+ * Four size steps, by the square root of the share.
+ *
+ * Square root because a dot is read by area, so scaling the radius linearly
+ * would make the top country look like ten times its true share. Four steps
+ * rather than a continuous scale because past four sizes nobody can tell two
+ * dots apart, and the list beside the map carries the exact numbers anyway.
+ */
+const STEP_RADIUS = [2.4, 3.4, 4.6, 6.0] as const;
 
-function step(requests: number, max: number): number {
+function step(value: number, max: number): number {
   if (max <= 0) return 0;
-  const scaled = Math.sqrt(Math.max(0, requests) / max);
+  const scaled = Math.sqrt(Math.max(0, value) / max);
   return Math.min(3, Math.max(0, Math.ceil(scaled * STEP_RADIUS.length) - 1));
 }
 
-const DEFAULT_NOTE =
-  "Every request Cloudflare's edge served, crawlers and scrapers included. " +
-  "This is not bot-filtered and it is not a count of people.";
+/**
+ * The datasets that fit this shape: one number per country.
+ *
+ * They are deliberately not interchangeable readings of "traffic" — requests
+ * counts machines, people counts people, and the gap between the two maps is
+ * the most informative thing on this card. Each carries its own caveat so the
+ * note under the title always matches the layer being drawn.
+ */
+export type GlobeMetric = "requests" | "people" | "threats" | "data";
+
+const bytes = (n: number): string => {
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = n;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit += 1;
+  }
+  return `${value >= 100 || unit === 0 ? Math.round(value) : value.toFixed(1)} ${units[unit]}`;
+};
+
+export const GLOBE_METRICS: Record<
+  GlobeMetric,
+  { label: string; unit: string; title: string; note: string; format: (n: number) => string }
+> = {
+  requests: {
+    label: "Requests",
+    unit: "requests",
+    title: "Where the requests come from",
+    note: "Every request Cloudflare's edge served, crawlers and scrapers included. This is not bot-filtered and it is not a count of people — compare it against People to see how much of this map is automation.",
+    format: fmt,
+  },
+  people: {
+    label: "People",
+    unit: "sessions",
+    title: "Where the people come from",
+    note: "GA4 sessions by country — the bot-filtered view, since a crawler never runs the page's JavaScript. This is the map to trust for audience; Requests is the map for load and cost.",
+    format: fmt,
+  },
+  threats: {
+    label: "Threats",
+    unit: "threats",
+    title: "Where the threats come from",
+    note: "Requests Cloudflare's own security layer classified as threats and acted on. A country lighting up here is being blocked, not served — this is the WAF working, not an incident.",
+    format: fmt,
+  },
+  data: {
+    label: "Data served",
+    unit: "served",
+    title: "Where the bandwidth goes",
+    note: "Bytes Cloudflare's edge sent, crawlers included. Bandwidth is what a heavy client costs us regardless of whether it is a person, so this map and Requests disagree wherever one country pulls bigger pages.",
+    format: bytes,
+  },
+};
 
 /**
- * The request-distribution card: globe, ranked list, table view.
+ * The world-distribution card: globe, ranked list, table view — for whichever
+ * dataset the URL asked for.
  *
- * `rows` is ISO-3166 alpha-2 codes with request counts, already sorted
- * descending — the ranking is the caller's, so the same order shows up in the
- * list, the table and the dot sizes.
+ * `rows` is ISO-3166 alpha-2 codes with a value, already sorted descending;
+ * the ranking is the caller's, so the same order reaches the list, the table
+ * and the dot sizes.
  */
-export function worldDistributionCard(
-  rows: Array<{ code: string; requests: number }>,
-  opts: { total: number; days: number; note?: string },
-): string {
-  const note = opts.note ?? DEFAULT_NOTE;
-  const max = rows.reduce((best, row) => Math.max(best, row.requests), 0);
-  const share = (n: number) => (opts.total > 0 ? (n / opts.total) * 100 : 0);
+export function worldDistributionCard(input: {
+  rows: Array<{ code: string; value: number }>;
+  metric: GlobeMetric;
+  total: number;
+  days: number;
+  /** Metrics with data behind them right now — GA4 may not be configured. */
+  available: readonly GlobeMetric[];
+  /** Href builder for the toggle, so the range in the URL survives a switch. */
+  href: (metric: GlobeMetric) => string;
+}): string {
+  const { rows, metric, total, days } = input;
+  const spec = GLOBE_METRICS[metric];
+  const max = rows.reduce((best, row) => Math.max(best, row.value), 0);
+  const share = (n: number) => (total > 0 ? (n / total) * 100 : 0);
 
   // Only the countries we can place get a dot. The rest are still in the list
   // and the table, which is where the numbers actually live.
@@ -211,16 +278,16 @@ export function worldDistributionCard(
         ? {
             code: row.code.toUpperCase(),
             name: countryName(row.code),
-            requests: row.requests,
+            value: row.value,
             lat: at[0],
             lon: at[1],
-            step: step(row.requests, max),
+            step: step(row.value, max),
           }
         : null;
     })
     .filter((row): row is NonNullable<typeof row> => row !== null)
     // Biggest last, so the loudest dots sit on top of the quiet ones.
-    .sort((a, b) => a.requests - b.requests);
+    .sort((a, b) => a.value - b.value);
 
   const litPaths = STEP_RADIUS.map((radius, index) => {
     const dots = placed
@@ -235,18 +302,18 @@ export function worldDistributionCard(
 
   const map =
     `<svg class="globe-map" viewBox="0 ${MAP_TOP} ${MAP_W} ${MAP_H}" role="img" ` +
-    `aria-label="World map with the countries sending requests marked, largest first: ${esc(
+    `aria-label="World map with the countries by ${esc(spec.unit)} marked, largest first: ${esc(
       rows
         .slice(0, 5)
         .map((row) => countryName(row.code))
         .join(", "),
     )}">` +
-    `<path class="globe-land" stroke-width="2.2" d="${dotPath(landDots())}"/>` +
+    `<path class="globe-land" stroke-width="1.7" d="${dotPath(landDots())}"/>` +
     litPaths +
     `</svg>`;
 
-  // The canvas needs the same dots plus the labels, and the labels are formatted
-  // here so the script never has to know about Intl or number formatting.
+  // The canvas needs the same dots plus the labels, and the labels are
+  // formatted here so the script never has to know about Intl or units.
   const payload = {
     lat0: LAT_TOP,
     lon0: LON_LEFT,
@@ -257,44 +324,58 @@ export function worldDistributionCard(
       lo: row.lon,
       r: STEP_RADIUS[row.step],
       n: row.name,
-      v: `${fmt(row.requests)} requests`,
-      s: `${share(row.requests).toFixed(1)}% of all requests`,
+      v: `${spec.format(row.value)} ${spec.unit}`,
+      s: `${share(row.value).toFixed(1)}% of the total`,
     })),
   };
   const json = JSON.stringify(payload).replace(/&/g, "&amp;").replace(/'/g, "&#39;");
 
+  const toggle = input.available
+    .map((key) => {
+      const active = key === metric;
+      return `<a href="${esc(input.href(key))}"${active ? ' aria-current="true"' : ""} class="rounded-md px-2 py-0.5 text-xs font-bold uppercase transition-colors ${
+        active ? "bg-ink text-surface" : "text-ink-muted hover:text-ink"
+      }">${esc(GLOBE_METRICS[key].label)}</a>`;
+    })
+    .join("");
+
   const list = rows.slice(0, 12);
   const listRows = list
     .map((row) => {
-      const width = max > 0 ? Math.max(2, (row.requests / max) * 100) : 0;
+      const width = max > 0 ? Math.max(2, (row.value / max) * 100) : 0;
       return `<li class="grid grid-cols-[1fr_auto] items-baseline gap-x-3 gap-y-1 py-1.5">
     <span class="truncate text-sm">${esc(countryName(row.code))}</span>
-    <span class="font-system text-sm tabular-nums text-ink-secondary">${esc(fmt(row.requests))}</span>
+    <span class="text-sm tabular-nums text-ink-secondary">${esc(spec.format(row.value))}</span>
     <span class="col-span-2 h-1 w-full rounded-full bg-edge"><span class="block h-1 rounded-full bg-series" style="width:${width.toFixed(1)}%"></span></span>
   </li>`;
     })
     .join("");
 
   const table = dataTable(
-    ["Country", "Requests", "Share"],
+    ["Country", spec.label, "Share"],
     rows.map((row) => [
       `${countryName(row.code)} (${row.code.toUpperCase()})`,
-      fmt(row.requests),
-      `${share(row.requests).toFixed(1)}%`,
+      spec.format(row.value),
+      `${share(row.value).toFixed(1)}%`,
     ]),
   );
 
-  const empty = `<p class="mt-4 text-sm text-ink-secondary">No requests recorded in this window.</p>`;
-
   return `<section class="flex flex-col rounded-xl border border-edge bg-surface p-5">
-  <h2 class="text-base font-bold tracking-tight">Where the requests come from</h2>
-  <p class="mt-1.5 text-sm leading-snug text-ink-secondary">${esc(fmt(opts.total))} requests over ${
-    opts.days
-  } days, by country.</p>
-  <p class="mt-1.5 text-xs leading-snug text-ink-muted">${esc(note)}</p>
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="text-base font-bold tracking-tight">${esc(spec.title)}</h2>
+      <p class="mt-1.5 text-sm leading-snug text-ink-secondary">${esc(spec.format(total))} ${esc(
+        spec.unit,
+      )} over ${days} days, by country.</p>
+    </div>
+    <div class="flex items-center gap-1">${toggle}</div>
+  </div>
+  <p class="mt-1.5 text-xs leading-snug text-ink-muted">${esc(spec.note)}</p>
   ${
     rows.length === 0
-      ? empty
+      ? `<p class="mt-4 rounded-lg border border-edge bg-page p-4 text-sm text-ink-secondary">No ${esc(
+          spec.unit,
+        )} recorded in this window. That is a real zero for the range, not a missing integration.</p>`
       : `<div class="mt-4 grid gap-5 md:grid-cols-[3fr_2fr]">
     <div class="globe-stage" data-globe='${json}'>
       ${map}
@@ -344,11 +425,26 @@ const GLOBE_SCRIPT = String.raw`
 
     // Land as [lat, lon] pairs, expanded from the row strings the SVG was built
     // from — one dataset, two renderings.
-    var land = [];
-    for (var r = 0; r < cfg.land.length; r++) {
+    // Land as [lat, lon], DENSIFIED: a midpoint is added between neighbouring
+    // land cells, and at the centre of any four that form a square. The mask is
+    // 4 degrees coarse, which reads as blobs at globe size; interpolating from
+    // the data already present triples the dot count without a byte more
+    // payload, and a stylised dot map is exactly the kind of drawing where
+    // interpolation is honest — the coastline is not being invented, the
+    // spacing is.
+    var land = [], half = cfg.cell / 2;
+    function at(r, c) {
       var row = cfg.land[r];
-      for (var c = 0; c < row.length; c++) {
-        if (row.charAt(c) === "1") land.push([cfg.lat0 - r * cfg.cell, cfg.lon0 + c * cfg.cell]);
+      return !!row && row.charAt(c) === "1";
+    }
+    for (var r = 0; r < cfg.land.length; r++) {
+      for (var c = 0; c < cfg.land[r].length; c++) {
+        if (!at(r, c)) continue;
+        var la = cfg.lat0 - r * cfg.cell, lo = cfg.lon0 + c * cfg.cell;
+        land.push([la, lo]);
+        if (at(r, c + 1)) land.push([la, lo + half]);
+        if (at(r + 1, c)) land.push([la - half, lo]);
+        if (at(r, c + 1) && at(r + 1, c) && at(r + 1, c + 1)) land.push([la - half, lo + half]);
       }
     }
 
@@ -396,40 +492,67 @@ const GLOBE_SCRIPT = String.raw`
 
     function draw() {
       ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = ink;
+
+      // The body of the planet, lit from the upper left. A flat wash reads as a
+      // disc with dots on it; the gradient plus the darker limb is what makes
+      // the same dots read as curving away over a sphere.
+      var body = ctx.createRadialGradient(
+        cx - radius * 0.35, cy - radius * 0.4, radius * 0.1,
+        cx, cy, radius,
+      );
+      body.addColorStop(0, ink);
+      body.addColorStop(1, ink);
       ctx.globalAlpha = 0.05;
+      ctx.fillStyle = body;
       ctx.beginPath();
       ctx.arc(cx, cy, radius, 0, Math.PI * 2);
       ctx.fill();
+      // A second pass, offset and tighter, is the highlight — cheaper and more
+      // controllable than trying to express both stops in one gradient.
+      ctx.globalAlpha = 0.045;
+      ctx.beginPath();
+      ctx.arc(cx - radius * 0.18, cy - radius * 0.2, radius * 0.72, 0, Math.PI * 2);
+      ctx.fill();
+      // The terminator: a hairline at the limb so the sphere has an edge even
+      // where no land dot reaches it.
+      ctx.globalAlpha = 0.14;
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.stroke();
 
-      // Dots near the limb fade out, which is the whole depth cue — without it a
-      // sphere of evenly bright dots reads as a disc.
+      // Land. Small and dense: the dot grid is the texture, not the subject, and
+      // the alpha ramp on cosc (1 facing us, 0 at the limb) is the depth cue.
       ctx.fillStyle = ink;
+      var lr = Math.max(0.65, radius * 0.0062);
       for (var i = 0; i < land.length; i++) {
         var p = project(land[i][0], land[i][1]);
         if (!p) continue;
-        ctx.globalAlpha = 0.12 + 0.3 * p[2];
+        ctx.globalAlpha = 0.08 + 0.34 * p[2] * p[2];
         ctx.beginPath();
-        ctx.arc(p[0], p[1], radius * 0.011, 0, Math.PI * 2);
+        ctx.arc(p[0], p[1], lr, 0, Math.PI * 2);
         ctx.fill();
       }
 
+      // Traffic. A soft halo rather than a hard ring: overlapping dots stay
+      // separable, and the glow is what makes a lit country read as emitting
+      // rather than as a sticker.
       hits = [];
       for (var j = 0; j < cfg.dots.length; j++) {
         var dot = cfg.dots[j];
         var q = project(dot.la, dot.lo);
         if (!q) continue;
-        var size = (dot.r / 360) * radius * 2.6;
-        // The 2px surface ring keeps overlapping dots legible, same as the
-        // markers on the charts.
-        ctx.globalAlpha = 1;
-        ctx.strokeStyle = surface;
-        ctx.lineWidth = 2;
+        var size = Math.max(1.6, (dot.r / 360) * radius * 2.1);
+        ctx.globalAlpha = 0.16 + 0.24 * q[2];
         ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.arc(q[0], q[1], size * 2.1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.55 + 0.45 * q[2];
         ctx.beginPath();
         ctx.arc(q[0], q[1], size, 0, Math.PI * 2);
         ctx.fill();
-        ctx.stroke();
         hits.push([q[0], q[1], j]);
       }
       ctx.globalAlpha = 1;
@@ -467,20 +590,14 @@ const GLOBE_SCRIPT = String.raw`
       tip.style.top = Math.max(0, event.clientY - rect.top - 10) + "px";
     }
 
-    var dragging = false, touched = false, lastX = 0, frame = 0;
-    var still = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    function tick() {
-      if (touched || still) return;
-      spin = (spin + 0.15) % 360;
-      draw();
-      frame = requestAnimationFrame(tick);
-    }
+    // Deliberately still. An idle spin is motion the reader did not ask for,
+    // it drags the eye off whatever they were reading elsewhere on the page,
+    // and it moves the dot they were about to point at. Drag to rotate; the
+    // globe holds the position it is left in.
+    var dragging = false, lastX = 0;
 
     canvas.addEventListener("pointerdown", function (event) {
       dragging = true;
-      touched = true;
-      if (frame) cancelAnimationFrame(frame);
       lastX = event.clientX;
       canvas.setPointerCapture(event.pointerId);
     });
@@ -504,7 +621,6 @@ const GLOBE_SCRIPT = String.raw`
     if (map) map.setAttribute("aria-hidden", "true");
     resize();
     draw();
-    tick();
   }
 
   function boot() { document.querySelectorAll("[data-globe]").forEach(init); }

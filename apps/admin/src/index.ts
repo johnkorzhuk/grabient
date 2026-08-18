@@ -25,10 +25,11 @@ import {
   rangeSelector,
   statTile,
 } from "./html";
-import { change, parseRange, RANGES, rollingMean, splitPeriods, sum, type RangeOption } from "./range";
+import { change, RANGES, rollingMean, splitPeriods, sum } from "./range";
+import { href as stateHref, parseState, RANGE_AWARE, type DashboardState, type GlobeMetric } from "./url-state";
 import { buildBrief } from "./brief";
 import { loadSearchConsole, type SearchConsole } from "./search-console";
-import { loadGa4, type Ga4 } from "./ga4";
+import { loadGa4, loadGa4Countries, type Ga4 } from "./ga4";
 import { analyticsMcpHandler } from "./mcp";
 import { runBackfill } from "./backfill";
 import { listCampaigns } from "./campaigns";
@@ -50,11 +51,18 @@ import { scheduled } from "./scheduled";
 import { listSweeps } from "./sweep";
 
 /** Shared page shell for the new pages — header row + body, sealed by callers. */
-function layoutPage(current: string, title: string, generated: string, email: string, body: string): string {
+function layoutPage(
+  current: string,
+  title: string,
+  generated: string,
+  email: string,
+  body: string,
+  state: DashboardState,
+): string {
   return layout(
     title,
     `<main class="mx-auto max-w-6xl px-6 py-8 sm:py-10">
-  ${header(current, generated, email)}
+  ${header(current, generated, email, state)}
   ${body}
 </main>`,
   );
@@ -119,33 +127,39 @@ app.use("*", async (c, next) => {
 
 app.get("/", async (c) => {
   const now = new Date();
-  const range = parseRange(c.req.query("range"));
-  // Independent sources, so fetch them together. Traffic resolves to null when
-  // it is not configured or the API is unhappy; the page drops those sections
-  // rather than failing.
-  const [metrics, traffic, world] = await Promise.all([
+  const state = parseState(new URL(c.req.url));
+  const { range, globe } = state;
+  // Independent sources, so fetch them together. Each resolves to null when it
+  // is not configured or the API is unhappy; the page drops that section
+  // rather than failing. All of them honour the range from the URL.
+  const [metrics, traffic, world, people] = await Promise.all([
     loadMetrics(c.env.DB, now),
     loadTraffic(c.env, now),
-    loadWorld(c.env, now),
+    loadWorld(c.env, now, range.days),
+    globe === "people" || c.env.GA4_PROPERTY_ID
+      ? loadGa4Countries(c.env, now, range.days)
+      : Promise.resolve(null),
   ]);
-  return seal(c.html(dashboard(metrics, traffic, world, range, c.get("email"))));
+  return seal(c.html(dashboard(metrics, traffic, world, people, state, c.get("email"))));
 });
 
 app.get("/acquisition", async (c) => {
   const now = new Date();
+  const state = parseState(new URL(c.req.url));
+  const range = state.range;
   const [traffic, acquisition, attribution, search, ga4] = await Promise.all([
     loadTraffic(c.env, now),
     loadAcquisition(c.env, now),
     loadAttribution(c.env.DB),
-    loadSearchConsole(c.env, now),
+    loadSearchConsole(c.env, now, range.days),
     // GA4 replaces the RUM referrer card: RUM reports no referrer for 91% of
     // pageloads and sees a third of the traffic — it produced a confidently
     // backwards channel conclusion once. GA4's pageReferrer is the honest one.
-    loadGa4(c.env, now),
+    loadGa4(c.env, now, range.days),
   ]);
   return seal(
     c.html(
-      acquisitionPage(traffic, acquisition, attribution, search, ga4, now, c.get("email")),
+      acquisitionPage(traffic, acquisition, attribution, search, ga4, now, c.get("email"), state),
     ),
   );
 });
@@ -201,6 +215,7 @@ app.get("/brief", async (c) => {
         buildBrief(metrics, traffic, acquisition, search, attribution, referrers, ga4),
         now,
         c.get("email"),
+        parseState(new URL(c.req.url)),
       ),
     ),
   );
@@ -217,7 +232,8 @@ app.get("/trends", async (c) => {
       c.html(errorPage(503, "Not collecting yet", "ADMIN_DB is not bound; the metric store does not exist.")),
     );
   }
-  const range = parseRange(c.req.query("range"));
+  const state = parseState(new URL(c.req.url));
+  const range = state.range;
   const until = isoDay(now);
   const since = isoDay(new Date(now.getTime() - (range.days - 1) * 86_400_000));
   const markerRows = await loadMarkers(db, since, until);
@@ -267,21 +283,26 @@ app.get("/trends", async (c) => {
   return seal(
     c.html(
       layoutPage("/trends", "Trends — Grabient admin", stamp(now), c.get("email"), `
-  <div class="mt-5">${rangeSelector("/trends", range.key, RANGES)}</div>
-  ${body}`),
+  ${body}`,
+        state,
+      ),
     ),
   );
 });
 
 app.get("/indexation", async (c) => {
   const now = new Date();
+  const state = parseState(new URL(c.req.url));
   const db = c.env.ADMIN_DB;
   if (!db) {
     return seal(c.html(errorPage(503, "Not collecting yet", "ADMIN_DB is not bound.")));
   }
   const sweeps = await listSweeps(db, 30);
   const latest = sweeps.find((s: any) => s.status === "complete") ?? sweeps[0];
-  const markerRows = await loadMarkers(db, "2026-08-01", isoDay(now));
+  // The indexed series starts when sweeps did; the range still bounds it, so
+  // the page honours the same control as everything else.
+  const indexSince = isoDay(new Date(now.getTime() - (state.range.days - 1) * 86_400_000));
+  const markerRows = await loadMarkers(db, indexSince, isoDay(now));
   const markers = toChartMarkers(markerRows);
   const eventsHtml = markerEventsList(markerRows);
 
@@ -349,7 +370,7 @@ app.get("/indexation", async (c) => {
         { key: "index.crawled_not_indexed", label: "Crawled, not indexed" },
       ],
     },
-    "2026-08-17",
+    indexSince,
     isoDay(now),
     markers,
     eventsHtml,
@@ -379,25 +400,29 @@ app.get("/indexation", async (c) => {
 </section>`
         : ""
     }
-  </div>`),
+  </div>`,
+        state,
+      ),
     ),
   );
 });
 
 app.get("/goals", async (c) => {
   const now = new Date();
+  const state = parseState(new URL(c.req.url));
   const goals = await listGoals(c.env.ADMIN_DB, now, true);
   const body =
     goals.length === 0
       ? emptyState("No goals yet. The agent sets them through the MCP goals tool, with a baseline, a target and a due date.")
       : `<div class="mt-6 grid items-start gap-4 lg:grid-cols-2">${goals.map(goalCard).join("\n")}</div>`;
   return seal(
-    c.html(layoutPage("/goals", "Goals — Grabient admin", stamp(now), c.get("email"), body)),
+    c.html(layoutPage("/goals", "Goals — Grabient admin", stamp(now), c.get("email"), body, state)),
   );
 });
 
 app.get("/campaigns", async (c) => {
   const now = new Date();
+  const state = parseState(new URL(c.req.url));
   const campaigns = c.env.ADMIN_DB ? await listCampaigns(c.env.ADMIN_DB) : [];
   const body =
     campaigns.length === 0
@@ -406,7 +431,7 @@ app.get("/campaigns", async (c) => {
         )
       : `<div class="mt-6 grid items-start gap-4 lg:grid-cols-2">${campaigns.map(campaignCard).join("\n")}</div>`;
   return seal(
-    c.html(layoutPage("/campaigns", "Campaigns — Grabient admin", stamp(now), c.get("email"), body)),
+    c.html(layoutPage("/campaigns", "Campaigns — Grabient admin", stamp(now), c.get("email"), body, state)),
   );
 });
 
@@ -434,12 +459,14 @@ app.get("/reports/:slug{[a-z0-9][a-z0-9-]*}", async (c) => {
       reportPage(toMeta(report.row), body, headings, {
         stamp: stamp(new Date()),
         email: c.get("email"),
+        state: parseState(new URL(c.req.url)),
       }),
     ),
   );
 });
 
 app.get("/reports", async (c) => {
+  const state = parseState(new URL(c.req.url));
   const kind = c.req.query("kind");
   const { items, nextCursor } = await listReports(c.env.ADMIN_DB, {
     kind: kind === "report" || kind === "digest" ? kind : undefined,
@@ -453,6 +480,7 @@ app.get("/reports", async (c) => {
         nextCursor,
         stamp: stamp(new Date()),
         email: c.get("email"),
+        state,
       }),
     ),
   );
@@ -469,7 +497,7 @@ app.get("/ops", async (c) => {
   } catch (err) {
     console.error("job_run read failed (migration pending?)", err);
   }
-  return seal(c.html(opsPage(jobs, { stamp: stamp(new Date()), email: c.get("email") })));
+  return seal(c.html(opsPage(jobs, { stamp: stamp(new Date()), email: c.get("email"), state: parseState(new URL(c.req.url)) })));
 });
 
 // POST only: a GET backfill would be prefetchable by a browser or link
@@ -521,16 +549,27 @@ const countryName = (code: string): string => {
   }
 };
 
-/** Wordmark, section nav and provenance line — identical on every page. */
-function header(current: string, generated: string, email: string): string {
+/**
+ * Wordmark, section nav, provenance line — and the ONE range control.
+ *
+ * The range used to be rendered per page, which meant two sources of truth:
+ * a page could show "last 28 days" in a card while the selector above it read
+ * 90, and navigating reset the window without saying so. It lives here now,
+ * beside the nav that propagates it, and pages that are not range-aware do
+ * not draw it at all.
+ */
+function header(current: string, generated: string, email: string, state: DashboardState): string {
   return `<header>
     <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
       ${brand()}
       <p class="text-xs text-ink-muted">${esc(generated)} UTC · ${esc(email)}</p>
     </div>
     <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
-      ${nav(current)}
-      <a href="/brief.json" class="text-xs text-ink-muted underline hover:text-ink">brief.json</a>
+      ${nav(current, state)}
+      <div class="flex items-center gap-4">
+        ${RANGE_AWARE.has(current) ? rangeSelector(current, state, RANGES) : ""}
+        <a href="/brief.json" class="text-xs text-ink-muted underline hover:text-ink">brief.json</a>
+      </div>
     </div>
     <div class="dashed-rule mt-4"></div>
   </header>`;
@@ -549,6 +588,7 @@ function acquisitionPage(
   ga4: Ga4 | null,
   now: Date,
   email: string,
+  state: DashboardState,
 ): string {
   const share = (n: number, total: number) => (total > 0 ? `${((n / total) * 100).toFixed(1)}%` : "—");
 
@@ -596,7 +636,7 @@ function acquisitionPage(
       ? ""
       : chartCard({
           title: "Referring domains",
-          note: `External sites whose links sent sessions in the last ${ga4?.days ?? 28} days, from GA4.`,
+          note: `External sites whose links sent sessions in the last ${ga4?.days ?? state.range.days} days, from GA4.`,
           caveat:
             "Bot-filtered by construction (GA4 is a browser beacon) and proves the link WORKS — a domain absent here may still link to us and simply send nobody. Search Console's Links report has no API; this is the live half of the backlink story, and the referring page itself is in the table.",
           svg: rankedBarChart(
@@ -756,21 +796,26 @@ ${chartCard({
   return layout(
     "Acquisition — Grabient admin",
     `<main class="mx-auto max-w-6xl px-6 py-8 sm:py-10">
-  ${header("/acquisition", stamp(now), email)}
+  ${header("/acquisition", stamp(now), email, state)}
   ${body}
 </main>`,
   );
 }
 
 /** The human-readable face of brief.json. */
-function briefPage(brief: ReturnType<typeof buildBrief>, now: Date, email: string): string {
+function briefPage(
+  brief: ReturnType<typeof buildBrief>,
+  now: Date,
+  email: string,
+  state: DashboardState,
+): string {
   const list = (items: readonly string[]) =>
     items.map((item) => `<li class="leading-snug">${esc(item)}</li>`).join("");
 
   return layout(
     "Agent brief — Grabient admin",
     `<main class="mx-auto max-w-4xl px-6 py-8 sm:py-10">
-  ${header("/brief", stamp(now), email)}
+  ${header("/brief", stamp(now), email, state)}
 
   <section class="mt-6 rounded-xl border border-edge bg-surface p-5">
     <h2 class="text-base font-bold tracking-tight">Summary</h2>
@@ -816,9 +861,11 @@ function dashboard(
   metrics: Metrics,
   traffic: Traffic | null,
   world: WorldDistribution | null,
-  range: RangeOption,
+  people: Array<{ code: string; sessions: number }> | null,
+  state: DashboardState,
   email: string,
 ): string {
+  const { range, globe } = state;
   const { totals, signups, likers, cohorts, currentMonth } = metrics;
 
   const lastSignups = signups.at(-1);
@@ -932,6 +979,51 @@ function dashboard(
     }),
   ].join("\n");
 
+  // The globe's four layers all key on country, but they come from two
+  // sources: Cloudflare's rollup (requests, threats, bytes — everything the
+  // edge saw) and GA4 (sessions — only what a browser ran). Only offer a
+  // toggle for the ones that actually have rows behind them.
+  const globeSource = (globe: GlobeMetric): Array<{ code: string; value: number }> =>
+    globe === "people"
+      ? (people ?? []).map((row) => ({ code: row.code, value: row.sessions }))
+      : (world?.rows ?? []).map((row) => ({
+          code: row.code,
+          value: globe === "threats" ? row.threats : globe === "data" ? row.bytes : row.requests,
+        }));
+  const globeSum = (globe: GlobeMetric): number =>
+    globe === "people"
+      ? (people ?? []).reduce((sum, row) => sum + row.sessions, 0)
+      : globe === "threats"
+        ? (world?.totals.threats ?? 0)
+        : globe === "data"
+          ? (world?.totals.bytes ?? 0)
+          : (world?.totals.requests ?? 0);
+  const globeAvailable: GlobeMetric[] = [
+    ...(world ? (["requests"] as GlobeMetric[]) : []),
+    ...(people && people.length ? (["people"] as GlobeMetric[]) : []),
+    ...(world && world.totals.threats > 0 ? (["threats"] as GlobeMetric[]) : []),
+    ...(world ? (["data"] as GlobeMetric[]) : []),
+  ];
+  // If the URL asks for a layer whose SOURCE is not configured (no Cloudflare
+  // token, no GA4 property), fall back to one that has data rather than
+  // rendering an empty card for a dataset that can never arrive here.
+  const globeMetric = globeAvailable.includes(globe) ? globe : globeAvailable[0];
+  const globeCard =
+    globeAvailable.length === 0 || !globeMetric
+      ? ""
+      : `<div class="mt-4">${worldDistributionCard({
+          rows: globeSource(globeMetric)
+            .filter((row) => row.value > 0)
+            .sort((a, b) => b.value - a.value),
+          metric: globeMetric,
+          total: globeSum(globeMetric),
+          days: range.days,
+          available: globeAvailable,
+          // Through the shared builder, so switching layer keeps the range
+          // (and anything else in the store) rather than resetting the page.
+          href: (metric) => stateHref("/", state, { globe: metric }),
+        })}</div>`;
+
   const cumulativePoints = cumulative(metrics);
 
   const trafficCharts = traffic
@@ -1040,15 +1132,13 @@ function dashboard(
   return layout(
     "Grabient admin",
     `<main class="mx-auto max-w-6xl px-6 py-8 sm:py-10">
-  ${header("/", generated, email)}
-
-  <div class="mt-5">${rangeSelector("/", range.key, RANGES)}</div>
+  ${header("/", generated, email, state)}
 
   <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 ${tiles}
   </div>
 
-  ${world ? `<div class="mt-4">${worldDistributionCard(world.rows, { total: world.total, days: world.days })}</div>` : ""}
+  ${globeCard}
 
   <div class="mt-4 grid gap-4 lg:grid-cols-2">
 ${charts}

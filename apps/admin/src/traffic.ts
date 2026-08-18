@@ -474,26 +474,45 @@ export async function loadReferrers(env: Env, now: Date): Promise<ReferrerRow[] 
 // one query.
 // ---------------------------------------------------------------------------
 
+export interface CountryRow {
+  code: string;
+  requests: number;
+  bytes: number;
+  threats: number;
+}
+
 export interface WorldDistribution {
-  rows: Array<{ code: string; requests: number }>;
-  total: number;
+  rows: CountryRow[];
+  totals: { requests: number; bytes: number; threats: number };
   days: number;
 }
 
-let worldCache: { at: number; value: WorldDistribution } | null = null;
+let worldCache: { at: number; days: number; value: WorldDistribution } | null = null;
 
-export async function loadWorld(env: Env, now: Date): Promise<WorldDistribution | null> {
+/**
+ * Per-country totals over the window. `countryMap` carries requests, bytes and
+ * threats in the same rollup, so all three views on the globe cost ONE query —
+ * and it is the daily rollup rather than the adaptive dataset because that one
+ * caps at 24 hours, where a single crawler run reorders the whole ranking.
+ */
+export async function loadWorld(
+  env: Env,
+  now: Date,
+  days = 7,
+): Promise<WorldDistribution | null> {
   const token = env.CF_ANALYTICS_TOKEN?.trim();
   const zoneTag = env.CF_ZONE_ID?.trim();
   if (!token || !zoneTag) return null;
-  if (worldCache && now.getTime() - worldCache.at < TTL_MS) return worldCache.value;
+  if (worldCache && worldCache.days === days && now.getTime() - worldCache.at < TTL_MS) {
+    return worldCache.value;
+  }
 
   const until = new Date(now);
-  const since = new Date(now.getTime() - 6 * 86_400_000);
+  const since = new Date(now.getTime() - (days - 1) * 86_400_000);
   const query = `query($zoneTag: String!, $since: Date!, $until: Date!) {
     viewer { zones(filter: {zoneTag: $zoneTag}) {
-      httpRequests1dGroups(limit: 7, filter: {date_geq: $since, date_leq: $until}) {
-        sum { countryMap { clientCountryName requests } }
+      httpRequests1dGroups(limit: 400, filter: {date_geq: $since, date_leq: $until}) {
+        sum { countryMap { clientCountryName requests bytes threats } }
       }
     } }
   }`;
@@ -511,23 +530,29 @@ export async function loadWorld(env: Env, now: Date): Promise<WorldDistribution 
       console.error("world query errors", JSON.stringify(payload.errors).slice(0, 200));
       return null;
     }
-    const byCountry = new Map<string, number>();
+    const byCountry = new Map<string, CountryRow>();
     for (const day of payload?.data?.viewer?.zones?.[0]?.httpRequests1dGroups ?? []) {
       for (const entry of day.sum?.countryMap ?? []) {
         const code = String(entry.clientCountryName ?? "").trim();
         if (code.length !== 2) continue;
-        byCountry.set(code, (byCountry.get(code) ?? 0) + (entry.requests ?? 0));
+        const row = byCountry.get(code) ?? { code, requests: 0, bytes: 0, threats: 0 };
+        row.requests += entry.requests ?? 0;
+        row.bytes += entry.bytes ?? 0;
+        row.threats += entry.threats ?? 0;
+        byCountry.set(code, row);
       }
     }
-    const rows = [...byCountry.entries()]
-      .map(([code, requests]) => ({ code, requests }))
-      .sort((a, b) => b.requests - a.requests);
+    const rows = [...byCountry.values()].sort((a, b) => b.requests - a.requests);
     const value: WorldDistribution = {
       rows,
-      total: rows.reduce((sum, row) => sum + row.requests, 0),
-      days: 7,
+      totals: {
+        requests: rows.reduce((sum, row) => sum + row.requests, 0),
+        bytes: rows.reduce((sum, row) => sum + row.bytes, 0),
+        threats: rows.reduce((sum, row) => sum + row.threats, 0),
+      },
+      days,
     };
-    worldCache = { at: now.getTime(), value };
+    worldCache = { at: now.getTime(), days, value };
     return value;
   } catch (err) {
     console.error("world query threw", err);

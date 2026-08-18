@@ -23,16 +23,10 @@
  * three or four evenly-spaced ISOLATED clusters only by accident.
  *
  * WHAT EARNS A WORD. Rarity, measured. A descriptor's information content is
- * -log2(prevalence): "grayscale" fires on 2.2% of the corpus and carries 5.5
- * bits, "warm" fires on 46.0% and carries 1.1. Saying the second tells a reader
+ * -log2(prevalence): "grayscale" fires on 2.8% of the corpus and carries 5.2
+ * bits, "warm" fires on 45.7% and carries 1.1. Saying the second tells a reader
  * almost nothing they could not have guessed. Ties break on search demand, so a
  * crude descriptor someone actually types beats an elegant one nobody does.
- *
- * PREVALENCES ARE MEASURED, NEVER ESTIMATED, and every one below was re-measured
- * on 2026-08-17 after the D19 saturation fix: 867 live seeds
- * (apps/web/test/prose-corpus.js) at 13 rendered steps, dense sample 48. The
- * earlier values came from an 866-seed pull of the same sitemap, which is why a
- * few untouched descriptors moved by 0.001.
  *
  * Two more things are worth knowing before changing anything:
  *
@@ -47,22 +41,11 @@
  * 2. MONOCHROME HERE MEANS ONE HUE, NOT ONE SATURATION.
  *    palette-tags.ts already emits `texture: 'monochrome'` for average
  *    saturation under 0.05, which is grayscale, a different claim. Measured, the
- *    two overlap on 2 of the 867 palettes: the existing tag fires on 18 and
- *    misses 130 of the 132 palettes that are monochrome in the sense a designer
+ *    two overlap on 2 of the 866 palettes: the existing tag fires on 18 and
+ *    misses 146 of the 148 palettes that are monochrome in the sense a designer
  *    means it (a navy-through-powder-blue ramp is one hue, many shades). Both
  *    words exist here with their standard meanings; the old tag keeps its value
  *    until a reindex can correct it.
- *
- * 3. CHROMA IS NOT SATURATION, AND THE DIFFERENCE IS A BUG WE SHIPPED.
- *    Chroma is absolute distance from the neutral axis; saturation is that
- *    distance over what sRGB can hold at that stop's own lightness. The gamut
- *    is lopsided (C ≈ 0.04 at L 0.92, ≈ 0.14 at L 0.5), so one absolute
- *    threshold cannot serve both ends, and reading chroma as "is there colour
- *    here" called a plainly blue-pink-cream palette grayscale. Every gate below
- *    now answers one of two questions, and the question decides the reading:
- *    IDENTITY ("is there colour, which colour is it") takes saturation;
- *    LOUDNESS ("how strong is that colour") takes chroma. Each descriptor's
- *    comment records which it chose.
  */
 
 import { cosineGradient, rgbToHex, type CosineCoeffs } from './cosine';
@@ -72,8 +55,6 @@ import {
   rgbToOklab,
   oklabDistance,
   relativeLuminance,
-  relativeSaturation,
-  type OkLch,
 } from '../color-utils';
 
 // =============================================================================
@@ -82,72 +63,10 @@ import {
 
 /**
  * Below this chroma a stop has no usable hue: the angle is numerical noise
- * around a gray.
- *
- * Re-measured 2026-08-17 over the 867-seed fixture (41,616 dense stops):
- * per-stop chroma runs p25 0.057, p50 0.098, and 10.4% of stops fall under this
- * floor. (The older comment here claimed a p25 of 0.019 "roughly the bottom
- * quarter"; that does not reproduce on this corpus and the value is left alone
- * regardless — what it discards is a tenth of stops, from the hue geometry
- * only.)
- *
- * ABSOLUTE chroma alone is not the whole test — see SATURATION_FLOOR. A stop
- * can be under this floor and still be the most colourful thing sRGB can
- * render at its lightness; 14.7% of the stops under this floor are exactly
- * that, and the saturation branch hands their hue back.
+ * around a gray. p25 of per-stop chroma across the corpus is 0.019, so this
+ * discards roughly the bottom quarter of stops from the hue geometry only.
  */
 const CHROMA_FLOOR = 0.03;
-
-/**
- * The other half of hue validity: chroma as a fraction of the gamut ceiling at
- * the stop's own lightness and hue (`relativeSaturation` in color-utils).
- *
- * WHY BOTH. The sRGB solid is lopsided — at L 0.92 it holds C ≈ 0.04, at L 0.5
- * about 0.14 — so one absolute floor cannot serve both ends. Held to
- * CHROMA_FLOOR alone the classifier called #ceeaff,#fcd3d4,#ffffed,#ffffff,
- * #deffff,#d5e3f6 grayscale: mean chroma 0.029, yet its stops measure 69-100%
- * of the chroma achievable at their lightness, and the render is plainly blue,
- * pink, cream and cyan.
- *
- * 0.35 by sweep over the 867-seed fixture (13 steps, dense 48; 41,616 dense
- * stops). "Promoted" is the share of stops this floor rescues that absolute
- * chroma alone would have discarded:
- *
- *   floor   promoted   gray   mono   analog   multi   rainbow   duo   comp
- *   0.25    2.60%      19     127    245      267     127       40    42
- *   0.30    1.90%      19     129    244      262     124       44    45
- *   0.35    1.53%      19     132    243      259     121       46    47
- *   0.40    1.32%      19     133    244      256     121       47    47
- *
- * Grayscale — the classification this fix exists for — is dead flat at 19 over
- * the whole range, because the palettes it rescues sit at 69-100% of their
- * ceiling rather than near the threshold. What the floor actually trades is the
- * duotone/multicolor boundary: a promoted stop contributes a hue angle, which
- * can widen a span or split a cluster. That drift is monotone and gentle (≤ 1%
- * of the corpus per step), so 0.35 is taken from the flat end rather than the
- * edge of the swept range.
- *
- * An absolute visibility floor on the saturation branch (a hue you cannot see
- * is not a hue) was measured and REJECTED: requiring C ≥ 0.005/0.01/0.015/0.02
- * as well changes 0/2/8/14 of the 867 classifications. The sub-0.005
- * promotions are 1.1% of promotions and 0.02% of all stops, and they never
- * change an answer, so the predicate stays one line.
- */
-const SATURATION_FLOOR = 0.35;
-
-/**
- * Mean saturation under which a palette reads as neutral regardless of what
- * its ceiling allows. The companion to GRAYSCALE_CHROMA in `isGrayscale`,
- * which now needs BOTH to be low: absolute says "there is little chroma here",
- * relative says "and there was little to be had". Lower than SATURATION_FLOOR
- * because it is applied to a mean rather than a single stop, and a palette
- * that dips through neutral drags its mean down without being gray.
- *
- * Measured over the fixture, this one conjunct is what rescues the palettes:
- * grayscale falls 24 → 19 of 867 with it, and stays at 24 without it no matter
- * where SATURATION_FLOOR sits.
- */
-const GRAYSCALE_SAT = 0.25;
 
 /**
  * Hue degrees that separate two clusters. 40° sits in the flat middle of the
@@ -192,19 +111,6 @@ const LOW_CONTRAST_RANGE = 0.12;
  * says whether it is there enough to be named after it.
  */
 const FAMILY_CHROMA = 0.08;
-/**
- * The relative half of the same test. A pale sky-and-cyan palette can sit at
- * 90% of its achievable chroma and never reach FAMILY_CHROMA, and refusing to
- * call that ocean is the same conflation D19 fixes elsewhere. Set high on
- * purpose: at 0.6 the palettes it admits are near their ceiling, so the
- * incident this gate exists for stays fixed — "Duotone forest silver and
- * gunmetal" measures 0.15 mean saturation, nowhere near it.
- *
- * Measured over the fixture, the disjunct admits 7 sunsets (127 → 134), 4
- * oceans (85 → 89) and 3 autumns (22 → 25): pale versions of families the
- * absolute gate could not see.
- */
-const FAMILY_SATURATION = 0.6;
 /** How much of the palette must sit inside the family's hue window. */
 const FAMILY_BAND = 0.85;
 
@@ -226,13 +132,11 @@ const TURN_EPSILON = 0.004;
 
 /**
  * Hue direction guards. Direction is only worth claiming when the palette
- * actually travels — corpus p50 travel is 89°, so 90° starts right at the
+ * actually travels — corpus p50 travel is 85°, so 90° starts just past the
  * median palette — and travels mostly one way: consistency is |net|/travel,
- * and at 0.8 the ramp barely doubles back. p50 consistency is 0.91, so most
+ * and at 0.8 the ramp barely doubles back. p50 consistency is 0.93, so most
  * palettes rotate one way or hardly rotate; guarded like this the corpus
- * splits 17.5% advancing against 17.4% reversing. (Re-measured after D19: the
- * chain now walks saturation-valid stops too, which lengthens travel through
- * pale passages and cost the direction pair some of its consistency.)
+ * splits 17.4% advancing against 16.6% reversing.
  */
 const HUE_DIRECTION_TRAVEL = 90;
 const HUE_DIRECTION_CONSISTENCY = 0.8;
@@ -268,8 +172,8 @@ const EQUAL_C_TOLERANCE = 0.01;
  *
  * 2 bits is a prevalence of 25%: past that the word applies to a quarter of
  * everything and stops being a description. It is the cutoff that silently
- * retires `warm` (46.0%), `cool` (36.0%), `analogous` (28.0%) and `ramp`
- * (58.6%) from the visible name without removing them as tags, and it is why
+ * retires `warm` (45.7%), `cool` (35.8%), `analogous` (29.1%) and `ramp`
+ * (58.5%) from the visible name without removing them as tags, and it is why
  * the name gets quieter rather than longer as the registry grows.
  */
 const MIN_BITS_TO_SPEAK = 2;
@@ -283,9 +187,6 @@ const MIN_BITS_TO_SPEAK = 2;
  */
 export const THRESHOLDS = {
   CHROMA_FLOOR,
-  SATURATION_FLOOR,
-  GRAYSCALE_SAT,
-  FAMILY_SATURATION,
   GRAYSCALE_CHROMA,
   DARK_LIGHTNESS,
   LIGHT_LIGHTNESS,
@@ -349,28 +250,12 @@ export interface PaletteFeatures {
   maxClusterWidth: number;
   /** Chroma-weighted circular mean hue, degrees. */
   meanHue: number;
-  /**
-   * Share of stops with a usable hue — now `C ≥ CHROMA_FLOOR` OR
-   * `saturation ≥ SATURATION_FLOOR`, so a light tint at the top of the gamut
-   * counts as coloured (D19).
-   */
   chromaticFraction: number;
   meanLightness: number;
   lightnessRange: number;
   meanChroma: number;
   maxChroma: number;
   denseMeanChroma: number;
-
-  // --- The relative reading of the same three (2026-08-17, D19). Saturation is
-  // chroma over the sRGB ceiling at that stop's own lightness and hue, so it
-  // answers "is there colour here" where chroma answers "how loud is it".
-
-  /** Mean per-stop saturation over the RENDERED stops, 0-1. */
-  meanSaturation: number;
-  /** The most saturated rendered stop, 0-1. */
-  maxSaturation: number;
-  /** Mean per-stop saturation over the dense sample — step-independent. */
-  denseMeanSaturation: number;
   /** Direction changes in the lightness ramp: 0 ramp, 1 arch, 2+ wavy. */
   turns: number;
   /** OkLab distance from the first stop to the last. */
@@ -555,42 +440,6 @@ function labOf(hex: string) {
   return rgbToOklab(r, g, b);
 }
 
-/** A stop in OkLCh plus `S`, the same chroma read against its gamut ceiling. */
-interface Stop extends OkLch {
-  S: number;
-}
-
-const stopOf = (hex: string): Stop => {
-  const lch = hexToOkLch(hex);
-  return { L: lch.L, C: lch.C, h: lch.h, S: relativeSaturation(lch) };
-};
-
-/**
- * Whether a stop's hue angle means anything.
- *
- * Either reading suffices, and that disjunction is the whole D19 fix: absolute
- * chroma catches the ordinary case, saturation catches the tints and shades
- * that are as colourful as sRGB gets at their lightness but never clear an
- * absolute bar. Everything downstream — clusters, span, the hue chain, the
- * histogram, chromaticFraction — walks this one predicate, so the two readings
- * cannot disagree about which stops have a hue.
- */
-const hasUsableHue = (s: Stop) => s.C >= CHROMA_FLOOR || s.S >= SATURATION_FLOOR;
-
-/**
- * The same predicate for a single hex, for consumers that hold stops rather
- * than a palette: the prose generator's family/series gates and the tests that
- * assert no near-ceiling stop is ever treated as gray. Exported so there is one
- * answer to "does this stop have a colour" in the codebase, not three.
- */
-export function stopHasHue(hex: string): boolean {
-  return hasUsableHue(stopOf(hex));
-}
-
-/** Chroma over the sRGB ceiling at a stop's own lightness and hue, 0-1. */
-export function stopSaturation(hex: string): number {
-  return stopOf(hex).S;
-}
 
 /**
  * Single-linkage clustering on the hue circle.
@@ -600,8 +449,11 @@ export function stopSaturation(hex: string): number {
  * enclosing arc — so one pass yields both the clusters and the span. Walking
  * from just after the widest gap keeps a cluster that straddles 0° in one piece.
  */
-function hueGeometry(stops: readonly Stop[]) {
-  const chromatic = stops.filter(hasUsableHue).sort((a, b) => a.h - b.h);
+function hueGeometry(colors: readonly string[]) {
+  const chromatic = colors
+    .map(hexToOkLch)
+    .filter((c) => c.C >= CHROMA_FLOOR)
+    .sort((a, b) => a.h - b.h);
 
   if (chromatic.length === 0)
     return {
@@ -656,7 +508,7 @@ function hueGeometry(stops: readonly Stop[]) {
     clusters,
     span: 360 - widest,
     maxClusterWidth,
-    chromaticFraction: chromatic.length / stops.length,
+    chromaticFraction: chromatic.length / colors.length,
   };
 }
 
@@ -707,13 +559,10 @@ export function paletteFeatures(
 ): PaletteFeatures {
   const denseRgb = cosineGradient(DENSE_SAMPLES, coeffs);
   const dense = denseRgb.map(([r, g, b]) => rgbToHex(r, g, b));
-  // Every stop carries S beside L/C/h, so nothing downstream has to decide
-  // again whether a colour counts. One gamut bisection per stop: 48 dense + the
-  // rendered steps, 0.048 ms per palette measured (see maxChromaFor).
-  const denseLch = dense.map(stopOf);
-  const geometry = hueGeometry(denseLch);
+  const denseLch = dense.map(hexToOkLch);
+  const geometry = hueGeometry(dense);
 
-  const rendered = (hexColors.length ? hexColors : dense).map(stopOf);
+  const rendered = (hexColors.length ? hexColors : dense).map(hexToOkLch);
   const n = rendered.length;
 
   let x = 0;
@@ -745,7 +594,7 @@ export function paletteFeatures(
   let firstHue: number | null = null;
   let lastHue: number | null = null;
   for (const c of denseLch) {
-    if (!hasUsableHue(c)) {
+    if (c.C < CHROMA_FLOOR) {
       prevHue = null;
       continue;
     }
@@ -838,7 +687,7 @@ export function paletteFeatures(
     list.reduce((s, c) => s + c.C, 0) / list.length;
 
   const hueHistogram = new Array<number>(HUE_BINS).fill(0);
-  const chromatic = denseLch.filter(hasUsableHue);
+  const chromatic = denseLch.filter((c) => c.C >= CHROMA_FLOOR);
   for (const c of chromatic) {
     const bin = Math.min(HUE_BINS - 1, Math.floor(c.h / BIN_WIDTH));
     hueHistogram[bin] = (hueHistogram[bin] ?? 0) + 1 / chromatic.length;
@@ -863,10 +712,6 @@ export function paletteFeatures(
     meanChroma: rendered.reduce((s, c) => s + c.C, 0) / n,
     maxChroma: Math.max(...rendered.map((c) => c.C)),
     denseMeanChroma: meanOf(denseLch),
-    meanSaturation: rendered.reduce((s, c) => s + c.S, 0) / n,
-    maxSaturation: Math.max(...rendered.map((c) => c.S)),
-    denseMeanSaturation:
-      denseLch.reduce((s, c) => s + c.S, 0) / denseLch.length,
     turns,
     seam: oklabDistance(labOf(dense[0]!), labOf(dense[dense.length - 1]!)),
     clipped:
@@ -905,45 +750,10 @@ export function paletteFeatures(
 // The registry
 // =============================================================================
 
-/**
- * Achromatic enough that hue geometry is meaningless.
- *
- * BOTH readings must agree before a palette loses its colour (D19). Absolute
- * chroma says "there is little colour here"; saturation says "and there was
- * little to be had at these lightnesses". The palette that exposed the bug —
- * #ceeaff,#fcd3d4,#ffffed,#ffffff,#deffff,#d5e3f6, mean chroma 0.029 — answers
- * yes to the first and no to the second (0.75 mean saturation, stops at
- * 90-101% of their ceiling), and it is plainly blue, pink, cream and cyan on
- * screen.
- *
- * The chromaticFraction disjunct stays: a run that spends most of its length
- * neutral has no hue geometry to describe whatever its coloured stops do. It
- * is now itself saturation-aware, since `hasUsableHue` decides what counts.
- */
+/** Achromatic enough that hue geometry is meaningless. */
 const isGrayscale = (f: PaletteFeatures) =>
-  (f.denseMeanChroma < GRAYSCALE_CHROMA &&
-    f.denseMeanSaturation < GRAYSCALE_SAT) ||
+  f.denseMeanChroma < GRAYSCALE_CHROMA ||
   f.chromaticFraction < CHROMATIC_FRACTION;
-
-/**
- * "Is there colour here at all", read on the rendered stops: the De Morgan
- * negation of the grayscale conjunction above, and the shared floor for every
- * descriptor whose lower chroma bound exists only to keep grays out (pastel,
- * muted, earthy). D19's rule of thumb: identity questions ("is this coloured",
- * "which colour is it") take saturation; loudness questions ("how strong is
- * it") stay on absolute chroma.
- */
-const hasColour = (f: PaletteFeatures) =>
-  f.meanChroma >= GRAYSCALE_CHROMA || f.meanSaturation >= GRAYSCALE_SAT;
-
-/**
- * The family floor, both readings. A family word is an identity claim, so a
- * pale sky-and-cyan palette sitting at 90% of its ceiling qualifies even
- * though it never reaches FAMILY_CHROMA; a washed-out palette that merely
- * lands in the hue window still does not.
- */
-const familyColour = (f: PaletteFeatures, floor: number = FAMILY_CHROMA) =>
-  f.meanChroma >= floor || f.meanSaturation >= FAMILY_SATURATION;
 
 /**
  * Structure is one exclusive classification, not seven independent tests: a
@@ -1007,13 +817,13 @@ export function spokenWord(d: Descriptor): string {
  */
 export const DESCRIPTORS: readonly Descriptor[] = [
   // --- structure: exactly one is always true
-  structural('grayscale', 0.022, 1, true),
-  structural('monochrome', 0.152, 1.2, true),
+  structural('grayscale', 0.028, 1, true),
+  structural('monochrome', 0.166, 1.2, true),
   structural('duotone', 0.053, 1, true),
-  structural('complementary', 0.054, 1, true),
-  structural('rainbow', 0.14, 1.3, true),
-  structural('analogous', 0.28, 0.6, false),
-  structural('multicolor', 0.299, 0.8, false),
+  structural('complementary', 0.053, 1, true),
+  structural('rainbow', 0.135, 1.3, true),
+  structural('analogous', 0.291, 0.6, false),
+  structural('multicolor', 0.274, 0.8, false),
 
   // --- named families: a hue window plus a tone constraint.
   //
@@ -1026,42 +836,37 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   // yellow 110, green 142, cyan 195, blue 264, violet 294, magenta 328).
   {
     // The warm arc through 0°, wide enough to have actually travelled it.
-    // Its own chroma floor (0.07) rather than FAMILY_CHROMA: sunsets run
-    // through pale peach, and the band test is already narrow.
     word: 'sunset',
     axis: 'family',
-    prevalence: 0.155,
+    prevalence: 0.141,
     spoken: true,
     demand: 1.4,
     implies: ['warm'],
     test: (f) =>
       hueBandShare(f, 300, 100) >= 0.8 &&
       f.hueSpan >= 40 &&
-      familyColour(f, 0.07),
+      f.meanChroma >= 0.07,
   },
   {
     word: 'ocean',
     axis: 'family',
-    prevalence: 0.103,
+    prevalence: 0.098,
     spoken: true,
     demand: 1.4,
     implies: ['cool'],
-    test: (f) => hueBandShare(f, 180, 280) >= FAMILY_BAND && familyColour(f),
+    test: (f) =>
+      hueBandShare(f, 180, 280) >= FAMILY_BAND && f.meanChroma >= FAMILY_CHROMA,
   },
   {
-    // Two chroma bounds with different jobs: the floor is identity (is it
-    // really this family), so it takes both readings; the 0.16 ceiling is
-    // loudness (autumn is a muted season, a fluorescent orange is not autumn)
-    // and stays absolute.
     word: 'autumn',
     axis: 'family',
-    prevalence: 0.029,
+    prevalence: 0.025,
     spoken: true,
     demand: 1.2,
     implies: ['earthy', 'muted', 'warm'],
     test: (f) =>
       hueBandShare(f, 20, 100) >= FAMILY_BAND &&
-      familyColour(f) &&
+      f.meanChroma >= FAMILY_CHROMA &&
       f.meanChroma < 0.16 &&
       f.meanLightness < 0.75,
   },
@@ -1076,7 +881,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'warm',
     axis: 'temperature',
-    prevalence: 0.460,
+    prevalence: 0.457,
     spoken: false,
     demand: 1,
     test: (f) => !isGrayscale(f) && (f.meanHue < 120 || f.meanHue >= 330),
@@ -1084,7 +889,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'cool',
     axis: 'temperature',
-    prevalence: 0.360,
+    prevalence: 0.358,
     spoken: false,
     demand: 1,
     test: (f) => !isGrayscale(f) && f.meanHue >= 150 && f.meanHue < 300,
@@ -1092,10 +897,6 @@ export const DESCRIPTORS: readonly Descriptor[] = [
 
   // --- tone
   {
-    // Pastel is DEFINED on absolute chroma — a pastel is a pale colour, and a
-    // pale colour cannot hold much chroma whatever its ceiling allows — so the
-    // upper bound stays absolute. Only the floor, which is there to keep light
-    // grays out, becomes the identity question.
     word: 'pastel',
     axis: 'tone',
     prevalence: 0.083,
@@ -1105,12 +906,9 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     test: (f) =>
       f.meanLightness > PASTEL_LIGHTNESS &&
       f.meanChroma < PASTEL_CHROMA &&
-      hasColour(f),
+      f.meanChroma >= GRAYSCALE_CHROMA,
   },
   {
-    // Loudness, entirely: neon means a colour brighter than the page around
-    // it, which is an absolute amount of chroma. A tint at 100% of a ceiling
-    // of 0.04 is not neon, and relative saturation would call it that.
     word: 'neon',
     axis: 'tone',
     prevalence: 0.098,
@@ -1120,49 +918,28 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     test: (f) => f.maxChroma >= NEON_CHROMA && f.meanLightness > NEON_LIGHTNESS,
   },
   {
-    // Same split as autumn: EARTHY_CHROMA is the loudness ceiling (pigment,
-    // not paint), the floor is identity. Earth colours live under L 0.75 where
-    // the gamut is roomy, so in practice the two readings agree here; the
-    // disjunct matters for the dark end, where a ceiling of ~0.07 at L 0.2
-    // makes a brown that reads brown fail an absolute 0.03.
     word: 'earthy',
     axis: 'tone',
-    prevalence: 0.111,
+    prevalence: 0.109,
     spoken: true,
     demand: 1,
     implies: ['muted'],
     test: (f) =>
       f.meanChroma < EARTHY_CHROMA &&
-      hasColour(f) &&
+      f.meanChroma >= CHROMA_FLOOR &&
       f.meanHue >= EARTHY_HUE[0] &&
       f.meanHue < EARTHY_HUE[1] &&
       f.meanLightness < EARTHY_LIGHTNESS,
   },
   {
-    // LOUDNESS, so absolute — and this one was measured the other way first.
-    //
-    // A relative conjunct (mean saturation < 0.5, on the theory that a tint at
-    // the top of the gamut is not "held back") was implemented and REJECTED on
-    // the visual pass. It removed 8 of 95 palettes, and rendering all eight
-    // showed the split: it correctly excluded two deep-dark ramps that sit near
-    // their (tiny) ceiling, and wrongly excluded dusty ones that are muted by
-    // any reading — white → steel blue → dark teal at mean chroma 0.046 is the
-    // dictionary picture of the word. It also disarmed the low-chroma guard on
-    // `rainbow` in palette-name.ts (which vetoes the word when `muted` fires),
-    // producing "Rainbow white to light gray to light gray blue to dark aqua",
-    // the exact name that guard exists to prevent.
-    //
-    // The deep-dark case it got right is a real observation, but it is about
-    // the MEAN over a ramp that spends half its length near black, not about
-    // chroma vs saturation; `deep` in the prose layer is where it belongs.
     word: 'muted',
     axis: 'tone',
-    prevalence: 0.11,
+    prevalence: 0.104,
     spoken: true,
     demand: 1,
     test: (f) =>
       f.meanChroma < MUTED_CHROMA &&
-      hasColour(f) &&
+      f.meanChroma >= GRAYSCALE_CHROMA &&
       f.meanLightness <= PASTEL_LIGHTNESS,
   },
   {
@@ -1182,13 +959,9 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     test: (f) => f.meanLightness > LIGHT_LIGHTNESS,
   },
   {
-    // The loudness axis itself, so absolute by definition: `vivid` is the
-    // opposite pole of `muted` on the same reading. Deliberately NOT
-    // saturation — a pale wash at the top of its gamut is at 100% saturation
-    // and is the least vivid thing on the site.
     word: 'vivid',
     axis: 'tone',
-    prevalence: 0.220,
+    prevalence: 0.219,
     spoken: false,
     demand: 1,
     test: (f) => f.meanChroma >= VIVID_CHROMA,
@@ -1198,7 +971,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'high-contrast',
     axis: 'contrast',
-    prevalence: 0.123,
+    prevalence: 0.124,
     spoken: false,
     demand: 1,
     test: (f) => f.lightnessRange > HIGH_CONTRAST_RANGE,
@@ -1206,7 +979,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'low-contrast',
     axis: 'contrast',
-    prevalence: 0.101,
+    prevalence: 0.102,
     spoken: false,
     demand: 1,
     test: (f) => f.lightnessRange < LOW_CONTRAST_RANGE,
@@ -1251,7 +1024,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'ramp',
     axis: 'shape',
-    prevalence: 0.586,
+    prevalence: 0.585,
     spoken: false,
     demand: 1,
     test: (f) => f.turns === 0,
@@ -1259,7 +1032,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'arch',
     axis: 'shape',
-    prevalence: 0.319,
+    prevalence: 0.32,
     spoken: false,
     demand: 1,
     test: (f) => f.turns === 1,
@@ -1318,7 +1091,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // OkLab lightness does not — and the one a designer actually has to answer.
     word: 'wcag-aa',
     axis: 'surface',
-    prevalence: 0.413,
+    prevalence: 0.412,
     spoken: false,
     demand: 1,
     test: (f) => f.contrastRatio >= 4.5,
@@ -1341,7 +1114,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // color fact.
     word: 'hue-advancing',
     axis: 'motion',
-    prevalence: 0.175,
+    prevalence: 0.174,
     spoken: false,
     demand: 1,
     test: (f) =>
@@ -1353,7 +1126,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'hue-reversing',
     axis: 'motion',
-    prevalence: 0.174,
+    prevalence: 0.166,
     spoken: false,
     demand: 1,
     test: (f) =>
@@ -1363,12 +1136,12 @@ export const DESCRIPTORS: readonly Descriptor[] = [
       f.hueNet < 0,
   },
   {
-    // A net sweep of (essentially) the whole wheel — 5.4 bits, the rarest
+    // A net sweep of (essentially) the whole wheel — 5.5 bits, the rarest
     // motion fact that still clears the 2% floor. Palettes this wide classify
     // rainbow, hence the implies.
     word: 'full-wheel',
     axis: 'motion',
-    prevalence: 0.024,
+    prevalence: 0.022,
     spoken: false,
     demand: 1,
     implies: ['rainbow'],
@@ -1380,7 +1153,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // requires consistency ≥ 0.8.
     word: 'hue-wandering',
     axis: 'motion',
-    prevalence: 0.059,
+    prevalence: 0.047,
     spoken: false,
     demand: 1,
     test: (f) =>
@@ -1418,7 +1191,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // the peak pair.
     word: 'darkening',
     axis: 'motion',
-    prevalence: 0.180,
+    prevalence: 0.179,
     spoken: false,
     demand: 1,
     test: (f) =>
@@ -1427,12 +1200,12 @@ export const DESCRIPTORS: readonly Descriptor[] = [
       f.lightnessDelta < 0,
   },
   {
-    // 34.4% — the most common fact in the registry after `ramp` itself, kept
+    // 34.5% — the most common fact in the registry after `ramp` itself, kept
     // anyway because "brightens" vs "darkens" is the kind of language people
     // actually type at a search box.
     word: 'brightening',
     axis: 'motion',
-    prevalence: 0.344,
+    prevalence: 0.345,
     spoken: false,
     demand: 1,
     test: (f) =>

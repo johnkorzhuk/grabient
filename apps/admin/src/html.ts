@@ -1,4 +1,5 @@
 import styles from "../dist/styles.css";
+import { href, type DashboardState } from "./url-state";
 
 export function esc(value: string): string {
   return value
@@ -227,10 +228,18 @@ export const PAGES = [
   { href: "/ops", label: "Ops" },
 ] as const;
 
-export function nav(current: string): string {
+/**
+ * The nav CARRIES state; it never resets it.
+ *
+ * Every href goes through url-state's `href()`, which merges the current
+ * store into the target and emits only the keys that target actually reads.
+ * That is the whole reason the builder exists: a hand-written link here was
+ * silently dropping ?range= on navigation.
+ */
+export function nav(current: string, state: DashboardState): string {
   return `<nav class="flex flex-wrap items-center gap-1" aria-label="Sections">${PAGES.map((page) => {
     const active = page.href === current;
-    return `<a href="${page.href}"${active ? ' aria-current="page"' : ""} class="rounded-md px-2.5 py-1 text-xs font-bold tracking-wide uppercase transition-colors ${
+    return `<a href="${esc(href(page.href, state))}"${active ? ' aria-current="page"' : ""} class="rounded-md px-2.5 py-1 text-xs font-bold tracking-wide uppercase transition-colors ${
       active ? "bg-ink text-surface" : "text-ink-muted hover:text-ink"
     }">${esc(page.label)}</a>`;
   }).join("")}</nav>`;
@@ -267,18 +276,24 @@ export function brand(): string {
 
 export const fmt = (n: number) => n.toLocaleString("en-US");
 
-/** One row of links above everything they scope. Server-rendered, URL-driven. */
+/**
+ * The one range control, rendered once in the header.
+ *
+ * Each option is a link to THIS page with only `range` overridden, so
+ * switching the window preserves everything else in the store — the globe
+ * layer, the archive filter — rather than resetting the page to defaults.
+ */
 export function rangeSelector(
   path: string,
-  current: string,
+  state: DashboardState,
   options: readonly { key: string; label: string }[],
 ): string {
   return `<div class="flex flex-wrap items-center gap-2">
   <span class="text-[11px] font-bold tracking-[0.1em] text-ink-muted uppercase">Range</span>
   <div class="flex items-center gap-1">${options
     .map((option) => {
-      const active = option.key === current;
-      return `<a href="${path}?range=${option.key}"${active ? ' aria-current="true"' : ""} class="rounded-md px-2 py-0.5 text-xs font-bold transition-colors ${
+      const active = option.key === state.range.key;
+      return `<a href="${esc(href(path, state, { range: option.key as never }))}"${active ? ' aria-current="true"' : ""} class="rounded-md px-2 py-0.5 text-xs font-bold transition-colors ${
         active ? "bg-ink text-surface" : "text-ink-muted hover:text-ink"
       }">${esc(option.label)}</a>`;
     })
@@ -305,7 +320,7 @@ export function changeBadge(
     return `<span class="text-ink-muted">flat (${result.pct > 0 ? "+" : ""}${result.pct}%, within noise) ${esc(label)}</span>`;
   }
   const up = result.pct > 0;
-  return `<span class="${up ? "text-good" : "text-critical"} font-bold">${up ? "▲" : "▼"} ${Math.abs(result.pct)}%</span> <span class="text-ink-muted">${esc(label)}</span>`;
+  return `<span class="delta ${up ? "text-good" : "text-critical"} font-bold">${up ? "▲" : "▼"} ${Math.abs(result.pct)}%</span> <span class="text-ink-muted">${esc(label)}</span>`;
 }
 
 /**
@@ -317,16 +332,16 @@ export function delta(current: number, previous: number, label: string): string 
   const change = Math.round(((current - previous) / previous) * 1000) / 10;
   if (change === 0) return `<span class="text-ink-muted">no change ${esc(label)}</span>`;
   const up = change > 0;
-  return `<span class="${up ? "text-good" : "text-critical"} font-bold">${
+  return `<span class="delta ${up ? "text-good" : "text-critical"} font-bold">${
     up ? "▲" : "▼"
   } ${Math.abs(change)}%</span> <span class="text-ink-muted">${esc(label)}</span>`;
 }
 
 /**
- * The lead number gets the hero treatment; the rest are ordinary tiles. Values
- * use proportional figures — tabular-nums makes a large standalone number look
- * gappy, and nothing here needs to align vertically. Poppins is a wide
- * geometric face, so the large sizes are tracked in to stop them sprawling.
+ * The lead number gets the hero treatment; the rest are ordinary tiles. The
+ * value keeps Poppins (`.stat-value`) — a glanceable figure, not running text
+ * — while everything around it reads in Inter. Poppins is a wide geometric
+ * face, so the large sizes are tracked in to stop them sprawling.
  */
 export function statTile(opts: {
   label: string;
@@ -336,7 +351,7 @@ export function statTile(opts: {
 }): string {
   return `<div class="flex flex-col rounded-xl border border-edge bg-surface p-5">
   <p class="text-[11px] font-bold tracking-[0.1em] text-ink-muted uppercase">${esc(opts.label)}</p>
-  <p class="mt-2.5 ${
+  <p class="stat-value mt-2.5 ${
     opts.hero ? "text-5xl" : "text-3xl"
   } leading-none font-bold tracking-tight">${esc(opts.value)}</p>
   ${opts.sub ? `<p class="mt-auto pt-2.5 text-sm leading-snug">${opts.sub}</p>` : ""}

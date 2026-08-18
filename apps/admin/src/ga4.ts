@@ -63,7 +63,7 @@ export interface Ga4 {
   property: string;
 }
 
-let cache: { at: number; value: Ga4 } | null = null;
+let cache: { at: number; days: number; value: Ga4 } | null = null;
 
 interface ReportRequest {
   dimensions?: Array<{ name: string }>;
@@ -76,13 +76,14 @@ async function runReport(
   property: string,
   token: string,
   body: ReportRequest,
+  days = WINDOW_DAYS,
 ): Promise<any | null> {
   try {
     const res = await fetch(`${API_BASE}/${property}:runReport`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        dateRanges: [{ startDate: `${WINDOW_DAYS}daysAgo`, endDate: "yesterday" }],
+        dateRanges: [{ startDate: `${days}daysAgo`, endDate: "yesterday" }],
         ...body,
       }),
     });
@@ -108,12 +109,18 @@ const dim = (row: any, index = 0): string => String(row?.dimensionValues?.[index
  * Null when unconfigured or when Google refuses — same contract as traffic.ts
  * and search-console.ts, so the dashboard drops the section rather than failing.
  */
-export async function loadGa4(env: Env, now: Date): Promise<Ga4 | null> {
+export async function loadGa4(
+  env: Env,
+  now: Date,
+  /** Window length in days; the page's range selector drives it. */
+  days = WINDOW_DAYS,
+): Promise<Ga4 | null> {
   const account = parseServiceAccount(env.GSC_SERVICE_ACCOUNT);
   if (!account) return null;
   const propertyId = env.GA4_PROPERTY_ID?.trim();
   if (!propertyId) return null;
-  if (cache && now.getTime() - cache.at < TTL_MS) return cache.value;
+  // Keyed by window — see the same note in search-console.ts.
+  if (cache && cache.days === days && now.getTime() - cache.at < TTL_MS) return cache.value;
 
   const token = await accessToken(account, SCOPE_ANALYTICS, now);
   if (!token) return null;
@@ -127,7 +134,7 @@ export async function loadGa4(env: Env, now: Date): Promise<Ga4 | null> {
         { name: "newUsers" },
         { name: "screenPageViews" },
       ],
-    }),
+    }, days),
     runReport(property, token, {
       dimensions: [{ name: "sessionDefaultChannelGroup" }],
       metrics: [
@@ -137,17 +144,17 @@ export async function loadGa4(env: Env, now: Date): Promise<Ga4 | null> {
         { name: "averageSessionDuration" },
       ],
       limit: 12,
-    }),
+    }, days),
     runReport(property, token, {
       dimensions: [{ name: "sessionSource" }],
       metrics: [{ name: "sessions" }],
       limit: 12,
-    }),
+    }, days),
     runReport(property, token, {
       dimensions: [{ name: "pagePath" }],
       metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
       limit: 12,
-    }),
+    }, days),
     // Live backlinks. GSC's Links report has no API and samples heavily; the
     // Common Crawl webgraph is domain-level and three months stale. This is the
     // only source that names the referring *page* and proves it sends traffic.
@@ -162,7 +169,7 @@ export async function loadGa4(env: Env, now: Date): Promise<Ga4 | null> {
       dimensions: [{ name: "pageReferrer" }, { name: "landingPagePlusQueryString" }],
       metrics: [{ name: "sessions" }],
       limit: 40,
-    }),
+    }, days),
   ]);
 
   if (!totalsRes) return null;
@@ -206,11 +213,11 @@ export async function loadGa4(env: Env, now: Date): Promise<Ga4 | null> {
           !/^https?:\/\/(www\.)?grabient\.com/i.test(row.referrer),
       )
       .slice(0, 20),
-    days: WINDOW_DAYS,
+    days,
     property,
   };
 
-  cache = { at: now.getTime(), value };
+  cache = { at: now.getTime(), days, value };
   return value;
 }
 
@@ -259,6 +266,42 @@ export interface Ga4QueryResult extends Ga4Window {
     sampled: boolean;
     quota: { tokensRemainingDay: number | null; tokensRemainingHour: number | null };
   };
+}
+
+/**
+ * Sessions per country — the globe's bot-filtered view.
+ *
+ * `countryId` is ISO-3166 alpha-2, which is exactly what the map's centroid
+ * table is keyed on; the human-readable `country` dimension is not, and
+ * matching on names would break on every localisation.
+ */
+export async function loadGa4Countries(
+  env: Env,
+  now: Date,
+  days = WINDOW_DAYS,
+): Promise<Array<{ code: string; sessions: number }> | null> {
+  const account = parseServiceAccount(env.GSC_SERVICE_ACCOUNT);
+  if (!account) return null;
+  const propertyId = env.GA4_PROPERTY_ID?.trim();
+  if (!propertyId) return null;
+  const token = await accessToken(account, SCOPE_ANALYTICS, now);
+  if (!token) return null;
+  const property = `properties/${propertyId.replace(/^properties\//, "")}`;
+  const res = await runReport(
+    property,
+    token,
+    {
+      dimensions: [{ name: "countryId" }],
+      metrics: [{ name: "sessions" }],
+      limit: 250,
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+    },
+    days,
+  );
+  if (!res) return null;
+  return (res.rows ?? [])
+    .map((row: any) => ({ code: dim(row).toUpperCase(), sessions: num(row, 0) }))
+    .filter((row: { code: string }) => row.code.length === 2);
 }
 
 /**

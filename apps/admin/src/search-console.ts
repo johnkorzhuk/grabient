@@ -113,7 +113,7 @@ const LAG_DAYS = 1;
 const WINDOW_DAYS = 28;
 const TTL_MS = 30 * 60 * 1000;
 
-let cache: { at: number; value: SearchConsole } | null = null;
+let cache: { at: number; days: number; value: SearchConsole } | null = null;
 
 function isoDay(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -214,10 +214,17 @@ async function queryDimension(
  * an empty row set rather than anything that looks like a mistake. Hence
  * GSC_PROPERTY being explicit rather than guessed.
  */
-export async function loadSearchConsole(env: Env, now: Date): Promise<SearchConsole | null> {
+export async function loadSearchConsole(
+  env: Env,
+  now: Date,
+  /** Window length in days; the page's range selector drives it. */
+  days = WINDOW_DAYS,
+): Promise<SearchConsole | null> {
   const account = parseServiceAccount(env.GSC_SERVICE_ACCOUNT);
   if (!account) return null;
-  if (cache && now.getTime() - cache.at < TTL_MS) return cache.value;
+  // Keyed by window: two ranges are two different answers, and a shared slot
+  // would serve whichever was asked for first.
+  if (cache && cache.days === days && now.getTime() - cache.at < TTL_MS) return cache.value;
 
   const token = await accessToken(account, SCOPE_SEARCH_CONSOLE, now);
   if (!token) return null;
@@ -230,7 +237,7 @@ export async function loadSearchConsole(env: Env, now: Date): Promise<SearchCons
   const until = new Date(now);
   until.setUTCDate(until.getUTCDate() - LAG_DAYS);
   const since = new Date(until);
-  since.setUTCDate(since.getUTCDate() - WINDOW_DAYS);
+  since.setUTCDate(since.getUTCDate() - days);
 
   try {
     const [queries, pages, siteTotals] = await Promise.all([
@@ -262,10 +269,10 @@ export async function loadSearchConsole(env: Env, now: Date): Promise<SearchCons
         ctr: impressions > 0 ? (clicks / impressions) * 100 : 0,
         position: impressions > 0 ? weighted / impressions : 0,
       },
-      days: WINDOW_DAYS,
+      days,
       property,
     };
-    cache = { at: now.getTime(), value };
+    cache = { at: now.getTime(), days, value };
     return value;
   } catch (err) {
     console.error("GSC fetch failed", err);
