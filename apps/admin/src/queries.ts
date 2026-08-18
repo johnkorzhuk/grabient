@@ -103,8 +103,11 @@ export async function loadMetrics(db: D1Database, now: Date): Promise<Metrics> {
       ((likersRes.results ?? []) as LikersRow[]).filter((r) => r.month < currentKey),
       (month) => ({ month, likers: 0, likes: 0 }),
     ),
-    cohorts: ((cohortsRes.results ?? []) as CohortRow[]).filter(
-      (r) => r.month < currentKey,
+    // Gap-filled like the other two series — a month with no signups would
+    // otherwise close up the cohort x-axis while its neighbours keep the hole.
+    cohorts: fillMonths(
+      ((cohortsRes.results ?? []) as CohortRow[]).filter((r) => r.month < currentKey),
+      (month) => ({ month, users: 0, activated: 0 }),
     ),
     currentMonth: {
       month: currentKey,

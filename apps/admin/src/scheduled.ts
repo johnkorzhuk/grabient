@@ -14,6 +14,7 @@ import {
   collectGsc,
   collectVerifiedBots,
 } from "./collect";
+import { collectBing } from "./bing";
 import { generateDigest } from "./briefs";
 import { periodsClosing } from "./reports";
 import { runSweep } from "./sweep";
@@ -99,8 +100,9 @@ export async function runSnapshot(env: Env, now: Date): Promise<JobResult> {
     collectCloudflare(env, now, TRAILING_DAYS.cf),
     collectD1(env, now, TRAILING_DAYS.d1),
     collectVerifiedBots(env, now, 1),
+    collectBing(env, now),
   ]);
-  const names = ["gsc", "ga4", "cf", "d1", "verified_bots"];
+  const names = ["gsc", "ga4", "cf", "d1", "verified_bots", "bing"];
   const points = results.flatMap((r) => (r.status === "fulfilled" ? r.value : []));
   const { written, revised } = await upsertMetrics(db, points, now.getTime());
   return {

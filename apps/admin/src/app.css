@@ -56,12 +56,26 @@
    it. Renaming a variable here silently changes the charts — grep charts.ts
    before you do.
 
-   --series-1 is categorical slot 1 from the dataviz reference palette, and it
-   was re-validated against these zinc surfaces rather than inherited: the
-   surfaces moved from #fcfcfb/#1a1a19 to #ffffff/#18181b when the palette
-   changed, and a contrast result is only meaningful against the surface the
-   chart actually renders on. Both modes pass the lightness band, chroma floor
-   and 3:1 contrast checks. Re-run the validator if you touch either surface.
+   --series-1..4 are categorical slots 1-4 from the dataviz reference palette,
+   in its order, and they were re-validated against these zinc surfaces rather
+   than inherited: the surfaces moved from #fcfcfb/#1a1a19 to #ffffff/#18181b
+   when the palette changed, and a contrast result is only meaningful against
+   the surface the chart actually renders on. Re-run the validator if you touch
+   either surface. All four slots pass the lightness band, the chroma floor and
+   both separation checks in both modes (worst adjacent pair yellow/aqua: CVD ΔE
+   9.1 light / 8.4 dark against a floor of 8; normal-vision 22.9 / 19.8 against
+   a floor of 15).
+
+   The one WARN is light mode contrast: aqua sits at 2.82:1 and yellow at 2.17:1
+   on white, below 3:1. That obligates relief, and relief is already the house
+   rule here — every chart ships a legend when it draws more than one series and
+   a Table view underneath in every case, so no value is ever reachable through
+   a low-contrast hue alone. Do not "fix" it by darkening the steps: they are
+   selected values from a validated set, and re-stepping one breaks the pairs.
+
+   The slot ORDER is the colorblind-safety mechanism, not a preference. It was
+   chosen from the orderings that clear every adjacent gate; swapping two slots
+   silently invalidates the numbers above.
 
    --good/--critical are the reserved status pair from the same reference, kept
    at their documented values rather than swapped for grabient's --color-destructive:
@@ -79,6 +93,8 @@
   --border: #e4e4e7;
   --series-1: #2a78d6;
   --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
   --good: #006300;
   --critical: #d03b3b;
 }
@@ -99,6 +115,8 @@
     --border: #27272a;
     --series-1: #3987e5;
     --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
     --good: #0ca30c;
     --critical: #d03b3b;
   }
@@ -113,6 +131,8 @@
   --color-edge: var(--border);
   --color-series: var(--series-1);
   --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
   --color-good: var(--good);
   --color-critical: var(--critical);
 
@@ -266,4 +286,59 @@
 }
 .chart-tip-n {
   color: var(--ink-muted);
+}
+/* An event marker inside the tooltip. It sits below the series rows, behind a
+   dashed rule and with no swatch, because it is an annotation and not a
+   measurement — the same distinction the dashed rule on the plot is making. */
+.chart-tip-m {
+  margin-top: 0.15rem;
+  border-top: 1px dashed var(--border);
+  padding-top: 0.25rem;
+  max-width: 15rem;
+  white-space: normal;
+  color: var(--ink-secondary);
+}
+
+/* The request-distribution globe (globe.ts).
+   ------------------------------------------------------------------
+   Two renderings of one dataset: a flat dot-matrix SVG that the server emits,
+   and a canvas globe the inline script draws over it. Without JavaScript the
+   SVG is what the reader gets, and it says the same thing — hence
+   .globe-canvas starting at display:none and the script swapping them, rather
+   than the other way round. */
+.globe-stage {
+  position: relative;
+  aspect-ratio: 2 / 1;
+}
+.globe-map,
+.globe-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.globe-canvas {
+  display: none;
+  touch-action: none;
+  cursor: grab;
+}
+.globe-canvas:active {
+  cursor: grabbing;
+}
+.globe-live .globe-map {
+  display: none;
+}
+.globe-live .globe-canvas {
+  display: block;
+}
+/* Land is context, not data: one wash of muted ink, well below the lit dots. */
+.globe-land {
+  stroke: var(--ink-muted);
+  stroke-opacity: 0.3;
+  stroke-linecap: round;
+  fill: none;
+}
+.globe-hit {
+  stroke: var(--series-1);
+  stroke-linecap: round;
+  fill: none;
 }

@@ -30,6 +30,10 @@ import { buildBrief } from "./brief";
 import { loadSearchConsole, type SearchConsole } from "./search-console";
 import { loadGa4 } from "./ga4";
 import { analyticsMcpHandler } from "./mcp";
+import { runBackfill } from "./backfill";
+import { renderMarkdown } from "./markdown";
+import { getReport, listReports, toMeta } from "./reports";
+import { opsPage, reportPage, reportsArchivePage } from "./report-pages";
 import { scheduled } from "./scheduled";
 import {
   cumulative,
@@ -152,19 +156,96 @@ app.get("/brief", async (c) => {
     loadAcquisition(c.env, now),
     loadSearchConsole(c.env, now),
   ]);
-  const [attribution, referrers] = await Promise.all([
+  // ga4 included — omitting it made this page's own `unavailable` list claim
+  // GA4 was not connected while /brief.json said it was. Same builder, one
+  // truth.
+  const [attribution, referrers, ga4] = await Promise.all([
     loadAttribution(c.env.DB),
     loadReferrers(c.env, now),
+    loadGa4(c.env, now),
   ]);
   return seal(
     c.html(
       briefPage(
-        buildBrief(metrics, traffic, acquisition, search, attribution, referrers),
+        buildBrief(metrics, traffic, acquisition, search, attribution, referrers, ga4),
         now,
         c.get("email"),
       ),
     ),
   );
+});
+
+// The report archive. Raw-markdown route registers FIRST — Hono's :slug
+// would otherwise swallow the .md suffix.
+app.get("/reports/:file{[a-z0-9][a-z0-9-]*\\.md}", async (c) => {
+  const slug = c.req.param("file").slice(0, -3);
+  const report = await getReport(c.env.ADMIN_DB, slug);
+  if (!report) return seal(c.html(errorPage(404, "Not found", "No such report."), 404));
+  // nosniff (from seal) plus the explicit type is what stops a browser from
+  // ever treating agent-authored text as HTML.
+  return seal(
+    new Response(report.body, {
+      headers: { "Content-Type": "text/markdown; charset=utf-8" },
+    }),
+  );
+});
+
+app.get("/reports/:slug{[a-z0-9][a-z0-9-]*}", async (c) => {
+  const report = await getReport(c.env.ADMIN_DB, c.req.param("slug"));
+  if (!report) return seal(c.html(errorPage(404, "Not found", "No such report."), 404));
+  const { html: body, headings } = renderMarkdown(report.body);
+  return seal(
+    c.html(
+      reportPage(toMeta(report.row), body, headings, {
+        stamp: stamp(new Date()),
+        email: c.get("email"),
+      }),
+    ),
+  );
+});
+
+app.get("/reports", async (c) => {
+  const kind = c.req.query("kind");
+  const { items, nextCursor } = await listReports(c.env.ADMIN_DB, {
+    kind: kind === "report" || kind === "digest" ? kind : undefined,
+    cursor: c.req.query("before"),
+    limit: 25,
+  });
+  return seal(
+    c.html(
+      reportsArchivePage(items, {
+        kind,
+        nextCursor,
+        stamp: stamp(new Date()),
+        email: c.get("email"),
+      }),
+    ),
+  );
+});
+
+app.get("/ops", async (c) => {
+  let jobs: any[] = [];
+  try {
+    const res = await c.env.ADMIN_DB?.prepare(
+      `SELECT job, started_at, finished_at, ok, rows_written, detail
+         FROM job_run ORDER BY id DESC LIMIT 25`,
+    ).all();
+    jobs = res?.results ?? [];
+  } catch (err) {
+    console.error("job_run read failed (migration pending?)", err);
+  }
+  return seal(c.html(opsPage(jobs, { stamp: stamp(new Date()), email: c.get("email") })));
+});
+
+// POST only: a GET backfill would be prefetchable by a browser or link
+// scanner. Already behind Access like everything else. Not exposed via MCP —
+// an agent retrying a backfill in a loop is a quota risk; a human is not.
+app.post("/ops/backfill", async (c) => {
+  const source = c.req.query("source") as any;
+  const days = c.req.query("days") ? Number(c.req.query("days")) : undefined;
+  const dry = c.req.query("dry") === "1";
+  const report = await runBackfill(c.env, new Date(), { source, days, dry });
+  return seal(c.json(report));
 });
 
 app.notFound((c) => seal(c.html(errorPage(404, "Not found", "No such page."), 404)));

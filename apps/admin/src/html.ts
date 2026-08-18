@@ -155,6 +155,19 @@ const CHART_SCRIPT = String.raw`
           (p.m ? '<span class="chart-tip-n">' + p.m + "</span>" : "") +
           "</span>";
       });
+      // Event markers, if this chart has any. They hang under the series rows
+      // with no swatch: an annotation is not a measurement, and it must not look
+      // like one more thing that was counted. Hit-tested against the snapped
+      // position rather than the raw pointer, so arrow keys reach them too.
+      if (vertical && cfg.markers) {
+        cfg.markers.forEach(function (m) {
+          if (m.x1 == null ? Math.abs(m.x - x) > 8 : x < m.x1 || x > m.x2) return;
+          html +=
+            '<span class="chart-tip-m">' + m.label +
+            (m.detail ? '<span class="chart-tip-n"> — ' + m.detail.join("; ") + "</span>" : "") +
+            "</span>";
+        });
+      }
       tip.innerHTML = html;
       tip.hidden = false;
 
@@ -365,6 +378,48 @@ export function chartCard(opts: {
     </details>
   </div>
 </section>`;
+}
+
+/**
+ * The events behind a chart's markers, spelled out.
+ *
+ * A marker on a plot is a hairline and three words, and a cluster is just "4
+ * changes" — this is where the reader finds out what actually happened. Real
+ * HTML, no script, same disclosure shape as "Table view" so the two read as a
+ * pair. An empty window renders nothing rather than an empty box.
+ *
+ * Rows are events, not causes. The chart puts a date beside a line; the
+ * inference that one moved the other is the reader's to make.
+ */
+export function eventsDisclosure(
+  events: readonly {
+    on: string;
+    endsOn?: string | null;
+    kind: string;
+    label: string;
+    detail?: string | null;
+  }[],
+): string {
+  if (events.length === 0) return "";
+  const rows = events
+    .map((event) => {
+      const when =
+        event.endsOn && event.endsOn !== event.on ? `${event.on} → ${event.endsOn}` : event.on;
+      return `<li class="flex flex-wrap items-baseline gap-x-2 gap-y-1 border-b border-edge py-2 last:border-b-0">
+  <span class="font-system text-xs tabular-nums text-ink-muted">${esc(when)}</span>
+  <span class="rounded-md border border-edge px-1.5 py-0.5 text-[10px] leading-none font-bold tracking-[0.08em] text-ink-muted uppercase">${esc(event.kind)}</span>
+  <span class="text-xs font-bold">${esc(event.label)}</span>${
+    event.detail
+      ? `\n  <span class="w-full text-xs leading-snug text-ink-secondary">${esc(event.detail)}</span>`
+      : ""
+  }
+</li>`;
+    })
+    .join("");
+  return `<details class="mt-4 border-t border-edge pt-3">
+  <summary class="cursor-pointer text-xs font-bold tracking-wide text-ink-muted uppercase hover:text-ink">Events in this window (${events.length})</summary>
+  <ul class="mt-2 max-h-64 overflow-auto">${rows}</ul>
+</details>`;
 }
 
 /**

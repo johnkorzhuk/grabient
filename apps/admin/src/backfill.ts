@@ -8,6 +8,7 @@
 // a quota risk; a human hitting an Access-protected POST is not.
 
 import { closeRun, openRun, upsertMetrics, type MetricPoint } from "./db";
+import { collectBing } from "./bing";
 import {
   collectCloudflare,
   collectD1,
@@ -16,7 +17,7 @@ import {
   collectVerifiedBots,
 } from "./collect";
 
-export type BackfillSource = "gsc" | "ga4" | "cf" | "d1" | "bots" | "all";
+export type BackfillSource = "gsc" | "ga4" | "cf" | "d1" | "bots" | "bing" | "all";
 
 export interface BackfillReport {
   ok: boolean;
@@ -53,6 +54,7 @@ export async function runBackfill(
   if (source === "all" || source === "bots")
     // Adaptive retention is ~7 days; this is the whole recoverable window.
     plan.push(["bots", () => collectVerifiedBots(env, now, 6)]);
+  if (source === "all" || source === "bing") plan.push(["bing", () => collectBing(env, now)]);
 
   let totalWritten = 0;
   for (const [name, collect] of plan) {

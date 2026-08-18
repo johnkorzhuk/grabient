@@ -31,6 +31,18 @@ const HEIGHT = 210;
 
 const SERIES = "var(--series-1)";
 const SERIES_2 = "var(--series-2)";
+const SERIES_3 = "var(--series-3)";
+const SERIES_4 = "var(--series-4)";
+
+/**
+ * Categorical slots 1..4 from the dataviz reference palette, in its fixed order.
+ * The order is the colorblind-safety mechanism, not a preference — see the
+ * palette comment in app.css. Never cycle it.
+ */
+const SERIES_SLOTS = [SERIES, SERIES_2, SERIES_3, SERIES_4] as const;
+
+/** Annotations and de-emphasis. Never a series hue — a marker is not a measurement. */
+const ANNOTATION_INK = "var(--ink-muted)";
 
 // Hairline, recessive chrome: the data is the loud part, the grid sits one shade
 // off the surface and is never dashed.
@@ -39,7 +51,7 @@ const THEME = {
   muted: "var(--ink-muted)",
   grid: "var(--grid)",
   background: "var(--surface)",
-  palette: [SERIES, SERIES_2],
+  palette: SERIES_SLOTS,
 } as const;
 
 const MARGIN = { top: 12, right: 18, bottom: 26, left: 46 };
@@ -50,7 +62,7 @@ interface HoverOptions {
   /** Formats a y value into the tooltip's readout. */
   formatY: (value: any) => string;
   /** markId -> label and swatch color. A single-series chart can omit this. */
-  series?: Record<string, { n: string; c: string }>;
+  series?: Record<string, { n: string; c: string; k?: string }>;
 }
 
 function render(
@@ -58,10 +70,36 @@ function render(
   ariaLabel: string,
   idPrefix: string,
   hover: HoverOptions,
+  /**
+   * Time-scaled charts only — see ChartMarkers for why the band-scale charts
+   * cannot take these.
+   */
+  markers?: ChartMarkers,
 ): string {
   const runtime = createChartRuntime<any, any, any>();
   try {
-    const scene = runtime.render(definition as any, { width: WIDTH, height: HEIGHT });
+    let scene = runtime.render(definition as any, { width: WIDTH, height: HEIGHT });
+
+    // Two passes, and only when there is something to annotate. A band has to
+    // span the plot floor to ceiling and a label has to sit at the top of it;
+    // both of those are y-DOMAIN values, and the y domain is not known until the
+    // data has been through the scale. So resolve once to read the domain, then
+    // resolve again with the annotation marks layered in. Every marker date is
+    // clamped into the resolved x domain first, so the second pass cannot widen
+    // a scale and shift the data out from under the reader.
+    let hits: MarkerHit[] = [];
+    if (markers && (markers.rules.length > 0 || markers.bands.length > 0)) {
+      const layer = markerLayer(markers, scene);
+      if (layer) {
+        const marks = (definition as { marks?: readonly unknown[] }).marks ?? [];
+        scene = runtime.render(
+          { ...(definition as any), marks: [...layer.under, ...marks, ...layer.over] },
+          { width: WIDTH, height: HEIGHT },
+        );
+        hits = layer.hits(scene);
+      }
+    }
+
     const svg = topRoundedBars(
       renderChartSvg(scene, {
         ariaLabel,
@@ -81,13 +119,20 @@ function render(
     const seen = new Set<string>();
     const points = (scene as any).points
       .map((p: any) => {
+        // Annotations resolve to points the same way data does — the band rect
+        // and the label text both report one. They are not measurements and must
+        // never appear in the value readout.
+        if (String(p.markId).startsWith("marker-")) return null;
         // An area mark sits under its own line and resolves to the same points;
         // keeping both would print every value twice in the tooltip.
         if (String(p.markId).endsWith("-area")) return null;
-        const key = `${p.markId}:${p.x}`;
+        const meta = hover.series?.[p.markId];
+        // Dedupe on the series KEY where one is given, not the mark id: one
+        // series can be several marks (a settled run and its provisional tail
+        // repeat the point they join at) and the tooltip must print it once.
+        const key = `${meta?.k ?? p.markId}:${p.x}`;
         if (seen.has(key)) return null;
         seen.add(key);
-        const meta = hover.series?.[p.markId];
         return {
           m: meta?.n ?? "",
           c: meta?.c ?? SERIES,
@@ -104,6 +149,9 @@ function render(
       h: HEIGHT,
       plot: (scene as any).chart,
       points,
+      // Omitted entirely when there is nothing to annotate, so every other chart
+      // carries exactly the payload it did before.
+      ...(hits.length > 0 ? { markers: hits } : {}),
     };
 
     // Single-quoted attribute, so only the quote and & need escaping.
@@ -157,6 +205,224 @@ function topRoundedBars(svg: string): string {
 }
 
 /**
+ * Dated annotations for a time-scaled chart: instants as dashed rules, spans as
+ * shaded bands.
+ *
+ * An event asserts that something happened on a date. It never asserts that the
+ * line moved because of it — which is exactly why markers are drawn in muted ink
+ * and dashed. Dashed is annotation, solid is measurement; a marker in a series
+ * hue would read as a second thing being measured.
+ *
+ * `endExclusive` is exactly that: the caller has already added the exclusive day.
+ * A band covering Aug 20–27 inclusive spans [Aug 20 00:00, Aug 28 00:00). Pass
+ * the inclusive end instead and the last day of the span falls outside its own
+ * shading.
+ *
+ * Only the time-scaled charts accept these. On a band scale `scales.x.map(date)`
+ * has no answer — a rule at an arbitrary date has no position — so
+ * newSignupsChart, activationChart and conversionChart deliberately do not take
+ * a markers argument rather than failing at render time.
+ */
+export interface ChartMarkers {
+  rules: Array<{ at: Date; label: string; count?: number; kind?: string }>;
+  bands: Array<{ start: Date; endExclusive: Date; label: string }>;
+}
+
+/** One entry in the data-chart payload's `markers` array, in viewBox units. */
+interface MarkerHit {
+  /** A rule's position. A band carries x1/x2 instead. */
+  x?: number;
+  x1?: number;
+  x2?: number;
+  label: string;
+  /** The individual labels behind a clustered rule. */
+  detail?: string[];
+}
+
+interface MarkerLayer {
+  /** Bands. Drawn before the data marks, so the wash sits under the lines. */
+  under: unknown[];
+  /** Rules and their labels. Drawn after. */
+  over: unknown[];
+  /** Hit positions, read off the FINAL scene so a re-layout cannot desync them. */
+  hits: (scene: any) => MarkerHit[];
+}
+
+const DAY_MS = 86_400_000;
+/** Rules closer together than this on screen collapse into one clustered rule. */
+const CLUSTER_PX = 14;
+/** A label with less room than this to its right is anchored from its end instead. */
+const EDGE_PX = 60;
+
+/**
+ * The marker marks, plus the tooltip payload that goes with them.
+ *
+ * Collision handling happens in DOMAIN space, before anything is rendered:
+ * pixel positions do not exist until the scene resolves, and the scene being
+ * resolved is the one we are building. So the plot width and the date span give
+ * pxPerDay, which turns the 14px rule of thumb into a gap in milliseconds — a
+ * question the dates can answer. A cluster of n collapses to a single rule at
+ * the members' mean date labelled "n changes", with the individual labels
+ * carried into the tooltip.
+ */
+function markerLayer(markers: ChartMarkers, scene: any): MarkerLayer | null {
+  const xDomain = scene?.scales?.x?.domain as readonly unknown[] | undefined;
+  const yDomain = scene?.scales?.y?.domain as readonly unknown[] | undefined;
+  const plot = scene?.chart;
+  if (!xDomain?.length || !yDomain?.length || !plot) return null;
+
+  const t0 = Number(new Date(xDomain[0] as any));
+  const t1 = Number(new Date(xDomain[xDomain.length - 1] as any));
+  const yLo = Number(yDomain[0]);
+  const yHi = Number(yDomain[yDomain.length - 1]);
+  if (!Number.isFinite(t0) || !Number.isFinite(t1) || t1 <= t0) return null;
+  if (!Number.isFinite(yLo) || !Number.isFinite(yHi)) return null;
+
+  const clamp = (time: number) => Math.min(t1, Math.max(t0, time));
+  const pxPerDay = plot.width / Math.max(1, (t1 - t0) / DAY_MS);
+  const clusterMs = (CLUSTER_PX / Math.max(pxPerDay, 0.001)) * DAY_MS;
+
+  // Clamping is what keeps the second render honest: a band running past the
+  // last day of data would otherwise widen the x domain and move every point.
+  const bands = markers.bands
+    .map((band, index) => ({
+      id: `band-${index}`,
+      x1: new Date(clamp(band.start.getTime())),
+      x2: new Date(clamp(band.endExclusive.getTime())),
+      lo: yLo,
+      hi: yHi,
+      label: band.label,
+    }))
+    // A span entirely outside the window clamps to a zero-width sliver on the
+    // edge. Drop it rather than paint a hairline that means nothing.
+    .filter((band) => band.x2.getTime() > band.x1.getTime());
+
+  const sorted = markers.rules
+    .map((rule) => ({
+      at: clamp(rule.at.getTime()),
+      label: rule.label,
+      count: Math.max(1, Math.round(rule.count ?? 1)),
+    }))
+    .sort((a, b) => a.at - b.at);
+
+  interface Cluster {
+    /** Compared against the next rule — a greedy chain, left to right. */
+    last: number;
+    sum: number;
+    total: number;
+    labels: string[];
+  }
+  const clusters: Cluster[] = [];
+  for (const rule of sorted) {
+    const open = clusters[clusters.length - 1];
+    if (open && rule.at - open.last < clusterMs) {
+      open.last = rule.at;
+      open.sum += rule.at;
+      open.total += rule.count;
+      open.labels.push(rule.label);
+    } else {
+      clusters.push({ last: rule.at, sum: rule.at, total: rule.count, labels: [rule.label] });
+    }
+  }
+
+  const mapX = scene.scales.x.map as (value: unknown) => number;
+  const rules = clusters.map((cluster, index) => {
+    const at = new Date(Math.round(cluster.sum / cluster.labels.length));
+    const flip = mapX(at) > plot.x + plot.width - EDGE_PX;
+    return {
+      id: `rule-${index}`,
+      at,
+      top: yHi,
+      // A count is the caller telling us this marker already stands for several
+      // events, so it aggregates the same way a cluster does.
+      label: cluster.total > 1 ? `${cluster.total} changes` : cluster.labels[0]!,
+      detail: cluster.total > 1 ? cluster.labels : undefined,
+      anchor: (flip ? "end" : "start") as "end" | "start",
+      dx: flip ? -3 : 3,
+    };
+  });
+
+  if (bands.length === 0 && rules.length === 0) return null;
+
+  const under = bands.length
+    ? [
+        rect(bands, {
+          id: "marker-band",
+          x1: "x1",
+          x2: "x2",
+          y1: "lo",
+          y2: "hi",
+          fill: ANNOTATION_INK,
+          fillOpacity: 0.07,
+          // The default 0.75 inset would leave a hairline of surface between the
+          // wash and the plot's own edges.
+          inset: 0,
+        }),
+      ]
+    : [];
+
+  const over = rules.length
+    ? [
+        ruleX(rules, {
+          id: "marker-rule",
+          x: "at",
+          stroke: ANNOTATION_INK,
+          strokeWidth: 1,
+          strokeDasharray: "3 3",
+          strokeOpacity: 0.65,
+        }),
+        text(rules, {
+          id: "marker-label",
+          x: "at",
+          y: "top",
+          text: "label",
+          fill: ANNOTATION_INK,
+          fontSize: 10,
+          anchor: (datum) => datum.anchor,
+          dx: (datum) => datum.dx,
+          // Baseline is middle, so this drops the label just inside the top of
+          // the plot rather than straddling its edge.
+          dy: 7,
+        }),
+      ]
+    : [];
+
+  return {
+    under,
+    over,
+    hits: (final: any) => {
+      const map = final?.scales?.x?.map;
+      if (typeof map !== "function") return [];
+      const at = (value: unknown) => Math.round(map(value) * 100) / 100;
+      return [
+        ...bands.map((band) => ({
+          x1: at(band.x1),
+          x2: at(band.x2),
+          label: tipText(band.label),
+        })),
+        ...rules.map((rule) => ({
+          x: at(rule.at),
+          label: tipText(rule.label),
+          ...(rule.detail ? { detail: rule.detail.map(tipText) } : {}),
+        })),
+      ];
+    },
+  };
+}
+
+/**
+ * Escapes text bound for the tooltip.
+ *
+ * Everything else in the payload is a formatted date or number, but a marker
+ * label is free text an operator or an agent typed into the event log, and the
+ * hover script writes it with innerHTML. Escape it here rather than teach the
+ * script to build nodes — server-side is where the budget is.
+ */
+function tipText(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+/**
  * A band scale renders every category label, and 16 months of "Apr 25" at 11px
  * collide well before they run out of room. Blank out all but every other one,
  * always keeping the first and last so the range stays readable.
@@ -195,7 +461,10 @@ const monthFull = (month: string) =>
 const compact = (n: number) => n.toLocaleString("en-US");
 
 /** Total registered users over time. Trend of a single series -> area + line. */
-export function cumulativeUsersChart(points: readonly { date: Date; total: number }[]): string {
+export function cumulativeUsersChart(
+  points: readonly { date: Date; total: number }[],
+  markers?: ChartMarkers,
+): string {
   return render(
     defineChart({
       marks: [
@@ -234,6 +503,7 @@ export function cumulativeUsersChart(points: readonly { date: Date; total: numbe
         d.toLocaleDateString("en-US", { month: "long", year: "numeric", timeZone: "UTC" }),
       formatY: (v: number) => `${compact(v)} registered accounts`,
     },
+    markers,
   );
 }
 
@@ -337,7 +607,7 @@ export function activationChart(cohorts: readonly CohortRow[]): string {
  * up across the window would double-count every returning visitor. Only the
  * shape over time and the daily level mean anything.
  */
-export function dailyVisitorsChart(days: readonly TrafficDay[]): string {
+export function dailyVisitorsChart(days: readonly TrafficDay[], markers?: ChartMarkers): string {
   // Raw daily values carry a hard weekly sawtooth — weekends are a different
   // business from weekdays. The smoothed line is the one to read for direction;
   // the raw series stays underneath at low opacity so a genuine one-day spike
@@ -411,6 +681,214 @@ export function dailyVisitorsChart(days: readonly TrafficDay[]): string {
         "automated-line": { n: "Bots & unidentified", c: SERIES_2 },
       },
     },
+    markers,
+  );
+}
+
+/** Below this many points a 7-day mean is most of the series, not a smoothing of it. */
+const SMOOTH_MIN = 21;
+
+/**
+ * Trailing 7-day mean that respects gaps.
+ *
+ * range.ts's rollingMean takes a dense number[]. A metric history is not dense —
+ * a source can be down for a day — and averaging across a hole invents a value
+ * for a day nobody measured. A window containing a gap is null, so the smoothed
+ * line breaks exactly where the raw one does.
+ */
+function trailingMean(values: readonly (number | null)[], window = 7): (number | null)[] {
+  return values.map((_, i) => {
+    if (i < window - 1) return null;
+    let sum = 0;
+    for (let j = i - window + 1; j <= i; j++) {
+      const value = values[j];
+      if (value == null) return null;
+      sum += value;
+    }
+    return sum / window;
+  });
+}
+
+export interface TrendPoint {
+  date: Date;
+  /** null is a gap, never a zero. The line breaks; it is never interpolated. */
+  value: number | null;
+  /** Today's partial day, a source still backfilling — anything not final yet. */
+  provisional?: boolean;
+}
+
+export interface TrendSeries {
+  label: string;
+  points: TrendPoint[];
+  /** A `var(--series-N)` reference. Defaults to slots 1..4 in order. */
+  color?: string;
+}
+
+/**
+ * Splits a series into alternating settled and provisional runs.
+ *
+ * The library styles a line mark as a whole — there is no per-segment stroke —
+ * so "the provisional tail is dimmer" has to be two marks. Consecutive runs
+ * repeat the point they join at so the line stays continuous instead of showing
+ * a one-pixel notch; the tooltip dedupes that repeat away by series key.
+ */
+function provisionalRuns(
+  points: readonly TrendPoint[],
+): { provisional: boolean; points: TrendPoint[] }[] {
+  const runs: { provisional: boolean; points: TrendPoint[] }[] = [];
+  for (const point of points) {
+    const provisional = point.provisional === true;
+    let run = runs[runs.length - 1];
+    if (!run || run.provisional !== provisional) {
+      const previous = run?.points[run.points.length - 1];
+      run = { provisional, points: previous ? [previous] : [] };
+      runs.push(run);
+    }
+    run.points.push(point);
+  }
+  return runs;
+}
+
+/**
+ * The color a series gets at a given position.
+ *
+ * Color follows the entity, never its rank, so callers must pass their series in
+ * a stable order — a filter that drops one must not repaint the survivors.
+ *
+ * There is deliberately no fifth slot. A generated fifth hue is indistinguishable
+ * from an existing one under colorblindness, so past four the answer is to fold
+ * the tail into "Other" or facet into small multiples. Anything beyond the fourth
+ * series is drawn in de-emphasis gray, which makes an over-full chart look wrong
+ * instead of looking fine and lying.
+ */
+export function seriesColor(index: number): string {
+  return SERIES_SLOTS[index] ?? ANNOTATION_INK;
+}
+
+/**
+ * The generic multi-series time chart behind the metric history pages.
+ *
+ * Two or more series need a legend, and this returns only the plot, so the
+ * caller builds one — the palette is exported for exactly that:
+ *
+ *   legend(series.map((s, i) => ({ color: s.color ?? seriesColor(i), label: s.label })))
+ *
+ * and passes it to chartCard's `legend` slot. Four series is the ceiling; see
+ * seriesColor.
+ *
+ * `formatValue` is used for the axis ticks as well as the tooltip, so keep it a
+ * bare number ("1.2k", "48%"). A tick is a position on the scale, not a data
+ * point, and a formatter that says "1,240 sessions · 12% of tracked" will
+ * happily print that on a round number no reader ever measured.
+ */
+export function metricTrendChart(
+  series: TrendSeries[],
+  opts: {
+    ariaLabel: string;
+    idPrefix: string;
+    formatValue: (n: number) => string;
+    markers?: ChartMarkers;
+    /** Default true — growth and activity charts start at 0 (see zeroBased()). */
+    zeroBase?: boolean;
+    /** Render a trailing 7-day mean per series when the series is long enough. */
+    smooth?: boolean;
+  },
+): string {
+  const marks: unknown[] = [];
+  const hover: Record<string, { n: string; c: string; k: string }> = {};
+  let max = 0;
+
+  series.forEach((entry, index) => {
+    const color = entry.color ?? seriesColor(index);
+    const key = `s${index}`;
+    for (const point of entry.points) {
+      if (point.value !== null && point.value > max) max = point.value;
+    }
+
+    const smoothed = opts.smooth === true && entry.points.length >= SMOOTH_MIN;
+    let line = entry.points;
+    if (smoothed) {
+      // Same treatment as the daily visitors chart: the raw series stays
+      // underneath at low opacity so a genuine one-day spike is still visible
+      // rather than averaged out of existence. Same hue, not a new slot — this
+      // is the same measurement read differently.
+      marks.push(
+        lineY(entry.points, {
+          id: `${key}-raw`,
+          x: "date",
+          y: "value",
+          stroke: color,
+          strokeWidth: 1,
+          strokeOpacity: 0.3,
+        }),
+      );
+      hover[`${key}-raw`] = { n: `${entry.label} (that day)`, c: color, k: `${key}-raw` };
+      const mean = trailingMean(entry.points.map((point) => point.value));
+      line = entry.points.map((point, i) => ({
+        date: point.date,
+        value: mean[i] ?? null,
+        provisional: point.provisional,
+      }));
+    }
+
+    const base = smoothed ? `${entry.label} (7-day avg)` : entry.label;
+    provisionalRuns(line).forEach((run, runIndex) => {
+      const id = `${key}-${runIndex}${run.provisional ? "p" : ""}`;
+      marks.push(
+        lineY(run.points, {
+          id,
+          x: "date",
+          y: "value",
+          stroke: color,
+          strokeWidth: 2,
+          strokeOpacity: run.provisional ? 0.45 : 1,
+        }),
+      );
+      hover[id] = {
+        n: run.provisional ? `${base} · provisional` : base,
+        c: color,
+        k: key,
+      };
+    });
+  });
+
+  return render(
+    defineChart({
+      marks: marks as any,
+      x: {
+        scale: scaleUtc,
+        axis: {
+          ticks: {
+            count: 6,
+            format: (d: Date) =>
+              d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }),
+          },
+          tickLabels: { thin: true },
+        },
+      },
+      y: {
+        scale: opts.zeroBase === false ? scaleLinear : zeroBased(Math.max(1, max)),
+        nice: true,
+        grid: true,
+        axis: { ticks: { count: 5, format: opts.formatValue } },
+      },
+      theme: THEME,
+      margin: MARGIN,
+    }),
+    opts.ariaLabel,
+    opts.idPrefix,
+    {
+      formatX: (d: Date) =>
+        d.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+          timeZone: "UTC",
+        }),
+      formatY: (v: number) => opts.formatValue(v),
+      series: hover,
+    },
+    opts.markers,
   );
 }
 
