@@ -967,6 +967,26 @@ export function conversionChart(
 
 
 /**
+ * Fits a category label into the ranked chart's left gutter.
+ *
+ * ~6px per glyph at the 11px axis size against a 108px gutter leaves about 17
+ * characters. URLs get MIDDLE truncation rather than a trailing ellipsis:
+ * every palette path starts "/HQFgHA7AN…" and differs in its tail, so cutting
+ * the end would render a column of identical-looking rows.
+ */
+const CATEGORY_GLYPHS = 17;
+
+function fitCategory(label: string): string {
+  if (label.length <= CATEGORY_GLYPHS) return label;
+  if (label.startsWith("/") || label.includes("?")) {
+    const head = Math.ceil((CATEGORY_GLYPHS - 1) / 2);
+    const tail = CATEGORY_GLYPHS - 1 - head;
+    return `${label.slice(0, head)}…${label.slice(-tail)}`;
+  }
+  return `${label.slice(0, CATEGORY_GLYPHS - 1).trimEnd()}…`;
+}
+
+/**
  * Ranked magnitude with long category names -> horizontal bars.
  *
  * Country names and URL paths do not fit under a vertical bar without rotating
@@ -998,10 +1018,28 @@ export function rankedBarChart(
   formatTick: (n: number) => string = compact,
 ): string {
   const height = Math.max(120, rows.length * 26 + 30);
+  // Category labels are drawn RIGHT-ALIGNED ending at the plot edge, so a long
+  // one grows leftwards without bound — SVG text has no wrapping and nothing
+  // here clipped it. A 120-character landing-page URL was rendering out of its
+  // own card and across the chart beside it. Fit them to the gutter instead;
+  // the full string still reaches the reader through the tooltip and the table
+  // view underneath, which is where exact values were always meant to live.
+  const fitted = rows.map((row) => ({ ...row, label: fitCategory(row.label) }));
+  // Two rows that truncate to the same string would collapse into one band, so
+  // disambiguate rather than silently lose a row.
+  const seenLabels = new Map<string, number>();
+  for (const row of fitted) {
+    const count = seenLabels.get(row.label) ?? 0;
+    seenLabels.set(row.label, count + 1);
+    if (count > 0) row.label = `${row.label} (${count + 1})`;
+  }
+  // The tooltip must still expand from the ORIGINAL label, not the truncated
+  // one, so pair them up by position.
+  const originalByFitted = new Map(fitted.map((row, i) => [row.label, rows[i]!.label]));
   const runtime = createChartRuntime<any, any, any>();
   try {
     const definition = defineChart({
-      marks: [barX(rows, { id: idPrefix, x: "count", y: "label", fill: SERIES, radius: 4 })],
+      marks: [barX(fitted, { id: idPrefix, x: "count", y: "label", fill: SERIES, radius: 4 })],
       x: {
         scale: scaleLinear,
         nice: true,
@@ -1031,7 +1069,9 @@ export function rankedBarChart(
       c: SERIES,
       x: Math.round(p.x * 100) / 100,
       y: Math.round(p.y * 100) / 100,
-      l: tipText(expandLabel(String(p.yValue))),
+      // Expand from the original, not from the axis text: the tooltip is
+      // exactly where the truncated tail is supposed to come back.
+      l: tipText(expandLabel(originalByFitted.get(String(p.yValue)) ?? String(p.yValue))),
       v: tipText(formatValue(p.xValue)),
     }));
     const payload = { w: WIDTH, h: height, plot: (scene as any).chart, points, axis: "y" };

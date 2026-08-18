@@ -472,3 +472,110 @@ resolves as a query; its hex now names as "dark yellow", 0.007 away. The
 survey's other food words ("chocolate", "salmon", "peach", "mustard") are
 ordinary colour words in translation and stay.
 
+
+## 10. 2026-08-18 (round 2) — the guard becomes a category test
+
+The second visual-QA round (see [palette-prose.md](./palette-prose.md) §8) found
+the §9 guard both too short and too crude. Four cases, all of them names that
+reached the `<title>`:
+
+| stop | was | distance | should be | distance | why the §9 guard missed it |
+|---|---|---|---|---|---|
+| `#bb401a` (L 0.541, C 0.166, hue 36.6) | dull red | 0.0360 | brick orange | 0.0269 | the guard MOVED it: h 36.6 is 4.4° inside the red band, so a red word overruled three nearer orange ones |
+| `#324226` (L 0.357, C 0.051, hue 132.7) | evergreen | 0.0405 | dark olive | 0.0344 | same, 6.7° inside green; "dark olive" is filed yellow |
+| `#d4e9ff` (L 0.925, C 0.037 at 100% of its ceiling, hue 249.5) | lavender | 0.0231 | alice blue | 0.0557 | the blue name is 0.033 away, three times the reach |
+| `#073c40` (L 0.326, C 0.052 at 93% of its ceiling, hue 202.8) | dark blue gray | 0.0331 | dark teal | 0.0569 | 0.024 away, twice the reach |
+| `#e0b840` (L 0.797, C 0.141, hue 89.9) | dark yellow | 0.0307 | mustard yellow | 0.0382 | class matched; the WORD did not (a "dark" name on the brightest stop in its palette) |
+
+Three changes, and the third is what makes the first two safe:
+
+1. **A NAME's class takes both readings too.** §9 filed an entry by absolute
+   chroma alone, which is the exact conflation D19 exists to remove, one layer
+   down: `lavender` (#e6e6fa) measures C 0.0269 at 78% of what L 0.931 allows
+   and was filed NEUTRAL, so a violet word won on plain gray-blue stops
+   ("running from lavender … The colors are cool grays"). 15 of the 34
+   neutral-filed entries are tints of that kind. The tint branch needs light
+   (L ≥ 0.5, which excludes only `almost black`) and a floor of C ≥ 0.01 (which
+   excludes `snow` and `pale gray`, white with a rounding error): 13 entries
+   promoted.
+2. **Reach 0.01 → 0.04.** A category error is worth two JND of perceptual
+   distance to correct; half a JND could not reach any of the four.
+3. **A promotion must IMPROVE the answer.** The promoted name has to sit closer
+   in hue than the winner, or drop a hue claim the stop cannot support. This is
+   what makes the reach safe, and it is also what fixes `#bb401a` and `#324226`:
+   the band partition answers every hue, including the ones sitting on a line,
+   and hue error is the continuous fact underneath it (5.5° against 12.5°, and
+   15.9° against 24.9°). `#dff2cb` → very pale green, the §9 case, still holds.
+
+**Value words are claims.** A name containing dark/darkish, or light/lightish/
+pale, is preferred against when the stop sits on the wrong side of OkLab
+mid-gray (#808080 measures L 0.600). It is a preference and not a ban: the
+survey's value words are family-relative (26 of 67 "dark" entries sit above
+mid-gray, `dark cream` at L 0.954), so a contradicted name is replaced only when
+a same-family name sits within the reach, and kept otherwise.
+
+Measured over the fixture's 5,895 distinct rendered stops: **14.2% renamed**
+(refile 3.0%, the wider reach 7.8%, the value-word gate 3.4%), and 343 of the
+867 palette names changed. Every move is bounded by construction: at most two
+JND further away, and only toward a name that agrees better with the stop's hue
+or drops a false claim.
+
+**One more rule, in `getUniqueColorNames`:** a stop whose colour FAMILY no
+chosen stop has is admitted whatever the separation threshold says. Distance
+measures "another name for the same colour", which is what the threshold is for,
+and it collapses at low chroma: a pastel run through pink, blue, cyan, mint,
+cream and peach measures under 0.12 between every pair and under 0.05 end to
+end, so it came back as ONE name and the description said "held within lavender
+blush" two sentences before "It travels the whole color wheel". The stop needs a
+usable hue for its family to count, so a run of grays cannot exploit it.
+
+## 11. 2026-08-18 (round 3) — two things the corpus cannot say
+
+The third visual-QA round (see [palette-prose.md](./palette-prose.md) §9) found
+two naming failures that the §9/§10 guards are not the right shape for. Both are
+about the WORD rather than about the distance.
+
+**A survey word can carry a tone claim the palette contradicts.** `pastel red`
+named #e96157 on a sunset that fires `vivid`, one sentence before the paragraph
+called the palette strong and clear, and the word reached the `<title>`, the meta
+description and the top chip (which links to `/palettes/pastel-red`). A per-stop
+gate against the registry's own `PASTEL_CHROMA` is not available: the corpus
+entry IS the stop, near enough — xkcd's `pastel red` is #db5856 at chroma 0.165,
+75% of its ceiling, and `neon blue` is #04d9ff at 0.145, well under the site's
+neon line — so the gate would delete both entries, which is exactly what D8
+restored them against. What is checkable is the CONTRADICTION. `toneNameVeto`
+(palette-name.ts) reads the palette's own fired tags and hands `nearestNamed` a
+`veto`: a fired `vivid`/`neon` rules out pale words in a name, a fired
+`pastel`/`muted` rules out loud ones, and the lookup falls back to the nearest
+entry that is left. Only the loudness axis — value words are already handled
+per-stop by §10's `valueWordFits`. Measured: 12 of the 867 fixture palettes
+carried a contradicting name; #e96157 becomes `grapefruit`.
+
+**A word whose common sense is not the entry's colour.** BASIC_COLORS claims its
+41 names before the survey merge, so the corpus holds the CSS `azure` (#f0ffff,
+L 0.989 at chroma 0.016) and not the survey's (#069af3, a vivid sky blue). Every
+reader and every machine translator has the second sense (azur / azzurro /
+azul), so the label could only ever land on near-whites: "Pale lilac to pale
+mauve to azure" over a stop that renders indistinguishable from the two pure
+whites beside it. Repointing the entry is not free — the "teal, azure, navy"
+popular search, palette-tags' own base-colour vocabulary and the live Vectorize
+index all resolve `azure` to #f0ffff — so the entry stays and only the LABEL side
+closes: `LOOKUP_ONLY` in color-utils makes it invisible to `nearestNamed` while
+`colorNameToHex`, `isColorName` and `matchColorName` answer exactly as before.
+#ecffff names as `light cyan`. The criterion is a bare hue word whose corpus
+point is achromatic-extreme; scanned over the 17 near-white entries (C < 0.03,
+L > 0.9) azure is the only member — the other single-word ones are object names
+everyone reads as pale (honeydew, ivory, linen, seashell, snow) or hue words
+that MEAN a tint (lavender).
+
+**And one selection failure.** `getUniqueColorNames` is farthest-point in OkLab,
+where lightness dominates the distance, so an interior BLACK wins every race it
+enters: "Ivory to midnight to aqua marine" for a palette whose middle is a bright
+orange (#ff7a44) and a deep red (#990708), the two most chromatic stops and the
+loudest third of the image, while its own chip row (which ranks by chroma, D18)
+offered orange and red. Interior candidates that are only the edge of the value
+scale — L < 0.1, or L > 0.9 with C < `NAME_CHROMA_FLOOR`, the same predicate the
+chips demote on — now yield to a coloured candidate that also clears
+`minSeparation`. A demotion and not a ban: the two ENDS are chosen before this
+runs, so a white-to-navy ramp keeps "white", and a palette whose only far
+candidate is a black still names it.

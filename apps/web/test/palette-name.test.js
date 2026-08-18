@@ -21,7 +21,17 @@ import {
   stopSaturation,
   THRESHOLDS,
 } from "@repo/data-ops/gradient-gen/palette-modifiers";
-import { hexToOkLch, maxChromaFor } from "@repo/data-ops/color-utils";
+import {
+  colorFamily,
+  colorNameToHex,
+  hexToColorName,
+  hexToOkLch,
+  maxChromaFor,
+  NAMED_COLORS,
+  NAME_CHROMA_FLOOR,
+  NAME_SATURATION_FLOOR,
+  NAME_TINT_LIGHTNESS,
+} from "@repo/data-ops/color-utils";
 import { PROSE_SEEDS } from "./prose-corpus.js";
 
 const SEEDS = {
@@ -231,6 +241,16 @@ describe("the registry", () => {
 });
 
 describe("saturation, not chroma (D19)", () => {
+  it("keeps the naming floors identical to the registry's", () => {
+    // color-utils restates these three rather than importing them: the registry
+    // imports color-utils, and the corpus classes are computed at module load,
+    // where a circular import would still be undefined. This is the assertion
+    // that keeps the two copies from drifting apart silently.
+    expect(NAME_CHROMA_FLOOR).toBe(THRESHOLDS.CHROMA_FLOOR);
+    expect(NAME_SATURATION_FLOOR).toBe(THRESHOLDS.SATURATION_FLOOR);
+    expect(NAME_TINT_LIGHTNESS).toBe(THRESHOLDS.SATURATION_BRANCH_LIGHTNESS);
+  });
+
   // The bug: absolute chroma read as "is there colour here". The sRGB solid is
   // lopsided, so a light tint can be the most colourful thing the display can
   // render at its lightness and still measure a chroma the classifier called
@@ -274,13 +294,27 @@ describe("saturation, not chroma (D19)", () => {
     expect(meanSaturation).toBeGreaterThan(THRESHOLDS.GRAYSCALE_SAT);
   });
 
-  it("never calls a stop near its gamut ceiling achromatic", () => {
+  it("never calls a LIGHT stop near its gamut ceiling achromatic", () => {
     // The property the fix guarantees, swept over every rendered stop in the
-    // fixture: 70% of achievable chroma is colour by any definition.
+    // fixture: at the light end, 70% of achievable chroma is colour by any
+    // definition.
+    //
+    // The dark end is the 2026-08-18 amendment, and it is the same argument
+    // read the other way. The gamut narrows at BOTH ends, and only one of them
+    // is a colour: at L 0.92 a small ceiling means the stop is pale, at L 0.08
+    // it means the stop is black, and OkLab's cube root reports a chroma there
+    // that no one can see (#00000f measures C 0.053 at 100% of its ceiling).
+    // The two assertions below are the two halves.
     for (const seed of PROSE_SEEDS) {
       for (const hex of renderPalette(seed, "linearGradient", 13, 90).hexColors) {
-        if (stopSaturation(hex) >= 0.7) expect(stopHasHue(hex), `${seed} ${hex}`).toBe(true);
+        if (stopSaturation(hex) >= 0.7 && hexToOkLch(hex).L >= THRESHOLDS.SATURATION_BRANCH_LIGHTNESS)
+          expect(stopHasHue(hex), `${seed} ${hex}`).toBe(true);
       }
+    }
+    // ...and a near-black at the top of its own tiny gamut has no hue to give.
+    for (const hex of ["#00000f", "#040000", "#091a19"]) {
+      expect(stopSaturation(hex), hex).toBeGreaterThanOrEqual(0.35);
+      expect(stopHasHue(hex), hex).toBe(hexToOkLch(hex).C >= THRESHOLDS.CHROMA_FLOOR);
     }
   });
 
@@ -309,5 +343,54 @@ describe("saturation, not chroma (D19)", () => {
     const f = paletteFeatures(view.appliedCoeffs, view.hexColors);
     expect(f.denseMeanSaturation).toBeLessThan(THRESHOLDS.GRAYSCALE_SAT);
     expect(classifyStructure(f)).toBe("grayscale");
+  });
+});
+
+// =============================================================================
+// The label-side corpus closure (MISNAMED_LABEL in color-utils)
+// =============================================================================
+
+describe("names that may answer a query but never label a stop", () => {
+  it("closes exactly the purple words the corpus cannot support", () => {
+    // The criterion, re-derived rather than restated: a name carrying a purple
+    // or violet word whose own hex is not in the violet or magenta band. Those
+    // entries can only ever attach the word to a colour that shows it even
+    // less, which is how a brick brown at the red anchor came to be titled
+    // "purple brown". The four that pair the word with RED stay: their name
+    // names the band they are in.
+    const PURPLE = /(^|[ -])(purpl(e|ish|y|ey)|violet)([ -]|$)/;
+    const carrying = NAMED_COLORS.filter((c) => PURPLE.test(c.name));
+    expect(carrying.length).toBeGreaterThan(50);
+    const offBand = carrying.filter((c) => {
+      const { h } = hexToOkLch(
+        `#${[c.r, c.g, c.b].map((x) => x.toString(16).padStart(2, "0")).join("")}`,
+      );
+      return !["violet", "magenta"].includes(colorFamily(h));
+    });
+    expect(offBand.map((c) => c.name).sort()).toEqual([
+      "brownish purple",
+      "pale violet red",
+      "purple brown",
+      "purple red",
+      "purplish brown",
+      "purplish red",
+      "violet red",
+    ]);
+    // The three that also carry a BROWN word describe neither: too orange-ward
+    // for purple, too red-ward for brown. They are the closed set.
+    const closed = offBand
+      .filter((c) => /(^|[ -])brown(ish)?([ -]|$)/.test(c.name))
+      .map((c) => c.name)
+      .sort();
+    expect(closed).toEqual(["brownish purple", "purple brown", "purplish brown"]);
+    // Closed on the LABEL side only: every one still resolves for a query.
+    for (const name of closed) expect(colorNameToHex(name)).toMatch(/^#[0-9a-f]{6}$/);
+    // ...and no stop anywhere in the fixture gets one of them.
+    for (const seed of PROSE_SEEDS) {
+      const view = renderPalette(seed, "linearGradient", 7, 90);
+      if (!view) continue;
+      for (const hex of view.hexColors)
+        expect(closed, `${seed} ${hex}`).not.toContain(hexToColorName(hex));
+    }
   });
 });

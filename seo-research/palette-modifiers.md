@@ -649,3 +649,151 @@ the tone-gated names prose uses (brown is a dark low-chroma orange, purple a
 dark magenta, pink a light low-chroma red) need L and C where the palette's
 colour actually lives, not only a hue angle.
 
+
+## Visual QA round 2 (2026-08-18): hue visibility, and what a rainbow is
+
+Two more structural corrections, both from graders reading the render beside the
+text (see [palette-prose.md](./palette-prose.md) §8).
+
+**The saturation branch of hue validity is for TINTS.** D19 added it because the
+sRGB solid narrows at the top: where the ceiling is small, a stop can be as
+colourful as the screen allows and still measure almost no chroma. The solid
+narrows at the BOTTOM too, and that is not the same situation — there a small
+ceiling means the colour is nearly black, and OkLab's cube root has infinite
+slope, so it reports a chroma nobody can see. Measured: #00000f (rgb 0,0,15)
+sits at 100% of its ceiling with C 0.053, and #091a19 at 66% with C 0.023.
+Rendered beside a neutral of the same lightness, both are black
+(`qa/r3/dark-visibility.png`).
+
+It mattered live: the second stop above was admitted as a cyan, formed a hue
+cluster at 190.5°, and made a continuous near-black → brown → orange ramp
+"complementary" at a cluster separation of 151.3° against a threshold of 150.
+`hasUsableHue` now needs `L ≥ SATURATION_BRANCH_LIGHTNESS` (0.5) on that branch
+only; stops with real chroma are untouched at any lightness, which is what names
+a dark navy. 0.5 is where the branch stops being reachable from below rather
+than a tuned number: the ceiling is under `CHROMA_FLOOR / SATURATION_FLOOR`
+(0.086) for 20 of 36 hues at L 0.30, 5 at L 0.46, 1 at L 0.50 and none at L 0.54.
+
+**A rainbow reaches both ends of the spectrum.** `RAINBOW_SPAN` measures how far
+the hue travels and says nothing about where: a palette can cover 201° without
+leaving the warm half of the wheel by going the short way through magenta.
+Violet → magenta → dull rose → clay → olive → green shipped as "A rainbow
+gradient color palette", with no blue and no cyan in it, and the word drove the
+title, the meta description and a `rainbow` chip. The span now has to hold
+colour on both sides — the warm arc through 0° and the cool arc through 225°,
+the same windows `warm` and `cool` read — at `RAINBOW_POLE_SHARE` 0.10. Sweep
+over the fixture: 0.05 → 77 rainbows, 0.10 → 76, 0.15 → 71, 0.20 → 63,
+0.25 → 56, 0.30 → 47. The flat end is where the test only removes palettes with
+NO landmark on one side; the two it drops measure 0.00 and 0.06 of their mass in
+the cool arc.
+
+Structure counts after both changes (867 seeds, 13 steps): grayscale 19,
+monochrome 137, duotone 32, complementary 29, rainbow 75, analogous 247,
+multicolor 328. Four features were added for the prose layer, all additive:
+`chromaValleyT` (where the run comes closest to gray — the duotone sentence was
+asserting a position from a share), `denseMinLightness` / `denseMaxLightness`
+(what a viewer can see along the run), and `denseSaturationRange` (an exclusive
+claim about lightness needs to know the colourfulness held still).
+
+## Visual QA round 3 (2026-08-18): three gates that never asked the ends
+
+Three more registry corrections from graders reading the render beside the text
+(see [palette-prose.md](./palette-prose.md) §9).
+
+**"Brightest in the middle" is a claim about the ENDS.** `bright-middle` tested
+peak POSITION only (`lightnessPeakT` inside the middle third, above the
+`LOW_CONTRAST_RANGE` noise floor), so a ramp that climbs out of a medium blue
+into bright cyan and holds it through to spring green fired the tag at t 0.596
+with its right end 0.038 below the peak against 0.189 at its left, a 5:1
+asymmetry, and the sentence it drives told a reader both of its ends were darker.
+The weaker end now has to fall `MIDDLE_END_DROP` (0.25) of the palette's own
+dense lightness range below the peak, and the twin the same distance above the
+valley. A ratio rather than an absolute, for the same reason the prose layer's
+`ARCH_DOMINANT` is one: the claim is about shape, not amount. Measured over the
+111 palettes the position test alone accepted, the weaker end's drop as a
+fraction of the range runs p05 0.144, p10 0.275, p25 0.474, p50 0.703; the bar
+removes 11 there and 4 on the twin. Two additive features carry it —
+`denseFirstLightness` / `denseLastLightness`, dense so the tag stays
+step-invariant. Prevalences 0.128 → 0.115 and 0.075 → 0.070.
+
+**An `earthy` mean is what a neutral middle fools.** `EARTHY_CHROMA` bounds the
+MEAN, and a deep indigo against a lemon yellow with a gray and two khakis between
+them measures 0.083 because its third stop measures 0.010. It shipped as "An
+earthy duotone gradient color palette" leading both the title and the
+description, on a palette that also fires `high-contrast` and whose yellow end
+sits at 93.5% of the chroma its lightness allows. `earthy` implies `muted`, and a
+palette holding a stop as loud as `VIVID_CHROMA` is not muted by any reading, so
+that stop vetoes the word: 97 → 86 of 867, prevalence 0.111 → 0.099. (`muted`
+itself needs no such veto — 0 of its 91 palettes hold a stop that loud, its own
+ceiling being 0.055.)
+
+**One constant, two samples, two answers.** `hasColour` read the RENDERED stops
+while `isGrayscale`, which it is the De Morgan negation of, reads the dense
+sample. A lavender-white to sage-gray ramp measures dense mean saturation 0.231
+(grayscale, 0.019 under `GRAYSCALE_SAT`) and rendered mean saturation 0.262 (has
+colour, 0.012 over it), so it fired `pastel` AND classified `grayscale`, and the
+chip row offered the compound "pastel grayscale": one label telling a visitor the
+palette is both a pale tint and free of tint. `hasColour` is now dense. Measured
+cost: pastel 72 → 71, muted 91 → 90 (prevalence 0.110 → 0.108), earthy unchanged.
+
+One feature was added for the prose layer, additive: **`hueConcentration`**, the
+mean resultant length of the same chroma-weighted vector sum `meanHue` is the
+angle of (circular statistics' R, so circular SD = sqrt(−2 ln R)). `meanHue`
+always has a value, including where the vectors that made it point every which
+way and nearly cancel: a greige ramp whose seven stops measure h 302, 329, 24,
+75, 96, 123, 177 at C 0.009–0.015 returns 50.8°, squarely warm, and was described
+as "the colors are warm grays" over an image whose two ends are a cool
+lavender-white and a cool sage. R is what says that answer is an accident: 0.397
+there against 0.92–0.99 for the leans that hold up. Fixture distribution p05
+0.206, p10 0.362, p25 0.636, p50 0.867, p75 0.971.
+
+## Visual QA round 4 (2026-08-18): a floor under the relative reading, and a feature for a claim nobody measured
+
+Two changes here, both from graders reading rendered palettes beside the text.
+
+**D19's relative reading has one blind spot, at the very top of the solid.**
+`FAMILY_SATURATION` (0.6) exists so a pale sky tint sitting at 90% of its
+achievable chroma can still be called blue. As L → 1 the ceiling collapses toward
+zero, so *any* residue reads as 100%: a stop at L 0.9992 with C 0.0039 cleared
+the gate and the prose announced a family for a colour its own identity sentence
+had just named white ("running from white (#ffffff) through peach to pinkish
+gray. It moves from yellow into pink"). **`FAMILY_MIN_CHROMA` = 0.01** is the
+visibility floor under that branch. Swept over the fixture's 319
+saturation-branch family admissions the floor removes 5 at 0.005, 8 at 0.008, 8
+at 0.01, 14 at 0.015 and 23 at 0.02; 0.008–0.01 is the flat region and every stop
+it removes sits at L ≥ 0.98. One 8-bit step near white moves chroma by roughly
+0.001, so 0.01 is about ten quantization steps: the smallest tint a panel can
+show. Deliberately NOT applied to `hasUsableHue` — a floor there was measured and
+rejected in the D19 work (0/2/8/14 classification changes at
+0.005/0.01/0.015/0.02), because clustering needs the angle and the angle is
+stable well below visibility. Naming a family is the claim that needs to see the
+colour.
+
+**A sentence about repeats had no measurement under it.** `hue-wandering`
+establishes that the hue ANGLE turns back, and the prose said "It repeats colors
+from earlier in the gradient" on the strength of it. The two are not the same
+fact: a denim → periwinkle → orchid → electric violet sweep returns to h 283 at
+C 0.247 where it had been at C 0.082, so the angle came home and the colour never
+did. New feature **`colorReturn`**: the smallest OkLab distance between two dense
+samples at least a third of the ramp apart with a visible excursion between them.
+Both conjuncts are load-bearing. Without the third-of-the-ramp gap the trivial
+closeness of neighbours answers yes for every palette (the fixture's minimum
+non-adjacent distance runs p50 0.017 with the gap at 4 samples). Without the
+excursion a PLATEAU answers yes: a duotone rendering pure white for 46% of its
+length holds two white samples a third of the ramp apart at a distance of exactly
+0, and a palette with a wide red middle reads 0.005.
+
+**`RETURN_EXCURSION` = 0.1**, five JND: past the 0.05 the seam sentence treats as
+"still the same colour" and just under the 0.12 separation `getUniqueColorNames`
+requires before spending a second name, so the run has to have gone somewhere the
+corpus would call a different colour. Swept, the returning share runs 0.05 →
+6.2%, 0.10 → 4.5%, 0.15 → 4.0%, 0.20 → 3.1%; 0.10 is where the plateaus stop
+qualifying (a flat periwinkle whose whole excursion is 0.037, the white duotone
+and the red plateau all fall out between 0.05 and 0.10) while the symmetric
+arches, whose excursions run 0.19 to 0.77, are untouched anywhere in the sweep.
+
+Cost: the loop is 1,128 pairs on SQUARED distances, 4.5 µs per palette measured
+over 300 fixture seeds, against a `paletteFeatures` pass of 104.3 µs. The same
+loop through `oklabDistance` measures 49.3 µs — `Math.hypot` carries
+overflow-safe scaling that three small components do not need, and both
+comparisons here are monotone in the square, so only the answer takes a root.

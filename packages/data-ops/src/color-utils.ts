@@ -625,53 +625,143 @@ const FAMILY_ANCHOR_HUES: readonly (readonly [string, number])[] = [
 
 /** Which of the eight hue bands an angle falls in. */
 export function colorFamily(hue: number): string {
+    return familyRanking(hue)[0]!.word;
+}
+
+/** The eight anchors by angular distance from a hue, nearest first. */
+function familyRanking(hue: number): { word: string; dist: number }[] {
     const h = ((hue % 360) + 360) % 360;
-    let best = FAMILY_ANCHOR_HUES[0]![0];
-    let bestDist = Infinity;
-    for (const [word, anchor] of FAMILY_ANCHOR_HUES) {
+    return FAMILY_ANCHOR_HUES.map(([word, anchor]) => {
         const d = Math.abs(h - anchor) % 360;
-        const dist = d > 180 ? 360 - d : d;
-        if (dist < bestDist) {
-            bestDist = dist;
-            best = word;
-        }
-    }
-    return best;
+        return { word, dist: d > 180 ? 360 - d : d };
+    }).sort((a, b) => a.dist - b.dist);
+}
+
+/**
+ * How far inside its band a hue has to sit before the band word is a claim
+ * rather than a rounding of the partition.
+ *
+ * The eight bands are a partition, so every hue gets an answer, including the
+ * ones sitting on a line. #bb401a measures h 36.6 with the red/orange edge at
+ * 41.0: 4.4° inside red, and a burnt orange to look at. The categorical
+ * tie-break below then used that answer to overrule three nearer orange names
+ * and shipped "dull red", which reached the title, the meta description and a
+ * chip. The same 6.7° margin on the yellow/green edge turned a dark olive into
+ * "evergreen".
+ *
+ * 8° is the edge of that class: it covers both observed errors, it is under a
+ * fifth of the narrowest band (red is 42.5° wide), and swept over the fixture's
+ * 5,895 distinct rendered stops the tie-break's reach moves 0.8% of names at 0°
+ * (the refile alone), 5.4% at 8° and 9.7% at 16°, where it starts moving names
+ * that were not in dispute. Within the margin BOTH neighbours are acceptable
+ * classes, so the metric decides — which is the right answer when the category
+ * is genuinely between two words.
+ */
+const FAMILY_EDGE_MARGIN = 8;
+
+/**
+ * The families a hue can honestly claim: one, or two when it sits on a band
+ * edge. Exported because the prose generator asks the same question — a
+ * sentence reading "it moves from blue into cyan" over a palette whose last
+ * stop is 1.5° inside cyan is the naming bug in sentence form.
+ */
+export function colorFamilies(hue: number): string[] {
+    const ranked = familyRanking(hue);
+    const [first, second] = [ranked[0]!, ranked[1]!];
+    // Distance to the edge between the two nearest anchors is half their
+    // difference in distance from the hue.
+    return (second.dist - first.dist) / 2 <= FAMILY_EDGE_MARGIN
+        ? [first.word, second.word]
+        : [first.word];
 }
 
 /**
  * The chroma and saturation floors below which a colour has no usable hue.
  *
- * These are palette-modifiers' CHROMA_FLOOR and SATURATION_FLOOR, restated
- * rather than imported: that module imports THIS one, and the corpus classes
- * below are computed at module load, where a circular import would still be
- * undefined. color-utils.test.ts asserts the two pairs agree, so they cannot
- * drift apart silently.
+ * These are palette-modifiers' CHROMA_FLOOR, SATURATION_FLOOR and
+ * SATURATION_BRANCH_LIGHTNESS, restated rather than imported: that module
+ * imports THIS one, and the corpus classes below are computed at module load,
+ * where a circular import would still be undefined. palette-name.test.js
+ * asserts the three pairs agree, so they cannot drift apart silently.
  */
 export const NAME_CHROMA_FLOOR = 0.03;
 export const NAME_SATURATION_FLOOR = 0.35;
+/**
+ * The saturation reading's lightness floor — palette-modifiers'
+ * SATURATION_BRANCH_LIGHTNESS, restated here for the same reason the two floors
+ * above are. A pale tint at the top of the gamut is a colour; a near-black at
+ * the top of its (tiny) gamut is black, and OkLab's cube root is what makes the
+ * two look alike on paper.
+ */
+export const NAME_TINT_LIGHTNESS = 0.5;
+/**
+ * ...and its chroma floor. Below this an entry is white with a rounding error:
+ * "snow" (#fffafa) measures C 0.0053 and "pale gray" (#fdfdfe) 0.0013, both at
+ * 100% of a ceiling that is itself numerical residue, and neither is a colour.
+ * The 13 entries the tint reading does promote run 0.0093 (ghost white) to
+ * 0.0269 (lavender).
+ */
+const NAME_TINT_CHROMA = 0.01;
 
 /**
- * How close a second candidate has to be before the metric stops deciding.
+ * How far the namer may reach past the metric winner to correct a CATEGORY
+ * error, and what counts as a correction.
  *
  * Nearest-neighbour in OkLab is a PERCEPTUAL answer to a CATEGORICAL question.
- * A name carries a family ("brown" is a warm hue, "beige" is a warm neutral),
- * and at the bottom of the lightness scale the distance between two candidates
- * is far smaller than the distance between the two words: #1c1b24 (a cold
- * near-black, C 0.017 at 13% of its achievable chroma) measured 0.0723 from
- * "dark brown" and 0.0777 from "almost black", so a 0.0054 gap — a quarter of a
- * JND — put a brown name on a black stop, and that name then propagated into
- * the h1, the meta description and a chip. The same 0.0063 gap called the pale
- * yellow-green #dff2cb "beige" over "very pale green".
+ * A name carries a family, and at the bottom of the lightness scale the
+ * distance between two candidates is far smaller than the distance between the
+ * two words: #1c1b24 (a cold near-black, C 0.017 at 13% of its achievable
+ * chroma) measured 0.0723 from "dark brown" and 0.0777 from "almost black", so
+ * a 0.0054 gap put a brown name on a black stop, and that name propagated into
+ * the h1, the meta description and a chip.
  *
- * So: inside half a JND (OkLab dE is about 0.02 at threshold) the ranking is
- * noise, and the tie goes to a candidate whose colour CLASS matches. Half a JND
- * covers both observed errors with margin and renames 9.9% of the fixture's
- * rendered stops, nearly all of them to a synonym of what they had ("grayblue"
- * to "bluegray", "terra cotta" to "terracotta"); at a full JND it is 15.7% and
- * starts moving names that were not in dispute.
+ * Half a JND (0.01) was the first answer and it was too short to reach the
+ * cases the 2026-08-18 visual QA round found: #d4e9ff is a baby blue at 100% of
+ * its ceiling whose nearest name is "lavender" (0.0231) and whose nearest BLUE
+ * name is "alice blue" (0.0557), and #073c40 is a dark teal at 93% of its
+ * ceiling named "dark blue gray" (0.0331) with "dark teal" at 0.0569. Both
+ * corrections need about two JND of reach, so that is the reach: 0.04.
+ *
+ * What keeps two JND from moving names that were not in dispute is that a
+ * promotion must be an IMPROVEMENT, not merely a match. For a coloured stop the
+ * promoted name has to sit CLOSER IN HUE than the winner does; for a colourless
+ * one it has to drop a hue claim the stop cannot support. That single condition
+ * is what stops the guard overruling three nearer orange names with "dull red"
+ * on #bb401a (h 36.6, 4.4° inside the red band, hue error 12.5° against brick
+ * orange's 5.5°) and "dark olive" with "evergreen" on #324226 (24.9° against
+ * 15.9°) — the band partition answers every hue, including the ones sitting on
+ * a line, and hue error is the continuous fact underneath it.
+ *
+ * Measured over the fixture's 5,895 distinct rendered stops: the corpus refile
+ * alone moves 3.0% of names, the reach 0.01 → 0.04 another 7.8%, and the value
+ * word gate below 3.4%, for 14.2% in total. Every one of them moves to a name
+ * at most two JND further away that agrees better with the stop's hue or drops
+ * a false claim.
  */
-const NAME_TIE = 0.01;
+const NAME_TIE = 0.04;
+
+/**
+ * Words that make a LIGHTNESS claim, and the value they claim against.
+ *
+ * "dark yellow" is a real colour (the corpus entry is a mustard at L 0.78) and
+ * it is still the wrong word for the brightest stop of a palette: the
+ * description read "from light blue through dark yellow and back. The colors
+ * change while the brightness stays the same", which cannot be true of one
+ * image. So a value word is treated as a claim the stop has to support, with
+ * OkLab mid-gray (#808080 measures L 0.600) as the line between them.
+ *
+ * It is a PREFERENCE, not a ban: the corpus's value words are family-relative
+ * (26 of its 67 "dark" entries sit above mid-gray, 9 of its 108 "light"/"pale"
+ * entries below it), so a contradicted name is replaced only when a name of the
+ * same family sits within the reach above, and kept otherwise.
+ */
+const VALUE_PIVOT = 0.6;
+const DARK_WORD = /(^|[ -])(dark|darkish)([ -]|$)/;
+const LIGHT_WORD = /(^|[ -])(light|lightish|pale)([ -]|$)/;
+
+const valueWordFits = (name: string, L: number) =>
+    !(DARK_WORD.test(name) && L > VALUE_PIVOT) &&
+    !(LIGHT_WORD.test(name) && L < VALUE_PIVOT);
 
 export interface NamedColor {
     name: string;
@@ -681,15 +771,80 @@ export interface NamedColor {
     lab: Oklab;
     /**
      * The class this NAME speaks for: one of the eight families, or "neutral"
-     * when the entry's own chroma is under the floor (a near-neutral name is a
-     * near-neutral colour, whatever its lightness allows — "almost black" and
-     * "gainsboro" are neutral words, "dark brown" is not).
+     * when the entry has no colour of its own to claim.
+     *
+     * Both readings, exactly as a STOP is read (D19): an entry clears the bar on
+     * absolute chroma, or by sitting near the sRGB ceiling for its own lightness
+     * — "lavender" (#e6e6fa) measures C 0.0269 at 78% of what L 0.931 allows,
+     * and filing it as a neutral let a violet word win on plain gray-blue stops
+     * (#dee6ea, "A gradient color palette running from lavender ... The colors
+     * are cool grays"). 15 of the corpus's 34 neutral-filed entries are tints of
+     * that kind; the 2026-08-18 QA round found the name side of nearestNamed had
+     * never been given the relative reading the stop side got.
      */
     family: string;
+    /** The entry's own hue angle, for the hue-error comparison in nearestNamed. */
+    hue: number;
 }
 
 /** The class of a colour with no usable hue: a gray, not a family. */
 const NEUTRAL_FAMILY = "neutral";
+
+/**
+ * Corpus words that answer a QUERY but may never LABEL a stop.
+ *
+ * `azure` is a near-white here — CSS #f0ffff, L 0.989 at chroma 0.016 — because
+ * BASIC_COLORS claims its 41 names before the survey merge, and the survey's own
+ * azure is #069af3, a vivid sky blue. Every reader and every machine translator
+ * has the second sense (azur, azzurro, azul), so the word landed exclusively on
+ * near-whites and promised a blue the image did not contain: "Pale lilac to pale
+ * mauve to azure" over a palette whose last stop measures L 0.986 C 0.020 and
+ * renders indistinguishable from the two pure-white swatches beside it. The chip
+ * row already dropped the same stop as unusable (D18's achromatic-extreme
+ * demotion); the title kept it.
+ *
+ * Removing the entry outright would move `colorNameToHex("azure")`, which the
+ * "teal, azure, navy" popular search, palette-tags' own base-colour vocabulary
+ * and the live Vectorize index all resolve to #f0ffff, so the entry stays and
+ * only the LABEL side is closed. #ecffff now names as "light cyan".
+ *
+ * The criterion, not the instance: a bare hue word whose corpus point is
+ * achromatic-extreme, so the word can only ever name a colour that does not show
+ * it. Scanned over the 17 near-white entries (C < 0.03, L > 0.9), azure is the
+ * only one: the other single-word members are object names everyone reads as
+ * pale (honeydew, ivory, linen, seashell, snow) or are hue words that MEAN a
+ * tint (lavender).
+ */
+const LOOKUP_ONLY = new Set(["azure"]);
+
+/**
+ * The three names that pair a PURPLE word with a BROWN one.
+ *
+ * research-colorTheory §9 lists purple/violet among the words that must be
+ * gated rather than guessed, because they are the ones most often misapplied,
+ * and this trio is the corpus misapplying them to itself. "purple brown"
+ * (#673a3f, h 13.2), "purplish brown" (#6b4247, h 11.8) and "brownish purple"
+ * (#76424e, h 5.6) all sit in the RED band, at C 0.057 to 0.073: too far
+ * orange-ward for the purple half of the name and too far red-ward for the
+ * brown half, so neither word describes the entry. Of the corpus's 67
+ * purple/violet-carrying entries, 60 are in violet or magenta and the other 7
+ * are these three plus purple red, purplish red, violet red and pale violet
+ * red, which say RED and are red: those stay, because their name names the band
+ * they are in.
+ *
+ * It reached the page. #6d3a33 — the red anchor exactly, a brick brown to look
+ * at — took "purple brown" at 0.0218 while "reddish brown" sat at 0.0525, and
+ * the word went out on the title, the meta description, the paragraph and the
+ * top-ranked chip at once. Closing one of the three only handed the stop to the
+ * next one. A survey name may be idiosyncratic about its own hex; it may not
+ * carry that idiosyncrasy onto every nearby colour.
+ *
+ * Closed on the LABEL side only, exactly like `azure` above: colorNameToHex,
+ * the search vocabulary and the live index still resolve all three.
+ * palette-name.test.js re-derives the criterion from the corpus, so an entry
+ * added later that breaks the same rule fails the build rather than shipping.
+ */
+const MISNAMED_LABEL = new Set(["purple brown", "purplish brown", "brownish purple"]);
 
 function parseCorpus(): NamedColor[] {
     const out: NamedColor[] = [];
@@ -702,11 +857,14 @@ function parseCorpus(): NamedColor[] {
         const b = parseInt(hex.slice(4, 6), 16);
         const lab = rgbToOklab(r, g, b);
         const C = Math.hypot(lab[1], lab[2]);
+        const hue = (((Math.atan2(lab[2], lab[1]) * 180) / Math.PI) + 360) % 360;
+        const tint =
+            C >= NAME_TINT_CHROMA &&
+            lab[0] >= NAME_TINT_LIGHTNESS &&
+            relativeSaturation({ L: lab[0], C, h: hue }) >= NAME_SATURATION_FLOOR;
         const family =
-            C >= NAME_CHROMA_FLOOR
-                ? colorFamily((Math.atan2(lab[2], lab[1]) * 180) / Math.PI)
-                : NEUTRAL_FAMILY;
-        out.push({ name, r, g, b, lab, family });
+            C >= NAME_CHROMA_FLOOR || tint ? colorFamily(hue) : NEUTRAL_FAMILY;
+        out.push({ name, r, g, b, lab, family, hue });
     }
     return out;
 }
@@ -723,49 +881,92 @@ for (const entry of PACKED_ALIASES.split(",")) {
 }
 
 /**
- * Nearest corpus entry to a color already in OkLab, with the family tie-break.
+ * Nearest corpus entry to a color already in OkLab, with the category guard.
  *
- * One pass keeps two answers: the nearest entry outright, and the nearest whose
- * class agrees with the colour's own. The second wins when it is within
- * NAME_TIE, so the guard can never move a name by more than half a JND — it
- * only decides which of two indistinguishable candidates gets to speak.
+ * One pass keeps two answers: the nearest entry outright, and the nearest one
+ * that could honestly speak for this colour — same class, and no value word the
+ * colour contradicts. When the winner is one of those, it wins and nothing else
+ * happens, which is the ordinary case.
+ *
+ * When it is not, the guard may reach NAME_TIE further for a candidate that
+ * is, and only if that candidate is an improvement: closer in hue for a
+ * coloured stop, or free of a hue claim for a colourless one. So the guard can
+ * move a name to a better word for the same colour and can never move it to a
+ * worse one; when nothing within reach improves on the winner, the winner
+ * stands.
  *
  * Which class the COLOUR is in takes both readings (D19): a stop is coloured
  * when its chroma clears the floor OR it sits near the sRGB ceiling for its own
- * lightness, so a pale sky tint keeps its blue name instead of being pushed
- * onto a gray. Which class a NAME is in reads absolute chroma only, because
- * that is what the word itself claims.
+ * lightness AND is light enough for that to mean anything, so a pale sky tint
+ * keeps its blue name and a near-black at the top of its tiny gamut does not
+ * become a teal. The corpus entries are filed by the same rule.
+ *
+ * `veto` removes candidate entries outright, for a caller that knows something
+ * about the colour this function cannot: see `toneNameVeto` in palette-name.ts,
+ * where the palette's own measured tone rules out a name whose tone word
+ * contradicts it. Vetoed entries are invisible to both passes, so the fallback
+ * is simply the nearest name that is left.
  */
-function nearestNamed(lab: Oklab): NamedColor {
+function nearestNamed(lab: Oklab, veto?: NameVeto): NamedColor {
     const C = Math.hypot(lab[1], lab[2]);
-    const hue = (Math.atan2(lab[2], lab[1]) * 180) / Math.PI;
+    const hue = ((((Math.atan2(lab[2], lab[1]) * 180) / Math.PI) % 360) + 360) % 360;
     const coloured =
         C >= NAME_CHROMA_FLOOR ||
-        relativeSaturation({ L: lab[0], C, h: hue }) >= NAME_SATURATION_FLOOR;
+        (lab[0] >= NAME_TINT_LIGHTNESS &&
+            relativeSaturation({ L: lab[0], C, h: hue }) >= NAME_SATURATION_FLOOR);
     const family = coloured ? colorFamily(hue) : NEUTRAL_FAMILY;
+    // A neutral name makes no hue claim at all, so it can never be "closer in
+    // hue"; it is the right answer only where the stop has no hue either, which
+    // the class test already decides.
+    const hueError = (c: NamedColor) =>
+        c.family === NEUTRAL_FAMILY ? 360 : hueSeparationDeg(hue, c.hue);
+    const speaksFor = (c: NamedColor) =>
+        c.family === family && valueWordFits(c.name, lab[0]);
 
     let closest = NAMED_COLORS[0]!;
     let min = Infinity;
-    let sameFamily: NamedColor | null = null;
-    let sameMin = Infinity;
+    let candidate: NamedColor | null = null;
+    let candidateMin = Infinity;
     for (const color of NAMED_COLORS) {
+        if (LOOKUP_ONLY.has(color.name) || MISNAMED_LABEL.has(color.name) || veto?.(color.name))
+            continue;
         const dist = oklabDistance(lab, color.lab);
+        // A colour that IS a corpus entry keeps that entry's name, whatever the
+        // guard would otherwise prefer: the word was chosen for this exact hex.
+        if (dist === 0) return color;
         if (dist < min) {
             min = dist;
             closest = color;
         }
-        if (color.family === family && dist < sameMin) {
-            sameMin = dist;
-            sameFamily = color;
+        if (dist < candidateMin && speaksFor(color)) {
+            candidateMin = dist;
+            candidate = color;
         }
-        if (dist === 0) return color;
     }
-    return sameFamily && sameMin <= min + NAME_TIE ? sameFamily : closest;
+    if (speaksFor(closest)) return closest;
+    if (!candidate || candidateMin > min + NAME_TIE) return closest;
+    // The winner names a colour of another family. Swap only when the swap is
+    // an improvement: a closer hue, or the removal of a hue claim from a stop
+    // that has none.
+    if (
+        coloured &&
+        closest.family !== NEUTRAL_FAMILY &&
+        hueError(candidate) >= hueError(closest) &&
+        valueWordFits(closest.name, lab[0])
+    )
+        return closest;
+    return candidate;
 }
 
-export function hexToColorName(hex: string): string {
+/** Angular distance on the hue circle, 0-180. */
+function hueSeparationDeg(a: number, b: number): number {
+    const d = Math.abs(a - b) % 360;
+    return d > 180 ? 360 - d : d;
+}
+
+export function hexToColorName(hex: string, veto?: NameVeto): string {
     const { r, g, b } = hexToRgb(hex);
-    return nearestNamed(rgbToOklab(r, g, b)).name;
+    return nearestNamed(rgbToOklab(r, g, b), veto).name;
 }
 
 /** Replaces all hex codes in a string with their closest color names */
@@ -836,6 +1037,14 @@ export function isExactColorMatch(hex: string): boolean {
     return false;
 }
 
+/**
+ * A caller's veto on corpus entries, by name: true removes the entry from the
+ * lookup entirely. The corpus is a survey vocabulary and this function has no
+ * standing to overrule it on its own (D8 restored the survey words on purpose);
+ * a caller that has measured the whole palette does. See `toneNameVeto`.
+ */
+export type NameVeto = (name: string) => boolean;
+
 export interface ColorNameOptions {
     /** Hard cap on how many names come back. */
     max?: number;
@@ -849,6 +1058,8 @@ export interface ColorNameOptions {
      * gradient are the same color and one name describes it.
      */
     endpointSeparation?: number;
+    /** Corpus entries the caller has ruled out. See NameVeto. */
+    veto?: NameVeto;
 }
 
 /** Defaults are tuned in seo-research/color-corpus.md against 144 live seeds. */
@@ -878,6 +1089,19 @@ const DEFAULT_ENDPOINT_SEPARATION = 0.05;
  * room for four. Cosine palettes oscillate, so the interior genuinely matters
  * — one live seed runs #000004 → #000000 through #e8cd7e, and naming it by its
  * endpoints alone called the whole thing "black".
+ *
+ * ONE EXCEPTION, added 2026-08-18 after visual QA: a stop that belongs to a
+ * colour FAMILY no chosen stop belongs to is admitted whatever the distance
+ * says. Distance is the right measure of "another name for the same colour",
+ * which is what the threshold exists to suppress, and it collapses at low
+ * chroma: a pastel run through pink, blue, cyan, mint, cream and peach measures
+ * under 0.12 between every pair and under 0.05 end to end, so it came back as
+ * ONE name and the description said "A pastel gradient color palette held
+ * within lavender blush", two sentences before "It travels the whole color
+ * wheel". A different family is by definition not a synonym. The stop must have
+ * a usable hue for its family to mean anything (the same dual reading the
+ * namer uses), so a run of grays cannot exploit this: their hue angles are
+ * noise and they have no family at all.
  */
 export function getUniqueColorNames(
     hexColors: string[],
@@ -895,6 +1119,40 @@ export function getUniqueColorNames(
         return rgbToOklab(r, g, b);
     });
 
+    // Which family each stop belongs to, or null where it has no usable hue.
+    const families = labs.map((lab) => {
+        const C = Math.hypot(lab[1], lab[2]);
+        const hue = ((((Math.atan2(lab[2], lab[1]) * 180) / Math.PI) % 360) + 360) % 360;
+        const coloured =
+            C >= NAME_CHROMA_FLOOR ||
+            (lab[0] >= NAME_TINT_LIGHTNESS &&
+                relativeSaturation({ L: lab[0], C, h: hue }) >= NAME_SATURATION_FLOOR);
+        return coloured ? colorFamily(hue) : null;
+    });
+
+    /**
+     * Stops that are only the EDGE OF THE VALUE SCALE: a black, or a white with
+     * no colour in it. Farthest-point selection maximises OkLab distance, and
+     * lightness dominates that distance, so an interior black wins every race it
+     * enters — "Ivory to midnight to aqua marine" for a palette whose middle is a
+     * bright orange and a deep red, the two most chromatic stops and the loudest
+     * third of the image, while its own chip row (which ranks by chroma, D18)
+     * offered orange and red. Identity lives in the chromatic stops, and the same
+     * demotion the chips use applies here: below L 0.1 a stop is black to a
+     * viewer whatever its hue measures (#00000f reads 100% saturation at chroma
+     * 0.053), and above L 0.9 without real chroma it is white.
+     *
+     * A DEMOTION, not a ban: the ENDS are chosen before this runs, so a
+     * white-to-navy ramp keeps "white", and a palette whose only far candidate is
+     * a black still names it (the preference below applies only when a coloured
+     * stop is also far enough to earn a name).
+     */
+    const edgeOfScale = (i: number) => {
+        const lab = labs[i]!;
+        const C = Math.hypot(lab[1], lab[2]);
+        return lab[0] < 0.1 || (C < NAME_CHROMA_FLOOR && lab[0] > 0.9);
+    };
+
     const chosen = [0];
     const last = labs.length - 1;
     if (
@@ -908,6 +1166,10 @@ export function getUniqueColorNames(
     while (chosen.length < max) {
         let bestIndex = -1;
         let bestDistance = -1;
+        let novelIndex = -1;
+        let novelDistance = -1;
+        let colouredIndex = -1;
+        let colouredDistance = -1;
         for (let i = 0; i < labs.length; i++) {
             if (chosen.includes(i)) continue;
             let nearest = Infinity;
@@ -918,16 +1180,39 @@ export function getUniqueColorNames(
                 bestDistance = nearest;
                 bestIndex = i;
             }
+            if (!edgeOfScale(i) && nearest > colouredDistance) {
+                colouredDistance = nearest;
+                colouredIndex = i;
+            }
+            const family = families[i];
+            if (
+                family !== null &&
+                nearest > novelDistance &&
+                !chosen.some((c) => families[c] === family)
+            ) {
+                novelDistance = nearest;
+                novelIndex = i;
+            }
         }
-        if (bestIndex < 0 || bestDistance < minSeparation) break;
-        chosen.push(bestIndex);
+        // The farthest stop when it clears the bar — unless that stop is only
+        // the edge of the value scale and a coloured stop clears the bar too, in
+        // which case the coloured one carries more of the palette. Otherwise the
+        // farthest stop carrying a family the name list does not have yet.
+        if (bestIndex >= 0 && bestDistance >= minSeparation) {
+            const preferColoured =
+                edgeOfScale(bestIndex) &&
+                colouredIndex >= 0 &&
+                colouredDistance >= minSeparation;
+            chosen.push(preferColoured ? colouredIndex : bestIndex);
+        } else if (novelIndex >= 0) chosen.push(novelIndex);
+        else break;
     }
 
     // Ramp order, and two chosen stops can still round to one name.
     chosen.sort((a, b) => a - b);
     const names: string[] = [];
     for (const index of chosen) {
-        const name = nearestNamed(labs[index]!).name;
+        const name = nearestNamed(labs[index]!, options?.veto).name;
         if (!names.includes(name)) names.push(name);
     }
     return names;

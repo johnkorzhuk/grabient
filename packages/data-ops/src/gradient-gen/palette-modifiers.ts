@@ -131,9 +131,39 @@ const CHROMA_FLOOR = 0.03;
  * is not a hue) was measured and REJECTED: requiring C ≥ 0.005/0.01/0.015/0.02
  * as well changes 0/2/8/14 of the 867 classifications. The sub-0.005
  * promotions are 1.1% of promotions and 0.02% of all stops, and they never
- * change an answer, so the predicate stays one line.
+ * change an answer, so a floor on CHROMA is not the guard this branch needs.
+ * A floor on LIGHTNESS is — see SATURATION_BRANCH_LIGHTNESS.
  */
 const SATURATION_FLOOR = 0.35;
+
+/**
+ * The saturation branch is for TINTS, and only for tints (2026-08-18, visual QA).
+ *
+ * The branch exists because the sRGB solid narrows: where the ceiling is small,
+ * a stop can be as colourful as the screen allows and still measure almost no
+ * chroma. The solid narrows at BOTH ends, and the two ends are not the same
+ * situation. At the top a small ceiling means the colour is pale, and a pale
+ * blue is still blue: that is the D19 palette this whole reading exists for. At
+ * the bottom a small ceiling means the colour is nearly black, and OkLab's cube
+ * root has infinite slope there, so it reports a chroma the eye cannot see:
+ * #00000f (rgb 0,0,15) measures C 0.053 at 100% of its ceiling, and #091a19
+ * measures 66% of its own. Rendered beside a neutral of the same lightness both
+ * read as black (qa/r3/dark-visibility.png).
+ *
+ * That mattered live. The near-black #091a19 was admitted as a cyan and became
+ * one half of "built on two opposite colors: almost black against faded orange"
+ * over an image that is one continuous warm ramp: its cluster sat at 190.5°,
+ * 151.3° from the palette's real hue, 0.9% past COMPLEMENTARY_SEPARATION.
+ *
+ * 0.5 is where the branch stops being reachable from below rather than a tuned
+ * number: measured over the gamut, the ceiling is under CHROMA_FLOOR /
+ * SATURATION_FLOOR (0.086) for 20 of 36 hues at L 0.30, 5 at L 0.46, 1 at L
+ * 0.50 and none at L 0.54. So the floor removes the dark half of the branch and
+ * leaves the light half, which is the half the fix was for. Stops with real
+ * chroma are untouched at any lightness: the absolute branch is what names a
+ * dark navy.
+ */
+const SATURATION_BRANCH_LIGHTNESS = 0.5;
 
 /**
  * Mean saturation under which a palette reads as neutral regardless of what
@@ -165,6 +195,26 @@ const CLUSTER_GAP = 40;
 
 /** Enough samples that hue gaps are real, cheap enough to run per keystroke. */
 const DENSE_SAMPLES = 48;
+
+/**
+ * How far the run must travel AWAY from a colour before coming back to it
+ * counts as a return (see `colorReturn`).
+ *
+ * A plateau is not a repeat. A duotone that renders pure white for 46% of its
+ * length holds two white samples a third of the ramp apart at a distance of
+ * exactly 0, and a palette with a wide red middle reads 0.005 across it; both
+ * were told "It repeats colors from earlier in the gradient" over images in
+ * which nothing recurs. 0.1 in OkLab is five JND, comfortably past the 0.05 the
+ * seam sentence treats as "still the same colour" and just under the 0.12
+ * separation `getUniqueColorNames` requires before it will spend a second name:
+ * the run has to have gone somewhere the corpus would call a different colour.
+ * Swept over the 867-seed fixture the returning share runs 0.05 → 6.2%,
+ * 0.10 → 4.5%, 0.15 → 4.0%, 0.20 → 3.1%, and 0.10 is where the plateaus stop
+ * qualifying: a flat periwinkle whose whole excursion is 0.037 and the two
+ * palettes above all fall out between 0.05 and 0.10, while the symmetric arches
+ * (excursions 0.19 to 0.77) are untouched at any bar in the sweep.
+ */
+const RETURN_EXCURSION = 0.1;
 
 const MONOCHROME_SPAN = 30;
 const ANALOGOUS_SPAN = 95;
@@ -223,6 +273,31 @@ const FAMILY_CHROMA = 0.08;
  * absolute gate could not see.
  */
 const FAMILY_SATURATION = 0.6;
+/**
+ * The absolute floor beneath the relative disjunct above (2026-08-18, visual QA).
+ *
+ * D19's relative reading has one blind spot, and it is at the very top of the
+ * solid: as L → 1 the ceiling collapses toward zero, so ANY residual chroma
+ * reads as 100% saturation. #ffffff's neighbour at L 0.9992 measures C 0.0039
+ * against a ceiling of the same order, and the prose called it a family: a
+ * white → cream → peach → blush ramp was narrated "It moves from yellow into
+ * pink" with no yellow anywhere in the image, one clause after its own identity
+ * sentence had named that stop white.
+ *
+ * So the saturation branch of a FAMILY word (an identity claim about a single
+ * stop) needs a visibility floor under it. Swept over the 867-seed fixture's
+ * 319 saturation-branch family admissions, the floor removes 5 at 0.005, 8 at
+ * 0.008, 8 at 0.01, 14 at 0.015 and 23 at 0.02; 0.008-0.01 is the flat region
+ * and every stop it removes sits at L ≥ 0.98, which is the class exactly. One
+ * 8-bit step near white moves chroma by roughly 0.001, so 0.01 is about ten
+ * quantization steps: the smallest tint the panel can actually show.
+ *
+ * Deliberately NOT applied to `hasUsableHue`: a floor there was measured and
+ * rejected (see SATURATION_FLOOR), because clustering needs the angle and the
+ * angle is stable well below visibility. Naming a family is the claim that
+ * needs to see the colour.
+ */
+const FAMILY_MIN_CHROMA = 0.01;
 /** How much of the palette must sit inside the family's hue window. */
 const FAMILY_BAND = 0.85;
 
@@ -277,6 +352,13 @@ const FULL_WHEEL_NET = 330;
 /** Real hue travel (≥120°) that mostly cancels out (consistency < 0.5). */
 const HUE_WANDER_TRAVEL = 120;
 const HUE_WANDER_CONSISTENCY = 0.5;
+/**
+ * How far the weaker END has to sit from the extreme before "brightest (or
+ * darkest) in the middle" is a shape and not a rounding. A quarter of the
+ * palette's own dense lightness range — see the `bright-middle` row, where the
+ * measurement is recorded.
+ */
+const MIDDLE_END_DROP = 0.25;
 /** A tenth of the ramp rendered at an exact gamut corner reads as a plateau. */
 const PLATEAU_SHARE = 0.1;
 /**
@@ -316,9 +398,11 @@ const MIN_BITS_TO_SPEAK = 2;
 export const THRESHOLDS = {
   CHROMA_FLOOR,
   SATURATION_FLOOR,
+  SATURATION_BRANCH_LIGHTNESS,
   GRAYSCALE_SAT,
   FAMILY_CHROMA,
   FAMILY_SATURATION,
+  FAMILY_MIN_CHROMA,
   FAMILY_BAND,
   GRAYSCALE_CHROMA,
   DARK_LIGHTNESS,
@@ -383,6 +467,23 @@ export interface PaletteFeatures {
   maxClusterWidth: number;
   /** Chroma-weighted circular mean hue, degrees. */
   meanHue: number;
+  /**
+   * How much the palette AGREES with that mean: the mean resultant length of
+   * the same chroma-weighted vector sum, 0-1 (circular statistics' R).
+   *
+   * `meanHue` is an angle and an angle always has a value, including where the
+   * vectors it averages point every which way and nearly cancel. A greige ramp
+   * whose seven stops measure h 302, 329, 24, 75, 96, 123, 177 at C 0.009-0.015
+   * returns a mean of 50.8°, squarely warm, and was described as "the colors are
+   * warm grays" over an image whose two ends are a cool lavender-white and a
+   * cool sage (2026-08-18 QA). R is what says that answer is an accident: 0.397
+   * there against 0.92-0.99 for the leans that hold up.
+   *
+   * R relates to spread the usual way: circular SD = sqrt(-2 ln R), so R 0.6 is
+   * about 58° of SD. Fixture distribution p05 0.206, p10 0.362, p25 0.636,
+   * p50 0.867, p75 0.971.
+   */
+  hueConcentration: number;
   /**
    * Share of stops with a usable hue — now `C ≥ CHROMA_FLOOR` OR
    * `saturation ≥ SATURATION_FLOOR`, so a light tint at the top of the gamut
@@ -493,12 +594,81 @@ export interface PaletteFeatures {
   /** Position of the most chromatic dense sample, 0..1. */
   chromaPeakT: number;
   /**
+   * Position of the LEAST chromatic dense sample, 0..1 — where the run comes
+   * closest to gray.
+   *
+   * The duotone sentence needs it (2026-08-18, visual QA). "It holds two colors
+   * that meet through a gray middle" was gated on `chromaticFraction`, a share
+   * of the whole run that says nothing about WHERE the gray sits, and it
+   * inverted the image on a palette whose ENDS are warm grays and whose middle
+   * is the only coloured part of it.
+   */
+  chromaValleyT: number;
+  /**
+   * Lightness of that least-chromatic sample — what the neutral it passes
+   * through actually LOOKS like.
+   *
+   * chromaValleyT answers "where", and the duotone sentence also needs "what":
+   * it called the crossing "gray" on a gunmetal → cinnamon pair whose middle
+   * stops are #000007 and #000020, i.e. black (2026-08-18, visual QA seed 05).
+   * Black and white are the ends of the gray scale and a reader does not call
+   * either of them gray, so the sentence reads this and names the band.
+   */
+  chromaValleyL: number;
+  /**
+   * How closely the run LEAVES a color and comes BACK to it: the smallest OkLab
+   * distance between two dense samples a third of the ramp apart with a visible
+   * excursion (RETURN_EXCURSION) between them. `Infinity` when no such pair
+   * exists, which is the honest answer to "how close does it come back".
+   *
+   * The question a reader asks of an image ("do I see the same color twice?") is
+   * a distance question, and nothing here measured it. `hue-wandering` measures
+   * the hue ANGLE turning back, which is a different fact: a denim → periwinkle
+   * → orchid → electric violet sweep returns to h 283 at C 0.247 where it had
+   * been at C 0.082, so the angle came home and the colour never did (this
+   * feature reads 0.117 on it, six JND).
+   */
+  colorReturn: number;
+  /**
    * Dense max − min lightness. The guard for peak/valley/direction claims —
    * the rendered `lightnessRange` tracks the viewer's steps, this one cannot.
    */
   denseLightnessRange: number;
+  /**
+   * The two ends of that range, absolutely.
+   *
+   * A claim about what a viewer can SEE along the run needs the levels, not the
+   * spread: a passage at L 0.08 renders black whatever the range around it is,
+   * and a hue break inside it is invisible. Dense, so no step count moves them.
+   */
+  denseMinLightness: number;
+  denseMaxLightness: number;
+  /**
+   * The lightness at each END of the dense run, t = 0 and t = 1.
+   *
+   * "Brightest in the middle and darker at both ends" is two claims, and until
+   * 2026-08-18 the `bright-middle` tag only tested the first: peak position
+   * inside the middle third. A ramp that climbs out of a medium blue into bright
+   * cyan and stays bright through to spring green peaks at t 0.596 and ends
+   * 0.038 below that peak against 0.189 at its start, a 5:1 asymmetry, and the
+   * sentence told the reader both of its ends were darker. The ENDS are what the
+   * second claim is about, so they are measured. Dense rather than rendered, or
+   * the tag would move with the viewer's step count.
+   */
+  denseFirstLightness: number;
+  denseLastLightness: number;
   /** Dense max − min chroma, the guard for chroma-position claims. */
   denseChromaRange: number;
+  /**
+   * Dense max − min relative saturation: how far the palette's colourfulness
+   * travels, read against the ceiling at each sample rather than absolutely.
+   *
+   * The monochrome sentence needs it. "It holds one red and changes only how
+   * light it is" is an EXCLUSIVE claim, and a monochrome ramp can hold its hue
+   * and its lightness while its colourfulness halves (#fc7b82 at 96% of its
+   * ceiling into #dc949e at 54%, no lightness change, visibly dustier).
+   */
+  denseSaturationRange: number;
   /** Dense-end lightness difference L(t=1) − L(t=0): which way a ramp runs. */
   lightnessDelta: number;
   /**
@@ -631,13 +801,18 @@ const stopOf = (hex: string): Stop => {
  * Whether a stop's hue angle means anything.
  *
  * Either reading suffices, and that disjunction is the whole D19 fix: absolute
- * chroma catches the ordinary case, saturation catches the tints and shades
- * that are as colourful as sRGB gets at their lightness but never clear an
- * absolute bar. Everything downstream — clusters, span, the hue chain, the
- * histogram, chromaticFraction — walks this one predicate, so the two readings
- * cannot disagree about which stops have a hue.
+ * chroma catches the ordinary case, saturation catches the TINTS that are as
+ * colourful as sRGB gets at their lightness but never clear an absolute bar.
+ * Everything downstream — clusters, span, the hue chain, the histogram,
+ * chromaticFraction — walks this one predicate, so the two readings cannot
+ * disagree about which stops have a hue.
+ *
+ * The lightness floor on the second branch is the shadow half of the same
+ * argument; SATURATION_BRANCH_LIGHTNESS records the measurement.
  */
-const hasUsableHue = (s: Stop) => s.C >= CHROMA_FLOOR || s.S >= SATURATION_FLOOR;
+const hasUsableHue = (s: Stop) =>
+  s.C >= CHROMA_FLOOR ||
+  (s.S >= SATURATION_FLOOR && s.L >= SATURATION_BRANCH_LIGHTNESS);
 
 /**
  * The same predicate for a single hex, for consumers that hold stops rather
@@ -780,12 +955,16 @@ export function paletteFeatures(
 
   let x = 0;
   let y = 0;
+  let chromaSum = 0;
   for (const c of denseLch) {
     const rad = (c.h * Math.PI) / 180;
     x += c.C * Math.cos(rad);
     y += c.C * Math.sin(rad);
+    chromaSum += c.C;
   }
   const meanHueRaw = (Math.atan2(y, x) * 180) / Math.PI;
+  // |Σ C·e^{ih}| / Σ C — how much the samples agree with the angle above.
+  const hueConcentration = chromaSum > 0 ? Math.hypot(x, y) / chromaSum : 0;
 
   let turns = 0;
   let direction = 0;
@@ -829,6 +1008,39 @@ export function paletteFeatures(
     lastHue = c.h;
     lastChromatic = { L: c.L, C: c.C, h: c.h };
   }
+
+  // Does the run LEAVE a colour and come BACK to it? Smallest OkLab distance
+  // over sample pairs that are a third of the ramp apart AND separated by a
+  // visible excursion. Both conditions are load-bearing: without the gap the
+  // trivial closeness of neighbours answers yes for every palette, and without
+  // the excursion a flat plateau does — a duotone that renders pure white for
+  // 46% of its length reads a distance of exactly 0 between two of its white
+  // samples, and a wide red plateau reads 0.005, neither of which is a return.
+  // One inner loop carrying the running maximum, on SQUARED distances so the
+  // 1,128 pairs cost 1,128 multiply-adds instead of 1,128 Math.hypot calls.
+  // hypot carries overflow-safe scaling these three small components do not
+  // need, and it dominates: measured over 300 fixture seeds the same loop runs
+  // 4.5 us per palette squared against 49.3 us through oklabDistance, beside a
+  // paletteFeatures pass of 104.3 us. Both comparisons are monotone in the
+  // square, so only the answer takes a square root.
+  const denseLab = dense.map(labOf);
+  const RETURN_GAP = Math.floor(denseLab.length / 3);
+  let colorReturnSq = Infinity;
+  const excursionSq = RETURN_EXCURSION * RETURN_EXCURSION;
+  for (let i = 0; i + RETURN_GAP < denseLab.length; i++) {
+    const a = denseLab[i]!;
+    let awaySq = 0;
+    for (let j = i + 1; j < denseLab.length; j++) {
+      const b = denseLab[j]!;
+      const dl = a[0] - b[0];
+      const da = a[1] - b[1];
+      const db = a[2] - b[2];
+      const d = dl * dl + da * da + db * db;
+      if (d > awaySq) awaySq = d;
+      if (j - i >= RETURN_GAP && awaySq >= excursionSq && d < colorReturnSq) colorReturnSq = d;
+    }
+  }
+  const colorReturn = Number.isFinite(colorReturnSq) ? Math.sqrt(colorReturnSq) : Infinity;
 
   // Extremum positions on the dense grid. Strict comparisons, so the first
   // index wins a tie — the convention the prevalences were measured with.
@@ -934,6 +1146,7 @@ export function paletteFeatures(
         : 0,
     maxClusterWidth: geometry.maxClusterWidth,
     meanHue: meanHueRaw < 0 ? meanHueRaw + 360 : meanHueRaw,
+    hueConcentration,
     chromaticFraction: geometry.chromaticFraction,
     meanLightness: rendered.reduce((s, c) => s + c.L, 0) / n,
     lightnessRange:
@@ -975,6 +1188,15 @@ export function paletteFeatures(
     lightnessPeakT: peakI / lastI,
     lightnessValleyT: valleyI / lastI,
     chromaPeakT: chromaPeakI / lastI,
+    chromaValleyT: chromaValleyI / lastI,
+    chromaValleyL: denseLch[chromaValleyI]!.L,
+    colorReturn,
+    denseMinLightness: denseLch[valleyI]!.L,
+    denseMaxLightness: denseLch[peakI]!.L,
+    denseFirstLightness: denseLch[0]!.L,
+    denseLastLightness: denseLch[lastI]!.L,
+    denseSaturationRange:
+      Math.max(...denseLch.map((c) => c.S)) - Math.min(...denseLch.map((c) => c.S)),
     denseLightnessRange: denseLch[peakI]!.L - denseLch[valleyI]!.L,
     denseChromaRange: denseLch[chromaPeakI]!.C - denseLch[chromaValleyI]!.C,
     lightnessDelta: denseLch[lastI]!.L - denseLch[0]!.L,
@@ -1015,15 +1237,25 @@ const isGrayscale = (f: PaletteFeatures) =>
   f.chromaticFraction < CHROMATIC_FRACTION;
 
 /**
- * "Is there colour here at all", read on the rendered stops: the De Morgan
- * negation of the grayscale conjunction above, and the shared floor for every
- * descriptor whose lower chroma bound exists only to keep grays out (pastel,
- * muted, earthy). D19's rule of thumb: identity questions ("is this coloured",
- * "which colour is it") take saturation; loudness questions ("how strong is
- * it") stay on absolute chroma.
+ * "Is there colour here at all": the De Morgan negation of the grayscale
+ * conjunction above, and the shared floor for every descriptor whose lower
+ * chroma bound exists only to keep grays out (pastel, muted, earthy). D19's
+ * rule of thumb: identity questions ("is this coloured", "which colour is it")
+ * take saturation; loudness questions ("how strong is it") stay on absolute
+ * chroma.
+ *
+ * On the DENSE sample since 2026-08-18, so it cannot disagree with the function
+ * it negates. It used to read the rendered stops, which put the same constant on
+ * two different samples of one palette: a lavender-white to sage-gray ramp
+ * measures dense mean saturation 0.231 (grayscale, 0.019 under the line) and
+ * rendered mean saturation 0.262 (has colour, 0.012 over it), so it fired
+ * `pastel` AND classified `grayscale`, and the chip row offered the compound
+ * "pastel grayscale": one label telling the visitor the palette is both a pale
+ * tint and free of tint. One sample, one answer. Measured cost over the fixture:
+ * pastel 72 → 71, muted 91 → 90, earthy unchanged.
  */
 const hasColour = (f: PaletteFeatures) =>
-  f.meanChroma >= GRAYSCALE_CHROMA || f.meanSaturation >= GRAYSCALE_SAT;
+  f.denseMeanChroma >= GRAYSCALE_CHROMA || f.denseMeanSaturation >= GRAYSCALE_SAT;
 
 /**
  * The family floor, both readings. A family word is an identity claim, so a
@@ -1035,6 +1267,30 @@ const familyColour = (f: PaletteFeatures, floor: number = FAMILY_CHROMA) =>
   f.meanChroma >= floor || f.meanSaturation >= FAMILY_SATURATION;
 
 /**
+ * A rainbow reaches both ends of the spectrum (2026-08-18, visual QA).
+ *
+ * RAINBOW_SPAN was tuned for how far the hue travels and says nothing about
+ * WHERE it travelled. A palette can cover 201° without leaving the warm half of
+ * the wheel by going the short way through magenta: violet, magenta, dull rose,
+ * clay, olive, green shipped as "A rainbow gradient color palette running from
+ * rebecca purple through clay to grassy green" with no blue and no cyan
+ * anywhere in it, and the word drove the title, the meta description and a
+ * `rainbow` chip, so the palette was offered to rainbow searches.
+ *
+ * So the span has to hold colour on BOTH sides: the warm arc through 0° and the
+ * cool arc through 225°, the same two windows `warm` and `cool` are read on.
+ * 0.10 by sweep over the 867 fixture (rainbow count at each floor): 0.05 → 77,
+ * 0.10 → 76, 0.15 → 71, 0.20 → 63, 0.25 → 56, 0.30 → 47. The flat end is where
+ * the test only removes palettes with NO landmark on one side, which is what it
+ * is for; the two it drops measure 0.00 and 0.06 of their mass in the cool arc.
+ */
+const RAINBOW_POLE_SHARE = 0.1;
+
+const hasSpectrumPoles = (f: PaletteFeatures) =>
+  hueBandShare(f, 330, 120) >= RAINBOW_POLE_SHARE &&
+  hueBandShare(f, 150, 300) >= RAINBOW_POLE_SHARE;
+
+/**
  * Structure is one exclusive classification, not seven independent tests: a
  * palette has one hue geometry. The ladder is ordered narrowest-first so the
  * seven prevalences below sum to 100%.
@@ -1044,7 +1300,7 @@ export function classifyStructure(f: PaletteFeatures): string {
   if (f.hueClusters === 1) {
     if (f.hueSpan < MONOCHROME_SPAN) return 'monochrome';
     if (f.hueSpan < ANALOGOUS_SPAN) return 'analogous';
-    return f.hueSpan >= RAINBOW_SPAN ? 'rainbow' : 'multicolor';
+    return f.hueSpan >= RAINBOW_SPAN && hasSpectrumPoles(f) ? 'rainbow' : 'multicolor';
   }
   // Two groups only make a duotone when each is actually one hue. Cranking the
   // frequency slider produces palettes that visit red, green, cyan and magenta
@@ -1110,13 +1366,22 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   // Re-measured 2026-08-18 after the ladder fix (rainbow needs one cluster, a
   // cluster may not be wider than the gap between clusters): duotone 46 → 30,
   // complementary 47 → 29, rainbow 121 → 78, and multicolor absorbs all 76.
+  // Re-measured again the same day after the second visual-QA round, which
+  // moved two things underneath these counts: the saturation branch of hue
+  // validity now needs light (SATURATION_BRANCH_LIGHTNESS), so a near-black
+  // stop no longer contributes a hue cluster, and `rainbow` now needs colour at
+  // both ends of the spectrum (hasSpectrumPoles). Net over the 867 seeds:
+  // monochrome 132 → 137, duotone 30 → 32, complementary 29 → 29 (a different
+  // 29: the near-black-pole palettes left, and the shadows they were paired
+  // against no longer split a cluster), rainbow 78 → 75, analogous 243 → 247,
+  // multicolor 336 → 328, grayscale 19 → 19.
   structural('grayscale', 0.022, 1, true),
-  structural('monochrome', 0.152, 1.2, true),
-  structural('duotone', 0.035, 1, true),
+  structural('monochrome', 0.158, 1.2, true),
+  structural('duotone', 0.037, 1, true),
   structural('complementary', 0.033, 1, true),
-  structural('rainbow', 0.09, 1.3, true),
-  structural('analogous', 0.28, 0.6, false),
-  structural('multicolor', 0.388, 0.8, false),
+  structural('rainbow', 0.087, 1.3, true),
+  structural('analogous', 0.285, 0.6, false),
+  structural('multicolor', 0.378, 0.8, false),
 
   // --- named families: a hue window plus a tone constraint.
   //
@@ -1133,7 +1398,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // through pale peach, and the band test is already narrow.
     word: 'sunset',
     axis: 'family',
-    prevalence: 0.135,
+    prevalence: 0.134,
     spoken: true,
     demand: 1.4,
     implies: ['warm'],
@@ -1241,14 +1506,29 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // the gamut is roomy, so in practice the two readings agree here; the
     // disjunct matters for the dark end, where a ceiling of ~0.07 at L 0.2
     // makes a brown that reads brown fail an absolute 0.03.
+    //
+    // The ceiling is on the MEAN, and a mean is exactly what a neutral middle
+    // fools (2026-08-18 QA). A deep indigo against a lemon yellow, with a gray
+    // and two khakis between them, measures mean chroma 0.083 because its third
+    // stop measures 0.010, and shipped as "An earthy duotone gradient color
+    // palette" leading both the title and the description, on a palette that
+    // also fires `high-contrast` and whose yellow end sits at 93.5% of the
+    // chroma its lightness allows. `earthy` implies `muted`, and a palette
+    // holding a stop as loud as the vivid line is not muted by any reading, so
+    // that stop vetoes the word. VIVID_CHROMA rather than a new constant: it is
+    // already the site's definition of loud. Measured: 97 → 86 of 867, and the
+    // 11 it drops all hold a rendered stop at 0.15-0.20 chroma. (`muted` itself
+    // needs no such veto: 0 of its 91 palettes hold a stop that loud, its own
+    // ceiling being 0.055.)
     word: 'earthy',
     axis: 'tone',
-    prevalence: 0.111,
+    prevalence: 0.099,
     spoken: true,
     demand: 1,
     implies: ['muted'],
     test: (f) =>
       f.meanChroma < EARTHY_CHROMA &&
+      f.maxChroma < VIVID_CHROMA &&
       hasColour(f) &&
       f.meanHue >= EARTHY_HUE[0] &&
       f.meanHue < EARTHY_HUE[1] &&
@@ -1271,9 +1551,12 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // The deep-dark case it got right is a real observation, but it is about
     // the MEAN over a ramp that spends half its length near black, not about
     // chroma vs saturation; `deep` in the prose layer is where it belongs.
+    // 0.110 → 0.108 on 2026-08-18: `hasColour` moved to the dense sample so it
+    // could not disagree with `isGrayscale` (see there). Nothing about muted's
+    // own reading changed.
     word: 'muted',
     axis: 'tone',
-    prevalence: 0.11,
+    prevalence: 0.108,
     spoken: true,
     demand: 1,
     test: (f) =>
@@ -1304,7 +1587,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // and is the least vivid thing on the site.
     word: 'vivid',
     axis: 'tone',
-    prevalence: 0.220,
+    prevalence: 0.22,
     spoken: false,
     demand: 1,
     test: (f) => f.meanChroma >= VIVID_CHROMA,
@@ -1457,7 +1740,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // color fact.
     word: 'hue-advancing',
     axis: 'motion',
-    prevalence: 0.175,
+    prevalence: 0.178,
     spoken: false,
     demand: 1,
     test: (f) =>
@@ -1469,7 +1752,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   {
     word: 'hue-reversing',
     axis: 'motion',
-    prevalence: 0.174,
+    prevalence: 0.173,
     spoken: false,
     demand: 1,
     test: (f) =>
@@ -1496,7 +1779,7 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // requires consistency ≥ 0.8.
     word: 'hue-wandering',
     axis: 'motion',
-    prevalence: 0.059,
+    prevalence: 0.055,
     spoken: false,
     demand: 1,
     test: (f) =>
@@ -1507,26 +1790,44 @@ export const DESCRIPTORS: readonly Descriptor[] = [
     // Peak/valley position adds the direction `turns` lacks: `arch` says the
     // lightness bends once, these say which way and where. Guarded by the
     // dense lightness range — below LOW_CONTRAST_RANGE the argmax is noise.
+    //
+    // ...and by BOTH ends, since 2026-08-18. The tag's whole content is that the
+    // bright part is the MIDDLE, which is a claim about the ends as much as
+    // about the peak, and position alone never asked them: a ramp climbing from
+    // medium blue into bright cyan and holding it through to spring green peaks
+    // at t 0.596 with its right end 0.038 below the peak and its left end 0.189
+    // below, and both the tag and the sentence it drives said "darker at both
+    // ends". So the WEAKER end has to fall a real share of the palette's own
+    // lightness range. A quarter, by measurement: over the 111 fixture palettes
+    // the position test alone accepted, that share runs p05 0.144, p10 0.275,
+    // p25 0.474, p50 0.703, and the run of palettes it removes (11 here, 4 on
+    // the twin) are the ones whose weaker end is within a couple of JND of the
+    // extreme. A ratio rather than an absolute, for the same reason
+    // ARCH_DOMINANT is one: the claim is about shape, not about amount.
     word: 'bright-middle',
     axis: 'motion',
-    prevalence: 0.128,
+    prevalence: 0.115,
     spoken: false,
     demand: 1,
     test: (f) =>
       f.denseLightnessRange >= LOW_CONTRAST_RANGE &&
       f.lightnessPeakT >= 1 / 3 &&
-      f.lightnessPeakT <= 2 / 3,
+      f.lightnessPeakT <= 2 / 3 &&
+      f.denseMaxLightness - Math.max(f.denseFirstLightness, f.denseLastLightness) >=
+        MIDDLE_END_DROP * f.denseLightnessRange,
   },
   {
     word: 'dark-middle',
     axis: 'motion',
-    prevalence: 0.075,
+    prevalence: 0.07,
     spoken: false,
     demand: 1,
     test: (f) =>
       f.denseLightnessRange >= LOW_CONTRAST_RANGE &&
       f.lightnessValleyT >= 1 / 3 &&
-      f.lightnessValleyT <= 2 / 3,
+      f.lightnessValleyT <= 2 / 3 &&
+      Math.min(f.denseFirstLightness, f.denseLastLightness) - f.denseMinLightness >=
+        MIDDLE_END_DROP * f.denseLightnessRange,
   },
   {
     // For a monotone ramp (turns = 0) the dense ends order the whole run, so

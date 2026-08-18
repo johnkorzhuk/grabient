@@ -154,12 +154,89 @@ const REDUNDANT_WITH: Record<string, readonly string[]> = {
  * well as the name.
  */
 export const CONTRADICTED_BY: Record<string, readonly string[]> = {
-  pastel: ["dark", "deep", "black", "midnight", "burnt", "rich"],
+  // `pastel` gained the loudness half of its list on 2026-08-18: it carried only
+  // value words, so "Pastel bright sky blue" was a name the table permitted.
+  pastel: ["dark", "deep", "black", "midnight", "burnt", "rich", "neon", "bright", "electric", "vivid", "fluorescent"],
   neon: ["pale", "faded", "dusty", "muted", "grayish", "greyish", "washed"],
-  muted: ["neon", "bright", "electric", "vivid"],
+  muted: ["neon", "bright", "electric", "vivid", "fluorescent"],
   earthy: ["neon", "electric", "vivid", "pastel"],
   dark: ["pale", "light", "baby", "powder", "white", "bright"],
+  // `vivid` is spoken:false, so this row is inert for the name and the compound
+  // chips and exists for the tone veto below: it is the other pole of `muted`
+  // and needs the same list read the other way.
+  vivid: ["pastel", "pale", "faded", "dusty", "muted", "washed"],
 };
+
+/** The tone tags whose contradiction with a NAME is worth acting on. */
+const TONE_VETO_TAGS = ["vivid", "neon", "pastel", "muted"] as const;
+
+/**
+ * The loudness half of CONTRADICTED_BY's rows. `pastel`'s value half ("dark",
+ * "black", …) would rename every dark stop of a pastel palette, which is a
+ * different claim and not one the QA round found wrong.
+ */
+const LOUDNESS_WORDS = new Set([
+  "pastel",
+  "pale",
+  "neon",
+  "bright",
+  "electric",
+  "vivid",
+  "fluorescent",
+]);
+
+/**
+ * One compiled predicate per tag combination. The veto is consulted once per
+ * corpus entry per lookup (920 × the stops), and the editor rebuilds the whole
+ * page on every slider tick, so the word list is turned into a single regex once
+ * and cached: there are at most 2^4 distinct answers.
+ */
+const toneVetoCache = new Map<string, ((name: string) => boolean) | undefined>();
+
+/**
+ * Tone words a COLOR NAME may not carry on this palette.
+ *
+ * The corpus is a survey vocabulary and its words are not always measurements:
+ * `pastel red` is xkcd's label for #db5856, which measures chroma 0.165 at 75%
+ * of its ceiling, and `neon blue` is #04d9ff at 0.145, well under the site's own
+ * neon line. D8 restored those words deliberately, so a per-stop gate against
+ * the registry thresholds is not available: it would delete both entries from
+ * the corpus, since the entries themselves fail it.
+ *
+ * What IS available is the contradiction. A sunset ramp that fires `vivid`
+ * shipped as "A sunset gradient color palette sweeping from sand through pastel
+ * red to reddish purple. The colors are strong and clear." — one sentence
+ * calling a stop pastel and the next calling the palette strong, with the word
+ * also driving the title, the meta description and the top chip, which links to
+ * /palettes/pastel-red. The page contradicting itself is the defect, and the
+ * measurement is the half of it that is checkable, so the name yields.
+ *
+ * Only the loudness axis, and only in both directions: a fired `vivid`/`neon`
+ * rules out pale words, a fired `pastel`/`muted` rules out loud ones. Value
+ * words are already handled per-stop inside the namer (`valueWordFits`), and
+ * the rest of CONTRADICTED_BY stays where it was, vetoing MODIFIERS against
+ * names rather than names against measurements. Measured over the 867-seed
+ * fixture: 12 palettes carry a contradicting name, and each one falls back to
+ * the nearest corpus entry that is left.
+ */
+export function toneNameVeto(
+  tags: readonly string[],
+): ((name: string) => boolean) | undefined {
+  const fired = TONE_VETO_TAGS.filter((t) => tags.includes(t));
+  const key = fired.join("+");
+  if (toneVetoCache.has(key)) return toneVetoCache.get(key);
+  const banned = new Set<string>();
+  for (const tag of fired) for (const w of CONTRADICTED_BY[tag] ?? []) banned.add(w);
+  const words = [...banned].filter((w) => LOUDNESS_WORDS.has(w)).sort();
+  const veto = words.length
+    ? (() => {
+        const re = new RegExp(`(^|[ -])(${words.join("|")})([ -]|$)`, "i");
+        return (name: string) => re.test(name);
+      })()
+    : undefined;
+  toneVetoCache.set(key, veto);
+  return veto;
+}
 
 function mentions(names: readonly string[], words: readonly string[]): boolean {
   const haystack = ` ${names.join(" ").toLowerCase()} `;
@@ -183,7 +260,7 @@ function saysItAlready(word: string, names: readonly string[]): boolean {
  * ramp while the modifier describes the palette. Capping to the structure's own
  * hue count makes it "Duotone mocha and midnight" — shorter and truer.
  */
-const NAMES_FOR_STRUCTURE: Record<string, number> = {
+export const NAMES_FOR_STRUCTURE: Record<string, number> = {
   grayscale: 2,
   monochrome: 2,
   duotone: 2,
@@ -311,6 +388,10 @@ export function describePaletteName(
   const features = options.features ?? paletteFeatures(coeffs, colors);
   const structure = classifyStructure(features);
   const tags = modifierTags(features);
+  // A name whose tone word the palette's own measurement contradicts is not
+  // available to any surface: title, heading, identity sentence and chip row
+  // all read this list. See toneNameVeto.
+  const veto = toneNameVeto(tags);
 
   // The surface's ceiling and the structure's ceiling both apply; the structure
   // is now nearly always the binding one, which is what keeps the name coherent.
@@ -343,7 +424,7 @@ export function describePaletteName(
    * never crowd out the colors it is supposed to be qualifying.
    */
   const rung = (max: number, withPhrase: boolean) => {
-    const names = getUniqueColorNames(colors, { max });
+    const names = getUniqueColorNames(colors, { max, veto });
     const joined = joinNames(names, structure);
     if (!withPhrase)
       return joined.length <= maxChars ? { names, joined, phrase: "" } : null;
@@ -382,7 +463,7 @@ export function describePaletteName(
   if (!fitted) {
     // Even one color name overruns the budget. Say it anyway — a name that is
     // slightly too long beats no name, and it is never padded.
-    const only = getUniqueColorNames(colors, { max: 1 });
+    const only = getUniqueColorNames(colors, { max: 1, veto });
     fitted = { names: only, joined: only.join(""), phrase: "" };
   }
 
