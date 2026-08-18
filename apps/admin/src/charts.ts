@@ -19,6 +19,7 @@ import { renderChartSvg } from "@tanstack/charts/svg";
 import { scaleBand, scaleLinear, scaleUtc } from "d3-scale";
 import { monthDate, type CohortRow, type LikersRow, type MonthRow } from "./queries";
 import type { Breakdown, TrafficDay } from "./traffic";
+import { rollingMean } from "./range";
 
 // The SVG is emitted with a viewBox and scaled to its container by CSS, which
 // scales the tick text along with the geometry. So the intrinsic size is chosen
@@ -337,28 +338,34 @@ export function activationChart(cohorts: readonly CohortRow[]): string {
  * shape over time and the daily level mean anything.
  */
 export function dailyVisitorsChart(days: readonly TrafficDay[]): string {
-  const points = days.map((d) => ({
+  // Raw daily values carry a hard weekly sawtooth — weekends are a different
+  // business from weekdays. The smoothed line is the one to read for direction;
+  // the raw series stays underneath at low opacity so a genuine one-day spike
+  // is still visible rather than averaged out of existence.
+  const smoothed = rollingMean(days.map((d) => d.browserPageViews));
+  const points = days.map((d, i) => ({
     date: new Date(`${d.date}T00:00:00Z`),
     browser: d.browserPageViews,
     automated: d.automatedPageViews,
+    trend: smoothed[i],
   }));
   return render(
     defineChart({
       marks: [
-        areaY(points, {
-          id: "browser-area",
-          x: "date",
-          y: "browser",
-          fill: SERIES,
-          fillOpacity: 0.14,
-        }),
         lineY(points, {
           id: "browser-line",
           x: "date",
           y: "browser",
           stroke: SERIES,
-          strokeWidth: 2,
+          strokeWidth: 1,
+          strokeOpacity: 0.3,
         }),
+        // Same hue, not a new palette slot: this is the same series, read
+        // differently. A second colour would imply a second measurement.
+        lineY(
+          points.filter((p) => p.trend !== null),
+          { id: "browser-trend", x: "date", y: "trend", stroke: SERIES, strokeWidth: 2 },
+        ),
         lineY(points, {
           id: "automated-line",
           x: "date",
@@ -399,7 +406,8 @@ export function dailyVisitorsChart(days: readonly TrafficDay[]): string {
         }),
       formatY: (v: number) => `${compact(v)} views`,
       series: {
-        "browser-line": { n: "Recognized browsers", c: SERIES },
+        "browser-trend": { n: "Browser views (7-day avg)", c: SERIES },
+        "browser-line": { n: "Browser views (that day)", c: SERIES },
         "automated-line": { n: "Bots & unidentified", c: SERIES_2 },
       },
     },

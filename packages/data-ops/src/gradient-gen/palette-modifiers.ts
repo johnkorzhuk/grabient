@@ -178,6 +178,40 @@ const EQUAL_C_TOLERANCE = 0.01;
  */
 const MIN_BITS_TO_SPEAK = 2;
 
+/**
+ * The measured thresholds, exported read-only for the prose generator
+ * (apps/web/src/palette-prose.ts). Its sentence bands must be THE registry
+ * bands — imported, never copied — so a threshold re-measure here moves the
+ * prose with it instead of leaving a silently diverged copy behind. Nothing in
+ * this module reads the object; it exists so consumers cannot drift.
+ */
+export const THRESHOLDS = {
+  CHROMA_FLOOR,
+  GRAYSCALE_CHROMA,
+  DARK_LIGHTNESS,
+  LIGHT_LIGHTNESS,
+  PASTEL_LIGHTNESS,
+  PASTEL_CHROMA,
+  NEON_CHROMA,
+  NEON_LIGHTNESS,
+  MUTED_CHROMA,
+  VIVID_CHROMA,
+  HIGH_CONTRAST_RANGE,
+  LOW_CONTRAST_RANGE,
+  SEAM_TOLERANCE,
+  CLIPPED_FRACTION,
+  TRAJECTORY_DELTA,
+  HUE_DIRECTION_TRAVEL,
+  HUE_DIRECTION_CONSISTENCY,
+  FULL_WHEEL_NET,
+  HUE_WANDER_TRAVEL,
+  HUE_WANDER_CONSISTENCY,
+  PLATEAU_SHARE,
+  FLAT_CHANNEL_RANGE,
+  SOLID_CHANNEL_RANGE,
+  EQUAL_C_TOLERANCE,
+} as const;
+
 /** English tolerates two stacked adjectives before a name reads as a list. */
 const MAX_SPOKEN = 2;
 

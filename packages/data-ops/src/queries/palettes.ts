@@ -168,16 +168,16 @@ export async function getPalettesPageByDate(
 export async function getPopularPaletteIds(
   limit = 1000,
   dbInstance?: ReturnType<typeof getDb>
-): Promise<string[]> {
+): Promise<Array<{ id: string; createdAt: Date }>> {
   const db = dbInstance || getDb();
   const rows = await db
-    .select({ id: palettes.id })
+    .select({ id: palettes.id, createdAt: palettes.createdAt })
     .from(palettes)
     .leftJoin(likes, eq(palettes.id, likes.paletteId))
     .groupBy(palettes.id)
     .orderBy(desc(sql<number>`COUNT(DISTINCT ${likes.userId})`))
     .limit(limit);
-  return rows.map((r) => r.id);
+  return rows;
 }
 
 

@@ -54,7 +54,7 @@ describe("semantic search", () => {
     expect(querySlug(SEED)).toBe(SEED);
     expect(normalizeSemanticQuery("#ff0000 night")).toContain("red");
     expect(normalizeSemanticQuery(SEED)).not.toBe(SEED);
-    expect(queryHeading("warm sunset")).toBe("Warm sunset palettes");
+    expect(queryHeading("warm sunset")).toBe("Warm sunset gradient palettes");
     expect(queryHeadingParts("blue purple cyan rose")).toEqual([
       { kind: "color", value: "Blue", hex: "#0000ff" },
       { kind: "text", value: " " },
@@ -63,7 +63,7 @@ describe("semantic search", () => {
       { kind: "color", value: "cyan", hex: "#00ffff" },
       { kind: "text", value: " " },
       { kind: "color", value: "rose", hex: "#ff007f" },
-      { kind: "text", value: " palettes" },
+      { kind: "text", value: " gradient palettes" },
     ]);
     expect(colorTextParts("teal, azure, navy")).toEqual([
       { kind: "color", value: "teal", hex: "#008080" },

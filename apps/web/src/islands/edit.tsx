@@ -28,10 +28,14 @@ import { channelsGraphSvg } from "../graph";
 import { logoStops } from "../icons";
 import {
   describePaletteName,
-  paletteDescription,
+  titleSuffix,
   TITLE_HEADLINE,
-  TITLE_SUFFIX,
 } from "../palette-name";
+import { paletteProse, relatedSearches, relatedSearchSlug } from "../palette-prose";
+import {
+  analyzeCoefficients,
+  tagsToArray,
+} from "@repo/data-ops/gradient-gen/palette-tags";
 import {
   coeffsJsonSnippet,
   colorsSnippet,
@@ -109,6 +113,11 @@ const ACTION_BTN_ON = " border-muted-foreground/30 bg-background/60 text-foregro
 const DOCK_BTN =
   "inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-solid border-input bg-background/70 text-muted-foreground backdrop-blur-md transition-colors duration-200 outline-none hover:border-muted-foreground/30 hover:bg-background hover:text-foreground active:border-muted-foreground/40 active:bg-muted/60 focus-visible:ring-2 focus-visible:ring-ring/70";
 const DOCK_BTN_ON = " border-muted-foreground/40 bg-background/85 text-foreground";
+
+// Must stay identical to RELATED_CHIP in pages.ts — the same chips, two
+// renderers: the server writes the crawler's row, this rebuilds it per tick.
+const RELATED_CHIP =
+  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs";
 
 export interface EditorProps {
   seed: string;
@@ -441,7 +450,8 @@ export function EditorIsland(props: EditorProps) {
   };
 
   /**
-   * The palette's prose — heading, sr-only description, `document.title`.
+   * The palette's prose — sr-only h2, visible description, related-search
+   * chips, `document.title`.
    *
    * This used to be a fetch of /{seed}.json fired from the throttled URL write,
    * which kept the 843-name color corpus off the client but made the name the
@@ -452,34 +462,59 @@ export function EditorIsland(props: EditorProps) {
    * shipping the corpus and the modifier analysis to the browser is in
    * seo-research/palette-modifiers.md.
    *
-   * Identical code to the server render (palette-name.ts), so the text a
-   * crawler gets and the text a visitor edits into cannot drift.
+   * Identical code to the server render (palette-name.ts / palette-prose.ts),
+   * so the text a crawler gets and the text a visitor edits into cannot drift.
    */
   const describeSurfaces = () => {
     const current = view();
     const colors = hexColors();
     const described = describePaletteName(applied(), colors);
+    // The h2 is sr-only now (the visible paragraph replaced it, owner
+    // 2026-08-17) but keeps the short name: it stays the section's
+    // aria-labelledby target and the crawler's name for the palette.
     const heading = document.getElementById("palette-about");
     if (heading) heading.textContent = described.name;
     const h1 = document.getElementById("palette-h1");
     if (h1) h1.textContent = `${described.name} gradient palette editor`;
+    // ONE base-tag analysis per tick, mirrored from seedPaletteText: the
+    // prose reads the temperature journey from the stored vocabulary only.
+    const baseTags = tagsToArray(analyzeCoefficients(applied()));
     const description = document.getElementById("palette-description");
     if (description)
-      description.textContent = paletteDescription(
-        described.name,
-        current.style,
-        current.steps,
-        current.angle,
-        colors,
-        described.tags,
-      );
+      description.textContent = paletteProse(applied(), colors, current, {
+        features: described.features,
+        named: described,
+        baseTags,
+      }).paragraph;
+    // Related chips: rebuilt from the same relatedSearches() the server
+    // rendered, so crawler HTML and live DOM cannot disagree. DOM APIs, not
+    // innerHTML — the labels are corpus/registry words, but the row is inside
+    // the document and the house rule is to never format-string into it.
+    const related = document.getElementById("related-searches");
+    if (related) {
+      related.textContent = "";
+      for (const label of relatedSearches(described.features, described, described.tags)) {
+        const chip = document.createElement("a");
+        chip.href = `/palettes/${relatedSearchSlug(label)}`;
+        chip.className = RELATED_CHIP;
+        chip.textContent = label;
+        related.append(chip);
+      }
+    }
     // The title has its own, tighter budget — same rule as the server. Reusing
     // the analysis keeps a slider drag to one dense sample per tick, not two.
     const titleName = describePaletteName(applied(), colors, {
       ...TITLE_HEADLINE,
       features: described.features,
     }).name;
-    document.title = `${titleName}${TITLE_SUFFIX}`;
+    // D14: suffix keyed to style-param PRESENCE in the URL this island
+    // maintains — parseListSearch reads "auto" exactly when the param is
+    // absent/invalid, the same rule the server applies to the request URL.
+    // commit()/handlePop() write the URL before calling into here, and slider
+    // ticks never touch the style param, so location.search is always current.
+    const styleInUrl =
+      parseListSearch(new URLSearchParams(location.search)).style !== "auto";
+    document.title = `${titleName}${titleSuffix(current.style, styleInUrl)}`;
   };
 
   /** Must stay identical to swatches() in pages.ts — same strip, two renderers. */

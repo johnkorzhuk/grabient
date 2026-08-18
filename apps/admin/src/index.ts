@@ -18,13 +18,18 @@ import {
   errorPage,
   esc,
   fmt,
+  changeBadge,
   layout,
   legend,
   nav,
+  rangeSelector,
   statTile,
 } from "./html";
+import { change, parseRange, RANGES, rollingMean, splitPeriods, sum, type RangeOption } from "./range";
 import { buildBrief } from "./brief";
 import { loadSearchConsole, type SearchConsole } from "./search-console";
+import { loadGa4 } from "./ga4";
+import { analyticsMcpHandler } from "./mcp";
 import {
   cumulative,
   loadAttribution,
@@ -82,6 +87,7 @@ app.use("*", async (c, next) => {
 
 app.get("/", async (c) => {
   const now = new Date();
+  const range = parseRange(c.req.query("range"));
   // Independent sources, so fetch them together. Traffic resolves to null when
   // it is not configured or the API is unhappy; the page drops those sections
   // rather than failing.
@@ -89,7 +95,7 @@ app.get("/", async (c) => {
     loadMetrics(c.env.DB, now),
     loadTraffic(c.env, now),
   ]);
-  return seal(c.html(dashboard(metrics, traffic, c.get("email"))));
+  return seal(c.html(dashboard(metrics, traffic, range, c.get("email"))));
 });
 
 app.get("/acquisition", async (c) => {
@@ -108,6 +114,14 @@ app.get("/acquisition", async (c) => {
   );
 });
 
+// The MCP server. Mounted AFTER the Access middleware above, so a tool only
+// ever runs for a caller Access already authorized — people via SSO, headless
+// clients via a service token. Same policy as the dashboard, one place to
+// grant or revoke.
+app.all("/mcp", (c) =>
+  analyticsMcpHandler(c.env, new URL(c.req.url).hostname).fetch(c.req.raw),
+);
+
 // The agent-facing endpoint. Same numbers as the pages, plus the definitions,
 // caveats and explicit list of unanswerable questions — see brief.ts.
 app.get("/brief.json", async (c) => {
@@ -118,11 +132,14 @@ app.get("/brief.json", async (c) => {
     loadAcquisition(c.env, now),
     loadSearchConsole(c.env, now),
   ]);
-  const [attribution, referrers] = await Promise.all([
+  const [attribution, referrers, ga4] = await Promise.all([
     loadAttribution(c.env.DB),
     loadReferrers(c.env, now),
+    loadGa4(c.env, now),
   ]);
-  return seal(c.json(buildBrief(metrics, traffic, acquisition, search, attribution, referrers)));
+  return seal(
+    c.json(buildBrief(metrics, traffic, acquisition, search, attribution, referrers, ga4)),
+  );
 });
 
 app.get("/brief", async (c) => {
@@ -461,7 +478,12 @@ function briefPage(brief: ReturnType<typeof buildBrief>, now: Date, email: strin
   );
 }
 
-function dashboard(metrics: Metrics, traffic: Traffic | null, email: string): string {
+function dashboard(
+  metrics: Metrics,
+  traffic: Traffic | null,
+  range: RangeOption,
+  email: string,
+): string {
   const { totals, signups, likers, cohorts, currentMonth } = metrics;
 
   const lastSignups = signups.at(-1);
@@ -508,22 +530,36 @@ function dashboard(metrics: Metrics, traffic: Traffic | null, email: string): st
   const firstConv = conversion[0];
   const lastConv = conversion.at(-1);
 
+  // Slice rather than refetch: traffic.ts already holds 180 days, so every range
+  // and its comparison window come from one API call.
+  const windows = splitPeriods(traffic?.daily ?? [], range.days);
+  const browserPerDay = {
+    current: windows.current.length
+      ? sum(windows.current.map((d) => d.browserPageViews)) / windows.current.length
+      : 0,
+    previous: windows.previous.length
+      ? sum(windows.previous.map((d) => d.browserPageViews)) / windows.previous.length
+      : 0,
+  };
+  const browserChange = change(
+    Math.round(browserPerDay.current),
+    Math.round(browserPerDay.previous),
+  );
+
   const tiles = [
     statTile({
-      label: "Browser views / day",
-      value: traffic ? fmt(recentBrowserPageViews(traffic, 7)) : "—",
+      label: `Browser views / day · ${range.label}`,
+      value: traffic ? fmt(Math.round(browserPerDay.current)) : "—",
       hero: true,
       sub: traffic
-        ? `<span class="text-ink-muted">7-day average, recognized browsers only. ${fmt(
-            recentDailyUniques(traffic, 7),
-          )} distinct IPs/day incl. bots.</span>`
+        ? changeBadge(browserChange, range.comparisonLabel)
         : `<span class="text-ink-muted">Traffic not configured</span>`,
     }),
     statTile({
       label: "Bots & unidentified",
-      value: traffic ? `${automatedShare(traffic, 30).toFixed(0)}%` : "—",
+      value: traffic ? `${automatedShare(traffic, range.days).toFixed(0)}%` : "—",
       sub: traffic
-        ? `<span class="text-ink-muted">of pageviews over 30 days came from clients that did not identify as a browser</span>`
+        ? `<span class="text-ink-muted">of pageviews over ${range.days} days came from clients that did not identify as a browser</span>`
         : undefined,
     }),
     statTile({
@@ -567,17 +603,18 @@ function dashboard(metrics: Metrics, traffic: Traffic | null, email: string): st
     ? [
         chartCard({
           title: "Real traffic vs automated",
-          note: "Daily pageviews, split by whether the client identified as a web browser.",
+          note: "Daily pageviews, split by whether the client identified as a web browser. Read the bold line.",
           caveat:
-            "Cloudflare's actual bot score needs the Bot Management add-on this zone does not have, so this is a user-agent heuristic: named crawlers and anything that did not present as a browser count as automated. It is a floor on bot traffic, not an exact figure.",
+            "The bold line is a trailing 7-day mean, which removes exactly one week of day-of-week seasonality — weekends are a different business from weekdays, and on the raw series every Saturday reads as a crisis. Bot detection is a user-agent heuristic, not Cloudflare's bot score (Bot Management is not on this plan), so it is a floor on automated traffic rather than an exact figure.",
           legend: legend([
-            { color: "var(--series-1)", label: "Recognized browsers" },
+            { color: "var(--series-1)", label: "Browser views · 7-day average" },
+            { color: "var(--series-1)", label: "Browser views · that day", faint: true },
             { color: "var(--series-2)", label: "Bots & unidentified" },
           ]),
-          svg: dailyVisitorsChart(traffic.daily),
+          svg: dailyVisitorsChart(windows.current),
           table: dataTable(
             ["Date", "Browsers", "Bots & unidentified", "Distinct IPs"],
-            [...traffic.daily]
+            [...windows.current]
               .reverse()
               .map((d) => [
                 d.date,
@@ -670,7 +707,9 @@ function dashboard(metrics: Metrics, traffic: Traffic | null, email: string): st
     `<main class="mx-auto max-w-6xl px-6 py-8 sm:py-10">
   ${header("/", generated, email)}
 
-  <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+  <div class="mt-5">${rangeSelector("/", range.key, RANGES)}</div>
+
+  <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 ${tiles}
   </div>
 

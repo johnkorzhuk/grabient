@@ -16,6 +16,27 @@ function isFramed() {
   }
 }
 
+/** The embedding page's host, when the browser discloses it. */
+function embedderHost() {
+  try {
+    return document.referrer ? new URL(document.referrer).hostname : "";
+  } catch {
+    return "";
+  }
+}
+
+function embedHref() {
+  try {
+    const url = new URL(location.href);
+    if (url.searchParams.has("utm_source")) return url.toString();
+    url.searchParams.set("utm_source", embedderHost() || "embed");
+    url.searchParams.set("utm_medium", "embed");
+    return url.toString();
+  } catch {
+    return location.href;
+  }
+}
+
 function noticeNode() {
   if (!noticeEl) {
     noticeEl = document.createElement("div");
@@ -26,7 +47,9 @@ function noticeNode() {
     text.textContent = "Some features are limited in this embed.";
 
     const link = document.createElement("a");
-    link.href = location.href;
+    // Tag the embedder so first-touch attribution can tell embed arrivals from
+    // direct ones; without this the whole channel reads as "direct".
+    link.href = embedHref();
     link.target = "_blank";
     link.rel = "noopener";
     link.className = "font-medium text-foreground underline-offset-2 hover:underline";

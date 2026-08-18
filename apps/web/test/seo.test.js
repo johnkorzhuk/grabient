@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { layout } from "../src/html";
+import { seedPage } from "../src/pages";
 import { renderPalette } from "../src/palette";
 import {
   OG_RENDER_VERSION,
@@ -177,6 +178,67 @@ describe("SEO parity", () => {
       new URL("https://grabient.com/api/og?seed=x&amp;style=radialGradient"),
     );
     expect(params.get("style")).toBe("radialGradient");
+  });
+});
+
+// The 2026-08-17 seed-page text contract (D6-AMENDED/D13/D14): the visible
+// description paragraph replaced the bold name heading, the fixed hub chips
+// became palette-derived related-search links, and the <title> suffix follows
+// the URL. These assert the SSR side; edit-ui.test.js asserts the island
+// keeps every one of these surfaces live per tick.
+describe("seed page description surfaces", () => {
+  const render = (style) =>
+    seedPage({
+      seed: SEED,
+      params: { style, steps: "auto", angle: "auto", page: 1, limit: 24 },
+      size: "auto",
+      graph: false,
+      origin: "https://grabient.com",
+      stars: 0,
+    });
+  const titleOf = (html) => html.match(/<title>([^<]*)<\/title>/)[1];
+
+  it("suffixes the title by style-param presence (D14, all three outcomes)", () => {
+    // "auto" is how parseListSearch spells an absent param, mirroring the
+    // canonical URLs that strip defaults.
+    expect(titleOf(render("auto")).endsWith(" Gradient Palette")).toBe(true);
+    const swatches = titleOf(render("linearSwatches"));
+    expect(swatches.endsWith(" Palette")).toBe(true);
+    expect(swatches.endsWith(" Gradient Palette")).toBe(false);
+    const gradient = titleOf(render("radialGradient"));
+    expect(gradient.endsWith(" Gradient")).toBe(true);
+    expect(gradient.endsWith(" Gradient Palette")).toBe(false);
+  });
+
+  it("renders the name sr-only and the description visible", () => {
+    const html = render("auto");
+    // The short name moved INTO sr-only (it is still the section's
+    // aria-labelledby target); the paragraph took its visible place.
+    expect(html).toMatch(/<h2 id="palette-about" class="sr-only">/);
+    const p = html.match(/<p id="palette-description" class="([^"]*)">([^<]*)<\/p>/);
+    expect(p).not.toBeNull();
+    expect(p[1]).not.toContain("sr-only");
+    // The demand phrase every R1 carries, so the paragraph really is prose.
+    expect(p[2]).toContain("gradient color palette");
+  });
+
+  it("links related searches as bounded /palettes/ queries", () => {
+    const html = render("auto");
+    const nav = html.match(
+      /<nav id="related-searches"[^>]*aria-label="Related palette searches"[^>]*>([\s\S]*?)<\/nav>/,
+    );
+    expect(nav).not.toBeNull();
+    const hrefs = [...nav[1].matchAll(/href="([^"]+)"/g)].map((m) => m[1]);
+    expect(hrefs.length).toBeGreaterThan(0);
+    for (const href of hrefs) expect(href).toMatch(/^\/palettes\//);
+  });
+
+  it("carries the paragraph, abstract and keyword words in the JSON-LD", () => {
+    const html = render("auto");
+    expect(html).toContain('"abstract":');
+    // Both description fields exist: the meta description (identity + action
+    // clause) and the JSON-LD description (the full paragraph).
+    expect(html).toContain('"description":');
   });
 });
 

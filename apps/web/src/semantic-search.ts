@@ -2,6 +2,7 @@ import {
   colorNameToHex,
   hexToColorName,
   getUniqueColorNames,
+  matchColorName,
   replaceHexWithColorNames,
 } from "@repo/data-ops/color-utils";
 import {
@@ -78,7 +79,19 @@ export function normalizeSemanticQuery(query: string): string {
   const seed = canonicalSeed(query);
   if (seed) {
     const view = renderPalette(seed, DEFAULT_STYLE, SEED_SEARCH_STEPS, DEFAULT_ANGLE);
-    if (view) return getUniqueColorNames(view.hexColors).join(" ");
+    // Wider than a heading: the embedding is not read by anyone, so a fifth
+    // distinct region is signal rather than clutter. It still stops well short
+    // of one name per stop, which used to hand the model a run of synonyms.
+    //
+    // REINDEX-GATED (D7): this branch must stay names-only until the Vectorize
+    // index is rebuilt from paletteEmbedText (palette-prose.ts) — the live
+    // index was embedded from palette-tags text and has never seen the prose
+    // vocabulary, so enriching only the query side degrades matching
+    // (index/query asymmetry). At the reindex cutover — the same one that
+    // corrects the legacy texture:'monochrome' tag — change this to
+    // names + spoken modifiers + structure word, mirroring the head of the
+    // indexed text while staying terse.
+    if (view) return getUniqueColorNames(view.hexColors, { max: 5 }).join(" ");
   }
   return replaceHexWithColorNames(query)
     .replace(/[\[\]"{}]/g, "")
@@ -87,35 +100,86 @@ export function normalizeSemanticQuery(query: string): string {
     .trim();
 }
 
+// "gradient palettes", not "palettes": every competitor ranking for {color}
+// queries carries "gradient" in the title, and every term Search Console
+// records demand for is gradient-worded ("gradient maker", "gradient
+// generator"). Both nouns stay because both are the product — the swatch
+// styles render a palette, the gradient styles render a gradient. The heading
+// feeds h1, <title>, meta description and og:image alt at once.
 export function queryHeading(query: string): string {
   const seed = canonicalSeed(query);
   if (seed) {
     const view = renderPalette(seed, DEFAULT_STYLE, SEED_SEARCH_STEPS, DEFAULT_ANGLE);
-    const names = view ? getUniqueColorNames(view.hexColors) : [];
-    if (names.length) return `${names.join(", ")} palettes`;
+    // Three, not the default four: this one is the h1, the <title> and the
+    // og:image alt, and " gradient palettes" already costs 18 characters.
+    const names = view ? getUniqueColorNames(view.hexColors, { max: 3 }) : [];
+    if (names.length) return `${names.join(", ")} gradient palettes`;
   }
 
   const colorNames = [
     ...new Set((query.match(HEX_CODE_REGEX) ?? []).map((hex) => hexToColorName(hex))),
   ];
-  if (colorNames.length) return `${colorNames.join(", ")} palettes`;
-  return `${query.charAt(0).toUpperCase()}${query.slice(1)} palettes`;
+  if (colorNames.length) return `${colorNames.join(", ")} gradient palettes`;
+  return `${query.charAt(0).toUpperCase()}${query.slice(1)} gradient palettes`;
 }
 
-/** Split text into plain text and recognized names from the shared BASIC_COLORS map. */
-export function colorTextParts(text: string): QueryHeadingPart[] {
+/**
+ * Split text into plain text and recognized color names.
+ *
+ * `maxWords` is 1 by default and that default is load-bearing. Most corpus
+ * names are several words, but so are most user queries, and the two want
+ * opposite treatment: "deep sky blue" is one swatch, while someone who typed
+ * "blue purple cyan" asked for three — and "blue purple" is itself a corpus
+ * name, so a greedy match would silently merge two of them. Only a caller that
+ * generated the text from the corpus itself knows the words belong together.
+ */
+export function colorTextParts(
+  text: string,
+  options?: { maxWords?: number },
+): QueryHeadingPart[] {
+  const maxWords = options?.maxWords ?? 1;
+  const words = [...text.matchAll(/[a-z']+/gi)].map((m) => ({
+    value: m[0],
+    index: m.index ?? 0,
+  }));
   const parts: QueryHeadingPart[] = [];
   let cursor = 0;
-  for (const match of text.matchAll(/[a-z]+/gi)) {
-    const index = match.index ?? 0;
-    const word = match[0];
-    const hex = colorNameToHex(word);
+
+  for (let i = 0; i < words.length; i++) {
+    const start = words[i]!;
+    if (start.index < cursor) continue;
+
+    // Only join words that are separated by exactly one space, so a comma or a
+    // line break always ends a candidate name.
+    let span = 1;
+    while (span < maxWords && i + span < words.length) {
+      const previous = words[i + span - 1]!;
+      const next = words[i + span]!;
+      if (next.index !== previous.index + previous.value.length + 1) break;
+      if (text[previous.index + previous.value.length] !== " ") break;
+      span++;
+    }
+
+    const match = matchColorName(
+      words.slice(i, i + span).map((w) => w.value),
+      0,
+      span,
+    );
+    if (!match) continue;
+
+    const consumed = words[i + match.length - 1]!;
+    const end = consumed.index + consumed.value.length;
+    const value = text.slice(start.index, end);
+    const hex = colorNameToHex(match.name);
     if (!hex) continue;
-    if (index > cursor)
-      parts.push({ kind: "text", value: text.slice(cursor, index) });
-    parts.push({ kind: "color", value: word, hex });
-    cursor = index + word.length;
+
+    if (start.index > cursor)
+      parts.push({ kind: "text", value: text.slice(cursor, start.index) });
+    parts.push({ kind: "color", value, hex });
+    cursor = end;
+    i += match.length - 1;
   }
+
   if (cursor < text.length)
     parts.push({ kind: "text", value: text.slice(cursor) });
   return parts.length ? parts : [{ kind: "text", value: text }];
@@ -123,11 +187,15 @@ export function colorTextParts(text: string): QueryHeadingPart[] {
 
 /**
  * Split the human heading into text and recognized color names. This is the
- * old PalettePageHeader behavior, backed by data-ops' shared BASIC_COLORS map
- * so search headings and semantic normalization use the same vocabulary.
+ * old PalettePageHeader behavior, backed by data-ops' shared color corpus so
+ * search headings and semantic normalization use the same vocabulary.
+ *
+ * A seed heading is names we just generated, so multi-word names there are
+ * matched whole; a text query is the user's words and stays word-by-word.
  */
 export function queryHeadingParts(query: string): QueryHeadingPart[] {
-  return colorTextParts(queryHeading(query));
+  const isSeed = canonicalSeed(query) !== null;
+  return colorTextParts(queryHeading(query), { maxWords: isSeed ? 3 : 1 });
 }
 
 /** Context shown only when the submitted value was converted before search. */

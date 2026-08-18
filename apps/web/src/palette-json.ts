@@ -14,12 +14,21 @@ import {
   tagsToArray,
 } from "@repo/data-ops/gradient-gen/palette-tags";
 import {
+  DESCRIPTORS,
+  spokenWord,
+} from "@repo/data-ops/gradient-gen/palette-modifiers";
+import {
   describePaletteName,
   styleLabel,
   META_HEADLINE,
   TITLE_HEADLINE,
   type HeadlineOptions,
 } from "./palette-name";
+import {
+  paletteProse,
+  relatedSearches,
+  type PaletteProse,
+} from "./palette-prose";
 import {
   DEFAULT_ANGLE,
   DEFAULT_STEPS,
@@ -83,13 +92,19 @@ export function paletteTagList(view: RenderedPalette): string[] {
 }
 
 export interface SeedPaletteText {
-  /** Full-budget name, for the h1, the h2 and the sr-only description. */
+  /** Full-budget name, for the h1 and the sr-only h2. */
   headline: string;
   /** Tightest budget: `<title>`, which Google truncates around 60 characters. */
   titleHeadline: string;
   /** Middle budget, for the meta description opener. */
   metaHeadline: string;
   tags: string[];
+  /** The long-form description at every budget: page paragraph, meta, embed. */
+  prose: PaletteProse;
+  /** Curated related-search labels — the chip row under the description. */
+  related: string[];
+  /** JSON-LD keyword additions: fired spoken descriptor words + the structure word. */
+  keywords: string[];
 }
 
 /**
@@ -109,6 +124,30 @@ export function seedPaletteText(view: RenderedPalette): SeedPaletteText {
       ...budget,
       features: described.features,
     }).name;
+  // D15: the same ONE analysis feeds the prose and the related labels.
+  // describePalette() is the public triple; the page needs the intermediate
+  // budgets too (metaDescription, identity), so this composes the same shared
+  // pieces with the same reuse. `base` rides in as baseTags because the
+  // temperature-journey wording must come from the stored-vocabulary formula
+  // the Vectorize index carries, never a serve-time recompute.
+  const prose = paletteProse(view.appliedCoeffs, view.hexColors, view, {
+    named: described,
+    features: described.features,
+    baseTags: base,
+  });
+  // D6: JSON-LD keywords gain the fired spoken words plus the structure word,
+  // filtered against the registry's OWN tags rather than the merged list
+  // below — base tags reuse words under different definitions (`texture:
+  // 'monochrome'` is a saturation claim, the registry's is hue structure),
+  // and a keyword has to mean what the registry measured.
+  const fired = new Set(described.tags);
+  const keywords = [
+    ...new Set(
+      DESCRIPTORS.filter(
+        (d) => (d.spoken || d.axis === "structure") && fired.has(d.word),
+      ).map(spokenWord),
+    ),
+  ];
   return {
     headline: described.name,
     titleHeadline: at(TITLE_HEADLINE),
@@ -117,6 +156,9 @@ export function seedPaletteText(view: RenderedPalette): SeedPaletteText {
     // (hue) can both be present and mean different things — dedupe so the
     // sentence does not say it twice.
     tags: [...new Set([...base, ...described.tags])],
+    prose,
+    related: relatedSearches(described.features, described, described.tags),
+    keywords,
   };
 }
 
@@ -138,6 +180,8 @@ export interface PaletteJson {
   seed: string;
   /** "Baby blue to powder pink" — a human label for the palette. */
   name: string;
+  /** The full description paragraph — the same text the palette page renders. */
+  description: string;
   /** Self-referential: an agent that quotes these colors can cite where they came from. */
   url: string;
   png: string;
@@ -175,6 +219,9 @@ export function paletteJson(
   return {
     seed: canonical,
     name: text.headline,
+    // View-parameterized like the page (it ends on the R6 view sentence), so
+    // an agent quoting the palette gets the same prose a crawler saw.
+    description: text.prose.paragraph,
     url: `${origin}/${encoded}`,
     png: `${origin}/${encoded}.png`,
     hexColors: view.hexColors,
@@ -196,6 +243,10 @@ export function paletteJson(
     steps: view.steps,
     angle: view.angle,
     css: cssSnippet(view, ""),
+    // Deliberately the EXHAUSTIVE true-fact list, not the curated related-
+    // search labels the page's chip row shows (D15): this field predates the
+    // curation and agents/the indexing pipeline read it, so its contract is
+    // stability — the curated labels stay a page concern.
     tags: text.tags,
   };
 }

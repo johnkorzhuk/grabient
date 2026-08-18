@@ -9,6 +9,7 @@ import {
   META_HEADLINE,
   TITLE_HEADLINE,
   TITLE_SUFFIX,
+  titleSuffix,
 } from "../src/palette-name.ts";
 import {
   classifyStructure,
@@ -109,12 +110,32 @@ describe("budgets", () => {
   it("leaves the finished <title> inside Google's truncation window", () => {
     // The budget only pays off if the suffix is counted against it: at the
     // previous 44 with a 28-character suffix, average titles ran 62.7
-    // characters and 67.9% of the corpus truncated.
+    // characters and 67.9% of the corpus truncated. TITLE_SUFFIX is the
+    // WORST-CASE suffix since D14 (titleSuffix's style-pinned variants are
+    // strictly shorter), so this bound covers every suffix outcome.
     expect(TITLE_HEADLINE.maxChars + TITLE_SUFFIX.length).toBeLessThanOrEqual(60);
+    for (const style of ["linearGradient", "linearSwatches", "radialGradient"]) {
+      for (const inUrl of [true, false]) {
+        expect(titleSuffix(style, inUrl).length).toBeLessThanOrEqual(TITLE_SUFFIX.length);
+      }
+    }
     for (const seed of Object.values(SEEDS)) {
       const title = `${describeAt(seed, 13, TITLE_HEADLINE).name}${TITLE_SUFFIX}`;
       expect(title.length, title).toBeLessThanOrEqual(60);
     }
+  });
+
+  it("keys the title suffix to style-param presence, then to what the view renders", () => {
+    // D14, all three outcomes. A clean canonical URL competes for the full
+    // "{color} gradient color palette" grammar; a URL that pins a style names
+    // only what that view is — swatch styles render a palette, gradient
+    // styles render a gradient.
+    expect(titleSuffix("radialGradient", false)).toBe(" Gradient Palette");
+    expect(titleSuffix("linearSwatches", false)).toBe(" Gradient Palette");
+    expect(titleSuffix("linearSwatches", true)).toBe(" Palette");
+    expect(titleSuffix("angularSwatches", true)).toBe(" Palette");
+    expect(titleSuffix("radialGradient", true)).toBe(" Gradient");
+    expect(titleSuffix("linearGradient", true)).toBe(" Gradient");
   });
 
   it("never trades the second color name for an adjective", () => {

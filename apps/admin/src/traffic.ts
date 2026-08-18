@@ -432,3 +432,149 @@ export async function loadReferrers(env: Env, now: Date): Promise<ReferrerRow[] 
   refCache = { at: now.getTime(), value };
   return value;
 }
+
+/**
+ * What this zone's analytics token can actually query.
+ *
+ * Cloudflare gates GraphQL datasets and fields by plan, but the schema exposes
+ * everything globally — entitlement is checked at query time, so "does this
+ * field exist" and "may I read it" are different questions and only the second
+ * one matters. `settings` answers the second one authoritatively for OUR token:
+ * `availableFields` is the list this requester may select, and the limits say
+ * how far back and how wide a query may go.
+ *
+ * Worth having as a tool rather than a comment because the answers are
+ * genuinely surprising here. Bot scores need Enterprise plus Bot Management, so
+ * `botScore` is unavailable and the bot split falls back to a user-agent
+ * heuristic that under-counts spoofers. `clientRefererHost` is paid-plan only.
+ * An agent that can ask instead of guess will not build on a field it cannot
+ * read.
+ */
+export async function loadCapabilities(env: Env): Promise<unknown | null> {
+  const token = env.CF_ANALYTICS_TOKEN?.trim();
+  const zoneTag = env.CF_ZONE_ID?.trim();
+  if (!token || !zoneTag) return null;
+
+  const query = `query Capabilities($zoneTag: String!) {
+    viewer {
+      zones(filter: { zoneTag: $zoneTag }) {
+        settings {
+          httpRequestsAdaptiveGroups { enabled availableFields notOlderThan maxDuration maxNumberOfFields maxPageSize }
+          httpRequests1dGroups { enabled availableFields notOlderThan maxDuration }
+          httpRequests1hGroups { enabled availableFields notOlderThan maxDuration }
+          firewallEventsAdaptiveGroups { enabled availableFields notOlderThan maxDuration }
+        }
+      }
+    }
+  }`;
+
+  try {
+    const res = await fetch(ENDPOINT, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { zoneTag } }),
+    });
+    // GraphQL answers 200 even when it refuses, so the errors array is the real
+    // status — a bare res.ok check reports success on a permission failure.
+    const payload: any = await res.json();
+    if (payload.errors?.length) {
+      console.error("Capabilities query errors", JSON.stringify(payload.errors).slice(0, 300));
+      return { errors: payload.errors };
+    }
+    return payload.data?.viewer?.zones?.[0]?.settings ?? null;
+  } catch (err) {
+    console.error("Capabilities query threw", err);
+    return null;
+  }
+}
+
+/**
+ * Run an arbitrary read-only GraphQL query against Cloudflare's analytics API.
+ *
+ * Why a passthrough rather than one narrow tool per question. The schema has no
+ * mutations, the token is read-only, and the caller is already through Access —
+ * so the usual objection to passthrough does not apply. What DOES apply is
+ * misinterpretation: this zone's headline number is ~59,818 "browser pageviews"
+ * a day against roughly 4-6K actual people, and an agent that queries a bot
+ * metric and reports it as an audience is worse than one that could not query
+ * at all. So every response carries caveats derived from the datasets the query
+ * names — the interpretation a narrow tool would otherwise supply.
+ */
+const DATASET_CAVEATS: Array<{ match: RegExp; caveat: string }> = [
+    {
+        match: /httpRequests(1d|1h|1m)Groups/,
+        caveat:
+            "Rollup dataset: UNSAMPLED and exact, but it counts every request reaching the edge. Roughly half this zone's traffic is automation and the browser/bot split is a user-agent heuristic that under-counts spoofers. Not a headcount — GA4 is the bot-filtered source for people.",
+    },
+    {
+        match: /httpRequestsAdaptiveGroups|httpRequestsOverviewAdaptiveGroups/,
+        caveat:
+            "Adaptive dataset: SAMPLED (read sampleInterval and multiply), 8-day retention, 24-HOUR maximum query window on this plan. Bot scores need Enterprise Bot Management and are unavailable; verifiedBotCategory IS available and is the trustworthy bot signal here.",
+    },
+    {
+        match: /firewallEvents/,
+        caveat:
+            "firewallEventsAdaptiveGroups reported itself DISABLED for this token — expect an empty or refused result.",
+    },
+    {
+        match: /rum[A-Za-z]*Events/,
+        caveat:
+            "RUM comes from the browser beacon: bot-free by construction, but only counts visitors who ran JavaScript. Web Vitals values are in MICROSECONDS and negative means not-applicable, not zero. RUM is ACCOUNT-scoped — an empty result most likely means the token lacks Account Analytics Read.",
+    },
+    {
+        match: /workersInvocations|d1Analytics|kvOperations|r2Operations/,
+        caveat:
+            "Account-scoped dataset. A null or error result means the analytics token is Zone-scoped and needs Account Analytics Read — a token permission change, not a code change.",
+    },
+];
+
+export async function runCloudflareGraphQL(
+    env: Env,
+    query: string,
+    variables: Record<string, unknown> = {},
+): Promise<unknown | null> {
+    const token = env.CF_ANALYTICS_TOKEN?.trim();
+    if (!token) return null;
+    // The analytics schema exposes no mutations; refusing the keyword makes the
+    // read-only contract explicit rather than incidental.
+    if (/\bmutation\b/i.test(query)) {
+        return { errors: [{ message: "Mutations are not permitted by this tool." }] };
+    }
+
+    const caveats = DATASET_CAVEATS.filter(({ match }) => match.test(query)).map(
+        ({ caveat }) => caveat,
+    );
+
+    // The zone and account tags are secrets the caller cannot know, so supply
+    // them for any query that declares them. Caller-supplied values still win,
+    // which keeps the tool usable for a different zone if one is ever added.
+    const merged = {
+        zoneTag: env.CF_ZONE_ID ?? "",
+        accountTag: env.CF_ACCOUNT_ID ?? "",
+        ...variables,
+    };
+
+    try {
+        const res = await fetch(ENDPOINT, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ query, variables: merged }),
+        });
+        // GraphQL answers 200 even when it refuses; the errors array is the status.
+        const payload: any = await res.json();
+        return {
+            data: payload.data ?? null,
+            errors: payload.errors ?? null,
+            caveats: caveats.length
+                ? caveats
+                : ["No dataset-specific caveat matched. Check what the numbers include before reporting them."],
+            // Echoed so the agent can see which zone answered without ever
+            // needing to hold the id itself.
+            zoneTag: env.CF_ZONE_ID ?? null,
+            accountTag: env.CF_ACCOUNT_ID ?? null,
+        };
+    } catch (err) {
+        console.error("Cloudflare GraphQL passthrough threw", err);
+        return null;
+    }
+}

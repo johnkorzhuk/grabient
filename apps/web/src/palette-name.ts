@@ -39,7 +39,10 @@ import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
  * 28-character suffix the average title ran 62.7 characters and 67.9% of the
  * corpus truncated — the wrong side of the limit on the average case, not just
  * the worst one. `TITLE_SUFFIX` explains where the other 17 went; 43 is what is
- * left, and it puts the worst case exactly on 60.
+ * left, and it puts the worst case exactly on 60. `titleSuffix()` now varies
+ * the suffix with the URL, but its variants (" Gradient", " Palette") are
+ * strictly shorter than the 17-character worst case, so 43 still binds — a
+ * style-pinned URL simply yields a shorter title, never a longer one.
  *
  * THE META DESCRIPTION opener used to share the title's budget, which coupled
  * two surfaces that have nothing in common: a description has ~155 characters
@@ -70,8 +73,30 @@ export const META_HEADLINE = { maxChars: 44, maxNames: 4 };
  * queries are "{color} gradient color palette", not "{color} grabient". A deep
  * palette page does not need to rank for the brand; the homepage does, and
  * Google commonly appends the site name to a SERP title on its own.
+ *
+ * Since D14 this constant is the style-param-ABSENT case (and the worst case
+ * for the budget arithmetic above); `titleSuffix()` below picks the suffix.
  */
 export const TITLE_SUFFIX = " Gradient Palette";
+
+/**
+ * What follows the name in `<title>`, keyed to the URL (owner rule, D14).
+ *
+ * A clean canonical URL keeps the full " Gradient Palette" — those pages
+ * compete for the "{color} gradient color palette" grammar and the two nouns
+ * are the demand tokens. A URL that pins a style names only what that view
+ * renders: a swatch style is a palette, a gradient style is a gradient, and
+ * saying both under a pinned view claims a page it is not.
+ *
+ * `styleInUrl` is param PRESENCE, not value: canonical URLs strip default
+ * params, so the server passes `params.style !== "auto"` and the island
+ * mirrors it by parsing the URL it maintains — shared here so the two cannot
+ * disagree about the same address.
+ */
+export function titleSuffix(style: PaletteStyle, styleInUrl: boolean): string {
+  if (!styleInUrl) return TITLE_SUFFIX;
+  return style.includes("Swatches") ? " Palette" : " Gradient";
+}
 
 export interface HeadlineOptions {
   maxChars?: number;
@@ -381,18 +406,7 @@ export function styleLabel(style: PaletteStyle): string {
   return STYLE_LABELS[style] ?? "gradient";
 }
 
-/** The sr-only sentence under the heading, identical on the server and the client. */
-export function paletteDescription(
-  headline: string,
-  style: PaletteStyle,
-  steps: number,
-  angle: number,
-  hexColors: readonly string[],
-  tags: readonly string[],
-): string {
-  return (
-    `${headline} gradient palette. ${styleLabel(style)}, ${steps} steps, ${angle} degrees. ` +
-    `Hex codes: ${hexColors.join(", ")}. ` +
-    `Tagged ${tags.join(", ")}. Available as CSS, SVG and PNG.`
-  );
-}
+// paletteDescription() lived here until 2026-08-17: one formula sentence
+// (name + style/steps/angle + hex + tags) rendered sr-only under the heading.
+// Retired for palette-prose.ts — the paragraph is visible now, and the
+// style/steps/angle facts moved into its R6 view sentence.

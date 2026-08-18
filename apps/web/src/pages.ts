@@ -17,7 +17,7 @@ import { ICON, LOGO } from "./icons";
 import { logoAnimationCss } from "./logo-animation";
 import { paletteOgImageUrl } from "./seo";
 import { seedPaletteText, type SeedPaletteText } from "./palette-json";
-import { paletteDescription, styleLabel, TITLE_SUFFIX } from "./palette-name";
+import { titleSuffix } from "./palette-name";
 import { bestInk } from "@repo/data-ops/color-utils";
 import {
   colorTextParts,
@@ -398,26 +398,41 @@ const FOOT_SEP = `<div class="h-4 w-px bg-muted-foreground/30"></div>`;
  * reintroduces the staleness bug, and each hub lists 24 seeds, so a fixed set
  * still puts every palette two hops from every other.
  *
- * Drawn from POPULAR_SEARCHES so each target is also in the sitemap and passes
- * isPublishableQuery — a link into a noindex page would waste the crawl it earns.
+ * AMENDED 2026-08-17 (owner, D13/D6-AMENDED): the fixed hub row this comment
+ * defended is superseded on seed pages by palette-DERIVED related-search
+ * chips. The staleness bug class above is now closed by construction rather
+ * than avoided: the edit island rebuilds the row on every tick from the same
+ * relatedSearches() the server rendered — the same pass that rewrites the
+ * heading — so the strip can no longer describe a palette it stopped being.
+ * The labels stay a bounded vocabulary (corpus color names ∪ registry spoken
+ * words ∪ the 12 family anchors, never free-text compounds), keeping the
+ * crawl frontier finite: color-name queries are indexable by design, and
+ * modifier words are either curated-publishable or score-gated to
+ * noindex,follow — those links still render and edge-cache. Hub duplication
+ * (sunset, pastel, blue… also in the list pages' Popular row) is allowed: an
+ * in-content link carries relevance a boilerplate row does not.
  */
-const BROWSE_HUBS = POPULAR_SEARCHES.slice(0, 10);
 
 /**
- * Styled as the search chips are, minus their colour swatches. Real links in a
- * <nav>, not `role="tablist"`: these navigate to another page rather than
- * switching a panel, and announcing them as tabs would promise keyboard
- * behaviour they do not have.
+ * Same chip recipe as the popular-search chips in searchExplorer(), minus
+ * `data-search-tag` — that attribute is live behavior in app.client.js (it
+ * forwards style/steps/angle into the target URL and fires a search analytics
+ * event), and these are plain links. Real links in a <nav>, not
+ * `role="tablist"`: they navigate to another page rather than switching a
+ * panel. Must stay identical to RELATED_CHIP in islands/edit.tsx, which
+ * rebuilds the row's anchors on every tick.
  */
-const HUB_TAB =
-  "inline-flex h-7 shrink-0 items-center rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs";
+const RELATED_CHIP =
+  "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md border border-solid border-input bg-background px-3.5 text-[11px] font-medium whitespace-nowrap text-muted-foreground transition-colors hover:border-muted-foreground/30 hover:bg-background/60 hover:text-foreground md:text-xs";
 
-function browseHubs(): string {
-  const tabs = BROWSE_HUBS.map(
-    (query) =>
-      `<a href="/palettes/${querySlug(query)}" class="${HUB_TAB}">${esc(query)}</a>`,
-  ).join("");
-  return `<nav class="mt-4 flex flex-wrap gap-2" aria-label="Browse palettes by theme">${tabs}</nav>`;
+function relatedSearchChips(labels: readonly string[]): string {
+  const chips = labels
+    .map(
+      (label) =>
+        `<a href="/palettes/${querySlug(label)}" class="${RELATED_CHIP}">${esc(label)}</a>`,
+    )
+    .join("");
+  return `<nav id="related-searches" class="mt-4 flex flex-wrap gap-2" aria-label="Related palette searches">${chips}</nav>`;
 }
 
 export function footer(stars: number): string {
@@ -702,19 +717,19 @@ ${panels}
  * editor is identical everywhere and the hex codes live in SVG attributes, so
  * there is nothing textual to tell two palettes apart.
  *
- * The heading is the palette's name. The description under it is sr-only: it
- * is a text alternative for a purely visual thing — the same reason the h1 is
- * sr-only — and it reads for a screen reader or a crawler rather than a
- * designer, who can already see the gradient and has the hex codes in the
- * swatch strip and the export panel.
+ * The description paragraph is VISIBLE (owner, 2026-08-17, replacing the bold
+ * name heading that stood here): a grown, keyword-bearing paragraph only
+ * crawlers could read is the textbook hidden-text pattern, and the Tier-2
+ * demand ("{color} gradient hex codes") wants named-hex text on the rendered
+ * page — R1 carries the end hexes. The short name stays as an sr-only h2: it
+ * is the section's accessible name (aria-labelledby) and the stable element
+ * the island keeps updating per tick. The sr-only h1 above is untouched.
  */
-function paletteContext(view: RenderedPalette, text: SeedPaletteText): string {
-  const { headline, tags } = text;
-
+function paletteContext(text: SeedPaletteText): string {
   return `<section class="px-5 pt-10 lg:px-14" aria-labelledby="palette-about">
-<h2 id="palette-about" class="text-xl font-bold text-foreground">${esc(headline)}</h2>
-<p id="palette-description" class="sr-only">${esc(paletteDescription(headline, view.style, view.steps, view.angle, view.hexColors, tags))}</p>
-${browseHubs()}
+<h2 id="palette-about" class="sr-only">${esc(text.headline)}</h2>
+<p id="palette-description" class="max-w-2xl text-base leading-relaxed text-muted-foreground">${esc(text.prose.paragraph)}</p>
+${relatedSearchChips(text.related)}
 </section>`;
 }
 
@@ -731,8 +746,9 @@ export function seedPage(d: SeedPageData): string {
       `${header()}<main class="flex-1 px-5 lg:px-14 py-10"><p>Invalid palette.</p></main>`,
     );
 
-  // One analysis for the h1, the h2, the sr-only description, the <title> and
-  // the meta description — they all describe the same palette.
+  // One analysis for the h1, the sr-only h2, the visible description, the
+  // related-search chips, the <title> and the meta description — they all
+  // describe the same palette.
   const text = seedPaletteText(view);
   const graph = channelsGraphSvg(view.appliedCoeffs, view.steps, view.hexColors);
   const search = searchString(d.params, { page: 1 });
@@ -786,7 +802,7 @@ ${likeButton(likeKey, likeKey, view.style, view.steps, view.angle, 0, " data-lik
 </div>
 </main>
 </div>
-${paletteContext(view, text)}
+${paletteContext(text)}
 <section class="px-5 pb-14 pt-10 lg:px-14" aria-label="Export code">
 ${codeTabs([
   { id: "css-code", label: "CSS", code: css },
@@ -798,20 +814,19 @@ ${codeTabs([
 </section>
 ${footer(d.stars)}`;
 
-  const titleColors = [
-    ...new Set(
-      renderPalette(d.seed, view.style, 4, view.angle)?.hexColors ?? view.hexColors,
-    ),
-  ];
   // Names, not hex. Hex codes are near-perfectly unique but almost nobody
   // searches them; "cream to coral pink gradient" is a real query shape.
   // Measured over all 866 palettes: names collide on 2.4% of pages (hex: 0.7%),
   // and the colliding pages are genuinely near-identical palettes — adding the
   // texture and contrast tags to the title did not separate a single one. The
-  // hex codes stay in the description and the sr-only text, so a hex search
-  // still matches the page.
+  // end-stop hex codes stay in the visible description paragraph (R1 carries
+  // them) and every stop is in the JSON-LD keywords, so a hex search still
+  // matches the page.
   const headline = text.titleHeadline;
-  const title = `${headline}${TITLE_SUFFIX}`;
+  // D14: the suffix follows the URL. `params.style` is "auto" exactly when the
+  // request carried no (valid) style param — the same presence rule the island
+  // reads off the URL it maintains, so a live edit and a crawler agree.
+  const title = `${headline}${titleSuffix(view.style, d.params.style !== "auto")}`;
   const canonical = `${d.origin}/${d.seed}`;
   const image = paletteOgImageUrl(d.origin, view);
 
@@ -820,7 +835,9 @@ ${footer(d.stars)}`;
       title,
       // Per-palette, not the shared constant this used to be: 866 pages sharing
       // one description is a large part of why Google files them as templated.
-      description: `${text.metaHeadline} ${styleLabel(view.style)} in ${view.steps} steps — ${titleColors.join(", ")}. Copy the CSS, or export SVG and PNG.`,
+      // The identity sentence front-loads the demand grammar; the action clause
+      // and trailing color names ladder-trim to 160 (palette-prose.ts).
+      description: text.prose.metaDescription,
       canonical,
       image,
       imageAlt: `${text.headline} gradient palette`,
@@ -831,7 +848,15 @@ ${footer(d.stars)}`;
         name: title,
         url: canonical,
         image,
-        keywords: view.hexColors.join(", "),
+        // The same paragraph the page renders (view-parameterized, ends on the
+        // R6 view sentence) plus the identity opener as the abstract: no
+        // Google rich result for CreativeWork, but agents read both.
+        description: text.prose.paragraph,
+        abstract: text.prose.identity,
+        // Hex plus the registry's fired spoken words and the structure word
+        // (D6) — bounded per-palette vocabulary, so 866 pages cannot converge
+        // on one shared keyword list.
+        keywords: [...view.hexColors, ...text.keywords].join(", "),
         isPartOf: {
           "@type": "WebSite",
           name: "Grabient",
