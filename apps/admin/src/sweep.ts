@@ -500,6 +500,15 @@ export async function runSweep(
         { key: "index.duplicate_canonical", day, value: rollingBuckets["duplicate_canonical"] ?? 0 },
         { key: "index.excluded_other", day, value: rollingBuckets["excluded_other"] ?? 0 },
         { key: "index.errors", day, value: apiErrors },
+        // Stored per-day like gsc.ctr, even though the catalog also knows how
+        // to recompute it over a window: without a stored point the series is
+        // empty, and an agent asking for coverage would read "unmeasured"
+        // rather than 31%.
+        {
+          key: "index.coverage_pct",
+          day,
+          value: known > 0 ? Math.round(((rollingBuckets["indexed"] ?? 0) / known) * 1000) / 10 : 0,
+        },
         { key: "index.stale_crawl_7d", day, value: stale?.n ?? 0 },
         // What share of the published picture was actually re-checked in the
         // last week, so "coverage" can be read with the right confidence.
