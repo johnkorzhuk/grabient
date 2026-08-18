@@ -308,16 +308,20 @@
    than the other way round. */
 .globe-stage {
   position: relative;
-  aspect-ratio: 2 / 1;
 }
-.globe-map,
-.globe-canvas {
+/* The flat map keeps its own 360x136 proportion — it is the no-JS rendering and
+   should not be letterboxed inside a box shaped for a sphere. The canvas gets
+   the box instead, and the stage's height simply follows whichever of the two
+   is showing. */
+.globe-map {
   display: block;
   width: 100%;
-  height: 100%;
+  height: auto;
 }
 .globe-canvas {
   display: none;
+  width: 100%;
+  aspect-ratio: 3 / 2;
   touch-action: none;
   cursor: grab;
 }
@@ -330,15 +334,15 @@
 .globe-live .globe-canvas {
   display: block;
 }
-/* Land is context, not data: one wash of muted ink, well below the lit dots. */
+/* Land is context, not data: one wash of muted ink, well under the lit dots. */
 .globe-land {
+  fill: none;
   stroke: var(--ink-muted);
   stroke-opacity: 0.3;
   stroke-linecap: round;
-  fill: none;
 }
-.globe-hit {
+.globe-dot {
+  fill: none;
   stroke: var(--series-1);
   stroke-linecap: round;
-  fill: none;
 }

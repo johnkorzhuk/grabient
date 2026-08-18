@@ -31,10 +31,34 @@ import { loadSearchConsole, type SearchConsole } from "./search-console";
 import { loadGa4 } from "./ga4";
 import { analyticsMcpHandler } from "./mcp";
 import { runBackfill } from "./backfill";
+import { listCampaigns } from "./campaigns";
+import { loadMarkers } from "./events";
+import { listGoals } from "./goals";
+import {
+  campaignCard,
+  emptyState,
+  goalCard,
+  markerEventsList,
+  toChartMarkers,
+  trendCard,
+} from "./insight-pages";
 import { renderMarkdown } from "./markdown";
+import { isoDay } from "./range";
 import { getReport, listReports, toMeta } from "./reports";
 import { opsPage, reportPage, reportsArchivePage } from "./report-pages";
 import { scheduled } from "./scheduled";
+import { listSweeps } from "./sweep";
+
+/** Shared page shell for the new pages — header row + body, sealed by callers. */
+function layoutPage(current: string, title: string, generated: string, email: string, body: string): string {
+  return layout(
+    title,
+    `<main class="mx-auto max-w-6xl px-6 py-8 sm:py-10">
+  ${header(current, generated, email)}
+  ${body}
+</main>`,
+  );
+}
 import {
   cumulative,
   loadAttribution,
@@ -172,6 +196,210 @@ app.get("/brief", async (c) => {
         c.get("email"),
       ),
     ),
+  );
+});
+
+// The history-backed pages: everything below reads the persisted metric
+// store, so these answer "is it better than it was" over months — the
+// question the live pages structurally cannot.
+app.get("/trends", async (c) => {
+  const now = new Date();
+  const db = c.env.ADMIN_DB;
+  if (!db) {
+    return seal(
+      c.html(errorPage(503, "Not collecting yet", "ADMIN_DB is not bound; the metric store does not exist.")),
+    );
+  }
+  const range = parseRange(c.req.query("range"));
+  const until = isoDay(now);
+  const since = isoDay(new Date(now.getTime() - (range.days - 1) * 86_400_000));
+  const markerRows = await loadMarkers(db, since, until);
+  const markers = toChartMarkers(markerRows);
+  const eventsHtml = markerEventsList(markerRows);
+  const compact = (n: number) => fmt(Math.round(n));
+
+  const cards = (
+    await Promise.all([
+      trendCard(db, { title: "Search clicks", note: "Daily clicks from Google search results.", idPrefix: "t-gc", unitFormat: compact, metrics: [{ key: "gsc.clicks", label: "Clicks" }] }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Search impressions", note: "How often grabient.com appeared in results.", idPrefix: "t-gi", unitFormat: compact, metrics: [{ key: "gsc.impressions", label: "Impressions" }] }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Average position", note: "Impressions-weighted mean result position. LOWER is better.", idPrefix: "t-gp", unitFormat: (n) => n.toFixed(1), metrics: [{ key: "gsc.position", label: "Position" }], zeroBase: false }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Sessions by channel", note: "GA4 bot-filtered sessions for the four channels that matter.", idPrefix: "t-ch", unitFormat: compact, metrics: [
+        { key: "ga4.sessions.organic_search", label: "Organic search" },
+        { key: "ga4.sessions.direct", label: "Direct" },
+        { key: "ga4.sessions.referral", label: "Referral" },
+        { key: "ga4.sessions.ai_assistant", label: "AI assistant" },
+      ] }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "AI-assistant sessions", note: "Visits referred by ChatGPT, Gemini, Claude and friends — on its own scale, because next to search it disappears.", idPrefix: "t-ai", unitFormat: compact, metrics: [{ key: "ga4.sessions.ai_assistant", label: "AI assistant" }] }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Search-engine crawlers", note: "Daily pageviews by named crawler family, from the unsampled rollup.", caveat: "AI crawlers (meta-webindexer, GPTBot, ClaudeBot) present no browser family and are NOT here — they sit in the automated bucket; the verified-bot series accumulates them going forward.", idPrefix: "t-cr", unitFormat: compact, metrics: [
+        { key: "cf.bot.googlebot", label: "Googlebot" },
+        { key: "cf.bot.bingbot", label: "Bingbot" },
+        { key: "cf.bot.applebot", label: "Applebot" },
+      ] }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Edge pageviews: browsers vs automation", note: "Every pageview reaching the edge, split by the user-agent heuristic.", idPrefix: "t-cf", unitFormat: compact, metrics: [
+        { key: "cf.browser_pageviews", label: "Browsers" },
+        { key: "cf.automated_pageviews", label: "Bots & unidentified" },
+      ] }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Signups and likes", note: "Daily new accounts and likes, from the production database.", idPrefix: "t-d1", unitFormat: compact, metrics: [
+        { key: "d1.signups", label: "Signups" },
+        { key: "d1.likes_new", label: "Likes" },
+      ] }, since, until, markers, eventsHtml),
+      trendCard(db, { title: "Bing: crawled and indexed", note: "Bing's own daily crawl volume and aggregate in-index count — the number Google refuses to expose.", idPrefix: "t-bg", unitFormat: compact, metrics: [
+        { key: "bing.crawled", label: "Crawled" },
+        { key: "bing.indexed", label: "In index" },
+      ] }, since, until, markers, eventsHtml),
+    ])
+  ).filter((card): card is string => card !== null);
+
+  const body =
+    cards.length === 0
+      ? emptyState(
+          "No history collected yet. Run the backfill from /ops (one click, ~30 seconds) and this page fills with months of GSC, GA4, Cloudflare and product history.",
+        )
+      : `<div class="mt-4 grid items-start gap-4 lg:grid-cols-2">${cards.join("\n")}</div>`;
+
+  return seal(
+    c.html(
+      layoutPage("/trends", "Trends — Grabient admin", stamp(now), c.get("email"), `
+  <div class="mt-5">${rangeSelector("/trends", range.key, RANGES)}</div>
+  ${body}`),
+    ),
+  );
+});
+
+app.get("/indexation", async (c) => {
+  const now = new Date();
+  const db = c.env.ADMIN_DB;
+  if (!db) {
+    return seal(c.html(errorPage(503, "Not collecting yet", "ADMIN_DB is not bound.")));
+  }
+  const sweeps = await listSweeps(db, 30);
+  const latest = sweeps.find((s: any) => s.status === "complete") ?? sweeps[0];
+  const markerRows = await loadMarkers(db, "2026-08-01", isoDay(now));
+  const markers = toChartMarkers(markerRows);
+  const eventsHtml = markerEventsList(markerRows);
+
+  const tiles = latest
+    ? [
+        statTile({ label: "Sitemap URLs", value: fmt(Number(latest.corpus_size ?? 0)) }),
+        statTile({
+          label: "Indexed by Google",
+          value: fmt(Number(latest.indexed ?? 0)),
+          hero: true,
+          sub: `<span class="text-ink-muted">the headline number — 0 of 920 when the fixes shipped 17 Aug 2026</span>`,
+        }),
+        statTile({
+          label: "Coverage",
+          value:
+            Number(latest.inspected ?? 0) > 0
+              ? `${((Number(latest.indexed ?? 0) / Number(latest.inspected)) * 100).toFixed(1)}%`
+              : "—",
+          sub: `<span class="text-ink-muted">of ${fmt(Number(latest.inspected ?? 0))} inspected</span>`,
+        }),
+        statTile({
+          label: "Inspection errors",
+          value: fmt(Number(latest.api_errors ?? 0)),
+          sub: `<span class="text-ink-muted">non-zero means counts are understated by up to this much</span>`,
+        }),
+      ].join("\n")
+    : "";
+
+  const bucketTable = latest?.buckets
+    ? dataTable(
+        ["Bucket", "URLs"],
+        Object.entries(latest.buckets as Record<string, number>)
+          .sort((a, b) => b[1] - a[1])
+          .map(([bucket, count]) => [bucket.replace(/_/g, " "), fmt(count)]),
+      )
+    : "";
+
+  let notIndexedSample: any[] = [];
+  if (latest) {
+    try {
+      const res = await db
+        .prepare(
+          `SELECT url, bucket, coverage_state, page_fetch_state FROM index_url_status
+            WHERE sweep_id = ?1 AND bucket <> 'indexed' ORDER BY bucket LIMIT 25`,
+        )
+        .bind(latest.id)
+        .all();
+      notIndexedSample = res.results ?? [];
+    } catch {
+      /* migration pending */
+    }
+  }
+
+  const trend = await trendCard(
+    db,
+    {
+      title: "Pages indexed over time",
+      note: "Written by each complete nightly sweep of the whole corpus through Google's URL Inspection API.",
+      caveat:
+        "No history exists before the first sweep — the API answers only 'now', which is why this series is persisted. A partial sweep (job died, quota, >5% API errors) publishes nothing rather than printing a crash as a de-indexation.",
+      idPrefix: "ix",
+      unitFormat: (n) => fmt(Math.round(n)),
+      metrics: [
+        { key: "index.indexed", label: "Indexed" },
+        { key: "index.crawled_not_indexed", label: "Crawled, not indexed" },
+      ],
+    },
+    "2026-08-17",
+    isoDay(now),
+    markers,
+    eventsHtml,
+  );
+
+  return seal(
+    c.html(
+      layoutPage("/indexation", "Indexation — Grabient admin", stamp(now), c.get("email"), `
+  ${latest ? `<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">${tiles}</div>` : emptyState("No sweeps yet. The nightly cron runs at 05:40 UTC; the MCP indexation tool can run a bounded sweep now.")}
+  <div class="mt-4 grid items-start gap-4 lg:grid-cols-2">
+    ${trend ?? ""}
+    ${
+      latest
+        ? `<section class="rounded-xl border border-edge bg-surface p-5">
+  <h2 class="text-base font-bold tracking-tight">Latest sweep, by bucket</h2>
+  <p class="mt-1.5 text-sm leading-snug text-ink-secondary">Sweep #${esc(String(latest.id))} · ${esc(String(latest.day))} · ${esc(String(latest.status))} · ${fmt(Number(latest.inspected ?? 0))} URLs inspected.</p>
+  <div class="mt-4">${bucketTable}</div>
+  ${
+    notIndexedSample.length
+      ? `<details class="mt-4 border-t border-edge pt-3"><summary class="cursor-pointer text-xs font-bold tracking-wide text-ink-muted uppercase hover:text-ink">Sample of not-indexed URLs</summary>
+  <div class="mt-3 max-h-64 overflow-auto">${dataTable(
+    ["URL", "Bucket", "Coverage state"],
+    notIndexedSample.map((r) => [String(r.url).replace("https://grabient.com", ""), String(r.bucket).replace(/_/g, " "), String(r.coverage_state ?? "—")]),
+  )}</div></details>`
+      : ""
+  }
+</section>`
+        : ""
+    }
+  </div>`),
+    ),
+  );
+});
+
+app.get("/goals", async (c) => {
+  const now = new Date();
+  const goals = await listGoals(c.env.ADMIN_DB, now, true);
+  const body =
+    goals.length === 0
+      ? emptyState("No goals yet. The agent sets them through the MCP goals tool, with a baseline, a target and a due date.")
+      : `<div class="mt-6 grid items-start gap-4 lg:grid-cols-2">${goals.map(goalCard).join("\n")}</div>`;
+  return seal(
+    c.html(layoutPage("/goals", "Goals — Grabient admin", stamp(now), c.get("email"), body)),
+  );
+});
+
+app.get("/campaigns", async (c) => {
+  const now = new Date();
+  const campaigns = c.env.ADMIN_DB ? await listCampaigns(c.env.ADMIN_DB) : [];
+  const body =
+    campaigns.length === 0
+      ? emptyState(
+          "No campaigns yet. When you buy an ad or place a link, have the agent create one (campaigns tool) with the utm tag, the window, the budget and — before it runs — the hypothesis. The report joins GA4, signup attribution and the metric history against it.",
+        )
+      : `<div class="mt-6 grid items-start gap-4 lg:grid-cols-2">${campaigns.map(campaignCard).join("\n")}</div>`;
+  return seal(
+    c.html(layoutPage("/campaigns", "Campaigns — Grabient admin", stamp(now), c.get("email"), body)),
   );
 });
 

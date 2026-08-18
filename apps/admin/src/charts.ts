@@ -21,6 +21,13 @@ import { monthDate, type CohortRow, type LikersRow, type MonthRow } from "./quer
 import type { Breakdown, TrafficDay } from "./traffic";
 import { rollingMean } from "./range";
 
+// The disclosure that spells out the markers lives with the other markup
+// helpers, next to the "Table view" disclosure it is shaped after. It is
+// re-exported here because markers and their event list are one feature, and a
+// caller that annotates a chart should not have to know they were built in two
+// different files.
+export { eventsDisclosure } from "./html";
+
 // The SVG is emitted with a viewBox and scaled to its container by CSS, which
 // scales the tick text along with the geometry. So the intrinsic size is chosen
 // to match the real rendered width — a two-column card inside max-w-6xl, minus
