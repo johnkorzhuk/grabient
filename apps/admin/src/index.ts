@@ -28,7 +28,7 @@ import {
 import { change, parseRange, RANGES, rollingMean, splitPeriods, sum, type RangeOption } from "./range";
 import { buildBrief } from "./brief";
 import { loadSearchConsole, type SearchConsole } from "./search-console";
-import { loadGa4 } from "./ga4";
+import { loadGa4, type Ga4 } from "./ga4";
 import { analyticsMcpHandler } from "./mcp";
 import { runBackfill } from "./backfill";
 import { listCampaigns } from "./campaigns";
@@ -129,16 +129,19 @@ app.get("/", async (c) => {
 
 app.get("/acquisition", async (c) => {
   const now = new Date();
-  const [traffic, acquisition, attribution, search, referrers] = await Promise.all([
+  const [traffic, acquisition, attribution, search, ga4] = await Promise.all([
     loadTraffic(c.env, now),
     loadAcquisition(c.env, now),
     loadAttribution(c.env.DB),
     loadSearchConsole(c.env, now),
-    loadReferrers(c.env, now),
+    // GA4 replaces the RUM referrer card: RUM reports no referrer for 91% of
+    // pageloads and sees a third of the traffic — it produced a confidently
+    // backwards channel conclusion once. GA4's pageReferrer is the honest one.
+    loadGa4(c.env, now),
   ]);
   return seal(
     c.html(
-      acquisitionPage(traffic, acquisition, attribution, search, referrers, now, c.get("email")),
+      acquisitionPage(traffic, acquisition, attribution, search, ga4, now, c.get("email")),
     ),
   );
 });
@@ -533,13 +536,13 @@ function stamp(now: Date): string {
   return now.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short", timeZone: "UTC" });
 }
 
-/** Countries, devices and top content — everything Cloudflare can break down. */
+/** Countries, devices, top content — and where visitors actually come from. */
 function acquisitionPage(
   traffic: Traffic | null,
   acquisition: Acquisition | null,
   attribution: AttributionRow[],
   search: SearchConsole | null,
-  referrers: ReferrerRow[] | null,
+  ga4: Ga4 | null,
   now: Date,
   email: string,
 ): string {
@@ -564,29 +567,45 @@ function acquisitionPage(
   }
 </section>`;
 
-  const referrerTotal = (referrers ?? []).reduce((sum, row) => sum + row.count, 0);
+  // Referring domains, from GA4's pageReferrer — a backlink report that
+  // proves the link sends traffic. Aggregated to domains here; each domain's
+  // top referring pages ride into the table.
+  const domains = new Map<string, { sessions: number; pages: Map<string, number> }>();
+  for (const row of ga4?.referrers ?? []) {
+    let domain: string;
+    try {
+      domain = new URL(row.referrer).hostname.replace(/^www\./, "");
+    } catch {
+      domain = row.referrer.slice(0, 60);
+    }
+    const entry = domains.get(domain) ?? { sessions: 0, pages: new Map() };
+    entry.sessions += row.sessions;
+    entry.pages.set(row.referrer, (entry.pages.get(row.referrer) ?? 0) + row.sessions);
+    domains.set(domain, entry);
+  }
+  const domainRows = [...domains.entries()]
+    .map(([label, entry]) => ({ label, count: entry.sessions, pages: entry.pages }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 14);
   const referrerCard =
-    !referrers || referrers.length === 0
+    domainRows.length === 0
       ? ""
       : chartCard({
-          title: "Traffic sources",
-          note: "Where visitors came from, last 7 days, from Cloudflare Web Analytics.",
+          title: "Referring domains",
+          note: `External sites whose links sent sessions in the last ${ga4?.days ?? 28} days, from GA4.`,
           caveat:
-            "This is a browser beacon, so it is already bot-free — crawlers do not run JavaScript. Nothing exists before 15 Aug 2026, when Web Analytics was switched on. Internal links and the Google sign-in round trip are folded into Direct rather than dropped, so the parts still sum to the whole.",
+            "Bot-filtered by construction (GA4 is a browser beacon) and proves the link WORKS — a domain absent here may still link to us and simply send nobody. Search Console's Links report has no API; this is the live half of the backlink story, and the referring page itself is in the table.",
           svg: rankedBarChart(
-            referrers.map((row) => ({ label: row.label, count: row.count })),
-            "Pageviews by referring site",
-            "ref",
-            (n) =>
-              `${fmt(n)} views${referrerTotal > 0 ? ` · ${((n / referrerTotal) * 100).toFixed(1)}% of tracked` : ""}`,
+            domainRows.map(({ label, count }) => ({ label, count })),
+            "Sessions by referring domain",
+            "refd",
+            (n) => `${fmt(n)} sessions`,
           ),
           table: dataTable(
-            ["Source", "Views", "Share"],
-            referrers.map((row) => [
-              row.label,
-              fmt(row.count),
-              referrerTotal > 0 ? `${((row.count / referrerTotal) * 100).toFixed(1)}%` : "—",
-            ]),
+            ["Referring page", "Sessions"],
+            (ga4?.referrers ?? [])
+              .slice(0, 25)
+              .map((row) => [row.referrer.replace(/^https?:\/\//, "").slice(0, 80), fmt(row.sessions)]),
           ),
         });
 
