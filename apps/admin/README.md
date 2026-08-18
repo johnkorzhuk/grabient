@@ -114,6 +114,18 @@ and short ones are left alone because sorting six rows is noise.
 Client code is typechecked separately (`tsconfig.islands.json`, DOM + JSX);
 `tsconfig.json` excludes `src/islands` because the worker has no DOM.
 
+**Why Solid 1 and not Solid 2.** Solid 2.0.0-rc.0 exists and is a real
+improvement — it drops SolidStart (irrelevant to us; islands never used it),
+collapses to a single entry point, and moves the DOM renderer out to
+`@solidjs/web`. It was tried here on 2026-08-18 and reverted: the build fails
+with `Missing "./web" specifier in "solid-js"`, because
+`@tanstack/solid-table@9.1.2` still imports `solid-js/web`, a subpath Solid 2
+no longer publishes. No Solid-2-ready release of that adapter exists yet
+(9.1.2 is latest, with no newer alpha/beta tag). Our own island code needed
+exactly one line changed, so the migration is trivial the day TanStack ships:
+swap `solid-js/web` for `@solidjs/web` in `src/islands/entry.tsx`, then move
+`solid-js`, `vite-plugin-solid` and `babel-preset-solid` to their `next` tags.
+
 ### The one rule for anything that reaches the browser
 
 Interpolated values are escaped at the boundary, not by convention at call

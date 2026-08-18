@@ -873,20 +873,18 @@ interface Ctx {
   names: readonly string[];
   /** The name's modifier phrase, for the echo veto. */
   phrase: string;
-  darkInkReads: boolean;
-  lightInkReads: boolean;
   /**
-   * The same two questions asked of the two END stops.
+   * Whether the two END stops are far enough apart in WCAG relative luminance
+   * that one carries dark ink and the other light ink.
    *
-   * The pair above reads the extremes over ALL the stops, which is the right
-   * test for "it works as a light background" (a claim about the field) and the
-   * wrong one for "dark text works on its light end" (a claim about the ends).
-   * A palette whose ends are a medium iris purple and a near-black, with its
-   * only light stop in the middle, was told both halves of that sentence while
-   * black text on its lighter end measures 3.46:1 and fails AA. Fixture-wide the
-   * sentence fired on 453 palettes and on 82 of them (18.1% of fires) the two
-   * ends did not cover dark and light ink. A gate has to test what its sentence
-   * claims.
+   * This pair used to gate the site's most common sentence, the text-pairing
+   * advice D21.1 deleted. It survives as a WORD choice (D21.2): "It opens near
+   * white and ends in deep shadow" is the strongest thing the motion rows can
+   * say about depth, and OkLCh lightness alone is a perceptual scale that says
+   * nothing about how much light actually leaves the screen. Requiring both
+   * readings to agree is what keeps that wording off a palette whose ends
+   * merely sit in the end bands. Fixture: 371 palettes clear the ink test, 26
+   * clear the L bands, and 24 clear both.
    */
   endDarkInkReads: boolean;
   endLightInkReads: boolean;
@@ -1049,7 +1047,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "tone",
     prevalence: 0.0104,
     when: (c) => c.structure === "grayscale" && grayLean(c.f) === null,
-    say: () => "It is nearly gray, with very little color in it.",
+    say: () => "There is almost no color in it, just a run of grays.",
     echoes: ["grayscale"],
   },
   {
@@ -1071,7 +1069,7 @@ const IMPRESSIONS: readonly Impression[] = [
       useOf("warm-gray") === "prose" &&
       c.structure === "grayscale" &&
       grayLean(c.f) !== null,
-    say: (c) => `The colors are ${grayLean(c.f)} grays.`,
+    say: (c) => `The colors are grays with a ${grayLean(c.f)} cast.`,
   },
   {
     // pastel (light + low absolute chroma) AND high-key (the spread is small
@@ -1081,7 +1079,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "tone",
     prevalence: 0.0415,
     when: (c) => c.has("pastel") && c.has("high-key") && c.softChroma,
-    say: () => "It stays pale and soft from end to end.",
+    say: () => "It stays pale and soft, with no strong color anywhere in it.",
     echoes: ["pastel"],
   },
   {
@@ -1097,7 +1095,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "tone",
     prevalence: 0.0012,
     when: (c) => c.has("pastel") && !c.has("high-key") && c.softChroma,
-    say: () => "The colors are pale.",
+    say: () => "The colors are pale, and none of them is strong.",
     echoes: ["pastel"],
   },
   {
@@ -1153,7 +1151,7 @@ const IMPRESSIONS: readonly Impression[] = [
       c.evenSpread &&
       Math.max(...c.stopL) <= JEWEL_STOP_CEILING &&
       Math.min(...c.stopC) >= T.MUTED_CHROMA,
-    say: () => "The colors are deep and intense.",
+    say: () => "The colors are deep and intense, with real weight in every stop.",
   },
   {
     // "The colors are dark AND strong" is two universal claims, and the second
@@ -1171,7 +1169,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "tone",
     prevalence: 0.0288,
     when: (c) => deepSpeaks(c),
-    say: () => "The colors are dark and strong.",
+    say: () => "The colors are dark and strong, and none of them falls to black.",
     echoes: ["dark"],
   },
   {
@@ -1252,7 +1250,15 @@ const IMPRESSIONS: readonly Impression[] = [
       !c.has("neon") &&
       !isBrilliant(c.f) &&
       !isJewel(c.f),
-    say: () => "The colors are strong and clear.",
+    // Two doors, two sentences (D21.5): the registry's `vivid` door is an
+    // absolute reading ("loud"), and the second door is the relative one
+    // ("as full as this screen can render at these lightnesses"), which is a
+    // different thing to see and deserves its own words rather than one
+    // sentence stretched over both.
+    say: (c) =>
+      c.f.denseMeanSaturation >= FULL_SATURATION
+        ? "The colors run at full strength from end to end."
+        : "The colors are strong and clear.",
   },
   {
     // "stay" is a claim about every stop, so this takes the KEY test (level AND
@@ -1270,17 +1276,9 @@ const IMPRESSIONS: readonly Impression[] = [
       !c.has("pastel") &&
       !c.has("neon") &&
       !isBrilliant(c.f),
-    say: () => "The colors stay light.",
+    say: () => "The colors stay light, and hold an even brightness.",
   },
   {
-    // Itten's contrast of saturation: pure color beside near-gray, in the two
-    // words a designer would use for it.
-    id: "color-beside-gray",
-    slot: "tone",
-    prevalence: 0.1061,
-    when: (c) => useOf("saturation-contrast") === "prose" && saturationContrast(c.f),
-    say: () => "Strong color sits next to almost colorless areas.",
-  },
   {
     // Itten's cold-warm contrast: both poles present at once, not a drift.
     id: "warm-and-cool",
@@ -1312,7 +1310,7 @@ const IMPRESSIONS: readonly Impression[] = [
       c.has("warm") &&
       c.journeyClaim === null &&
       hueBandShare(c.f, 330, 120) >= T.FAMILY_BAND,
-    say: () => "The colors are warm.",
+    say: () => "The colors all carry a warm cast.",
     echoes: ["sunset", "autumn"],
   },
   {
@@ -1323,7 +1321,7 @@ const IMPRESSIONS: readonly Impression[] = [
       c.has("cool") &&
       c.journeyClaim === null &&
       hueBandShare(c.f, 150, 300) >= T.FAMILY_BAND,
-    say: () => "The colors are cool.",
+    say: () => "The colors all carry a cool cast.",
     echoes: ["ocean"],
   },
 
@@ -1357,7 +1355,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "form",
     prevalence: 0.0127,
     when: (c) => c.series === "tints" && c.base !== null,
-    say: (c) => `It is a single ${c.base} lightened with white.`,
+    say: (c) => `It is a single ${c.base}, lightened with white toward one end.`,
     conflicts: ["brightens", "darkens", "full-range"],
   },
   {
@@ -1365,7 +1363,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "form",
     prevalence: 0.0012,
     when: (c) => c.series === "shades" && c.base !== null,
-    say: (c) => `It is a single ${c.base} darkened with black.`,
+    say: (c) => `It is a single ${c.base}, darkened with black toward one end.`,
     conflicts: ["brightens", "darkens", "full-range"],
   },
   {
@@ -1373,7 +1371,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "form",
     prevalence: 0.0161,
     when: (c) => c.series === "tones" && c.base !== null,
-    say: (c) => `It is a single ${c.base} softened with gray.`,
+    say: (c) => `It is a single ${c.base}, softened with gray toward one end.`,
     conflicts: ["brightens", "darkens", "full-range"],
   },
   {
@@ -1421,8 +1419,8 @@ const IMPRESSIONS: readonly Impression[] = [
       c.firstBand === c.lastBand,
     say: (c) =>
       c.f.lightnessDelta > 0
-        ? `The ${c.base} fades from dark to light.`
-        : `The ${c.base} fades from light to dark.`,
+        ? `The ${c.base} fades from dark to light across the whole run.`
+        : `The ${c.base} fades from light to dark across the whole run.`,
     conflicts: ["brightens", "darkens", "full-range"],
   },
   {
@@ -1515,7 +1513,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "form",
     prevalence: 0.0242,
     when: (c) => c.has("full-wheel"),
-    say: () => "It travels the whole color wheel.",
+    say: () => "It travels the whole color wheel, passing every family on the way.",
   },
   {
     id: "rainbow",
@@ -1533,7 +1531,7 @@ const IMPRESSIONS: readonly Impression[] = [
     slot: "form",
     prevalence: 0.0012,
     when: (c) => c.f.equalC && c.meanCycles >= 1.5,
-    say: () => "The same colors return more than once.",
+    say: () => "The same run of colors repeats more than once from end to end.",
   },
   {
     // "instead of forward" came off on 2026-08-18: FORWARD meant spectral hue
@@ -1617,7 +1615,8 @@ const IMPRESSIONS: readonly Impression[] = [
     // edge), and h 215 is firmly cyan while the corpus still says blue. Where
     // the printed name commits to a family, the family word defers to it.
     restates: (c) => nameFamilyConflict(c),
-    say: (c) => `It moves from ${c.firstFamily} into ${c.lastFamily}.`,
+    say: (c) =>
+      `It moves from ${c.firstFamily} into ${c.lastFamily} without leaving that part of the wheel.`,
   },
   {
     // "The colors stay inside one range of magenta" was both wrong (the palette
@@ -1678,6 +1677,35 @@ const IMPRESSIONS: readonly Impression[] = [
     say: () => "It passes through several colors between its ends.",
   },
 
+  {
+    // A property of the shape, not advice, which is why D21.1 kept it when the
+    // usage rows went: the ramp's two ends are the same colour, so the band can
+    // be wrapped into a circle and no edge shows at the join.
+    //
+    // Not for a solid palette: its ends match because there is only one color,
+    // and saying so reads as a joke rather than as a fact about a conic render.
+    //
+    // The registry's SEAM_TOLERANCE (0.05) answers a different question: how
+    // close the ends have to be for a conic render not to show a hard edge,
+    // which is a tag. "No VISIBLE break" is a promise to the eye, and 0.05 is
+    // about 2.5 JND: an olive-gold start (C 0.0456) and a neutral warm gray end
+    // (C 0.0142) measured 0.0398 apart and read as khaki beside taupe in the
+    // discrete strip. One JND is what the sentence can promise. Measured over
+    // the fixture the seams of the 39 seamless palettes cluster at 0 (16 of
+    // them are exact, from whole-number frequencies) and then spread: 19 under
+    // 0.02, 21 under 0.025, 30 under 0.04.
+    id: "loops",
+    slot: "form",
+    prevalence: 0.0219,
+    when: (c) => c.has("seamless") && c.f.seam < LOOP_SEAM && !c.solid,
+    // The first clause came off on 2026-08-18: the identity sentence now ends
+    // "and back to medium slate blue" whenever the two ends are one colour (see
+    // endsMatch), so "Its two ends match" was the line above said again, and on
+    // a small budget that is a whole sentence spent on a repeat. What this row
+    // knows and the identity does not is the CONSEQUENCE.
+    say: () => "It loops with no visible break.",
+  },
+
   // --- motion: how it moves ------------------------------------------------
   {
     // The clamp pins all three channels at once for a tenth of the run or more:
@@ -1736,8 +1764,15 @@ const IMPRESSIONS: readonly Impression[] = [
       // `implies` rule: a specific word shadows a general one. Measured: 26
       // licensed palettes → 13.
       !c.has("bright-middle") &&
-      !c.has("dark-middle"),
-    say: () => "It uses the full range from dark to light.",
+      !c.has("dark-middle") &&
+      // ...and it yields to the two direction rows for the same reason, since
+      // D21.2 gave them the end bands: "It opens in deep shadow and ends near
+      // white" is this sentence WITH the direction in it, so where the ramp has
+      // a direction the direction sentence contains this one. Measured: 26
+      // licensed palettes → 16, and the 10 it drops are all clean ramps whose
+      // motion row now names both ends itself.
+      !rampDominates(c.f),
+    say: () => "It runs the full way from near white to deep shadow.",
   },
   {
     id: "bright-middle",
@@ -1802,13 +1837,19 @@ const IMPRESSIONS: readonly Impression[] = [
     // fixture went undescribed while its palette spent a sentence on "It passes
     // through several colors between its ends". `rampDominates` is the missing
     // distinction, and it reads the same two numbers the tag does.
+    // ...and since 2026-08-18 they say WHERE the run starts and where it
+    // arrives whenever both ends have a name (D21.2). "It becomes darker from
+    // start to end" is the direction with the picture removed, and the two end
+    // luminances that used to license the deleted text-pairing sentence are
+    // exactly what names the two ends. See depthBand for the ladder and for
+    // which band pairs may be spoken.
     id: "brightens",
     slot: "motion",
     prevalence: 0.3356,
     when: (c) =>
       (c.has("brightening") || (c.f.turns === 1 && c.f.lightnessDelta > 0)) &&
       rampDominates(c.f),
-    say: () => "It becomes lighter from start to end.",
+    say: (c) => depthSentence(c) ?? "It becomes lighter from start to end.",
   },
   {
     id: "darkens",
@@ -1817,7 +1858,7 @@ const IMPRESSIONS: readonly Impression[] = [
     when: (c) =>
       (c.has("darkening") || (c.f.turns === 1 && c.f.lightnessDelta < 0)) &&
       rampDominates(c.f),
-    say: () => "It becomes darker from start to end.",
+    say: (c) => depthSentence(c) ?? "It becomes darker from start to end.",
   },
   {
     // Temperature JOURNEY comes from the stored palette-tags formula, never a
@@ -1849,70 +1890,6 @@ const IMPRESSIONS: readonly Impression[] = [
     say: () => "It becomes cooler as it moves.",
   },
 
-  // --- use: the one sentence that answers "what do I do with it" ------------
-  {
-    id: "light-background",
-    slot: "use",
-    prevalence: 0.0484,
-    when: (c) => c.has("high-key") && c.softChroma && c.darkInkReads,
-    say: () => "It works as a light background under dark text.",
-  },
-  {
-    id: "dark-background",
-    slot: "use",
-    prevalence: 0.0554,
-    when: (c) =>
-      (c.has("dark") || c.has("low-key")) &&
-      c.f.lightnessRange < 0.3 &&
-      c.lightInkReads,
-    say: () => "It works as a dark background behind light text.",
-  },
-  {
-    // Both verbs written out since 2026-08-18. "Dark text is readable on its
-    // light end, light text on its dark end" gapped the verb across a comma,
-    // and verb ellipsis is among the structures machine translation handles
-    // worst: a target language that needs an explicit copula, or that reorders
-    // for topic-comment, produces a fragment. D20.4 asks for one idea per clause
-    // with its own verb, and at 52.3% this is the most common sentence the
-    // system emits, so it lands on roughly half of all pages. "works" rather
-    // than "is readable" only because repeating the copula ran the sentence to
-    // 17 words and the same rule caps them at 15; the verb is the one the
-    // background rows above already use.
-    // ...and since 2026-08-18 it reads the ENDS, which is what it talks about.
-    // See endDarkInkReads. Measured: 453 palettes → 371.
-    id: "text-both-ends",
-    slot: "use",
-    prevalence: 0.4279,
-    when: (c) => c.endDarkInkReads && c.endLightInkReads && c.f.lightnessRange > 0.3,
-    say: () =>
-      "Dark text works on its light end, and light text works on its dark end.",
-  },
-  {
-    // Not for a solid palette: its ends match because there is only one color,
-    // and saying so reads as a joke rather than as a fact about a conic render.
-    //
-    // The registry's SEAM_TOLERANCE (0.05) answers a different question: how
-    // close the ends have to be for a conic render not to show a hard edge,
-    // which is a tag. "No VISIBLE break" is a promise to the eye, and 0.05 is
-    // about 2.5 JND: an olive-gold start (C 0.0456) and a neutral warm gray end
-    // (C 0.0142) measured 0.0398 apart and read as khaki beside taupe in the
-    // discrete strip. One JND is what the sentence can promise. Measured over
-    // the fixture the seams of the 39 seamless palettes cluster at 0 (16 of
-    // them are exact, from whole-number frequencies) and then spread: 19 under
-    // 0.02, 21 under 0.025, 30 under 0.04.
-    id: "loops",
-    slot: "use",
-    prevalence: 0.0219,
-    when: (c) => c.has("seamless") && c.f.seam < LOOP_SEAM && !c.solid,
-    // The first clause came off on 2026-08-18: the identity sentence now ends
-    // "and back to medium slate blue" whenever the two ends are one colour (see
-    // endsMatch), so "Its two ends match" was the line above said again, and on
-    // a two-sentence budget that is a third of the description spent on a
-    // repeat. What this row knows and the identity does not is the CONSEQUENCE,
-    // which is a use fact and the reason the row is in the use slot: the ramp
-    // can be wrapped into a circle without a seam showing.
-    say: () => "It loops with no visible break.",
-  },
 ];
 
 export { IMPRESSIONS };
@@ -2216,8 +2193,6 @@ function buildCtx(
     // The description's own phrase, so an echo test sees the word the reader
     // will see (the identity sentence renders plainPhrase, not the heading).
     phrase: plainPhrase(named.modifierPhrase),
-    darkInkReads: Math.max(...luminances) >= DARK_INK_LUMINANCE,
-    lightInkReads: Math.min(...luminances) <= LIGHT_INK_LUMINANCE,
     endDarkInkReads:
       Math.max(luminances[0]!, luminances[luminances.length - 1]!) >= DARK_INK_LUMINANCE,
     endLightInkReads:

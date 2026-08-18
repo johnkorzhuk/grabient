@@ -21,7 +21,7 @@
     "hono": "^4.8.3",
     "jose": "^6.1.0",
     "markdown-it": "15.0.0",
-    "solid-js": "^1.9.14",
+    "solid-js": "1.9.15",
     "zod": "^4.4.3"
   },
   "devDependencies": {
@@ -31,7 +31,7 @@
     "tailwindcss": "^4.3.3",
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
-    "vite-plugin-solid": "^2.11.13",
+    "vite-plugin-solid": "2.11.14",
     "vitest": "^3.2.4",
     "wrangler": "^4.112.0"
   }
