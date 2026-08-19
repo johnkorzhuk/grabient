@@ -16,6 +16,7 @@ import { isUsernameAvailable, updateUserImage, updateUsername } from "@repo/data
 import { updateUsernameSchema } from "@repo/data-ops/valibot-schema/auth";
 import {
   DEFAULT_PAGE_LIMIT,
+  DEFAULT_STYLE,
   angleValidator,
   paletteStyleValidator,
   seedValidator,
@@ -71,7 +72,7 @@ import {
   queryHeadingParts,
   queryResultContext,
   querySlug,
-  searchSemanticPalettes,
+  searchPalettesForQuery,
   normalizeSemanticQuery,
   SEMANTIC_SEARCH_LIMIT,
   type QueryResultContext,
@@ -458,7 +459,7 @@ async function handleSemanticSearch(
   const sort = searchSort(url.searchParams);
   let results: SemanticSearchResult[];
   try {
-    results = await searchSemanticPalettes(c.env, query, SEMANTIC_SEARCH_LIMIT);
+    results = await searchPalettesForQuery(c.env, query, SEMANTIC_SEARCH_LIMIT);
   } catch (error) {
     console.error("semantic search failed:", error);
     results = [];
@@ -523,7 +524,15 @@ async function handleSemanticSearch(
   }
 
   const origin = publicOrigin(c);
-  const heading = queryHeading(query);
+  // The heading noun follows what the URL pins, through the same rule the seed
+  // page's title suffix uses (owner rule, 2026-08-18). `params.style` is
+  // "auto" exactly when the param is absent, which is the presence test.
+  const headingView = {
+    style: params.style === "auto" ? DEFAULT_STYLE : params.style,
+    styleInUrl: params.style !== "auto",
+    steps: params.steps,
+  };
+  const heading = queryHeading(query, headingView);
   const context = queryResultContext(query);
   const canonical = `${origin}${path}${params.page > 1 ? `?page=${params.page}` : ""}`;
   const og = new URL("/api/og/query", origin);
@@ -561,7 +570,7 @@ async function handleSemanticSearch(
       emptyText: `No palettes found for “${query}”. Try a different color, mood, or theme.`,
       exportOpen: url.searchParams.get("export") === "true",
       heading,
-      headingParts: queryHeadingParts(query),
+      headingParts: queryHeadingParts(query, headingView),
       // Head term first, brand last: the title's leading words carry the most
       // weight, and every measured page-1 competitor leads with the keyword.
       pageTitle: `${heading} — ${styleNoun(params.style)} | Grabient`,
@@ -1155,9 +1164,9 @@ app.get("/api/search.json", async (c) => {
     : DEFAULT_PAGE_LIMIT;
 
   const origin = publicOrigin(c);
-  let results: Awaited<ReturnType<typeof searchSemanticPalettes>> = [];
+  let results: Awaited<ReturnType<typeof searchPalettesForQuery>> = [];
   try {
-    results = await searchSemanticPalettes(c.env, query, limit);
+    results = await searchPalettesForQuery(c.env, query, limit);
   } catch (error) {
     console.error("search.json failed", error);
     return c.json({ error: "Search temporarily unavailable" }, 503, {

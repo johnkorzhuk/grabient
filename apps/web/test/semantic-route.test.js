@@ -58,7 +58,11 @@ describe("semantic search route", () => {
     const html = await response.text();
     expect(response.status).toBe(200);
     expect(html).toContain(
-      "<title>Warm sunset gradient palettes — CSS Gradients | Grabient</title>",
+      // The URL pins style=radialGradient, so the heading names what that view
+    // renders (owner rule, 2026-08-18) instead of the generic phrase. The
+    // param-free canonical below still carries both nouns, and that is the
+    // variant Google indexes.
+    "<title>Warm sunset gradients — CSS Gradients | Grabient</title>",
     );
     expect(html).toContain(
       '<link rel="canonical" href="https://grabient-lite.jkorzhuk.workers.dev/palettes/warm-sunset">',

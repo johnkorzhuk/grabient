@@ -53,14 +53,19 @@
 import {
   colorFamilies,
   colorFamily,
+  DEFAULT_MIN_SEPARATION,
   getUniqueColorNames,
   hexToColorName,
   hexToOkLch,
   hexToRgb,
+  isLabelName,
+  NAMED_COLORS,
   oklabDistance,
   relativeLuminance,
   relativeSaturation,
   rgbToOklab,
+  type NameVeto,
+  type Oklab,
   type OkLch,
 } from "@repo/data-ops/color-utils";
 import {
@@ -77,6 +82,35 @@ import {
   type PaletteFeatures,
 } from "@repo/data-ops/gradient-gen/palette-modifiers";
 import {
+  characteristicCtx,
+  characteristicScore,
+  characteristicsOf,
+  chipCharacteristics,
+  COMPOUND_SHADOWS,
+  COMPOUND_SUPPORT,
+  COMPOUND_SUPPORT_FLOOR,
+  FAMILY_TERMS,
+  gatedFamily,
+  GATED_HUE_NAMES,
+  hueNameFits,
+  grayLean,
+  isBrilliant,
+  isDeep,
+  isJewel,
+  isOmbre,
+  isSepia,
+  NEAR_BLACK_L,
+  NEAR_WHITE_L,
+  OMBRE_RANGE,
+  opponentAxis,
+  saturationContrast,
+  seriesReading,
+  warmCoolContrast,
+  type Characteristic,
+  type CharacteristicCtx,
+  type SeriesKind,
+} from "@repo/data-ops/gradient-gen/palette-characteristics";
+import {
   analyzeCoefficients,
   tagsToArray,
 } from "@repo/data-ops/gradient-gen/palette-tags";
@@ -89,7 +123,7 @@ import type { PaletteStyle } from "@repo/data-ops/valibot-schema/grabient";
 import {
   CONTRADICTED_BY,
   describePaletteName,
-  NAMES_FOR_STRUCTURE,
+  LOUDNESS_WORDS,
   styleLabel,
   toneNameVeto,
   type NamedPalette,
@@ -97,29 +131,9 @@ import {
 
 const T = THRESHOLDS;
 
-/**
- * The ombré gate's lightness distance: corpus lightnessRange p50. An ombré is
- * a one-hue *value journey*, so it has to travel at least a median palette's
- * worth of lightness to earn the word (research-colorTheory §7).
- */
-const OMBRE_RANGE = 0.34;
-
-/**
- * Tint/shade series tolerances, calibrated against the repo's own color space:
- * sRGB white-mixes drift OkLCh hue by up to ~22° (navy → periwinkle — the
- * Abney drift), black-mixes hold hue to <0.1° and C/L constant. So a tint
- * series tolerates 25° of drift and a shade series only 5°, and the shade
- * test may demand a near-constant C/L ratio (±20%).
- */
-const TINT_DRIFT = 25;
-const SHADE_DRIFT = 5;
-const SERIES_POLE_CHROMA = 0.5; // pole stop must have lost half the palette's max chroma
-const TINT_POLE_L = 0.85;
-const SHADE_POLE_L = 0.3;
-const SHADE_RATIO_TOLERANCE = 0.2;
-/** Value-band edges from research-colorTheory §2: near-black / near-white. */
-const NEAR_BLACK_L = 0.18;
-const NEAR_WHITE_L = 0.87;
+// The tint/shade/tone tolerances, the ombré distance and the near-black /
+// near-white band edges now live beside the characteristic registry that reads
+// them (palette-characteristics.ts, D25.1); they are imported above.
 
 /**
  * How far the lightness may travel before a sentence about "the colors" stops
@@ -255,100 +269,18 @@ export function familyWord(hue: number): string {
 }
 
 /**
- * The three names that are the SAME hue at a different lightness or chroma.
+ * ...and the tone-gated version of the same question, re-exported.
  *
- * research-colorTheory §1.2 measured them through this repo's own conversion:
- * brown IS orange (h 54.7), sRGB purple IS magenta (h 328.4), pink is a tint
- * region of red. The conflation law in §9 is "name by gate, never by hue
- * alone", and until now the prose said the band word whatever the tone, which
- * produced "It holds one orange and changes only how light it is" over a
- * chocolate-to-cream ramp, "The colors stay inside one range of magenta" over a
- * lavender-to-plum purple, and "It moves from red into yellow" starting on a
- * stop the corpus had just called pinkish gray.
- *
- * Gates verbatim from the research table: brown L < 0.55 with C 0.04-0.13,
- * purple L < 0.55 with C >= 0.12, pink L > 0.75 with C 0.04-0.15.
- *
- * The pink rung covers the MAGENTA band as well as the red one since
- * 2026-08-18: a tint is a tint on either side of the red/magenta line, and the
- * chip row was offering "magenta" for #ffc3ff (L 0.889, C 0.103), a near-white
- * pink on a palette whose every stop sits above L 0.85. The research table
- * wrote the rung for red because that is where "pink" is the standard word; the
- * measurement says the band edge is not where the tone stops being one.
+ * `gatedFamily` moved to the characteristic registry on 2026-08-18 (D25.1)
+ * with no change of meaning, for the reason the detectors above it moved: the
+ * registry's `brown` / `purple` / `pink` terms and the retrieval filter and
+ * this paragraph all have to be asking ONE function which family a stop is in,
+ * or a chip and its destination can disagree about a chocolate ramp. It is
+ * re-exported here because `tag-search.ts` and two test files import it from
+ * this module and its home is an implementation detail of the registry, not of
+ * theirs.
  */
-const BROWN_MAX_L = 0.55;
-const BROWN_CHROMA: readonly [number, number] = [0.04, 0.13];
-/**
- * ...and the second brown rung, for the tans (2026-08-18, visual QA).
- *
- * The research table wrote brown as a DARK orange, and the absolute chroma
- * window beside it is the D19 conflation one level down: at L 0.35 a chroma of
- * 0.13 is the whole gamut, at L 0.63 it is four fifths of it, so one window
- * cannot mean the same thing at two lightnesses. A tan is the other half of
- * brown — a MID orange with most of its colour missing — and the gate could not
- * see it: #ac7b61 (L 0.626, C 0.072, 43% of what sRGB allows at that lightness)
- * fell through to the raw band word and the paragraph read "It is a single
- * orange softened with gray" over an image of tan fading to mauve gray, whose
- * own identity sentence had just called that stop pinkish brown.
- *
- * So the rung asks the relative question, which is the identity question (D19),
- * with the registry's own `light` line as the ceiling: above it a dull orange is
- * a cream, not a brown. Checked against the corpus, which is the survey's record
- * of what people actually call these colours: of the fixture's 586 orange-band
- * stops, this rung calls 174 brown and the corpus independently uses a brown or
- * tan word for 139 of them (80%), against 78% for the dark rung alone, and it
- * recovers 54 of the 131 corpus-brown stops the dark rung was missing. Every
- * distinct stop it adds is named mocha, tan brown, light brown, adobe, mushroom,
- * dull brown, camel, puce, pale brown, dust, taupe, brownish pink, brownish
- * gray, peru, reddish gray, pinkish brown or pinkish tan by the corpus: not one
- * of them is called orange.
- */
-const BROWN_MAX_SATURATION = 0.6;
-const PURPLE_MAX_L = 0.55;
-const PURPLE_MIN_CHROMA = 0.12;
-const PINK_MIN_L = 0.75;
-const PINK_CHROMA: readonly [number, number] = [0.04, 0.15];
-
-/**
- * What to CALL a region of the palette, or null when it has no colour to name.
- *
- * The null is the point. A family word is an identity claim, so it takes the
- * registry's own family floor in both readings (FAMILY_CHROMA or, for the tints
- * that sit at the sRGB ceiling, FAMILY_SATURATION), and a cream-to-taupe ramp
- * at C 0.034 clears neither: it used to be announced as "a single orange", and
- * now the form sentence stays silent and the description spends its budget on
- * something true. Silence is a correct outcome (D20.1), a wrong word is not.
- */
-function gatedFamily(stop: OkLch | null): string | null {
-  if (!stop) return null;
-  const band = familyWord(stop.h);
-  if (
-    band === "orange" &&
-    stop.C >= BROWN_CHROMA[0] &&
-    ((stop.L < BROWN_MAX_L && stop.C <= BROWN_CHROMA[1]) ||
-      (stop.L < T.LIGHT_LIGHTNESS && relativeSaturation(stop) < BROWN_MAX_SATURATION))
-  )
-    return "brown";
-  if (band === "magenta" && stop.L < PURPLE_MAX_L && stop.C >= PURPLE_MIN_CHROMA)
-    return "purple";
-  if (
-    (band === "red" || band === "magenta") &&
-    stop.L > PINK_MIN_L &&
-    stop.C >= PINK_CHROMA[0] &&
-    stop.C < PINK_CHROMA[1]
-  )
-    return "pink";
-  // ...and the relative disjunct needs a visibility floor under it (D19 has one
-  // blind spot, at the very top of the solid: as L → 1 the ceiling collapses, so
-  // any residue reads as 100% saturation). FAMILY_MIN_CHROMA records the sweep.
-  // Without it a stop at L 0.9992 and C 0.0039 — white, in the image and in its
-  // own printed name — was announced as a family, and the paragraph read "It
-  // moves from yellow into pink" one clause after naming that stop white.
-  return stop.C >= T.FAMILY_CHROMA ||
-    (relativeSaturation(stop) >= T.FAMILY_SATURATION && stop.C >= T.FAMILY_MIN_CHROMA)
-    ? band
-    : null;
-}
+export { gatedFamily };
 
 // =============================================================================
 // Measure-first detectors
@@ -391,13 +323,21 @@ type MeasureFirstUse = "prose" | "embed" | "silent";
  */
 const MEASURE_FIRST: Record<string, { use: MeasureFirstUse; rate: number }> = {
   deep: { use: "prose", rate: 0.0542 },
-  jewel: { use: "prose", rate: 0.1223 },
-  sepia: { use: "embed", rate: 0.0104 },
+  // 0.1223 until QA round 4, when the window became a claim about the STOPS: a
+  // ramp dying into pastel lavender and a pair of electric purples were both
+  // being carried over the bar by a palette-wide mean (see isJewel). 0.0704
+  // until QA round 6 added the floor on the DULLEST stop.
+  jewel: { use: "prose", rate: 0.0484 },
+  // 0.0104 until QA round 6 pulled the hue window off olive and the lightness
+  // ceiling off a pale peach — see isSepia.
+  sepia: { use: "embed", rate: 0.0058 },
   ombre: { use: "prose", rate: 0.1811 },
   "warm-gray": { use: "prose", rate: 0.0288 },
   "opponent-axis": { use: "prose", rate: 0.4187 },
   "warm-cool-contrast": { use: "prose", rate: 0.2284 },
-  "saturation-contrast": { use: "prose", rate: 0.1061 },
+  // 0.1061 until 2026-08-18, when the detector stopped reading the dense
+  // chroma floor through a rendered-max proxy (see saturationContrast).
+  "saturation-contrast": { use: "prose", rate: 0.0461 },
   brilliant: { use: "prose", rate: 0.0219 },
 };
 
@@ -430,9 +370,6 @@ export function measureFirstFires(
 
 export { MEASURE_FIRST };
 
-/** Dark AND chromatic — `dark` allows gray, deep must not fire on charcoal. */
-const isDeep = (f: PaletteFeatures) => f.meanLightness < 0.45 && f.meanChroma >= 0.08;
-
 /**
  * ...and whether that fact may be SPOKEN as a claim about every colour.
  *
@@ -447,89 +384,12 @@ const deepSpeaks = (c: Ctx) =>
   c.evenSpread &&
   Math.min(...c.stopL) > NEAR_BLACK_L;
 
-/** The emerald/sapphire/ruby window: the L band matters, a neon isn't jewel. */
-const isJewel = (f: PaletteFeatures) =>
-  f.meanLightness >= 0.3 &&
-  f.meanLightness <= 0.6 &&
-  f.meanChroma >= 0.12 &&
-  f.maxChroma >= 0.15;
-
-/** Brown monochrome, the aged-photo look — must not fire on vivid oranges. */
-const isSepia = (f: PaletteFeatures, structure: string) =>
-  structure === "monochrome" &&
-  f.meanHue >= 50 &&
-  f.meanHue < 90 &&
-  f.meanChroma >= T.CHROMA_FLOOR &&
-  f.meanChroma <= 0.1 &&
-  f.meanLightness < 0.8;
-
-/** One hue (or near), one direction, real lightness travel. */
-const isOmbre = (f: PaletteFeatures, structure: string) =>
-  (structure === "monochrome" || structure === "analogous") &&
-  f.turns === 0 &&
-  f.lightnessRange >= OMBRE_RANGE;
-
-/**
- * Vivid AND light — not a synonym of vivid; the light half is definitional.
- *
- * The light half takes the registry's own LIGHT_LIGHTNESS since 2026-08-18. It
- * used to carry a private bar of 0.7, and a private bar is how a palette came to
- * be told "The colors are light and strong at the same time" while the system's
- * own `light` descriptor had NOT fired on it: three fire reds at L 0.64 into a
- * mint at L 0.89, mean 0.738, which reads as hot bold red for half its length.
- * A word in the description has to mean what the registry means by it or the
- * page argues with its own tags. Measured over the fixture the detector falls
- * from 8.3% to 2.2%, which is inside the speaking band but near its floor: if a
- * re-measure takes it under 2% the word becomes embedding-tail vocabulary and
- * the `bright-strong` row retires with it, which is the band contract working.
- */
-const isBrilliant = (f: PaletteFeatures) =>
-  f.meanChroma >= T.VIVID_CHROMA && f.meanLightness >= T.LIGHT_LIGHTNESS;
-
-/**
- * Near-neutral with a consistent lean. Below the per-stop hue floor only the
- * aggregate is stable, and meanHue IS that aggregate: OkLab a = C·cos(h),
- * b = C·sin(h), so the chroma-weighted circular mean over the dense sample is
- * exactly atan2(b̄, ā) — the mean-vector test research-colorTheory §1.3 asks
- * for, already computed.
- */
-function grayLean(f: PaletteFeatures): "warm" | "cool" | null {
-  // D19: "is this a gray at all" is an IDENTITY question, so it takes the
-  // relative reading — the same GRAYSCALE_SAT conjunct `isGrayscale` uses. The
-  // palette that exposed the original bug (#ceeaff, #fcd3d4, #deffff: plainly
-  // blue, pink and cyan, mean chroma 0.029) sits at 0.75 mean saturation and is
-  // excluded by it; calling that a warm gray is the same mistake as calling it
-  // grayscale.
-  //
-  // The absolute CEILING that used to sit beside it (C < CHROMA_FLOOR, from the
-  // research table) came off on 2026-08-18. It was the chroma-not-saturation
-  // conflation again, one layer down: a greige ramp at C 0.034 has no more
-  // colour in it than one at C 0.029, and the detector was blind to it. Rate
-  // over the fixture 2.0% → 3.6%, which lifts the word over the 2% floor and
-  // into prose, which is where the QA round wanted it: a warm beige-to-taupe
-  // ramp was being described as "grayscale ... the colors stay light", and its
-  // warmth is the most characterising thing about it. The floor at 0.008 stays:
-  // below it the mean vector is numerical residue and has no lean at all.
-  if (f.denseMeanSaturation >= T.GRAYSCALE_SAT) return null;
-  if (f.denseMeanChroma < 0.008) return null;
-  // ...and the mean has to be a CONSENSUS. An angle exists whether or not the
-  // vectors that made it agree, and where they cancel it is an artifact: a
-  // lavender-white to sage-gray ramp (stop hues 303, 329, 24, 75, 97, 124, 177,
-  // all under C 0.015) returns a mean of 50.8°, so the sentence read "The colors
-  // are warm grays" while the same paragraph named its ends lavender and cool
-  // gray and the chip row printed "cool gray". Concentration is the standard
-  // circular-dispersion measure and it separates the two cases cleanly here:
-  // 0.397 and 0.186 for the two leans the QA round rejected, 0.80 to 0.999 for
-  // ten of the remaining eleven. 0.6 is a circular SD of about 58°, so the bulk
-  // of the chromatic mass fits inside the 150° arc the lean names.
-  if (f.hueConcentration < LEAN_CONCENTRATION) return null;
-  if (f.meanHue >= 330 || f.meanHue < 120) return "warm";
-  if (f.meanHue >= 150 && f.meanHue < 300) return "cool";
-  return null;
-}
-
-/** See grayLean: R = 0.6, a circular standard deviation of about 58°. */
-const LEAN_CONCENTRATION = 0.6;
+// isBrilliant, grayLean, opponentAxis, warmCoolContrast, saturationContrast
+// and seriesReading moved to @repo/data-ops .../palette-characteristics on
+// 2026-08-18 (D25.1) and are imported above. They are the SAME closures the
+// characteristic registry evaluates, which is the whole point: a chip, this
+// paragraph and the tag filter cannot disagree about what a word means if
+// there is only one function that decides it.
 
 /**
  * How far apart the two hue anchors must sit before "it moves from X into Y" is
@@ -538,107 +398,6 @@ const LEAN_CONCENTRATION = 0.6;
  * neighbours on one side of a line. See the `neighbors` row for the measurement.
  */
 const NEIGHBOR_TRAVEL = 360 / 8;
-
-/**
- * ≥85% of chromatic mass on one OkLab opponent axis (±45° around its poles).
- * ASCII hyphens on purpose: these strings reach embedText's Tags line, and the
- * en dash that reads better in a comment is banned in generated text.
- */
-function opponentAxis(f: PaletteFeatures): "blue-yellow" | "green-red" | null {
-  if (hueBandShare(f, 45, 135) + hueBandShare(f, 225, 315) >= 0.85) return "blue-yellow";
-  if (hueBandShare(f, 315, 45) + hueBandShare(f, 135, 225) >= 0.85) return "green-red";
-  return null;
-}
-
-/** Itten's cold–warm contrast: both poles PRESENT at once — not a drift. */
-const warmCoolContrast = (f: PaletteFeatures) =>
-  hueBandShare(f, 330, 120) >= 0.25 && hueBandShare(f, 150, 300) >= 0.25;
-
-/**
- * Itten's contrast of saturation: pure color beside near-gray. The exact test
- * wants dense min chroma < 0.04; features carry the dense range but not the
- * dense max, so the rendered maxChroma stands in for it (98.6%+ step-stable,
- * and dense max ≥ rendered max, so this over-fires slightly rather than
- * missing). The firing rate above was measured with this exact proxy.
- */
-const saturationContrast = (f: PaletteFeatures) =>
-  f.denseChromaRange >= 0.15 && f.maxChroma - f.denseChromaRange < 0.04;
-
-/**
- * Which transformation relates a monochrome palette's stops. The BASE it is a
- * series of is `Ctx.base`, the tone-gated word for the most chromatic sample:
- * a monochrome palette has one hue, so the paragraph must use one word for it,
- * and reading the base here as well let the two disagree across a band edge
- * (measured: a 21° red-orange mono read "orange" in one sentence and "red" in
- * the next before this was pinned to a single source).
- */
-type SeriesKind = "tints and shades" | "tints" | "shades" | "tones";
-
-/**
- * The tint/shade/tone series detector (research-colorTheory §2), meaningful
- * only for monochrome structure: which transformation relates the stops. Runs
- * on the rendered stops sorted by lightness; the base is the palette's family
- * word — a transformation noun always takes "of + base", and the base must have
- * usable chroma to be named at all.
- */
-function seriesReading(f: PaletteFeatures, hexColors: readonly string[]): SeriesKind | null {
-  const stops = hexColors.map(hexToOkLch);
-  if (stops.length < 3) return null;
-  const byL = [...stops].sort((a, b) => a.L - b.L);
-  const maxC = Math.max(...stops.map((s) => s.C));
-  // Which stops carry the base hue is an IDENTITY question, so it walks the
-  // registry's saturation-aware predicate rather than absolute chroma (D19).
-  // It matters most exactly here: a tint series ENDS pale by definition, and on
-  // an absolute floor a series of pale blues never had a base to be tints of.
-  const chromatic = hexColors.filter(stopHasHue).map(hexToOkLch);
-  if (!chromatic.length) return null;
-
-  // Hue drift among chromatic stops, as max circular distance from the most
-  // chromatic stop — monochrome already bounds the span, this bounds the walk.
-  const baseStop = chromatic.reduce((a, b) => (b.C > a.C ? b : a));
-  let drift = 0;
-  for (const s of chromatic) {
-    const d = Math.abs(s.h - baseStop.h) % 360;
-    drift = Math.max(drift, d > 180 ? 360 - d : d);
-  }
-
-  const top = byL[byL.length - 1]!;
-  const bottom = byL[0]!;
-
-  // Tint: +white — L rises while C falls toward 0 (monotone within a small
-  // tolerance; measured white-mixes are strictly decreasing, rendered stops
-  // can wobble a JND).
-  let cFalls = true;
-  for (let i = 1; i < byL.length; i++)
-    if (byL[i]!.C > byL[i - 1]!.C + 0.005) cFalls = false;
-  const tint =
-    top.L > TINT_POLE_L && top.C < SERIES_POLE_CHROMA * maxC && cFalls && drift <= TINT_DRIFT;
-
-  // Shade: +black — hue exact, C/L ratio near-constant on the chromatic stops.
-  let shade =
-    bottom.L < SHADE_POLE_L && bottom.C < SERIES_POLE_CHROMA * maxC && drift <= SHADE_DRIFT;
-  if (shade) {
-    const ratios = chromatic.filter((s) => s.L > 0.05).map((s) => s.C / s.L);
-    if (ratios.length >= 2) {
-      const mean = ratios.reduce((a, b) => a + b, 0) / ratios.length;
-      shade = ratios.every((r) => Math.abs(r - mean) <= SHADE_RATIO_TOLERANCE * mean);
-    }
-  }
-
-  // Tone: +gray — C falls while L stays put and neither end approaches 0/1.
-  const cRange = maxC - Math.min(...stops.map((s) => s.C));
-  const tone =
-    cRange >= 0.06 &&
-    top.L - bottom.L < 0.25 &&
-    bottom.L > NEAR_BLACK_L &&
-    top.L < NEAR_WHITE_L;
-
-  if (tint && shade) return "tints and shades";
-  if (tint) return "tints";
-  if (shade) return "shades";
-  if (tone) return "tones";
-  return null;
-}
 
 // =============================================================================
 // Public types
@@ -1111,9 +870,10 @@ const NAMEABLE_CHROMA_MOVE = 0.08;
 
 /**
  * The table. Each row is {phrase, the conjunction that licenses it, measured
- * information}, and the four slots (what it is like, what shape it has, how it
- * moves, what it is for) are the diversity constraint: at most one row per slot
- * is spoken, so the description can never spend both its sentences on lightness.
+ * information}, and the five slots (what it is like, what shape it has, where
+ * it sits on the wheel, how strong its colour is, how it moves) are the
+ * diversity constraint: at most one row per slot is spoken, so the description
+ * can never spend both its sentences on lightness.
  *
  * Rows are ordered by slot for reading, NOT by rank — ranking is by score at
  * selection time. Every gate is a registry test, a THRESHOLDS constant or a
@@ -1223,9 +983,14 @@ const IMPRESSIONS: readonly Impression[] = [
     // registry's own line for "not intense", so no stop may sit below it.
     // Measured: 42 licensed palettes → 32, and the 10 it drops all contain a
     // stop the registry would call muted.
+    //
+    // ...and 32 → 24 in QA round 4, without a word of this row changing: the
+    // sentence is licensed by `isJewel`, and the registry tightened that (no
+    // LIGHT stop, and a neon is not a jewel). The eight it loses are palettes
+    // whose deep half carried a pastel or a fluorescent end.
     id: "rich",
     slot: "tone",
-    prevalence: 0.0369,
+    prevalence: 0.0254,
     when: (c) =>
       useOf("jewel") === "prose" &&
       isJewel(c.f) &&
@@ -1322,7 +1087,11 @@ const IMPRESSIONS: readonly Impression[] = [
     // near-black from being a teal). Measured: 31 licensed palettes become 69.
     id: "strong",
     slot: "tone",
-    prevalence: 0.1153,
+    // 0.1153 -> 0.1292 in QA round 4, and the gain is the mirror of `rich`'s
+    // loss: this row is licensed by NOT being a jewel, and the twelve palettes
+    // the registry stopped calling jewel tones (a light stop, or a neon) are
+    // palettes whose colour is simply strong.
+    prevalence: 0.1349,
     when: (c) =>
       (c.has("vivid") ||
         (c.f.denseMeanSaturation >= FULL_SATURATION &&
@@ -1452,7 +1221,10 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "tones",
     slot: "form",
-    prevalence: 0.0161,
+    // 0.0161 -> 0.0046 in QA round 4: `tones` stopped being allowed to fire on
+    // a ramp whose value climbs (see seriesReading), which is the tint/tone
+    // conflation the inventory names.
+    prevalence: 0.0046,
     when: (c) => c.series === "tones" && c.base !== null,
     say: (c) => `It is a single ${c.base}, softened with gray toward one end.`,
     conflicts: ["brightens", "darkens", "full-range"],
@@ -1467,7 +1239,11 @@ const IMPRESSIONS: readonly Impression[] = [
     // is the D19 rule of thumb applied to a claim about identity.
     id: "one-color",
     slot: "form",
-    prevalence: 0.06,
+    // 0.06 -> 0.0657 in QA round 4: the row fires where a monochrome has NO
+    // series reading, and `tones` stopped claiming eleven monochrome ramps
+    // whose lightness travels (see seriesReading). Those are palettes that vary
+    // only in how light they are, which is what this sentence says.
+    prevalence: 0.0657,
     when: (c) =>
       c.structure === "monochrome" &&
       !c.series &&
@@ -1594,7 +1370,10 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "opposite-colors",
     slot: "form",
-    prevalence: 0.0334,
+    // 0.0334 until the sweep route to `complementary` shipped (D24.2): the
+    // sentence is true of every complementary palette, so its rate is that
+    // class's, 29 of 867 -> 52 of 867.
+    prevalence: 0.0577,
     when: (c) => c.structure === "complementary",
     // The identity sentence has its own complementary template ("built on two
     // opposite colors: dark indigo against sand yellow"), and this row fired
@@ -1686,7 +1465,11 @@ const IMPRESSIONS: readonly Impression[] = [
     // false. What remains is what the gate actually establishes.
     id: "neighbors",
     slot: "wheel",
-    prevalence: 0.0577,
+    // 0.0577 until QA round 3 gave gatedFamily a near-black floor: two of the
+    // palettes that spoke this row had an END whose band came from a stop a
+    // viewer sees as black, so the "moves from X into Y" was a claim about a
+    // hue angle nobody can see.
+    prevalence: 0.0565,
     when: (c) =>
       c.structure === "analogous" &&
       c.firstBand !== c.lastBand &&
@@ -1780,14 +1563,16 @@ const IMPRESSIONS: readonly Impression[] = [
     // together on the wheel, which is the D19 error one level up.
     id: "broad-arc",
     slot: "wheel",
-    prevalence: 0.2191,
+    prevalence: 0.1845,
     when: (c) => c.f.hueSpan >= 180 && !c.has("full-wheel") && c.base !== null,
     say: () => "Its colors cover more than half the color wheel.",
   },
   {
     id: "narrow-arc",
     slot: "wheel",
-    prevalence: 0.2411,
+    // 0.1984 until QA round 3's near-black floor on gatedFamily: three of these
+    // palettes had no visible colour to be close together.
+    prevalence: 0.1949,
     when: (c) => c.f.hueSpan < 45 && c.base !== null && !c.solid,
     say: () => "All of its colors sit close together on the wheel, within one family.",
     echoes: ["monochrome", "grayscale"],
@@ -1825,7 +1610,9 @@ const IMPRESSIONS: readonly Impression[] = [
     // step-stable.
     id: "several-colors",
     slot: "form",
-    prevalence: 0.3783,
+    // 0.3783 until D24.2 moved 23 multicolor palettes into `complementary`;
+    // this row is the residual class's, so it moves with it.
+    prevalence: 0.3541,
     when: (c) => c.structure === "multicolor",
     restates: (c) => c.names.length >= 3,
     say: () => "It passes through several colors between its ends.",
@@ -1918,7 +1705,7 @@ const IMPRESSIONS: readonly Impression[] = [
     // range alone this called a stop at L 0.74 "near white".
     id: "full-range",
     slot: "motion",
-    prevalence: 0.015,
+    prevalence: 0.0023,
     when: (c) =>
       c.f.lightnessRange > T.HIGH_CONTRAST_RANGE &&
       Math.min(...c.stopL) < NEAR_BLACK_L &&
@@ -1939,8 +1726,10 @@ const IMPRESSIONS: readonly Impression[] = [
       // D21.2 gave them the end bands: "It opens in deep shadow and ends near
       // white" is this sentence WITH the direction in it, so where the ramp has
       // a direction the direction sentence contains this one. Measured: 26
-      // licensed palettes → 16, and the 10 it drops are all clean ramps whose
-      // motion row now names both ends itself.
+      // licensed palettes → 15, and the 11 it drops are all clean ramps whose
+      // motion row now names both ends itself. With the shape guard above it
+      // as well, 2 palettes reach the sentence: it is the motion floor and the
+      // floor is where a palette lands when it has nothing sharper to say.
       !rampDominates(c.f),
     say: () => "It runs the full way from near white to deep shadow.",
   },
@@ -2008,19 +1797,25 @@ const IMPRESSIONS: readonly Impression[] = [
     // through several colors between its ends". `rampDominates` is the missing
     // distinction, and it reads the same two numbers the tag does.
     // ...and since 2026-08-18 each of them is TWO rows, because it says two
-    // different things (D21.2). Where both ends have a name on the value ladder
-    // the sentence names them ("It opens bright and ends in deep shadow"), and
-    // that is a rarer and far more informative claim than the bare direction:
-    // measured over the fixture, brightening splits 195 plain / 96 anchored and
-    // darkening 106 / 35, which is 2.15 against 3.17 bits and 3.03 against 4.63.
-    // Ranking is by measured rarity and the score has to be the rarity of the
-    // SENTENCE, not of the gate that produced it, or the anchored sentences
-    // inherit the plain row's 1.58 bits and lose every slot they compete for.
+    // different things (D21.2). Where the run has a name on the value ladder
+    // the sentence names it ("It opens bright and ends in deep shadow"), and
+    // that is a far more informative claim than the bare direction. Ranking is
+    // by measured rarity and the score has to be the rarity of the SENTENCE,
+    // not of the gate that produced it, or the anchored sentences inherit the
+    // plain row's 1.58 bits and lose every slot they compete for.
+    //
+    // Re-measured after depthSentence grew its ARRIVAL rung (a named close with
+    // an unnamed open used to fall through to the plain row): brightening now
+    // splits 129 plain / 162 anchored and darkening 77 / 64, which is 2.75
+    // against 2.42 bits and 3.49 against 3.76. The anchored brightening
+    // sentence is no longer the rarer of its pair, and that is fine — the point
+    // of the split was never that anchored is rare, it is that the two rows
+    // print different sentences and each has to be scored as what it prints.
     // The two end luminances that used to license the deleted text-pairing
     // advice are exactly what names the two ends here. See depthSentence.
     id: "brightens-into",
     slot: "motion",
-    prevalence: 0.1107,
+    prevalence: 0.1869,
     when: (c) =>
       (c.has("brightening") || (c.f.turns === 1 && c.f.lightnessDelta > 0)) &&
       rampDominates(c.f) &&
@@ -2030,7 +1825,7 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "brightens",
     slot: "motion",
-    prevalence: 0.2249,
+    prevalence: 0.1488,
     when: (c) =>
       (c.has("brightening") || (c.f.turns === 1 && c.f.lightnessDelta > 0)) &&
       rampDominates(c.f) &&
@@ -2040,7 +1835,7 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "darkens-into",
     slot: "motion",
-    prevalence: 0.0404,
+    prevalence: 0.0738,
     when: (c) =>
       (c.has("darkening") || (c.f.turns === 1 && c.f.lightnessDelta < 0)) &&
       rampDominates(c.f) &&
@@ -2050,7 +1845,7 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "darkens",
     slot: "motion",
-    prevalence: 0.1223,
+    prevalence: 0.0888,
     when: (c) =>
       (c.has("darkening") || (c.f.turns === 1 && c.f.lightnessDelta < 0)) &&
       rampDominates(c.f) &&
@@ -2106,7 +1901,7 @@ const IMPRESSIONS: readonly Impression[] = [
     // words a designer would use for it.
     id: "color-beside-gray",
     slot: "intensity",
-    prevalence: 0.1061,
+    prevalence: 0.0461,
     when: (c) => useOf("saturation-contrast") === "prose" && saturationContrast(c.f),
     say: () => "Strong color sits next to almost colorless areas.",
   },
@@ -2117,7 +1912,7 @@ const IMPRESSIONS: readonly Impression[] = [
     // a reader sees first.
     id: "intensity-rises",
     slot: "intensity",
-    prevalence: 0.24,
+    prevalence: 0.2399,
     when: (c) => c.has("saturating") && c.f.denseChromaRange >= VISIBLE_CHROMA_MOVE,
     say: (c) =>
       c.stopC[0]! < T.MUTED_CHROMA
@@ -2143,7 +1938,7 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "intensity-falls",
     slot: "intensity",
-    prevalence: 0.181,
+    prevalence: 0.1811,
     when: (c) => c.has("desaturating") && c.f.denseChromaRange >= VISIBLE_CHROMA_MOVE,
     say: (c) =>
       c.stopC[c.stopC.length - 1]! < T.MUTED_CHROMA
@@ -2176,7 +1971,7 @@ const IMPRESSIONS: readonly Impression[] = [
   {
     id: "palest-middle",
     slot: "intensity",
-    prevalence: 0.121,
+    prevalence: 0.1211,
     when: (c) =>
       middleThird(c.f.chromaValleyT) && c.f.denseChromaRange >= NAMEABLE_CHROMA_MOVE,
     say: () => "Its color thins through the middle and returns at both ends.",
@@ -2189,7 +1984,7 @@ const IMPRESSIONS: readonly Impression[] = [
     // hold a strength it does not have.
     id: "even-intensity",
     slot: "intensity",
-    prevalence: 0.038,
+    prevalence: 0.0381,
     when: (c) => c.f.denseChromaRange < 0.03 && c.f.meanChroma >= T.MUTED_CHROMA,
     say: () => "The color holds one strength from end to end.",
     conflicts: ["one-color"],
@@ -2214,22 +2009,37 @@ const READING_ORDER: Record<ImpressionSlot, number> = {
 };
 
 /**
- * How many impressions a description may spend. Four, and it is a CEILING.
+ * How many impressions a description may spend. Two, and it is a CEILING.
  *
- * D21.4 raised it from two: the owner read the live page and asked for "a
- * decently long descriptor as if it were a color theory expert describing the
- * palette". D21.7 is the other half of that instruction, given in the same
- * session: "the descriptor doesnt have to be long if its a simple palette". So
- * the budget is never a quota. A palette spends a sentence only on a fact that
- * is true, that no other chosen sentence has said, and (past the first) that
- * carries at least EARNED_BITS of information. A two-stop pale wash says one
- * thing and stops; a run that cycles, clips and reverses fills all four.
+ * It was four for a day. D21.4 raised it because the owner read the paragraph
+ * ON THE PAGE and wanted "a decently long descriptor as if it were a color
+ * theory expert describing the palette"; D22.A then took the paragraph OFF the
+ * page, so the reader that motivated the length no longer exists. What reads
+ * the prose now is a crawler snippet (~160 chars, the meta ladder), the JSON-LD
+ * and the embedding. None of them are better served by sentences three and
+ * four, and D22.A says so directly: the expert-voice/earned-length work is
+ * deferred, not cancelled, and the budget goes back to two.
  *
- * Four slots, at most one sentence each, so the description can never spend two
- * sentences on lightness. Measured over the fixture at this setting: the page
- * paragraph runs p0 PLACEHOLDER, and the sentence count runs PLACEHOLDER.
+ * What D21 built is NOT reverted — the enlarged IMPRESSIONS table stays, and it
+ * is worth more at two slots than it was at four: the extra rows now compete to
+ * be one of the two things said instead of padding out slots three and four.
+ * The budget is never a quota either way. A palette spends a sentence only on a
+ * fact that is true, that no other chosen sentence has said, and (past the
+ * first) that carries at least EARNED_BITS of information.
+ *
+ * Measured over the 867-seed fixture at the default view, this setting against
+ * four (test/palette-prose.test.js walks the same fixture):
+ *
+ *   BUDGET  paragraph p50/p95/max   body p50/max   embed p50/max   sentences
+ *   4       318 / 401 / 444         267 / 393      410 / 608       2-6
+ *   2       255 / 291 / 328         204 / 277      346 / 502       2-4
+ *
+ * The meta description is unmoved (p0 97, p50 121, max 159 at both) because the
+ * ladder trims it to 160 either way — which is the whole argument for two. The
+ * sentence count at two: 1 palette says nothing beyond its identity, 37 say one
+ * thing, 829 say two.
  */
-const BUDGET = 4;
+const BUDGET = 2;
 
 /**
  * How many sentences a description may spend before a row has to earn its
@@ -2439,15 +2249,22 @@ function identityNames(colors: readonly string[], named: NamedPalette): string[]
  * `gatedFamily` can produce, so those are the words a name can contradict; a
  * name with no family word in it ("plum", "manila") commits to nothing and
  * leaves the row free to speak.
+ *
+ * Exported for the same reason gatedFamily is: the tag route recognizes these
+ * eleven words as a dimension to filter on (D22.B5), and a second list of them
+ * would be a second answer to "which words are family words".
  */
-const FAMILY_VOCABULARY: readonly string[] = [
-  // Derived from the partition rather than copied out of it (D12): the eight
-  // anchors ARE the distinct answers colorFamily gives over the wheel.
-  ...new Set(Array.from({ length: 360 }, (_, h) => familyWord(h))),
-  "brown",
-  "purple",
-  "pink",
-];
+/**
+ * The words a family claim may use: the eight anchors plus `gatedFamily`'s
+ * three tone rungs.
+ *
+ * Derived from the partition rather than copied out of it (D12) — and since
+ * 2026-08-18 derived ONCE, in data-ops beside the function that returns them
+ * (D25.1). The registry offers exactly these eleven as family chips and the
+ * retrieval route recognises exactly these as family terms; a second list here
+ * is how a chip gets offered for a word its own page does not know.
+ */
+export const FAMILY_VOCABULARY: readonly string[] = FAMILY_TERMS;
 
 const nameFamilyConflict = (c: Ctx): boolean => {
   const first = c.names[0];
@@ -2801,9 +2618,26 @@ function composeEmbedText(
   // text). Base colors are carried by the Colors line, warmth and contrast
   // by the registry words.
   const journey = baseTags?.find((w) => w === "warming" || w === "cooling");
+  // ...and the REGISTRY's true terms, all 133 of them where they fire (D25.6).
+  // The chip row is selective and the index is not: a term held back from the
+  // row — a coefficient fact, the arc language, a characteristic that is true
+  // without the margin a chip needs — is still what a query might be looking
+  // for, and this line is the retrieval vocabulary D20.7 keeps out of the
+  // sentences. Measured over the fixture, it takes the Tags line from a mean of
+  // 8.36 words to 18.31 and the whole embed text from 331 to 441 characters;
+  // the BODY — the human sentences, which is what D20.7 is about — is unchanged
+  // at 182.
+  const ctx = characteristicCtx(f, colors, {
+    journey: journey === "warming" || journey === "cooling" ? journey : null,
+  });
   const tagWords: string[] = [];
   const seen = new Set<string>();
-  for (const w of [...modifierTags(f), ...(journey ? [journey] : []), ...parts.embedTailTags]) {
+  for (const w of [
+    ...modifierTags(f),
+    ...(journey ? [journey] : []),
+    ...characteristicsOf(f, ctx).map((c) => c.term),
+    ...parts.embedTailTags,
+  ]) {
     const key = w.toLowerCase();
     if (!seen.has(key)) {
       seen.add(key);
@@ -2874,83 +2708,1979 @@ const UNIVERSAL_NAMES = new Set(["white", "black", "gray", "grey"]);
 const PLATEAU_DOMINANT = 0.5;
 
 /**
- * How many of the six chips may be color names: whatever the palette's own hue
- * structure can support, the same ceiling the NAME uses (2 for a monochrome or a
- * duotone, 3 for an analogous or multicolor run, 4 for a rainbow).
+ * How close a stop has to be, in OkLab, to count as the colour a colour-name
+ * chip names.
  *
- * A cap is needed at all because the candidate list is now the palette's whole
- * distinct name set: without one, six near-synonyms from one ramp fill the row
- * and crowd out the modifier and compound labels D17/D18 asked for, which are
- * the labels that say what KIND of palette this is. Keying it to the structure
- * rather than to a flat number is the argument palette-name.ts already makes
- * about the name: how many colours a palette can be described in is a fact about
- * the palette. It is also what lets a rainbow keep its fourth colour, which the
- * QA round asked for (a mint filling the left quarter of a seven-colour band was
- * ranked fourth by chroma and cut).
+ * Measured, not guessed: over the 867 fixture seeds at 7 steps, the distance
+ * from a stop to the corpus hex of the name that stop itself produced is p50
+ * 0.026, p90 0.052, p95 0.061, p99 0.080, max 0.110. So 0.08 is "as close to
+ * the named colour as a stop the corpus actually calls that name" — the widest
+ * radius that still means the word. It is four just-noticeable differences
+ * (oklabDistance's own docstring: ~0.02 is one JND), which sounds generous
+ * until you remember the corpus has 920 entries over the whole solid and the
+ * chip's own stop is already up to 0.08 away from its anchor.
+ *
+ * Loosening it does not help: at 0.15 a "dark indigo" chip admits a third of
+ * the fixture and the word stops meaning anything.
  */
-const nameLabelBudget = (structure: string) => NAMES_FOR_STRUCTURE[structure] ?? 3;
+export const COLOR_MATCH_MAX = 0.08;
 
 /**
- * Chip ordering by SLOT, so a compound reads as English (D17): tone before
- * family before structure, the same order palette-name.ts sorts a name's
- * adjectives into. "pastel rainbow", never "rainbow pastel".
+ * How far apart two colour chips have to sit before they are two suggestions
+ * rather than two words for one colour — and WHICH TWO DISTANCES that is asked
+ * of.
+ *
+ * THE DEFECT THIS SHAPE EXISTS FOR (QA round 2, 2026-08-18). The rule used to
+ * be one distance (OkLab with lightness weighted to 0.25) between the two
+ * STOPS, with a family clause that dropped the bar to one JND whenever the two
+ * candidates sat in different hue bands. Both halves failed, in opposite
+ * directions, and the QA found both:
+ *
+ *  - The family clause admitted near-identical colours. `light peach` beside
+ *    `wheat` (stops 0.057 apart in plain OkLab, corpus anchors 0.019),
+ *    `dark gray blue` beside `charcoal gray` (anchors 0.046), five near-whites
+ *    on one pale palette whose ten pairs all sit under 0.055 — every one of
+ *    them admitted at the 0.02 floor because the hue that assigns the family is
+ *    noise at that chroma. Measured on the destinations (see below), those
+ *    pairs are one query wearing two labels.
+ *  - The lightness weight refused colours a viewer can plainly tell apart.
+ *    A pale apricot and a mid brown measure 0.069 weighted and 0.266 plain; a
+ *    light teal and a deep viridian 0.071 and 0.268. 547 of the 867 fixture
+ *    rows (63.1%) carried at least one such blocked pair, which is where the
+ *    "two chips for a seven-stop ramp" rows came from.
+ *
+ * So the metric is plain OkLab again — lightness IS how a viewer tells a dark
+ * brown from an apricot — and the rule asks the same threshold of two different
+ * quantities, because "one suggestion" has two failure modes:
+ *
+ *   1. the two chips point at the same colour IN THE IMAGE  → distance between
+ *      the two STOPS;
+ *   2. the two chips lead to the same PAGE                  → distance between
+ *      the two LABELS' corpus anchors, which is what the destination ranks and
+ *      filters by (tag-search.ts: a colour term admits a palette holding a stop
+ *      within COLOR_MATCH_MAX of the anchor, and ranks by that distance).
+ *
+ * Failing either one makes a pair one suggestion. Test 2 is not a refinement of
+ * test 1: `parchment` and `ivory` sit 0.103 apart at the stops and 0.080 at the
+ * anchors, and page 1 of the two queries shared 7 of 12 results. Nor is test 1 a
+ * refinement of test 2: `dark brown` and `charcoal gray` name two stops 0.068
+ * apart — one dark neutral band in the image — from anchors 0.132 apart.
+ *
+ * WHERE THE ANCHOR NUMBER COMES FROM. Measured over the 867 fixture rows: for
+ * every pair of colour chips that co-occurred on a row, the Jaccard of their two
+ * destinations (the palettes each query admits, computed with tag-search's own
+ * predicate over the same 867), bucketed by the anchor distance:
+ *
+ *   anchor distance   0-.02  .02-.04  .04-.06  .06-.08  .08-.10  .10-.12  .12-.14  .14+
+ *   mean Jaccard      0.42    0.28     0.21     0.18     0.16     0.13     0.12    0.05
+ *
+ * There is no cliff — destinations blur continuously — so the line is drawn
+ * where the overlap approaches the corpus's own background rate for two
+ * unrelated colour words (0.05 at 0.18+, 0.13 at 0.11). Under 0.11 sit every
+ * pair the QA named as one destination: ivory/parchment 0.080, lavender/light
+ * periwinkle 0.102, dark gray blue/charcoal gray 0.046, light peach/wheat 0.019,
+ * and the ten pairs of the five-near-whites row (0.021-0.049).
+ *
+ * WHERE THE STOP NUMBER COMES FROM, and why it is not the same one. The
+ * aggregate is flat across it — swept over the fixture at anchor 0.11:
+ *
+ *   stop sep   colour chips/row   cover err   p90     ends-within   dest Jaccard
+ *   0.100      3.44               0.0358      0.0930  93.8%         0.081
+ *   0.105      3.38               0.0368      0.0946  93.9%         0.080
+ *   0.110      3.34               0.0378      0.0965  93.4%         0.079
+ *   0.120      3.20               0.0404      0.1008  91.2%         0.076
+ *
+ * — the anchor test is doing the destination work, so this one is purely
+ * perceptual and the aggregate cannot choose it. The QA's own verdicts can: the
+ * pairs it called one region top out at 0.1031 (dark gray blue/charcoal gray;
+ * then fuchsia/bright pink 0.1005, parchment/ivory 0.1025) and the pairs it
+ * called two visible regions bottom out at 0.1083 (green teal/seaweed; then
+ * red wine/dull red 0.1097, rose red/deep orange 0.1236). 0.105 is the middle
+ * of that gap, and it is also about twice the corpus's own p90 naming error
+ * (0.0536, measured over the 2,893 emitted chips): below two naming errors
+ * apart, which of two names each stop gets is noise.
+ *
+ * THE FAMILY CLAUSE KEEPS ITS LOWER BAR, at a floor that means something. Two
+ * stops in different hue bands are two colours at a shorter distance than two
+ * stops in one band — a tan beside a sage measures 0.082 and reads as two
+ * regions, while two magentas 0.100 apart read as one hot-pink field — because
+ * OkLab distance near the neutral axis is small for any hue difference, and the
+ * eye is not. The old floor was one JND (0.02), which is noise: it is what put
+ * five near-whites, `light peach` beside `wheat` and three dark neutrals on one
+ * row each. The measured floor is 0.07, and the whole QA batch fits between the
+ * two numbers:
+ *
+ *   BLOCKED, called one region        cross-family  same-family
+ *     five near-whites (ten pairs)     0.021-0.055
+ *     light peach / wheat              0.057
+ *     dark brown / charcoal gray       0.068
+ *     taupe / cement                   0.042
+ *     fuchsia / bright pink                          0.100
+ *     mint / light cyan                              0.097
+ *   ADMITTED, called two visible regions
+ *     burlywood / silver               0.082
+ *     tan / sage (reported palette)    0.080
+ *     rose red / deep orange           0.124
+ *     red wine / dull red                            0.110
+ *     green teal / seaweed                           0.108
+ *
+ * NEUTRAL COUNTS AS A FAMILY here, and does not in the namer: a greige band
+ * beside a brown is two searches (`cement` and `pinkish brown` return different
+ * corpora) where for a NAME it is one colour lightly varied.
+ */
+export const CHIP_SEPARATION = 0.11;
+export const CHIP_STOP_SEPARATION = 0.105;
+export const CHIP_CROSS_FAMILY_SEPARATION = 0.07;
+
+/**
+ * ...and the palette these three numbers are the bar FOR.
+ *
+ * THE DEFECT (QA round 3, 2026-08-18). All three bars were absolute, and a
+ * palette's spread is not. The whole OkLab diameter of a pastel sand-to-thistle
+ * ramp is 0.1425 — smaller than the bar it was being judged by — so its seven
+ * visibly different stations could never yield more than two colour chips, and
+ * a dusty rose / slate blue / pale sage palette (diameter 0.2037, six colours a
+ * viewer can name on sight) emitted `rosy brown | silver`. Measured over the
+ * fixture: the 98 palettes with a diameter in [0.10, 0.20) averaged 2.03 colour
+ * chips and 4.81 labels against 2.99 distinct corpus names available, and
+ * 36.2% of all rows sat at five labels or fewer. At the other end the same
+ * absolute bar was too small: a plum-to-lime ramp of diameter 0.5574 spent
+ * three of its seven chips on one brown stretch (`coffee`, `cocoa`,
+ * `reddish brown`, pairwise 0.095-0.113), and a near-white-to-teal ramp of
+ * diameter 0.63 said `light blue` beside `pale blue`.
+ *
+ * So the question the bar asks becomes the question this system asks everywhere
+ * else (D19): "far apart" is a statement ABOUT THIS PALETTE. The three bars are
+ * the values at a reference spread and the live bar scales with the palette's
+ * own OkLab diameter.
+ *
+ * The reference is the fixture's median diameter, so half the corpus keeps the
+ * numbers measured in the block above and the calibration there still stands
+ * where it was taken. Measured over the 867: min 0.000, p10 0.176, p25 0.266,
+ * p50 0.386, p75 0.526, p90 0.655, max 0.990.
+ *
+ * THE CLAMP is not decoration. Below it a flat palette (19 of the 867 measure
+ * under 0.10, several exactly 0) would drive the bar to zero and chip every
+ * near-identical stop; above it a black-to-white ramp of diameter 0.99 would
+ * drive the same-family bar past 0.26 and refuse to name both ends of its own
+ * value scale. 0.35 puts the floor at 0.037/0.025 — still above the candidate
+ * pass's one-JND floor — and 1.6 puts the ceiling at 0.168/0.112, which is
+ * where the QA's own two-visible-regions pairs start (0.108 at the reference,
+ * 0.173 scaled).
+ */
+export const CHIP_SPREAD_REFERENCE = 0.386;
+export const CHIP_SPREAD_MIN = 0.35;
+export const CHIP_SPREAD_MAX = 1.35;
+
+/**
+ * How much of the reference spread this palette has: the multiplier on all
+ * three separation bars. The diameter (widest pair) rather than a mean or a
+ * span, because the bars are about the widest thing the row has to fit inside.
+ */
+function chipSeparationScale(labs: readonly Oklab[]): number {
+  let diameter = 0;
+  for (let i = 0; i < labs.length; i++)
+    for (let j = i + 1; j < labs.length; j++)
+      diameter = Math.max(diameter, oklabDistance(labs[i]!, labs[j]!));
+  return Math.min(
+    CHIP_SPREAD_MAX,
+    Math.max(CHIP_SPREAD_MIN, diameter / CHIP_SPREAD_REFERENCE),
+  );
+}
+
+/**
+ * The floor the CANDIDATE pass keeps, one level below the selection: two stops
+ * closer than one JND are the same colour by any reading, and naming both wastes
+ * a corpus scan. Everything above it is offered to spanningColors, which is the
+ * row's real rule.
+ */
+const CHIP_CANDIDATE_FLOOR = 0.02;
+
+/**
+ * At most this many colour chips may speak for ONE hue family.
+ *
+ * THE DEFECT (QA round 3, the D22 reported palette recurring). A tan → sage →
+ * pale teal → blue → navy ramp chipped `sea blue | grayblue | dark gray blue |
+ * pale brown | navy blue`: four of five colour chips from the blue band, all of
+ * them clearing every bar (min pairwise stop distance 0.137) because plain
+ * OkLab's longest axis is LIGHTNESS, so one hue can honestly supply four chips
+ * by spanning L while the palette's green middle gets nothing. spanningColors
+ * ranked a novel family (+2) but never capped a repeated one, and a rank only
+ * decides which candidate goes next — it cannot stop the fifth blue when the
+ * greens have already collided out.
+ *
+ * Two, because a family that is genuinely two stations of the image (a mid
+ * teal and a navy) is common and worth two links, and a third is the same
+ * suggestion a third time: over the fixture the third-and-later chip of a
+ * family sat a median 0.148 from its nearest same-family sibling, which is
+ * inside the scaled bar on any palette wide enough to have produced it.
+ * NEUTRAL is a family here for the same reason it is one in the bar above.
+ */
+const FAMILY_CHIPS = 2;
+
+/**
+ * The bucket a chip belongs to for the family clause: one of the corpus's eight
+ * hue bands, or `neutral` when the stop has no usable hue (the same dual
+ * chroma/saturation reading everything else in this system uses, via
+ * stopHasHue) — or when it is too dark to show one, which is gatedFamily's
+ * near-black floor asked of a single stop.
+ *
+ * The floor is why the family CLAUSE is not a hue lottery at the bottom of the
+ * solid. Two black stops of a dark duotone (#000020 at L 0.110 and #170000 at
+ * L 0.128) were being read as blue and red, taking the 0.07 cross-family bar,
+ * and spending two of a row's five colour slots on one black band.
+ */
+const chipFamilyOf = (hex: string): string => {
+  const lch = hexToOkLch(hex);
+  if (lch.L < NEAR_BLACK_L && lch.C < T.FAMILY_CHROMA) return "neutral";
+  return stopHasHue(hex) ? colorFamily(lch.h) : "neutral";
+};
+
+/**
+ * How far the link-label preference below may reach for a plainer word: two
+ * JND, which is what color-utils' NAME_TIE already reaches to correct a
+ * CATEGORY error on the same corpus ("about two JND", measured there over
+ * 5,895 stops). The two are the same kind of correction — a name that is
+ * metrically nearest but wrong for the job — so they get the same reach.
+ *
+ * Measured over the fixture's 110 unsearchable-named stops: at one JND 93 of
+ * them find a replacement and 17 keep the survey word; at two JND 108 move and
+ * 2 keep it (their nearest alternative sits at 0.042). That 15 is the whole
+ * difference and it is the class the owner would notice — "dirty purple" and "mud brown" are exactly the
+ * labels the complaint is about, and their alternatives (dark mauve, chestnut)
+ * sit just past one JND.
+ */
+const CHIP_LABEL_REACH = 0.04;
+
+/**
+ * ...and how far it may reach to correct a CATEGORY error: three JND.
+ *
+ * Further than the reach above, because the two failures cost different things.
+ * A survey word is an ugly label on the right colour; a cross-family name is
+ * the WRONG COLOUR, and the destination makes that concrete — a colour chip's
+ * page ranks by OkLab proximity to the named anchor (tag-search.ts), so
+ * `dark forest green` on a dark teal stop opens on a page of pure greens with
+ * no teal anywhere in it. The corpus already tries this correction inside
+ * nearestNamed and gives up at NAME_TIE; the chip carries on a little further
+ * because it is a promise about where a click leads.
+ *
+ * Measured over the fixture's 6,069 named stops: 84 (1.4%) carry a name from
+ * another family, and 79 of them find a same-family replacement within this
+ * reach — dark forest green -> dark teal (55 degrees of hue error, the reported
+ * case), dark blue gray -> dark indigo, midnight -> dark indigo, purplish gray
+ * -> twilight. At the 0.04 reach 52 move and the reported case is not one of
+ * them (its nearest cyan word sits at +0.0434); at 0.08 all 84 move, for five
+ * more stops and a reach wide enough to cross a lightness band.
+ */
+const CHIP_CATEGORY_REACH = 0.06;
+
+/**
+ * Can this stop answer to a name of that class? The chip's category guard AND
+ * the destination's — one function, because a chip that its own page rejects is
+ * the defect this whole file is about.
+ *
+ * A RADIUS ALONE IS NOT THE WORD, which is where this test comes from. OkLab
+ * distance is small everywhere the gamut is small, and the gamut is smallest
+ * exactly where the neutrals live: at L 0.81 the sRGB ceiling is about 0.05 to
+ * 0.10 depending on hue, so a ball of COLOR_MATCH_MAX around #c0c0c0 encloses
+ * the whole low-chroma neighbourhood at that lightness. Measured on the
+ * reported case, a `silver` chip: 24 of 24 results passed the radius and 4 of
+ * them had a stop a person would call neutral. The other 20 matched on warm
+ * taupe (#ccbeb2), sage (#bdc7ba) and lilac (#bfc0e0) — hues 5 to 284, all
+ * "silver". Over the 867-seed stand-in the guard takes `silver` from 207
+ * palettes to 81.
+ *
+ * `stopHasHue` is the dual absolute/relative reading (D19) every other surface
+ * uses, so a pale sky tint counts as blue and a near-black at the top of its
+ * tiny gamut does not count as teal. A NEUTRAL name matches only stops with no
+ * usable hue, and a coloured name only stops that can claim its family.
+ *
+ * THE NEUTRAL HALF IS SYMMETRIC SINCE QA ROUND 2. It used to exempt neutral
+ * names on the argument that "a name with no colour of its own makes no hue
+ * claim to be wrong about" — but the retrieval filter never agreed: the `silver`
+ * defect made it refuse neutral names on tinted stops (20 of 24 results matched
+ * on taupe, sage and lilac), so a `charcoal gray` chip on a dark teal stop led
+ * to a page its own palette is not on. Measured over the fixture, 97 of 2,895
+ * emitted colour chips (3.35%) failed their own destination's filter this way
+ * before the two rules were made one.
+ *
+ * `colorFamilies` rather than `colorFamily` on the chromatic side: a hue within
+ * eight degrees of a band edge can honestly claim both neighbours, which is the
+ * corpus's answer (FAMILY_EDGE_MARGIN) and stops the guard from firing on a
+ * rounding of the partition.
+ */
+export function stopInClass(hex: string, family: string | undefined): boolean {
+  return !family || stopClasses(hex).has(family);
+}
+
+/**
+ * The classes a stop can answer to: its hue band (both, on a band edge) or
+ * `neutral`. Separate from the predicate above so a caller asking the question
+ * of the whole corpus reads the stop once.
+ *
+ * The near-black floor is gatedFamily's, for gatedFamily's reason, and it has
+ * to be the same floor because these two functions are what the chip and its
+ * destination each ask about a dark stop. Without it a #000800 stop answered to
+ * `green` and not to `neutral`, so an `almost black` chip — the plainest true
+ * word for that swatch — was refused by its own page. 3 such chips over the
+ * fixture, plus `dark blue gray` and `purplish gray` failing the mirror image
+ * of it.
+ */
+function stopClasses(hex: string): Set<string> {
+  const lch = hexToOkLch(hex);
+  if (lch.L < NEAR_BLACK_L && lch.C < T.FAMILY_CHROMA) return NEUTRAL_ONLY;
+  return stopHasHue(hex) ? new Set(colorFamilies(lch.h)) : NEUTRAL_ONLY;
+}
+
+const NEUTRAL_ONLY = new Set(["neutral"]);
+
+/** The class each corpus entry speaks for, for the category guard. */
+const CORPUS_FAMILY = new Map(NAMED_COLORS.map((c) => [c.name, c.family] as const));
+
+
+/**
+ * The row's ceiling, and the colour-name ceiling inside it (D22.B2: "raise the
+ * cap from 6 to about 10-12, but keep the earned-not-padded rule").
+ *
+ * Neither is what actually decides the length. The colour names stop when the
+ * palette runs out of perceptually separate ones (mean 3.38 of a possible 8),
+ * the compounds stop when the co-firing pairs run out, and the single words
+ * stop when the palette's true facts do. Re-measured over the 867 fixture rows
+ * after QA round 2, the row lands at a mean of 5.96 labels
+ * (2/3/4/5/6/7/8/9/10/11 = 4/43/107/186/214/175/94/31/11/2) against 5.24 before
+ * that round and 3.66 under the old cap of 6, and the 12 binds on nothing — the
+ * longest true row is 11. That is the point: the ceiling is a guard rail, not a
+ * target, and a padded row of twelve would be the "white isn't a good suggested
+ * tag" complaint at four times the volume.
+ */
+export const CHIP_MAX = 14;
+/**
+ * ...and the colour-name ceiling inside it, raised from 6 on 2026-08-18.
+ *
+ * The colour axis is the only one whose honest supply scales with the palette:
+ * a palette has exactly one structure, at most two tone words, one temperature
+ * and rarely two families, so a row can only reach D22.B2's "about 10-12" if a
+ * rich palette may name every colour it actually contains. 8 is above the
+ * default view's 7 stops on purpose — it binds on nothing at 7 steps and stops
+ * a 24-step ramp from spending the whole row on colours.
+ */
+const NAME_CHIPS = 8;
+
+/**
+ * At most this many compounds, raised from D17's 2 (D22.B3: "the owner
+ * explicitly wants combo tags; raise their allowance above the current max 2 if
+ * the pairs are genuinely co-firing and non-contradictory"). It is a ceiling,
+ * not a quota, and the measurement says the widened GRAMMAR did the work rather
+ * than the raised cap: 330 of the 867 rows carry a compound where 169 did, and
+ * none reaches three. Two is the practical maximum because a compound's head
+ * must be a family or a structure word, a palette has exactly one structure and
+ * rarely two families, and two compounds may share no word at all. The 3 stays
+ * as the stated allowance so a later registry change (a second family firing,
+ * `forest` shipping) is not silently capped.
+ */
+const COMPOUND_CHIPS = 3;
+
+/**
+ * WHICH WORDS MAY BE A CHIP is the registry's question now (D25.5), and it is
+ * `Characteristic.tagOnly`.
+ *
+ * This used to be a four-word allow-list (`warm`, `cool`, `light`, `vivid`)
+ * bolted onto the NAME's `spoken` flag, because the row drew its facts from the
+ * 22 chip-eligible DESCRIPTORS and `spoken` answers a different question — how
+ * much a name's two slots can afford. The registry answers the chip's question
+ * directly for all 133 terms: a term reaches a row when it is true with margin,
+ * discriminating, and not held back as a measurement rather than a fact. The
+ * four words are all in it and all still chippable; what is gone is the
+ * hand-maintained list.
+ */
+
+/**
+ * The word a CHIP says for a descriptor: the spoken word, then the plain one.
+ *
+ * One word moves, and it is the one D20 already moves for the description:
+ * `complementary` is scheme jargon, PLAIN_WORD maps it to `duotone`, and the
+ * page was printing "duotone" in the prose D20 governs and "complementary" in
+ * the link a visitor is supposed to click. D22.B4 asks for the plainer
+ * searchable term and the house already has one.
+ *
+ * "RETRIEVAL FOLLOWS FOR FREE" WAS FALSE, and QA round 3 measured it: this
+ * docstring used to argue that tag-search's term table, being built from
+ * the registry's word AND its spoken word, would pick the rewrite up — but
+ * `duotone` is the OTHER structure descriptor's word, so `duotone` resolved
+ * only to `duotone` and a complementary palette's own chip led to a page it is
+ * excluded from. 57 emissions over the fixture (29 bare, 28 compounds), the
+ * largest single cause of the 117 self-failing chips on 86 rows.
+ *
+ * So it is exported, and tag-search builds its term table from THIS function.
+ * The chip and its destination now read one dictionary by construction, which
+ * is the only arrangement that cannot drift.
+ */
+export const chipWord = (d: Descriptor) => plainPhrase(spokenWord(d));
+
+/**
+ * The words a COLOUR chip may not wear, because the destination reads them as
+ * another dimension.
+ *
+ * Built from the two vocabularies that outrank the corpus in `resolveTerm`
+ * (tag-search): every registry spelling — the tag word, the spoken word and the
+ * chip word — and the eight family anchors plus their partition. Built here
+ * rather than restated there for the same reason CHARACTERISTIC_TERMS imports
+ * `chipWord`: a word must not be able to become chippable-but-unfilterable by
+ * being added to one list and not the other.
+ *
+ * Measured against the corpus, it removes 11 distinct colour-chip labels that
+ * are also dimension words (`violet`, `ocean`, `blue`, `sand`, `neon`, `light`,
+ * `warm`, `cool`, `vivid`, `pink`, `green`) from the colour axis. Every one of
+ * them still reaches the row through the axis that actually decides it.
+ */
+const RESERVED_LABEL = new Set<string>([
+  ...DESCRIPTORS.flatMap((d) => [d.word, spokenWord(d), chipWord(d)]),
+  ...FAMILY_VOCABULARY,
+]);
+
+// ...and DELIBERATELY NOT the registry's 26 extended hue names, though they are
+// dimension words too (D25.5). 24 of them are corpus entries — `navy`, `teal`,
+// `gold`, `salmon`, `mint` — and they are among the best colour labels the
+// corpus has; reserving them would push a stop with one navy swatch onto a
+// worse word, while the hue-axis term only fires when a QUARTER of the ramp
+// answers to the name. What makes that safe is the destination: `resolveTerm`
+// gives such a label BOTH readings and a palette satisfies it under either, so
+// neither emitter can link to a page its own palette fails.
+
+
+/**
+ * The warm and cool arcs, in OkLCh degrees: the `warm` and `cool` descriptors'
+ * own meanHue bounds (palette-modifiers.ts), restated as BANDS.
+ *
+ * palette-prose.test.js sweeps meanHue over both descriptor tests and asserts
+ * the recovered edges are exactly these four numbers, so the two cannot drift
+ * apart silently — D12's "import registry constants, never copy their values"
+ * with a test standing in for the import, because what the registry exports is
+ * a closure over a mean and what this needs is the band inside it.
+ */
+const WARM_BAND: readonly [number, number] = [330, 120];
+const COOL_BAND: readonly [number, number] = [150, 300];
+
+/**
+ * How much of the palette a temperature chip has to describe: half.
+ *
+ * The registry decides warm/cool from `meanHue`, a CHROMA-WEIGHTED circular
+ * mean, and that is the right answer to "which way does this palette lean" and
+ * the wrong one to "would a person looking at it call it warm". A circular mean
+ * is not robust on a bimodal hue distribution, and the QA round found the case:
+ * a neon rainbow of two magentas (chroma 0.290 and 0.216) against four mint,
+ * aqua and cyan stops (0.05 to 0.10) measures meanHue 3.8 and chipped `warm`
+ * over an image whose right 60% is cool. The registry's own `cooling` tag fires
+ * on the same palette.
+ *
+ * This is not a threshold change: the tag, the name and the prose all still say
+ * what the registry says (D2). It is the chip declining to make a promise the
+ * image does not keep, the same deference palette-name.ts's `structureIsSayable`
+ * already applies to structure words — measured on a dense sample, spoken only
+ * when the visible palette agrees.
+ *
+ * Measured over the 867 fixture rows, of which 711 carry a temperature tag at
+ * all: it removes `warm` from 46 (5.3% of all rows) and `cool` from 21 (2.4%),
+ * 67 rows in total (7.7%). All 67 end with no temperature chip, because the two
+ * registry tests partition the wheel and cannot both fire — that is the cost,
+ * and it is the right one: those rows had a temperature word that half their
+ * own image contradicts. (On five of the 67 a colour NAME still opens with the
+ * word, "cool gray" or "warm gray"; that is the corpus describing one stop, not
+ * the row claiming a temperature.)
+ */
+const TEMPERATURE_CHIP_SHARE = 0.5;
+
+/**
+ * How much of the palette a FAMILY chip has to cover: a third.
+ *
+ * Lower than the temperature bar on purpose. Warm and cool partition the wheel
+ * between them, so half is the only honest majority there; the families are
+ * eight bands, and a third of a palette in one band is already a wide
+ * plurality. Swept over the fixture (rows whose plurality family clears the
+ * bar, before the redundancy guard): 0.25 -> 749, 1/3 -> 520, 0.5 -> 293,
+ * 0.6 -> 159. A quarter is two stops of seven, which is not a family; a half
+ * refuses the word to any palette that spends a third of itself elsewhere,
+ * which is most of the corpus.
+ */
+const FAMILY_CHIP_SHARE = 1 / 3;
+
+/**
+ * ...and how much of the OPPOSITE pole ends the claim, whatever the majority
+ * says (QA round 3).
+ *
+ * A majority is not the whole test, because temperature is the one axis whose
+ * two words are each other's negation. The reported palette measures cool 0.523
+ * and warm 0.432 — a majority, so the bar above passed it — over an image that
+ * runs yellow, mint, cyan, navy, black, maroon, RED, whose two most chromatic
+ * stops are the warm ones (#ff0000 at C 0.258 and #ffe329 at 0.182). Chipping
+ * `cool` there tells a visitor the palette is cool when nearly half of it is
+ * the opposite, and nothing else on the row spoke for the warm half.
+ *
+ * The number is the registry's own two-pole line: `hasSpectrumPoles` calls a
+ * palette a rainbow when both Itten arcs hold a tenth of its chromatic mass,
+ * and warmCoolContrast — this file's own detector, which fires on the reported
+ * palette — draws the same line at a quarter. A quarter of the image being the
+ * other temperature is not a temperature.
+ *
+ * Measured over the 867: 198 rows hold both poles at 0.25 or more, 90 of them
+ * were chipping exactly one temperature word, and those 90 lose it. What they
+ * gain in exchange is the directional colour chip (D23.1), which says the
+ * warm-to-cool journey in the vocabulary a visitor actually searches.
+ */
+const TEMPERATURE_OPPOSITE_MAX = 0.25;
+
+/**
+ * SUBSUMED BY THE PROMINENCE RULE SINCE D25.5, and kept for the day it is not.
+ *
+ * The row's temperature candidates now come from the registry's STRONG band —
+ * 85% of the chromatic mass inside the arc — and the two arcs do not overlap,
+ * so the opposite pole can hold at most 15% and can never reach the quarter
+ * that ends the claim. Measured over the fixture: this gate now removes zero
+ * rows, where it removed 154 when the row took every fired descriptor.
+ * palette-prose.test.js asserts that zero, so a loosened strong band shows up
+ * here as a count rather than as a wrong chip.
+ */
+const temperatureHonest = (word: string, f: PaletteFeatures): boolean => {
+  const band = word === "warm" ? WARM_BAND : word === "cool" ? COOL_BAND : null;
+  const opposite = word === "warm" ? COOL_BAND : WARM_BAND;
+  return (
+    !band ||
+    (hueBandShare(f, band[0], band[1]) >= TEMPERATURE_CHIP_SHARE &&
+      hueBandShare(f, opposite[0], opposite[1]) < TEMPERATURE_OPPOSITE_MAX)
+  );
+};
+
+/**
+ * Survey words a LINK may not carry.
+ *
+ * This is a LINK-LABEL preference and explicitly NOT corpus censorship. The
+ * owner restored these names deliberately (D8: "undo those changes … i don't
+ * care"), they stay in the corpus, they still name stops, and they may still
+ * appear in the palette's description and in its title. What changes is only
+ * what a CHIP says, because a chip is a query and a link: nobody types "ugly
+ * blue" into a palette search, and a row of links captioning the visitor's own
+ * palette with an insult is a row nobody clicks. D22.B4: "among candidate names
+ * within about one JND prefer the plainer, more searchable term (marine blue
+ * over ugly blue)".
+ *
+ * The words are the survey's disgust vocabulary, matched whole. Descriptive
+ * survey words that merely sound unglamorous are NOT in it — `dull`, `drab`,
+ * `murky`, `faded`, `swamp`, `slime`, `dead` all stay, because "olive drab" and
+ * "dull teal" are ordinary design vocabulary and a person does search them.
+ *
+ * `pig`, `bruise` and `icky` joined the list in QA round 2, which found
+ * `pig pink` captioning a pastel rose band (#f698a7). They are the same class
+ * one word wider than the first pass wrote it: the colour named after something
+ * repellent rather than described. The corpus's alternatives sit a rounding
+ * away — for that hex `rose pink` is 0.0005 farther and `faded pink` 0.0025 —
+ * so the cost of the preference here is nothing at all. 8 of the 867 fixture
+ * palettes hold a stop the corpus calls `pig pink`; none of them says it on a
+ * link now.
+ */
+// `bland` and `drab` joined in QA round 5, from a row reading
+// `drab | bland | light blue gray | charcoal`: they are the same class as the
+// bare nouns — a word that does not read as a colour — with a fourth cause,
+// which is that they read as a VERDICT ON THE PALETTE ("this palette is bland")
+// rather than as a name for one of its stops. The corpus barely prefers either:
+// on the reported palette `bland` sits 0.0312 from its stop against
+// `greenish gray` 0.0322 and `putty` 0.0328, both inside CHIP_LABEL_REACH, so
+// the repair has somewhere to go. Bare only — `drab green` and
+// `olive drab green` are ordinary colour names and keep working.
+const UNSEARCHABLE_LABEL =
+  /(^|[ -])(ugly|dirty|muddy|mud|sick|sickly|vomit|puke|poop|poo|barf|snot|booger|piss|diarrhea|gross|nasty|shit|bile|dung|pig|bruise|icky)([ -]|$)/;
+
+/**
+ * GLUED spellings a LINK may not carry.
+ *
+ * The corpus holds ten entries that are one word only because someone wrote
+ * them that way. Four are CSS keywords with a modifier glued on — darkblue,
+ * darkgreen, lightblue, lightgreen — and six glue two COLOUR words together:
+ * bluegray, bluegreen, grayblue, greenblue, orangered, yellowgreen. Nobody
+ * types "grayblue" into a palette search, and the corpus already holds the
+ * spaced vocabulary for the same colours, so this is the same link-label
+ * preference as the list above with an orthographic cause instead of a lexical
+ * one. D22.B4's rule word for word: "among candidate names within about one JND
+ * prefer the plainer, more searchable term".
+ *
+ * The colour+colour half joined in QA round 3, which found the class the first
+ * pass missed: 35 of the 867 fixture rows emitted one, and one row carried
+ * `blue gray` and `grayblue` SIDE BY SIDE — the same two words spaced and
+ * glued, reading as one phrase and leading to two different pages. The plain
+ * alternative is inside CHIP_LABEL_REACH in every case measured (`gray blue`
+ * sits 0.050 from the reported stop against grayblue's 0.033).
+ *
+ * Written as a shape rather than a list so a later corpus paste cannot
+ * reintroduce the class silently; measured against the corpus it matches
+ * exactly those ten entries and nothing else.
+ */
+const UNSPACED_LABEL =
+  /^(dark|light|medium|deep|pale|hot|bright|cool|warm|mid|blue|green|gray|grey|orange|yellow|red|purple|violet|pink|brown|cyan|teal)(blue|green|red|gray|grey|pink|purple|yellow|orange|cyan|violet|brown|salmon|slate|olive|khaki|turquoise|magenta|coral|orchid|goldenrod)$/;
+
+/**
+ * ...and the bare NOUNS the corpus inherited that do not read as a colour.
+ *
+ * Same link-label preference, third cause: a chip has to tell a visitor it is a
+ * colour, and `peru` and `gainsboro` are a country and an English town. Every
+ * other proper noun in the corpus carries a colour word beside it — "carolina
+ * blue", "barbie pink", "tiffany blue", "prussian blue" — and reads as a colour
+ * on sight, so the class is exactly the bare ones. `blood` joined them in QA
+ * round 3, from the same shape and the same evidence: the corpus's own blood
+ * entries that a person would search are `blood red`, `blood orange` and
+ * `dried blood`, all of which carry the colour word, and the bare one was
+ * captioning #720500 where `maroon` sits 0.031 away and `dark red` 0.056. The
+ * corpus keeps all three names and the description may still use them (D8);
+ * this is only what a LINK says.
+ *
+ * Measured over the fixture: 31 palettes hold a stop the corpus calls
+ * `gainsboro` and 14 one it calls `peru`, and both words have a plain
+ * alternative well inside CHIP_LABEL_REACH — `light gray` sits 0.028 from
+ * gainsboro's own hex and `dull orange` 0.019 from peru's. Neither word
+ * appears on a chip row now, and `light gray` labels 25 of them.
+ */
+const OBSCURE_LABEL = /^(peru|gainsboro|blood|bland|drab)$/;
+
+/**
+ * ...and the survey's COINAGES, which are not words at all.
+ *
+ * Fourth cause, and the last of the link-label classes (QA round 3). Two
+ * shapes, both from the xkcd colour survey and both matched against the corpus
+ * so the rule is exactly its measured extent:
+ *
+ *  - a portmanteau nobody spells: `urple` (corpus: `light urple`, the only
+ *    entry, captioning #a875e8 where `medium purple` sits +0.0106 away and
+ *    `light purple` +0.0129 — both inside CHIP_LABEL_REACH);
+ *  - a NEGATION, `off X` (corpus: off blue, off green, off white, off yellow).
+ *    "off yellow" was labelling #ffeb00 — L 0.927, C 0.195, the most saturated
+ *    stop in its palette and the brightest thing in the render — because the
+ *    survey's word for a dirty yellow happens to sit 0.025 from pure yellow.
+ *    A negation is not a query: nobody searching a colour types what it is not.
+ *
+ * This is a LINK-LABEL preference, not corpus censorship, on exactly the terms
+ * the three classes above are: the words stay in the corpus, they still name
+ * stops, and the description and the title may still say them.
+ */
+const COINED_LABEL = /(^|[ -])urple([ -]|$)|^off[ -]/;
+
+/**
+ * Corpus adjectives a LINK may not carry ON THIS PALETTE, because the row
+ * itself says the opposite two chips away.
+ *
+ * CONTRADICTED_BY is the table the NAME already uses for this, and
+ * `toneNameVeto` reads only its loudness half on purpose: for a heading, a
+ * slightly-off adjective inside a colour name is cosmetic, and vetoing every
+ * `faded`/`dusty`/`grayish` name on a vivid palette would rewrite a lot of
+ * honest words for a cosmetic gain.
+ *
+ * A CHIP is not a heading. It is a query whose page ranks by proximity to the
+ * named anchor, so `faded red` on a palette measuring 0.94 mean saturation is
+ * both a contradiction a reader can see (the same row says `vivid` and `vivid
+ * sunset`) and a measurably worse destination: the anchor it ranks by is duller
+ * than anything the palette owns. So the chip reads the WHOLE row, and it can
+ * afford to, because unlike the name it has a bounded repair — the nearest
+ * alternative inside CHIP_LABEL_REACH, or the original word if there is none.
+ *
+ * Temperature is added here and is not in CONTRADICTED_BY, because the name has
+ * no temperature words to contradict: the corpus does ("warm blue", "cool
+ * gray"), and `warm blue` sitting beside a `cool` chip is the same defect in
+ * the same row.
+ */
+const CHIP_CONTRADICTION: Record<string, readonly string[]> = {
+  warm: ["cool"],
+  cool: ["warm"],
+};
+
+/**
+ * The full contradiction veto for a chip label, from the palette's own tags.
+ * Cached like `toneNameVeto`, for the same reason: the editor rebuilds this row
+ * on every slider tick and there are only a handful of distinct answers.
+ */
+const chipVetoCache = new Map<string, ((name: string) => boolean) | undefined>();
+function chipToneVeto(tags: readonly string[]): ((name: string) => boolean) | undefined {
+  const key = tags.join("+");
+  const cached = chipVetoCache.get(key);
+  if (cached !== undefined || chipVetoCache.has(key)) return cached;
+  const banned = new Set<string>();
+  for (const tag of tags) {
+    for (const w of CONTRADICTED_BY[tag] ?? []) banned.add(w);
+    for (const w of CHIP_CONTRADICTION[tag] ?? []) banned.add(w);
+  }
+  const words = [...banned].sort();
+  const veto = words.length
+    ? (() => {
+        const re = new RegExp(`(^|[ -])(${words.join("|")})([ -]|$)`, "i");
+        return (name: string) => re.test(name);
+      })()
+    : undefined;
+  chipVetoCache.set(key, veto);
+  return veto;
+}
+
+/** Where each corpus entry sits, for measuring how far a relabel moved. */
+const CORPUS_LAB = new Map(NAMED_COLORS.map((c) => [c.name, c.lab] as const));
+
+/** ...and the registry's gate for the 26 words that have one. See chipName. */
+const HUE_NAME_GATE = new Map(GATED_HUE_NAMES.map((g) => [g.term, g] as const));
+
+/**
+ * Do two chip LABELS lead to the same page? The destination is a ball of
+ * COLOR_MATCH_MAX around the label's corpus anchor (tag-search.ts), so two
+ * anchors closer than CHIP_SEPARATION are two spellings of one query — measured
+ * over the fixture as destination Jaccard, see CHIP_SEPARATION.
+ *
+ * A name with no anchor cannot be looked up and cannot collide; every label the
+ * row emits is a corpus entry, so that branch is a guard rather than a case.
+ *
+ * `scale` is the palette's own spread against the reference one — see
+ * CHIP_SPREAD_REFERENCE. It defaults to 1 for the callers that ask the question
+ * of two labels rather than of a palette.
+ */
+function anchorsCollide(a: string, b: string, scale = 1): boolean {
+  const la = CORPUS_LAB.get(a);
+  const lb = CORPUS_LAB.get(b);
+  return !!la && !!lb && oklabDistance(la, lb) < CHIP_SEPARATION * scale;
+}
+
+/**
+ * The corpus name for a stop, as a chip may say it. `raw` is the name the
+ * corpus already gave that stop — the row has it in hand, and re-deriving it
+ * costs a second 920-entry scan per candidate: +181us on a row that takes about
+ * a millisecond, on the path the editor re-runs every slider tick. Threaded
+ * through instead. The row costs 2.40ms (median of 20 passes over 200 fixture
+ * palettes), against 1.45ms after QA round 2 and 1.01ms before it. Round 3's
+ * 0.95ms buys the destination test below (asked of all 920 corpus entries on a
+ * repair), the widened redundancy test, and the journey labels; 0.6ms of it was
+ * bought back by testing DISTANCE before rejection in nearestChipName. The
+ * island rebuilds this once per slider tick and a tick has 16ms.
+ *
+ * Implemented through the corpus's own veto mechanism rather than a rename
+ * table, so the replacement carries the same category guard as the original —
+ * the alternative is simply the nearest name that is not one of the words
+ * above.
+ *
+ * NEAREST IN PLAIN OKLAB, not by the corpus's naming rule (QA round 2). The
+ * corpus ranks candidates with a hue-error term, which is right when choosing a
+ * NAME (hue fidelity is what makes a name feel correct) and wrong when choosing
+ * a DESTINATION: a colour chip's page is filtered and ranked by OkLab proximity
+ * to the anchor (tag-search.ts), so the replacement should be the closest
+ * anchor the visitor could be sent to. The reported case is a #a29c5c stop
+ * whose corpus name `baby shit brown` (0.0554) was vetoed and replaced by the
+ * hue-rule's answer `brown yellow` (0.0557) — another survey compound, 0.0003
+ * away — while `dark beige` (0.0316), `dark sand` (0.0352) and `dark gold`
+ * (0.0547) sat closer and unvetoed. Nearest-in-OkLab picks `dark beige`, which
+ * is also the plainer word D22.B4 asks for: on the replacement path the two
+ * preferences point the same way, because the survey's vocabulary is what the
+ * hue rule was reaching past the plain words to reach.
+ *
+ * It only ever fires on those words, and only when the alternative is within
+ * one JND, so it cannot quietly flatten the corpus's specific vocabulary.
+ * Measured over the fixture's 3,437 named stops: 110 (3.2%) carry an
+ * unsearchable word and 108 of them move within CHIP_LABEL_REACH ("ugly blue" →
+ * "peacock blue"/"denim", "dirty blue" → "teal blue", "vomit" → "pea soup
+ * green", "piss yellow" → "maize", "dirty purple" → "dark mauve"). The other 2
+ * keep the survey word because nothing better sits within reach, and nothing
+ * outside the word list moves at all: a true odd name beats a plain wrong one.
+ *
+ * The wider preference was measured and rejected. Ranking every name within one
+ * JND by how "plain" its vocabulary is (head word in BASIC_COLORS, or every
+ * word in an ordinary colour vocabulary) moved 1,360 and 1,722 of the 3,437
+ * instead of 93, and the moves were losses: tangerine → dark orange, fuchsia →
+ * magenta, midnight → dark navy blue, apricot → pale salmon. Specific is what
+ * makes a colour name a good query; only the insults are the problem.
+ *
+ * NULL IS AN OUTCOME (QA round 3). Two of the reasons a label is rejected are
+ * COSMETIC — a survey word, a glued spelling, an adjective the row contradicts,
+ * a name from the wrong family — and for those an unrepairable stop keeps its
+ * best available word, because a slightly odd row beats a missing band. Three
+ * of them are STRUCTURAL: the label duplicates one the row already carries, its
+ * destination is one the row already offers, or it sits farther from its own
+ * stop than COLOR_MATCH_MAX, which is the emitting palette failing its own
+ * chip's filter. There the missing-band argument does not hold — either the
+ * band is already named, or the chip is a link to a page this palette is not
+ * on, which is the exact failure this file exists to prevent (see the
+ * COLOR_MATCH_MAX docstring). So when the repair cannot clear a structural
+ * reason, the caller gets null and the stop simply does not chip.
+ *
+ * Measured over the fixture before this: 51 emitted chips sat beyond
+ * COLOR_MATCH_MAX from the stop they named (`grape purple` on a near-neutral
+ * plum-grey at 0.0886, `dark indigo` on #282333 at 0.097, `almost black` 7,
+ * `dark teal` 5, `dark slate blue` 5) and 117 of 5,294 chips (2.21%) failed
+ * their own destination's filter one way or another.
+ */
+function chipName(
+  hex: string,
+  raw: string,
+  veto: NameVeto | undefined,
+  /** The palette's own contradiction veto; see chipToneVeto. */
+  tone?: (name: string) => boolean,
+  /** Labels already on the row, for the containment repair. */
+  taken: readonly string[] = [],
+  /** The palette's spread against the reference one; see anchorsCollide. */
+  scale = 1,
+  /**
+   * Every stop of the palette, for the destination test. Defaults to the one
+   * stop being named, which is what a caller holding a single swatch can say.
+   */
+  stops: readonly string[] = [hex],
+): string | null {
+  const lab = oklabOf(hex);
+  // ...and a word whose own page would not hold this palette.
+  //
+  // TWO RADII, because the repair and the veto ask different questions. The
+  // REPAIR prefers a name close to the very stop it names — that is what makes
+  // the word feel like a description of that swatch. The VETO asks the
+  // destination's own question, verbatim: `/palettes/{name}` admits a palette
+  // holding ANY stop of the label's class within COLOR_MATCH_MAX of its anchor
+  // (tag-search's termMatch), so a chip is a broken link only when NO stop
+  // qualifies. Asking the stricter question of both was measured and rejected
+  // in QA round 3: it silenced a near-black purple ramp entirely — every corpus
+  // name sits 0.09-0.11 from the stop it named, while `almost black` is 0.050
+  // from the stop two along and its page holds the palette comfortably.
+  const farFromItsOwnStop = (name: string) => {
+    const anchor = CORPUS_LAB.get(name);
+    return !!anchor && oklabDistance(lab, anchor) > COLOR_MATCH_MAX;
+  };
+  // Read ONCE, not once per corpus entry: the repair below asks this of all 920
+  // names, twice, and re-deriving each stop's hue and class set inside that
+  // loop measured +1.6ms on a row that has 16ms of slider tick to live in.
+  const stopFacts = stops.map((h) => ({ lab: oklabOf(h), classes: stopClasses(h) }));
+  const failsItsOwnPage = (name: string) => {
+    const anchor = CORPUS_LAB.get(name);
+    if (!anchor) return false;
+    const family = CORPUS_FAMILY.get(name);
+    return !stopFacts.some(
+      (f) =>
+        (!family || f.classes.has(family)) && oklabDistance(f.lab, anchor) <= COLOR_MATCH_MAX,
+    );
+  };
+  // The classes this stop can answer to, resolved ONCE. `stopInClass` re-reads
+  // the stop's hue, and the repair below asks the question of all 920 corpus
+  // entries — twice, if the first pass finds nothing.
+  const classes = stopClasses(hex);
+  const gated = hexToOkLch(hex);
+  const failsItsGate = (name: string) => {
+    const gate = HUE_NAME_GATE.get(name);
+    return !!gate && !hueNameFits(gate, gated);
+  };
+  const miscategorized = (name: string) => {
+    const family = CORPUS_FAMILY.get(name);
+    return !!family && !classes.has(family);
+  };
+  // See the structural list below. `lch` is this stop; the word is the claim.
+  const temperatureMisread = (name: string) => {
+    const claim = /(^|[ -])(warm|cool)([ -]|$)/.exec(name.toLowerCase())?.[2];
+    if (!claim) return false;
+    const h = hexToOkLch(hex).h;
+    const isWarm = h >= 330 || h < 120;
+    const isCool = h >= 150 && h < 300;
+    return claim === "warm" ? isCool : isWarm;
+  };
+  // The STRUCTURAL reasons, split out because they are the ones an unrepairable
+  // stop may not fall back onto. See the docstring.
+  const structural = (name: string, strict = true) =>
+    redundantWith(name, taken) ||
+    // ...and a name the REGISTRY gates and this stop does not answer to.
+    //
+    // The extended hue names are deliberately not RESERVED_LABEL (see there):
+    // they are among the best colour words the corpus has, and `resolveTerm`
+    // gives such a label both readings so the destination holds the palette
+    // either way. What it does not do is make the WORD true: `mint` is anchor
+    // 165 at chroma 0.08-0.15, and the corpus put it on a #dae9d6 near-white
+    // sage at chroma 0.030 that the registry's own gate refuses — so the chip
+    // named a near-neutral and its page, ranked by the gate, opens on saturated
+    // jade and turquoise. One definition of mint, on both sides of the link
+    // (D25.1).
+    failsItsGate(name) ||
+    // A word the DESTINATION does not read as a colour at all. `resolveTerm`
+    // (tag-search) resolves a query modifier-first, then family, then corpus,
+    // and the vocabularies overlap: `ocean`, `violet`, `blue`, `sand` and
+    // `neon` are corpus entries AND registry or family words. A colour chip
+    // wearing one is answered as the other dimension — measured, an `ocean`
+    // chip on a warm multicolor ramp and a `violet` chip on a palette with no
+    // violet-family stop in it, both refused by their own page. The family
+    // words have a proper emitter (the family backfill below, which fires on
+    // SHARE and is what the destination measures); the registry words have the
+    // fact chips. This is the colour axis declining to borrow their words.
+    RESERVED_LABEL.has(name) ||
+    // ...and a word whose DESTINATION is one the row already offers. Selection
+    // proved the two stops are different colours (spanningColors); a repair
+    // that lands on an anchor inside CHIP_SEPARATION of a label already said
+    // undoes that, and the row carries two links to one page. Measured over the
+    // fixture before this clause: 2 rows of 867 (`dark indigo` beside
+    // `dark navy`, anchors 0.093; `dark olive green` beside `green brown`,
+    // 0.086).
+    // ...at the bar that NEVER RELAXES. `spanningColors` passes its own
+    // `tightOnly` (max(1, scale)) here for the reason recorded there — the ball
+    // a label's page ranks by is a fixed size, so two anchors 0.09 apart open
+    // the same page whatever the palette that emitted them looks like — and
+    // this call was passing the raw scale, which on a flat palette is under 1
+    // and quietly loosened the destination test. Found by the round-5 QA's own
+    // separation assertion when a repair landed on `slate` beside `lichen`,
+    // anchors 0.1070 against a reference bar of 0.11.
+    taken.some((t) => anchorsCollide(name, t, Math.max(1, scale))) ||
+    // ...and a name from the WRONG FAMILY, which QA round 3 moved here from the
+    // cosmetic list. The two-stage repair below still prefers the category over
+    // the radius, so nothing changes while a replacement exists; what changes is
+    // the palette in the sparse corner where none does. `dark forest green` on a
+    // dark teal stop and `dark brown` on a near-neutral olive are not odd words
+    // for the right colour, they are the wrong colour — the destination filters
+    // by exactly this test (stopInClass, one function for both ends), so the
+    // emitter keeping them means printing a link to a page the palette is not
+    // on. 14 chips over the fixture.
+    miscategorized(name) ||
+    // ...and a TEMPERATURE claim the stop's own hue contradicts (QA round 6).
+    //
+    // The corpus holds `warm gray` at h 46.5 and `cool gray` at h 246.8, and on
+    // a near-neutral stop the OkLab lookup is decided almost entirely by
+    // LIGHTNESS: #8b918e measures C 0.008 at h 164.8 — a green-cyan lean, i.e. a
+    // cool gray — and `warm gray` won it at d 0.0244 against `bluish gray`
+    // 0.0407 and `grayish teal` 0.0480, on a palette that had a genuinely warm
+    // neutral one stop away (#676059, h 67.5) and did not use it. The word then
+    // links to /palettes/warm-gray, which the registry answers as the
+    // TEMPERATURE characteristic, so the chip and its destination disagreed
+    // about the palette that emitted them — the thing D25.1 exists to prevent.
+    //
+    // Structural rather than cosmetic for that reason: it is the wrong colour,
+    // not an odd word for the right one. The arcs are the registry's own
+    // (`warm` and `cool` read hueBandShare(330,120) and (150,300)), so a stop in
+    // the two gapped zones contradicts neither word and keeps both.
+    temperatureMisread(name) ||
+    (strict && farFromItsOwnStop(name)) ||
+    failsItsOwnPage(name);
+  // ...and the COSMETIC ones, which an unrepairable stop may keep.
+  const bad = (name: string, strict = true) =>
+    // A word the row has already said the HEAD of. See headStem: the geometric
+    // bars cannot see that `rose` and `rosa`, or three labels ending in `blue`,
+    // are one suggestion.
+    //
+    // COSMETIC, not structural, and the fixture decided that: the neutrals are
+    // a corner of the corpus where almost every name ends in `gray`, so a
+    // structural reading left a sage-gray ramp with ONE chip and a lilac-gray
+    // ramp with one, having refused the only other words either palette had.
+    // The repair still avoids a repeated head wherever the corpus offers an
+    // alternative (which is the case the rule was written for: `ultramarine
+    // blue | dark blue | dark navy blue` becomes `ultramarine blue | navy |
+    // midnight`), and where it offers none the stop keeps its word — a slightly
+    // repetitive row beats a missing band, which is this function's standing
+    // rule for the cosmetic class.
+    headAlreadySaid(name, taken) ||
+    UNSEARCHABLE_LABEL.test(name) ||
+    UNSPACED_LABEL.test(name) ||
+    OBSCURE_LABEL.test(name) ||
+    COINED_LABEL.test(name) ||
+    !!tone?.(name) ||
+    structural(name, strict);
+  if (!bad(raw)) return raw;
+  // Two stages, because the two tests fail differently. A name outside the
+  // destination's radius is a weak link; a name from the wrong FAMILY is the
+  // wrong colour. So when nothing clears both, the radius is dropped and the
+  // category is kept: a #2e270a stop in the corpus's sparsest corner keeps
+  // `dark olive` (yellow, 0.082 from the stop, two thousandths outside the
+  // ball) rather than moving to `dark brown` (orange, 0.034 away and the wrong
+  // band).
+  // A REPAIR MAY NOT INTRODUCE A MEASUREMENT THE RAW NAME DID NOT MAKE (QA
+  // round 6). The repair exists to make a label SEARCHABLE — it swaps a word
+  // nobody types for one they do — and swapping in a different CLAIM is outside
+  // that remit. The filed case: a #dde235 stop (L 0.881, C 0.180, past
+  // VIVID_CHROMA) lost `sickly yellow` to the unsearchable-word rule and landed
+  // on `dull yellow`, twice as far away, so the page's own h1 called the stop
+  // sickly yellow while the chip under it called it dull. `toneNameVeto` cannot
+  // catch it because it is a PALETTE-level contradiction test and this palette
+  // fires neither `vivid` nor `neon` (mean chroma 0.149). The subset test does:
+  // `sickly` is a valence word and carries no loudness claim, so no candidate
+  // carrying one is an acceptable substitute for it.
+  const loudness = (name: string) =>
+    new Set([...name.toLowerCase().matchAll(/[a-z]+/g)].map((m) => m[0]).filter((w) => LOUDNESS_WORDS.has(w)));
+  const rawLoudness = loudness(raw);
+  const addsLoudness = (name: string) =>
+    [...loudness(name)].some((w) => !rawLoudness.has(w));
+  const plain =
+    nearestChipName(lab, (name) => !!veto?.(name) || addsLoudness(name) || bad(name)) ??
+    nearestChipName(lab, (name) => !!veto?.(name) || addsLoudness(name) || bad(name, false)) ??
+    nearestChipName(lab, (name) => !!veto?.(name) || bad(name, false));
+  const from = CORPUS_LAB.get(raw);
+  const to = plain ? CORPUS_LAB.get(plain) : undefined;
+  // A REPEATED HEAD REACHES AS FAR AS A CATEGORY ERROR, and for the same
+  // reason: both are the row saying something it should not, not merely saying
+  // it oddly. Measured over the fixture: at the plain reach 64 rows keep a
+  // repeated head, at this one 41 — and the 41 are the corners where the corpus
+  // has no other word, the neutrals (everything nearby ends in `gray`) and the
+  // blues (`mid blue` beside `cornflower blue`, one hue at two lightnesses).
+  // The alternative was to make the rule structural and drop the second chip,
+  // which the fixture priced at two rows left with no colour chip at all.
+  const reach =
+    miscategorized(raw) || headAlreadySaid(raw, taken)
+      ? CHIP_CATEGORY_REACH
+      : CHIP_LABEL_REACH;
+  const label =
+    from && to && plain && oklabDistance(lab, to) - oklabDistance(lab, from) <= reach
+      ? plain
+      : raw;
+  // The repair may have failed, or landed outside its reach and handed the raw
+  // name back. A cosmetic reason survives that; a structural one does not — at
+  // the DESTINATION's radius (strict: false), because the strict one is a
+  // preference between two true names and this is the test for whether the link
+  // works at all.
+  return structural(label, false) ? null : label;
+}
+
+/**
+ * The corpus entry nearest a colour in plain OkLab, skipping the rejected ones.
+ *
+ * One linear pass over the 920 entries, the same scan `nearestNamed` makes,
+ * without its hue-error weighting — see chipName for why the chip wants the
+ * metric its destination ranks by rather than the one a name is chosen by.
+ */
+function nearestChipName(lab: Oklab, reject: (name: string) => boolean): string | null {
+  let best: string | null = null;
+  let bestD = Infinity;
+  for (const entry of NAMED_COLORS) {
+    // DISTANCE FIRST, rejection second. Only an entry that would win needs to
+    // be tested, and the test is the expensive half: `reject` runs four regexes
+    // plus the row's redundancy and destination checks. Measured over 200
+    // fixture rows, moving the comparison ahead of it takes the row from 2.9ms
+    // to 1.6ms with an identical result — the loop wants the nearest UNREJECTED
+    // name either way.
+    const d = oklabDistance(lab, entry.lab);
+    if (d >= bestD) continue;
+    // The corpus's own label-side exclusions come first: NAMED_COLORS is the
+    // LOOKUP list, and three of its entries (the purple/brown trio) plus
+    // `azure` are deliberately unsayable. Skipping this check put
+    // `purple brown` back on a red-brown stop, which is the defect
+    // color-utils' MISNAMED_LABEL exists for.
+    if (!isLabelName(entry.name) || reject(entry.name)) continue;
+    bestD = d;
+    best = entry.name;
+  }
+  return best;
+}
+
+/** A colour the row could name, and where it sits. */
+interface ChipColor {
+  name: string;
+  /** Ramp index of the stop this name names — the chroma tie-break. */
+  i: number;
+  lab: Oklab;
+  C: number;
+  L: number;
+  /** Hue band, or `neutral`. The family clause in spanningColors. */
+  family: string;
+}
+
+/**
+ * Which of a palette's colours the row names: a set that SPANS it, not the top
+ * of one ramp.
+ *
+ * THE DEFECT THIS EXISTS FOR (D22.B, 2026-08-18). Ranking the candidates by the
+ * chroma of the stop they name (D18) and taking the top N is a ranking without
+ * a diversity term, and on a palette whose chromatic region is all one hue it
+ * returns that region three times. The reported case is a warm tan -> sage ->
+ * teal -> blue -> navy ramp: its three highest-chroma stops are three adjacent
+ * blues (0.0847, 0.0775, 0.0768), so the row read "ugly blue | dirty blue |
+ * marine blue" — three near-synonyms whose result sets would be nearly
+ * identical — while puce (0.0599) and dark navy (0.0581) lost and the palette's
+ * whole warm end vanished from its own chip row.
+ *
+ * So the selection is farthest-point (max-min), the same rule
+ * getUniqueColorNames uses one level down and the same idea as the palette
+ * search's MMR pass: the most chromatic candidate seeds the set (D18 stands —
+ * identity lives in the chromatic stops), and each further name is the one
+ * sitting farthest from every name already chosen.
+ *
+ * TWO ROUNDS, added 2026-08-18 after the second QA pass. Round one admits only
+ * candidates carrying a FAMILY the set does not have yet; round two fills the
+ * remaining budget by distance. Max-min alone is a diversity term over the
+ * whole solid, and the solid's longest axis is lightness, so on a budget it
+ * spent its picks on the dark end and the light end of one hue and dropped the
+ * second hue: a pale palette of pink, peach, cream and yellow-green chipped
+ * pink and cream. Families first is D22.B1's own sentence ("prefer a set that
+ * SPANS the palette, its ends and its distinctive middle") read as an order
+ * rather than as a tie-break.
+ *
+ * The family clause is a RANK and not a lower threshold (QA round 2). Letting a
+ * novel family in at one JND is what put five near-whites, and `light peach`
+ * beside `wheat`, on one row: at that distance the hue angle that assigns the
+ * family is noise. See CHIP_SEPARATION.
+ *
+ * A candidate that fails its floor is SKIPPED, not a reason to stop. The old
+ * loop broke out the moment the farthest remaining candidate fell under the
+ * threshold, so one near-neutral admitted early could end the row while a
+ * genuinely different colour sat behind it: on the reported palette silver came
+ * in at 0.171 and burlywood, 0.082 behind it, ended the loop. The QA round
+ * measured that break costing 127 rows (14.6%) a candidate more chromatic than
+ * the chip that blocked it.
+ *
+ * THE ENDS ARE SEEDED, NOT RANKED (QA round 3). The end bonus above is a
+ * tie-break INSIDE the surviving set, and the collision test is a hard skip
+ * evaluated before it, so an end that lands within the bar of an
+ * already-chosen interior pick was dropped outright and its bonus never ran.
+ * Measured on the reported palette: #593324, hue 42, the only warm station of a
+ * dark rainbow and plainly the left sixth of the image, was skipped because
+ * `chestnut` sits 0.0667 from the interior `dark olive` that had already been
+ * taken; another lost the dark-olive band closing its image to the same rule at
+ * 0.0664. D22.1 asks the set to span "its ends and its distinctive middle", so
+ * the ends go in FIRST and the middle competes for what is left — which is the
+ * same sentence read as an order, exactly as the family clause above was.
+ *
+ * The row is then ORDERED by chroma by the caller, because D18's argument about
+ * which chip a visitor should read first is untouched by any of this. Selection
+ * asks what the palette contains; ranking asks what to lead with — and with the
+ * ends seeded, what leads is still the loudest colour on the row.
+ */
+function spanningColors(
+  candidates: readonly ChipColor[],
+  budget: number,
+  /** The ramp's last stop index, so the two ENDS can be preferred. */
+  last: number,
+  /** The palette's spread against the reference one; see CHIP_SPREAD_REFERENCE. */
+  scale: number,
+  /** Already-chosen chips, for the second pass over the demoted tier. */
+  seeded: readonly ChipColor[] = [],
+): ChipColor[] {
+  const chosen = [...seeded];
+  if (!candidates.length) return chosen;
+  // THE SAME-FAMILY BAR SCALES UP AND NEVER DOWN (QA round 4).
+  //
+  // Round 3 made all three bars scale with the palette's own diameter, and the
+  // two directions of that rule are not the same rule. Scaling UP earned its
+  // keep: a plum-to-lime ramp of diameter 0.5574 was spending three chips on
+  // one brown stretch (`coffee`, `cocoa`, `reddish brown`, pairwise
+  // 0.095-0.113) and the widened bar refuses all three. Scaling DOWN was
+  // written for a different palette — a pastel sand-to-thistle ramp whose
+  // visibly different stations are in DIFFERENT FAMILIES — and on a flat
+  // MONOCHROME it does the damage it was meant to prevent: a single spring
+  // green spanning 5.6 degrees of hue and 0.0475 of chroma emitted
+  // `greenish cyan | aqua green | greenish teal`, three synonyms for one
+  // colour and three links to one page, because its diameter of 0.175 dropped
+  // the same-family bar to 0.0476. A family boundary is what makes two names
+  // two searches; inside one family the reference bar is the floor, whatever
+  // this palette's spread.
+  const tightOnly = Math.max(1, scale);
+  const stopBar = CHIP_STOP_SEPARATION * tightOnly;
+  const crossBar = CHIP_CROSS_FAMILY_SEPARATION * scale;
+  // A NOTE ON WHAT QA ROUND 6 TRIED HERE AND TOOK BACK, so nobody re-adds it.
+  // The round filed `azul | marine | green blue` as three blue words on one
+  // palette, and the obvious fix is to make the Nth name for a family clear N
+  // times the bar. Measured, that is wrong twice over: `green blue` names
+  // #00b59c, which is the CYAN band by this repo's own partition and a visible
+  // teal beside the navy, so the row holds two blues and not three; and the
+  // escalation re-files QA round 2's verdict on the palette that rule was
+  // written for — #03003b -> #c4d7f4, where it dropped `cornflower blue` and
+  // left the middle of a seven-stop ramp unnamed — at a cost of 0.0017 of mean
+  // colour cover over the fixture. Two chips per family is the cap and
+  // `familyFull` is the rule that lifts it; the bar itself does not escalate.
+  const collidesWith = (c: ChipColor, k: ChipColor) =>
+    oklabDistance(c.lab, k.lab) < (k.family === c.family ? stopBar : crossBar) ||
+    // ...and the DESTINATION test never relaxes at all. The ball a label's page
+    // ranks by is COLOR_MATCH_MAX around its corpus anchor, which is a fixed
+    // size: two anchors 0.09 apart open the same page whatever the palette that
+    // emitted them looks like, so this bar is a fact about the corpus and not
+    // about this ramp. It is the test the three reported synonym rows were
+    // clearing — `key lime`/`yellowish green` at 0.0900 against a relaxed
+    // 0.081, `greenish cyan`/`greenish teal` at 0.1034 against 0.0476,
+    // `medium slate blue`/`lavender blue` at 0.0791 against 0.075.
+    anchorsCollide(c.name, k.name, tightOnly);
+  // ...and the cap only binds WHILE ANOTHER FAMILY IS STILL WAITING.
+  //
+  // Both halves are QA verdicts and they contradict each other unless the rule
+  // is conditional. Round 2 looked at a monochrome blue ramp running #03003b to
+  // #c4d7f4 — near-black navy, indigo, royal blue, cornflower, periwinkle, two
+  // pale blues — and called two chips for it a defect: "the mid stops are
+  // visibly their own colours". Round 3 looked at a tan → sage → teal → blue →
+  // navy ramp and called four blue chips a defect. The difference is not the
+  // count, it is what the fourth blue COSTS: on the second palette it costs the
+  // sage and the teal, and on the first there is nothing else to spend the slot
+  // on. So a family may keep taking chips once every other family the palette
+  // holds has been named.
+  const familyFull = (c: ChipColor) =>
+    chosen.filter((k) => k.family === c.family).length >= FAMILY_CHIPS &&
+    candidates.some((o) => !chosen.includes(o) && !chosen.some((k) => k.family === o.family));
+  // The END preference, and the half of it QA round 2 had to take back: an end
+  // whose chroma is less than half the palette's loudest gets no bonus. The
+  // bonus is there so a ramp's extremes are named, and on a palette whose
+  // extreme is a near-white it was spending the slot on the value scale's edge
+  // instead of the palette's own colour — a #ffffd1 cream END beat the
+  // saturated #ffff7d yellow beside it (0.09 apart, so only one could be
+  // said) and a #e2ffff near-white end beat the mint at #aeebd5. Relative, not
+  // absolute, for the same reason stopHasHue is (D19): "washed out" is a
+  // statement about this palette, and CHROMA_FLOOR is far below where this
+  // starts to matter.
+  const loudest = Math.max(...candidates.map((c) => c.C), ...chosen.map((c) => c.C));
+  const isEnd = (c: ChipColor) => (c.i === 0 || c.i === last) && c.C >= loudest / 2;
+  if (!chosen.length) {
+    // The two ends, loudest first so a collision between them keeps the colour
+    // rather than the value-scale edge...
+    for (const end of candidates.filter(isEnd).sort((a, b) => b.C - a.C || a.i - b.i))
+      if (!chosen.some((k) => collidesWith(end, k))) chosen.push(end);
+    // ...and the most chromatic candidate seeds a palette whose ends are too
+    // washed out to qualify (D18: identity lives in the chromatic stops).
+    if (!chosen.length)
+      chosen.push(
+        candidates.reduce((best, c) =>
+          c.C > best.C || (c.C === best.C && c.i < best.i) ? c : best,
+        ),
+      );
+  }
+  while (chosen.length < budget) {
+    let best: ChipColor | null = null;
+    let bestDistance = -1;
+    let bestRank = -1;
+    for (const c of candidates) {
+      if (chosen.includes(c)) continue;
+      // ...and never a third chip for one hue band. See FAMILY_CHIPS.
+      if (familyFull(c)) continue;
+      let nearest = Infinity;
+      let novel = true;
+      let collides = false;
+      for (const k of chosen) {
+        // Two quantities: the stops (one colour in the image, at the bar its
+        // hue bands earn) and the labels' corpus anchors (one destination
+        // page). Failing either makes the pair one suggestion. See
+        // CHIP_SEPARATION.
+        nearest = Math.min(nearest, oklabDistance(c.lab, k.lab));
+        collides ||= collidesWith(c, k);
+        if (k.family === c.family) novel = false;
+      }
+      if (collides) continue;
+      // Rank: a family the row does not hold yet, then an END of the ramp, then
+      // max-min, ties to the more chromatic stop.
+      const rank = (novel ? 2 : 0) + (isEnd(c) ? 1 : 0);
+      if (
+        rank > bestRank ||
+        (rank === bestRank &&
+          (nearest > bestDistance ||
+            (nearest === bestDistance && c.C > (best?.C ?? -1))))
+      ) {
+        bestDistance = nearest;
+        bestRank = rank;
+        best = c;
+      }
+    }
+    if (!best) break;
+    chosen.push(best);
+  }
+  return chosen;
+}
+
+/**
+ * Chip ordering by SLOT, so a compound reads as English (D17): temperature
+ * before tone before family before structure, the same order palette-name.ts
+ * sorts a name's adjectives into. "pastel rainbow", never "rainbow pastel".
  */
 const COMPOUND_SLOT: Record<string, number> = {
   temperature: 0,
-  tone: 1,
+  chroma: 1,
+  value: 1,
   family: 2,
-  structure: 3,
+  harmony: 3,
 };
 
 /**
  * Ranked query labels derived from the description system's TRUE facts, for
- * the chip row under the paragraph. Pure and deterministic so the server
- * render and the island can never disagree.
+ * the chip row on the seed page. Pure and deterministic so the server render
+ * and the island can never disagree.
  *
- * RANKING (D18, after the owner's "white isnt a good suggested tag for this
- * palette. this system needs work"): color names come first because they are
- * the most specific labels a palette has, but ordered by the CHROMA of the
- * stop each one names, not by ramp position. Identity lives in the chromatic
- * stops: on the reported palette (white → warm gray → peach) ramp order put
- * "white" first, and an achromatic endpoint describes the edge of the run
- * rather than the palette. Two demotions follow from the same argument: a name
- * whose stop is achromatic AND extreme in lightness (C < CHROMA_FLOOR with
- * L > 0.9 or L < 0.1), and the four bare universals above, drop to last resort
- * and appear only if fewer than two better labels exist. A grayscale palette
- * therefore still chips — "grayscale" and "monochrome" are exactly right there
- * — and falls back to gray names rather than rendering an empty row.
+ * D22.B made this row the page's navigation surface: the description is no
+ * longer rendered, so these chips are what a visitor uses to leave this palette
+ * for one like it, and what a crawler follows. The owner's brief: "i want to
+ * see a bit more tags that when clicked actually have a good chance of looking
+ * like either the palette or that 'dimension' of the palette that the tag is
+ * describing. combo tags are useful here."
  *
- * Then COMPOUNDS (D17), then single modifier words by descriptorScore, then
- * family words as backfill below three labels.
+ * The row, in order:
+ *  1. The dominant universal, when a flat black or white block IS the palette.
+ *  2. The palette's colours — spanning it, per spanningColors, ordered by the
+ *     chroma of the stop each names (D18).
+ *  3. The journey built out of those colours, in ramp order (D23.1).
+ *  4. Compounds (D17), which outrank their parts: two words are strictly more
+ *     specific than either.
+ *  5. The palette's most PROMINENT characteristics, from the registry
+ *     (D25.5): true, true with margin, discriminating, ranked by information
+ *     content, deduped three ways and capped per axis.
+ *  6. The broad halves of the compounds, while colour still outnumbers fact.
+ *
+ * Steps 1-3 are the colour axis and they have first claim on the budget
+ * (D23.2); steps 4-6 fill what is left.
+ *
+ * DIMENSIONS, not one axis (D22.B3). The kinds are the registry's own axes plus
+ * the three it does not own, and the row takes every kind the palette can
+ * honestly claim rather than filling up on whichever ranks highest. Measured
+ * over the fixture after D25.5: every row carries at least two kinds, 97.1%
+ * three and 84.5% four. By kind, the share of the 867 carrying at least one —
+ * colour 867, journey 818, hue 513, value 460, gradient 290, chroma 275,
+ * compound 260, temperature 199, harmony 187, contrast 139, family 130,
+ * appearance 61. Five of those axes had no chip vocabulary at all before this
+ * round.
  *
  * CRAWL SAFETY: every label comes from a bounded vocabulary — the color-name
- * corpus, the registry's spoken words, the eight family anchors, or a pair of
- * spoken words under the slot grammar — never free text, so the crawl frontier
- * stays finite. Color-name queries are indexable by design (indexableQuery way
- * #2); modifier and compound pages are score-gated to noindex,follow until
- * their corpus is good enough, which still renders and edge-caches. After the
- * pending reindex the embed text literally contains both words of a compound,
- * so exactly the compound pages with genuinely matching corpora clear
- * PUBLISHABLE_SCORE and become indexable, self-selecting on quality.
+ * corpus, the registry's chip-eligible words, the eight family anchors, a pair
+ * of those words under the slot grammar, or (D23.1) two or three corpus names
+ * in ramp order — never free text, so the crawl frontier stays finite. The
+ * journey chips widen the theoretical space to corpus³, and the REACHABLE space
+ * is what matters and is bounded by the palettes: two per row, 1,217 distinct
+ * labels over the 867-seed fixture, each of them a page the tag route
+ * recognizes and filters (recognizeTagQuery accepts at most three terms).
+ * Color-name queries are indexable by design
+ * (indexableQuery way #2); modifier and compound pages are score-gated to
+ * noindex,follow until their corpus is good enough, which still renders and
+ * edge-caches. After the pending reindex the embed text literally contains both
+ * words of a compound, so exactly the compound pages with genuinely matching
+ * corpora clear PUBLISHABLE_SCORE and become indexable, self-selecting on
+ * quality.
  */
+/**
+ * Modifier words that mean the same thing in front of a colour.
+ *
+ * Not a thesaurus and not an opinion: each group is a set of corpus modifiers
+ * the corpus itself uses interchangeably, and the groups are what the numeric
+ * bars cannot see. `light blue` and `pale blue` name stops 0.123 apart with
+ * anchors 0.1106 apart — clear of both bars by a thousandth — and are one
+ * English phrase said twice, which is what a visitor reads. Kept small and
+ * one-directional (lightness, depth, loudness, dullness) so it can never merge
+ * two words that differ in the direction a viewer cares about: `dark blue` and
+ * `light blue` are in DIFFERENT groups and stay two chips.
+ */
+const MODIFIER_SYNONYMS: readonly (readonly string[])[] = [
+  ["light", "pale", "soft", "washed", "baby", "powder"],
+  ["dark", "deep"],
+  ["bright", "vivid", "vibrant", "intense", "neon", "electric"],
+  ["dull", "muted", "faded", "dusty", "dusky", "grayish", "greyish", "murky"],
+];
+const SYNONYM_GROUP = new Map<string, number>(
+  MODIFIER_SYNONYMS.flatMap((group, i) => group.map((w) => [w, i] as const)),
+);
+
 /**
  * Whether a candidate label and a chosen one are the same suggestion, one of
  * them merely qualified: "yellow" beside "sun yellow", "peach" beside "pale
- * peach". A visitor reads that row as two ideas and it is one, which is the
- * arithmetic the compound-parts retirement already fixes a level up. Tested both
- * ways so the ranking decides which survives rather than the insertion order:
- * the color-name pass runs by chroma, so the more coloured stop keeps its word.
+ * peach". A visitor reads that row as two ideas and it is one.
  *
- * Whole-word containment only. "aqua blue" beside "deep sky blue" shares a head
- * and is two genuinely different colours, and both are queries worth offering.
+ * THREE SHAPES, all word-level, because they are the ones no OkLab distance
+ * catches:
+ *
+ *  1. Whole-word containment. "aqua blue" beside "deep sky blue" shares a head
+ *     and is two genuinely different colours, so containment and not a shared
+ *     head is the test.
+ *  2. The same words in a different ORDER: `blue gray` beside `gray blue`.
+ *  3. The same head under SYNONYMOUS modifiers: `light blue` beside `pale
+ *     blue`, `deep purple` beside `dark purple`. QA round 3 found both of the
+ *     new shapes on live rows, and both cleared every numeric bar — 2 and 3
+ *     exist because a bar measures colours and a row is read as English.
  */
+/**
+ * The HEAD of a label — its last word — reduced to the stem two spellings of
+ * one word share.
+ *
+ * THE DEFECT (QA round 5, filed three times). Every separation bar in this file
+ * is GEOMETRIC, and two labels can be far apart in OkLab and still be one word
+ * to a reader: `rose` (#ff0082) beside `rosa` (#ff8ba3) at 0.1724, three blues
+ * on a palette whose hue span is 0.6 degrees (`ultramarine blue | dark blue |
+ * dark navy blue`), `mid blue` beside `cornflower blue` at 0.1529 on hues one
+ * degree apart. Read down a row those are not two suggestions, and the
+ * multi-colour chip built out of the first pair — "rose rosa antique white" —
+ * names one colour twice in one label.
+ *
+ * The stem is the smallest rule that merges the pairs the corpus actually
+ * holds, and it is MEASURED rather than chosen: over the 920 corpus names there
+ * are 248 distinct head words, and this normalization merges exactly two groups
+ * of them — {rose, rosa} and {sand, sandy}. Both are one word spelled twice.
+ * Anything more aggressive would start merging words that are not.
+ */
+const headStem = (label: string): string => {
+  let w = label.toLowerCase().split(" ").pop() ?? "";
+  if (w.length > 3 && w.endsWith("s")) w = w.slice(0, -1);
+  if (w.length > 3 && /[aeoy]$/.test(w)) w = w.slice(0, -1);
+  return w;
+};
+
+/** Has the row already printed a label with this one's head word? */
+const headAlreadySaid = (label: string, labels: readonly string[]): boolean => {
+  const head = headStem(label);
+  return !!head && labels.some((l) => headStem(l) === head);
+};
+
 const redundantWith = (label: string, labels: readonly string[]): boolean => {
   const a = ` ${label.toLowerCase()} `;
+  const aw = label.toLowerCase().split(" ");
   return labels.some((l) => {
     const b = ` ${l.toLowerCase()} `;
-    return a !== b && (a.includes(b) || b.includes(a));
+    if (a === b) return false;
+    if (a.includes(b) || b.includes(a)) return true;
+    const bw = l.toLowerCase().split(" ");
+    if (aw.length !== bw.length) return false;
+    if ([...aw].sort().join(" ") === [...bw].sort().join(" ")) return true;
+    // Same head, and every modifier in front of it swapped for one that means
+    // the same thing.
+    if (aw[aw.length - 1] !== bw[bw.length - 1] || aw.length < 2) return false;
+    for (let i = 0; i < aw.length - 1; i++) {
+      const ga = SYNONYM_GROUP.get(aw[i]!);
+      if (ga === undefined || ga !== SYNONYM_GROUP.get(bw[i]!)) return false;
+    }
+    return true;
   });
 };
+
+/**
+ * ...and the version of that question a FAMILY word has to ask instead: does
+ * the row already say this family, as a family?
+ *
+ * Containment is the wrong test here because it ignores which word is the HEAD.
+ * `green brown` is a BROWN — the corpus's grammar is modifier-then-head, the
+ * same grammar `red orange`, `violet blue` and `dark blue gray` follow — so a
+ * row carrying it has said nothing about green, and suppressing the palette's
+ * `green` family chip left one QA row with four colour names and no dimension
+ * word at all. Measured on the finished rows: 8 of the 867 keep a family chip
+ * that containment would have dropped — `green` beside `green brown`, `violet`
+ * beside `violet blue`, `red` beside `red violet`, `blue` beside `dark blue
+ * gray`, `yellow` beside `yellow ochre` — and none keeps a genuine duplicate,
+ * because `yellow` beside `sun yellow` is still suppressed: there yellow IS the
+ * head.
+ */
+const saysFamily = (word: string, labels: readonly string[]): boolean => {
+  const w = word.toLowerCase();
+  return labels.some((l) => {
+    const parts = l.toLowerCase().split(" ");
+    return parts[parts.length - 1] === w;
+  });
+};
+
+/**
+ * One colour chip: the word a visitor reads and the stop it speaks for.
+ *
+ * Exported because the stop is not recoverable from the word — the link-label
+ * repairs below can move a label off the name its stop produced — and both the
+ * tests and any future surface that wants to highlight the swatch a chip names
+ * would otherwise have to reimplement three repairs and a tiering rule to
+ * guess. One answer, one place.
+ */
+export interface ChipColorPick {
+  label: string;
+  /** Index into `named.stops`. */
+  stop: number;
+  /** ...and that stop in OkLab, so the journey label can ask how far it went. */
+  lab: Oklab;
+  /**
+   * A demoted name (a bare universal, or a stop below L 0.1) offered only so a
+   * palette whose whole vocabulary is "white and black" still gets a row. The
+   * caller emits these last, and only while the row is nearly empty.
+   */
+  lastResort?: boolean;
+}
+
+/**
+ * The colours the chip row names, in the order it says them.
+ *
+ * `taken` is whatever the row has already said (the dominant plateau word),
+ * because the containment repair has to see it.
+ */
+export function chipColors(
+  named: NamedPalette,
+  tags: readonly string[],
+  taken: readonly string[] = [],
+): ChipColorPick[] {
+  // The candidate colours: the palette's DISTINCT names, not its raw stops.
+  //
+  // At 7 or 13 steps the stops are a run of near-synonyms, and the candidate
+  // list has to be the question "what different colours are in this palette",
+  // which getUniqueColorNames already answers by farthest-point selection over
+  // the ramp with the ends seeded. NOT named.colorNames, which is the two to
+  // four names the TITLE could fit: a palette whose left half is mint, cyan and
+  // cobalt offered "red | sun yellow | yellow" with no blue label at all
+  // (measured: 623 of the 867 fixture palettes had at least one distinct stop
+  // name that could never reach the row).
+  //
+  // The veto is the palette's own (see toneNameVeto): a name the title is not
+  // allowed to use is not a search suggestion either, and the top chip on a
+  // vivid sunset linked to /palettes/pastel-red.
+  //
+  // Which stop each name names is recovered by naming the stops again with the
+  // same corpus function — hexToColorName and getUniqueColorNames both go
+  // through nearestNamed, so the first stop answering to a label is exactly the
+  // stop that produced it, and ramp order is the tie-break the ranking wants.
+  // One naming pass over the stops rather than one per label: the row is
+  // rebuilt on every slider tick in the editor, and the corpus is 920 entries.
+  const veto = toneNameVeto(tags);
+  const stopNames = named.stops.map((hex) => hexToColorName(hex, veto));
+
+  // The lightness half of D18's demotion carries no chroma condition at the
+  // dark end since 2026-08-18. D18 wrote it as "achromatic AND extreme", and a
+  // visually pure black measures C 0.053 at 100% saturation (OkLab's cube root
+  // again), so #00000f chipped as "midnight" and ranked SECOND on a palette
+  // whose image is dominated by an orange and a deep red. Below L 0.1 a stop is
+  // black to a viewer whatever its hue says, and a black name tells a visitor
+  // nothing about this palette.
+  const demoted = (s: ChipColor) => UNIVERSAL_NAMES.has(s.name.toLowerCase()) || s.L < 0.1;
+
+  // ...and a THIRD tier between demoted and chosen, added 2026-08-18. D18's
+  // near-white clause (achromatic and L > 0.9) is right about "white" and wrong
+  // about the palettes where the near-white IS the subject: a high-key pastel
+  // whose light two thirds run cream to oyster had its only light-end names
+  // dropped and chipped one colour, and a pink-to-cream ramp lost `linen` and
+  // `ivory` — all three perfectly ordinary searches — with eight free slots on
+  // the row. So the clause stops being a demotion to last resort and becomes an
+  // ORDER: the near-whites are chosen after the coloured stops and only while
+  // the budget is still open. The dark half stays hard, and so does the
+  // universals list, which is what D18's own test pins.
+  const paleTier = (s: ChipColor) => s.C < T.CHROMA_FLOOR && s.L > 0.9;
+
+  const candidates: ChipColor[] = [];
+  const pale: ChipColor[] = [];
+  const lastResort: ChipColor[] = [];
+  const tone = chipToneVeto(tags);
+  for (const name of getUniqueColorNames([...named.stops], {
+    max: named.stops.length,
+    veto,
+    // A CANDIDATE pass, not a selection: spanningColors below is the row's real
+    // rule, and anything dropped here the row can never consider. So the bar is
+    // the noise floor, not CHIP_SEPARATION — the namer's job (keep a run of
+    // near-synonyms from each claiming a slot) is done one level up by the
+    // selection, and doing it twice is what hid a saturated yellow block behind
+    // the cream beside it. Plain OkLab, which is the selection's metric too, so
+    // the two passes agree about what "apart" means.
+    minSeparation: CHIP_CANDIDATE_FLOOR,
+  })) {
+    const i = stopNames.indexOf(name);
+    const hex = i >= 0 ? named.stops[i]! : null;
+    if (!hex) continue;
+    const lch = hexToOkLch(hex);
+    // The label the CHIP would carry, which is not always the name the corpus
+    // gave the stop (see chipName). Applied before selection so the row's
+    // dedupe and its redundancy check both see the words a visitor will read —
+    // and null when no word in the corpus can name this stop at a distance its
+    // own destination would accept, which is not a chip at all.
+    const label = chipName(hex, name, veto, tone, [], 1, named.stops);
+    if (!label) continue;
+    const candidate = {
+      name: label,
+      i,
+      lab: oklabOf(hex),
+      C: lch.C,
+      L: lch.L,
+      family: chipFamilyOf(hex),
+    };
+    // Demotion is tested on BOTH names, the corpus's and the chip's. They
+    // differ only where the link-label preference moved the word, and a repair
+    // that landed on a bare universal would otherwise walk past the D18 rule
+    // that keeps "white" and "black" out of the row.
+    if (demoted(candidate) || demoted({ ...candidate, name })) lastResort.push(candidate);
+    else if (paleTier(candidate)) pale.push(candidate);
+    else candidates.push(candidate);
+  }
+
+  const last = named.stops.length - 1;
+  // How wide this palette is, against the palette the bars were measured on.
+  // Over the STOPS rather than over the candidates: the candidates are already
+  // a separated subset, so measuring their diameter would let the previous
+  // pass's decisions move this one's bar.
+  const scale = chipSeparationScale(named.stops.map(oklabOf));
+  const strong = spanningColors(candidates, NAME_CHIPS, last, scale);
+  const chosen = (
+    strong.length < NAME_CHIPS && pale.length
+      ? spanningColors([...candidates, ...pale], NAME_CHIPS, last, scale, strong)
+      : strong
+  ).sort((a, b) => b.C - a.C || a.i - b.i);
+
+  // Two spanning colours can still collide as WORDS: `blood` and `blood orange`
+  // sit 0.335 apart and share a head, and dropping one for the other cost a
+  // palette its whole dark maroon band. Selection already proved they are two
+  // colours, so the repair is the label, not the chip — the nearest name inside
+  // CHIP_LABEL_REACH that does not collide, and the original word when there is
+  // none, because a slightly odd row beats a missing band.
+  const out: (ChipColorPick & { rank: number })[] = [];
+  const said = [...taken];
+  // THE ENDS RESOLVE THEIR LABEL FIRST (QA round 5).
+  //
+  // The row is ORDERED by chroma (D18) and until now it was also RESOLVED in
+  // that order, which does not matter until two picks compete for a word — and
+  // with the head-word rule they do. A #44caff sky-blue END and a duller
+  // interior blue both wanted a label ending in `blue`, the interior one is
+  // more chromatic, and it took the word: the row lost its first stop and the
+  // journey chip then had nothing to start from. Selection already treats the
+  // ends as the picks that must be there (see spanningColors); resolution now
+  // agrees, and the display order is restored afterwards so D18's argument
+  // about what a visitor reads first is untouched.
+  const chosenOrder = new Map(chosen.map((c, i) => [c, i] as const));
+  const resolveOrder = [...chosen].sort(
+    (a, b) =>
+      (a.i === 0 || a.i === last ? 0 : 1) - (b.i === 0 || b.i === last ? 0 : 1) ||
+      chosenOrder.get(a)! - chosenOrder.get(b)!,
+  );
+  // ...and the demoted names last, flagged: a palette whose whole vocabulary is
+  // "white and black" still needs a row rather than an empty nav. Never fires
+  // over the fixture — the rows that show a universal show it because the
+  // plateau IS the palette — but the editor reaches states the sitemap never
+  // sampled, and an empty nav is the one outcome this row may not have.
+  for (const c of [...resolveOrder, ...lastResort]) {
+    const label = chipName(named.stops[c.i]!, c.name, veto, tone, said, scale, named.stops);
+    if (!label || said.some((l) => l.toLowerCase() === label.toLowerCase())) continue;
+    said.push(label);
+    out.push({
+      label,
+      stop: c.i,
+      lab: c.lab,
+      rank: chosenOrder.get(c) ?? chosen.length,
+      ...(chosenOrder.has(c) ? {} : { lastResort: true }),
+    });
+  }
+  return out
+    .sort((a, b) => a.rank - b.rank)
+    .map(({ rank: _rank, ...pick }) => pick);
+}
+
+/**
+ * At most this many directional / multi-colour chips (D23.1's own cap).
+ *
+ * Two is also all the grammar can make: one pair for the journey's two ends and
+ * one list for the stations in between, and a third would have to repeat a
+ * colour that is already in one of them.
+ */
+const DIRECTIONAL_CHIPS = 2;
+
+/**
+ * How many colours the LIST form may carry. Three is the shape that measured
+ * best live: /palettes/salmon-teal-turquoise is the top palette page by
+ * impressions in the peer session's GSC pull, and the multi-colour query path
+ * already routes.
+ */
+const MULTI_COLORS = 3;
+
+/**
+ * The journey chips: "{colorA} to {colorB}", and the multi-colour list beside
+ * it (D23.1).
+ *
+ * THE EVIDENCE. This is the one query shape the GSC data actually contains that
+ * the site was not emitting: "grey to white gradient", "white to green
+ * gradient", "white to green gradient minecraft", "salmon and teal" at position
+ * 9.5. Every colour query in that pull carries a head noun, and the chip
+ * destinations already append one ("Salmon teal gradient palettes — …"), so the
+ * only missing half was the chip itself.
+ *
+ * RAMP ORDER, NEVER REORDERED: the label is a claim about which way the
+ * gradient travels, so the colours are taken by stop index and not by chroma,
+ * and the two ends of the CHIP SET are the two ends of the journey it can
+ * honestly name. The names come from the spanning selection, so they arrive
+ * already separated (a "blue to blue" is impossible by construction — the
+ * selection proved the two stops are different colours) and already carrying
+ * the link-label repair.
+ *
+ * The list form needs three DIFFERENT colours and is skipped below that, where
+ * it would only be the pair again with the word "to" removed — the recognizer
+ * steps over the join, so "salmon to teal" and "salmon teal" are one
+ * destination and would be two links to it.
+ *
+ * It also needs to READ as a list, which is a constraint on the labels and not
+ * on the colours: with nothing separating the items, "dark olive marine blue
+ * vibrant blue" is a sentence with the punctuation missing and repeats `blue`
+ * twice. So each item is at most two words and no two items may share one. The
+ * pair form has no such limit because "to" does the separating.
+ */
+function directionalLabels(
+  colors: readonly ChipColorPick[],
+  /** ...including the DEMOTED picks, which is the ENDS rule below. */
+  picks: readonly ChipColorPick[],
+  features: PaletteFeatures,
+): string[] {
+  const ramp = [...colors].sort((a, b) => a.stop - b.stop);
+  if (ramp.length < 2) return [];
+  // A "{A} to {B}" IS A CLAIM ABOUT WHERE THE GRADIENT ENDS (QA round 5).
+  //
+  // The caller hands this the chip set with the DEMOTED picks removed, so the
+  // label takes the ends of the surviving chips and not the ends of the
+  // palette: an apricot -> red -> pure #000000 fade, a quarter of whose
+  // rendered band is the black plateau and the most striking thing in the
+  // image, was labelled "apricot to mahogany" — mahogany being stop 4 of 7,
+  // with the two black stops unnamed because `black` is a demoted word (D18).
+  // A journey that stops short of the picture's own end is a different journey.
+  //
+  // The test is the row's own knowledge, not a distance: `chipColors` already
+  // produced a name for that black — it demoted it (D18 keeps bare universals
+  // and sub-L-0.1 stops off the row) rather than failing to see it. So a
+  // demoted pick lying BEYOND either end of the journey is the row saying, in
+  // its own vocabulary, that the gradient goes somewhere this label does not
+  // mention. A distance bar was tried first and rejected: at CHIP_SEPARATION it
+  // took the journey chip off 125 rows including "light brown to almost black",
+  // which is a correct description of a ramp whose last stop is 0.115 darker
+  // than the one it names.
+  const beyond = (stop: number) =>
+    picks.some((p) => p.lastResort && (p.stop < ramp[0]!.stop || p.stop > stop));
+  if (beyond(ramp[ramp.length - 1]!.stop)) return [];
+  // A CYCLIC PALETTE HAS NO "A TO B" (QA round 4). `seamless` says the two ends
+  // meet inside a JND — the same row prints it — so a journey label would have
+  // the page claiming both that the gradient loops and that it runs from one
+  // colour to another. Worse, the two ends of the CHIP SET are interior stops
+  // on such a palette: a violet -> gold -> pale lime -> green -> violet loop
+  // (endsDistance 0.0000) was labelled "blue violet to sapphire", two blue
+  // stops out of seven, with the gold and the lime that are the whole visible
+  // middle left out of it. The threshold is the `seamless` descriptor's own, so
+  // the guard and the chip it defers to cannot disagree.
+  if (features.seam < THRESHOLDS.SEAM_TOLERANCE) return [];
+  // The pair is a QUERY naming two colours, so the two have to be two queries
+  // at the REFERENCE bar and not merely at this palette's scaled one. The
+  // scaled bar is what lets a flat palette name its own stations — right for a
+  // single colour chip, wrong here, because "medium gray to dim gray" is a
+  // journey nobody took and a search nobody runs. Unscaled, and the pair is
+  // simply dropped when it fails: a palette that goes nowhere has no journey
+  // chip.
+  if (anchorsCollide(ramp[0]!.label, ramp[ramp.length - 1]!.label)) return [];
+  // ...and NEARLY cyclic is cyclic enough (QA round 6). The `seamless` bar
+  // above is 0.02 - the ends meet inside a JND - and the palettes that go out
+  // and come back land just outside it: the filed one runs #2c0059 (a near-black
+  // violet) out through magenta, orange, pale khaki and green to #000061 (a
+  // near-black navy), ends 0.0889 apart, and printed "warm purple to dark royal
+  // blue" over an image whose story is the ARCH the same row separately names
+  // with `bright-middle rainbow`. Neither end is where the label says the
+  // gradient went.
+  //
+  // CHIP_SEPARATION is the right bar because it is the row's own answer to "are
+  // these two colours or one": two labels closer than it are two spellings of
+  // one query (measured as destination Jaccard, see CHIP_SEPARATION), and a
+  // journey whose two ends are one colour is not a journey. Measured over the
+  // fixture, it takes the pair off 40 further rows, every one of them a palette
+  // that returns to within a chip's width of where it started.
+  if (features.seam < CHIP_SEPARATION) return [];
+  // ...and the two ends may not share a WORD. The comment above claims a
+  // "blue to blue" is impossible by construction because the selection proved
+  // the two stops differ; the fixture disproved it. `candy pink` (#ff63e9,
+  // h 331) and `faded pink` (#de9dac, h 4) are 0.1754 apart, two colours by
+  // every bar the selection applies — and the label reads "candy pink to faded
+  // pink", which is pink to pink. The list form has carried this rule since
+  // D23.1; the pair needs it for the same reason, and "to" does not do enough
+  // separating to save it.
+  if (!distinctWords([ramp[0]!.label, ramp[ramp.length - 1]!.label])) return [];
+  const out = [`${ramp[0]!.label} to ${ramp[ramp.length - 1]!.label}`];
+  // ...AND THE LIST FORM IS NOT THE PAIR WITH A WORD PUT IN THE MIDDLE (QA
+  // round 6, the D22 near-duplicate rule).
+  //
+  // Both labels are built from the same `ramp`, so whenever both are emitted
+  // the list starts with the pair's A and ends with its B — measured over the
+  // fixture, 454 of the 867 rows printed both and on every single one of them
+  // the list restated the pair's two ends. Read down a row that is
+  // `dark navy to mid blue | dark navy sapphire mid blue`: the same journey,
+  // twice, for two of the row's slots. Their pages are near-duplicates too
+  // (page-1 Jaccard 0.500 through the real recognizer + filter path), which is
+  // exactly the pair D22 refuses.
+  //
+  // WHICH ONE GOES, and it is measured rather than judged. Both were run
+  // through the whole path over the fixture's own labels (40 of them, 20 pairs
+  // and their 20 lists) and scored by whether page 1 holds a stop inside
+  // COLOR_MATCH_MAX of EVERY colour the label names: the pair scores
+  // precision@24 0.072 and the list 0.058. That ordering is structural, not a
+  // sample — a three-term AND is satisfied by strictly fewer palettes than the
+  // two-term AND it contains, so the list's page degrades into partial credit
+  // sooner. The pair also carries the DIRECTION, which is a fact about the
+  // gradient the list cannot express, and "to" does the separating that D23.1's
+  // own two-word rule exists to compensate for.
+  //
+  // The list form is NOT deleted: D23.1 keeps it because
+  // /palettes/salmon-teal-turquoise is the best-performing palette page by
+  // impressions, and it still emits on the rows where the pair cannot be made
+  // (the ends collide as queries, or share a word). It simply never rides
+  // beside the journey it is a restatement of.
+  if (ramp.length >= MULTI_COLORS && out.length === 0) {
+    // The stations, sampled by STOP POSITION rather than by chip index (QA
+    // round 5). "Evenly sampled across the ramp" was the intent and the index
+    // was not it: on a four-pick row the middle element is the third chip in
+    // ramp order, which on a navy -> black -> red -> orange -> cream -> cyan
+    // sweep was a one-stop pale cream while the red-and-orange stretch filling
+    // a third of the band appeared in neither journey chip. The middle station
+    // is now the pick nearest the MIDDLE STOP of the journey it describes.
+    const middle = (ramp[0]!.stop + ramp[ramp.length - 1]!.stop) / 2;
+    const mid = ramp.reduce((best, c) =>
+      Math.abs(c.stop - middle) < Math.abs(best.stop - middle) ? c : best,
+    );
+    const picked = [ramp[0]!, mid, ramp[ramp.length - 1]!].map((c) => c.label);
+    if (
+      new Set(picked).size === MULTI_COLORS &&
+      picked.every((l) => l.split(" ").length <= 2) &&
+      distinctWords(picked)
+    )
+      out.push(picked.join(" "));
+  }
+  return out.slice(0, DIRECTIONAL_CHIPS);
+}
+
+/**
+ * The STORED temperature-journey word, if the caller handed the row its base
+ * tags (D25.2: read the indexed tag, never recompute it).
+ *
+ * Threading it through `tags` rather than adding a parameter is what keeps the
+ * server render and the editor island honest: both call this with the tag list
+ * they already hold, and a caller that has no coefficient analysis (the island
+ * mid-drag) simply gets no journey chip rather than a second, serve-time
+ * answer that could disagree with the index.
+ */
+/** No two of these labels may lean on the same word — see directionalLabels. */
+const distinctWords = (labels: readonly string[]): boolean => {
+  const words = labels.flatMap((l) => l.split(" "));
+  return new Set(words).size === words.length;
+};
+
+const journeyTag = (tags: readonly string[]): "warming" | "cooling" | null =>
+  tags.includes("warming") ? "warming" : tags.includes("cooling") ? "cooling" : null;
+
+/**
+ * May this registry term take a chip slot on THIS row?
+ *
+ * Everything about the term itself — is it true, is it true with margin, is it
+ * discriminating, does another term already imply it, has its axis had its two
+ * — is the registry's answer (`chipCharacteristics`). What is left is the
+ * question only the finished row can answer: would this word repeat something
+ * the row has already printed, in a vocabulary the registry cannot see?
+ *
+ * Three rules, each of them older than the registry and each kept for the
+ * defect it was written for:
+ *
+ *  1. TEMPERATURE HONESTY. `warm` and `cool` are mean-hue claims and a chip is
+ *     a picture claim; see temperatureHonest.
+ *  2. THE FAMILY AND HUE-NAME RULES. A hue-axis term is a COLOUR query, so it
+ *     competes with the colour chips: it may not repeat a label's head word
+ *     (`saysFamily`), may not lead to the same page as one (`anchorsCollide`
+ *     at the reference bar — a destination is a destination whatever this
+ *     palette's spread is), and a FAMILY word may not stand for a band whose
+ *     every stop a colour chip has already named. What is deliberately not
+ *     suppressed is the broad word beside a specific one: `blue` beside
+ *     `cerulean` on a palette with three blue stops is a different page (the
+ *     family branch ranks by SHARE over the whole palette, the colour branch by
+ *     proximity to one anchor) and, per D23's GSC pull, the higher-demand of
+ *     the two.
+ *  3. NOTHING THE ROW ALREADY SAYS. The check runs against the FACT labels
+ *     only, never against the colour names — the corpus is full of names that
+ *     contain a modifier word ("warm purple", "light blue", "pale rose") and
+ *     comparing across the two vocabularies made a colour chip swallow the
+ *     palette's temperature.
+ */
+function factFits(
+  c: Characteristic,
+  features: PaletteFeatures,
+  ctx: CharacteristicCtx,
+  named: NamedPalette,
+  labels: readonly string[],
+  chipped: ReadonlySet<number>,
+): boolean {
+  if (!temperatureHonest(c.term, features)) return false;
+  // THE DOMINANT UNIVERSAL ALREADY SAID IT (QA round 6). The row leads with a
+  // bare `white` or `black` when a plateau IS the palette (see PLATEAU_DOMINANT
+  // above), and on those rows `near-white` and `near-black` are the same
+  // observation one notch weaker: the solid-white palette printed
+  // `white | ... | near-white | low-contrast` for an image that is #ffffff seven
+  // times. Narrow on purpose - it fires only against the bare universal the row
+  // itself added, never against a corpus name that happens to contain the word,
+  // which is the confusion rule 3 below was written to avoid.
+  if (c.term === "near-white" && labels.includes("white")) return false;
+  if (c.term === "near-black" && labels.includes("black")) return false;
+  if (c.axis === "hue") {
+    if (saysFamily(c.term, labels)) return false;
+    if (labels.some((l) => anchorsCollide(c.term, l))) return false;
+    if (regionAlreadyNamed(c, ctx, chipped)) return false;
+  }
+  return true;
+}
+
+/**
+ * Has a COLOUR CHIP already named the part of the palette this hue word is
+ * about? (QA round 4.)
+ *
+ * This is the largest single redundancy the round measured: 355 of the 867 rows
+ * — 40.9% — carried a registry hue or family chip repeating the family of a
+ * colour chip already on the row, 424 chips in all. Read down a row it is
+ * `cerulean blue | indigo | bright sky blue | ultramarine | azure` (five blue
+ * words on a palette whose blue share is 0.71) or `sky | light lavender |
+ * violet | blue`, and every one of those words leads to a page of blue
+ * palettes.
+ *
+ * The rule this replaces asked whether EVERY stop of the family had been
+ * chipped, which almost never happens on a seven-stop ramp: one unchipped blue
+ * stop out of four kept `blue` on the row. The question a reader is actually
+ * asking is whether the row has already said this colour, so the test is now
+ * "does any chip name a stop in the same family as the stops this word speaks
+ * for". It is deliberately family-level rather than label-level: `azure` and
+ * `cerulean blue` are different words for the same region of the same palette.
+ *
+ * WHAT THIS GIVES UP, stated because it was a deliberate decision the other way
+ * until now: `blue` beside `cerulean` is a different destination (the family
+ * branch ranks by share over the whole palette, the colour branch by proximity
+ * to one anchor) and, per D23's GSC pull, the higher-demand of the two. It
+ * survives exactly where the colour chips did NOT reach that family — a palette
+ * whose blue is real but whose chips spent themselves elsewhere still says
+ * `blue`, which is the case the broad word was for.
+ */
+/** The eight bands in wheel order, for the adjacency test in regionAlreadyNamed. */
+const FAMILY_RING: readonly string[] = [
+  "red",
+  "orange",
+  "yellow",
+  "green",
+  "cyan",
+  "blue",
+  "violet",
+  "magenta",
+];
+
+/**
+ * ...and where `gatedFamily`'s three extra rungs sit on it.
+ *
+ * brown, purple and pink are TONE GATES on a band rather than bands of their
+ * own - research-colorTheory measured them through this repo's conversion as
+ * brown IS orange (h 54.7), sRGB purple IS magenta (h 328.4), pink is a tint
+ * region of red - so on the wheel they occupy their parent's slot. Without this
+ * the adjacency test below reads them as off-ring and gives up, which is how a
+ * `purple` word survived between a magenta chip and a violet one.
+ */
+const FAMILY_RING_OF = (family: string): string =>
+  family === "brown" ? "orange" : family === "purple" ? "magenta" : family === "pink" ? "red" : family;
+
+function regionAlreadyNamed(
+  c: Characteristic,
+  ctx: CharacteristicCtx,
+  chipped: ReadonlySet<number>,
+): boolean {
+  const gate = GATED_HUE_NAMES.find((g) => g.term === c.term);
+  // The stops this word speaks for: its own family band, or the stops its gate
+  // fits. A word with no region on this palette is not repeating anything.
+  const region = ctx.families
+    .map((f, i) => (gate ? hueNameFits(gate, ctx.stops[i]!) : f === c.term))
+    .flatMap((hit, i) => (hit ? [i] : []));
+  const said = new Set([...chipped].map((i) => ctx.families[i]).filter(Boolean));
+  if (region.some((i) => ctx.families[i] && said.has(ctx.families[i]!))) return true;
+  // ...AND A WORD SANDWICHED BETWEEN TWO CHIPS OF ITS OWN SUPERFAMILY (QA
+  // round 6).
+  //
+  // The test above is family-level, and the eight-band partition splits a
+  // continuous purple run across THREE of its bands: #984568 is magenta,
+  // #660086 is violet, and the stops between them answer to `purple`. So a row
+  // could print `dark mauve` (a magenta stop), `indigo` (a violet stop) and
+  // then `purple` for the stops BETWEEN them — three purple-family words for
+  // one visible mass, none of which the rule above can see because no chipped
+  // stop shares `purple`'s own band.
+  //
+  // A word whose whole region lies BETWEEN two already-named stops is
+  // describing a passage the row has bracketed. That is a claim about position
+  // on the ramp, not about the partition, so it holds wherever the bands fall:
+  // if the chips either side of a run are named and the run is continuous, the
+  // reader has been told where it goes.
+  if (!region.length) return false;
+  const lo = Math.min(...region);
+  const hi = Math.max(...region);
+  const before = [...chipped].filter((i) => i < lo).sort((a, b) => b - a)[0];
+  const after = [...chipped].filter((i) => i > hi).sort((a, b) => a - b)[0];
+  if (before === undefined || after === undefined) return false;
+  // ...and only when the brackets are the SAME MASS: their families adjacent to
+  // (or equal to) a family the region itself holds. A teal run between a red
+  // chip and a yellow chip is a colour nobody named and keeps its word; a
+  // purple run between a magenta chip and a violet chip has been named twice
+  // already.
+  const neighbouring = (family: string | null | undefined) =>
+    !!family &&
+    region.some((i) => {
+      const own = ctx.families[i];
+      if (!own) return false;
+      const a = FAMILY_RING.indexOf(FAMILY_RING_OF(own));
+      const b = FAMILY_RING.indexOf(FAMILY_RING_OF(family));
+      if (a < 0 || b < 0) return false;
+      const d = Math.abs(a - b);
+      return Math.min(d, FAMILY_RING.length - d) <= 1;
+    });
+  return neighbouring(ctx.families[before]) && neighbouring(ctx.families[after]);
+}
 
 export function relatedSearches(
   features: PaletteFeatures,
@@ -2961,51 +4691,11 @@ export function relatedSearches(
   const seen = new Set<string>();
   const add = (label: string) => {
     const key = label.toLowerCase();
-    if (label && !seen.has(key) && labels.length < 6) {
+    if (label && !seen.has(key) && labels.length < CHIP_MAX) {
       seen.add(key);
       labels.push(label);
     }
   };
-
-  // The palette's DISTINCT colour names, ranked by the chroma of the stop each
-  // one names.
-  //
-  // The candidate list used to be `named.colorNames`, which is the two to four
-  // names the TITLE could fit, and ranking inside it cannot reach a colour the
-  // title left out: a palette whose left half is mint, cyan and cobalt offered
-  // "red | sun yellow | yellow" with no blue label at all, though its own embed
-  // line lists "sun yellow, bright sky blue, cobalt blue, black, maroon, red".
-  // The chips are not the title and have no reason to inherit its budget, so
-  // they run the same farthest-point selection with NO ceiling, letting its own
-  // perceptual-separation rule decide how many distinct colours the palette has
-  // (measured over the fixture: 2 to 7, p50 3, at the default 7 steps). Not the
-  // raw stops: at 7 or 13 steps that is a run of near-synonyms, and ranking THAT
-  // by chroma returns three neighbours from the middle of one ramp ("squash |
-  // orangey yellow | dull orange" for a palette whose ends are papaya whip and
-  // brick orange). And not a fixed six either, which dropped exactly the mint
-  // the QA round asked for on a seven-colour rainbow. Measured: 623 of the 867
-  // fixture palettes had at least one distinct stop name that could never reach
-  // the row.
-  //
-  // The veto is the palette's own (see toneNameVeto): a name the title is not
-  // allowed to use is not a search suggestion either, and the top chip on a
-  // vivid sunset linked to /palettes/pastel-red.
-  //
-  // Which stop each name names is recovered by naming the stops again with the
-  // same corpus function — hexToColorName and getUniqueColorNames both go
-  // through nearestNamed, so the first stop answering to a label is exactly the
-  // stop that produced it, and ramp order is the tie-break the ranking wants.
-  const veto = toneNameVeto(tags);
-  // One naming pass over the stops rather than one per label: the row is
-  // rebuilt on every slider tick in the editor, and the corpus is 920 entries.
-  const stopNames = named.stops.map((hex) => hexToColorName(hex, veto));
-  const ranked = getUniqueColorNames([...named.stops], { max: named.stops.length, veto })
-    .map((name, i) => {
-      const at = stopNames.indexOf(name);
-      const lch = at >= 0 ? hexToOkLch(named.stops[at]!) : null;
-      return { name, i, C: lch?.C ?? 0, L: lch?.L ?? 0.5 };
-    })
-    .sort((a, b) => b.C - a.C || a.i - b.i);
 
   // ...unless the universal IS the palette. D18's demotion was written for
   // "white on a pastel palette", where the white stop describes the ramp's edge,
@@ -3023,156 +4713,195 @@ export function relatedSearches(
         : null;
   if (dominant) add(dominant);
 
-  // The lightness half of the demotion carries no chroma condition at the dark
-  // end since 2026-08-18. D18 wrote it as "achromatic AND extreme", and a
-  // visually pure black measures C 0.053 at 100% saturation (OkLab's cube root
-  // again), so #00000f chipped as "midnight" and ranked SECOND on a palette
-  // whose image is dominated by an orange and a deep red. Below L 0.1 a stop is
-  // black to a viewer whatever its hue says, and a black name tells a visitor
-  // nothing about this palette. The light end keeps its chroma condition: a
-  // near-white CAN carry a useful colour word (cream, blush), and the D18
-  // report was about "white" specifically.
-  const demoted = (s: { name: string; C: number; L: number }) =>
-    UNIVERSAL_NAMES.has(s.name.toLowerCase()) ||
-    s.L < 0.1 ||
-    (s.C < T.CHROMA_FLOOR && s.L > 0.9);
+  const picks = chipColors(named, tags, labels);
+  const colors = picks.filter((c) => !c.lastResort);
+  for (const c of colors) add(c.label);
+  // ...and the JOURNEY, in ramp order (D23.1). Colour chips first, then the
+  // directional form built out of them, then everything else: D23.2 gives
+  // colour first claim on the budget.
+  const directional = directionalLabels(colors, picks, features);
+  for (const label of directional) add(label);
 
-  // ...and only as many as the palette's structure can carry. See
-  // nameLabelBudget.
-  const nameBudget = nameLabelBudget(classifyStructure(features));
-  let namesSpent = 0;
-  for (const s of ranked) {
-    if (namesSpent >= nameBudget) break;
-    if (demoted(s) || redundantWith(s.name, labels)) continue;
-    const before = labels.length;
-    add(s.name);
-    if (labels.length > before) namesSpent++;
-  }
-
-  // Compounds outrank their parts: two words are strictly more specific than
-  // either, and "pastel rainbow" is a query a person actually types.
+  // THE PALETTE'S TRUE FACTS, from the registry (D25.5).
   //
-  // ...and a compound RETIRES its parts. A row reading "rainbow | dark rainbow
-  // | muted rainbow | dark" spends four of its six slots on permutations of two
-  // words, which is three suggestions pretending to be six. The compound is the
-  // more specific label and it already contains the general one, so the general
-  // one stops earning a slot of its own.
-  const fired = DESCRIPTORS.filter((d) => d.spoken && tags.includes(d.word)).sort(
-    (a, b) => descriptorScore(b) - descriptorScore(a),
-  );
-  const compounds = compoundLabels(fired);
-  const spent = new Set(compounds.flatMap((label) => label.split(" ")));
-  for (const label of compounds) add(label);
-  for (const d of fired) if (!spent.has(spokenWord(d))) add(spokenWord(d));
-
-  if (labels.length < 3) {
-    const structure = classifyStructure(features);
-    // Same D18 argument as the color names: the family a palette belongs to is
-    // the family of its most COLORED stop, not of whichever end happened to
-    // come first. On a white → cream → pink → lavender ramp the ramp-order
-    // reading backfilled "yellow" (the cream), which describes the palette
-    // least; by chroma it backfills "violet".
+  // Until 2026-08-18 this half of the row was its own selection: the fired
+  // DESCRIPTORS, ranked by descriptorScore, with a hand-written pass for the
+  // implied words, one for the axes, one for the family backfill and one for
+  // the halves of compounds. The registry now holds every one of those rules
+  // (rank by information content, dedupe by `implies`, the measured synonym
+  // groups, the axis quota) and holds them for 133 terms instead of 22, so what
+  // is left here is what only the ROW knows: which labels it has already
+  // printed, and which of them a fact would be saying twice.
+  const ctx = characteristicCtx(features, named.stops, { journey: journeyTag(tags) });
+  const chipped = new Set(colors.map((c) => c.stop));
+  const factLabels: string[] = [];
+  const facts = chipCharacteristics(features, ctx, {
+    reject: (c) => !factFits(c, features, ctx, named, labels, chipped),
+  });
+  const addFact = (label: string) => {
+    factLabels.push(label);
+    add(label);
+  };
+  // Compounds first, out of the SAME ranked facts, because two words are
+  // strictly more specific than either (D17) — and because a compound built on
+  // a fact the row would not have shown is a claim about a boundary case.
+  for (const label of compoundLabels(facts)) addFact(label);
+  // ...and a word the row has already spent inside a COMPOUND waits its turn.
+  //
+  // D17 emitted the compound and then both of its halves. QA round 1 dropped
+  // the halves, measuring that page 1 of `dark complementary` and of
+  // `complementary` shared 24 of 24 results — but that measurement was taken
+  // through an AND-only filter, where a compound's page IS its part's page
+  // plus an unranked tail. With the partial-credit ranking (tag-search.ts,
+  // QA round 2) the pages separate: re-measured over the same stand-in, a
+  // compound's page 1 now shares 6 to 22 of 24 with its parts' (pastel rainbow
+  // 18 and 12, dark duotone 21 and 6, earthy monochrome 8 and 18). They are
+  // different destinations, and the parts are the queries a visitor types —
+  // the QA row that spent its only tone and structure slots on `pastel
+  // rainbow`, a dimension 8 of 867 palettes have, offered no link to `pastel`
+  // or to `rainbow` at all.
+  //
+  // So the parts come back, LAST: the compound is strictly more specific and
+  // keeps its place at the front, every other fact is served before a word the
+  // row has already said once, and what the parts spend is the tail of a row
+  // whose measured length is well inside its cap.
+  for (const c of facts) {
+    // A WORD THE ROW HAS ALREADY PRINTED INSIDE A COMPOUND DOES NOT COME BACK
+    // (QA round 4, D25.5 by name).
     //
-    // And the word is the TONE-GATED one (2026-08-18). familyWord answers by
-    // hue alone, which is the D18 complaint one level up: an olive is a dark,
-    // dull yellow, and the bare anchor drops both qualifiers, so a teal → green
-    // → olive palette offered "yellow" as a search while its own corpus names
-    // for that stop were "brown green" and "muddy green". gatedFamily is the
-    // same test the prose sentences use: it converts where a tone word exists
-    // (brown, purple, pink) and returns null where the stop is too washed out
-    // to name a family at all, which is a chip not worth offering.
-    const strongest = ranked.length
-      ? named.stops.filter(stopHasHue).sort((a, b) => hexToOkLch(b).C - hexToOkLch(a).C)[0]
-      : undefined;
-    const familyCandidates: (OkLch | null)[] =
-      structure === "grayscale"
-        ? []
-        : structure === "monochrome"
-          ? [features.chromaPeak]
-          : [
-              ...(strongest ? [hexToOkLch(strongest)] : []),
-              features.chromaPeak,
-              features.firstChromatic,
-              features.lastChromatic,
-            ];
-    for (const stop of familyCandidates) {
-      if (labels.length >= 3) break;
-      const word = gatedFamily(stop);
-      // ...and never a word the row already contains inside a longer label. A
-      // bare family word backfilled beside the corpus name it generalizes is
-      // not a second suggestion: "red | sun yellow | yellow" offers two ideas in
-      // three chips, and "yellow" is strictly implied by "sun yellow". 10 of the
-      // 867 fixture rows carried one.
-      if (word && !redundantWith(word, labels)) add(word);
-    }
+    // QA round 3 let the halves return at the tail of a long row, on the
+    // measurement that a compound's page and its parts' pages differ (6 to 22
+    // of 24 shared). They do differ — and the row is not a search index, it is
+    // a list a person reads, and read as a list "saturating analogous |
+    // saturating | analogous" is one fact wearing three chips. The round-4 QA
+    // filed it three times on three different palettes (`pastel analogous |
+    // pastel | analogous`, `dark complementary | complementary | dark`,
+    // `brightening sunset | sunset | brightening`) and measured it on 115 of
+    // the 867 rows, 13.3%. The compound is strictly the more specific claim and
+    // keeps its slot; the slot the half would have taken goes to the next fact
+    // the palette actually has, because `chipCharacteristics` was asked for its
+    // ranked pool and this loop simply walks past the ones already said.
+    if (redundantWith(c.term, factLabels)) continue;
+    // ...and a term two words the row has already printed TOGETHER already
+    // state. See COMPOUND_SHADOWS: `brightening monochrome` is `ombre` spelled
+    // out, and the row was printing both.
+    if (compoundShadowed(c.term, factLabels)) continue;
+    addFact(c.term);
   }
-
-  // Last resort: the demoted names, so a palette whose only vocabulary is
-  // "white and black" still gets a row rather than an empty nav.
-  for (const s of ranked) {
+  // ...and a row that says nothing about the palette says the nearest true
+  // thing (QA round 6). See ChipSelection.plain: exactly one of the 867 fixture
+  // rows reached this with no fact at all, and its five nearest facts were all
+  // within a hair of their strong band. The pool is re-ranked over the terms
+  // that are merely TRUE, everything else about the walk is identical, and only
+  // the first survivor is taken - the fallback is one fact, never a second row.
+  if (!factLabels.length)
+    for (const c of chipCharacteristics(features, ctx, {
+      limit: 1,
+      plain: true,
+      reject: (x) => !factFits(x, features, ctx, named, labels, chipped),
+    }))
+      addFact(c.term);
+  for (const c of picks) {
     if (labels.length >= 2) break;
-    add(s.name);
+    if (c.lastResort) add(c.label);
   }
   return labels;
 }
 
 /**
- * At most two compound labels, from spoken facts that CO-FIRE (D17).
+ * The compound labels, from PROMINENT facts that CO-FIRE (D17, widened by
+ * D22.B3, moved onto the registry by D25.5).
  *
- * The grammar is bounded by construction: one word from tone (or temperature),
+ * The grammar is bounded by construction: one word from temperature or tone,
  * one from family or structure, joined in SLOT order, never three words, never
- * a color name, never free text. So the compound space is a subset of
- * (spoken words)² and the crawl frontier stays finite; measured over the 867
- * fixture seeds it produces 30 distinct labels over 169 of the 867 chip rows.
+ * a color name, never free text. So the compound space is a subset of (registry
+ * terms)² and the crawl frontier stays finite.
  *
- * CONTRADICTED_BY (palette-name.ts) excludes the pairs that would read as a
- * contradiction, the same table that stops the NAME saying them next to each
- * other. Temperature compounds ("warm sunset") are in the grammar and never
- * fire today: `warm` and `cool` are spoken:false in the registry, and D2 keeps
- * the short-name system's flags frozen, so the branch is inert until a
- * re-measure promotes them.
+ * THE PAIRS COME FROM THE ROW'S OWN FACTS, not from everything true. Before the
+ * registry this walked every fired descriptor, so a compound could be built out
+ * of a fact that was only just true and that the row itself would not print —
+ * which is the boundary case D24.1 exists to keep off the chips. Now both
+ * halves are terms that passed the prominence rule, and the ranking key is
+ * their information content rather than the descriptor score.
+ *
+ * Three filters, each removing a pair that is true but not worth a link:
+ *  - CONTRADICTED_BY (palette-name.ts) excludes the pairs that would read as a
+ *    contradiction, the same table that stops the NAME saying them next to each
+ *    other.
+ *  - `implies` excludes the pairs where one word already claims the other:
+ *    "warm sunset" and "cool ocean" are the registry's own implications read
+ *    back as a compound, and they say one thing twice.
+ *  - No two compounds may share a WORD, head or modifier. D17 capped the count
+ *    and not the shape, so "dark monochrome | muted monochrome" got through:
+ *    two chips, one noun, three ideas dressed as four. QA round 2 found the
+ *    same defect on the other half of the grammar — `neon ocean` beside
+ *    `neon monochrome`, whose pages share 14 of 24 results and open on the same
+ *    palette, because the word they share is the one doing most of the
+ *    filtering. Both halves are now a set.
  */
-function compoundLabels(fired: readonly Descriptor[]): string[] {
+/** Does a compound already on the row state this term? See COMPOUND_SHADOWS. */
+const compoundShadowed = (term: string, labels: readonly string[]): boolean =>
+  COMPOUND_SHADOWS.some(
+    (r) =>
+      r.shadows.includes(term) &&
+      labels.some((l) => {
+        const w = l.split(" ");
+        return w.includes(r.pair[0]) && w.includes(r.pair[1]);
+      }),
+  );
+
+function compoundLabels(facts: readonly Characteristic[]): string[] {
   const out: { label: string; score: number }[] = [];
-  for (const a of fired) {
-    for (const b of fired) {
+  for (const a of facts) {
+    for (const b of facts) {
       if (a === b) continue;
       const sa = COMPOUND_SLOT[a.axis];
       const sb = COMPOUND_SLOT[b.axis];
       if (sa === undefined || sb === undefined || sa >= sb) continue;
-      // tone × structure, tone × family, temperature × family only.
-      const pair = `${a.axis}-${b.axis}`;
+      // temperature or tone, then family or structure.
+      if (sa > COMPOUND_SLOT.value! || sb < COMPOUND_SLOT.family!) continue;
+      // ONE WORD EACH. The registry carries multi-word terms now (`jewel
+      // tones`, `spring green`, `warm cool contrast`); a compound built from
+      // one reads as a sentence with the punctuation missing and its
+      // destination parses as three terms rather than two.
+      if (a.term.includes(" ") || b.term.includes(" ")) continue;
       if (
-        pair !== "tone-structure" &&
-        pair !== "tone-family" &&
-        pair !== "temperature-family"
+        CONTRADICTED_BY[a.term]?.includes(b.term) ||
+        CONTRADICTED_BY[b.term]?.includes(a.term) ||
+        a.implies?.includes(b.term) ||
+        b.implies?.includes(a.term)
       )
         continue;
-      const wa = spokenWord(a);
-      const wb = spokenWord(b);
-      if (
-        CONTRADICTED_BY[a.word]?.includes(b.word) ||
-        CONTRADICTED_BY[b.word]?.includes(a.word) ||
-        CONTRADICTED_BY[wa]?.includes(wb) ||
-        CONTRADICTED_BY[wb]?.includes(wa)
-      )
-        continue;
-      out.push({ label: `${wa} ${wb}`, score: descriptorScore(a) + descriptorScore(b) });
+      const score = characteristicScore(a) + characteristicScore(b);
+      // A COMPOUND HAS TO HAVE A PAGE (QA round 5, D25.6 by name; the test
+      // rewritten in round 6).
+      //
+      // The rule was an INDEPENDENCE estimate — `FIXTURE_BITS - score` as the
+      // expected population, refused below one palette — and round 6 measured
+      // that the estimate is wrong in both directions on real pairs, because
+      // the two halves come from different axes by construction and that says
+      // nothing about whether a wide cosine produces both. `bright-middle
+      // complementary` estimates 1.65 palettes and has 4 (its page came back 3
+      // of 24 genuine, 21 slots one-part matches); `bright-middle rainbow`
+      // estimates 1.4 and has 13. So the joint is looked up rather than
+      // derived, and the floor is half a page: see COMPOUND_SUPPORT.
+      //
+      // `score` is still the RANK key below — of the pairs that have a page,
+      // the rarer one is the more specific claim.
+      if ((COMPOUND_SUPPORT[`${a.term} ${b.term}`] ?? 0) < COMPOUND_SUPPORT_FLOOR) continue;
+      out.push({
+        label: `${a.term} ${b.term}`,
+        score,
+      });
     }
   }
-  // Two compounds, and never two built on the same HEAD. D17 capped the count
-  // and not the shape, so "dark monochrome | muted monochrome" got through: two
-  // chips, one noun, three ideas dressed as four — the same arithmetic the
-  // parts-retirement above exists to fix, one level up. The head is the second
-  // word by construction (SLOT order puts tone or temperature first), so
-  // distinctness is a set on it.
-  const heads = new Set<string>();
+  const spent = new Set<string>();
   const picked: string[] = [];
   for (const x of out.sort((a, b) => b.score - a.score || (a.label < b.label ? -1 : 1))) {
-    if (picked.length >= 2) break;
-    const head = x.label.slice(x.label.indexOf(" ") + 1);
-    if (heads.has(head)) continue;
-    heads.add(head);
+    if (picked.length >= COMPOUND_CHIPS) break;
+    const words = x.label.split(" ");
+    if (words.some((w) => spent.has(w))) continue;
+    for (const w of words) spent.add(w);
     picked.push(x.label);
   }
   return picked;

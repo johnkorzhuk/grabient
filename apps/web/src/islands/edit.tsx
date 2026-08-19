@@ -31,11 +31,8 @@ import {
   titleSuffix,
   TITLE_HEADLINE,
 } from "../palette-name";
-import { paletteProse, relatedSearches, relatedSearchSlug } from "../palette-prose";
-import {
-  analyzeCoefficients,
-  tagsToArray,
-} from "@repo/data-ops/gradient-gen/palette-tags";
+import { relatedSearches, relatedSearchSlug } from "../palette-prose";
+import { analyzeCoefficients } from "@repo/data-ops/gradient-gen/palette-tags";
 import {
   coeffsJsonSnippet,
   colorsSnippet,
@@ -450,8 +447,8 @@ export function EditorIsland(props: EditorProps) {
   };
 
   /**
-   * The palette's prose — sr-only h2, visible description, related-search
-   * chips, `document.title`.
+   * The palette's text surfaces — sr-only h2, related-search chips,
+   * `document.title`.
    *
    * This used to be a fetch of /{seed}.json fired from the throttled URL write,
    * which kept the 843-name color corpus off the client but made the name the
@@ -469,23 +466,30 @@ export function EditorIsland(props: EditorProps) {
     const current = view();
     const colors = hexColors();
     const described = describePaletteName(applied(), colors);
-    // The h2 is sr-only now (the visible paragraph replaced it, owner
-    // 2026-08-17) but keeps the short name: it stays the section's
+    // The h2 is sr-only (it kept that place when the visible paragraph landed
+    // on 2026-08-17 and kept it when the paragraph came off on 2026-08-18,
+    // D22.A) and it carries the short name: it is the section's
     // aria-labelledby target and the crawler's name for the palette.
     const heading = document.getElementById("palette-about");
     if (heading) heading.textContent = described.name;
     const h1 = document.getElementById("palette-h1");
     if (h1) h1.textContent = `${described.name} gradient palette editor`;
-    // ONE base-tag analysis per tick, mirrored from seedPaletteText: the
-    // prose reads the temperature journey from the stored vocabulary only.
-    const baseTags = tagsToArray(analyzeCoefficients(applied()));
-    const description = document.getElementById("palette-description");
-    if (description)
-      description.textContent = paletteProse(applied(), colors, current, {
-        features: described.features,
-        named: described,
-        baseTags,
-      }).paragraph;
+    // No paragraph write here any more: D22.A took the description off the
+    // page, so the only prose left for a slider tick to keep current is the
+    // name and the chips. The description is still generated per REQUEST on
+    // the server (meta, JSON-LD, /{seed}.json, embed text) — it is a crawler
+    // and embedding surface now, and a crawler sees the server render, not the
+    // island's tick. Dropping paletteProse from this file also drops its
+    // sentence tables and the base-tag analysis from the client bundle, which
+    // is most of what the description cost the browser: the edit chunk went
+    // 116.21 KB raw / 39.13 KB gzip to 91.28 KB / 31.11 KB, measured with
+    // `pnpm build` either side of this edit. Final consolidation re-measure
+    // after the chip QA rounds and the D23.1 journey chips: 96.32 KB raw /
+    // 33.15 KB gzip — 5.04 KB gzip back for the sharper selection, still
+    // 5.98 KB below the build that rendered the paragraph.
+    // relatedSearches still imports
+    // palette-prose, so the corpus and the feature analysis stay; what left the
+    // bundle is the paragraph machinery Rollup could now prove unreachable.
     // Related chips: rebuilt from the same relatedSearches() the server
     // rendered, so crawler HTML and live DOM cannot disagree. DOM APIs, not
     // innerHTML — the labels are corpus/registry words, but the row is inside
@@ -493,7 +497,13 @@ export function EditorIsland(props: EditorProps) {
     const related = document.getElementById("related-searches");
     if (related) {
       related.textContent = "";
-      for (const label of relatedSearches(described.features, described, described.tags)) {
+      // The STORED journey rides in beside the descriptor tags, because two of
+      // the registry's terms read it and the server render has it (D25.2). One
+      // coefficient analysis per tick, and without it the island's row would
+      // drop a chip the crawler's HTML carries.
+      const journey = analyzeCoefficients(applied()).journey;
+      const rowTags = [...described.tags, ...(journey === "warming" || journey === "cooling" ? [journey] : [])];
+      for (const label of relatedSearches(described.features, described, rowTags)) {
         const chip = document.createElement("a");
         chip.href = `/palettes/${relatedSearchSlug(label)}`;
         chip.className = RELATED_CHIP;
@@ -514,7 +524,7 @@ export function EditorIsland(props: EditorProps) {
     // ticks never touch the style param, so location.search is always current.
     const styleInUrl =
       parseListSearch(new URLSearchParams(location.search)).style !== "auto";
-    document.title = `${titleName}${titleSuffix(current.style, styleInUrl)}`;
+    document.title = `${titleName}${titleSuffix(current.style, styleInUrl, current.steps)}`;
   };
 
   /** Must stay identical to swatches() in pages.ts — same strip, two renderers. */

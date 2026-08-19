@@ -114,7 +114,7 @@ describe("saved page", () => {
 
 describe("palette list page titles", () => {
   it.each([
-    ["popular", "/", "Grabient — Gradient Generator & Color Palettes"],
+    ["popular", "/", "Grabient — CSS Gradient Generator & Color Palettes"],
     ["newest", "/newest", "Grabient — Newest Gradient Palettes"],
     ["oldest", "/oldest", "Grabient — Classic Gradient Palettes"],
     ["saved", "/saved", "Grabient — Saved Gradient Palettes"],

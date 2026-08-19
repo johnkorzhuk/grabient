@@ -18,6 +18,10 @@ import {
   spokenWord,
 } from "@repo/data-ops/gradient-gen/palette-modifiers";
 import {
+  characteristicCtx,
+  characteristicsOf,
+} from "@repo/data-ops/gradient-gen/palette-characteristics";
+import {
   describePaletteName,
   styleLabel,
   META_HEADLINE,
@@ -140,6 +144,16 @@ export function seedPaletteText(view: RenderedPalette): SeedPaletteText {
   // below — base tags reuse words under different definitions (`texture:
   // 'monochrome'` is a saturation claim, the registry's is hue structure),
   // and a keyword has to mean what the registry measured.
+  // The registry's TRUE terms — every one of the 133, prominent or not — for
+  // the `tags` field and for the embedding (D25.6). This is where a term the
+  // chip row holds back still says what it knows: the coefficient facts, the
+  // arc language, the residual classes and every characteristic that was true
+  // without the margin a chip needs all ride here and into Vectorize, and only
+  // the row is selective.
+  const ctx = characteristicCtx(described.features, view.hexColors, {
+    journey: base.includes("warming") ? "warming" : base.includes("cooling") ? "cooling" : null,
+  });
+  const characteristics = characteristicsOf(described.features, ctx).map((c) => c.term);
   const fired = new Set(described.tags);
   const keywords = [
     ...new Set(
@@ -155,9 +169,12 @@ export function seedPaletteText(view: RenderedPalette): SeedPaletteText {
     // `texture: 'monochrome'` (saturation) and the structural `monochrome`
     // (hue) can both be present and mean different things — dedupe so the
     // sentence does not say it twice.
-    tags: [...new Set([...base, ...described.tags])],
+    tags: [...new Set([...base, ...described.tags, ...characteristics])],
     prose,
-    related: relatedSearches(described.features, described, described.tags),
+    // ...and the row gets the MERGED list, because the stored journey rides in
+    // `base` and `warming`/`cooling` are registry terms whose predicate reads
+    // it (D25.2: the tag is read, never recomputed).
+    related: relatedSearches(described.features, described, [...base, ...described.tags]),
     keywords,
   };
 }

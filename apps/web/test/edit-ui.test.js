@@ -148,13 +148,17 @@ describe("$seed preview dimensions", () => {
     );
     expect(heart.dataset.likeSeed).toBe(paletteCoeffKey(heart.dataset.likeRow));
 
-    // The 2026-08-17 text surfaces (D6-AMENDED/D13/D14), after two slider
-    // ticks: the island must keep the sr-only name, the VISIBLE paragraph and
-    // the related-search chips describing the palette it just edited into.
-    expect(document.getElementById("palette-about").className).toContain("sr-only");
-    const paletteDescription = document.getElementById("palette-description");
-    expect(paletteDescription.className).not.toContain("sr-only");
-    expect(paletteDescription.textContent).toContain("gradient color palette");
+    // The text surfaces after two slider ticks (D13/D14, as amended by D22.A):
+    // the island must keep the sr-only name and the related-search chips
+    // describing the palette it just edited into. The description paragraph is
+    // NOT among them any more — it is a server-render surface (meta, JSON-LD,
+    // /{seed}.json), and a crawler reads that, not this island's ticks. Asserted
+    // absent rather than dropped from the test so that reintroducing the write
+    // without reintroducing the element fails here instead of silently no-oping.
+    const about = document.getElementById("palette-about");
+    expect(about.className).toContain("sr-only");
+    expect(about.textContent.length).toBeGreaterThan(0);
+    expect(document.getElementById("palette-description")).toBeNull();
     const relatedChips = [...document.querySelectorAll("#related-searches a")];
     expect(relatedChips.length).toBeGreaterThan(0);
     for (const chip of relatedChips) {

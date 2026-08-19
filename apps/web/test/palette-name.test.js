@@ -137,7 +137,11 @@ describe("budgets", () => {
     expect(TITLE_HEADLINE.maxChars + TITLE_SUFFIX.length).toBeLessThanOrEqual(60);
     for (const style of ["linearGradient", "linearSwatches", "radialGradient"]) {
       for (const inUrl of [true, false]) {
-        expect(titleSuffix(style, inUrl).length).toBeLessThanOrEqual(TITLE_SUFFIX.length);
+        for (const steps of [3, 7, 8, 24]) {
+          expect(
+            titleSuffix(style, inUrl, steps).length,
+          ).toBeLessThanOrEqual(TITLE_SUFFIX.length);
+        }
       }
     }
     for (const seed of Object.values(SEEDS)) {
@@ -151,12 +155,26 @@ describe("budgets", () => {
     // "{color} gradient color palette" grammar; a URL that pins a style names
     // only what that view is — swatch styles render a palette, gradient
     // styles render a gradient.
-    expect(titleSuffix("radialGradient", false)).toBe(" Gradient Palette");
-    expect(titleSuffix("linearSwatches", false)).toBe(" Gradient Palette");
-    expect(titleSuffix("linearSwatches", true)).toBe(" Palette");
-    expect(titleSuffix("angularSwatches", true)).toBe(" Palette");
-    expect(titleSuffix("radialGradient", true)).toBe(" Gradient");
-    expect(titleSuffix("linearGradient", true)).toBe(" Gradient");
+    expect(titleSuffix("radialGradient", false, 7)).toBe(" Gradient Palette");
+    expect(titleSuffix("linearSwatches", false, 7)).toBe(" Gradient Palette");
+    expect(titleSuffix("linearSwatches", true, 7)).toBe(" Palette");
+    expect(titleSuffix("angularSwatches", true, 3)).toBe(" Palette");
+    expect(titleSuffix("radialGradient", true, 7)).toBe(" Gradient");
+    expect(titleSuffix("linearGradient", true, 24)).toBe(" Gradient");
+  });
+
+  it("calls a finely stepped swatch strip a gradient palette again", () => {
+    // Owner rule, 2026-08-18: "palette" names blocks you can count. At 8 steps
+    // and up the strip reads as a stepped gradient, so the two-noun suffix
+    // comes back rather than understating the page. The boundary is the whole
+    // rule, so it is pinned on both sides.
+    expect(titleSuffix("linearSwatches", true, 7)).toBe(" Palette");
+    expect(titleSuffix("linearSwatches", true, 8)).toBe(" Gradient Palette");
+    expect(titleSuffix("angularSwatches", true, 13)).toBe(" Gradient Palette");
+    expect(titleSuffix("radialSwatches", true, 24)).toBe(" Gradient Palette");
+    // Gradient styles render a gradient at every step count.
+    for (const steps of [3, 7, 8, 24])
+      expect(titleSuffix("linearGradient", true, steps)).toBe(" Gradient");
   });
 
   it("never trades the second color name for an adjective", () => {

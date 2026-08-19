@@ -55,6 +55,22 @@ describe("semantic search", () => {
     expect(normalizeSemanticQuery("#ff0000 night")).toContain("red");
     expect(normalizeSemanticQuery(SEED)).not.toBe(SEED);
     expect(queryHeading("warm sunset")).toBe("Warm sunset gradient palettes");
+
+    // The noun follows what the URL pins (owner rule, 2026-08-18), through the
+    // same viewNounPlural the seed title uses. The unpinned case keeps BOTH
+    // nouns on purpose: list and seed canonicals both strip style/steps, so the
+    // param-free variant is the only one Google indexes and it has to carry the
+    // "{color} gradient color palette" grammar.
+    const at = (style, styleInUrl, steps) =>
+      queryHeading("nautical", { style, styleInUrl, steps });
+    expect(at("linearGradient", false, "auto")).toBe("Nautical gradient palettes");
+    expect(at("linearGradient", true, "auto")).toBe("Nautical gradients");
+    expect(at("radialGradient", true, 24)).toBe("Nautical gradients");
+    expect(at("linearSwatches", true, "auto")).toBe("Nautical swatches");
+    expect(at("linearSwatches", true, 5)).toBe("Nautical swatches");
+    // Same 8-step line the seed title uses: a fine strip reads as a gradient.
+    expect(at("linearSwatches", true, 8)).toBe("Nautical gradient palettes");
+    expect(at("angularSwatches", true, 24)).toBe("Nautical gradient palettes");
     expect(queryHeadingParts("blue purple cyan rose")).toEqual([
       { kind: "color", value: "Blue", hex: "#0000ff" },
       { kind: "text", value: " " },
@@ -105,5 +121,38 @@ describe("semantic search", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     expect(await searchSemanticPalettes({}, "sunset")).toEqual([]);
     warn.mockRestore();
+  });
+});
+
+// The chip row points at colour-name and journey pages ("cream to fire brick"),
+// and whether those pages may be indexed was decided by an embedding score
+// against an index that has never seen this vocabulary — measured on staging
+// 2026-08-18, /palettes/fire-brick was noindex while /palettes/coral-pink was
+// not. queryResultContext now answers it by rule. The bound that keeps the
+// keyword-injection hole shut is that EVERY token must resolve against the
+// corpus, so these assertions are the contract, not examples.
+describe("colour-name queries are their own subject matter", () => {
+  it("recognises single, multi-word, journey and combination colour queries", () => {
+    for (const query of [
+      "white",
+      "fire brick",
+      "cream to fire brick",
+      "puce to dark navy",
+      "cream light salmon fire brick",
+    ]) {
+      const context = queryResultContext(query);
+      expect(context?.kind, query).toBe("colors");
+      expect(context?.kind === "colors" && context.colors.length, query).toBeGreaterThan(0);
+    }
+  });
+
+  it("refuses anything the corpus does not name", () => {
+    for (const query of [
+      "buy cheap viagra",
+      "white to viagra",
+      "gradient generator",
+      "",
+    ])
+      expect(queryResultContext(query), query).toBeNull();
   });
 });

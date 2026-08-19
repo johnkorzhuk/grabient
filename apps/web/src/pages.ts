@@ -345,7 +345,7 @@ export interface ListPageData {
 }
 
 const SORT_TITLES: Record<Sort, [string, string]> = {
-  popular: ["Grabient — Gradient Generator & Color Palettes", "Popular palettes"],
+  popular: ["Grabient — CSS Gradient Generator & Color Palettes", "Popular palettes"],
   newest: ["Grabient — Newest Gradient Palettes", "Newest palettes"],
   oldest: ["Grabient — Classic Gradient Palettes", "Oldest palettes"],
   saved: ["Grabient — Saved Gradient Palettes", "Saved palettes"],
@@ -717,18 +717,24 @@ ${panels}
  * editor is identical everywhere and the hex codes live in SVG attributes, so
  * there is nothing textual to tell two palettes apart.
  *
- * The description paragraph is VISIBLE (owner, 2026-08-17, replacing the bold
- * name heading that stood here): a grown, keyword-bearing paragraph only
- * crawlers could read is the textbook hidden-text pattern, and the Tier-2
- * demand ("{color} gradient hex codes") wants named-hex text on the rendered
- * page — R1 carries the end hexes. The short name stays as an sr-only h2: it
- * is the section's accessible name (aria-labelledby) and the stable element
- * the island keeps updating per tick. The sr-only h1 above is untouched.
+ * The description paragraph WAS visible here for one day (owner, 2026-08-17)
+ * and came back off on 2026-08-18 (D22.A): the owner does not want a paragraph
+ * of generated prose on the editor page, the chips below are the surface a
+ * visitor is meant to use. The prose is still generated on every render and
+ * still ships — meta description, JSON-LD `description`/`abstract`, the
+ * /{seed}.json body, and paletteEmbedText for the Vectorize index (see
+ * seedPage below and palette-json.ts) — so the templated-page problem is still
+ * answered for crawlers. Nothing about the paragraph's TRUTH may relax because
+ * it went invisible: it is the text Google quotes in a snippet and the text the
+ * embedding is built from, and it is one build away from being visible again.
+ *
+ * What is left in the section is the sr-only h2 (the section's accessible name
+ * via aria-labelledby, the stable element the island updates per tick) and the
+ * related-search chips. The sr-only h1 above is untouched.
  */
 function paletteContext(text: SeedPaletteText): string {
   return `<section class="px-5 pt-10 lg:px-14" aria-labelledby="palette-about">
 <h2 id="palette-about" class="sr-only">${esc(text.headline)}</h2>
-<p id="palette-description" class="max-w-2xl text-base leading-relaxed text-muted-foreground">${esc(text.prose.paragraph)}</p>
 ${relatedSearchChips(text.related)}
 </section>`;
 }
@@ -746,9 +752,10 @@ export function seedPage(d: SeedPageData): string {
       `${header()}<main class="flex-1 px-5 lg:px-14 py-10"><p>Invalid palette.</p></main>`,
     );
 
-  // One analysis for the h1, the sr-only h2, the visible description, the
-  // related-search chips, the <title> and the meta description — they all
-  // describe the same palette.
+  // One analysis for the h1, the sr-only h2, the related-search chips, the
+  // <title>, the meta description and the JSON-LD — they all describe the same
+  // palette. (The paragraph itself stopped being rendered on 2026-08-18, D22.A;
+  // it is still generated here because meta, JSON-LD and /{seed}.json carry it.)
   const text = seedPaletteText(view);
   const graph = channelsGraphSvg(view.appliedCoeffs, view.steps, view.hexColors);
   const search = searchString(d.params, { page: 1 });
@@ -826,7 +833,7 @@ ${footer(d.stars)}`;
   // D14: the suffix follows the URL. `params.style` is "auto" exactly when the
   // request carried no (valid) style param — the same presence rule the island
   // reads off the URL it maintains, so a live edit and a crawler agree.
-  const title = `${headline}${titleSuffix(view.style, d.params.style !== "auto")}`;
+  const title = `${headline}${titleSuffix(view.style, d.params.style !== "auto", view.steps)}`;
   const canonical = `${d.origin}/${d.seed}`;
   const image = paletteOgImageUrl(d.origin, view);
 

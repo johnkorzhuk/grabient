@@ -138,6 +138,15 @@ function createDenseTargets(
 ): { tValues: number[]; targets: [number[], number[], number[]] } {
     const colors = hexColors.map(hexToVec3);
 
+    // Interpolation needs two endpoints. Below that, `colors.length - 2` goes
+    // negative, the segment index follows it, and `colors[idx]` reads past the
+    // start of the array — a TypeError rather than a fit. One colour is a flat
+    // palette (both endpoints the same); none is a flat black one. Callers reach
+    // this with a user-supplied list, so the degenerate cases are inputs to
+    // handle, not states to assert against.
+    if (colors.length === 0) colors.push([0, 0, 0], [0, 0, 0]);
+    else if (colors.length === 1) colors.push(colors[0]!);
+
     const tValues: number[] = [];
     const targets: [number[], number[], number[]] = [[], [], []];
 

@@ -220,6 +220,57 @@ const MONOCHROME_SPAN = 30;
 const ANALOGOUS_SPAN = 95;
 const COMPLEMENTARY_SEPARATION = 150;
 const RAINBOW_SPAN = 200;
+
+/**
+ * The second route to `complementary` (2026-08-18, D24.2): two dominant hue
+ * MASSES that far apart, whether or not the palette got from one to the other
+ * by an empty jump.
+ *
+ * The owner's screenshot palette is the case. #88d5f2 through #ffc1a1, a sky
+ * blue conic sweeping to salmon: its ends sit at hue 224 and 48, which is
+ * 175.5 apart and textbook complementary, but a cosine ramp SWEEPS, so the
+ * crossing between the poles fills every hue between them and the palette
+ * forms ONE cluster 184.5 wide. The isolated-clusters route below needs two
+ * clusters each narrower than CLUSTER_GAP, so the palette classified
+ * `multicolor` and the page offered no structure chip at all.
+ *
+ * Four numbers, each measured over the 867-seed fixture at 13 steps:
+ *
+ * HUE_MASS_WINDOW (half-width) is CLUSTER_GAP/2, so a mass is one cluster's
+ * worth of arc — the same rule DUOTONE_CLUSTER_WIDTH records, that a group may
+ * not be wider than the gap that defines a group. Sweeping the half-width over
+ * the multicolor palettes that would move (weak pole 0.20, union 0.80): 15 ->
+ * 16, 20 -> 30, 25 -> 43, 30 -> 57. The wider windows start swallowing the
+ * crossing itself, which is how a continuous three-colour ramp would come to
+ * read as two poles.
+ *
+ * The two SHARE thresholds are what "dominant" means: the weaker pole holds at
+ * least MASS_POLE_SHARE of the chromatic samples and the pair together holds
+ * MASS_BOTH_SHARE, so a palette with a third mass anywhere else cannot pass —
+ * that is the guard against calling a triad or a rainbow complementary, and it
+ * is why no explicit span test is needed here (a run that reaches both ends of
+ * the spectrum spreads its samples over the wheel and cannot fit 80% of them
+ * into two 40-degree windows). Sweep of gained palettes: at union 0.75/0.80/
+ * 0.85 the counts are 32/23/14 for a weak pole of 0.20, and 35/25/16 at 0.15,
+ * 28/21/13 at 0.25. The knee is the union, not the pole share.
+ *
+ * MASS_POLE_CHROMA is D24.2's "at real chroma", read off the loudest tenth of
+ * the run (denseChromaP90, the same tenth PLATEAU_SHARE and the neon ceiling
+ * are read on) rather than off the mean: a palette that crosses from pole to
+ * pole through gray has a LOW mean chroma by construction, so a mean-chroma
+ * floor would reject exactly the shape this route exists for (the owner's
+ * palette means 0.079, under FAMILY_CHROMA). Visual QA over all 30 palettes
+ * the share thresholds alone admitted: the four that plainly are not
+ * complementary — a near-white ramp with two faint tint pulses, a desaturated
+ * tan-to-maroon, an olive-to-black-to-brown whose "blue" pole is invisible
+ * inside the black, and a flat pale one — measure p90 0.087, 0.042, 0.090 and
+ * 0.058, while the twelve that plainly are run 0.113 to 0.259. 0.10 cuts
+ * between them and clears the owner's palette (p90 0.109) with room.
+ */
+const HUE_MASS_WINDOW = CLUSTER_GAP / 2;
+const MASS_POLE_SHARE = 0.2;
+const MASS_BOTH_SHARE = 0.8;
+const MASS_POLE_CHROMA = 0.1;
 /**
  * How wide a single hue cluster may be and still count as one hue.
  *
@@ -376,6 +427,22 @@ const SOLID_CHANNEL_RANGE = 1 / 255;
  * small frequencies that are equal as written.
  */
 const EQUAL_C_TOLERANCE = 0.01;
+/**
+ * What counts as a sample inside a WASH: pale and weak at once
+ * (research-colorTheory §7, "a pale low-chroma passage"). Both numbers are the
+ * inventory's own; `paleRunShare` records how long the longest such stretch is
+ * and the `wash` characteristic decides how long is long enough.
+ */
+export const WASH_LIGHTNESS = 0.8;
+export const WASH_CHROMA = 0.06;
+
+/**
+ * One just-noticeable difference in OkLab, the unit `flatRunShare` counts a
+ * plateau in. oklabDistance's own docstring puts a JND at about 0.02, and the
+ * question a flat spot asks is exactly "would a viewer see these two samples as
+ * the same colour".
+ */
+const FLAT_SPOT_JND = 0.02;
 
 /**
  * A descriptor must carry this much information to be worth a word in a name.
@@ -401,6 +468,15 @@ export const MIN_BITS_TO_SPEAK = 2;
  * this module reads the object; it exists so consumers cannot drift.
  */
 export const THRESHOLDS = {
+  // The hue-geometry constants. Exported since 2026-08-18 (D25 harmony): the
+  // three- and four-hue schemes in palette-characteristics.ts are defined
+  // against exactly these numbers - a triad's groups must be as narrow as any
+  // other group, a tetradic pair must be as opposed as a complementary pair -
+  // and a copied 40 or 150 there would silently diverge from the ladder here.
+  CLUSTER_GAP,
+  MONOCHROME_SPAN,
+  ANALOGOUS_SPAN,
+  COMPLEMENTARY_SEPARATION,
   CHROMA_FLOOR,
   SATURATION_FLOOR,
   SATURATION_BRANCH_LIGHTNESS,
@@ -429,6 +505,7 @@ export const THRESHOLDS = {
   HUE_WANDER_TRAVEL,
   HUE_WANDER_CONSISTENCY,
   PLATEAU_SHARE,
+  MIDDLE_END_DROP,
   FLAT_CHANNEL_RANGE,
   SOLID_CHANNEL_RANGE,
   EQUAL_C_TOLERANCE,
@@ -546,6 +623,24 @@ export interface PaletteFeatures {
    * lookup rather than another field on this object.
    */
   hueHistogram: number[];
+  /**
+   * ...and the same histogram over the samples whose hue is NAMEABLE — chroma
+   * at or above FAMILY_CHROMA rather than merely above CHROMA_FLOOR.
+   *
+   * Normalized by the SAME chromatic count as `hueHistogram`, so the two are
+   * directly comparable bin for bin and this one is everywhere the smaller: the
+   * difference between them is the mass a viewer can see is coloured but could
+   * not put a colour name to.
+   *
+   * WHY IT EXISTS (QA round 6). `hueBandShare` answers "how much of the run is
+   * in this arc", and for a spectrum claim that is not enough: a palette whose
+   * warm quadrant is traversed as tan and olive (C 0.067-0.089) has warm mass
+   * by the CHROMA_FLOOR reading and NO RED OR ORANGE in the picture. `rainbow`
+   * needs the second reading and nothing else in the file did, which is why it
+   * is a histogram rather than one more boolean: the next term that wants
+   * "nameable mass in this arc" is a lookup.
+   */
+  vividHueHistogram: number[];
   /** WCAG 2.1 contrast ratio between the lightest and darkest rendered stop. */
   contrastRatio: number;
 
@@ -560,6 +655,27 @@ export interface PaletteFeatures {
    * the families instead of only the angle between them.
    */
   clusterHues: number[];
+  /**
+   * Each cluster's share of the coloured run, and each cluster's mean chroma —
+   * same order as `clusterHues`, so the three read as one table.
+   *
+   * A hue geometry says WHICH hues are present and how far apart they sit;
+   * neither answers how much of the palette each one gets, and that is the
+   * whole content of Itten's seventh contrast (extension): the same two hues
+   * read as a balanced pair at 50/50 and as a field with an accent at 90/10.
+   * The chroma column is what makes the accent reading falsifiable — a short
+   * DULL passage inside a loud field is not an accent, it is a gap.
+   */
+  clusterShares: number[];
+  clusterChromas: number[];
+  /**
+   * ...and each cluster's mean LIGHTNESS, for the same falsifiability at the
+   * other end of the solid: a passage can carry chroma on paper and still be
+   * black on screen. See the comment at the computation.
+   */
+  clusterLightnesses: number[];
+  /** Each cluster's own arc in degrees; `maxClusterWidth` is its maximum. */
+  clusterWidths: number[];
   /**
    * Hue of the first dense sample with a usable hue (`hasUsableHue`, so either
    * reading), or null when no sample has one: the "from {family}" anchor.
@@ -586,6 +702,25 @@ export interface PaletteFeatures {
   hueNet: number;
   /** Absolute degrees walked by the same chain, gap-reset the same way. */
   hueTravel: number;
+  /**
+   * The UNWRAPPED hue path's extremes — the same chain as `hueNet`, kept as an
+   * interval instead of collapsed to a sum, so a caller can ask WHICH arc of
+   * the wheel the run travelled rather than only how far.
+   *
+   * The one question that needs it is whether a monotone walk crossed the LINE
+   * OF PURPLES (`spectralOrder`): magenta is a red-blue mixture that no single
+   * wavelength produces, so a ramp is only in spectral order if it stayed off
+   * that segment, and no scalar here can tell "went the spectrum way" from
+   * "went the purple way" — both are the same net rotation. Unwrapped, so a
+   * walk that winds past a full turn keeps a genuinely widening interval;
+   * `hueArcMin` is the smallest angle the chain reached and `hueArcMax` the
+   * largest. The frame is the WHEEL, re-anchored wherever the chain restarts
+   * across an achromatic gap — the same place `hueNet` stops accumulating, and
+   * the same limitation: what happened across the gray is not measured, here
+   * or there. Both 0 when the run has no usable hue at all.
+   */
+  hueArcMin: number;
+  hueArcMax: number;
   /**
    * |hueNet| / hueTravel: 1 when every step rotates the same way (or the hue
    * never moves at all), near 0 when the ramp doubles back as much as it
@@ -665,6 +800,19 @@ export interface PaletteFeatures {
   /** Dense max − min chroma, the guard for chroma-position claims. */
   denseChromaRange: number;
   /**
+   * The least chromatic dense sample's chroma — how close to gray the run
+   * actually comes.
+   *
+   * Itten's contrast of saturation is "pure colour beside NEAR-GRAY", which is
+   * a claim about the floor, and the range alone cannot express it: 0.15 of
+   * travel from 0.20 down to 0.05 is a loud palette that dulls, not a pure
+   * colour beside a gray. Added 2026-08-18 to replace the proxy
+   * `maxChroma - denseChromaRange`, which read the RENDERED max against a dense
+   * range and therefore sat at or below the true floor (it over-fired by
+   * construction; measured cost of the exact reading below).
+   */
+  denseMinChroma: number;
+  /**
    * Dense max − min relative saturation: how far the palette's colourfulness
    * travels, read against the ceiling at each sample rather than absolutely.
    *
@@ -674,6 +822,51 @@ export interface PaletteFeatures {
    * ceiling into #dc949e at 54%, no lightness change, visibly dustier).
    */
   denseSaturationRange: number;
+  /**
+   * Longest CONTIGUOUS dense run that is pale and weak at once
+   * (L > WASH_LIGHTNESS ∧ C < WASH_CHROMA), as a share of the ramp — the
+   * `wash` term of research-colorTheory §7.
+   *
+   * A run, not a share of the whole: a wash is a PASSAGE. 43 of the 103
+   * fixture palettes that clear the quarter-of-the-ramp bar are not `high-key`
+   * and 41 are not even `light`, because the pale stretch sits between two
+   * darker ends and no palette-wide mean can see it.
+   *
+   * Absolute chroma, deliberately, and this is the one place the D19 rule
+   * points that way: "is this passage washed out" is a LOUDNESS question (how
+   * much colour is in it), not an identity question (is there colour at all).
+   * The saturation reading answers the wrong one — at L > 0.8 the sRGB ceiling
+   * has collapsed to ~0.1, so a dilute tint sits near 100% of what is
+   * available and reads "fully coloured" while looking like water. Measured:
+   * the saturation-gated variant fires on 44 palettes against 103, and the 64
+   * it drops include #ffdeea → #b5fffb, seven near-white tints which are
+   * exactly what a wash looks like.
+   */
+  paleRunShare: number;
+  /**
+   * The longest run of dense samples that are all one COLOUR, as a share of the
+   * ramp: a FLAT SPOT (research-colorTheory §7).
+   *
+   * Not `clipped`, which is the share of samples with some channel pinned at
+   * the clamp — a coefficient fact that is true of 40% of the corpus and says
+   * nothing about what the picture does. This is the visible half of the same
+   * row: a stretch where the gradient stops moving. Measured as the longest
+   * window whose every member sits inside one JND (oklabDistance 0.02) of the
+   * window's first sample, so a slow ramp accumulates two or three samples and
+   * a plateau accumulates the plateau.
+   */
+  flatRunShare: number;
+  /**
+   * ...and how far the REST of the ramp gets from that plateau, in OkLab.
+   *
+   * A flat SPOT is a spot on something, exactly as a `wash` is a passage
+   * through something: on a palette that is one colour end to end the longest
+   * still stretch is a sixth of nothing happening, and the words for that are
+   * `low-contrast` and `monochrome`. This is the distance from the winning
+   * run's anchor to the farthest dense sample, so the term can ask that the
+   * gradient go somewhere.
+   */
+  flatRunContrast: number;
   /** Dense-end lightness difference L(t=1) − L(t=0): which way a ramp runs. */
   lightnessDelta: number;
   /**
@@ -731,15 +924,29 @@ const BIN_WIDTH = 360 / HUE_BINS;
  * half-open [lo, hi) contract.
  */
 export function hueBandShare(f: PaletteFeatures, lo: number, hi: number): number {
+  return bandShare(f.hueHistogram, lo, hi);
+}
+
+/**
+ * The same window over the NAMEABLE mass only — see `vividHueHistogram`.
+ *
+ * Answers "is there a real {family} in this palette", which is a different
+ * question from "does the run pass through that arc", and the one a spectrum or
+ * a family claim is actually making.
+ */
+export function vividHueBandShare(f: PaletteFeatures, lo: number, hi: number): number {
+  return bandShare(f.vividHueHistogram, lo, hi);
+}
+
+const bandShare = (histogram: readonly number[], lo: number, hi: number): number => {
   const bin = (edge: number) =>
     ((Math.round(edge / BIN_WIDTH) % HUE_BINS) + HUE_BINS) % HUE_BINS;
   const from = bin(lo);
   const to = bin(hi);
   let total = 0;
-  for (let i = from; i !== to; i = (i + 1) % HUE_BINS)
-    total += f.hueHistogram[i] ?? 0;
+  for (let i = from; i !== to; i = (i + 1) % HUE_BINS) total += histogram[i] ?? 0;
   return total;
-}
+};
 
 export interface Descriptor {
   word: string;
@@ -848,6 +1055,10 @@ function hueGeometry(stops: readonly Stop[]) {
   if (chromatic.length === 0)
     return {
       clusters: [] as number[],
+      shares: [] as number[],
+      chromas: [] as number[],
+      lightnesses: [] as number[],
+      clusterWidths: [] as number[],
       span: 0,
       maxClusterWidth: 0,
       chromaticFraction: 0,
@@ -894,8 +1105,41 @@ function hueGeometry(stops: readonly Stop[]) {
   });
   const maxClusterWidth = widths.length ? Math.max(...widths) : 0;
 
+  // How much of the coloured run each group holds, and how loud it is
+  // (2026-08-18, D25 harmony/contrast). Itten's contrast of extension is a
+  // claim about the AREA one hue is given against another, and on a gradient
+  // that area is extent along t: the dense sample is uniform in t, so a group's
+  // share of the chromatic samples IS its share of the coloured length. The
+  // chroma is the group's own mean, which is what separates an ACCENT (a short
+  // passage LOUDER than the field it interrupts) from a mere short passage.
+  const shares = groups.map((group) => group.length / chromatic.length);
+  // ...and each group's own arc, so `maxClusterWidth` is a reading of this row
+  // rather than a separate measurement: an accented-analogous field has to be
+  // an ARC (the dominant group ≥ MONOCHROME_SPAN wide), and the max alone
+  // cannot say WHICH group is the wide one.
+  const clusterWidths = widths;
+  const chromas = groups.map(
+    (group) => group.reduce((sum, c) => sum + c.C, 0) / group.length,
+  );
+  // ...and how LIGHT it is (QA round 4). A group's chroma alone cannot say
+  // whether a viewer can see its colour, because OkLab's cube root has infinite
+  // slope at the black point: #000108 measures C 0.033 and reads as black, and
+  // on that reading a seven-stop near-black-to-olive neutral ramp was chipped
+  // `extension contrast` — Itten's SMALL AREA OF STRONGER COLOUR — with the
+  // "accent" being the black end of its own ramp. It is the same argument
+  // SATURATION_BRANCH_LIGHTNESS records for the saturation branch, one level
+  // up: a cluster sitting under the near-black edge is not a colour anything
+  // can be set against.
+  const lightnesses = groups.map(
+    (group) => group.reduce((sum, c) => sum + c.L, 0) / group.length,
+  );
+
   return {
     clusters,
+    shares,
+    chromas,
+    lightnesses,
+    clusterWidths,
     span: 360 - widest,
     maxClusterWidth,
     chromaticFraction: chromatic.length / stops.length,
@@ -987,6 +1231,10 @@ export function paletteFeatures(
   // same walk: they are the "from {family} into {family}" anchors.
   let hueNet = 0;
   let hueTravel = 0;
+  // ...and the same chain kept as an INTERVAL: see hueArcMin.
+  let hueArc = 0;
+  let hueArcMin = Infinity;
+  let hueArcMax = -Infinity;
   let prevHue: number | null = null;
   let firstHue: number | null = null;
   let lastHue: number | null = null;
@@ -1004,7 +1252,14 @@ export function paletteFeatures(
       const arc = ((c.h - prevHue + 540) % 360) - 180; // signed shortest arc
       hueNet += arc;
       hueTravel += Math.abs(arc);
+      hueArc += arc;
+    } else {
+      // A restart: the run came out of a gray somewhere else on the wheel, so
+      // the unwrapped frame re-anchors on the sample that resumed it.
+      hueArc = c.h;
     }
+    if (hueArc < hueArcMin) hueArcMin = hueArc;
+    if (hueArc > hueArcMax) hueArcMax = hueArc;
     prevHue = c.h;
     if (firstHue === null) {
       firstHue = c.h;
@@ -1061,6 +1316,57 @@ export function paletteFeatures(
     if (s.C < denseLch[chromaValleyI]!.C) chromaValleyI = i;
   }
   const lastI = denseLch.length - 1;
+
+  // The longest PALE AND WEAK stretch, for `wash`. A separate walk because it
+  // is the only run-length fact here: the extremum loop above answers "where
+  // is the palest sample", and a wash is a question about how long the palette
+  // stays there.
+  //
+  // A CLIPPED WHITE IS NOT A WASH (QA round 4). Both of the inventory's
+  // thresholds are satisfied at the white corner — L 1.0 is pale and C 0.0 is
+  // weak — so a ramp that spends 44% of its length pinned at #ffffff measured
+  // paleRunShare 0.54 and was chipped `wash` beside `saturation contrast` and
+  // `pure-white-plateau`, which is one run of samples described three ways and
+  // only the last of them right. A wash is a passage OF COLOUR that has been
+  // watered down; where the gamut ran out there is no colour to water down, and
+  // the plateau terms are the ones that say so. Measured over the fixture: the
+  // run test drops from 103 to 98 palettes (strong 37 to 33), and the five it
+  // loses are exactly the ones whose pale run is mostly the clamp.
+  // The longest stretch where the colour does not CHANGE — see flatRunShare.
+  // Reuses `denseLab` from the colour-return block above: one OkLab pass.
+  let flatRun = 1;
+  let flatCurrent = 1;
+  let flatAnchor = denseLab[0]!;
+  let flatBest = denseLab[0]!;
+  for (let i = 1; i < denseLab.length; i++) {
+    const lab = denseLab[i]!;
+    if (oklabDistance(lab, flatAnchor) <= FLAT_SPOT_JND) {
+      flatCurrent++;
+      if (flatCurrent > flatRun) {
+        flatRun = flatCurrent;
+        flatBest = flatAnchor;
+      }
+    } else {
+      flatAnchor = lab;
+      flatCurrent = 1;
+    }
+  }
+  const flatRunContrast = denseLab.reduce(
+    (m, lab) => Math.max(m, oklabDistance(lab, flatBest)),
+    0,
+  );
+
+  let paleRun = 0;
+  let paleCurrent = 0;
+  for (let i = 0; i < denseLch.length; i++) {
+    const s = denseLch[i]!;
+    const [r, g, b] = denseRgb[i]!;
+    const white = r >= 0.9999 && g >= 0.9999 && b >= 0.9999;
+    if (!white && s.L > WASH_LIGHTNESS && s.C < WASH_CHROMA) {
+      paleCurrent++;
+      if (paleCurrent > paleRun) paleRun = paleCurrent;
+    } else paleCurrent = 0;
+  }
 
   // Per-channel facts on the raw clamped dense values rather than the
   // hex-rounded stops: range, clip shares at each end, monotonicity.
@@ -1134,10 +1440,13 @@ export function paletteFeatures(
   const denseChromaP90 = sortedC[Math.floor(sortedC.length * 0.1)]!;
 
   const hueHistogram = new Array<number>(HUE_BINS).fill(0);
+  const vividHueHistogram = new Array<number>(HUE_BINS).fill(0);
   const chromatic = denseLch.filter(hasUsableHue);
   for (const c of chromatic) {
     const bin = Math.min(HUE_BINS - 1, Math.floor(c.h / BIN_WIDTH));
     hueHistogram[bin] = (hueHistogram[bin] ?? 0) + 1 / chromatic.length;
+    if (c.C >= FAMILY_CHROMA)
+      vividHueHistogram[bin] = (vividHueHistogram[bin] ?? 0) + 1 / chromatic.length;
   }
 
   const luminances = (hexColors.length ? hexColors : dense).map(relativeLuminance);
@@ -1172,6 +1481,7 @@ export function paletteFeatures(
       ).length / denseRgb.length,
     chromaTrend: meanOf(denseLch.slice(denseLch.length - half)) - meanOf(denseLch.slice(0, half)),
     hueHistogram,
+    vividHueHistogram,
     contrastRatio:
       (Math.max(...luminances) + 0.05) / (Math.min(...luminances) + 0.05),
     denseChromaP90,
@@ -1183,12 +1493,18 @@ export function paletteFeatures(
         }
       : null,
     clusterHues: geometry.clusters,
+    clusterShares: geometry.shares,
+    clusterChromas: geometry.chromas,
+    clusterLightnesses: geometry.lightnesses,
+    clusterWidths: geometry.clusterWidths,
     firstHue,
     lastHue,
     firstChromatic,
     lastChromatic,
     hueNet,
     hueTravel,
+    hueArcMin: Number.isFinite(hueArcMin) ? hueArcMin : 0,
+    hueArcMax: Number.isFinite(hueArcMax) ? hueArcMax : 0,
     hueConsistency: hueTravel > 0 ? Math.abs(hueNet) / hueTravel : 1,
     lightnessPeakT: peakI / lastI,
     lightnessValleyT: valleyI / lastI,
@@ -1202,8 +1518,12 @@ export function paletteFeatures(
     denseLastLightness: denseLch[lastI]!.L,
     denseSaturationRange:
       Math.max(...denseLch.map((c) => c.S)) - Math.min(...denseLch.map((c) => c.S)),
+    paleRunShare: paleRun / denseLch.length,
+    flatRunShare: flatRun / dense.length,
+    flatRunContrast,
     denseLightnessRange: denseLch[peakI]!.L - denseLch[valleyI]!.L,
     denseChromaRange: denseLch[chromaPeakI]!.C - denseLch[chromaValleyI]!.C,
+    denseMinChroma: denseLch[chromaValleyI]!.C,
     lightnessDelta: denseLch[lastI]!.L - denseLch[0]!.L,
     channelRange,
     channelHiClip,
@@ -1296,6 +1616,65 @@ const hasSpectrumPoles = (f: PaletteFeatures) =>
   hueBandShare(f, 150, 300) >= RAINBOW_POLE_SHARE;
 
 /**
+ * Two dominant, opposed hue masses — the sweep route to `complementary`.
+ *
+ * Reads the hue histogram, so it is pure over PaletteFeatures and sees the
+ * same dense sample the clusters do. The search is for the EXISTENCE of a pair
+ * of windows that satisfies every threshold, not for the heaviest pair: taking
+ * the heaviest two masses and then measuring the angle between them made the
+ * answer depend on where a washed-out crossing dragged a centroid (the owner's
+ * palette reads 130 degrees apart under that reading at a 30-degree half-width,
+ * because a window centred at 250 catches more of the blue tail than one
+ * centred at 230). The separation belongs in the search as a constraint; the
+ * share thresholds are what decide whether the pair is the palette.
+ *
+ * Cost: 36 window sums (4 bins each) plus at most 36*35/2 pairs of lookups,
+ * measured at 4.9 us per call over the fixture beside a paletteFeatures pass of
+ * ~104 us.
+ */
+export function opposedHueMasses(
+  f: PaletteFeatures,
+  // The shares are parameters so the characteristic registry can ask the SAME
+  // question with a margin (its `strong` band for `complementary`) instead of
+  // writing a second, subtly different two-mass search.
+  { pole = MASS_POLE_SHARE, both = MASS_BOTH_SHARE } = {},
+): boolean {
+  if (f.denseChromaP90 < MASS_POLE_CHROMA) return false;
+  // THE PAIR HAS TO EXIST IN THE PALETTE, not merely in the search (QA round
+  // 6). The windows are HUE_MASS_WINDOW wide on each side, so a pair of BIN
+  // CENTRES exactly COMPLEMENTARY_SEPARATION apart can be carried by two masses
+  // sitting up to 2*HUE_MASS_WINDOW = 40 degrees closer together than that. The
+  // filed palette is the whole error at once: olive stops at h 124/127/146 and
+  // blue stops at h 259-263, an ENTIRE chromatic arc of 138.9 degrees, so no two
+  // hues anywhere in it are 150 apart - and the accepted pair was the windows
+  // centred at 120 and 270 whose chroma-weighted centroids measure 131.0 and
+  // 262.4, i.e. 131.4 apart. Split-complementary territory printing the textbook
+  // word.
+  //
+  // The arc is the honest precondition and it is one number the features
+  // already carry: the walk's own extent. Measured over the fixture it refuses
+  // 2 of the 52 palettes the term was true of and exactly 1 of the 32 the margin
+  // admitted - the filed seed. The owner's screenshot palette (D24.2, the case
+  // this route exists for) spans 184.5 degrees and is untouched.
+  if (f.hueArcMax - f.hueArcMin < COMPLEMENTARY_SEPARATION) return false;
+  const mass: number[] = [];
+  for (let i = 0; i < HUE_BINS; i++) {
+    const centre = i * BIN_WIDTH;
+    mass.push(hueBandShare(f, centre - HUE_MASS_WINDOW, centre + HUE_MASS_WINDOW));
+  }
+  for (let i = 0; i < HUE_BINS; i++) {
+    if (mass[i]! < pole) continue;
+    for (let j = i + 1; j < HUE_BINS; j++) {
+      if (mass[j]! < pole) continue;
+      if (mass[i]! + mass[j]! < both) continue;
+      if (hueSeparation(i * BIN_WIDTH, j * BIN_WIDTH) >= COMPLEMENTARY_SEPARATION)
+        return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Structure is one exclusive classification, not seven independent tests: a
  * palette has one hue geometry. The ladder is ordered narrowest-first so the
  * seven prevalences below sum to 100%.
@@ -1305,7 +1684,13 @@ export function classifyStructure(f: PaletteFeatures): string {
   if (f.hueClusters === 1) {
     if (f.hueSpan < MONOCHROME_SPAN) return 'monochrome';
     if (f.hueSpan < ANALOGOUS_SPAN) return 'analogous';
-    return f.hueSpan >= RAINBOW_SPAN && hasSpectrumPoles(f) ? 'rainbow' : 'multicolor';
+    if (f.hueSpan >= RAINBOW_SPAN && hasSpectrumPoles(f)) return 'rainbow';
+    // A one-cluster sweep between two opposed masses is where the owner's
+    // palette lives: continuous in hue, and still two colours facing each
+    // other. `rainbow` is tested first and keeps its claim, so a full-wheel run
+    // cannot take this branch (and could not pass it anyway: 80% of its samples
+    // do not fit in two 40-degree windows).
+    return opposedHueMasses(f) ? 'complementary' : 'multicolor';
   }
   // Two groups only make a duotone when each is actually one hue. Cranking the
   // frequency slider produces palettes that visit red, green, cyan and magenta
@@ -1327,7 +1712,14 @@ export function classifyStructure(f: PaletteFeatures): string {
   // 43 of the fixture's 121 rainbows were that shape (brown to sage to navy,
   // white to blue-gray to teal); rainbow drops to 78 and multicolor absorbs
   // them, which is what they look like.
-  return 'multicolor';
+  //
+  // ...but two masses facing each other are complementary however many clusters
+  // the crossing splits into, so the same second route runs here (D24.2). It
+  // reaches palettes with three or more clusters and palettes with two WIDE
+  // ones; the narrow-two case above is already decided, and 7 of the fixture's
+  // duotones would also satisfy this test — they keep `duotone`, because the
+  // ladder is ordered and their clusters are the more specific reading.
+  return opposedHueMasses(f) ? 'complementary' : 'multicolor';
 }
 
 const structural = (
@@ -1380,13 +1772,18 @@ export const DESCRIPTORS: readonly Descriptor[] = [
   // 29: the near-black-pole palettes left, and the shadows they were paired
   // against no longer split a cluster), rainbow 78 → 75, analogous 243 → 247,
   // multicolor 336 → 328, grayscale 19 → 19.
+  // Re-measured a third time 2026-08-18 (D24.2, the sweep route to
+  // `complementary`): the only two classes that move are the two the new route
+  // sits between, complementary 29 -> 52 and multicolor 328 -> 305. Nothing
+  // else can change — the route is only reached after grayscale, monochrome,
+  // analogous, rainbow and the narrow-two-cluster pair have all declined.
   structural('grayscale', 0.022, 1, true),
   structural('monochrome', 0.158, 1.2, true),
   structural('duotone', 0.037, 1, true),
-  structural('complementary', 0.033, 1, true),
+  structural('complementary', 0.058, 1, true),
   structural('rainbow', 0.087, 1.3, true),
   structural('analogous', 0.285, 0.6, false),
-  structural('multicolor', 0.378, 0.8, false),
+  structural('multicolor', 0.354, 0.8, false),
 
   // --- named families: a hue window plus a tone constraint.
   //

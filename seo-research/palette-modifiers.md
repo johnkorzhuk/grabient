@@ -797,3 +797,82 @@ over 300 fixture seeds, against a `paletteFeatures` pass of 104.3 µs. The same
 loop through `oklabDistance` measures 49.3 µs — `Math.hypot` carries
 overflow-safe scaling that three small components do not need, and both
 comparisons here are monotone in the square, so only the answer takes a root.
+
+## D24.2 (2026-08-18): `complementary` on a sweep, and the characteristic registry
+
+**The case.** The owner's screenshot palette — `#88d5f2` through `#ffc1a1`, a
+sky-blue conic sweeping to salmon — has END hues 223.9° and 48.5°, **175.5°
+apart**, which is textbook complementary. It classified `multicolor` and showed
+no structure chip at all, because a cosine ramp SWEEPS: the crossing fills every
+hue between the poles, so the palette forms ONE cluster **184.5° wide** and the
+isolated-clusters route needs two clusters each narrower than `CLUSTER_GAP`.
+
+**The second route.** `opposedHueMasses(f)`: any pair of ±20° hue windows at
+least `COMPLEMENTARY_SEPARATION` apart, each holding ≥ 20% of the chromatic
+samples and together ≥ 80%, on a palette whose loudest tenth reaches chroma 0.10.
+It reads `hueHistogram` through `hueBandShare`, so it is pure over
+`PaletteFeatures` and sees the same dense sample the clusters do.
+
+Three decisions, each measured over the 867-seed fixture:
+
+- **Existence, not "the heaviest two".** Taking the two heaviest masses and then
+  measuring the angle between them makes the answer depend on where a washed-out
+  crossing drags a centroid: the owner's palette reads only **130° apart** that
+  way at a 30° half-width, because a window centred at 250° catches more of the
+  blue tail than one centred at 230°. The separation belongs in the search as a
+  constraint; the share thresholds decide whether the pair IS the palette.
+- **±20°** is `CLUSTER_GAP / 2`: a mass may not be wider than the gap that
+  defines a cluster. Half-width sweep (palettes moved): 15 → 16, 20 → 30,
+  25 → 43, 30 → 57. Wider windows start swallowing the crossing itself.
+- **Share sweep** (weak pole × union, palettes moved): 0.15/0.75 → 35,
+  0.15/0.80 → 25, 0.15/0.85 → 16, 0.20/0.75 → 32, **0.20/0.80 → 30**,
+  0.20/0.85 → 14, 0.25/0.80 → 21. The knee is the union, not the pole share.
+
+**"At real chroma" is read off `denseChromaP90`, not the mean.** A palette that
+crosses pole to pole through gray has a low mean chroma by construction — the
+owner's is 0.079, under `FAMILY_CHROMA` — so a mean floor rejects exactly the
+shape the route exists for. Visual QA over all 30 palettes the share thresholds
+alone admitted: the four that are plainly not complementary (a near-white ramp
+with two faint tint pulses, a desaturated tan-to-maroon, an olive→black→brown
+whose blue pole is invisible inside the black, a flat pale one) measure p90
+0.087 / 0.042 / 0.090 / 0.058, while the twelve that plainly are run 0.113 to
+0.259. **0.10** cuts between them; the owner's palette measures 0.109.
+
+**Result** (867 seeds, 13 steps; identical at 7):
+
+| class | before | after |
+| --- | --- | --- |
+| grayscale | 19 (2.2%) | 19 (2.2%) |
+| monochrome | 137 (15.8%) | 137 (15.8%) |
+| duotone | 32 (3.7%) | 32 (3.7%) |
+| **complementary** | **29 (3.3%)** | **52 (6.0%)** |
+| rainbow | 75 (8.7%) | 75 (8.7%) |
+| analogous | 247 (28.5%) | 247 (28.5%) |
+| **multicolor** | **328 (37.8%)** | **305 (35.2%)** |
+
+Route prevalences with the ladder ignored: isolated clusters 30 (3.5%), opposed
+masses 39 (4.5%), both 9, union 60 (6.9%). Under the ladder the union is 52,
+because 7 duotones satisfy the mass test and 1 grayscale satisfies the cluster
+test, and both are claimed earlier — the ladder stays exclusive and ordered. **No rainbow moves**: a run
+that reaches both ends of the spectrum spreads its samples around the wheel and
+cannot fit 80% of them into two 40° windows, so no span guard is needed.
+
+**Downstream re-measures** (the drift tests carry these): impression
+`opposite-colors` 0.0334 → 0.0600 and `several-colors` 0.3783 → 0.3518; chips
+per palette mean 7.4429 → 7.4544 (23 rows gain a structure chip and the compound
+built on it: structure axis 287 → 310 rows, compound 316 → 330, rows with ≥3
+distinct kinds 806 → 813). Measure-first rates are unchanged — `sepia` and
+`ombre` gate on monochrome/analogous, which did not move.
+
+**The characteristic registry** (`packages/data-ops/src/gradient-gen/palette-characteristics.ts`,
+D25.1). One table, 63 terms seeded from what was already implemented, each with
+`test`, a `strong` margin band, and BOTH rates measured over the fixture at the
+default view (7 steps). The chip row, the description and the tag filter read
+the same closures — the measure-first detectors and `seriesReading` moved out of
+`apps/web/src/palette-prose.ts` into it so there is exactly one definition of
+each. Terms the inventory marks as not computable from diffuse colour (metallic,
+iridescent, holographic, simultaneous contrast, assimilation/Bezold, Kelvin,
+luma/luminosity) are documented as never-implement, with the reason, and a test
+asserts none of them is ever added. Prominent terms per palette over the
+fixture: 0 → 2 palettes, 1 → 46, 2 → 91, 3 → 175, 4 → 169, 5 → 143, 6 → 100,
+7 → 79, 8 → 27, 9 → 20, 10 → 6, 11 → 6, 12 → 2, 13 → 1.

@@ -846,6 +846,18 @@ const LOOKUP_ONLY = new Set(["azure"]);
  */
 const MISNAMED_LABEL = new Set(["purple brown", "purplish brown", "brownish purple"]);
 
+/**
+ * Whether a corpus entry may be SAID, as opposed to merely looked up.
+ *
+ * Exported because `nearestNamed` is not the only pass that chooses a word any
+ * more: the chip row picks a link label by plain OkLab proximity (its
+ * destination ranks by that, not by hue error — see palette-prose's chipName),
+ * and a second scan over NAMED_COLORS that did not know about these two lists
+ * put `purple brown` straight back on a red-brown stop. One list, one answer.
+ */
+export const isLabelName = (name: string): boolean =>
+    !LOOKUP_ONLY.has(name) && !MISNAMED_LABEL.has(name);
+
 function parseCorpus(): NamedColor[] {
     const out: NamedColor[] = [];
     for (const entry of PACKED_COLORS.split(",")) {
@@ -928,8 +940,7 @@ function nearestNamed(lab: Oklab, veto?: NameVeto): NamedColor {
     let candidate: NamedColor | null = null;
     let candidateMin = Infinity;
     for (const color of NAMED_COLORS) {
-        if (LOOKUP_ONLY.has(color.name) || MISNAMED_LABEL.has(color.name) || veto?.(color.name))
-            continue;
+        if (!isLabelName(color.name) || veto?.(color.name)) continue;
         const dist = oklabDistance(lab, color.lab);
         // A colour that IS a corpus entry keeps that entry's name, whatever the
         // guard would otherwise prefer: the word was chosen for this exact hex.
@@ -1060,11 +1071,39 @@ export interface ColorNameOptions {
     endpointSeparation?: number;
     /** Corpus entries the caller has ruled out. See NameVeto. */
     veto?: NameVeto;
+    /**
+     * How far apart two stops are, for the selection below. Defaults to
+     * `oklabDistance`, which is what the NAME wants: it asks "are these two
+     * words for one colour", and OkLab distance is the honest answer to that.
+     *
+     * A caller may ask a different question. The seed page's chip row asks "are
+     * these two SEARCHES", where a lightness step inside one hue is one search
+     * and a hue step at the same lightness is two, so it passes a metric that
+     * weights lightness down (palette-prose.ts, `chipDistance`). Injected
+     * rather than branched on a flag because the metric belongs to the caller's
+     * question, not to this function: see the D22 QA round, where a chip row on
+     * a pale yellow palette measured 0.094 between a saturated yellow block and
+     * the cream beside it and named neither.
+     */
+    separation?: (a: Oklab, b: Oklab) => number;
 }
 
 /** Defaults are tuned in seo-research/color-corpus.md against 144 live seeds. */
 export const DEFAULT_MAX_COLOR_NAMES = 4;
-const DEFAULT_MIN_SEPARATION = 0.12;
+/**
+ * How far apart two stops have to sit before they are two colours rather than
+ * two words for one, in plain OkLab distance. The NAME's threshold.
+ *
+ * It used to be the chip row's threshold too ("one threshold, one meaning").
+ * The D22 QA round measured that as wrong in both directions at once: 0.12 of
+ * OkLab distance is a lightness step inside one hue (four blues on a monochrome
+ * ramp all cleared it and the row said one idea four times) and it is also more
+ * ground than a whole warm band covers on a pale palette (a saturated yellow
+ * block measured 0.094 from the cream beside it and got no chip). The two
+ * surfaces ask different questions, so they now carry different metrics: see
+ * `separation` above and palette-prose.ts's `chipDistinct`.
+ */
+export const DEFAULT_MIN_SEPARATION = 0.12;
 const DEFAULT_ENDPOINT_SEPARATION = 0.05;
 
 /**
@@ -1111,6 +1150,7 @@ export function getUniqueColorNames(
     const minSeparation = options?.minSeparation ?? DEFAULT_MIN_SEPARATION;
     const endpointSeparation =
         options?.endpointSeparation ?? DEFAULT_ENDPOINT_SEPARATION;
+    const separation = options?.separation ?? oklabDistance;
 
     if (hexColors.length === 0 || max < 1) return [];
 
@@ -1158,7 +1198,7 @@ export function getUniqueColorNames(
     if (
         max > 1 &&
         last > 0 &&
-        oklabDistance(labs[0]!, labs[last]!) >= endpointSeparation
+        separation(labs[0]!, labs[last]!) >= endpointSeparation
     ) {
         chosen.push(last);
     }
@@ -1174,7 +1214,7 @@ export function getUniqueColorNames(
             if (chosen.includes(i)) continue;
             let nearest = Infinity;
             for (const c of chosen) {
-                nearest = Math.min(nearest, oklabDistance(labs[i]!, labs[c]!));
+                nearest = Math.min(nearest, separation(labs[i]!, labs[c]!));
             }
             if (nearest > bestDistance) {
                 bestDistance = nearest;

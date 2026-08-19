@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
+import {
+  DEFAULT_ANGLE,
+  DEFAULT_STEPS,
+  DEFAULT_STYLE,
+} from "@repo/data-ops/valibot-schema/grabient";
 import { layout } from "../src/html";
 import { seedPage } from "../src/pages";
 import { renderPalette } from "../src/palette";
+import { seedPaletteText } from "../src/palette-json";
 import {
   OG_RENDER_VERSION,
   ROBOTS_TXT,
@@ -181,22 +187,31 @@ describe("SEO parity", () => {
   });
 });
 
-// The 2026-08-17 seed-page text contract (D6-AMENDED/D13/D14): the visible
-// description paragraph replaced the bold name heading, the fixed hub chips
-// became palette-derived related-search links, and the <title> suffix follows
-// the URL. These assert the SSR side; edit-ui.test.js asserts the island
-// keeps every one of these surfaces live per tick.
+// The seed-page text contract, as amended on 2026-08-18 (D22.A). The
+// description paragraph was visible for one day (D6-AMENDED, 2026-08-17) and
+// is now INVISIBLE: it still ships in the meta description, the JSON-LD and
+// /{seed}.json, but nothing renders it into the body. What a visitor sees of
+// the text system is the chip row (D13); the <title> suffix follows the URL
+// (D14). These assert the SSR side; edit-ui.test.js asserts the island keeps
+// the surviving surfaces live per tick.
 describe("seed page description surfaces", () => {
-  const render = (style) =>
+  const render = (style, steps = "auto") =>
     seedPage({
       seed: SEED,
-      params: { style, steps: "auto", angle: "auto", page: 1, limit: 24 },
+      params: { style, steps, angle: "auto", page: 1, limit: 24 },
       size: "auto",
       graph: false,
       origin: "https://grabient.com",
       stars: 0,
     });
   const titleOf = (html) => html.match(/<title>([^<]*)<\/title>/)[1];
+  // The same text the page composes, from the same function, at the same
+  // default view resolveSeedView() applies to `style: "auto"`. Asserting
+  // against the real string is the point: "the prose still ships" is only
+  // meaningful if the test knows what the prose IS.
+  const { prose } = seedPaletteText(
+    renderPalette(SEED, DEFAULT_STYLE, DEFAULT_STEPS, DEFAULT_ANGLE),
+  );
 
   it("suffixes the title by style-param presence (D14, all three outcomes)", () => {
     // "auto" is how parseListSearch spells an absent param, mirroring the
@@ -210,16 +225,38 @@ describe("seed page description surfaces", () => {
     expect(gradient.endsWith(" Gradient Palette")).toBe(false);
   });
 
-  it("renders the name sr-only and the description visible", () => {
+  it("re-qualifies a finely stepped swatch view as a gradient palette", () => {
+    // Owner rule, 2026-08-18: a swatch strip is "a palette" only while its
+    // blocks read as separate colours. At 8 steps and up it reads as a stepped
+    // gradient, so the page takes the two-noun suffix back. Asserted through
+    // seedPage rather than titleSuffix alone because the step count has to
+    // survive resolveSeedView to reach the title.
+    expect(titleOf(render("linearSwatches", 7)).endsWith(" Palette")).toBe(true);
+    expect(
+      titleOf(render("linearSwatches", 7)).endsWith(" Gradient Palette"),
+    ).toBe(false);
+    expect(
+      titleOf(render("linearSwatches", 8)).endsWith(" Gradient Palette"),
+    ).toBe(true);
+    expect(
+      titleOf(render("angularSwatches", 24)).endsWith(" Gradient Palette"),
+    ).toBe(true);
+  });
+
+  it("keeps the name sr-only and renders no description paragraph (D22.A)", () => {
     const html = render("auto");
-    // The short name moved INTO sr-only (it is still the section's
-    // aria-labelledby target); the paragraph took its visible place.
+    // The h2 stays: it is the section's aria-labelledby target and the short
+    // name a crawler reads for the palette.
     expect(html).toMatch(/<h2 id="palette-about" class="sr-only">/);
-    const p = html.match(/<p id="palette-description" class="([^"]*)">([^<]*)<\/p>/);
-    expect(p).not.toBeNull();
-    expect(p[1]).not.toContain("sr-only");
-    // The demand phrase every R1 carries, so the paragraph really is prose.
-    expect(p[2]).toContain("gradient color palette");
+    // The element is gone, not hidden. A hidden paragraph of keyword-bearing
+    // prose is the pattern Search Console penalizes, so "invisible" here has
+    // to mean "absent from the body", never `sr-only` or `display:none`.
+    expect(html).not.toContain('id="palette-description"');
+    const body = html.slice(html.indexOf("</head>"));
+    expect(body).not.toContain(prose.paragraph);
+    // The paragraph's own opener, in case the element is ever reintroduced
+    // under a different id: no sentence of it may reach the body.
+    expect(body).not.toContain(prose.identity);
   });
 
   it("links related searches as bounded /palettes/ queries", () => {
@@ -239,6 +276,16 @@ describe("seed page description surfaces", () => {
     // Both description fields exist: the meta description (identity + action
     // clause) and the JSON-LD description (the full paragraph).
     expect(html).toContain('"description":');
+    // D22.A: the paragraph went invisible, it did not go away. These three are
+    // now the ONLY places it reaches a reader, so they are asserted by value —
+    // a regression that stopped generating prose would otherwise show up as
+    // nothing at all rather than as a failing test.
+    const head = html.slice(0, html.indexOf("</head>"));
+    expect(head).toContain(`"description":${JSON.stringify(prose.paragraph)}`);
+    expect(head).toContain(`"abstract":${JSON.stringify(prose.identity)}`);
+    expect(head).toContain(
+      `<meta name="description" content="${prose.metaDescription}">`,
+    );
   });
 });
 

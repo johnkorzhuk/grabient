@@ -80,6 +80,16 @@ export const META_HEADLINE = { maxChars: 44, maxNames: 4 };
 export const TITLE_SUFFIX = " Gradient Palette";
 
 /**
+ * Where a swatch strip stops reading as separate colours.
+ *
+ * Below this the blocks are wide and countable, which is what "palette" names;
+ * at or above it the strip reads as a stepped gradient and the title says so.
+ * 8 is the owner's line, and it sits with the site's own defaults: the seed
+ * pages render 7.
+ */
+const GRADIENT_STEPS = 8;
+
+/**
  * What follows the name in `<title>`, keyed to the URL (owner rule, D14).
  *
  * A clean canonical URL keeps the full " Gradient Palette" — those pages
@@ -92,10 +102,46 @@ export const TITLE_SUFFIX = " Gradient Palette";
  * params, so the server passes `params.style !== "auto"` and the island
  * mirrors it by parsing the URL it maintains — shared here so the two cannot
  * disagree about the same address.
+ *
+ * The step count re-qualifies the swatch case (owner rule, 2026-08-18). A
+ * swatch view is only "a palette" while its blocks read as discrete colours;
+ * past `GRADIENT_STEPS` the strip is fine enough to read as a gradient again,
+ * so the full two-noun suffix comes back rather than understating the page.
+ * The gradient styles never change: they render a gradient at any step count.
  */
-export function titleSuffix(style: PaletteStyle, styleInUrl: boolean): string {
+export function titleSuffix(
+  style: PaletteStyle,
+  styleInUrl: boolean,
+  steps: number,
+): string {
   if (!styleInUrl) return TITLE_SUFFIX;
-  return style.includes("Swatches") ? " Palette" : " Gradient";
+  if (!style.includes("Swatches")) return " Gradient";
+  return steps < GRADIENT_STEPS ? " Palette" : TITLE_SUFFIX;
+}
+
+/**
+ * What a set of these views is called, for a list page's visible heading.
+ *
+ * Same rule as `titleSuffix`, plural and lowercase, so the seed page and the
+ * list page can never disagree about what a pinned view is. The unpinned case
+ * keeps BOTH nouns: that is the only variant Google indexes (list and seed
+ * canonicals both strip `style`/`steps`), and the measured competitor set all
+ * carry "gradient" in the title for {color} queries.
+ *
+ * `steps` may be "auto" on a list page, where each card renders at its own
+ * stored count. There is no single strip to judge then, so the style word
+ * stands on its own — only an explicitly pinned, finely stepped view is
+ * re-qualified.
+ */
+export function viewNounPlural(
+  style: PaletteStyle,
+  styleInUrl: boolean,
+  steps: number | "auto",
+): string {
+  if (!styleInUrl) return "gradient palettes";
+  if (!style.includes("Swatches")) return "gradients";
+  if (steps === "auto") return "swatches";
+  return steps < GRADIENT_STEPS ? "swatches" : "gradient palettes";
 }
 
 export interface HeadlineOptions {
@@ -157,25 +203,45 @@ export const CONTRADICTED_BY: Record<string, readonly string[]> = {
   // `pastel` gained the loudness half of its list on 2026-08-18: it carried only
   // value words, so "Pastel bright sky blue" was a name the table permitted.
   pastel: ["dark", "deep", "black", "midnight", "burnt", "rich", "neon", "bright", "electric", "vivid", "fluorescent"],
-  neon: ["pale", "faded", "dusty", "muted", "grayish", "greyish", "washed"],
+  // `dull` joined the two loud rows in QA round 6: the corpus holds `dull
+  // yellow`, `dull red`, `dull blue` and eleven more, and the link-label repair
+  // reaches them - a #dde235 stop measuring C 0.180 lost `sickly yellow` to the
+  // unsearchable-word rule and landed on `dull yellow`, twice as far away and
+  // contradicting its own stop's chroma.
+  neon: ["pale", "faded", "dusty", "muted", "grayish", "greyish", "washed", "dull"],
   muted: ["neon", "bright", "electric", "vivid", "fluorescent"],
   earthy: ["neon", "electric", "vivid", "pastel"],
   dark: ["pale", "light", "baby", "powder", "white", "bright"],
   // `vivid` is spoken:false, so this row is inert for the name and the compound
   // chips and exists for the tone veto below: it is the other pole of `muted`
   // and needs the same list read the other way.
-  vivid: ["pastel", "pale", "faded", "dusty", "muted", "washed"],
+  vivid: ["pastel", "pale", "faded", "dusty", "muted", "washed", "dull"],
 };
 
 /** The tone tags whose contradiction with a NAME is worth acting on. */
 const TONE_VETO_TAGS = ["vivid", "neon", "pastel", "muted"] as const;
 
 /**
- * The loudness half of CONTRADICTED_BY's rows. `pastel`'s value half ("dark",
- * "black", …) would rename every dark stop of a pastel palette, which is a
- * different claim and not one the QA round found wrong.
+ * The loudness half of CONTRADICTED_BY's rows — BOTH POLES of it.
+ *
+ * `pastel`'s value half ("dark", "black", …) would rename every dark stop of a
+ * pastel palette, which is a different claim and not one the QA round found
+ * wrong, so the value words stay out. What was also out, and should not have
+ * been, is the QUIET pole: the docstring on `toneNameVeto` says the veto runs
+ * "in both directions: a fired vivid/neon rules out pale words, a fired
+ * pastel/muted rules out loud ones", and this set held only the loud ones — so
+ * `vivid`'s own row (pastel, pale, faded, dusty, muted, washed) was filtered
+ * down to two words and a vivid palette could carry `faded`, `dusty`, `muted`,
+ * `washed` or `dull` on a stop. QA round 6 filed the last of those: a #dde235
+ * stop at C 0.180, well past VIVID_CHROMA, chipped `dull yellow`.
+ *
+ * A per-STOP gate against the registry thresholds is still not available for
+ * the reason `toneNameVeto` records — the corpus entries themselves fail it,
+ * `pastel red` measures C 0.165 and `dull yellow` C 0.163 — so the veto stays a
+ * palette-level contradiction. Measured over the fixture: 12 -> 18 palettes
+ * carry a contradicting name and fall back to the nearest entry left.
  */
-const LOUDNESS_WORDS = new Set([
+export const LOUDNESS_WORDS = new Set([
   "pastel",
   "pale",
   "neon",
@@ -183,6 +249,11 @@ const LOUDNESS_WORDS = new Set([
   "electric",
   "vivid",
   "fluorescent",
+  "faded",
+  "dusty",
+  "muted",
+  "washed",
+  "dull",
 ]);
 
 /**

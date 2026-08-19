@@ -23,7 +23,7 @@ import {
   normalizeSemanticQuery,
   POPULAR_SEARCHES,
   querySlug,
-  searchSemanticPalettes,
+  searchPalettesForQuery,
   SEARCH_QUERY_MAX_LENGTH,
   type SemanticSearchResult,
 } from "./semantic-search";
@@ -683,7 +683,7 @@ export async function queryPngResponse(requestUrl: string, env: Env): Promise<Re
 
   let results: SemanticSearchResult[] = [];
   try {
-    results = await searchSemanticPalettes(env, normalizedQuery, DEFAULT_PAGE_LIMIT);
+    results = await searchPalettesForQuery(env, normalizedQuery, DEFAULT_PAGE_LIMIT);
   } catch (error) {
     console.warn("Query PNG search error:", error);
   }
@@ -750,7 +750,7 @@ export async function queryOgResponse(requestUrl: string, env: Env): Promise<Res
 
   let results: SemanticSearchResult[] = [];
   try {
-    results = await searchSemanticPalettes(env, normalizedQuery, DEFAULT_PAGE_LIMIT);
+    results = await searchPalettesForQuery(env, normalizedQuery, DEFAULT_PAGE_LIMIT);
   } catch (error) {
     console.error("OG query search failed:", error);
     return new Response("Search failed", { status: 500 });

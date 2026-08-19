@@ -33,7 +33,7 @@ import {
 } from "@repo/data-ops/valibot-schema/grabient";
 import { deserializeCoeffs, serializeCoeffs } from "@repo/data-ops/serialization";
 import { paletteJson } from "./palette-json";
-import { normalizeSemanticQuery, searchSemanticPalettes } from "./semantic-search";
+import { normalizeSemanticQuery, searchPalettesForQuery } from "./semantic-search";
 
 /**
  * Who is calling, when anyone is. Null means anonymous, which is every caller
@@ -104,7 +104,7 @@ export function createPaletteServer(env: Env, origin: string, viewer: Viewer | n
     async ({ query, limit }) => {
       const normalized = normalizeSemanticQuery(query);
       if (!normalized) return fail("Query is empty after normalization.");
-      const results = await searchSemanticPalettes(
+      const results = await searchPalettesForQuery(
         env,
         normalized,
         limit ?? DEFAULT_PAGE_LIMIT,
