@@ -147,4 +147,22 @@ export const RANGE_AWARE = new Set(
     .map(([path]) => path),
 );
 
+/**
+ * Detail routes that read the range but are NOT nav destinations.
+ *
+ * `/goals/<slug>` charts its metric over the window, so it must draw the
+ * control — but it cannot be a PARAMS key. PARAMS is keyed on exact paths and
+ * a slug is not known ahead of time, and `RANGE_AWARE` is derived from PARAMS,
+ * so a per-goal path can never appear there. Prefix matching is the narrow
+ * exception rather than a second source of truth: the nav still comes from
+ * PAGES, and `href()` still carries `range` to any path because it is
+ * PASS_THROUGH, so nothing here changes what a link CONTAINS — only whether
+ * the page bothers to draw the selector.
+ */
+const RANGE_AWARE_PREFIXES: readonly string[] = ["/goals/"];
+
+export function isRangeAware(path: string): boolean {
+  return RANGE_AWARE.has(path) || RANGE_AWARE_PREFIXES.some((p) => path.startsWith(p));
+}
+
 export const NAV_PATHS = Object.keys(PARAMS);

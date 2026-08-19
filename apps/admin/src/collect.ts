@@ -207,8 +207,8 @@ export async function collectD1(
   // backwards — a carry-forward on a quiet day was marked provisional and,
   // because a quiet day has no activity row, was never re-upserted, so the
   // dashed "still settling" tail became a dashed history; meanwhile an active
-  // day's cumulative total was written FINAL at 04:20, when the day was 18%
-  // over.
+  // day's cumulative total was written FINAL by the nightly snapshot, hours
+  // before the day it described had actually ended.
   const emit = (rows: Array<{ day: string; n: number }>, dailyKey: string | null, cumulativeKey: string | null) => {
     const byDay = new Map(rows.filter((r) => r.day && r.day <= today).map((r) => [r.day, r.n]));
     const first = rows.find((r) => r.day && r.day <= today)?.day;

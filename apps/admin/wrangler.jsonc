@@ -99,9 +99,9 @@
 	// are the most contended and most likely to be delayed.
 	"triggers": {
 		"crons": [
-			"20 4 * * *", // daily metric snapshot (trailing-window upsert)
-			"40 5 * * *", // indexation sweep (80min later so the two never overlap on D1)
-			"10 6 * * *" // digests — periodsClosing() in code decides which periods closed today
+			"20 10 * * *", // daily metric snapshot — AFTER LA midnight, see CRON in scheduled.ts
+			"40 11 * * *", // indexation sweep (80min later so the two never overlap on D1)
+			"10 12 * * *" // digests — periodsClosing() in code decides which periods closed today
 		]
 	},
 

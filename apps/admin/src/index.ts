@@ -26,7 +26,7 @@ import {
   statTile,
 } from "./html";
 import { change, RANGES, rollingMean, splitPeriods, sum } from "./range";
-import { href as stateHref, parseState, RANGE_AWARE, type DashboardState, type GlobeMetric } from "./url-state";
+import { href as stateHref, isRangeAware, parseState, type DashboardState, type GlobeMetric } from "./url-state";
 import { buildBrief } from "./brief";
 import { loadSearchConsole, querySearchConsole, type SearchConsole } from "./search-console";
 import { loadGa4, loadGa4Countries, type Ga4 } from "./ga4";
@@ -39,19 +39,30 @@ import {
   campaignCard,
   emptyState,
   goalCard,
+  goalDetail,
   markerEventsList,
   toChartMarkers,
   trendCard,
 } from "./insight-pages";
+import { metricDef } from "./metrics";
 import { renderMarkdown } from "./markdown";
-import { searchDetailCards, searchRankedCards, searchTrendCards } from "./search-page";
+import { pageFilterValue, pageLabel, searchDetailCards, searchRankedCards, searchTrendCards } from "./search-page";
 import { isoDay } from "./range";
 import { getReport, listReports, toMeta } from "./reports";
 import { backfillResultPage, opsPage, reportPage, reportsArchivePage } from "./report-pages";
-import { scheduled } from "./scheduled";
+import { CRON, cronLabel, scheduled } from "./scheduled";
 import { listSweeps } from "./sweep";
 
 /** Shared page shell for the new pages — header row + body, sealed by callers. */
+/**
+ * `current` is the NAV path — which tab lights up. `rangePath` is where the
+ * range control links, and defaults to it.
+ *
+ * They diverge for detail routes: /goals/<slug> should keep Goals lit (it is
+ * not a section of its own) while the range selector has to link back to the
+ * slug, not to the list, or changing the window would silently navigate away
+ * from the goal being read.
+ */
 function layoutPage(
   current: string,
   title: string,
@@ -59,11 +70,12 @@ function layoutPage(
   email: string,
   body: string,
   state: DashboardState,
+  rangePath: string = current,
 ): string {
   return layout(
     title,
     `<main class="mx-auto max-w-6xl px-6 py-8 sm:py-10">
-  ${header(current, generated, email, state)}
+  ${header(current, generated, email, state, rangePath)}
   ${body}
 </main>`,
   );
@@ -383,7 +395,7 @@ app.get("/indexation", async (c) => {
   return seal(
     c.html(
       layoutPage("/indexation", "Indexation — Grabient admin", stamp(now), c.get("email"), `
-  ${latest ? `<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">${tiles}</div>` : emptyState("No sweeps yet. The nightly cron runs at 05:40 UTC; the MCP indexation tool can run a bounded sweep now.")}
+  ${latest ? `<div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">${tiles}</div>` : emptyState(`No sweeps yet. The nightly cron runs at ${cronLabel(CRON.sweep)}; the MCP indexation tool can run a bounded sweep now.`)}
   <div class="mt-4 grid items-start gap-4 lg:grid-cols-2">
     ${trend ?? ""}
     ${
@@ -418,9 +430,74 @@ app.get("/goals", async (c) => {
   const body =
     goals.length === 0
       ? emptyState("No goals yet. The agent sets them through the MCP goals tool, with a baseline, a target and a due date.")
-      : `<div class="mt-6 grid items-start gap-4 lg:grid-cols-2">${goals.map(goalCard).join("\n")}</div>`;
+      : `<div class="mt-6 grid items-start gap-4 lg:grid-cols-2">${goals
+          .map((goal) => goalCard(goal, stateHref(`/goals/${goal.slug}`, state)))
+          .join("\n")}</div>`;
   return seal(
     c.html(layoutPage("/goals", "Goals — Grabient admin", stamp(now), c.get("email"), body, state)),
+  );
+});
+
+// One goal, with its metric's series and the ship markers on it. The slug
+// pattern matches the goals tool's own (^[a-z0-9][a-z0-9-]{2,47}$), so a URL
+// that could never name a goal 404s here rather than reaching the database.
+app.get("/goals/:slug{[a-z0-9][a-z0-9-]{2,47}}", async (c) => {
+  const now = new Date();
+  const db = c.env.ADMIN_DB;
+  // 503 rather than 404: without the store every goal is missing, and "no such
+  // goal" would send the reader looking for a typo that is not there.
+  if (!db) {
+    return seal(
+      c.html(errorPage(503, "Not collecting yet", "ADMIN_DB is not bound; goals live in the metric store.")),
+    );
+  }
+  const state = parseState(new URL(c.req.url));
+  const slug = c.req.param("slug");
+  const goals = await listGoals(db, now, true);
+  const goal = goals.find((g) => g.slug === slug);
+  if (!goal) return seal(c.html(errorPage(404, "Not found", "No such goal."), 404));
+
+  const range = state.range;
+  const until = isoDay(now);
+  const since = isoDay(new Date(now.getTime() - (range.days - 1) * 86_400_000));
+  const markerRows = await loadMarkers(db, since, until);
+
+  const def = metricDef(goal.metric_key);
+  // Rates and positions are LEVELS: the interesting movement is 3.5% -> 4.5%,
+  // and zero-basing that axis flattens the whole story into the top eighth of
+  // the frame. Counts stay zero-based (see zeroBased() in charts.ts).
+  const level = def?.unit === "pct" || def?.unit === "position";
+  const unitFormat = (n: number) =>
+    def?.unit === "pct" ? `${n.toFixed(2)}%` : def?.unit === "position" ? n.toFixed(1) : fmt(Math.round(n));
+
+  const chart = await trendCard(
+    db,
+    {
+      title: def?.label ?? goal.metric_key,
+      note: `The series this goal is measured on. Dashed rules are events — they mark what else happened that day, never an effect.`,
+      idPrefix: `goal-${goal.slug}`,
+      unitFormat,
+      metrics: [{ key: goal.metric_key, label: def?.label ?? goal.metric_key }],
+      zeroBase: !level,
+    },
+    since,
+    until,
+    toChartMarkers(markerRows),
+    markerEventsList(markerRows),
+  );
+
+  return seal(
+    c.html(
+      layoutPage(
+        "/goals",
+        `${goal.title} — Grabient admin`,
+        stamp(now),
+        c.get("email"),
+        goalDetail(goal, chart, stateHref("/goals", state)),
+        state,
+        `/goals/${goal.slug}`,
+      ),
+    ),
   );
 });
 
@@ -470,13 +547,7 @@ app.get("/search", async (c) => {
       filters: [
         subject.kind === "query"
           ? { dimension: "query", operator: "equals", expression: subject.value }
-          : // Google stores page URLs percent-encoded and absolute, so match
-            // that form rather than the decoded path the chart displayed.
-            {
-              dimension: "page",
-              operator: "equals",
-              expression: `https://grabient.com${encodeURI(subject.value).replace(/,/g, "%2C")}`,
-            },
+          : { dimension: "page", operator: "equals", expression: pageFilterValue(subject.value) },
       ],
     });
     const body = !result
@@ -494,7 +565,7 @@ app.get("/search", async (c) => {
           `<div class="mt-5 flex flex-wrap items-baseline justify-between gap-3">
   <div>
     <p class="text-[11px] font-bold tracking-[0.1em] text-ink-muted uppercase">${esc(subject.kind === "query" ? "Search query" : "Landing page")}</p>
-    <h1 class="mt-1 text-2xl font-bold tracking-tight">${esc(subject.value)}</h1>
+    <h1 class="mt-1 text-2xl font-bold tracking-tight break-all">${esc(subject.kind === "page" ? pageLabel(subject.value) : subject.value)}</h1>
   </div>
   <a href="${esc(stateHref("/search", state, { query: undefined, page: undefined }))}" class="text-xs text-ink-muted underline hover:text-ink">← All queries and pages</a>
 </div>
@@ -660,7 +731,13 @@ const shortMonth = (month: string) =>
  * beside the nav that propagates it, and pages that are not range-aware do
  * not draw it at all.
  */
-function header(current: string, generated: string, email: string, state: DashboardState): string {
+function header(
+  current: string,
+  generated: string,
+  email: string,
+  state: DashboardState,
+  rangePath: string = current,
+): string {
   return `<header>
     <div class="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
       ${brand()}
@@ -669,7 +746,7 @@ function header(current: string, generated: string, email: string, state: Dashbo
     <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
       ${nav(current, state)}
       <div class="flex items-center gap-4">
-        ${RANGE_AWARE.has(current) ? rangeSelector(current, state, RANGES) : ""}
+        ${isRangeAware(rangePath) ? rangeSelector(rangePath, state, RANGES) : ""}
         <a href="/brief.json" class="text-xs text-ink-muted underline hover:text-ink">brief.json</a>
       </div>
     </div>
@@ -756,6 +833,11 @@ function acquisitionPage(
         });
 
   const pct = (n: number) => `${n.toFixed(1)}%`;
+  // Hoisted out of the narrowed branch below: a closure cannot rely on `search`
+  // still being non-null, since a parameter is a mutable binding as far as
+  // narrowing is concerned.
+  const searchQueries = search?.queries ?? [];
+  const searchPages = search?.pages ?? [];
   const searchCards = !search
     ? ""
     : search.queries.length === 0 && search.pages.length === 0
@@ -766,13 +848,19 @@ function acquisitionPage(
 </section>`
       : `${chartCard({
         title: "Top search queries",
-        note: `What people searched to find the site, last ${search.days} days.`,
-        caveat: `${fmt(search.totals.clicks)} clicks from ${fmt(search.totals.impressions)} impressions (${pct(search.totals.ctr)} CTR, average position ${search.totals.position.toFixed(1)}). Search Console lags about two days, so the window ends before today.`,
+        note: `What people searched to find the site, last ${search.days} days. Click a row for its own history.`,
+        caveat: `${fmt(search.totals.clicks)} clicks from ${fmt(search.totals.impressions)} impressions (${pct(search.totals.ctr)} CTR, average position ${search.totals.position.toFixed(1)}) — window totals. Those three move over time and are charted on Search; here they are one number each. Search Console lags about two days, so the window ends before today.`,
         svg: rankedBarChart(
           search.queries.map((row) => ({ label: row.key, count: row.clicks })),
           "Clicks by search query",
           "gscq",
           (n) => `${fmt(n)} clicks`,
+          (label) => label,
+          undefined,
+          (_label, index) => {
+            const row = searchQueries[index];
+            return row ? stateHref("/search", state, { query: row.key }) : null;
+          },
         ),
         table: dataTable(
           ["Query", "Clicks", "Impressions", "CTR", "Position"],
@@ -788,26 +876,25 @@ function acquisitionPage(
       })}
 ${chartCard({
   title: "Top landing pages from search",
-  note: `Which pages organic search actually lands on, last ${search.days} days.`,
+  note: `Which pages organic search actually lands on, last ${search.days} days. Click a row for its own history.`,
   caveat:
-    "This is the closest thing to a channel report available: it is the only source that names how people arrived, since Cloudflare cannot report referrers on this plan.",
+    "This is the closest thing to a channel report available: it is the only source that names how people arrived, since Cloudflare cannot report referrers on this plan. Rows that keep a visible host are the pre-canonical www addresses — the property is domain-level and still counts them.",
   svg: rankedBarChart(
-    search.pages.map((row) => ({ label: row.key.replace(/^https?:\/\/[^/]+/, "") || "/", count: row.clicks })),
+    search.pages.map((row) => ({ label: pageLabel(row.key), count: row.clicks })),
     "Clicks by landing page",
     "gscp",
     (n) => `${fmt(n)} clicks`,
-    (path) => {
-      try {
-        return decodeURIComponent(path);
-      } catch {
-        return path;
-      }
+    (label) => label,
+    undefined,
+    (_label, index) => {
+      const row = searchPages[index];
+      return row ? stateHref("/search", state, { page: row.key }) : null;
     },
   ),
   table: dataTable(
     ["Page", "Clicks", "Impressions", "CTR", "Position"],
     search.pages.map((row) => [
-      row.key.replace(/^https?:\/\/[^/]+/, "") || "/",
+      pageLabel(row.key),
       fmt(row.clicks),
       fmt(row.impressions),
       pct(row.ctr),
@@ -1115,7 +1202,7 @@ function dashboard(
   const globeCard =
     globeAvailable.length === 0 || !globeMetric
       ? ""
-      : `<div class="mt-4">${worldDistributionCard({
+      : `${worldDistributionCard({
           rows: globeSource(globeMetric)
             .filter((row) => row.value > 0)
             .sort((a, b) => b.value - a.value),
@@ -1126,7 +1213,7 @@ function dashboard(
           // Through the shared builder, so switching layer keeps the range
           // (and anything else in the store) rather than resetting the page.
           href: (metric) => stateHref("/", state, { globe: metric }),
-        })}</div>`;
+        })}`;
 
   const cumulativePoints = cumulative(metrics);
 
@@ -1174,8 +1261,27 @@ function dashboard(
       ]
     : [];
 
+  /**
+   * The globe and the browser-vs-automation split, side by side.
+   *
+   * The globe's own note ends "compare it against People to see how much of
+   * this map is automation" — and until now the card that answers that sat four
+   * screens below it. A caveat the reader cannot act on without scrolling is a
+   * caveat most readers do not act on. Pairing them makes the comparison the
+   * card asks for a glance rather than a hunt, and it stops a globe capped at
+   * 260px from being marooned in a full-width row.
+   *
+   * Either half stands alone: no Cloudflare token means no globe, and no
+   * traffic data means no split, so the row renders whichever it has.
+   */
+  const globeCompanion = trafficCharts[0] ?? "";
+  const globeRow =
+    globeCard || globeCompanion
+      ? `<div class="mt-4 grid items-start gap-4 lg:grid-cols-[3fr_2fr]">${globeCard}${globeCompanion}</div>`
+      : "";
+
   const charts = [
-    ...trafficCharts,
+    ...trafficCharts.slice(1),
     chartCard({
       title: "Total users",
       note: "Every registered account, accumulated over time.",
@@ -1242,7 +1348,7 @@ function dashboard(
 ${tiles}
   </div>
 
-  ${globeCard}
+  ${globeRow}
 
   <div class="mt-4 grid gap-4 lg:grid-cols-2">
 ${charts}

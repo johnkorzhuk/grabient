@@ -8,6 +8,7 @@ import { isoDay } from "../range";
 import { inspectUrl, listSitemaps } from "../search-console";
 import { fetchCorpus, listSweeps, runSweep } from "../sweep";
 import { json, notConfigured, toolError } from "./helpers";
+import { CRON, cronLabel } from "../scheduled";
 
 export function registerIndexation(server: McpServer, env: Env) {
   server.registerTool(
@@ -99,7 +100,7 @@ export function registerIndexation(server: McpServer, env: Env) {
           const latest = sweeps[0];
           if (!latest) {
             return json({
-              note: "No sweeps yet. The nightly cron runs at 05:40 UTC; action:'sweep' runs a bounded one now.",
+              note: `No sweeps yet. The nightly cron runs at ${cronLabel(CRON.sweep)}; action:'sweep' runs a bounded one now.`,
             });
           }
           const rows = bucket
@@ -131,8 +132,10 @@ export function registerIndexation(server: McpServer, env: Env) {
         "behind the working tree before. Two facts before reading any ratio: " +
         "/{seed} performs NO existence check (any decodable seed renders, so the " +
         "indexable URL space is unbounded and the sitemap is a chosen subset, " +
-        "not an inventory), and the same palette is reachable at /palettes/{seed} " +
-        "too — that duplicate class is why canonicals matter. Curated queries " +
+        "not an inventory), and /palettes/{seed} is NOT a duplicate of /{seed} — " +
+        "it is reverse search: the seed is rendered and the nearest palettes to " +
+        "THOSE colors are the results, so the two shapes answer different " +
+        "questions and both deserve to be indexed. Curated queries " +
         "are the allow-list deciding whether /palettes/{query} is indexable; " +
         "236 are publishable, only 49 are in the sitemap — the 187 gap is the " +
         "cheapest submission lever available. Name stats are dated constants " +
@@ -190,7 +193,7 @@ export function registerIndexation(server: McpServer, env: Env) {
           { shape: "/{seed}", bounded: false, indexable: true, note: "868 in sitemap; space unbounded" },
           { shape: "/palettes/{curated}", bounded: true, indexable: true, note: "49 submitted of 236 publishable" },
           { shape: "/palettes/{anything}", bounded: false, indexable: "score-gated", note: "noindex,follow under 0.45" },
-          { shape: "/palettes/{seed}", bounded: false, indexable: true, note: "UNINTENDED duplicate of /{seed} — flagged to the owner" },
+          { shape: "/palettes/{seed}", bounded: false, indexable: true, note: "Reverse search: renders the seed, returns the nearest palettes to its colors. Deliberate, and NOT a duplicate of /{seed} — see semantic-search.ts canonicalSeed()." },
           { shape: "/?page=N ×3 sorts", bounded: true, indexable: true, note: "~108 pages, self-canonical, unsubmitted" },
         ],
       });

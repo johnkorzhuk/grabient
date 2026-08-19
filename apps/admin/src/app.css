@@ -381,10 +381,25 @@
   width: 100%;
   height: auto;
 }
+/* A SMALL sphere, in a square box. Capped rather than fluid: a globe is a
+   qualitative view — where traffic is, how concentrated it is — and the ranked
+   list beside it carries every number, so scaling the planet with the viewport
+   buys nothing and costs the list its room. Square because a sphere in a 3:2
+   frame is mostly margin.
+
+   The cap is on the STAGE and only once live, which matters: the script sizes
+   its projection from the stage box while the pointer reports against the
+   canvas, so a canvas centred inside a wider stage would put every tooltip half
+   the gap away from the country it names. Capping the stage keeps the two boxes
+   identical. The no-JS map is hidden by then, so it still gets the full column. */
+.globe-stage.globe-live {
+  max-width: 300px;
+  margin-inline: auto;
+}
 .globe-canvas {
   display: none;
   width: 100%;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 1 / 1;
   touch-action: none;
   cursor: grab;
 }

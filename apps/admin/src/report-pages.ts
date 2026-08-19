@@ -8,6 +8,7 @@ import { dataTable, esc, layout, nav, brand } from "./html";
 import { href, type DashboardState } from "./url-state";
 import type { Heading } from "./markdown";
 import type { ReportMeta } from "./reports";
+import { CRON, cronLabel } from "./scheduled";
 
 const MD_CSS = `
 .md { max-width: 68ch; }
@@ -164,7 +165,7 @@ export function opsPage(
 ): string {
   const rows =
     jobs.length === 0
-      ? `<p class="mt-3 text-sm text-ink-secondary">No job runs recorded yet — the crons write here (snapshot 04:20, sweep 05:40, digests 06:10 UTC), and so does the backfill.</p>`
+      ? `<p class="mt-3 text-sm text-ink-secondary">No job runs recorded yet — the crons write here (snapshot ${cronLabel(CRON.snapshot)}, sweep ${cronLabel(CRON.sweep)}, digests ${cronLabel(CRON.digests)}), and so does the backfill.</p>`
       : `<table class="data-table mt-3 w-full text-xs"><thead>
   <tr><th class="border-b border-edge px-2 py-1.5 text-left font-semibold text-ink-muted">Job</th>
   <th class="border-b border-edge px-2 py-1.5 text-left font-semibold text-ink-muted">Started</th>
@@ -198,6 +199,15 @@ export function opsPage(
     <div class="mt-4 flex flex-wrap gap-2">
       <form method="post" action="/ops/backfill?dry=1"><button class="rounded-md border border-edge px-3 py-1.5 text-xs font-bold hover:border-ink-muted">Dry run</button></form>
       <form method="post" action="/ops/backfill"><button class="rounded-md bg-ink px-3 py-1.5 text-xs font-bold text-surface">Run full backfill</button></form>
+    </div>
+    <p class="mt-4 text-xs leading-snug text-ink-muted">One source at a time, for when only the right edge is stale. Search Console keeps revising the last three days, so its newest point is the one most likely to be understated between snapshots.</p>
+    <div class="mt-2 flex flex-wrap gap-2">
+      ${["gsc", "ga4", "cf", "d1", "bots", "bing"]
+        .map(
+          (source) =>
+            `<form method="post" action="/ops/backfill?source=${source}"><button class="rounded-md border border-edge px-2.5 py-1 text-[11px] font-bold text-ink-secondary hover:border-ink-muted hover:text-ink">${esc(source)}</button></form>`,
+        )
+        .join("")}
     </div>
   </section>
 </main>`,

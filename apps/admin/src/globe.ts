@@ -1,10 +1,18 @@
 // Where the requests come from: a dot-matrix world, a globe, and a ranked list.
 //
-// Two renderings of one dataset. The server emits a flat equirectangular dot map
-// as inline SVG, and a small inline script draws the same dots onto a canvas as
-// an orthographic globe you can spin. With JavaScript off the SVG and the list
-// still say everything the globe says — the globe is the nicer way to read it,
-// never the only way.
+// THREE renderings of one dataset, each a fallback for the one above. The server
+// emits a flat equirectangular dot map as inline SVG; a small inline script
+// draws the same dots onto a canvas as an orthographic globe you can spin; and
+// where WebGL2 is available (globe-gl.ts) that same globe is raycast per pixel,
+// which is what buys real spherical lighting, a fresnel limb and the atmosphere
+// outside the disc. With JavaScript off the SVG and the list still say
+// everything the globe says — the globe is the nicer way to read it, never the
+// only way.
+//
+// The three share ONE projection. The shader re-derives it as an inverse
+// orthographic in the fragment shader, and hit-testing always runs against the
+// CPU `project` below whichever renderer is drawing, so the tooltip and the
+// pixels can never disagree about where a country is.
 //
 // Nothing here is fetched. The landmask and the country centroids are embedded
 // constants, because this worker has no assets binding and no bundler; a map
@@ -12,6 +20,7 @@
 // at 4-degree resolution, not a nautical chart: continents are recognizable,
 // coastlines are not accurate, and Antarctica is left out because no traffic
 // comes from it.
+import { GLOBE_GL_SCRIPT } from "./globe-gl";
 import { dataTable, esc, fmt } from "./html";
 
 // --------------------------------------------------------------- the landmask
@@ -379,7 +388,7 @@ export function worldDistributionCard(input: {
       ? `<p class="mt-4 rounded-lg border border-edge bg-page p-4 text-sm text-ink-secondary">No ${esc(
           spec.unit,
         )} recorded in this window. That is a real zero for the range, not a missing integration.</p>`
-      : `<div class="mt-4 grid gap-5 md:grid-cols-[3fr_2fr]">
+      : `<div class="mt-4 grid gap-5 md:grid-cols-[1fr_1fr]">
     <div class="globe-stage" data-globe='${json}'>
       ${map}
       <canvas class="globe-canvas" aria-hidden="true"></canvas>
@@ -398,6 +407,7 @@ export function worldDistributionCard(input: {
       <div class="mt-3 max-h-64 overflow-auto">${table}</div>
     </details>
   </div>
+  <script>${GLOBE_GL_SCRIPT}</script>
   <script>${GLOBE_SCRIPT}</script>
 </section>`;
 }
@@ -423,8 +433,14 @@ const GLOBE_SCRIPT = String.raw`
     var cfg, canvas = root.querySelector("canvas"), map = root.querySelector("svg");
     try { cfg = JSON.parse(root.getAttribute("data-globe")); } catch (e) { return; }
     if (!canvas || !cfg) return;
-    var ctx = canvas.getContext("2d");
-    if (!ctx) return;
+
+    // WebGL2 first, and only then 2D. A canvas hands out ONE context type for
+    // its lifetime — asking for "2d" here would make the shader path
+    // permanently unavailable on the same element, so the richer renderer has
+    // to get first refusal. __globeGL returns null on anything it cannot do.
+    var glr = window.__globeGL ? window.__globeGL(root, cfg) : null;
+    var ctx = glr ? null : canvas.getContext("2d");
+    if (!glr && !ctx) return;
 
     // Land as [lat, lon] pairs, expanded from the row strings the SVG was built
     // from — one dataset, two renderings.
@@ -459,6 +475,9 @@ const GLOBE_SCRIPT = String.raw`
       ink = cs.getPropertyValue("--ink-muted").trim() || "#71717b";
       accent = cs.getPropertyValue("--series-1").trim() || "#2a78d6";
       surface = cs.getPropertyValue("--surface").trim() || "#ffffff";
+      // The shader needs numbers, not CSS colour syntax; __globeGL resolves the
+      // token by painting it, so it keeps working if a token becomes oklch().
+      if (glr) glr.setTheme(ink, accent);
     }
     theme();
 
@@ -469,15 +488,37 @@ const GLOBE_SCRIPT = String.raw`
     root.appendChild(tip);
 
     var spin = 20, tilt = 18, w = 0, h = 0, cx = 0, cy = 0, radius = 0, hits = [];
+    var offX = 0, offY = 0;
 
     function resize() {
-      var rect = root.getBoundingClientRect();
+      // Measure the CANVAS, never the stage.
+      //
+      // The stage is a positioning context that holds the tooltip and the no-JS
+      // map as well, so its box is not guaranteed to be the box being drawn
+      // into. Sizing the backing store from the stage while the browser scales
+      // it to fit the canvas is how a sphere becomes an ellipse: the two boxes
+      // only have to disagree on ONE axis, and every circle in the shader is
+      // stretched by exactly that ratio. Measuring the drawing surface itself
+      // makes the mismatch impossible rather than merely unlikely.
+      var rect = canvas.getBoundingClientRect();
+      var host = root.getBoundingClientRect();
+      // The tooltip is positioned against the stage, so it needs the canvas's
+      // offset inside it — otherwise it drifts by however far the canvas is
+      // inset (260px centred in a wider column is 80-odd pixels of drift).
+      offX = rect.left - host.left;
+      offY = rect.top - host.top;
       var dpr = window.devicePixelRatio || 1;
       w = rect.width; h = rect.height;
+      cx = w / 2; cy = h / 2; radius = Math.min(w, h) * 0.43;
+      if (glr) {
+        // The shader works in device pixels throughout, so it owns the backing
+        // store and the viewport; the CPU side keeps CSS pixels for hit-testing.
+        glr.resize(w, h, dpr, cx, cy, radius);
+        return;
+      }
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      cx = w / 2; cy = h / 2; radius = Math.min(w, h) * 0.46;
     }
 
     // Orthographic: the globe as seen from infinitely far away, which is the
@@ -493,7 +534,39 @@ const GLOBE_SCRIPT = String.raw`
       ];
     }
 
+    /**
+     * Where every visible country landed on screen, in CSS pixels.
+     *
+     * Shared by both renderers and always computed here on the CPU. The shader
+     * projects the same countries again in its own vertex stage, but a tooltip
+     * that trusted the GPU's answer would need a readback per pointermove; two
+     * evaluations of the same four lines of trigonometry is the cheaper way to
+     * keep the pixels and the pointer agreeing.
+     */
+    function measure() {
+      hits = [];
+      for (var j = 0; j < cfg.dots.length; j++) {
+        var q = project(cfg.dots[j].la, cfg.dots[j].lo);
+        if (q) hits.push([q[0], q[1], j]);
+      }
+    }
+
     function draw() {
+      measure();
+      if (glr) {
+        // A lost context cannot be re-acquired as 2D on this canvas — the
+        // element is spoken for — so the honest fallback is the one already in
+        // the markup: put the SVG map back and stop.
+        if (!glr.draw(spin, tilt)) {
+          root.classList.remove("globe-live");
+          if (map) map.removeAttribute("aria-hidden");
+        }
+        return;
+      }
+      draw2d();
+    }
+
+    function draw2d() {
       ctx.clearRect(0, 0, w, h);
 
       // The body of the planet, lit from the upper left. A flat wash reads as a
@@ -503,8 +576,14 @@ const GLOBE_SCRIPT = String.raw`
         cx - radius * 0.35, cy - radius * 0.4, radius * 0.1,
         cx, cy, radius,
       );
+      // Both stops used to be "ink", which made this gradient a flat wash and
+      // cost the fallback the exact effect the comment above claims for it.
+      // Fading to transparent is the one ramp that works without parsing the
+      // token: "ink" is whatever CSS says it is, so a darker shade of it cannot
+      // be computed here, but its absence can.
       body.addColorStop(0, ink);
-      body.addColorStop(1, ink);
+      body.addColorStop(0.72, ink);
+      body.addColorStop(1, "transparent");
       ctx.globalAlpha = 0.05;
       ctx.fillStyle = body;
       ctx.beginPath();
@@ -541,7 +620,6 @@ const GLOBE_SCRIPT = String.raw`
       // Traffic. A soft halo rather than a hard ring: overlapping dots stay
       // separable, and the glow is what makes a lit country read as emitting
       // rather than as a sticker.
-      hits = [];
       for (var j = 0; j < cfg.dots.length; j++) {
         var dot = cfg.dots[j];
         var q = project(dot.la, dot.lo);
@@ -556,7 +634,6 @@ const GLOBE_SCRIPT = String.raw`
         ctx.beginPath();
         ctx.arc(q[0], q[1], size, 0, Math.PI * 2);
         ctx.fill();
-        hits.push([q[0], q[1], j]);
       }
       ctx.globalAlpha = 1;
     }
@@ -589,8 +666,11 @@ const GLOBE_SCRIPT = String.raw`
       tip.appendChild(value);
       tip.appendChild(pct);
       tip.hidden = false;
-      tip.style.left = Math.max(0, Math.min(event.clientX - rect.left - tip.offsetWidth / 2, w - tip.offsetWidth)) + "px";
-      tip.style.top = Math.max(0, event.clientY - rect.top - 10) + "px";
+      // Clamp in CANVAS space, then shift into STAGE space: the tip is
+      // positioned against the stage, and the canvas may be inset within it.
+      var lx = Math.max(0, Math.min(event.clientX - rect.left - tip.offsetWidth / 2, w - tip.offsetWidth));
+      tip.style.left = lx + offX + "px";
+      tip.style.top = Math.max(0, event.clientY - rect.top - 10) + offY + "px";
     }
 
     // Deliberately still. An idle spin is motion the reader did not ask for,

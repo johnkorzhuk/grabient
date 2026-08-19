@@ -23,13 +23,21 @@ Two databases, one boundary:
   `deploy` script chains it).
 
 Three crons (see `CRON` in `src/scheduled.ts` — the strings must match
-`wrangler.jsonc` character for character):
+`wrangler.jsonc` character for character, and `test/cron-sync.test.ts` fails
+if they ever stop matching):
 
 | cron (UTC) | job |
 |---|---|
-| 04:20 | metric snapshot — every collector re-writes a trailing window so upstream revisions self-heal |
-| 05:40 | indexation sweep — the whole sitemap corpus through the URL Inspection API, paced under the 600/min quota |
-| 06:10 | digests — `periodsClosing()` decides which periods ended (weekly Mondays, monthly 1sts, quarterly) |
+| 10:20 | metric snapshot — every collector re-writes a trailing window so upstream revisions self-heal |
+| 11:40 | indexation sweep — the whole sitemap corpus through the URL Inspection API, paced under the 600/min quota |
+| 12:10 | digests — `periodsClosing()` decides which periods ended (weekly Mondays, monthly 1sts, quarterly) |
+
+The times are chosen against **America/Los_Angeles**, not UTC: Search Console
+and GA4 both bucket their days in LA local time, so a snapshot before LA
+midnight stores the current day as though it had ended. It used to run at 04:20
+UTC — 21:20 the previous day in LA — and 2026-08-18 was captured at 161 clicks
+against a true 219. The trailing rewrite healed it in two nights, but until
+then the right edge of every chart sloped down for no reason but the clock.
 
 `/ops` shows the last runs and hosts the backfill button;
 `POST /ops/backfill` reconstructs the whole metric archive from the upstream

@@ -37,6 +37,45 @@ function densify(series: SeriesPoint[], since: string, until: string) {
   return out;
 }
 
+const CANONICAL = "https://grabient.com";
+
+const decode = (path: string) => {
+  try {
+    return decodeURIComponent(path);
+  } catch {
+    return path;
+  }
+};
+
+/**
+ * A stored page URL as a reader should see it.
+ *
+ * The property is DOMAIN-level, so it aggregates four host variants —
+ * http/https x apex/www — and the pre-canonical www addresses still draw
+ * impressions. Canonical rows collapse to a bare path; anything else KEEPS its
+ * host, because otherwise https://grabient.com/ and http://www.grabient.com/
+ * both render as "/" and read as one row duplicated rather than two URLs.
+ */
+export const pageLabel = (key: string) =>
+  decode(key.startsWith(`${CANONICAL}/`) ? key.slice(CANONICAL.length) : key.replace(/^https?:\/\//, ""));
+
+/**
+ * The exact string Search Console stored for a page row.
+ *
+ * `equals` matches literally, so the filter has to reproduce Google's form
+ * character for character: absolute, and already percent-encoded. Ranked-chart
+ * links now carry that form verbatim, so it passes straight through. A bare
+ * path only reaches here from a hand-typed or pre-existing link, and gets the
+ * canonical host and encoding bolted on — encodeURI is the right call there
+ * and the WRONG one for a value that is already encoded (it would turn %2B
+ * into %252B and match nothing), which is why the two cases stay apart instead
+ * of being normalised into one.
+ */
+export function pageFilterValue(value: string): string {
+  if (/^https?:\/\//i.test(value)) return value;
+  return `${CANONICAL}${encodeURI(value).replace(/,/g, "%2C")}`;
+}
+
 export interface SearchTrendInput {
   db: D1Database;
   since: string;
@@ -129,13 +168,6 @@ export function searchRankedCards(
   days: number,
   href: (kind: "query" | "page", value: string) => string,
 ): string {
-  const decode = (path: string) => {
-    try {
-      return decodeURIComponent(path);
-    } catch {
-      return path;
-    }
-  };
 
   const queryCard = chartCard({
     title: "Top search queries",
@@ -149,7 +181,10 @@ export function searchRankedCards(
       (n) => `${fmt(n)} clicks`,
       (label) => label,
       undefined,
-      (label) => href("query", label),
+      (_label, index) => {
+        const row = queries[index];
+        return row ? href("query", row.key) : null;
+      },
     ),
     table: dataTable(
       ["Query", "Clicks", "Impressions", "CTR", "Position"],
@@ -168,23 +203,23 @@ export function searchRankedCards(
     title: "Top landing pages from search",
     note: `Which pages organic search actually lands on, last ${days} days. Click a row for its own history.`,
     caveat:
-      "Paths are stored percent-encoded by Search Console and shown decoded here; the drill-down re-encodes them, because an inspection or a filter has to match Google's stored form exactly.",
+      "Shown decoded, but the drill-down filters on the exact URL Search Console stored — percent-encoding, scheme and host included — because an `equals` filter matches that string literally and nothing else. Rows keeping a visible host are the pre-canonical www addresses, still drawing impressions.",
     svg: rankedBarChart(
-      pages.map((row) => ({
-        label: row.key.replace(/^https?:\/\/[^/]+/, "") || "/",
-        count: row.clicks,
-      })),
+      pages.map((row) => ({ label: pageLabel(row.key), count: row.clicks })),
       "Clicks by landing page",
       "gscp",
       (n) => `${fmt(n)} clicks`,
-      decode,
+      (label) => label,
       undefined,
-      (label) => href("page", label),
+      (_label, index) => {
+        const row = pages[index];
+        return row ? href("page", row.key) : null;
+      },
     ),
     table: dataTable(
       ["Page", "Clicks", "Impressions", "CTR", "Position"],
       pages.map((row) => [
-        decode(row.key.replace(/^https?:\/\/[^/]+/, "") || "/"),
+        pageLabel(row.key),
         fmt(row.clicks),
         fmt(row.impressions),
         pct(row.ctr),

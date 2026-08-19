@@ -19,14 +19,43 @@ import { generateDigest } from "./briefs";
 import { periodsClosing } from "./reports";
 import { runSweep } from "./sweep";
 
+/**
+ * All times UTC, and chosen against AMERICA/LOS_ANGELES, not against UTC.
+ *
+ * Search Console and GA4 both bucket their days in LA local time. The snapshot
+ * used to run at 04:20 UTC, which is 21:20 PDT the PREVIOUS day — so the
+ * freshest day it stored was the LA day still in progress, captured with a
+ * couple of hours left on it. Measured on 2026-08-18: stored 161 clicks at
+ * collection, 219 once the day closed. The trailing-window rewrite healed it
+ * within two nights, but until then every chart's right edge sloped down for
+ * no reason other than when the cron fired, which is exactly the artefact a
+ * reader mistakes for a decline.
+ *
+ * 10:20 UTC is after LA midnight in BOTH offsets (07:00 UTC in PDT, 08:00 in
+ * PST) with margin for Google's own processing, and still lands before a US
+ * morning. The other two keep their spacing behind it: the sweep must not
+ * overlap the snapshot on D1, and the digests must read a snapshot that has
+ * already been written today.
+ */
 export const CRON = {
-  snapshot: "20 4 * * *",
-  sweep: "40 5 * * *",
+  snapshot: "20 10 * * *",
+  sweep: "40 11 * * *",
   // One digest cron; periodsClosing() decides which periods closed today
   // (weekly on Mondays, monthly on the 1st, quarterly on quarter firsts).
   // Calendar logic in testable code beats four cron strings to keep in sync.
-  digests: "10 6 * * *",
+  digests: "10 12 * * *",
 } as const;
+
+/**
+ * A cron spec as UI copy: "20 10 * * *" -> "10:20 UTC".
+ *
+ * Three pages and an MCP tool used to spell the schedule out by hand, so
+ * moving a cron left four sentences quietly lying about when the job runs.
+ */
+export function cronLabel(spec: string): string {
+  const [minute, hour] = spec.split(" ");
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} UTC`;
+}
 
 interface JobResult {
   rowsWritten: number;

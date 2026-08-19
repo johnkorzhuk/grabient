@@ -1022,8 +1022,12 @@ export function rankedBarChart(
    * paths already, and matching a rewritten path back to its row would be
    * fragile. An overlay is a real focusable link, works with the keyboard,
    * and leaves the chart markup untouched.
+   *
+   * Receives the row INDEX as well as its label, because the label is a
+   * display string and display strings collide — see indexByFitted below. Use
+   * the index whenever the link needs to reach the underlying record.
    */
-  rowHref?: (label: string) => string | null,
+  rowHref?: (label: string, index: number) => string | null,
 ): string {
   const height = Math.max(120, rows.length * 26 + 30);
   // Category labels are drawn RIGHT-ALIGNED ending at the plot edge, so a long
@@ -1043,7 +1047,13 @@ export function rankedBarChart(
   }
   // The tooltip must still expand from the ORIGINAL label, not the truncated
   // one, so pair them up by position.
-  const originalByFitted = new Map(fitted.map((row, i) => [row.label, rows[i]!.label]));
+  // Fitted label -> source row INDEX, not source label. Two rows can carry the
+  // SAME label and still be different rows: a Search Console domain property
+  // reports https://grabient.com/ and https://www.grabient.com/ separately,
+  // and both display as "/". A link built from the label alone would send both
+  // to whichever one won the map. The index is unambiguous.
+  const indexByFitted = new Map(fitted.map((row, i) => [row.label, i]));
+  const sourceOf = (yValue: unknown) => rows[indexByFitted.get(String(yValue)) ?? -1];
   const runtime = createChartRuntime<any, any, any>();
   try {
     const definition = defineChart({
@@ -1079,7 +1089,7 @@ export function rankedBarChart(
       y: Math.round(p.y * 100) / 100,
       // Expand from the original, not from the axis text: the tooltip is
       // exactly where the truncated tail is supposed to come back.
-      l: tipText(expandLabel(originalByFitted.get(String(p.yValue)) ?? String(p.yValue))),
+      l: tipText(expandLabel(sourceOf(p.yValue)?.label ?? String(p.yValue))),
       v: tipText(formatValue(p.xValue)),
     }));
     const payload = { w: WIDTH, h: height, plot: (scene as any).chart, points, axis: "y" };
@@ -1100,8 +1110,9 @@ export function rankedBarChart(
       const band = plot.height / Math.max(1, fitted.length);
       overlay = (scene as any).points
         .map((p: any) => {
-          const original = originalByFitted.get(String(p.yValue)) ?? String(p.yValue);
-          const target = rowHref(original);
+          const index = indexByFitted.get(String(p.yValue)) ?? -1;
+          const original = rows[index]?.label ?? String(p.yValue);
+          const target = rowHref(original, index);
           if (!target) return "";
           const top = ((p.y - band / 2) / height) * 100;
           if (!Number.isFinite(top)) return "";

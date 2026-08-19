@@ -172,40 +172,122 @@ export async function trendCard(
 // Goals + campaigns cards (no chart dependency — bars are plain divs).
 // ---------------------------------------------------------------------------
 
-export function goalCard(goal: GoalWithProgress): string {
-  const pct = goal.progress_pct;
-  const clamped = pct === null ? 0 : Math.max(0, Math.min(100, pct));
-  const badge =
-    goal.status !== "active"
-      ? `<span class="rounded-md border border-edge px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-ink-muted uppercase">${esc(goal.status)}</span>`
-      : goal.incomplete_window
-        ? `<span class="text-xs text-ink-muted">window still filling</span>`
-        : goal.on_track === null
+/** Status word, shared by the list card and its detail page so they agree. */
+function goalBadge(goal: GoalWithProgress): string {
+  return goal.status !== "active"
+    ? `<span class="rounded-md border border-edge px-1.5 py-0.5 text-[10px] font-bold tracking-wide text-ink-muted uppercase">${esc(goal.status)}</span>`
+    : goal.incomplete_window
+      ? `<span class="text-xs text-ink-muted">window still filling</span>`
+      : goal.on_track === null
         ? `<span class="text-xs text-ink-muted">not measurable yet</span>`
         : goal.on_track
           ? `<span class="text-xs font-bold text-good">on track</span>`
           : `<span class="text-xs font-bold text-critical">behind</span>`;
-  const value = (n: number | null) =>
-    n === null ? "—" : Math.abs(n) >= 1000 ? fmt(Math.round(n)) : String(Math.round(n * 10) / 10);
+}
+
+function goalValue(n: number | null): string {
+  return n === null ? "—" : Math.abs(n) >= 1000 ? fmt(Math.round(n)) : String(Math.round(n * 10) / 10);
+}
+
+function goalBar(pct: number | null): string {
+  const clamped = pct === null ? 0 : Math.max(0, Math.min(100, pct));
+  return `<div class="mt-3 h-1.5 w-full overflow-hidden rounded-full" style="background:var(--grid)">
+    <div class="h-full rounded-full" style="width:${clamped}%;background:var(--series-1)"></div>
+  </div>`;
+}
+
+/** One line of provenance: which metric, aggregated how, which way is good. */
+function goalMeta(goal: GoalWithProgress): string {
+  return `<code class="text-[11px]">${esc(goal.metric_key)}</code> · ${esc(goal.aggregate)}${goal.aggregate !== "last" ? ` over ${goal.window_days}d` : ""} · ${goal.direction === "down" ? "lower is better" : "higher is better"}`;
+}
+
+/**
+ * The at-a-glance card. Deliberately does NOT render `notes`.
+ *
+ * Notes carry the hypothesis and the caveats — a paragraph each, and the whole
+ * point of writing them — but eight of those stacked in a grid is a wall no one
+ * scans. The list answers "which of these is behind"; the detail page answers
+ * "why, and what moved it". `href` is passed in because link building belongs
+ * to url-state's `href()`, which this module deliberately does not import.
+ */
+export function goalCard(goal: GoalWithProgress, href: string): string {
+  const pct = goal.progress_pct;
 
   return `<section class="rounded-xl border border-edge bg-surface p-5">
   <div class="flex items-start justify-between gap-3">
-    <h2 class="text-base font-bold tracking-tight">${esc(goal.title)}</h2>
-    ${badge}
+    <h2 class="text-base font-bold tracking-tight"><a href="${esc(href)}" class="underline-offset-2 hover:underline">${esc(goal.title)}</a></h2>
+    ${goalBadge(goal)}
   </div>
-  <p class="mt-1 text-xs text-ink-muted"><code class="text-[11px]">${esc(goal.metric_key)}</code> · ${esc(goal.aggregate)}${goal.aggregate !== "last" ? ` over ${goal.window_days}d` : ""} · ${goal.direction === "down" ? "lower is better" : "higher is better"}</p>
+  <p class="mt-1 text-xs text-ink-muted">${goalMeta(goal)}</p>
   <div class="mt-4 flex items-baseline gap-2">
-    <span class="text-4xl leading-none font-bold tracking-tight">${value(goal.current)}</span>
-    <span class="text-sm text-ink-muted">of ${value(goal.target_value)} · from ${value(goal.baseline_value)}</span>
+    <span class="text-4xl leading-none font-bold tracking-tight">${goalValue(goal.current)}</span>
+    <span class="text-sm text-ink-muted">of ${goalValue(goal.target_value)} · from ${goalValue(goal.baseline_value)}</span>
   </div>
-  <div class="mt-3 h-1.5 w-full overflow-hidden rounded-full" style="background:var(--grid)">
-    <div class="h-full rounded-full" style="width:${clamped}%;background:var(--series-1)"></div>
-  </div>
+  ${goalBar(pct)}
   <p class="mt-2 text-xs text-ink-muted">
     ${goal.incomplete_window ? esc(goal.incomplete_window) : pct === null ? "No data for this metric yet — the series starts when collection does." : `${pct}% of the way from baseline (${esc(goal.baseline_day)}) to target (${esc(goal.target_day)})${goal.as_of ? `, as of ${esc(goal.as_of)}` : ""}.`}
   </p>
-  ${goal.notes ? `<p class="mt-2 text-xs leading-snug text-ink-secondary">${esc(goal.notes)}</p>` : ""}
+  <p class="mt-3 text-xs"><a href="${esc(href)}" class="text-ink-muted underline hover:text-ink">Breakdown →</a></p>
 </section>`;
+}
+
+/**
+ * One goal, in full: the numbers, the hypothesis, and the metric's own series
+ * with ship markers on it.
+ *
+ * `chart` is a trendCard over `goal.metric_key`, so the dashed rules are the
+ * same event rows the MCP returns — which is the entire reason this page
+ * exists. A goal says a number should move; the marked series says whether it
+ * moved when the thing that was supposed to move it shipped. That is a
+ * neighbourhood, never an effect estimate: markers describe what else happened
+ * that day, and reading a step at a rule as causation is the error this
+ * dashboard keeps trying to make hard.
+ *
+ * `chart` is null when the metric has no history yet — a goal can legitimately
+ * precede its series (index.* began collecting on 2026-08-18), and an empty
+ * chart frame would read as a flat line at zero.
+ */
+export function goalDetail(
+  goal: GoalWithProgress,
+  chart: string | null,
+  backHref: string,
+): string {
+  const pct = goal.progress_pct;
+  const dl = (term: string, value: string) =>
+    `<div><dt class="text-xs text-ink-muted">${esc(term)}</dt><dd class="mt-0.5 text-sm font-bold tracking-tight">${value}</dd></div>`;
+
+  return `<p class="mt-6 text-xs"><a href="${esc(backHref)}" class="text-ink-muted underline hover:text-ink">← All goals</a></p>
+<section class="mt-3 rounded-xl border border-edge bg-surface p-5">
+  <div class="flex items-start justify-between gap-3">
+    <h1 class="text-xl font-bold tracking-tight">${esc(goal.title)}</h1>
+    ${goalBadge(goal)}
+  </div>
+  <p class="mt-1 text-xs text-ink-muted">${goalMeta(goal)}</p>
+  <div class="mt-5 flex items-baseline gap-2">
+    <span class="text-5xl leading-none font-bold tracking-tight">${goalValue(goal.current)}</span>
+    <span class="text-sm text-ink-muted">of ${goalValue(goal.target_value)} · from ${goalValue(goal.baseline_value)}</span>
+  </div>
+  ${goalBar(pct)}
+  <p class="mt-2 text-xs text-ink-muted">
+    ${goal.incomplete_window ? esc(goal.incomplete_window) : pct === null ? "No data for this metric yet — the series starts when collection does." : `${pct}% of the way from baseline to target${goal.as_of ? `, as of ${esc(goal.as_of)}` : ""}.`}
+  </p>
+  <dl class="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-4">
+    ${dl("Baseline", `${goalValue(goal.baseline_value)} <span class="font-normal text-ink-muted">${esc(goal.baseline_day)}</span>`)}
+    ${dl("Target", `${goalValue(goal.target_value)} <span class="font-normal text-ink-muted">${esc(goal.target_day)}</span>`)}
+    ${dl("Current", goalValue(goal.current))}
+    ${dl("On track", goal.on_track === null ? "—" : goal.on_track ? "Yes" : "No")}
+  </dl>
+  <p class="mt-4 text-xs text-ink-muted">Progress is measured from the BASELINE, not from zero, and <span class="font-bold">on track is straight-line arithmetic against remaining time — not a forecast</span>.</p>
+</section>
+${goal.notes ? `<section class="mt-4 rounded-xl border border-edge bg-surface p-5">
+  <h2 class="text-sm font-bold tracking-tight">Hypothesis and caveats</h2>
+  <p class="mt-2 text-sm leading-relaxed text-ink-secondary">${esc(goal.notes)}</p>
+</section>` : ""}
+${goal.metric_caveat ? `<section class="mt-4 rounded-xl border border-edge bg-surface p-5">
+  <h2 class="text-sm font-bold tracking-tight">What <code class="text-[12px]">${esc(goal.metric_key)}</code> actually measures</h2>
+  <p class="mt-2 text-sm leading-relaxed text-ink-secondary">${esc(goal.metric_caveat)}</p>
+</section>` : ""}
+${chart ?? `<p class="mt-4 rounded-lg border border-edge bg-page p-4 text-sm text-ink-secondary">No history stored for <code class="text-[12px]">${esc(goal.metric_key)}</code> in this window yet — a goal can precede its series. Widen the range, or run the backfill from /ops.</p>`}`;
 }
 
 export function campaignCard(campaign: CampaignRow): string {
