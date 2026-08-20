@@ -1,4 +1,5 @@
 import { Hono, type Context } from "hono";
+import { HTTPException } from "hono/http-exception";
 import * as v from "valibot";
 import { initDatabase } from "@repo/data-ops/database/setup";
 import {
@@ -122,6 +123,19 @@ const SEED_HEADERS = {
 };
 
 const app = new Hono<{ Bindings: Env }>();
+
+// Uncaught throws used to fall through to Hono's default handler: a bare
+// "Internal Server Error" with no Cache-Control header and no log line, so
+// production 500s (2026-08-20 like-endpoint incident) left nothing in Workers
+// Logs to diagnose. Log the route, and keep error responses out of every
+// cache (NO_STORE is initialized below, long before any request runs).
+app.onError((err, c) => {
+  if (err instanceof HTTPException) return err.getResponse();
+  console.error(`unhandled error: ${c.req.method} ${c.req.path}`, err);
+  return c.req.path.startsWith("/api/")
+    ? c.json({ error: "Internal Server Error" }, 500, NO_STORE)
+    : c.text("Internal Server Error", 500, NO_STORE);
+});
 
 function publicOrigin(c: Context<{ Bindings: Env }>): string {
   return (c.env.PUBLIC_ORIGIN || "https://grabient.com").replace(/\/+$/, "");
