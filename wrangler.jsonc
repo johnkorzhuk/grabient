@@ -1,0 +1,28 @@
+{
+	// Archive host for the ORIGINAL Grabient SPA (this branch, last touched
+	// 2022-09-01). It is a static React 16 build with no server, no database
+	// and no bindings — deliberately nothing to go stale or leak.
+	//
+	// Why this exists: old.grabient.com used to be served by an external origin
+	// that went away, so the hostname returned Cloudflare 522 (origin
+	// unreachable). Serving the build from Workers removes the external origin
+	// entirely, so there is no second server left to die.
+	//
+	// Build it with Node 10 (webpack 2.5.1 predates modern Node):
+	//   nvm use 10 && npm install && env -u CI npm run build
+	// `env -u CI` matters: this CRA vintage tests `process.env.CI` for
+	// truthiness, and the string "false" is truthy, so CI=false still fails the
+	// build on lint warnings. Unset it instead.
+	//
+	// No "routes"/"custom_domain" here on purpose — same rule as apps/web:
+	// hostnames are attached in the Cloudflare dashboard, so this config can
+	// never repoint live traffic on its own.
+	"name": "grabient-original",
+	"compatibility_date": "2026-08-20",
+	"assets": {
+		"directory": "./build",
+		// The app has no client-side router, but a stray path should land on the
+		// app rather than a bare 404.
+		"not_found_handling": "single-page-application"
+	}
+}
