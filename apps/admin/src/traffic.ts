@@ -712,3 +712,77 @@ export async function runCloudflareGraphQL(
         return null;
     }
 }
+
+/**
+ * Read-only Cloudflare REST, for everything the GraphQL analytics API cannot
+ * answer.
+ *
+ * `runCloudflareGraphQL` covers metrics; it cannot tell you when a Worker was
+ * deployed, what a zone setting is, or which D1 databases exist. Those live on
+ * the REST API, and without them an agent cannot answer "did this change when
+ * we shipped?" — the question deploy markers exist to serve.
+ *
+ * Two boundaries, both here rather than in the caller. Method is GET, always:
+ * this token can write, and the read-only contract is enforced by never
+ * offering another verb. Path must match a prefix below, so a caller cannot
+ * reach billing, membership or token management even though the credential
+ * technically could.
+ */
+const REST_BASE = "https://api.cloudflare.com/client/v4";
+
+const REST_ALLOWED = [
+  /^\/accounts\/[^/]+\/workers\/scripts(\/|$)/,
+  /^\/accounts\/[^/]+\/workers\/deployments(\/|$)/,
+  /^\/accounts\/[^/]+\/workers\/services(\/|$)/,
+  /^\/accounts\/[^/]+\/d1\/database(\/|$)/,
+  /^\/accounts\/[^/]+\/vectorize(\/|$)/,
+  /^\/accounts\/[^/]+\/storage\/kv\/namespaces(\/|$)/,
+  /^\/zones(\/[^/]+)?$/,
+  /^\/zones\/[^/]+\/settings(\/|$)/,
+  /^\/zones\/[^/]+\/dns_records(\/|$)/,
+  /^\/zones\/[^/]+\/rulesets(\/|$)/,
+];
+
+export async function runCloudflareRest(
+  env: Env,
+  path: string,
+): Promise<Record<string, unknown>> {
+  const token = env.CF_ANALYTICS_TOKEN?.trim();
+  if (!token)
+    return { configured: false, unavailableReason: "CF_ANALYTICS_TOKEN is not set." };
+
+  // Substitute the ids rather than making the caller know them, matching how
+  // runCloudflareGraphQL injects zoneTag/accountTag.
+  const resolved = path
+    .replace(/\{account\}/g, env.CF_ACCOUNT_ID ?? "")
+    .replace(/\{zone\}/g, env.CF_ZONE_ID ?? "");
+  const [pathname] = resolved.split("?");
+  if (!pathname.startsWith("/"))
+    return { ok: false, refused: "Path must start with '/'." };
+  if (!REST_ALLOWED.some((re) => re.test(pathname)))
+    return {
+      ok: false,
+      refused: `${pathname} is not in the read-only path allow-list.`,
+      allowed: REST_ALLOWED.map(String),
+    };
+
+  try {
+    const res = await fetch(`${REST_BASE}${resolved}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const body: any = await res.json();
+    if (!res.ok || body?.success === false)
+      return {
+        ok: false,
+        status: res.status,
+        errors: body?.errors ?? null,
+        hint:
+          res.status === 403
+            ? "CF_ANALYTICS_TOKEN lacks the permission for this path. Its scope is analytics-oriented; widening it is a dashboard change."
+            : undefined,
+      };
+    return { ok: true, path: resolved, result: body?.result, result_info: body?.result_info };
+  } catch (err) {
+    return { ok: false, error: String(err).slice(0, 300) };
+  }
+}

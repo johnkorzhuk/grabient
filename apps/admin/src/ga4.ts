@@ -422,3 +422,90 @@ export async function queryGa4(
     },
   };
 }
+
+/**
+ * What this property will actually accept — the answer to "which field name?"
+ *
+ * `ga4` takes arbitrary dimensions and metrics, which makes it powerful and
+ * makes field names a guessing game: GA4 rejects an unknown name with a 400,
+ * and cross-scope pairings (an event-scoped dimension with a session-scoped
+ * one) are rejected even when both names are valid. Neither is discoverable
+ * from the report endpoint. getMetadata lists every field this property
+ * exposes INCLUDING its custom dimensions, and checkCompatibility answers the
+ * pairing question directly rather than by trial and error.
+ */
+export async function ga4Fields(
+  env: Env,
+  now: Date,
+  options: { search?: string; dimensions?: string[]; metrics?: string[] } = {},
+): Promise<Record<string, unknown> | null> {
+  const account = parseServiceAccount(env.GSC_SERVICE_ACCOUNT);
+  const propertyId = env.GA4_PROPERTY_ID?.trim();
+  if (!account || !propertyId) return null;
+  const token = await accessToken(account, SCOPE_ANALYTICS, now);
+  if (!token) return null;
+  const property = `properties/${propertyId.replace(/^properties\//, "")}`;
+  const auth = { Authorization: `Bearer ${token}` };
+
+  // Compatibility is only meaningful for a specific combination, so it runs
+  // only when the caller supplies one.
+  if (options.dimensions?.length || options.metrics?.length) {
+    const res = await fetch(`${API_BASE}/${property}:checkCompatibility`, {
+      method: "POST",
+      headers: { ...auth, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dimensions: (options.dimensions ?? []).map((name) => ({ name })),
+        metrics: (options.metrics ?? []).map((name) => ({ name })),
+        compatibilityFilter: "COMPATIBLE",
+      }),
+    });
+    const body: any = await res.json();
+    if (!res.ok || body?.error)
+      return { mode: "compatibility", error: body?.error?.message ?? `HTTP ${res.status}` };
+    return {
+      mode: "compatibility",
+      dimensions: (body.dimensionCompatibilities ?? []).map((d: any) => ({
+        name: d.dimensionMetadata?.apiName,
+        compatibility: d.compatibility,
+      })),
+      metrics: (body.metricCompatibilities ?? []).map((m: any) => ({
+        name: m.metricMetadata?.apiName,
+        compatibility: m.compatibility,
+      })),
+      note: "INCOMPATIBLE means the pairing is rejected, not that the field is invalid. Scope mismatch (event vs session vs user) is the usual cause.",
+    };
+  }
+
+  const res = await fetch(`${API_BASE}/${property}/metadata`, { headers: auth });
+  const body: any = await res.json();
+  if (!res.ok || body?.error)
+    return { mode: "catalog", error: body?.error?.message ?? `HTTP ${res.status}` };
+
+  const term = options.search?.toLowerCase().trim();
+  const keep = (f: any) =>
+    !term ||
+    `${f.apiName} ${f.uiName} ${f.description ?? ""}`.toLowerCase().includes(term);
+  const shape = (f: any) => ({
+    name: f.apiName,
+    label: f.uiName,
+    custom: f.customDefinition === true,
+    ...(f.description ? { description: String(f.description).slice(0, 180) } : {}),
+  });
+
+  const dimensions = (body.dimensions ?? []).filter(keep).map(shape);
+  const metrics = (body.metrics ?? []).filter(keep).map(shape);
+  return {
+    mode: "catalog",
+    property,
+    search: term ?? null,
+    counts: {
+      dimensions: dimensions.length,
+      metrics: metrics.length,
+      totalDimensions: (body.dimensions ?? []).length,
+      totalMetrics: (body.metrics ?? []).length,
+    },
+    dimensions,
+    metrics,
+    note: "custom:true fields are this property's own definitions and exist nowhere else. Names are case-sensitive.",
+  };
+}

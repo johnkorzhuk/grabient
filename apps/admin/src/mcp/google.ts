@@ -2,7 +2,7 @@
 
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import { queryGa4 } from "../ga4";
+import { ga4Fields, queryGa4 } from "../ga4";
 import { querySearchConsole } from "../search-console";
 import { json, notConfigured, refused, toolError } from "./helpers";
 
@@ -278,6 +278,37 @@ export function registerGoogle(server: McpServer, env: Env) {
           `GA4 rejected the referrer pairing: ${(error as Error).message}\nThe event-scoped pageReferrer + session-scoped landing page pairing can be refused — this is the report being rejected, NOT "no site sends us traffic".`,
         );
       }
+    },
+  );
+
+  server.registerTool(
+    "ga4_fields",
+    {
+      description:
+        "Which dimension and metric names this GA4 property will accept — ask " +
+        "BEFORE guessing a field in `ga4`. Two modes. With no arguments (or " +
+        "`search`) it returns the property's own catalog from getMetadata, " +
+        "including CUSTOM dimensions that exist nowhere else and cannot be " +
+        "guessed from Google's public docs. With `dimensions`/`metrics` it runs " +
+        "checkCompatibility on that exact combination, which answers a different " +
+        "question: GA4 rejects some pairings of individually-valid fields when " +
+        "their scopes differ (event vs session vs user), and the report endpoint " +
+        "reports that as a bare 400. Names are case-sensitive.",
+      inputSchema: z.object({
+        search: z.string().max(60).optional(),
+        dimensions: z.array(z.string()).max(9).optional(),
+        metrics: z.array(z.string()).max(10).optional(),
+      }),
+      annotations: { readOnlyHint: true },
+    },
+    async (args: { search?: string; dimensions?: string[]; metrics?: string[] }) => {
+      const out = await ga4Fields(env, new Date(), args);
+      if (!out)
+        return notConfigured(
+          "GA4",
+          "needs GSC_SERVICE_ACCOUNT and GA4_PROPERTY_ID",
+        );
+      return json(out);
     },
   );
 }

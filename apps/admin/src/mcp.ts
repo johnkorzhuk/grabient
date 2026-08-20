@@ -26,6 +26,7 @@
 
 import { McpServer } from "@modelcontextprotocol/server";
 import { createMcpHandler } from "agents/mcp/server";
+import { registerBing } from "./mcp/bing";
 import { registerCapabilities } from "./mcp/capabilities";
 import { registerCloudflare } from "./mcp/cloudflare";
 import { registerGoogle } from "./mcp/google";
@@ -40,6 +41,7 @@ export function createAnalyticsServer(env: Env, actor: string) {
   registerCloudflare(server, env); // traffic, crawlers, cloudflare_graphql
   registerIndexation(server, env); // indexation, corpus
   registerWorkspace(server, env, actor); // events, campaigns, campaign_report, goals, report_write, reports
+  registerBing(server, env);
   registerCapabilities(server, env); // capabilities
   return server;
 }

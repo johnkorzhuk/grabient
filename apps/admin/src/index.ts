@@ -49,6 +49,8 @@ import { renderMarkdown } from "./markdown";
 import { pageFilterValue, pageLabel, searchDetailCards, searchRankedCards, searchTrendCards } from "./search-page";
 import { isoDay } from "./range";
 import { getReport, listReports, toMeta } from "./reports";
+import { contribJson, contributePage, loadContribSnapshot, writeContribSnapshot } from "./contrib";
+import { dialsPage, loadDials, writeDials } from "./dials";
 import { backfillResultPage, opsPage, reportPage, reportsArchivePage } from "./report-pages";
 import { CRON, cronLabel, scheduled } from "./scheduled";
 import { listSweeps } from "./sweep";
@@ -688,6 +690,88 @@ app.post("/ops/backfill", async (c) => {
         email: c.get("email"),
         state: parseState(new URL(c.req.url)),
       }),
+    ),
+  );
+});
+
+// The contributor program: what connecting agents can do for the flywheel and
+// what it needs from them. Renders the live snapshot when the flywheel has
+// pushed one, else the baked baseline — never fails on a missing table.
+app.get("/contribute", async (c) => {
+  const snapshot = await loadContribSnapshot(c.env.ADMIN_DB);
+  return seal(
+    c.html(
+      contributePage(snapshot, {
+        stamp: stamp(new Date()),
+        email: c.get("email"),
+        state: parseState(new URL(c.req.url)),
+      }),
+    ),
+  );
+});
+
+// The agent-facing twin, same pattern as /brief.json.
+app.get("/contribute.json", async (c) => {
+  const snapshot = await loadContribSnapshot(c.env.ADMIN_DB);
+  return seal(c.json(contribJson(snapshot)));
+});
+
+// Snapshot push — POST only for the same reason as /ops/backfill, and behind
+// Access like everything else, so the flywheel authenticates with a service
+// token and the write is attributable. Body is the ContribSnapshot JSON.
+app.post("/contribute/snapshot", async (c) => {
+  const body = await c.req.text();
+  if (body.length > 64 * 1024) return seal(c.json({ ok: false, error: "snapshot too large" }, 413));
+  try {
+    const parsed = JSON.parse(body);
+    if (!parsed?.asOf || !parsed?.totals) throw new Error("missing asOf/totals");
+  } catch (err) {
+    return seal(c.json({ ok: false, error: `invalid snapshot: ${err}` }, 400));
+  }
+  const written = await writeContribSnapshot(c.env.ADMIN_DB, body);
+  return seal(
+    c.json(
+      written
+        ? { ok: true, by: c.get("email") }
+        : { ok: false, error: "contrib_snapshot table missing (migration 0006 pending?)" },
+      written ? 200 : 503,
+    ),
+  );
+});
+
+// The dials page: single source of truth for the contested classifier gates,
+// with a client-side vibes tester over precomputed per-palette scores.
+app.get("/dials", async (c) => {
+  const payload = await loadDials(c.env.ADMIN_DB);
+  return seal(
+    c.html(
+      dialsPage(payload, {
+        stamp: stamp(new Date()),
+        email: c.get("email"),
+        state: parseState(new URL(c.req.url)),
+      }),
+    ),
+  );
+});
+
+// Payload push, same contract as /contribute/snapshot (larger cap: the vibe
+// palettes ride along; ~110KB today, bound well under D1's 2MB row).
+app.post("/dials/payload", async (c) => {
+  const body = await c.req.text();
+  if (body.length > 512 * 1024) return seal(c.json({ ok: false, error: "payload too large" }, 413));
+  try {
+    const parsed = JSON.parse(body);
+    if (!parsed?.asOf || !Array.isArray(parsed?.dials)) throw new Error("missing asOf/dials");
+  } catch (err) {
+    return seal(c.json({ ok: false, error: `invalid payload: ${err}` }, 400));
+  }
+  const written = await writeDials(c.env.ADMIN_DB, body);
+  return seal(
+    c.json(
+      written
+        ? { ok: true, by: c.get("email") }
+        : { ok: false, error: "dials_payload table missing (migration 0007 pending?)" },
+      written ? 200 : 503,
     ),
   );
 });

@@ -14,14 +14,89 @@
 const API_BASE = "https://ssl.bing.com/webmaster/api.svc/json";
 const SITE = "https://grabient.com/";
 
-/** The read-only contract. Anything not listed here cannot be called. */
+/**
+ * The read-only contract. Anything not listed here cannot be called.
+ *
+ * These are the 36 read methods on Microsoft's own IWebmasterApi interface
+ * (the other 26 mutate and are deliberately absent — see
+ * infra-research/bing-api-surface.md). The list is by METHOD NAME, not HTTP
+ * verb, because the verb does not separate the two: GetChildrenUrlInfo is a
+ * read that POSTs and SubmitUrl is a write that POSTs.
+ */
 const READ_METHODS = new Set([
-  "GetRankAndTrafficStats",
-  "GetQueryStats",
-  "GetPageStats",
+  // Group A + B — take siteUrl (some also take page/url/link params)
+  "GetActivePagePreviewBlocks",
+  "GetBlockedUrls",
+  "GetChildrenUrlInfo",
+  "GetChildrenUrlTrafficInfo",
+  "GetConnectedPages",
+  "GetContentSubmissionQuota",
+  "GetCountryRegionSettings",
+  "GetCrawlIssues",
+  "GetCrawlSettings",
   "GetCrawlStats",
+  "GetDeepLink",
+  "GetDeepLinkAlgoUrls",
+  "GetDeepLinkBlocks",
+  "GetFeedDetails",
+  "GetFeeds",
+  "GetFetchedUrlDetails",
+  "GetFetchedUrls",
+  "GetLinkCounts",
+  "GetPageQueryStats",
+  "GetPageStats",
+  "GetQueryPageDetailStats",
+  "GetQueryPageStats",
+  "GetQueryParameters",
+  "GetQueryStats",
+  "GetQueryTrafficStats",
+  "GetRankAndTrafficStats",
+  "GetSiteMoves",
+  "GetSiteRoles",
+  "GetUrlInfo",
+  "GetUrlLinks",
   "GetUrlSubmissionQuota",
+  "GetUrlTrafficInfo",
+  // Group C — no siteUrl at all
+  "GetKeyword",
+  "GetKeywordStats",
+  "GetRelatedKeywords",
+  "GetUserSites",
 ]);
+
+export { READ_METHODS };
+
+/**
+ * Keyword research and the account listing are user-scoped, not site-scoped.
+ * Sending siteUrl to these is not merely redundant — it is not part of their
+ * signature.
+ */
+const NO_SITE_URL = new Set([
+  "GetKeyword",
+  "GetKeywordStats",
+  "GetRelatedKeywords",
+  "GetUserSites",
+]);
+
+/**
+ * GetUserSites returns this account's site-ownership secrets. Those verify
+ * control of a domain to Bing, so they must never reach a model's context or a
+ * log line — the method stays callable because knowing which sites exist is
+ * legitimately useful, but the proof-of-ownership is stripped.
+ */
+const REDACT_FIELDS = new Set(["AuthenticationCode", "DnsVerificationCode"]);
+
+/** Strip ownership secrets wherever they appear, at any depth. */
+function redact(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(redact);
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>))
+      out[k] = REDACT_FIELDS.has(k) ? "[redacted: site-ownership secret]" : redact(v);
+    return out;
+  }
+  return value;
+}
 
 /** ".NET JSON date" -> ISO day. "/Date(1316156400000-0700)/" */
 export function dotNetDay(raw: unknown): string | null {
@@ -32,6 +107,7 @@ export function dotNetDay(raw: unknown): string | null {
 export async function bingFetch(
   env: Env,
   method: string,
+  params: Record<string, string | number> = {},
 ): Promise<
   | { ok: true; d: any }
   | { ok: false; configured: boolean; status?: number; message: string }
@@ -49,7 +125,17 @@ export async function bingFetch(
     return { ok: false, configured: true, message: `Method ${method} is not in the read-only allow-list.` };
   }
   try {
-    const url = `${API_BASE}/${method}?apikey=${encodeURIComponent(key)}&siteUrl=${encodeURIComponent(SITE)}`;
+    // Several methods take more than siteUrl — GetUrlLinks needs the page being
+    // asked about, the paging methods need `page`. Extra params are appended
+    // rather than baked in so one client covers the whole read surface; the
+    // allow-list above, not the parameter shape, is what keeps this read-only.
+    const query = new URLSearchParams({ apikey: key });
+    if (!NO_SITE_URL.has(method)) query.set("siteUrl", SITE);
+    for (const [k, v] of Object.entries(params)) {
+      if (k === "apikey" || k === "siteUrl") continue; // never let a caller retarget the key or the site
+      query.set(k, String(v));
+    }
+    const url = `${API_BASE}/${method}?${query}`;
     const res = await fetch(url, { headers: { accept: "application/json" } });
     if (!res.ok) {
       return {
@@ -60,7 +146,7 @@ export async function bingFetch(
       };
     }
     const payload: any = await res.json();
-    return { ok: true, d: payload?.d };
+    return { ok: true, d: redact(payload?.d) };
   } catch (err) {
     return { ok: false, configured: true, message: String(err).slice(0, 300) };
   }

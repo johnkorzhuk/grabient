@@ -1,9 +1,14 @@
-// Cloudflare-sourced tools: traffic, crawlers, cloudflare_graphql.
+// Cloudflare-sourced tools: traffic, crawlers, cloudflare_graphql, cloudflare_rest.
 
 import type { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { change, rollingMean, splitPeriods, sum } from "../range";
-import { loadAcquisition, loadTraffic, runCloudflareGraphQL } from "../traffic";
+import {
+  loadAcquisition,
+  loadTraffic,
+  runCloudflareGraphQL,
+  runCloudflareRest,
+} from "../traffic";
 import { json, notConfigured } from "./helpers";
 
 export function registerCloudflare(server: McpServer, env: Env) {
@@ -183,5 +188,28 @@ export function registerCloudflare(server: McpServer, env: Env) {
       const result = await runCloudflareGraphQL(env, query, variables ?? {});
       return result ? json(result) : notConfigured("Cloudflare GraphQL", "CF_ANALYTICS_TOKEN");
     },
+  );
+
+  server.registerTool(
+    "cloudflare_rest",
+    {
+      description:
+        "Read-only Cloudflare REST, for what the GraphQL analytics API cannot " +
+        "answer: when a Worker was deployed, zone settings, DNS, WAF rulesets, " +
+        "which D1/KV/Vectorize resources exist. GET only — the token can write, " +
+        "so no other verb is offered — and the path must match an allow-list, " +
+        "which excludes billing, membership and token management. Use " +
+        "`{account}` and `{zone}` as placeholders; they are substituted server-" +
+        "side so you never need the ids. The deploy-marker source is " +
+        "`/accounts/{account}/workers/deployments?script=grabient-production` — " +
+        "pair a deployment timestamp with a metrics_history series to ask " +
+        "whether a change moved a number. A 403 means this token's scope is too " +
+        "narrow for that path, not that the resource is missing.",
+      inputSchema: z.object({
+        path: z.string().min(1).max(500),
+      }),
+      annotations: { readOnlyHint: true },
+    },
+    async ({ path }: { path: string }) => json(await runCloudflareRest(env, path)),
   );
 }

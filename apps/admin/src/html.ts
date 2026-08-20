@@ -240,6 +240,8 @@ export const PAGES = [
   { href: "/campaigns", label: "Campaigns" },
   { href: "/reports", label: "Reports" },
   { href: "/brief", label: "Brief" },
+  { href: "/dials", label: "Dials" },
+  { href: "/contribute", label: "Contribute" },
   { href: "/ops", label: "Ops" },
 ] as const;
 
