@@ -265,6 +265,19 @@ export function aggregateLikesByKey(
 // for up to 1,000 keys at once — chunk the IN list well under the limit.
 const LIKE_KEYS_CHUNK = 90;
 
+// The like endpoints threw sporadic production 500 bursts (2026-08-20
+// incident) with no deterministic input — the identical request succeeds on
+// replay — so a failed hot-path read is treated as transient and retried
+// once. The warn line keeps every occurrence visible in Workers Logs.
+async function retryOnce<T>(run: () => PromiseLike<T>): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    console.warn("[d1] read failed, retrying once:", error);
+    return await run();
+  }
+}
+
 export async function getLikeTotalsByKeys(
   keys: string[],
   dbInstance?: ReturnType<typeof getDb>
@@ -275,14 +288,16 @@ export async function getLikeTotalsByKeys(
   const totals = new Map<string, number>();
   for (let start = 0; start < unique.length; start += LIKE_KEYS_CHUNK) {
     const chunk = unique.slice(start, start + LIKE_KEYS_CHUNK);
-    const rows = await db
-      .select({
-        key: likes.coeffKey,
-        total: sql<number>`COUNT(DISTINCT ${likes.userId})`,
-      })
-      .from(likes)
-      .where(inArray(likes.coeffKey, chunk))
-      .groupBy(likes.coeffKey);
+    const rows = await retryOnce(() =>
+      db
+        .select({
+          key: likes.coeffKey,
+          total: sql<number>`COUNT(DISTINCT ${likes.userId})`,
+        })
+        .from(likes)
+        .where(inArray(likes.coeffKey, chunk))
+        .groupBy(likes.coeffKey),
+    );
     for (const row of rows) if (row.key) totals.set(row.key, row.total);
   }
   return totals;
@@ -339,11 +354,13 @@ export async function getPaletteLikeInfo(
   const [totals, likedRows] = await Promise.all([
     getLikeTotalsByKeys([key], db),
     userId
-      ? db
-          .select({ userId: likes.userId })
-          .from(likes)
-          .where(and(eq(likes.coeffKey, key), eq(likes.userId, userId)))
-          .limit(1)
+      ? retryOnce(() =>
+          db
+            .select({ userId: likes.userId })
+            .from(likes)
+            .where(and(eq(likes.coeffKey, key), eq(likes.userId, userId)))
+            .limit(1),
+        )
       : Promise.resolve([]),
   ]);
   return {
@@ -450,7 +467,7 @@ export async function toggleLikePalette(
       style,
       angle,
       createdAt: new Date(),
-    });
+    }).onConflictDoNothing();
 
     return { success: true, liked: true, paletteId: seed };
   } catch (error) {
@@ -476,7 +493,7 @@ export async function toggleLikePaletteByKey(
   style: Palette["style"],
   angle: number,
   dbInstance?: ReturnType<typeof getDb>
-): Promise<{ success: true; liked: boolean; paletteId: string; key: string; likesCount: number }> {
+): Promise<{ success: true; liked: boolean; paletteId: string; key: string; likesCount: number | null }> {
   const db = dbInstance || getDb();
   const key = paletteCoeffKey(seed) ?? seed;
 
@@ -485,10 +502,9 @@ export async function toggleLikePaletteByKey(
     // user_id, bounded by their like count) and matches keys in JS rather
     // than trusting coeff_key: it stays correct even for rows the backfill
     // has not touched.
-    const rows = await db
-      .select({ paletteId: likes.paletteId })
-      .from(likes)
-      .where(eq(likes.userId, userId));
+    const rows = await retryOnce(() =>
+      db.select({ paletteId: likes.paletteId }).from(likes).where(eq(likes.userId, userId)),
+    );
     const aliases = rows
       .map((r) => r.paletteId)
       .filter((id) => (paletteCoeffKey(id) ?? id) === key);
@@ -509,6 +525,8 @@ export async function toggleLikePaletteByKey(
           createdAt: new Date(),
         }).onConflictDoNothing();
       }
+      // Two near-simultaneous likes (editor + list card, two tabs) can both
+      // pass the alias scan; the loser must not 500 on the (user, palette) PK.
       await db.insert(likes).values({
         paletteId: seed,
         userId,
@@ -517,14 +535,25 @@ export async function toggleLikePaletteByKey(
         style,
         angle,
         createdAt: new Date(),
-      });
+      }).onConflictDoNothing();
       liked = true;
     }
 
     // The displayed count is the palette's cross-alias total (what list cards
     // and the seed page show), not the row-level count. Re-read the durable
     // rows so this response stays authoritative across Worker isolates.
-    const likesCount = await getLikesCountByKey(seed, db);
+    //
+    // This read runs AFTER the toggle write committed (no transaction spans
+    // them on D1). Letting it fail the request made the client roll back its
+    // optimistic heart while the row was already written, so the next click
+    // inverted the user's intent (2026-08-20 incident). Degrade to null —
+    // "toggle stood, keep your optimistic count" — instead of a 500.
+    let likesCount: number | null = null;
+    try {
+      likesCount = await getLikesCountByKey(seed, db);
+    } catch (error) {
+      console.error("[toggleLikePaletteByKey] count read failed after committed toggle:", error);
+    }
     return { success: true, liked, paletteId: seed, key, likesCount };
   } catch (error) {
     console.error('[toggleLikePaletteByKey] ERROR:', error);
