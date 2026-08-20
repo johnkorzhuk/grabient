@@ -277,17 +277,52 @@ const LIKE_KEYS_CHUNK = 90;
 // side of a short blip.
 const D1_RETRY_DELAYS_MS = [50, 250];
 
+// The failure captured in production was a HANG, not a fast error: 9,488ms of
+// wall time on 6ms of CPU, for a single-key lookup through likes_coeff_key_idx
+// that normally answers in single-digit ms. Unbounded, three attempts of that
+// stack into a ~29s request — worse than the single 500 this replaced. Each
+// attempt gets its own deadline instead, generous enough that a legitimately
+// slow read (the 90-key chunks /saved asks for) never trips it.
+const D1_READ_TIMEOUT_MS = 5000;
+
+async function withDeadline<T>(run: () => PromiseLike<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      run(),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`d1 read exceeded ${D1_READ_TIMEOUT_MS}ms`)),
+          D1_READ_TIMEOUT_MS,
+        );
+      }),
+    ]);
+  } finally {
+    // Losing the race does not cancel the query, but an uncleared timer would
+    // hold the isolate open past the response.
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
 async function retryRead<T>(run: () => PromiseLike<T>): Promise<T> {
   for (const delay of D1_RETRY_DELAYS_MS) {
     try {
-      return await run();
+      return await withDeadline(run);
     } catch (error) {
-      console.warn(`[d1] read failed, retrying in ${delay}ms:`, error);
+      // Drizzle wraps the driver error, and its message carries only the SQL
+      // and params. The D1 code saying WHY lives on .cause and is lost unless
+      // it is logged separately.
+      console.warn(
+        `[d1] read failed, retrying in ${delay}ms:`,
+        error,
+        "cause:",
+        (error as { cause?: unknown })?.cause ?? "(none)",
+      );
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
   // Final attempt: a genuine outage still throws and stays visible.
-  return await run();
+  return await withDeadline(run);
 }
 
 export async function getLikeTotalsByKeys(

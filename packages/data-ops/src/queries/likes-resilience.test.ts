@@ -80,6 +80,25 @@ describe("getLikeTotalsByKeys", () => {
     const { db } = scriptedDb([boom(), boom(), boom()]);
     await expect(getLikeTotalsByKeys([SEED], db)).rejects.toThrow("D1_ERROR");
   });
+
+  // The production failure was a hang, not a fast error — 9.5s of wall time on
+  // a query that normally answers in single-digit ms. An attempt that never
+  // settles must not hold the request open until the retries are exhausted.
+  it("abandons a hung read at its deadline and lets the retry answer", async () => {
+    vi.useFakeTimers();
+    try {
+      const { db } = scriptedDb([
+        () => new Promise<unknown>(() => {}), // never settles
+        ok([{ key: SEED, total: 5 }]),
+      ]);
+      const pending = getLikeTotalsByKeys([SEED], db);
+      await vi.advanceTimersByTimeAsync(5000); // trip the deadline
+      await vi.advanceTimersByTimeAsync(50); // then the backoff
+      expect((await pending).get(SEED)).toBe(5);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
 
 describe("toggleLikePaletteByKey", () => {
