@@ -59,15 +59,25 @@ afterEach(() => {
 });
 
 describe("getLikeTotalsByKeys", () => {
-  it("retries a failed chunk read once and succeeds", async () => {
+  it("retries a failed chunk read and succeeds on the second attempt", async () => {
     const { db, awaited } = scriptedDb([boom(), ok([{ key: SEED, total: 3 }])]);
     const totals = await getLikeTotalsByKeys([SEED], db);
     expect(awaited()).toBe(2);
     expect(totals.get(SEED)).toBe(3);
   });
 
-  it("still throws when both attempts fail (a real outage stays visible)", async () => {
-    const { db } = scriptedDb([boom(), boom()]);
+  // The first cut of this retried once, immediately, and like-info kept 500ing:
+  // an instant retry lands inside the same blip. Three spaced attempts is the
+  // behavior that actually absorbs one.
+  it("makes three spaced attempts before giving up", async () => {
+    const { db, awaited } = scriptedDb([boom(), boom(), ok([{ key: SEED, total: 7 }])]);
+    const totals = await getLikeTotalsByKeys([SEED], db);
+    expect(awaited()).toBe(3);
+    expect(totals.get(SEED)).toBe(7);
+  });
+
+  it("still throws when every attempt fails (a real outage stays visible)", async () => {
+    const { db } = scriptedDb([boom(), boom(), boom()]);
     await expect(getLikeTotalsByKeys([SEED], db)).rejects.toThrow("D1_ERROR");
   });
 });
@@ -75,7 +85,7 @@ describe("getLikeTotalsByKeys", () => {
 describe("toggleLikePaletteByKey", () => {
   it("returns liked with a null count when the post-commit count read fails", async () => {
     // alias scan → palettes insert → likes insert → count read fails twice
-    const { db, calls } = scriptedDb([ok([]), ok(undefined), ok(undefined), boom(), boom()]);
+    const { db, calls } = scriptedDb([ok([]), ok(undefined), ok(undefined), boom(), boom(), boom()]);
     const result = await toggleLikePaletteByKey("user-1", SEED, 5, "linearGradient", 45, db);
     expect(result.liked).toBe(true);
     expect(result.likesCount).toBeNull();
@@ -85,7 +95,7 @@ describe("toggleLikePaletteByKey", () => {
 
   it("returns unliked with a null count when the count read fails after a delete", async () => {
     // alias scan finds the row → delete → count read fails twice
-    const { db } = scriptedDb([ok([{ paletteId: SEED }]), ok(undefined), boom(), boom()]);
+    const { db } = scriptedDb([ok([{ paletteId: SEED }]), ok(undefined), boom(), boom(), boom()]);
     const result = await toggleLikePaletteByKey("user-1", SEED, 5, "linearGradient", 45, db);
     expect(result.liked).toBe(false);
     expect(result.likesCount).toBeNull();

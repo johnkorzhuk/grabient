@@ -851,9 +851,18 @@ app.get("/api/like-info", async (c) => {
   const seed = canonicalSeed(c.req.query("seed") ?? "");
   if (!seed) return c.json({ error: "Invalid seed" }, 400, NO_STORE);
   initDatabase(c.env.DB);
-  const session = await getSession(c.env, c.req.raw.headers);
-  const info = await getPaletteLikeInfo(seed, session?.user.id);
-  return c.json(info, 200, NO_STORE);
+  try {
+    const session = await getSession(c.env, c.req.raw.headers);
+    const info = await getPaletteLikeInfo(seed, session?.user.id);
+    return c.json(info, 200, NO_STORE);
+  } catch (error) {
+    // This only enriches a heart the page has already painted, and the client
+    // treats any non-OK as "keep what you have" (fetchSeedLikeInfo). A read
+    // that failed twice is unavailability, not a defect in this request, so
+    // report it the way /search.json and the sitemap do rather than as a 500.
+    console.error("like-info failed", error);
+    return c.json({ error: "Like info temporarily unavailable" }, 503, NO_STORE);
+  }
 });
 
 // Public, write-fresh totals for list-page cards. List HTML is also no-store so
@@ -864,8 +873,15 @@ app.get("/api/like-counts", async (c) => {
   const keys = [...new Set((c.req.query("keys") ?? "").split(",").filter(Boolean))].slice(0, 50);
   if (!keys.length) return c.json({ counts: {} }, 200, NO_STORE);
   initDatabase(c.env.DB);
-  const counts = await getLikesCountsByKeys(keys);
-  return c.json({ counts }, 200, NO_STORE);
+  try {
+    const counts = await getLikesCountsByKeys(keys);
+    return c.json({ counts }, 200, NO_STORE);
+  } catch (error) {
+    // Same contract as like-info: initListLikeCounts bails on any non-OK and
+    // leaves the SSR'd counts in place, which are already authoritative.
+    console.error("like-counts failed", error);
+    return c.json({ error: "Like counts temporarily unavailable" }, 503, NO_STORE);
+  }
 });
 
 const likeBody = v.object({

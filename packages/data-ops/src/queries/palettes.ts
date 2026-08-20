@@ -267,15 +267,27 @@ const LIKE_KEYS_CHUNK = 90;
 
 // The like endpoints threw sporadic production 500 bursts (2026-08-20
 // incident) with no deterministic input — the identical request succeeds on
-// replay — so a failed hot-path read is treated as transient and retried
-// once. The warn line keeps every occurrence visible in Workers Logs.
-async function retryOnce<T>(run: () => PromiseLike<T>): Promise<T> {
-  try {
-    return await run();
-  } catch (error) {
-    console.warn("[d1] read failed, retrying once:", error);
-    return await run();
+// replay — so a failed hot-path read is treated as transient and retried.
+// The warn line keeps every occurrence visible in Workers Logs.
+//
+// The delay is the point. The first version of this retried immediately and
+// like-info kept 500ing afterwards, in same-minute clusters: an instant second
+// attempt lands inside the same disturbance the first one hit, so it fails for
+// the same reason and buys nothing. Backing off puts the attempts on either
+// side of a short blip.
+const D1_RETRY_DELAYS_MS = [50, 250];
+
+async function retryRead<T>(run: () => PromiseLike<T>): Promise<T> {
+  for (const delay of D1_RETRY_DELAYS_MS) {
+    try {
+      return await run();
+    } catch (error) {
+      console.warn(`[d1] read failed, retrying in ${delay}ms:`, error);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
   }
+  // Final attempt: a genuine outage still throws and stays visible.
+  return await run();
 }
 
 export async function getLikeTotalsByKeys(
@@ -288,7 +300,7 @@ export async function getLikeTotalsByKeys(
   const totals = new Map<string, number>();
   for (let start = 0; start < unique.length; start += LIKE_KEYS_CHUNK) {
     const chunk = unique.slice(start, start + LIKE_KEYS_CHUNK);
-    const rows = await retryOnce(() =>
+    const rows = await retryRead(() =>
       db
         .select({
           key: likes.coeffKey,
@@ -354,7 +366,7 @@ export async function getPaletteLikeInfo(
   const [totals, likedRows] = await Promise.all([
     getLikeTotalsByKeys([key], db),
     userId
-      ? retryOnce(() =>
+      ? retryRead(() =>
           db
             .select({ userId: likes.userId })
             .from(likes)
@@ -502,7 +514,7 @@ export async function toggleLikePaletteByKey(
     // user_id, bounded by their like count) and matches keys in JS rather
     // than trusting coeff_key: it stays correct even for rows the backfill
     // has not touched.
-    const rows = await retryOnce(() =>
+    const rows = await retryRead(() =>
       db.select({ paletteId: likes.paletteId }).from(likes).where(eq(likes.userId, userId)),
     );
     const aliases = rows
