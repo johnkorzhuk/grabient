@@ -3,6 +3,7 @@ import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/htt
 import { getSession, type Session } from "@grabient/server/auth/session.ts";
 import { first, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { writeRefusal } from "@grabient/server/limits/writes.ts";
 import * as v from "valibot";
 import {
   type Profile,
@@ -12,8 +13,9 @@ import {
   type SyncResult
 } from "../../features/account/wire.ts";
 import { likeInput, likeLimits, setLike } from "../gallery/likes.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { readChanges } from "./changes.ts";
-import { applyCollectionOp, ownSlug, type Writer } from "./collections.ts";
+import { applyCollectionOp, ownSlug, roleOf, type Writer } from "./collections.ts";
 import { done, fromResponse, type Outcome, refused } from "./outcome.ts";
 
 /* POST /api/me/sync: both halves of a browser's sync of the account's copy. The browser sends the changes it made
@@ -23,8 +25,8 @@ import { done, fromResponse, type Outcome, refused } from "./outcome.ts";
 
    A browser names itself with a client id under the account, and the server keeps the last change of that client it
    applied: a change sent again (an answer lost on the way, a tab closed before it heard) is skipped, never applied
-   twice. A change the server cannot settle now (a limit, the database) stops the turn: the ones after it may depend on
-   it, and go with it later. */
+   twice. A change the server cannot settle now (a limit, the database, saving paused for every account) stops the
+   turn: the ones after it may depend on it, and the browser keeps them all and sends them again later. */
 
 /** the most changes one sync sends; a browser with more sends them in turns */
 export const SYNC_BATCH = 50;
@@ -53,7 +55,8 @@ export function profileOf(user: Session["user"]): Profile {
   };
 }
 
-/** A like as the heart's own write takes it: the account's minute and day, and the site's day, counted first. */
+/** A like as the heart's own write takes it. Saving paused for every account stands before it, then the account's
+    minute and day and the site's day. */
 async function applyLike(
   env: Env,
   account: Writer,
@@ -62,13 +65,9 @@ async function applyLike(
   const { op: _, from, ...like } = op;
   const input = likeInput({ ...like, ...(from ? { from: await pressedFrom(env, from) } : {}) });
   if (!input) return refused(400, msg("Invalid palette."));
-  const over = await overLimit(env, likeLimits(account.id));
+  const over = await writeRefusal(env, roleOf(account), likeLimits(account.id));
   if (over) return fromResponse(over);
-  const outcome = await setLike(
-    env,
-    { id: account.id, role: account.admin ? "admin" : "user" },
-    input
-  );
+  const outcome = await setLike(env, { id: account.id, role: roleOf(account) }, input);
   return done({
     likesCount: outcome.likesCount,
     ...(outcome.was !== undefined ? { was: outcome.was } : {})
@@ -276,8 +275,7 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
     await run(env.DB, "UPDATE k_sync_clients SET updated_at = ? WHERE id = ?", now, body.client);
   }
 
-  const origin = env.PUBLIC_ORIGIN ?? new URL(request.url).origin;
-  const changes = await readChanges(env, userId, body.cursor, origin);
+  const changes = await readChanges(env, userId, body.cursor, publicOrigin(env, request));
   return json({
     ...changes,
     lastMutation: last,

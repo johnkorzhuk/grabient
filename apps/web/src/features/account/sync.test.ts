@@ -123,6 +123,34 @@ describe("the account's copy, syncing", () => {
     expect(syncStatus().refused.map(refusal => refusal.op)).toEqual(["like"]);
   });
 
+  it("keeps a change the server put off, shown and waiting, and sends it again", async () => {
+    await open();
+    // saving is paused for every account: nothing is applied or refused, and the answer says when to ask again
+    server.next.push(
+      Response.json({
+        cursor: 0,
+        reset: false,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: false,
+        retryAfter: 300
+      } satisfies SyncResponse)
+    );
+    const { done } = sync.makeChange(like("kF", true));
+    await vi.waitUntil(() => server.bodies.at(-1)?.mutations.length === 1 && !syncStatus().syncing);
+    expect(viewNow().likes.has("kF")).toBe(true);
+    expect([syncStatus().pending, syncStatus().refused]).toEqual([1, []]);
+    expect(server.likes.has("kF")).toBe(false);
+    await sync.syncNow();
+    await done;
+    expect(server.likes.has("kF")).toBe(true);
+    expect(syncStatus().pending).toBe(0);
+  });
+
   it("names the page's language until the server keeps one", async () => {
     await open();
     expect(server.bodies[0]?.locale).toBe("en");
