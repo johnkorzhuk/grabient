@@ -1,6 +1,6 @@
 import { msg } from "@grabient/i18n";
-import { all, run } from "../../db/d1.ts";
-import type { Env } from "../../env.ts";
+import { all, run } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { newId } from "../site.ts";
 
 /* The admins' record (k_admin_actions): every action an admin takes on a palette or a collection, from the site's own

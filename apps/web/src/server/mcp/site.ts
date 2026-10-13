@@ -11,9 +11,9 @@ import {
   type Style
 } from "@grabient/engine/view.ts";
 import { LOCALE_SEGMENTS } from "@grabient/i18n";
-import { all, batch, first, run, type Statement } from "../db/d1.ts";
-import type { Env } from "../env.ts";
-import type { LimitCheck } from "../limits/check.ts";
+import { all, batch, first, run, type Statement } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
+import type { LimitCheck } from "@grabient/server/limits/check.ts";
 import type { ViewGiven } from "./cards.ts";
 
 /* The rest of the site as the MCP tools and the seeding queue use it: palettes and their words, the gallery, likes,

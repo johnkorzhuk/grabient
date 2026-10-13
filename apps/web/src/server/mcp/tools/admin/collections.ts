@@ -1,4 +1,4 @@
-import { all, first } from "../../../db/d1.ts";
+import { all, first } from "@grabient/server/db/d1.ts";
 import { reviewsOf } from "../../admin/reviews.ts";
 import {
   collectionBySlug,

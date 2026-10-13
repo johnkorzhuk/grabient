@@ -6,12 +6,12 @@ import {
   type OAuthAuthorizationServer
 } from "@cloudflare/workers-oauth-provider";
 import { DEFAULT_LOCALE, type Locale, localizePath } from "@grabient/i18n";
-import { json, overLimit, readJson, sameOrigin } from "../auth/http.ts";
-import { accountRole } from "../auth/roles.ts";
-import { getSession } from "../auth/session.ts";
-import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
-import { countUsage } from "../usage/count.ts";
+import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
+import { accountRole } from "@grabient/server/auth/roles.ts";
+import { getSession } from "@grabient/server/auth/session.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
 import {
   authorizeRequest,
   type ConsentProblem,

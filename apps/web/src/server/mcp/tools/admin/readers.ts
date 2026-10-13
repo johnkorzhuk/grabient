@@ -1,4 +1,4 @@
-import { all } from "../../../db/d1.ts";
+import { all } from "@grabient/server/db/d1.ts";
 import { queueLabel } from "../../admin/queue.ts";
 import { logContribution } from "../../admin/reviews.ts";
 import {

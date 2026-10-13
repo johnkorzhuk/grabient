@@ -1,6 +1,6 @@
-import type { Env } from "../env.ts";
-import { checkLimits, type LimitCheck, type LimitResult } from "../limits/check.ts";
-import { type LimitName, limitOf } from "../limits/config.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { checkLimits, type LimitCheck, type LimitResult } from "@grabient/server/limits/check.ts";
+import { type LimitName, limitOf } from "@grabient/server/limits/config.ts";
 
 /* What the MCP server's tools share: how a tool is written, what a call is given, and the shapes every tool answers
    in. A tool's answer is one text block of compact JSON, which every client hands its model as it is. */

@@ -1,5 +1,5 @@
-import { json, NO_STORE } from "../auth/http.ts";
-import type { Env } from "../env.ts";
+import { json, NO_STORE } from "@grabient/server/auth/http.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 /* The proofs two directories of MCP servers ask a site to serve before they list it: OpenAI's apps directory reads a
    challenge at /.well-known/openai-apps-challenge, and the MCP Registry reads the public key of the com.grabient

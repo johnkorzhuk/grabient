@@ -1,6 +1,6 @@
 import { VIEW_DATA } from "../../mcp-view/page.ts";
-import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
 import type { GrantProps } from "../oauth/server.ts";
 
 /* The palette view: an MCP App (the extension io.modelcontextprotocol/ui), one read-only page an AI app draws where

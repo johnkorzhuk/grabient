@@ -1,5 +1,5 @@
-import { all, batch, type Statement } from "../../db/d1.ts";
-import type { Env } from "../../env.ts";
+import { all, batch, type Statement } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 /* The personas: the accounts scheduled likes are made with. A like's key is (account, palette) and the hot order reads
    likes, so a persona is a real auth_user row, marked in k_personas. It has no credentials, no session and an address

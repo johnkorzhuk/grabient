@@ -1,5 +1,5 @@
-import { all, batch, run, type Statement } from "../../db/d1.ts";
-import type { Env } from "../../env.ts";
+import { all, batch, run, type Statement } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { isCollectionSlug, newId, normalizeListQuery } from "../site.ts";
 import { actorName } from "./record.ts";
 

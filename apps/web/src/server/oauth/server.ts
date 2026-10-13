@@ -3,9 +3,9 @@ import {
   type OAuthResourceHandler,
   OAuthResourceServer
 } from "@cloudflare/workers-oauth-provider";
-import { accountRole } from "../auth/roles.ts";
-import type { Env } from "../env.ts";
-import { countUsage } from "../usage/count.ts";
+import { accountRole } from "@grabient/server/auth/roles.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
 import { CLIENT_DOCUMENTS } from "./client-documents.data.ts";
 import { type ClientKind, MCP_PATH, MCP_SCOPES, OAUTH_PATHS } from "./clients.ts";
 

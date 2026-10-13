@@ -1,4 +1,4 @@
-import { all } from "../../../db/d1.ts";
+import { all } from "@grabient/server/db/d1.ts";
 import { SITE_AGENT } from "../../admin/personas.ts";
 import { removedSeeds } from "../../admin/queue.ts";
 import { parseWhy, recordAction } from "../../admin/record.ts";

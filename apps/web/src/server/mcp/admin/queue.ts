@@ -1,5 +1,5 @@
-import { all, batch, first, run, type Statement } from "../../db/d1.ts";
-import type { Env } from "../../env.ts";
+import { all, batch, first, run, type Statement } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import {
   appendCollectionItems,
   type CollectionItemInput,

@@ -1,8 +1,8 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { STEPS_MAX, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
 import { splitLocale } from "@grabient/i18n";
-import { first } from "../../db/d1.ts";
-import { flagOff } from "../../flags/flags.ts";
+import { first } from "@grabient/server/db/d1.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
 import { adjustPalette, readChange } from "../adjust.ts";
 import { paletteNamed } from "../args.ts";
 import {

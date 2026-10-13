@@ -1,5 +1,5 @@
 import { viewSearch } from "@grabient/engine/view.ts";
-import { all, first } from "../../../db/d1.ts";
+import { all, first } from "@grabient/server/db/d1.ts";
 import { removedSeeds } from "../../admin/queue.ts";
 import {
   ADMIN_ACTION_KINDS,

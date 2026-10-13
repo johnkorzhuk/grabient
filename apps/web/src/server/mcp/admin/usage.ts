@@ -1,4 +1,4 @@
-import type { Deployment, Env } from "../../env.ts";
+import type { Deployment, Env } from "@grabient/server/env.ts";
 
 /* The counts of the site's own work (usage/count.ts) read back from Workers Analytics Engine through the deploy's
    ANALYTICS binding: which dataset the deploy writes, and the rows made into totals and named columns. For the

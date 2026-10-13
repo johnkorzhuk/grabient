@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type LimitName, limitOf } from "../limits/config.ts";
+import { type LimitName, limitOf } from "@grabient/server/limits/config.ts";
 import instructionsGolden from "./fixtures/instructions.json" with { type: "json" };
 import limitGolden from "./fixtures/limit-words.json" with { type: "json" };
 import serverGolden from "./fixtures/server-info.json" with { type: "json" };

@@ -1,7 +1,7 @@
 import type { OAuthAuthorizationServer } from "@cloudflare/workers-oauth-provider";
-import { json } from "../auth/http.ts";
-import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
+import { json } from "@grabient/server/auth/http.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
 import { authorize } from "./authorize.ts";
 import { consentAnswer } from "./consent.ts";
 import { register, token } from "./endpoints.ts";

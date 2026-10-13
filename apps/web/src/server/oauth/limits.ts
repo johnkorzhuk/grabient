@@ -1,6 +1,6 @@
-import type { Env } from "../env.ts";
-import { clientAddress } from "../limits/address.ts";
-import { checkLimits, type LimitCheck } from "../limits/check.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import { fetchableClientId, isUrlClientId, SAVED_CLIENT_IDS } from "./clients.ts";
 
 /* The limits in front of the routes an app calls with no cookie, and the check of a client_id before the library

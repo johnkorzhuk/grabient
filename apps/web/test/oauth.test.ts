@@ -1,6 +1,6 @@
 import { createExecutionContext } from "cloudflare:test";
 import { describe, expect, it } from "vitest";
-import { setFlag } from "../src/server/flags/flags.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
 import { serveMcp } from "../src/server/mcp/server.ts";
 import {
   connectionsRoute,

@@ -6,8 +6,8 @@ import {
   type Locale,
   messageKey
 } from "@grabient/i18n";
-import { all, batch, type Statement } from "../../db/d1.ts";
-import type { Env } from "../../env.ts";
+import { all, batch, type Statement } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 /* Grabient's own words in the site's other languages. An admin's app translates the titles and descriptions of
    Grabient's public collections and the tags they carry (the translations tools), and k_translations keeps them. A
