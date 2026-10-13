@@ -113,8 +113,6 @@ export type Page = Facts &
         written?: { title?: string; description?: string };
         /** the public collections that hold it, titled in the page's language */
         heldBy?: readonly { slug: string; title: string }[];
-        /** the build drew its card at the default view */
-        staticOg?: boolean;
       }
     /** an address no page has, or an old palette's address that no map holds, as it came */
     | { kind: "notfound" | "legacy"; path: string }
@@ -615,17 +613,10 @@ function palettePage(
       ...counts.map(n => (words: string) => t("{words} {hexes}.", { words, hexes: spread(n) }))
     ]
   );
-  const asDrawn =
-    view.style === DEFAULT_STYLE &&
-    view.angle === DEFAULT_ANGLE &&
-    view.steps === Math.max(DEFAULT_STEPS, P.anchors.length);
-  meta.image =
-    page.staticOg && asDrawn
-      ? absolute(`/og/${OG_VERSION}/${seed}.png`, origin)
-      : absolute(
-          `/api/og?seed=${seed}&v=${OG_VERSION}${viewSearch(view).replace("?", "&")}`,
-          origin
-        );
+  meta.image = absolute(
+    `/api/og?seed=${seed}&v=${OG_VERSION}${viewSearch(view).replace("?", "&")}`,
+    origin
+  );
   meta.imageAlt = t("{name} color palette", { name });
   meta.themeColor = hexes[0];
   meta.markdown = absolute(`/${seed}.md${viewSearch(view)}`, origin);

@@ -99,7 +99,6 @@ function pageOf(address: string, facts: Facts = {}): Page {
       view: { ...view, steps: Math.max(view.steps, palette.anchors.length) },
       written,
       heldBy: facts.heldBy,
-      staticOg: facts.staticOg,
       ...common
     };
   }
@@ -133,6 +132,9 @@ describe("every page's metadata, as grabient.com serves it", () => {
     // the title says what the page says: an address that is no page is a page that isn't found
     if (expected.title === "Palette not found | Grabient")
       expected.title = "Page not found | Grabient";
+    // no build draws cards ahead now: every palette's card is drawn once at /api/og and kept
+    if ((facts as Facts).staticOg)
+      expected.image = expected.image.replace(/\/og\/k4\/(\w+)\.png$/, "/api/og?seed=$1&v=k4");
     expect(summary(meta)).toEqual(expected);
     expect(meta.description.length).toBe(descriptionLength);
   });
