@@ -24,7 +24,7 @@ import {
   useTotals,
   viewsTaken
 } from "../../admin/signals.ts";
-import { analyticsRows, readUsage } from "../../admin/usage.ts";
+import { readUsage } from "../../admin/usage.ts";
 import {
   answer,
   entryOf,
@@ -532,15 +532,12 @@ export const readerTools: readonly Tool[] = [
       const limit = num(args.limit, 25, 1, 200);
       let report: Awaited<ReturnType<typeof readUsage>>;
       try {
-        const read = await analyticsRows(c.env);
-        if (typeof read === "string") return refuse(read);
-        report = read.written
-          ? await readUsage(read.sql, read.dataset, days)
-          : await readUsage(async () => [], read.dataset, days);
+        report = await readUsage(c.env, days);
       } catch (error) {
         const why = error instanceof Error ? error.message.slice(0, 200) : "unknown error";
         return refuse(`Analytics Engine could not be read: ${why}`);
       }
+      if (typeof report === "string") return refuse(report);
       return answer({
         ...report,
         events: Object.fromEntries(

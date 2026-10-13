@@ -1,8 +1,9 @@
 import type { Deployment, Env } from "@grabient/server/env.ts";
 
 /* The counts of the site's own work (usage/count.ts) read back from Workers Analytics Engine through the deploy's
-   ANALYTICS binding: which dataset the deploy writes, and the rows made into totals and named columns. For the
-   site_usage tool and the six-hour sign-in digest. */
+   ANALYTICS binding, for the site_usage tool: which dataset the deploy writes, and its rows made into totals and
+   named columns. The binding speaks the Analytics SQL API: one SELECT a query, the dataset under
+   events.analyticsEngine, a lower bound on the time, and sums already weighed by each point's sample interval. */
 
 /** The datasets cloudflare.config.ts binds as USAGE. A Preview writes none. */
 const DATASETS: Partial<Record<Deployment, string>> = {
@@ -12,7 +13,7 @@ const DATASETS: Partial<Record<Deployment, string>> = {
 };
 
 /** What each event's blobs say, in order after the event itself. */
-export const USAGE_COLUMNS = {
+const USAGE_COLUMNS = {
   mcp: ["server", "tool", "outcome", "address", "client"],
   oauth: ["step", "what", "outcome", "client"],
   limit: ["limit", "kind"],
@@ -21,32 +22,13 @@ export const USAGE_COLUMNS = {
   "client-error": ["page", "browser"],
   file: ["format", "from", "who"]
 } as const;
-export type UsageEventName = keyof typeof USAGE_COLUMNS;
+type UsageEventName = keyof typeof USAGE_COLUMNS;
 const EVENTS = Object.keys(USAGE_COLUMNS) as UsageEventName[];
-
-export type AnalyticsRows = Record<string, unknown>[];
-type Sql = (query: string) => Promise<AnalyticsRows>;
-
-/** The deploy's dataset and a way to query it, with whether it holds anything yet (a dataset appears with its first
-    point), or why the deploy cannot read one. */
-export async function analyticsRows(
-  env: Pick<Env, "ANALYTICS" | "DEPLOYMENT">
-): Promise<{ sql: Sql; dataset: string; written: boolean } | string> {
-  const binding = env.ANALYTICS;
-  const dataset = DATASETS[env.DEPLOYMENT];
-  if (!binding || !dataset) return "This deploy has no ANALYTICS binding to read its counts with.";
-  const sql: Sql = async query => {
-    const answer = (await binding.query({ query })) as { data?: unknown } | null;
-    return Array.isArray(answer?.data) ? (answer.data as AnalyticsRows) : [];
-  };
-  const tables = await sql("SHOW TABLES");
-  return { sql, dataset, written: tables.some(row => row.dataset === dataset) };
-}
 
 export interface UsageReport {
   dataset: string;
   days: number;
-  /** nothing written yet: the dataset appears with its first point */
+  /** nothing counted in the window: a dataset holds nothing until its first point */
   empty: boolean;
   totals: Record<UsageEventName, number>;
   /** each event's rows, most first, its blobs under their names and `count` */
@@ -63,18 +45,26 @@ const whole = (value: unknown) => Math.round(Number(value) || 0);
 const isEvent = (value: unknown): value is UsageEventName =>
   typeof value === "string" && value in USAGE_COLUMNS;
 
-/** The last `days` of a dataset. A point stands for `_sample_interval` points once Analytics Engine samples, so every
-    sum weighs by it. */
-export async function readUsage(sql: Sql, dataset: string, days: number): Promise<UsageReport> {
-  if (!/^[a-z0-9_]+$/.test(dataset)) throw new Error("Not a dataset name.");
+/** The last `days` of the deploy's dataset, or the sentence that says why the deploy cannot read one. A query the
+    service refuses throws. */
+export async function readUsage(
+  env: Pick<Env, "ANALYTICS" | "DEPLOYMENT">,
+  days: number
+): Promise<UsageReport | string> {
+  const binding = env.ANALYTICS;
+  const dataset = DATASETS[env.DEPLOYMENT];
+  if (!binding || !dataset) return "This deploy has no ANALYTICS binding to read its counts with.";
+  const sql = async (query: string): Promise<Record<string, unknown>[]> => {
+    const answer = (await binding.query({ query })) as { data?: unknown } | null;
+    return Array.isArray(answer?.data) ? answer.data : [];
+  };
   const span = Math.max(1, Math.min(90, Math.floor(days) || 7));
-  const since = `timestamp > NOW() - INTERVAL '${span}' DAY`;
+  const from = `FROM events.analyticsEngine.${dataset} WHERE timestamp >= NOW() - INTERVAL '${span}' DAY`;
   const [rows, daily] = await Promise.all([
-    sql(`SELECT blob1 AS event, blob2 AS a, blob3 AS b, blob4 AS c, blob5 AS d, blob6 AS e,
-      SUM(_sample_interval * double1) AS n FROM ${dataset} WHERE ${since}
-      GROUP BY event, a, b, c, d, e ORDER BY n DESC LIMIT 5000`),
-    sql(`SELECT toStartOfDay(timestamp) AS day, blob1 AS event, SUM(_sample_interval * double1) AS n
-      FROM ${dataset} WHERE ${since} GROUP BY day, event ORDER BY day`)
+    sql(`SELECT blob1 AS event, blob2 AS a, blob3 AS b, blob4 AS c, blob5 AS d, blob6 AS e, SUM(double1) AS n
+      ${from} GROUP BY event, a, b, c, d, e ORDER BY n DESC LIMIT 5000`),
+    sql(`SELECT toStartOfDay(timestamp) AS day, blob1 AS event, SUM(double1) AS n
+      ${from} GROUP BY day, event ORDER BY day`)
   ]);
   const report: UsageReport = {
     dataset,
