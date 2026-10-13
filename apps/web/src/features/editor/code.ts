@@ -41,25 +41,26 @@ const origin = () => (typeof location === "undefined" ? "https://grabient.com" :
 /* the files read from the server, by address, the latest few: a reader opens a handful of palettes from cards */
 const FILES_KEPT = 32;
 const [files, setFiles] = createSignal<ReadonlyMap<string, string>>(new Map());
-const asked = new Set<string>();
+/* the files on their way: one ask per address at a time */
+const asking = new Set<string>();
 function served(address: string, rest: Rest, seed: string) {
-  if (asked.has(address)) return;
-  asked.add(address);
+  if (asking.has(address)) return;
+  asking.add(address);
   setTimeout(() => {
     rest.asked(seed);
     fetch(address)
       .then(answer =>
         answer.ok ? answer.text() : Promise.reject(new Error(String(answer.status)))
       )
-      .then(
-        text =>
-          setFiles(map => {
-            const next = new Map(map).set(address, text.trimEnd());
-            if (next.size > FILES_KEPT) next.delete(next.keys().next().value as string);
-            return next;
-          }),
-        () => asked.delete(address)
-      );
+      .then(text =>
+        setFiles(map => {
+          const next = new Map(map).set(address, text.trimEnd());
+          if (next.size > FILES_KEPT) next.delete(next.keys().next().value as string);
+          return next;
+        })
+      )
+      .catch(() => {})
+      .finally(() => asking.delete(address));
   }, rest.left());
 }
 
