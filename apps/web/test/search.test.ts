@@ -9,9 +9,16 @@ import {
   refreshPopular,
   searchedResponse
 } from "../src/server/search/counts.ts";
+import {
+  listScheduled,
+  pruneScheduled,
+  removeScheduled,
+  scheduleSearches
+} from "../src/server/search/schedule.ts";
 import { searchPalettes } from "../src/server/search/search.ts";
 import { snapshotStatus } from "../src/server/search/snapshot.ts";
 import { syncSnapshot } from "../src/server/search/sync.ts";
+import { popularSearches } from "../src/server/search/tags.ts";
 import { searchVotesResponse } from "../src/server/search/votes.ts";
 import {
   address,
@@ -400,5 +407,61 @@ describe("the snapshot kept current", () => {
       reason: "search index updates are off"
     });
     await run(env.DB, "DELETE FROM k_flags");
+  });
+});
+
+describe("searches scheduled to lead the tags", () => {
+  it("keeps only what the vocabulary answers as one phrase, between sensible dates, and leads the row with it", async () => {
+    const env = testEnv();
+    const now = Date.now();
+    const label = unique("batch");
+    const { scheduled, refused } = await scheduleSearches(
+      env,
+      "admin-1",
+      [
+        { words: "Christmas" },
+        { words: "zxqvyk wqrkk" },
+        { words: "winter", from: "not a day" },
+        { words: "spring", from: new Date(now + 401 * DAY).toISOString() },
+        { words: "summer", from: "2026-01-01", until: "2026-12-31" },
+        { words: "autumn", until: new Date(now - DAY).toISOString() }
+      ],
+      label,
+      now
+    );
+    expect(scheduled).toBe(1);
+    expect(refused.map(r => r.why)).toEqual([
+      "The site does not answer these words as one search of its vocabulary.",
+      "from and until are a day (2026-10-20) or a moment (ISO 8601).",
+      "It starts more than 400 days ahead.",
+      "It stands longer than 120 days.",
+      "It ends before it starts, or has ended already."
+    ]);
+    expect((await listScheduled(env, now)).map(s => [s.words, s.label])).toContainEqual([
+      "christmas",
+      label
+    ]);
+    expect((await popularSearches({ ...env, DB: overheard(env.DB) }, 3))[0].query).toBe(
+      "christmas"
+    );
+    expect(await removeScheduled(env, { label })).toBe(1);
+    expect((await listScheduled(env, now)).map(s => s.label)).not.toContain(label);
+  });
+
+  it("forgets what ended a month ago", async () => {
+    const env = testEnv();
+    const now = Date.now();
+    await run(
+      env.DB,
+      "INSERT INTO k_scheduled_searches (id, words, starts_at, ends_at, created_at) VALUES (?, 'ocean', ?, ?, ?)",
+      unique("old")
+        .replace(/[^a-z0-9]/g, "")
+        .padEnd(20, "0")
+        .slice(0, 20),
+      now - 60 * DAY,
+      now - 31 * DAY,
+      now
+    );
+    expect(await pruneScheduled(env, now)).toBeGreaterThanOrEqual(1);
   });
 });

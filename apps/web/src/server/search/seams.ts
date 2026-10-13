@@ -102,6 +102,13 @@ export function normalizeListQuery(raw: string | null | undefined): string {
   return q && (paletteId(q) ?? q.toLowerCase());
 }
 
+/** What a search field holds, as its tags are asked for: the words in lowercase, 100 characters at most, or a
+    palette's seed in its own case. */
+export function normalizeTypedQuery(raw: string | null | undefined): string {
+  const typed = (raw ?? "").normalize("NFKC").replace(/\s+/gu, " ").trim();
+  return paletteId(typed) ?? typed.toLowerCase().slice(0, QUERY_MAX);
+}
+
 /* the palettes a search may show */
 
 export type ListSort = "popular" | "rising" | "newest" | "oldest";
@@ -233,12 +240,12 @@ export async function collectionsHolding(
   return [];
 }
 
-/** The public collections whose titles answer these words, best first. */
+/** The public collections whose titles answer these words, best first, as tags; with no words, the most searched. */
 export async function suggestCollections(
   _env: Pick<Env, "DB">,
   _words: string,
   _limit: number
-): Promise<{ slug: string; title: string }[]> {
+): Promise<{ slug: string; title: string; href: string; colors: string[] }[]> {
   return [];
 }
 
