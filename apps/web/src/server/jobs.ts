@@ -1,4 +1,5 @@
 import type { Env } from "@grabient/server/env.ts";
+import { rescore } from "./gallery/rescore.ts";
 
 /* The scheduled work, one function per trigger in cloudflare.config.ts. Each job runs its steps in order; a step that
    fails is logged and the rest still run, and the run then fails as a whole so the dashboard shows it. A feature adds
@@ -34,7 +35,7 @@ export function everyTenMinutes(env: Env, ctx: ExecutionContext): Promise<void> 
 
 /** Every six hours: database upkeep and pruning, the Popular tags, then the hot scores. */
 export function everySixHours(env: Env, ctx: ExecutionContext): Promise<void> {
-  return runSteps("every six hours", {}, env, ctx);
+  return runSteps("every six hours", { hot: env => rescore(env) }, env, ctx);
 }
 
 /** The jobs by their trigger's schedule, which must match cloudflare.config.ts to the character. */
