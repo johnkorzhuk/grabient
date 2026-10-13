@@ -411,6 +411,52 @@ describe("saved copies", () => {
   });
 });
 
+describe("the hot and Rising orders", () => {
+  it("hold a collection from the request that made it public, and a saved copy lifts it", async () => {
+    type Scores = { hot: number; rising: number; rising_3m: number; rising_1y: number };
+    const scores = async (slug: string) =>
+      (await env.DB.prepare(
+        "SELECT hot, rising, rising_3m, rising_1y FROM k_collections WHERE slug = ?"
+      )
+        .bind(slug)
+        .first<Scores>())!;
+    const unlisted = (await make(admin, { title: unique("Unlisted"), items: items(3) })).body
+      .collection;
+    expect(await scores(unlisted.slug)).toEqual({ hot: 0, rising: 0, rising_3m: 0, rising_1y: 0 });
+    const published = await bodyOf<{ collection: Doc }>(
+      await collectionAnswer(
+        send(
+          "PATCH",
+          `/api/collections/${at(unlisted.slug)}`,
+          { visibility: "public" },
+          { cookie: admin.cookie }
+        ),
+        env
+      )
+    );
+    const arrived = await scores(published.collection.slug);
+    /* half a like of newness, and its palettes that joined lately */
+    expect(arrived.hot).toBeGreaterThanOrEqual(0.5);
+    for (const score of [arrived.rising, arrived.rising_3m, arrived.rising_1y])
+      expect(score).toBeGreaterThan(0);
+
+    const source = (
+      await make(admin, { title: unique("Arrivals"), visibility: "public", items: items(3) })
+    ).body.collection;
+    const fresh = await scores(source.slug);
+    expect(fresh.rising).toBeGreaterThan(0);
+    const reader = await makeAccount(env);
+    await collectionAnswer(
+      send("POST", `/api/collections/${at(source.slug)}/copies`, {}, { cookie: reader.cookie }),
+      env
+    );
+    /* a first copy beside half a like of newness: the faded sum goes from a half to one and a half */
+    const lifted = await scores(source.slug);
+    expect(lifted.rising - fresh.rising).toBeCloseTo(Math.log(3), 1);
+    expect(lifted.rising_1y).toBeGreaterThan(fresh.rising_1y);
+  });
+});
+
 describe("fit votes", () => {
   it("are one an account a palette, on public collections, and an admin's is a ruling on the record", async () => {
     const collection = (

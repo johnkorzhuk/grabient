@@ -10,6 +10,7 @@ import {
   refusal
 } from "../../features/collections/schema.ts";
 import type { CollectionDocument, CopyStanding } from "../../features/collections/types.ts";
+import { risingSaved } from "../gallery/scores.ts";
 import {
   type CollectionOwner,
   type CollectionRecord,
@@ -19,7 +20,6 @@ import {
   type Reader,
   recordById
 } from "./read.ts";
-import { risingSaved } from "./scores.ts";
 import { ITEM_KEY, insertCollection, recountCopies, updateCollection } from "./write.ts";
 
 /* Saved collections. Save on someone else's public collection makes the account's own private copy of it, once. The
