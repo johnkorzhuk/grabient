@@ -19,7 +19,9 @@ export interface FileKey {
   acrossBuilds: boolean;
 }
 
-const FILE =
+/** A palette or a collection under another extension, the shortest name that leaves one: /{seed}.tokens.json is a
+    seed's design tokens. */
+export const FILE_PATH =
   /^\/([^/]+?|@[a-z0-9_-]{3,30}\/[a-z0-9-]+)\.(png|svg|css|json|md|ase|gpl|grd|tokens\.json)$/;
 /** Where the build once wrote palettes' cards as files: the card, which the Worker now draws. */
 const OLD_CARD = /^\/og\/[^/]+\/[^/]+\.png$/;
@@ -87,7 +89,7 @@ function namedFile(path: string, params: URLSearchParams) {
   }
   if (OLD_CARD.test(path))
     return { name: fileName(path.slice(path.lastIndexOf("/")), "png"), format: "old" };
-  const match = FILE.exec(path);
+  const match = FILE_PATH.exec(path);
   return match && { name: fileName(path, match[2]), format: match[2] };
 }
 
