@@ -16,6 +16,8 @@ declare module "@solidjs/web" {
   interface RequestEventLocals {
     /** a page's error boundary caught a failure during the render (app/ErrorPage.tsx) */
     renderFailed?: boolean;
+    /** what a page that renders answers with when it is no page to keep: a list past its end, a search cut short */
+    status?: number;
   }
 }
 
@@ -36,9 +38,13 @@ const start = createStartHandler(
        by position, which a node a browser extension adds there breaks. */
     const html = (await response.text()).replace("<head>", '<head><meta charset="utf-8">');
     const headers = new Headers(response.headers);
-    const failed = getRequestEvent()?.locals.renderFailed === true;
+    const locals = getRequestEvent()?.locals;
+    const failed = locals?.renderFailed === true;
     if (failed) for (const [name, value] of Object.entries(NO_STORE)) headers.set(name, value);
-    return new Response(html, { status: failed ? 500 : response.status, headers });
+    return new Response(html, {
+      status: failed ? 500 : (locals?.status ?? response.status),
+      headers
+    });
   })
 );
 

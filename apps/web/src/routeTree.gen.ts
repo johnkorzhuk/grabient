@@ -26,7 +26,13 @@ import { Route as IdEditRouteImport } from './routes/$id/edit'
 import { Route as IdRisingRouteImport } from './routes/$id/rising'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiBuildRouteImport } from './routes/api/build'
+import { Route as ApiCollectionsRouteImport } from './routes/api/collections'
+import { Route as ApiFramesRouteImport } from './routes/api/frames'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
+import { Route as ApiHotRouteImport } from './routes/api/hot'
+import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
+import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
+import { Route as ApiSavedRouteImport } from './routes/api/saved'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
@@ -122,9 +128,39 @@ const ApiBuildRoute = ApiBuildRouteImport.update({
   path: '/api/build',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiCollectionsRoute = ApiCollectionsRouteImport.update({
+  id: '/api/collections',
+  path: '/api/collections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFramesRoute = ApiFramesRouteImport.update({
+  id: '/api/frames',
+  path: '/api/frames',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGeoRoute = ApiGeoRouteImport.update({
   id: '/api/geo',
   path: '/api/geo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiHotRoute = ApiHotRouteImport.update({
+  id: '/api/hot',
+  path: '/api/hot',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiLikeCountsRoute = ApiLikeCountsRouteImport.update({
+  id: '/api/like-counts',
+  path: '/api/like-counts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPalettesRoute = ApiPalettesRouteImport.update({
+  id: '/api/palettes',
+  path: '/api/palettes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSavedRoute = ApiSavedRouteImport.update({
+  id: '/api/saved',
+  path: '/api/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
@@ -195,7 +231,13 @@ export interface FileRoutesByFullPath {
   '/$id/rising': typeof IdRisingRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/collections': typeof ApiCollectionsRoute
+  '/api/frames': typeof ApiFramesRoute
   '/api/geo': typeof ApiGeoRoute
+  '/api/hot': typeof ApiHotRoute
+  '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/palettes': typeof ApiPalettesRoute
+  '/api/saved': typeof ApiSavedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
@@ -224,7 +266,13 @@ export interface FileRoutesByTo {
   '/$id/rising': typeof IdRisingRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/collections': typeof ApiCollectionsRoute
+  '/api/frames': typeof ApiFramesRoute
   '/api/geo': typeof ApiGeoRoute
+  '/api/hot': typeof ApiHotRoute
+  '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/palettes': typeof ApiPalettesRoute
+  '/api/saved': typeof ApiSavedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
@@ -254,7 +302,13 @@ export interface FileRoutesById {
   '/$id/rising': typeof IdRisingRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/collections': typeof ApiCollectionsRoute
+  '/api/frames': typeof ApiFramesRoute
   '/api/geo': typeof ApiGeoRoute
+  '/api/hot': typeof ApiHotRoute
+  '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/palettes': typeof ApiPalettesRoute
+  '/api/saved': typeof ApiSavedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
@@ -285,7 +339,13 @@ export interface FileRouteTypes {
     | '/$id/rising'
     | '/api/$'
     | '/api/build'
+    | '/api/collections'
+    | '/api/frames'
     | '/api/geo'
+    | '/api/hot'
+    | '/api/like-counts'
+    | '/api/palettes'
+    | '/api/saved'
     | '/collections/saved'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
@@ -314,7 +374,13 @@ export interface FileRouteTypes {
     | '/$id/rising'
     | '/api/$'
     | '/api/build'
+    | '/api/collections'
+    | '/api/frames'
     | '/api/geo'
+    | '/api/hot'
+    | '/api/like-counts'
+    | '/api/palettes'
+    | '/api/saved'
     | '/collections/saved'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
@@ -343,7 +409,13 @@ export interface FileRouteTypes {
     | '/$id/rising'
     | '/api/$'
     | '/api/build'
+    | '/api/collections'
+    | '/api/frames'
     | '/api/geo'
+    | '/api/hot'
+    | '/api/like-counts'
+    | '/api/palettes'
+    | '/api/saved'
     | '/collections/saved'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
@@ -373,7 +445,13 @@ export interface RootRouteChildren {
   IdRisingRoute: typeof IdRisingRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiBuildRoute: typeof ApiBuildRoute
+  ApiCollectionsRoute: typeof ApiCollectionsRoute
+  ApiFramesRoute: typeof ApiFramesRoute
   ApiGeoRoute: typeof ApiGeoRoute
+  ApiHotRoute: typeof ApiHotRoute
+  ApiLikeCountsRoute: typeof ApiLikeCountsRoute
+  ApiPalettesRoute: typeof ApiPalettesRoute
+  ApiSavedRoute: typeof ApiSavedRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
@@ -507,11 +585,53 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiBuildRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/collections': {
+      id: '/api/collections'
+      path: '/api/collections'
+      fullPath: '/api/collections'
+      preLoaderRoute: typeof ApiCollectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/frames': {
+      id: '/api/frames'
+      path: '/api/frames'
+      fullPath: '/api/frames'
+      preLoaderRoute: typeof ApiFramesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/geo': {
       id: '/api/geo'
       path: '/api/geo'
       fullPath: '/api/geo'
       preLoaderRoute: typeof ApiGeoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/hot': {
+      id: '/api/hot'
+      path: '/api/hot'
+      fullPath: '/api/hot'
+      preLoaderRoute: typeof ApiHotRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/like-counts': {
+      id: '/api/like-counts'
+      path: '/api/like-counts'
+      fullPath: '/api/like-counts'
+      preLoaderRoute: typeof ApiLikeCountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/palettes': {
+      id: '/api/palettes'
+      path: '/api/palettes'
+      fullPath: '/api/palettes'
+      preLoaderRoute: typeof ApiPalettesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/saved': {
+      id: '/api/saved'
+      path: '/api/saved'
+      fullPath: '/api/saved'
+      preLoaderRoute: typeof ApiSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections/': {
@@ -597,7 +717,13 @@ const rootRouteChildren: RootRouteChildren = {
   IdRisingRoute: IdRisingRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiBuildRoute: ApiBuildRoute,
+  ApiCollectionsRoute: ApiCollectionsRoute,
+  ApiFramesRoute: ApiFramesRoute,
   ApiGeoRoute: ApiGeoRoute,
+  ApiHotRoute: ApiHotRoute,
+  ApiLikeCountsRoute: ApiLikeCountsRoute,
+  ApiPalettesRoute: ApiPalettesRoute,
+  ApiSavedRoute: ApiSavedRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
   PalettesSavedRoute: PalettesSavedRoute,
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
