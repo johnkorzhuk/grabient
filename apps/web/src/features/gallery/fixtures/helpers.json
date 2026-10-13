@@ -1,0 +1,255 @@
+{
+ "likeInputValid": [
+  {
+   "body": {
+    "liked": true,
+    "steps": 7,
+    "angle": 90,
+    "style": "linearGradient"
+   },
+   "seed": "kS7Q8Yy5S_SChv0",
+   "valid": true
+  },
+  {
+   "body": {
+    "liked": true,
+    "steps": 1,
+    "angle": 90,
+    "style": "linearGradient"
+   },
+   "seed": "kS7Q8Yy5S_SChv0",
+   "valid": false
+  },
+  {
+   "body": {
+    "liked": true,
+    "steps": 101,
+    "angle": 90,
+    "style": "linearGradient"
+   },
+   "seed": "kS7Q8Yy5S_SChv0",
+   "valid": false
+  },
+  {
+   "body": {
+    "liked": true,
+    "steps": 7,
+    "angle": 361,
+    "style": "linearGradient"
+   },
+   "seed": "kS7Q8Yy5S_SChv0",
+   "valid": false
+  },
+  {
+   "body": {
+    "liked": "yes",
+    "steps": 7,
+    "angle": 90,
+    "style": "linearGradient"
+   },
+   "seed": "kS7Q8Yy5S_SChv0",
+   "valid": false
+  },
+  {
+   "body": {
+    "liked": false,
+    "steps": 7,
+    "angle": 90,
+    "style": "conic"
+   },
+   "seed": "kS7Q8Yy5S_SChv0",
+   "valid": false
+  },
+  {
+   "body": {
+    "liked": false,
+    "steps": 7.5,
+    "angle": 90,
+    "style": "linearGradient"
+   },
+   "seed": "kS7Q8Yy5S_SChv0",
+   "valid": false
+  },
+  {
+   "body": {
+    "liked": true,
+    "steps": 2,
+    "angle": 0,
+    "style": "radialSwatches"
+   },
+   "seed": null,
+   "valid": false
+  }
+ ],
+ "limits": {
+  "site": [
+   [
+    "user:u1",
+    [
+     "toggleLike",
+     "toggleLikeDaily"
+    ]
+   ],
+   [
+    "likes",
+    "likesDaily"
+   ]
+  ],
+  "mcp": [
+   [
+    "user:u1",
+    [
+     "toggleLike",
+     "toggleLikeDaily"
+    ]
+   ],
+   [
+    "mcp-likes",
+    "mcpLikesDaily"
+   ]
+  ],
+  "publish": [
+   [
+    "user:u1",
+    "mcpPublishDaily"
+   ]
+  ],
+  "SAVED_PAGED": 1000
+ },
+ "relativeAge": {
+  "now": 1791806400000,
+  "ages": [
+   {
+    "ago": 30000,
+    "age": "1 minute"
+   },
+   {
+    "ago": 61000,
+    "age": "1 minute"
+   },
+   {
+    "ago": 3599000,
+    "age": "59 minutes"
+   },
+   {
+    "ago": 3600000,
+    "age": "1 hour"
+   },
+   {
+    "ago": 86399000,
+    "age": "23 hours"
+   },
+   {
+    "ago": 86400000,
+    "age": "1 day"
+   },
+   {
+    "ago": 2505600000,
+    "age": "29 days"
+   },
+   {
+    "ago": 2592000000,
+    "age": "1 month"
+   },
+   {
+    "ago": 31449600000,
+    "age": "12 months"
+   },
+   {
+    "ago": 31536000000,
+    "age": "Oct 2025"
+   },
+   {
+    "ago": 94608000000,
+    "age": "Oct 2023"
+   }
+  ]
+ },
+ "columnsAt": [
+  [
+   0,
+   1
+  ],
+  [
+   727,
+   1
+  ],
+  [
+   728,
+   2
+  ],
+  [
+   1167,
+   2
+  ],
+  [
+   1168,
+   3
+  ],
+  [
+   1423,
+   3
+  ],
+  [
+   1424,
+   4
+  ],
+  [
+   1807,
+   4
+  ],
+  [
+   1808,
+   5
+  ],
+  [
+   2959,
+   5
+  ],
+  [
+   2960,
+   6
+  ],
+  [
+   5000,
+   6
+  ]
+ ],
+ "shownAt": [
+  [
+   1,
+   3,
+   2
+  ],
+  [
+   2,
+   4,
+   2
+  ],
+  [
+   3,
+   6,
+   2
+  ],
+  [
+   4,
+   8,
+   2
+  ],
+  [
+   5,
+   10,
+   2
+  ],
+  [
+   6,
+   12,
+   2
+  ],
+  [
+   7,
+   12,
+   2
+  ]
+ ]
+}
