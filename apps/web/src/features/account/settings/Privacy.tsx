@@ -4,7 +4,7 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createSignal, For, Show } from "solid-js";
+import { createSignal, For, Show, untrack } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { createOptimisticWrites } from "../../../lib/optimistic.ts";
 import { type ConsentCategory, consent, setConsentCategory } from "../../analytics/consent.ts";
@@ -33,7 +33,8 @@ function NewsletterChoice() {
   const choice = useQuery(() => ({ ...choiceQuery(), queryKey: key(), enabled: !!reachable() }));
   const [pressed, setPressed] = createSignal<boolean | null>(null);
   const [pressFailure, setPressFailure] = createSignal("");
-  const id = account()?.id;
+  // the account the switch was drawn for: an answer that comes back after a change of account draws nothing
+  const id = untrack(() => account()?.id);
   const writes = createOptimisticWrites<boolean, boolean>({
     valueOf: held => held,
     show: (_, on) => setPressed(on),

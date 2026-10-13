@@ -63,6 +63,8 @@ import { Route as AtChar123handleChar125Char123slugChar125DotjsonIndexRouteImpor
 import { Route as AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]md/index'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiMeFlagsRouteImport } from './routes/api/me/flags'
+import { Route as ApiMeSearchRouteImport } from './routes/api/me/search'
+import { Route as ApiMeSearchVotesRouteImport } from './routes/api/me/search-votes'
 import { Route as ApiMeSyncRouteImport } from './routes/api/me/sync'
 import { Route as ApiOgIndexRouteImport } from './routes/api/og/index'
 import { Route as ApiOgCollectionRouteImport } from './routes/api/og/collection'
@@ -78,6 +80,9 @@ import { Route as ApiSettingsUsernameRouteImport } from './routes/api/settings/u
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as OgVersionChar123seedChar125DotpngRouteImport } from './routes/og/$version/{$seed}[.]png'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
+import { Route as ApiMeNewsletterIndexRouteImport } from './routes/api/me/newsletter/index'
+import { Route as ApiMeNewsletterDraftsRouteImport } from './routes/api/me/newsletter/drafts'
+import { Route as ApiMeNewsletterTestRouteImport } from './routes/api/me/newsletter/test'
 import { Route as ApiSettingsConnectionsIndexRouteImport } from './routes/api/settings/connections/index'
 import { Route as ApiSettingsConnectionsDisconnectRouteImport } from './routes/api/settings/connections/disconnect'
 import { Route as ApiSettingsUsernameCheckRouteImport } from './routes/api/settings/username_.check'
@@ -374,6 +379,16 @@ const ApiMeFlagsRoute = ApiMeFlagsRouteImport.update({
   path: '/api/me/flags',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeSearchRoute = ApiMeSearchRouteImport.update({
+  id: '/api/me/search',
+  path: '/api/me/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeSearchVotesRoute = ApiMeSearchVotesRouteImport.update({
+  id: '/api/me/search-votes',
+  path: '/api/me/search-votes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeSyncRoute = ApiMeSyncRouteImport.update({
   id: '/api/me/sync',
   path: '/api/me/sync',
@@ -453,6 +468,21 @@ const PalettesRisingChar123FrameChar125Route =
     path: '/palettes/rising/{-$frame}',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMeNewsletterIndexRoute = ApiMeNewsletterIndexRouteImport.update({
+  id: '/api/me/newsletter/',
+  path: '/api/me/newsletter/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeNewsletterDraftsRoute = ApiMeNewsletterDraftsRouteImport.update({
+  id: '/api/me/newsletter/drafts',
+  path: '/api/me/newsletter/drafts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeNewsletterTestRoute = ApiMeNewsletterTestRouteImport.update({
+  id: '/api/me/newsletter/test',
+  path: '/api/me/newsletter/test',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiSettingsConnectionsIndexRoute =
   ApiSettingsConnectionsIndexRouteImport.update({
     id: '/api/settings/connections/',
@@ -521,6 +551,8 @@ export interface FileRoutesByFullPath {
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/me/flags': typeof ApiMeFlagsRoute
+  '/api/me/search': typeof ApiMeSearchRoute
+  '/api/me/search-votes': typeof ApiMeSearchVotesRoute
   '/api/me/sync': typeof ApiMeSyncRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
@@ -542,8 +574,11 @@ export interface FileRoutesByFullPath {
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
+  '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
+  '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
   '/api/settings/username/check': typeof ApiSettingsUsernameCheckRoute
+  '/api/me/newsletter/': typeof ApiMeNewsletterIndexRoute
   '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -595,6 +630,8 @@ export interface FileRoutesByTo {
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/me/flags': typeof ApiMeFlagsRoute
+  '/api/me/search': typeof ApiMeSearchRoute
+  '/api/me/search-votes': typeof ApiMeSearchVotesRoute
   '/api/me/sync': typeof ApiMeSyncRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
@@ -616,8 +653,11 @@ export interface FileRoutesByTo {
   '/@{$handle}/{$slug}.md': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/api/og': typeof ApiOgIndexRoute
   '/api/png': typeof ApiPngIndexRoute
+  '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
+  '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
   '/api/settings/username/check': typeof ApiSettingsUsernameCheckRoute
+  '/api/me/newsletter': typeof ApiMeNewsletterIndexRoute
   '/api/settings/connections': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesById {
@@ -670,6 +710,8 @@ export interface FileRoutesById {
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/me/flags': typeof ApiMeFlagsRoute
+  '/api/me/search': typeof ApiMeSearchRoute
+  '/api/me/search-votes': typeof ApiMeSearchVotesRoute
   '/api/me/sync': typeof ApiMeSyncRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
@@ -691,8 +733,11 @@ export interface FileRoutesById {
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
+  '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
+  '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
   '/api/settings/username_/check': typeof ApiSettingsUsernameCheckRoute
+  '/api/me/newsletter/': typeof ApiMeNewsletterIndexRoute
   '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRouteTypes {
@@ -746,6 +791,8 @@ export interface FileRouteTypes {
     | '/@{$handle}/$slug/rising'
     | '/api/auth/$'
     | '/api/me/flags'
+    | '/api/me/search'
+    | '/api/me/search-votes'
     | '/api/me/sync'
     | '/api/og/collection'
     | '/api/og/collections'
@@ -767,8 +814,11 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.md/'
     | '/api/og/'
     | '/api/png/'
+    | '/api/me/newsletter/drafts'
+    | '/api/me/newsletter/test'
     | '/api/settings/connections/disconnect'
     | '/api/settings/username/check'
+    | '/api/me/newsletter/'
     | '/api/settings/connections/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -820,6 +870,8 @@ export interface FileRouteTypes {
     | '/@{$handle}/$slug/rising'
     | '/api/auth/$'
     | '/api/me/flags'
+    | '/api/me/search'
+    | '/api/me/search-votes'
     | '/api/me/sync'
     | '/api/og/collection'
     | '/api/og/collections'
@@ -841,8 +893,11 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.md'
     | '/api/og'
     | '/api/png'
+    | '/api/me/newsletter/drafts'
+    | '/api/me/newsletter/test'
     | '/api/settings/connections/disconnect'
     | '/api/settings/username/check'
+    | '/api/me/newsletter'
     | '/api/settings/connections'
   id:
     | '__root__'
@@ -894,6 +949,8 @@ export interface FileRouteTypes {
     | '/@{$handle}/$slug/rising'
     | '/api/auth/$'
     | '/api/me/flags'
+    | '/api/me/search'
+    | '/api/me/search-votes'
     | '/api/me/sync'
     | '/api/og/collection'
     | '/api/og/collections'
@@ -915,8 +972,11 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.md/'
     | '/api/og/'
     | '/api/png/'
+    | '/api/me/newsletter/drafts'
+    | '/api/me/newsletter/test'
     | '/api/settings/connections/disconnect'
     | '/api/settings/username_/check'
+    | '/api/me/newsletter/'
     | '/api/settings/connections/'
   fileRoutesById: FileRoutesById
 }
@@ -969,6 +1029,8 @@ export interface RootRouteChildren {
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiMeFlagsRoute: typeof ApiMeFlagsRoute
+  ApiMeSearchRoute: typeof ApiMeSearchRoute
+  ApiMeSearchVotesRoute: typeof ApiMeSearchVotesRoute
   ApiMeSyncRoute: typeof ApiMeSyncRoute
   ApiOgCollectionRoute: typeof ApiOgCollectionRoute
   ApiOgCollectionsRoute: typeof ApiOgCollectionsRoute
@@ -990,8 +1052,11 @@ export interface RootRouteChildren {
   AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   ApiOgIndexRoute: typeof ApiOgIndexRoute
   ApiPngIndexRoute: typeof ApiPngIndexRoute
+  ApiMeNewsletterDraftsRoute: typeof ApiMeNewsletterDraftsRoute
+  ApiMeNewsletterTestRoute: typeof ApiMeNewsletterTestRoute
   ApiSettingsConnectionsDisconnectRoute: typeof ApiSettingsConnectionsDisconnectRoute
   ApiSettingsUsernameCheckRoute: typeof ApiSettingsUsernameCheckRoute
+  ApiMeNewsletterIndexRoute: typeof ApiMeNewsletterIndexRoute
   ApiSettingsConnectionsIndexRoute: typeof ApiSettingsConnectionsIndexRoute
 }
 
@@ -1375,6 +1440,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiMeFlagsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/search': {
+      id: '/api/me/search'
+      path: '/api/me/search'
+      fullPath: '/api/me/search'
+      preLoaderRoute: typeof ApiMeSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/search-votes': {
+      id: '/api/me/search-votes'
+      path: '/api/me/search-votes'
+      fullPath: '/api/me/search-votes'
+      preLoaderRoute: typeof ApiMeSearchVotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/sync': {
       id: '/api/me/sync'
       path: '/api/me/sync'
@@ -1480,6 +1559,27 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof PalettesRisingChar123FrameChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/newsletter/': {
+      id: '/api/me/newsletter/'
+      path: '/api/me/newsletter'
+      fullPath: '/api/me/newsletter/'
+      preLoaderRoute: typeof ApiMeNewsletterIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/newsletter/drafts': {
+      id: '/api/me/newsletter/drafts'
+      path: '/api/me/newsletter/drafts'
+      fullPath: '/api/me/newsletter/drafts'
+      preLoaderRoute: typeof ApiMeNewsletterDraftsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/newsletter/test': {
+      id: '/api/me/newsletter/test'
+      path: '/api/me/newsletter/test'
+      fullPath: '/api/me/newsletter/test'
+      preLoaderRoute: typeof ApiMeNewsletterTestRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/settings/connections/': {
       id: '/api/settings/connections/'
       path: '/api/settings/connections'
@@ -1555,6 +1655,8 @@ const rootRouteChildren: RootRouteChildren = {
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiMeFlagsRoute: ApiMeFlagsRoute,
+  ApiMeSearchRoute: ApiMeSearchRoute,
+  ApiMeSearchVotesRoute: ApiMeSearchVotesRoute,
   ApiMeSyncRoute: ApiMeSyncRoute,
   ApiOgCollectionRoute: ApiOgCollectionRoute,
   ApiOgCollectionsRoute: ApiOgCollectionsRoute,
@@ -1584,8 +1686,11 @@ const rootRouteChildren: RootRouteChildren = {
     AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
   ApiOgIndexRoute: ApiOgIndexRoute,
   ApiPngIndexRoute: ApiPngIndexRoute,
+  ApiMeNewsletterDraftsRoute: ApiMeNewsletterDraftsRoute,
+  ApiMeNewsletterTestRoute: ApiMeNewsletterTestRoute,
   ApiSettingsConnectionsDisconnectRoute: ApiSettingsConnectionsDisconnectRoute,
   ApiSettingsUsernameCheckRoute: ApiSettingsUsernameCheckRoute,
+  ApiMeNewsletterIndexRoute: ApiMeNewsletterIndexRoute,
   ApiSettingsConnectionsIndexRoute: ApiSettingsConnectionsIndexRoute,
 }
 export const routeTree = rootRouteImport

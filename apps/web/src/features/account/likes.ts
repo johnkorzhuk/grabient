@@ -39,8 +39,9 @@ const [counts, setCounts] = createStore<Record<string, number>>({});
 /* a like changed since an ask left: its answer is older than the press, and dropped */
 let likesVersion = 0;
 
-/** The count beside a palette's heart: the latest this page knows, else `shown`, the one its page read. */
-export const likeCount = (seed: string, shown: number): number =>
+/** The count beside a palette's heart: the latest this page knows, else `shown`, the one its page read with its data.
+    A page that reads none asks for it with readLikeCounts. */
+export const likeCount = (seed: string, shown = 0): number =>
   isServer ? shown : (counts[seed] ?? shown);
 
 /** Counts read from the server or a page. A palette whose like is being written shows the press instead, and the
@@ -134,7 +135,7 @@ function askAgain(seeds: readonly string[]) {
     const held = known.get(seed);
     if (held) held.at = 0;
   }
-  void refreshCounts(seeds).catch(() => {});
+  void readLikeCounts(seeds).catch(() => {});
 }
 
 const queue = new Set<string>();
@@ -145,7 +146,7 @@ export const countDue = (seed: string, now = Date.now()): boolean =>
   !asking.has(seed) && now - (known.get(seed)?.at ?? 0) >= COUNT_FRESH_MS;
 /** Asks the server for the counts that are due, together: cards mount together, so their asks gather for a
     microtask and go 96 at a time. */
-export function refreshCounts(seeds: readonly string[]): Promise<void> {
+export function readLikeCounts(seeds: readonly string[]): Promise<void> {
   if (isServer) return Promise.resolve();
   const now = Date.now();
   for (const seed of seeds) {
