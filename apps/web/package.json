@@ -6,7 +6,7 @@
     "dev": "vite dev",
     "build": "vite build --mode staging",
     "typecheck": "tsc -p .",
-    "e2e": "playwright test",
+    "e2e": "playwright test -c e2e",
     "db:setup": "node scripts/d1.ts setup",
     "deploy:staging": "node scripts/d1.ts migrate --mode staging --remote && cf deploy --prebuilt --mode staging --no-provision",
     "deploy:preview": "node scripts/d1.ts migrate --mode previews --remote && cf previews deploy --no-provision",
