@@ -22,7 +22,7 @@ export function decodeResume(value: string): string | null {
       .replaceAll("_", "/")
       .padEnd(value.length + ((4 - (value.length % 4)) % 4), "=");
     const bytes = Uint8Array.from(atob(padded), char => char.charCodeAt(0));
-    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    return new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(bytes);
   } catch {
     return null;
   }

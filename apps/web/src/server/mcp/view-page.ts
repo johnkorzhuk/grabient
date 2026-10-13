@@ -1,3 +1,4 @@
+/// <reference path="../../mcp-view/virtual.d.ts" />
 import viewPage from "virtual:mcp-view";
 import { ORIGIN_META } from "../../mcp-view/page.ts";
 import { KEPT, PALETTES_VIEW, VIEW_MIME } from "./view.ts";

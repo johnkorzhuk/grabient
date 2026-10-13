@@ -62,7 +62,7 @@ export const planTools: readonly Tool[] = [
     // a collection item's titles replace a palette's when it is applied; an item sent again is the one already queued
     hints: CHANGES_SITE,
     description:
-      "Plan work for later, so the site keeps moving: the site applies what is due every ten minutes. A `collection` item adds palettes to a Grabient collection at its time, making the collection from the title given if no one has that slug. A `like` item has a persona like a palette at its time, which brings the palette into the public gallery and onto the home page as a reader's like does; the palette must be in the gallery or in a public collection by then. `due` is a day (2026-10-05, applied at 14:00 UTC) or a moment (ISO 8601), up to 400 days ahead. Items spread over days and hours arrive as people would. `label` names the batch, to list or cancel it.",
+      "Plan work for later, so the site keeps moving: the site applies what is due every ten minutes. A `collection` item adds palettes to a Grabient collection at its time, making the collection from the title given if no one has that slug. A `like` item has a persona like a palette at its time, which brings the palette into the public gallery and onto the home page as a reader's like does; it needs the palette in the gallery or in a public collection by then. `due` is a day (2026-10-05, applied at 14:00 UTC) or a moment (ISO 8601), up to 400 days ahead. Items spread over days and hours arrive as people would. `label` names the batch, to list or cancel it.",
     inputSchema: shape(
       {
         label: text("A name for this batch.", { maxLength: 80 }),

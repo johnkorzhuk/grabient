@@ -1,3 +1,4 @@
+/// <reference types="vite/client" />
 import skillMd from "../../../../../skills/grabient/SKILL.md?raw";
 
 /* The skill: Grabient's guide for a model (skills/grabient/SKILL.md), served by the extension
