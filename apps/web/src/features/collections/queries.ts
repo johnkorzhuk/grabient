@@ -118,7 +118,7 @@ export interface ListKey extends CollectionListParams {
 
 const readList = createIsomorphicFn()
   .server(async (key: ListKey, _signal?: AbortSignal): Promise<CollectionPage | Failed> => {
-    const page = await publicCollections({ ...env, DB: replica(env) }, key, {
+    const page = await publicCollections(env, key, {
       model: !!key.query,
       request: getRequest()
     });
@@ -156,7 +156,7 @@ export const collectionsQuery = (key: ListKey) =>
 
 const readTags = createIsomorphicFn()
   .server(async (query: string, _signal?: AbortSignal): Promise<CollectionHit[]> => {
-    const hits = await suggestCollections({ ...env, DB: replica(env) }, query, query ? 12 : 24);
+    const hits = await suggestCollections(env, query, query ? 12 : 24);
     return localizeCollections(env, asked(), hits);
   })
   .client(async (query: string, signal?: AbortSignal): Promise<CollectionHit[]> => {

@@ -1,7 +1,8 @@
 /* The answers of the picture addresses, which the route files hand the Worker's bindings and its `waitUntil`. A
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 import { json } from "../../lib/responses.ts";
-import { collectionImagePalettes, publicCollections } from "../collections/read.ts";
+import { collectionImagePalettes } from "../collections/read.ts";
+import { publicCollections } from "../collections/search.ts";
 import { addressParams, fileName } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { listPalettes } from "../gallery/list.ts";

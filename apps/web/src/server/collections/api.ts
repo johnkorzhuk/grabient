@@ -64,7 +64,7 @@ export async function listAnswer(
   if (limited) return limited;
   const url = new URL(request.url);
   const params = collectionParams(url.searchParams);
-  const page = await publicCollections({ ...env, DB: replica(env) }, params, {
+  const page = await publicCollections(env, params, {
     model: url.searchParams.get("model") === "1",
     request,
     ctx
@@ -138,7 +138,7 @@ export async function collectionAnswer(request: Request, env: Env): Promise<Resp
   if (url.pathname === "/api/collections/suggest") {
     if (request.method !== "GET") return methodNotAllowed();
     const hits = await suggestCollections(
-      { ...env, DB: replica(env) },
+      env,
       url.searchParams.get("q") ?? "",
       Number(url.searchParams.get("limit") ?? 12)
     );

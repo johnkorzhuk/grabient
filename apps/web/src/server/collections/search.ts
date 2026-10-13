@@ -1,6 +1,6 @@
 import { normalizeQuery } from "@grabient/search/text.ts";
-import { all, first } from "@grabient/server/db/d1.ts";
-import { COLLECTION_LIMIT } from "../../features/collections/params.ts";
+import { all, first, replica } from "@grabient/server/db/d1.ts";
+import { COLLECTION_LIMIT, frameOf } from "../../features/collections/params.ts";
 import { listQuery } from "../../features/collections/query.ts";
 import { MAX_COLLECTION_ITEMS, MAX_OWN_COLLECTIONS } from "../../features/collections/schema.ts";
 import type {
@@ -54,7 +54,9 @@ import { type SpaceEnv, type SpaceOptions, searchedCollections, searchSpace } fr
    - every other answer, by how strongly it means the query, a mention counting for a little.
    A query the site has nothing for stays empty. */
 
-export type SearchEnv = Reader & Partial<Omit<SpaceEnv, "DB">>;
+/** A search's bindings: the primary database, whose public reads go through a replica session here, and the palette
+    search's files where there are any. */
+export type SearchEnv = Pick<SpaceEnv, "DB"> & Partial<Omit<SpaceEnv, "DB">>;
 export interface SearchOptions extends SpaceOptions {
   /** which palettes each collection comes with; a site's list leaves it to its cards */
   previews?: Previews;
@@ -62,7 +64,8 @@ export interface SearchOptions extends SpaceOptions {
 export interface ListInput {
   query?: string;
   sort?: CollectionSort;
-  frame?: RisingFrame;
+  /** Rising's frame: 1w, 3m or 1y, anything else the week */
+  frame?: string;
   page?: number;
   limit?: number;
 }
@@ -219,28 +222,30 @@ export async function publicCollections(
 ): Promise<CollectionPage> {
   const query = listQuery(input.query);
   const sort: CollectionSort = input.sort ?? "newest";
-  const frame = sort === "rising" && input.frame && input.frame !== "1w" ? input.frame : undefined;
+  const risen = frameOf(input.frame);
+  const frame = sort === "rising" && risen !== "1w" ? risen : undefined;
   const page = bounded(input.page, 1, 1, 10_000);
   const limit = bounded(input.limit, COLLECTION_LIMIT, 1, 96);
   const head = { query, sort, ...(frame ? { frame } : {}), page, limit };
+  const db: Reader = { DB: replica(env) };
   if (!query) {
     const offset = (page - 1) * limit;
     /* a page past the end as this isolate counted reads nothing: an OFFSET walks every row it skips */
     const held = heldCount();
     if (held !== null && page > 1 && offset >= held)
-      return pageOf(env, [], { ...head, total: held });
+      return pageOf(db, [], { ...head, total: held });
     const [total, rows] = await Promise.all([
-      publicCount(env),
+      publicCount(db),
       all<CollectionRow>(
-        env.DB,
+        db.DB,
         `${SELECT} WHERE c.visibility = 'public' ORDER BY ${orderBy(sort, frame)}, c.id LIMIT ? OFFSET ?`,
         limit,
         offset
       )
     ]);
     /* a page holding more than the kept count says: some were made public since, so they are counted again */
-    const counted = offset + rows.length > total ? await publicCount(env, true) : total;
-    return pageOf(env, rows, { ...head, total: counted }, options.previews ?? "page");
+    const counted = offset + rows.length > total ? await publicCount(db, true) : total;
+    return pageOf(db, rows, { ...head, total: counted }, options.previews ?? "page");
   }
   const tokens = searchTokens(query);
   /* instr, never LIKE: D1 refuses a LIKE pattern over 50 bytes, which one word of seventeen Japanese characters is. A
@@ -251,7 +256,7 @@ export async function publicCollections(
   const [lettered, read] = await Promise.all([
     tokens.length
       ? all<CollectionRow>(
-          env.DB,
+          db.DB,
           `${SELECT} WHERE c.visibility = 'public' AND ${where} ORDER BY (${inTitle}) DESC, c.updated_at DESC, c.id
            LIMIT ?`,
           ...tokens,
@@ -277,7 +282,7 @@ export async function publicCollections(
     : [];
   const others = wanted.length
     ? await all<CollectionRow>(
-        env.DB,
+        db.DB,
         `${SELECT} WHERE c.visibility = 'public' AND c.slug IN (SELECT value FROM json_each(?))`,
         JSON.stringify(wanted)
       )
@@ -296,7 +301,7 @@ export async function publicCollections(
     )
     .sort(byAnswer(sort === "oldest"));
   return pageOf(
-    env,
+    db,
     ranked.slice((page - 1) * limit, page * limit).map(answer => answer.row),
     { ...head, total: ranked.length, ...(read?.unkept ? { unkept: true } : {}) },
     options.previews ?? "page"
@@ -430,7 +435,7 @@ export async function suggestCollections(
 ): Promise<CollectionHit[]> {
   const query = listQuery(raw);
   const n = Math.max(1, Math.min(24, Math.floor(limit) || 12));
-  const rows = await publicTitles(env);
+  const rows = await publicTitles({ DB: replica(env) });
   if (!query) {
     const searched = await beside(() => searchedCollections(env));
     if (!searched?.length) return rows.slice(0, n).map(hitOf);
