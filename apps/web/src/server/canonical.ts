@@ -13,7 +13,11 @@ import { collectionRules } from "./collections/routing.ts";
 /** The canonical form of `address` ("/path?query"), or null when this rule leaves it alone. */
 export type CanonicalRule = (address: string) => string | null;
 
-const RULES: readonly CanonicalRule[] = [canonicalSeedAddress, canonicalGallery, ...collectionRules];
+const RULES: readonly CanonicalRule[] = [
+  canonicalSeedAddress,
+  canonicalGallery,
+  ...collectionRules
+];
 
 /** The address a page request should be redirected to, or null when it is canonical already. */
 export function canonicalRedirect(address: string, rules = RULES): string | null {
