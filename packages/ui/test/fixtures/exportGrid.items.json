@@ -1,0 +1,48 @@
+{
+ "items": [
+  {
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 15
+  },
+  {
+   "seed": "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+   "style": "linearSwatches",
+   "steps": 8,
+   "angle": 45
+  },
+  {
+   "seed": "kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg",
+   "style": "radialGradient",
+   "steps": 9,
+   "angle": 75
+  },
+  {
+   "seed": "kWs2um4jE-G62O7xwb3bkk-4",
+   "style": "radialSwatches",
+   "steps": 10,
+   "angle": 105
+  },
+  {
+   "seed": "kSyQDAzZa8zgZxS",
+   "style": "angularGradient",
+   "steps": 11,
+   "angle": 135
+  },
+  {
+   "seed": "kUzkiw66E-e4YQltnUXg",
+   "style": "angularSwatches",
+   "steps": 12,
+   "angle": 165
+  }
+ ],
+ "gridOpts": {
+  "width": 101,
+  "height": 65,
+  "columns": 3,
+  "gap": 11,
+  "padding": 9,
+  "radius": 40
+ }
+}

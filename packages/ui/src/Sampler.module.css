@@ -1,0 +1,149 @@
+@layer components {
+  .host {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+  }
+  /* beside cards, a card's height, so the picture and the cards share their edges; alone in a column, the picture's
+     own shape up to that height */
+  .stage {
+    position: relative;
+    width: 100%;
+    max-height: var(--size-card);
+    overflow: hidden;
+    border-radius: var(--radius-surface);
+    background-color: var(--color-paper2);
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+  }
+  @container list (min-width: 728px) {
+    .host {
+      grid-column: span 2;
+    }
+    .stage {
+      height: var(--size-card);
+    }
+  }
+  .frame {
+    position: absolute;
+  }
+  .picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  /* the order of the blend: a light line over a dark one, seen on any picture */
+  .path {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+  }
+  .under,
+  .over {
+    fill: none;
+  }
+  .under {
+    stroke: var(--color-art);
+    stroke-width: 3;
+  }
+  .over {
+    stroke: var(--color-on-art);
+    stroke-width: 1.5;
+  }
+  /* the target is a finger's on a coarse pointer; the dot is the color, ringed light and dark for any picture */
+  .point {
+    position: absolute;
+    display: grid;
+    place-items: center;
+    width: var(--size-sample);
+    height: var(--size-sample);
+    margin: 0;
+    padding: 0;
+    translate: -50% -50%;
+    border: 0;
+    background: transparent;
+    cursor: grab;
+    touch-action: none;
+    outline: 0;
+    &[data-dragging] {
+      cursor: grabbing;
+    }
+    @media (pointer: coarse) {
+      width: var(--size-touch);
+      height: var(--size-touch);
+    }
+  }
+  .dot {
+    box-sizing: border-box;
+    width: var(--size-sample);
+    height: var(--size-sample);
+    border: 2px solid var(--color-on-art);
+    border-radius: var(--radius-circle);
+    box-shadow: 0 0 0 var(--size-hairline) var(--color-art);
+    /* the chosen point, and the one the keyboard is on: a second ring outside the first */
+    &[data-chosen],
+    :focus-visible > & {
+      box-shadow:
+        0 0 0 var(--size-hairline) var(--color-art),
+        0 0 0 calc(4 * var(--size-hairline)) var(--color-on-art),
+        0 0 0 calc(5 * var(--size-hairline)) var(--color-art);
+    }
+  }
+  /* the colors in order, under the picture where a card has its line */
+  .line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+    min-height: var(--size-control-sm);
+  }
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+    height: var(--size-control-sm);
+    margin: 0;
+    padding-inline: var(--space-s2);
+    border: 0;
+    border-radius: var(--radius-tight);
+    background-color: transparent;
+    color: var(--color-ink2);
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:hover,
+    &[data-on] {
+      background-color: var(--color-paper2);
+    }
+    &[data-on] {
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  .swatch {
+    flex-shrink: 0;
+    width: var(--space-s3);
+    height: var(--space-s3);
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
+  }
+  .hex {
+    font-family: var(--font-mono);
+    font-size: var(--font-fs2);
+  }
+  .reset {
+    margin-inline-start: auto;
+  }
+}

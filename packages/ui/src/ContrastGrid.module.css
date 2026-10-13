@@ -1,0 +1,241 @@
+@layer components {
+  /* the grid, then the line under it */
+  .whole {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    &[data-fill] {
+      height: 100%;
+    }
+  }
+  /* a column to a ground, never wider than a sample needs for its letters */
+  .grid {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    max-width: calc(var(--space-s6) + var(--n) * var(--space-s16));
+    /* a grid given more height than its rows need shares it among them, up to twice a row */
+    [data-fill] > & {
+      flex-grow: 1;
+      min-height: calc(var(--rows) * var(--size-control));
+      max-height: calc(var(--rows) * var(--space-s16));
+    }
+  }
+  .row {
+    display: flex;
+    align-items: stretch;
+    min-width: 0;
+    [data-fill] & {
+      flex: 1 1 0;
+      min-height: var(--size-control);
+      max-height: var(--space-s16);
+    }
+  }
+  /* the row's ink at its start: a coin of it, as a collection's colors are shown */
+  .ink {
+    position: relative;
+    display: grid;
+    flex-shrink: 0;
+    place-items: center start;
+    width: var(--space-s6);
+  }
+  .coin {
+    width: var(--space-s3);
+    height: var(--space-s3);
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-hole-rim);
+    /* under the pointer or the keyboard, or open, a reader's coin is ringed: in ink while open */
+    &[data-press] {
+      box-shadow:
+        inset 0 0 0 var(--size-hairline) var(--color-hole-rim),
+        0 0 0 calc(2 * var(--size-hairline)) var(--color-paper-solid),
+        0 0 0 calc((2 + var(--ring)) * var(--size-hairline)) var(--color-ink4);
+    }
+    &[data-open] {
+      box-shadow:
+        inset 0 0 0 var(--size-hairline) var(--color-hole-rim),
+        0 0 0 calc(2 * var(--size-hairline)) var(--color-paper-solid),
+        0 0 0 calc(3 * var(--size-hairline)) var(--color-ink);
+    }
+  }
+  /* a press in the coins' column, a finger's size on a touch screen: one of the reader's colors, or the plus */
+  .press {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center start;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink3);
+    cursor: pointer;
+    outline: 0;
+    transition: color var(--motion-fast) var(--motion-ease);
+    --ring: 0;
+    &:hover,
+    &:focus-visible {
+      --ring: 1;
+      color: var(--color-ink);
+    }
+    &::before {
+      content: "";
+      position: absolute;
+      top: 50%;
+      inset-inline-start: 0;
+      width: 100%;
+      height: 100%;
+      translate: 0 -50%;
+      @media (pointer: coarse) {
+        width: var(--size-touch);
+        height: var(--size-touch);
+      }
+    }
+    &:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  }
+  .plus {
+    display: grid;
+    place-items: center;
+    width: var(--space-s3);
+    height: var(--space-s3);
+    border-radius: var(--radius-circle);
+    box-shadow: 0 0 0 calc(var(--ring) * var(--size-hairline)) var(--color-ink4);
+  }
+  .cells {
+    display: grid;
+    flex: 1 1 0;
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    min-width: 0;
+    height: var(--size-control);
+    [data-fill] & {
+      height: auto;
+    }
+    /* the grounds run through the rows as bands, and the block they make is rounded as one */
+    &[data-first] {
+      overflow: hidden;
+      border-start-start-radius: var(--radius-tight);
+      border-start-end-radius: var(--radius-tight);
+    }
+    &[data-last] {
+      overflow: hidden;
+      border-end-start-radius: var(--radius-tight);
+      border-end-end-radius: var(--radius-tight);
+    }
+  }
+  .cell {
+    display: grid;
+    place-items: center;
+    min-width: 0;
+    overflow: hidden;
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    outline: 0;
+    /* 24px is large text, which 3 to 1 is enough for */
+    &[data-large] {
+      font-size: var(--font-fs6);
+    }
+    /* the cell the line speaks of, ringed inside its edge in white or black, whichever reads on it */
+    &[data-lit] {
+      outline: 1px solid var(--edge);
+      outline-offset: -3px;
+    }
+  }
+  /* the line under the grid: the plus in the coins' column, then what a cell says, or the key; as wide as the grid, so
+     its numbers end where the grounds do */
+  .foot {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    max-width: calc(var(--space-s6) + var(--n) * var(--space-s16));
+    height: var(--size-control);
+  }
+  .lead {
+    position: relative;
+    flex-shrink: 0;
+    width: var(--space-s6);
+    height: var(--size-control);
+  }
+  .line {
+    position: relative;
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    gap: var(--space-s3);
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-ink2);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs2);
+    white-space: nowrap;
+  }
+  .part {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s1);
+    min-width: 0;
+  }
+  /* the two colors and their word, put away where even their swatches do not fit beside the numbers */
+  .pair {
+    display: var(--pair, flex);
+    align-items: center;
+    gap: var(--space-s1);
+    min-width: 0;
+  }
+  /* the reading as it would stand whole, out of sight, for its width */
+  .ruler {
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    width: max-content;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  /* a hex is never cut: where the line is too narrow, the swatches stand for them */
+  .hex {
+    display: var(--hexes, inline);
+    direction: ltr;
+    unicode-bidi: isolate;
+    &[data-whole] {
+      display: inline;
+    }
+  }
+  /* at rest, what the two sizes of Aa stand for: quiet, on one baseline */
+  .key {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-s1);
+    color: var(--color-ink3);
+  }
+  .chip {
+    flex-shrink: 0;
+    width: var(--space-s3);
+    height: var(--space-s3);
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-hole-rim);
+  }
+  .sample {
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    &[data-large] {
+      font-size: var(--font-fs6);
+    }
+  }
+  .score {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s2);
+    margin-inline-start: auto;
+    color: var(--color-ink);
+  }
+}

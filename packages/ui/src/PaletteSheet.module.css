@@ -1,0 +1,346 @@
+@layer components {
+  /* under the header and the strip the sheet is the rest of the window at least, so the page always scrolls until the
+     strip stands at its place */
+  .sheet {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    min-width: 0;
+    min-height: calc(
+      var(--frame-h, 100vh) -
+      var(--head, calc(var(--size-top) + var(--size-hairline))) -
+      var(--dock-h, var(--size-strip))
+    );
+    padding-inline: var(--size-gutter);
+    border-top: var(--size-hairline) solid var(--color-edge);
+    container: sheet / inline-size;
+  }
+  /* the sheet's two grounds run to its edges, over its own gutters */
+  .bleed {
+    margin-inline: calc(-1 * var(--size-gutter));
+    padding-inline: var(--size-gutter);
+  }
+  .top {
+    background-color: var(--color-paper-solid);
+  }
+  .rest {
+    display: flex;
+    flex-grow: 1;
+    flex-direction: column;
+    min-width: 0;
+    padding-bottom: var(--space-s16);
+    background-color: var(--color-paper-solid);
+    /* glass over the water is the tone of solid paper, so the change is not seen */
+    &[data-clear] {
+      background-color: var(--color-paper);
+    }
+    &[data-footed] {
+      padding-bottom: 0;
+    }
+  }
+  /* the head: the name with the palette's presses at its line's end, then the collections' line, a press tall whether
+     it holds any or not */
+  .head {
+    display: grid;
+    grid-template-areas: "name takes" "links links";
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto minmax(var(--size-control-big), auto);
+    align-items: center;
+    column-gap: var(--space-s8);
+    min-width: 0;
+    @media (pointer: coarse) {
+      grid-template-rows: auto minmax(var(--size-touch), auto);
+    }
+  }
+  /* the name's row: what shows of the sheet under the first screen at rest, the name in its middle, so the window ends
+     on a whole row */
+  .name {
+    display: grid;
+    grid-area: name;
+    grid-template-columns: minmax(0, 1fr);
+    align-content: center;
+    min-width: 0;
+    min-height: calc(var(--size-editor-peek) - var(--size-hairline));
+    padding-block: var(--space-s5);
+  }
+  .takes {
+    display: flex;
+    grid-area: takes;
+    align-items: center;
+    justify-content: flex-end;
+    column-gap: var(--space-s4);
+    min-width: 0;
+    min-height: var(--size-control-big);
+    transition:
+      opacity var(--motion-fast) var(--motion-ease),
+      visibility var(--motion-fast) var(--motion-ease);
+    /* while the first screen stands the picture carries these */
+    &[data-away] {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
+  .actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  /* the collections that hold the palette, after a collection's glyph, each a link; under the pointer or the keyboard
+     one floats its colors under its name as coins, which take no room */
+  .links {
+    display: flex;
+    flex-wrap: wrap;
+    grid-area: links;
+    align-items: center;
+    column-gap: var(--space-s3);
+    min-width: 0;
+    color: var(--color-ink3);
+  }
+  .glyph {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  .link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    min-height: var(--size-control);
+    --coins: 0;
+    &:hover,
+    &:has(:focus-visible) {
+      --coins: 1;
+    }
+    /* a link that leads nowhere now shows none */
+    &[data-off] {
+      --coins: 0;
+    }
+    & a[aria-disabled="true"] {
+      opacity: 0.4;
+      cursor: default;
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  /* centered under the name, as a tag's are: the same either way, so set from the left */
+  .coins {
+    position: absolute;
+    top: calc(100% - var(--space-s1));
+    left: 50%;
+    display: flex;
+    gap: calc(2 * var(--size-hairline));
+    translate: -50% 0;
+    pointer-events: none;
+  }
+  .coin {
+    width: var(--space-s3);
+    height: var(--space-s3);
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
+    opacity: var(--coins);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+  /* the figures as panes of one frame: the path's column as wide as a scene of its height needs, giving way before the
+     code's tabs would break onto a second line */
+  .figures {
+    display: grid;
+    grid-template-areas: "reads solid" "code solid";
+    grid-template-columns: minmax(464px, 1fr) minmax(300px, 420px);
+    grid-template-rows: auto 200px;
+    align-items: stretch;
+    gap: var(--space-s4);
+    min-width: 0;
+    margin-top: var(--space-s6);
+    /* with no path to draw, the contrast and the code side by side */
+    &[data-flat] {
+      grid-template-areas: "reads code";
+      grid-template-columns: 376px minmax(0, 1fr);
+      grid-template-rows: auto;
+    }
+  }
+  .reads {
+    display: grid;
+    grid-area: reads;
+    min-width: 0;
+  }
+  .readsFit {
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* the path has the height its place gives it and draws to that, never setting it */
+  .solid {
+    position: relative;
+    grid-area: solid;
+    min-width: 0;
+    min-height: 0;
+  }
+  .solidFit {
+    position: absolute;
+    inset: 0;
+    display: grid;
+  }
+  /* the code has its place's height too and scrolls inside, so another tab never moves the page; its tracks start at
+     nothing, since an auto one would grow to the code */
+  .code {
+    position: relative;
+    grid-area: code;
+    min-width: 0;
+    min-height: 0;
+  }
+  .codeFit {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+    [data-flat] & {
+      position: static;
+      inset: auto;
+      max-height: min(var(--size-code), 70dvh);
+    }
+  }
+  .codeIn {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    min-width: 0;
+    min-height: 0;
+    height: 100%;
+  }
+  /* the palettes like this one, past a rule, as a list of palettes: its row, then the palettes */
+  .rule {
+    margin-top: var(--space-s12);
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s6);
+    min-width: 0;
+    margin-top: var(--space-s10);
+    [data-footed] > & {
+      padding-bottom: var(--space-s8);
+    }
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-width: 0;
+    min-height: var(--size-control-big);
+    @media (pointer: coarse) {
+      min-height: calc(var(--size-touch) + var(--space-s1));
+    }
+  }
+  .track {
+    width: 240px;
+    max-width: 100%;
+  }
+  .end {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    margin-inline-start: auto;
+  }
+  /* by the sheet's own width: three in a row on a large screen, tall enough for the path */
+  @container sheet (min-width: 1100px) {
+    .figures:not([data-flat]) {
+      grid-template-areas: "reads solid code";
+      grid-template-columns: 376px 400px minmax(0, 1fr);
+      grid-template-rows: minmax(520px, auto);
+    }
+  }
+  /* too narrow for the code beside the path: the contrast and the path side by side, the code under both */
+  @container sheet (min-width: 600px) and (max-width: 779px) {
+    .figures:not([data-flat]) {
+      grid-template-areas: "reads solid" "code code";
+      grid-template-columns: minmax(0, 1fr) minmax(300px, 46%);
+      grid-template-rows: minmax(480px, auto) auto;
+    }
+    .figures[data-flat] {
+      grid-template-areas: "reads" "code";
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .codeFit {
+      position: static;
+      inset: auto;
+      max-height: min(var(--size-code), 70dvh);
+    }
+  }
+  @container sheet (max-width: 599px) {
+    .figures:not([data-flat]) {
+      grid-template-areas: "reads" "solid" "code";
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto 480px auto;
+    }
+    .figures[data-flat] {
+      grid-template-areas: "reads" "code";
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .codeFit {
+      position: static;
+      inset: auto;
+      max-height: min(var(--size-code), 70dvh);
+    }
+  }
+  /* the page stands its controls before the sheet in its own scroll from here: the sheet carries on from their last
+     rows, parted from them as they are from each other */
+  @container page (max-width: 1100px) {
+    .sheet,
+    .bleed {
+      padding-inline: var(--space-s4);
+    }
+    .bleed {
+      margin-inline: calc(-1 * var(--space-s4));
+    }
+  }
+  @container page (max-width: 900px) {
+    .sheet {
+      z-index: 1;
+      border-top: 0;
+    }
+    .top {
+      background-image: var(--color-dash-rule);
+      background-position: left top;
+      background-size: var(--size-dash-period) 1px;
+      background-repeat: repeat-x;
+    }
+    .rest {
+      padding-bottom: calc(var(--space-s10) + env(safe-area-inset-bottom, 0px));
+      &[data-footed] {
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+    }
+  }
+  /* on a phone the name has its line and the presses end the collections' line; no code: a phone's reader comes for
+     the palettes */
+  @container page (max-width: 800px) {
+    .head {
+      grid-template-areas: "name name" "links takes";
+      column-gap: var(--space-s4);
+    }
+    .code {
+      display: none;
+    }
+    .track {
+      width: 100%;
+    }
+    .end {
+      display: none;
+    }
+    .list {
+      [data-footed] > & {
+        padding-bottom: var(--space-s16);
+      }
+    }
+  }
+}
