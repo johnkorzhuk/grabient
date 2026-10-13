@@ -14,26 +14,36 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as BindingsRouteImport } from './routes/bindings'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpServerRouteImport } from './routes/mcp-server'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as IdIndexRouteImport } from './routes/$id/index'
 import { Route as IdEditRouteImport } from './routes/$id/edit'
 import { Route as IdRisingRouteImport } from './routes/$id/rising'
+import { Route as DotwellKnownAiCatalogDotjsonRouteImport } from './routes/[.]well-known/ai-catalog[.]json'
+import { Route as DotwellKnownArdDotjsonRouteImport } from './routes/[.]well-known/ard[.]json'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiBuildRouteImport } from './routes/api/build'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
+import { Route as McpServerCardRouteImport } from './routes/mcp/server-card'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
+import { Route as SitemapChar123nameChar125DotxmlIndexRouteImport } from './routes/sitemap-{$name}[.]xml/index'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
+import { Route as Char123keyChar125DottxtIndexRouteImport } from './routes/{$key}[.]txt/index'
+import { Route as Char123nameChar125DotmdIndexRouteImport } from './routes/{$name}[.]md/index'
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
+import { Route as AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]md/index'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
 
@@ -60,6 +70,16 @@ const ConnectRoute = ConnectRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsFullDottxtRoute = LlmsFullDottxtRouteImport.update({
+  id: '/llms-full.txt',
+  path: '/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -92,6 +112,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -110,6 +135,17 @@ const IdEditRoute = IdEditRouteImport.update({
 const IdRisingRoute = IdRisingRouteImport.update({
   id: '/$id/rising',
   path: '/$id/rising',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotwellKnownAiCatalogDotjsonRoute =
+  DotwellKnownAiCatalogDotjsonRouteImport.update({
+    id: '/.well-known/ai-catalog.json',
+    path: '/.well-known/ai-catalog.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownArdDotjsonRoute = DotwellKnownArdDotjsonRouteImport.update({
+  id: '/.well-known/ard.json',
+  path: '/.well-known/ard.json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -137,6 +173,11 @@ const CollectionsSavedRoute = CollectionsSavedRouteImport.update({
   path: '/collections/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpServerCardRoute = McpServerCardRouteImport.update({
+  id: '/mcp/server-card',
+  path: '/mcp/server-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PalettesIndexRoute = PalettesIndexRouteImport.update({
   id: '/palettes/',
   path: '/palettes/',
@@ -147,10 +188,28 @@ const PalettesSavedRoute = PalettesSavedRouteImport.update({
   path: '/palettes/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapChar123nameChar125DotxmlIndexRoute =
+  SitemapChar123nameChar125DotxmlIndexRouteImport.update({
+    id: '/sitemap-{$name}.xml/',
+    path: '/sitemap-{$name}.xml/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const UnsubscribeChar123TokenChar125Route =
   UnsubscribeChar123TokenChar125RouteImport.update({
     id: '/unsubscribe/{-$token}',
     path: '/unsubscribe/{-$token}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123keyChar125DottxtIndexRoute =
+  Char123keyChar125DottxtIndexRouteImport.update({
+    id: '/{$key}.txt/',
+    path: '/{$key}.txt/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123nameChar125DotmdIndexRoute =
+  Char123nameChar125DotmdIndexRouteImport.update({
+    id: '/{$name}.md/',
+    path: '/{$name}.md/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AtChar123handleChar125SlugIndexRoute =
@@ -163,6 +222,12 @@ const AtChar123handleChar125SlugRisingRoute =
   AtChar123handleChar125SlugRisingRouteImport.update({
     id: '/@{$handle}/$slug/rising',
     path: '/@{$handle}/$slug/rising',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125Char123slugChar125DotmdIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.md/',
+    path: '/@{$handle}/{$slug}.md/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const CollectionsRisingChar123FrameChar125Route =
@@ -184,28 +249,38 @@ export interface FileRoutesByFullPath {
   '/bindings': typeof BindingsRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
+  '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/geo': typeof ApiGeoRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
+  '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -213,28 +288,38 @@ export interface FileRoutesByTo {
   '/bindings': typeof BindingsRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
+  '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/geo': typeof ApiGeoRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
   '/collections': typeof CollectionsIndexRoute
   '/palettes': typeof PalettesIndexRoute
+  '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.md': typeof Char123nameChar125DotmdIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.md': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -243,28 +328,38 @@ export interface FileRoutesById {
   '/bindings': typeof BindingsRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
+  '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/geo': typeof ApiGeoRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
+  '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -274,28 +369,38 @@ export interface FileRouteTypes {
     | '/bindings'
     | '/connect'
     | '/contact'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
     | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/ai-catalog.json'
+    | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
     | '/api/geo'
     | '/collections/saved'
+    | '/mcp/server-card'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
     | '/palettes/'
+    | '/sitemap-{$name}.xml/'
+    | '/{$key}.txt/'
+    | '/{$name}.md/'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/@{$handle}/{$slug}.md/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -303,28 +408,38 @@ export interface FileRouteTypes {
     | '/bindings'
     | '/connect'
     | '/contact'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
     | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/ai-catalog.json'
+    | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
     | '/api/geo'
     | '/collections/saved'
+    | '/mcp/server-card'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id'
     | '/collections'
     | '/palettes'
+    | '/sitemap-{$name}.xml'
+    | '/{$key}.txt'
+    | '/{$name}.md'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug'
+    | '/@{$handle}/{$slug}.md'
   id:
     | '__root__'
     | '/'
@@ -332,28 +447,38 @@ export interface FileRouteTypes {
     | '/bindings'
     | '/connect'
     | '/contact'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
     | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/ai-catalog.json'
+    | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
     | '/api/geo'
     | '/collections/saved'
+    | '/mcp/server-card'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
     | '/palettes/'
+    | '/sitemap-{$name}.xml/'
+    | '/{$key}.txt/'
+    | '/{$name}.md/'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/@{$handle}/{$slug}.md/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -362,28 +487,38 @@ export interface RootRouteChildren {
   BindingsRoute: typeof BindingsRoute
   ConnectRoute: typeof ConnectRoute
   ContactRoute: typeof ContactRoute
+  LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   LoginRoute: typeof LoginRoute
   McpServerRoute: typeof McpServerRoute
   NewsletterRoute: typeof NewsletterRoute
   PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   IdEditRoute: typeof IdEditRoute
   IdRisingRoute: typeof IdRisingRoute
+  DotwellKnownAiCatalogDotjsonRoute: typeof DotwellKnownAiCatalogDotjsonRoute
+  DotwellKnownArdDotjsonRoute: typeof DotwellKnownArdDotjsonRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiBuildRoute: typeof ApiBuildRoute
   ApiGeoRoute: typeof ApiGeoRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
+  McpServerCardRoute: typeof McpServerCardRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
   PalettesIndexRoute: typeof PalettesIndexRoute
+  SitemapChar123nameChar125DotxmlIndexRoute: typeof SitemapChar123nameChar125DotxmlIndexRoute
+  Char123keyChar125DottxtIndexRoute: typeof Char123keyChar125DottxtIndexRoute
+  Char123nameChar125DotmdIndexRoute: typeof Char123nameChar125DotmdIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
+  AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 
 declare module '@tanstack/solid-router' {
@@ -421,6 +556,20 @@ declare module '@tanstack/solid-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms-full.txt': {
+      id: '/llms-full.txt'
+      path: '/llms-full.txt'
+      fullPath: '/llms-full.txt'
+      preLoaderRoute: typeof LlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -465,6 +614,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -491,6 +647,20 @@ declare module '@tanstack/solid-router' {
       path: '/$id/rising'
       fullPath: '/$id/rising'
       preLoaderRoute: typeof IdRisingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/ai-catalog.json': {
+      id: '/.well-known/ai-catalog.json'
+      path: '/.well-known/ai-catalog.json'
+      fullPath: '/.well-known/ai-catalog.json'
+      preLoaderRoute: typeof DotwellKnownAiCatalogDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/ard.json': {
+      id: '/.well-known/ard.json'
+      path: '/.well-known/ard.json'
+      fullPath: '/.well-known/ard.json'
+      preLoaderRoute: typeof DotwellKnownArdDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -528,6 +698,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof CollectionsSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp/server-card': {
+      id: '/mcp/server-card'
+      path: '/mcp/server-card'
+      fullPath: '/mcp/server-card'
+      preLoaderRoute: typeof McpServerCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/palettes/': {
       id: '/palettes/'
       path: '/palettes'
@@ -542,11 +719,32 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof PalettesSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap-{$name}.xml/': {
+      id: '/sitemap-{$name}.xml/'
+      path: '/sitemap-{$name}.xml'
+      fullPath: '/sitemap-{$name}.xml/'
+      preLoaderRoute: typeof SitemapChar123nameChar125DotxmlIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/unsubscribe/{-$token}': {
       id: '/unsubscribe/{-$token}'
       path: '/unsubscribe/{-$token}'
       fullPath: '/unsubscribe/{-$token}'
       preLoaderRoute: typeof UnsubscribeChar123TokenChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$key}.txt/': {
+      id: '/{$key}.txt/'
+      path: '/{$key}.txt'
+      fullPath: '/{$key}.txt/'
+      preLoaderRoute: typeof Char123keyChar125DottxtIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$name}.md/': {
+      id: '/{$name}.md/'
+      path: '/{$name}.md'
+      fullPath: '/{$name}.md/'
+      preLoaderRoute: typeof Char123nameChar125DotmdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/@{$handle}/$slug/': {
@@ -561,6 +759,13 @@ declare module '@tanstack/solid-router' {
       path: '/@{$handle}/$slug/rising'
       fullPath: '/@{$handle}/$slug/rising'
       preLoaderRoute: typeof AtChar123handleChar125SlugRisingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/{$slug}.md/': {
+      id: '/@{$handle}/{$slug}.md/'
+      path: '/@{$handle}/{$slug}.md'
+      fullPath: '/@{$handle}/{$slug}.md/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections/rising/{-$frame}': {
@@ -586,30 +791,42 @@ const rootRouteChildren: RootRouteChildren = {
   BindingsRoute: BindingsRoute,
   ConnectRoute: ConnectRoute,
   ContactRoute: ContactRoute,
+  LlmsFullDottxtRoute: LlmsFullDottxtRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   LoginRoute: LoginRoute,
   McpServerRoute: McpServerRoute,
   NewsletterRoute: NewsletterRoute,
   PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   IdEditRoute: IdEditRoute,
   IdRisingRoute: IdRisingRoute,
+  DotwellKnownAiCatalogDotjsonRoute: DotwellKnownAiCatalogDotjsonRoute,
+  DotwellKnownArdDotjsonRoute: DotwellKnownArdDotjsonRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiBuildRoute: ApiBuildRoute,
   ApiGeoRoute: ApiGeoRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
+  McpServerCardRoute: McpServerCardRoute,
   PalettesSavedRoute: PalettesSavedRoute,
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,
   PalettesIndexRoute: PalettesIndexRoute,
+  SitemapChar123nameChar125DotxmlIndexRoute:
+    SitemapChar123nameChar125DotxmlIndexRoute,
+  Char123keyChar125DottxtIndexRoute: Char123keyChar125DottxtIndexRoute,
+  Char123nameChar125DotmdIndexRoute: Char123nameChar125DotmdIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
   CollectionsRisingChar123FrameChar125Route:
     CollectionsRisingChar123FrameChar125Route,
   PalettesRisingChar123FrameChar125Route:
     PalettesRisingChar123FrameChar125Route,
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotmdIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

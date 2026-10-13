@@ -16,7 +16,8 @@ const AI_CRAWLERS = [
   "meta-externalagent",
   "CCBot"
 ];
-
+/** An account's own pages, in every language. */
+const ACCOUNT_PAGES = ["/saved", "/settings", "/unsubscribe", "/collections/saved"];
 /** What a page fetches for one visitor after it renders, and an account's own pages. Both groups list them, since a
     crawler reads only the group that names it (RFC 9309). */
 const PRIVATE = [
@@ -36,18 +37,18 @@ const PRIVATE = [
   "/collections/saved",
   // the authorization server's routes: an app's request, never a page
   "/oauth/",
-  // the analytics beacon exactly: as a bare prefix /e would block /es and every collection whose address starts with e
+  // the analytics beacon exactly: as a prefix /e would block /es and every collection whose address starts with e
   "/e$",
   "/e/",
   ...LOCALES.filter(l => l !== DEFAULT_LOCALE).flatMap(l =>
-    ["/saved", "/settings", "/unsubscribe", "/collections/saved"].map(path => localizePath(path, l))
+    ACCOUNT_PAGES.map(path => localizePath(path, l))
   )
 ].map(path => `Disallow: ${path}`);
 
-/** robots.txt: production's for the deploy that serves grabient.com, and for every other deploy, which holds a copy of
-    the site's pages, a refusal of every crawler. */
-export function robots(production: boolean, origin: string): string {
-  if (!production) return "User-agent: *\nDisallow: /\n";
+/** robots.txt: the indexed deploy's, which names what crawlers skip, the sitemap and what agents read; every other
+    deploy's refuses every crawler. */
+export function robotsTxt(indexed: boolean, origin: string): string {
+  if (!indexed) return "User-agent: *\nDisallow: /\n";
   return [
     "# Grabient welcomes search and AI crawlers.",
     "# Crawler access is also governed by Cloudflare AI Crawl Control: both must allow a bot.",
