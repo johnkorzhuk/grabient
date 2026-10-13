@@ -152,14 +152,15 @@ let pageOrigin: string | undefined;
 export function setOriginSource(source: () => string): void {
   originSource = source;
 }
-/** The origin the page's addresses are written in. In the browser it is the one the server wrote into the canonical
-    link, so a page reached on another host of the deploy goes on naming the public one. */
+/** The origin the page's addresses are written in. In the browser it is the one the server wrote into the first
+    page's canonical link, so a page reached on another host of the deploy goes on naming the public one. */
 export function siteOrigin(): string {
   const { document, location } = globalThis as BrowserPage;
   if (!document || !location) return originSource();
   if (!pageOrigin) {
     const canonical = document.querySelector('link[rel="canonical"]')?.getAttribute("href");
-    pageOrigin = canonical && URL.canParse(canonical) ? new URL(canonical).origin : location.origin;
+    if (!canonical || !URL.canParse(canonical)) return location.origin;
+    pageOrigin = new URL(canonical).origin;
   }
   return pageOrigin;
 }

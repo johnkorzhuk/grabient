@@ -9,7 +9,7 @@ import {
   translate
 } from "@grabient/i18n";
 import { buildCatalogs } from "@grabient/i18n/vite.ts";
-import { beforeEach, describe, expect, test } from "vitest";
+import { beforeEach, describe, expect, test, vi } from "vitest";
 import golden from "./fixtures/page-meta.json" with { type: "json" };
 import {
   clipWords,
@@ -19,7 +19,9 @@ import {
   type Page,
   type PageMeta,
   PRODUCTION_ORIGIN,
-  pageMeta
+  pageMeta,
+  setOriginSource,
+  siteOrigin
 } from "./page-meta.ts";
 
 for (const [locale, file] of buildCatalogs())
@@ -388,5 +390,31 @@ describe("the head a route gives", () => {
       hreflang: "x-default",
       href: "https://grabient.com/palettes"
     });
+  });
+});
+
+describe("the origin a page's addresses name", () => {
+  test("on the server, the deploy's own for the request", () => {
+    setOriginSource(() => "https://staging.grabient.com");
+    expect(siteOrigin()).toBe("https://staging.grabient.com");
+    expect(pageMeta(pageOf("/about")).canonical).toBe("https://staging.grabient.com/about");
+  });
+
+  test("in the browser, the one the server wrote into the first page's canonical link, wherever the page is read", () => {
+    let canonical: string | null = null;
+    vi.stubGlobal("location", { origin: "https://www.grabient.com" });
+    vi.stubGlobal("document", {
+      querySelector: () => (canonical ? { getAttribute: () => canonical } : null)
+    });
+    try {
+      // a page with no canonical yet names its own origin, and nothing is remembered
+      expect(siteOrigin()).toBe("https://www.grabient.com");
+      canonical = "https://grabient.com/ja/palettes";
+      expect(siteOrigin()).toBe("https://grabient.com");
+      canonical = "https://elsewhere.test/";
+      expect(siteOrigin()).toBe("https://grabient.com");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
