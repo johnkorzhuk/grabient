@@ -380,7 +380,8 @@ export const translatedPage = (page: Page) =>
 
 const pagedTitle = (title: string, page = 1) =>
   page > 1 ? t("{title}, page {page}", { title, page }) : title;
-/** A list's heading, for a reader who listens and for a crawler: what its title says, without the site's name. */
+/** A page's heading, for a reader who listens and for a crawler: what its title says, without the site's name. A
+    palette's is its written title in English, else what its colors are called in its style. */
 export function heading(page: Page): string {
   const query = "query" in page ? page.query : undefined;
   const like = query ? decodePalette(query) : null;
@@ -399,6 +400,14 @@ export function heading(page: Page): string {
       );
     case "list":
       return t(LISTS[page.order].paged);
+    case "palette":
+      return (
+        (locale() === DEFAULT_LOCALE && page.written?.title) ||
+        t("{name} {style}", {
+          name: paletteName(page.palette, page.view),
+          style: t(STYLE_WORDS[page.view.style])
+        })
+      );
     case "search":
       return say(msg("Palettes like {name}"), msg("{subject} gradients and color palettes"), "");
     case "saved":
@@ -581,7 +590,7 @@ function palettePage(
   const hexes = sampleStops(P, view.steps).map(stop => stop.hex);
   const written = locale() === DEFAULT_LOCALE ? page.written : undefined;
   const path = paletteAddress(seed);
-  meta.title = titled(written?.title ?? t("{name} {style}", { name, style }));
+  meta.title = titled(heading(page));
   /* every color where they all fit, else some from end to end */
   const spread = (count: number) =>
     Array.from(
