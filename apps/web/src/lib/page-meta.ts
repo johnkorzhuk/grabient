@@ -20,6 +20,7 @@ import {
   msg,
   t
 } from "@grabient/i18n";
+import { DEFAULT_FRAME, framePath, type RisingFrame } from "./orders.ts";
 
 /* A page's metadata: its title, the description a search result shows under it, its canonical address, whether search
    engines index it, its share card, the same page in the other languages and its structured data. One function makes
@@ -44,7 +45,6 @@ export const DEFAULT_SEED = "kS7Q8Yy5S_SChv0";
 export const GITHUB_REPO = "https://github.com/johnkorzhuk/grabient";
 
 export type Order = "popular" | "rising";
-export type Frame = "1w" | "3m" | "1y";
 /** The view a list's address sets. What it leaves out or says `auto` for, each palette draws in its own. */
 export interface ListView {
   style?: Style | "auto";
@@ -79,12 +79,19 @@ export type Page = Facts &
   (
     | { kind: FixedKind; query?: string; page?: number }
     | { kind: "home"; query?: string; page?: number; view?: ListView }
-    | { kind: "list"; order: Order; frame?: Frame; page?: number; limit?: number; view?: ListView }
+    | {
+        kind: "list";
+        order: Order;
+        frame?: RisingFrame;
+        page?: number;
+        limit?: number;
+        view?: ListView;
+      }
     | {
         kind: "search";
         query: string;
         order: Order;
-        frame?: Frame;
+        frame?: RisingFrame;
         page?: number;
         limit?: number;
         view?: ListView;
@@ -92,7 +99,7 @@ export type Page = Facts &
     | {
         kind: "collections";
         order: Order;
-        frame?: Frame;
+        frame?: RisingFrame;
         query?: string;
         page?: number;
         limit?: number;
@@ -193,9 +200,9 @@ function listQuery(p: { query?: string; page?: number; limit?: number }): string
   return q.size ? `?${q}` : "";
 }
 /** Rising read over a longer frame than the week's is the same list again, so its address stays out of the index. */
-const longFrame = (frame?: Frame) => !!frame && frame !== "1w";
-const listPath = (base: string, order: Order, frame?: Frame) =>
-  order === "popular" ? base : `${base}/rising${longFrame(frame) ? `/${frame}` : ""}`;
+const longFrame = (frame?: RisingFrame) => !!frame && frame !== DEFAULT_FRAME;
+const listPath = (base: string, order: Order, frame?: RisingFrame) =>
+  order === "popular" ? base : framePath(`${base}/rising`, frame);
 
 /** Words cut to `max` characters: after the last sentence that fits when it is longer than `sentence`, else at a word,
     marked with an ellipsis. */
@@ -456,9 +463,9 @@ function cardUrl(
   return url.toString();
 }
 /** A list's card is drawn in its page's order: Rising's with its frame when that is not the week's. */
-const rising = (frame?: Frame): Record<string, string> => ({
+const rising = (frame?: RisingFrame): Record<string, string> => ({
   sort: "rising",
-  ...(longFrame(frame) ? { frame: frame as string } : {})
+  ...(frame && longFrame(frame) ? { frame } : {})
 });
 /** One collection's card, as its page and the sitemap name it. */
 export const collectionCard = (

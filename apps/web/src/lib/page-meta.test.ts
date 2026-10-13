@@ -11,10 +11,10 @@ import {
 import { buildCatalogs } from "@grabient/i18n/vite.ts";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import golden from "./fixtures/page-meta.json" with { type: "json" };
+import type { RisingFrame } from "./orders.ts";
 import {
   clipWords,
   DESCRIPTION_MAX,
-  type Frame,
   headOf,
   type Page,
   type PageMeta,
@@ -69,7 +69,7 @@ function pageOf(address: string, facts: Facts = {}): Page {
     collections: facts.collections
   };
   const order = second === "rising" ? "rising" : "popular";
-  const frame = third as Frame | undefined;
+  const frame = third as RisingFrame | undefined;
   if (url.pathname === "/") return { kind: "home", query, page, ...common };
   if (first === "palettes" && second === "saved") return { kind: "saved", query, ...common };
   if (first === "palettes") {
