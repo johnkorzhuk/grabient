@@ -1,6 +1,6 @@
 import { type Issue, insetStyles, issuePage, type SheetColors } from "@grabient/email";
 import { DEFAULT_LOCALE, isLocale, type Locale, localizePath } from "@grabient/i18n";
-import type { IssuesPage, PageIssue } from "../../features/newsletter/input.ts";
+import type { PageIssue } from "../../features/newsletter/input.ts";
 import { ISSUES } from "./issues/index.ts";
 import { issueFoot } from "./list.ts";
 
@@ -10,6 +10,13 @@ import { issueFoot } from "./list.ts";
 
 /** How many issues one page of them holds. */
 export const ISSUES_PAGE = 2;
+
+/** An issue with its sheet, and a page of them. */
+export type DrawnIssue = Required<PageIssue>;
+export interface DrawnPage {
+  issues: DrawnIssue[];
+  next: number | null;
+}
 
 /* The tokens an issue's sheet takes on the page: the ones the email's two schemes are made of. Custom properties reach
    into the issue's shadow tree. */
@@ -27,10 +34,10 @@ const SHEET_COLORS: SheetColors = {
 const STYLES = `<style>${insetStyles(SHEET_COLORS)}</style>`;
 
 /* An issue is the same for every reader of a language, so an isolate draws each once per origin and language. */
-const drawnBefore = new WeakMap<Issue, Map<string, PageIssue>>();
-function drawn(issue: Issue, origin: string, locale: Locale): PageIssue {
+const drawnBefore = new WeakMap<Issue, Map<string, DrawnIssue>>();
+function drawn(issue: Issue, origin: string, locale: Locale): DrawnIssue {
   const key = `${origin} ${locale}`;
-  const held = drawnBefore.get(issue) ?? new Map<string, PageIssue>();
+  const held = drawnBefore.get(issue) ?? new Map<string, DrawnIssue>();
   drawnBefore.set(issue, held);
   let page = held.get(key);
   if (!page) {
@@ -55,7 +62,7 @@ export function publishedPage(
   origin: string,
   locale: Locale = DEFAULT_LOCALE,
   before = Number.POSITIVE_INFINITY
-): IssuesPage {
+): DrawnPage {
   const held = newestFirst(issues).filter(issue => issue.published && issue.number < before);
   return {
     issues: held.slice(0, ISSUES_PAGE).map(issue => drawn(issue, origin, locale)),
@@ -67,7 +74,7 @@ export const publishedIssues = (
   origin: string,
   locale?: Locale,
   before?: number | null
-): IssuesPage => publishedPage(ISSUES, origin, locale, before ?? undefined);
+): DrawnPage => publishedPage(ISSUES, origin, locale, before ?? undefined);
 
 /** Every issue among these with no day yet, newest first: an admin's to read. */
 export const draftsAmong = (

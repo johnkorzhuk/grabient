@@ -158,13 +158,12 @@ describe("drafts stay private", () => {
     ]);
     for (const words of draftWords()) expect(published).not.toContain(words);
   });
-  test("only the Worker's own code imports the issues", () => {
+  test("only the newsletter's server modules read the issues", () => {
     const src = new URL("../../", import.meta.url);
     const importers = readdirSync(src, { recursive: true, encoding: "utf8" })
-      .filter(name => /\.tsx?$/.test(name) && !name.startsWith("server/"))
-      .filter(name =>
-        /from "[^"]*server\/newsletter/.test(readFileSync(new URL(name, src), "utf8"))
-      );
-    expect(importers).toEqual([]);
+      .filter(name => /\.tsx?$/.test(name))
+      .filter(name => /from "[^"]*issues\/(?:index|\d+)\.ts"/.test(readFileSync(new URL(name, src), "utf8")));
+    for (const name of importers) expect(name).toMatch(/^server\/newsletter\/[\w.-]+\.ts$/);
+    expect(importers.length).toBeGreaterThan(0);
   });
 });

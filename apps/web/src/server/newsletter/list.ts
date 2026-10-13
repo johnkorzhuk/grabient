@@ -16,8 +16,7 @@ import type { Env } from "../env.ts";
 
 /** Where a choice was made: Settings, the unsubscribe page, or a mail app's own button (RFC 8058). */
 export type ChoiceSource = "settings" | "page" | "mail-app";
-/** The last part of an account's unsubscribe address: 32 random bytes as hex, never rotated. */
-export const UNSUBSCRIBE_TOKEN = /^[0-9a-f]{64}$/;
+/* 32 random bytes as hex (UNSUBSCRIBE_TOKEN), never rotated: an account's way out lives as long as the account. */
 const newToken = () =>
   Array.from(crypto.getRandomValues(new Uint8Array(32)), byte =>
     byte.toString(16).padStart(2, "0")
