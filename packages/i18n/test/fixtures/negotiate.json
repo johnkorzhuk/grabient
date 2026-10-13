@@ -1,0 +1,285 @@
+{
+ "note": "negotiateLocale(Accept-Language), cookieLocale(Cookie) and preferredLocale({Cookie, Accept-Language}) (negotiate.ts).",
+ "acceptLanguage": [
+  {
+   "header": "",
+   "locale": null
+  },
+  {
+   "header": "*",
+   "locale": null
+  },
+  {
+   "header": "ja",
+   "locale": "ja"
+  },
+  {
+   "header": "ja,en-US;q=0.9,en;q=0.8",
+   "locale": "ja"
+  },
+  {
+   "header": "en-US,en;q=0.9,ja;q=0.8",
+   "locale": "en"
+  },
+  {
+   "header": "en-GB",
+   "locale": "en"
+  },
+  {
+   "header": "zh-TW,zh;q=0.9",
+   "locale": "zh-Hans"
+  },
+  {
+   "header": "zh-HK",
+   "locale": "zh-Hans"
+  },
+  {
+   "header": "zh-Hant-TW",
+   "locale": "zh-Hans"
+  },
+  {
+   "header": "zh-CN,zh;q=0.9",
+   "locale": "zh-Hans"
+  },
+  {
+   "header": "zh",
+   "locale": "zh-Hans"
+  },
+  {
+   "header": "zh_TW",
+   "locale": "zh-Hans"
+  },
+  {
+   "header": "pt-PT",
+   "locale": "pt-BR"
+  },
+  {
+   "header": "pt",
+   "locale": "pt-BR"
+  },
+  {
+   "header": "es-419,es;q=0.9",
+   "locale": "es"
+  },
+  {
+   "header": "nl-NL,nl;q=0.9,de;q=0.7",
+   "locale": "de"
+  },
+  {
+   "header": "de;q=0.5,fr;q=0.9",
+   "locale": "fr"
+  },
+  {
+   "header": "in-ID",
+   "locale": "id"
+  },
+  {
+   "header": "he-IL",
+   "locale": null
+  },
+  {
+   "header": "fr;q=0",
+   "locale": null
+  },
+  {
+   "header": "fr;q=0.0,ja;q=0.1",
+   "locale": "ja"
+  },
+  {
+   "header": "FR-ca",
+   "locale": "fr"
+  },
+  {
+   "header": " ja ; q=0.5 , ko ",
+   "locale": "ko"
+  },
+  {
+   "header": "ja;q=abc",
+   "locale": "ja"
+  },
+  {
+   "header": "ja;q=2",
+   "locale": "ja"
+  },
+  {
+   "header": "ja;q=-1",
+   "locale": "ja"
+  },
+  {
+   "header": "xx,yy,zz,aa,bb,cc,dd,ee,ff,gg,hh,ii,ja",
+   "locale": null
+  },
+  {
+   "header": "xx,yy,zz,aa,bb,cc,dd,ee,ff,gg,hh,ja",
+   "locale": "ja"
+  },
+  {
+   "header": "ar-EG",
+   "locale": "ar"
+  },
+  {
+   "header": "fa-IR",
+   "locale": "fa"
+  },
+  {
+   "header": "uk",
+   "locale": "uk"
+  },
+  {
+   "header": "ru-RU",
+   "locale": "ru"
+  },
+  {
+   "header": "th-TH",
+   "locale": "th"
+  },
+  {
+   "header": "tr",
+   "locale": "tr"
+  },
+  {
+   "header": "vi-VN",
+   "locale": "vi"
+  },
+  {
+   "header": "id",
+   "locale": "id"
+  },
+  {
+   "header": "ko-KR",
+   "locale": "ko"
+  },
+  {
+   "header": "en",
+   "locale": "en"
+  },
+  {
+   "header": "ja;level=1;q=0.4,ko;q=0.5",
+   "locale": "ko"
+  }
+ ],
+ "cookie": [
+  {
+   "cookie": "",
+   "locale": null
+  },
+  {
+   "cookie": "grabient-locale=ja",
+   "locale": "ja"
+  },
+  {
+   "cookie": "a=1; grabient-locale=en",
+   "locale": "en"
+  },
+  {
+   "cookie": "grabient-locale=zh-Hant",
+   "locale": null
+  },
+  {
+   "cookie": "grabient-locale=xx",
+   "locale": null
+  },
+  {
+   "cookie": "grabient-locale=%",
+   "locale": null
+  },
+  {
+   "cookie": "grabient-locale=%E0%A4%A",
+   "locale": null
+  },
+  {
+   "cookie": "grabient-locale=ja%",
+   "locale": null
+  },
+  {
+   "cookie": "grabient-locale=pt-BR",
+   "locale": "pt-BR"
+  },
+  {
+   "cookie": "grabient-locale=pt-br",
+   "locale": null
+  },
+  {
+   "cookie": "grabient-locale=zh-Hans",
+   "locale": "zh-Hans"
+  },
+  {
+   "cookie": "grabient-locale=zh%2DHans",
+   "locale": "zh-Hans"
+  },
+  {
+   "cookie": " grabient-locale = ko ",
+   "locale": "ko"
+  },
+  {
+   "cookie": "grabient-locale=ja; grabient-locale=ko",
+   "locale": "ja"
+  },
+  {
+   "cookie": "grabient-locale",
+   "locale": null
+  },
+  {
+   "cookie": "xgrabient-locale=ja",
+   "locale": null
+  }
+ ],
+ "preferred": [
+  {
+   "headers": {
+    "Accept-Language": "ja"
+   },
+   "locale": "ja"
+  },
+  {
+   "headers": {
+    "Accept-Language": "en-GB"
+   },
+   "locale": null
+  },
+  {
+   "headers": {
+    "Accept-Language": "ja",
+    "Cookie": "a=1; grabient-locale=en"
+   },
+   "locale": null
+  },
+  {
+   "headers": {
+    "Accept-Language": "en",
+    "Cookie": "grabient-locale=ko"
+   },
+   "locale": "ko"
+  },
+  {
+   "headers": {
+    "Cookie": "grabient-locale=xx"
+   },
+   "locale": null
+  },
+  {
+   "headers": {
+    "Accept-Language": "ja",
+    "Cookie": "grabient-locale=xx"
+   },
+   "locale": "ja"
+  },
+  {
+   "headers": {
+    "Accept-Language": "en",
+    "Cookie": "grabient-locale=%"
+   },
+   "locale": null
+  },
+  {
+   "headers": {},
+   "locale": null
+  },
+  {
+   "headers": {
+    "Accept-Language": "he,ja;q=0.5"
+   },
+   "locale": "ja"
+  }
+ ]
+}

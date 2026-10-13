@@ -1,0 +1,181 @@
+{
+ "note": "menuPath(matchRoute(p), p): the address the language menu offers, without the language (language-path.ts).",
+ "menu": [
+  {
+   "input": "/",
+   "route": "home",
+   "menu": "/"
+  },
+  {
+   "input": "/?page=2",
+   "route": "home",
+   "menu": "/?page=2"
+  },
+  {
+   "input": "/?q=blue",
+   "route": "home",
+   "menu": "/?q=blue"
+  },
+  {
+   "input": "/palettes",
+   "route": "list",
+   "menu": "/palettes"
+  },
+  {
+   "input": "/palettes?page=3&selection",
+   "route": "list",
+   "menu": "/palettes?page=3"
+  },
+  {
+   "input": "/palettes/rising?page=3&selection",
+   "route": "list",
+   "menu": "/palettes/rising?page=3"
+  },
+  {
+   "input": "/palettes/rising/3m",
+   "route": "list",
+   "menu": "/palettes/rising/3m"
+  },
+  {
+   "input": "/palettes?q=blue&page=2",
+   "route": "search",
+   "menu": "/palettes?q=blue&page=2"
+  },
+  {
+   "input": "/palettes/saved",
+   "route": "saved",
+   "menu": "/palettes/saved"
+  },
+  {
+   "input": "/collections",
+   "route": "collections",
+   "menu": "/collections"
+  },
+  {
+   "input": "/collections?q=blue",
+   "route": "collections",
+   "menu": "/collections?q=blue"
+  },
+  {
+   "input": "/collections/saved",
+   "route": "collections",
+   "menu": "/collections/saved"
+  },
+  {
+   "input": "/about?utm_campaign=poison",
+   "route": "about",
+   "menu": "/about"
+  },
+  {
+   "input": "/mcp-server?from=menu",
+   "route": "mcp",
+   "menu": "/mcp-server"
+  },
+  {
+   "input": "/bindings?x=1",
+   "route": "bindings",
+   "menu": "/bindings"
+  },
+  {
+   "input": "/settings?token=abc",
+   "route": "settings",
+   "menu": "/settings"
+  },
+  {
+   "input": "/newsletter?x=1",
+   "route": "newsletter",
+   "menu": "/newsletter"
+  },
+  {
+   "input": "/privacy?x=1",
+   "route": "legal",
+   "menu": "/privacy"
+  },
+  {
+   "input": "/contact?x",
+   "route": "legal",
+   "menu": "/contact"
+  },
+  {
+   "input": "/terms",
+   "route": "legal",
+   "menu": "/terms"
+  },
+  {
+   "input": "/login?redirect=%2Fpalettes%2Fsaved&x=1",
+   "route": "login",
+   "menu": "/login?redirect=%2Fpalettes%2Fsaved"
+  },
+  {
+   "input": "/login",
+   "route": "login",
+   "menu": "/login"
+  },
+  {
+   "input": "/connect?r=abc&x=1",
+   "route": "connect",
+   "menu": "/connect?r=abc&x=1"
+  },
+  {
+   "input": "/unsubscribe/aaaa?x=1",
+   "route": "unsubscribe",
+   "menu": "/unsubscribe/aaaa"
+  },
+  {
+   "input": "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9&angle=30",
+   "route": "seed",
+   "menu": "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9&angle=30"
+  },
+  {
+   "input": "/kS7Q8Yy5S_SChv0?lock=h",
+   "route": "seed",
+   "menu": "/kS7Q8Yy5S_SChv0"
+  },
+  {
+   "input": "/ocean-gradients?selection",
+   "route": "query",
+   "menu": "/",
+   "resolvedRoute": "collection",
+   "resolved": "/ocean-gradients"
+  },
+  {
+   "input": "/ocean-gradients/rising",
+   "route": "query",
+   "menu": "/",
+   "resolvedRoute": "collection",
+   "resolved": "/ocean-gradients/rising"
+  },
+  {
+   "input": "/@ada/warm-sunsets",
+   "route": "query",
+   "menu": "/",
+   "resolvedRoute": "collection",
+   "resolved": "/@ada/warm-sunsets"
+  },
+  {
+   "input": "//evil.example/x",
+   "route": "notfound",
+   "menu": "/"
+  },
+  {
+   "input": "/nope/nope",
+   "route": "notfound",
+   "menu": "/"
+  },
+  {
+   "input": "/newest",
+   "route": "redirect",
+   "menu": "/"
+  },
+  {
+   "input": "/random",
+   "route": "notfound",
+   "menu": "/"
+  },
+  {
+   "input": "/_abc",
+   "route": "redirect",
+   "menu": "/"
+  }
+ ]
+}

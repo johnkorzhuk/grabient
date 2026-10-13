@@ -1,0 +1,552 @@
+{
+ "note": "formatMessage, parseMessage errors, messageShape and formatRich on hand-picked cases (format.ts). select, selectordinal, number styles and quoting are in no catalog.",
+ "formatCases": [
+  {
+   "message": "Copy link",
+   "params": null,
+   "locale": "en",
+   "out": "Copy link"
+  },
+  {
+   "message": "Don't show this again",
+   "params": null,
+   "locale": "en",
+   "out": "Don't show this again"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": 1234
+   },
+   "locale": "en",
+   "out": "1,234 palettes"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": 1234
+   },
+   "locale": "de",
+   "out": "1.234 palettes"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": 1234
+   },
+   "locale": "ar",
+   "out": "⁨1,234⁩ palettes"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": 1234
+   },
+   "locale": "fa",
+   "out": "⁨1,234⁩ palettes"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": 1234
+   },
+   "locale": "th",
+   "out": "1,234 palettes"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": 1234.5678
+   },
+   "locale": "fr",
+   "out": "1 234,568 palettes"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": -3
+   },
+   "locale": "en",
+   "out": "-3 palettes"
+  },
+  {
+   "message": "{count} palettes",
+   "params": {
+    "count": "1234"
+   },
+   "locale": "de",
+   "out": "1234 palettes"
+  },
+  {
+   "message": "Keyframe {number} · {hex}",
+   "params": {
+    "number": 2,
+    "hex": "#ff00aa"
+   },
+   "locale": "fa",
+   "out": "Keyframe ⁨2⁩ · ⁨#ff00aa⁩"
+  },
+  {
+   "message": "Size · {size}",
+   "params": {
+    "size": "1920 × 1080"
+   },
+   "locale": "ar",
+   "out": "Size · ⁨1920 × 1080⁩"
+  },
+  {
+   "message": "Keyframe {number} · {hex}",
+   "params": {
+    "number": 2,
+    "hex": "#ff00aa"
+   },
+   "locale": "ja",
+   "out": "Keyframe 2 · #ff00aa"
+  },
+  {
+   "message": "{count, plural, other {# stops}}",
+   "params": {
+    "count": 3
+   },
+   "locale": "ar",
+   "out": "3 stops"
+  },
+  {
+   "message": "{missing} left",
+   "params": {},
+   "locale": "fa",
+   "out": " left"
+  },
+  {
+   "message": "{missing} left",
+   "params": null,
+   "locale": "en",
+   "out": " left"
+  },
+  {
+   "message": "{missing} left",
+   "params": {
+    "missing": null
+   },
+   "locale": "en",
+   "out": " left"
+  },
+  {
+   "message": "{missing} left",
+   "params": {
+    "missing": 0
+   },
+   "locale": "en",
+   "out": "0 left"
+  },
+  {
+   "message": "{count, plural, =0 {No palettes} one {# palette} other {# palettes}}",
+   "params": {
+    "count": 0
+   },
+   "locale": "en",
+   "out": "No palettes"
+  },
+  {
+   "message": "{count, plural, =0 {No palettes} one {# palette} other {# palettes}}",
+   "params": {
+    "count": 1
+   },
+   "locale": "en",
+   "out": "1 palette"
+  },
+  {
+   "message": "{count, plural, =0 {No palettes} one {# palette} other {# palettes}}",
+   "params": {
+    "count": 2
+   },
+   "locale": "en",
+   "out": "2 palettes"
+  },
+  {
+   "message": "{count, plural, =0 {No palettes} one {# palette} other {# palettes}}",
+   "params": {
+    "count": 1234
+   },
+   "locale": "de",
+   "out": "1.234 palettes"
+  },
+  {
+   "message": "{count, plural, one {# palette} other {# palettes}}",
+   "params": {
+    "count": 1.5
+   },
+   "locale": "fr",
+   "out": "1,5 palette"
+  },
+  {
+   "message": "{count, plural, one {# palette} other {# palettes}}",
+   "params": {
+    "count": 1.5
+   },
+   "locale": "en",
+   "out": "1.5 palettes"
+  },
+  {
+   "message": "{count, plural, one {# palette} other {# palettes}}",
+   "params": {},
+   "locale": "en",
+   "out": "NaN palettes"
+  },
+  {
+   "message": "{count, plural, one {# palette} other {# palettes}}",
+   "params": {
+    "count": "x"
+   },
+   "locale": "en",
+   "out": "NaN palettes"
+  },
+  {
+   "message": "{kind, select, mine {Yours} other {Theirs}}",
+   "params": {
+    "kind": "mine"
+   },
+   "locale": "en",
+   "out": "Yours"
+  },
+  {
+   "message": "{kind, select, mine {Yours} other {Theirs}}",
+   "params": {
+    "kind": "x"
+   },
+   "locale": "en",
+   "out": "Theirs"
+  },
+  {
+   "message": "{kind, select, mine {Yours} other {Theirs}}",
+   "params": {},
+   "locale": "en",
+   "out": "Theirs"
+  },
+  {
+   "message": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}}",
+   "params": {
+    "n": 22
+   },
+   "locale": "en",
+   "out": "22nd"
+  },
+  {
+   "message": "Type '{name}' to confirm",
+   "params": {
+    "name": "x"
+   },
+   "locale": "en",
+   "out": "Type {name} to confirm"
+  },
+  {
+   "message": "It''s {n}",
+   "params": {
+    "n": 2
+   },
+   "locale": "en",
+   "out": "It's 2"
+  },
+  {
+   "message": "a '<b>' tag",
+   "params": null,
+   "locale": "en",
+   "out": "a <b> tag"
+  },
+  {
+   "message": "'#' in plural: {n, plural, other {'#' is #}}",
+   "params": {
+    "n": 3
+   },
+   "locale": "en",
+   "out": "'#' in plural: # is 3"
+  },
+  {
+   "message": "{n, number, percent}",
+   "params": {
+    "n": 0.5
+   },
+   "locale": "en",
+   "out": "50%"
+  },
+  {
+   "message": "{n, number, percent}",
+   "params": {
+    "n": 0.5
+   },
+   "locale": "ar",
+   "out": "⁨50‎%‎⁩"
+  },
+  {
+   "message": "{n, number, integer}",
+   "params": {
+    "n": 2.7
+   },
+   "locale": "en",
+   "out": "3"
+  },
+  {
+   "message": "{n, number}",
+   "params": {
+    "n": 1234.5
+   },
+   "locale": "de",
+   "out": "1.234,5"
+  },
+  {
+   "message": "{n, number, percent}",
+   "params": {
+    "n": "0.5"
+   },
+   "locale": "en",
+   "out": "0.5"
+  },
+  {
+   "message": "Read the <link>terms</link>.",
+   "params": null,
+   "locale": "en",
+   "out": "Read the terms."
+  },
+  {
+   "message": "a < b and {x}",
+   "params": {
+    "x": 1
+   },
+   "locale": "en",
+   "out": "a < b and 1"
+  },
+  {
+   "message": "A server said {oops and <b>",
+   "params": null,
+   "locale": "en",
+   "out": "A server said {oops and <b>"
+  },
+  {
+   "message": "</a> stray",
+   "params": null,
+   "locale": "en",
+   "out": "</a> stray"
+  },
+  {
+   "message": "<br/> line",
+   "params": null,
+   "locale": "en",
+   "out": " line"
+  },
+  {
+   "message": "{ name }",
+   "params": {
+    "name": "spaced"
+   },
+   "locale": "en",
+   "out": "spaced"
+  },
+  {
+   "message": "{a}{b}",
+   "params": {
+    "a": "x",
+    "b": "y"
+   },
+   "locale": "ar",
+   "out": "⁨x⁩⁨y⁩"
+  },
+  {
+   "message": "<b>{n, plural, one {# of {total}} other {# of {total}}}</b> {who}",
+   "params": {
+    "n": 1,
+    "total": 3,
+    "who": "Ada"
+   },
+   "locale": "en",
+   "out": "1 of 3 Ada"
+  },
+  {
+   "message": "{n, plural, one {# of {total}} other {# of {total}}}",
+   "params": {
+    "n": 1,
+    "total": 3
+   },
+   "locale": "ar",
+   "out": "1 of ⁨3⁩"
+  },
+  {
+   "message": "{count, plural, zero {zero #} one {one #} two {two #} few {few #} many {many #} other {other #}}",
+   "params": {
+    "count": 0
+   },
+   "locale": "ar",
+   "out": "zero 0"
+  },
+  {
+   "message": "{count, plural, zero {zero #} one {one #} two {two #} few {few #} many {many #} other {other #}}",
+   "params": {
+    "count": 2
+   },
+   "locale": "ar",
+   "out": "two 2"
+  },
+  {
+   "message": "{count, plural, zero {zero #} one {one #} two {two #} few {few #} many {many #} other {other #}}",
+   "params": {
+    "count": 11
+   },
+   "locale": "ar",
+   "out": "many 11"
+  },
+  {
+   "message": "{count, plural, zero {zero #} one {one #} two {two #} few {few #} many {many #} other {other #}}",
+   "params": {
+    "count": 100
+   },
+   "locale": "ar",
+   "out": "other 100"
+  },
+  {
+   "message": "{count, plural, one {one} few {few} many {many} other {other}}",
+   "params": {
+    "count": 21
+   },
+   "locale": "ru",
+   "out": "one"
+  },
+  {
+   "message": "{count, plural, one {one} few {few} many {many} other {other}}",
+   "params": {
+    "count": 1.5
+   },
+   "locale": "ru",
+   "out": "other"
+  },
+  {
+   "message": "{count, plural, one {one} many {many} other {other}}",
+   "params": {
+    "count": 1000000
+   },
+   "locale": "fr",
+   "out": "many"
+  },
+  {
+   "message": "{count, plural, one {one} many {many} other {other}}",
+   "params": {
+    "count": 1000000
+   },
+   "locale": "es",
+   "out": "many"
+  },
+  {
+   "message": "{count, plural, one {one} many {many} other {other}}",
+   "params": {
+    "count": 1000000
+   },
+   "locale": "pt-BR",
+   "out": "many"
+  }
+ ],
+ "throws": [
+  {
+   "message": "{count, plural, one {#}}",
+   "throws": "A plural or select needs an other case at 24 in \"{count, plural, one {#}}\""
+  },
+  {
+   "message": "<b>open",
+   "throws": "Missing </b> at 7 in \"<b>open\""
+  },
+  {
+   "message": "{name",
+   "throws": "Expected , or } at 5 in \"{name\""
+  },
+  {
+   "message": "{a, plural, one {x}",
+   "throws": "Missing } after the cases at 19 in \"{a, plural, one {x}\""
+  },
+  {
+   "message": "x }",
+   "throws": "Unexpected } at 2 in \"x }\""
+  },
+  {
+   "message": "{}",
+   "throws": "Expected a name at 1 in \"{}\""
+  },
+  {
+   "message": "{a b}",
+   "throws": "Expected , or } at 3 in \"{a b}\""
+  },
+  {
+   "message": "{a, plural, one x}",
+   "throws": "Expected { after a case at 16 in \"{a, plural, one x}\""
+  }
+ ],
+ "shapes": [
+  {
+   "message": "<b>{n, plural, one {# of {total}} other {# of {total}}}</b> {who}",
+   "shape": {
+    "args": [
+     "n",
+     "total",
+     "who"
+    ],
+    "tags": [
+     "b"
+    ],
+    "plurals": [
+     {
+      "name": "n",
+      "cases": [
+       "one",
+       "other"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "message": "Saved to {title}",
+   "shape": {
+    "args": [
+     "title"
+    ],
+    "tags": [],
+    "plurals": []
+   }
+  },
+  {
+   "message": "<text/> on <ground/>",
+   "shape": {
+    "args": [],
+    "tags": [
+     "ground",
+     "text"
+    ],
+    "plurals": []
+   }
+  },
+  {
+   "message": "Read the <link>terms</link>.",
+   "shape": {
+    "args": [],
+    "tags": [
+     "link"
+    ],
+    "plurals": []
+   }
+  }
+ ],
+ "richCase": [
+  "Read the ",
+  {
+   "a": [
+    "terms of Grabient"
+   ]
+  },
+  ", then ",
+  {
+   "b": [
+    "go"
+   ]
+  },
+  "."
+ ],
+ "richUnknownTag": [
+  "Keep this and ."
+ ]
+}
