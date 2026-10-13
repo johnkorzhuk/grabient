@@ -1,14 +1,14 @@
-import { viewSearch } from "@grabient/engine/view.ts";
+import { type Style, viewSearch } from "@grabient/engine/view.ts";
 import { all, first } from "@grabient/server/db/d1.ts";
+import { CURATION_REASONS } from "@grabient/ui/curation.ts";
+import { isCollectionSlug } from "../../../../features/collections/address.ts";
+import { collectionItem } from "../../../../features/collections/schema.ts";
+import { listWords } from "../../../../lib/words.ts";
+import { texts as paletteTexts } from "../../../collections/files.ts";
+import type { AdminActionKind } from "../../../collections/record.ts";
 import { removedSeeds } from "../../admin/queue.ts";
-import {
-  ADMIN_ACTION_KINDS,
-  type AdminActionKind,
-  CURATION_REASONS,
-  listActions
-} from "../../admin/record.ts";
+import { ADMIN_ACTION_KINDS, listActions } from "../../admin/record.ts";
 import { reviewsOf } from "../../admin/reviews.ts";
-import { collectionItem, isCollectionSlug, normalizeListQuery, paletteTexts } from "../../site.ts";
 import {
   answer,
   flag,
@@ -48,7 +48,7 @@ export const tasteTools: readonly Tool[] = [
       const where = [`l.user_id IN ${ADMINS}`];
       const bind: (string | number)[] = [];
       const slug = str(args.collection, 120);
-      const words = normalizeListQuery(str(args.search, 100));
+      const words = listWords(str(args.search, 100));
       const since = momentOf(args.since);
       if (slug) {
         where.push(`(c.slug = ? OR EXISTS (SELECT 1 FROM k_collection_items i JOIN k_collections m ON m.id = i.collection_id
@@ -191,7 +191,7 @@ export const tasteTools: readonly Tool[] = [
       const [gallery, likes, holding, texts, reviews, removed] = await Promise.all([
         all<{
           seed: string;
-          style: string;
+          style: Style;
           steps: number;
           angle: number;
           legacy_likes_count: number;
@@ -241,11 +241,7 @@ export const tasteTools: readonly Tool[] = [
             oldSite: Number(g?.legacy_likes_count) || 0
           };
           const view = g
-            ? viewSearch({
-                style: g.style as never,
-                steps: Number(g.steps),
-                angle: Number(g.angle)
-              })
+            ? viewSearch({ style: g.style, steps: Number(g.steps), angle: Number(g.angle) })
             : "";
           const about = reviews.get(seed);
           return {

@@ -1,31 +1,37 @@
 import { all, batch, first, run, type Statement } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { isCollectionSlug } from "../../../features/collections/address.ts";
+import {
+  type CollectionItemInput,
+  collectionItem,
+  MAX_COLLECTION_ITEMS,
+  validateCollection
+} from "../../../features/collections/schema.ts";
+import { collectionRecord } from "../../collections/read.ts";
 import {
   appendCollectionItems,
-  type CollectionItemInput,
-  checkTexts,
-  collectionItem,
-  collectionRecord,
   createCollection,
-  isCollectionSlug,
-  MAX_COLLECTION_ITEMS,
-  newId,
+  randomWord,
+  SlugTaken
+} from "../../collections/write.ts";
+import { setLike } from "../../gallery/likes.ts";
+import { type RescoreReport, rescore } from "../../gallery/rescore.ts";
+import { personaIds, SITE_AGENT } from "./personas.ts";
+import {
+  checkTexts,
   type PaletteTextInput,
   paletteTextInput,
-  SlugTaken,
-  setLike,
-  upsertPaletteTexts,
-  validateCollection
-} from "../site.ts";
-import { personaIds, SITE_AGENT } from "./personas.ts";
+  upsertPaletteTexts
+} from "./texts.ts";
 
 /* The seeding queue: likes by a persona and palettes for a collection, each with the time it is due. An admin's app
    fills it ahead (the schedule tool) and the ten-minute job applies what is due (applyQueue).
 
-   A like brings the palette into the gallery as a reader's like does. A collection item only adds: palettes the
-   collection lacks join it, nothing it holds moves or leaves, and its words stay as first written. A palette on the
-   admins' record is never liked or added. Every apply is idempotent, so an item whose claim died is simply due again,
-   and rows are never deleted: done, failed and cancelled rows are the record. */
+   A like is a reader's like, made by a persona through the site's own write (gallery/likes.ts), so the palette joins the
+   gallery and the scores move as for anyone's. A collection item only adds: palettes the collection lacks join it,
+   nothing it holds moves or leaves, and its words stay as first written. A palette on the admins' record is never
+   liked or added. Every apply is idempotent, so an item whose claim died is simply due again, and rows are never
+   deleted: done, failed and cancelled rows are the record. */
 
 type QueueKind = "like" | "collection";
 export const QUEUE_STATUSES = ["due", "running", "done", "failed", "cancelled"] as const;
@@ -169,7 +175,7 @@ export async function enqueue(
         (item, i): Statement => [
           `INSERT INTO k_queue (id, key, agent, kind, actor, payload, label, due_at, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'due', ?) ON CONFLICT(key) DO NOTHING`,
-          newId(),
+          randomWord(20),
           keys[i]!,
           SITE_AGENT,
           item.kind,
@@ -364,7 +370,7 @@ export async function removedSeeds(
     that goes wrong (the database away for a moment) is not the item's doing, and it is tried again later. */
 class Refusal extends Error {}
 
-async function applyLike(env: Pick<Env, "DB">, item: QueueItem) {
+async function applyLike(env: Env, item: QueueItem) {
   const palette = collectionItem(item.payload);
   if (!palette) throw new Refusal("The payload is not a palette.");
   if ((await removedSeeds(env, [palette.seed])).size)
@@ -379,16 +385,12 @@ async function applyLike(env: Pick<Env, "DB">, item: QueueItem) {
     throw new Refusal(
       "The site does not hold this palette: not in the gallery, not in a public collection."
     );
-  // the same writes as a reader's like: a persona's like locks nothing (the lock reads people's likes alone)
-  const done = await setLike(
-    env,
-    { id: item.actor!, role: "user" },
-    { ...palette, liked: true, via: "queue" }
-  );
-  return { seed: palette.seed, liked: done.change === "added", published: done.joined };
+  // a persona's like locks nothing: the lock reads people's likes alone
+  const done = await setLike(env, { id: item.actor!, role: "user" }, { ...palette, liked: true });
+  return { seed: palette.seed, liked: done.change === "new", published: done.joined };
 }
 
-async function applyCollection(env: Pick<Env, "DB">, item: QueueItem) {
+async function applyCollection(env: Env, item: QueueItem) {
   const slug = item.payload.slug;
   if (typeof slug !== "string" || !isCollectionSlug(slug))
     throw new Refusal("The payload names no collection.");
@@ -431,7 +433,7 @@ async function applyCollection(env: Pick<Env, "DB">, item: QueueItem) {
   const { held: texts, refused } = checkTexts(
     sent.filter((text): text is PaletteTextInput => text !== null && !removed.has(text.seed))
   );
-  const written = await upsertPaletteTexts(env, SITE_AGENT, texts);
+  const written = await upsertPaletteTexts(env, texts);
   return {
     slug,
     status,
@@ -449,15 +451,14 @@ export interface QueueReport {
   failed: number;
   retried: number;
   items: { id: string; kind: QueueKind; status: "done" | "failed" | "retried"; result: unknown }[];
+  /** the gallery's scores, computed again because an item was done */
+  scores?: RescoreReport;
 }
 
-/** One pass of the ten-minute job: what is due, claimed one by one so two passes never apply the same item, applied,
-    and written back. The job recomputes the hot scores when any item was done. */
-export async function applyQueue(
-  env: Pick<Env, "DB">,
-  now = Date.now(),
-  limit = APPLY_LIMIT
-): Promise<QueueReport> {
+/** The ten-minute job's step: what is due, claimed one by one so two passes never apply the same item, applied, and
+    written back. When any item was done the gallery's scores are computed again at once, so what a persona liked
+    stands in the hot order before the six-hour pass. Nothing to report when nothing was due. */
+export async function applyQueue(env: Env, now = Date.now()): Promise<QueueReport | undefined> {
   const report: QueueReport = { claimed: 0, done: 0, failed: 0, retried: 0, items: [] };
   await run(
     env.DB,
@@ -469,9 +470,9 @@ export async function applyQueue(
     `SELECT id, kind, actor, payload, label, due_at, status, result FROM k_queue
      WHERE status = 'due' AND due_at <= ? ORDER BY due_at, id LIMIT ?`,
     now,
-    limit
+    APPLY_LIMIT
   );
-  if (!rows.length) return report;
+  if (!rows.length) return undefined;
   const personas = await personaIds(env);
   for (const row of rows) {
     const claim = await run(
@@ -519,5 +520,6 @@ export async function applyQueue(
     report[status]++;
     report.items.push({ id: row.id, kind: item.kind, status, result });
   }
+  if (report.done) report.scores = await rescore(env);
   return report;
 }

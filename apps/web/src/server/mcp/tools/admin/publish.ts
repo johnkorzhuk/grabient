@@ -1,22 +1,27 @@
-import { all } from "@grabient/server/db/d1.ts";
-import { SITE_AGENT } from "../../admin/personas.ts";
-import { removedSeeds } from "../../admin/queue.ts";
-import { parseWhy, recordAction } from "../../admin/record.ts";
-import { logContribution } from "../../admin/reviews.ts";
+import { all, batch, type Statement } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { isCollectionSlug, slugifyTitle } from "../../../../features/collections/address.ts";
+import {
+  type CollectionItemInput,
+  MAX_COLLECTION_ITEMS,
+  validateCollection
+} from "../../../../features/collections/schema.ts";
+import { removeMembership } from "../../../collections/curation.ts";
+import { collectionRecord } from "../../../collections/read.ts";
+import { parseWhy, recordAction } from "../../../collections/record.ts";
 import {
   appendCollectionItems,
-  collectionRecord,
   createCollection,
-  isCollectionSlug,
-  MAX_COLLECTION_ITEMS,
-  publishPalettes,
-  removeAgentCollectionPalette,
   SlugTaken,
-  slugify,
-  updateCollection,
-  upsertPaletteTexts,
-  validateCollection
-} from "../../site.ts";
+  updateCollection
+} from "../../../collections/write.ts";
+import { FIRST_HELD } from "../../../gallery/likes.ts";
+import { forgetGalleryCount } from "../../../gallery/list.ts";
+import { NEW_WEIGHT } from "../../../gallery/scores.ts";
+import { SITE_AGENT } from "../../admin/personas.ts";
+import { removedSeeds } from "../../admin/queue.ts";
+import { logContribution } from "../../admin/reviews.ts";
+import { upsertPaletteTexts } from "../../admin/texts.ts";
 import { answer, flag, list, refuse, shape, str, type Tool, text } from "../../tool.ts";
 import {
   ADMINS,
@@ -35,6 +40,37 @@ import {
 } from "./common.ts";
 
 /* Palettes and collections published as Grabient at once, and palettes taken out of one of its collections. */
+
+/** Lists palettes in the gallery as an account's first like of one does: each dated by when the site first held it,
+    new in the hot order, and counting the likes saved while it stayed out. A palette already there keeps its row. */
+async function publishPalettes(env: Pick<Env, "DB">, items: readonly CollectionItemInput[]) {
+  if (!items.length) return;
+  const now = Date.now();
+  const COUNTED =
+    "legacy_likes_count + (SELECT COUNT(*) FROM k_likes WHERE palette_id = k_palettes.seed)";
+  await batch(env.DB, [
+    ...items.map(
+      (item): Statement => [
+        `INSERT INTO k_palettes (seed, style, steps, angle, created_at, hot) VALUES (?, ?, ?, ?, ${FIRST_HELD}, ?)
+         ON CONFLICT (seed) DO NOTHING`,
+        item.seed,
+        item.style,
+        item.steps,
+        item.angle,
+        now,
+        item.seed,
+        now,
+        NEW_WEIGHT
+      ]
+    ),
+    [
+      `UPDATE k_palettes SET likes_count = ${COUNTED}
+       WHERE seed IN (SELECT value FROM json_each(?)) AND likes_count <> ${COUNTED}`,
+      JSON.stringify(items.map(item => item.seed))
+    ]
+  ]);
+  forgetGalleryCount();
+}
 
 export const publishTools: readonly Tool[] = [
   {
@@ -59,7 +95,7 @@ export const publishTools: readonly Tool[] = [
       if (stopped) return stopped;
       await publishPalettes(c.env, palettes);
       const texts = sent.texts.filter(t => !out.has(t.seed));
-      await upsertPaletteTexts(c.env, SITE_AGENT, texts);
+      await upsertPaletteTexts(c.env, texts);
       await logContribution(c.env, who(c), "gallery_publish", palettes[0]!.seed, {
         palettes: palettes.length,
         titles: texts.length
@@ -134,9 +170,9 @@ export const publishTools: readonly Tool[] = [
         /* the address asked for, else the title's own; a title whose address is taken or reserved takes the title
            with a short word after it */
         const owner = { kind: "agent" as const, id: SITE_AGENT };
-        const own = slugify(valid.input.title);
+        const own = slugifyTitle(valid.input.title);
         const wanted = slug || (isCollectionSlug(own) ? own : "");
-        let made: { slug: string; itemCount: number };
+        let made: Awaited<ReturnType<typeof createCollection>>;
         try {
           made = await createCollection(c.env, owner, valid.input, wanted ? { slug: wanted } : {});
         } catch (error) {
@@ -150,7 +186,7 @@ export const publishTools: readonly Tool[] = [
       }
       if (args.gallery === true) await publishPalettes(c.env, palettes);
       const texts = sent.texts.filter(t => !out.has(t.seed));
-      await upsertPaletteTexts(c.env, SITE_AGENT, texts);
+      await upsertPaletteTexts(c.env, texts);
       await logContribution(c.env, who(c), "collection_publish", at, {
         status,
         added,
@@ -210,8 +246,13 @@ export const publishTools: readonly Tool[] = [
         if (!current) absent.push(seed);
         else if (liked.has(seed)) kept.push(seed);
         else {
-          if (!(await removeAgentCollectionPalette(c.env, record.id, seed, c.grant.userId)))
-            return refuse("This account can no longer change this collection.");
+          const taken = await removeMembership(c.env, "curator", record.id, seed, c.grant.userId);
+          if (!taken.allowed) return refuse("This account can no longer change this collection.");
+          // another change took it out since the collection was read
+          if (!taken.removed) {
+            absent.push(seed);
+            continue;
+          }
           await recordAction(c.env, {
             actorId: c.grant.userId,
             action: "remove",

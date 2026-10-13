@@ -9,8 +9,9 @@ import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
 import { describe, expect, it } from "vitest";
 import skillMd from "../../../skills/grabient/SKILL.md?raw";
+import { recordAction } from "../src/server/collections/record.ts";
+import { createCollection } from "../src/server/collections/write.ts";
 import { applyQueue } from "../src/server/mcp/admin/queue.ts";
-import { recordAction } from "../src/server/mcp/admin/record.ts";
 import { directoryProof } from "../src/server/mcp/directories.ts";
 import discoverGolden from "../src/server/mcp/fixtures/discover-modern-admin.json" with {
   type: "json"
@@ -25,7 +26,6 @@ import accountGolden from "../src/server/mcp/fixtures/tools-account.json" with {
 import adminGolden from "../src/server/mcp/fixtures/tools-admin-only.json" with { type: "json" };
 import wireGolden from "../src/server/mcp/fixtures/wire-errors.json" with { type: "json" };
 import { serveMcp } from "../src/server/mcp/server.ts";
-import { createCollection } from "../src/server/mcp/site.ts";
 import { connect } from "./connect.ts";
 import {
   type Account,

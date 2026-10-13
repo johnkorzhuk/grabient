@@ -1,4 +1,19 @@
-import { all } from "@grabient/server/db/d1.ts";
+import { all, batch } from "@grabient/server/db/d1.ts";
+import { isCollectionSlug, slugifyTitle } from "../../../../features/collections/address.ts";
+import { listWords } from "../../../../lib/words.ts";
+import { signalSite, useRecord } from "../../../palette-use/record.ts";
+import { type CountRow, risingSearches, tally } from "../../../search/counts.ts";
+import { loadVocabulary } from "../../../search/files.ts";
+import { forgetPopular, leadRow, popularLists, rankSearches } from "../../../search/popular.ts";
+import {
+  listScheduled,
+  removeScheduled,
+  SCHEDULE_AHEAD_DAYS,
+  SCHEDULE_DEFAULT_DAYS,
+  SCHEDULE_MAX,
+  SCHEDULE_SPAN_DAYS,
+  scheduleSearches
+} from "../../../search/schedule.ts";
 import { queueLabel } from "../../admin/queue.ts";
 import { logContribution } from "../../admin/reviews.ts";
 import {
@@ -10,29 +25,6 @@ import {
   viewsTaken
 } from "../../admin/signals.ts";
 import { analyticsRows, readUsage } from "../../admin/usage.ts";
-import {
-  type Counted,
-  forgetPopular,
-  isCollectionSlug,
-  leadRow,
-  listScheduled,
-  loadVocabulary,
-  normalizeListQuery,
-  popularLists,
-  rankSearches,
-  removeScheduled,
-  risingSearches,
-  SCHEDULE_AHEAD_DAYS,
-  SCHEDULE_DEFAULT_DAYS,
-  SCHEDULE_MAX,
-  SCHEDULE_SPAN_DAYS,
-  scheduleSearches,
-  searchRecord,
-  signalSite,
-  slugify,
-  tally,
-  useRecord
-} from "../../site.ts";
 import {
   answer,
   entryOf,
@@ -58,11 +50,77 @@ import { CHANGES_SITE, carried, who } from "./common.ts";
 const DAY = 86_400_000;
 /** The last four weeks' search counts, the collections page left out: what the demand and the tags weigh. */
 const recentCounts = (c: ToolContext, today: number) =>
-  all<Counted>(
+  all<CountRow>(
     c.env.DB,
     "SELECT day, page, words, count FROM k_search_counts WHERE day > ? AND page != 'collections'",
     today - 28
   );
+
+/** A search in words the site can't read shows once this many searches made it: one person's never do. */
+const UNREAD_AT_LEAST = 3;
+/** The most rows of unread searches and of search thumbs one read returns, most first. */
+const SEARCH_ROWS_MAX = 300;
+
+/** What people searched for in a window of days: the searches ranked as the tags and search_demand rank them (the
+    year of grabient.com's with the window's counted here added), each page's counts with how many went on to use a
+    result, the words the site can't read, and the thumbs signed-in readers gave a search's palettes, the personas'
+    left out and no account named. */
+async function searchRecord(c: ToolContext, days: number) {
+  const today = Math.floor(Date.now() / DAY);
+  const since = today - days;
+  const [counts, unread, votes] = await batch(c.env.DB, [
+    ["SELECT day, page, words, count, used FROM k_search_counts WHERE day > ?", since],
+    [
+      `SELECT page, words, SUM(count) AS count FROM k_search_unread WHERE day > ? GROUP BY page, words
+       HAVING SUM(count) >= ? ORDER BY count DESC, words LIMIT ?`,
+      since,
+      UNREAD_AT_LEAST,
+      SEARCH_ROWS_MAX
+    ],
+    [
+      `SELECT query AS words, seed, SUM(vote = 1) AS up, SUM(vote = -1) AS down FROM k_search_votes
+       WHERE user_id NOT IN (SELECT user_id FROM k_personas) GROUP BY query, seed
+       ORDER BY down DESC, up DESC, words, seed LIMIT ?`,
+      SEARCH_ROWS_MAX
+    ]
+  ]);
+  const rows = (counts?.results ?? []) as (CountRow & { used: number })[];
+  const vocabulary = await loadVocabulary(c.env);
+  const ranked = vocabulary
+    ? rankSearches(
+        vocabulary,
+        tally(
+          rows.filter(row => row.page !== "collections"),
+          today
+        )
+      )
+    : [];
+  const counted = new Map<string, { page: string; words: string; count: number; used: number }>();
+  for (const row of rows) {
+    const key = `${row.page}\n${row.words}`;
+    const held = counted.get(key) ?? { page: row.page, words: row.words, count: 0, used: 0 };
+    held.count += Number(row.count) || 0;
+    held.used += Number(row.used) || 0;
+    counted.set(key, held);
+  }
+  return {
+    ranked: ranked.map((entry, i) => ({ rank: i + 1, words: entry.words })),
+    counted: [...counted.values()].sort(
+      (a, b) => b.count - a.count || a.words.localeCompare(b.words)
+    ),
+    unread: ((unread?.results ?? []) as { page: string; words: string; count: number }[]).map(
+      row => ({ page: row.page, words: row.words, count: Number(row.count) })
+    ),
+    votes: (
+      (votes?.results ?? []) as { words: string; seed: string; up: number; down: number }[]
+    ).map(row => ({
+      words: row.words,
+      seed: row.seed,
+      up: Number(row.up),
+      down: Number(row.down)
+    }))
+  };
+}
 
 export const readerTools: readonly Tool[] = [
   {
@@ -77,10 +135,7 @@ export const readerTools: readonly Tool[] = [
       if (!vocabulary) return refuse("The search vocabulary is not available here.");
       const today = Math.floor(Date.now() / DAY);
       const limit = num(args.limit, 100, 1, 300);
-      const [counts, record] = await Promise.all([
-        recentCounts(c, today),
-        searchRecord(c.env, { days: 28 })
-      ]);
+      const [counts, record] = await Promise.all([recentCounts(c, today), searchRecord(c, 28)]);
       return answer({
         searches: rankSearches(vocabulary, tally(counts, today))
           .slice(0, limit)
@@ -342,9 +397,10 @@ export const readerTools: readonly Tool[] = [
       const limit = num(args.limit, 20, 1, 100);
       const slug = str(args.collection, 120);
       if (slug && !isCollectionSlug(slug)) return refuse("That is not a collection slug.");
+      // one collection is judged by its own page's use: the searches are read for the whole site alone
       const [record, searches] = await Promise.all([
         useRecord(c.env, { days }),
-        slug ? null : searchRecord(c.env, { days })
+        slug ? null : searchRecord(c, days)
       ]);
       const site = await signalSite(
         c.env,
@@ -354,7 +410,7 @@ export const readerTools: readonly Tool[] = [
       const views = viewsTaken(record, site);
       const edits = editSummary(record);
       const counted = record.uses.length + record.collectionViews.length > 0;
-      if (slug) {
+      if (!searches) {
         const one = collections.find(x => x.slug === slug);
         if (!one) return refuse("No public collection has that slug.");
         return answer({
@@ -369,7 +425,7 @@ export const readerTools: readonly Tool[] = [
         });
       }
       const judged = collections.filter(x => x.enough);
-      const answers = searchAnswers(searches!, site, slugify);
+      const answers = searchAnswers(searches, site, slugifyTitle);
       const stems = new Set(collections.map(x => stemOf(x.slug)));
       return answer({
         days,
@@ -408,8 +464,8 @@ export const readerTools: readonly Tool[] = [
         searches: {
           rate: answers.rate,
           weak: answers.searches.filter(x => x.weak).slice(0, limit),
-          uncovered: (searches?.ranked ?? [])
-            .filter(x => /\p{L}/u.test(x.words) && !stems.has(stemOf(slugify(x.words))))
+          uncovered: searches.ranked
+            .filter(x => /\p{L}/u.test(x.words) && !stems.has(stemOf(slugifyTitle(x.words))))
             .slice(0, limit)
             .map(x => ({ words: x.words, rank: x.rank }))
         },
@@ -438,9 +494,9 @@ export const readerTools: readonly Tool[] = [
     async run(args, c) {
       const days = num(args.days, 28, 1, 90);
       const limit = num(args.limit, 50, 1, 300);
-      const words = normalizeListQuery(str(args.words, 60));
-      const searches = await searchRecord(c.env, { days });
-      const answers = searchAnswers(searches, await signalSite(c.env, []), slugify);
+      const words = listWords(str(args.words, 60));
+      const searches = await searchRecord(c, days);
+      const answers = searchAnswers(searches, await signalSite(c.env, []), slugifyTitle);
       const holds = (x: { words: string }) => !words || x.words.includes(words);
       const kept = answers.searches.filter(holds);
       const pages = new Map<string, { count: number; used: number }>();

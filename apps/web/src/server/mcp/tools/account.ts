@@ -1,8 +1,41 @@
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
-import { STEPS_MAX, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
+import { paletteTitle, readPalette } from "@grabient/engine/name.ts";
+import { isStyle, STEPS_MAX, STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
 import { splitLocale } from "@grabient/i18n";
-import { first } from "@grabient/server/db/d1.ts";
+import { QUERY_MAX } from "@grabient/search/text.ts";
+import { all, first } from "@grabient/server/db/d1.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
+import { PALETTE_TITLE_MAX } from "../../../features/account/wire.ts";
+import { itemKey } from "../../../features/collections/address.ts";
+import {
+  type CollectionItemInput,
+  MAX_COLLECTION_ITEMS,
+  MAX_OWN_COLLECTIONS,
+  validateCollection
+} from "../../../features/collections/schema.ts";
+import type { CollectionSummary } from "../../../features/collections/types.ts";
+import { heldWords, texts as paletteTexts } from "../../collections/files.ts";
+import {
+  collectionBySlug,
+  collectionRecord,
+  collectionsHoldingEach,
+  ownedBy
+} from "../../collections/read.ts";
+import { ownerCollections, publicCollections } from "../../collections/search.ts";
+import {
+  addressAfter,
+  collectionWriteLimits,
+  createCollection,
+  deleteCollection,
+  ownCollectionCount,
+  ownCollectionsFull,
+  updateCollection
+} from "../../collections/write.ts";
+import { likeLimits, likeTitle, publishLimits, savedCount, setLike } from "../../gallery/likes.ts";
+import { galleryItems, listPalettes } from "../../gallery/list.ts";
+import { countSearch } from "../../search/counts.ts";
+import { searchableItems } from "../../search/seams.ts";
+import { type SearchResult, searchPalettes, unreadPalette } from "../../search/search.ts";
 import { adjustPalette, readChange } from "../adjust.ts";
 import { paletteNamed } from "../args.ts";
 import {
@@ -18,43 +51,6 @@ import {
   type ViewGiven
 } from "../cards.ts";
 import { colorsToPalette, details, hexColor, paletteNotes, quoted } from "../colors.ts";
-import {
-  addressAfter,
-  type CollectionItemInput,
-  type CollectionSummary,
-  collectionBySlug,
-  collectionRecord,
-  collectionsHoldingEach,
-  collectionWriteLimits,
-  countSearch,
-  createCollection,
-  deleteAccountCollection,
-  heldWords,
-  knownPaletteItems,
-  likeLimits,
-  listPalettes,
-  MAX_COLLECTION_ITEMS,
-  MAX_OWN_COLLECTIONS,
-  ownCollectionCount,
-  ownCollectionsFull,
-  ownerCollections,
-  PALETTE_TITLE_MAX,
-  type PaletteText,
-  paletteTexts,
-  paletteTitle,
-  paletteTitleInput,
-  publicCollections,
-  publishLimits,
-  QUERY_MAX,
-  type SearchResult,
-  savedCount,
-  searchableItems,
-  searchPalettes,
-  setLike,
-  unreadPalette,
-  updateCollection,
-  validateCollection
-} from "../site.ts";
 import {
   ALWAYS_LOAD,
   answer,
@@ -85,15 +81,14 @@ import { viewData } from "../view.ts";
 
 const place = (c: ToolContext, path: string) => `${c.origin}/${path}`;
 const savedPage = (c: ToolContext) => place(c, "palettes/saved");
+type PaletteText = Awaited<ReturnType<typeof paletteTexts>>[number];
 /** What a palette is called: its written title where its colors bear it out, or what its colors call it in its view. */
 const titleOf = (s: Shown, written?: PaletteText) =>
-  heldWords(written, s.palette)?.title ?? paletteTitle(s.palette, s);
+  heldWords(written, s.palette)?.title ??
+  paletteTitle(readPalette(s.palette, s.style, s.steps), s.style);
 /** A palette a call named, in the view an answer draws it in. */
 const drawn = (given: PaletteGiven, held?: ViewGiven): Shown =>
   shown(given.seed, decodePalette(given.seed)!, given, held);
-/** A palette in one view, as a collection holds it: two views of one palette are two items. */
-const itemKey = (item: { seed: string; style: string; steps: number; angle: number }) =>
-  `${item.seed} ${item.style} ${item.steps} ${item.angle}`;
 
 /** Rows a list read, as its cards: each in the view it is kept in, under its title on Grabient. */
 async function cardsOf<Row extends { kseed: string; style: string; steps: number; angle: number }>(
@@ -121,7 +116,7 @@ async function cardsOf<Row extends { kseed: string; style: string; steps: number
   });
 }
 
-const summaryOf = (c: ToolContext, s: CollectionSummary) => ({
+const summaryOf = (c: ToolContext, s: Omit<CollectionSummary, "preview">) => ({
   slug: s.slug,
   url: place(c, s.slug),
   title: s.title,
@@ -274,9 +269,9 @@ export const accountTools: readonly Tool[] = [
           offset: before,
           request: c.request,
           ctx: c.ctx,
-          who: c.grant.userId,
+          payer: { app: c.grant.userId },
           self: false,
-          colors: colors as string[]
+          colors: colors.filter(color => color !== null)
         });
       } catch (error) {
         if (error instanceof RangeError)
@@ -347,11 +342,19 @@ export const accountTools: readonly Tool[] = [
       limit: whole("How many a page, default 12.", 1, 24)
     }),
     async run(args, c) {
-      const page = await publicCollections(c.env, {
-        query: (args.query as string | undefined) ?? "",
-        page: args.page as number | undefined,
-        limit: (args.limit as number | undefined) ?? 12
-      });
+      const query = (args.query as string | undefined) ?? "";
+      /* the most saved first; words are read as a list's search reads them, the model within the account's own
+         allowance; each collection's first palettes are read by position, since no card is drawn of them */
+      const page = await publicCollections(
+        c.env,
+        {
+          query,
+          sort: "popular",
+          page: args.page as number | undefined,
+          limit: (args.limit as number | undefined) ?? 12
+        },
+        { model: !!query, request: c.request, ctx: c.ctx, who: c.grant.userId, previews: "first" }
+      );
       return answer({
         total: page.total,
         page: page.page,
@@ -382,8 +385,8 @@ export const accountTools: readonly Tool[] = [
     async run(args, c) {
       const slug = slugOf(args.slug);
       const record = slug ? await collectionRecord(c.env, slug) : null;
-      const mine = record?.owner.kind === "user" && record.owner.id === c.grant.userId;
-      const doc = record && (await collectionBySlug(c.env, slug, mine ? record.owner : undefined));
+      const mine = !!record && ownedBy(record, { kind: "user", id: c.grant.userId });
+      const doc = record && (await collectionBySlug(c.env, slug, mine));
       if (!doc) return refuse("No collection of yours and no public one has this address.");
       const page = (args.page as number | undefined) ?? 1;
       const limit = (args.limit as number | undefined) ?? 48;
@@ -483,7 +486,7 @@ export const accountTools: readonly Tool[] = [
       const seeds = [...new Set(given.map(one => one.seed))];
       const [views, gallery, texts, holding] = await Promise.all([
         searchableItems(c.env, seeds),
-        knownPaletteItems(c.env, seeds),
+        galleryItems(c.env.DB, seeds),
         paletteTexts(c.env, seeds),
         collectionsHoldingEach(c.env, seeds, 6)
       ]);
@@ -553,7 +556,7 @@ export const accountTools: readonly Tool[] = [
       const notes: string[] = [];
       for (const one of asked) {
         const s = drawn(one, views.get(one.seed));
-        const title = paletteTitleInput(one.title);
+        const title = likeTitle(one.title);
         const tile = placed.find(other => itemKey(other.s) === itemKey(s));
         if (tile) tile.title ??= title;
         else {
@@ -593,24 +596,24 @@ export const accountTools: readonly Tool[] = [
       const rows =
         offset >= total
           ? []
-          : (
-              await c.env.DB.prepare(
-                `SELECT own.palette_id AS kseed, own.style, own.steps, own.angle, own.created_at AS at, own.title,
-                   COALESCE(p.likes_count, 0) AS likes
-                 FROM k_likes own LEFT JOIN k_palettes p ON p.seed = own.palette_id WHERE own.user_id = ?
-                 ORDER BY own.created_at DESC, own.palette_id LIMIT ? OFFSET ?`
-              )
-                .bind(c.grant.userId, Math.min(limit, total - offset), offset)
-                .all<{
-                  kseed: string;
-                  style: string;
-                  steps: number;
-                  angle: number;
-                  at: number;
-                  title: string | null;
-                  likes: number;
-                }>()
-            ).results;
+          : await all<{
+              kseed: string;
+              style: string;
+              steps: number;
+              angle: number;
+              at: number;
+              title: string | null;
+              likes: number;
+            }>(
+              c.env.DB,
+              `SELECT own.palette_id AS kseed, own.style, own.steps, own.angle, own.created_at AS at, own.title,
+                 COALESCE(p.likes_count, 0) AS likes
+               FROM k_likes own LEFT JOIN k_palettes p ON p.seed = own.palette_id WHERE own.user_id = ?
+               ORDER BY own.created_at DESC, own.palette_id LIMIT ? OFFSET ?`,
+              c.grant.userId,
+              Math.min(limit, total - offset),
+              offset
+            );
       // a title the account gave is marked, so a model never tells a person that a name Grabient made is theirs
       return answer({
         total,
@@ -649,10 +652,9 @@ export const accountTools: readonly Tool[] = [
       const saving = given.saved !== false;
       /* the account's own label for its own like: nobody else reads it, so its words are not held to the colors as the
          gallery's titles are. Only a save reads it, so a refused title never keeps a palette saved */
-      const title =
-        saving && given.title !== undefined ? paletteTitleInput(given.title) : undefined;
+      const title = saving && given.title !== undefined ? likeTitle(given.title) : undefined;
       if (title === null) return refuse(`title is 1 to ${PALETTE_TITLE_MAX} characters.`);
-      const stopped = await writeLimited(c, likeLimits(c.grant.userId));
+      const stopped = await writeLimited(c, likeLimits(c.grant.userId, "mcp"));
       if (stopped) return stopped;
       // a palette a public collection holds joins the gallery in its view there, so no save redraws it for others
       const held = saving
@@ -681,7 +683,7 @@ export const accountTools: readonly Tool[] = [
       );
       // the view the like is kept in, which for a palette saved before is its first
       const s = shown(asked.seed, asked.palette, {
-        style: done.style ?? asked.style,
+        style: isStyle(done.style) ? done.style : asked.style,
         steps: done.steps ?? asked.steps,
         angle: done.angle ?? asked.angle
       });
@@ -717,7 +719,8 @@ export const accountTools: readonly Tool[] = [
       const page = await ownerCollections(
         c.env,
         { kind: "user", id: c.grant.userId },
-        { page: args.page as number | undefined, limit: (args.limit as number | undefined) ?? 12 }
+        { page: args.page as number | undefined, limit: (args.limit as number | undefined) ?? 12 },
+        { previews: false }
       );
       return answer({
         total: page.total,
@@ -751,8 +754,7 @@ export const accountTools: readonly Tool[] = [
       const owner = { kind: "user" as const, id: c.grant.userId };
       const slug = slugOf(args.slug);
       const record = slug ? await collectionRecord(c.env, slug) : null;
-      const own = record?.owner.kind === "user" && record.owner.id === owner.id;
-      if (args.slug !== undefined && !own)
+      if (args.slug !== undefined && !(record && ownedBy(record, owner)))
         return refuse("No collection of yours has this address.");
       const before = record?.input.items ?? [];
       const has = (seed: string) => before.find(item => item.seed === seed);
@@ -796,7 +798,7 @@ export const accountTools: readonly Tool[] = [
         return refuse(
           `This account already keeps ${MAX_OWN_COLLECTIONS} collections. Delete one first.`
         );
-      const stopped = await writeLimited(c, collectionWriteLimits(owner.id));
+      const stopped = await writeLimited(c, collectionWriteLimits(owner.id, "mcp"));
       if (stopped) return stopped;
       // who sees it stays as it is: making one public is the site's own form's, for an admin
       const input = {
@@ -857,12 +859,12 @@ export const accountTools: readonly Tool[] = [
     async run(args, c) {
       const slug = slugOf(args.slug);
       const record = slug ? await collectionRecord(c.env, slug) : null;
-      if (record?.owner.kind !== "user" || record.owner.id !== c.grant.userId)
+      if (!record || !ownedBy(record, { kind: "user", id: c.grant.userId }))
         return refuse("No collection of yours has this address.");
-      const stopped = await writeLimited(c, collectionWriteLimits(c.grant.userId));
+      const stopped = await writeLimited(c, collectionWriteLimits(c.grant.userId, "mcp"));
       if (stopped) return stopped;
       // held to the account's own in the write itself, whatever its role
-      if (!(await deleteAccountCollection(c.env, record.id, c.grant.userId)))
+      if (!(await deleteCollection(c.env, record.id, c.grant.userId, { own: true })))
         return refuse("The collection could not be deleted.");
       return answer({ deleted: record.slug });
     }

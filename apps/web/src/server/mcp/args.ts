@@ -1,9 +1,16 @@
+import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { parseView } from "@grabient/engine/view.ts";
+import { legacySeed } from "../seo/legacy.ts";
 import type { PaletteGiven } from "./cards.ts";
-import { canonicalPaletteSeed } from "./site.ts";
 
 /* An account tool's arguments, read against its JSON schema before it runs: a call learns in a sentence what was wrong
    and what is taken. The admins' tools read their own (tool.ts str, num, items, entryOf). */
+
+/** A palette's canonical seed, from its seed or an old grabient.com id the legacy maps hold. */
+function canonicalPaletteSeed(raw: string): string | null {
+  const palette = decodePalette(legacySeed(raw) ?? raw);
+  return palette ? encodePalette(palette) : null;
+}
 
 /** A palette as a call names it: its seed, or its address on any origin, in any language, with or without a file's
     ending, or its card's address. A seed names no view; an address names a whole one, as its page draws it: what its
