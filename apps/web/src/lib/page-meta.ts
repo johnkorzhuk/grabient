@@ -130,7 +130,7 @@ export interface PageMeta {
   image: string;
   imageAlt: string;
   themeColor?: string;
-  /** the page as Markdown, for an agent that reads rather than looks: a palette's and a collection's */
+  /** the page as Markdown, for an agent that reads text: a palette's and a collection's */
   markdown?: string;
   /** the same page in each language it is indexed in, x-default last */
   alternates?: readonly Alternate[];

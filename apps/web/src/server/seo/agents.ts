@@ -1,7 +1,7 @@
 import { LIMITS, type LimitName } from "../limits/config.ts";
 
-/* What a program reads instead of a page: the guide at /llms.txt in the llmstxt.org form (a title, a summary, then
-   sections of links), the whole reference at /llms-full.txt, the MCP server's card, and the catalog at
+/* What agents and programs read: the guide at /llms.txt in the llmstxt.org form (a title, a summary, then sections
+   of links), the whole reference at /llms-full.txt, the MCP server's card, and the catalog at
    /.well-known/ai-catalog.json that leads to the card. The tools, protocol versions and the server's own words are the
    MCP server's, handed in, so the files never name a tool it lacks. */
 

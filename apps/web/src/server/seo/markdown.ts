@@ -9,10 +9,10 @@ import { AGENT_DATA } from "./agents.ts";
 import { legacySeed } from "./legacy.ts";
 import { isoDay } from "./text.ts";
 
-/* A palette or a collection as Markdown, at its address plus .md: for an agent that reads rather than looks. A
-   palette's is the engine's, with what only the database knows: the words written for it that its colors bear out,
-   and the public collections that hold it. A collection's says its words, then every palette with its colors and its
-   address. Both are English, out of search results, and name their page as canonical. */
+/* A palette or a collection as Markdown at its address plus .md, for an agent that reads text. A palette's is the
+   engine's, with what only the database knows: the words written for it that its colors bear out, and the public
+   collections that hold it. A collection's says its words, then every palette with its colors and its address. Both are
+   English, out of search results, and name their page as canonical. */
 
 /** A public collection as its files read it. */
 export interface CollectionWords {

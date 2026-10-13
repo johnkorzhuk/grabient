@@ -6,9 +6,9 @@ import type { Env } from "../env.ts";
 import { indexed, publicOrigin } from "./site.ts";
 
 /* IndexNow (indexnow.org): the site tells Bing, and the engines that share what it is told, which pages are new or
-   changed, so they read them within minutes instead of on their next pass over the sitemaps. An engine takes a list
-   only with the site's key, which the site serves at /{key}.txt. Only production has a key, and only the indexed deploy
-   sends one, so staging and the Previews never do.
+   changed, and they read them within minutes; a page the sitemaps alone name waits for an engine's next pass. An
+   engine takes a list only with the site's key, which the site serves at /{key}.txt. Only production has a key, and
+   only the indexed deploy sends one, so staging and the Previews never do.
 
    Every ten minutes the scheduled job sends the palettes the gallery took, the public collections that changed and the
    collections newly translated since the last list, at most 10,000 addresses at once, and keeps in KV how far it has
