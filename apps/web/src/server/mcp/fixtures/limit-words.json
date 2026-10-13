@@ -1,0 +1,42 @@
+{
+  "mcpAccount": "This account's limit of 120 tool calls a minute is reached. Try again in 60 minutes.",
+  "mcpAccountDaily": "This account's limit of 5,000 tool calls a day is reached. Try again in 60 minutes.",
+  "mcpAccountBudget": "Grabient's limit for every account together, 500,000 tool calls a day, is reached. Try again in 60 minutes.",
+  "mcpList": "This account's limit of 600 requests to connect or list tools a minute is reached. Try again in 60 minutes.",
+  "mcpListDaily": "This account's limit of 20,000 requests to connect or list tools a day is reached. Try again in 60 minutes.",
+  "mcpAdmin": "This account's limit of 1,200 tool calls a minute is reached. Try again in 60 minutes.",
+  "mcpAdminItemsDay": "The admins' shared limit of 100,000 palettes and items written a day is reached. Try again in 60 minutes.",
+  "mcpLikesDaily": "Grabient's limit for every connected app together, 5,000 saves a day, is reached. Try again in 60 minutes.",
+  "mcpPublishDaily": "This account's limit of 50 saves of palettes new to Grabient a day is reached. Try again in 60 minutes.",
+  "mcpCollectionWritesSite": "Grabient's limit for every connected app together, 500 collection changes a day, is reached. Try again in 60 minutes.",
+  "collectionWrite": "This account's limit of 30 collection changes an hour is reached. Try again in 60 minutes.",
+  "curation": "This account's limit of 600 curation changes an hour is reached. Try again in 60 minutes.",
+  "toggleLike": "This account's limit of 20 saves a minute is reached. Try again in 60 minutes.",
+  "limiterDown": "The limiter could not be reached. Try again shortly.",
+  "waitWords": [
+    [
+      1,
+      "1 second"
+    ],
+    [
+      89,
+      "89 seconds"
+    ],
+    [
+      90,
+      "2 minutes"
+    ],
+    [
+      5399,
+      "90 minutes"
+    ],
+    [
+      5400,
+      "2 hours"
+    ],
+    [
+      86400,
+      "24 hours"
+    ]
+  ]
+}
