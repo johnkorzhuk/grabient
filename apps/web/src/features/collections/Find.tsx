@@ -3,13 +3,14 @@ import { localHref, t } from "@grabient/i18n";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
 import { createEffect, createSignal, Errored, Loading, onCleanup } from "solid-js";
+import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
+import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
 import { countSearch } from "../search/count.ts";
 import { SearchField } from "../search/SearchField.tsx";
 import { SearchTags } from "../search/SearchTags.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import styles from "./collections.module.css";
-import { arrivedWhole, FIELD_MAX, readField, typedWords } from "./field.ts";
 import { followInPlace } from "./navigation.ts";
 import { type ListPlace, type ListView, listSearch, listView, pageSearch } from "./params.ts";
 import { failed, ownQuery, tagsQuery } from "./queries.ts";
@@ -118,7 +119,7 @@ export function Find(props: {
     if ("open" in read) return void navigate({ href: read.open });
     const words = read.words;
     const lower = words.toLowerCase();
-    if (!read.palette) {
+    if (!paletteId(words)) {
       if (counted && !mine()) countSearch(words, "collections");
       /* the collection whose title was typed out opens: on Saved one of the account's own */
       const at = location.href;

@@ -2,7 +2,7 @@ import { decodePalette, encodePalette } from "@grabient/engine";
 import type { Snapshot } from "@grabient/search/snapshot.ts";
 import { harmonyFilter, normalizeQuery } from "@grabient/search/text.ts";
 import { seedVector } from "@grabient/search/vectors.ts";
-import { paletteId } from "../../features/collections/query.ts";
+import { paletteId } from "../../lib/words.ts";
 import { isCrawler } from "../crawlers.ts";
 import { loadModel, loadVocabulary, phraseVector, type Vocabulary } from "../search/files.ts";
 import { keep } from "../search/kept.ts";

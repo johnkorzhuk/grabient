@@ -8,7 +8,7 @@ import {
   isPrivateSlug,
   slugifyTitle
 } from "../../features/collections/address.ts";
-import { collectionParams } from "../../features/collections/query.ts";
+import { collectionParams } from "../../features/collections/params.ts";
 import { validateCollection } from "../../features/collections/schema.ts";
 import { NO_STORE } from "../../lib/cache.ts";
 import { askedLocale, localizeCollections } from "../mcp/admin/translations.ts";

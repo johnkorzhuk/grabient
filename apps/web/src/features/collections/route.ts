@@ -5,6 +5,7 @@ import type { QueryClient } from "@tanstack/solid-query";
 import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { type CollectionFacts, pageHead } from "../../lib/page-meta.ts";
+import { listWords } from "../../lib/words.ts";
 import { type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
 import {
   COLLECTION_LIMIT,
@@ -23,7 +24,6 @@ import {
   failed,
   tagsQuery
 } from "./queries.ts";
-import { listQuery } from "./query.ts";
 import type { CollectionDocument, CollectionPage, RisingFrame } from "./types.ts";
 
 /* What the collections' routes share: an address read into the place its page draws, the reads a loader puts in the
@@ -65,7 +65,7 @@ export function listPlace(
   return {
     order,
     frame: frameOf(frame),
-    query: listQuery(params.get("q")),
+    query: listWords(params.get("q")),
     page: intIn(params.get("page"), 1, 10_000) ?? 1,
     limit: intIn(params.get("limit"), 12, COLLECTION_LIMIT) ?? COLLECTION_LIMIT,
     view: listView(params)
@@ -128,7 +128,7 @@ export async function loadCollection(
   if (!isServer) throw redirect({ href: at.publicHref, reloadDocument: true });
   const params = new URLSearchParams(at.searchStr);
   const search = listSearch(
-    { query: listQuery(slugWords(at.slug)), view: listView(params) },
+    { query: listWords(slugWords(at.slug)), view: listView(params) },
     params.has("selection")
   );
   throw redirect({

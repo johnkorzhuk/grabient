@@ -1,5 +1,6 @@
 import { isStyle, parseSize, STEPS_MAX, STEPS_MIN, type Style } from "@grabient/engine/view.ts";
 import type { Order } from "@grabient/ui/ListNav.tsx";
+import { listWords } from "../../lib/words.ts";
 import type { CollectionSort, RisingFrame } from "./types.ts";
 
 /* The collections lists' and a collection page's addresses: their query read the one way the server and the browser
@@ -111,3 +112,24 @@ export const listKey = (place: ListPlace): CollectionListParams => ({
   page: place.page,
   limit: place.limit
 });
+
+/** A collections list's query as its address or the API sends it. A public list's page is 12 to COLLECTION_LIMIT
+    collections, anything else the default; an account's own list reads up to `maxLimit` at once. */
+export function collectionParams(
+  params: URLSearchParams,
+  maxLimit = COLLECTION_LIMIT
+): CollectionListParams {
+  const sort = params.get("sort");
+  return {
+    query: listWords(params.get("q")),
+    sort:
+      sort === "oldest" || sort === "popular" || sort === "hot" || sort === "rising"
+        ? sort
+        : "newest",
+    frame: sort === "rising" ? frameOf(params.get("frame")) : undefined,
+    page: intIn(params.get("page"), 1, 10_000) ?? 1,
+    limit: intIn(params.get("limit"), 12, maxLimit) ?? COLLECTION_LIMIT
+  };
+}
+export const ownParams = (params: URLSearchParams) =>
+  collectionParams(params, OWN_COLLECTION_LIMIT);

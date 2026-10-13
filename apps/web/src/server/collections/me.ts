@@ -3,8 +3,7 @@ import { json, overLimit } from "@grabient/server/auth/http.ts";
 import type { Env } from "@grabient/server/env.ts";
 import * as v from "valibot";
 import { isCollectionSlug, itemKey } from "../../features/collections/address.ts";
-import { COLLECTION_LIMIT } from "../../features/collections/params.ts";
-import { ownParams } from "../../features/collections/query.ts";
+import { COLLECTION_LIMIT, ownParams } from "../../features/collections/params.ts";
 import {
   CollectionItem,
   type CollectionItemInput,

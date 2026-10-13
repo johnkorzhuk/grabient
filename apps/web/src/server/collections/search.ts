@@ -1,7 +1,6 @@
 import { normalizeQuery } from "@grabient/search/text.ts";
 import { all, first, replica } from "@grabient/server/db/d1.ts";
 import { COLLECTION_LIMIT, frameOf } from "../../features/collections/params.ts";
-import { listQuery } from "../../features/collections/query.ts";
 import { MAX_COLLECTION_ITEMS, MAX_OWN_COLLECTIONS } from "../../features/collections/schema.ts";
 import type {
   CollectionHit,
@@ -9,6 +8,7 @@ import type {
   CollectionSort,
   RisingFrame
 } from "../../features/collections/types.ts";
+import { listWords } from "../../lib/words.ts";
 import {
   folded,
   holds,
@@ -220,7 +220,7 @@ export async function publicCollections(
   input: ListInput = {},
   options: SearchOptions = {}
 ): Promise<CollectionPage> {
-  const query = listQuery(input.query);
+  const query = listWords(input.query);
   const sort: CollectionSort = input.sort ?? "newest";
   const risen = frameOf(input.frame);
   const frame = sort === "rising" && risen !== "1w" ? risen : undefined;
@@ -321,7 +321,7 @@ export async function ownerCollections(
 ): Promise<CollectionPage> {
   const page = bounded(input.page, 1, 1, 10_000);
   const limit = bounded(input.limit, COLLECTION_LIMIT, 1, 96);
-  const query = listQuery(input.query);
+  const query = listWords(input.query);
   const strip = options.previews ?? "page";
   if (!query) {
     const [count, rows] = await Promise.all([
@@ -433,7 +433,7 @@ export async function suggestCollections(
   raw = "",
   limit = 12
 ): Promise<CollectionHit[]> {
-  const query = listQuery(raw);
+  const query = listWords(raw);
   const n = Math.max(1, Math.min(24, Math.floor(limit) || 12));
   const rows = await publicTitles({ DB: replica(env) });
   if (!query) {
