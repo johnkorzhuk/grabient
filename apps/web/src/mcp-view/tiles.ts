@@ -2,8 +2,8 @@ import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { cssLine, gradientCss } from "@grabient/engine/css.ts";
 import { type Stop, sampleStops } from "@grabient/engine/curve.ts";
 import type { Language } from "@grabient/engine/message.ts";
-import type { Palette } from "@grabient/engine/palette.ts";
 import { seedName } from "@grabient/engine/name.ts";
+import type { Palette } from "@grabient/engine/palette.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
 import { SWATCH_FILES, type SwatchFormat } from "@grabient/engine/swatches.ts";
 import {
@@ -47,19 +47,27 @@ export interface Tile extends TileView {
   title?: string;
 }
 
-const named = (input: object, names: readonly string[]) => Object.keys(input).every(name => names.includes(name));
+const named = (input: object, names: readonly string[]) =>
+  Object.keys(input).every(name => names.includes(name));
 /** Text as the server reads it: composed, never folded, and trimmed. */
 const typed = (v: unknown): unknown => (typeof v === "string" ? v.normalize("NFC").trim() : v);
 /** A whole number as the server reads one: the number, or one written as text. */
 const whole = (v: unknown): number =>
-  typeof v === "number" ? v : typeof v === "string" && NUMBER.test(v.trim()) ? Number(v) : Number.NaN;
+  typeof v === "number"
+    ? v
+    : typeof v === "string" && NUMBER.test(v.trim())
+      ? Number(v)
+      : Number.NaN;
 
 /** A text's characters as a reader counts them (an emoji with its joiners), or its code points where the browser
     cannot tell them apart. */
 function characters(text: string): string[] {
   const Segmenter = (Intl as { Segmenter?: typeof Intl.Segmenter }).Segmenter;
   return Segmenter
-    ? Array.from(new Segmenter(undefined, { granularity: "grapheme" }).segment(text), part => part.segment)
+    ? Array.from(
+        new Segmenter(undefined, { granularity: "grapheme" }).segment(text),
+        part => part.segment
+      )
     : Array.from(text);
 }
 
@@ -95,7 +103,9 @@ function paletteOf(seed: string): ({ palette: Palette } & Partial<TileView>) | n
     return null;
   }
   const last = url.pathname.split("/").filter(Boolean).pop() ?? "";
-  const palette = decodePalette(last.replace(/\.[a-z0-9]+$/i, "")) ?? decodePalette(url.searchParams.get("seed") ?? "");
+  const palette =
+    decodePalette(last.replace(/\.[a-z0-9]+$/i, "")) ??
+    decodePalette(url.searchParams.get("seed") ?? "");
   if (!palette) return null;
   const { style, steps, angle } = parseView(url.searchParams);
   return { palette, style, steps, angle };
@@ -104,20 +114,35 @@ function paletteOf(seed: string): ({ palette: Palette } & Partial<TileView>) | n
 /** One palette of a call as the server reads it, or null where the server refuses it. */
 function paletteItem(raw: unknown): (TileView & { seed: string; title?: string }) | null {
   const input = typeof raw === "string" ? { seed: raw } : raw;
-  if (!input || typeof input !== "object" || Array.isArray(input) || !named(input, ITEM)) return null;
+  if (!input || typeof input !== "object" || Array.isArray(input) || !named(input, ITEM))
+    return null;
   const given = input as Record<string, unknown>;
   const seed = typed(given.seed);
   const title = typed(given.title);
   const said = typeof seed === "string" ? paletteOf(seed) : null;
-  if (!said || (title != null && (typeof title !== "string" || title.length > TITLE_MAX))) return null;
+  if (!said || (title != null && (typeof title !== "string" || title.length > TITLE_MAX)))
+    return null;
   // a field beside the seed wins over the address's, null is a field left out, and a number may come as text
   const style = typed(given.style) ?? said.style ?? DEFAULT_STYLE;
   const steps = whole(given.steps ?? said.steps ?? DEFAULT_STEPS);
   const angle = whole(given.angle ?? said.angle ?? DEFAULT_ANGLE);
-  if (!isStyle(style) || !Number.isInteger(steps) || !Number.isInteger(angle) || angle < 0 || angle > 360) return null;
+  if (
+    !isStyle(style) ||
+    !Number.isInteger(steps) ||
+    !Number.isInteger(angle) ||
+    angle < 0 ||
+    angle > 360
+  )
+    return null;
   // steps out of range are brought into it, never below the palette's keyframes
   const floor = Math.max(STEPS_MIN, said.palette.anchors.length);
-  return { seed: encodePalette(said.palette), style, steps: Math.min(STEPS_MAX, Math.max(floor, steps)), angle, title: titleOf(title) };
+  return {
+    seed: encodePalette(said.palette),
+    style,
+    steps: Math.min(STEPS_MAX, Math.max(floor, steps)),
+    angle,
+    title: titleOf(title)
+  };
 }
 
 const sameView = (a: TileView & { seed: string }, b: TileView & { seed: string }) =>
@@ -146,14 +171,22 @@ export function tilesFromArguments(args: unknown): Tile[] | null {
 }
 
 const record = (value: unknown): Record<string, unknown> | null =>
-  value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
 
 /** A tile as an answer carries it, checked: an answer is data, never trusted to be well formed. In the view's own data
     a title is the tile's own; in the words only one marked `own` is. */
 function tileOf(raw: unknown, at: number, words: boolean): Tile | null {
   const value = record(raw);
   const palette = typeof value?.seed === "string" ? decodePalette(value.seed) : null;
-  if (!value || !palette || !isStyle(value.style) || !Number.isInteger(value.steps) || !Number.isInteger(value.angle))
+  if (
+    !value ||
+    !palette ||
+    !isStyle(value.style) ||
+    !Number.isInteger(value.steps) ||
+    !Number.isInteger(value.angle)
+  )
     return null;
   const title = !words || value.own === true ? titleOf(value.title) : undefined;
   const floor = Math.max(STEPS_MIN, palette.anchors.length);
@@ -182,7 +215,10 @@ const originOf = (raw: unknown): string | undefined => {
 export function sheetFromResult(result: unknown): { tiles: Tile[]; origin?: string } | null {
   const answer = record(result);
   if (!answer || answer.isError) return null;
-  let data = [record(answer._meta)?.[VIEW_DATA], answer.structuredContent].map(record).find(held => held?.tiles) ?? null;
+  let data =
+    [record(answer._meta)?.[VIEW_DATA], answer.structuredContent]
+      .map(record)
+      .find(held => held?.tiles) ?? null;
   const words = !data;
   if (words && Array.isArray(answer.content)) {
     const block = answer.content.map(record).find(part => part?.type === "text");
@@ -193,9 +229,14 @@ export function sheetFromResult(result: unknown): { tiles: Tile[]; origin?: stri
     }
   }
   const raw = Array.isArray(data?.tiles) ? data.tiles.slice(0, SHEET_MAX) : [];
-  const tiles = raw.map((tile, i) => tileOf(tile, i, words)).filter((tile): tile is Tile => tile !== null);
+  const tiles = raw
+    .map((tile, i) => tileOf(tile, i, words))
+    .filter((tile): tile is Tile => tile !== null);
   if (!tiles.length) return null;
-  return { tiles, origin: originOf(data?.origin) ?? raw.map(tile => originOf(record(tile)?.url)).find(Boolean) };
+  return {
+    tiles,
+    origin: originOf(data?.origin) ?? raw.map(tile => originOf(record(tile)?.url)).find(Boolean)
+  };
 }
 
 /* What a tile draws and hands over, all from its seed and view */
@@ -207,13 +248,19 @@ export function stopsOf(tile: { seed: string; steps: number }): Stop[] {
 }
 /** The picture's CSS background, as a card on the site draws it. */
 export const artOf = (stops: readonly Stop[], view: TileView) =>
-  gradientCss(stops.map(stop => stop.hex), view.style, view.angle);
+  gradientCss(
+    stops.map(stop => stop.hex),
+    view.style,
+    view.angle
+  );
 /** What CSS copies: the one OKLCH line a gallery card copies, so one strip copies the same thing everywhere. */
-export const cssOf = (stops: readonly Stop[], view: TileView) => cssLine(stops, view.style, view.angle, "oklch");
+export const cssOf = (stops: readonly Stop[], view: TileView) =>
+  cssLine(stops, view.style, view.angle, "oklch");
 /** The site's own SVG file of this view, at the view's size, crediting the site. */
 export const svgOf = (stops: readonly Stop[], tile: Tile, origin: string) =>
   artworkSvg(stops, tile, tile.seed, origin || undefined);
-const query = (tile: Tile) => viewSearch({ style: tile.style, steps: tile.steps, angle: tile.angle });
+const query = (tile: Tile) =>
+  viewSearch({ style: tile.style, steps: tile.steps, angle: tile.angle });
 /** The palette's page on the site, in this view. */
 export const paletteUrl = (origin: string, tile: Tile) => `${origin}/${tile.seed}${query(tile)}`;
 export type FileFormat = "svg" | "png" | "css" | "md" | SwatchFormat;

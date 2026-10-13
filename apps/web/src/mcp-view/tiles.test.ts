@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import golden from "./fixtures/view-tiles.json" with { type: "json" };
-import { chosenWords, type FileFormat, fileUrl, sheetFromResult, type Tile, tilesFromArguments } from "./tiles.ts";
+import {
+  chosenWords,
+  type FileFormat,
+  fileUrl,
+  sheetFromResult,
+  type Tile,
+  tilesFromArguments
+} from "./tiles.ts";
 
 const SEED = "kSWUkczDNDewdRK";
 const TILE: Tile = { tile: 2, seed: SEED, style: "radialSwatches", steps: 5, angle: 90 };
@@ -22,8 +29,24 @@ describe("the view's tiles", () => {
             type: "text",
             text: JSON.stringify({
               tiles: [
-                { tile: 1, seed: SEED, url: `https://grabient.com/${SEED}`, title: "By colors", style: "linearGradient", steps: 7, angle: 90 },
-                { tile: 2, seed: "kQf5EOWSTcQ", title: "Mine", own: true, style: "linearSwatches", steps: 3, angle: 90 }
+                {
+                  tile: 1,
+                  seed: SEED,
+                  url: `https://grabient.com/${SEED}`,
+                  title: "By colors",
+                  style: "linearGradient",
+                  steps: 7,
+                  angle: 90
+                },
+                {
+                  tile: 2,
+                  seed: "kQf5EOWSTcQ",
+                  title: "Mine",
+                  own: true,
+                  style: "linearSwatches",
+                  steps: 3,
+                  angle: 90
+                }
               ]
             })
           }
@@ -34,7 +57,9 @@ describe("the view's tiles", () => {
         _meta: {
           "com.grabient/view": {
             origin: "https://grabient.com",
-            tiles: [{ tile: 1, seed: SEED, style: "linearGradient", steps: 7, angle: 90, title: "Mine" }]
+            tiles: [
+              { tile: 1, seed: SEED, style: "linearGradient", steps: 7, angle: 90, title: "Mine" }
+            ]
           }
         }
       }
@@ -45,6 +70,8 @@ describe("the view's tiles", () => {
   it("tell the model the palette a person chose, and name its files in its view", () => {
     expect(chosenWords(TILE, "https://grabient.com")).toBe(golden.chosenWords);
     const formats: FileFormat[] = ["svg", "png", "css", "md", "tokens", "ase"];
-    expect(formats.map(format => fileUrl("https://grabient.com", TILE, format))).toEqual(golden.fileUrl);
+    expect(formats.map(format => fileUrl("https://grabient.com", TILE, format))).toEqual(
+      golden.fileUrl
+    );
   });
 });
