@@ -32,6 +32,7 @@ import { Route as DotwellKnownArdDotjsonRouteImport } from './routes/[.]well-kno
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiBuildRouteImport } from './routes/api/build'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
+import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as ApiPaletteRouteImport } from './routes/api/palette'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
@@ -191,6 +192,11 @@ const ApiBuildRoute = ApiBuildRouteImport.update({
 const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
   id: '/api/client-error',
   path: '/api/client-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiContactRoute = ApiContactRouteImport.update({
+  id: '/api/contact',
+  path: '/api/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiGeoRoute = ApiGeoRouteImport.update({
@@ -463,6 +469,7 @@ export interface FileRoutesByFullPath {
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/contact': typeof ApiContactRoute
   '/api/geo': typeof ApiGeoRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
@@ -532,6 +539,7 @@ export interface FileRoutesByTo {
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/contact': typeof ApiContactRoute
   '/api/geo': typeof ApiGeoRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
@@ -602,6 +610,7 @@ export interface FileRoutesById {
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/client-error': typeof ApiClientErrorRoute
+  '/api/contact': typeof ApiContactRoute
   '/api/geo': typeof ApiGeoRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
@@ -673,6 +682,7 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/api/build'
     | '/api/client-error'
+    | '/api/contact'
     | '/api/geo'
     | '/api/palette'
     | '/api/palette.json'
@@ -742,6 +752,7 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/api/build'
     | '/api/client-error'
+    | '/api/contact'
     | '/api/geo'
     | '/api/palette'
     | '/api/palette.json'
@@ -811,6 +822,7 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/api/build'
     | '/api/client-error'
+    | '/api/contact'
     | '/api/geo'
     | '/api/palette'
     | '/api/palette.json'
@@ -881,6 +893,7 @@ export interface RootRouteChildren {
   ApiSplatRoute: typeof ApiSplatRoute
   ApiBuildRoute: typeof ApiBuildRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
+  ApiContactRoute: typeof ApiContactRoute
   ApiGeoRoute: typeof ApiGeoRoute
   ApiPaletteRoute: typeof ApiPaletteRoute
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
@@ -1089,6 +1102,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/client-error'
       fullPath: '/api/client-error'
       preLoaderRoute: typeof ApiClientErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/contact': {
+      id: '/api/contact'
+      path: '/api/contact'
+      fullPath: '/api/contact'
+      preLoaderRoute: typeof ApiContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/geo': {
@@ -1425,6 +1445,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSplatRoute: ApiSplatRoute,
   ApiBuildRoute: ApiBuildRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
+  ApiContactRoute: ApiContactRoute,
   ApiGeoRoute: ApiGeoRoute,
   ApiPaletteRoute: ApiPaletteRoute,
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,

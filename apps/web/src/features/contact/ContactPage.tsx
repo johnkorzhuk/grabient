@@ -1,3 +1,4 @@
+import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
 import { msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { CopyLine } from "@grabient/ui/CopyLine.tsx";
@@ -8,7 +9,6 @@ import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { createSignal } from "solid-js";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
-import { CONTACT_EMAIL } from "../../app/site.ts";
 import styles from "./Contact.module.css";
 import { CONTACT_INVALID, ContactInput, EMAIL_MAX, MESSAGE_MAX } from "./input.ts";
 

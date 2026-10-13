@@ -1,15 +1,11 @@
 import { t } from "@grabient/i18n";
 import type { FrameLink } from "@grabient/ui/PageFrame.tsx";
 import { getRouteApi } from "@tanstack/solid-router";
+import { GITHUB_REPO } from "../lib/page-meta.ts";
 import { marked } from "./connection.ts";
 
 /* The links the frame offers on every page, in the reader's language and the address's: a frame's link is a plain
    link, which the app routes itself (navigation.ts), so it carries the page's language prefix like any other. */
-
-/** Grabient's code on GitHub. */
-export const GITHUB_REPO = "https://github.com/johnkorzhuk/grabient";
-/** Where people write to Grabient: the Contact page shows it, and the contact form's messages go to it. */
-export const CONTACT_EMAIL = "hello@grabient.com";
 
 /** What the server knows of the site itself and every page draws by, read before the first render (the root route's
     loader) and sent with the document, so both sides draw the same and no page asks for it. */
