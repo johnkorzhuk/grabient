@@ -2,8 +2,9 @@ import catalogs from "virtual:i18n/assets";
 import { LOCALE_INFO, locale, t } from "@grabient/i18n";
 import type { JSX } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
-import { createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/solid-router";
+import { createRootRouteWithContext, HeadContent, redirect, Scripts } from "@tanstack/solid-router";
 import { BASE_CSS, BOOT_SCRIPT } from "../app/boot.ts";
+import { newerBuild } from "../app/build-watch.ts";
 import { NotFound } from "../app/NotFound.tsx";
 import { NO_STORE } from "../lib/cache.ts";
 
@@ -11,6 +12,10 @@ import { NO_STORE } from "../lib/cache.ts";
 const FONTS = ["/fonts/poppins-latin-500-normal.woff2", "/fonts/poppins-latin-700-normal.woff2"];
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // a deploy happened since this page loaded: the next page loads whole, with the build that serves it
+  beforeLoad: ({ location }) => {
+    if (newerBuild()) throw redirect({ href: location.publicHref, reloadDocument: true });
+  },
   // a page says how long it may be kept; one that says nothing is kept nowhere
   headers: () => NO_STORE,
   head: () => {

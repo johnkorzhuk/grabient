@@ -31,3 +31,19 @@ for (const { address, lang, landed, next } of PAGES) {
     expect(errors).toEqual([]);
   });
 }
+
+test("after a deploy, the next page loads whole with the build that serves it", async ({
+  page
+}) => {
+  await page.goto("/");
+  await page.waitForFunction(() => !("$_TSR" in window));
+  // an answer from another build than the page's own
+  await page.route("**/api/build", route =>
+    route.fulfill({ status: 204, headers: { "Server-Timing": 'build;desc="newer"' } })
+  );
+  await page.evaluate(() => fetch("/api/build"));
+  await page.evaluate(() => Object.assign(window, { sameDocument: true }));
+  await Promise.all([page.waitForEvent("load"), page.locator("main a").click()]);
+  expect(new URL(page.url()).pathname).toBe("/palettes");
+  expect(await page.evaluate(() => "sameDocument" in window)).toBe(false);
+});
