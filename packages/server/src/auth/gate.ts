@@ -1,5 +1,6 @@
 import { deletionEmailLimits, signInEmailLimits } from "../email/send.ts";
 import type { Env } from "../env.ts";
+import { flagOff } from "../flags/flags.ts";
 import { clientAddress } from "../limits/address.ts";
 import {
   json,
@@ -44,6 +45,7 @@ const OLD_AUTHORIZE = "/api/auth/oauth2/authorize";
 // Nothing the site sends the library is more than a few hundred bytes.
 const BODY_MAX = 2048;
 const EMAIL_BUSY = "Email sign-in is busy. Try again later.";
+const EMAIL_BUSY_GOOGLE = "Email sign-in is busy. Try again later or use Google.";
 
 /** The same request carrying only the fields a route may pass on. */
 function withBody(request: Request, body: Record<string, unknown>): Request {
@@ -99,6 +101,12 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
     return json({ error: "Google sign-in isn't available here. Use email." }, 503);
   }
   const emailed = path === LINK || path === CODE;
+  // while an admin has email off, a link or a code is refused before it is counted or stored, and Google still works
+  if (emailed && (await flagOff(env, "email"))) {
+    return json({ error: google(env) ? EMAIL_BUSY_GOOGLE : EMAIL_BUSY }, 503, {
+      "Retry-After": "300"
+    });
+  }
   if (!emailed) {
     // Asking to delete an account sends an email and has the tighter allowance.
     const limited = await overLimit(env, [

@@ -31,6 +31,8 @@ export interface Picture {
   kind: "card" | "png" | "montage";
   /** A share card: kept in R2, and the site's card stands in when it cannot be drawn. */
   branded: boolean;
+  /** A palette's own picture: the address of its SVG in the same view and size, which stands in while drawing is off. */
+  svg?: string;
   /** Everything the pixels depend on, in order: the key is their hash, so one picture has one key. */
   parts: readonly unknown[];
   width: number;
@@ -54,30 +56,32 @@ export const failure = (status: number, message: string, headers: Record<string,
   });
 const unavailable = () => failure(503, "Image temporarily unavailable");
 
-/* The site's card (public/grabient.png), a static file: a shared link still unfurls as Grabient while a card cannot be
-   drawn. Kept a few minutes by the browser and never by the edge, so the palette's own card is drawn once drawing is
-   back. */
-const siteCard = (request: Request) =>
+/* What stands in for a picture that is not drawn now, kept a few minutes by the browser and never by the edge, so the
+   picture itself is drawn once drawing is back. For a card it is the site's card (public/grabient.png), a static file:
+   a shared link still unfurls as Grabient. */
+const standIn = (request: Request, address: string) =>
   new Response(null, {
     status: 302,
     headers: {
-      Location: new URL("/grabient.png", request.url).toString(),
+      Location: new URL(address, request.url).toString(),
       "Cache-Control": "public, max-age=300",
       "CDN-Cache-Control": "no-store",
       ...ANY_SITE
     }
   });
+const siteCard = (request: Request) => standIn(request, "/grabient.png");
 
-/** While an admin has drawing turned off: the site's card for a share card, a refusal for any other picture; null
-    while it is on. A picture a cache holds is still served, so this stands after the caches, or before reads that only
-    a drawing needs. */
+/** While an admin has drawing turned off: the site's card for a share card, the palette's SVG for its own picture, a
+    refusal for a picture of several palettes; null while it is on. A picture a cache holds is still served, so this
+    stands after the caches, or before reads that only a drawing needs. */
 export async function drawingPaused(
   request: Request,
   env: Pick<Env, "DB">,
-  branded: boolean
+  picture: Pick<Picture, "branded" | "svg">
 ): Promise<Response | null> {
   if (!(await flagOff(env, "share-images"))) return null;
-  return branded ? siteCard(request) : unavailable();
+  if (picture.branded) return siteCard(request);
+  return picture.svg ? standIn(request, picture.svg) : unavailable();
 }
 
 /* One call counts the address's minute in this isolate, then a picture larger than a card against the large pictures'
@@ -137,8 +141,7 @@ export async function answerPicture(
     return new Response(kept.body, { headers: { ...headers, "X-Cache": "HIT" } });
   }
   const refused =
-    (await drawingPaused(request, env, picture.branded)) ??
-    (await overLimit(request, env, picture));
+    (await drawingPaused(request, env, picture)) ?? (await overLimit(request, env, picture));
   if (refused) {
     countUsage(env, "image", picture.kind, "refused");
     return refused;

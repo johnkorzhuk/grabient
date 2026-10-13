@@ -32,6 +32,7 @@ import {
   SAVED_CLIENT_IDS,
   trustedRedirect
 } from "./clients.ts";
+import { makeRoomForGrant } from "./connections.ts";
 import { clientIdAllowed, requester } from "./limits.ts";
 import { decodeResume, tooLong } from "./resume.ts";
 import { authorizationServer } from "./server.ts";
@@ -248,6 +249,7 @@ export async function consentAnswer(
     body.admin === true &&
     kind === "saved" &&
     (await accountRole(env, session.user.id)) === "admin";
+  await makeRoomForGrant(env, origin, session.user.id);
   const { redirectTo } = await oauth.completeAuthorization({
     request: approved.request,
     userId: session.user.id,

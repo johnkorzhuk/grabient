@@ -2,7 +2,14 @@ import { insufficientScope, type OAuthResourceContext } from "@cloudflare/worker
 import { NO_STORE, readBytes } from "@grabient/server/auth/http.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
-import { checkLimits, type LimitCheck, mcpListLimits } from "@grabient/server/limits/check.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import {
+  checkLimits,
+  knownLimit,
+  type LimitCheck,
+  mcpListLimits
+} from "@grabient/server/limits/check.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
 import { appName, MCP_PATH } from "../oauth/clients.ts";
 import {
   discovery,
@@ -11,7 +18,6 @@ import {
   RESOURCE_METADATA_PATH,
   resourceServer
 } from "../oauth/server.ts";
-import { countUsage } from "@grabient/server/usage/count.ts";
 import { readArgs } from "./args.ts";
 import { instructions, serverInfo, type Tier } from "./info.ts";
 import {
@@ -194,12 +200,29 @@ export async function serveMcp(
     if (from !== null && !/^[a-z][a-z0-9+.-]*:\/\/[^\s/]+$/i.test(from))
       return refused(request, { error: "Invalid Origin." }, 403);
   }
-  /* Nothing here remembers a token or counts an address: a refused token costs its one read each time, and a good one
-     is never stopped by what else its address sent (an app's servers carry every account's tokens from a few). */
-  const bearer = /^Bearer\s/i.test(request.headers.get("Authorization") ?? "");
+  /* A token of the library's shape costs a KV read to look up. The lookups that found nothing are counted by address in
+     this isolate, and past mcpChallenge in a minute that address's tokens are refused before the read, a good one with
+     them: an app's servers carry every account's tokens from a few addresses, so the allowance is a wide one. A request
+     with no such token is read nowhere and never counted. */
+  const authorization = request.headers.get("Authorization") ?? "";
+  const bearer = /^Bearer\s/i.test(authorization);
+  const lookup = /^Bearer[\t ]+([^\s,]+)$/i.exec(authorization)?.[1]?.split(":").length === 3;
+  const challenge: LimitCheck = [
+    `mcp-challenge:${clientAddress(request) ?? "local"}`,
+    "mcpChallenge"
+  ];
+  const stopped = lookup ? knownLimit(env, challenge) : null;
+  if (stopped) {
+    countUsage(env, "mcp", "challenge", "token", "limited", url.pathname);
+    return refused(request, { error: "Too many requests. Try again later." }, 429, {
+      "Retry-After": String(Math.max(1, stopped.reset - Math.floor(Date.now() / 1000)))
+    });
+  }
   const response = await server.fetch(request, env, context);
-  if (response.status === 401)
+  if (response.status === 401) {
     countUsage(env, "mcp", "challenge", bearer ? "token" : "none", "refused", url.pathname);
+    if (lookup) await checkLimits(env, [challenge]);
+  }
   const spent = timings.header();
   if (!spent || response.status === 401) return response;
   const timed = new Response(response.body, response);

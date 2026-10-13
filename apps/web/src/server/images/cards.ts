@@ -3,6 +3,7 @@
    it. */
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
+import { viewSearch } from "@grabient/engine/view.ts";
 import { type Saved, viewAt } from "../files/address.ts";
 import type { Resolved } from "../files/resolve.ts";
 import { MARK_FIXED } from "./mark.ts";
@@ -68,6 +69,7 @@ export function palettePicture(
     {
       kind: "png",
       branded: false,
+      svg: `/${found.seed}.svg${viewSearch({ ...view, size: { width, height } })}`,
       parts: ["palette", found.seed, view.style, view.steps, view.angle, width, height, false],
       width,
       height,
