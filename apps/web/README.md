@@ -44,6 +44,22 @@ hydration fetches nothing, and a later navigation, or a hover's preload, GETs th
 A page that does not exist throws `notFound()`; the root route alone has a not-found component. A page route with one of
 its own would turn a render error into an empty 200.
 
+## The frame
+
+The root route renders the document and, as its component, the frame every page stands in (`src/app/Shell.tsx`): the
+water, the header with the wordmark and its corner, the keys, the toast line and the embed notice. It stays mounted as
+pages change. A route says how it is framed in its `staticData` (`src/app/shell.ts`): `frame` (`app`, `brand` or
+`sheet`), `corner` (the tools before the theme button: a list's `ListAppearance`, the editor's own), `still` and
+`moving` (the water under reduced motion), `translated` (the language menu lets crawlers follow) and `strip`. Its loader
+may return `paint`, the palettes the bar and the water show from the first render on both sides. A page whose palettes
+change as the reader works hands them in with `useContext(ShellContext).paint(() => palettes)`, and its own keys with
+`.keys(() => bindings)`, each for as long as it is mounted.
+
+A page's content stands in `AppPage` (the content, then the footer) or `BrandFrame` (the side navigation, one pane and
+the footer) from `src/app/Frames.tsx`; both end in the language menu. A plain `<a>` to one of the site's pages is the
+app's own navigation (`src/app/navigation.ts`), as a `<Link>` is, except a link with a target, a download or `hreflang`.
+The page's undo (`src/app/undo.ts`) is Mod+Z on every page: a feature records a step with `record({ undo, redo })`.
+
 ## API routes and files
 
 `src/routes/api/<name>.ts` with `server: { handlers: { GET } }`, its input checked with Valibot, its answer from
