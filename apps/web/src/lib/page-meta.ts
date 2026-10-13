@@ -374,6 +374,9 @@ const TRANSLATED = new Set<Page["kind"]>([
   "mcp",
   "contact"
 ]);
+/** Whether a page's copy in each language is indexed and names the others: the language menu follows its links. */
+export const translatedPage = (page: Page) =>
+  TRANSLATED.has(page.kind) && !("query" in page && page.query);
 
 const pagedTitle = (title: string, page = 1) =>
   page > 1 ? t("{title}, page {page}", { title, page }) : title;
@@ -872,7 +875,7 @@ export function pageMeta(page: Page, origin = siteOrigin()): PageMeta {
   const indexed = !meta.robots.startsWith("noindex");
   const readsIn =
     page.kind === "collection" ? (page.collection?.languages ?? []).filter(isLocale) : [];
-  if (TRANSLATED.has(page.kind) && !("query" in page && page.query)) {
+  if (translatedPage(page)) {
     if (indexed) meta.alternates = alternatesOf(path, origin);
   } else if (readsIn.length && (locale() === DEFAULT_LOCALE || readsIn.includes(locale()))) {
     if (indexed) meta.alternates = alternatesOf(path, origin, [DEFAULT_LOCALE, ...readsIn]);
