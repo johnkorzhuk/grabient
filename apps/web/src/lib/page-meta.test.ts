@@ -418,3 +418,92 @@ describe("the origin a page's addresses name", () => {
     }
   });
 });
+
+test("every kind of page, in every language, fits its description in 160 characters", () => {
+  const P = decodePalette("kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ")!;
+  const facts = {
+    title: "A collection whose title runs long enough to fill a search result's line",
+    description: "Every gradient a long winter night shows. ".repeat(6),
+    tags: ["night", "winter"],
+    count: 100,
+    createdAt: 1,
+    updatedAt: 2
+  };
+  const kinds = new Set<Page["kind"]>();
+  const pages: Page[] = [
+    { kind: "home" },
+    { kind: "home", page: 999_999 },
+    { kind: "home", query: "warm sunset gradients with a long tail of words", page: 12 },
+    { kind: "home", query: "kS7Q8Yy5S_SChv0" },
+    { kind: "list", order: "popular", page: 1_000_000 },
+    { kind: "list", order: "rising", frame: "1y", page: 2 },
+    { kind: "search", query: "x".repeat(100), order: "rising", frame: "3m", page: 40 },
+    { kind: "search", query: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", order: "popular" },
+    { kind: "saved", query: "red", page: 3 },
+    { kind: "collections", order: "popular", page: 10_000 },
+    { kind: "collections", order: "rising", frame: "1y", query: "y".repeat(100) },
+    { kind: "collections", order: "popular", query: "kS7Q8Yy5S_SChv0" },
+    { kind: "own-collections", query: "blue", page: 2 },
+    { kind: "collection", slug: "winter", order: "popular" },
+    { kind: "collection", slug: "winter", order: "rising", collection: facts },
+    {
+      kind: "collection",
+      slug: "winter",
+      order: "popular",
+      collection: { ...facts, description: "" }
+    },
+    {
+      kind: "collection",
+      slug: "@ada/winter",
+      order: "popular",
+      collection: { ...facts, unlisted: true }
+    },
+    {
+      kind: "palette",
+      seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+      palette: P,
+      view: { style: "radialSwatches", steps: 100, angle: 360 }
+    },
+    {
+      kind: "palette",
+      seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+      palette: P,
+      view: { style: "linearGradient", steps: 8, angle: 90 },
+      written: { title: "Winter", description: facts.description }
+    },
+    ...(
+      [
+        "about",
+        "bindings",
+        "mcp",
+        "newsletter",
+        "privacy",
+        "terms",
+        "contact",
+        "login",
+        "connect",
+        "unsubscribe",
+        "settings"
+      ] as const
+    ).map(kind => ({ kind })),
+    { kind: "notfound", path: `/${"z".repeat(300)}` },
+    { kind: "legacy", path: "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa" }
+  ];
+  for (const locale of LOCALES) {
+    current = locale;
+    for (const page of pages) {
+      kinds.add(page.kind);
+      const meta = pageMeta(page, PRODUCTION_ORIGIN);
+      const label = `${locale} ${page.kind}: ${meta.description}`;
+      expect(meta.description.length, label).toBeLessThanOrEqual(DESCRIPTION_MAX);
+      expect(meta.title.length, label).toBeGreaterThan(0);
+      // a later page keeps its own words before it says which page it is
+      if ("page" in page && (page.page ?? 1) > 1) {
+        const first = pageMeta({ ...page, page: 1 }, PRODUCTION_ORIGIN).description;
+        const bare = (text: string) => text.replace(/[\u2068\u2069]/g, "");
+        expect(bare(meta.description).startsWith(bare(first).slice(0, 20)), label).toBe(true);
+      }
+    }
+  }
+  expect(kinds.size).toBe(21);
+});

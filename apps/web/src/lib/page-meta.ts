@@ -213,12 +213,10 @@ export function clipWords(text: string, max = DESCRIPTION_MAX, sentence = 60): s
 function fitted(words: string, forms: readonly ((words: string) => string)[]): string {
   const first = (w: string) =>
     forms.map(form => form(w)).find(text => text.length <= DESCRIPTION_MAX);
-  const room = DESCRIPTION_MAX - forms[forms.length - 1]("").length;
-  return (
-    first(words) ??
-    first(clipWords(words, Math.max(0, room), 20)) ??
-    clipWords(forms[forms.length - 1](""))
-  );
+  const last = forms[forms.length - 1];
+  /* measured with a word in place: a right-to-left language sets the words between isolation marks */
+  const room = DESCRIPTION_MAX - (last("x").length - 1);
+  return first(words) ?? first(clipWords(words, Math.max(0, room), 20)) ?? clipWords(last(""));
 }
 
 /** A style as a title says it after a palette's name: "Light yellow to pink linear gradient". */
