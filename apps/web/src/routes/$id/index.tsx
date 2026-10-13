@@ -27,7 +27,7 @@ export const Route = createFileRoute("/$id/")({
   loader: async ({ params, deps }) => ({ palette: await paletteData(params.id, deps.search) }),
   headers: ({ loaderData }) => (loaderData?.palette ? PALETTE_PAGE : NO_STORE),
   head: ({ loaderData }) => (loaderData?.palette ? paletteHead(loaderData.palette) : {}),
-  staticData: { frame: "app", corner: EditorCorner },
+  staticData: { frame: "app", corner: EditorCorner, strip: true },
   pendingComponent: Static,
   component: Address
 });

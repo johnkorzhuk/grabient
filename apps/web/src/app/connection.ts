@@ -29,8 +29,8 @@ export function watchConnection(): void {
   installed = true;
   setLive(true);
   setBrowserOffline(!navigator.onLine);
-  addEventListener("online", () => setBrowserOffline(false));
-  addEventListener("offline", () => setBrowserOffline(true));
+  window.addEventListener("online", () => setBrowserOffline(false));
+  window.addEventListener("offline", () => setBrowserOffline(true));
   const entry = performance.getEntriesByType("navigation")[0] as
     | PerformanceNavigationTiming
     | undefined;
@@ -41,15 +41,15 @@ export function watchConnection(): void {
       () => {
         setUnreached(false);
         clearInterval(timer);
-        removeEventListener("online", ask);
-        removeEventListener("focus", ask);
+        window.removeEventListener("online", ask);
+        window.removeEventListener("focus", ask);
       },
       () => {}
     );
   };
   const timer = setInterval(ask, 5_000);
-  addEventListener("online", ask);
-  addEventListener("focus", ask);
+  window.addEventListener("online", ask);
+  window.addEventListener("focus", ask);
 }
 
 /** Pages whose words are in the code, which open with no connection: a palette's too, which the browser draws. */

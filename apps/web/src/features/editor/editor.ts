@@ -5,10 +5,12 @@ import { addKeyframe, anchorHueWalls, type Lock, removeKeyframes } from "@grabie
 import { clamp } from "@grabient/engine/math.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
 import { clampSize, type SizeChoice, type Style, sizeParam } from "@grabient/engine/view.ts";
+import { t } from "@grabient/i18n";
 import type { PickMode } from "@grabient/ui/Keyframes.tsx";
 import { keyPress } from "@grabient/ui/keys.ts";
 import { isServer } from "@solidjs/web";
 import { createMemo, createSignal, onCleanup, onSettled, untrack } from "solid-js";
+import { toast } from "../../app/toast.ts";
 import {
   edited,
   nextRedo,
@@ -17,6 +19,7 @@ import {
   undo as undoPage,
   walkEdits
 } from "../../app/undo.ts";
+import { trackTool } from "../analytics/analytics.ts";
 import type { Locks, SeedPage } from "./address.ts";
 import { createEdits, type EditsSnapshot } from "./edits.ts";
 import * as ops from "./ops.ts";
@@ -233,8 +236,17 @@ export function createPaletteEditor(
   }
 
   /* the view: never a step of the undo, never a history entry */
-  const markSet = (part: keyof Opened["set"]) =>
+  const markSet = (part: keyof Opened["set"]) => {
+    trackTool(part);
     setOpened(o => ({ ...o, set: { ...o.set, [part]: true } }));
+  };
+  /* a change told once a page as the tool that made it (analytics.ts) */
+  const tool =
+    <A extends unknown[]>(name: string, run: (...args: A) => void) =>
+    (...args: A) => {
+      trackTool(name);
+      run(...args);
+    };
 
   return {
     palette,
@@ -277,48 +289,58 @@ export function createPaletteEditor(
 
     /* the keyframes' numbers and the plots */
     nudge(i: number, axis: Axis, v: number, start = now()) {
+      trackTool("plot");
       write(ops.nudgedTo(start, nowHeld(), i, axis, v));
     },
     heldMean: (axis: "l" | "c") => ops.heldMean(palette(), held(), axis),
-    setHeldMean: (axis: "l" | "c", v: number) => write(ops.setHeldMean(now(), nowHeld(), axis, v)),
+    setHeldMean(axis: "l" | "c", v: number) {
+      trackTool(axis === "l" ? "lightness" : "chroma");
+      write(ops.setHeldMean(now(), nowHeld(), axis, v));
+    },
     /** a keyframe held alone as a hex: typed, a step of its own; picked, part of the picker's gesture */
     setHex(hex: string, alone = true): boolean {
       const i = lead();
       const next = i >= 0 ? hexKeyframe(now(), i, hex) : null;
       if (!next) return false;
+      trackTool(alone ? "hex" : "picker");
       write(next, alone);
       return true;
     },
     lightnessEnds: () => ops.lightnessEnds(palette()),
-    setLightnessEnds: (a: number, b: number) => write(ops.withLightnessEnds(now(), a, b)),
-    shiftLightness: (by: number) => {
+    setLightnessEnds: tool("lightness", (a: number, b: number) =>
+      write(ops.withLightnessEnds(now(), a, b))
+    ),
+    shiftLightness: tool("lightness", (by: number) => {
       const next = ops.lightnessShifted(now(), by);
       if (next !== now()) write(next);
-    },
+    }),
     chromaPeak: () => ops.chromaPeak(palette()),
-    setChromaPeak: (v: number) => write(shapes.chroma(now(), v), false, true),
+    setChromaPeak: tool("chroma", (v: number) => write(shapes.chroma(now(), v), false, true)),
     hueStart: () => ops.hueStart(palette()),
-    setHueStart: (wheel: number) => write(ops.hueRotated(now(), wheel)),
-    setHeldHue: (wheel: number) => write(ops.heldHueTo(now(), nowHeld(), wheel)),
+    setHueStart: tool("hue", (wheel: number) => write(ops.hueRotated(now(), wheel))),
+    setHeldHue: tool("hue", (wheel: number) => write(ops.heldHueTo(now(), nowHeld(), wheel))),
     travel: () => ops.travel(palette()),
     travelRange: () => ops.travelRange(palette()),
-    setTravel: (v: number) => write(shapes.travel(now(), v), false, true),
+    setTravel: tool("travel", (v: number) => write(shapes.travel(now(), v), false, true)),
     travelSpan: () => ops.travelSpan(held(), K()),
     spanTravel: () => ops.spanTravelOf(palette(), ops.travelSpan(held(), K())),
     spanTravelRange: () => ops.spanTravelRange(palette(), ops.travelSpan(held(), K())),
-    setSpanTravel: (v: number) =>
-      write(ops.withSpanTravel(now(), ops.travelSpan(nowHeld(), untrack(K)), v)),
+    setSpanTravel: tool("travel", (v: number) =>
+      write(ops.withSpanTravel(now(), ops.travelSpan(nowHeld(), untrack(K)), v))
+    ),
 
     /* the presses */
     addKeyframe() {
       const next = addKeyframe(now(), nowHeld());
       if (!next) return;
+      trackTool("add_keyframe");
       write(next.palette, true);
       setHold(next.held);
     },
     removeKeyframes() {
       const next = removeKeyframes(now(), nowHeld());
       if (!next) return;
+      trackTool("remove_keyframe");
       write(next.palette, true);
       setHold(next.held);
     },
@@ -326,18 +348,24 @@ export function createPaletteEditor(
     canStraighten: () => ops.canStraighten(palette(), held()),
     straightened: () => ops.straightened(palette(), held()),
     straighten() {
-      if (ops.canStraighten(now(), nowHeld())) write(ops.straightened(now(), nowHeld()), true);
+      if (!ops.canStraighten(now(), nowHeld())) return;
+      trackTool("straighten");
+      write(ops.straightened(now(), nowHeld()), true);
+      toast(t("Lightness straightened."));
     },
     canReverse: () => ops.canReverse(held()),
     reversed: () => ops.reversed(palette(), held()),
     reverse() {
-      if (ops.canReverse(nowHeld())) write(ops.reversed(now(), nowHeld()), true);
+      if (!ops.canReverse(nowHeld())) return;
+      trackTool("reverse");
+      write(ops.reversed(now(), nowHeld()), true);
     },
     inverted: () => ops.inverted(palette(), held()),
-    invert: () => write(ops.inverted(now(), nowHeld()), true),
+    invert: tool("invert", () => write(ops.inverted(now(), nowHeld()), true)),
     locked: (k: Lock) => ops.keptLocks(locks(), partial()).includes(k),
-    toggleLock: (k: Lock) =>
-      setLocks(l => ops.toggledLocks(l, ops.isPartial(nowHeld(), untrack(K)), k)),
+    toggleLock: tool("lock", (k: Lock) =>
+      setLocks(l => ops.toggledLocks(l, ops.isPartial(nowHeld(), untrack(K)), k))
+    ),
     canRandom: () => ops.canRandom(locks(), partial()),
     /** Random keeps the keyframe count. A partial hold keeps its keyframes held for the next roll; a new palette lets
         them go, since the keyframes held are not the ones now on screen. */
@@ -345,6 +373,7 @@ export function createPaletteEditor(
       const kept = untrack(locks);
       if (!ops.canRandom(kept, ops.isPartial(nowHeld(), untrack(K)))) return;
       const next = ops.rolled(now(), nowHeld(), kept);
+      trackTool("random");
       if (!next.kept) setHold([]);
       write(next.palette, true);
     },
@@ -352,8 +381,8 @@ export function createPaletteEditor(
     /* the undo: the palette's edits walked with the page's steps (app/undo.ts) */
     canUndo: () => nextUndo() !== null,
     canRedo: () => nextRedo() !== null,
-    undo: () => void undoPage(),
-    redo: () => void redoPage(),
+    undo: tool("undo", () => void undoPage()),
+    redo: tool("redo", () => void redoPage()),
     /** the palette an undo would bring back, for a hover to show; none when it takes back a step, which is no palette */
     undoValue: tracked(() => (nextUndo() === "edit" ? decoded(edits.undoValue()) : null)),
     redoValue: tracked(() => (nextRedo() === "edit" ? decoded(edits.redoValue()) : null)),
@@ -374,6 +403,7 @@ export function createPaletteEditor(
     },
     /** Parts of the view let go (all three with none named): as the page opened, steps kept to the keyframes. */
     letViewGo(...parts: (keyof Opened["set"])[]) {
+      trackTool("reset_view");
       const was = untrack(opened);
       const all = parts.length ? parts : (["style", "steps", "angle"] as const);
       if (all.includes("style")) setStyle(was.style);

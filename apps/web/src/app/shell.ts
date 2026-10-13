@@ -25,8 +25,11 @@ declare module "@tanstack/solid-router" {
     moving?: boolean;
     /** the tools the header's corner holds before the theme: a list's appearance, the editor's own */
     corner?: Component;
-    /** the page's words are the site's own and translated, so each language's copy is indexed */
+    /** the page's words are the site's own and translated, so each language's copy is indexed, unsearched */
     translated?: boolean;
+    /** the page pins its stops along the foot of the screen (the editor): a note the frame floats stands over the
+        artwork's top corner instead */
+    strip?: boolean;
   }
 }
 

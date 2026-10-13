@@ -34,9 +34,16 @@ import {
 } from "solid-js";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
-import { likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
+import { likeCount, liked, refreshCounts, toggleLike } from "../account/likes.ts";
 import { account, loginHref } from "../account/session.ts";
-import { selected, toggle as toggleSelected } from "../selection/selection.ts";
+import { trackSignInPrompt } from "../analytics/analytics.ts";
+import { useInEditor } from "../palette-use/use.ts";
+import {
+  loadSelection,
+  roomNote,
+  selected,
+  toggle as toggleSelected
+} from "../selection/selection.ts";
 import { Actions, AxisRow } from "./Controls.tsx";
 import { Corner, type Panel } from "./Corner.tsx";
 import styles from "./Editor.module.css";
@@ -48,7 +55,6 @@ import { editorBindings, keyOf } from "./keys.ts";
 import type { PaletteData } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
-import { usedInEditor } from "./use.ts";
 
 /* The editor, at a palette's address. A side that never leaves the window holds the controls: the keyframes, then
    lightness, chroma and hue, each its numbers over its plot, then the actions and the hex of a keyframe held alone.
@@ -161,10 +167,12 @@ export default function Editor(props: { data: PaletteData }) {
     rest.is(seed);
     const timer = setTimeout(() => {
       rest.asked(seed);
-      void readLikeCounts([seed]).catch(() => {});
+      void refreshCounts([seed]).catch(() => {});
     }, rest.left());
     return () => clearTimeout(timer);
   });
+  /* the check's state is this browser's selection, read once the page is live */
+  onSettled(loadSelection);
 
   /* the palette as a copy or a download takes it */
   const taken = (stage: Size): Taken => ({
@@ -176,24 +184,22 @@ export default function Editor(props: { data: PaletteData }) {
     pixels: resolveSize(e.size(), stage),
     stops: e.stopsTaken()
   });
+  const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   const used = (action: "copy" | "download", format: string) =>
-    usedInEditor(action, format, opened(), {
-      seed: e.seed(),
-      style: e.style(),
-      steps: e.steps(),
-      angle: e.angle()
-    });
+    useInEditor(action, format, opened(), drawn());
   /* the heart: the count for everyone, the press for an account; signed out it leads to sign in */
   const heart = {
     liked: () => liked(e.seed()),
-    count: () => likeCount(e.seed()),
+    count: () => likeCount(e.seed(), 0),
     async toggle() {
       if (!account()) {
+        trackSignInPrompt("like");
         void navigate({ href: loginHref() });
         return;
       }
+      const { seed, ...view } = drawn();
       try {
-        await toggleLike(e.seed(), !liked(e.seed()));
+        await toggleLike(seed, !liked(seed), { view });
       } catch (error) {
         toast(error instanceof Error ? error.message : t("Couldn't save the palette."));
       }
@@ -387,7 +393,8 @@ function Page(props: PageProps) {
     and wait for a tap on a touch screen; in the sheet's head they are the page's own. */
 function Tools(props: { editor: PaletteEditor; heart: Heart; paper?: boolean }) {
   const e = props.editor;
-  const chosen = () => selected(e.seed());
+  const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
+  const chosen = () => selected(drawn());
   const likeTip = tooltip(() => t(props.heart.liked() ? msg("Unlike") : msg("Like")));
   return (
     <>
@@ -415,9 +422,10 @@ function Tools(props: { editor: PaletteEditor; heart: Heart; paper?: boolean }) 
           aria-pressed={chosen()}
           aria-label={t(chosen() ? msg("Remove from selection") : msg("Add to selection"))}
           tip={t(chosen() ? msg("Remove from selection") : msg("Add to selection"))}
-          onClick={() =>
-            toggleSelected({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() })
-          }
+          onClick={() => {
+            /* a full selection lets its oldest go to make room, and says how to put it back */
+            if (toggleSelected(drawn()) === "made room") toast(roomNote(1));
+          }}
         >
           <Icon name={chosen() ? "check" : "plus"} size={15} />
         </Button>
