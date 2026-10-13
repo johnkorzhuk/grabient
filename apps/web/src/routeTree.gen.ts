@@ -33,7 +33,6 @@ import { Route as DotwellKnownArdDotjsonRouteImport } from './routes/[.]well-kno
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiBuildRouteImport } from './routes/api/build'
 import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
-import { Route as ApiCollectionsRouteImport } from './routes/api/collections'
 import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as ApiFramesRouteImport } from './routes/api/frames'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
@@ -231,11 +230,6 @@ const ApiBuildRoute = ApiBuildRouteImport.update({
 const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
   id: '/api/client-error',
   path: '/api/client-error',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiCollectionsRoute = ApiCollectionsRouteImport.update({
-  id: '/api/collections',
-  path: '/api/collections',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiContactRoute = ApiContactRouteImport.update({
@@ -475,14 +469,14 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCollectionsIndexRoute = ApiCollectionsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ApiCollectionsRoute,
+  id: '/api/collections/',
+  path: '/api/collections/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiCollectionsSplatRoute = ApiCollectionsSplatRouteImport.update({
-  id: '/$',
-  path: '/$',
-  getParentRoute: () => ApiCollectionsRoute,
+  id: '/api/collections/$',
+  path: '/api/collections/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMeCollectionVotesRoute = ApiMeCollectionVotesRouteImport.update({
   id: '/api/me/collection-votes',
@@ -678,7 +672,6 @@ export interface FileRoutesByFullPath {
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/client-error': typeof ApiClientErrorRoute
-  '/api/collections': typeof ApiCollectionsRouteWithChildren
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
   '/api/geo': typeof ApiGeoRoute
@@ -886,7 +879,6 @@ export interface FileRoutesById {
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/client-error': typeof ApiClientErrorRoute
-  '/api/collections': typeof ApiCollectionsRouteWithChildren
   '/api/contact': typeof ApiContactRoute
   '/api/frames': typeof ApiFramesRoute
   '/api/geo': typeof ApiGeoRoute
@@ -992,7 +984,6 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/api/build'
     | '/api/client-error'
-    | '/api/collections'
     | '/api/contact'
     | '/api/frames'
     | '/api/geo'
@@ -1199,7 +1190,6 @@ export interface FileRouteTypes {
     | '/api/$'
     | '/api/build'
     | '/api/client-error'
-    | '/api/collections'
     | '/api/contact'
     | '/api/frames'
     | '/api/geo'
@@ -1304,7 +1294,6 @@ export interface RootRouteChildren {
   ApiSplatRoute: typeof ApiSplatRoute
   ApiBuildRoute: typeof ApiBuildRoute
   ApiClientErrorRoute: typeof ApiClientErrorRoute
-  ApiCollectionsRoute: typeof ApiCollectionsRouteWithChildren
   ApiContactRoute: typeof ApiContactRoute
   ApiFramesRoute: typeof ApiFramesRoute
   ApiGeoRoute: typeof ApiGeoRoute
@@ -1343,6 +1332,7 @@ export interface RootRouteChildren {
   Char123seedChar125DotsvgIndexRoute: typeof Char123seedChar125DotsvgIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiCollectionsSplatRoute: typeof ApiCollectionsSplatRoute
   ApiMeCollectionVotesRoute: typeof ApiMeCollectionVotesRoute
   ApiMeFlagsRoute: typeof ApiMeFlagsRoute
   ApiMeSearchRoute: typeof ApiMeSearchRoute
@@ -1367,6 +1357,7 @@ export interface RootRouteChildren {
   AtChar123handleChar125Char123slugChar125DotgrdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
   AtChar123handleChar125Char123slugChar125DotjsonIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
   AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  ApiCollectionsIndexRoute: typeof ApiCollectionsIndexRoute
   ApiOgIndexRoute: typeof ApiOgIndexRoute
   ApiPngIndexRoute: typeof ApiPngIndexRoute
   ApiMeCollectionsSplatRoute: typeof ApiMeCollectionsSplatRoute
@@ -1551,13 +1542,6 @@ declare module '@tanstack/solid-router' {
       path: '/api/client-error'
       fullPath: '/api/client-error'
       preLoaderRoute: typeof ApiClientErrorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/collections': {
-      id: '/api/collections'
-      path: '/api/collections'
-      fullPath: '/api/collections'
-      preLoaderRoute: typeof ApiCollectionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/contact': {
@@ -1863,17 +1847,17 @@ declare module '@tanstack/solid-router' {
     }
     '/api/collections/': {
       id: '/api/collections/'
-      path: '/'
+      path: '/api/collections'
       fullPath: '/api/collections/'
       preLoaderRoute: typeof ApiCollectionsIndexRouteImport
-      parentRoute: typeof ApiCollectionsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/collections/$': {
       id: '/api/collections/$'
-      path: '/$'
+      path: '/api/collections/$'
       fullPath: '/api/collections/$'
       preLoaderRoute: typeof ApiCollectionsSplatRouteImport
-      parentRoute: typeof ApiCollectionsRoute
+      parentRoute: typeof rootRouteImport
     }
     '/api/me/collection-votes': {
       id: '/api/me/collection-votes'
@@ -2102,20 +2086,6 @@ declare module '@tanstack/solid-router' {
   }
 }
 
-interface ApiCollectionsRouteChildren {
-  ApiCollectionsSplatRoute: typeof ApiCollectionsSplatRoute
-  ApiCollectionsIndexRoute: typeof ApiCollectionsIndexRoute
-}
-
-const ApiCollectionsRouteChildren: ApiCollectionsRouteChildren = {
-  ApiCollectionsSplatRoute: ApiCollectionsSplatRoute,
-  ApiCollectionsIndexRoute: ApiCollectionsIndexRoute,
-}
-
-const ApiCollectionsRouteWithChildren = ApiCollectionsRoute._addFileChildren(
-  ApiCollectionsRouteChildren,
-)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -2140,7 +2110,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSplatRoute: ApiSplatRoute,
   ApiBuildRoute: ApiBuildRoute,
   ApiClientErrorRoute: ApiClientErrorRoute,
-  ApiCollectionsRoute: ApiCollectionsRouteWithChildren,
   ApiContactRoute: ApiContactRoute,
   ApiFramesRoute: ApiFramesRoute,
   ApiGeoRoute: ApiGeoRoute,
@@ -2181,6 +2150,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char123seedChar125DotsvgIndexRoute: Char123seedChar125DotsvgIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiCollectionsSplatRoute: ApiCollectionsSplatRoute,
   ApiMeCollectionVotesRoute: ApiMeCollectionVotesRoute,
   ApiMeFlagsRoute: ApiMeFlagsRoute,
   ApiMeSearchRoute: ApiMeSearchRoute,
@@ -2213,6 +2183,7 @@ const rootRouteChildren: RootRouteChildren = {
     AtChar123handleChar125Char123slugChar125DotjsonIndexRoute,
   AtChar123handleChar125Char123slugChar125DotmdIndexRoute:
     AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
+  ApiCollectionsIndexRoute: ApiCollectionsIndexRoute,
   ApiOgIndexRoute: ApiOgIndexRoute,
   ApiPngIndexRoute: ApiPngIndexRoute,
   ApiMeCollectionsSplatRoute: ApiMeCollectionsSplatRoute,
