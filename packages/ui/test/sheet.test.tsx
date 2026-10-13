@@ -125,3 +125,62 @@ describe("the sheet's panes", () => {
     expect(mine).toContain('aria-label="Change #333333"');
   });
 });
+
+describe("the sheet and the sampler", () => {
+  test("the sheet is a section named by its title, with its collections, figures, code and list in place", async () => {
+    const { PaletteSheet } = await import("../src/PaletteSheet.tsx");
+    const html = renderToString(() => (
+      <PaletteSheet
+        title="Gold, coral and lilac"
+        actions={<button type="button">like</button>}
+        resting
+        collections={[
+          { title: "Sunset gradients", href: "/c/sunset", colors: ["#ff0000"] },
+          { title: "Kept offline" }
+        ]}
+        sources={[{ id: "seed", label: "Seed", text: () => "kSeed" }]}
+        colors={hexes.map(hex => ({ hex }))}
+        order={<span>order</span>}
+      >
+        <p>similar</p>
+      </PaletteSheet>
+    ));
+    expect(html).toMatch(
+      /<section[^>]*aria-labelledby="([^"]+)"[\s\S]*<h1[^>]*id="\1"[^>]*dir="auto"[^>]*>Gold, coral and lilac/
+    );
+    expect(html).toContain('aria-label="Palette actions"');
+    expect(html).toContain("data-away");
+    expect(html).toMatch(/\binert\b/);
+    expect(html).toContain('aria-label="In these collections"');
+    expect(html).toContain('href="/c/sunset"');
+    expect(html).toMatch(/aria-disabled="true"[^>]*>Kept offline/);
+    expect(html).toContain('aria-label="Text contrast"');
+    expect(html).toContain("kSeed");
+    expect(html).toContain("<p>similar</p>");
+    expect(html).toContain("data-flat");
+  });
+
+  test("the sampler's points are pressed or not, each named by its color, with the colors in a line", async () => {
+    const { Sampler } = await import("../src/Sampler.tsx");
+    const points = [
+      { x: 0.1, y: 0.2, color: "#112233" },
+      { x: 0.8, y: 0.5, color: "#ddeeff" }
+    ];
+    const html = renderToString(() => (
+      <Sampler
+        src="/a.jpg"
+        width={400}
+        height={300}
+        label="Your image"
+        points={points}
+        onMove={() => {}}
+        onRelease={() => {}}
+      />
+    ));
+    expect(html).toContain('aria-label="Your image"');
+    expect(count(html, 'aria-label="Color 1, #112233"')).toBe(2);
+    expect(count(html, 'aria-pressed="false"')).toBe(2);
+    expect(html).toContain('points="10,20 80,50"');
+    expect(html).not.toContain(">Reset<");
+  });
+});
