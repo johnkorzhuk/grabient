@@ -2,9 +2,10 @@ import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Deployment } from "../env.ts";
 import { clientAddress } from "./address.ts";
-import { checkLimits, limiterName, mcpListLimits } from "./check.ts";
+import { checkLimits, knownLimit, limiterName, mcpListLimits } from "./check.ts";
 import { LIMITS, type LimitName, limitOf } from "./config.ts";
 import { RateLimiter } from "./rate-limiter.ts";
+import { workChecks } from "./writes.ts";
 
 /** RateLimiter objects over in-memory storage, as the platform would run them, recording each ask as "limit+limit n".
     Each isolate is a binding object of its own over the same objects, so its memory of the limits starts empty. */
@@ -35,7 +36,7 @@ function objects(deployment?: Deployment) {
           );
           let object = live.get(id);
           if (!object) {
-            object = new RateLimiter(state(), { DEPLOYMENT: deployment });
+            object = new RateLimiter(state());
             live.set(id, object);
           }
           return object.fetch(new Request(url));
@@ -76,7 +77,13 @@ describe("the limits", () => {
       avatarUploadDaily: { requests: 500, window: 86400, site: true },
       usernameCheck: { requests: 120, window: 3600 },
       usernameWrite: { requests: 10, window: 3600 },
+      oauthRegisterDaily: { requests: 5000, window: 86400, site: true, lease: 10 },
+      oauthRefreshGrant: { requests: 48, window: 86400 },
+      oauthRefreshAccount: { requests: 500, window: 86400 },
+      oauthRefreshDaily: { requests: 100000, window: 86400, site: true, lease: 50 },
       connections: { requests: 60, window: 60, local: true },
+      connectionsDaily: { requests: 300, window: 86400 },
+      mcpChallenge: { requests: 120, window: 60, local: true },
       savedRead: { requests: 60, window: 60, local: true },
       collectionWrite: { requests: 30, window: 3600, work: true },
       collectionWriteDaily: { requests: 100, window: 86400, work: true },
@@ -86,8 +93,8 @@ describe("the limits", () => {
     };
     for (const [name, limit] of Object.entries(pinned))
       expect([name, LIMITS[name as LimitName]]).toEqual([name, limit]);
-    expect(limitOf("toggleLike", "staging").requests).toBe(2000);
-    expect(limitOf("emailAsk", "staging").requests).toBe(5);
+    expect(limitOf("toggleLike", true).requests).toBe(2000);
+    expect(limitOf("emailAsk", true).requests).toBe(5);
   });
 
   it("are counted in objects named by a hash of what they count", async () => {
@@ -230,13 +237,43 @@ describe("checkLimits", () => {
     expect(await checkLimits(env, [["e", "emailAsk"]])).toBeNull();
   });
 
-  it("allows staging a hundred times the work, in the isolate and in the object", async () => {
+  it("allows an admin on staging a hundred times the work, in the isolate and in the object, and nobody else", async () => {
     const production = objects("production");
     const staging = objects("staging");
-    expect((await checkLimits(production, [["u", "toggleLike", 21]]))?.success).toBe(false);
-    expect((await checkLimits(staging, [["u", "toggleLike", 2000]]))?.success).toBe(true);
-    expect((await checkLimits(production, [["u", "collectionWrite", 31]]))?.success).toBe(false);
-    expect((await checkLimits(staging, [["u", "collectionWrite", 3000]]))?.success).toBe(true);
+    const as = (
+      env: ReturnType<typeof objects>,
+      role: string,
+      check: Parameters<typeof checkLimits>[1][number]
+    ) => checkLimits(env, workChecks(env, role, [check]));
+    expect((await as(production, "admin", ["a", "toggleLike", 21]))?.success).toBe(false);
+    expect((await as(staging, "user", ["u", "toggleLike", 21]))?.success).toBe(false);
+    expect((await as(staging, "admin", ["a", "toggleLike", 2000]))?.success).toBe(true);
+    expect((await as(staging, "user", ["u", "collectionWrite", 31]))?.success).toBe(false);
+    expect((await as(staging, "admin", ["a", "collectionWrite", 3000]))?.success).toBe(true);
+    expect(staging.asks).toEqual(["collectionWrite 31", "collectionWrite 3000"]);
+    // the admins' share of a site ceiling is counted apart; a limit that is no work is counted as it is
+    expect(workChecks(staging, "admin", [["likes", "likesDaily"]])).toEqual([
+      ["likes:admins", "likesDaily", undefined, true]
+    ]);
+    const other: Parameters<typeof checkLimits>[1] = [["image-day", "imageRenderDaily"]];
+    expect(workChecks(staging, "admin", other)[0]).toBe(other[0]);
+    expect(workChecks(production, "admin", [["likes", "likesDaily"]])).toEqual([
+      ["likes", "likesDaily"]
+    ]);
+  });
+
+  it("tells a limit this isolate has spent, without counting it", async () => {
+    const env = objects();
+    expect(knownLimit(env, ["k", "mcpChallenge"])).toBeNull();
+    expect((await checkLimits(env, [["k", "mcpChallenge", 119]]))?.success).toBe(true);
+    expect(knownLimit(env, ["k", "mcpChallenge"])).toBeNull();
+    expect((await checkLimits(env, [["k", "mcpChallenge"]]))?.success).toBe(true);
+    expect(knownLimit(env, ["k", "mcpChallenge"])).toMatchObject({
+      success: false,
+      type: "mcpChallenge",
+      limit: 120
+    });
+    expect(env.asks).toEqual([]);
   });
 
   it("answers an account's first two hundred MCP lists a day in the isolate", () => {
@@ -249,7 +286,7 @@ describe("checkLimits", () => {
 
 describe("RateLimiter", () => {
   it("refuses a request that names no known limit", async () => {
-    const limiter = new RateLimiter({ storage: {} } as unknown as DurableObjectState, {});
+    const limiter = new RateLimiter({ storage: {} } as unknown as DurableObjectState);
     for (const url of ["https://rate-limiter/", "https://rate-limiter/?type=nothing"]) {
       expect((await limiter.fetch(new Request(url))).status).toBe(400);
     }

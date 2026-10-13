@@ -70,7 +70,8 @@ import {
   type ToolContext,
   text,
   waitWords,
-  whole
+  whole,
+  writeLimited
 } from "../tool.ts";
 import { viewData } from "../view.ts";
 
@@ -649,7 +650,7 @@ export const accountTools: readonly Tool[] = [
       const title =
         saving && given.title !== undefined ? paletteTitleInput(given.title) : undefined;
       if (title === null) return refuse(`title is 1 to ${PALETTE_TITLE_MAX} characters.`);
-      const stopped = await limited(c, likeLimits(c.grant.userId));
+      const stopped = await writeLimited(c, likeLimits(c.grant.userId));
       if (stopped) return stopped;
       // a palette a public collection holds joins the gallery in its view there, so no save redraws it for others
       const held = saving
@@ -793,7 +794,7 @@ export const accountTools: readonly Tool[] = [
         return refuse(
           `This account already keeps ${MAX_OWN_COLLECTIONS} collections. Delete one first.`
         );
-      const stopped = await limited(c, collectionWriteLimits(owner.id));
+      const stopped = await writeLimited(c, collectionWriteLimits(owner.id));
       if (stopped) return stopped;
       // who sees it stays as it is: making one public is the site's own form's, for an admin
       const input = {
@@ -856,7 +857,7 @@ export const accountTools: readonly Tool[] = [
       const record = slug ? await collectionRecord(c.env, slug) : null;
       if (record?.owner.kind !== "user" || record.owner.id !== c.grant.userId)
         return refuse("No collection of yours has this address.");
-      const stopped = await limited(c, collectionWriteLimits(c.grant.userId));
+      const stopped = await writeLimited(c, collectionWriteLimits(c.grant.userId));
       if (stopped) return stopped;
       // held to the account's own in the write itself, whatever its role
       if (!(await deleteAccountCollection(c.env, record.id, c.grant.userId)))
