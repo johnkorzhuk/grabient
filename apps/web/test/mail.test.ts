@@ -1,5 +1,6 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
 import { run } from "@grabient/server/db/d1.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import { alertOwner, documentAlert, signInDigest } from "../src/server/alerts/alerts.ts";
@@ -97,6 +98,23 @@ describe("the contact form", () => {
     expect([answer.status, await bodyOf(answer)]).toEqual([200, { success: true }]);
     expect(env.EMAIL.sent).toEqual([]);
     expect(asked).toEqual(["contactForm"]);
+  });
+
+  it("is unavailable while an admin has email off, and the owner's alerts still go", async () => {
+    const env = testEnv();
+    await setFlag(env, "email", false, unique("admin"));
+    try {
+      const answer = await contactResponse(post("/api/contact", message), env);
+      expect([answer.status, await bodyOf(answer)]).toEqual([
+        503,
+        { error: "Contact is temporarily unavailable." }
+      ]);
+      expect(await alertOwner(env, unique("kind"), "Grabient: a test", ["A line."])).toBe(true);
+      expect(env.EMAIL.sent.map(sent => sent.subject)).toEqual(["Grabient: a test"]);
+    } finally {
+      await setFlag(env, "email", true, unique("admin"));
+    }
+    expect((await contactResponse(post("/api/contact", message), env)).status).toBe(200);
   });
 
   it("allows an address five messages in ten minutes", async () => {

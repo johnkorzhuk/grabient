@@ -181,7 +181,7 @@ describe("a palette's picture", () => {
 });
 
 describe("with drawing turned off", () => {
-  test("a card R2 holds is served, any other card is the site's card and any other picture refused", async () => {
+  test("a card R2 holds is served, any other card is the site's card, and a palette's picture is its SVG", async () => {
     const on = world();
     await cardAnswer(get(`/api/og?seed=${SEED}`), on.env, on.keep);
     await on.settled();
@@ -196,11 +196,9 @@ describe("with drawing turned off", () => {
       card.headers.get("CDN-Cache-Control")
     ]).toEqual([302, `${ORIGIN}/grabient.png`, "no-store"]);
     const png = await pngAnswer(get(`/api/png?seed=${SEED}`), off.env, off.keep);
-    expect([png.status, await png.text(), png.headers.get("Cache-Control")]).toEqual([
-      503,
-      "Image temporarily unavailable",
-      "no-store"
-    ]);
+    expect([png.status, png.headers.get("Location"), png.headers.get("CDN-Cache-Control")]).toEqual(
+      [302, `${ORIGIN}/${SEED}.svg?size=1200x630`, "no-store"]
+    );
     expect(off.points).toEqual(["image card cache", "image card refused", "image png refused"]);
     expect(off.limits.asked).toEqual([]);
   });

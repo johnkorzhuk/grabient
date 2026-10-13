@@ -135,7 +135,7 @@ export async function montageAnswer(
   read: () => Promise<MontagePalette[]>,
   keep: Keep
 ): Promise<Response> {
-  const paused = await drawingPaused(request, env, branded);
+  const paused = await drawingPaused(request, env, { branded });
   if (paused) return paused;
   const palettes = await montagePalettes(key, read);
   if (!palettes.length) return json({ error: "No palettes found." }, { status: 404 });

@@ -1,6 +1,8 @@
 import { listDurableObjectIds, runInDurableObject } from "cloudflare:test";
 import { overLimit } from "@grabient/server/auth/http.ts";
-import { checkLimits, limiterName } from "@grabient/server/limits/check.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
+import { checkLimits, type LimitCheck, limiterName } from "@grabient/server/limits/check.ts";
+import { workChecks, writeRefusal } from "@grabient/server/limits/writes.ts";
 import { describe, expect, it } from "vitest";
 import { testEnv, unique, watchLimits } from "./helpers.ts";
 
@@ -72,5 +74,53 @@ describe("a refusal", () => {
     );
     expect(await busy?.json()).toEqual({ error: "Email sign-in is busy. Try again later." });
     expect(await overLimit(env, [[unique("x"), "authPost"]])).toBeNull();
+  });
+});
+
+describe("an account's write", () => {
+  it("waits five minutes while an admin has saving off, counting nothing, and is counted otherwise", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    const checks: LimitCheck[] = [[unique("fit"), ["fitVote", "fitVoteDaily"]]];
+    await setFlag(env, "saving", false, unique("admin"));
+    try {
+      const paused = await writeRefusal(env, "user", checks);
+      expect([paused?.status, paused?.headers.get("Retry-After"), await paused?.json()]).toEqual([
+        503,
+        "300",
+        { error: "Couldn't save." }
+      ]);
+      expect(paused?.headers.get("Cache-Control")).toBe("private, no-store");
+      expect(asked).toEqual([]);
+    } finally {
+      await setFlag(env, "saving", true, unique("admin"));
+    }
+    expect(await writeRefusal(env, "user", checks)).toBeNull();
+    expect(asked).toEqual(["fitVote", "fitVoteDaily"]);
+  });
+
+  it("on staging allows an admin a hundred times as much under keys of its own, and anyone else production's", async () => {
+    const bound = testEnv({ DEPLOYMENT: "staging" });
+    const namespace = bound.RATE_LIMITER!;
+    const { env } = watchLimits(bound);
+    const day = (role: string) =>
+      checkLimits(env, workChecks(env, role, [[unique("user"), "toggleLikeDaily", 1001]]));
+    expect((await day("admin"))?.success).toBe(true);
+    expect((await day("user"))?.success).toBe(false);
+    const { env: production } = watchLimits(testEnv({ DEPLOYMENT: "production" }));
+    const asAdmin = workChecks(production, "admin", [[unique("user"), "toggleLikeDaily", 1001]]);
+    expect((await checkLimits(production, asAdmin))?.success).toBe(false);
+    // the admins' share of a site ceiling is counted in an object of its own
+    const site = unique("likes");
+    expect(
+      (await checkLimits(env, workChecks(env, "admin", [[site, "likesDaily", 3]])))?.success
+    ).toBe(true);
+    const admins = namespace.get(namespace.idFromName(await limiterName(`${site}:admins`)));
+    expect(
+      await runInDurableObject(admins, (_, state) =>
+        state.storage.get<{ count: number }>("likesDaily")
+      )
+    ).toMatchObject({ count: 3 });
+    const ids = (await listDurableObjectIds(namespace)).map(id => id.toString());
+    expect(ids).not.toContain(namespace.idFromName(await limiterName(site)).toString());
   });
 });

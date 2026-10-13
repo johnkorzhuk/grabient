@@ -9,11 +9,13 @@ import type { Counted } from "./rate-limiter.ts";
    isolate holds, asking only when a block runs out. The object stays the authority; the isolate's memory only saves
    asks, each of which is a billed request, a storage read and a write. */
 
-/** One thing counted: who (an address, an account, an inbox, a site-wide key), by which limits, and how many. */
+/** One thing counted: who (an address, an account, an inbox, a site-wide key), by which limits, how many, and whether
+    its `work` limits are an admin's on staging (writes.ts workChecks). */
 export type LimitCheck = readonly [
   identifier: string,
   names: LimitName | readonly LimitName[],
-  n?: number
+  n?: number,
+  scaled?: boolean
 ];
 
 export interface LimitResult {
@@ -107,26 +109,20 @@ const refusal = (type: LimitName, limit: number, reset: number, remaining = 0): 
 
 function knownRefusal(
   memory: Memory,
-  [identifier, names, n = 1]: LimitCheck,
-  now: number,
-  deployment?: string
+  [identifier, names, n = 1, scaled = false]: LimitCheck,
+  now: number
 ): LimitResult | null {
   for (const name of namesOf(names)) {
     const tally = shelfOf(memory, name).get(`${name}:${identifier}`);
     if (!tally || tally.reset * 1000 <= now) continue;
-    const limit = tally.limit ?? limitOf(name, deployment).requests;
+    const limit = tally.limit ?? limitOf(name, scaled).requests;
     if (tally.denied || tally.count + n > limit) return refusal(name, limit, tally.reset);
   }
   return null;
 }
 
-function countHere(
-  tally: Tally,
-  name: LimitName,
-  n: number,
-  deployment: string | undefined
-): LimitResult {
-  const limit = limitOf(name, deployment).requests;
+function countHere(tally: Tally, name: LimitName, n: number, scaled: boolean): LimitResult {
+  const limit = limitOf(name, scaled).requests;
   if (tally.count + n > limit) {
     return refusal(name, limit, tally.reset, Math.max(0, limit - tally.count));
   }
@@ -149,7 +145,7 @@ async function takeLeased(
   n: number,
   now: number,
   ask: (amount: number) => Promise<Answer>,
-  deployment: string | undefined
+  scaled: boolean
 ): Promise<LimitResult> {
   const lease = limitOf(name).lease ?? 1;
   for (;;) {
@@ -157,7 +153,7 @@ async function takeLeased(
     if (held >= n) {
       tally.held = held - n;
       tally.count += n;
-      const limit = tally.limit ?? limitOf(name, deployment).requests;
+      const limit = tally.limit ?? limitOf(name, scaled).requests;
       return {
         success: true,
         limit,
@@ -166,7 +162,7 @@ async function takeLeased(
       };
     }
     if (tally.denied) {
-      return refusal(name, tally.limit ?? limitOf(name, deployment).requests, tally.reset);
+      return refusal(name, tally.limit ?? limitOf(name, scaled).requests, tally.reset);
     }
     const lacking = n - held;
     const asksBlock =
@@ -198,21 +194,20 @@ const counted = (name: LimitName) => !limitOf(name).local;
 
 async function count(
   namespace: DurableObjectNamespace | undefined,
-  checks: readonly LimitCheck[],
-  deployment: string | undefined
+  checks: readonly LimitCheck[]
 ): Promise<LimitResult> {
   const now = Date.now();
   const memory = memoryOf(namespace);
   for (const check of checks) {
-    const known = knownRefusal(memory, check, now, deployment);
+    const known = knownRefusal(memory, check, now);
     if (known) return known;
   }
   let last: LimitResult = { success: true, limit: 0, remaining: 0, reset: Math.floor(now / 1000) };
-  for (const [identifier, names, n = 1] of checks) {
+  for (const [identifier, names, n = 1, scaled = false] of checks) {
     const remote = namespace ? namesOf(names).filter(counted) : [];
     for (const name of namesOf(names)) {
       if (remote.includes(name)) continue;
-      last = countHere(tallyOf(memory, name, identifier, now), name, n, deployment);
+      last = countHere(tallyOf(memory, name, identifier, now), name, n, scaled);
       if (!last.success) return last;
     }
     if (!namespace || !remote.length) continue;
@@ -223,6 +218,7 @@ async function count(
       const url = new URL("https://rate-limiter/");
       for (const name of asked) url.searchParams.append("type", name);
       if (amount !== 1) url.searchParams.set("n", String(amount));
+      if (scaled) url.searchParams.set("scaled", "1");
       const response = await stub.fetch(url);
       if (response.status !== 200 && response.status !== 429) {
         throw new Error(`The rate limiter answered ${response.status}`);
@@ -253,7 +249,7 @@ async function count(
     }
     for (const name of leased) {
       const tally = tallyOf(memory, name, identifier, now);
-      last = await takeLeased(tally, name, n, now, amount => ask([name], amount), deployment);
+      last = await takeLeased(tally, name, n, now, amount => ask([name], amount), scaled);
       if (!last.success) return last;
     }
   }
@@ -296,7 +292,7 @@ export async function checkLimits(
   }
   let result: LimitResult;
   try {
-    result = await count(env.RATE_LIMITER, checks, env.DEPLOYMENT);
+    result = await count(env.RATE_LIMITER, checks);
   } catch (error) {
     logHourly("rate limiter unavailable", {
       reason: error instanceof Error ? error.message : error
@@ -321,6 +317,11 @@ export async function checkLimits(
     request against the free ones, so call it once a request. */
 export function mcpListLimits(env: LimitEnv, identifier: string): LimitCheck[] {
   const tally = tallyOf(memoryOf(env.RATE_LIMITER), "mcpListFree", identifier, Date.now());
-  const free = countHere(tally, "mcpListFree", 1, env.DEPLOYMENT).success;
+  const free = countHere(tally, "mcpListFree", 1, false).success;
   return [[identifier, free ? "mcpList" : ["mcpList", "mcpListDaily"]]];
 }
+
+/** The refusal this isolate would answer `check` with at once, without counting it: for a limit counted only after
+    the work it guards has failed, looked at before that work. */
+export const knownLimit = (env: LimitEnv, check: LimitCheck): LimitResult | null =>
+  knownRefusal(memoryOf(env.RATE_LIMITER), check, Date.now());

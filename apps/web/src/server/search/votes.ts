@@ -6,14 +6,15 @@
    GET  /api/me/search-votes?q=words   the account's votes for these words, by seed
    POST /api/me/search-votes           { q, seed, vote: "up" | "down" | null }
 
-   A vote counts against the account's fit-vote allowance, shared with collections' fit votes, and the site's day, both
-   before the write. */
+   A vote is an account's write (writes.ts): refused while an admin has saving off, then counted against the account's
+   fit-vote allowance, shared with collections' fit votes, and the site's day, all before the write. */
 import { decodePalette, encodePalette } from "@grabient/engine";
 import { msg } from "@grabient/i18n";
-import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
+import { json, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import { all, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { writeRefusal } from "@grabient/server/limits/writes.ts";
 import * as v from "valibot";
 import { type FitVote, SearchVoteBody } from "../../features/search/bodies.ts";
 import { normalizeListQuery } from "./seams.ts";
@@ -80,7 +81,7 @@ export async function searchVotesResponse(request: Request, env: Env): Promise<R
     return json({ votes: query ? await ownSearchVotes(env, query, userId) : {} });
   }
   if (!sameOrigin(request)) return json({ error: msg("Invalid request.") }, 403);
-  const limited = await overLimit(env, [
+  const limited = await writeRefusal(env, session.user.role, [
     [`fit:${userId}`, ["fitVote", "fitVoteDaily"]],
     ["search-votes", "searchVotesSite"]
   ]);

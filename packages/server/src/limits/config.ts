@@ -3,8 +3,8 @@
      once, before asking anyone.
    - local: counted in each isolate alone and never asked of the Durable Object. It stops one client's burst for
      nothing, while the durable limits beside it hold across isolates.
-   - work: liking and making. Staging, where contributors and their agents work before it reaches production, allows
-     STAGING_WORK_SCALE times as much.
+   - work: liking and making. On staging, where contributors and their agents work before it reaches production, an
+     admin's check is `scaled` and allows STAGING_WORK_SCALE times as much (writes.ts workChecks).
    - lease: taken from the Durable Object in blocks of one, then twice the last, up to this many. An isolate asks once
      per block, and the limit can refuse early by at most the blocks isolates hold unspent.
    - kept: an isolate's own count that must last its window, remembered apart from the burst counts that come and go. */
@@ -72,12 +72,19 @@ export const LIMITS = {
   usernameWrite: { requests: 10, window: 3600 },
   // A client document Grabient keeps no copy of: the Worker fetches it from wherever its address points.
   cimdFetch: { requests: 20, window: 60, local: true },
-  // An app registering itself writes a client for anyone who asks.
+  // An app registering itself writes a client, kept a year, for anyone who asks.
   oauthRegister: { requests: 30, window: 3600 },
-  oauthRegisterDaily: { requests: 100000, window: 86400, site: true, lease: 50 },
+  oauthRegisterDaily: { requests: 5000, window: 86400, site: true, lease: 10 },
   oauthToken: { requests: 120, window: 60, local: true },
-  // Settings reading or ending an account's connected apps.
+  // A refresh rewrites its grant and writes a token: the grant's day, its account's, then the site's. An app in use
+  // refreshes once in fourteen days, so a refused refresh leaves the token it holds working.
+  oauthRefreshGrant: { requests: 48, window: 86400 },
+  oauthRefreshAccount: { requests: 500, window: 86400 },
+  oauthRefreshDaily: { requests: 100000, window: 86400, site: true, lease: 50 },
+  // Settings reading or ending an account's connected apps: every request in the isolate, and each that reads KV (a
+  // read per grant) by the account's day.
   connections: { requests: 60, window: 60, local: true },
+  connectionsDaily: { requests: 300, window: 86400 },
   // The account MCP server's tool calls: per account by the minute and the day, then the site's day. An admin's app is
   // a contributor's agent at work and has allowances of its own.
   mcpAccount: { requests: 120, window: 60, local: true },
@@ -91,6 +98,9 @@ export const LIMITS = {
   mcpAdmin: { requests: 1200, window: 60, local: true },
   mcpAdminDaily: { requests: 100000, window: 86400, lease: 64 },
   mcpAdminItemsDay: { requests: 100000, window: 86400 },
+  // A token the OAuth library looks up and does not find, per address: past these a minute, its tokens are refused
+  // before the lookup's KV read.
+  mcpChallenge: { requests: 120, window: 60, local: true },
   // The analytics proxy: a session recording posts every few seconds.
   analyticsProxy: { requests: 300, window: 60, local: true },
   // Collection writes per account by the hour and the day, the site's day, and the apps' own day.
@@ -130,10 +140,8 @@ export const STAGING_WORK_SCALE = 100;
 
 export const isLimitName = (value: string): value is LimitName => Object.hasOwn(LIMITS, value);
 
-/** A limit as a deploy counts it: only a `work` limit differs, and only on staging. */
-export function limitOf(name: LimitName, deployment?: string): Limit {
+/** A limit as it is counted: a `work` limit of a `scaled` check allows STAGING_WORK_SCALE times as much. */
+export function limitOf(name: LimitName, scaled = false): Limit {
   const limit: Limit = LIMITS[name];
-  return deployment === "staging" && limit.work
-    ? { ...limit, requests: limit.requests * STAGING_WORK_SCALE }
-    : limit;
+  return scaled && limit.work ? { ...limit, requests: limit.requests * STAGING_WORK_SCALE } : limit;
 }

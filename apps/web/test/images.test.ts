@@ -1,6 +1,7 @@
 import { setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it } from "vitest";
-import { cardAnswer, pngAnswer } from "../src/server/images/answers.ts";
+import { fileAnswer } from "../src/server/files/palette-files.ts";
+import { cardAnswer, pngAnswer, searchPictureAnswer } from "../src/server/images/answers.ts";
 import golden from "../src/server/images/fixtures/pictures.json" with { type: "json" };
 import { get, testEnv, unique, watchLimits } from "./helpers.ts";
 import { decodePng, pixelHash } from "./png.ts";
@@ -57,7 +58,7 @@ describe("a share card", () => {
     ]);
   });
 
-  it("is the site's card while drawing is off, unless R2 holds it; any other picture is refused", async () => {
+  it("is the site's card while drawing is off, unless R2 holds it; a palette's picture is its SVG", async () => {
     const view = fresh();
     const on = isolate();
     await cardAnswer(get(`/api/og?seed=${SEED}&${view}`), on.env, on.keep);
@@ -71,8 +72,24 @@ describe("a share card", () => {
       302,
       "https://grabient.test/grabient.png"
     ]);
-    const png = await pngAnswer(get(`/api/png?seed=${SEED}&${fresh()}`), off.env, off.keep);
-    expect([png.status, await png.text()]).toEqual([503, "Image temporarily unavailable"]);
+    const png = await pngAnswer(
+      get(`/api/png?seed=${SEED}&style=radialSwatches&steps=5&w=600&h=400`),
+      off.env,
+      off.keep
+    );
+    const svg = `https://grabient.test/${SEED}.svg?style=radialSwatches&steps=5&size=600x400`;
+    expect([png.status, png.headers.get("Location")]).toEqual([302, svg]);
+    expect(png.headers.get("CDN-Cache-Control")).toBe("no-store");
+    const drawn = await (await fileAnswer(get(svg), off.env, "svg")).text();
+    expect(drawn).toContain('width="600" height="400"');
+    // a picture of several palettes has none to stand in
+    const several = await searchPictureAnswer(
+      get("/api/png/query?query=red"),
+      off.env,
+      off.keep,
+      false
+    );
+    expect([several.status, await several.text()]).toEqual([503, "Image temporarily unavailable"]);
     await setFlag(off.env, "share-images", true, unique("admin"));
     expect(
       (await pngAnswer(get(`/api/png?seed=${SEED}&${fresh()}`), off.env, off.keep)).status

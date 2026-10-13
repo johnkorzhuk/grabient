@@ -1,6 +1,7 @@
 import type { Env } from "@grabient/server/env.ts";
 import { checkLimits, type LimitCheck, type LimitResult } from "@grabient/server/limits/check.ts";
 import { type LimitName, limitOf } from "@grabient/server/limits/config.ts";
+import { SAVING_RETRY_SECONDS, savingPaused, workChecks } from "@grabient/server/limits/writes.ts";
 
 /* What the MCP server's tools share: how a tool is written, what a call is given, and the shapes every tool answers
    in. A tool's answer is one text block of compact JSON, which every client hands its model as it is. */
@@ -138,13 +139,25 @@ export function limitWords(result: LimitResult): string {
 /** What a call is told when the limiter cannot answer: never that it asked too often, since it may not have. */
 export const LIMITER_DOWN = "The limiter could not be reached. Try again shortly.";
 
-/** A call's allowances: null when it may go on, or the refusal that names the limit that stopped it. */
+/** A call's allowances, an admin's work counted as its role allows: null when it may go on, or the refusal that names
+    the limit that stopped it. */
 export async function limited(
   c: ToolContext,
   checks: readonly LimitCheck[]
 ): Promise<ToolResult | null> {
-  const result = await checkLimits(c.env, checks);
+  const result = await checkLimits(c.env, workChecks(c.env, c.grant.role, checks));
   return !result ? refuse(LIMITER_DOWN) : result.success ? null : refuse(limitWords(result));
+}
+
+/** What a save is told while an admin has paused every account's writes. */
+export const SAVING_PAUSED = `Grabient has paused saving for every account. Nothing was changed. Try again in ${waitWords(SAVING_RETRY_SECONDS)}.`;
+
+/** A save to the account, as its pages' writes are: refused while saving is paused, then counted as `limited` counts. */
+export async function writeLimited(
+  c: ToolContext,
+  checks: readonly LimitCheck[]
+): Promise<ToolResult | null> {
+  return (await savingPaused(c.env)) ? refuse(SAVING_PAUSED) : limited(c, checks);
 }
 
 /* Schemas, as short as the tools that use them. Every object closes its properties. */

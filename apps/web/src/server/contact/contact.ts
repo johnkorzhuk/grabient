@@ -2,18 +2,20 @@ import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
 import { msg } from "@grabient/i18n";
 import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import * as v from "valibot";
 import { CONTACT_INVALID, ContactInput } from "../../features/contact/input.ts";
 
 /** `POST /api/contact`: a message from the contact page to the site's own address, as plain text, with the sender's
-    address to reply to when given. Each message is an email Email Service may bill for, so it passes its address's
-    allowance and the site's hour and day first, and a bot that fills the hidden field is answered as if sent. */
+    address to reply to when given. Each message is an email Email Service may bill for, so it is refused while an admin
+    has email off, passes its address's allowance and the site's hour and day first, and a bot that fills the hidden
+    field is answered as if sent. */
 export async function contactResponse(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
   if (!sameOrigin(request)) return json({ error: msg("Invalid request.") }, 403);
   const who = clientAddress(request);
-  if (!who || !env.RATE_LIMITER || !env.EMAIL) {
+  if (!who || !env.RATE_LIMITER || !env.EMAIL || (await flagOff(env, "email"))) {
     return json({ error: msg("Contact is temporarily unavailable.") }, 503);
   }
   const input = v.safeParse(ContactInput, await readJson(request));
