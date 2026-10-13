@@ -142,13 +142,16 @@ export function AccountMenu(props: {
     } else go(item.value);
   };
   const name = () => account()?.username || account()?.name || undefined;
+  const tip = tooltip(() => (account() ? t("Account") : t("Sign in")));
   return (
     <div ref={host} class={styles.host}>
       <button
-        ref={el => {
-          trigger = el;
-          tooltip(() => (account() ? t("Account") : t("Sign in")))(el);
-        }}
+        ref={[
+          el => {
+            trigger = el;
+          },
+          tip
+        ]}
         type="button"
         class={styles.trigger}
         aria-haspopup="menu"

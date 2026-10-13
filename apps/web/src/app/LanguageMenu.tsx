@@ -1,7 +1,7 @@
 import { LOCALE_INFO, type Locale, locale, localizePath, MENU_ORDER, t } from "@grabient/i18n";
 import { Flag } from "@grabient/ui/Flag.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, createUniqueId, For, onSettled, Show } from "solid-js";
+import { createSignal, createUniqueId, For, onSettled, Show, untrack } from "solid-js";
 import styles from "./LanguageMenu.module.css";
 import { chooseLanguage } from "./language.ts";
 
@@ -19,7 +19,8 @@ export function LanguageMenu(props: {
   disabled?: boolean;
 }) {
   const [open, setOpen] = createSignal(false);
-  const [at, setAt] = createSignal(props.path());
+  /* where the server drew the menu from; reached, the menu reads the address again */
+  const [at, setAt] = createSignal(untrack(() => props.path()));
   const [seen, setSeen] = createSignal(false);
   const reach = () => {
     setAt(props.path());

@@ -7,12 +7,18 @@ import { KeyList } from "@grabient/ui/KeyList.tsx";
 import { keyRow } from "@grabient/ui/keymap.ts";
 import type { Binding } from "@grabient/ui/keys.ts";
 import { rowKeys, showKeys } from "@grabient/ui/keys.ts";
-import { reducedMotion } from "@grabient/ui/motion.ts";
+import { reducedMotion, syncMotion } from "@grabient/ui/motion.ts";
 import { PageRoot } from "@grabient/ui/PageRoot.tsx";
 import { Shader } from "@grabient/ui/Shader.tsx";
 import { SkipLink, SkipTarget } from "@grabient/ui/SkipLink.tsx";
 import { ThemeIcon } from "@grabient/ui/ThemeIcon.tsx";
-import { setThemeOrigin, theme, themeChanging, toggleTheme } from "@grabient/ui/theme.ts";
+import {
+  setThemeOrigin,
+  syncTheme,
+  theme,
+  themeChanging,
+  toggleTheme
+} from "@grabient/ui/theme.ts";
 import { Dynamic } from "@solidjs/web";
 import { Outlet, useLocation, useMatches, useRouter } from "@tanstack/solid-router";
 import { createMemo, createSignal, onSettled, Show } from "solid-js";
@@ -24,6 +30,7 @@ import {
   inView,
   recallView
 } from "../features/list/appearance.ts";
+import { syncColorFormat } from "../lib/color-format.ts";
 import type { Drawn } from "../lib/palette.ts";
 import { hexesOf } from "../lib/palette.ts";
 import { AccountMenu } from "./AccountMenu.tsx";
@@ -95,6 +102,11 @@ export function Shell() {
   const [scrolled, setScrolled] = createSignal(false);
   let bar: SVGRectElement | undefined;
   onSettled(() => {
+    /* the theme, motion and color spelling start at the server's values, so the page hydrates as it was sent; once it
+       is live they are the browser's own */
+    syncTheme();
+    syncMotion();
+    syncColorFormat();
     recallView();
     watchConnection();
     const leave = watchNavigation(router);
