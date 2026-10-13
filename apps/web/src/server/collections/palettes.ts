@@ -143,7 +143,7 @@ export async function paletteAnswer(request: Request, env: Env): Promise<Respons
     const changed =
       next.style !== gallery.style || next.steps !== gallery.steps || next.angle !== gallery.angle;
     if (changed) {
-      if (!(await setGalleryPaletteView(env, next, who.id))) return cannot();
+      if (!(await setGalleryPaletteView(env, seed, next, who.id))) return cannot();
       await recordAction(env, {
         actorId: who.id,
         action: "view",

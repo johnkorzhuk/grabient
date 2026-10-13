@@ -75,7 +75,8 @@ export async function deleteGalleryPalette(
 /** The gallery draws a palette another way. */
 export async function setGalleryPaletteView(
   env: Writer,
-  view: CollectionItemInput,
+  seed: string,
+  view: Pick<CollectionItemInput, "style" | "steps" | "angle">,
   adminId: string
 ): Promise<boolean> {
   const [result] = await batch(env.DB, [
@@ -84,7 +85,7 @@ export async function setGalleryPaletteView(
       view.style,
       view.steps,
       view.angle,
-      view.seed,
+      seed,
       adminId
     ]
   ]);
