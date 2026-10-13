@@ -272,6 +272,7 @@ export function Home(props: { params: ListParams }) {
               <CollectionGroup
                 title={collection().title}
                 href={localHref(`/${collection().slug}`)}
+                onIntent={() => preloadHref(router, `/${collection().slug}`)}
                 description={collection().description}
                 owner={ownerOf(collection())}
                 age={relativeAge(collection().updatedAt, now())}

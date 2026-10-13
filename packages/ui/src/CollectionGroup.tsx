@@ -29,6 +29,8 @@ export function CollectionGroup<T>(props: {
   private?: boolean;
   palettes: readonly T[];
   card: (palette: () => T) => Element;
+  /** the pointer or the keyboard reached the title: the page may read the collection now */
+  onIntent?: () => void;
 }) {
   const tip = tooltip(() =>
     [props.description, [props.owner, props.age].filter(Boolean).join(" · ")]
@@ -39,7 +41,13 @@ export function CollectionGroup<T>(props: {
     <section class={styles.group} aria-label={props.title}>
       <div class={styles.head}>
         <Text variant="title" as="h2" truncate dir="auto">
-          <a ref={tip} class={styles.title} href={props.href}>
+          <a
+            ref={tip}
+            class={styles.title}
+            href={props.href}
+            onPointerEnter={() => props.onIntent?.()}
+            onFocus={() => props.onIntent?.()}
+          >
             {props.title}
           </a>
         </Text>
