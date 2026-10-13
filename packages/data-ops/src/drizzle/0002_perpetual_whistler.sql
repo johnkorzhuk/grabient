@@ -1,1 +1,0 @@
-ALTER TABLE `collections` DROP COLUMN `coeffs`;
