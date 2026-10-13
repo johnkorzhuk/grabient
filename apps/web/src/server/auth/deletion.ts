@@ -35,7 +35,7 @@ async function forgetSession(env: Env): Promise<Headers> {
  * `POST /api/settings/delete-account {token}`: Settings confirming a deletion with the token its email carried. The
  * library then deletes the account (account-data.ts says what goes).
  */
-export async function confirmDeletion(request: Request, env: Env): Promise<Response> {
+export async function deleteAccount(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
   if (!sameOrigin(request)) return json({ error: "Invalid request." }, 403);
   const session = await getSession(env, request.headers, { fresh: true });
