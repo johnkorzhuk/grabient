@@ -1,0 +1,22 @@
+@layer components {
+  /* the whole window, under a scrollbar that takes room too, so the canvas keeps its size and its paint as a scrollbar
+     comes and goes between pages; it fades in once its first frame is drawn */
+  .layer {
+    position: fixed;
+    inset: 0;
+    z-index: -2;
+    margin-right: calc(100% - 100vw);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-slow) var(--motion-ease);
+    &[data-lit] {
+      opacity: 1;
+    }
+  }
+  .canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+}

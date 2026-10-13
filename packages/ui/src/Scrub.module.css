@@ -1,0 +1,143 @@
+@layer components {
+  /* the rim stands behind the box, so the box is an opaque layer over it and only the ring shows */
+  .scrub {
+    position: relative;
+    min-width: 0;
+    cursor: ew-resize;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    &:hover {
+      --rim-hover: 0.35;
+    }
+    &:focus-within {
+      --rim-focus: 1;
+    }
+    &[data-editing] {
+      cursor: text;
+    }
+    &[data-muted] {
+      opacity: 0.45;
+    }
+    /* beside its lock it takes the room and rises over the line they share while it lights, so each rings alone */
+    &[data-joined] {
+      z-index: 0;
+      flex-grow: 1;
+      flex-basis: 0;
+      &:hover,
+      &:focus-within {
+        z-index: 1;
+      }
+    }
+  }
+  .box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    height: var(--size-control-big);
+    overflow: hidden;
+    padding-inline: var(--space-s3);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    transition: border-color var(--motion-fast) var(--motion-ease);
+    [data-small] > & {
+      height: var(--size-control);
+    }
+    [data-editing] > & {
+      border-color: transparent;
+    }
+    /* joined to its lock, the box gives up its end corners: its end edge is the line the two share */
+    [data-joined="end"] > & {
+      border-start-end-radius: 0;
+      border-end-end-radius: 0;
+    }
+    @media (pointer: coarse) {
+      &,
+      [data-small] > & {
+        height: var(--size-touch);
+      }
+    }
+  }
+  .label {
+    position: relative;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .input {
+    position: relative;
+    flex-grow: 1;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink2);
+    font-family: var(--font-system);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    text-align: right;
+    cursor: inherit;
+    outline: none;
+    /* while typing the text is the reader's: in full ink, and selectable whatever the box around it says */
+    [data-editing] & {
+      color: var(--color-ink);
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    @media (pointer: coarse) {
+      font-size: var(--font-fs-touch);
+    }
+  }
+  /* the value in its range, from zero, and zero's tick where it lies inside the range */
+  .bar {
+    position: absolute;
+    bottom: 0;
+    left: var(--at);
+    width: var(--aw);
+    height: 2px;
+    background-color: var(--color-ink3);
+    opacity: 0.55;
+    pointer-events: none;
+  }
+  .tick {
+    position: absolute;
+    bottom: 0;
+    left: var(--at0);
+    width: 1px;
+    height: 5px;
+    translate: -50% 0;
+    background-color: var(--color-edge2);
+    pointer-events: none;
+  }
+  .host {
+    display: flex;
+    min-width: 0;
+    &[data-apart] {
+      gap: var(--space-s2);
+    }
+  }
+  /* closed, the lock fills with ink, as a palette's check does once it is in the selection; its keyboard ring turns to
+     show on the fill */
+  .lock[aria-pressed="true"] {
+    border-color: var(--color-ink);
+    background-color: var(--color-ink);
+    color: var(--color-on-ink);
+    outline-color: var(--color-on-ink);
+    &:hover {
+      background-color: var(--color-ink-hover);
+      color: var(--color-on-ink);
+    }
+  }
+}

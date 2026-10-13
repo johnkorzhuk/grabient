@@ -1,0 +1,22 @@
+@layer components {
+  /* the box it stands in sets its height, whatever its code */
+  .code[data-fill] {
+    height: 100%;
+    max-height: none;
+  }
+  /* a second row of tabs under the bar: the spellings of the kind chosen above */
+  .spellings {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    gap: var(--space-s1);
+    padding-inline: var(--space-s1);
+    padding-bottom: var(--space-s1);
+  }
+  /* a spelling is notation (oklch, hex, GLSL): set as code, a step under the kinds above it */
+  .spelling {
+    font-family: var(--font-mono);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs1);
+  }
+}

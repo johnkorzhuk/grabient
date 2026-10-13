@@ -1,0 +1,174 @@
+@layer components {
+  /* placed by its transform, so a scroll moves it without laying anything out; unseen until first placed. Solid
+     paper lifted by a menu's shadow and no blur: the picture behind changes with every move, and a blur of it would be
+     painted again each frame */
+  .float {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 45;
+    visibility: hidden;
+    padding: var(--space-s4);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-paper-solid);
+    box-shadow: var(--color-shadow-pop);
+    &[data-placed] {
+      visibility: visible;
+    }
+  }
+  .body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    width: var(--size-picker-width);
+    max-width: 100%;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .field {
+    position: relative;
+    min-width: 0;
+    height: var(--size-picker);
+    border-radius: var(--radius-tight);
+    touch-action: none;
+    cursor: crosshair;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: 1px;
+    }
+  }
+  .paint {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--radius-tight);
+  }
+  /* the cut edge of a hole in the paper, as a plot's ground has */
+  .rim {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-tight);
+    box-shadow: var(--color-rim);
+    pointer-events: none;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  /* the strip's target is a press tall, a finger's on a touch screen; the hues are a band through its middle */
+  .hue {
+    position: relative;
+    flex-grow: 1;
+    min-width: 0;
+    height: var(--size-control);
+    border-radius: var(--radius-tight);
+    touch-action: pan-y;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  .band {
+    position: absolute;
+    top: 50%;
+    inset-inline: 0;
+    height: var(--size-thumb);
+    translate: 0 -50%;
+    border-radius: var(--radius-tight);
+    box-shadow: var(--color-rim);
+    pointer-events: none;
+  }
+  /* a thumb is the color it stands on, ringed in white with a dark hairline, so it shows on any color */
+  .thumb {
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    width: var(--size-thumb);
+    height: var(--size-thumb);
+    translate: -50% -50%;
+    border-radius: var(--radius-circle);
+    background-color: var(--c);
+    box-shadow:
+      0 0 0 calc(2 * var(--size-hairline)) var(--color-on-dark),
+      0 0 0 calc(3 * var(--size-hairline)) var(--color-art);
+    pointer-events: none;
+  }
+  /* the hex's line: a field on the input recipe, its name at the start and the hex in mono at the end */
+  .line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  .wrap {
+    position: relative;
+    flex-grow: 1;
+    min-width: 0;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    &:hover {
+      --rim-hover: 0.35;
+    }
+    &:focus-within {
+      --rim-focus: 1;
+    }
+  }
+  .box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    height: var(--size-control);
+    padding-inline: var(--space-s3);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    transition: border-color var(--motion-fast) var(--motion-ease);
+    &:focus-within {
+      border-color: transparent;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  .label {
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .input {
+    flex-grow: 1;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    text-align: right;
+    outline: none;
+    user-select: text;
+    -webkit-user-select: text;
+    @media (pointer: coarse) {
+      font-size: var(--font-fs-touch);
+    }
+  }
+}

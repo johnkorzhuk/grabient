@@ -1,0 +1,35 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s2);
+  min-width: 0;
+  max-width: var(--size-search);
+  padding-bottom: var(--space-s8);
+  overflow: hidden;
+}
+.tag {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  &:hover,
+  &:focus-within,
+  &[data-open] {
+    --coins: 1;
+  }
+}
+.coins {
+  position: absolute;
+  top: calc(100% + var(--space-s2));
+  inset-inline: 0;
+  display: flex;
+  justify-content: center;
+  gap: var(--space-s1);
+  opacity: var(--coins, 0);
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+.coin {
+  width: var(--space-s4);
+  height: var(--space-s4);
+  border-radius: var(--radius-circle);
+  box-shadow: 0 0 0 1px var(--color-edge2);
+}

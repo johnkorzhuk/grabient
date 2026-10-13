@@ -1,0 +1,63 @@
+Coral lagoon, Radial
+https://grabient.test/ar/kYuXkT47BBu6sxXjqsk1ilF8Onws?style=radialGradient&steps=32&angle=0
+#ff786b #ff9b73 #f5d070 #63d0a9 #26a8c5 #2473a5
+
+No. 1 · October 2026
+
+Rising in October
+
+Five palettes from the Rising list, picked by hand.
+
+In this issue: collections, and a quick tip.
+
+Peach orchard, Linear bands
+https://grabient.test/ar/kW8RUxaqO8dmsPXbqE2x6zBg?style=linearSwatches&steps=5&angle=135
+
+Desert dusk, Linear
+https://grabient.test/ar/kWzVMw17K7kq5vM-LD1shs7Y?steps=32&angle=180
+
+Pistachio macaron, Radial bands
+https://grabient.test/ar/kW6hdK6pbElaRxXeH9QcJFBI?style=radialSwatches&steps=5&angle=0
+
+Orchid velvet, Angular
+https://grabient.test/ar/kW0ibSWiTBMytwpBMkKMyhAQ?style=angularGradient&steps=32&angle=315
+
+See all rising palettes: https://grabient.test/palettes/rising
+
+Introducing collections
+
+Group the palettes that belong together. Select a few in any list and press Save.
+
+Find a collection by a color or a mood, and save it to your account.
+
+Browse collections: https://grabient.test/collections
+
+Featured collections
+
+Liminal Hours, 21 palettes
+https://grabient.test/liminal-hours-n5jqs8ak
+Gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain.
+
+Between tides, 30 palettes
+https://grabient.test/between-tides
+Southwest Florida coastal moods in quiet neutrals, luminous gradients and bolder bands.
+
+Spring tide seagrass, 22 palettes
+https://grabient.test/spring-tide-seagrass
+Tidal blue, seafoam, eelgrass green, sand and dusky violet.
+
+Quick tip
+
+Add .css to any palette link to get its CSS.
+
+.hero {
+  background: linear-gradient(90deg, #4158d0, #c850c0, #ffcc70);
+}
+
+How palettes work: https://grabient.test/about
+
+Palettes: https://grabient.test/palettes
+Collections: https://grabient.test/collections
+About: https://grabient.test/about
+
+تصلك هذه الرسالة لأنك سجّلت في Grabient. إلغاء الاشتراك (https://grabient.test/ar/unsubscribe/0000000000000000000000000000000000000000000000000000000000000000)

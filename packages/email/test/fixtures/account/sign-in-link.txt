@@ -1,0 +1,5 @@
+Sign in: https://grabient.test/api/auth/magic-link/verify?token=sample
+
+This link expires in 5 minutes. If you didn't ask for it, ignore this email.
+
+grabient.test: https://grabient.test

@@ -1,0 +1,78 @@
+[
+  {
+    "origin": "https://grabient.com",
+    "list": {
+      "skills": [
+        {
+          "uri": "skill://grabient/SKILL.md",
+          "frontmatter": {
+            "name": "grabient",
+            "description": "Use when someone asks for a color palette, a gradient, a background, colors for a brand, site, chart or poster, colors that go with a hex code, or gives a Grabient link. Finds palettes by words or colors, makes them from hex colors, changes one to be lighter, darker, calmer or warmer, shows a set side by side and gives each palette's link, CSS, SVG and PNG. Screen colors only: no print inks, paint, thread or colors taken from a photo.",
+            "license": "Apache-2.0",
+            "metadata": {
+              "author": "grabient",
+              "version": "1.0.0"
+            }
+          },
+          "resources": [
+            {
+              "uri": "skill://grabient/SKILL.md",
+              "digest": "sha256:6cb366d3f53fc84c5a19da3343a24df9a98f6ec5750ac8c800cf734c0a11ee6d",
+              "size": 4026
+            }
+          ]
+        }
+      ],
+      "ttlMs": 86400000,
+      "cacheScope": "public"
+    },
+    "uri": "skill://grabient/SKILL.md",
+    "frontmatter": {
+      "name": "grabient",
+      "description": "Use when someone asks for a color palette, a gradient, a background, colors for a brand, site, chart or poster, colors that go with a hex code, or gives a Grabient link. Finds palettes by words or colors, makes them from hex colors, changes one to be lighter, darker, calmer or warmer, shows a set side by side and gives each palette's link, CSS, SVG and PNG. Screen colors only: no print inks, paint, thread or colors taken from a photo.",
+      "license": "Apache-2.0",
+      "metadata": {
+        "author": "grabient",
+        "version": "1.0.0"
+      }
+    }
+  },
+  {
+    "origin": "https://grabient-lite.jkorzhuk.workers.dev",
+    "list": {
+      "skills": [
+        {
+          "uri": "skill://grabient/SKILL.md",
+          "frontmatter": {
+            "name": "grabient",
+            "description": "Use when someone asks for a color palette, a gradient, a background, colors for a brand, site, chart or poster, colors that go with a hex code, or gives a Grabient link. Finds palettes by words or colors, makes them from hex colors, changes one to be lighter, darker, calmer or warmer, shows a set side by side and gives each palette's link, CSS, SVG and PNG. Screen colors only: no print inks, paint, thread or colors taken from a photo.",
+            "license": "Apache-2.0",
+            "metadata": {
+              "author": "grabient",
+              "version": "1.0.0"
+            }
+          },
+          "resources": [
+            {
+              "uri": "skill://grabient/SKILL.md",
+              "digest": "sha256:840b4fe47e28a3d93f2b5b27017e5f6a7a0415c992685bf800ba68456c16df5f",
+              "size": 4114
+            }
+          ]
+        }
+      ],
+      "ttlMs": 86400000,
+      "cacheScope": "public"
+    },
+    "uri": "skill://grabient/SKILL.md",
+    "frontmatter": {
+      "name": "grabient",
+      "description": "Use when someone asks for a color palette, a gradient, a background, colors for a brand, site, chart or poster, colors that go with a hex code, or gives a Grabient link. Finds palettes by words or colors, makes them from hex colors, changes one to be lighter, darker, calmer or warmer, shows a set side by side and gives each palette's link, CSS, SVG and PNG. Screen colors only: no print inks, paint, thread or colors taken from a photo.",
+      "license": "Apache-2.0",
+      "metadata": {
+        "author": "grabient",
+        "version": "1.0.0"
+      }
+    }
+  }
+]

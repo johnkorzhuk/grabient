@@ -1,0 +1,947 @@
+{
+ "POPULAR_KEPT": 48,
+ "yearRow": [
+  "sunset",
+  "dark academia",
+  "blue",
+  "🌙",
+  "pastel",
+  "warm",
+  "🤍🌹",
+  "summer",
+  "tropical",
+  "charcoal",
+  "cyberpunk",
+  "green",
+  "🌈",
+  "neon",
+  "whimsical",
+  "🍂☕",
+  "autumn",
+  "retro",
+  "ocean",
+  "synthwave",
+  "purple",
+  "🔥",
+  "moody",
+  "minimalist",
+  "🌊🌅",
+  "spring",
+  "glass",
+  "galaxy",
+  "cottagecore",
+  "red",
+  "🌸",
+  "glossy",
+  "rustic",
+  "🌙✨",
+  "christmas",
+  "surreal",
+  "coastal",
+  "art deco",
+  "orange",
+  "☀️",
+  "light",
+  "cozy",
+  "🍵🌸",
+  "halloween",
+  "neutral",
+  "northern lights",
+  "vaporwave",
+  "cyan"
+ ],
+ "kinds": [
+  [
+   "sunset",
+   "scene"
+  ],
+  [
+   "dark academia",
+   "theme"
+  ],
+  [
+   "blue",
+   "color"
+  ],
+  [
+   "🌙",
+   "emoji"
+  ],
+  [
+   "pastel",
+   "tone"
+  ],
+  [
+   "warm",
+   "mood"
+  ],
+  [
+   "🤍🌹",
+   "pair"
+  ],
+  [
+   "summer",
+   "season"
+  ],
+  [
+   "tropical",
+   "collection"
+  ],
+  [
+   "charcoal",
+   "scene"
+  ],
+  [
+   "cyberpunk",
+   "theme"
+  ],
+  [
+   "green",
+   "color"
+  ],
+  [
+   "🌈",
+   "emoji"
+  ],
+  [
+   "neon",
+   "tone"
+  ],
+  [
+   "whimsical",
+   "mood"
+  ],
+  [
+   "🍂☕",
+   "pair"
+  ],
+  [
+   "autumn",
+   "season"
+  ],
+  [
+   "retro",
+   "collection"
+  ],
+  [
+   "ocean",
+   "scene"
+  ],
+  [
+   "synthwave",
+   "theme"
+  ],
+  [
+   "purple",
+   "color"
+  ],
+  [
+   "🔥",
+   "emoji"
+  ],
+  [
+   "moody",
+   "tone"
+  ],
+  [
+   "minimalist",
+   "mood"
+  ],
+  [
+   "🌊🌅",
+   "pair"
+  ],
+  [
+   "spring",
+   "season"
+  ],
+  [
+   "glass",
+   "collection"
+  ],
+  [
+   "galaxy",
+   "scene"
+  ],
+  [
+   "cottagecore",
+   "theme"
+  ],
+  [
+   "red",
+   "color"
+  ],
+  [
+   "🌸",
+   "emoji"
+  ],
+  [
+   "glossy",
+   "tone"
+  ],
+  [
+   "rustic",
+   "mood"
+  ],
+  [
+   "🌙✨",
+   "pair"
+  ],
+  [
+   "christmas",
+   "season"
+  ],
+  [
+   "surreal",
+   "collection"
+  ],
+  [
+   "coastal",
+   "scene"
+  ],
+  [
+   "art deco",
+   "theme"
+  ],
+  [
+   "orange",
+   "color"
+  ],
+  [
+   "☀️",
+   "emoji"
+  ],
+  [
+   "light",
+   "tone"
+  ],
+  [
+   "cozy",
+   "mood"
+  ],
+  [
+   "🍵🌸",
+   "pair"
+  ],
+  [
+   "halloween",
+   "season"
+  ],
+  [
+   "neutral",
+   "collection"
+  ],
+  [
+   "northern lights",
+   "scene"
+  ],
+  [
+   "vaporwave",
+   "theme"
+  ],
+  [
+   "cyan",
+   "color"
+  ]
+ ],
+ "leadRowExample": [
+  "christmas",
+  "halloween",
+  "blue",
+  "golden",
+  "teal",
+  "mint",
+  "red",
+  "green",
+  "sunset",
+  "dark academia",
+  "🌙",
+  "pastel",
+  "warm",
+  "🤍🌹",
+  "summer",
+  "tropical",
+  "charcoal",
+  "cyberpunk",
+  "🌈",
+  "neon",
+  "whimsical",
+  "🍂☕",
+  "autumn",
+  "retro",
+  "ocean",
+  "synthwave",
+  "purple",
+  "🔥",
+  "moody",
+  "minimalist",
+  "🌊🌅",
+  "spring",
+  "glass",
+  "galaxy",
+  "cottagecore",
+  "🌸",
+  "glossy",
+  "rustic",
+  "🌙✨",
+  "surreal",
+  "coastal",
+  "art deco",
+  "orange",
+  "☀️",
+  "light",
+  "cozy",
+  "🍵🌸",
+  "neutral",
+  "northern lights",
+  "vaporwave",
+  "cyan"
+ ],
+ "popularNoDb": [
+  {
+   "label": "sunset",
+   "href": "/palettes?q=sunset",
+   "query": "sunset",
+   "colors": [
+    "#2e215c",
+    "#6c2e82",
+    "#a8587e",
+    "#f39969",
+    "#ffa9db"
+   ]
+  },
+  {
+   "label": "dark academia",
+   "href": "/palettes?q=dark+academia",
+   "query": "dark academia",
+   "colors": [
+    "#271e15",
+    "#63462b",
+    "#9b8c68",
+    "#e5d6bc"
+   ]
+  },
+  {
+   "label": "blue",
+   "href": "/palettes?q=blue",
+   "query": "blue",
+   "colors": [
+    "#0c234f",
+    "#243bcc",
+    "#2e5f84",
+    "#4b82cb",
+    "#92b4ea"
+   ]
+  },
+  {
+   "label": "🌙",
+   "href": "/palettes?q=%F0%9F%8C%99",
+   "query": "🌙",
+   "colors": [
+    "#22252b",
+    "#748392",
+    "#cdd2d6"
+   ]
+  },
+  {
+   "label": "pastel",
+   "href": "/palettes?q=pastel",
+   "query": "pastel",
+   "colors": [
+    "#ecb7c8",
+    "#ccc8ee",
+    "#a5ccd7",
+    "#c7e7db",
+    "#e8d8c0"
+   ]
+  },
+  {
+   "label": "warm",
+   "href": "/palettes?q=warm",
+   "query": "warm",
+   "colors": [
+    "#7e3041",
+    "#c55a52",
+    "#f2bf88"
+   ]
+  },
+  {
+   "label": "🤍🌹",
+   "href": "/palettes?q=%F0%9F%A4%8D%F0%9F%8C%B9",
+   "query": "🤍🌹",
+   "colors": [
+    "#d88a89",
+    "#eee7e8"
+   ]
+  },
+  {
+   "label": "summer",
+   "href": "/palettes?q=summer",
+   "query": "summer",
+   "colors": [
+    "#e85495",
+    "#ffb144",
+    "#c7e85d",
+    "#77d38b",
+    "#50b9c0"
+   ]
+  },
+  {
+   "label": "tropical",
+   "href": "/palettes?q=tropical",
+   "query": "tropical",
+   "colors": [
+    "#16785b",
+    "#00afa9",
+    "#f1dcb1",
+    "#f97b3a",
+    "#f46592"
+   ]
+  },
+  {
+   "label": "charcoal",
+   "href": "/palettes?q=charcoal",
+   "query": "charcoal",
+   "colors": [
+    "#252528",
+    "#686b6d"
+   ]
+  },
+  {
+   "label": "cyberpunk",
+   "href": "/palettes?q=cyberpunk",
+   "query": "cyberpunk",
+   "colors": [
+    "#0b1525",
+    "#4000a7",
+    "#006c86",
+    "#22c1c5",
+    "#7bd946"
+   ]
+  },
+  {
+   "label": "green",
+   "href": "/palettes?q=green",
+   "query": "green",
+   "colors": [
+    "#001a09",
+    "#204818",
+    "#51a556",
+    "#badebc"
+   ]
+  },
+  {
+   "label": "🌈",
+   "href": "/palettes?q=%F0%9F%8C%88",
+   "query": "🌈",
+   "colors": [
+    "#0087cc",
+    "#00a886",
+    "#c5cc59",
+    "#ff8b11",
+    "#e0466e"
+   ]
+  },
+  {
+   "label": "neon",
+   "href": "/palettes?q=neon",
+   "query": "neon",
+   "colors": [
+    "#fe6565",
+    "#f907d7",
+    "#629eff",
+    "#21e2e8",
+    "#43d85b"
+   ]
+  },
+  {
+   "label": "whimsical",
+   "href": "/palettes?q=whimsical",
+   "query": "whimsical",
+   "colors": [
+    "#a189ea",
+    "#da74e5",
+    "#dfacd9",
+    "#fdb492",
+    "#d9e1cc"
+   ]
+  },
+  {
+   "label": "🍂☕",
+   "href": "/palettes?q=%F0%9F%8D%82%E2%98%95",
+   "query": "🍂☕",
+   "colors": [
+    "#532a15",
+    "#b17649",
+    "#e9d6b7"
+   ]
+  },
+  {
+   "label": "autumn",
+   "href": "/palettes?q=autumn",
+   "query": "autumn",
+   "colors": [
+    "#584026",
+    "#894f2d",
+    "#8d8340",
+    "#d99b5b",
+    "#b6ae88"
+   ]
+  },
+  {
+   "label": "retro",
+   "href": "/palettes?q=retro",
+   "query": "retro",
+   "colors": [
+    "#52662b",
+    "#67b592",
+    "#ebc9a0",
+    "#d8824e",
+    "#c25b8b"
+   ]
+  },
+  {
+   "label": "ocean",
+   "href": "/palettes?q=ocean",
+   "query": "ocean",
+   "colors": [
+    "#001e44",
+    "#0c5775",
+    "#008da6",
+    "#00b7a9"
+   ]
+  },
+  {
+   "label": "synthwave",
+   "href": "/palettes?q=synthwave",
+   "query": "synthwave",
+   "colors": [
+    "#090622",
+    "#362584",
+    "#8c39d2",
+    "#e24ac9",
+    "#009bb1"
+   ]
+  },
+  {
+   "label": "purple",
+   "href": "/palettes?q=purple",
+   "query": "purple",
+   "colors": [
+    "#582469",
+    "#6122ab",
+    "#a174c0",
+    "#e1d0f6"
+   ]
+  },
+  {
+   "label": "🔥",
+   "href": "/palettes?q=%F0%9F%94%A5",
+   "query": "🔥",
+   "colors": [
+    "#190304",
+    "#5b0d0c",
+    "#91211a",
+    "#d64d0f",
+    "#f0a886"
+   ]
+  },
+  {
+   "label": "moody",
+   "href": "/palettes?q=moody",
+   "query": "moody",
+   "colors": [
+    "#202624",
+    "#4c2892",
+    "#664c6a",
+    "#777b6c"
+   ]
+  },
+  {
+   "label": "minimalist",
+   "href": "/palettes?q=minimalist",
+   "query": "minimalist",
+   "colors": [
+    "#252525",
+    "#615e58",
+    "#9d9892",
+    "#eae8e8"
+   ]
+  }
+ ],
+ "typed": {
+  "blu": [
+   "blue",
+   "blue hour",
+   "blue green",
+   "blue purple",
+   "blush pink",
+   "blue gray white",
+   "blueberry",
+   "bluebell",
+   "blue lagoon",
+   "blue sky",
+   "blue waves",
+   "blue whale"
+  ],
+  "Sunsett": [
+   "sunset"
+  ],
+  "atardecer": [
+   "sunset"
+  ],
+  "dark": [
+   "dark",
+   "dark academia",
+   "dark blue",
+   "dark green",
+   "dark red",
+   "dark purple",
+   "dark brown",
+   "dark yellow",
+   "dark orange",
+   "dark pink",
+   "dark pastel",
+   "dark saturated"
+  ],
+  "kS7Q8Yy5S_SChv0": [
+   "magnolia",
+   "mahogany",
+   "brown red",
+   "engagement photos",
+   "mocha",
+   "chocolate cake",
+   "wedding",
+   "home café",
+   "mob wife",
+   "comfort",
+   "cherry wood",
+   "porcelain"
+  ],
+  "zzqxv": [],
+  "🌙": [
+   "moon"
+  ]
+ },
+ "mix": {
+  "plain": [
+   "s1",
+   "c1",
+   "s2",
+   "c2",
+   "s3"
+  ],
+  "cut": [
+   "s1",
+   "c1",
+   "s2",
+   "c2"
+  ],
+  "labelled": [
+   "red",
+   "Moss",
+   "jade",
+   "Blue gradients"
+  ]
+ },
+ "emoji": {
+  "🌙": {
+   "isEmoji": true,
+   "search": "🌙",
+   "tag": "🌙"
+  },
+  "🌙️": {
+   "isEmoji": true,
+   "search": "🌙",
+   "tag": "🌙"
+  },
+  "🤍🌹": {
+   "isEmoji": true,
+   "search": "🤍🌹",
+   "tag": "🤍🌹"
+  },
+  "⚡": {
+   "isEmoji": true,
+   "search": null,
+   "tag": null
+  },
+  "🌙🌙🌙": {
+   "isEmoji": false,
+   "search": null,
+   "tag": null
+  },
+  "moon": {
+   "isEmoji": false,
+   "search": null,
+   "tag": "moon"
+  }
+ },
+ "tagWords": {
+  "Sunset": "sunset",
+  "sunsets": "sunset",
+  "grey": "gray",
+  "navy blue": "navy blue",
+  "cyberpunk neon city": null,
+  "atardecer": "sunset",
+  "blue gradient": "blue"
+ },
+ "homeTagsNoDb": [
+  "sunset",
+  "dark academia",
+  "blue",
+  "🌙",
+  "pastel",
+  "warm",
+  "🤍🌹",
+  "summer",
+  "tropical",
+  "charcoal",
+  "cyberpunk",
+  "green",
+  "🌈",
+  "neon",
+  "whimsical",
+  "🍂☕",
+  "autumn",
+  "retro",
+  "ocean",
+  "synthwave",
+  "purple",
+  "🔥",
+  "moody",
+  "minimalist"
+ ],
+ "cache": {
+  "typed": {
+   "Cache-Control": "public, max-age=3600"
+  },
+  "rest": {
+   "Cache-Control": "public, max-age=300"
+  },
+  "seed": {
+   "Cache-Control": "public, max-age=3600"
+  }
+ },
+ "EMOJI_SEARCHED": [
+  [
+   "🌙",
+   123
+  ],
+  [
+   "🌈",
+   122
+  ],
+  [
+   "🔥",
+   102
+  ],
+  [
+   "🌸",
+   100
+  ],
+  [
+   "🍊",
+   96
+  ],
+  [
+   "🌿",
+   93
+  ],
+  [
+   "☀️",
+   89
+  ],
+  [
+   "🌌",
+   85
+  ],
+  [
+   "❄️",
+   84
+  ],
+  [
+   "🌊",
+   81
+  ],
+  [
+   "🍇",
+   80
+  ],
+  [
+   "💎",
+   79
+  ],
+  [
+   "🌅",
+   78
+  ],
+  [
+   "🍃",
+   76
+  ],
+  [
+   "🧊",
+   75
+  ],
+  [
+   "🌲",
+   73
+  ],
+  [
+   "🌻",
+   72
+  ],
+  [
+   "🍂",
+   72
+  ],
+  [
+   "🍋",
+   71
+  ],
+  [
+   "🍒",
+   70
+  ],
+  [
+   "🌹",
+   69
+  ],
+  [
+   "🍌",
+   63
+  ],
+  [
+   "✨",
+   61
+  ],
+  [
+   "🫐",
+   60
+  ],
+  [
+   "🌴",
+   58
+  ],
+  [
+   "🍎",
+   58
+  ],
+  [
+   "🦋",
+   56
+  ],
+  [
+   "☁️",
+   55
+  ],
+  [
+   "🍬",
+   54
+  ],
+  [
+   "🥑",
+   54
+  ],
+  [
+   "🌵",
+   53
+  ],
+  [
+   "🍑",
+   51
+  ],
+  [
+   "🥭",
+   51
+  ],
+  [
+   "🐠",
+   48
+  ],
+  [
+   "🌺",
+   47
+  ],
+  [
+   "🍉",
+   45
+  ],
+  [
+   "🍓",
+   42
+  ],
+  [
+   "🎄",
+   38
+  ],
+  [
+   "🦩",
+   38
+  ],
+  [
+   "🌋",
+   37
+  ],
+  [
+   "🌷",
+   37
+  ],
+  [
+   "🌾",
+   35
+  ],
+  [
+   "🎃",
+   33
+  ],
+  [
+   "🦚",
+   33
+  ],
+  [
+   "🐚",
+   28
+  ],
+  [
+   "🏝️",
+   22
+  ],
+  [
+   "🚀",
+   18
+  ],
+  [
+   "🧁",
+   17
+  ],
+  [
+   "🪐",
+   16
+  ],
+  [
+   "⛈️",
+   15
+  ]
+ ],
+ "EMOJI_PAIRS": [
+  "🤍🌹",
+  "🍂☕",
+  "🌊🌅",
+  "🌙✨",
+  "🍵🌸",
+  "🖤🌹",
+  "🌴🌅",
+  "🍓🥛",
+  "🌲❄️",
+  "🦩🌴",
+  "🌆💜",
+  "🍫🍓",
+  "🌙🌊",
+  "🍑🌸",
+  "🌃✨",
+  "🌻🌾",
+  "🔥❄️",
+  "🍋🌿"
+ ]
+}

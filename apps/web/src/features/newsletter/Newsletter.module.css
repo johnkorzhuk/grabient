@@ -1,0 +1,54 @@
+@layer components {
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s10);
+  }
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s10);
+  }
+  /* the page's words stand as far in as a sheet sets its own, so each line is over the words of the sheet under it */
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    padding-inline: var(--space-s8);
+    @container page (max-width: 800px) {
+      padding-inline: var(--space-s6);
+    }
+  }
+  .top {
+    padding-top: var(--space-s8);
+    @container page (max-width: 800px) {
+      padding-top: var(--space-s6);
+    }
+  }
+  .issue {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+  }
+  /* as wide as its email in an inbox: two palette cards. Far from the screen the browser skips drawing it and keeps
+     the height it last had, so nothing moves as the reader scrolls past */
+  .sheet {
+    display: flow-root;
+    min-width: 0;
+    max-width: calc(2 * var(--size-card));
+    content-visibility: auto;
+    contain-intrinsic-size: auto 2400px;
+  }
+  .mark {
+    height: var(--size-hairline);
+  }
+  .tail {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    padding-inline: var(--space-s8);
+    @container page (max-width: 800px) {
+      padding-inline: var(--space-s6);
+    }
+  }
+}

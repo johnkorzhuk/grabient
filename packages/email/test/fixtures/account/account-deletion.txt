@@ -1,0 +1,9 @@
+Confirm account deletion
+
+This permanently deletes your account and saved palettes.
+
+Confirm deletion: https://grabient.test/settings?token=sample
+
+Sign in to confirm. This link expires in 24 hours.
+
+grabient.test: https://grabient.test

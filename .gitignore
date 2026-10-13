@@ -15,6 +15,7 @@ playwright-report
 test-results
 # local copies of a database, production's included
 .local-backups
+.data
 # the search training cache (embeddings, features, weights)
 packages/search/train/cache
 __pycache__/

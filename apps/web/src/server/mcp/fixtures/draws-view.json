@@ -1,0 +1,106 @@
+[
+  {
+    "label": "declared mcp-app",
+    "meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "extensions": {
+          "io.modelcontextprotocol/ui": {
+            "mimeTypes": [
+              "text/html;profile=mcp-app"
+            ]
+          }
+        }
+      }
+    },
+    "modern": true,
+    "app": {
+      "clientId": ""
+    },
+    "draws": true
+  },
+  {
+    "label": "declared other mime",
+    "meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "extensions": {
+          "io.modelcontextprotocol/ui": {
+            "mimeTypes": [
+              "text/html;profile=other"
+            ]
+          }
+        }
+      }
+    },
+    "modern": true,
+    "app": {
+      "clientId": ""
+    },
+    "draws": false
+  },
+  {
+    "label": "declared no mime list",
+    "meta": {
+      "io.modelcontextprotocol/clientCapabilities": {
+        "extensions": {
+          "io.modelcontextprotocol/ui": {}
+        }
+      }
+    },
+    "modern": true,
+    "app": {
+      "clientId": ""
+    },
+    "draws": true
+  },
+  {
+    "label": "claude.ai client, nothing declared",
+    "meta": {},
+    "modern": true,
+    "app": {
+      "clientId": "https://claude.ai/oauth/mcp-oauth-client-metadata"
+    },
+    "draws": true
+  },
+  {
+    "label": "registered client returning to chatgpt.com",
+    "meta": {},
+    "modern": false,
+    "app": {
+      "clientId": "abc",
+      "kind": "registered",
+      "host": "chatgpt.com"
+    },
+    "draws": true
+  },
+  {
+    "label": "openai hints, handshake era",
+    "meta": {
+      "openai/subject": "s"
+    },
+    "modern": false,
+    "app": {
+      "clientId": "x"
+    },
+    "draws": true
+  },
+  {
+    "label": "openai hints, modern era",
+    "meta": {
+      "openai/subject": "s"
+    },
+    "modern": true,
+    "app": {
+      "clientId": "x"
+    },
+    "draws": false
+  },
+  {
+    "label": "claude code",
+    "meta": {},
+    "modern": false,
+    "app": {
+      "clientId": "https://claude.ai/oauth/claude-code-client-metadata"
+    },
+    "draws": false
+  }
+]

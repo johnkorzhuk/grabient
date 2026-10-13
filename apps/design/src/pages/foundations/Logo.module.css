@@ -1,0 +1,144 @@
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: var(--space-s10);
+  align-items: center;
+  padding: var(--space-s10);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+  color: var(--color-ink);
+}
+.construction {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+.red {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 0.6;
+}
+/* in the drawing's own units: the viewBox scales it with the figure */
+.redText {
+  fill: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: 4px;
+}
+.sizes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-s4);
+}
+.size {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-s2);
+  margin: 0;
+}
+.onPaper,
+.onInk {
+  display: inline-flex;
+  padding: var(--space-s4);
+  border-radius: var(--radius-control);
+}
+.onPaper {
+  border: 1px solid var(--color-edge);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+.onInk {
+  background-color: var(--color-ink);
+  color: var(--color-on-ink);
+}
+.overArt {
+  display: inline-flex;
+  color: var(--color-on-art);
+}
+
+.moves {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-s4);
+}
+.move {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  min-width: 0;
+  padding: var(--space-s5);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+  color: var(--color-ink);
+}
+/* the frames of a move top to bottom, as a strip of film */
+.frames {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-s1) / 2);
+  margin-bottom: var(--space-s2);
+  overflow: hidden;
+  border-radius: var(--radius-tight);
+}
+.frame {
+  height: var(--space-s3);
+}
+
+.marks {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-s4);
+}
+.mark {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--space-s4);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+}
+/* each icon's square drawn faintly round it, so the bar is seen standing on the square's foot */
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s4);
+  padding: var(--space-s3);
+  overflow: hidden;
+  border-radius: var(--radius-control);
+  & > img {
+    display: block;
+    flex-shrink: 0;
+    outline: 1px dashed color-mix(in srgb, currentColor 35%, transparent);
+  }
+}
+
+/* the four misuses, drawn on the wordmark itself */
+.recolored {
+  display: inline-flex;
+  color: var(--color-accent);
+}
+.rotated {
+  display: inline-flex;
+  transform: rotate(-12deg);
+}
+.stretched {
+  display: inline-flex;
+  transform: scale(1.4, 0.8);
+}
+.outlined {
+  display: block;
+  height: 32px;
+  overflow: visible;
+  color: var(--color-ink);
+}
+.stroked {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1px;
+}

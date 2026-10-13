@@ -1,0 +1,106 @@
+@layer components {
+  .host {
+    position: relative;
+    min-width: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+  }
+  /* the plot's ground: the quietest paper, between its highest value and its lowest */
+  .ground,
+  .wash {
+    position: absolute;
+    top: 12px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 24px);
+    pointer-events: none;
+  }
+  .ground {
+    border-radius: var(--radius-tight);
+    background-color: var(--color-paper);
+    box-shadow: var(--color-rim);
+  }
+  .wash {
+    display: block;
+  }
+  .svg {
+    position: relative;
+    display: block;
+    overflow: visible;
+    cursor: crosshair;
+  }
+  .scale {
+    fill: var(--color-ink3);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs0);
+    text-anchor: end;
+  }
+  .curve {
+    fill: none;
+    stroke: var(--color-ink);
+    stroke-width: 1.5;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  /* a line in the palette's own colors over a hairline of ink, which keeps a color near the paper's in sight */
+  .hue,
+  .hueRim {
+    fill: none;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+  }
+  .hue {
+    stroke-width: 3;
+  }
+  .hueRim {
+    stroke: var(--color-ink4);
+    stroke-width: 4;
+  }
+  .ask {
+    fill: none;
+    stroke: var(--color-ink3);
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
+  }
+  .mark {
+    stroke: var(--color-ink4);
+  }
+  /* the run a sweep has reached, while it lasts */
+  .band {
+    fill: var(--color-paper2);
+    pointer-events: none;
+  }
+  /* a keyframe's dot: its own color cut out of the paper, with a hairline so a pale one keeps its edge; held, ringed */
+  .dot {
+    stroke: var(--color-paper-solid);
+    stroke-width: 2;
+  }
+  .rim {
+    fill: none;
+    stroke: var(--color-ink4);
+    stroke-width: 1;
+    pointer-events: none;
+  }
+  .ring,
+  .read {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    &[data-on] {
+      opacity: 1;
+    }
+  }
+  .ring {
+    fill: none;
+    stroke: var(--color-ink);
+    stroke-width: 2;
+  }
+  .cross {
+    stroke: var(--color-ink3);
+  }
+  .readDot {
+    stroke: var(--color-paper-solid);
+    stroke-width: 1.5;
+  }
+}

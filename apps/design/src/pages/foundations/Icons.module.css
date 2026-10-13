@@ -1,0 +1,21 @@
+.icons {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: var(--space-s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s3);
+  padding-block: var(--space-s3);
+  color: var(--color-ink);
+}
+.turn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s4);
+}
