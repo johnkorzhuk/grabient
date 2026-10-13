@@ -1,0 +1,102 @@
+/* Specimens stand on solid paper with its edge, or on a picture with none, at the surface radius: the paper a note or
+   a figure takes in the app. */
+.stage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s3);
+  height: 100%;
+  min-width: 0;
+  min-height: 112px;
+  padding: var(--space-s5);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+  background-size: cover;
+  color: var(--color-ink);
+  &[data-art] {
+    border-color: transparent;
+  }
+  &[data-column] {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  min-width: 0;
+  margin: 0;
+}
+.caption {
+  padding-inline: var(--space-s1);
+}
+.cells {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(var(--min), 100%), 1fr));
+  gap: var(--space-s4);
+  align-items: stretch;
+}
+
+.matrix {
+  display: grid;
+  grid-template-columns: 120px repeat(var(--cols), minmax(0, 1fr));
+  gap: var(--space-s3);
+}
+.corner,
+.colHead {
+  display: flex;
+  align-items: flex-end;
+  padding-inline: var(--space-s1);
+}
+.rowHead {
+  display: flex;
+  align-items: center;
+}
+
+.verdicts {
+  display: grid;
+  grid-template-columns: repeat(var(--columns), minmax(0, 1fr));
+  gap: var(--space-s4);
+}
+.verdict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  min-width: 0;
+  margin: 0;
+}
+.judged {
+  display: flex;
+  flex-grow: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s3);
+  min-height: 168px;
+  padding: var(--space-s6);
+  overflow: hidden;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+  background-size: cover;
+  color: var(--color-ink);
+  &[data-compact] {
+    min-height: 104px;
+  }
+}
+.mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s2);
+  padding-inline: var(--space-s1);
+  color: var(--color-danger);
+  &[data-ok] {
+    color: var(--color-ink);
+  }
+}

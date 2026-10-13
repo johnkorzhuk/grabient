@@ -131,11 +131,8 @@
       font-size: var(--font-fs2);
     }
     @media (pointer: coarse) {
-      [data-size="md"] &,
-      [data-size="lg"] & {
-        height: var(--size-touch);
-        min-width: var(--size-touch);
-      }
+      height: var(--size-touch);
+      min-width: var(--size-touch);
     }
     /* chips that share a row are one width, so a turn between modes with as many formats moves none */
     [data-full] & {
@@ -161,10 +158,7 @@
         width: var(--size-control-big);
       }
       @media (pointer: coarse) {
-        [data-size="md"] &,
-        [data-size="lg"] & {
-          width: var(--size-touch);
-        }
+        width: var(--size-touch);
       }
     }
     /* the mode leads, a line apart from the formats, its inner corners square so the line runs straight; while the

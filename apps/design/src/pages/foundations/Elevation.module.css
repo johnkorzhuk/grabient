@@ -1,0 +1,16 @@
+.stage {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-s8);
+  align-items: center;
+  padding: var(--space-s12) var(--space-s10);
+  border-radius: var(--radius-surface);
+  --veil: color-mix(in srgb, var(--color-bg) 50%, transparent);
+  background-image: linear-gradient(var(--veil), var(--veil)), var(--bands);
+}
+.words {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  min-height: 112px;
+}

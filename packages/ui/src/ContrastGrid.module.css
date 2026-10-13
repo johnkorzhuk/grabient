@@ -43,19 +43,19 @@
     width: var(--space-s3);
     height: var(--space-s3);
     border-radius: var(--radius-circle);
-    box-shadow: inset 0 0 0 1px var(--color-hole-rim);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-hole-rim);
     /* under the pointer or the keyboard, or open, a reader's coin is ringed: in ink while open */
     &[data-press] {
       box-shadow:
-        inset 0 0 0 1px var(--color-hole-rim),
-        0 0 0 2px var(--color-paper-solid),
-        0 0 0 calc(2px + var(--ring) * 1px) var(--color-ink4);
+        inset 0 0 0 var(--size-hairline) var(--color-hole-rim),
+        0 0 0 calc(2 * var(--size-hairline)) var(--color-paper-solid),
+        0 0 0 calc((2 + var(--ring)) * var(--size-hairline)) var(--color-ink4);
     }
     &[data-open] {
       box-shadow:
-        inset 0 0 0 1px var(--color-hole-rim),
-        0 0 0 2px var(--color-paper-solid),
-        0 0 0 3px var(--color-ink);
+        inset 0 0 0 var(--size-hairline) var(--color-hole-rim),
+        0 0 0 calc(2 * var(--size-hairline)) var(--color-paper-solid),
+        0 0 0 calc(3 * var(--size-hairline)) var(--color-ink);
     }
   }
   /* a press in the coins' column, a finger's size on a touch screen: one of the reader's colors, or the plus */
@@ -102,7 +102,7 @@
     width: var(--space-s3);
     height: var(--space-s3);
     border-radius: var(--radius-circle);
-    box-shadow: 0 0 0 calc(var(--ring) * 1px) var(--color-ink4);
+    box-shadow: 0 0 0 calc(var(--ring) * var(--size-hairline)) var(--color-ink4);
   }
   .cells {
     display: grid;
@@ -219,7 +219,7 @@
     width: var(--space-s3);
     height: var(--space-s3);
     border-radius: var(--radius-circle);
-    box-shadow: inset 0 0 0 1px var(--color-hole-rim);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-hole-rim);
   }
   .sample {
     font-family: var(--font-sans);

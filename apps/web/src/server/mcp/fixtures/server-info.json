@@ -1,0 +1,38 @@
+{
+  "serverInfo": {
+    "name": "Grabient",
+    "title": "Grabient",
+    "version": "1.0.0",
+    "description": "Color palettes and gradients: search the gallery, make palettes and keep them in a Grabient account.",
+    "websiteUrl": "https://grabient.com",
+    "icons": [
+      {
+        "src": "https://grabient.com/icon-192.png",
+        "mimeType": "image/png",
+        "sizes": [
+          "192x192"
+        ]
+      },
+      {
+        "src": "https://grabient.com/icon-512.png",
+        "mimeType": "image/png",
+        "sizes": [
+          "512x512"
+        ]
+      },
+      {
+        "src": "https://grabient.com/favicon.svg",
+        "mimeType": "image/svg+xml",
+        "sizes": [
+          "any"
+        ]
+      }
+    ]
+  },
+  "supported": [
+    "2026-07-28",
+    "2025-11-25",
+    "2025-06-18",
+    "2025-03-26"
+  ]
+}

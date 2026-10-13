@@ -85,14 +85,14 @@
     height: var(--size-sample);
     border: 2px solid var(--color-on-art);
     border-radius: var(--radius-circle);
-    box-shadow: 0 0 0 1px var(--color-art);
+    box-shadow: 0 0 0 var(--size-hairline) var(--color-art);
     /* the chosen point, and the one the keyboard is on: a second ring outside the first */
     &[data-chosen],
     :focus-visible > & {
       box-shadow:
-        0 0 0 1px var(--color-art),
-        0 0 0 4px var(--color-on-art),
-        0 0 0 5px var(--color-art);
+        0 0 0 var(--size-hairline) var(--color-art),
+        0 0 0 calc(4 * var(--size-hairline)) var(--color-on-art),
+        0 0 0 calc(5 * var(--size-hairline)) var(--color-art);
     }
   }
   /* the colors in order, under the picture where a card has its line */
@@ -128,13 +128,16 @@
     &:focus-visible {
       outline-width: 1px;
     }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
   }
   .swatch {
     flex-shrink: 0;
     width: var(--space-s3);
     height: var(--space-s3);
     border-radius: var(--radius-circle);
-    box-shadow: inset 0 0 0 1px var(--color-edge2);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
   }
   .hex {
     font-family: var(--font-mono);

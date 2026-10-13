@@ -1,0 +1,90 @@
+/* The side list at a fixed width beside the page, both inside the gutter the shell sets. */
+.frame {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: var(--space-s16);
+  align-items: start;
+  padding-inline: var(--size-gutter);
+}
+
+/* held under the header as the page scrolls; it fits a short window, so it never scrolls on its own */
+.side {
+  position: sticky;
+  top: calc(var(--size-top) + var(--space-s4));
+  padding-top: var(--space-s12);
+}
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s6);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  padding-inline-start: var(--space-s3);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  margin-inline-start: calc(-1 * var(--space-s3));
+  padding: 0;
+  list-style: none;
+}
+/* a name that runs long wraps under itself: none is cut */
+.link {
+  position: relative;
+  display: block;
+  padding: calc(var(--space-s1) * 1.25) var(--space-s3);
+  border-radius: var(--radius-control);
+  --fill: transparent;
+  background-color: var(--fill);
+  color: var(--color-ink2);
+  text-decoration: none;
+  outline: 0 solid var(--color-ring);
+  outline-offset: -2px;
+  transition:
+    --fill var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+  &:hover {
+    --fill: var(--color-paper2);
+    color: var(--color-ink);
+  }
+  &:focus-visible {
+    outline-width: 1px;
+  }
+  /* the section in view: its name in ink, and the bar's colors down its start */
+  &[aria-current] {
+    color: var(--color-ink);
+    &::before {
+      content: "";
+      position: absolute;
+      inset-block: var(--space-s2);
+      inset-inline-start: 0;
+      width: 2px;
+      border-radius: var(--radius-circle);
+      background-color: var(--color-ink);
+      background-image: var(--bar);
+    }
+  }
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-bottom: var(--space-s16);
+  outline: none;
+}
+/* the foot stands as far from the last section as a section from the one before */
+.main > footer {
+  margin-top: var(--space-s16);
+}
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  max-width: var(--size-prose);
+  padding-top: var(--space-s12);
+}

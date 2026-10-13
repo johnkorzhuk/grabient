@@ -36,7 +36,7 @@
     &[data-held] {
       box-shadow:
         var(--color-rim),
-        0 0 0 2px var(--color-ink);
+        0 0 0 calc(2 * var(--size-hairline)) var(--color-ink);
     }
     /* the caret under the keyframe the numbers speak for */
     &[data-lead]::after {

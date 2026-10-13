@@ -1,0 +1,8 @@
+{
+ "locale": "ja",
+ "reason": "このメールは、Grabient に登録された方にお送りしています。",
+ "unsubscribe": {
+  "label": "配信停止",
+  "href": "https://grabient.test/ja/unsubscribe/abababababababababababababababababababababababababababababababab"
+ }
+}

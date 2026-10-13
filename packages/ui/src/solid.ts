@@ -162,23 +162,14 @@ const EDGES: Partial<Record<Gamut, { edges: P3[][]; maxC: number }>> = {};
 function cubeEdges(g: Gamut) {
   const known = EDGES[g];
   if (known) return known;
+  /* an edge runs from 0 to 1 along one channel, the other two held at 0 or 1 */
   const pairs: [number[], number[]][] = [];
   for (const u of [0, 1])
     for (const v of [0, 1])
-      pairs.push(
-        [
-          [0, u, v],
-          [1, u, v]
-        ],
-        [
-          [u, 0, v],
-          [u, 1, v]
-        ],
-        [
-          [u, v, 0],
-          [u, v, 1]
-        ]
-      );
+      for (const along of [0, 1, 2]) {
+        const at = (w: number) => [...[u, v].slice(0, along), w, ...[u, v].slice(along)];
+        pairs.push([at(0), at(1)]);
+      }
   let maxC = 0;
   const edges = pairs.map(([A, B]) =>
     Array.from({ length: 17 }, (_, i) => {

@@ -1,0 +1,107 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+}
+/* the card, solid paper with an edge, while the list is on its way, empty, refused, or holding the apps */
+.quiet,
+.retry,
+.list {
+  margin: 0;
+  border: var(--size-hairline) solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+}
+.quiet {
+  padding: var(--space-s4);
+}
+.retry {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s3);
+  padding: var(--space-s3) var(--space-s4);
+}
+/* the rows' columns are the list's, so each app's date and press stand under those above; on a phone a row is one
+   column: the app, its date, then the press at the row's full width */
+.list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: var(--space-s6);
+  padding: 0;
+  list-style: none;
+  @container page (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* a row; the dashed rule parts it from the row before */
+.row {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  align-items: start;
+  row-gap: var(--space-s3);
+  padding: var(--space-s4);
+  background-image: var(--color-dash-rule);
+  background-size: var(--size-dash-period) var(--size-hairline);
+  background-repeat: repeat-x;
+  background-position: left top;
+  &:first-child {
+    background-image: none;
+  }
+}
+/* the app: its name, with the admin tools named beside it where it holds them, over who published it */
+.who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--space-s2);
+}
+.lines {
+  display: grid;
+}
+.cell {
+  grid-area: 1 / 1;
+  &[data-unseen] {
+    visibility: hidden;
+  }
+}
+/* the date under its word, which sits on a line set in the name's own type so the two share a baseline */
+.date {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+  min-width: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+.word {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: var(--font-bold);
+  font-size: var(--font-fs4);
+  line-height: var(--font-lh-ui);
+}
+.value {
+  margin: 0;
+  color: var(--color-ink2);
+}
+/* the press keeps the row's middle whatever its words' baseline, and on a phone takes the row's width */
+.control {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+}

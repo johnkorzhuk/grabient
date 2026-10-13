@@ -1,0 +1,134 @@
+[
+  {
+    "locale": "zh-Hans",
+    "text": "日落渐变",
+    "english": "Sunset gradients",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locale": "zh-Hans",
+    "text": "Sunset gradients",
+    "english": "Sunset gradients",
+    "kind": "title",
+    "fault": "It isn't written in Chinese (Simplified)."
+  },
+  {
+    "locale": "es",
+    "text": "Degradados 日落",
+    "english": "Sunset gradients",
+    "kind": "title",
+    "fault": "It isn't written in Spanish."
+  },
+  {
+    "locale": "de",
+    "text": "Pastell",
+    "english": "Pastel",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locale": "zh-Hans",
+    "text": "css",
+    "english": "css",
+    "kind": "tag",
+    "fault": null
+  },
+  {
+    "locale": "fr",
+    "text": "Same.",
+    "english": "Same.",
+    "kind": "description",
+    "fault": "It is the English."
+  },
+  {
+    "locale": "zh-Hans",
+    "text": "日落—渐变",
+    "english": "",
+    "kind": "title",
+    "fault": "It holds an em dash."
+  },
+  {
+    "locale": "zh-Hans",
+    "text": "日落\n渐变",
+    "english": "",
+    "kind": "title",
+    "fault": "It holds a line break."
+  },
+  {
+    "locale": "zh-Hans",
+    "text": "日日日日日日日日日日…(81)",
+    "english": "",
+    "kind": "title",
+    "fault": "Longer than 80 characters."
+  },
+  {
+    "locale": "zh-Hans",
+    "text": "",
+    "english": "x",
+    "kind": "tag",
+    "fault": "Empty."
+  },
+  {
+    "locale": "ar",
+    "text": "تدرجات",
+    "english": "Gradients",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locale": "th",
+    "text": "ไล่สี",
+    "english": "Gradients",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locale": "ru",
+    "text": "Градиенты",
+    "english": "Gradients",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locale": "ko",
+    "text": "그라데이션",
+    "english": "Gradients",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locale": "ja",
+    "text": "グラデーション",
+    "english": "Gradients",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locale": "vi",
+    "text": "Dải màu",
+    "english": "Gradients",
+    "kind": "title",
+    "fault": null
+  },
+  {
+    "locales": [
+      "ar",
+      "de",
+      "es",
+      "fa",
+      "fr",
+      "id",
+      "ja",
+      "ko",
+      "pt-BR",
+      "ru",
+      "th",
+      "tr",
+      "uk",
+      "vi",
+      "zh-Hans"
+    ],
+    "fingerprint": "sck3ac"
+  }
+]

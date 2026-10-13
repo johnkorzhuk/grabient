@@ -1,0 +1,42 @@
+{
+ "specVersion": "1.0",
+ "entries": [
+  {
+   "identifier": "urn:air:grabient.com:mcp:palettes",
+   "displayName": "Grabient palettes",
+   "description": "Search, make and change color palettes and CSS gradients, keep them, and browse collections of them, with a free Grabient account.",
+   "type": "application/mcp-server-card+json",
+   "url": "https://grabient.com/mcp/server-card",
+   "tags": [
+    "color",
+    "palette",
+    "gradient",
+    "css",
+    "design"
+   ],
+   "capabilities": [
+    "get_account",
+    "search_palettes",
+    "list_gallery",
+    "search_collections",
+    "get_collection",
+    "compose_palette",
+    "adjust_palette",
+    "inspect_palettes",
+    "show_palettes",
+    "list_saved_palettes",
+    "save_palette",
+    "list_my_collections",
+    "save_collection",
+    "delete_collection"
+   ],
+   "representativeQueries": [
+    "find a warm sunset gradient for a landing page",
+    "show me ocean color palettes with their hex codes",
+    "make a gradient from my brand colors",
+    "make this palette lighter and give me the CSS",
+    "save this palette to my Grabient account"
+   ]
+  }
+ ]
+}

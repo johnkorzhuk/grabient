@@ -1,0 +1,22 @@
+{
+  "com.grabient/view": {
+    "origin": "https://grabient.com",
+    "tiles": [
+      {
+        "tile": 1,
+        "seed": "kSWUkczDNDewdRK",
+        "style": "linearGradient",
+        "steps": 7,
+        "angle": 90,
+        "title": "Mine"
+      },
+      {
+        "tile": 2,
+        "seed": "kQf5EOWSTcQ",
+        "style": "radialSwatches",
+        "steps": 5,
+        "angle": 90
+      }
+    ]
+  }
+}

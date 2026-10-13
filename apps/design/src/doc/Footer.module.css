@@ -1,0 +1,15 @@
+.foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s5);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s6);
+}
+.links {
+  display: flex;
+  gap: var(--space-s5);
+}

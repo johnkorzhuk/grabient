@@ -6,7 +6,7 @@ import { Button } from "./Button.tsx";
 import { copyText } from "./copy.ts";
 import { FigurePane } from "./FigurePane.tsx";
 import { type Format, FormatStrip } from "./FormatStrip.tsx";
-import { buildFigure, downloadFile, figureName, loadFigureFonts, svgToPngBlob } from "./figure.ts";
+import type { FigureOpts } from "./figure.ts";
 import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import type { PickMode } from "./Keyframes.tsx";
@@ -45,8 +45,9 @@ export function SolidPane(props: {
     if (el) return watchSize(el, () => setTall(Math.max(200, Math.floor(el.clientHeight))));
   });
   let cam: Cam = { ...CAM0 };
-  const figure = () =>
-    buildFigure({
+  /* the figure of the view at the press; its writer and the fonts it embeds load on the first copy or save */
+  const figure = async () => {
+    const view: FigureOpts = {
       palette: props.palette,
       steps: props.steps,
       stepped: props.stepped,
@@ -57,14 +58,23 @@ export function SolidPane(props: {
       style: props.style,
       angle: props.angle,
       seed: props.seed
-    });
+    };
+    const writer = await import("./figure.ts");
+    await writer.loadFigureFonts();
+    return {
+      writer,
+      svg: writer.buildFigure(view),
+      name: writer.figureName(view.seed ?? "palette", view.kept)
+    };
+  };
   /* whether the copy happened, so the chip confirms only one that did */
   const copy = async (format: Format): Promise<boolean> => {
-    await loadFigureFonts();
-    const svg = figure();
+    const { writer, svg } = await figure();
     if (format === "png") {
       try {
-        await navigator.clipboard.write([new ClipboardItem({ "image/png": svgToPngBlob(svg, 2) })]);
+        await navigator.clipboard.write([
+          new ClipboardItem({ "image/png": writer.svgToPngBlob(svg, 2) })
+        ]);
       } catch {
         announce(t("Images can't be copied here."));
         return false;
@@ -74,11 +84,10 @@ export function SolidPane(props: {
     return true;
   };
   const download = async (format: Format) => {
-    await loadFigureFonts();
-    const svg = figure();
-    const name = figureName(props.seed ?? "palette", kept());
-    if (format === "png") downloadFile(`${name}.png`, await svgToPngBlob(svg, 2));
-    else downloadFile(`${name}.svg`, new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+    const { writer, svg, name } = await figure();
+    if (format === "png") writer.downloadFile(`${name}.png`, await writer.svgToPngBlob(svg, 2));
+    else
+      writer.downloadFile(`${name}.svg`, new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
     props.onTake?.("download", format);
   };
   return (

@@ -1,0 +1,7 @@
+/* the bubble hangs 8px under its control, as the site places it */
+.held {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s2);
+}

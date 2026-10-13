@@ -1,0 +1,196 @@
+.cover {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s16);
+  padding: var(--space-s16) var(--size-gutter);
+  outline: none;
+}
+/* the name at the left and what the document holds at the right, on one line along their feet */
+.hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-s16);
+  color: var(--color-ink);
+}
+.name {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-s8);
+}
+.stats {
+  display: flex;
+  gap: var(--space-s10);
+  margin: 0;
+}
+.stat {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: var(--space-s2);
+}
+.value {
+  margin: 0;
+}
+.lead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  max-width: var(--size-prose);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-s6);
+}
+/* the whole tile leads to its page through its title; its groups stand over that, each a way of its own */
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s5);
+  padding: var(--space-s5);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  --fill: var(--color-paper-solid);
+  background-color: var(--fill);
+  outline: 0 solid var(--color-ring);
+  outline-offset: 2px;
+  transition: --fill var(--motion-fast) var(--motion-ease);
+  &:hover {
+    --fill: color-mix(in srgb, var(--color-paper-solid), var(--color-ink) 4%);
+  }
+  &:has(:focus-visible) {
+    outline-width: 1px;
+  }
+}
+.specimen {
+  height: 380px;
+  overflow: hidden;
+  border-radius: var(--radius-control);
+}
+.words {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+}
+.title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-s3);
+  color: var(--color-ink3);
+  text-decoration: none;
+  outline: none;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-surface);
+  }
+}
+.groups {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-s2);
+  min-height: var(--size-control-sm);
+  padding-inline: var(--space-s3);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-control);
+  --fill: transparent;
+  background-color: var(--fill);
+  color: var(--color-ink2);
+  text-decoration: none;
+  outline: 0 solid var(--color-ring);
+  outline-offset: 2px;
+  transition:
+    --fill var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
+  &:hover {
+    --fill: var(--color-paper2);
+    color: var(--color-ink);
+  }
+  &:focus-visible {
+    outline-width: 1px;
+  }
+}
+
+/* each half a page of its theme */
+.themes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  height: 100%;
+}
+.theme {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--space-s5);
+  padding: var(--space-s8);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+}
+.inks,
+.presses {
+  display: flex;
+  gap: var(--space-s2);
+}
+.ink {
+  width: var(--space-s8);
+  height: var(--space-s8);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-control);
+}
+/* the page's ground, a card and a form on it, as a list and a sheet stand */
+.kit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-s8);
+  align-items: center;
+  height: 100%;
+  padding: var(--space-s6);
+  background-color: var(--color-bg);
+}
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s4);
+}
+
+.principles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s5);
+}
+.list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-s5) var(--space-s16);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.principle {
+  display: grid;
+  grid-template-columns: var(--space-s10) minmax(0, 1fr);
+  align-items: baseline;
+  padding-top: var(--space-s4);
+  background: var(--color-dash-rule) left top / var(--size-dash-period) 1px repeat-x;
+}

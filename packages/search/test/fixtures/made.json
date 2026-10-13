@@ -1,0 +1,215 @@
+[
+ {
+  "colors": [
+   "#264653",
+   "#2a9d8f",
+   "#e9c46a",
+   "#f4a261",
+   "#e76f51"
+  ],
+  "made": [
+   {
+    "seed": "kGSZGU0qnY8enEah9KJhHnb1E",
+    "style": "linearSwatches",
+    "steps": 5,
+    "angle": 90
+   },
+   {
+    "seed": "kCedvUX0omEenEag",
+    "style": "linearGradient",
+    "steps": 48,
+    "angle": 90
+   },
+   {
+    "seed": "kASZGU3pxGo",
+    "style": "radialSwatches",
+    "steps": 5,
+    "angle": 90
+   }
+  ],
+  "invented": 0.043534
+ },
+ {
+  "colors": [
+   "#363123",
+   "#63541c",
+   "#935e3a",
+   "#937c24",
+   "#e2943b"
+  ],
+  "made": [
+   {
+    "seed": "kGTYxI1jVBwZNeOhk3wkHilDs",
+    "style": "linearSwatches",
+    "steps": 5,
+    "angle": 90
+   },
+   {
+    "seed": "kEWNUHGTXjoZN8JB4pQ7A",
+    "style": "linearGradient",
+    "steps": 48,
+    "angle": 90
+   },
+   {
+    "seed": "kCTYxI2TfCQeKUOw",
+    "style": "radialSwatches",
+    "steps": 3,
+    "angle": 90
+   },
+   {
+    "seed": "kCTYxI1jVBwZNeOg",
+    "style": "angularSwatches",
+    "steps": 3,
+    "angle": 90
+   },
+   {
+    "seed": "kCZNeOmTfCQeKUOw",
+    "style": "radialGradient",
+    "steps": 48,
+    "angle": 90
+   },
+   {
+    "seed": "kATYxI3ilDs",
+    "style": "linearSwatches",
+    "steps": 5,
+    "angle": 90
+   }
+  ],
+  "invented": 0.011412
+ },
+ {
+  "colors": [
+   "#ff0000"
+  ],
+  "made": [],
+  "invented": null
+ },
+ {
+  "colors": [
+   "#000000",
+   "#ffffff"
+  ],
+  "made": [
+   {
+    "seed": "kQAAAAfwA_4",
+    "style": "linearSwatches",
+    "steps": 5,
+    "angle": 90
+   }
+  ],
+  "invented": 0.046875
+ },
+ {
+  "colors": [
+   "#ff0000",
+   "#00ff00",
+   "#0000ff"
+  ],
+  "made": [
+   {
+    "seed": "kCf8AAEA_wAQAA_w",
+    "style": "linearSwatches",
+    "steps": 3,
+    "angle": 90
+   },
+   {
+    "seed": "kAQAA_0A_wA",
+    "style": "linearGradient",
+    "steps": 48,
+    "angle": 90
+   }
+  ],
+  "invented": 0.079632
+ },
+ {
+  "colors": [
+   "#9caf88",
+   "#da70d6"
+  ],
+  "made": [
+   {
+    "seed": "kAZyviHacNY",
+    "style": "linearSwatches",
+    "steps": 5,
+    "angle": 90
+   }
+  ],
+  "invented": 0.116249
+ },
+ {
+  "colors": [
+   "#1d3557",
+   "#e63946",
+   "#f4efe6",
+   "#a8dadc",
+   "#f4a261"
+  ],
+  "made": [
+   {
+    "seed": "kGR01V3mOUYfTv5hqNrcH0omE",
+    "style": "linearSwatches",
+    "steps": 5,
+    "angle": 90
+   },
+   {
+    "seed": "kCfSiYWo2twfTv5g",
+    "style": "linearGradient",
+    "steps": 48,
+    "angle": 90
+   },
+   {
+    "seed": "kAR01V307-Y",
+    "style": "radialSwatches",
+    "steps": 5,
+    "angle": 90
+   }
+  ],
+  "invented": 0.114308
+ },
+ {
+  "colors": [
+   "#111111",
+   "#222222",
+   "#333333",
+   "#444444",
+   "#555555",
+   "#666666",
+   "#777777",
+   "#888888",
+   "#999999"
+  ],
+  "made": [
+   {
+    "seed": "kMhFARE_8Zv_Ij_yq_8zP_O7_0Q_4",
+    "style": "linearSwatches",
+    "steps": 8,
+    "angle": 90
+   },
+   {
+    "seed": "kChFATu_9EP-",
+    "style": "linearGradient",
+    "steps": 48,
+    "angle": 90
+   },
+   {
+    "seed": "kChFARE_8Zv-",
+    "style": "radialSwatches",
+    "steps": 3,
+    "angle": 90
+   },
+   {
+    "seed": "kCmZATu_9EP-",
+    "style": "angularSwatches",
+    "steps": 3,
+    "angle": 90
+   },
+   {
+    "seed": "kAhFAUQ_4",
+    "style": "radialGradient",
+    "steps": 48,
+    "angle": 90
+   }
+  ],
+  "invented": 0.005104
+ }
+]
