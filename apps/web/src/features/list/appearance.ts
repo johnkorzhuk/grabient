@@ -66,6 +66,16 @@ export function viewParams(view: Partial<ListView>): Record<string, string | num
   return out;
 }
 
+/** A list's search with a change over its own, in the lists' one order: the words, the view, whatever else the
+    address says, then the selection. An address written in another order is one the Worker redirects on a reload. */
+export function inOrder(
+  search: Readonly<Record<string, unknown>>,
+  change: Readonly<Record<string, unknown>>
+): Record<string, unknown> {
+  const { q, style, steps, angle, size, selection, ...rest } = { ...search, ...change };
+  return { q, style, steps, angle, size, ...rest, selection };
+}
+
 /* each seed's keyframe count, read once: a change of the view reads every card's palette again */
 const KEYFRAMES_KEPT = 2048;
 const keyframes = new Map<string, number>();
