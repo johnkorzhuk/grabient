@@ -3,6 +3,8 @@ import { i18n } from "@grabient/i18n/vite.ts";
 import solid from "@solidjs/vite-plugin";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { defineConfig } from "vite";
+import { mcpView } from "./src/mcp-view/build.ts";
+import { draftsStayPrivate } from "./src/server/newsletter/private.ts";
 
 /* One app on one Worker. The Cloudflare plugin reads cloudflare.config.ts for the mode (`vite dev` is development,
    `vite build --mode staging` is staging) and runs the Worker in workerd under `vite dev` and `vite preview`, with every
@@ -33,6 +35,10 @@ export default defineConfig({
   },
   plugins: [
     i18n(),
+    // The MCP App view, built into one page the Worker serves to AI apps.
+    mcpView(),
+    // A newsletter issue that has no publication day yet never reaches a file the browser is given.
+    draftsStayPrivate(),
     cloudflare({ viteEnvironment: { name: "ssr" }, remoteBindings: false }),
     tanstackStart({
       // Worker-only code never reaches the browser: the build fails on an import of it from code the client runs.
