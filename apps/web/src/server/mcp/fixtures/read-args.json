@@ -1,0 +1,271 @@
+[
+  {
+    "tool": "inspect_palettes",
+    "args": {
+      "palettes": [
+        "kSWUkczDNDewdRK",
+        {
+          "seed": " kSWUkczDNDewdRK "
+        },
+        "https://grabient.com/kSWUkczDNDewdRK.png?style=radialSwatches&steps=6&angle=30&size=1200x630",
+        {
+          "seed": "https://grabient.com/kSWUkczDNDewdRK",
+          "steps": 9
+        },
+        "/ja/kSWUkczDNDewdRK?angle=45"
+      ]
+    },
+    "read": {
+      "args": {
+        "palettes": [
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "style": "radialSwatches",
+            "steps": 6,
+            "angle": 30
+          },
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "style": "linearGradient",
+            "steps": 9,
+            "angle": 90
+          },
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "style": "linearGradient",
+            "steps": 7,
+            "angle": 45
+          }
+        ]
+      }
+    }
+  },
+  {
+    "tool": "save_collection",
+    "args": {
+      "slug": "a",
+      "title": null,
+      "description": null,
+      "palettes": null,
+      "add": [],
+      "remove": [],
+      "tags": []
+    },
+    "read": {
+      "args": {
+        "slug": "a",
+        "tags": []
+      }
+    }
+  },
+  {
+    "tool": "save_palette",
+    "args": {
+      "seed": "kSWUkczDNDewdRK",
+      "steps": "5",
+      "angle": " 45 ",
+      "saved": " FALSE ",
+      "title": "  name "
+    },
+    "read": {
+      "args": {
+        "seed": "kSWUkczDNDewdRK",
+        "steps": 5,
+        "angle": 45,
+        "saved": false,
+        "title": "name"
+      }
+    }
+  },
+  {
+    "tool": "list_gallery",
+    "args": {
+      "limit": 500,
+      "page": 0
+    },
+    "read": {
+      "args": {
+        "limit": 48,
+        "page": 1
+      }
+    }
+  },
+  {
+    "tool": "save_palette",
+    "args": {
+      "seed": "kSWUkczDNDewdRK",
+      "steps": 250
+    },
+    "read": {
+      "args": {
+        "seed": "kSWUkczDNDewdRK",
+        "steps": 100
+      }
+    }
+  },
+  {
+    "tool": "get_account",
+    "args": {
+      "verbose": true
+    },
+    "read": {
+      "error": "\"verbose\" is not a name this takes: it takes none."
+    }
+  },
+  {
+    "tool": "show_palettes",
+    "args": {
+      "palettes": [
+        {
+          "seed": "kSWUkczDNDewdRK",
+          "colour": 1
+        }
+      ]
+    },
+    "read": {
+      "error": "palette 1: \"colour\" is not a name this takes: seed, style, steps, angle, title."
+    }
+  },
+  {
+    "tool": "show_palettes",
+    "args": {},
+    "read": {
+      "error": "palettes is needed: The palettes, in tile order."
+    }
+  },
+  {
+    "tool": "show_palettes",
+    "args": {
+      "palettes": [
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK",
+        "kSWUkczDNDewdRK"
+      ]
+    },
+    "read": {
+      "error": "palettes is a list of 1 to 24: a list of 25 was sent."
+    }
+  },
+  {
+    "tool": "show_palettes",
+    "args": {
+      "palettes": [
+        "kSWUkczDNDewdRK",
+        "k-not-a-seed"
+      ]
+    },
+    "read": {
+      "error": "palette 2: seed \"k-not-a-seed\" is no palette's seed or address."
+    }
+  },
+  {
+    "tool": "show_palettes",
+    "args": {
+      "palettes": [
+        {
+          "seed": "kSWUkczDNDewdRK",
+          "style": "radial"
+        }
+      ]
+    },
+    "read": {
+      "error": "palette 1: style is one of linearGradient, linearSwatches, angularGradient, angularSwatches, radialGradient, radialSwatches: \"radial\" was sent."
+    }
+  },
+  {
+    "tool": "show_palettes",
+    "args": {
+      "palettes": [
+        {
+          "seed": "kSWUkczDNDewdRK",
+          "angle": 400
+        }
+      ]
+    },
+    "read": {
+      "error": "palette 1: angle is a whole number from 0 to 360: 400 was sent."
+    }
+  },
+  {
+    "tool": "save_palette",
+    "args": {
+      "seed": "kSWUkczDNDewdRK",
+      "saved": "maybe"
+    },
+    "read": {
+      "error": "saved is true or false: \"maybe\" was sent."
+    }
+  },
+  {
+    "tool": "save_collection",
+    "args": {
+      "tags": [
+        "dusk",
+        7
+      ]
+    },
+    "read": {
+      "error": "tag 2 is text: 7 was sent."
+    }
+  },
+  {
+    "tool": "search_palettes",
+    "args": {
+      "query": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    },
+    "read": {
+      "error": "query is text of at most 400 characters: \"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx… was sent."
+    }
+  },
+  {
+    "tool": "adjust_palette",
+    "args": {
+      "seed": "kSWUkczDNDewdRK",
+      "variants": [
+        {
+          "lighten": "0.1",
+          "reverse": "true"
+        }
+      ]
+    },
+    "read": {
+      "args": {
+        "seed": "kSWUkczDNDewdRK",
+        "variants": [
+          {
+            "lighten": 0.1,
+            "reverse": true
+          }
+        ]
+      }
+    }
+  }
+]

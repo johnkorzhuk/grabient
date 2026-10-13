@@ -1,0 +1,105 @@
+[
+  {
+    "colors": [
+      "#050B2E",
+      "#0052FF",
+      "#4CC9F0"
+    ],
+    "seed": "kCQULLkAUv8UzJ8A",
+    "notes": [],
+    "stops7": [
+      "#050b2e",
+      "#0e1865",
+      "#1c2dbb",
+      "#0052ff",
+      "#008bf1",
+      "#00b2f4",
+      "#4cc9f0"
+    ]
+  },
+  {
+    "colors": [
+      "#f7f7f2",
+      "#0000ff"
+    ],
+    "seed": "kA_f38rwgAB_g",
+    "notes": [],
+    "stops7": [
+      "#f7f7f2",
+      "#d6e3f8",
+      "#a6c4fe",
+      "#729fff",
+      "#3d76ff",
+      "#0c49ff",
+      "#0000ff"
+    ]
+  },
+  {
+    "colors": [
+      "#ff0000",
+      "#ffffff",
+      "#0000ff"
+    ],
+    "seed": "kCf8AAD-AH_QAA_w",
+    "notes": [
+      "The blend from #ffffff to #0000ff passes through #dc8cdc, a hue neither color has.",
+      "A gray listed twice in a row keeps each side its own hue."
+    ],
+    "stops7": [
+      "#ff0000",
+      "#ff8b71",
+      "#ffe0d7",
+      "#ffffff",
+      "#fabfd8",
+      "#a05ff1",
+      "#0000ff"
+    ]
+  },
+  {
+    "colors": [
+      "#ff0000"
+    ],
+    "error": "A palette takes 2 to 8 hex colors, and this list has 1."
+  },
+  {
+    "colors": [
+      "#fff",
+      "rgb(0, 82, 255)"
+    ],
+    "error": "Color 2 is \"rgb(0, 82, 255)\", and a color is taken as hex: #rrggbb or #rgb."
+  },
+  {
+    "details": [
+      {
+        "hex": "#ffffff",
+        "name": "white",
+        "onWhite": 1,
+        "onBlack": 21
+      },
+      {
+        "hex": "#000000",
+        "name": "black",
+        "onWhite": 21,
+        "onBlack": 1
+      },
+      {
+        "hex": "#959595",
+        "name": "gray",
+        "onWhite": 2.99,
+        "onBlack": 7.01
+      },
+      {
+        "hex": "#ef0000",
+        "name": "red",
+        "onWhite": 4.49,
+        "onBlack": 4.67
+      },
+      {
+        "hex": "#0052ff",
+        "name": "blue",
+        "onWhite": 5.75,
+        "onBlack": 3.65
+      }
+    ]
+  }
+]

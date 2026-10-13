@@ -71,6 +71,8 @@ import { Route as ApiPngQueryRouteImport } from './routes/api/png/query'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as OgVersionChar123seedChar125DotpngRouteImport } from './routes/og/$version/{$seed}[.]png'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
+import { Route as ApiSettingsConnectionsIndexRouteImport } from './routes/api/settings/connections/index'
+import { Route as ApiSettingsConnectionsDisconnectRouteImport } from './routes/api/settings/connections/disconnect'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -407,6 +409,18 @@ const PalettesRisingChar123FrameChar125Route =
     path: '/palettes/rising/{-$frame}',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiSettingsConnectionsIndexRoute =
+  ApiSettingsConnectionsIndexRouteImport.update({
+    id: '/api/settings/connections/',
+    path: '/api/settings/connections/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSettingsConnectionsDisconnectRoute =
+  ApiSettingsConnectionsDisconnectRouteImport.update({
+    id: '/api/settings/connections/disconnect',
+    path: '/api/settings/connections/disconnect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -471,6 +485,8 @@ export interface FileRoutesByFullPath {
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -535,6 +551,8 @@ export interface FileRoutesByTo {
   '/@{$handle}/{$slug}.md': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/api/og': typeof ApiOgIndexRoute
   '/api/png': typeof ApiPngIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -600,6 +618,8 @@ export interface FileRoutesById {
   '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -666,6 +686,8 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.md/'
     | '/api/og/'
     | '/api/png/'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -730,6 +752,8 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.md'
     | '/api/og'
     | '/api/png'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections'
   id:
     | '__root__'
     | '/'
@@ -794,6 +818,8 @@ export interface FileRouteTypes {
     | '/@{$handle}/{$slug}.md/'
     | '/api/og/'
     | '/api/png/'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -859,6 +885,8 @@ export interface RootRouteChildren {
   AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
   ApiOgIndexRoute: typeof ApiOgIndexRoute
   ApiPngIndexRoute: typeof ApiPngIndexRoute
+  ApiSettingsConnectionsDisconnectRoute: typeof ApiSettingsConnectionsDisconnectRoute
+  ApiSettingsConnectionsIndexRoute: typeof ApiSettingsConnectionsIndexRoute
 }
 
 declare module '@tanstack/solid-router' {
@@ -1297,6 +1325,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof PalettesRisingChar123FrameChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/settings/connections/': {
+      id: '/api/settings/connections/'
+      path: '/api/settings/connections'
+      fullPath: '/api/settings/connections/'
+      preLoaderRoute: typeof ApiSettingsConnectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/connections/disconnect': {
+      id: '/api/settings/connections/disconnect'
+      path: '/api/settings/connections/disconnect'
+      fullPath: '/api/settings/connections/disconnect'
+      preLoaderRoute: typeof ApiSettingsConnectionsDisconnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1373,6 +1415,8 @@ const rootRouteChildren: RootRouteChildren = {
     AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
   ApiOgIndexRoute: ApiOgIndexRoute,
   ApiPngIndexRoute: ApiPngIndexRoute,
+  ApiSettingsConnectionsDisconnectRoute: ApiSettingsConnectionsDisconnectRoute,
+  ApiSettingsConnectionsIndexRoute: ApiSettingsConnectionsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

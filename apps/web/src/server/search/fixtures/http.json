@@ -1,0 +1,160 @@
+{
+ "contract": "searchJsonResponse(new Request(path), env) for each path; the Worker then applies PUBLIC_HTML to a 200 and NO_STORE otherwise, and adds heldBy and fetchedAt (worker.ts 360-372).",
+ "results": [
+  {
+   "path": "/api/search.json?q=blue&limit=5",
+   "bindings": [
+    "ASSETS",
+    "DB"
+   ],
+   "status": 200,
+   "cacheControl": "public, max-age=60",
+   "retryAfter": null,
+   "body": {
+    "query": "blue",
+    "tier": "vocabulary",
+    "total": 96,
+    "indexable": true,
+    "seeds": [
+     "kW-QuSdQ7Ae0ZwHlpkB8BRAQ",
+     "kY3BidYR_EdKvQJCuEAM8Q_6vSP-",
+     "kWZkGqxy8_V-rv1Nsz9OqS_Q",
+     "kUasO9uWdAEPVwPSskDg",
+     "kUGRLHFxe_aKmP0srz9A"
+    ]
+   }
+  },
+  {
+   "path": "/api/palettes/search?q=sunset&limit=5&sort=newest",
+   "bindings": [
+    "ASSETS",
+    "DB"
+   ],
+   "status": 200,
+   "cacheControl": "public, max-age=60",
+   "retryAfter": null,
+   "body": {
+    "query": "sunset",
+    "tier": "vocabulary",
+    "total": 96,
+    "indexable": true,
+    "seeds": [
+     "kU9h0185Y9mqdPPfpL2A",
+     "kWMw88uBC9_ikwe6kjymYe9w",
+     "kWwXQiUci8sJBvKwszvoB08Y",
+     "kY2n5GZDo8FjHO_QVT2xtG-DtLvS",
+     "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+    ]
+   }
+  },
+  {
+   "path": "/search/dark-blue.json?limit=3",
+   "bindings": [
+    "ASSETS",
+    "DB"
+   ],
+   "status": 200,
+   "cacheControl": "public, max-age=60",
+   "retryAfter": null,
+   "body": {
+    "query": "dark blue",
+    "tier": "vocabulary",
+    "total": 96,
+    "indexable": true,
+    "seeds": [
+     "kUMDzEHSY-SUov4uJ79A",
+     "kSKySjo50-7Mkvu",
+     "kWZzGEmJVI62cvWak0H5Iw_g"
+    ]
+   }
+  },
+  {
+   "path": "/api/palettes/search",
+   "bindings": [
+    "ASSETS",
+    "DB"
+   ],
+   "status": 400,
+   "cacheControl": "no-store",
+   "retryAfter": null,
+   "body": {
+    "error": "Invalid search query."
+   }
+  },
+  {
+   "path": "/api/search.json?q=blue",
+   "bindings": null,
+   "status": 503,
+   "cacheControl": "no-store",
+   "retryAfter": null,
+   "body": {
+    "query": "blue",
+    "tier": "unavailable",
+    "total": 0,
+    "indexable": false,
+    "seeds": []
+   }
+  },
+  {
+   "path": "/api/search.json?q=zxqvyk+wqrkk&limit=5",
+   "bindings": [
+    "AI",
+    "ASSETS",
+    "DB",
+    "RATE_LIMITER"
+   ],
+   "status": 429,
+   "cacheControl": "public, max-age=60",
+   "retryAfter": "set",
+   "body": {
+    "query": "zxqvyk wqrkk",
+    "tier": "account",
+    "total": 0,
+    "limited": true,
+    "indexable": false,
+    "seeds": []
+   }
+  },
+  {
+   "path": "/api/search.json?q=zxqvyk+wqrkk&limit=5",
+   "bindings": [
+    "AI",
+    "ASSETS",
+    "DB"
+   ],
+   "status": 200,
+   "cacheControl": "public, max-age=60",
+   "retryAfter": null,
+   "body": {
+    "query": "zxqvyk wqrkk",
+    "tier": "model",
+    "total": 96,
+    "indexable": false,
+    "seeds": [
+     "kc_QpNfyLAmUyOTM0jxoCS_w-QsU7nTfZTe9g",
+     "kSQCc0U1W7X8ARo",
+     "kULQBASNS41vFQn6AESg",
+     "kWIQnip6LFFTRQ9sNsV4zlKI",
+     "kWqKQS4rpD3M2xToMMXfgc9g"
+    ]
+   }
+  },
+  {
+   "path": "/api/search.json?q=zxqvyk+wqrkk&limit=5",
+   "bindings": [
+    "ASSETS",
+    "DB"
+   ],
+   "status": 200,
+   "cacheControl": "public, max-age=60",
+   "retryAfter": null,
+   "body": {
+    "query": "zxqvyk wqrkk",
+    "tier": "account",
+    "total": 0,
+    "indexable": false,
+    "seeds": []
+   }
+  }
+ ]
+}

@@ -1,0 +1,1605 @@
+[
+  {
+    "name": "liked_palettes",
+    "title": "What the admins liked",
+    "description": "The admins' liked palettes, newest first: every admin's likes together, the site's standard of taste. Every palette in it looks good. `from` says where its latest like was pressed, when that was recorded: a palette liked from a search or a collection is a good answer to it. `in` lists the Grabient collections that hold it now. Read this before judging or making palettes.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "type": "string",
+          "description": "Only palettes liked from this collection or held by it."
+        },
+        "search": {
+          "type": "string",
+          "description": "Only palettes liked from this search."
+        },
+        "recorded": {
+          "type": "boolean",
+          "description": "Only likes whose search or collection was recorded."
+        },
+        "since": {
+          "type": "string",
+          "description": "Only likes after this moment (ISO 8601)."
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page, from 1.",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many a page, default 100.",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "What the admins liked",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "curation_record",
+    "title": "What the admins took out",
+    "description": "The admins' record, newest first: palettes removed from a collection, deleted, redrawn or edited, with the reasons given. What was taken out, and why, is the other half of the site's taste. A palette removed or deleted never comes back.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "kinds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "remove",
+              "delete",
+              "view",
+              "edit",
+              "collection.delete",
+              "collection.visibility",
+              "vote",
+              "note"
+            ]
+          },
+          "description": "Only these actions.",
+          "minItems": 0,
+          "maxItems": 8
+        },
+        "seed": {
+          "type": "string",
+          "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+        },
+        "collection": {
+          "type": "string",
+          "description": "Only actions on this collection."
+        },
+        "since": {
+          "type": "string",
+          "description": "Only actions after this moment (ISO 8601)."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many, default 100.",
+          "minimum": 1,
+          "maximum": 500
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "What the admins took out",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "palette_standing",
+    "title": "Where palettes stand",
+    "description": "For each palette: its place in the gallery, who liked it, the Grabient collections that hold it, its title, its reviews, and whether an admin took it out before. `locked` means a person liked it (an admin, a reader, or readers of grabient.com): it cannot be edited, redrawn or deleted.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "seeds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+          },
+          "description": "The palettes.",
+          "minItems": 1,
+          "maxItems": 50
+        }
+      },
+      "required": [
+        "seeds"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Where palettes stand",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "site_collections",
+    "title": "Grabient's collections",
+    "description": "The public collections Grabient made, with how many of each one's palettes an admin liked, how many have a review, and how many readers saved a copy (`saves`). `order` is updated (latest change first), title, or unreviewed (most palettes without a review first).",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Words in the title, description or tags.",
+          "maxLength": 100
+        },
+        "order": {
+          "type": "string",
+          "description": "Default updated.",
+          "enum": [
+            "updated",
+            "title",
+            "unreviewed"
+          ]
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page, from 1.",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many a page, default 50.",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Grabient's collections",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "site_collection",
+    "title": "One of Grabient's collections",
+    "description": "A Grabient collection in full: its words, the admins' notes on it, and every palette in order with its likes, its title, whether an admin liked it (it fits and stays), whether it is locked, readers' fit votes and its reviews.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "description": "The collection's address."
+        }
+      },
+      "required": [
+        "slug"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "One of Grabient's collections",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "search_demand",
+    "title": "What people search for",
+    "description": "The searches people make most, most searched first: a year of grabient.com's searches with the last four weeks on this site added, connected apps' searches among them. `unread` is the last four weeks' searches in words the site can't read, that 3 searches or more made. The searches worth checking first.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "description": "How many, default 100.",
+          "minimum": 1,
+          "maximum": 300
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "What people search for",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "search_tags",
+    "title": "The tags under the search",
+    "description": "The searches every reader sees as tags under the search field, in the order they stand: the ones scheduled here, then up to four searches rising this week, then the most searched, and none says again what one before it says. With no `add` or `remove` it only reads: the row as it stands now, what is scheduled and what is rising, with its counts. `add` schedules searches to lead the row from a day to a day, in the order sent, up to 400 days ahead. `remove` takes scheduled ones out by id or by their batch's label. A tag is a search the site answers from its own vocabulary, so every tag finds palettes: other words are refused, with the nearest searches that would stand.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "add": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "words": {
+                "type": "string",
+                "description": "The search, as a reader would type it.",
+                "maxLength": 100
+              },
+              "from": {
+                "type": "string",
+                "description": "The day it starts (2026-10-20) or a moment (ISO 8601). Left out, now."
+              },
+              "until": {
+                "type": "string",
+                "description": "The last day it stands. Left out, 7 days from its start. At most 120 days."
+              }
+            },
+            "required": [
+              "words"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Searches to schedule.",
+          "minItems": 1,
+          "maxItems": 48
+        },
+        "label": {
+          "type": "string",
+          "description": "A name for this batch, to find or remove it.",
+          "maxLength": 80
+        },
+        "remove": {
+          "type": "object",
+          "properties": {
+            "ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "description": ""
+              },
+              "description": "Scheduled searches by id.",
+              "minItems": 1,
+              "maxItems": 200
+            },
+            "label": {
+              "type": "string",
+              "description": "A batch's label.",
+              "maxLength": 80
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "The tags under the search",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "palette_use",
+    "title": "How readers use the palettes",
+    "description": "What readers did with the public palettes in the last days, counted with no address, account or cookie: with a collection, its page's views, each of its palettes' opens and copies by place, and how readers changed its palettes in the editor before taking them; without, the palettes taken most, the collections seen most and the editor's changes. The raw counts: visitor_signals weighs them by place. Readers' use says what is useful, not what is good: the admins' likes and record stand above it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "type": "string",
+          "description": "A public collection's slug. Leave out for the whole site."
+        },
+        "days": {
+          "type": "integer",
+          "description": "The window in days, default 28.",
+          "minimum": 1,
+          "maximum": 90
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many, default 30.",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "How readers use the palettes",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "signups",
+    "title": "Who signs up, and from where",
+    "description": "Accounts made in the last weeks, week by week, and how each one's first visit reached Grabient: the campaign tags on the link, the site that sent it and the page it landed on. Those are saved only when the reader had analytics on, so an account without them came with analytics off or straight to the site. Counts alone: no account, name or email. The seeding personas are left out, and admins are counted apart.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "weeks": {
+          "type": "integer",
+          "description": "How many weeks back, default 12.",
+          "minimum": 1,
+          "maximum": 104
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many of each kind of source, default 20.",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Who signs up, and from where",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "visitor_signals",
+    "title": "What readers use and pass over",
+    "description": "What readers' use says about the collections, weighed by each palette's place on its page (a palette near the top is used more for being there): with a collection, each of its palettes' uses against what its place would earn (lift above 1 is more), the ones readers pass over and the ones they take, the styles they switch to and how they change its palettes in the editor; without, the collections seen most and taken least, every collection's passed-over and taken palettes, the searches answered badly or by no collection, and the site's style and editor changes. A collection needs `minUses` uses on its page to be judged. Counted with no address, account or cookie. Use it to choose what to make, extend or replace, below the admins' notes, record and likes: it never earns a like, and a palette a person liked stays.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "type": "string",
+          "description": "A public collection's slug. Leave out for the whole site."
+        },
+        "days": {
+          "type": "integer",
+          "description": "The window in days, default 28.",
+          "minimum": 1,
+          "maximum": 90
+        },
+        "minUses": {
+          "type": "integer",
+          "description": "Uses on a collection's own page before it is judged, default 10.",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many of each list, default 20.",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "What readers use and pass over",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "search_use",
+    "title": "How well searches are answered",
+    "description": "The searches readers made with Enter in the last days, in the words the site knows, with how many went on to open, copy or download a palette from the results: each search's count, uses and rate against the site's own, whether it is answered badly (5 searches or more, used at under half the site's rate) and whether a public collection has its words as its title. `unread` is the words the site can't read that 3 searches or more made, by page (mcp is connected apps' searches); `votes` is the thumbs signed-in readers gave the palettes a search showed. With `words`, the searches that hold them. Counted with no address, account or cookie. search_demand ranks what people search for; this says whether they found it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "words": {
+          "type": "string",
+          "description": "Words a search holds. Leave out for every search."
+        },
+        "days": {
+          "type": "integer",
+          "description": "The window in days, default 28.",
+          "minimum": 1,
+          "maximum": 90
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many, default 50.",
+          "minimum": 1,
+          "maximum": 300
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "How well searches are answered",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "site_usage",
+    "title": "What the site's own work came to",
+    "description": "The counts of the site's own work in the last days, from Workers Analytics Engine: MCP tool calls by server, tool, outcome, address and app, and the requests without a valid token; apps signing in, by step and outcome, with the authorization server's errors; requests a limit refused, by limit, with the site-wide ceilings that ran out; old grabient.com addresses by how they resolved; pictures drawn, served from the cache or refused; errors pages reported, by kind of page and browser; and palette files fetched, by format and by who asked (this site, another site, or no page). Each day's totals too. This deploy's own counts. Nothing in them names a person.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "days": {
+          "type": "integer",
+          "description": "The window in days, default 7.",
+          "minimum": 1,
+          "maximum": 90
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many rows of each event, default 25.",
+          "minimum": 1,
+          "maximum": 200
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "What the site's own work came to",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "palette_replace",
+    "title": "Edit a palette",
+    "description": "Put an edited palette in the place of one the site made: in the gallery and in every Grabient collection that holds it, with its date, its title and its scheduled likes. Make the new seed with compose_palette. Refused for a locked palette. A person's own collections are never touched.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+        },
+        "to": {
+          "type": "string",
+          "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "muddy",
+              "banding",
+              "dull",
+              "harsh",
+              "dark",
+              "light",
+              "ugly",
+              "alike",
+              "off",
+              "form"
+            ]
+          },
+          "description": "What is wrong with it. muddy: Gray or brown through the middle. banding: Hard steps where a blend was meant. dull: Flat, with little color or change. harsh: Glaring, clipped or too neon. dark: Mostly near black. light: Mostly near white. ugly: Passes through a color that spoils it. alike: Too close to another palette here. off: Doesn't fit the collection. form: Wrong style, steps or angle.",
+          "minItems": 0,
+          "maxItems": 10
+        },
+        "comment": {
+          "type": "string",
+          "description": "Why, in a sentence.",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "from",
+        "to"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Edit a palette",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "palette_view",
+    "title": "Redraw a palette",
+    "description": "Change how a palette the site made is drawn: its style, steps or angle, in the gallery, or in one Grabient collection when `collection` is given. Refused for a locked palette.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "seed": {
+          "type": "string",
+          "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+        },
+        "collection": {
+          "type": "string",
+          "description": "The collection whose drawing of it changes. Leave out for the gallery."
+        },
+        "style": {
+          "type": "string",
+          "description": "A gradient or hard bands, linear, angular or radial; left out, linearGradient.",
+          "enum": [
+            "linearGradient",
+            "linearSwatches",
+            "angularGradient",
+            "angularSwatches",
+            "radialGradient",
+            "radialSwatches"
+          ]
+        },
+        "steps": {
+          "type": "integer",
+          "description": "How many colors are taken; left out, 7.",
+          "minimum": 3,
+          "maximum": 100
+        },
+        "angle": {
+          "type": "integer",
+          "description": "Degrees, 90 running left to right; left out, 90.",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "muddy",
+              "banding",
+              "dull",
+              "harsh",
+              "dark",
+              "light",
+              "ugly",
+              "alike",
+              "off",
+              "form"
+            ]
+          },
+          "description": "What is wrong with it. muddy: Gray or brown through the middle. banding: Hard steps where a blend was meant. dull: Flat, with little color or change. harsh: Glaring, clipped or too neon. dark: Mostly near black. light: Mostly near white. ugly: Passes through a color that spoils it. alike: Too close to another palette here. off: Doesn't fit the collection. form: Wrong style, steps or angle.",
+          "minItems": 0,
+          "maxItems": 10
+        },
+        "comment": {
+          "type": "string",
+          "description": "Why, in a sentence.",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "seed"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Redraw a palette",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "palette_remove",
+    "title": "Delete a palette",
+    "description": "Delete a palette the site made from the gallery, and from every Grabient collection that holds it unless `scope` is gallery. It never comes back. Refused for a locked palette. Give the reasons: they teach what to leave out.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "seed": {
+          "type": "string",
+          "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+        },
+        "scope": {
+          "type": "string",
+          "description": "Default everywhere.",
+          "enum": [
+            "everywhere",
+            "gallery"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "muddy",
+              "banding",
+              "dull",
+              "harsh",
+              "dark",
+              "light",
+              "ugly",
+              "alike",
+              "off",
+              "form"
+            ]
+          },
+          "description": "What is wrong with it. muddy: Gray or brown through the middle. banding: Hard steps where a blend was meant. dull: Flat, with little color or change. harsh: Glaring, clipped or too neon. dark: Mostly near black. light: Mostly near white. ugly: Passes through a color that spoils it. alike: Too close to another palette here. off: Doesn't fit the collection. form: Wrong style, steps or angle.",
+          "minItems": 0,
+          "maxItems": 10
+        },
+        "comment": {
+          "type": "string",
+          "description": "Why, in a sentence.",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "seed"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Delete a palette",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "palette_titles",
+    "title": "Title palettes",
+    "description": "Write or replace the titles of palettes. A title is the palette page's own and search reads its words. A description is optional and kept when left out.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "titles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seed": {
+                "type": "string",
+                "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+              },
+              "title": {
+                "type": "string",
+                "description": "",
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "description": "",
+                "maxLength": 1200
+              }
+            },
+            "required": [
+              "seed",
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "description": "The titles.",
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "titles"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Title palettes",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "translations",
+    "title": "Grabient's words in other languages",
+    "description": "What Grabient's public collections and their tags still lack in one of the site's languages, with the English to translate from; or translations kept, beside their English: a random sample, or every one whose translator noted why a word or reference was adapted for the language. A collection whose English changed after it was translated is missing again. A tag lists the spellings the search already reads it by in that language's script.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "enum": [
+            "ar",
+            "de",
+            "es",
+            "fa",
+            "fr",
+            "id",
+            "ja",
+            "ko",
+            "pt-BR",
+            "ru",
+            "th",
+            "tr",
+            "uk",
+            "vi",
+            "zh-Hans"
+          ],
+          "description": "The language, by its tag."
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "collections",
+            "tags"
+          ],
+          "description": "Collections (titles and descriptions) or tags. Default collections."
+        },
+        "show": {
+          "type": "string",
+          "enum": [
+            "missing",
+            "sample",
+            "noted"
+          ],
+          "description": "What is missing (the default), a sample of what is kept, or the kept translations with a note."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many, default 50.",
+          "minimum": 1,
+          "maximum": 100
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Grabient's words in other languages",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "translations_save",
+    "title": "Keep translations of Grabient's words",
+    "description": "Keep translations of Grabient's public collections and their tags in one of the site's languages, replacing what that language had for them. A collection's entry carries the `source` translations gave with its English, so a translation of English that has changed since is refused. Each entry is checked: written in the language's script (a tag may stay as written), within the lengths, no line breaks and no em dash. The answer lists what was kept and what was refused, with why.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "language": {
+          "type": "string",
+          "enum": [
+            "ar",
+            "de",
+            "es",
+            "fa",
+            "fr",
+            "id",
+            "ja",
+            "ko",
+            "pt-BR",
+            "ru",
+            "th",
+            "tr",
+            "uk",
+            "vi",
+            "zh-Hans"
+          ],
+          "description": "The language, by its tag."
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "slug": {
+                "type": "string",
+                "description": "The collection."
+              },
+              "source": {
+                "type": "string",
+                "description": "The `source` translations gave with its English."
+              },
+              "title": {
+                "type": "string",
+                "description": "Its title, 1 to 80 characters.",
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "description": "Its description, up to 500 characters.",
+                "maxLength": 500
+              },
+              "note": {
+                "type": "string",
+                "description": "Why a word or reference was adapted for this language, where it was: a meaning, a connotation or a name it has there that the English does not. One line in English, up to 300 characters.",
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "slug",
+              "source",
+              "title"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Collections.",
+          "minItems": 0,
+          "maxItems": 100
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "tag": {
+                "type": "string",
+                "description": "The tag, as Grabient writes it."
+              },
+              "word": {
+                "type": "string",
+                "description": "Its word, 1 to 32 characters.",
+                "maxLength": 32
+              },
+              "note": {
+                "type": "string",
+                "description": "Why a word or reference was adapted for this language, where it was: a meaning, a connotation or a name it has there that the English does not. One line in English, up to 300 characters.",
+                "maxLength": 300
+              }
+            },
+            "required": [
+              "tag",
+              "word"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Tags.",
+          "minItems": 0,
+          "maxItems": 300
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Keep translations of Grabient's words",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "gallery_publish",
+    "title": "Publish palettes now",
+    "description": "Add palettes to the public gallery at once, each in the view given and with a title when one is sent. A palette already there is left as it is, and one an admin took out stays out. To have palettes arrive over time, use schedule.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "palettes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seed": {
+                "type": "string",
+                "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+              },
+              "style": {
+                "type": "string",
+                "description": "A gradient or hard bands, linear, angular or radial; left out, linearGradient.",
+                "enum": [
+                  "linearGradient",
+                  "linearSwatches",
+                  "angularGradient",
+                  "angularSwatches",
+                  "radialGradient",
+                  "radialSwatches"
+                ]
+              },
+              "steps": {
+                "type": "integer",
+                "description": "How many colors are taken; left out, 7.",
+                "minimum": 3,
+                "maximum": 100
+              },
+              "angle": {
+                "type": "integer",
+                "description": "Degrees, 90 running left to right; left out, 90.",
+                "minimum": 0,
+                "maximum": 360
+              },
+              "title": {
+                "type": "string",
+                "description": "The palette's title, up to 80 characters.",
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "description": "A description for its page, up to 1200 characters.",
+                "maxLength": 1200
+              }
+            },
+            "required": [
+              "seed"
+            ],
+            "additionalProperties": false
+          },
+          "description": "The palettes.",
+          "minItems": 1,
+          "maxItems": 100
+        }
+      },
+      "required": [
+        "palettes"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Publish palettes now",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "collection_publish",
+    "title": "Publish a collection now",
+    "description": "Make a public Grabient collection at once, or add to one. Without a slug, or with one no collection has, it makes a collection: give a title and 1 to 100 palettes. With the slug of a Grabient collection it adds the palettes it lacks at the end and replaces any of title, description and tags that are given; nothing it holds moves or leaves. `gallery` also lists the palettes in the public gallery. A palette an admin took out stays out.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "description": "The collection to add to, or the address wanted for a new one."
+        },
+        "title": {
+          "type": "string",
+          "description": "1 to 80 characters.",
+          "maxLength": 80
+        },
+        "description": {
+          "type": "string",
+          "description": "Up to 500 characters.",
+          "maxLength": 500
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "2 to 32 letters, digits, spaces or hyphens."
+          },
+          "description": "Up to 12 tags.",
+          "minItems": 0,
+          "maxItems": 12
+        },
+        "palettes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seed": {
+                "type": "string",
+                "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+              },
+              "style": {
+                "type": "string",
+                "description": "A gradient or hard bands, linear, angular or radial; left out, linearGradient.",
+                "enum": [
+                  "linearGradient",
+                  "linearSwatches",
+                  "angularGradient",
+                  "angularSwatches",
+                  "radialGradient",
+                  "radialSwatches"
+                ]
+              },
+              "steps": {
+                "type": "integer",
+                "description": "How many colors are taken; left out, 7.",
+                "minimum": 3,
+                "maximum": 100
+              },
+              "angle": {
+                "type": "integer",
+                "description": "Degrees, 90 running left to right; left out, 90.",
+                "minimum": 0,
+                "maximum": 360
+              },
+              "title": {
+                "type": "string",
+                "description": "The palette's title, up to 80 characters.",
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "description": "A description for its page, up to 1200 characters.",
+                "maxLength": 1200
+              }
+            },
+            "required": [
+              "seed"
+            ],
+            "additionalProperties": false
+          },
+          "description": "The palettes to hold or add.",
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "gallery": {
+          "type": "boolean",
+          "description": "Also add the palettes to the public gallery."
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Publish a collection now",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "collection_remove_palettes",
+    "title": "Take palettes out of a collection",
+    "description": "Take palettes out of one Grabient collection. They stay in the gallery and everywhere else, and never return to this collection. A palette an admin liked stays in: an admin's like says it fits. Give the reasons.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string",
+          "description": "The collection's address."
+        },
+        "seeds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+          },
+          "description": "The palettes to take out.",
+          "minItems": 1,
+          "maxItems": 100
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "muddy",
+              "banding",
+              "dull",
+              "harsh",
+              "dark",
+              "light",
+              "ugly",
+              "alike",
+              "off",
+              "form"
+            ]
+          },
+          "description": "What is wrong with it. muddy: Gray or brown through the middle. banding: Hard steps where a blend was meant. dull: Flat, with little color or change. harsh: Glaring, clipped or too neon. dark: Mostly near black. light: Mostly near white. ugly: Passes through a color that spoils it. alike: Too close to another palette here. off: Doesn't fit the collection. form: Wrong style, steps or angle.",
+          "minItems": 0,
+          "maxItems": 10
+        },
+        "comment": {
+          "type": "string",
+          "description": "Why, in a sentence.",
+          "maxLength": 500
+        }
+      },
+      "required": [
+        "slug",
+        "seeds"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Take palettes out of a collection",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "schedule",
+    "title": "Schedule palettes and likes",
+    "description": "Plan work for later, so the site keeps moving: the site applies what is due every ten minutes. A `collection` item adds palettes to a Grabient collection at its time, making the collection if no one has that slug (then give a title). A `like` item has a persona like a palette at its time, which brings the palette into the public gallery and onto the home page as a reader's like does; the palette must be in the gallery or in a public collection by then. `due` is a day (2026-10-05, applied at 14:00 UTC) or a moment (ISO 8601), up to 400 days ahead. Spread items over days and hours as people would arrive. `label` names the batch, to list or cancel it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "label": {
+          "type": "string",
+          "description": "A name for this batch.",
+          "maxLength": 80
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "description": "",
+                "enum": [
+                  "collection",
+                  "like"
+                ]
+              },
+              "due": {
+                "type": "string",
+                "description": "A day or a moment."
+              },
+              "slug": {
+                "type": "string",
+                "description": "collection: the collection's address."
+              },
+              "title": {
+                "type": "string",
+                "description": "collection: needed when it does not exist yet.",
+                "maxLength": 80
+              },
+              "description": {
+                "type": "string",
+                "description": "collection.",
+                "maxLength": 500
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": ""
+                },
+                "description": "collection.",
+                "minItems": 0,
+                "maxItems": 12
+              },
+              "palettes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "seed": {
+                      "type": "string",
+                      "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+                    },
+                    "style": {
+                      "type": "string",
+                      "description": "A gradient or hard bands, linear, angular or radial; left out, linearGradient.",
+                      "enum": [
+                        "linearGradient",
+                        "linearSwatches",
+                        "angularGradient",
+                        "angularSwatches",
+                        "radialGradient",
+                        "radialSwatches"
+                      ]
+                    },
+                    "steps": {
+                      "type": "integer",
+                      "description": "How many colors are taken; left out, 7.",
+                      "minimum": 3,
+                      "maximum": 100
+                    },
+                    "angle": {
+                      "type": "integer",
+                      "description": "Degrees, 90 running left to right; left out, 90.",
+                      "minimum": 0,
+                      "maximum": 360
+                    },
+                    "title": {
+                      "type": "string",
+                      "description": "The palette's title, up to 80 characters.",
+                      "maxLength": 80
+                    },
+                    "description": {
+                      "type": "string",
+                      "description": "A description for its page, up to 1200 characters.",
+                      "maxLength": 1200
+                    }
+                  },
+                  "required": [
+                    "seed"
+                  ],
+                  "additionalProperties": false
+                },
+                "description": "collection: the palettes to add.",
+                "minItems": 1,
+                "maxItems": 100
+              },
+              "persona": {
+                "type": "string",
+                "description": "like: the persona's handle (see personas)."
+              },
+              "seed": {
+                "type": "string",
+                "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+              },
+              "style": {
+                "type": "string",
+                "description": "A gradient or hard bands, linear, angular or radial; left out, linearGradient.",
+                "enum": [
+                  "linearGradient",
+                  "linearSwatches",
+                  "angularGradient",
+                  "angularSwatches",
+                  "radialGradient",
+                  "radialSwatches"
+                ]
+              },
+              "steps": {
+                "type": "integer",
+                "description": "How many colors are taken; left out, 7.",
+                "minimum": 3,
+                "maximum": 100
+              },
+              "angle": {
+                "type": "integer",
+                "description": "Degrees, 90 running left to right; left out, 90.",
+                "minimum": 0,
+                "maximum": 360
+              }
+            },
+            "required": [
+              "kind",
+              "due"
+            ],
+            "additionalProperties": false
+          },
+          "description": "What to schedule.",
+          "minItems": 1,
+          "maxItems": 500
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Schedule palettes and likes",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": true
+    }
+  },
+  {
+    "name": "schedule_list",
+    "title": "What is scheduled",
+    "description": "The seeding queue: what is planned, done, failed or cancelled, soonest first, with the plan by week. Check it before scheduling more.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "due",
+              "running",
+              "done",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "description": "Default due.",
+          "minItems": 0,
+          "maxItems": 5
+        },
+        "kind": {
+          "type": "string",
+          "description": "",
+          "enum": [
+            "collection",
+            "like"
+          ]
+        },
+        "label": {
+          "type": "string",
+          "description": "Only this batch.",
+          "maxLength": 80
+        },
+        "from": {
+          "type": "string",
+          "description": "Due at or after this moment (ISO 8601)."
+        },
+        "to": {
+          "type": "string",
+          "description": "Due at or before this moment."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many items, default 100. 0 for the summary alone.",
+          "minimum": 0,
+          "maximum": 500
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "What is scheduled",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "schedule_cancel",
+    "title": "Cancel scheduled work",
+    "description": "Take planned items out of the queue before they are due, by their ids or by the label of their batch.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "description": ""
+          },
+          "description": "Item ids.",
+          "minItems": 1,
+          "maxItems": 500
+        },
+        "label": {
+          "type": "string",
+          "description": "A batch's label.",
+          "maxLength": 80
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Cancel scheduled work",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "personas",
+    "title": "The personas",
+    "description": "The accounts scheduled likes are made with: stand-ins for readers, each with a taste, so the gallery's likes look like many people's. They never sign in and are shown nowhere. Lists them; `add` makes new ones or rewrites the taste of ones that exist. Give each scheduled like to a persona whose taste the palette suits.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "add": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "handle": {
+                "type": "string",
+                "description": "2 to 24 lowercase letters, digits or hyphens."
+              },
+              "name": {
+                "type": "string",
+                "description": "Up to 40 characters."
+              },
+              "taste": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "description": "A short lowercase word."
+                },
+                "description": "What it goes for.",
+                "minItems": 0,
+                "maxItems": 12
+              }
+            },
+            "required": [
+              "handle"
+            ],
+            "additionalProperties": false
+          },
+          "description": "Personas to make or update.",
+          "minItems": 1,
+          "maxItems": 50
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "The personas",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "review_mark",
+    "title": "Record reviews",
+    "description": "Record what a review found, so work is not repeated: a verdict on a palette itself (how it looks), or on its fit when `collection` or `search` is given. One review stands per palette and subject; a new one replaces it. Reviews change nothing on the site.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "run": {
+          "type": "string",
+          "description": "A name for this pass of reviewing.",
+          "maxLength": 60
+        },
+        "reviews": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "seed": {
+                "type": "string",
+                "description": "A palette seed, as in its address: k and 8 to 49 more characters."
+              },
+              "verdict": {
+                "type": "string",
+                "description": "",
+                "enum": [
+                  "good",
+                  "bad",
+                  "unsure"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "description": "Why, briefly.",
+                "maxLength": 500
+              },
+              "collection": {
+                "type": "string",
+                "description": "The collection whose fit is judged."
+              },
+              "search": {
+                "type": "string",
+                "description": "The search whose fit is judged."
+              }
+            },
+            "required": [
+              "seed",
+              "verdict"
+            ],
+            "additionalProperties": false
+          },
+          "description": "The reviews.",
+          "minItems": 1,
+          "maxItems": 200
+        }
+      },
+      "required": [
+        "reviews"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Record reviews",
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "review_list",
+    "title": "Read reviews",
+    "description": "The reviews on record, newest first: of palettes themselves, or of fit when `collection` or `search` is given.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "collection": {
+          "type": "string",
+          "description": "Reviews of fit in this collection."
+        },
+        "search": {
+          "type": "string",
+          "description": "Reviews of fit for this search."
+        },
+        "verdict": {
+          "type": "string",
+          "description": "",
+          "enum": [
+            "good",
+            "bad",
+            "unsure"
+          ]
+        },
+        "run": {
+          "type": "string",
+          "description": "Only this pass.",
+          "maxLength": 60
+        },
+        "since": {
+          "type": "string",
+          "description": "Only reviews after this moment (ISO 8601)."
+        },
+        "page": {
+          "type": "integer",
+          "description": "Page, from 1.",
+          "minimum": 1,
+          "maximum": 10000
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many a page, default 100.",
+          "minimum": 1,
+          "maximum": 500
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "Read reviews",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "contribution_log",
+    "title": "What connected apps changed",
+    "description": "Every change an admin's connected app made to the site, newest first: who, through which app, with which tool, to what.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tool": {
+          "type": "string",
+          "description": "Only this tool."
+        },
+        "since": {
+          "type": "string",
+          "description": "Only changes after this moment (ISO 8601)."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "How many, default 100.",
+          "minimum": 1,
+          "maximum": 500
+        }
+      },
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "title": "What connected apps changed",
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  }
+]

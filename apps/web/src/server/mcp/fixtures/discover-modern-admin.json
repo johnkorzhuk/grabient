@@ -1,0 +1,60 @@
+{
+  "jsonrpc": "2.0",
+  "id": 6,
+  "result": {
+    "resultType": "complete",
+    "supportedVersions": [
+      "2026-07-28",
+      "2025-11-25",
+      "2025-06-18",
+      "2025-03-26"
+    ],
+    "capabilities": {
+      "tools": {},
+      "resources": {},
+      "extensions": {
+        "io.modelcontextprotocol/skills": {},
+        "io.modelcontextprotocol/ui": {
+          "mimeTypes": [
+            "text/html;profile=mcp-app"
+          ]
+        }
+      }
+    },
+    "instructions": "Grabient is a gallery and editor of color palettes and CSS gradients. A palette's seed, a short string starting with k, is its identity and its address: https://grabient.com/{seed}.\nIts file is its address plus .png (up to 2,400 pixels a side and 3 million pixels in all), .svg, .css or .json, with style, steps, angle and size: https://grabient.com/{seed}.png?style=radialSwatches&steps=6&size=1200x630.\nFind palettes with search_palettes or make them with compose_palette, change one with adjust_palette, and keep them with save_palette or save_collection when the person asks.\nAn answer's `colors` and `css` are exact, so an app that draws its own pictures draws a palette as Grabient does. In an app that draws none, show_palettes shows palettes in Grabient's view. A file's address is a link: some chat apps draw no picture from one.\nStyles: linearGradient blends along the angle and linearSwatches draws hard bands; angularGradient and angularSwatches sweep around the center; radialGradient and radialSwatches are rings from it.\nAngle: 0 runs bottom to top, 90 left to right.\nThis connection is an admin's. The admin tools change the site for everyone: they publish palettes and collections as Grabient, at once or through the schedule, and edit, redraw or remove what the site made.\nStart from liked_palettes and curation_record: what the admins liked and what they took out is the standard to judge and to make by. A locked palette (one a person liked) is never changed; publish an improved one beside it.\nWhat readers do is in visitor_signals, search_use, search_demand and palette_use: what they search for, find, take and pass over. It says what is useful and what is missing, never what is good: it ranks below the admins' likes and record, and never earns a like.\nsearch_tags reads and schedules the searches readers see as tags under the search field.\nSchedule new work across days where you can, so the site changes steadily. Every change is recorded with the account and the app.",
+    "ttlMs": 3600000,
+    "cacheScope": "private",
+    "_meta": {
+      "io.modelcontextprotocol/serverInfo": {
+        "name": "Grabient",
+        "title": "Grabient",
+        "version": "1.0.0",
+        "description": "Color palettes and gradients: search the gallery, make palettes and keep them in a Grabient account.",
+        "websiteUrl": "https://grabient.com",
+        "icons": [
+          {
+            "src": "https://grabient.com/icon-192.png",
+            "mimeType": "image/png",
+            "sizes": [
+              "192x192"
+            ]
+          },
+          {
+            "src": "https://grabient.com/icon-512.png",
+            "mimeType": "image/png",
+            "sizes": [
+              "512x512"
+            ]
+          },
+          {
+            "src": "https://grabient.com/favicon.svg",
+            "mimeType": "image/svg+xml",
+            "sizes": [
+              "any"
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+[
+  {
+    "named": "kSWUkczDNDewdRK",
+    "read": {
+      "seed": "kSWUkczDNDewdRK"
+    }
+  },
+  {
+    "named": "https://x.test/kSWUkczDNDewdRK.svg?style=linearSwatches&steps=4",
+    "read": {
+      "seed": "kSWUkczDNDewdRK",
+      "style": "linearSwatches",
+      "steps": 4,
+      "angle": 90
+    }
+  },
+  {
+    "named": "/api/og?seed=kSWUkczDNDewdRK&angle=10",
+    "read": {
+      "seed": "kSWUkczDNDewdRK",
+      "style": "linearGradient",
+      "steps": 7,
+      "angle": 10
+    }
+  },
+  {
+    "named": "k-nope",
+    "read": null
+  },
+  {
+    "named": "xxxxxxxxxxxxxxxxxxxx…(401)",
+    "read": null
+  }
+]
