@@ -4,6 +4,7 @@ import { canonical, decodePalette, encodePalette } from "./codec.ts";
 import { deltaE } from "./color.ts";
 import { sampleLCH } from "./curve.ts";
 import {
+  addKeyframe,
   anchorHueWalls,
   HUE_WHEEL_MAX,
   hueTravel,
@@ -14,6 +15,7 @@ import {
   lockedWhole,
   nudgeAnchors,
   randomizeLocked,
+  removeKeyframes,
   resampleK,
   reverse,
   reverseAnchors,
@@ -298,4 +300,19 @@ test("the lightness ends land and never fuse; a resample stays near the curve it
       worst = Math.max(worst, deltaE(sampleLCH(P, i / 32), sampleLCH(Q, i / 32)));
   }
   expect(worst).toBeLessThan(0.15);
+});
+
+test("a keyframe is added by a resample and taken away without one, the hold following", () => {
+  const P = decodePalette("kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g") as Palette;
+  const five = resampleK(P, 5);
+  expect(addKeyframe(P, [])).toBeNull();
+  expect(addKeyframe(five, [1, 2])).toEqual({ palette: resampleK(five, 6), held: [1, 2, 3] });
+  expect(addKeyframe(five, [])?.held).toEqual([]);
+  const dropped = removeKeyframes(five, [1, 3]);
+  expect(dropped?.palette.anchors).toEqual([0, 2, 4].map(i => five.anchors[i]));
+  expect(dropped?.held).toEqual([1]);
+  expect(removeKeyframes(five, [])?.palette.anchors).toEqual(five.anchors.slice(0, 4));
+  /* a hold can drop no more than the floor allows */
+  expect(removeKeyframes(resampleK(P, 3), [0, 1])?.palette.anchors).toHaveLength(2);
+  expect(removeKeyframes(resampleK(P, 2), [0])).toBeNull();
 });

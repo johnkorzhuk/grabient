@@ -262,6 +262,36 @@ export function resampleK(P: Palette, K: number): Palette {
   });
 }
 
+/** A keyframe added: the curve resampled at K + 1 (a splice would re-space every anchor and bend the palette), with
+    the hold it leaves, the new keyframe joining the end of a held run. Null at the most keyframes. */
+export function addKeyframe(
+  P: Palette,
+  held: readonly number[]
+): { palette: Palette; held: number[] } | null {
+  const K = P.anchors.length;
+  if (K >= K_MAX) return null;
+  return {
+    palette: resampleK(P, K + 1),
+    held: held.length ? [...held, held[held.length - 1] + 1] : []
+  };
+}
+/** Keyframes dropped, nothing resampled, so the rest survives exactly. A partial hold drops its keyframes from its end
+    as far as the floor allows; nothing or everything held drops the last keyframe. The hold lands where the first
+    dropped keyframe was. Null at the fewest keyframes. */
+export function removeKeyframes(
+  P: Palette,
+  held: readonly number[]
+): { palette: Palette; held: number[] } | null {
+  const K = P.anchors.length;
+  if (K <= K_MIN) return null;
+  const whole = !held.length || held.length === K;
+  const drop = whole ? [K - 1] : held.slice(held.length - Math.min(held.length, K - K_MIN));
+  return {
+    palette: { anchors: P.anchors.filter((_, j) => !drop.includes(j)) },
+    held: whole ? [] : [Math.min(drop[0], K - drop.length - 1)]
+  };
+}
+
 /** What Random can keep of a keyframe. */
 export type Lock = "l" | "c" | "h";
 export const LOCKS: readonly Lock[] = ["l", "c", "h"];
