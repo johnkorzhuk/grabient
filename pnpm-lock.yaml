@@ -249,6 +249,9 @@ importers:
         specifier: workspace:*
         version: link:../engine
     devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
