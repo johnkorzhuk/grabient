@@ -1,0 +1,38 @@
+.boards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-s4);
+}
+/* each board is a page of its theme: its own ground and ink, whatever the document's */
+.board {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s6);
+  padding: var(--space-s6);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  color-scheme: var(--color-scheme);
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+}
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: var(--space-s4) var(--space-s3);
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.paint {
+  height: var(--space-s12);
+  margin-bottom: var(--space-s2);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-control);
+}

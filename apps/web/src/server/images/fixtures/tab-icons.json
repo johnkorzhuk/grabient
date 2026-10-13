@@ -1,0 +1,217 @@
+{
+ "note": "G4 favicon.ts and design mark.ts outputs. weekFiles answered at now = 2026-10-12T12:00:00Z (week 2026-w42), so w43 is next week and w44 is too far.",
+ "now": "2026-10-12T12:00:00Z",
+ "siteIcon": {
+  "light": "/favicon.svg",
+  "dark": "/favicon-dark.svg"
+ },
+ "weekIcons": {
+  "2026-w40": {
+   "hrefs": {
+    "light": "/favicon/2026-w40.svg?v=s7042r",
+    "dark": "/favicon/2026-w40-dark.svg?v=s7042r"
+   },
+   "picture": "s7042r"
+  },
+  "2026-w41": {
+   "hrefs": {
+    "light": "/favicon/2026-w41.svg?v=1hzxz8h",
+    "dark": "/favicon/2026-w41-dark.svg?v=1hzxz8h"
+   },
+   "picture": "1hzxz8h"
+  },
+  "2026-w42": {
+   "hrefs": {
+    "light": "/favicon/2026-w42.svg?v=12n5k8d",
+    "dark": "/favicon/2026-w42-dark.svg?v=12n5k8d"
+   },
+   "picture": "12n5k8d"
+  },
+  "2026-w43": {
+   "hrefs": {
+    "light": "/favicon/2026-w43.svg?v=6s42sr",
+    "dark": "/favicon/2026-w43-dark.svg?v=6s42sr"
+   },
+   "picture": "6s42sr"
+  },
+  "2026-w44": {
+   "hrefs": {
+    "light": "/favicon/2026-w44.svg?v=1k2gne9",
+    "dark": "/favicon/2026-w44-dark.svg?v=1k2gne9"
+   },
+   "picture": "1k2gne9"
+  },
+  "2026-w45": {
+   "hrefs": {
+    "light": "/favicon/2026-w45.svg?v=qdxe9o",
+    "dark": "/favicon/2026-w45-dark.svg?v=qdxe9o"
+   },
+   "picture": "qdxe9o"
+  },
+  "2026-w46": {
+   "hrefs": {
+    "light": "/favicon/2026-w46.svg?v=12s5krb",
+    "dark": "/favicon/2026-w46-dark.svg?v=12s5krb"
+   },
+   "picture": "12s5krb"
+  },
+  "2026-w47": {
+   "hrefs": {
+    "light": "/favicon/2026-w47.svg?v=pctquu",
+    "dark": "/favicon/2026-w47-dark.svg?v=pctquu"
+   },
+   "picture": "pctquu"
+  },
+  "2026-w48": {
+   "hrefs": {
+    "light": "/favicon/2026-w48.svg?v=x87yxo",
+    "dark": "/favicon/2026-w48-dark.svg?v=x87yxo"
+   },
+   "picture": "x87yxo"
+  },
+  "2026-w49": {
+   "hrefs": {
+    "light": "/favicon/2026-w49.svg?v=1lw46g2",
+    "dark": "/favicon/2026-w49-dark.svg?v=1lw46g2"
+   },
+   "picture": "1lw46g2"
+  },
+  "2026-w50": {
+   "hrefs": {
+    "light": "/favicon/2026-w50.svg?v=1qlcmdh",
+    "dark": "/favicon/2026-w50-dark.svg?v=1qlcmdh"
+   },
+   "picture": "1qlcmdh"
+  },
+  "2026-w51": {
+   "hrefs": {
+    "light": "/favicon/2026-w51.svg?v=1w5ccd0",
+    "dark": "/favicon/2026-w51-dark.svg?v=1w5ccd0"
+   },
+   "picture": "1w5ccd0"
+  }
+ },
+ "weekFiles": {
+  "/favicon/2026-w40.svg": {
+   "status": 200,
+   "type": "image/svg+xml; charset=utf-8",
+   "cache": "public, max-age=1209600, immutable"
+  },
+  "/favicon/2026-w40-dark.svg": {
+   "status": 200,
+   "type": "image/svg+xml; charset=utf-8",
+   "cache": "public, max-age=1209600, immutable"
+  },
+  "/favicon/2026-w42.svg": {
+   "status": 200,
+   "type": "image/svg+xml; charset=utf-8",
+   "cache": "public, max-age=1209600, immutable"
+  },
+  "/favicon/2026-w43.svg": {
+   "status": 200,
+   "type": "image/svg+xml; charset=utf-8",
+   "cache": "public, max-age=1209600, immutable"
+  },
+  "/favicon/2026-w44.svg": {
+   "status": 404,
+   "type": "text/plain;charset=UTF-8",
+   "cache": "no-store"
+  },
+  "/favicon/2026-w39.svg": {
+   "status": 404,
+   "type": "text/plain;charset=UTF-8",
+   "cache": "no-store"
+  },
+  "/favicon/2026-w54.svg": {
+   "status": 404,
+   "type": "text/plain;charset=UTF-8",
+   "cache": "no-store"
+  },
+  "/favicon/2026-w00-dark.svg": {
+   "status": 404,
+   "type": "text/plain;charset=UTF-8",
+   "cache": "no-store"
+  },
+  "/favicon/x.svg": null,
+  "/favicon.svg": null
+ },
+ "weekSvgW42": {
+  "light": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><linearGradient id=\"b\"><stop offset=\"0\" stop-color=\"#008ab7\"/><stop offset=\".067\" stop-color=\"#0089bd\"/><stop offset=\".133\" stop-color=\"#0086c6\"/><stop offset=\".2\" stop-color=\"#0f82d1\"/><stop offset=\".267\" stop-color=\"#357dd4\"/><stop offset=\".333\" stop-color=\"#4b77d5\"/><stop offset=\".4\" stop-color=\"#5c72d4\"/><stop offset=\".467\" stop-color=\"#6a6dd2\"/><stop offset=\".533\" stop-color=\"#7668ce\"/><stop offset=\".6\" stop-color=\"#8163c8\"/><stop offset=\".667\" stop-color=\"#8b5ec1\"/><stop offset=\".733\" stop-color=\"#945ab9\"/><stop offset=\".8\" stop-color=\"#9c56af\"/><stop offset=\".867\" stop-color=\"#a352a6\"/><stop offset=\".933\" stop-color=\"#a84f9e\"/><stop offset=\"1\" stop-color=\"#ab4e97\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\" fill=\"url(#b)\"/></svg>",
+  "dark": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><style>rect{fill:url(#l)}@media (prefers-color-scheme:dark){rect{fill:url(#d)}}</style><linearGradient id=\"l\"><stop offset=\"0\" stop-color=\"#008ab7\"/><stop offset=\".067\" stop-color=\"#0089bd\"/><stop offset=\".133\" stop-color=\"#0086c6\"/><stop offset=\".2\" stop-color=\"#0f82d1\"/><stop offset=\".267\" stop-color=\"#357dd4\"/><stop offset=\".333\" stop-color=\"#4b77d5\"/><stop offset=\".4\" stop-color=\"#5c72d4\"/><stop offset=\".467\" stop-color=\"#6a6dd2\"/><stop offset=\".533\" stop-color=\"#7668ce\"/><stop offset=\".6\" stop-color=\"#8163c8\"/><stop offset=\".667\" stop-color=\"#8b5ec1\"/><stop offset=\".733\" stop-color=\"#945ab9\"/><stop offset=\".8\" stop-color=\"#9c56af\"/><stop offset=\".867\" stop-color=\"#a352a6\"/><stop offset=\".933\" stop-color=\"#a84f9e\"/><stop offset=\"1\" stop-color=\"#ab4e97\"/></linearGradient><linearGradient id=\"d\"><stop offset=\"0\" stop-color=\"#68d0ff\"/><stop offset=\".067\" stop-color=\"#73ceff\"/><stop offset=\".133\" stop-color=\"#7fcbff\"/><stop offset=\".2\" stop-color=\"#8bc7ff\"/><stop offset=\".267\" stop-color=\"#95c3ff\"/><stop offset=\".333\" stop-color=\"#9fbfff\"/><stop offset=\".4\" stop-color=\"#a8bbff\"/><stop offset=\".467\" stop-color=\"#b0b7ff\"/><stop offset=\".533\" stop-color=\"#b8b3ff\"/><stop offset=\".6\" stop-color=\"#c1aeff\"/><stop offset=\".667\" stop-color=\"#cca8ff\"/><stop offset=\".733\" stop-color=\"#d9a0ff\"/><stop offset=\".8\" stop-color=\"#e499f8\"/><stop offset=\".867\" stop-color=\"#eb96ee\"/><stop offset=\".933\" stop-color=\"#f193e5\"/><stop offset=\"1\" stop-color=\"#f591dd\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\"/></svg>"
+ },
+ "iconStops": [
+  "#f6e4e0",
+  "#efdad5",
+  "#e5cdc8",
+  "#d9beb8",
+  "#ccada6",
+  "#be9b94",
+  "#b18a83",
+  "#a47a73",
+  "#986b64",
+  "#8b5b55",
+  "#7d4b45",
+  "#703b36",
+  "#632c28",
+  "#571e1c",
+  "#4d1112",
+  "#46070b"
+ ],
+ "paletteIcon": {
+  "light": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3ClinearGradient id='b'%3E%3Cstop offset='0' stop-color='%23bdaca8'/%3E%3Cstop offset='.067' stop-color='%23bfaba7'/%3E%3Cstop offset='.133' stop-color='%23c2aba6'/%3E%3Cstop offset='.2' stop-color='%23c4aaa4'/%3E%3Cstop offset='.267' stop-color='%23c8a9a2'/%3E%3Cstop offset='.333' stop-color='%23be9b94'/%3E%3Cstop offset='.4' stop-color='%23b18a83'/%3E%3Cstop offset='.467' stop-color='%23a47a73'/%3E%3Cstop offset='.533' stop-color='%23986b64'/%3E%3Cstop offset='.6' stop-color='%238b5b55'/%3E%3Cstop offset='.667' stop-color='%237d4b45'/%3E%3Cstop offset='.733' stop-color='%23703b36'/%3E%3Cstop offset='.8' stop-color='%23632c28'/%3E%3Cstop offset='.867' stop-color='%23571e1c'/%3E%3Cstop offset='.933' stop-color='%234d1112'/%3E%3Cstop offset='1' stop-color='%2346070b'/%3E%3C/linearGradient%3E%3Crect y='24' width='32' height='8' fill='url(%23b)'/%3E%3C/svg%3E",
+  "dark": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cstyle%3Erect{fill:url(%23l)}@media (prefers-color-scheme:dark){rect{fill:url(%23d)}}%3C/style%3E%3ClinearGradient id='l'%3E%3Cstop offset='0' stop-color='%23bdaca8'/%3E%3Cstop offset='.067' stop-color='%23bfaba7'/%3E%3Cstop offset='.133' stop-color='%23c2aba6'/%3E%3Cstop offset='.2' stop-color='%23c4aaa4'/%3E%3Cstop offset='.267' stop-color='%23c8a9a2'/%3E%3Cstop offset='.333' stop-color='%23be9b94'/%3E%3Cstop offset='.4' stop-color='%23b18a83'/%3E%3Cstop offset='.467' stop-color='%23a47a73'/%3E%3Cstop offset='.533' stop-color='%23986b64'/%3E%3Cstop offset='.6' stop-color='%238b5b55'/%3E%3Cstop offset='.667' stop-color='%237d4b45'/%3E%3Cstop offset='.733' stop-color='%23703b36'/%3E%3Cstop offset='.8' stop-color='%23632c28'/%3E%3Cstop offset='.867' stop-color='%23571e1c'/%3E%3Cstop offset='.933' stop-color='%234d1112'/%3E%3Cstop offset='1' stop-color='%2346070b'/%3E%3C/linearGradient%3E%3ClinearGradient id='d'%3E%3Cstop offset='0' stop-color='%23f6e4e0'/%3E%3Cstop offset='.067' stop-color='%23efdad5'/%3E%3Cstop offset='.133' stop-color='%23e5cdc8'/%3E%3Cstop offset='.2' stop-color='%23d9beb8'/%3E%3Cstop offset='.267' stop-color='%23ccada6'/%3E%3Cstop offset='.333' stop-color='%23be9b94'/%3E%3Cstop offset='.4' stop-color='%23b18a83'/%3E%3Cstop offset='.467' stop-color='%23a47a73'/%3E%3Cstop offset='.533' stop-color='%23986b64'/%3E%3Cstop offset='.6' stop-color='%238b5b55'/%3E%3Cstop offset='.667' stop-color='%2386534d'/%3E%3Cstop offset='.733' stop-color='%2387504a'/%3E%3Cstop offset='.8' stop-color='%23894e48'/%3E%3Cstop offset='.867' stop-color='%238a4b47'/%3E%3Cstop offset='.933' stop-color='%238b4945'/%3E%3Cstop offset='1' stop-color='%238b4744'/%3E%3C/linearGradient%3E%3Crect y='24' width='32' height='8'/%3E%3C/svg%3E"
+ },
+ "vivid": {
+  "light": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3ClinearGradient id='b'%3E%3Cstop offset='0' stop-color='%23ff0080'/%3E%3Cstop offset='1' stop-color='%2340e0d0'/%3E%3C/linearGradient%3E%3Crect y='24' width='32' height='8' fill='url(%23b)'/%3E%3C/svg%3E",
+  "dark": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3ClinearGradient id='b'%3E%3Cstop offset='0' stop-color='%23ff0080'/%3E%3Cstop offset='1' stop-color='%2340e0d0'/%3E%3C/linearGradient%3E%3Crect y='24' width='32' height='8' fill='url(%23b)'/%3E%3C/svg%3E"
+ },
+ "pale": {
+  "light": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3ClinearGradient id='b'%3E%3Cstop offset='0' stop-color='%23b0afaf'/%3E%3Cstop offset='1' stop-color='%230c0c0e'/%3E%3C/linearGradient%3E%3Crect y='24' width='32' height='8' fill='url(%23b)'/%3E%3C/svg%3E",
+  "dark": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cstyle%3Erect{fill:url(%23l)}@media (prefers-color-scheme:dark){rect{fill:url(%23d)}}%3C/style%3E%3ClinearGradient id='l'%3E%3Cstop offset='0' stop-color='%23b0afaf'/%3E%3Cstop offset='1' stop-color='%230c0c0e'/%3E%3C/linearGradient%3E%3ClinearGradient id='d'%3E%3Cstop offset='0' stop-color='%23fdfcfb'/%3E%3Cstop offset='1' stop-color='%23676769'/%3E%3C/linearGradient%3E%3Crect y='24' width='32' height='8'/%3E%3C/svg%3E"
+ },
+ "single": {
+  "light": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect y='24' width='32' height='8' fill='%23e11d48'/%3E%3C/svg%3E",
+  "dark": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect y='24' width='32' height='8' fill='%23e11d48'/%3E%3C/svg%3E"
+ },
+ "markSvg": {
+  "fixed": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><style>rect{fill:url(#l)}@media (prefers-color-scheme:dark){rect{fill:url(#d)}}</style><linearGradient id=\"l\"><stop offset=\"0\" stop-color=\"#f6c955\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><linearGradient id=\"d\"><stop offset=\"0\" stop-color=\"#ffd25f\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\"/></svg>",
+  "lightOnly": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><linearGradient id=\"b\"><stop offset=\"0\" stop-color=\"#ff0080\"/><stop offset=\"1\" stop-color=\"#40e0d0\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\" fill=\"url(#b)\"/></svg>",
+  "adaptive": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><style>rect{fill:url(#l)}@media (prefers-color-scheme:dark){rect{fill:url(#d)}}</style><linearGradient id=\"l\"><stop offset=\"0\" stop-color=\"#b0afaf\"/><stop offset=\"1\" stop-color=\"#b8adaf\"/></linearGradient><linearGradient id=\"d\"><stop offset=\"0\" stop-color=\"#fdfcfb\"/><stop offset=\"1\" stop-color=\"#f3e7e9\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\"/></svg>",
+  "one": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><style>rect{fill:#b0afaf}@media (prefers-color-scheme:dark){rect{fill:#fdfcfb}}</style><rect y=\"24\" width=\"32\" height=\"8\"/></svg>"
+ },
+ "tiles": {
+  "tile": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" rx=\"3.5\" fill=\"#0c0c0e\"/><linearGradient id=\"b\"><stop offset=\"0\" stop-color=\"#ffd25f\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><rect x=\"2\" y=\"11\" width=\"12\" height=\"3\" fill=\"url(#b)\"/></svg>",
+  "square": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><rect width=\"100\" height=\"100\" fill=\"#0c0c0e\"/><linearGradient id=\"b\"><stop offset=\"0\" stop-color=\"#ffd25f\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><rect x=\"22\" y=\"64\" width=\"56\" height=\"14\" fill=\"url(#b)\"/></svg>"
+ },
+ "legible": {
+  "paleLight": [
+   "#b0afaf",
+   "#b8adaf",
+   "#beada0"
+  ],
+  "deepDark": [
+   "#676769",
+   "#5a667c",
+   "#666377"
+  ],
+  "grays": {
+   "light": [
+    "#000000",
+    "#888888",
+    "#b0b0b0"
+   ],
+   "dark": [
+    "#676767",
+    "#888888",
+    "#ffffff"
+   ]
+  }
+ },
+ "collectionColors": [
+  "#231214",
+  "#6b5b4c",
+  "#7a80a3",
+  "#b7821e",
+  "#a2bc5c"
+ ]
+}

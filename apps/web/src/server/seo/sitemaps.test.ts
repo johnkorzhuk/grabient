@@ -1,0 +1,85 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, test } from "vitest";
+import {
+  collectionsSitemap,
+  MAX_SHARDS,
+  pagesSitemap,
+  paletteShard,
+  palettesSitemap,
+  searchesSitemap,
+  sitemapHeaders,
+  sitemapIndex
+} from "./sitemaps.ts";
+
+const golden = (name: string) =>
+  readFileSync(new URL(`fixtures/sitemap-${name}.xml`, import.meta.url), "utf8");
+const ORIGIN = "https://grabient.com";
+
+describe("the sitemaps, as grabient.com serves them", () => {
+  test("the index names the pages, the searches, the collections and each palette file", () => {
+    expect(sitemapIndex(ORIGIN, 2)).toBe(golden("index.sample"));
+  });
+
+  test("the site's own pages are listed in every language, each naming the others, and the newsletter in English", () => {
+    const text = pagesSitemap(ORIGIN);
+    expect(text).toBe(golden("pages.production"));
+    expect(text.match(/<url>/g)).toHaveLength(8 * 16 + 1);
+  });
+
+  test("a search is listed at its canonical address, once, as its page writes its words", () => {
+    expect(searchesSitemap(ORIGIN, ["blue", " Warm   Sunset ", "BLUE", "pastel", ""])).toBe(
+      golden("searches.sample")
+    );
+  });
+
+  test("a collection is listed once, with the day it last changed and its card", () => {
+    const ocean = { slug: "ocean-gradients", updatedAt: 1_760_000_000_000 };
+    expect(collectionsSitemap(ORIGIN, [ocean, ocean])).toBe(golden("collections.sample"));
+  });
+
+  test("a palette is listed at its own address, canonical, once, never a redirect", () => {
+    const text = palettesSitemap(ORIGIN, [
+      {
+        seed: "kS7Q8Yy5S_SChv0",
+        createdAt: 1_700_000_000_000,
+        image: "/og/k4/kS7Q8Yy5S_SChv0.png"
+      },
+      { seed: "not a seed", createdAt: 1_700_000_000_000 },
+      // eight keyframes: its own address carries its stop count
+      { seed: "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ", createdAt: "2024-01-02T00:00:00Z" },
+      { seed: "kS7Q8Yy5S_SChv0", createdAt: 1_700_000_000_000 }
+    ]);
+    expect(text).toBe(golden("palettes.sample"));
+  });
+});
+
+test("a palette file's name says its place, from the first to the last the index may name", () => {
+  expect(paletteShard("palettes")).toBe(1);
+  expect(paletteShard("palettes-2")).toBe(2);
+  expect(paletteShard(`palettes-${MAX_SHARDS}`)).toBe(MAX_SHARDS);
+  for (const name of [
+    "palettes-0",
+    "palettes-1",
+    "palettes-02",
+    `palettes-${MAX_SHARDS + 1}`,
+    "other"
+  ]) {
+    expect([name, paletteShard(name)]).toEqual([name, null]);
+  }
+  expect(() => sitemapIndex(ORIGIN, MAX_SHARDS + 1)).toThrow();
+});
+
+test("what changes as palettes and collections are made is kept five minutes at the edge, the rest a day", () => {
+  for (const name of ["index", "palettes", "palettes-7", "collections"]) {
+    expect(sitemapHeaders(name)).toMatchObject({
+      "Cache-Control": "public, max-age=60",
+      "CDN-Cache-Control": "max-age=300"
+    });
+  }
+  for (const name of ["pages", "searches"]) {
+    expect(sitemapHeaders(name)).toMatchObject({
+      "Cache-Control": "public, max-age=3600",
+      "CDN-Cache-Control": "max-age=86400, stale-while-revalidate=86400"
+    });
+  }
+});

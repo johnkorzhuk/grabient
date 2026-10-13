@@ -1,0 +1,105 @@
+{
+ "note": "ETag = \"image:{OG_VERSION}:{sha256 of JSON parts}\" (og.ts imageKey). Parts: palette: [palette, seed, style, steps, angle, width, height, branded, chips?]; montage: [query, [[seed, style, steps, angle]...], width, height, branded]. A new OG_VERSION changes every key.",
+ "keys": [
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0",
+   "branded": false,
+   "etag": "\"image:k4:c6533a730214a2cb4155e3b783727084e7d59e730c6cdbc2792d1dcec3aaafbb\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&size=256x1",
+   "branded": false,
+   "etag": "\"image:k4:5d5c64cf052fc941b790f3eb4826bd233ffef4ea7af10f33cf7145c70980c77b\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&w=256&h=1",
+   "branded": false,
+   "etag": "\"image:k4:5d5c64cf052fc941b790f3eb4826bd233ffef4ea7af10f33cf7145c70980c77b\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&size=8000x4000",
+   "branded": false,
+   "etag": "\"image:k4:4a492561cdbcfcc9cb5ef5a4ebf689834d3abfb9783e49f746b3fc90167adc0f\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&w=2400&h=1200",
+   "branded": false,
+   "etag": "\"image:k4:4a492561cdbcfcc9cb5ef5a4ebf689834d3abfb9783e49f746b3fc90167adc0f\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&size=wide",
+   "branded": false,
+   "etag": "\"image:k4:c6533a730214a2cb4155e3b783727084e7d59e730c6cdbc2792d1dcec3aaafbb\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&style=linearGradient&steps=7&angle=90",
+   "branded": false,
+   "etag": "\"image:k4:c6533a730214a2cb4155e3b783727084e7d59e730c6cdbc2792d1dcec3aaafbb\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&steps=2",
+   "branded": false,
+   "etag": "\"image:k4:88f6a4c67e0efc3c5d8e09aa21ef4439fcfad89611e6cdae2eee6da65562c082\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&amp;style=radialSwatches",
+   "branded": false,
+   "etag": "\"image:k4:548837bf86a3745c2d76c39082186d23bdec46d90de84c4003456316281622f2\""
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&style=radialSwatches",
+   "branded": false,
+   "etag": "\"image:k4:548837bf86a3745c2d76c39082186d23bdec46d90de84c4003456316281622f2\""
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0",
+   "branded": true,
+   "etag": "\"image:k4:d4d5adfe8099ba97b8f64ef95949007fd0fb9b02d57d349f9320d12764ffac39\""
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&chips=on",
+   "branded": true,
+   "etag": "\"image:k4:d4d5adfe8099ba97b8f64ef95949007fd0fb9b02d57d349f9320d12764ffac39\""
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&chips=off",
+   "branded": true,
+   "etag": "\"image:k4:1cde001bd778eb2cee528cf4e2c4f008ddac0f156ff97f5f388f4f17858f928b\""
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&title=Anything&v=k4&t=1",
+   "branded": true,
+   "etag": "\"image:k4:d4d5adfe8099ba97b8f64ef95949007fd0fb9b02d57d349f9320d12764ffac39\""
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&head=800x200",
+   "branded": true,
+   "etag": "\"image:k4:e0634cefbca1831f2b3756ecf28323c90194a33b4b8cc9bf114403cb05a826f9\""
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&w=100&h=100",
+   "branded": true,
+   "etag": "\"image:k4:d4d5adfe8099ba97b8f64ef95949007fd0fb9b02d57d349f9320d12764ffac39\""
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&size=1080x1920",
+   "branded": true,
+   "etag": "\"image:k4:d4d5adfe8099ba97b8f64ef95949007fd0fb9b02d57d349f9320d12764ffac39\""
+  },
+  {
+   "address": "/api/og/list (montage of seed and gray)",
+   "branded": true,
+   "etag": "\"image:k4:f27831bb0b8f2e28f5513a7e287d8363dab34bf746da3a32fd472b169a4e5f38\""
+  },
+  {
+   "address": "/api/png/collection (montage of seed and gray)",
+   "branded": false,
+   "etag": "\"image:k4:0d88d35007558fc703ab75143d61c33ee4eed1b9a105a98f9a66d35baea3fc02\""
+  },
+  {
+   "address": "/api/png/collection?w=600&h=400 (montage)",
+   "branded": false,
+   "etag": "\"image:k4:b9f780dcf1b273f6ef67d2671768d6a5bcb748cc84c03b9e436182c6072988a9\""
+  }
+ ]
+}

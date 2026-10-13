@@ -100,8 +100,8 @@
     border-radius: var(--radius-circle);
     background-color: var(--c);
     box-shadow:
-      0 0 0 2px var(--color-on-dark),
-      0 0 0 3px var(--color-art);
+      0 0 0 calc(2 * var(--size-hairline)) var(--color-on-dark),
+      0 0 0 calc(3 * var(--size-hairline)) var(--color-art);
     pointer-events: none;
   }
   /* the hex's line: a field on the input recipe, its name at the start and the hex in mono at the end */

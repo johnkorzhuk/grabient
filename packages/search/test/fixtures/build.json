@@ -1,0 +1,94 @@
+{
+ "contract": "buildSnapshot(model, site, previous, { embed: fakeEmbedding per text, now }) over a site of 30 gallery palettes (snapshot.seeds[0..29]), two collections and two titles; then capped at 10 measured, then rebuilt from the first with one new palette.",
+ "first": {
+  "stats": {
+   "palettes": 36,
+   "measured": 36,
+   "reused": 0,
+   "pending": 0,
+   "notPalettes": 0,
+   "titled": 2,
+   "collections": 2,
+   "embedded": 1,
+   "textsOwed": 0,
+   "withoutText": 1
+  },
+  "fresh": {
+   "palettes": 36,
+   "collections": [
+    "ocean-deep",
+    "empty-words"
+   ]
+  },
+  "names": [
+   {
+    "words": "Ocean deep gradients sea marine",
+    "subject": "ocean deep",
+    "members": [
+     30,
+     31,
+     32,
+     33,
+     2
+    ]
+   },
+   {
+    "words": "",
+    "subject": "",
+    "members": [
+     34,
+     35
+    ]
+   }
+  ],
+  "textOf": [
+   "qv7hxzr0vz.1q",
+   ""
+  ],
+  "harmonies": [
+   "achromatic",
+   "analogous",
+   "complementary",
+   "monochromatic",
+   "split-complementary",
+   "two-hue",
+   "wide"
+  ],
+  "bytes": 4808,
+  "sha256": "ae30dbf15c419db49ce444e9907fdf1cfb6d66de6082adf734cd23f46b4e6659",
+  "headLine": 1711
+ },
+ "capped": {
+  "stats": {
+   "palettes": 10,
+   "measured": 10,
+   "reused": 0,
+   "pending": 26,
+   "notPalettes": 0,
+   "titled": 2,
+   "collections": 1,
+   "embedded": 0,
+   "textsOwed": 0,
+   "withoutText": 1
+  },
+  "pending": 26
+ },
+ "next": {
+  "stats": {
+   "palettes": 37,
+   "measured": 1,
+   "reused": 36,
+   "pending": 0,
+   "notPalettes": 0,
+   "titled": 2,
+   "collections": 2,
+   "embedded": 0,
+   "textsOwed": 0,
+   "withoutText": 1
+  },
+  "fresh": [
+   "kCRI0Vn-3LoQCqVQ"
+  ],
+  "sha256": "cc79bf2c4a4f3d60787616be7f5ca4f956a1614c3065f46be73a01c0cfc562e5"
+ }
+}

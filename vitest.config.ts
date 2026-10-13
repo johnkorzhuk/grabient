@@ -17,6 +17,8 @@ export default defineConfig({
         plugins: [solid({ ssr: true })],
         test: {
           name: "components",
+          // the server's renderer: Solid's plugin resolves its browser build for any other environment
+          environment: "node",
           include: ["apps/*/src/**/*.test.tsx"],
           css: { include: /\.module\.css$/, modules: { classNameStrategy: "non-scoped" } }
         }

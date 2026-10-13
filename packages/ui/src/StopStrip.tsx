@@ -1,8 +1,10 @@
+import { luminance } from "@grabient/engine/contrast.ts";
 import { cellAt, layoutStops, placeMark, type StripStop } from "@grabient/engine/strip.ts";
 import { createMemo, createSignal, For, onSettled } from "solid-js";
 import { announce } from "./announce.ts";
 import { copyText } from "./copy.ts";
 import { createDone } from "./done.ts";
+import { createFlashGuard } from "./flash.ts";
 import { t } from "./i18n.ts";
 import { watchSize } from "./measure.ts";
 import styles from "./StopStrip.module.css";
@@ -18,7 +20,9 @@ export interface StripMark {
 /* The palette's stops as one perforated strip: chips fused edge to edge, each hex in black or white, whichever reads,
    the seams and the foot dashed in the paper's color as cuts through to it. Rows and label size come from the engine's
    layoutStops. A press copies a chip's hex. While a plot or the path reads a place (`reading`), the chip nearest it
-   rises 8px out of the strip and nothing else moves. Left to right in every language, as the gradient runs. */
+   rises 8px out of the strip and nothing else moves. It is a big picture, so it paints through the flash guard: a
+   change that would turn a flash back sooner than a quarter second after it waits. Left to right in every language,
+   as the gradient runs. */
 export function StopStrip(props: {
   stops: readonly StripStop[];
   marks?: readonly StripMark[];
@@ -33,18 +37,22 @@ export function StopStrip(props: {
   let host!: HTMLDivElement;
   const [width, setWidth] = createSignal(900);
   onSettled(() => watchSize(host, () => setWidth(host.clientWidth || 900)));
+  const stops = createFlashGuard(
+    () => props.stops,
+    shown => shown.map(s => luminance(s.hex))
+  );
   /* every chip reads the layout, and a hundred stops would lay out hundreds of times an edit without the memo */
-  const lay = createMemo(() => layoutStops(props.stops, width(), !!props.short));
+  const lay = createMemo(() => layoutStops(stops(), width(), !!props.short));
   /* the chip being read as one key, so a reading that moves within a chip changes nothing */
   const read = createMemo(() => {
     const at = props.reading;
-    if (at == null || !props.stops.length) return "";
-    const c = cellAt(lay(), props.stops.length, at);
+    if (at == null || !stops().length) return "";
+    const c = cellAt(lay(), stops().length, at);
     return `${c.row}:${c.cell}`;
   });
   const marksIn = (r: number) =>
     (props.marks ?? [])
-      .map(m => ({ ...m, ...placeMark(lay(), props.stops.length, m.t) }))
+      .map(m => ({ ...m, ...placeMark(lay(), stops().length, m.t) }))
       .filter(m => m.row === r);
   const [copied, mark] = createDone<string>(1100);
   /* a chip says Copied only for a copy that happened; a reader who listens hears either result */

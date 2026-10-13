@@ -1,0 +1,58 @@
+Deep end, Linear
+https://grabient.test/ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g?steps=32&angle=135
+#d3efff #8acdff #3295fd #0c56dc #073393 #0c62dc #50a5fc
+
+No. 2 · November 2026
+
+Rising in November
+
+Five palettes from the Rising list, picked by hand.
+
+In this issue: palettes from your AI app, and two collections.
+
+Strawberry milk, Linear bands
+https://grabient.test/kWk5ENVro_-Mpv_wGb_-we_4?style=linearSwatches&steps=5
+
+Paper pinwheel, Angular bands
+https://grabient.test/kWelD3zS9AVgeu3fEbQ8xAyQ?style=angularSwatches&steps=5&angle=135
+
+Porch light, Radial
+https://grabient.test/kY4B0o4Bi5UyavQ9GLvL5s9SQVvk?style=radialGradient&steps=32
+
+Tide pool, Radial bands
+https://grabient.test/kWkEqj3Z87moauRiHzrShc_A?style=radialSwatches&steps=6&angle=270
+
+See all rising palettes: https://grabient.test/palettes/rising
+
+Ask your AI app for palettes
+
+Connect an AI app like Claude to your Grabient account. It can search, make and save palettes for you.
+
+Find five calm palettes for a meditation app.
+
+Five calm palettes, From the gallery
+https://grabient.test/palettes?q=calm
+
+Add to Claude: https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=https%3A%2F%2Fgrabient.test%2Fmcp
+
+In any other app, add a custom connector or MCP server with this address.
+
+https://grabient.test/mcp
+
+Your app asks you to sign in to Grabient when you add it. Choose Allow. The MCP page (https://grabient.test/mcp-server) has the setup for each app.
+
+Featured collections
+
+Steel pan poster, 25 palettes
+https://grabient.test/steel-pan-poster
+Cobalt, turquoise, yellow, orange, magenta and plum, with strong print contrast.
+
+Kasavu silk and marigold, 14 palettes
+https://grabient.test/kasavu-silk-and-marigold
+Ivory silk, marigold gold, turmeric orange, banana green and deep teal.
+
+Palettes: https://grabient.test/palettes
+Collections: https://grabient.test/collections
+MCP: https://grabient.test/mcp-server
+
+You get this because you signed up for Grabient. Unsubscribe (https://grabient.test/unsubscribe/0000000000000000000000000000000000000000000000000000000000000000)

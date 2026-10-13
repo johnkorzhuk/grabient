@@ -1,0 +1,65 @@
+# Grabient
+
+> Grabient is a free CSS gradient generator and color palette library at https://grabient.com. A palette is 2 to 8 OKLCH keyframes held in a short seed, and the seed is the palette's address. An agent can search palettes by words, colors or a seed, read any palette as JSON, Markdown, CSS, SVG, PNG or a swatch file design apps import, and give a person a permanent link that opens in the editor, with no key and no sign-in. The MCP server makes, changes and saves palettes for a person signed in with a free Grabient account.
+
+The data, Markdown and image routes are plain GET requests with CORS enabled. In the patterns below, replace `{seed}`, `{slug}` and `{query}`. A seed looks like `kS7Q8Yy5S_SChv0`. A collection's address is a slug such as `ocean-gradients`, and the collections list returns the real ones.
+
+## When to use Grabient
+
+- A person asks for a gradient, a color palette or a background: a hero section, a card, a chart ramp, a wallpaper, social art.
+- A person names a color, a mood, a season or a subject instead of exact colors: warm sunset, muted earth tones, pastel, ocean. Search answers these, and collections group palettes by subject.
+- A person has brand colors as hex codes. Search finds the palettes nearest them, and the MCP server makes a palette from them.
+- A person wants a palette changed: lighter, darker, calmer, more vivid, warmer, cooler, reversed, or with fewer or more colors. The MCP server makes each change as a new seed with its own permanent address.
+- You need the same colors every time. A seed always renders the same palette, and no model takes part in the colors.
+- You need an image of a gradient at a size you choose, without a headless browser.
+
+Grabient's colors are for screens: it has no print inks, paint or thread, and takes no colors from an image. To read many palettes use the JSON routes, not the HTML pages.
+
+## Read one palette
+
+- [Palette as JSON](https://grabient.com/kS7Q8Yy5S_SChv0.json): seed, keyframes, hex colors, each color's name and the contrast of text on it, CSS in hex and OKLCH, and links to its page, files and card. Pattern: `https://grabient.com/{seed}.json`
+- [Palette as Markdown](https://grabient.com/kS7Q8Yy5S_SChv0.md): the same facts as text, with the collections that hold it. Pattern: `https://grabient.com/{seed}.md`
+- [Palette as PNG](https://grabient.com/kS7Q8Yy5S_SChv0.png): the gradient alone, no logo, 1200 by 630 unless asked. Takes `w` and `h`, or `size` (`1200x630`), up to 2,400 pixels a side and 3 million pixels in all; a larger size comes smaller at the same shape. Pattern: `https://grabient.com/{seed}.png`
+- [Palette as SVG](https://grabient.com/kS7Q8Yy5S_SChv0.svg): the gradient as a vector, 800 by 400 unless asked. Takes `w` and `h`, or `size`, 40 to 6000 a side. Pattern: `https://grabient.com/{seed}.svg`
+- [Palette as CSS](https://grabient.com/kS7Q8Yy5S_SChv0.css): CSS that works as it is: linked or pasted into a page, it fills the page with the palette. Pattern: `https://grabient.com/{seed}.css`
+- [Palette as ASE](https://grabient.com/kS7Q8Yy5S_SChv0.ase): Adobe Swatch Exchange, the view's colors, for Photoshop, Illustrator, InDesign, Procreate and Affinity. Pattern: `https://grabient.com/{seed}.ase`
+- [Palette as GPL](https://grabient.com/kS7Q8Yy5S_SChv0.gpl): a GIMP palette of the view's colors, for GIMP, Inkscape, Krita and Aseprite. Pattern: `https://grabient.com/{seed}.gpl`
+- [Palette as GRD](https://grabient.com/kS7Q8Yy5S_SChv0.grd): the view's gradient as a Photoshop gradient. Pattern: `https://grabient.com/{seed}.grd`
+- [Palette as design tokens](https://grabient.com/kS7Q8Yy5S_SChv0.tokens.json): the view's colors as DTCG design tokens, which Figma imports as variables. Pattern: `https://grabient.com/{seed}.tokens.json`
+- [Palette social card](https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0): 1200 by 630 with the Grabient wordmark. Pattern: `https://grabient.com/api/og?seed={seed}`
+- [Palette in the editor](https://grabient.com/kS7Q8Yy5S_SChv0): the page to give a person. Pattern: `https://grabient.com/{seed}`
+
+Every palette route takes `style`, `steps` and `angle`.
+
+## Find palettes
+
+- [Search as JSON](https://grabient.com/api/search.json?query=sunset&limit=24): words, hex codes or a seed. Pattern: `https://grabient.com/api/search.json?query={query}&limit=24`
+- [Search page](https://grabient.com/palettes?q=sunset): the same search for a person. Pattern: `https://grabient.com/palettes?q={query}`
+- [Search as one image](https://grabient.com/palettes/sunset.png): the nine palettes its page shows first. Pattern: `https://grabient.com/palettes/{query}.png`
+- [The home page as JSON](https://grabient.com/api/hot?page=1): the Hot feed, palettes and collections in one, by what was liked lately and what is new
+- [The gallery as JSON](https://grabient.com/api/palettes?sort=popular&page=1&limit=24): the most liked first, or `sort` rising or newest
+
+## Collections
+
+- [Collections as JSON](https://grabient.com/api/collections?sort=popular&page=1&limit=24): public collections with their titles, descriptions, tags and first palettes. Add `q={query}` to search them.
+- [Collections page](https://grabient.com/collections): the same list for a person
+- One collection as JSON: `https://grabient.com/api/collections/{slug}`
+- One collection as Markdown: `https://grabient.com/{slug}.md`
+- One collection as ASE, a group to each palette: `https://grabient.com/{slug}.ase`
+- One collection as GPL: `https://grabient.com/{slug}.gpl`
+- One collection as GRD, a gradient to each palette: `https://grabient.com/{slug}.grd`
+- One collection as design tokens, a group to each palette: `https://grabient.com/{slug}.tokens.json`
+- One collection as an image, the nine palettes its page shows first: `https://grabient.com/api/png/collection?slug={slug}`, and `https://grabient.com/api/og/collection?slug={slug}` for the card with the wordmark
+- One collection's page: `https://grabient.com/{slug}`
+
+## Tools for agents
+
+- [MCP server](https://grabient.com/mcp): Streamable HTTP, JSON-RPC over POST, for a free Grabient account: the app signs the person in once through OAuth 2.1 when it is added. Tools: get_account, search_palettes, list_gallery, search_collections, get_collection, compose_palette, adjust_palette, inspect_palettes, show_palettes, list_saved_palettes, save_palette, list_my_collections, save_collection, delete_collection. [How to connect](https://grabient.com/mcp-server).
+- [MCP server card](https://grabient.com/mcp/server-card): the server's name, address and protocol versions as JSON
+- [Agent catalog](https://grabient.com/.well-known/ai-catalog.json): the AI Catalog entry that leads to the card
+
+## Optional
+
+- [Full reference](https://grabient.com/llms-full.txt): the palette model, what the routes take and return, the tools, limits and redirects
+- [About Grabient](https://grabient.com/about): how the palettes are made
+- [Sitemap](https://grabient.com/sitemap.xml): pages, searches, collections and palettes

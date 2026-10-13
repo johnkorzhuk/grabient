@@ -1,0 +1,6 @@
+/* a sign-in sheet's column, which a full button stretches across */
+.column {
+  display: flex;
+  width: 100%;
+  max-width: 280px;
+}

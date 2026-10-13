@@ -1,0 +1,160 @@
+{
+  "args": [
+    {
+      "args": {
+        "palettes": [
+          "kSWUkczDNDewdRK",
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "style": "radialSwatches",
+            "steps": 5
+          },
+          {
+            "seed": "kSWUkczDNDewdRK"
+          },
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "style": "angularGradient",
+            "angle": 30,
+            "title": "  Sun dial "
+          },
+          {
+            "seed": "https://grabient.com/kSWUkczDNDewdRK?style=angularGradient&angle=30",
+            "title": "Another"
+          }
+        ]
+      },
+      "tiles": [
+        {
+          "tile": 1,
+          "seed": "kSWUkczDNDewdRK",
+          "style": "linearGradient",
+          "steps": 7,
+          "angle": 90
+        },
+        {
+          "tile": 2,
+          "seed": "kSWUkczDNDewdRK",
+          "style": "radialSwatches",
+          "steps": 5,
+          "angle": 90
+        },
+        {
+          "tile": 3,
+          "seed": "kSWUkczDNDewdRK",
+          "style": "angularGradient",
+          "steps": 7,
+          "angle": 30,
+          "title": "Sun dial"
+        }
+      ]
+    },
+    {
+      "args": {
+        "palettes": [
+          "kSWUkczDNDewdRK"
+        ],
+        "picture": "False"
+      },
+      "tiles": [
+        {
+          "tile": 1,
+          "seed": "kSWUkczDNDewdRK",
+          "style": "linearGradient",
+          "steps": 7,
+          "angle": 90
+        }
+      ]
+    },
+    {
+      "args": {
+        "palettes": [
+          "kSWUkczDNDewdRK"
+        ],
+        "columns": 3
+      },
+      "tiles": null
+    },
+    {
+      "args": {
+        "palettes": []
+      },
+      "tiles": null
+    },
+    {
+      "args": {
+        "palettes": [
+          {
+            "seed": "kSWUkczDNDewdRK",
+            "steps": 0
+          },
+          {
+            "seed": "kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA",
+            "steps": 3
+          }
+        ]
+      },
+      "tiles": [
+        {
+          "tile": 1,
+          "seed": "kSWUkczDNDewdRK",
+          "style": "linearGradient",
+          "steps": 3,
+          "angle": 90
+        },
+        {
+          "tile": 2,
+          "seed": "kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA",
+          "style": "linearGradient",
+          "steps": 8,
+          "angle": 90
+        }
+      ]
+    }
+  ],
+  "chosenWords": "The person chose tile 2 of the Grabient palette sheet, seed kSWUkczDNDewdRK. It is drawn there now with style radialSwatches, steps 5, angle 90. Its address in this view: https://grabient.com/kSWUkczDNDewdRK?style=radialSwatches&steps=5",
+  "fileUrl": [
+    "https://grabient.com/kSWUkczDNDewdRK.svg?style=radialSwatches&steps=5",
+    "https://grabient.com/kSWUkczDNDewdRK.png?style=radialSwatches&steps=5",
+    "https://grabient.com/kSWUkczDNDewdRK.css?style=radialSwatches&steps=5",
+    "https://grabient.com/kSWUkczDNDewdRK.md?style=radialSwatches&steps=5",
+    "https://grabient.com/kSWUkczDNDewdRK.tokens.json?style=radialSwatches&steps=5",
+    "https://grabient.com/kSWUkczDNDewdRK.ase?style=radialSwatches&steps=5"
+  ],
+  "sheetFromResult": [
+    {
+      "tiles": [
+        {
+          "tile": 1,
+          "seed": "kSWUkczDNDewdRK",
+          "style": "linearGradient",
+          "steps": 7,
+          "angle": 90
+        },
+        {
+          "tile": 2,
+          "seed": "kQf5EOWSTcQ",
+          "style": "linearSwatches",
+          "steps": 3,
+          "angle": 90,
+          "title": "Mine"
+        }
+      ],
+      "origin": "https://grabient.com"
+    },
+    null,
+    {
+      "tiles": [
+        {
+          "tile": 1,
+          "seed": "kSWUkczDNDewdRK",
+          "style": "linearGradient",
+          "steps": 7,
+          "angle": 90,
+          "title": "Mine"
+        }
+      ],
+      "origin": "https://grabient.com"
+    }
+  ]
+}
