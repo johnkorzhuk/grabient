@@ -1,6 +1,6 @@
 /* Every change the editor makes to a palette: whole-palette edits, edits scoped to the held keyframes, the hue wheel
-   and travel, the keyframe count, and Random under holds and locks. Each returns a new palette and keeps adjacent hues
-   within the codec's ±540° wall. */
+   and travel, the keyframe count, and Random under holds and locks. Each returns a new palette, which the editor keeps
+   in its canonical form (codec.ts); the hue edits keep each step within the seed's ±540° themselves. */
 import { canonical } from "./codec.ts";
 import { sampleLCH } from "./curve.ts";
 import { clamp, clamp01, lerp, shortTurn } from "./math.ts";
