@@ -20,14 +20,13 @@ export interface Counted {
    Production's class has kept its counts in the key-value backend since grabient.com first deployed it, and a class
    keeps its backend for life, so this uses storage.get and storage.put alone. Keep the class and its name: removing or
    renaming it takes a class migration, which blocks every rollback past it. The request it answers is the one older
-   deploys sent (`?type=…&type=…&n=…`), so a rollback finds the same counts and the same protocol. */
+   deploys sent (`?type=…&type=…&n=…`), so a rollback finds the same counts and the same protocol; `scaled=1` marks an
+   admin's work on staging, which the Worker alone decides (writes.ts workChecks). */
 export class RateLimiter {
   readonly #storage: DurableObjectStorage;
-  readonly #deployment: string | undefined;
 
-  constructor(state: DurableObjectState, env: { DEPLOYMENT?: string }) {
+  constructor(state: DurableObjectState) {
     this.#storage = state.storage;
-    this.#deployment = env.DEPLOYMENT;
   }
 
   async fetch(request: Request): Promise<Response> {
@@ -40,7 +39,7 @@ export class RateLimiter {
     if (!names.length || !names.every(isLimitName)) {
       return new Response("Missing or invalid rate-limit parameters", { status: 400 });
     }
-    const results = await this.#take(names, n);
+    const results = await this.#take(names, n, url.searchParams.get("scaled") === "1");
     const refused = results.find(result => !result.success);
     const head = refused ?? results[0]!;
     return Response.json(
@@ -55,12 +54,12 @@ export class RateLimiter {
     );
   }
 
-  async #take(names: LimitName[], n: number): Promise<Counted[]> {
+  async #take(names: LimitName[], n: number, scaled: boolean): Promise<Counted[]> {
     const now = Date.now();
     const stored = await this.#storage.get<Stored>(names);
     const next: Record<string, Stored> = {};
     const results = names.map((type): Counted => {
-      const { requests: limit, window } = limitOf(type, this.#deployment);
+      const { requests: limit, window } = limitOf(type, scaled);
       const held = stored.get(type);
       const live = held && now <= held.resetTime ? held : undefined;
       const count = live?.count ?? 0;

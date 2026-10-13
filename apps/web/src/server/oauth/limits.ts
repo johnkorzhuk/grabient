@@ -18,6 +18,20 @@ export const registerLimits = (who: string): LimitCheck[] => [
 ];
 export const tokenLimits = (who: string): LimitCheck[] => [[`oauth-token:${who}`, "oauthToken"]];
 
+/** A refresh rewrites its grant and writes a token: the grant's day, its account's, then the site's, read from the
+    token before anything else is. Null for a token not of the library's shape (account:grant:secret), which the library
+    refuses having written nothing. */
+export function refreshLimits(token: string | null | undefined): LimitCheck[] | null {
+  const parts = token?.split(":") ?? [];
+  const [userId, grantId] = parts;
+  if (parts.length !== 3 || !userId || !grantId || !parts[2]) return null;
+  return [
+    [`oauth-refresh:${userId}:${grantId}`, "oauthRefreshGrant"],
+    [`oauth-refresh:${userId}`, "oauthRefreshAccount"],
+    ["oauth-refresh", "oauthRefreshDaily"]
+  ];
+}
+
 /** A client_id as the authorization page, the consent and the token endpoint take it, before the library fetches
     anything: a saved or registered one passes; a document's address must be one the Worker may fetch, and each address
     may name twenty unsaved documents a minute. */

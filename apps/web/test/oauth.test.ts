@@ -1,14 +1,18 @@
 import { createExecutionContext } from "cloudflare:test";
-import { describe, expect, it } from "vitest";
+import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
+import { checkLimits } from "@grabient/server/limits/check.ts";
+import { describe, expect, it } from "vitest";
 import { serveMcp } from "../src/server/mcp/server.ts";
 import {
   connectionsRoute,
   forgetAccount,
+  GRANTS_KEPT,
   listConnections
 } from "../src/server/oauth/connections.ts";
 import { consentPage } from "../src/server/oauth/consent.ts";
 import { exchange } from "../src/server/oauth/endpoints.ts";
+import { requester } from "../src/server/oauth/limits.ts";
 import { encodeResume } from "../src/server/oauth/resume.ts";
 import {
   authorizeAs,
@@ -30,8 +34,57 @@ import {
   makeAdmin,
   ORIGIN,
   post,
-  testEnv
+  testEnv,
+  unique,
+  watchLimits
 } from "./helpers.ts";
+
+/** OAUTH_KV seen through a new object, as another isolate holds it, with each key it reads told to `read`. */
+function readsOf(env: Env, read: string[]): Env {
+  const kv = env.OAUTH_KV!;
+  const OAUTH_KV = new Proxy(kv, {
+    get(target, key) {
+      const value = Reflect.get(target, key);
+      if (typeof value !== "function") return value;
+      return (...args: unknown[]) => {
+        if (key === "get") read.push(String(args[0]));
+        return value.apply(target, args);
+      };
+    }
+  });
+  return { ...env, OAUTH_KV };
+}
+
+/** Grants an account holds as the library keeps them, Claude's, each a minute less recently used than the last: its
+    key expires a year after its last use. */
+async function holdGrants(env: Env, userId: string, n: number): Promise<string[]> {
+  const now = Math.floor(Date.now() / 1000);
+  const ids = Array.from({ length: n }, (_, i) => `held${String(i).padStart(3, "0")}`);
+  await Promise.all(
+    ids.map((id, i) =>
+      env.OAUTH_KV!.put(
+        `grant:${userId}:${id}`,
+        JSON.stringify({
+          id,
+          clientId: CLAUDE,
+          userId,
+          scope: ["account", "offline_access"],
+          metadata: { name: "Claude", host: "claude.ai", kind: "saved" },
+          createdAt: now - 86400 - i,
+          expiresAt: now + 365 * 86400 - 60 * i,
+          redirectUri: CLAUDE_REDIRECT
+        }),
+        { expiration: now + 365 * 86400 - 60 * i, metadata: { clientId: CLAUDE } }
+      )
+    )
+  );
+  return ids;
+}
+
+const grantsOf = async (env: Env, userId: string) =>
+  (await env.OAUTH_KV!.list({ prefix: `grant:${userId}:` })).keys.map(key =>
+    key.name.slice(`grant:${userId}:`.length)
+  );
 
 const metadata = () => ({
   issuer: ORIGIN,
@@ -164,6 +217,28 @@ describe("an app registering itself", () => {
     } finally {
       await setFlag(env, "mcp", true, admin.id);
     }
+  });
+
+  it("counts against its address's hour and the site's 5,000 a day, refused in the library's shape past them", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    await registerClient(env);
+    expect(asked).toEqual(["oauthRegister", "oauthRegisterDaily"]);
+    expect(await checkLimits(env, [["oauth-register", "oauthRegisterDaily"]])).toMatchObject({
+      success: true,
+      limit: 5000
+    });
+    const ip = address();
+    const ask = () =>
+      oauth(env, post("/oauth/register", { redirect_uris: [LOOPBACK] }, { origin: null, ip }));
+    await checkLimits(env, [
+      [`oauth-register:${requester(get("/", { ip }))}`, "oauthRegister", 30]
+    ]);
+    const refused = await ask();
+    expect([refused.status, await refused.json()]).toEqual([
+      429,
+      { error: "temporarily_unavailable", error_description: "Too many requests." }
+    ]);
+    expect(Number(refused.headers.get("Retry-After"))).toBeGreaterThan(0);
   });
 });
 
@@ -370,6 +445,67 @@ describe("tokens", () => {
     expect(await bodyOf<{ access_token: string }>(refreshed)).toHaveProperty("access_token");
   });
 
+  it("refresh within the grant's day, then the account's and the site's, and a refused refresh leaves the token working", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    const account = await makeAccount(env);
+    const { refresh_token, clientId } = await connect(env, account, { registered: true });
+    const refresh = (token: string) =>
+      oauth(
+        env,
+        new Request(`${ORIGIN}/oauth/token`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "CF-Connecting-IP": address()
+          },
+          body: new URLSearchParams({
+            grant_type: "refresh_token",
+            refresh_token: token,
+            client_id: clientId
+          })
+        })
+      );
+    asked.length = 0;
+    const first = await refresh(refresh_token);
+    expect(first.status, await first.clone().text()).toBe(200);
+    expect(asked).toEqual(["oauthRefreshGrant", "oauthRefreshAccount", "oauthRefreshDaily"]);
+    expect(await checkLimits(env, [["oauth-refresh", "oauthRefreshDaily"]])).toMatchObject({
+      limit: 100000
+    });
+    const held = await bodyOf<{ access_token: string; refresh_token: string }>(first);
+
+    // the grant's day spent: refused before the library, which keeps the grant as it was
+    const [userId, grantId] = refresh_token.split(":");
+    await checkLimits(env, [[`oauth-refresh:${userId}:${grantId}`, "oauthRefreshGrant", 47]]);
+    const refused = await refresh(held.refresh_token);
+    expect([refused.status, await refused.json()]).toEqual([
+      429,
+      { error: "temporarily_unavailable", error_description: "Too many requests." }
+    ]);
+    expect(Number(refused.headers.get("Retry-After"))).toBeGreaterThan(0);
+    const ping = await serveMcp(
+      new Request(`${ORIGIN}/mcp`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${held.access_token}`,
+          "Content-Type": "application/json",
+          "MCP-Protocol-Version": "2025-11-25",
+          "CF-Connecting-IP": address()
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" })
+      }),
+      env,
+      createExecutionContext()
+    );
+    expect(ping.status).toBe(200);
+
+    // an account's day bounds every grant it holds, before any is read
+    const other = unique("user");
+    expect((await refresh(`${other}:${unique("grant")}:secret`)).status).toBe(400);
+    await checkLimits(env, [[`oauth-refresh:${other}`, "oauthRefreshAccount", 499]]);
+    expect((await refresh(`${other}:${unique("grant")}:secret`)).status).toBe(429);
+  });
+
   it("refuse an unknown document address before fetching it", async () => {
     const answer = await oauth(
       testEnv(),
@@ -449,5 +585,58 @@ describe("connected apps", () => {
     );
     expect(await forgetAccount(env, ORIGIN, account.id)).toBe(1);
     expect(await listConnections(env, ORIGIN, account.id)).toEqual([]);
+  });
+
+  it("read at most a hundred grants, and answer Settings again from the isolate for half a minute", async () => {
+    const env = testEnv();
+    const account = await makeAccount(env);
+    await holdGrants(env, account.id, 120);
+    const read: string[] = [];
+    const listed = await listConnections(readsOf(env, read), ORIGIN, account.id);
+    expect(listed).toMatchObject([{ clientId: CLAUDE, sessions: 100 }]);
+    expect(read).toHaveLength(100);
+
+    const watched = watchLimits(testEnv());
+    const route = (path: string, body?: unknown) =>
+      connectionsRoute(
+        post(path, body ?? {}, { cookie: account.cookie }),
+        readsOf(watched.env, read)
+      );
+    read.length = 0;
+    expect((await route("/api/settings/connections")).status).toBe(200);
+    expect([read.length, watched.asked]).toEqual([100, ["connectionsDaily"]]);
+    read.length = 0;
+    expect((await route("/api/settings/connections")).status).toBe(200);
+    expect([read.length, watched.asked]).toEqual([0, ["connectionsDaily"]]);
+    // a disconnect reads and counts, and the next list is read again
+    expect(
+      await bodyOf(await route("/api/settings/connections/disconnect", { clientId: CLAUDE }))
+    ).toEqual({
+      disconnected: true
+    });
+    read.length = 0;
+    expect(await bodyOf(await route("/api/settings/connections"))).toEqual({ connections: [] });
+    expect(watched.asked).toEqual(["connectionsDaily", "connectionsDaily", "connectionsDaily"]);
+  });
+
+  it("refuse an account past its day of reads, and keep at most a hundred grants, ending the least used", async () => {
+    const env = testEnv();
+    const account = await makeAccount(env);
+    await checkLimits(env, [[`connections:${account.id}`, "connectionsDaily", 300]]);
+    const refused = await connectionsRoute(
+      post("/api/settings/connections", {}, { cookie: account.cookie }),
+      env
+    );
+    expect([refused.status, await refused.json()]).toEqual([
+      429,
+      { error: "Too many requests. Try again later." }
+    ]);
+
+    const held = await holdGrants(env, account.id, GRANTS_KEPT);
+    await connect(env, account);
+    const kept = await grantsOf(env, account.id);
+    expect(kept).toHaveLength(GRANTS_KEPT);
+    expect(kept).not.toContain(held.at(-1));
+    expect(kept).toContain(held[0]);
   });
 });

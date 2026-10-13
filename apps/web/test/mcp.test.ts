@@ -2,11 +2,13 @@
 import { createExecutionContext } from "cloudflare:test";
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { randomPalette } from "@grabient/engine/random.ts";
-import { describe, expect, it } from "vitest";
-import skillMd from "../../../skills/grabient/SKILL.md?raw";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import { checkLimits } from "@grabient/server/limits/check.ts";
+import { describe, expect, it } from "vitest";
+import skillMd from "../../../skills/grabient/SKILL.md?raw";
 import { applyQueue } from "../src/server/mcp/admin/queue.ts";
 import { recordAction } from "../src/server/mcp/admin/record.ts";
 import { directoryProof } from "../src/server/mcp/directories.ts";
@@ -28,6 +30,7 @@ import { connect } from "./connect.ts";
 import {
   type Account,
   address,
+  count,
   get,
   makeAccount,
   makeAdmin,
@@ -162,6 +165,39 @@ describe("the MCP server's door", () => {
     expect(await listed()).toBe(14);
     await run(env.DB, "DELETE FROM auth_user WHERE id = ?", account.id);
     expect((await rpc(env, token, "tools/list")).response.status).toBe(401);
+  });
+
+  it("refuses an address's tokens before they are looked up, once it sent a minute of unknown ones", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const ip = address();
+    const from = { headers: { "CF-Connecting-IP": ip } };
+    const who = clientAddress(get("/", { ip }));
+    await checkLimits(env, [[`mcp-challenge:${who}`, "mcpChallenge", 119]]);
+    // the minute's last unknown token is looked up, refused and counted
+    expect((await rpc(env, "u:g:unknown", "ping", {}, from)).response.status).toBe(401);
+    const read: string[] = [];
+    const kv = env.OAUTH_KV!;
+    const OAUTH_KV = new Proxy(kv, {
+      get(target, key) {
+        const value = Reflect.get(target, key);
+        if (typeof value !== "function") return value;
+        return (...args: unknown[]) => {
+          if (key === "get") read.push(String(args[0]));
+          return value.apply(target, args);
+        };
+      }
+    });
+    const stopped = await rpc({ ...env, OAUTH_KV }, token, "ping", {}, from);
+    expect([stopped.response.status, stopped.body]).toEqual([
+      429,
+      { error: "Too many requests. Try again later." }
+    ]);
+    expect(Number(stopped.response.headers.get("Retry-After"))).toBeGreaterThan(0);
+    expect(read).toEqual([]);
+    // a request with no token is challenged as ever, and the same token from another address is answered
+    expect((await rpc(env, null, "ping", {}, from)).response.status).toBe(401);
+    expect((await rpc(env, token, "ping")).response.status).toBe(200);
   });
 
   it("is paused by its flag, refuses an Origin that is none, and times what it waited on", async () => {
@@ -304,48 +340,27 @@ describe("the protocol", () => {
   });
 });
 
-/* Words that tell a model what to do: a tool's description says what it does, and the instructions say the order of
-   work. */
-const ORDERS =
-  /\b(must|always|use it|use schedule|read this|check it|give the|give each|make the new seed|spread items)\b/i;
-/** The admin tools whose descriptions lost a sentence that told the model what to do. */
-const REWORDED = new Set([
-  "liked_palettes",
-  "visitor_signals",
-  "palette_replace",
-  "palette_remove",
-  "gallery_publish",
-  "collection_publish",
-  "collection_remove_palettes",
-  "schedule",
-  "schedule_list",
-  "personas"
-]);
-
+/* The fixtures are grabient4's lists as they went out, with the words that told the model what to do rewritten
+   (tools.test.ts checks the words of every tool and argument). */
 describe("the tools", () => {
-  it("are the account's fourteen, exactly as grabient4 listed them", async () => {
+  it("are the account's fourteen, as the fixture lists them", async () => {
     const env = testEnv();
     const { token } = await connected(env);
     const tools = (await rpc(env, token, "tools/list")).body?.result.tools;
     expect(JSON.stringify(tools)).toBe(JSON.stringify(accountGolden));
-    for (const tool of tools as { description: string }[]) {
+    for (const tool of tools as { description: string }[])
       expect(tool.description.length).toBeLessThan(450);
-      expect(tool.description).not.toMatch(ORDERS);
-    }
     expect(JSON.stringify({ tools }).length).toBeLessThan(17_000);
   });
 
-  it("are the admins' twenty-eight more for an admin who chose them, every hint stated and no order given", async () => {
+  it("are the admins' twenty-eight more for an admin who chose them, every hint stated", async () => {
     const env = testEnv();
     const { token } = await connected(env, { admin: true });
     const tools = (await rpc(env, token, "tools/list")).body?.result.tools as {
       name: string;
-      description: string;
-      annotations: Record<string, unknown>;
     }[];
-    const account = tools.slice(0, 14);
     // an admin's own collections may be public, so changing one reaches the site
-    for (const tool of account) {
+    for (const tool of tools.slice(0, 14)) {
       const golden = accountGolden.find(listed => listed.name === tool.name)!;
       const open = tool.name === "save_collection" || tool.name === "delete_collection";
       expect(tool).toEqual({
@@ -356,22 +371,8 @@ describe("the tools", () => {
         }
       });
     }
-    const admin = tools.slice(14);
-    expect(admin.map(tool => tool.name)).toEqual(adminGolden.map(tool => tool.name));
-    for (const [i, tool] of admin.entries()) {
-      const { description, ...rest } = tool;
-      const { description: before, ...golden } = adminGolden[i]!;
-      expect(rest, tool.name).toEqual(golden);
-      expect(Object.keys(tool.annotations)).toEqual([
-        "title",
-        "readOnlyHint",
-        "destructiveHint",
-        "idempotentHint",
-        "openWorldHint"
-      ]);
-      expect(description, tool.name).not.toMatch(ORDERS);
-      if (!REWORDED.has(tool.name)) expect(description, tool.name).toBe(before);
-    }
+    // byte for byte, so each tool's annotations state every hint in the protocol's order
+    expect(JSON.stringify(tools.slice(14))).toBe(JSON.stringify(adminGolden));
   });
 
   it("answer an account's own questions from the database", async () => {
@@ -481,6 +482,46 @@ describe("the tools", () => {
     expect((await call(env, token, "save_palette", { seed: SEED, title: "" })).error).toBe(
       "title is 1 to 80 characters."
     );
+  });
+
+  it("save nothing while an admin has saving off, say so, and still read", async () => {
+    const env = testEnv();
+    const { account, token } = await connected(env);
+    const SEED = fresh();
+    const paused =
+      "Grabient has paused saving for every account. Nothing was changed. Try again in 5 minutes.";
+    const admin = await makeAdmin(env);
+    await setFlag(env, "saving", false, admin.id);
+    try {
+      expect((await call(env, token, "save_palette", { seed: SEED })).error).toBe(paused);
+      expect(
+        (await call(env, token, "save_collection", { title: "Warm", palettes: [{ seed: SEED }] }))
+          .error
+      ).toBe(paused);
+      expect(
+        await count(env, "SELECT COUNT(*) AS n FROM k_likes WHERE user_id = ?", account.id)
+      ).toBe(0);
+      expect((await call(env, token, "list_saved_palettes")).value).toMatchObject({ total: 0 });
+    } finally {
+      await setFlag(env, "saving", true, admin.id);
+    }
+    expect((await call(env, token, "save_palette", { seed: SEED })).value).toMatchObject({
+      saved: true
+    });
+  });
+
+  it("allow an admin's app on staging a hundred times an account's saves, and any other account production's", async () => {
+    const env = testEnv({ DEPLOYMENT: "staging" });
+    const reader = await connected(env);
+    const admin = await connected(env, { admin: true });
+    for (const { account } of [reader, admin])
+      await checkLimits(env, [[`user:${account.id}`, "toggleLike", 20]]);
+    expect((await call(env, reader.token, "save_palette", { seed: fresh() })).error).toMatch(
+      /^This account's limit of 20 saves a minute is reached\./
+    );
+    expect((await call(env, admin.token, "save_palette", { seed: fresh() })).value).toMatchObject({
+      saved: true
+    });
   });
 });
 

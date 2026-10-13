@@ -1,8 +1,9 @@
 import { encodePalette } from "@grabient/engine";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
-import { describe, expect, it } from "vitest";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
+import { describe, expect, it } from "vitest";
 import { accountSearchResponse } from "../src/server/search/account.ts";
 import {
   pruneSearchCounts,
@@ -254,6 +255,37 @@ describe("search fit votes", () => {
     );
     expect(watched.asked).toEqual(["fitVote", "fitVoteDaily", "searchVotesSite"]);
   });
+
+  it("wait while an admin has saving off, and the account's votes still read", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    const account = await makeAccount(env);
+    const vote = () =>
+      searchVotesResponse(
+        post("/api/me/search-votes", { q: "teal", seed, vote: "up" }, { cookie: account.cookie }),
+        env
+      );
+    await setFlag(env, "saving", false, unique("admin"));
+    try {
+      const paused = await vote();
+      expect([paused.status, paused.headers.get("Retry-After"), await bodyOf(paused)]).toEqual([
+        503,
+        "300",
+        { error: "Couldn't save." }
+      ]);
+      expect(asked).toEqual([]);
+      expect(
+        await count(env, "SELECT COUNT(*) AS n FROM k_search_votes WHERE user_id = ?", account.id)
+      ).toBe(0);
+      const read = await searchVotesResponse(
+        get("/api/me/search-votes?q=teal", { cookie: account.cookie }),
+        env
+      );
+      expect([read.status, await bodyOf(read)]).toEqual([200, { votes: {} }]);
+    } finally {
+      await setFlag(env, "saving", true, unique("admin"));
+    }
+    expect((await vote()).status).toBe(200);
+  });
 });
 
 describe("an account's own search", () => {
@@ -407,6 +439,47 @@ describe("the snapshot kept current", () => {
       reason: "search index updates are off"
     });
     await run(env.DB, "DELETE FROM k_flags");
+  });
+
+  it("embeds collections' words only while search by meaning is on", async () => {
+    const env = testEnv();
+    const now = Date.now();
+    const id = unique("c").replace(/[^a-z0-9]/g, "");
+    await run(
+      env.DB,
+      `INSERT INTO k_collections (id, slug, owner_kind, owner_id, title, description, tags, visibility, item_count, created_at, updated_at)
+       VALUES (?, ?, 'agent', 'a', 'Moonlit harbor', 'Cold blues at night', '[]', 'public', 1, ?, ?)`,
+      id,
+      `moonlit-harbor-${id}`,
+      now,
+      now
+    );
+    await run(
+      env.DB,
+      "INSERT INTO k_collection_items (collection_id, position, seed, style, steps, angle, created_at) VALUES (?, 0, ?, 'linearGradient', 7, 90, ?)",
+      id,
+      seedOf("#0b1d3a", "#4a6fa5", "#c9d6ea"),
+      now
+    );
+    const asked: string[] = [];
+    const AI = {
+      run: async (model: string, input: { text: string[] }) => {
+        asked.push(model);
+        return { data: input.text.map(() => null) };
+      }
+    } as unknown as Ai;
+    await setFlag(env, "model-search", false, unique("admin"));
+    try {
+      expect(await syncSnapshot({ ...env, AI }, { force: true })).toMatchObject({
+        status: "built",
+        embedded: 0
+      });
+      expect(asked).toEqual([]);
+    } finally {
+      await setFlag(env, "model-search", true, unique("admin"));
+    }
+    expect(await syncSnapshot({ ...env, AI }, { force: true })).toMatchObject({ status: "built" });
+    expect(asked.length).toBeGreaterThan(0);
   });
 });
 

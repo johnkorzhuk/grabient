@@ -1,6 +1,6 @@
 import { createExecutionContext } from "cloudflare:test";
-import { expect } from "vitest";
 import type { Env } from "@grabient/server/env.ts";
+import { expect } from "vitest";
 import { consentPage } from "../src/server/oauth/consent.ts";
 import { handleOAuth } from "../src/server/oauth/routes.ts";
 import { type Account, address, cookiesOf, ORIGIN, post } from "./helpers.ts";

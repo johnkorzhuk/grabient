@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
+import { REGISTRY_NAME } from "../mcp/info.ts";
 import { aiCatalog, llmsText, type Mcp, serverCard } from "./agents.ts";
 
 const golden = (name: string) => readFileSync(new URL(`fixtures/${name}`, import.meta.url), "utf8");
@@ -28,7 +29,8 @@ const MCP: Mcp = {
       ...icon,
       src: icon.src.replace(ORIGIN, origin)
     }))
-  })
+  }),
+  registryName: REGISTRY_NAME
 };
 
 test("the guide and the whole reference are grabient.com's, byte for byte", () => {

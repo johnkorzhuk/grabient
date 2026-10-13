@@ -80,6 +80,17 @@ browser's build fails on an import of it from code the browser runs; an import u
 `src/server/jobs.ts` has one function per trigger in `cloudflare.config.ts`. A feature adds its step to the job, in
 the order the job needs; a failed step is logged, the rest run, and the run fails at the end.
 
+## The MCP directories
+
+Claude's and OpenAI's directories and the MCP Registry list the server at https://grabient.com/mcp. The registry reads
+`server.json` at the repository's root (`mcp-publisher validate`, then `publish`), which says what `serverInfo` in
+`src/server/mcp/info.ts` says; OpenAI takes the package `node scripts/plugin-package.ts` writes to `.data/`. The registry
+and OpenAI each check the domain with a token set as a secret on the day, `MCP_REGISTRY_AUTH` and
+`OPENAI_APPS_CHALLENGE`, served under `/.well-known/` (`src/server/mcp/directories.ts`). Reviewers sign in with the
+password of the one account `REVIEWER_EMAIL` names, behind Turnstile where `TURNSTILE_SECRET_KEY` is set
+(`packages/server/src/auth`). Every tool keeps a title and its four hints, and its words say what it does
+(`src/server/mcp/tools.test.ts`).
+
 ## Checks
 
 Unit tests sit beside the code (`*.test.ts`). `pnpm e2e` runs the Playwright smoke tests against `vite dev` on a free

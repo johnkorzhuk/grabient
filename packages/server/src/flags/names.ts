@@ -1,10 +1,10 @@
 /* The features an admin can turn off for the whole site from Settings: work that costs money by the request and that
    the site can do without for a while, and a few free choices that can be taken back without a deploy. Every flag is
-   on until an admin turns it off, and `all` turns every one off at once. A feature the daily ceilings already bound
-   (sign-in email, likes, collection edits) has no flag. A new paid feature adds its name here, answers before any paid
-   call when its flag is off (flagOff), and still serves a good page then.
+   on until an admin turns it off, and `all` turns every one off at once. A new paid feature adds its name here,
+   answers before any paid call when its flag is off (flagOff), and still serves a good page then. The server
+   package's README says what each one stops and what stands in.
 
-   - model-search: Workers AI reading unknown search words, vector search, index writes
+   - model-search: Workers AI reading unknown search words, vector search, index writes, the sync's collection texts
    - share-images: drawing share cards and PNG downloads
    - mcp: the MCP server and connecting new apps
    - mcp-view: the palette view AI apps draw, free, but drawn by other apps
@@ -14,6 +14,8 @@
    - client-documents: advertising client metadata documents to new apps; connected apps keep refreshing
    - rising-3m, rising-1y: Rising's longer time frames, whose scores are kept either way
    - newsletter: the newsletter's issues; an account's switch and unsubscribing keep working
+   - saving: accounts' and apps' writes (likes, collections, votes); reads keep working
+   - email: sign-in links and codes and the contact form; deletion emails and owner alerts still go
 
    No imports: the Settings page reads this list too. */
 
@@ -29,7 +31,9 @@ export const FLAG_NAMES = [
   "client-documents",
   "rising-3m",
   "rising-1y",
-  "newsletter"
+  "newsletter",
+  "saving",
+  "email"
 ] as const;
 
 export type FlagName = (typeof FLAG_NAMES)[number];

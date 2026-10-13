@@ -17,6 +17,8 @@ export interface Mcp {
   tools: readonly { name: string; description: string }[];
   /** who it says it is: name, title, version, description, website and icons */
   info: (origin: string) => Record<string, unknown>;
+  /** its name in the MCP Registry, which its card carries too */
+  registryName: string;
 }
 
 /** The palette the guide shows its patterns with, the one the share card draws when none is named. */
@@ -171,7 +173,7 @@ export function serverCard(origin: string, mcp: Mcp) {
   return {
     $schema: "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
     ...mcp.info(base(origin)),
-    name: "com.grabient/palettes",
+    name: mcp.registryName,
     remotes: [
       {
         type: "streamable-http",
