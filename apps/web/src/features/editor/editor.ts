@@ -20,7 +20,7 @@ import {
   walkEdits
 } from "../../app/undo.ts";
 import { trackTool } from "../analytics/analytics.ts";
-import type { Locks, SeedPage } from "./address.ts";
+import { type Locks, SEED_SHAPE, type SeedPage } from "./address.ts";
 import { createEdits, type EditsSnapshot } from "./edits.ts";
 import * as ops from "./ops.ts";
 
@@ -96,6 +96,9 @@ export function createPaletteEditor(
   const [locks, setLocks] = createSignal<Locks>(start.locks);
   const [selecting, setSelecting] = createSignal(start.selection);
   const [opened, setOpened] = createSignal<Opened>(openedOf(start, saved?.opened));
+  /* the palette the page opened on, which an admin's Save replaces and a copy counts as used: its entry keeps it, so a
+     reload of an edited palette still knows where it began */
+  const [openedSeed, setOpenedSeed] = createSignal(seedIn(saved?.edits) ?? start.seed);
   const seed = createMemo(() => encodePalette(palette()));
   const K = () => palette().anchors.length;
   const wide = createWide();
@@ -259,6 +262,8 @@ export function createPaletteEditor(
     locks,
     selecting,
     opened,
+    openedSeed,
+    setOpenedSeed,
     wide,
     held,
     lead,
@@ -436,15 +441,25 @@ export function createPaletteEditor(
       setLocks(page.locks);
       setSelecting(page.selection);
       setOpened(openedOf(page, kept?.opened));
+      setOpenedSeed(seedIn(kept?.edits) ?? page.seed);
       edits.begin(stepOf(page.seed, page.view.steps, page.view.steps), kept?.edits);
     },
-    /** The undo as the page's history entry keeps it, and what the page opened with. */
-    entry: () => ({ edits: edits.snapshot(), opened: untrack(opened) })
+    /** The undo as the page's history entry keeps it, with the palette the page opened on, and the view it opened
+        with. */
+    entry: () => ({
+      edits: { ...edits.snapshot(), opened: untrack(openedSeed) },
+      opened: untrack(opened)
+    })
   };
 }
 export type PaletteEditor = ReturnType<typeof createPaletteEditor>;
 
 const decoded = (value: string | null) => (value ? decodePalette(partsOf(value).seed) : null);
+/** The palette an entry's undo says the page opened on, where it names one. Stored browser data is untrusted. */
+function seedIn(kept: unknown): string | null {
+  const seed = (kept as { opened?: unknown } | null | undefined)?.opened;
+  return typeof seed === "string" && SEED_SHAPE.test(seed) && decodePalette(seed) ? seed : null;
+}
 
 /** Keyframe `i` as a typed or picked hex: the hue lands on the lap nearest its own, a gray keeps its hue, and the walls
     to its neighbors hold. */

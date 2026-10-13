@@ -48,10 +48,20 @@ export interface Shell {
   keys(bindings: () => readonly Binding[]): void;
 }
 
-/* Until the frame is drawn around the pages, a page that asks for it binds its own keys and its palettes go unshown. */
+/* Until the frame is drawn around the pages, a page that asks for it binds its own keys and its palettes go unshown.
+   As in the frame, the keys handed in last stand alone. */
+let bound: (() => void) | null = null;
 export const ShellContext = createContext<Shell>({
   paint() {},
   keys(bindings) {
-    onSettled(() => installKeys(bindings));
+    onSettled(() => {
+      bound?.();
+      const unbind = installKeys(bindings);
+      bound = unbind;
+      return () => {
+        unbind();
+        if (bound === unbind) bound = null;
+      };
+    });
   }
 });

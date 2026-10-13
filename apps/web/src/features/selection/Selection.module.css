@@ -1,0 +1,69 @@
+/* a place with no box of its own (the column's, Selection's), so what it holds lays out as it did */
+.covering {
+  display: contents;
+}
+/* the end of the row of lists keeps its room whether or not Selection is there */
+.end {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-s4);
+  min-width: 112px;
+  margin-inline-start: auto;
+  @container page (max-width: 800px) {
+    display: none;
+  }
+}
+/* on a phone the way into the selection floats at the line's end, above the home indicator and clear of a notch, on
+   the floor BackToTop stands on; the column covers it while open */
+.float {
+  position: fixed;
+  inset-inline-end: max(var(--space-s4), env(safe-area-inset-right), env(safe-area-inset-left));
+  bottom: calc(var(--space-s4) + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: none;
+  align-items: center;
+  gap: var(--space-s4);
+  @container page (max-width: 800px) {
+    display: flex;
+  }
+}
+/* the editor's measures: the image fitted to the stage with room around it, the column at the editor's panel width;
+   under 1100px the column's panel takes the screen and carries the image itself. The column stands at the window's
+   edge, so the screen ends at the scrollbar */
+.screen {
+  display: flex;
+  align-items: flex-start;
+  min-height: calc(var(--frame-h, 100vh) - var(--size-top) - var(--size-hairline));
+}
+.stage {
+  position: sticky;
+  top: calc(var(--size-top) + var(--size-hairline));
+  flex-grow: 1;
+  min-width: 0;
+  height: calc(var(--frame-h, 100vh) - var(--size-top) - var(--size-hairline));
+  @container page (max-width: 1100px) {
+    display: none;
+  }
+}
+.fit {
+  position: absolute;
+  inset: var(--space-s6);
+}
+.column {
+  flex-shrink: 0;
+  align-self: stretch;
+  width: var(--size-editor-panel);
+  min-height: calc(var(--frame-h, 100vh) - var(--size-top) - var(--size-hairline));
+  padding: var(--space-s4);
+  border-inline-start: 1px solid var(--color-edge);
+  background-color: var(--color-paper-solid);
+  @container page (min-width: 1101px) and (max-width: 1280px) {
+    width: var(--size-editor-panel-narrow);
+  }
+  @container page (max-width: 1100px) {
+    width: 100%;
+    padding: 0;
+    border-inline-start-width: 0;
+  }
+}

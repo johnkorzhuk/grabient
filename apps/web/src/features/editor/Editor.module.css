@@ -12,6 +12,10 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--size-editor-panel);
     align-items: start;
+    /* the selection's export screen stands in its place, and it waits, kept as it was */
+    &[hidden] {
+      display: none;
+    }
     @media (min-width: 901px) and (max-width: 1280px) {
       --corner-end: var(--size-editor-panel-narrow);
       grid-template-columns: minmax(0, 1fr) var(--size-editor-panel-narrow);

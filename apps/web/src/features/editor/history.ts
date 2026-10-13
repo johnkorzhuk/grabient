@@ -109,6 +109,13 @@ export function followAddress(
     }
   });
 
+  /* a Save made the page stand for the palette saved: its entry keeps that at once, for a reload or a return */
+  createEffect(e.openedSeed, (_seed, was) => {
+    if (was === undefined) return;
+    latest ??= shown;
+    writeSoon();
+  });
+
   /* a drag's last value is in the address the moment it lets go, a press on a link writes it before the link is
      followed, and a page being left writes what it has not */
   const lift = () => {

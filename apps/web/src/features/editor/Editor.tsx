@@ -38,10 +38,12 @@ import { likeCount, liked, refreshCounts, toggleLike } from "../account/likes.ts
 import { account, loginHref } from "../account/session.ts";
 import { trackSignInPrompt } from "../analytics/analytics.ts";
 import { useInEditor } from "../palette-use/use.ts";
+import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import {
   loadSelection,
   roomNote,
   selected,
+  selection,
   toggle as toggleSelected
 } from "../selection/selection.ts";
 import { Actions, AxisRow } from "./Controls.tsx";
@@ -119,25 +121,31 @@ export default function Editor(props: { data: PaletteData }) {
   const location = useLocation();
   const shell = useContext(ShellContext);
   const first = untrack(() => props.data);
-  const e = createPaletteEditor(first.page, untrack(location).state as { edits?: unknown });
+  const e = createPaletteEditor(
+    first.page,
+    untrack(location).state as { edits?: unknown; opened?: unknown }
+  );
   const rest = createRest();
   rest.opened(first.page.seed);
   const panel = createPanel();
   holdCorner(() => <Corner editor={e} panel={panel} />);
-  /* the palette the page opened on, which an admin's Save replaces and a copy is counted as */
-  const [opened, setOpened] = createSignal(first.page.seed);
-  followAddress(e, router, location, page => {
-    setOpened(page.seed);
-    rest.opened(page.seed);
-  });
+  followAddress(e, router, location, page => rest.opened(page.seed));
   const save = createPaletteSave({
     seed: e.seed,
-    opened,
-    saved: setOpened,
+    opened: e.openedSeed,
+    saved: e.setOpenedSeed,
     key: () => keyOf("save")
   });
-  shell.keys(() => editorBindings(e, { live: () => true, togglePanel: panel.toggle, save }));
-  shell.paint(() => [{ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() }]);
+  const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
+  /* the selection's export screen, in the page's place while the address says `selection` */
+  const chosen = createSelectionScreen({ note: toast });
+  /* The frame keeps the keys and the palettes a page hands in last, so these come after the screen's and stand for
+     both: while the screen stands the editor's keys rest, Escape closes it and the bar carries the selection. */
+  shell.keys(() => [
+    ...editorBindings(e, { live: () => !chosen.open(), togglePanel: panel.toggle, save }),
+    { key: "Escape", label: msg("Close selection"), run: chosen.close, when: chosen.open }
+  ]);
+  shell.paint(() => (chosen.open() ? selection() : [drawn()]));
 
   /* an admin's Save from inside a field (a hex being typed), where the page's keys rest: the field lets go, which
      commits it, then Save; never the browser's own Save page */
@@ -184,9 +192,8 @@ export default function Editor(props: { data: PaletteData }) {
     pixels: resolveSize(e.size(), stage),
     stops: e.stopsTaken()
   });
-  const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   const used = (action: "copy" | "download", format: string) =>
-    useInEditor(action, format, opened(), drawn());
+    useInEditor(action, format, e.openedSeed(), drawn());
   /* the heart: the count for everyone, the press for an account; signed out it leads to sign in */
   const heart = {
     liked: () => liked(e.seed()),
@@ -206,24 +213,28 @@ export default function Editor(props: { data: PaletteData }) {
     }
   };
   return (
-    <Page
-      editor={e}
-      panel={panel}
-      save={save}
-      rest={rest}
-      facts={() => (e.seed() === first.page.seed ? first.facts : null)}
-      heading={() =>
-        e.seed() === first.page.seed &&
-        e.style() === first.page.view.style &&
-        e.steps() === first.page.view.steps
-          ? first.heading
-          : undefined
-      }
-      opened={opened}
-      taken={taken}
-      used={used}
-      heart={heart}
-    />
+    <>
+      <Page
+        editor={e}
+        panel={panel}
+        save={save}
+        rest={rest}
+        facts={() => (e.seed() === first.page.seed ? first.facts : null)}
+        heading={() =>
+          e.seed() === first.page.seed &&
+          e.style() === first.page.view.style &&
+          e.steps() === first.page.view.steps
+            ? first.heading
+            : undefined
+        }
+        opened={e.openedSeed}
+        taken={taken}
+        used={used}
+        heart={heart}
+        chosen={chosen}
+      />
+      {chosen.screen()}
+    </>
   );
 }
 
@@ -244,6 +255,8 @@ interface PageProps {
   taken: (stage: Size) => Taken;
   used: (action: "copy" | "download", format: string) => void;
   heart: Heart;
+  /** the selection's export screen: while it stands the page steps away, kept as it was for Close */
+  chosen: ReturnType<typeof createSelectionScreen>;
 }
 
 function Page(props: PageProps) {
@@ -311,6 +324,7 @@ function Page(props: PageProps) {
       ref={page}
       id="main"
       class={styles.page}
+      hidden={props.chosen.open()}
       data-alone={sided() ? undefined : ""}
       data-railed={railed() ? "" : undefined}
       data-beside-scrollbar=""
@@ -382,16 +396,24 @@ function Page(props: PageProps) {
         shown={!narrow() || docked()}
         resting={!docked()}
         down={!nearer()}
+        raised={selection().length > 0}
         onDown={() => go(reach())}
         onUp={() => go(0)}
       />
+      {props.chosen.float()}
     </main>
   );
 }
 
-/** The palette's own presses: the heart and the check that puts it in the selection. Over the picture they are glass
-    and wait for a tap on a touch screen; in the sheet's head they are the page's own. */
-function Tools(props: { editor: PaletteEditor; heart: Heart; paper?: boolean }) {
+/** The palette's own presses: the heart and the check that puts it in the selection, and over the picture the way into
+    the selection once it holds something. Over the picture they are glass and wait for a tap on a touch screen; in
+    the sheet's head they are the page's own. */
+function Tools(props: {
+  editor: PaletteEditor;
+  heart: Heart;
+  paper?: boolean;
+  chosen?: PageProps["chosen"];
+}) {
   const e = props.editor;
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   const chosen = () => selected(drawn());
@@ -414,6 +436,9 @@ function Tools(props: { editor: PaletteEditor; heart: Heart; paper?: boolean }) 
           <span class={styles.count}>{props.heart.count()}</span>
         </button>
       </span>
+      <Show when={props.chosen}>
+        {chosen => <span class={styles.waits}>{chosen().button()}</span>}
+      </Show>
       <span class={chosen() || props.paper ? undefined : styles.waits}>
         <Button
           variant={chosen() ? "primary" : props.paper ? "secondary" : "art"}
@@ -567,7 +592,7 @@ function Stage(
         role="group"
         aria-label={t("Palette actions")}
       >
-        <Tools editor={e} heart={props.heart} />
+        <Tools editor={e} heart={props.heart} chosen={props.chosen} />
       </div>
       <div class={styles.bottomStart} data-away={props.moved ? "" : undefined}>
         <span class={styles.waits}>
