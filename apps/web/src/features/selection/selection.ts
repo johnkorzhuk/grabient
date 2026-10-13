@@ -112,7 +112,11 @@ function withRoom(
   let excess = all.length - SELECTION_MAX;
   if (excess <= 0) return { next: all, dropped: 0 };
   const dropped = excess;
-  const next = all.filter(entry => (excess > 0 && !asked.has(entry.id) ? (excess--, false) : true));
+  const next = all.filter(entry => {
+    if (excess <= 0 || asked.has(entry.id)) return true;
+    excess--;
+    return false;
+  });
   return { next: next.slice(Math.max(0, next.length - SELECTION_MAX)), dropped };
 }
 
