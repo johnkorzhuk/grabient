@@ -108,6 +108,14 @@ export function readSnapshot(dir: string): Snapshot {
   };
 }
 
+/** Reads of an in-memory database as cf answers them, for read.ts's readDatabase. */
+export const reads = (db: DatabaseSync) => async (sql: string) => {
+  const statement = db.prepare(sql);
+  statement.setReturnArrays(true);
+  const rows = statement.all() as unknown as Value[][];
+  return { columns: statement.columns().map(column => column.name), rows, rowsRead: rows.length };
+};
+
 /** A snapshot as an in-memory SQLite database: its tables and indexes, every row it read, and no triggers or foreign
     key checks, so the rows are as the database held them and `PRAGMA foreign_key_check` finds what they lack. */
 export function openSnapshot(snapshot: Snapshot): DatabaseSync {

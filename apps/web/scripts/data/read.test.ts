@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { pageSql, readDatabase } from "./read.ts";
-import { insert, memory, PRODUCTION_SCHEMA, reads } from "./testing.ts";
+import { reads } from "./snapshot.ts";
+import { insert, memory, PRODUCTION_SCHEMA } from "./testing.ts";
 
 describe("the read", () => {
   it("reads whether a link holds a Google token or a password, never the value", async () => {

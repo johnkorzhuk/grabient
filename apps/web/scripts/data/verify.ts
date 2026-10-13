@@ -1,13 +1,15 @@
-/* Checks a copy against its two sources, from snapshots alone: the copy's (.data/local, read back by build.ts, or
-   .data/staging, read back by load.ts), production's and grabient-lite's.
+/* Checks the copies build.ts makes, from snapshots alone: the full build (.data/full) against its two sources,
+   production's and grabient-lite's, and staging's copy (.data/local, as build.ts loaded it into a local D1, or
+   .data/staging, as load.ts read grabient-staging back) against the full build.
 
-     node scripts/data/verify.ts local|staging
+     node scripts/data/verify.ts full|local|staging
 
-   The copy must hold production's history and every migration in the repository, so later ones apply on top; the
+   The full build must hold production's history and every migration in the repository, so later ones apply on top; the
    schema those migrations give production's; every production account, link, palette and like; every grabient-lite
    collection with its palettes in order under its owner's production account, and the rest of its contributor work;
-   no row naming one that is not there; counts, sums and scores that agree with the rows; no session, token or
-   password; and grabient-lite's admins as admins. A staging copy must also equal the local one row for row. */
+   no row naming one that is not there; counts, sums and scores that agree with the rows; and no session, token or
+   password. Staging's copy must hold what staging.ts keeps of it and nothing else (verifyStaging), and a copy read back
+   from grabient-staging must equal the local one row for row. */
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -17,6 +19,14 @@ import { accountHandle } from "./merge.ts";
 import { type Original, readAliases, readOriginals, STYLES } from "./palettes.ts";
 import { type Frame, RISE_COLUMN, SCORE_READS, scoreInput, scores } from "./scores.ts";
 import { internal, openSnapshot, type Row, readSnapshot, type Snapshot } from "./snapshot.ts";
+import {
+  BYLINE_MAIL,
+  liteAdmins,
+  OWN_COLUMNS,
+  SEARCH_TABLES,
+  STAGING_OFF,
+  WORK_COLUMNS
+} from "./staging.ts";
 
 export interface Check {
   name: string;
@@ -88,6 +98,22 @@ const EMPTY = [
   "k_sync_clients",
   "k_sync_meta"
 ];
+/** Tables staging's copy holds no row of: sign-in, the newsletter, browsers' state and readers' own signals. */
+const PRIVATE = [
+  "auth_session",
+  "auth_verification",
+  "auth_oauth_access_token",
+  "auth_oauth_refresh_token",
+  "auth_oauth_consent",
+  "auth_oauth_client",
+  "k_newsletter",
+  "k_newsletter_events",
+  "k_sync_clients",
+  "k_sync_meta",
+  "k_palette_use",
+  "k_palette_edits",
+  "k_search_unread"
+];
 /** Rows that point at another table without a foreign key: each must find its row. */
 const POINTERS: [string, string, string][] = [
   ["k_likes.palette_id", "k_palettes", "seed"],
@@ -107,18 +133,15 @@ const same = (a: Value | undefined, b: Value | undefined) => (a ?? null) === (b 
 const keyOf = (row: Row, columns: readonly string[]) =>
   JSON.stringify(columns.map(c => row[c] ?? null));
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
+/* D1 drops the comments of a statement it stores, and its local simulation keeps them */
+const flat = (sql: string | undefined) =>
+  sql
+    ?.replace(/^\s*--.*$/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
 
-export function verify(
-  copy: Snapshot,
-  production: Snapshot,
-  lite: Snapshot,
-  options: {
-    now: number;
-    aliases?: ReadonlyMap<string, string>;
-    originals?: readonly Original[];
-    local?: Snapshot;
-  }
-): Check[] {
+/** A list of checks, and the call that adds one: faults make it fail (or warn), none make it pass with `fine`. */
+function checker() {
   const checks: Check[] = [];
   const check = (
     name: string,
@@ -135,6 +158,66 @@ export function verify(
           }
         : { name, status: "ok", detail: fine }
     );
+  return { checks, check };
+}
+
+/** What a copy names that it does not hold: foreign keys, and the rows that point at another without one. */
+function orphans(db: DatabaseSync): string[] {
+  const all = <T>(sql: string) => db.prepare(sql).all() as T[];
+  const loose = all<{ table: string; parent: string }>("PRAGMA foreign_key_check").map(
+    r => `${r.table} → ${r.parent}`
+  );
+  for (const [from, table, column] of POINTERS) {
+    const [source, field] = from.split(".") as [string, string];
+    loose.push(
+      ...all<{ v: Value }>(
+        `SELECT DISTINCT "${field}" AS v FROM "${source}" WHERE "${field}" IS NOT NULL AND "${field}" NOT IN (SELECT "${column}" FROM "${table}")`
+      ).map(r => `${from} ${r.v}`)
+    );
+  }
+  loose.push(
+    ...all<{ v: Value }>(
+      `SELECT DISTINCT owner_id AS v FROM k_collections WHERE owner_kind = 'user' AND owner_id NOT IN (SELECT id FROM auth_user)`
+    ).map(r => `k_collections.owner_id ${r.v}`),
+    ...all<{ v: Value }>(
+      `SELECT DISTINCT key AS v FROM k_translations WHERE kind = 'collection' AND key NOT IN (SELECT id FROM k_collections)`
+    ).map(r => `k_translations.key ${r.v}`)
+  );
+  return loose;
+}
+
+/** Whether a copy read back from a database equals the local one it was written from, every row at its rowid. */
+function sameAsLocal(copy: Snapshot, local: Snapshot): Check {
+  const rowsOf = (snapshot: Snapshot, table: string) =>
+    snapshot
+      .rows(table)
+      .map(row => JSON.stringify(row))
+      .sort();
+  const faults = Object.keys(local.meta.tables).flatMap(table => {
+    const held = copy.meta.tables[table]?.rows ?? 0;
+    if (local.meta.tables[table]!.rows !== held)
+      return [`${table} holds ${held} rows, the local copy ${local.meta.tables[table]!.rows}`];
+    const a = rowsOf(local, table);
+    const b = rowsOf(copy, table);
+    return a.every((row, i) => row === b[i]) ? [] : [`${table} differs`];
+  });
+  return faults.length
+    ? { name: "the local copy", status: "fail", detail: faults.slice(0, 3).join("; ") }
+    : { name: "the local copy", status: "ok", detail: "every table row for row, rowids included" };
+}
+
+export function verify(
+  copy: Snapshot,
+  production: Snapshot,
+  lite: Snapshot,
+  options: {
+    now: number;
+    aliases?: ReadonlyMap<string, string>;
+    originals?: readonly Original[];
+    local?: Snapshot;
+  }
+): Check[] {
+  const { checks, check } = checker();
   const db = openSnapshot(copy);
   const all = <T = Row>(sql: string) => db.prepare(sql).all() as T[];
   const count = (table: string) => copy.meta.tables[table]?.rows ?? 0;
@@ -165,12 +248,6 @@ export function verify(
   const held = new Map(
     copy.schema.filter(e => e.sql && !internal(e.name)).map(e => [`${e.type} ${e.name}`, e.sql!])
   );
-  /* D1 drops the comments of a statement it stores, and its local simulation keeps them */
-  const flat = (sql: string | undefined) =>
-    sql
-      ?.replace(/^\s*--.*$/gm, "")
-      .replace(/\s+/g, " ")
-      .trim();
   check(
     "schema",
     [
@@ -369,26 +446,7 @@ export function verify(
   );
 
   /* nothing names a row that is not there */
-  const loose = all<{ table: string; parent: string }>("PRAGMA foreign_key_check").map(
-    r => `${r.table} → ${r.parent}`
-  );
-  for (const [from, table, column] of POINTERS) {
-    const [source, field] = from.split(".") as [string, string];
-    loose.push(
-      ...all<{ v: Value }>(
-        `SELECT DISTINCT "${field}" AS v FROM "${source}" WHERE "${field}" IS NOT NULL AND "${field}" NOT IN (SELECT "${column}" FROM "${table}")`
-      ).map(r => `${from} ${r.v}`)
-    );
-  }
-  loose.push(
-    ...all<{ v: Value }>(
-      `SELECT DISTINCT owner_id AS v FROM k_collections WHERE owner_kind = 'user' AND owner_id NOT IN (SELECT id FROM auth_user)`
-    ).map(r => `k_collections.owner_id ${r.v}`),
-    ...all<{ v: Value }>(
-      `SELECT DISTINCT key AS v FROM k_translations WHERE kind = 'collection' AND key NOT IN (SELECT id FROM k_collections)`
-    ).map(r => `k_translations.key ${r.v}`)
-  );
-  check("orphans", loose, "every row's account, collection, persona and palette is there");
+  check("orphans", orphans(db), "every row's account, collection, persona and palette is there");
 
   /* counts, sums and dates agree with the rows */
   const deleted = new Map<string, Set<string>>();
@@ -478,39 +536,304 @@ export function verify(
     ],
     "no session, sign-in link, Google token or password"
   );
+  if (options.local) checks.push(sameAsLocal(copy, options.local));
+  return checks;
+}
+
+/** Checks staging's copy against the full build it was made from, and grabient-lite for its admins and tags: the
+    accounts staging.ts keeps, whole, and no other; every other row the full build holds, as the rule leaves it, and
+    nothing more; no row, word or address naming an account left out; nothing that signs anyone in or a reader left;
+    the counts and scores the full build holds; the switches staging holds off. */
+export function verifyStaging(
+  copy: Snapshot,
+  full: Snapshot,
+  lite: Snapshot,
+  options: { local?: Snapshot } = {}
+): Check[] {
+  const { checks, check } = checker();
+  const db = openSnapshot(copy);
+  const count = (table: string) => copy.meta.tables[table]?.rows ?? 0;
+
+  /* migrations and schema: the full build's, so later migrations apply on top */
+  const history = (snapshot: Snapshot) => snapshot.rows("d1_migrations").map(row => row.name);
+  check(
+    "migrations",
+    history(copy).join() === history(full).join() ? [] : ["the history is not the full build's"],
+    `the full build's ${history(full).length}`
+  );
+  const schemaOf = (snapshot: Snapshot) =>
+    new Map(
+      snapshot.schema
+        .filter(e => e.sql && !internal(e.name))
+        .map(e => [`${e.type} ${e.name}`, flat(e.sql!)])
+    );
+  const held = schemaOf(copy);
+  const wanted = schemaOf(full);
+  check(
+    "schema",
+    [
+      ...[...wanted.keys()].filter(key => !held.has(key)).map(key => `${key} is missing`),
+      ...[...held.keys()].filter(key => !wanted.has(key)).map(key => `${key} is extra`),
+      ...[...wanted]
+        .filter(([key, sql]) => held.has(key) && held.get(key) !== sql)
+        .map(([key]) => `${key} differs`)
+    ],
+    `${held.size} tables, indexes and triggers, as the full build's`
+  );
+
+  /* the accounts the rule keeps, and the bylines it makes */
+  const admins = new Set(liteAdmins(lite));
+  const users = full.rows("auth_user");
+  const kept = new Set(
+    users
+      .filter(user => user.role === "admin" || admins.has(String(user.email).toLowerCase()))
+      .map(user => String(user.id))
+  );
+  for (const [table, column] of WORK_COLUMNS) {
+    for (const row of full.rows(table)) if (row[column] !== null) kept.add(String(row[column]));
+  }
+  const left = users.filter(user => !kept.has(String(user.id)));
+  const leftIds = new Set(left.map(user => String(user.id)));
+  const userCollections = full.rows("k_collections").filter(c => c.owner_kind === "user");
+  const bylined = [
+    ...new Set(
+      userCollections
+        .filter(c => c.visibility === "public" && leftIds.has(String(c.owner_id)))
+        .map(c => String(c.owner_id))
+    )
+  ].sort();
+  const holders = new Map(bylined.map((id, i) => [id, `byline-${i + 1}`]));
+  const stays = (id: Value) => id === null || kept.has(String(id)) || holders.has(String(id));
+  const leftCollections = new Set(
+    userCollections
+      .filter(c => !kept.has(String(c.owner_id)) && !(c.visibility === "public" && holders.has(String(c.owner_id))))
+      .map(c => String(c.id))
+  );
+  const userColumns = full.meta.tables.auth_user!.columns;
+  const holderRows = bylined.map((id, i) => {
+    const user = users.find(u => u.id === id)!;
+    const at = Math.min(
+      ...userCollections
+        .filter(c => c.owner_id === id && c.visibility === "public")
+        .map(c => Number(c.created_at))
+    );
+    const holder = `byline-${i + 1}`;
+    const set: Row = {
+      id: holder,
+      email: `${holder}@${BYLINE_MAIL}`,
+      email_verified: 0,
+      name: user.name ?? null,
+      username: user.username ?? null,
+      role: "user",
+      created_at: at,
+      updated_at: at
+    };
+    return Object.fromEntries(userColumns.map(c => [c, set[c] ?? null]));
+  });
+  const copyUsers = new Map(copy.rows("auth_user").map(user => [String(user.id), user]));
+  const personas = new Set(full.rows("k_personas").map(p => String(p.user_id)));
+  const keptHere = users.filter(user => kept.has(String(user.id)));
+  check(
+    "accounts",
+    [
+      ...keptHere.filter(u => !copyUsers.has(String(u.id))).map(u => `${u.id} is missing`),
+      ...[...copyUsers.keys()]
+        .filter(id => !kept.has(id) && !holders.has(id) && ![...holders.values()].includes(id))
+        .map(id => `${id} is no account the rule keeps`)
+    ],
+    `${plural(keptHere.length, "account")} kept whole (${plural(keptHere.filter(u => u.role === "admin" || admins.has(String(u.email).toLowerCase())).length, "admin")}, ` +
+      `${plural(keptHere.filter(u => personas.has(String(u.id))).length, "persona")}), ` +
+      `${plural(holderRows.length, "byline")} held apart, ${left.length} left out`
+  );
   check(
     "admins",
-    lite
-      .rows("auth_user")
-      .filter(u => u.role === "admin")
-      .flatMap(u => {
-        const held = copyByEmail.get(String(u.email).toLowerCase());
-        return held?.role === "admin" ? [] : [`grabient-lite's admin ${u.id} is not an admin here`];
-      }),
+    [...admins].flatMap(email => {
+      const user = copy.rows("auth_user").find(u => String(u.email).toLowerCase() === email);
+      return user?.role === "admin" ? [] : [`grabient-lite's admin ${email.replace(/^[^@]*/, "…")} is not one here`];
+    }),
     "grabient-lite's admins are admins here"
   );
 
-  if (options.local) {
-    const local = options.local;
-    const rowsOf = (snapshot: Snapshot, table: string) =>
-      snapshot
-        .rows(table)
-        .map(row => JSON.stringify(row))
-        .sort();
-    check(
-      "the local copy",
-      Object.keys(local.meta.tables).flatMap(table => {
-        if (local.meta.tables[table]!.rows !== count(table))
-          return [
-            `${table} holds ${count(table)} rows, the local copy ${local.meta.tables[table]!.rows}`
-          ];
-        const a = rowsOf(local, table);
-        const b = rowsOf(copy, table);
-        return a.every((row, i) => row === b[i]) ? [] : [`${table} differs`];
-      }),
-      "every table row for row, rowids included"
-    );
+  /* every row the rule keeps, as it leaves it, and no other */
+  const own = new Map(OWN_COLUMNS);
+  const leftLikes = new Map<string, number>();
+  for (const like of full.rows("k_likes")) {
+    if (!stays(like.user_id)) leftLikes.set(String(like.palette_id), (leftLikes.get(String(like.palette_id)) ?? 0) + 1);
   }
+  const expect = (table: string, row: Row): Row | null => {
+    const column = own.get(table);
+    if (column && !stays(row[column] ?? null)) return null;
+    const inLeft = (id: Value | undefined) => id !== null && id !== undefined && leftCollections.has(String(id));
+    switch (table) {
+      case "auth_user":
+        if (!kept.has(String(row.id))) return null;
+        return admins.has(String(row.email).toLowerCase()) ? { ...row, role: "admin" } : row;
+      case "k_collections": {
+        if (inLeft(row.id)) return null;
+        const holder = row.owner_kind === "user" ? holders.get(String(row.owner_id)) : undefined;
+        return {
+          ...row,
+          ...(holder && { owner_id: holder }),
+          ...(inLeft(row.forked_from) && { forked_from: null, forked_base: null })
+        };
+      }
+      case "k_collection_items":
+      case "k_collection_notes":
+      case "k_collection_votes":
+        return inLeft(row.collection_id) ? null : row;
+      case "k_translations":
+        return row.kind === "collection" && inLeft(row.key) ? null : row;
+      case "k_likes":
+        return inLeft(row.collection_id) ? { ...row, collection_id: null } : row;
+      case "k_palettes":
+        return {
+          ...row,
+          legacy_likes_count: Number(row.legacy_likes_count) + (leftLikes.get(String(row.seed)) ?? 0)
+        };
+    }
+    return row;
+  };
+  const differ = (table: string, a: readonly Row[], b: readonly Row[]) => {
+    const columns = full.meta.tables[table]?.columns ?? copy.meta.tables[table]?.columns ?? [];
+    const line = (row: Row) => JSON.stringify(columns.map(c => row[c] ?? null));
+    const tally = (rows: readonly Row[]) => {
+      const out = new Map<string, number>();
+      for (const row of rows) out.set(line(row), (out.get(line(row)) ?? 0) + 1);
+      return out;
+    };
+    const want = tally(a);
+    const have = tally(b);
+    const short = (key: string) => `${table} ${key.slice(0, 70)}`;
+    return [
+      ...[...want].filter(([key, n]) => (have.get(key) ?? 0) < n).map(([key]) => `${short(key)} is missing`),
+      ...[...have].filter(([key, n]) => (want.get(key) ?? 0) < n).map(([key]) => `${short(key)} is extra`)
+    ];
+  };
+  const own_tables = Object.entries(full.meta.tables).filter(
+    ([table, info]) => !info.skipped && table !== "k_flags" && !SEARCH_TABLES.includes(table)
+  );
+  check(
+    "rows",
+    own_tables.flatMap(([table]) =>
+      differ(
+        table,
+        [
+          ...full
+            .rows(table)
+            .map(row => expect(table, row))
+            .filter(row => row !== null),
+          ...(table === "auth_user" ? holderRows : [])
+        ],
+        copy.rows(table)
+      )
+    ),
+    `every row of ${own_tables.length} tables the rule keeps, as it leaves it, and no other`
+  );
+
+  /* nothing names an account left out: no account column, and no id, email or private address in any text */
+  const emails = new Set(left.map(user => String(user.email).toLowerCase()));
+  const handles = new Set(left.map(user => accountHandle(user)));
+  const named: string[] = [];
+  for (const table of Object.keys(copy.meta.tables)) {
+    for (const row of copy.rows(table)) {
+      for (const [column, value] of Object.entries(row)) {
+        if (typeof value !== "string") continue;
+        const hit =
+          value.split(/[^\w-]+/).find(word => leftIds.has(word)) ??
+          value.match(/[\w.%+-]+@[\w.-]+/g)?.find(email => emails.has(email.toLowerCase())) ??
+          [...value.matchAll(/@([^/\s"'@]+)\//g)].find(m => handles.has(m[1]!.toLowerCase()))?.[0];
+        if (hit) named.push(`${table}.${column} names ${hit.length > 12 ? `${hit.slice(0, 8)}…` : hit}`);
+      }
+    }
+  }
+  check("left out", named, `no row names one of the ${left.length} accounts left out`);
+  check("orphans", orphans(db), "every row's account, collection, persona and palette is there");
+
+  /* nothing that signs anyone in, and nothing of a reader's own */
+  check(
+    "nothing private",
+    [
+      ...PRIVATE.filter(table => count(table) > 0).map(table => `${table} holds ${count(table)} rows`),
+      ...copy
+        .rows("auth_account")
+        .filter(a => CLEARED.some(c => a[c] !== null))
+        .map(a => `account link ${a.id} holds a token`)
+    ],
+    "no session, sign-in link, token, password, newsletter row, sync state or reader's signal"
+  );
+
+  /* the counts and scores every reader sees, as the full build holds them */
+  const fullPalettes = new Map(full.rows("k_palettes").map(p => [String(p.seed), p]));
+  const fullCollections = new Map(full.rows("k_collections").map(c => [String(c.id), c]));
+  const likeRows = new Map<string, number>();
+  for (const like of copy.rows("k_likes")) {
+    likeRows.set(String(like.palette_id), (likeRows.get(String(like.palette_id)) ?? 0) + 1);
+  }
+  const itemRows = new Map<string, number>();
+  for (const item of copy.rows("k_collection_items")) {
+    itemRows.set(String(item.collection_id), (itemRows.get(String(item.collection_id)) ?? 0) + 1);
+  }
+  const scoreColumns = ["hot", ...Object.values(RISE_COLUMN)];
+  const unlike = (row: Row, was: Row | undefined, columns: readonly string[]) =>
+    columns.filter(c => !was || Number(row[c]) !== Number(was[c]));
+  check(
+    "counts and scores",
+    [
+      ...copy.rows("k_palettes").flatMap(p => {
+        const off = unlike(p, fullPalettes.get(String(p.seed)), ["likes_count", ...scoreColumns]);
+        if (Number(p.likes_count) !== Number(p.legacy_likes_count) + (likeRows.get(String(p.seed)) ?? 0))
+          off.push("likes left out");
+        return off.length ? [`palette ${p.seed}: ${off.join(", ")}`] : [];
+      }),
+      ...copy.rows("k_collections").flatMap(c => {
+        const off = unlike(c, fullCollections.get(String(c.id)), [
+          "item_count",
+          "likes_sum",
+          "fork_count",
+          ...scoreColumns
+        ]);
+        if (Number(c.item_count) !== (itemRows.get(String(c.id)) ?? 0)) off.push("items");
+        return off.length ? [`collection ${c.slug}: ${off.join(", ")}`] : [];
+      })
+    ],
+    `${copy.rows("k_palettes").length} palettes and ${copy.rows("k_collections").length} collections: likes, sums, ` +
+      `copies and scores as the full build holds them; each like count is its likes here and the ${[...leftLikes.values()].reduce((a, b) => a + b, 0)} left out`
+  );
+
+  /* the switches: staging's off, the rest the full build's */
+  const flags = new Map(copy.rows("k_flags").map(f => [String(f.name), f]));
+  check(
+    "switches",
+    [
+      ...STAGING_OFF.filter(name => Number(flags.get(name)?.enabled ?? 1) !== 0).map(name => `${name} is on`),
+      ...differ(
+        "k_flags",
+        full.rows("k_flags").filter(f => !STAGING_OFF.includes(String(f.name))),
+        copy.rows("k_flags").filter(f => !STAGING_OFF.includes(String(f.name)))
+      )
+    ],
+    `${STAGING_OFF.join(" and ")} off, every other switch as the full build holds it`
+  );
+
+  /* the tags under the search field, and the counts they are made from: grabient-lite's */
+  const shown = new Set(
+    copy.rows("k_collections").filter(c => c.visibility === "public").map(c => String(c.slug))
+  );
+  check(
+    "search tags",
+    SEARCH_TABLES.flatMap(table =>
+      differ(
+        table,
+        lite
+          .rows(table)
+          .filter(row => table !== "k_popular_searches" || row.kind !== "collections" || shown.has(String(row.value))),
+        copy.rows(table)
+      )
+    ),
+    `grabient-lite's ${SEARCH_TABLES.map(t => `${count(t)} ${t}`).join(" and ")}`
+  );
+
+  if (options.local) checks.push(sameAsLocal(copy, options.local));
   return checks;
 }
 
@@ -533,14 +856,16 @@ export function builtAt(): number {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const which = process.argv[2];
-  if (which !== "local" && which !== "staging") {
-    console.error("usage: node scripts/data/verify.ts local|staging");
+  if (which !== "full" && which !== "local" && which !== "staging") {
+    console.error("usage: node scripts/data/verify.ts full|local|staging");
     process.exit(1);
   }
   const snapshot = (name: string) => readSnapshot(resolve(DATA, name));
-  const checks = verify(snapshot(which), snapshot("production"), snapshot("lite"), {
-    now: builtAt(),
-    local: which === "staging" ? snapshot("local") : undefined
-  });
+  const checks =
+    which === "full"
+      ? verify(snapshot("full"), snapshot("production"), snapshot("lite"), { now: builtAt() })
+      : verifyStaging(snapshot(which), snapshot("full"), snapshot("lite"), {
+          local: which === "staging" ? snapshot("local") : undefined
+        });
   if (!report(checks)) process.exit(1);
 }

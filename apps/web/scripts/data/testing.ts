@@ -4,12 +4,12 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { adminStatements, baseStatements, planStatements } from "./build.ts";
-import { type Database, insertRows, MIGRATIONS, type Value } from "./d1.ts";
+import { baseStatements, planStatements } from "./build.ts";
+import { type Database, insertRows, MIGRATIONS } from "./d1.ts";
 import type { Original } from "./palettes.ts";
 import { readDatabase } from "./read.ts";
 import { scoreDatabase } from "./scores.ts";
-import type { Row, Snapshot } from "./snapshot.ts";
+import { type Row, reads, type Snapshot } from "./snapshot.ts";
 import { migrationFiles } from "./verify.ts";
 
 /** Production's schema at the old app's last migration, as its sqlite_master holds it. */
@@ -56,13 +56,6 @@ export function insert(db: DatabaseSync, tables: Record<string, Row[]>) {
   }
 }
 
-/** A read of the in-memory database as cf answers one. */
-export const reads = (db: DatabaseSync) => async (sql: string) => {
-  const statement = db.prepare(sql);
-  statement.setReturnArrays(true);
-  const rows = statement.all() as unknown as Value[][];
-  return { columns: statement.columns().map(column => column.name), rows, rowsRead: rows.length };
-};
 /** The in-memory database read into a snapshot, as read.ts reads D1. */
 export async function snapshotOf(db: DatabaseSync, page = 3): Promise<Snapshot> {
   const target: Database = { name: "memory", id: "memory" };
@@ -383,6 +376,5 @@ export async function copyOf(source: { production: Snapshot; lite: Snapshot }) {
   };
   const scoring = await scoreDatabase(select, NOW);
   run(db, scoring);
-  run(db, adminStatements(source.lite));
   return { db, plan: [...plan.statements, ...scoring], merge: plan.merge };
 }
