@@ -16,7 +16,7 @@ import { forgetUndoFrom, landUndo } from "./undo.ts";
    After a page is pushed, or reached by Back or Forward, focus moves to the new page's main content when the control
    that held it left with the old page, and a screen reader is told the new page's title once the page has set it. An
    address rewritten in place moves and says nothing. Each entry keeps its own undo, and each page reached is counted
-   once (analytics), whatever view it is drawn in. */
+   once (analytics), whatever its palettes are edited into or drawn in. */
 
 /** How long a page has to set its title before it is announced. */
 const LANDED_MS = 120;
@@ -61,10 +61,17 @@ export function watchNavigation(router: AnyRouter): () => void {
       moved = action.type !== "REPLACE";
     }
   );
-  const count = () => trackPageView(pageKey(location.pathname, location.search));
-  count();
+  /* a page is counted by the address it was reached at: one rewritten in place on the same route (an edit, a change of
+     view) keeps it, and only new words make a new page there */
+  let reached = { route: "", path: "" };
+  const count = (arrived: boolean) => {
+    const route = router.state.matches.at(-1)?.routeId ?? "";
+    if (arrived || route !== reached.route) reached = { route, path: location.pathname };
+    trackPageView(pageKey(reached.path, location.search));
+  };
+  count(true);
   const leaveResolved = router.subscribe("onResolved", () => {
-    count();
+    count(moved);
     if (moved) land();
     moved = false;
   });

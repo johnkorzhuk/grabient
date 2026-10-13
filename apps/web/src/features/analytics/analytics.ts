@@ -86,8 +86,8 @@ export function accountKey(id: string): string {
   return hash.toString(16).padStart(16, "0");
 }
 
-/** A page as the pageview count names it: its address without the language, and the words it searched for. A view's
-    change rewrites the address and is no page of its own. */
+/** A page as the pageview count names it: the address it was reached at without the language, and the words it
+    searched for, never its view. */
 export function pageKey(pathname: string, search: string): string {
   const words = new URLSearchParams(search).get("q");
   const path = delocalizePath(pathname).path;
