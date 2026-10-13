@@ -7,7 +7,7 @@
     "./*": "./src/*"
   },
   "scripts": {
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p . && tsc -p test"
   },
   "dependencies": {
     "@grabient/engine": "workspace:*",

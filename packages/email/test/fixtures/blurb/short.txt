@@ -1,0 +1,3 @@
+Grabient
+
+CSS gradient generator and color palette finder. Browse and edit gradient palettes, then export them as CSS, SVG, PNG or a shader. grabient.test (https://grabient.test)
