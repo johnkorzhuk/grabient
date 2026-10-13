@@ -52,7 +52,9 @@ import { forgetPalette, paletteGone } from "./overlay.ts";
 import { type ListView, listSearch, pageSearch } from "./params.ts";
 import { collectionQuery, failed, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
-import type { CollectionDocument, CollectionItem, CopyStanding } from "./types.ts";
+import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
+
+type ViewerRead = ViewerState & { collection?: CollectionDocument };
 
 /* One collection's page, at /{slug} and /{slug}/rising, or under its owner at /@{handle}/{slug}; its route draws a new
    one for each collection, so nothing of one collection's page stands on the next. The server draws a public
@@ -88,8 +90,8 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     setNote(message);
     setError(isError);
   };
-  /* a query's data is read once it has answered: an unanswered one has no value to read outside a Loading boundary */
-  const answer = () => (found.isSuccess ? found.data : undefined);
+  /* the loader read the collection before the page was drawn, so its answer is always at hand */
+  const answer = () => found.data;
   const data = () => {
     const read = answer();
     return read && !failed(read) ? read : null;
@@ -99,21 +101,37 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     return failed(read) ? read.failed : "";
   };
 
-  /* what the account may do here, read once the reader is known */
-  const viewer = useQuery(() => ({
-    ...stateQuery(account()?.id ?? "", props.slug),
-    enabled: !!account()
-  }));
-  const state = () => (account() && viewer.isSuccess ? (viewer.data ?? null) : null);
-  /* the account's own collection, from its copy where the copy holds it */
-  const fromCopy = useQuery(() => ({
-    queryKey: ["own-collection", account()?.id ?? "", props.slug] as const,
-    queryFn: async () => (await ownCollectionDoc(props.slug)) ?? null,
-    enabled: !!account(),
-    staleTime: 0
-  }));
-  const copied = (): OwnedDoc | undefined =>
-    account() && fromCopy.isSuccess ? (fromCopy.data ?? undefined) : undefined;
+  /* what the account may do here, and its own collection from its copy where the copy holds it: read once the reader
+     is known, private, and never part of what the page is drawn from first */
+  const reader = () => (account() ? `${account()!.id} ${props.slug}` : "");
+  const [read, setRead] = createSignal<{ by: string; state?: ViewerRead; copy?: OwnedDoc }>({
+    by: ""
+  });
+  const mineNow = () => (read().by && read().by === reader() ? read() : null);
+  const state = () => mineNow()?.state ?? null;
+  const copied = () => mineNow()?.copy;
+  createEffect(
+    () => {
+      const who = account()?.id;
+      return who ? { by: reader(), who, slug: props.slug } : null;
+    },
+    asked => {
+      if (!asked) return;
+      const { by, who, slug } = asked;
+      let live = true;
+      const keep = (part: { state?: ViewerRead; copy?: OwnedDoc }) => {
+        if (live) setRead(now => ({ ...(now.by === by ? now : {}), by, ...part }));
+      };
+      client.fetchQuery(stateQuery(who, slug)).then(
+        state => keep({ state: state ?? undefined }),
+        () => {}
+      );
+      void ownCollectionDoc(slug).then(copy => keep({ copy }));
+      return () => {
+        live = false;
+      };
+    }
+  );
   /* every write's answer, newer than any read */
   const [own, setOwn] = createSignal<CollectionDocument | null>(null);
   const doc = (): CollectionDocument | null =>

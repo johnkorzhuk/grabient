@@ -2,7 +2,7 @@ import { dominantColors } from "@grabient/engine/dominant.ts";
 import { localHref, t } from "@grabient/i18n";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
-import { createSignal, Errored, Loading, onCleanup } from "solid-js";
+import { createEffect, createSignal, Errored, Loading, onCleanup } from "solid-js";
 import { account } from "../account/session.ts";
 import { countSearch } from "../search/count.ts";
 import { SearchField } from "../search/SearchField.tsx";
@@ -13,6 +13,7 @@ import { arrivedWhole, FIELD_MAX, readField, typedWords } from "./field.ts";
 import { followInPlace } from "./navigation.ts";
 import { type ListPlace, type ListView, listSearch, listView, pageSearch } from "./params.ts";
 import { failed, ownQuery, tagsQuery } from "./queries.ts";
+import type { CollectionSummary } from "./types.ts";
 
 /* The search over a collections list: the field and the tags under it. Enter searches the collections for the words
    in the list's order; a public collection whose title is the words opens instead (on Saved, one of the account's
@@ -65,27 +66,43 @@ export function Find(props: {
     ...tagsQuery(mine() ? "" : asked()),
     placeholderData: keepPreviousData
   }));
-  /* on Saved, words typed and not yet searched find the account's own, by their letters */
-  const own = useQuery(() => ({
-    ...ownQuery(
-      account()?.id ?? "",
-      { query: asked(), sort: "newest", page: 1, limit: OWN_TAGS },
-      false
-    ),
-    enabled: mine() && !!asked() && !!account(),
-    placeholderData: keepPreviousData
-  }));
-  const shown = () => {
-    if (mine() && typed().trim()) {
-      const page = own.isSuccess ? own.data : undefined;
-      return page && !failed(page)
-        ? page.items.slice(0, OWN_TAGS).map(c => ({
-            label: c.title,
-            href: open(c.slug),
-            colors: dominantColors(c.preview.map(p => p.seed))
-          }))
-        : [];
+  /* on Saved, words typed and not yet searched find the account's own, by their letters: a private read, fetched
+     through the cache into the bar's own state once the account is known */
+  const [ownHits, setOwnHits] = createSignal<{ words: string; items: CollectionSummary[] } | null>(
+    null
+  );
+  createEffect(
+    () => {
+      const who = account()?.id;
+      const words = asked();
+      return mine() && who && words ? { who, words } : null;
+    },
+    wanted => {
+      if (!wanted) return;
+      let live = true;
+      const key = { query: wanted.words, sort: "newest" as const, page: 1, limit: OWN_TAGS };
+      client.fetchQuery(ownQuery(wanted.who, key, false)).then(
+        page => {
+          if (live && !failed(page)) setOwnHits({ words: wanted.words, items: page.items });
+        },
+        () => {}
+      );
+      return () => {
+        live = false;
+      };
     }
+  );
+  const ownTitled = () => {
+    const hits = ownHits();
+    return hits && hits.words === asked() ? hits.items : [];
+  };
+  const shown = () => {
+    if (mine() && typed().trim())
+      return ownTitled().map(c => ({
+        label: c.title,
+        href: open(c.slug),
+        colors: dominantColors(c.preview.map(p => p.seed))
+      }));
     return (tags.data ?? []).map(hit => ({
       label: hit.title,
       href: open(hit.slug),
@@ -106,9 +123,7 @@ export function Find(props: {
       /* the collection whose title was typed out opens: on Saved one of the account's own */
       const at = location.href;
       const titled = mine()
-        ? own.isSuccess && own.data && !failed(own.data)
-          ? own.data.items
-          : []
+        ? ownTitled()
         : await client.fetchQuery(tagsQuery(words)).catch(() => []);
       // the reader moved on while the title was looked up
       if (location.href !== at) return;

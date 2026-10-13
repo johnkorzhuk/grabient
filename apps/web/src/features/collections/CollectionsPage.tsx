@@ -52,7 +52,7 @@ import { createFit } from "./fit.ts";
 import { followInPlace } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone } from "./overlay.ts";
 import { type ListPlace, listKey, listPath, listSearch } from "./params.ts";
-import { collectionQuery, collectionsQuery, failed, ownQuery } from "./queries.ts";
+import { collectionQuery, collectionsQuery, type Failed, failed, ownQuery } from "./queries.ts";
 import type { CollectionPage, CollectionPreview, CollectionSummary, RisingFrame } from "./types.ts";
 
 /* The collections lists: Popular (/collections), Rising in its frame (/collections/rising) and the account's own
@@ -86,20 +86,39 @@ export function CollectionsPage(props: { place: ListPlace }) {
   const mine = () => place().order === "saved";
   const signedOut = () => mine() && sessionReady() && !account();
 
+  /* A public list reads through its query, which the route's loader filled. The account's own are private and read
+     once the account is known: fetched through the same cache into the page's own state, so no read waits on a
+     query that was off, which has no value to wait for. */
   const publicList = useQuery(() => ({ ...collectionsQuery(listKey(place())), enabled: !mine() }));
-  const ownList = useQuery(() => ({
-    ...ownQuery(account()?.id ?? "", { ...listKey(place()), sort: "newest" }),
-    enabled: mine() && !!account()
-  }));
-  /* a query's data is read once it has answered: an unanswered one has no value to read outside a Loading boundary */
-  const headData = () =>
-    mine()
-      ? account() && ownList.isSuccess
-        ? ownList.data
-        : undefined
-      : publicList.isSuccess
-        ? publicList.data
-        : undefined;
+  const ownKey = () => {
+    const who = account()?.id;
+    return mine() && who ? { who, key: { ...listKey(place()), sort: "newest" as const } } : null;
+  };
+  const [own, setOwn] = createSignal<{ id: string; page: CollectionPage | Failed } | null>(null);
+  const readOwn = (asked: NonNullable<ReturnType<typeof ownKey>>, fresh = false) => {
+    const id = JSON.stringify(asked);
+    const query = ownQuery(asked.who, asked.key);
+    const read = fresh ? client.fetchQuery({ ...query, staleTime: 0 }) : client.fetchQuery(query);
+    return read.then(
+      page => setOwn({ id, page }),
+      () => {}
+    );
+  };
+  createEffect(ownKey, asked => {
+    if (asked) void readOwn(asked);
+  });
+  const headData = () => {
+    if (!mine()) return publicList.data;
+    const asked = ownKey();
+    const read = own();
+    return asked && read?.id === JSON.stringify(asked) ? read.page : undefined;
+  };
+  const answered = () => (mine() ? headData() !== undefined : publicList.status !== "pending");
+  const retry = () => {
+    const asked = ownKey();
+    if (!mine()) void publicList.refetch();
+    else if (asked) void readOwn(asked, true);
+  };
   const head = (): CollectionPage | null => {
     const data = headData();
     return data && !failed(data) ? data : null;
@@ -133,6 +152,7 @@ export function CollectionsPage(props: { place: ListPlace }) {
         )
       : client.fetchQuery(collectionsQuery({ ...listKey(place()), page: n }));
   const loadMore = async (retry = false) => {
+    if (!answered()) return;
     const tail = last();
     if (!tail || !hasMore() || loadingMore() || (moreError() && !retry)) return;
     const id = listId();
@@ -147,16 +167,22 @@ export function CollectionsPage(props: { place: ListPlace }) {
       setLoadingMore(false);
     }
   };
+  /* the mark at the feed's end, watched once both it and the page are there */
   let mark: HTMLDivElement | undefined;
+  let watcher: IntersectionObserver | undefined;
+  const watch = (el: HTMLDivElement) => {
+    mark = el;
+    watcher?.observe(el);
+  };
   onSettled(() => {
-    const watcher = new IntersectionObserver(
+    watcher = new IntersectionObserver(
       entries => {
         if (entries.some(entry => entry.isIntersecting)) void loadMore();
       },
       { rootMargin: AHEAD }
     );
     if (mark) watcher.observe(mark);
-    return () => watcher.disconnect();
+    return () => watcher?.disconnect();
   });
   /* every collection once, in the order the pages came, less what this tab deleted */
   const items = createMemo(() => {
@@ -171,19 +197,6 @@ export function CollectionsPage(props: { place: ListPlace }) {
     return out;
   });
   const now = () => minuteOf(head()?.fetchedAt ?? Date.now());
-  /* the counts beside the hearts start as each page read them */
-  createEffect(
-    () => [head(), ...joined()],
-    pages => {
-      for (const page of pages)
-        if (page)
-          noteCounts(
-            page.items.flatMap(c => c.preview.map(p => ({ seed: p.seed, likes: p.likes ?? 0 }))),
-            page.fetchedAt
-          );
-    }
-  );
-
   /* a searched list's thumbs rate each palette's fit for its group's collection */
   const fit = createFit({
     slugs: () => (place().query ? items().map(c => c.slug) : []),
@@ -221,8 +234,12 @@ export function CollectionsPage(props: { place: ListPlace }) {
     const stops = createMemo(() => hexesOf(palette().seed, palette().steps));
     const seed = () => preview().seed;
     const agents = () => isAdmin() && collection().owner.kind === "agent";
-    /* a group drawn is a group in the window: its counts are asked again where they are old */
-    onSettled(() => void readLikeCounts([untrack(seed)]));
+    /* a card drawn is in the window: its count starts as the page read it and is asked again where it is old */
+    onSettled(() => {
+      const shown = untrack(() => ({ seed: seed(), likes: preview().likes ?? 0 }));
+      noteCounts([shown], untrack(now));
+      void readLikeCounts([shown.seed]);
+    });
     return (
       <PaletteCard
         seed={seed()}
@@ -421,10 +438,10 @@ export function CollectionsPage(props: { place: ListPlace }) {
           </div>
         }
       >
-        {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: the titles and cards
-            are links, which the keyboard follows; this only keeps a plain press in the page */}
-        <div onClick={e => followInPlace(e, go)}>
-          <Loading fallback={placeholders()}>
+        <Loading fallback={placeholders()}>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: the titles and cards
+              are links, which the keyboard follows; this only keeps a plain press in the page */}
+          <div onClick={e => followInPlace(e, go)}>
             <Show when={head() || headError()} fallback={placeholders()}>
               <GroupFeed
                 items={items()}
@@ -451,40 +468,43 @@ export function CollectionsPage(props: { place: ListPlace }) {
                 )}
               />
             </Show>
-          </Loading>
-        </div>
-        <div ref={mark} aria-hidden="true" />
-        <div class={styles.status}>
-          <Status error={!!headError() || !!moreError() || !!fieldError()}>{message()}</Status>
-          <Show when={headError()}>
-            <Button size="sm" onClick={() => void (mine() ? ownList : publicList).refetch()}>
-              {t("Retry")}
-            </Button>
-          </Show>
-          <Show when={moreError() && !headError()}>
-            <Button size="sm" onClick={() => void loadMore(true)}>
-              {t("Retry")}
-            </Button>
-          </Show>
-          <Show when={mine() && head() && !items().length}>
-            <Button size="sm" href={localHref(`/palettes${listSearch({ query: place().query })}`)}>
-              {t("Browse palettes")}
-            </Button>
-          </Show>
-          <Show when={hasMore() && !loadingMore() && !moreError() && !headError()}>
-            <Button
-              size="sm"
-              href={nextHref()}
-              onClick={e => {
-                if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                e.preventDefault();
-                void loadMore();
-              }}
-            >
-              {t("More collections")}
-            </Button>
-          </Show>
-        </div>
+          </div>
+          <div ref={watch} aria-hidden="true" />
+          <div class={styles.status}>
+            <Status error={!!headError() || !!moreError() || !!fieldError()}>{message()}</Status>
+            <Show when={headError()}>
+              <Button size="sm" onClick={retry}>
+                {t("Retry")}
+              </Button>
+            </Show>
+            <Show when={moreError() && !headError()}>
+              <Button size="sm" onClick={() => void loadMore(true)}>
+                {t("Retry")}
+              </Button>
+            </Show>
+            <Show when={mine() && head() && !items().length}>
+              <Button
+                size="sm"
+                href={localHref(`/palettes${listSearch({ query: place().query })}`)}
+              >
+                {t("Browse palettes")}
+              </Button>
+            </Show>
+            <Show when={hasMore() && !loadingMore() && !moreError() && !headError()}>
+              <Button
+                size="sm"
+                href={nextHref()}
+                onClick={e => {
+                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+                  e.preventDefault();
+                  void loadMore();
+                }}
+              >
+                {t("More collections")}
+              </Button>
+            </Show>
+          </div>
+        </Loading>
       </Show>
       <BackToTop />
     </main>
