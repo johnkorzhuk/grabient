@@ -74,9 +74,17 @@
   background-color: var(--color-paper-solid);
   color: var(--color-ink);
 }
-.strip {
-  height: var(--space-s5);
-  border-radius: var(--radius-control);
+/* the frames of a move top to bottom, as a strip of film */
+.frames {
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--space-s1) / 2);
+  margin-bottom: var(--space-s2);
+  overflow: hidden;
+  border-radius: var(--radius-tight);
+}
+.frame {
+  height: var(--space-s3);
 }
 
 .marks {

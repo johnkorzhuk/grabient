@@ -30,7 +30,7 @@ import { supply } from "./samples.ts";
 export function App() {
   const router = createRouter();
   const palettes = supply();
-  const bar = createBarCycle(() => palettes);
+  const stops = createBarCycle(() => palettes);
   const [keys, setKeys] = createSignal<readonly KeyRow[] | null>(null);
   let themeHost!: HTMLSpanElement;
   const copyAddress = async () => {
@@ -60,7 +60,7 @@ export function App() {
         <SkipLink />
         <Backdrop stops={palettes[0] ?? []} />
         <AppPage
-          stops={bar.stops()}
+          stops={stops()}
           home={{ href: "/", label: "cover" }}
           corner={
             <>

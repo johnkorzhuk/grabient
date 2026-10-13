@@ -1,5 +1,11 @@
-import { createBarCycle } from "@grabient/ui/barcycle.ts";
-import { barGradient, MOVES, type Move } from "@grabient/ui/bartween.ts";
+import {
+  barGradient,
+  lchSamples,
+  MOVES,
+  type Move,
+  mixStops,
+  toHexes
+} from "@grabient/ui/bartween.ts";
 import { Logo as Wordmark } from "@grabient/ui/Logo.tsx";
 import { LOGO_BAR, LOGO_GLYPH, LOGO_PATH, LOGO_VIEWBOX } from "@grabient/ui/logo.data.ts";
 import {
@@ -14,7 +20,7 @@ import {
 } from "@grabient/ui/mark.ts";
 import { Text } from "@grabient/ui/Text.tsx";
 import { color, size } from "@grabient/ui/tokens.ts";
-import { For, untrack } from "solid-js";
+import { For } from "solid-js";
 import { Block, Rules, Section } from "../../doc/Section.tsx";
 import { Cell, Cells, Verdict, Verdicts } from "../../doc/Specimen.tsx";
 import { Tokens } from "../../doc/Tokens.tsx";
@@ -123,18 +129,27 @@ function Outlined() {
   );
 }
 
-/* a move's own cycle: the bar dwells on a palette, then turns to the next by this move alone */
+/* A move laid out as its frames, a row each, as the bar goes from a warm palette to a cool one by that move alone:
+   the tween's own math (bartween.ts), held still, where the header's bar shows the moves in turn. */
+const FROM = lchSamples(hexes(POPULAR[0].seed), 32);
+const TO = lchSamples(hexes(POPULAR[6].seed), 32);
+const FRAMES = [0, 1 / 6, 2 / 6, 3 / 6, 4 / 6, 5 / 6, 1];
+
 function MoveCard(props: { move: Move }) {
-  const palettes = POPULAR.slice(3, 9).map(s => hexes(s.seed));
-  const bar = createBarCycle(() => palettes, {
-    moves: [untrack(() => props.move)],
-    dwell: 2.5,
-    tween: 2.2
-  });
   return (
     <div class={styles.move}>
-      <Wordmark stops={bar.stops()} height={40} />
-      <span class={styles.strip} style={{ "background-image": barGradient(bar.stops(), 1) }} />
+      <div class={styles.frames}>
+        <For each={FRAMES}>
+          {u => (
+            <span
+              class={styles.frame}
+              style={{
+                "background-image": barGradient(toHexes(mixStops(FROM, TO, u, props.move)), 1)
+              }}
+            />
+          )}
+        </For>
+      </div>
       <Text variant="h3">{props.move}</Text>
       <Text variant="small">{MOVED[props.move]}</Text>
     </div>
