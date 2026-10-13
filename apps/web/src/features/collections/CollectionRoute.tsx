@@ -1,8 +1,7 @@
 import { Show, untrack } from "solid-js";
 import type { PaletteOrder } from "./address.ts";
 import { CollectionPage } from "./CollectionPage.tsx";
-import { CollectionsPage } from "./CollectionsPage.tsx";
-import { type ListPlace, listView } from "./params.ts";
+import { listView } from "./params.ts";
 import { answerWith, type Loaded } from "./route.ts";
 
 /** A collection's page at any of its addresses (/{slug}, /@{handle}/{slug}, either with /rising): a new page for each
@@ -25,10 +24,4 @@ export function CollectionRoute(props: {
       )}
     </Show>
   );
-}
-
-/** A collections list's page, answering with the status its loader found. */
-export function ListRoute(props: { place: ListPlace; loaded: Loaded | undefined }) {
-  answerWith(untrack(() => props.loaded?.status));
-  return <CollectionsPage place={props.place} />;
 }

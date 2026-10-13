@@ -39,9 +39,21 @@ export function hexesOf(seed: string, steps: number): readonly string[] {
   return found;
 }
 
+/* naming reads a palette's colors at many points, so a page that draws a palette again (a feed's still groups coming
+   live, a list returned to) asks once: kept by language, seed and view, the oldest going first */
+const names = new Map<string, string>();
 /** What a palette's colors call it, in the reader's language. */
-export const nameOf = (p: Shown): string =>
-  seedName(p.seed, p.style, p.steps, { t, locale: locale() }) || t("Palette");
+export function nameOf(p: Shown): string {
+  const language = locale();
+  const key = `${language}:${p.seed}:${p.style}:${p.steps}`;
+  let found = names.get(key);
+  if (found === undefined) {
+    found = seedName(p.seed, p.style, p.steps, { t, locale: language }) || t("Palette");
+    if (names.size >= KEPT) names.delete(names.keys().next().value!);
+    names.set(key, found);
+  }
+  return found;
+}
 
 /** The palette's page in the view it is drawn in, at the reader's size, in the reader's language. */
 export const paletteHref = (p: Shown, size: string | "auto"): string =>

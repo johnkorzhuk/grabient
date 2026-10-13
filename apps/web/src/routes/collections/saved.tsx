@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/solid-router";
-import { ListRoute } from "../../features/collections/CollectionRoute.tsx";
+import { ListRoute } from "../../features/collections/ListRoute.tsx";
 import { listHead, listPlace, searchOf } from "../../features/collections/route.ts";
 import { NO_STORE } from "../../lib/cache.ts";
 

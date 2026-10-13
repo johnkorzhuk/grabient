@@ -1,5 +1,5 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
-import { ListRoute } from "../../features/collections/CollectionRoute.tsx";
+import { ListRoute } from "../../features/collections/ListRoute.tsx";
 import { listHead, listPlace, loadList, searchOf } from "../../features/collections/route.ts";
 import { FRESH, NO_STORE } from "../../lib/cache.ts";
 

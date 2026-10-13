@@ -70,9 +70,10 @@ const estimate = (item: CollectionSummary, width: number) => {
   const rows = Math.max(1, Math.ceil(shownAt(columns, item.preview.length) / columns));
   return HEAD + rows * CARD + (rows - 1) * ROW_GAP;
 };
-/* the groups the server draws, and of them the ones a page starts with live */
+/* the groups the server draws, a first screen and more, standing still until the reader moves (as the home's do): a
+   group's cards are most of a page's start, and a phone shows three of each group's twelve */
 const INITIAL = 3;
-const LIVE = 2;
+const LIVE = 0;
 /* the next page is asked for this far before its mark comes into view */
 const AHEAD = "0px 0px 1200px 0px";
 const FRAMES: readonly RisingFrame[] = ["1w", "3m", "1y"];
@@ -431,7 +432,9 @@ export function CollectionsPage(props: { place: ListPlace }) {
         when={!signedOut()}
         fallback={
           <div class={styles.empty}>
-            <Text variant="h3">{t("Sign in to see your collections.")}</Text>
+            <Text variant="h3" as="h2">
+              {t("Sign in to see your collections.")}
+            </Text>
             <Button variant="primary" size="lg" href={localHref(loginHref("/collections/saved"))}>
               {t("Sign in")}
             </Button>
