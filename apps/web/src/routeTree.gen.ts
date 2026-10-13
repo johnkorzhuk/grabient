@@ -26,9 +26,12 @@ import { Route as IdEditRouteImport } from './routes/$id/edit'
 import { Route as IdRisingRouteImport } from './routes/$id/rising'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiBuildRouteImport } from './routes/api/build'
+import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
+import { Route as ApiUsedRouteImport } from './routes/api/used'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
+import { Route as ESplatRouteImport } from './routes/e/$'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
@@ -122,9 +125,19 @@ const ApiBuildRoute = ApiBuildRouteImport.update({
   path: '/api/build',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
+  id: '/api/client-error',
+  path: '/api/client-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGeoRoute = ApiGeoRouteImport.update({
   id: '/api/geo',
   path: '/api/geo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiUsedRoute = ApiUsedRouteImport.update({
+  id: '/api/used',
+  path: '/api/used',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
@@ -135,6 +148,11 @@ const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
 const CollectionsSavedRoute = CollectionsSavedRouteImport.update({
   id: '/collections/saved',
   path: '/collections/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ESplatRoute = ESplatRouteImport.update({
+  id: '/e/$',
+  path: '/e/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PalettesIndexRoute = PalettesIndexRouteImport.update({
@@ -195,8 +213,11 @@ export interface FileRoutesByFullPath {
   '/$id/rising': typeof IdRisingRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/api/geo': typeof ApiGeoRoute
+  '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/e/$': typeof ESplatRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
@@ -224,8 +245,11 @@ export interface FileRoutesByTo {
   '/$id/rising': typeof IdRisingRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/api/geo': typeof ApiGeoRoute
+  '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/e/$': typeof ESplatRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
@@ -254,8 +278,11 @@ export interface FileRoutesById {
   '/$id/rising': typeof IdRisingRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/client-error': typeof ApiClientErrorRoute
   '/api/geo': typeof ApiGeoRoute
+  '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/e/$': typeof ESplatRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
@@ -285,8 +312,11 @@ export interface FileRouteTypes {
     | '/$id/rising'
     | '/api/$'
     | '/api/build'
+    | '/api/client-error'
     | '/api/geo'
+    | '/api/used'
     | '/collections/saved'
+    | '/e/$'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id/'
@@ -314,8 +344,11 @@ export interface FileRouteTypes {
     | '/$id/rising'
     | '/api/$'
     | '/api/build'
+    | '/api/client-error'
     | '/api/geo'
+    | '/api/used'
     | '/collections/saved'
+    | '/e/$'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id'
@@ -343,8 +376,11 @@ export interface FileRouteTypes {
     | '/$id/rising'
     | '/api/$'
     | '/api/build'
+    | '/api/client-error'
     | '/api/geo'
+    | '/api/used'
     | '/collections/saved'
+    | '/e/$'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id/'
@@ -373,8 +409,11 @@ export interface RootRouteChildren {
   IdRisingRoute: typeof IdRisingRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiBuildRoute: typeof ApiBuildRoute
+  ApiClientErrorRoute: typeof ApiClientErrorRoute
   ApiGeoRoute: typeof ApiGeoRoute
+  ApiUsedRoute: typeof ApiUsedRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
+  ESplatRoute: typeof ESplatRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
@@ -507,11 +546,25 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiBuildRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/client-error': {
+      id: '/api/client-error'
+      path: '/api/client-error'
+      fullPath: '/api/client-error'
+      preLoaderRoute: typeof ApiClientErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/geo': {
       id: '/api/geo'
       path: '/api/geo'
       fullPath: '/api/geo'
       preLoaderRoute: typeof ApiGeoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/used': {
+      id: '/api/used'
+      path: '/api/used'
+      fullPath: '/api/used'
+      preLoaderRoute: typeof ApiUsedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections/': {
@@ -526,6 +579,13 @@ declare module '@tanstack/solid-router' {
       path: '/collections/saved'
       fullPath: '/collections/saved'
       preLoaderRoute: typeof CollectionsSavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/e/$': {
+      id: '/e/$'
+      path: '/e/$'
+      fullPath: '/e/$'
+      preLoaderRoute: typeof ESplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/palettes/': {
@@ -597,8 +657,11 @@ const rootRouteChildren: RootRouteChildren = {
   IdRisingRoute: IdRisingRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiBuildRoute: ApiBuildRoute,
+  ApiClientErrorRoute: ApiClientErrorRoute,
   ApiGeoRoute: ApiGeoRoute,
+  ApiUsedRoute: ApiUsedRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
+  ESplatRoute: ESplatRoute,
   PalettesSavedRoute: PalettesSavedRoute,
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,

@@ -51,11 +51,12 @@ let edits: EditsWalk | null = null;
 let inSelection: () => boolean = () => false;
 const [version, setVersion] = createSignal(0);
 const changed = () => setVersion(n => n + 1);
-function journal(): Journal {
-  let j = journals.get(entry);
+/** An entry's steps: the entry on screen when what reads them was done, which a turn waiting its place keeps. */
+function journal(at = entry): Journal {
+  let j = journals.get(at);
   if (!j) {
     j = { steps: [], at: 0 };
-    journals.set(entry, j);
+    journals.set(at, j);
   }
   return j;
 }
@@ -81,8 +82,9 @@ export function walkSelection(shown: () => boolean): void {
 }
 /** The editor made an edit: the steps undone before it go, as an edit drops the edits undone before it. */
 export function edited(): void {
+  const at = entry;
   void inTurn(() => {
-    const j = journal();
+    const j = journal(at);
     if (j.at < j.steps.length) {
       j.steps = j.steps.slice(0, j.at);
       changed();
@@ -92,8 +94,9 @@ export function edited(): void {
 /** Something was done: it joins the page's undo, and whatever was undone before it goes, the edits' included. */
 export function record(step: Step): void {
   const selection = inSelection();
+  const at = entry;
   void inTurn(() => {
-    const j = journal();
+    const j = journal(at);
     j.steps = [
       ...j.steps.slice(Math.max(0, j.at + 1 - LIMIT), j.at),
       { step, edit: edits?.position() ?? 0, selection }

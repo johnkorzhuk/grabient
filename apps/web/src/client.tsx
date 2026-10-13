@@ -7,6 +7,7 @@ import { hydrateStart, StartClient } from "@tanstack/solid-start/client";
 import { watchBuild } from "./app/build-watch.ts";
 import { installErrorReports, reportCaught } from "./app/error-report.ts";
 import { initializeAnalytics } from "./features/analytics/analytics.ts";
+import { syncColorFormat } from "./lib/color-format.ts";
 
 /* before anything can fail: an error while the page loads its language or hydrates is reported too */
 installErrorReports();
@@ -31,7 +32,9 @@ watchBuild();
 const router = await hydrateStart();
 /* a page's boundary showing its fallback is the one failure the window never hears of: it is reported from here */
 hydrate(() => <StartClient router={router} />, document, { onError: reportCaught });
-/* the theme and motion signals start at the server's values so the page hydrates as it was sent; now the page's own */
+/* the theme, motion and color spelling start at the server's values so the page hydrates as it was sent; now the
+   browser's own */
 syncTheme();
 syncMotion();
+syncColorFormat();
 initializeAnalytics();
