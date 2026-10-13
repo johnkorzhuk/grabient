@@ -1,6 +1,6 @@
-/* Writes the checked local copy (.data/local, which build.ts read back and verified) to grabient-staging, named by its
-   id alone, then reads staging back into .data/staging and checks it again: against the sources, and row for row
-   against the local copy.
+/* Writes staging's copy (.data/local, which build.ts made from the full build, loaded into a local D1, read back and
+   checked) to grabient-staging, named by its id alone, then reads staging back into .data/staging and checks it again:
+   against the full build (.data/full), and row for row against the local copy.
 
      node scripts/data/load.ts [--replace]
 
@@ -20,7 +20,7 @@ import {
   type Snapshot,
   writeSnapshot
 } from "./snapshot.ts";
-import { builtAt, report, verify } from "./verify.ts";
+import { report, verifyStaging } from "./verify.ts";
 
 /** The statements that make an empty database the snapshot's. */
 export function loadStatements(snapshot: Snapshot): string[] {
@@ -98,8 +98,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const read = await readDatabase(reader(STAGING), STAGING, 2000);
   writeSnapshot(resolve(DATA, "staging"), read.meta, read.schema, read.tables);
   const snapshot = (dir: string) => readSnapshot(resolve(DATA, dir));
-  const checks = verify(snapshot("staging"), snapshot("production"), snapshot("lite"), {
-    now: builtAt(),
+  const checks = verifyStaging(snapshot("staging"), snapshot("full"), snapshot("lite"), {
     local: copy
   });
   if (!report(checks)) process.exit(1);

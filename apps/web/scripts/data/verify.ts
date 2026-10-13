@@ -603,7 +603,8 @@ export function verifyStaging(
     )
   ].sort();
   const holders = new Map(bylined.map((id, i) => [id, `byline-${i + 1}`]));
-  const stays = (id: Value) => id === null || kept.has(String(id)) || holders.has(String(id));
+  const holderIds = new Set(holders.values());
+  const stays = (id: Value) => id === null || kept.has(String(id)) || holderIds.has(String(id));
   const leftCollections = new Set(
     userCollections
       .filter(
@@ -637,16 +638,20 @@ export function verifyStaging(
   const copyUsers = new Map(copy.rows("auth_user").map(user => [String(user.id), user]));
   const personas = new Set(full.rows("k_personas").map(p => String(p.user_id)));
   const keptHere = users.filter(user => kept.has(String(user.id)));
+  const adminsHere = keptHere.filter(
+    u => u.role === "admin" || admins.has(String(u.email).toLowerCase())
+  ).length;
+  const personasHere = keptHere.filter(u => personas.has(String(u.id))).length;
   check(
     "accounts",
     [
       ...keptHere.filter(u => !copyUsers.has(String(u.id))).map(u => `${u.id} is missing`),
       ...[...copyUsers.keys()]
-        .filter(id => !kept.has(id) && !holders.has(id) && ![...holders.values()].includes(id))
+        .filter(id => !kept.has(id) && !holderIds.has(id))
         .map(id => `${id} is no account the rule keeps`)
     ],
-    `${plural(keptHere.length, "account")} kept whole (${plural(keptHere.filter(u => u.role === "admin" || admins.has(String(u.email).toLowerCase())).length, "admin")}, ` +
-      `${plural(keptHere.filter(u => personas.has(String(u.id))).length, "persona")}), ` +
+    `${plural(keptHere.length, "account")} kept whole (${plural(adminsHere, "admin")}, ${plural(personasHere, "persona")}, ` +
+      `${keptHere.length - adminsHere - personasHere} more the site's work names), ` +
       `${plural(holderRows.length, "byline")} held apart, ${left.length} left out`
   );
   check(

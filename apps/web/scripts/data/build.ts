@@ -227,22 +227,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   await execute(staging, loadStatements(copy), done);
   const back = await readDatabase(reader(staging), staging, 5000);
   writeSnapshot(LOCAL, back.meta, back.schema, back.tables);
-  const personas = new Set(copy.rows("k_personas").map(persona => persona.user_id));
-  const accounts = copy.rows("auth_user").map(user => ({
-    id: user.id,
-    as: user.role === "admin" ? "admin" : personas.has(user.id) ? "persona" : "byline"
-  }));
-  const kept = (as: string) => accounts.filter(account => account.as === as).length;
-  const leftOut = full.rows("auth_user").length - accounts.length + kept("byline");
-  summary.staging = {
-    accounts,
-    accountsLeftOut: leftOut,
-    rows: Object.fromEntries(Object.entries(copy.meta.tables).map(([table, t]) => [table, t.rows]))
-  };
-  writeReport();
-  console.log(
-    `\n  accounts kept whole: ${kept("admin")} admins and ${kept("persona")} personas; ${leftOut} left out,` +
-      ` ${kept("byline")} of them with a public collection's byline kept`
+  summary.staging = Object.fromEntries(
+    Object.entries(copy.meta.tables).map(([table, t]) => [table, t.rows])
   );
+  writeReport();
+  console.log();
   if (!report(verifyStaging(readSnapshot(LOCAL), full, lite, { local: copy }))) process.exit(1);
 }

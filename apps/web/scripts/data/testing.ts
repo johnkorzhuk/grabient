@@ -90,8 +90,8 @@ const user = (id: string, email: string, extra: Row = {}): Row => ({
   ...extra
 });
 
-/** Production: an admin, the admin's second account, a reader; four palettes, one with no seed; likes, one of a
-    deleted account; a session. */
+/** Production: an admin, the admin's second account, a reader, an account grabient-lite made an admin; four palettes,
+    one with no seed; likes, one of a deleted account; a session. */
 export async function production() {
   const db = memory(PRODUCTION_SCHEMA);
   insert(db, {
@@ -102,7 +102,8 @@ export async function production() {
     auth_user: [
       user("PA", "owner@example.test", { role: "admin", username: "john" }),
       user("PJ1234567890xyz", "alt@example.test"),
-      user("PU", "reader@example.test", { username: "johnny" })
+      user("PU", "reader@example.test", { username: "johnny", name: "Johnny R." }),
+      user("PB", "bob@example.test")
     ],
     auth_account: ["PA", "PJ1234567890xyz", "PU"].map(id => ({
       id: `acc-${id}`,
@@ -169,8 +170,9 @@ export async function production() {
   return snapshotOf(db);
 }
 
-/** grabient-lite: the same people under other ids, a persona, an account production lacks; Grabient's collection
-    and accounts' ones, with likes, notes, votes, the record, the queue, texts and translations. */
+/** grabient-lite: the same people under other ids, a persona, accounts production lacks; Grabient's collection and
+    accounts' ones, a reader's public one among them, with likes, notes, votes, the record, the queue, texts,
+    translations, switches, and the tags and search counts. */
 export async function lite() {
   const db = memory(PRODUCTION_SCHEMA);
   migrate(db);
@@ -212,7 +214,10 @@ export async function lite() {
       user("LJ", "alt@example.test", { username: "johnk" }),
       user("persona-ash", "ash@personas.grabient.invalid", { name: "Ash" }),
       user("LX", "new@example.test", { username: "johnny" }),
-      user("LY", "idle@example.test")
+      user("LY", "idle@example.test"),
+      user("LB", "BOB@example.test", { role: "admin" }),
+      user("LR", "reader@example.test"),
+      user("LF", "former@example.test", { name: "Former admin" })
     ],
     k_personas: [{ user_id: "persona-ash", agent: "grabient", handle: "ash", created_at: 1 }],
     k_palettes: [
@@ -239,7 +244,14 @@ export async function lite() {
         created_at: 8200,
         item_count: 2
       }),
-      collection("c4", "@johnny/mine", "user", "LX", { item_count: 1 })
+      collection("c4", "@johnny/mine", "user", "LX", { forked_from: "c1", item_count: 1 }),
+      collection("c5", "reader-picks", "user", "LR", {
+        visibility: "public",
+        published_at: 8400,
+        created_at: 8400,
+        item_count: 1
+      }),
+      collection("c6", "@john/blue-copy", "user", "LA", { forked_from: "c2", forked_base: "{}" })
     ],
     k_collection_items: [
       item("c1", 0, A, 8000),
@@ -247,7 +259,8 @@ export async function lite() {
       item("c2", 0, B, 8100),
       item("c3", 0, A, 8200),
       item("c3", 1, C, 8200),
-      item("c4", 0, C, 8300)
+      item("c4", 0, C, 8300),
+      item("c5", 0, B, 8400)
     ],
     k_likes: [
       {
@@ -284,13 +297,23 @@ export async function lite() {
         style: "linearGradient",
         angle: 90,
         created_at: 9800
+      },
+      {
+        user_id: "LA",
+        palette_id: A,
+        steps: 7,
+        style: "linearGradient",
+        angle: 90,
+        created_at: 9900,
+        collection_id: "c4"
       }
     ],
     k_collection_notes: [
       { id: "n1", collection_id: "c1", author_id: "LA", text: "warmer", created_at: 8500 }
     ],
     k_collection_votes: [
-      { collection_id: "c1", seed: A, user_id: "LA", vote: 1, created_at: 8600, updated_at: 8600 }
+      { collection_id: "c1", seed: A, user_id: "LA", vote: 1, created_at: 8600, updated_at: 8600 },
+      { collection_id: "c1", seed: C, user_id: "LJ", vote: -1, created_at: 8650, updated_at: 8650 }
     ],
     k_admin_actions: [
       { id: "a1", actor_id: "LA", action: "remove", seed: C, collection_id: "c1", created_at: 8700 }
@@ -302,7 +325,8 @@ export async function lite() {
         tool: "collection_publish",
         target: "warm-sunsets",
         created_at: 8000
-      }
+      },
+      { id: "x2", actor_id: "LF", tool: "palette_titles", target: A, created_at: 7000 }
     ],
     k_reviews: [
       {
@@ -346,15 +370,38 @@ export async function lite() {
         title: "Warme Sonnenuntergänge",
         updated_at: 1
       },
-      { kind: "tag", locale: "fr", key: "warm", title: "chaud", updated_at: 1 }
+      { kind: "tag", locale: "fr", key: "warm", title: "chaud", updated_at: 1 },
+      { kind: "collection", locale: "de", key: "c5", title: "Lesers Auswahl", updated_at: 1 }
     ],
-    k_flags: [{ name: "rising-3m", enabled: 0, updated_at: 1, updated_by: "LA" }],
+    k_flags: [
+      { name: "rising-3m", enabled: 0, updated_at: 1, updated_by: "LA" },
+      { name: "newsletter", enabled: 1, updated_at: 2, updated_by: "LA" }
+    ],
     k_search_votes: [
-      { query: "blue", seed: B, user_id: "LA", vote: 1, created_at: 1, updated_at: 1 }
+      { query: "blue", seed: B, user_id: "LA", vote: 1, created_at: 1, updated_at: 1 },
+      { query: "blue", seed: A, user_id: "LJ", vote: -1, created_at: 2, updated_at: 2 }
     ],
     k_popular_searches: [
-      { kind: "palettes", position: 0, value: "blue", words: "blue", score: 1, computed_at: 1 }
+      { kind: "palettes", position: 0, value: "blue", words: "blue", score: 1, computed_at: 1 },
+      {
+        kind: "collections",
+        position: 0,
+        value: "reader-picks",
+        words: "picks",
+        score: 1,
+        computed_at: 1
+      },
+      {
+        kind: "collections",
+        position: 1,
+        value: "nowhere",
+        words: "nowhere",
+        score: 1,
+        computed_at: 1
+      }
     ],
+    k_search_counts: [{ day: 1, page: "home", words: "blue", count: 3 }],
+    k_search_unread: [{ day: 1, page: "palettes", words: "jellyfish", count: 1 }],
     k_palette_use: [{ day: 1, seed: A, action: "copy", surface: "home", count: 1 }]
   });
   return snapshotOf(db);

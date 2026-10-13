@@ -109,7 +109,8 @@ describe("the copy of production", () => {
     const likes = one(
       `SELECT SUM(likes_count) AS n FROM k_palettes WHERE seed IN ('${A}', '${C}')`
     ).n;
-    expect(c1).toEqual({ fork_count: 1, likes_sum: likes, item_count: 2 });
+    /* the admin and a reader each hold a copy */
+    expect(c1).toEqual({ fork_count: 2, likes_sum: likes, item_count: 2 });
   });
 
   it("lets grabient-lite's like win over production's, with where it was pressed", () => {
@@ -128,7 +129,7 @@ describe("the copy of production", () => {
     expect(one("SELECT actor_id FROM k_admin_actions WHERE id = 'a1'").actor_id).toBe("PA");
     expect(one("SELECT reviewer_id FROM k_reviews").reviewer_id).toBe("PA");
     expect(one("SELECT actor FROM k_queue WHERE id = 'q1'").actor).toBe("persona-ash");
-    expect(one("SELECT COUNT(*) AS n FROM k_translations").n).toBe(2);
+    expect(one("SELECT COUNT(*) AS n FROM k_translations").n).toBe(3);
     expect(one("SELECT updated_by FROM k_flags").updated_by).toBe("PA");
     expect(one("SELECT user_id FROM k_search_votes").user_id).toBe("PA");
     expect(one("SELECT COUNT(*) AS n FROM k_popular_searches").n).toBe(0);
