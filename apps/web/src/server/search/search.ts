@@ -12,6 +12,7 @@ import type { Style } from "@grabient/engine/view.ts";
 import { labOf, sixDigits } from "@grabient/search/colors.ts";
 import { harmonyFilter, normalizeQuery, QUERY_MAX } from "@grabient/search/text.ts";
 import { queryIntent } from "@grabient/search/words.ts";
+import type { ListSort, RisingFrame } from "../../lib/orders.ts";
 import { isCrawler } from "../crawlers.ts";
 import {
   blendOf,
@@ -48,12 +49,10 @@ import {
 import {
   canonicalPaletteSeed,
   type Item,
-  type ListSort,
   looksLikeLink,
   normalizeListQuery,
   paletteId,
   parseSearchSort,
-  type RisingFrame,
   searchableItems,
   sortSearchItems
 } from "./seams.ts";

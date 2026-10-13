@@ -9,6 +9,7 @@ import { all } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import legacyGallery from "../../../data/legacy-k.json" with { type: "json" };
 import legacyLinks from "../../../data/legacy-links.json" with { type: "json" };
+import { DEFAULT_FRAME, type ListSort, type RisingFrame } from "../../lib/orders.ts";
 import { fitOf } from "../collections/fit.ts";
 import { collectionsHolding as holding } from "../collections/read.ts";
 import { publicCollections, suggestCollections } from "../collections/search.ts";
@@ -115,9 +116,6 @@ export function normalizeTypedQuery(raw: string | null | undefined): string {
 
 /* the palettes a search may show */
 
-export type ListSort = "popular" | "rising" | "newest" | "oldest";
-export type RisingFrame = "week" | "3m" | "1y";
-
 /** A palette as a list shows it: its own view, likes and age, and how fast it rises in each frame. */
 export interface Item {
   kseed: string;
@@ -140,7 +138,7 @@ export function parseSearchSort(value?: string | null): ListSort {
 export function sortSearchItems<T extends Item & { score?: number }>(
   items: readonly T[],
   sort: ListSort = "popular",
-  frame: RisingFrame = "week"
+  frame: RisingFrame = DEFAULT_FRAME
 ): T[] {
   const risen = (item: T) =>
     (frame === "3m" ? item.rising3m : frame === "1y" ? item.rising1y : item.rising) ?? 0;
