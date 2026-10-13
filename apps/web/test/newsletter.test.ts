@@ -1,8 +1,8 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
+import { first, run } from "@grabient/server/db/d1.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
-import { first, run } from "../src/server/db/d1.ts";
-import { setFlag } from "../src/server/flags/flags.ts";
 import { ISSUES } from "../src/server/newsletter/issues/index.ts";
 import { issueFoot, newsletterReaders } from "../src/server/newsletter/list.ts";
 import {

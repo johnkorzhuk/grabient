@@ -1,5 +1,5 @@
 import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
-import type { Deployment, Env } from "../env.ts";
+import type { Deployment, Env } from "@grabient/server/env.ts";
 
 /* Emails to the site's own address from the six-hour job, about what nobody would otherwise see until an app failed to
    connect. At most one a day of each kind, by a marker in OAUTH_KV kept two days. English and never translated: they go

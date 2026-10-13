@@ -7,8 +7,8 @@ import {
   msg,
   translate
 } from "@grabient/i18n";
-import { all, batch, first, type Statement } from "../db/d1.ts";
-import type { Env } from "../env.ts";
+import { all, batch, first, type Statement } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 /* The newsletter's list (migration 0051). An account gets the newsletter until it says otherwise: with no row, or a row
    that holds no choice, it is subscribed. It ends in Settings, on the page every issue links to, or by a mail app's own

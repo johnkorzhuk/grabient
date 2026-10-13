@@ -14,9 +14,9 @@ import {
   negotiateLocale,
   splitLocale
 } from "@grabient/i18n";
-import { all } from "../../db/d1.ts";
-import type { Env } from "../../env.ts";
-import { type Email, sendEmail } from "../send.ts";
+import { all } from "@grabient/server/db/d1.ts";
+import { type Email, sendEmail } from "@grabient/server/email/send.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 /* The three emails an account receives, as the Worker sends them: in the language of the page that asked, wearing one
    of the Rising list's first palettes, and carrying its head. An account email is opened the moment it comes, and a

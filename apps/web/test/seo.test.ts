@@ -1,6 +1,6 @@
-import { afterEach, describe, expect, it } from "vitest";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { afterEach, describe, expect, it } from "vitest";
 import { indexNowKeyFile, sendIndexNow } from "../src/server/seo/indexnow.ts";
 import {
   collectionRows,

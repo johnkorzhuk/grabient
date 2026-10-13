@@ -1,9 +1,9 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
+import { run } from "@grabient/server/db/d1.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import { alertOwner, documentAlert, signInDigest } from "../src/server/alerts/alerts.ts";
 import { contactResponse } from "../src/server/contact/contact.ts";
-import { run } from "../src/server/db/d1.ts";
 import { emailLocale, sendAccountEmail } from "../src/server/email/letters/account.ts";
 import {
   address,

@@ -1,8 +1,8 @@
 import type { Letter } from "@grabient/email";
 import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
 import { msg } from "@grabient/i18n";
-import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
 import type { Reader } from "./list.ts";
 
 /* An issue goes through Resend, never the EMAIL binding: Email Service takes only the emails a reader asked for. Every

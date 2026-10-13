@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it } from "vitest";
 import { setFlag } from "@grabient/server/flags/flags.ts";
+import { afterEach, describe, expect, it } from "vitest";
 import { cardAnswer, pngAnswer } from "../src/server/images/answers.ts";
 import golden from "../src/server/images/fixtures/pictures.json" with { type: "json" };
 import { get, testEnv, unique, watchLimits } from "./helpers.ts";
