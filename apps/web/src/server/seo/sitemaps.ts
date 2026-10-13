@@ -10,6 +10,7 @@ import {
 import { all, first } from "../db/d1.ts";
 import type { Env } from "../env.ts";
 import { sitemapQueries } from "../search/read.ts";
+import { isoDay } from "./text.ts";
 
 /* The sitemaps: an index of the others; the site's own pages in every language, each naming the rest; the searches
    worth an engine's visit; every public collection; and every gallery palette, in files of 5,000 by rowid. Each file
@@ -45,11 +46,6 @@ interface Entry {
 
 const escaped = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-/** A time as the day a sitemap says it changed. */
-function day(time: number | string | null | undefined): string | undefined {
-  const date = time == null ? null : new Date(time);
-  return date && Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : undefined;
-}
 const document = (body: string) => `<?xml version="1.0" encoding="UTF-8"?>\n${body}\n`;
 
 function urlset(entries: readonly Entry[], origin: string): string {
@@ -142,7 +138,7 @@ export function collectionsSitemap(
     seen.add(row.slug);
     entries.push({
       path: `/${row.slug}`,
-      lastmod: day(row.updatedAt),
+      lastmod: isoDay(row.updatedAt),
       image: collectionCard(row.slug, origin, row.updatedAt)
     });
   }
@@ -165,7 +161,7 @@ export function palettesSitemap(
     seen.add(seed);
     entries.push({
       path: paletteAddress(seed),
-      lastmod: day(row.createdAt),
+      lastmod: isoDay(row.createdAt),
       image: row.image && new URL(row.image, origin).toString()
     });
   }

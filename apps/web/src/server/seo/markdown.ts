@@ -7,6 +7,7 @@ import { collectionCard } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { AGENT_DATA } from "./agents.ts";
 import { legacySeed } from "./legacy.ts";
+import { isoDay } from "./text.ts";
 
 /* A palette or a collection as Markdown, at its address plus .md: for an agent that reads rather than looks. A
    palette's is the engine's, with what only the database knows: the words written for it that its colors bear out,
@@ -44,10 +45,6 @@ export interface MarkdownReads {
   isCollection(address: string): boolean;
 }
 
-const day = (time: number) => {
-  const date = new Date(time);
-  return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : "";
-};
 const markdown = (canonical: string, cache: Record<string, string>) => ({
   ...cache,
   ...AGENT_DATA,
@@ -70,7 +67,7 @@ export function collectionMarkdown(doc: CollectionWords, origin: string): string
 ${doc.description ? `${plain(doc.description)}\n\n` : ""}- Page: ${base}/${doc.slug}
 - Palettes: ${doc.itemCount}
 ${doc.tags.length ? `- Tags: ${doc.tags.map(plain).join(", ")}\n` : ""}- Collected by: ${plain(doc.owner)}
-- Updated: ${day(doc.updatedAt)}
+- Updated: ${isoDay(doc.updatedAt) ?? ""}
 
 ## Palettes
 
