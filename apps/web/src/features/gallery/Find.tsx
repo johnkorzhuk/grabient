@@ -11,6 +11,7 @@ import { SearchTags } from "../search/SearchTags.tsx";
 import { inPlace } from "./feed.ts";
 import { arrivedWhole, FIELD_MAX, readField, typedWords } from "./field.ts";
 import styles from "./gallery.module.css";
+import { own } from "./queries.ts";
 
 /* The search over a gallery list: the field, and the tags under it. Enter searches the words on the page the reader
    is on; a palette or a Grabient link pasted or dropped whole searches at once; an emptied field lets go of the words.
@@ -25,6 +26,14 @@ const TYPED = 12;
 /** The tags a page shows for its words: what its loader reads ahead, so they are in the page from its first paint. */
 export const tagsQuery = (words: string, home: boolean) =>
   suggestionsQuery(words, words ? { limit: TYPED } : { both: home, limit: AT_REST });
+
+/* the row's read: the last answer stands until the next lands, and the row draws its own copy (queries.ts) */
+const tagsView = (words: string, home: boolean) => ({
+  ...tagsQuery(words, home),
+  placeholderData: keepPreviousData,
+  select: (tags: readonly { label: string; href: string; colors: string[]; query?: string }[]) =>
+    own(tags)
+});
 
 /** What a page's search says to an agent in the browser (WebMCP's form annotations), in English as tools are named. */
 export interface FieldTool {
@@ -59,10 +68,7 @@ export function Find(props: {
     clearTimeout(pause);
     pause = setTimeout(() => setAsked(typedWords(text)), PAUSE);
   };
-  const tags = useQuery(() => ({
-    ...tagsQuery(asked(), home()),
-    placeholderData: keepPreviousData
-  }));
+  const tags = useQuery(() => tagsView(asked(), home()));
   const shown = () =>
     (tags.data ?? []).map(tag => ({
       label: tag.label,

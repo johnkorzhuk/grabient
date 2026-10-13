@@ -31,7 +31,7 @@ import { ListHeading } from "./ListHeading.tsx";
 import { Made } from "./Made.tsx";
 import { type Failed, failed, framesQuery } from "./queries.ts";
 import type { PaletteItem } from "./schema.ts";
-import { keptPage, type ListSource, type Page, pageQuery, readPage } from "./sources.ts";
+import { keptPage, type ListSource, type Page, pageView, readPage } from "./sources.ts";
 import { metaPage, searchedName } from "./titles.ts";
 
 /* The palette lists: Popular (/palettes) and Rising in its frame (/palettes/rising), each searched with `?q=`, and the
@@ -40,6 +40,13 @@ import { metaPage, searchedName } from "./titles.ts";
    one's first page lands; a failed read keeps them too, beside the reason and Retry. */
 
 type ListPlace = Exclude<GalleryPlace, { kind: "home" }>;
+type HeadOptions = ReturnType<UndefinedInitialDataOptions<unknown, Error, Page | Failed>>;
+/** Saved before the account is known: nothing is read */
+const UNKNOWN_OWNER: HeadOptions = {
+  queryKey: ["saved", "unknown"],
+  queryFn: () => null,
+  enabled: false
+};
 
 const TOOL = {
   name: "search_palettes",
@@ -75,12 +82,9 @@ export function Palettes(props: { place: ListPlace }) {
   });
   const signedOut = () => props.place.kind === "saved" && account() === null;
 
-  type HeadOptions = ReturnType<UndefinedInitialDataOptions<unknown, Error, Page | Failed>>;
   const head = useQuery((): HeadOptions => {
     const from = source();
-    if (!from) return { queryKey: ["saved", "unknown"], queryFn: () => null, enabled: false };
-    const { options, shape } = pageQuery(from, params().page);
-    return { ...(options as unknown as HeadOptions), select: shape };
+    return from ? (pageView(from, params().page) as unknown as HeadOptions) : UNKNOWN_OWNER;
   });
   /* the last page that stood: a read that fails leaves it on screen beside its reason */
   const standing = createMemo((last?: Page) => (failed(head.data) ? last : head.data));

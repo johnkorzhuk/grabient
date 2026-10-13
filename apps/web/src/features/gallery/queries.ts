@@ -23,6 +23,16 @@ import { HomeHead, PalettePage, SavedPage, SearchAnswer } from "./schema.ts";
    beside the reason and its Retry. A failure is never fresh. Freshness counts from the database read (`fetchedAt`),
    never from the moment an answer reached the browser. */
 
+/* How a page reads the cache without the cache holding the page:
+   - Query hands a page's reads to Solid's store, which adopts the objects it is given; adopted, a cached answer
+     would hold the page's reactive graph and its DOM for as long as the cache keeps it. A reader takes its own copy
+     (`own`), which goes with the page.
+   - A query keeps the options its last reader gave it, functions included, so every function a page passes is made
+     out here, where it captures no page. */
+
+/** A reader's own copy of what the cache holds. */
+export const own = <T>(data: T): T => structuredClone(data);
+
 /** A read that failed: why, in the reader's language, and on the server the status the page answers with. */
 export type Failed = { failed: string; status?: number };
 export const failed = (data: object): data is Failed => "failed" in data;
@@ -154,7 +164,8 @@ export const homeHeadQuery = (words: string) =>
     queryKey: ["home", words] as const,
     queryFn: ({ signal }) => readHead(words, signal),
     staleTime: freshFor(PUBLIC_TTL),
-    reconcile: "kseed"
+    reconcile: "kseed",
+    select: (data: HomeHead | Failed) => own(data)
   });
 
 export type CollectionOrder = "hot" | "popular";
@@ -190,7 +201,8 @@ export const collectionsPageQuery = (order: CollectionOrder, words: string, page
     queryKey: ["collections", order, words, COLLECTION_LIMIT, page] as const,
     queryFn: ({ signal }) => readCollections(order, words, page, signal),
     staleTime: freshFor(PUBLIC_TTL),
-    reconcile: "slug"
+    reconcile: "slug",
+    select: (data: CollectionPage | Failed) => own(data)
   });
 
 export interface SavedKey {
@@ -248,4 +260,9 @@ const readFrames = createIsomorphicFn()
 /** The Rising frames an admin has left on, as the page's document was told them: a page kept at the edge for minutes
     keeps them as long, and a turned-off frame's address leads to the week's list meanwhile. */
 export const framesQuery = () =>
-  queryOptions({ queryKey: ["frames"] as const, queryFn: () => readFrames(), staleTime: Infinity });
+  queryOptions({
+    queryKey: ["frames"] as const,
+    queryFn: () => readFrames(),
+    staleTime: Infinity,
+    select: (frames: RisingFrame[]) => [...frames]
+  });

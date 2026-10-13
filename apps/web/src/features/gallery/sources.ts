@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/solid-query";
 import type { ListSort, RisingFrame } from "../../lib/orders.ts";
 import type { ListParams } from "./address.ts";
-import { type Failed, failed, listPageQuery, savedQuery, searchQuery } from "./queries.ts";
+import { type Failed, failed, listPageQuery, own, savedQuery, searchQuery } from "./queries.ts";
 import type { PaletteItem, SearchAnswer } from "./schema.ts";
 import { sortSearch } from "./sort.ts";
 
@@ -77,6 +77,12 @@ export function pageQuery(source: ListSource, n: number) {
     options: listPageQuery({ sort: source.sort, frame: source.frame, limit, page: n }),
     shape: (data: unknown) => data as Page | Failed
   };
+}
+
+/** What a page reads for page `n`: the query, shaped into the page from the reader's own copy of its answer. */
+export function pageView(source: ListSource, n: number) {
+  const { options, shape } = pageQuery(source, n);
+  return { ...options, select: (data: unknown) => shape(own(data)) };
 }
 
 /** Page `n` as the cache holds it now; none when it holds nothing of it, or only a failure. */
