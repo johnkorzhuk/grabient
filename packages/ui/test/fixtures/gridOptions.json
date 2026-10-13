@@ -1,0 +1,508 @@
+{
+ "GRID_MAX_PIXELS": 16000000,
+ "GRID_MAX_SIDE": 8192,
+ "options": [
+  {
+   "input": {},
+   "options": {
+    "width": 400,
+    "height": 200,
+    "columns": 5,
+    "gap": 24,
+    "padding": 32,
+    "radius": 0
+   }
+  },
+  {
+   "input": {
+    "width": 0,
+    "height": -5,
+    "columns": 0,
+    "gap": -1,
+    "padding": -1,
+    "radius": -1
+   },
+   "options": {
+    "width": 1,
+    "height": 1,
+    "columns": 1,
+    "gap": 0,
+    "padding": 0,
+    "radius": 0
+   }
+  },
+  {
+   "input": {
+    "width": 9000,
+    "height": 9000,
+    "columns": 99,
+    "gap": 9000,
+    "padding": 9000,
+    "radius": 500
+   },
+   "options": {
+    "width": 8192,
+    "height": 8192,
+    "columns": 50,
+    "gap": 8192,
+    "padding": 8192,
+    "radius": 100
+   }
+  },
+  {
+   "input": {
+    "width": 101.4,
+    "height": 65.6,
+    "columns": 3.4,
+    "gap": 11,
+    "padding": 9,
+    "radius": 50
+   },
+   "options": {
+    "width": 101,
+    "height": 66,
+    "columns": 3,
+    "gap": 11,
+    "padding": 9,
+    "radius": 50
+   }
+  },
+  {
+   "input": {
+    "width": "x",
+    "height": null,
+    "columns": null
+   },
+   "options": {
+    "width": 400,
+    "height": 200,
+    "columns": 5,
+    "gap": 24,
+    "padding": 32,
+    "radius": 0
+   }
+  }
+ ],
+ "layouts": [
+  {
+   "count": 1,
+   "input": {
+    "width": 400,
+    "height": 200,
+    "columns": 5,
+    "gap": 24,
+    "padding": 32,
+    "radius": 0
+   },
+   "layout": {
+    "options": {
+     "width": 400,
+     "height": 200,
+     "columns": 5,
+     "gap": 24,
+     "padding": 32,
+     "radius": 0
+    },
+    "columns": 1,
+    "rows": 1,
+    "rawWidth": 464,
+    "rawHeight": 264,
+    "scale": 1,
+    "width": 464,
+    "height": 264
+   }
+  },
+  {
+   "count": 1,
+   "input": {
+    "width": 2400,
+    "height": 2400,
+    "columns": 10,
+    "gap": 200,
+    "padding": 200,
+    "radius": 100
+   },
+   "layout": {
+    "options": {
+     "width": 2400,
+     "height": 2400,
+     "columns": 10,
+     "gap": 200,
+     "padding": 200,
+     "radius": 100
+    },
+    "columns": 1,
+    "rows": 1,
+    "rawWidth": 2800,
+    "rawHeight": 2800,
+    "scale": 1,
+    "width": 2800,
+    "height": 2800
+   }
+  },
+  {
+   "count": 1,
+   "input": {
+    "width": 1920,
+    "height": 1080,
+    "columns": 2,
+    "gap": 108,
+    "padding": 162,
+    "radius": 58
+   },
+   "layout": {
+    "options": {
+     "width": 1920,
+     "height": 1080,
+     "columns": 2,
+     "gap": 108,
+     "padding": 162,
+     "radius": 58
+    },
+    "columns": 1,
+    "rows": 1,
+    "rawWidth": 2244,
+    "rawHeight": 1404,
+    "scale": 1,
+    "width": 2244,
+    "height": 1404
+   }
+  },
+  {
+   "count": 2,
+   "input": {
+    "width": 400,
+    "height": 200,
+    "columns": 5,
+    "gap": 24,
+    "padding": 32,
+    "radius": 0
+   },
+   "layout": {
+    "options": {
+     "width": 400,
+     "height": 200,
+     "columns": 5,
+     "gap": 24,
+     "padding": 32,
+     "radius": 0
+    },
+    "columns": 2,
+    "rows": 1,
+    "rawWidth": 888,
+    "rawHeight": 264,
+    "scale": 1,
+    "width": 888,
+    "height": 264
+   }
+  },
+  {
+   "count": 2,
+   "input": {
+    "width": 2400,
+    "height": 2400,
+    "columns": 10,
+    "gap": 200,
+    "padding": 200,
+    "radius": 100
+   },
+   "layout": {
+    "options": {
+     "width": 2400,
+     "height": 2400,
+     "columns": 10,
+     "gap": 200,
+     "padding": 200,
+     "radius": 100
+    },
+    "columns": 2,
+    "rows": 1,
+    "rawWidth": 5400,
+    "rawHeight": 2800,
+    "scale": 1,
+    "width": 5400,
+    "height": 2800
+   }
+  },
+  {
+   "count": 2,
+   "input": {
+    "width": 1920,
+    "height": 1080,
+    "columns": 2,
+    "gap": 108,
+    "padding": 162,
+    "radius": 58
+   },
+   "layout": {
+    "options": {
+     "width": 1920,
+     "height": 1080,
+     "columns": 2,
+     "gap": 108,
+     "padding": 162,
+     "radius": 58
+    },
+    "columns": 2,
+    "rows": 1,
+    "rawWidth": 4272,
+    "rawHeight": 1404,
+    "scale": 1,
+    "width": 4272,
+    "height": 1404
+   }
+  },
+  {
+   "count": 6,
+   "input": {
+    "width": 400,
+    "height": 200,
+    "columns": 5,
+    "gap": 24,
+    "padding": 32,
+    "radius": 0
+   },
+   "layout": {
+    "options": {
+     "width": 400,
+     "height": 200,
+     "columns": 5,
+     "gap": 24,
+     "padding": 32,
+     "radius": 0
+    },
+    "columns": 5,
+    "rows": 2,
+    "rawWidth": 2160,
+    "rawHeight": 488,
+    "scale": 1,
+    "width": 2160,
+    "height": 488
+   }
+  },
+  {
+   "count": 6,
+   "input": {
+    "width": 2400,
+    "height": 2400,
+    "columns": 10,
+    "gap": 200,
+    "padding": 200,
+    "radius": 100
+   },
+   "layout": {
+    "options": {
+     "width": 2400,
+     "height": 2400,
+     "columns": 10,
+     "gap": 200,
+     "padding": 200,
+     "radius": 100
+    },
+    "columns": 6,
+    "rows": 1,
+    "rawWidth": 15800,
+    "rawHeight": 2800,
+    "scale": 0.5184810126582279,
+    "width": 8192,
+    "height": 1451
+   }
+  },
+  {
+   "count": 6,
+   "input": {
+    "width": 1920,
+    "height": 1080,
+    "columns": 2,
+    "gap": 108,
+    "padding": 162,
+    "radius": 58
+   },
+   "layout": {
+    "options": {
+     "width": 1920,
+     "height": 1080,
+     "columns": 2,
+     "gap": 108,
+     "padding": 162,
+     "radius": 58
+    },
+    "columns": 2,
+    "rows": 3,
+    "rawWidth": 4272,
+    "rawHeight": 3780,
+    "scale": 0.9954019092117585,
+    "width": 4252,
+    "height": 3762
+   }
+  },
+  {
+   "count": 50,
+   "input": {
+    "width": 400,
+    "height": 200,
+    "columns": 5,
+    "gap": 24,
+    "padding": 32,
+    "radius": 0
+   },
+   "layout": {
+    "options": {
+     "width": 400,
+     "height": 200,
+     "columns": 5,
+     "gap": 24,
+     "padding": 32,
+     "radius": 0
+    },
+    "columns": 5,
+    "rows": 10,
+    "rawWidth": 2160,
+    "rawHeight": 2280,
+    "scale": 1,
+    "width": 2160,
+    "height": 2280
+   }
+  },
+  {
+   "count": 50,
+   "input": {
+    "width": 2400,
+    "height": 2400,
+    "columns": 10,
+    "gap": 200,
+    "padding": 200,
+    "radius": 100
+   },
+   "layout": {
+    "options": {
+     "width": 2400,
+     "height": 2400,
+     "columns": 10,
+     "gap": 200,
+     "padding": 200,
+     "radius": 100
+    },
+    "columns": 10,
+    "rows": 5,
+    "rawWidth": 26200,
+    "rawHeight": 13200,
+    "scale": 0.21509107001819713,
+    "width": 5635,
+    "height": 2839
+   }
+  },
+  {
+   "count": 50,
+   "input": {
+    "width": 1920,
+    "height": 1080,
+    "columns": 2,
+    "gap": 108,
+    "padding": 162,
+    "radius": 58
+   },
+   "layout": {
+    "options": {
+     "width": 1920,
+     "height": 1080,
+     "columns": 2,
+     "gap": 108,
+     "padding": 162,
+     "radius": 58
+    },
+    "columns": 2,
+    "rows": 25,
+    "rawWidth": 4272,
+    "rawHeight": 29916,
+    "scale": 0.2738334001871908,
+    "width": 1169,
+    "height": 8192
+   }
+  },
+  {
+   "count": 100,
+   "input": {
+    "width": 400,
+    "height": 200,
+    "columns": 5,
+    "gap": 24,
+    "padding": 32,
+    "radius": 0
+   },
+   "layout": {
+    "options": {
+     "width": 400,
+     "height": 200,
+     "columns": 5,
+     "gap": 24,
+     "padding": 32,
+     "radius": 0
+    },
+    "columns": 5,
+    "rows": 20,
+    "rawWidth": 2160,
+    "rawHeight": 4520,
+    "scale": 1,
+    "width": 2160,
+    "height": 4520
+   }
+  },
+  {
+   "count": 100,
+   "input": {
+    "width": 2400,
+    "height": 2400,
+    "columns": 10,
+    "gap": 200,
+    "padding": 200,
+    "radius": 100
+   },
+   "layout": {
+    "options": {
+     "width": 2400,
+     "height": 2400,
+     "columns": 10,
+     "gap": 200,
+     "padding": 200,
+     "radius": 100
+    },
+    "columns": 10,
+    "rows": 10,
+    "rawWidth": 26200,
+    "rawHeight": 26200,
+    "scale": 0.15267175572519084,
+    "width": 4000,
+    "height": 4000
+   }
+  },
+  {
+   "count": 100,
+   "input": {
+    "width": 1920,
+    "height": 1080,
+    "columns": 2,
+    "gap": 108,
+    "padding": 162,
+    "radius": 58
+   },
+   "layout": {
+    "options": {
+     "width": 1920,
+     "height": 1080,
+     "columns": 2,
+     "gap": 108,
+     "padding": 162,
+     "radius": 58
+    },
+    "columns": 2,
+    "rows": 50,
+    "rawWidth": 4272,
+    "rawHeight": 59616,
+    "scale": 0.1374127750939345,
+    "width": 587,
+    "height": 8192
+   }
+  }
+ ]
+}

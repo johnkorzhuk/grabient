@@ -1,0 +1,71 @@
+@layer components {
+  .host {
+    position: relative;
+    display: inline-flex;
+  }
+  /* the sheet opens above the button, on glass */
+  .sheet {
+    position: absolute;
+    bottom: calc(100% + var(--space-s2));
+    inset-inline-start: 0;
+    z-index: 40;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+    width: 320px;
+    max-width: calc(100vw - var(--space-s8));
+    padding: var(--space-s2);
+    border: 1px solid var(--color-glass-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-glass);
+    box-shadow: var(--color-shadow-pop);
+    -webkit-backdrop-filter: blur(var(--size-blur-glass));
+    backdrop-filter: blur(var(--size-blur-glass));
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-s2);
+  }
+  /* Back, its hairline and the list as one column: the hairline sits as close to its rows as a group's does */
+  .rows {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /* scrolls past what fits, as on a short phone at touch height; it holds the focus only while its rows change, so it
+     draws no ring of its own */
+  .list {
+    display: flex;
+    flex-direction: column;
+    max-height: min(58vh, 500px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    outline: none;
+    @media (pointer: coarse) {
+      max-height: min(45vh, 420px);
+    }
+  }
+  .back {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+  }
+  /* a row's end: its pixels, or a maker's chevron; a device's pixels keep their width, a device's name gives way */
+  .trail {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+    color: var(--color-ink3);
+    &[data-fixed] {
+      flex-shrink: 0;
+    }
+  }
+  .device {
+    min-width: 0;
+    overflow: hidden;
+    line-height: var(--font-lh-ui);
+    text-overflow: ellipsis;
+  }
+}

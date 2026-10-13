@@ -1,0 +1,706 @@
+{
+ "SIZE_MIN": 40,
+ "SIZE_MAX": 6000,
+ "presets": [
+  {
+   "value": "1080p",
+   "label": "1080p",
+   "w": 1920,
+   "h": 1080,
+   "part": null,
+   "group": true
+  },
+  {
+   "value": "1440p",
+   "label": "1440p",
+   "w": 2560,
+   "h": 1440,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "4k",
+   "label": "4K",
+   "w": 3840,
+   "h": 2160,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "ultrawide",
+   "label": "Ultrawide",
+   "w": 3440,
+   "h": 1440,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "iphone-max",
+   "label": "iPhone 16–18 Pro Max",
+   "w": 1320,
+   "h": 2868,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "iphone",
+   "label": "iPhone 17, 16–18 Pro",
+   "w": 1206,
+   "h": 2622,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "iphone-16",
+   "label": "iPhone 15, 16, 14–15 Pro",
+   "w": 1179,
+   "h": 2556,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "iphone-15-pro-max",
+   "label": "iPhone 14–15 Pro Max",
+   "w": 1290,
+   "h": 2796,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "iphone-13",
+   "label": "iPhone 12–14, 16e, 17e",
+   "w": 1170,
+   "h": 2532,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "iphone-11",
+   "label": "iPhone 11, XR",
+   "w": 828,
+   "h": 1792,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "iphone-duo-inner",
+   "label": "iPhone Duo",
+   "w": 1878,
+   "h": 2670,
+   "part": "inner",
+   "group": true
+  },
+  {
+   "value": "iphone-duo-cover",
+   "label": "iPhone Duo",
+   "w": 1398,
+   "h": 2034,
+   "part": "cover",
+   "group": false
+  },
+  {
+   "value": "ipad",
+   "label": "iPad, iPad Air 11″",
+   "w": 1640,
+   "h": 2360,
+   "part": null,
+   "group": true
+  },
+  {
+   "value": "ipad-10-2",
+   "label": "iPad 10.2″",
+   "w": 1620,
+   "h": 2160,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "ipad-air-13",
+   "label": "iPad Air 13″, Pro 12.9″",
+   "w": 2048,
+   "h": 2732,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "macbook",
+   "label": "MacBook Air 13″",
+   "w": 2560,
+   "h": 1664,
+   "part": null,
+   "group": true
+  },
+  {
+   "value": "macbook-m1",
+   "label": "MacBook Air M1, Pro 13″",
+   "w": 2560,
+   "h": 1600,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "macbook-air-15",
+   "label": "MacBook Air 15″",
+   "w": 2880,
+   "h": 1864,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "macbook-pro-14",
+   "label": "MacBook Pro 14″",
+   "w": 3024,
+   "h": 1964,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "macbook-pro-16",
+   "label": "MacBook Pro 16″",
+   "w": 3456,
+   "h": 2234,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "imac",
+   "label": "iMac 24″",
+   "w": 4480,
+   "h": 2520,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "studio-display",
+   "label": "iMac 27″, Studio Display",
+   "w": 5120,
+   "h": 2880,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "galaxy",
+   "label": "Galaxy S24–S26 Ultra",
+   "w": 1440,
+   "h": 3120,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "galaxy-s23-ultra",
+   "label": "Galaxy S22–S23 Ultra",
+   "w": 1440,
+   "h": 3088,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "galaxy-s26",
+   "label": "Galaxy S23–S26",
+   "w": 1080,
+   "h": 2340,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "galaxy-a",
+   "label": "Galaxy A15–A17, A54–A57",
+   "w": 1080,
+   "h": 2340,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "galaxy-a13",
+   "label": "Galaxy A13, A14",
+   "w": 1080,
+   "h": 2408,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "galaxy-a52",
+   "label": "Galaxy A05s, A32, A51–A53",
+   "w": 1080,
+   "h": 2400,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "galaxy-a12",
+   "label": "Galaxy A05–A07, A12",
+   "w": 720,
+   "h": 1600,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "pixel-11-pro-xl",
+   "label": "Pixel 9–11 Pro XL",
+   "w": 1344,
+   "h": 2992,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "pixel-11-pro",
+   "label": "Pixel 9–11 Pro",
+   "w": 1280,
+   "h": 2856,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "pixel-11",
+   "label": "Pixel 9–11, 9a, 10a",
+   "w": 1080,
+   "h": 2424,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "pixel-8",
+   "label": "Pixel 7, 8, 7a, 8a",
+   "w": 1080,
+   "h": 2400,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "redmi-note-17",
+   "label": "Redmi Note 17",
+   "w": 1080,
+   "h": 2396,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "redmi-note",
+   "label": "Redmi Note 11–14",
+   "w": 1080,
+   "h": 2400,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "redmi-12",
+   "label": "Redmi 12",
+   "w": 1080,
+   "h": 2460,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "redmi-a5",
+   "label": "Redmi A5, 14C",
+   "w": 720,
+   "h": 1640,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "redmi-13c",
+   "label": "Redmi 13C, 15C",
+   "w": 720,
+   "h": 1600,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "oppo-a3x",
+   "label": "OPPO A3x, A80",
+   "w": 720,
+   "h": 1604,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "oppo-a18",
+   "label": "OPPO A17, A18, A38",
+   "w": 720,
+   "h": 1612,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "vivo-y19s",
+   "label": "vivo Y19s, Y19s Pro",
+   "w": 720,
+   "h": 1608,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "vivo-y28s",
+   "label": "vivo Y17s, Y18, Y28s",
+   "w": 720,
+   "h": 1612,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "vivo-y16",
+   "label": "vivo Y16",
+   "w": 720,
+   "h": 1600,
+   "part": null,
+   "group": false
+  },
+  {
+   "value": "square",
+   "label": "Square",
+   "w": 1080,
+   "h": 1080,
+   "part": null,
+   "group": true
+  },
+  {
+   "value": "story",
+   "label": "Story",
+   "w": 1080,
+   "h": 1920,
+   "part": null,
+   "group": false
+  }
+ ],
+ "makers": [
+  {
+   "value": "apple",
+   "label": "Apple",
+   "items": [
+    "iphone-max",
+    "iphone",
+    "iphone-16",
+    "iphone-15-pro-max",
+    "iphone-13",
+    "iphone-11",
+    "iphone-duo-inner",
+    "iphone-duo-cover",
+    "ipad",
+    "ipad-10-2",
+    "ipad-air-13",
+    "macbook",
+    "macbook-m1",
+    "macbook-air-15",
+    "macbook-pro-14",
+    "macbook-pro-16",
+    "imac",
+    "studio-display"
+   ]
+  },
+  {
+   "value": "samsung",
+   "label": "Samsung",
+   "items": [
+    "galaxy",
+    "galaxy-s23-ultra",
+    "galaxy-s26",
+    "galaxy-a",
+    "galaxy-a13",
+    "galaxy-a52",
+    "galaxy-a12"
+   ]
+  },
+  {
+   "value": "google",
+   "label": "Google",
+   "items": [
+    "pixel-11-pro-xl",
+    "pixel-11-pro",
+    "pixel-11",
+    "pixel-8"
+   ]
+  },
+  {
+   "value": "xiaomi",
+   "label": "Xiaomi",
+   "items": [
+    "redmi-note-17",
+    "redmi-note",
+    "redmi-12",
+    "redmi-a5",
+    "redmi-13c"
+   ]
+  },
+  {
+   "value": "oppo",
+   "label": "OPPO",
+   "items": [
+    "oppo-a3x",
+    "oppo-a18"
+   ]
+  },
+  {
+   "value": "vivo",
+   "label": "vivo",
+   "items": [
+    "vivo-y19s",
+    "vivo-y28s",
+    "vivo-y16"
+   ]
+  }
+ ],
+ "rows": [
+  {
+   "value": "auto",
+   "label": "Auto",
+   "detail": "1280×720",
+   "items": 0,
+   "group": false
+  },
+  {
+   "value": "screen",
+   "label": "This screen",
+   "detail": "1920×1080",
+   "items": 0,
+   "group": false
+  },
+  {
+   "value": "1080p",
+   "label": "1080p",
+   "detail": "1920×1080",
+   "items": 0,
+   "group": true
+  },
+  {
+   "value": "1440p",
+   "label": "1440p",
+   "detail": "2560×1440",
+   "items": 0,
+   "group": false
+  },
+  {
+   "value": "4k",
+   "label": "4K",
+   "detail": "3840×2160",
+   "items": 0,
+   "group": false
+  },
+  {
+   "value": "ultrawide",
+   "label": "Ultrawide",
+   "detail": "3440×1440",
+   "items": 0,
+   "group": false
+  },
+  {
+   "value": "apple",
+   "label": "Apple",
+   "detail": null,
+   "items": 18,
+   "group": true
+  },
+  {
+   "value": "samsung",
+   "label": "Samsung",
+   "detail": null,
+   "items": 7,
+   "group": false
+  },
+  {
+   "value": "google",
+   "label": "Google",
+   "detail": null,
+   "items": 4,
+   "group": false
+  },
+  {
+   "value": "xiaomi",
+   "label": "Xiaomi",
+   "detail": null,
+   "items": 5,
+   "group": false
+  },
+  {
+   "value": "oppo",
+   "label": "OPPO",
+   "detail": null,
+   "items": 2,
+   "group": false
+  },
+  {
+   "value": "vivo",
+   "label": "vivo",
+   "detail": null,
+   "items": 3,
+   "group": false
+  },
+  {
+   "value": "square",
+   "label": "Square",
+   "detail": "1080×1080",
+   "items": 0,
+   "group": true
+  },
+  {
+   "value": "story",
+   "label": "Story",
+   "detail": "1080×1920",
+   "items": 0,
+   "group": false
+  }
+ ],
+ "resolve": [
+  [
+   null,
+   {
+    "width": 1280,
+    "height": 720
+   },
+   {
+    "width": 1280,
+    "height": 720
+   }
+  ],
+  [
+   {
+    "width": "auto",
+    "height": "auto"
+   },
+   {
+    "width": 1280,
+    "height": 720
+   },
+   {
+    "width": 1280,
+    "height": 720
+   }
+  ],
+  [
+   {
+    "width": 640,
+    "height": "auto"
+   },
+   {
+    "width": 1280,
+    "height": 720
+   },
+   {
+    "width": 640,
+    "height": 360
+   }
+  ],
+  [
+   {
+    "width": "auto",
+    "height": 300
+   },
+   {
+    "width": 1280,
+    "height": 720
+   },
+   {
+    "width": 533,
+    "height": 300
+   }
+  ],
+  [
+   {
+    "width": "auto",
+    "height": 6000
+   },
+   {
+    "width": 1280,
+    "height": 720
+   },
+   {
+    "width": 6000,
+    "height": 6000
+   }
+  ],
+  [
+   {
+    "width": 10,
+    "height": "auto"
+   },
+   {
+    "width": 1280,
+    "height": 720
+   },
+   {
+    "width": 10,
+    "height": 40
+   }
+  ]
+ ],
+ "parseSide": [
+  [
+   "auto",
+   39
+  ],
+  [
+   "Auto",
+   39
+  ],
+  [
+   "1,920",
+   1920
+  ],
+  [
+   "1.920",
+   1920
+  ],
+  [
+   "12,5",
+   12
+  ],
+  [
+   "640",
+   640
+  ],
+  [
+   "x",
+   null
+  ]
+ ],
+ "presetOf": [
+  [
+   null,
+   null,
+   "auto"
+  ],
+  [
+   {
+    "width": 1080,
+    "height": 1920
+   },
+   null,
+   "story"
+  ],
+  [
+   {
+    "width": 1920,
+    "height": 1080
+   },
+   null,
+   "1080p"
+  ],
+  [
+   {
+    "width": 1111,
+    "height": 777
+   },
+   null,
+   "custom"
+  ],
+  [
+   {
+    "width": 640,
+    "height": "auto"
+   },
+   null,
+   "custom"
+  ],
+  [
+   {
+    "width": 1111,
+    "height": 777
+   },
+   {
+    "width": 1111,
+    "height": 777
+   },
+   "screen"
+  ]
+ ]
+}

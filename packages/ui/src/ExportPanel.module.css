@@ -1,0 +1,88 @@
+@layer components {
+  /* in the side, with no card of its own; under 1100px of page the whole viewport under the header, ending where the
+     editor's pinned strip begins (--dock-h), since the strip is drawn over it */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: var(--space-s3);
+    width: 100%;
+    background-color: var(--color-paper-solid);
+    overscroll-behavior: contain;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-height: var(--size-control-big);
+    background-color: var(--color-paper-solid);
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-height: var(--size-control-sm);
+    padding-block: var(--space-s3) var(--space-s1);
+  }
+  /* a section of the settings: its name, then its numbers, under the dashed rule */
+  .section,
+  .files {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    margin-top: var(--space-s1);
+    padding-top: var(--space-s4);
+    background-image: var(--color-dash-rule);
+    background-position: left top;
+    background-size: var(--size-dash-period) 1px;
+    background-repeat: repeat-x;
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-s3);
+  }
+  /* the image as it will be, where the panel is the whole viewport: the room between the settings and the files */
+  .preview {
+    position: relative;
+    display: none;
+    flex-grow: 1;
+    min-height: calc(var(--size-card) / 2);
+  }
+  .files {
+    background-color: var(--color-paper-solid);
+  }
+  @container page (max-width: 1100px) {
+    .panel {
+      position: fixed;
+      top: calc(var(--size-top) + var(--size-hairline));
+      right: 0;
+      bottom: var(--dock-h, 0);
+      left: 0;
+      z-index: 45;
+      width: auto;
+      overflow-y: auto;
+      padding-inline: var(--space-s4);
+    }
+    .head {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      order: -2;
+      padding-top: var(--space-s3);
+    }
+    .preview {
+      display: block;
+    }
+    /* Copy and Download held at the foot, clear of a phone's home indicator */
+    .files {
+      position: sticky;
+      bottom: 0;
+      z-index: 1;
+      margin-top: auto;
+      padding-bottom: calc(var(--space-s3) + env(safe-area-inset-bottom, 0px));
+    }
+  }
+}

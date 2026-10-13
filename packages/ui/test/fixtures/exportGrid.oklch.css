@@ -1,0 +1,29 @@
+/* https://grabient.com/kY4mpDazO-mUuu_fuLqXU49dvVP6?angle=15 */
+.palette-1 {
+  background: linear-gradient(15deg in oklch, oklch(88.98% 0.1461 94.22) 0.0%, oklch(85.09% 0.1432 85.95) 16.7%, oklch(81.07% 0.1300 61.73) 33.3%, oklch(77.19% 0.1342 25.27) 50.0%, oklch(74.34% 0.1746 353.79) 66.7%, oklch(72.97% 0.2207 340.73) 83.3%, oklch(72.05% 0.2343 340.09) 100.0%);
+}
+
+/* https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?style=linearSwatches&steps=8&angle=45 */
+.palette-2 {
+  background: linear-gradient(45deg, oklch(98.82% 0.0580 108.27) 0.000% 12.500%, oklch(96.46% 0.0965 103.00) 12.500% 25.000%, oklch(85.04% 0.0951 57.56) 25.000% 37.500%, oklch(74.41% 0.1555 29.03) 37.500% 50.000%, oklch(65.35% 0.2163 20.57) 50.000% 62.500%, oklch(57.87% 0.2287 20.57) 62.500% 75.000%, oklch(53.15% 0.2136 24.80) 75.000% 87.500%, oklch(48.03% 0.1957 27.97) 87.500% 100.000%);
+}
+
+/* https://grabient.com/kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg?style=radialGradient&steps=9&angle=75 */
+.palette-3 {
+  background: radial-gradient(circle at 50% 50% in oklch, oklch(61.02% 0.0785 54.14) 0.0%, oklch(66.38% 0.0389 84.80) 12.5%, oklch(68.45% 0.0342 147.66) 25.0%, oklch(65.97% 0.0561 201.81) 37.5%, oklch(59.06% 0.0813 212.65) 50.0%, oklch(48.13% 0.0863 225.36) 62.5%, oklch(35.68% 0.0798 238.68) 75.0%, oklch(22.78% 0.0673 251.79) 87.5%, oklch(11.43% 0.0550 262.51) 100.0%);
+}
+
+/* https://grabient.com/kWs2um4jE-G62O7xwb3bkk-4?style=radialSwatches&steps=10&angle=105 */
+.palette-4 {
+  background: radial-gradient(circle at 50% 50%, oklch(70.47% 0.1474 234.14) 0.000% 10.000%, oklch(72.82% 0.1413 229.28) 10.000% 20.000%, oklch(76.25% 0.1353 221.02) 20.000% 30.000%, oklch(80.49% 0.1370 207.13) 30.000% 40.000%, oklch(85.26% 0.1440 189.52) 40.000% 50.000%, oklch(88.13% 0.1549 176.98) 50.000% 60.000%, oklch(89.24% 0.1701 169.01) 60.000% 70.000%, oklch(89.27% 0.1753 162.99) 70.000% 80.000%, oklch(87.93% 0.1940 158.60) 80.000% 90.000%, oklch(86.61% 0.2012 155.94) 90.000% 100.000%);
+}
+
+/* https://grabient.com/kSyQDAzZa8zgZxS?style=angularGradient&steps=11&angle=135 */
+.palette-5 {
+  background: conic-gradient(from 135deg in oklch, oklch(79.13% 0.0000 89.88) 0.0%, oklch(76.65% 0.0093 265.98) 10.0%, oklch(73.14% 0.0229 258.64) 20.0%, oklch(69.05% 0.0381 251.02) 30.0%, oklch(64.86% 0.0521 245.46) 40.0%, oklch(61.02% 0.0620 244.28) 50.0%, oklch(57.29% 0.0672 249.34) 60.0%, oklch(53.35% 0.0696 259.07) 70.0%, oklch(49.59% 0.0701 270.71) 80.0%, oklch(46.38% 0.0700 281.50) 90.0%, oklch(44.09% 0.0703 288.67) 100.0%);
+}
+
+/* https://grabient.com/kUzkiw66E-e4YQltnUXg?style=angularSwatches&steps=12&angle=165 */
+.palette-6 {
+  background: conic-gradient(from 165deg, oklch(81.10% 0.0992 248.20) 0.000% 8.333%, oklch(81.86% 0.0977 244.77) 8.333% 16.667%, oklch(82.94% 0.0953 239.78) 16.667% 25.000%, oklch(84.05% 0.0921 236.00) 25.000% 33.333%, oklch(84.89% 0.0870 235.99) 33.333% 41.667%, oklch(85.58% 0.0803 239.11) 41.667% 50.000%, oklch(86.14% 0.0730 244.66) 50.000% 58.333%, oklch(86.53% 0.0670 252.50) 58.333% 66.667%, oklch(86.68% 0.0651 263.64) 66.667% 75.000%, oklch(86.57% 0.0669 279.44) 75.000% 83.333%, oklch(86.36% 0.0752 295.32) 83.333% 91.667%, oklch(86.22% 0.0799 306.32) 91.667% 100.000%);
+}

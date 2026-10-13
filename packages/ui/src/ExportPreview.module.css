@@ -1,0 +1,71 @@
+@layer components {
+  .host {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* the clear ground a file's empty places are, as a checkerboard */
+  .ground {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background-image: conic-gradient(
+      var(--color-edge) 25%,
+      transparent 0 50%,
+      var(--color-edge) 0 75%,
+      transparent 0
+    );
+    background-size: 16px 16px;
+  }
+  .grid {
+    display: grid;
+    box-sizing: border-box;
+  }
+  .cell {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--corner);
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    --minus: 0;
+    &:hover,
+    &:focus-visible {
+      --minus: 1;
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      --minus: 1;
+    }
+  }
+  .minus {
+    position: absolute;
+    top: 50%;
+    inset-inline-start: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--space-s5);
+    height: var(--space-s5);
+    translate: -50% -50%;
+    border-radius: var(--radius-tight);
+    background-color: var(--color-art);
+    color: var(--color-on-art);
+    opacity: var(--minus);
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+}
