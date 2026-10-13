@@ -615,14 +615,14 @@ export function verifyStaging(
       .map(c => String(c.id))
   );
   const userColumns = full.meta.tables.auth_user!.columns;
-  const holderRows = bylined.map((id, i) => {
+  const holderRows = bylined.map(id => {
     const user = users.find(u => u.id === id)!;
     const at = Math.min(
       ...userCollections
         .filter(c => c.owner_id === id && c.visibility === "public")
         .map(c => Number(c.created_at))
     );
-    const holder = `byline-${i + 1}`;
+    const holder = holders.get(id)!;
     const set: Row = {
       id: holder,
       email: `${holder}@${BYLINE_MAIL}`,
@@ -727,12 +727,12 @@ export function verifyStaging(
         .map(([key]) => `${short(key)} is extra`)
     ];
   };
-  const own_tables = Object.entries(full.meta.tables).filter(
+  const ruled = Object.entries(full.meta.tables).filter(
     ([table, info]) => !info.skipped && table !== "k_flags" && !SEARCH_TABLES.includes(table)
   );
   check(
     "rows",
-    own_tables.flatMap(([table]) =>
+    ruled.flatMap(([table]) =>
       differ(
         table,
         [
@@ -745,10 +745,10 @@ export function verifyStaging(
         copy.rows(table)
       )
     ),
-    `every row of ${own_tables.length} tables the rule keeps, as it leaves it, and no other`
+    `every row of ${ruled.length} tables the rule keeps, as it leaves it, and no other`
   );
 
-  /* nothing names an account left out: no account column, and no id, email or private address in any text */
+  /* nothing names an account left out: no value of any row holds one's id, email or private address */
   const emails = new Set(left.map(user => String(user.email).toLowerCase()));
   const handles = new Set(left.map(user => accountHandle(user)));
   const named: string[] = [];
@@ -795,13 +795,13 @@ export function verifyStaging(
     itemRows.set(String(item.collection_id), (itemRows.get(String(item.collection_id)) ?? 0) + 1);
   }
   const scoreColumns = ["hot", ...Object.values(RISE_COLUMN)];
-  const unlike = (row: Row, was: Row | undefined, columns: readonly string[]) =>
+  const changed = (row: Row, was: Row | undefined, columns: readonly string[]) =>
     columns.filter(c => !was || Number(row[c]) !== Number(was[c]));
   check(
     "counts and scores",
     [
       ...copy.rows("k_palettes").flatMap(p => {
-        const off = unlike(p, fullPalettes.get(String(p.seed)), ["likes_count", ...scoreColumns]);
+        const off = changed(p, fullPalettes.get(String(p.seed)), ["likes_count", ...scoreColumns]);
         if (
           Number(p.likes_count) !==
           Number(p.legacy_likes_count) + (likeRows.get(String(p.seed)) ?? 0)
@@ -810,7 +810,7 @@ export function verifyStaging(
         return off.length ? [`palette ${p.seed}: ${off.join(", ")}`] : [];
       }),
       ...copy.rows("k_collections").flatMap(c => {
-        const off = unlike(c, fullCollections.get(String(c.id)), [
+        const off = changed(c, fullCollections.get(String(c.id)), [
           "item_count",
           "likes_sum",
           "fork_count",
