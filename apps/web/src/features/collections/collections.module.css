@@ -1,14 +1,19 @@
 /* The collections' pages: a collection's own, and the lists of them. The band above the row stands where the lists'
    search stands, so the row, the title and the cards land where the lists have them. */
 @layer components {
+  /* the lists' column: the window's width less its gutters, as the gallery's lists stand */
   .page {
+    container: page / inline-size;
     display: flex;
     flex-direction: column;
     min-width: 0;
-    max-width: var(--size-frame);
-    margin-inline: auto;
-    padding: var(--space-s8) var(--size-gutter) var(--space-s16);
-    container: page / inline-size;
+    min-height: 100vh;
+    padding-block: var(--space-s16) var(--space-s8);
+    padding-inline: var(--size-gutter);
+    @media (max-width: 800px) {
+      padding-block: var(--space-s10) var(--space-s16);
+      padding-inline: var(--space-s4);
+    }
   }
   .band,
   .find {
