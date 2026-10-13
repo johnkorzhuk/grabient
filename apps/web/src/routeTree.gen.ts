@@ -40,8 +40,10 @@ import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as SitemapChar123nameChar125DotxmlIndexRouteImport } from './routes/sitemap-{$name}[.]xml/index'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
 import { Route as Char123keyChar125DottxtIndexRouteImport } from './routes/{$key}[.]txt/index'
+import { Route as Char123nameChar125DotmdIndexRouteImport } from './routes/{$name}[.]md/index'
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
+import { Route as AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]md/index'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
 
@@ -204,6 +206,12 @@ const Char123keyChar125DottxtIndexRoute =
     path: '/{$key}.txt/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const Char123nameChar125DotmdIndexRoute =
+  Char123nameChar125DotmdIndexRouteImport.update({
+    id: '/{$name}.md/',
+    path: '/{$name}.md/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AtChar123handleChar125SlugIndexRoute =
   AtChar123handleChar125SlugIndexRouteImport.update({
     id: '/@{$handle}/$slug/',
@@ -214,6 +222,12 @@ const AtChar123handleChar125SlugRisingRoute =
   AtChar123handleChar125SlugRisingRouteImport.update({
     id: '/@{$handle}/$slug/rising',
     path: '/@{$handle}/$slug/rising',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125Char123slugChar125DotmdIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.md/',
+    path: '/@{$handle}/{$slug}.md/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const CollectionsRisingChar123FrameChar125Route =
@@ -261,10 +275,12 @@ export interface FileRoutesByFullPath {
   '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -298,10 +314,12 @@ export interface FileRoutesByTo {
   '/palettes': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.md': typeof Char123nameChar125DotmdIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.md': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -336,10 +354,12 @@ export interface FileRoutesById {
   '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -375,10 +395,12 @@ export interface FileRouteTypes {
     | '/palettes/'
     | '/sitemap-{$name}.xml/'
     | '/{$key}.txt/'
+    | '/{$name}.md/'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/@{$handle}/{$slug}.md/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -412,10 +434,12 @@ export interface FileRouteTypes {
     | '/palettes'
     | '/sitemap-{$name}.xml'
     | '/{$key}.txt'
+    | '/{$name}.md'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug'
+    | '/@{$handle}/{$slug}.md'
   id:
     | '__root__'
     | '/'
@@ -449,10 +473,12 @@ export interface FileRouteTypes {
     | '/palettes/'
     | '/sitemap-{$name}.xml/'
     | '/{$key}.txt/'
+    | '/{$name}.md/'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/@{$handle}/{$slug}.md/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -487,10 +513,12 @@ export interface RootRouteChildren {
   PalettesIndexRoute: typeof PalettesIndexRoute
   SitemapChar123nameChar125DotxmlIndexRoute: typeof SitemapChar123nameChar125DotxmlIndexRoute
   Char123keyChar125DottxtIndexRoute: typeof Char123keyChar125DottxtIndexRoute
+  Char123nameChar125DotmdIndexRoute: typeof Char123nameChar125DotmdIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
+  AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
 }
 
 declare module '@tanstack/solid-router' {
@@ -712,6 +740,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof Char123keyChar125DottxtIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/{$name}.md/': {
+      id: '/{$name}.md/'
+      path: '/{$name}.md'
+      fullPath: '/{$name}.md/'
+      preLoaderRoute: typeof Char123nameChar125DotmdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/@{$handle}/$slug/': {
       id: '/@{$handle}/$slug/'
       path: '/@{$handle}/$slug'
@@ -724,6 +759,13 @@ declare module '@tanstack/solid-router' {
       path: '/@{$handle}/$slug/rising'
       fullPath: '/@{$handle}/$slug/rising'
       preLoaderRoute: typeof AtChar123handleChar125SlugRisingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/{$slug}.md/': {
+      id: '/@{$handle}/{$slug}.md/'
+      path: '/@{$handle}/{$slug}.md'
+      fullPath: '/@{$handle}/{$slug}.md/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections/rising/{-$frame}': {
@@ -776,12 +818,15 @@ const rootRouteChildren: RootRouteChildren = {
   SitemapChar123nameChar125DotxmlIndexRoute:
     SitemapChar123nameChar125DotxmlIndexRoute,
   Char123keyChar125DottxtIndexRoute: Char123keyChar125DottxtIndexRoute,
+  Char123nameChar125DotmdIndexRoute: Char123nameChar125DotmdIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
   CollectionsRisingChar123FrameChar125Route:
     CollectionsRisingChar123FrameChar125Route,
   PalettesRisingChar123FrameChar125Route:
     PalettesRisingChar123FrameChar125Route,
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotmdIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
