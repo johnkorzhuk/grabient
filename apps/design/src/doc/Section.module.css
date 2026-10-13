@@ -1,0 +1,47 @@
+/* A section stands clear of the one before by the widest step of the scale. Its link brings its eyebrow to rest a
+   little under the sticky header, past the page's own scroll padding (base.css), its room above it drawn in. */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s10);
+  padding-top: var(--space-s16);
+  scroll-margin-top: calc(-1 * var(--space-s12));
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  max-width: var(--size-prose);
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+  min-width: 0;
+}
+
+/* a marker of ink3 in the rule's own dash, set in from the line's start */
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  max-width: var(--size-prose);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.rule {
+  position: relative;
+  padding-inline-start: var(--space-s5);
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline-start: var(--space-s1);
+    top: calc(var(--font-lh-ui) * 0.5em);
+    width: var(--space-s2);
+    height: 1px;
+    background-color: var(--color-ink3);
+  }
+}
