@@ -263,10 +263,12 @@ export function Profile(props: {
                 <Text variant="caption">{t("JPG, PNG or WebP, up to 5MB.")}</Text>
               </div>
             </div>
+            {/* the value follows what was typed: Solid writes it again whenever another of the field's states
+                changes (an error shown, the connection lost), which would put the saved name back */}
             <Field
               label={t("Username")}
               name="username"
-              value={props.name()}
+              value={typed() ?? props.name()}
               autocomplete="username"
               maxlength={USERNAME_MAX}
               invalid={failed()}
