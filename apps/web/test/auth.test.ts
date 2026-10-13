@@ -407,6 +407,17 @@ describe("sessions", () => {
     expect(await getSession(env, new Headers({ cookie: cached }), { fresh: true })).toBeNull();
     expect(await getSession(env, headers, { fresh: true })).toBeNull();
   });
+
+  it("end on signing out, with their cookies", async () => {
+    const env = testEnv();
+    const account = await makeAccount(env);
+    const out = await handleAuth(post("/api/auth/sign-out", {}, { cookie: account.cookie }), env);
+    expect([out.status, await out.json()]).toEqual([200, { success: true }]);
+    expect(out.headers.getSetCookie().some(cookie => /session_token=;/.test(cookie))).toBe(true);
+    expect(
+      await count(env, "SELECT COUNT(*) AS n FROM auth_session WHERE user_id = ?", account.id)
+    ).toBe(0);
+  });
 });
 
 describe("a Preview", () => {
@@ -533,7 +544,10 @@ describe("deleting an account", () => {
 
     const done = await confirm(owner.cookie, { token });
     expect(done.status, await done.clone().text()).toBe(200);
-    expect(done.headers.getSetCookie().some(cookie => /session_token=;/.test(cookie))).toBe(true);
+    // Every cookie the answer sets ends one: the session's, and its signed copy.
+    const ended = done.headers.getSetCookie();
+    expect(ended.some(cookie => /session_token=;/.test(cookie))).toBe(true);
+    expect(ended.every(cookie => /^[^=]+=; Max-Age=0/.test(cookie))).toBe(true);
     for (const [table, column] of [
       ["auth_user", "id"],
       ["auth_session", "user_id"],
