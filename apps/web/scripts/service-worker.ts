@@ -6,7 +6,7 @@ import { type Plugin, type Rolldown, transformWithOxc } from "vite";
 /* Writes /sw.js into the browser's build: src/sw/service-worker.ts with this build's files, which it keeps at install,
    the languages' first segments, and an id named by the files, so a build that changed nothing leaves the installed
    worker as it is. It keeps the scripts and styles every page needs and those of the pages that open with no
-   connection (features/account/connection.ts, opensOffline); any other page's files are kept as they are first
+   connection (app/connection.ts, opensOffline); any other page's files are kept as they are first
    fetched. With SW=off it writes a worker that takes itself and its caches out of every browser that has one. */
 
 const SOURCE = new URL("../src/sw/service-worker.ts", import.meta.url);
