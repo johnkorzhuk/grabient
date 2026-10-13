@@ -1,0 +1,585 @@
+{
+ "note": "The locale table (locales.ts) and what Intl gives in Node v25.0.0 (ICU 77.1, CLDR 47.0); workerd's ICU may differ in a digit's spacing.",
+ "LOCALES": [
+  "en",
+  "ar",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "id",
+  "ja",
+  "ko",
+  "pt-BR",
+  "ru",
+  "th",
+  "tr",
+  "uk",
+  "vi",
+  "zh-Hans"
+ ],
+ "DEFAULT_LOCALE": "en",
+ "LOCALE_COOKIE": "grabient-locale",
+ "MENU_ORDER": [
+  "id",
+  "de",
+  "en",
+  "es",
+  "fr",
+  "pt-BR",
+  "vi",
+  "tr",
+  "ru",
+  "uk",
+  "ar",
+  "fa",
+  "th",
+  "ja",
+  "ko",
+  "zh-Hans"
+ ],
+ "LOCALE_SEGMENTS": [
+  "ar",
+  "de",
+  "es",
+  "fa",
+  "fr",
+  "id",
+  "ja",
+  "ko",
+  "pt-br",
+  "ru",
+  "th",
+  "tr",
+  "uk",
+  "vi",
+  "zh-hans"
+ ],
+ "LOCALE_INFO": {
+  "en": {
+   "tag": "en",
+   "segment": "",
+   "name": "English",
+   "english": "English",
+   "dir": "ltr",
+   "hreflang": "en",
+   "og": "en_US",
+   "flag": "us"
+  },
+  "ar": {
+   "tag": "ar",
+   "segment": "ar",
+   "name": "العربية",
+   "english": "Arabic",
+   "dir": "rtl",
+   "hreflang": "ar",
+   "og": "ar_AR",
+   "flag": "eg"
+  },
+  "de": {
+   "tag": "de",
+   "segment": "de",
+   "name": "Deutsch",
+   "english": "German",
+   "dir": "ltr",
+   "hreflang": "de",
+   "og": "de_DE",
+   "flag": "de"
+  },
+  "es": {
+   "tag": "es",
+   "segment": "es",
+   "name": "Español",
+   "english": "Spanish",
+   "dir": "ltr",
+   "hreflang": "es",
+   "og": "es_ES",
+   "flag": "mx"
+  },
+  "fa": {
+   "tag": "fa",
+   "segment": "fa",
+   "name": "فارسی",
+   "english": "Persian",
+   "dir": "rtl",
+   "hreflang": "fa",
+   "og": "fa_IR",
+   "flag": "ir"
+  },
+  "fr": {
+   "tag": "fr",
+   "segment": "fr",
+   "name": "Français",
+   "english": "French",
+   "dir": "ltr",
+   "hreflang": "fr",
+   "og": "fr_FR",
+   "flag": "fr"
+  },
+  "id": {
+   "tag": "id",
+   "segment": "id",
+   "name": "Bahasa Indonesia",
+   "english": "Indonesian",
+   "dir": "ltr",
+   "hreflang": "id",
+   "og": "id_ID",
+   "flag": "id"
+  },
+  "ja": {
+   "tag": "ja",
+   "segment": "ja",
+   "name": "日本語",
+   "english": "Japanese",
+   "dir": "ltr",
+   "hreflang": "ja",
+   "og": "ja_JP",
+   "flag": "jp"
+  },
+  "ko": {
+   "tag": "ko",
+   "segment": "ko",
+   "name": "한국어",
+   "english": "Korean",
+   "dir": "ltr",
+   "hreflang": "ko",
+   "og": "ko_KR",
+   "flag": "kr"
+  },
+  "pt-BR": {
+   "tag": "pt-BR",
+   "segment": "pt-br",
+   "name": "Português",
+   "english": "Portuguese (Brazil)",
+   "dir": "ltr",
+   "hreflang": "pt",
+   "og": "pt_BR",
+   "flag": "br"
+  },
+  "ru": {
+   "tag": "ru",
+   "segment": "ru",
+   "name": "Русский",
+   "english": "Russian",
+   "dir": "ltr",
+   "hreflang": "ru",
+   "og": "ru_RU",
+   "flag": "ru"
+  },
+  "th": {
+   "tag": "th",
+   "segment": "th",
+   "name": "ไทย",
+   "english": "Thai",
+   "dir": "ltr",
+   "hreflang": "th",
+   "og": "th_TH",
+   "flag": "th"
+  },
+  "tr": {
+   "tag": "tr",
+   "segment": "tr",
+   "name": "Türkçe",
+   "english": "Turkish",
+   "dir": "ltr",
+   "hreflang": "tr",
+   "og": "tr_TR",
+   "flag": "tr"
+  },
+  "uk": {
+   "tag": "uk",
+   "segment": "uk",
+   "name": "Українська",
+   "english": "Ukrainian",
+   "dir": "ltr",
+   "hreflang": "uk",
+   "og": "uk_UA",
+   "flag": "ua"
+  },
+  "vi": {
+   "tag": "vi",
+   "segment": "vi",
+   "name": "Tiếng Việt",
+   "english": "Vietnamese",
+   "dir": "ltr",
+   "hreflang": "vi",
+   "og": "vi_VN",
+   "flag": "vn"
+  },
+  "zh-Hans": {
+   "tag": "zh-Hans",
+   "segment": "zh-hans",
+   "name": "简体中文",
+   "english": "Chinese (Simplified)",
+   "dir": "ltr",
+   "hreflang": "zh",
+   "og": "zh_CN",
+   "flag": "cn"
+  }
+ },
+ "intl": {
+  "en": {
+   "cardinal": [
+    "one",
+    "other"
+   ],
+   "ordinal": [
+    "one",
+    "two",
+    "few",
+    "other"
+   ],
+   "number": "1,234,567.891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "Oct 13, 2026",
+   "dateLong": "October 13, 2026",
+   "monthYear": "October 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/about",
+    "home": "/",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "ar": {
+   "cardinal": [
+    "zero",
+    "one",
+    "two",
+    "few",
+    "many",
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1,234,567.891",
+   "percent": "26‎%‎",
+   "integer": "3",
+   "dateMedium": "13‏/10‏/2026",
+   "dateLong": "13 أكتوبر 2026",
+   "monthYear": "أكتوبر 2026",
+   "dir": "rtl",
+   "localHref": {
+    "about": "/ar/about",
+    "home": "/ar",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "de": {
+   "cardinal": [
+    "one",
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1.234.567,891",
+   "percent": "26 %",
+   "integer": "3",
+   "dateMedium": "13.10.2026",
+   "dateLong": "13. Oktober 2026",
+   "monthYear": "Oktober 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/de/about",
+    "home": "/de",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "es": {
+   "cardinal": [
+    "one",
+    "many",
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1.234.567,891",
+   "percent": "26 %",
+   "integer": "3",
+   "dateMedium": "13 oct 2026",
+   "dateLong": "13 de octubre de 2026",
+   "monthYear": "octubre de 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/es/about",
+    "home": "/es",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "fa": {
+   "cardinal": [
+    "one",
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1,234,567.891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "21 مهر 1405",
+   "dateLong": "21 مهر 1405",
+   "monthYear": "1405 مهر",
+   "dir": "rtl",
+   "localHref": {
+    "about": "/fa/about",
+    "home": "/fa",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "fr": {
+   "cardinal": [
+    "one",
+    "many",
+    "other"
+   ],
+   "ordinal": [
+    "one",
+    "other"
+   ],
+   "number": "1 234 567,891",
+   "percent": "26 %",
+   "integer": "3",
+   "dateMedium": "13 oct. 2026",
+   "dateLong": "13 octobre 2026",
+   "monthYear": "octobre 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/fr/about",
+    "home": "/fr",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "id": {
+   "cardinal": [
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1.234.567,891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "13 Okt 2026",
+   "dateLong": "13 Oktober 2026",
+   "monthYear": "Oktober 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/id/about",
+    "home": "/id",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "ja": {
+   "cardinal": [
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1,234,567.891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "2026/10/13",
+   "dateLong": "2026年10月13日",
+   "monthYear": "2026年10月",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/ja/about",
+    "home": "/ja",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "ko": {
+   "cardinal": [
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1,234,567.891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "2026. 10. 13.",
+   "dateLong": "2026년 10월 13일",
+   "monthYear": "2026년 10월",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/ko/about",
+    "home": "/ko",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "pt-BR": {
+   "cardinal": [
+    "one",
+    "many",
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1.234.567,891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "13 de out. de 2026",
+   "dateLong": "13 de outubro de 2026",
+   "monthYear": "outubro de 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/pt-br/about",
+    "home": "/pt-br",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "ru": {
+   "cardinal": [
+    "one",
+    "few",
+    "many",
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1 234 567,891",
+   "percent": "26 %",
+   "integer": "3",
+   "dateMedium": "13 окт. 2026 г.",
+   "dateLong": "13 октября 2026 г.",
+   "monthYear": "октябрь 2026 г.",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/ru/about",
+    "home": "/ru",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "th": {
+   "cardinal": [
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1,234,567.891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "13 ต.ค. 2569",
+   "dateLong": "13 ตุลาคม 2569",
+   "monthYear": "ตุลาคม 2569",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/th/about",
+    "home": "/th",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "tr": {
+   "cardinal": [
+    "one",
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1.234.567,891",
+   "percent": "%26",
+   "integer": "3",
+   "dateMedium": "13 Eki 2026",
+   "dateLong": "13 Ekim 2026",
+   "monthYear": "Ekim 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/tr/about",
+    "home": "/tr",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "uk": {
+   "cardinal": [
+    "one",
+    "few",
+    "many",
+    "other"
+   ],
+   "ordinal": [
+    "few",
+    "other"
+   ],
+   "number": "1 234 567,891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "13 жовт. 2026 р.",
+   "dateLong": "13 жовтня 2026 р.",
+   "monthYear": "жовтень 2026 р.",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/uk/about",
+    "home": "/uk",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "vi": {
+   "cardinal": [
+    "other"
+   ],
+   "ordinal": [
+    "one",
+    "other"
+   ],
+   "number": "1.234.567,891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "13 thg 10, 2026",
+   "dateLong": "13 tháng 10, 2026",
+   "monthYear": "tháng 10 năm 2026",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/vi/about",
+    "home": "/vi",
+    "api": "/api/likes",
+    "undef": null
+   }
+  },
+  "zh-Hans": {
+   "cardinal": [
+    "other"
+   ],
+   "ordinal": [
+    "other"
+   ],
+   "number": "1,234,567.891",
+   "percent": "26%",
+   "integer": "3",
+   "dateMedium": "2026年10月13日",
+   "dateLong": "2026年10月13日",
+   "monthYear": "2026年10月",
+   "dir": "ltr",
+   "localHref": {
+    "about": "/zh-hans/about",
+    "home": "/zh-hans",
+    "api": "/api/likes",
+    "undef": null
+   }
+  }
+ }
+}
