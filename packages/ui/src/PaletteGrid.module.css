@@ -1,0 +1,32 @@
+@layer components {
+  /* the grid measures its own room, so a list beside a column draws fewer columns than one across the page */
+  .host {
+    container: list / inline-size;
+    flex-grow: 1;
+    min-width: 0;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--space-s10);
+    @container list (min-width: 728px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    @container list (min-width: 1168px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    @container list (min-width: 1424px) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    @container list (min-width: 1808px) {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    @container list (min-width: 2960px) {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    &[data-dense] {
+      grid-template-columns: repeat(auto-fill, minmax(var(--size-card-min), 1fr));
+    }
+  }
+}

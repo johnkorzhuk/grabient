@@ -1,0 +1,34 @@
+@layer components {
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s3);
+    min-width: 0;
+  }
+  .sections {
+    width: 240px;
+  }
+  .orders {
+    width: 440px;
+    /* the home has no order, and keeps its room so the cards stand where a list's do when the row wraps */
+    &[data-reserved] {
+      height: var(--size-control-big);
+      @media (pointer: coarse) {
+        height: calc(var(--size-touch) + var(--space-s1));
+      }
+    }
+  }
+  .sections,
+  .orders {
+    max-width: 100%;
+  }
+  /* on a phone both rows are full width, so the sections are the same size with or without the orders */
+  @container page (max-width: 800px) {
+    .nav,
+    .sections,
+    .orders {
+      width: 100%;
+    }
+  }
+}

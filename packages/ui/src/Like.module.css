@@ -1,0 +1,83 @@
+@layer components {
+  .like {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s2);
+    margin: 0;
+    border: 1px solid transparent;
+    --fill: transparent;
+    background-color: var(--fill);
+    font-family: var(--font-system);
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-medium);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+    /* in the line's own ink, which a card steps up while its picture is lit (--card-line) */
+    &[data-variant="plain"] {
+      height: var(--size-control);
+      padding-inline: var(--space-s2);
+      border-radius: var(--radius-control);
+      color: var(--card-line, var(--color-ink3));
+      font-size: var(--font-fs4);
+      &:hover {
+        --fill: var(--color-paper2);
+        color: var(--color-ink);
+      }
+      &[data-liked] {
+        color: var(--color-ink);
+      }
+    }
+    &[data-variant="art"] {
+      border-color: var(--color-art-edge);
+      --fill: var(--color-art);
+      color: var(--color-on-art);
+      backdrop-filter: blur(var(--size-blur-frost));
+      &:hover {
+        --fill: var(--color-art-hover);
+      }
+      &[data-size="sm"] {
+        height: var(--size-control-sm);
+        padding-inline: var(--space-s2);
+        border-radius: var(--radius-tight);
+        font-size: var(--font-fs2);
+      }
+      &[data-size="lg"] {
+        height: var(--size-control-big);
+        padding-inline: var(--space-s3);
+        border-radius: var(--radius-control);
+        font-size: var(--font-fs4);
+      }
+    }
+  }
+  .heart {
+    display: flex;
+    flex-shrink: 0;
+    [data-liked] > & {
+      color: var(--color-like);
+    }
+  }
+  /* trimmed to the cap height, so the row centers on the digits themselves */
+  .count {
+    display: inline-block;
+    text-box: trim-both cap alphabetic;
+  }
+}

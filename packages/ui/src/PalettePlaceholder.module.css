@@ -1,0 +1,40 @@
+@layer components {
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+  }
+  .art,
+  .age,
+  .like {
+    display: block;
+    background-color: var(--color-paper2);
+  }
+  .art {
+    height: var(--size-card);
+    border-radius: var(--radius-surface);
+  }
+  /* the line a card's meta takes, a finger's height on touch as the like is */
+  .line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: var(--size-control);
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  /* the two marks at the size their words take: an age, and a heart with its count */
+  .age,
+  .like {
+    height: 9px;
+    border-radius: var(--radius-tight);
+  }
+  .age {
+    width: 52px;
+  }
+  .like {
+    width: 34px;
+  }
+}
