@@ -367,6 +367,7 @@ export function MenuButton(props: {
         spread={props.full}
         disabled={props.disabled}
         aria-label={worded() ? undefined : props["aria-label"]}
+        aria-haspopup="menu"
         aria-expanded={open()}
         onClick={() => {
           setSub(null);

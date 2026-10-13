@@ -1,4 +1,4 @@
-import type { Element } from "solid-js";
+import { type Element, untrack } from "solid-js";
 import hidden from "./hidden.module.css";
 import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
@@ -20,8 +20,8 @@ export function NavLink(props: {
   children: Element;
 }) {
   const flag = (on: boolean | undefined) => (on ? "" : undefined);
-  /* a branch of its own, so every other link is its label alone */
-  return props.external ? (
+  /* a branch of its own, settled as it is drawn, so every other link is its label alone */
+  return untrack(() => props.external) ? (
     <a
       class={styles.link}
       data-small={flag(props.small)}
