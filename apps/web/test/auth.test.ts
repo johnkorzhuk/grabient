@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { confirmDeletion } from "../src/server/auth/deletion.ts";
+import { deleteAccount } from "../src/server/auth/deletion.ts";
 import { handleAuth } from "../src/server/auth/gate.ts";
 import { authFor } from "../src/server/auth/library.ts";
 import { getSession } from "../src/server/auth/session.ts";
@@ -407,6 +407,17 @@ describe("sessions", () => {
     expect(await getSession(env, new Headers({ cookie: cached }), { fresh: true })).toBeNull();
     expect(await getSession(env, headers, { fresh: true })).toBeNull();
   });
+
+  it("end on signing out, with their cookies", async () => {
+    const env = testEnv();
+    const account = await makeAccount(env);
+    const out = await handleAuth(post("/api/auth/sign-out", {}, { cookie: account.cookie }), env);
+    expect([out.status, await out.json()]).toEqual([200, { success: true }]);
+    expect(out.headers.getSetCookie().some(cookie => /session_token=;/.test(cookie))).toBe(true);
+    expect(
+      await count(env, "SELECT COUNT(*) AS n FROM auth_session WHERE user_id = ?", account.id)
+    ).toBe(0);
+  });
 });
 
 describe("a Preview", () => {
@@ -477,7 +488,7 @@ describe("deleting an account", () => {
     const token = link.searchParams.get("token") ?? "";
 
     const confirm = (cookie: string, body: unknown) =>
-      confirmDeletion(post("/api/settings/delete-account", body, { cookie }), env);
+      deleteAccount(post("/api/settings/delete-account", body, { cookie }), env);
     expect((await confirm(owner.cookie, { token: "" })).status).toBe(400);
     const theirs = await confirm(stranger.cookie, { token });
     expect([theirs.status, await theirs.json()]).toEqual([
@@ -533,7 +544,10 @@ describe("deleting an account", () => {
 
     const done = await confirm(owner.cookie, { token });
     expect(done.status, await done.clone().text()).toBe(200);
-    expect(done.headers.getSetCookie().some(cookie => /session_token=;/.test(cookie))).toBe(true);
+    // Every cookie the answer sets ends one: the session's, and its signed copy.
+    const ended = done.headers.getSetCookie();
+    expect(ended.some(cookie => /session_token=;/.test(cookie))).toBe(true);
+    expect(ended.every(cookie => /^[^=]+=; Max-Age=0/.test(cookie))).toBe(true);
     for (const [table, column] of [
       ["auth_user", "id"],
       ["auth_session", "user_id"],
@@ -571,7 +585,7 @@ describe("deleting an account", () => {
     const owner = await makeAccount(env);
     await handleAuth(post("/api/auth/delete-user", {}, { cookie: owner.cookie }), env);
     const token = env.EMAIL.link("/settings?token=").searchParams.get("token") ?? "";
-    const failed = await confirmDeletion(
+    const failed = await deleteAccount(
       post("/api/settings/delete-account", { token }, { cookie: owner.cookie }),
       env
     );
@@ -598,7 +612,7 @@ describe("deleting an account", () => {
     await handleAuth(post("/api/auth/delete-user", {}, { cookie: admin.cookie }), env);
     const token = env.EMAIL.link("/settings?token=").searchParams.get("token") ?? "";
     await env.DB.prepare("UPDATE auth_user SET role = 'admin' WHERE id = ?").bind(admin.id).run();
-    const confirmed = await confirmDeletion(
+    const confirmed = await deleteAccount(
       post("/api/settings/delete-account", { token }, { cookie: admin.cookie }),
       env
     );
