@@ -1,0 +1,72 @@
+/* The sheet hangs beneath the press that opened it, on glass over the page. An icon's sheet hangs from the row of
+   presses it stands in (a card's corner) and stays inside the card, whose width it never passes, so a card in the last
+   column never pushes the page sideways. Where the page is narrow it stands fixed under the top bar, the width of the
+   page less its gutters. */
+@layer components {
+  .host {
+    position: relative;
+    display: inline-flex;
+    &[data-icon] {
+      position: static;
+    }
+  }
+  .sheet {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + var(--space-s2));
+    inset-inline-start: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    width: var(--size-panel);
+    max-width: calc(100vw - var(--space-s8));
+    padding: var(--space-s4);
+    border: 1px solid var(--color-glass-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-glass);
+    backdrop-filter: blur(var(--size-blur-glass));
+    box-shadow: var(--color-shadow-pop);
+    [data-icon] > & {
+      max-width: min(calc(100vw - var(--space-s8)), calc(100cqi - 2 * var(--space-s3)));
+    }
+    @container page (max-width: 1100px) {
+      position: fixed;
+      top: calc(var(--size-top) + var(--size-control-big) + var(--space-s4));
+      inset-inline: var(--space-s4);
+      width: auto;
+      [data-icon] > & {
+        max-width: calc(100vw - var(--space-s8));
+      }
+    }
+  }
+  .form {
+    display: contents;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s2);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  /* the picture as the view would draw it, a card's own picture in miniature */
+  .picture {
+    height: calc(var(--size-control-big) + var(--space-s4));
+    border-radius: var(--radius-tight);
+  }
+  .fields {
+    display: flex;
+    gap: var(--space-s3);
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    min-height: var(--size-control);
+  }
+  .spacer {
+    margin-inline-start: auto;
+  }
+}

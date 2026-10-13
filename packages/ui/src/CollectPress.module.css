@@ -1,0 +1,36 @@
+/* The press keeps its box while it is open, so nothing beside it moves; open, the piece ends where the press stood and
+   floats under one shadow, small enough for every card and the stage. */
+@layer components {
+  .host {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    width: var(--size-control-sm);
+    height: var(--size-control-sm);
+    &[data-size="lg"] {
+      width: var(--size-control-big);
+      height: var(--size-control-big);
+    }
+    @media (pointer: coarse) {
+      &,
+      &[data-size="lg"] {
+        width: var(--size-touch);
+        height: var(--size-touch);
+      }
+    }
+  }
+  .open {
+    position: absolute;
+    z-index: 50;
+    top: 0;
+    inset-inline-end: 0;
+    display: flex;
+    flex-direction: column;
+    width: min(var(--size-panel), calc(100cqi - 2 * var(--space-s3)));
+    border-radius: var(--radius-control);
+    box-shadow: var(--color-shadow-pop);
+    &[data-small] {
+      border-radius: var(--radius-tight);
+    }
+  }
+}

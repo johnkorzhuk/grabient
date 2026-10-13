@@ -1,0 +1,17 @@
+/* A section of the export column, as Size and Layout are on its Export side: its name, then the list, under the
+   column's dashed rule. */
+@layer components {
+  .view {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+    margin: var(--space-s1) 0 0;
+    padding: var(--space-s4) 0 0;
+    border: 0;
+    background-image: var(--color-dash-rule);
+    background-size: var(--size-dash-period) var(--size-hairline);
+    background-repeat: repeat-x;
+    background-position: left top;
+  }
+}

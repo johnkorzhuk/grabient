@@ -1,0 +1,237 @@
+/* The checklist as one piece on one paper: the head on the input recipe, the rows joined under it, the head's lower
+   edge the line over them. Hung from a press it floats as a menu does, its rows standing in and a long list scrolling in
+   itself; in a column it is a field among fields, its rows and the hairlines between them running to its edges. Over a
+   card's picture it takes the small press's height and corners all through. */
+@layer components {
+  .piece {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .head {
+    display: flex;
+    min-width: 0;
+  }
+  /* the main part takes the row's room and gives way, where a joined part keeps its own width */
+  .grow {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  /* New collection and the title's field share one box, so the one turns into the other in place; its mark stands
+     over the rows' marks */
+  .make {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    width: 100%;
+    min-width: 0;
+    height: var(--size-control-big);
+    margin: 0;
+    padding-block: 0;
+    padding-inline: calc(var(--space-s2) + var(--space-s3)) var(--space-s3);
+    appearance: none;
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    text-align: start;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -4px;
+    transition:
+      color var(--motion-fast) var(--motion-ease),
+      border-color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+    /* in a column the rows run to the piece's edges, so the head's mark stands in by a row's own inset */
+    &[data-flush] {
+      padding-inline-start: var(--space-s3);
+    }
+    &[data-small] {
+      height: var(--size-control-sm);
+      border-radius: var(--radius-tight);
+      padding-inline-start: calc(var(--space-s1) + var(--space-s3));
+      @media (pointer: coarse) {
+        height: var(--size-touch);
+      }
+    }
+    &[data-over] {
+      border-end-start-radius: 0;
+      border-end-end-radius: 0;
+    }
+  }
+  /* a typed title in full ink, 16px under a finger so a phone does not zoom in; its placeholder keeps the words' size */
+  .field {
+    color: var(--color-ink);
+    cursor: text;
+    @media (pointer: coarse) {
+      font-size: var(--font-fs-touch);
+    }
+    &::placeholder {
+      color: var(--color-ink3);
+      font-size: var(--font-fs3);
+    }
+  }
+  .under {
+    padding: var(--space-s2);
+    border: 1px solid var(--color-edge2);
+    border-top-width: 0;
+    border-end-start-radius: var(--radius-control);
+    border-end-end-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    &:not([data-hung]) {
+      padding: 0;
+      overflow: hidden;
+    }
+    &[data-hung] {
+      max-height: 360px;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+    &[data-small] {
+      padding: var(--space-s1);
+      border-end-start-radius: var(--radius-tight);
+      border-end-end-radius: var(--radius-tight);
+    }
+  }
+  .list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s1);
+    &[data-flush] {
+      gap: 0;
+    }
+  }
+  .rule {
+    flex-shrink: 0;
+    height: var(--size-hairline);
+    margin-block: var(--space-s1);
+    margin-inline: var(--space-s3);
+    background-color: var(--color-glass-edge);
+    [data-flush] > & {
+      margin-inline: 0;
+      background-color: var(--color-edge2);
+    }
+  }
+  /* a row: its mark at the start, its colors under the pointer or the keyboard, which keep their room at rest */
+  .row {
+    --coins: 0;
+    &:hover,
+    &:focus-visible {
+      --coins: 1;
+    }
+    &[data-held] {
+      color: var(--color-ink);
+    }
+    &[data-flush] {
+      border-radius: 0;
+    }
+    &[data-small] {
+      min-height: var(--size-control-sm);
+      @media (pointer: coarse) {
+        min-height: var(--size-touch);
+      }
+    }
+  }
+  .mark {
+    display: flex;
+    flex-shrink: 0;
+    width: 14px;
+  }
+  .title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: var(--font-lh-ui);
+  }
+  .coins {
+    display: flex;
+    flex-shrink: 0;
+    gap: calc(2 * var(--size-hairline));
+    margin-inline-start: auto;
+  }
+  .coin {
+    width: 10px;
+    height: 10px;
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
+    opacity: var(--coins);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+  .count {
+    min-width: var(--space-s5);
+    text-align: end;
+  }
+  .group {
+    display: flex;
+    padding-inline: var(--space-s3);
+    padding-block: var(--space-s2) var(--space-s1);
+  }
+  /* the search is a row of the list with no box of its own: its glyph in the marks' column, its words in the titles' */
+  .seek {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-height: var(--size-control-big);
+    padding-inline: var(--space-s3);
+    color: var(--color-ink3);
+    cursor: text;
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+    &[data-small] {
+      min-height: var(--size-control-sm);
+      @media (pointer: coarse) {
+        min-height: var(--size-touch);
+      }
+    }
+  }
+  .seekField {
+    flex-grow: 1;
+    align-self: stretch;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    appearance: none;
+    border: 0;
+    background-color: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    outline: none;
+    @media (pointer: coarse) {
+      font-size: var(--font-fs-touch);
+    }
+    &::placeholder {
+      color: var(--color-ink3);
+      font-size: var(--font-fs3);
+    }
+    &::-webkit-search-cancel-button {
+      display: none;
+    }
+  }
+  .none {
+    padding-inline: var(--space-s3);
+    padding-block: var(--space-s2);
+    color: var(--color-ink3);
+  }
+}
