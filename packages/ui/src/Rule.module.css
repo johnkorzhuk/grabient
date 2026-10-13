@@ -1,0 +1,15 @@
+@layer components {
+  .rule {
+    flex-shrink: 0;
+    height: 1px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background-image: var(--color-dash-rule);
+    background-size: var(--size-dash-period) 1px;
+    background-repeat: repeat-x;
+    &[data-inset] {
+      margin-inline: var(--space-s4);
+    }
+  }
+}

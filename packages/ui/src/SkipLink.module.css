@@ -1,0 +1,36 @@
+@layer components {
+  .link {
+    position: fixed;
+    top: var(--space-s2);
+    inset-inline-start: var(--space-s2);
+    z-index: 200;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--size-control-big);
+    padding-inline: var(--space-s4);
+    border-radius: var(--radius-control);
+    background-color: var(--color-ink);
+    color: var(--color-on-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    text-decoration: none;
+    white-space: nowrap;
+    outline: 1px solid var(--color-ring);
+    outline-offset: 2px;
+    transform: translateY(-200%);
+    &:focus,
+    &[data-state="focus"] {
+      transform: none;
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  /* the page's content under the keyboard is no control, so it wears no ring of its own */
+  .landed,
+  .target {
+    outline: none;
+  }
+}

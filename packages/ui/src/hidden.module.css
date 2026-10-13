@@ -1,0 +1,12 @@
+/* Words for a reader who listens and nothing for one who looks: a box of one clipped pixel. Never display: none or
+   visibility: hidden, which would take the words from a screen reader too. */
+@layer components {
+  .text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

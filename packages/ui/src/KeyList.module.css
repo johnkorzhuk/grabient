@@ -1,0 +1,89 @@
+@layer components {
+  /* centered by its margins: a fixed box placed at left 50% has only half the screen to size itself in. A short or
+     zoomed screen scrolls the list inside itself; the keyboard stands on the sheet, which wears no ring */
+  .sheet {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(var(--space-s16) + var(--space-s3));
+    z-index: 60;
+    width: fit-content;
+    max-width: calc(100vw - var(--space-s8));
+    max-height: calc(100dvh - var(--space-s16) - var(--space-s3) - var(--space-s8));
+    margin-inline: auto;
+    padding: var(--space-s4) var(--space-s5) var(--space-s3);
+    overflow-y: auto;
+    border: 1px solid var(--color-glass-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-glass);
+    box-shadow: var(--color-shadow-pop);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    outline: none;
+    -webkit-backdrop-filter: blur(var(--size-blur-glass));
+    backdrop-filter: blur(var(--size-blur-glass));
+  }
+  .groups {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-s4) var(--space-s8);
+  }
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  .head {
+    margin: 0;
+    padding-bottom: var(--space-s1);
+    color: var(--color-ink3);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs0);
+    line-height: var(--font-lh-none);
+    letter-spacing: var(--font-ls-wide);
+    text-transform: uppercase;
+  }
+  .rows {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-s1) var(--space-s3);
+    margin: 0;
+  }
+  .keys {
+    display: flex;
+    justify-content: flex-end;
+    gap: calc(var(--space-s1) / 2);
+  }
+  .key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    padding-inline: var(--space-s1);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-tight);
+    background-color: var(--color-paper2);
+    color: var(--color-ink2);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs1);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+  }
+  /* a label may wrap on a phone, where the sheet is the screen's width */
+  .label {
+    margin: 0;
+  }
+  .foot {
+    margin-top: var(--space-s3);
+    padding-top: var(--space-s3);
+    border-top: 1px solid var(--color-glass-edge);
+    color: var(--color-ink3);
+    font-size: var(--font-fs1);
+  }
+}

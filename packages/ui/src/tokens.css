@@ -1,0 +1,220 @@
+/* Generated from tokens.json by scripts/build-tokens.ts. Edit tokens.json, then run pnpm --filter @grabient/ui tokens. */
+@layer reset, tokens, base, components;
+
+@layer tokens {
+  :root {
+    /* Ten steps on a 4px base, for gap and padding. */
+    --space-s1: 4px;
+    --space-s2: 8px;
+    --space-s3: 12px;
+    --space-s4: 16px;
+    --space-s5: 20px;
+    --space-s6: 24px;
+    --space-s8: 32px;
+    --space-s10: 40px;
+    --space-s12: 48px;
+    --space-s16: 64px;
+    /* Three radii and a circle. Nothing is a pill. */
+    --radius-tight: 6px; /* Small controls over artwork: card tools, copy chips, tags */
+    --radius-control: 10px; /* Buttons, inputs, links, tiles, code blocks, menu rows */
+    --radius-surface: 14px; /* Panes, sheets, cards, menus and notes */
+    --radius-circle: 999px; /* Circles only: the avatar, tag coins, a rail's handles */
+    /* Words in Poppins, values in the system stack, code in mono. */
+    --font-sans:
+      "Poppins", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; /* Poppins, the only loaded face: everything written */
+    --font-system:
+      system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+      sans-serif; /* Digits that carry a value, and the line under a heading */
+    --font-mono:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New",
+      monospace; /* Code, hex, seeds and token values */
+    --font-medium: 500;
+    --font-bold: 700;
+    --font-fs0: 10.5px; /* Chips and field labels */
+    --font-fs1: 11px; /* Micro labels */
+    --font-fs2: 12px; /* Buttons, captions, footers */
+    --font-fs3: 13px; /* UI text, inputs, status */
+    --font-fs4: 15px; /* Prose, subheadings */
+    --font-fs5: 18px; /* Section headings */
+    --font-fs6: 24px; /* Display */
+    --font-fs7: 32px; /* Page titles */
+    --font-fs-touch: 16px; /* Inputs on coarse pointers, so iOS never zooms */
+    --font-lh-none: 1; /* Single-line controls */
+    --font-lh-tight: 1.2; /* Titles */
+    --font-lh-ui: 1.45; /* Controls and lists */
+    --font-lh-prose: 1.7; /* Running text */
+    --font-ls-title: -0.025em;
+    --font-ls-heading: -0.01em;
+    --font-ls-micro: 0.12em;
+    --font-ls-wide: 0.16em; /* The or-separator */
+    /* Control heights and the fixed widths layouts rely on. */
+    --size-control: 32px; /* Default button, select, input in dense rows */
+    --size-control-sm: 28px; /* A small button: the copy chips over a card, a tag */
+    --size-control-big: 40px; /* Form inputs and primary actions */
+    --size-touch: 44px; /* Minimum target on coarse pointers */
+    --size-logo: 48px; /* Wordmark height on desktop */
+    --size-logo-phone: 38px; /* Wordmark height under 960px */
+    --size-gutter: 48px; /* Side margin of the app routes; 16px on a phone */
+    --size-top: 68px; /* The site header */
+    --size-top-brand: 84px; /* The header on login, settings and about */
+    --size-avatar: 40px; /* The account picture in the header, a control's height */
+    --size-avatar-lg: 64px;
+    --size-icon: 15px;
+    --size-icon-sm: 14px;
+    --size-frame: 1000px; /* Brand page frame max width */
+    --size-nav-col: 152px; /* Brand page side navigation */
+    --size-prose: 740px; /* Reading measure of the about page */
+    --size-sheet: 400px; /* The sign-in sheet */
+    --size-pane-bar: 3px; /* The bar along a pane's top edge */
+    --size-search: 480px; /* The search field at its widest */
+    --size-menu: 216px; /* Account menu minimum width */
+    --size-switch-min: 56px; /* Minimum width of the On/Off switch button */
+    --size-hairline: 1px; /* Rim thickness */
+    --size-dash: 2px; /* The dashed rule: 2px of ink on a 6px period */
+    --size-dash-period: 6px; /* The dashed rule's period: 2px of ink, then 4px clear */
+    --size-blur-frost: 10px; /* The sign-in sheet's frost */
+    --size-blur-glass: 18px; /* Menus and popovers */
+    --size-blur-top: 14px; /* The sticky header */
+    --size-tile: 56px; /* A style tile's artwork in the appearance menu */
+    --size-panel: 320px; /* The export column's width */
+    --size-editor-panel: 420px; /* The editor's panel down the right on a wide page */
+    --size-editor-panel-narrow: 380px; /* The editor's panel between 900 and 1280px of page */
+    --size-card: 300px; /* A palette card's picture: one height at every width */
+    --size-card-min: 320px; /* The narrowest card, beside the export column */
+    --size-strip: 72px; /* One row of the stops strip */
+    --size-strip-two: 56px; /* A row of the stops strip when it runs in two */
+    --size-strip-short: 52px; /* The stops strip pinned along the bottom of a phone */
+    --size-code: 480px; /* A code block at its tallest; longer code scrolls inside it */
+    --size-picker: 160px; /* A color picker's field of saturation and brightness */
+    --size-picker-width: 256px; /* A color picker's field and strip, across its panel */
+    --size-editor-peek: 88px; /* The sheet's title showing under the editor's first screen */
+    --size-thumb: 16px; /* A handle on the editor's keyframe rail */
+    --size-thumb-touch: 20px; /* A rail's handle on a coarse pointer */
+    --size-sample: 24px; /* A point on a picture that a color is read from */
+    /* Five durations and one ease, stilled by reduced motion. */
+    --motion-fast: 150ms; /* Hover and press color changes */
+    --motion-base: 220ms; /* Panels folding, rows sliding */
+    --motion-slow: 400ms; /* Logo bar stops, spill */
+    --motion-reveal: 560ms; /* The theme arriving from its button as a soft gradient */
+    --motion-dissolve: 300ms; /* The theme changing under reduced motion: a dissolve */
+    --motion-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  :root,
+  [data-theme="dark"] {
+    /* Ink for text, paper for surfaces, edge for borders. */
+    --color-bg: #0c0c0e; /* The page, set on html so the light behind shows through */
+    --color-sheet: #0f0f12; /* Solid sheets: the sidebar, the list options */
+    --color-ink: #ececea; /* Primary text, primary buttons, the logo */
+    --color-ink2: rgba(236, 236, 234, 0.64); /* Secondary text and prose */
+    --color-ink3: rgba(
+      236,
+      236,
+      234,
+      0.52
+    ); /* Labels, captions, help. At 4.5:1, the least text may have */
+    --color-ink4: rgba(236, 236, 234, 0.22); /* Placeholders and the scrollbar */
+    --color-ink-hover: #cfcfcd; /* Primary button under the pointer */
+    --color-on-ink: #0c0c0e; /* Text on an ink surface */
+    --color-on-ink2: rgba(
+      12,
+      12,
+      14,
+      0.62
+    ); /* Quieter text on an ink surface, as ink3 is on paper. At 5:1 */
+    --color-paper: rgba(255, 255, 255, 0.035); /* The quietest surface */
+    --color-paper2: rgba(255, 255, 255, 0.06); /* Buttons and inputs at rest, hovered rows */
+    --color-paper3: rgba(255, 255, 255, 0.1); /* Hovered buttons, the current row */
+    --color-paper-solid: #151518; /* Notes and figures that must be read: solid, not glass */
+    --color-frost: rgba(255, 255, 255, 0.035); /* The sign-in sheet: frosted, no outline */
+    --color-glass: rgba(
+      18,
+      18,
+      21,
+      0.92
+    ); /* Menus and popovers, opaque enough to read over artwork */
+    --color-glass-edge: rgba(255, 255, 255, 0.12);
+    --color-art: rgba(
+      16,
+      16,
+      20,
+      0.62
+    ); /* Glass over artwork, a card's tools: the same in both themes */
+    --color-art-hover: rgba(16, 16, 20, 0.8); /* The glass over artwork, hovered or pressed */
+    --color-art-edge: rgba(255, 255, 255, 0.18); /* The edge of glass over artwork */
+    --color-on-art: #f4f4f2; /* Ink on glass over artwork */
+    --color-on-light: #000000; /* Black label on a light chip, chosen by contrast */
+    --color-on-dark: #ffffff; /* White label on a dark chip, chosen by contrast */
+    --color-edge: rgba(255, 255, 255, 0.075); /* Borders at rest */
+    --color-edge2: rgba(255, 255, 255, 0.14); /* Borders of inputs and hovered controls */
+    --color-sheen: rgba(255, 255, 255, 0.07); /* The 1px highlight along a paper's top edge */
+    --color-ring: rgba(
+      236,
+      236,
+      234,
+      0.45
+    ); /* Focus: 3:1 against the page and paper in both themes */
+    --color-accent: #f0a531; /* Chroma amber: measurements, redlines, the one accent */
+    --color-danger: #d45454; /* Errors and destructive actions */
+    --color-like: #d63b34; /* The heart, once a palette is liked */
+    --color-star: #f0a531; /* The star beside the code's count on GitHub */
+    --color-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.85); /* A frame lifted off the canvas */
+    --color-shadow-pop:
+      0 18px 40px -16px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.3); /* Menus and popovers */
+    --color-shadow-frost: 0 30px 70px -40px rgba(0, 0, 0, 0.6); /* The sign-in sheet: deep and soft */
+    --color-rim:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.17); /* The cut edge of a hole in the paper */
+    --color-hole-rim: rgba(255, 255, 255, 0.3); /* The hairline around the wordmark's open bar */
+    --color-dash-rule: linear-gradient(
+      to right,
+      rgba(236, 236, 234, 0.14) 0,
+      rgba(236, 236, 234, 0.14) 2px,
+      transparent 2px,
+      transparent 6px
+    ); /* The one rule, a faint dash: 2px on, 4px off */
+    --color-grain: 0.045; /* Opacity of the paper grain */
+    --color-scheme: dark; /* color-scheme for native controls */
+  }
+
+  [data-theme="light"] {
+    --color-bg: #f3f2ee;
+    --color-sheet: #f8f7f4;
+    --color-ink: #17171b;
+    --color-ink2: rgba(23, 23, 27, 0.66);
+    --color-ink3: rgba(23, 23, 27, 0.62);
+    --color-ink4: rgba(23, 23, 27, 0.24);
+    --color-ink-hover: #2f2f36;
+    --color-on-ink: #f8f7f4;
+    --color-on-ink2: rgba(248, 247, 244, 0.52);
+    --color-paper: rgba(255, 255, 255, 0.64);
+    --color-paper2: rgba(20, 20, 24, 0.045);
+    --color-paper3: rgba(20, 20, 24, 0.085);
+    --color-paper-solid: #faf9f7;
+    --color-frost: rgba(255, 255, 255, 0.5);
+    --color-glass: rgba(250, 249, 247, 0.92);
+    --color-glass-edge: rgba(20, 20, 24, 0.1);
+    --color-edge: rgba(20, 20, 24, 0.085);
+    --color-edge2: rgba(20, 20, 24, 0.16);
+    --color-sheen: rgba(255, 255, 255, 0.9);
+    --color-ring: rgba(23, 23, 27, 0.5);
+    --color-accent: #a35f04;
+    --color-danger: #c43d3d;
+    --color-like: #c9332c;
+    --color-shadow: 0 24px 48px -28px rgba(30, 30, 40, 0.35);
+    --color-shadow-pop: 0 18px 40px -16px rgba(30, 30, 40, 0.28), 0 2px 8px rgba(30, 30, 40, 0.08);
+    --color-shadow-frost: 0 30px 70px -40px rgba(30, 30, 40, 0.45);
+    --color-rim:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 0 0 1px rgba(20, 20, 24, 0.06);
+    --color-hole-rim: rgba(20, 20, 24, 0.22);
+    --color-dash-rule: linear-gradient(
+      to right,
+      rgba(23, 23, 27, 0.16) 0,
+      rgba(23, 23, 27, 0.16) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+    --color-grain: 0.06;
+    --color-scheme: light;
+  }
+}

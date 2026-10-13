@@ -1,0 +1,44 @@
+/* A row of tabs as CodeTabs draws it, and the one Copy that stands in it: words on no fill, the chosen tab on paper,
+   the row one Tab stop walked by the arrows. */
+@layer components {
+  .tab {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    height: var(--size-control-sm);
+    margin: 0;
+    padding-inline: var(--space-s2);
+    border: 0;
+    border-radius: var(--radius-tight);
+    --fill: transparent;
+    background-color: var(--fill);
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      --fill: var(--color-paper2);
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &[aria-selected="true"] {
+      --fill: var(--color-paper3);
+      color: var(--color-ink);
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+      min-width: var(--size-touch);
+    }
+  }
+}

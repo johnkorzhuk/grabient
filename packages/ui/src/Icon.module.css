@@ -1,0 +1,9 @@
+@layer components {
+  .icon {
+    display: block;
+    flex-shrink: 0;
+    &[data-turns]:dir(rtl) {
+      transform: scaleX(-1);
+    }
+  }
+}

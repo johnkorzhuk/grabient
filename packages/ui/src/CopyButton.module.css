@@ -1,0 +1,31 @@
+@layer components {
+  /* an action, never an unchosen tab: a step up in ink at rest */
+  .press {
+    composes: tab from "./tabs.module.css";
+    gap: var(--space-s2);
+    color: var(--color-ink2);
+    &:hover {
+      color: var(--color-ink);
+    }
+  }
+  .words {
+    display: grid;
+  }
+  .word {
+    grid-area: 1 / 1;
+    &[data-unseen] {
+      visibility: hidden;
+    }
+  }
+  /* where a row needs its room (a bar of tabs on a phone) the word is clipped: the glyph shows and the name stays */
+  @container page (max-width: 600px) {
+    .words[data-compact] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
+}

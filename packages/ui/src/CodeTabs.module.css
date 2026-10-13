@@ -1,0 +1,22 @@
+@layer components {
+  .guide {
+    composes: quiet from "./link.module.css";
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s1);
+    min-height: var(--size-control-sm);
+    margin-inline-start: auto;
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    white-space: nowrap;
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .glyph {
+    display: inline-flex;
+    color: var(--color-ink3);
+  }
+}

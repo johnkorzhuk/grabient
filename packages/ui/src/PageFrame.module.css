@@ -1,0 +1,115 @@
+@layer components {
+  /* at least the screen below the header (whose rule keeps its hairline when hidden), so the footer reaches the bottom
+     of the screen; never shorter than its content, where sign-in's pinned footer would land on it */
+  .page {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 0;
+    min-width: 0;
+    min-height: calc(var(--frame-h, 100vh) - var(--size-top-brand) - var(--size-hairline));
+  }
+  .frame {
+    display: grid;
+    grid-template-columns: var(--size-nav-col) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--space-s10);
+    width: 100%;
+    max-width: var(--size-frame);
+    margin-inline: auto;
+    padding: var(--space-s12) var(--space-s6) var(--space-s6);
+  }
+  /* sign-in: centered on a wide page with as much room above as the pinned footer takes below, and at the bottom on a
+     phone within reach of a thumb; the screen's keyboard scrolls the field into view itself */
+  .page[data-login] > .frame {
+    --foot: calc(var(--size-touch) + var(--space-s6) + var(--space-s4));
+    display: flex;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    max-width: none;
+    margin-inline: 0;
+    padding: var(--foot) var(--space-s6);
+  }
+  .page[data-login][data-noted] > .frame {
+    --foot: calc(var(--size-touch) + var(--space-s6) + var(--space-s4) + var(--space-s8));
+  }
+  .nav {
+    position: sticky;
+    top: calc(var(--size-top-brand) + var(--space-s6));
+    display: grid;
+    gap: var(--space-s1);
+  }
+  /* the way home, as a small button with the back glyph; on a phone the header's wordmark is the way home */
+  .all {
+    display: flex;
+    margin-bottom: var(--space-s3);
+  }
+  .links {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-s1);
+  }
+  .item {
+    display: contents;
+    /* a page for the keyboard alone, left out of a screen whose only pointer is a finger */
+    @media (hover: none) and (pointer: coarse) {
+      &[data-keyboard] {
+        display: none;
+      }
+    }
+  }
+  .body {
+    min-width: 0;
+    .page[data-login] & {
+      width: 100%;
+      max-width: var(--size-sheet);
+    }
+  }
+  .content {
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs4);
+    line-height: var(--font-lh-prose);
+  }
+  /* the footer's wrapper takes the column's remaining room, so the links fall to the bottom; sign-in's is pinned to
+     the bottom of the screen on a wide page */
+  .foot {
+    margin-top: auto;
+    .page[data-login] > & {
+      position: absolute;
+      right: 0;
+      bottom: 0;
+      left: 0;
+    }
+  }
+
+  @container page (max-width: 800px) {
+    .frame {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--space-s5);
+      max-width: 740px;
+      padding: var(--space-s4) var(--space-s4) var(--space-s5);
+    }
+    .page[data-login] > .frame {
+      align-items: flex-end;
+      padding: var(--space-s6) var(--space-s4) 0;
+    }
+    .nav {
+      position: static;
+    }
+    .all {
+      display: none;
+    }
+    /* a wrapping row, each link as wide as its name, so longer names in other languages wrap */
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    .page[data-login] > .foot {
+      position: static;
+    }
+  }
+}

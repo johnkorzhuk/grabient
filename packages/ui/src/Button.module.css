@@ -1,0 +1,176 @@
+@layer components {
+  .rimHost {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    &:hover,
+    &[data-state="hover"],
+    &[data-state="pressed"] {
+      --rim-hover: 0.35;
+    }
+    &:focus-within,
+    &[data-state="focus"] {
+      --rim-focus: 1;
+    }
+    &[data-full] {
+      width: 100%;
+    }
+  }
+  .button {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s2);
+    height: var(--size-control);
+    padding-block: 0;
+    padding-inline: var(--space-s3);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    --fill: var(--color-paper2);
+    background-color: var(--fill);
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    text-decoration: none;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+
+    /* a press is a hover as well: the pointer is over what it presses */
+    &:hover,
+    &:active,
+    &[data-state="hover"],
+    &[data-state="pressed"] {
+      --fill: var(--color-paper3);
+      color: var(--color-ink);
+    }
+    &:focus-visible,
+    &[data-state="focus"] {
+      outline-width: 1px;
+    }
+
+    &[data-variant="primary"] {
+      --fill: var(--color-ink);
+      border-color: transparent;
+      color: var(--color-on-ink);
+      &:hover,
+      &:active,
+      &[data-state="hover"],
+      &[data-state="pressed"] {
+        --fill: var(--color-ink-hover);
+        color: var(--color-on-ink);
+      }
+    }
+    &[data-variant="ghost"] {
+      --fill: transparent;
+      border-color: transparent;
+      &:hover,
+      &:active,
+      &[data-state="hover"],
+      &[data-state="pressed"] {
+        --fill: var(--color-paper2);
+      }
+    }
+    /* over a picture: dark glass with pinned light ink, the same in both themes, since it sits on the palette rather
+       than the page. Its ring is the light ink just inside the glass, where no palette can hide it */
+    &[data-variant="art"] {
+      --fill: var(--color-art);
+      border-color: var(--color-art-edge);
+      color: var(--color-on-art);
+      outline-color: var(--color-on-art);
+      outline-offset: -3px;
+      -webkit-backdrop-filter: blur(var(--size-blur-frost));
+      backdrop-filter: blur(var(--size-blur-frost));
+      &:hover,
+      &:active,
+      &[data-state="hover"],
+      &[data-state="pressed"] {
+        --fill: var(--color-art-hover);
+        color: var(--color-on-art);
+      }
+    }
+    /* the input recipe, among fields: their paper and edge, and their rim for focus */
+    &[data-variant="input"] {
+      position: relative;
+      --fill: var(--color-paper-solid);
+      border-color: var(--color-edge2);
+      color: var(--color-ink);
+      font-weight: var(--font-medium);
+      &:hover,
+      &:active,
+      &[data-state] {
+        --fill: var(--color-paper-solid);
+        color: var(--color-ink);
+      }
+      &:focus-visible {
+        outline-width: 0;
+      }
+    }
+
+    &[data-size="lg"] {
+      height: var(--size-control-big);
+      padding-inline: var(--space-s4);
+      font-size: var(--font-fs3);
+      /* among fields its words start where theirs do */
+      &[data-variant="input"] {
+        padding-inline: var(--space-s3);
+      }
+    }
+    /* the copy chips over a card, and tags: a small label in a 28px box */
+    &[data-size="sm"] {
+      height: var(--size-control-sm);
+      padding-inline: var(--space-s2);
+      border-radius: var(--radius-tight);
+      font-size: var(--font-fs1);
+    }
+    &[data-icon] {
+      width: var(--size-control);
+      padding-inline: 0;
+      &[data-size="lg"] {
+        width: var(--size-control-big);
+      }
+      &[data-size="sm"] {
+        width: var(--size-control-sm);
+      }
+    }
+    &[data-full] {
+      width: 100%;
+    }
+    &[data-spread] {
+      justify-content: flex-start;
+      text-align: start;
+    }
+    /* a wrap before a cut, never a spill: the height stays the control's, so a wrapped label never lays its row out
+       again */
+    &[data-wrap] {
+      line-height: var(--font-lh-tight);
+      text-align: center;
+      white-space: normal;
+    }
+    &[data-danger],
+    &[data-danger]:hover {
+      color: var(--color-danger);
+    }
+    &:disabled,
+    &[aria-disabled="true"] {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+    /* a finger's target both ways: a tag of one short word is otherwise narrower than a fingertip */
+    @media (pointer: coarse) {
+      min-width: var(--size-touch);
+      min-height: var(--size-touch);
+    }
+  }
+}

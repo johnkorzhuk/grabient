@@ -1,0 +1,38 @@
+@layer components {
+  /* clear of a phone's home indicator and rounded corners, and of a notch on either side. A page with a column pinned
+     along the screen's edge says how wide it is (--corner-end): the button stands in the corner of what scrolls */
+  .corner {
+    --edge: max(var(--space-s4), env(safe-area-inset-right), env(safe-area-inset-left));
+    --floor: calc(var(--space-s4) + env(safe-area-inset-bottom, 0px));
+    position: fixed;
+    inset-inline-end: calc(var(--corner-end, 0px) + var(--edge));
+    bottom: max(var(--floor), calc((var(--peek, 0px) - var(--size-control-big)) / 2));
+    z-index: 30;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--motion-fast) var(--motion-ease),
+      visibility var(--motion-fast) var(--motion-ease);
+    &[data-shown] {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+    &[data-resting] {
+      visibility: var(--corner-rest, visible);
+    }
+    &[data-still] {
+      position: static;
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+  }
+  /* on a phone the page's own floating button holds the corner: one control's height and a gap above it */
+  @container page (max-width: 800px) {
+    .corner[data-raised] {
+      bottom: calc(var(--floor) + var(--size-touch) + var(--space-s3));
+    }
+  }
+}

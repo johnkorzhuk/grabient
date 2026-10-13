@@ -1,0 +1,86 @@
+@layer components {
+  .text {
+    margin: 0;
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    &[data-variant="title"] {
+      color: var(--color-ink);
+      font-size: var(--font-fs7);
+      line-height: var(--font-lh-tight);
+      letter-spacing: var(--font-ls-title);
+      text-wrap: balance;
+    }
+    &[data-variant="h2"] {
+      color: var(--color-ink);
+      font-weight: var(--font-bold);
+      font-size: var(--font-fs5);
+      line-height: var(--font-lh-ui);
+      letter-spacing: var(--font-ls-heading);
+      text-wrap: balance;
+    }
+    &[data-variant="h3"] {
+      color: var(--color-ink);
+      font-weight: var(--font-bold);
+      font-size: var(--font-fs4);
+      line-height: var(--font-lh-ui);
+    }
+    /* the line under a heading: the system stack, so it sits quieter than the Poppins above it */
+    &[data-variant="lede"] {
+      font-family: var(--font-system);
+      font-size: var(--font-fs4);
+      line-height: var(--font-lh-ui);
+    }
+    &[data-variant="body"] {
+      font-size: var(--font-fs4);
+      line-height: var(--font-lh-prose);
+    }
+    &[data-variant="ui"] {
+      font-size: var(--font-fs3);
+      line-height: var(--font-lh-ui);
+    }
+    &[data-variant="small"],
+    &[data-variant="caption"] {
+      color: var(--color-ink3);
+      font-size: var(--font-fs2);
+      line-height: var(--font-lh-ui);
+    }
+    &[data-variant="micro"] {
+      color: var(--color-ink3);
+      font-weight: var(--font-bold);
+      font-size: var(--font-fs1);
+      line-height: var(--font-lh-none);
+      letter-spacing: var(--font-ls-micro);
+      text-transform: uppercase;
+    }
+    /* digits take the ink of their line, trimmed to the cap height so a row of controls centers them whatever the
+       platform's font, while in running text they keep the baseline */
+    &[data-variant="num"] {
+      display: inline-block;
+      color: inherit;
+      font-family: var(--font-system);
+      font-size: var(--font-fs3);
+      line-height: var(--font-lh-ui);
+      font-variant-numeric: tabular-nums;
+      text-box: trim-both cap alphabetic;
+    }
+    &[data-variant="mono"] {
+      font-family: var(--font-mono);
+      font-size: var(--font-fs2);
+      line-height: var(--font-lh-ui);
+    }
+    &[data-strong] {
+      color: var(--color-ink);
+    }
+    &[data-danger] {
+      color: var(--color-danger);
+    }
+    &[data-truncate] {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-wrap: nowrap;
+    }
+  }
+}
