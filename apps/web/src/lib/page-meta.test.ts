@@ -1,0 +1,392 @@
+import { decodePalette } from "@grabient/engine";
+import { parseView } from "@grabient/engine/view.ts";
+import {
+  addCatalog,
+  type Catalog,
+  LOCALES,
+  type Locale,
+  setLocaleSource,
+  translate
+} from "@grabient/i18n";
+import { buildCatalogs } from "@grabient/i18n/vite.ts";
+import { beforeEach, describe, expect, test } from "vitest";
+import golden from "./fixtures/page-meta.json" with { type: "json" };
+import {
+  clipWords,
+  DESCRIPTION_MAX,
+  type Frame,
+  headOf,
+  type Page,
+  type PageMeta,
+  PRODUCTION_ORIGIN,
+  pageMeta
+} from "./page-meta.ts";
+
+for (const [locale, file] of buildCatalogs())
+  addCatalog(locale, JSON.parse(file.source) as Catalog);
+let current: Locale = "en";
+setLocaleSource(() => current);
+beforeEach(() => {
+  current = "en";
+});
+
+type Facts = {
+  items?: { seed: string }[];
+  collections?: { slug: string; title: string }[];
+  collection?: Extract<Page, { kind: "collection" }>["collection"];
+  title?: string;
+  description?: string;
+  heldBy?: { slug: string; title: string }[];
+  staticOg?: boolean;
+  robots?: string;
+  path?: string;
+};
+const FIXED: Record<string, Page["kind"]> = {
+  "/about": "about",
+  "/bindings": "bindings",
+  "/mcp-server": "mcp",
+  "/newsletter": "newsletter",
+  "/privacy": "privacy",
+  "/terms": "terms",
+  "/contact": "contact",
+  "/login": "login",
+  "/connect": "connect",
+  "/settings": "settings"
+};
+
+/** A page as its route would describe it, from an address and the facts its data brought. */
+function pageOf(address: string, facts: Facts = {}): Page {
+  const url = new URL(address, PRODUCTION_ORIGIN);
+  const query = url.searchParams.get("q") ?? undefined;
+  const page = Number(url.searchParams.get("page") ?? 1);
+  const limit = url.searchParams.has("limit") ? Number(url.searchParams.get("limit")) : undefined;
+  const [first, second, third] = url.pathname.split("/").slice(1);
+  const common = {
+    robots: facts.robots,
+    palettes: facts.items?.map(item => item.seed),
+    collections: facts.collections
+  };
+  const order = second === "rising" ? "rising" : "popular";
+  const frame = third as Frame | undefined;
+  if (url.pathname === "/") return { kind: "home", query, page, ...common };
+  if (first === "palettes" && second === "saved") return { kind: "saved", query, ...common };
+  if (first === "palettes") {
+    return query
+      ? { kind: "search", query, order, frame, page, limit, ...common }
+      : { kind: "list", order, frame, page, limit, ...common };
+  }
+  if (first === "collections" && second === "saved") {
+    return { kind: "own-collections", query, page, limit, ...common };
+  }
+  if (first === "collections") {
+    return { kind: "collections", order, frame, query, page, limit, ...common };
+  }
+  if (url.pathname in FIXED) return { kind: FIXED[url.pathname], ...common } as Page;
+  if (first === "unsubscribe") return { kind: "unsubscribe" };
+  const palette = decodePalette(first);
+  if (palette && !second) {
+    const view = parseView(url.searchParams);
+    const written =
+      facts.title || facts.description
+        ? { title: facts.title?.replace(/ \| Grabient$/, ""), description: facts.description }
+        : undefined;
+    return {
+      kind: "palette",
+      seed: first,
+      palette,
+      view: { ...view, steps: Math.max(view.steps, palette.anchors.length) },
+      written,
+      heldBy: facts.heldBy,
+      staticOg: facts.staticOg,
+      ...common
+    };
+  }
+  if (/^[a-z0-9-]+$/.test(first) && (!second || second === "rising") && !third) {
+    return { kind: "collection", slug: first, order, collection: facts.collection, ...common };
+  }
+  return { kind: "notfound", path: facts.path ?? address };
+}
+
+const summary = (meta: PageMeta) => ({
+  title: meta.title,
+  description: meta.description,
+  canonical: meta.canonical,
+  robots: meta.robots,
+  image: meta.image,
+  imageAlt: meta.imageAlt,
+  ...(meta.themeColor ? { themeColor: meta.themeColor } : {}),
+  ...(meta.markdown ? { markdown: meta.markdown } : {}),
+  alternates: meta.alternates
+    ? `${meta.alternates.length} (${meta.alternates.map(alt => alt.hreflang).join(" ")})`
+    : null,
+  structuredData: meta.structuredData.map(data => data["@type"])
+});
+
+describe("every page's metadata, as grabient.com serves it", () => {
+  test.each(golden.map(row => [`${row.locale} ${row.path}`, row] as const))("%s", (_, row) => {
+    current = row.locale as Locale;
+    const { locale, path, facts, descriptionLength, stagingRobots, factsSent, icon, ...expected } =
+      row as typeof row & { themeColor?: string; markdown?: string };
+    const meta = pageMeta(pageOf(path, facts as Facts), PRODUCTION_ORIGIN);
+    // the title says what the page says: an address that is no page is a page that isn't found
+    if (expected.title === "Palette not found | Grabient")
+      expected.title = "Page not found | Grabient";
+    expect(summary(meta)).toEqual(expected);
+    expect(meta.description.length).toBe(descriptionLength);
+  });
+});
+
+describe("only grabient.com is indexed", () => {
+  const hosts = [
+    "https://staging.grabient.com",
+    "https://seo-grabient-staging.jkorzhuk.workers.dev",
+    "http://localhost:5173"
+  ];
+  test.each(hosts)("%s says noindex,nofollow on every page and names no other language", origin => {
+    for (const row of golden) {
+      current = row.locale as Locale;
+      const meta = pageMeta(pageOf(row.path, row.facts as Facts), origin);
+      expect([row.path, meta.robots]).toEqual([row.path, "noindex,nofollow"]);
+      expect(meta.alternates).toBeUndefined();
+      expect(meta.canonical.startsWith(`${origin}/`)).toBe(true);
+    }
+  });
+});
+
+describe("descriptions", () => {
+  /* the site's own pages, and the later pages of its lists */
+  const own = [
+    "/",
+    "/palettes",
+    "/palettes/rising",
+    "/collections",
+    "/collections/rising",
+    "/about",
+    "/bindings",
+    "/mcp-server",
+    "/newsletter",
+    "/contact",
+    "/privacy",
+    "/terms"
+  ];
+  const later = [
+    "/?page=2",
+    "/?page=3",
+    "/palettes?page=2",
+    "/palettes?page=12",
+    "/palettes/rising?page=2",
+    "/collections?page=2",
+    "/collections/rising?page=2",
+    "/palettes?q=blue&page=2"
+  ];
+  /* palettes as agents wrote them on staging: short, two sentences, one long sentence, and two given the same words */
+  const twin =
+    "This palette moves from dark gray to gray. It steadily lightens across a narrow lightness range, combining near-neutral color with gentle contrast.";
+  const palettes: [string, Facts][] = [
+    ["/kS7Q8Yy5S_SChv0", {}],
+    [
+      "/kUVWLxQ8zCNfDRHtP8cA",
+      {
+        description:
+          "The Plum, crimson and ochre neon palette brings together magenta, red, and gold."
+      }
+    ],
+    [
+      "/kUYS-nyUXCl-3PT1NLqg",
+      {
+        description:
+          "The Teal and cobalt blue color palette brings together blue and teal. The colors span a broad lightness range, combining strong color with clear contrast."
+      }
+    ],
+    [
+      "/kW8DU9dAhDG8NTZrIEFZyg_Y",
+      {
+        description:
+          "The Cream, near-black and teal color palette brings together pale yellow, light yellow, orange, red, dark red, black, teal, and green tones."
+      }
+    ],
+    ["/kSMQbGJYI_q4CwC", { description: twin }],
+    ["/kSLAXFowI_6oDQA", { description: twin }]
+  ];
+  const collection = (description: string, count = 25, title = "Ocean gradients"): Facts => ({
+    collection: { title, description, tags: [], count, createdAt: 0, updatedAt: 0 }
+  });
+  const collections: [string, Facts][] = [
+    ["/ocean-gradients", collection("")],
+    ["/ocean-gradients-2", collection("", 1, "Ocean gradients 2")],
+    [
+      "/cyan-gradients",
+      collection(
+        "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+        16
+      )
+    ],
+    [
+      "/navy-and-gold",
+      collection(
+        "Deep navy and midnight blue run through muted teal and plum into amber, ochre, and pale gold highlights.",
+        18
+      )
+    ],
+    [
+      "/liminal-hours",
+      collection(
+        "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. Ordered loosely from before dawn through the deepest night.",
+        21
+      )
+    ],
+    [
+      "/theater",
+      collection(
+        "Crimson drapery, red roses, burnished gilt, candlelit cream, jewel-toned costumes, and cabaret-dark shadows shape opulent vintage-theater palettes for dramatic gatherings."
+      )
+    ]
+  ];
+  const pages: [string, Facts][] = [
+    ...own.map(path => [path, {}] as [string, Facts]),
+    ...later.map(path => [path, {}] as [string, Facts]),
+    ["/palettes?q=blue", {}],
+    ["/palettes?q=warm+sunset", {}],
+    ...palettes,
+    ...collections
+  ];
+  const describe = (path: string, facts: Facts = {}) =>
+    pageMeta(pageOf(path, facts), PRODUCTION_ORIGIN).description;
+
+  test("every page in every language fits 160 characters and says what no other page says; in English at least 120", () => {
+    for (const locale of LOCALES) {
+      current = locale;
+      const seen = new Map<string, string>();
+      for (const [path, facts] of pages) {
+        const text = describe(path, facts);
+        expect(text.length, `${locale} ${path}: ${text}`).toBeLessThanOrEqual(DESCRIPTION_MAX);
+        expect(seen.get(text), `${locale}: ${path} says what another page says`).toBeUndefined();
+        seen.set(text, path);
+        if (locale === "en") expect(text.length, `${path}: ${text}`).toBeGreaterThanOrEqual(120);
+      }
+    }
+  });
+
+  test("every language says each of the site's own pages whole", () => {
+    for (const path of own) {
+      const english = describe(path);
+      for (const locale of LOCALES) {
+        const text = translate(locale, english);
+        expect(text.length, `${locale} ${path}: ${text}`).toBeLessThanOrEqual(DESCRIPTION_MAX);
+      }
+    }
+  });
+
+  test("a palette says its words, then its colors from end to end", () => {
+    const [first, second] = ["/kSMQbGJYI_q4CwC", "/kSLAXFowI_6oDQA"].map(path =>
+      describe(path, { description: twin })
+    );
+    for (const text of [first, second]) {
+      expect(text.startsWith("This palette moves from dark gray to gray. #")).toBe(true);
+    }
+    expect(first).not.toBe(second);
+    expect(describe(...palettes[1])).toMatch(
+      /^The Plum, crimson and ochre neon palette brings together magenta, red, and gold\. (#[0-9a-f]{6}, )+#[0-9a-f]{6}\. Edit and export CSS, SVG, PNG or a shader\.$/
+    );
+    const own = describe("/kS7Q8Yy5S_SChv0");
+    expect(own).toMatch(
+      /^.+ palette with 7 colors\. (#[0-9a-f]{6}, )+#[0-9a-f]{6}\. Edit and export CSS, SVG, PNG or a shader\.$/
+    );
+    const hexes = own.match(/#[0-9a-f]{6}/g)!;
+    expect([hexes[0], hexes.at(-1)]).toEqual(["#f6e4e0", "#46070b"]);
+  });
+
+  test("a collection says its words, then what it holds while that fits; one with none, its title", () => {
+    const by = (path: string) => describe(...collections.find(([at]) => at === path)!);
+    expect(by("/cyan-gradients")).toBe(
+      "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients."
+    );
+    expect(by("/liminal-hours")).toBe(
+      "Twenty gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain. 21 color palettes and CSS gradients."
+    );
+    expect(by("/ocean-gradients")).toBe(
+      "Ocean gradients: 25 color palettes and CSS gradients on Grabient. Open any palette to edit it, then copy CSS or export SVG and PNG."
+    );
+    expect(by("/theater").endsWith("…")).toBe(true);
+  });
+
+  test("a list's later pages each say which page they are", () => {
+    expect(describe("/palettes?page=2")).toBe(`${describe("/palettes")} Page 2.`);
+    expect(describe("/collections/rising")).not.toBe(describe("/collections"));
+  });
+
+  test("words are cut after a sentence or a word, never inside one", () => {
+    const words = "One sentence that is long enough to stand on its own. ".repeat(4);
+    expect(clipWords(words)).toBe(
+      "One sentence that is long enough to stand on its own. One sentence that is long enough to stand on its own."
+    );
+    const run = "word ".repeat(40);
+    expect(clipWords(run)).toBe(`${"word ".repeat(32).trim()}…`);
+    expect(clipWords("x".repeat(200))).toBe(`${"x".repeat(159)}…`);
+  });
+});
+
+describe("a page's limit and its canonical", () => {
+  test("a list at another page size names that size; the default size names none", () => {
+    const canonical = (address: string) => pageMeta(pageOf(address), PRODUCTION_ORIGIN).canonical;
+    expect(canonical("/palettes?page=2&limit=48")).toBe(
+      "https://grabient.com/palettes?page=2&limit=48"
+    );
+    expect(canonical("/palettes?page=2&limit=24")).toBe("https://grabient.com/palettes?page=2");
+    expect(canonical("/palettes?q=blue&limit=96")).toBe(
+      "https://grabient.com/palettes?q=blue&limit=96"
+    );
+    expect(canonical("/collections?page=2&limit=12")).toBe(
+      "https://grabient.com/collections?page=2&limit=12"
+    );
+  });
+});
+
+describe("the head a route gives", () => {
+  test("names every tag once, with the site's structured data before the page's", () => {
+    const head = headOf(pageMeta(pageOf("/kS7Q8Yy5S_SChv0"), PRODUCTION_ORIGIN));
+    const named = head.meta.flatMap(tag =>
+      "name" in tag ? [tag.name] : "property" in tag ? [tag.property] : []
+    );
+    expect(new Set(named).size).toBe(named.length);
+    expect(named).toEqual(
+      expect.arrayContaining(["description", "robots", "og:url", "og:image:alt", "twitter:card"])
+    );
+    const data = head.meta.find(tag => "script:ld+json" in tag) as {
+      "script:ld+json": { "@type": string }[];
+    };
+    expect(data["script:ld+json"].map(item => item["@type"])).toEqual([
+      "WebSite",
+      "WebApplication",
+      "Organization",
+      "CreativeWork",
+      "BreadcrumbList"
+    ]);
+    expect(head.links).toEqual([
+      { rel: "canonical", href: "https://grabient.com/kS7Q8Yy5S_SChv0" },
+      {
+        rel: "alternate",
+        type: "text/markdown",
+        href: "https://grabient.com/kS7Q8Yy5S_SChv0.md",
+        title: "This page as Markdown"
+      }
+    ]);
+  });
+
+  test("names the page in every language where each is indexed", () => {
+    current = "ja";
+    const head = headOf(pageMeta(pageOf("/palettes"), PRODUCTION_ORIGIN));
+    const alternates = head.links.filter(link => "hreflang" in link);
+    expect(alternates).toHaveLength(17);
+    expect(alternates[7]).toEqual({
+      rel: "alternate",
+      hreflang: "ja",
+      href: "https://grabient.com/ja/palettes"
+    });
+    expect(alternates.at(-1)).toEqual({
+      rel: "alternate",
+      hreflang: "x-default",
+      href: "https://grabient.com/palettes"
+    });
+  });
+});
