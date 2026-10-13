@@ -1,0 +1,41 @@
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-s4);
+  align-items: start;
+}
+/* one scale for every ruler: the brand frame's width is the whole track */
+.rulers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+.ruler {
+  display: grid;
+  grid-template-columns: 128px minmax(0, 1fr);
+  gap: var(--space-s3);
+  align-items: center;
+}
+.track {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s2);
+  min-width: 0;
+  padding-inline-end: var(--space-s10);
+}
+.span {
+  flex-shrink: 0;
+  height: 9px;
+  border-inline: 1px solid var(--color-accent);
+  background: linear-gradient(var(--color-accent), var(--color-accent)) center / 100% 1px no-repeat;
+}
+.corners {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+/* in from the column's edges, so the pins on its corners stand clear */
+.card {
+  position: relative;
+  margin-inline: var(--space-s3);
+}

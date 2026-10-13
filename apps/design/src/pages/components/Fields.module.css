@@ -1,0 +1,5 @@
+/* a field takes its column's width, as in a form */
+.fill {
+  display: block;
+  width: 100%;
+}

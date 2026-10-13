@@ -1,0 +1,36 @@
+/* the one annotation mark: a numbered disc of the accent, ringed in the ground so it reads over any picture */
+.pin,
+.number {
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-circle);
+  background-color: var(--color-accent);
+  color: var(--color-on-ink);
+}
+.pin {
+  position: absolute;
+  z-index: 1;
+  width: var(--space-s6);
+  height: var(--space-s6);
+  translate: -50% -50%;
+  box-shadow: 0 0 0 2px var(--color-bg);
+  pointer-events: none;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s2) var(--space-s5);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s2);
+}
+.number {
+  flex-shrink: 0;
+  width: var(--space-s5);
+  height: var(--space-s5);
+}

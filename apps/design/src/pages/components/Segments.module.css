@@ -1,0 +1,8 @@
+/* at the field height a choice row takes its column, as in a form; in a row of tools it is as wide as its words */
+.fill {
+  display: block;
+  width: 100%;
+  &[data-size="sm"] {
+    width: auto;
+  }
+}
