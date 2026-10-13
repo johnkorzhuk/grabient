@@ -24,7 +24,7 @@ for (const { address, lang, landed, next } of PAGES) {
 
     // a press is now the app's own navigation: the document stays
     await page.evaluate(() => Object.assign(window, { sameDocument: true }));
-    await page.locator("main a").click();
+    await page.locator(`main a[href="${next}"]`).click();
     await expect(page).toHaveURL(`${baseURL}${next}`);
     await expect(page.locator("main h1")).toBeVisible();
     expect(await page.evaluate(() => "sameDocument" in window)).toBe(true);
@@ -43,7 +43,7 @@ test("after a deploy, the next page loads whole with the build that serves it", 
   );
   await page.evaluate(() => fetch("/api/build"));
   await page.evaluate(() => Object.assign(window, { sameDocument: true }));
-  await Promise.all([page.waitForEvent("load"), page.locator("main a").click()]);
+  await Promise.all([page.waitForEvent("load"), page.locator('main a[href="/palettes"]').click()]);
   expect(new URL(page.url()).pathname).toBe("/palettes");
   expect(await page.evaluate(() => "sameDocument" in window)).toBe(false);
 });
