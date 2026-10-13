@@ -1,0 +1,33 @@
+/* the form, then the address for a reader who would rather write from their own mail */
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s8);
+  max-width: var(--size-prose);
+}
+.form,
+.write {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s5);
+}
+/* off the page for people, present for what fills every field; off at the line's start, since a right-to-left page
+   scrolls to whatever stands past its left edge */
+.honey {
+  position: absolute;
+  inset-inline-start: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
