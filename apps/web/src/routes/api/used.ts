@@ -4,5 +4,5 @@ import { usedResponse } from "../../server/palette-use/use.ts";
 
 /* A public palette a reader opened, copied or downloaded, counted: always 204. */
 export const Route = createFileRoute("/api/used")({
-  server: { handlers: { POST: ({ request }) => usedResponse(request, env) } }
+  server: { handlers: { ANY: ({ request }) => usedResponse(request, env) } }
 });

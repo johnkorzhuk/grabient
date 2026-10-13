@@ -47,3 +47,30 @@ test("after a deploy, the next page loads whole with the build that serves it", 
   expect(new URL(page.url()).pathname).toBe("/palettes");
   expect(await page.evaluate(() => "sameDocument" in window)).toBe(false);
 });
+
+test("a brand page's links are the app's own navigation, and focus lands on the new page", async ({
+  page,
+  baseURL
+}) => {
+  await page.goto("/about");
+  await page.waitForFunction(() => !("$_TSR" in window));
+  await page.evaluate(() => Object.assign(window, { sameDocument: true }));
+  await page
+    .getByRole("navigation", { name: "About and account" })
+    .getByRole("link", { name: "Contact" })
+    .click();
+  await expect(page).toHaveURL(`${baseURL}/contact`);
+  await expect(page).toHaveTitle("Contact | Grabient");
+  await expect(page.locator("main")).toBeFocused();
+  expect(await page.evaluate(() => "sameDocument" in window)).toBe(true);
+});
+
+test("an API address answers in its own way whatever the method, never with a page", async ({
+  request
+}) => {
+  for (const path of ["/api/used", "/api/client-error"])
+    expect((await request.get(path)).status()).toBe(204);
+  const contact = await request.get("/api/contact");
+  expect(contact.status()).toBe(405);
+  expect(contact.headers()["content-type"]).toContain("application/json");
+});
