@@ -116,6 +116,8 @@ export function PaletteCard(props: PaletteCardProps) {
       })}
       onFocusIn={arm}
     >
+      {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a finger's tap opens
+          the corners that hover opens for a mouse; the keyboard reaches the same presses by Tab, and focus shows them */}
       <div
         class={styles.art}
         data-removed={props.removed ? "" : undefined}

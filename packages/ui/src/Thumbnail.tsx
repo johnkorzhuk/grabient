@@ -1,5 +1,6 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import type { Style } from "@grabient/engine/view.ts";
+import hidden from "./hidden.module.css";
 import { t } from "./i18n.ts";
 import styles from "./Thumbnail.module.css";
 import { tooltip } from "./Tooltip.tsx";
@@ -21,14 +22,9 @@ export function Thumbnail(props: {
   const label = () => t("{name} palette", { name: props.name });
   const tip = tooltip(() => props.name);
   return props.href ? (
-    <a
-      ref={tip}
-      class={styles.thumb}
-      data-link=""
-      href={props.href}
-      style={paint()}
-      aria-label={label()}
-    />
+    <a ref={tip} class={styles.thumb} data-link="" href={props.href} style={paint()}>
+      <span class={hidden.text}>{label()}</span>
+    </a>
   ) : (
     <span class={styles.thumb} style={paint()} role="img" aria-label={label()} />
   );

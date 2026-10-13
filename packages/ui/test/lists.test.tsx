@@ -179,7 +179,8 @@ describe("ListNav", () => {
 describe("Thumbnail", () => {
   test("leads to its palette, named for it", () => {
     const markup = html(() => <Thumbnail stops={["#000", "#fff"]} name="Ink" href="/kAbc" />);
-    expect(tag(markup, "a")).toMatchObject({ href: "/kAbc", "aria-label": "Ink palette" });
+    expect(tag(markup, "a").href).toBe("/kAbc");
+    expect(markup).toContain("Ink palette");
   });
 });
 
