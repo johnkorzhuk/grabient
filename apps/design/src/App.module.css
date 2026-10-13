@@ -1,0 +1,11 @@
+/* The document is a frame at most 1600px wide, in the middle of a wider screen: the gutter grows to hold it there, so
+   the header's wordmark and corner stand over its edges. A percentage in the gutter is of the box that pads with it,
+   the full width wherever it is used. A phone draws the page at 1280px wide and shrinks it to fit (index.html). */
+.app {
+  --size-gutter: max(var(--space-s12), calc((100% - 1600px) / 2));
+  /* a document for a desktop's window: a narrower one scrolls across it rather than folding it */
+  min-width: 1200px;
+}
+.theme {
+  display: flex;
+}
