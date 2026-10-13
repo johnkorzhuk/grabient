@@ -88,15 +88,23 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     setNote(message);
     setError(isError);
   };
-  const data = () => (found.data && !failed(found.data) ? found.data : null);
-  const readFailed = () => (failed(found.data) ? found.data.failed : "");
+  /* a query's data is read once it has answered: an unanswered one has no value to read outside a Loading boundary */
+  const answer = () => (found.isSuccess ? found.data : undefined);
+  const data = () => {
+    const read = answer();
+    return read && !failed(read) ? read : null;
+  };
+  const readFailed = () => {
+    const read = answer();
+    return failed(read) ? read.failed : "";
+  };
 
   /* what the account may do here, read once the reader is known */
   const viewer = useQuery(() => ({
     ...stateQuery(account()?.id ?? "", props.slug),
     enabled: !!account()
   }));
-  const state = () => viewer.data ?? null;
+  const state = () => (account() && viewer.isSuccess ? (viewer.data ?? null) : null);
   /* the account's own collection, from its copy where the copy holds it */
   const fromCopy = useQuery(() => ({
     queryKey: ["own-collection", account()?.id ?? "", props.slug] as const,
@@ -104,7 +112,8 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     enabled: !!account(),
     staleTime: 0
   }));
-  const copied = (): OwnedDoc | undefined => fromCopy.data ?? undefined;
+  const copied = (): OwnedDoc | undefined =>
+    account() && fromCopy.isSuccess ? (fromCopy.data ?? undefined) : undefined;
   /* every write's answer, newer than any read */
   const [own, setOwn] = createSignal<CollectionDocument | null>(null);
   const doc = (): CollectionDocument | null =>
@@ -124,9 +133,14 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
       });
   };
   createEffect(
-    () => (account() ? ownCollectionMoved(props.slug) : null),
-    moved => {
-      if (moved) follow(moved);
+    () => {
+      const moved = account() ? ownCollectionMoved(props.slug) : null;
+      return moved && moved !== props.slug
+        ? collectionHref(moved, props.order) + pageSearch(props.view)
+        : null;
+    },
+    href => {
+      if (href) void navigate({ href, replace: true });
     }
   );
   /* the counts beside the hearts start as the page read them */

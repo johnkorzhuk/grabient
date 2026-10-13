@@ -39,6 +39,7 @@ export const notFound = () => json({ error: msg("Not found") }, 404);
 export const methodNotAllowed = () => json({ error: "Method not allowed" }, 405);
 export const signIn = () => json({ error: msg("Sign in to continue.") }, 401);
 export const invalid = () => json({ error: msg("Invalid request.") }, 403);
+export const unavailable = () => json({ error: msg("Collections are unavailable.") }, 503);
 export const collectionsFull = () =>
   said(msg("You can have up to {max} collections."), 409, { max: String(MAX_OWN_COLLECTIONS) });
 

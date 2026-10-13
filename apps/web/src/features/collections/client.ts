@@ -8,7 +8,6 @@ import {
   CollectionNoteSchema,
   CollectionPageSchema,
   CopyStandingSchema,
-  OwnedCollectionSchema,
   ViewerStateSchema
 } from "./types.ts";
 
@@ -96,7 +95,7 @@ export const readState = (slug: string, signal?: AbortSignal) =>
   call(
     "GET",
     `/api/me/collections/${at(slug)}/state`,
-    v.object({ ...ViewerStateSchema.entries, collection: v.optional(OwnedCollectionSchema) }),
+    v.object({ ...ViewerStateSchema.entries, collection: v.optional(CollectionDocumentSchema) }),
     undefined,
     signal
   );

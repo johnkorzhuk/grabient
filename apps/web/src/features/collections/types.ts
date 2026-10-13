@@ -71,16 +71,6 @@ export const CollectionDocumentSchema = v.object({
 });
 export type CollectionDocument = v.InferOutput<typeof CollectionDocumentSchema>;
 
-/** A collection read by someone who may do more than look: its owner, or an admin on one of Grabient's. */
-export const OwnedCollectionSchema = v.object({
-  ...CollectionDocumentSchema.entries,
-  owned: v.boolean(),
-  /** an admin on one of Grabient's: may take palettes out and draw them another way */
-  canCurate: v.boolean(),
-  canDelete: v.boolean()
-});
-export type OwnedCollection = v.InferOutput<typeof OwnedCollectionSchema>;
-
 const TagSchema = v.object({
   label: v.string(),
   href: v.string(),

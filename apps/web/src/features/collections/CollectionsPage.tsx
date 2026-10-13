@@ -91,7 +91,15 @@ export function CollectionsPage(props: { place: ListPlace }) {
     ...ownQuery(account()?.id ?? "", { ...listKey(place()), sort: "newest" }),
     enabled: mine() && !!account()
   }));
-  const headData = () => (mine() ? ownList.data : publicList.data);
+  /* a query's data is read once it has answered: an unanswered one has no value to read outside a Loading boundary */
+  const headData = () =>
+    mine()
+      ? account() && ownList.isSuccess
+        ? ownList.data
+        : undefined
+      : publicList.isSuccess
+        ? publicList.data
+        : undefined;
   const head = (): CollectionPage | null => {
     const data = headData();
     return data && !failed(data) ? data : null;

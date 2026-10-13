@@ -35,6 +35,7 @@ import {
   reader,
   refused,
   said,
+  unavailable,
   withUrl,
   writer
 } from "./http.ts";
@@ -254,6 +255,8 @@ async function itemAnswer(
 ): Promise<Response> {
   const method = request.method;
   if (method !== "DELETE" && method !== "PUT" && method !== "PATCH") return methodNotAllowed();
+  /* a removal answers with the token its undo sends: with nothing to sign it, nothing is taken out */
+  if (method !== "PATCH" && !env.BETTER_AUTH_SECRET) return unavailable();
   const who = await writer(env, request, () => []);
   if (who instanceof Response) return who;
   const item = collectionItem({ seed: rawSeed });
@@ -407,6 +410,7 @@ const itemsOf = (value: unknown): CollectionItemInput[] | null => {
 /** POST …/items: an admin's palettes into one of Grabient's by hand, each answered with the token its undo sends. */
 async function addAnswer(request: Request, env: Env, slug: string): Promise<Response> {
   if (request.method !== "POST") return methodNotAllowed();
+  if (!env.BETTER_AUTH_SECRET) return unavailable();
   const admin = await writer(env, request, userId => [[`curation:${userId}`, "curation"]]);
   if (admin instanceof Response) return admin;
   if (!(await isAdmin(env, admin.id)))

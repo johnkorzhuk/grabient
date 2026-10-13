@@ -77,7 +77,7 @@ export function Find(props: {
   }));
   const shown = () => {
     if (mine() && typed().trim()) {
-      const page = own.data;
+      const page = own.isSuccess ? own.data : undefined;
       return page && !failed(page)
         ? page.items.slice(0, OWN_TAGS).map(c => ({
             label: c.title,
@@ -106,7 +106,7 @@ export function Find(props: {
       /* the collection whose title was typed out opens: on Saved one of the account's own */
       const at = location.href;
       const titled = mine()
-        ? own.data && !failed(own.data)
+        ? own.isSuccess && own.data && !failed(own.data)
           ? own.data.items
           : []
         : await client.fetchQuery(tagsQuery(words)).catch(() => []);
