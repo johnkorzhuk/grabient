@@ -127,7 +127,7 @@ test("an email's head measures the wordmark where the painter sets it, in the pa
       )
     );
     const box = { left: width, top: height, right: -1, bottom: -1 };
-    let furthest = ground;
+    let furthest: number = ground;
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
         const tone = at(head, x, y)[0];

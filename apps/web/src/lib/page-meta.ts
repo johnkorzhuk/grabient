@@ -35,8 +35,11 @@ import {
 export const PRODUCTION_ORIGIN = "https://grabient.com";
 /** A search result cuts a description past 160 characters, and Bing flags pages that share one or say under 110. */
 export const DESCRIPTION_MAX = 160;
-/** The version of what share cards draw. A change to a card's picture takes a new one, so no cache keeps the old. */
-export const OG_VERSION = "k4";
+/** The version of everything a picture draws. A change to what any picture draws takes a new one: kept pictures are
+    named by it, and a card's address carries it, so a network that keeps cards by address asks again. */
+export const CARD_VERSION = "k4";
+/** The palette of the site's own card: what a share card shows when its address names none. */
+export const DEFAULT_SEED = "kS7Q8Yy5S_SChv0";
 /** Grabient's code. */
 export const GITHUB_REPO = "https://github.com/johnkorzhuk/grabient";
 
@@ -444,7 +447,7 @@ function cardUrl(
 ): string {
   const url = new URL(path, origin);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-  url.searchParams.set("v", OG_VERSION);
+  url.searchParams.set("v", CARD_VERSION);
   for (const key of ["style", "steps", "angle"] as const) {
     const value = view?.[key];
     if (value != null && value !== "auto") url.searchParams.set(key, String(value));
@@ -614,7 +617,7 @@ function palettePage(
     ]
   );
   meta.image = absolute(
-    `/api/og?seed=${seed}&v=${OG_VERSION}${viewSearch(view).replace("?", "&")}`,
+    `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`,
     origin
   );
   meta.imageAlt = t("{name} color palette", { name });

@@ -11,9 +11,6 @@ import { drawCard, drawPicture, keyframeColors, type Look, lookOf } from "./pain
 import { answerPicture, type Keep, type PictureEnv } from "./serve.ts";
 import { cardSize, pictureSize } from "./size.ts";
 
-/** The palette a share card shows when its address names none. */
-export const DEFAULT_SEED = "kS7Q8Yy5S_SChv0";
-
 export function paletteCard(
   request: Request,
   env: PictureEnv,

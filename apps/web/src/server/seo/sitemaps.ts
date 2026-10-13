@@ -5,8 +5,8 @@ import type { Env } from "@grabient/server/env.ts";
 import {
   type Alternate,
   alternatesOf,
+  CARD_VERSION,
   collectionCard,
-  OG_VERSION,
   paletteAddress
 } from "../../lib/page-meta.ts";
 import { sitemapQueries } from "../search/search.ts";
@@ -189,7 +189,7 @@ export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
   return rows.map(row => {
     const palette = decodePalette(row.seed);
     const seed = palette ? encodePalette(palette) : row.seed;
-    return { seed, createdAt: row.created_at, image: `/api/og?seed=${seed}&v=${OG_VERSION}` };
+    return { seed, createdAt: row.created_at, image: `/api/og?seed=${seed}&v=${CARD_VERSION}` };
   });
 }
 
