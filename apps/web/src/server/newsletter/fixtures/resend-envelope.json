@@ -1,0 +1,22 @@
+{
+ "url": "https://api.resend.com/emails",
+ "method": "POST",
+ "headers": {
+  "Authorization": "Bearer <RESEND_API_KEY>",
+  "Content-Type": "application/json"
+ },
+ "body": {
+  "from": "Grabient <news@grabient.com>",
+  "to": [
+   "reader@example.test"
+  ],
+  "reply_to": "hello@grabient.com",
+  "subject": "S",
+  "html": "<html>…</html>",
+  "text": "T",
+  "headers": {
+   "List-Unsubscribe": "<https://grabient.test/ja/unsubscribe/abababababababababababababababababababababababababababababababab>",
+   "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"
+  }
+ }
+}
