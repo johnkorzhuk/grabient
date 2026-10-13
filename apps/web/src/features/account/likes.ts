@@ -23,3 +23,5 @@ export const toggleLike = (
   _on: boolean,
   _context: LikeContext = {}
 ): Promise<void> => Promise.resolve();
+/** An admin saved an edit of a palette over it: its likes moved with it on the server, and the count follows. */
+export const movePaletteLike = (_from: string, _to: string): void => {};

@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/solid-query";
 import { createEffect, createSignal } from "solid-js";
 import * as v from "valibot";
 import { toast } from "../../app/toast.ts";
-import { liked } from "../account/likes.ts";
+import { liked, movePaletteLike } from "../account/likes.ts";
 import { isAdmin } from "../account/session.ts";
 
 /* An admin's Save: the palette on screen takes the place of the one the page opened, in the gallery (its date, likes and
@@ -121,6 +121,8 @@ export function createPaletteSave(o: {
       if (!answer.ok) throw new Error(t(body?.error ?? msg("Couldn't save.")));
       const seed = body?.palette?.seed ?? to;
       if (before) keep(seed, { ...before, seed, liked: 0 });
+      /* the likes moved with the palette on the server: its count and the account's copy follow */
+      movePaletteLike(from, seed);
       o.saved(seed);
       void queries.invalidateQueries();
       markDone("saved");
