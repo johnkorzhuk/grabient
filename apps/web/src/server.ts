@@ -1,4 +1,5 @@
 import "./server/i18n.ts";
+import "./server/seo/origin.ts";
 import type { Env as AppEnv, Env } from "@grabient/server/env.ts";
 import { getRequestEvent } from "@solidjs/web";
 import {
