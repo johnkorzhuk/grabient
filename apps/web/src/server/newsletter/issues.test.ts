@@ -5,7 +5,7 @@ import { describe, expect, test } from "vitest";
 import { meaning } from "../../../../../packages/email/test/support.ts";
 import { ISSUES } from "./issues/index.ts";
 import { issueFoot } from "./list.ts";
-import { beforeOf, draftsAmong, issuesQuery, languageOf, publishedPage } from "./page.ts";
+import { beforeOf, draftsAmong, issuesKey, languageOf, publishedPage } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
 
 const ORIGIN = "https://grabient.test";
@@ -135,8 +135,8 @@ describe("the issues as pages", () => {
       beforeOf(params("before=x"))
     ]).toEqual([12, null, null]);
     expect([languageOf(params("lang=ja")), languageOf(params("lang=xx"))]).toEqual(["ja", "en"]);
-    expect(issuesQuery(params("lang=en&before=012&junk=1")).toString()).toBe("");
-    expect(issuesQuery(params("junk=1&lang=ja&before=3")).toString()).toBe("before=3&lang=ja");
+    expect(issuesKey(params("lang=en&before=012&junk=1")).toString()).toBe("");
+    expect(issuesKey(params("junk=1&lang=ja&before=3")).toString()).toBe("before=3&lang=ja");
   });
 });
 

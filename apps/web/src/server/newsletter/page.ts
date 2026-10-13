@@ -97,7 +97,7 @@ export function languageOf(params: URLSearchParams): Locale {
   return isLocale(asked) ? asked : DEFAULT_LOCALE;
 }
 /** The query `/api/newsletter` is kept at the edge by: its `before` and a language other than English, as read. */
-export function issuesQuery(params: URLSearchParams): URLSearchParams {
+export function issuesKey(params: URLSearchParams): URLSearchParams {
   const key = new URLSearchParams();
   const before = beforeOf(params);
   const locale = languageOf(params);
