@@ -1,0 +1,37 @@
+@layer components {
+  .logo {
+    display: block;
+    width: auto;
+    max-width: 100%;
+    overflow: visible;
+    color: inherit;
+  }
+  .stop {
+    transition: stop-color var(--motion-slow) var(--motion-ease);
+  }
+  /* the light spilling off the bar: at rest it is flat, and an open bar has none */
+  .near,
+  .far {
+    opacity: 0;
+    transition: opacity var(--motion-slow) var(--motion-ease);
+  }
+  .logo[data-lit]:not([data-window]) {
+    & .near {
+      opacity: 1;
+    }
+    & .far {
+      opacity: 0.8;
+    }
+  }
+  .bar {
+    stroke: transparent;
+    stroke-width: 0.5px;
+    transition:
+      fill-opacity var(--motion-slow) var(--motion-ease),
+      stroke var(--motion-slow) var(--motion-ease);
+    [data-window] > & {
+      fill-opacity: 0;
+      stroke: var(--color-hole-rim);
+    }
+  }
+}

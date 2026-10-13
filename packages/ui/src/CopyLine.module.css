@@ -1,0 +1,37 @@
+@layer components {
+  /* a field's height, the line starting where a bar's first tab starts its words */
+  .line {
+    composes: paper from "./CodeBlock.module.css";
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    min-height: var(--size-control-big);
+    padding-block: var(--space-s1);
+    padding-inline: var(--space-s3) var(--space-s1);
+  }
+  /* the box takes the page's direction, so the line stands at the start in every language and reads left to right
+     inside it */
+  .text {
+    flex-grow: 1;
+    min-width: 0;
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+    overflow-wrap: anywhere;
+    user-select: all;
+  }
+  /* in a right-to-left page the line's rows stand at the right, the page's start */
+  .line:dir(rtl) .parts {
+    text-align: right;
+  }
+  .part {
+    display: inline-block;
+    max-width: 100%;
+  }
+  @container page (max-width: 600px) {
+    .text {
+      font-size: var(--font-fs2);
+    }
+  }
+}

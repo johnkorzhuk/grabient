@@ -1,0 +1,56 @@
+@layer components {
+  .link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-height: var(--size-control-big);
+    padding-inline: var(--space-s3);
+    border-radius: var(--radius-control);
+    --fill: transparent;
+    background-color: var(--fill);
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+    text-decoration: none;
+    white-space: nowrap;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      --fill: var(--color-paper2);
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &[aria-current] {
+      --fill: var(--color-paper3);
+      color: var(--color-ink);
+    }
+    &[aria-disabled="true"] {
+      opacity: 0.4;
+      cursor: default;
+      --fill: transparent;
+      color: var(--color-ink2);
+    }
+    &[data-small] {
+      font-size: var(--font-fs2);
+    }
+    &[data-center] {
+      justify-content: center;
+    }
+    @media (pointer: coarse) {
+      min-width: var(--size-touch);
+      min-height: var(--size-touch);
+    }
+  }
+  /* beside a glyph the label is trimmed to its capitals, so the row centers the letters and not their line box */
+  .caps {
+    display: inline-block;
+    text-box: trim-both cap alphabetic;
+  }
+}

@@ -1,0 +1,131 @@
+@layer components {
+  /* it stands over everything a page floats (a floating button, the export column on a phone), since its menus open
+     over them */
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    flex-shrink: 0;
+  }
+  .surface {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: color-mix(in srgb, var(--color-bg) 94%, transparent);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--motion-base) var(--motion-ease);
+    &[data-on] {
+      opacity: 1;
+      -webkit-backdrop-filter: blur(var(--size-blur-top));
+      backdrop-filter: blur(var(--size-blur-top));
+    }
+  }
+  .bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s5);
+    min-height: var(--size-top);
+    padding-block: 0;
+    padding-inline: var(--size-gutter);
+    transition:
+      min-height var(--motion-base) var(--motion-ease),
+      padding var(--motion-base) var(--motion-ease);
+    &[data-brand] {
+      min-height: var(--size-top-brand);
+      padding-block: calc((var(--size-top-brand) - var(--size-logo)) / 2);
+      padding-inline: var(--space-s6);
+    }
+  }
+  /* a finger's target: the touch height, the wordmark centered in it. On the narrowest phones the wordmark gives up
+     width before the corner does, so nothing runs past the screen */
+  .home {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    flex-shrink: 1;
+    align-items: center;
+    min-width: 0;
+    border-radius: var(--radius-tight);
+    color: var(--color-ink);
+    text-decoration: none;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .logo {
+    display: block;
+    min-width: 0;
+    height: var(--size-logo);
+  }
+  .corner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+    margin-inline-start: auto;
+  }
+  /* the page's connection after the wordmark: a quiet glyph and its word, where it moves nothing */
+  .status {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+  }
+  .mark {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+  }
+  .glyph {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--color-ink3);
+  }
+  .words {
+    white-space: nowrap;
+  }
+  .rule {
+    opacity: 1;
+    transition: opacity var(--motion-base) var(--motion-ease);
+    &[data-off] {
+      opacity: 0;
+    }
+  }
+
+  @container page (max-width: 960px) {
+    .bar:not([data-brand]) {
+      min-height: 0;
+      padding-block: var(--space-s3);
+      padding-inline: var(--space-s4);
+    }
+    .logo {
+      height: var(--size-logo-phone);
+    }
+  }
+  @container page (max-width: 800px) {
+    .bar {
+      gap: var(--space-s3);
+    }
+  }
+  /* on a phone the word is clipped, read aloud and in the glyph's tip, and the glyph stays */
+  @container page (max-width: 600px) {
+    .words {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+}

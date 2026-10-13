@@ -1,0 +1,40 @@
+@layer components {
+  .host {
+    display: contents;
+  }
+  /* placed by a transform from the viewport's top left corner, measured the same in every language. One line stays
+     one line; a tip with a line break in it wraps at the bubble's width, each line in its own direction */
+  .bubble {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    max-width: 260px;
+    margin: 0;
+    padding: var(--space-s1) var(--space-s2);
+    border-radius: var(--radius-tight);
+    background-color: var(--color-ink);
+    color: var(--color-on-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    white-space: pre-line;
+    unicode-bidi: plaintext;
+    opacity: 0;
+    visibility: hidden;
+    translate: 0 2px;
+    pointer-events: none;
+    /* it fades and rises on the way in and is gone at once on the way out, so moving on to another control never
+       shows the last bubble beside the next */
+    &[data-open] {
+      opacity: 1;
+      visibility: visible;
+      translate: 0 0;
+      pointer-events: auto;
+      transition:
+        opacity var(--motion-fast) var(--motion-ease),
+        translate var(--motion-fast) var(--motion-ease);
+    }
+  }
+}

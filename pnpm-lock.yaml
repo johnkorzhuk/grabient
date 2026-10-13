@@ -287,6 +287,9 @@ importers:
         specifier: 2.0.0-rc.14
         version: 2.0.0-rc.14
     devDependencies:
+      '@solidjs/vite-plugin':
+        specifier: 'catalog:'
+        version: 3.0.0-next.49(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
