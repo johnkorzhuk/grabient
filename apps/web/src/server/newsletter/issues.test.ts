@@ -162,7 +162,9 @@ describe("drafts stay private", () => {
     const src = new URL("../../", import.meta.url);
     const importers = readdirSync(src, { recursive: true, encoding: "utf8" })
       .filter(name => /\.tsx?$/.test(name))
-      .filter(name => /from "[^"]*issues\/(?:index|\d+)\.ts"/.test(readFileSync(new URL(name, src), "utf8")));
+      .filter(name =>
+        /from "[^"]*issues\/(?:index|\d+)\.ts"/.test(readFileSync(new URL(name, src), "utf8"))
+      );
     for (const name of importers) expect(name).toMatch(/^server\/newsletter\/[\w.-]+\.ts$/);
     expect(importers.length).toBeGreaterThan(0);
   });
