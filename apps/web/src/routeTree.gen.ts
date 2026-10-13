@@ -76,6 +76,8 @@ import { Route as OgVersionChar123seedChar125DotpngRouteImport } from './routes/
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
 import { Route as ApiMeCollectionsIndexRouteImport } from './routes/api/me/collections/index'
 import { Route as ApiMeCollectionsSplatRouteImport } from './routes/api/me/collections/$'
+import { Route as ApiMePalettesIndexRouteImport } from './routes/api/me/palettes/index'
+import { Route as ApiMePalettesSplatRouteImport } from './routes/api/me/palettes/$'
 import { Route as ApiMeSiteCollectionsIndexRouteImport } from './routes/api/me/site-collections/index'
 import { Route as ApiMeSiteCollectionsHoldingRouteImport } from './routes/api/me/site-collections/holding'
 import { Route as ApiSettingsConnectionsIndexRouteImport } from './routes/api/settings/connections/index'
@@ -441,6 +443,16 @@ const ApiMeCollectionsSplatRoute = ApiMeCollectionsSplatRouteImport.update({
   path: '/api/me/collections/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMePalettesIndexRoute = ApiMePalettesIndexRouteImport.update({
+  id: '/api/me/palettes/',
+  path: '/api/me/palettes/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMePalettesSplatRoute = ApiMePalettesSplatRouteImport.update({
+  id: '/api/me/palettes/$',
+  path: '/api/me/palettes/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeSiteCollectionsIndexRoute =
   ApiMeSiteCollectionsIndexRouteImport.update({
     id: '/api/me/site-collections/',
@@ -533,9 +545,11 @@ export interface FileRoutesByFullPath {
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
+  '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
   '/api/me/collections/': typeof ApiMeCollectionsIndexRoute
+  '/api/me/palettes/': typeof ApiMePalettesIndexRoute
   '/api/me/site-collections/': typeof ApiMeSiteCollectionsIndexRoute
   '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
@@ -606,9 +620,11 @@ export interface FileRoutesByTo {
   '/api/og': typeof ApiOgIndexRoute
   '/api/png': typeof ApiPngIndexRoute
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
+  '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
   '/api/me/collections': typeof ApiMeCollectionsIndexRoute
+  '/api/me/palettes': typeof ApiMePalettesIndexRoute
   '/api/me/site-collections': typeof ApiMeSiteCollectionsIndexRoute
   '/api/settings/connections': typeof ApiSettingsConnectionsIndexRoute
 }
@@ -680,9 +696,11 @@ export interface FileRoutesById {
   '/api/og/': typeof ApiOgIndexRoute
   '/api/png/': typeof ApiPngIndexRoute
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
+  '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
   '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
   '/api/me/collections/': typeof ApiMeCollectionsIndexRoute
+  '/api/me/palettes/': typeof ApiMePalettesIndexRoute
   '/api/me/site-collections/': typeof ApiMeSiteCollectionsIndexRoute
   '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
@@ -755,9 +773,11 @@ export interface FileRouteTypes {
     | '/api/og/'
     | '/api/png/'
     | '/api/me/collections/$'
+    | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
     | '/api/settings/connections/disconnect'
     | '/api/me/collections/'
+    | '/api/me/palettes/'
     | '/api/me/site-collections/'
     | '/api/settings/connections/'
   fileRoutesByTo: FileRoutesByTo
@@ -828,9 +848,11 @@ export interface FileRouteTypes {
     | '/api/og'
     | '/api/png'
     | '/api/me/collections/$'
+    | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
     | '/api/settings/connections/disconnect'
     | '/api/me/collections'
+    | '/api/me/palettes'
     | '/api/me/site-collections'
     | '/api/settings/connections'
   id:
@@ -901,9 +923,11 @@ export interface FileRouteTypes {
     | '/api/og/'
     | '/api/png/'
     | '/api/me/collections/$'
+    | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
     | '/api/settings/connections/disconnect'
     | '/api/me/collections/'
+    | '/api/me/palettes/'
     | '/api/me/site-collections/'
     | '/api/settings/connections/'
   fileRoutesById: FileRoutesById
@@ -975,9 +999,11 @@ export interface RootRouteChildren {
   ApiOgIndexRoute: typeof ApiOgIndexRoute
   ApiPngIndexRoute: typeof ApiPngIndexRoute
   ApiMeCollectionsSplatRoute: typeof ApiMeCollectionsSplatRoute
+  ApiMePalettesSplatRoute: typeof ApiMePalettesSplatRoute
   ApiMeSiteCollectionsHoldingRoute: typeof ApiMeSiteCollectionsHoldingRoute
   ApiSettingsConnectionsDisconnectRoute: typeof ApiSettingsConnectionsDisconnectRoute
   ApiMeCollectionsIndexRoute: typeof ApiMeCollectionsIndexRoute
+  ApiMePalettesIndexRoute: typeof ApiMePalettesIndexRoute
   ApiMeSiteCollectionsIndexRoute: typeof ApiMeSiteCollectionsIndexRoute
   ApiSettingsConnectionsIndexRoute: typeof ApiSettingsConnectionsIndexRoute
 }
@@ -1453,6 +1479,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiMeCollectionsSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/palettes/': {
+      id: '/api/me/palettes/'
+      path: '/api/me/palettes'
+      fullPath: '/api/me/palettes/'
+      preLoaderRoute: typeof ApiMePalettesIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/palettes/$': {
+      id: '/api/me/palettes/$'
+      path: '/api/me/palettes/$'
+      fullPath: '/api/me/palettes/$'
+      preLoaderRoute: typeof ApiMePalettesSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/site-collections/': {
       id: '/api/me/site-collections/'
       path: '/api/me/site-collections'
@@ -1561,9 +1601,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOgIndexRoute: ApiOgIndexRoute,
   ApiPngIndexRoute: ApiPngIndexRoute,
   ApiMeCollectionsSplatRoute: ApiMeCollectionsSplatRoute,
+  ApiMePalettesSplatRoute: ApiMePalettesSplatRoute,
   ApiMeSiteCollectionsHoldingRoute: ApiMeSiteCollectionsHoldingRoute,
   ApiSettingsConnectionsDisconnectRoute: ApiSettingsConnectionsDisconnectRoute,
   ApiMeCollectionsIndexRoute: ApiMeCollectionsIndexRoute,
+  ApiMePalettesIndexRoute: ApiMePalettesIndexRoute,
   ApiMeSiteCollectionsIndexRoute: ApiMeSiteCollectionsIndexRoute,
   ApiSettingsConnectionsIndexRoute: ApiSettingsConnectionsIndexRoute,
 }

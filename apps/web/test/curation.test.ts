@@ -3,6 +3,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { collectionItem } from "../src/features/collections/schema.ts";
 import { collectionAnswer, createAnswer } from "../src/server/collections/api.ts";
 import { mineAt, siteAnswer } from "../src/server/collections/me.ts";
+import { likedAnswer, paletteAnswer } from "../src/server/collections/palettes.ts";
 import { createCollection } from "../src/server/collections/write.ts";
 import {
   type Account,
@@ -383,5 +384,103 @@ describe("a public collection's likes", () => {
     expect(
       await count(env, "SELECT likes_sum AS n FROM k_collections WHERE slug = ?", doc.slug)
     ).toBe(likes);
+  });
+});
+
+describe("an admin's curation of the gallery", () => {
+  /* a gallery palette held by one of Grabient's collections, each test its own */
+  const GALLERY = [
+    "kcuYzbUNVAdnPQznJsXe7PJnu2v58qkA_Zc_4",
+    "kWQgLgpgm9q-WwC8F0DyY3GQ",
+    "kY7xXr748zmabv9fMUJU7O_8rGwW"
+  ];
+  const held = async (seed: string) => {
+    await env.DB.prepare(
+      "INSERT INTO k_palettes (seed, style, steps, angle, likes_count, created_at) VALUES (?, 'linearGradient', 7, 90, 0, ?) ON CONFLICT DO NOTHING"
+    )
+      .bind(seed, Date.now())
+      .run();
+    const doc = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Gallery held"),
+        description: "",
+        tags: [],
+        visibility: "public",
+        items: [item(seed), item(SEEDS[3]!)]
+      }
+    );
+    return doc.slug;
+  };
+  const palette = (method: string, seed: string, body: unknown, who: Account) =>
+    paletteAnswer(send(method, `/api/me/palettes/${seed}`, body, who.cookie), env);
+
+  it("says which palettes a person liked, to an admin alone", async () => {
+    const seed = GALLERY[0]!;
+    await held(seed);
+    const reader = await makeAccount(env);
+    await env.DB.prepare(
+      "INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at) VALUES (?, ?, 7, 'linearGradient', 90, ?)"
+    )
+      .bind(reader.id, seed, Date.now())
+      .run();
+    const ask = (who: Account) =>
+      likedAnswer(get(`/api/me/palettes?seeds=${seed},${GALLERY[2]}`, { cookie: who.cookie }), env);
+    expect((await ask(owner)).status).toBe(403);
+    expect(await bodyOf(await ask(admin))).toEqual({ liked: [seed] });
+    const refused = await palette("DELETE", seed, { scope: "everywhere" }, admin);
+    expect([refused.status, (await bodyOf<Answer>(refused)).error]).toEqual([
+      409,
+      "Someone liked this palette, so it stays."
+    ]);
+  });
+
+  it("deletes a palette everywhere, each membership on the record", async () => {
+    const seed = GALLERY[1]!;
+    const slug = await held(seed);
+    expect(await bodyOf(await palette("GET", seed, undefined, admin))).toMatchObject({
+      seed,
+      gallery: { style: "linearGradient", steps: 7, angle: 90, likes: 0 },
+      collections: [{ slug }],
+      liked: false
+    });
+    expect((await palette("DELETE", seed, { scope: "everywhere" }, owner)).status).toBe(403);
+    expect(
+      await bodyOf(await palette("DELETE", seed, { scope: "everywhere", reasons: ["dull"] }, admin))
+    ).toEqual({ deleted: seed, gallery: true, collections: [slug] });
+    expect(await count(env, "SELECT COUNT(*) AS n FROM k_palettes WHERE seed = ?", seed)).toBe(0);
+    expect(
+      await count(env, "SELECT COUNT(*) AS n FROM k_collection_items WHERE seed = ?", seed)
+    ).toBe(0);
+    expect(
+      await count(
+        env,
+        "SELECT COUNT(*) AS n FROM k_admin_actions WHERE seed = ? AND action IN ('remove', 'delete')",
+        seed
+      )
+    ).toBe(2);
+  });
+
+  it("saves an edit over a palette wherever it stands, and redraws the gallery's", async () => {
+    const seed = GALLERY[2]!;
+    const slug = await held(seed);
+    const redrawn = await palette("PATCH", seed, { angle: 180, reasons: ["form"] }, admin);
+    expect(await bodyOf(redrawn)).toMatchObject({ palette: { seed, angle: 180 } });
+    const next = SEEDS[2]!;
+    const saved = await palette("PUT", seed, { seed: next, reasons: ["ugly"] }, admin);
+    expect(await bodyOf(saved)).toEqual({
+      palette: { from: seed, seed: next, gallery: true, collections: [slug] }
+    });
+    expect(await count(env, "SELECT COUNT(*) AS n FROM k_palettes WHERE seed = ?", seed)).toBe(0);
+    expect(
+      await count(
+        env,
+        "SELECT COUNT(*) AS n FROM k_collection_items i JOIN k_collections c ON c.id = i.collection_id WHERE c.slug = ? AND i.seed = ?",
+        slug,
+        next
+      )
+    ).toBe(1);
+    expect((await palette("PUT", next, { seed: next }, admin)).status).toBe(400);
   });
 });
