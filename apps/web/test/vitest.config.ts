@@ -10,6 +10,8 @@ const web = fileURLToPath(new URL("..", import.meta.url));
 
 export default defineConfig({
   root: web,
+  // the MCP view is built by its own plugin (src/mcp-view/build.ts); the tests serve a page of the same shape
+  resolve: { alias: { "virtual:mcp-view": `${web}/test/mcp-view-page.ts` } },
   plugins: [
     cloudflareTest(async () => ({
       experimental: { newConfig: true },
