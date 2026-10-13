@@ -8,12 +8,15 @@ import { Label } from "./Label.tsx";
 import { Text } from "./Text.tsx";
 import { tooltip } from "./Tooltip.tsx";
 
-/** A tile of the mosaic: a palette's sampled stops, drawn in its style and angle. */
-export interface MosaicPalette {
-  stops: readonly string[];
-  style?: Style;
-  angle?: number;
-}
+/** A tile of the mosaic: a palette's sampled stops alone, drawn as a linear gradient, or with the style and angle it is
+    shown in. */
+export type MosaicPalette =
+  | readonly string[]
+  | { stops: readonly string[]; style?: Style; angle?: number };
+const tileCss = (palette: MosaicPalette) =>
+  "stops" in palette
+    ? gradientCss(palette.stops, palette.style, palette.angle)
+    : gradientCss(palette);
 
 /* The rows of a mosaic for a count: one up to three, two up to eight, three past that, as even as they can be with the
    fuller rows last. Twelve tiles at most. */
@@ -58,7 +61,7 @@ export function CollectionCard(props: {
           <span
             class={styles.tile}
             style={{
-              background: gradientCss(palette().stops, palette().style, palette().angle),
+              background: tileCss(palette()),
               "grid-column": `span ${spans[i] ?? 12}`
             }}
           />
