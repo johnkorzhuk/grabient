@@ -2,33 +2,35 @@
      GET/HEAD /api/search.json, /api/palettes/search, /search/{q}.json, /palettes/{q}.json   edge-cached
      GET      /api/search/status                what this isolate answers from (never kept)
      GET      /api/search-colors                a search's colors (an hour)
-   None reads the session; the pipeline adds their CORS. An account's own search is account.ts. */
+   The tags' answer is tags.ts's. None reads the session; the pipeline adds their CORS. An account's own search is account.ts. */
 import { msg } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
+import { sortSearch } from "../../features/gallery/sort.ts";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
+import { listWords } from "../../lib/words.ts";
 import type { KeyRule } from "../cache-keys.ts";
+import { collectionsHolding } from "../collections/read.ts";
+import { canonicalPaletteSeed } from "../files/resolve.ts";
+import { askedLocale, localizeHeld } from "../mcp/admin/translations.ts";
 import { searchColors } from "./colors.ts";
-import {
-  canonicalPaletteSeed,
-  collectionsHolding,
-  normalizeListQuery,
-  sortSearchItems
-} from "./seams.ts";
 import { type SearchResult, searchPalettes, searchRequestInput } from "./search.ts";
 import { type Background, snapshotStatus } from "./snapshot.ts";
+import { tagsKey } from "./tags.ts";
 
 const SEARCH_PATH = /^\/(?:api\/search\.json|api\/palettes\/search|(?:search|palettes)\/.+\.json)$/;
 
 /** The edge cache's keys for these answers: what the handlers read of the query, normalized, so junk parameters and
-    spellings of one search share an entry. Only a search by a palette names collections, in the reader's language. */
+    spellings of one search share an entry, whichever of its addresses asked. Only a search by a palette names
+    collections, in the reader's language. */
 export const searchKeyRules: readonly KeyRule[] = [
   {
     match: path => SEARCH_PATH.test(path),
-    query: params => {
+    path: "/api/search.json",
+    query: (params, path) => {
       const { query, limit, sort } = searchRequestInput(
-        new Request(`https://search.invalid/?${params}`)
+        new Request(`https://search.invalid${path}?${params}`)
       );
       const lang = params.get("lang");
       return new URLSearchParams({
@@ -41,8 +43,9 @@ export const searchKeyRules: readonly KeyRule[] = [
   },
   {
     match: path => path === "/api/search-colors",
-    query: params => new URLSearchParams({ q: normalizeListQuery(params.get("q")) })
-  }
+    query: params => new URLSearchParams({ q: listWords(params.get("q")) })
+  },
+  { match: path => path === "/api/search-suggestions", query: tagsKey }
 ];
 
 /** A search's answer status: limited 429 with the wait, unavailable 503, else 200. */
@@ -70,12 +73,16 @@ export async function searchJsonResponse(
   if (!query)
     return Response.json({ error: "Invalid search query." }, { status: 400, headers: NO_STORE });
   const result = await searchPalettes(env, query, { request, ctx, limit });
+  // a search by a palette names the public collections that hold it, each title in the language asked
   const like = result.tier === "similar" ? canonicalPaletteSeed(result.query) : null;
-  const lang = new URL(request.url).searchParams.get("lang") ?? "en";
-  const heldBy = like ? await collectionsHolding(env, like, lang).catch(() => []) : [];
+  const heldBy = like
+    ? await collectionsHolding(env, like)
+        .then(held => localizeHeld(env, askedLocale(new URL(request.url)), held))
+        .catch(() => [])
+    : [];
   const body = {
     ...result,
-    items: sortSearchItems(result.items, sort),
+    items: sortSearch(result.items, sort),
     ...(heldBy.length ? { heldBy } : {}),
     fetchedAt: Date.now()
   };

@@ -3,9 +3,9 @@
    in the form its tag says it, so every tag finds palettes and none asks the model. */
 import { all, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { listWords } from "../../lib/words.ts";
 import { loadVocabulary } from "./files.ts";
 import { forgetPopular, tagWords } from "./popular.ts";
-import { normalizeListQuery } from "./seams.ts";
 import { suggestSearches } from "./tags.ts";
 
 const DAY = 86_400_000;
@@ -68,7 +68,7 @@ export async function scheduleSearches(
   for (const [position, entry] of entries.slice(0, SCHEDULE_MAX).entries()) {
     const sent =
       typeof entry.words === "string" ? entry.words.normalize("NFKC").trim().slice(0, 100) : "";
-    const asked = normalizeListQuery(sent);
+    const asked = listWords(sent);
     const words = asked && tagWords(vocabulary, asked);
     if (!words) {
       const nearest = asked ? (await suggestSearches(env, asked, 4)).map(tag => tag.query) : [];

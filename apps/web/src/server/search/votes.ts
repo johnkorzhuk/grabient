@@ -17,7 +17,7 @@ import type { Env } from "@grabient/server/env.ts";
 import { writeRefusal } from "@grabient/server/limits/writes.ts";
 import * as v from "valibot";
 import { type FitVote, SearchVoteBody } from "../../features/search/bodies.ts";
-import { normalizeListQuery } from "./seams.ts";
+import { listWords } from "../../lib/words.ts";
 
 /** the votes one account keeps for one search that a page reads back: sixty answers a page, and a reader may page on */
 const OWN_MAX = 500;
@@ -77,7 +77,7 @@ export async function searchVotesResponse(request: Request, env: Env): Promise<R
   if (!session) return json({ error: msg("Sign in to continue.") }, 401);
   const userId = session.user.id;
   if (method === "GET") {
-    const query = normalizeListQuery(new URL(request.url).searchParams.get("q"));
+    const query = listWords(new URL(request.url).searchParams.get("q"));
     return json({ votes: query ? await ownSearchVotes(env, query, userId) : {} });
   }
   if (!sameOrigin(request)) return json({ error: msg("Invalid request.") }, 403);
@@ -87,7 +87,7 @@ export async function searchVotesResponse(request: Request, env: Env): Promise<R
   ]);
   if (limited) return limited;
   const body = v.safeParse(SearchVoteBody, await readJson(request, 1024));
-  const query = body.success ? normalizeListQuery(body.output.q) : "";
+  const query = body.success ? listWords(body.output.q) : "";
   const palette = body.success ? decodePalette(body.output.seed) : null;
   if (!body.success || !query || !palette) return json({ error: msg("Invalid vote.") }, 400);
   const seed = encodePalette(palette);
