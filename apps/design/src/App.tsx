@@ -1,5 +1,6 @@
 import { AppPage } from "@grabient/ui/AppPage.tsx";
 import { announce } from "@grabient/ui/announce.ts";
+import { Backdrop } from "@grabient/ui/Backdrop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { createBarCycle } from "@grabient/ui/barcycle.ts";
 import { copyText } from "@grabient/ui/copy.ts";
@@ -23,7 +24,9 @@ import { supply } from "./samples.ts";
 
 /* The document's one shell, an app page of grabient.com: the header and its bar cycling through palettes, the pages
    and the theme in its corner, then the page. A change of page swaps the page alone, so the bar carries on. The keys
-   are the site's own: T for the theme, U for the address, ? for the list. */
+   are the site's own: T for the theme, U for the address, ? for the list. The light behind the paper is the site's
+   Backdrop, still on one palette: the water is not drawn here, and a wash that tweened with the bar would blur the
+   whole page again on every frame of a tween. */
 export function App() {
   const router = createRouter();
   const palettes = supply();
@@ -55,9 +58,9 @@ export function App() {
     <div class={styles.app}>
       <PageRoot>
         <SkipLink />
+        <Backdrop stops={palettes[0] ?? []} />
         <AppPage
           stops={bar.stops()}
-          backdrop
           home={{ href: "/", label: "cover" }}
           corner={
             <>
