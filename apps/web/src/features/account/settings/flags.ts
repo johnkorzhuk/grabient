@@ -57,6 +57,18 @@ export const FLAGS: Readonly<Record<FlagName, { label: string; line: string }>> 
     line: msg(
       "Send issues of the newsletter. When off, none goes out, and unsubscribing still works."
     )
+  },
+  saving: {
+    label: msg("Saving"),
+    line: msg(
+      "Save likes, collections and votes from accounts and their apps. When off, pages keep each change until saving is back, and reading still works."
+    )
+  },
+  email: {
+    label: msg("Email"),
+    line: msg(
+      "Send sign-in links and codes and contact messages. When off, sign-in offers Google, and deletion emails and owner alerts still go."
+    )
   }
 };
 
