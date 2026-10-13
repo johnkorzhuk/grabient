@@ -12,7 +12,7 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
-import { DATA, type Value, WEB } from "./d1.ts";
+import { DATA, MIGRATIONS, type Value } from "./d1.ts";
 import { accountHandle } from "./merge.ts";
 import { type Original, readAliases, readOriginals, STYLES } from "./palettes.ts";
 import { type Frame, RISE_COLUMN, SCORE_READS, scoreInput, scores } from "./scores.ts";
@@ -26,13 +26,13 @@ export interface Check {
 }
 
 /** The repository's migrations, in the order cf applies them. */
-export const migrationFiles = (dir = resolve(WEB, "migrations")) =>
+export const migrationFiles = (dir = MIGRATIONS) =>
   readdirSync(dir)
     .filter(file => /^\d+_.*\.sql$/.test(file))
     .sort((a, b) => Number.parseInt(a, 10) - Number.parseInt(b, 10) || a.localeCompare(b));
 
 /** The schema production will have after its migrations: its own, then each migration in order. */
-export function expectedSchema(production: Snapshot, dir = resolve(WEB, "migrations")) {
+export function expectedSchema(production: Snapshot, dir = MIGRATIONS) {
   const db = new DatabaseSync(":memory:");
   const own = production.schema.filter(entry => entry.sql && !internal(entry.name));
   for (const entry of own.filter(e => e.type === "table")) db.exec(entry.sql!);

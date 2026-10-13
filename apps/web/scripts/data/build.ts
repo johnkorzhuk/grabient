@@ -25,10 +25,10 @@ import {
   insertRows,
   literal,
   local,
+  MIGRATIONS,
   name,
   requests,
-  select,
-  WEB
+  select
 } from "./d1.ts";
 import { authCleanup, collectionRepairs, LEFT, mergeStatements } from "./merge.ts";
 import {
@@ -149,7 +149,7 @@ async function migrate(db: Database): Promise<string[]> {
     "--persist-to",
     db.persist!,
     "--dir",
-    resolve(WEB, "migrations")
+    MIGRATIONS
   ])) as { name: string; status: string }[];
   const failed = applied.filter(migration => migration.status !== "✅");
   if (failed.length) throw new Error(`Migrations failed: ${failed.map(m => m.name).join(", ")}`);

@@ -9,6 +9,8 @@ import { fileURLToPath } from "node:url";
 
 export const WEB = fileURLToPath(new URL("../..", import.meta.url));
 export const DATA = resolve(WEB, ".data");
+/** The database's migrations, which the server package keeps for every Worker on it. */
+export const MIGRATIONS = resolve(WEB, "../../packages/server/migrations");
 
 /** A database these scripts reach: a remote one by its id, or a local simulation kept in `persist`. */
 export interface Database {

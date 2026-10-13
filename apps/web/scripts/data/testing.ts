@@ -5,7 +5,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { adminStatements, baseStatements, planStatements } from "./build.ts";
-import { type Database, insertRows, type Value, WEB } from "./d1.ts";
+import { type Database, insertRows, MIGRATIONS, type Value } from "./d1.ts";
 import type { Original } from "./palettes.ts";
 import { readDatabase } from "./read.ts";
 import { scoreDatabase } from "./scores.ts";
@@ -43,7 +43,7 @@ export const run = (db: DatabaseSync, statements: readonly string[]) => {
 };
 /** The repository's migrations, applied and recorded by name as cf's runner does. */
 export function migrate(db: DatabaseSync) {
-  const dir = resolve(WEB, "migrations");
+  const dir = MIGRATIONS;
   for (const file of migrationFiles(dir)) {
     db.exec(readFileSync(resolve(dir, file), "utf8"));
     db.prepare("INSERT INTO d1_migrations (name) VALUES (?)").run(file);
