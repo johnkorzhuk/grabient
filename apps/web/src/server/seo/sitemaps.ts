@@ -9,6 +9,7 @@ import {
   collectionCard,
   paletteAddress
 } from "../../lib/page-meta.ts";
+import { collectionSitemapRows } from "../collections/read.ts";
 import { sitemapQueries } from "../search/search.ts";
 import { isoDay } from "./text.ts";
 
@@ -193,16 +194,6 @@ export async function paletteRows(env: Pick<Env, "DB">, shard: number) {
   });
 }
 
-/** Every public collection's address and its last change, the latest first (k_collections_public_idx). */
-export async function collectionRows(env: Pick<Env, "DB">) {
-  const rows = await all<{ slug: string; updated_at: number }>(
-    env.DB,
-    "SELECT slug, updated_at FROM k_collections WHERE visibility = 'public' ORDER BY updated_at DESC, id LIMIT ?",
-    MAX_COLLECTIONS
-  );
-  return rows.map(row => ({ slug: row.slug, updatedAt: Number(row.updated_at) }));
-}
-
 /** The sitemap at /sitemap-{name}.xml, or null for a name no sitemap has. */
 export async function sitemapFile(
   env: Pick<Env, "DB" | "ASSETS">,
@@ -211,7 +202,8 @@ export async function sitemapFile(
 ): Promise<string | null> {
   if (name === "pages") return pagesSitemap(origin);
   if (name === "searches") return searchesSitemap(origin, await sitemapQueries(env));
-  if (name === "collections") return collectionsSitemap(origin, await collectionRows(env));
+  if (name === "collections")
+    return collectionsSitemap(origin, await collectionSitemapRows(env, MAX_COLLECTIONS));
   const shard = paletteShard(name);
   return shard === null ? null : palettesSitemap(origin, await paletteRows(env, shard));
 }
