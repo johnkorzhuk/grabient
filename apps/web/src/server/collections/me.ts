@@ -32,6 +32,7 @@ import {
   methodNotAllowed,
   notFound,
   originOf,
+  overWork,
   reader,
   refused,
   said,
@@ -276,7 +277,7 @@ async function itemAnswer(
   const record = await collectionRecord(env, slug);
   if (record && ownedBy(record, who)) {
     if (method === "PATCH") return methodNotAllowed();
-    const limited = await overLimit(env, [
+    const limited = await overWork(env, who, [
       [`collection-items:${who.id}`, ["collectionItems", "collectionItemsDaily"]]
     ]);
     if (limited) return limited;
@@ -312,7 +313,7 @@ async function itemAnswer(
   if (!(await isAdmin(env, who.id)))
     return said(msg("Only admins can change agent collections."), 403);
   if (record?.owner.kind !== "agent") return notFound();
-  const limited = await overLimit(env, [[`curation:${who.id}`, "curation"]]);
+  const limited = await overWork(env, who, [[`curation:${who.id}`, "curation"]]);
   if (limited) return limited;
   const body = await bodyOf(request);
   const why = parseWhy(body);

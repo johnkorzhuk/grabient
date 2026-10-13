@@ -1,4 +1,5 @@
 import type { Env } from "@grabient/server/env.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
 import { beforeAll, describe, expect, it } from "vitest";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
@@ -252,6 +253,31 @@ describe("writing a collection", () => {
     expect(
       await count(env, "SELECT COUNT(*) AS n FROM k_collections WHERE slug = ?", `@${name}/ferns`)
     ).toBe(1);
+  });
+
+  it("waits while an admin has saving off, writing nothing, and the account's own still read", async () => {
+    const dee = await makeAccount(env);
+    const title = unique("Paused");
+    await setFlag(env, "saving", false, unique("admin"));
+    try {
+      const paused = await createAnswer(
+        post("/api/collections", { title, items: items() }, { cookie: dee.cookie }),
+        env
+      );
+      expect([paused.status, paused.headers.get("Retry-After"), await bodyOf(paused)]).toEqual([
+        503,
+        "300",
+        { error: "Couldn't save." }
+      ]);
+      expect(
+        await count(env, "SELECT COUNT(*) AS n FROM k_collections WHERE owner_id = ?", dee.id)
+      ).toBe(0);
+      const own = await mineAnswer(get("/api/me/collections", { cookie: dee.cookie }), env);
+      expect(own.status).toBe(200);
+    } finally {
+      await setFlag(env, "saving", true, unique("admin"));
+    }
+    expect((await make(dee, { title, items: items() })).status).toBe(201);
   });
 });
 

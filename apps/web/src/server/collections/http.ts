@@ -3,6 +3,8 @@ import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/htt
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
+import type { LimitCheck } from "@grabient/server/limits/check.ts";
+import { workChecks, writeRefusal } from "@grabient/server/limits/writes.ts";
 import { isCollectionSlug } from "../../features/collections/address.ts";
 import { MAX_OWN_COLLECTIONS, type Refusal, refusal } from "../../features/collections/schema.ts";
 import type { CollectionOwner } from "./read.ts";
@@ -10,8 +12,9 @@ import { collectionWriteLimits } from "./write.ts";
 
 /* What the collections' routes share. A public read never reads a session and is kept at the edge; an account's read
    and every write carry the session, and a write comes from the site's own page (same origin), reads the session fresh
-   (never its five-minute copy in a cookie, so a sign-out elsewhere counts at once) and is counted against the write
-   budgets first. An error a page shows is a message (msg()) the page says in the reader's language: `error` is its
+   (never its five-minute copy in a cookie, so a sign-out elsewhere counts at once) and is an account's write
+   (limits/writes.ts): refused while an admin has saving off, then counted against the write budgets as the account's
+   role counts them, all before anything is written. An error a page shows is a message (msg()) the page says in the reader's language: `error` is its
    English, and `i18n` its values where it has any. */
 
 /** A public answer: a minute in the browser, five at the edge. */
@@ -83,19 +86,29 @@ export async function reader(env: Env, request: Request): Promise<CollectionOwne
   return session ? { kind: "user", id: session.user.id } : signIn();
 }
 
-/** A cookie write: from the site's own page, by a session read fresh, within `limits` (the collection write budget when
-    none are named). The account it is for, or the answer to give instead. */
+/** The account a write is for, with its role, which its limits are counted by. */
+export interface Writer extends CollectionOwner {
+  role: string | null;
+}
+
+/** A cookie write: from the site's own page, by a session read fresh, while saving is on, within `limits` (the
+    collection write budget when none are named). The account it is for, or the answer to give instead. */
 export async function writer(
   env: Env,
   request: Request,
-  limits?: (userId: string) => Parameters<typeof overLimit>[1]
-): Promise<CollectionOwner | Response> {
+  limits?: (userId: string) => readonly LimitCheck[]
+): Promise<Writer | Response> {
   if (!sameOrigin(request)) return invalid();
   const session = await getSession(env, request.headers, { fresh: true });
   if (!session) return signIn();
-  const limited = await overLimit(env, (limits ?? collectionWriteLimits)(session.user.id));
-  return limited ?? { kind: "user", id: session.user.id };
+  const role = session.user.role ?? null;
+  const refused = await writeRefusal(env, role, (limits ?? collectionWriteLimits)(session.user.id));
+  return refused ?? { kind: "user", id: session.user.id, role };
 }
+
+/** A write's further budget, once the write knows which it is, counted as the account's role counts it. */
+export const overWork = (env: Env, who: Writer, checks: readonly LimitCheck[]) =>
+  overLimit(env, workChecks(env, who.role, checks));
 
 /** A JSON object body of at most MAX_BODY bytes, or null. */
 export const bodyOf = (request: Request) => readJson(request, MAX_BODY);
