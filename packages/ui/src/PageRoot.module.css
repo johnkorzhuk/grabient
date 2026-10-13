@@ -1,0 +1,46 @@
+@layer components {
+  .root {
+    position: relative;
+    isolation: isolate;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-height: var(--frame-h, 100vh);
+    padding-right: env(safe-area-inset-right, 0px);
+    padding-left: env(safe-area-inset-left, 0px);
+    container: page / inline-size;
+    background-color: var(--color-bg);
+    color: var(--color-ink);
+    color-scheme: var(--color-scheme);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+    -webkit-font-smoothing: antialiased;
+    /* a second quick tap is a second press, never the browser's zoom; pinching still zooms */
+    touch-action: manipulation;
+    &[data-bare] {
+      min-height: 0;
+      background-color: transparent;
+    }
+  }
+  /* Where the head found scrollbars that take room (scrollbar.ts), the page runs on under the scrollbar against the
+     whole window, so what a page that scrolls shares with one that does not never moves by its width. A page whose own
+     column stands at the window's edge says so with data-beside-scrollbar and ends at the scrollbar instead, and its
+     header still runs under it. */
+  @media (min-width: 801px) {
+    @supports (overflow: clip) {
+      :root[data-scrollbar="classic"] .root:not(:has([data-beside-scrollbar])) {
+        margin-right: calc(100% - 100vw);
+      }
+      :root[data-scrollbar="classic"] .root > header {
+        margin-right: calc(
+          100% +
+          env(safe-area-inset-left, 0px) +
+          env(safe-area-inset-right, 0px) -
+          100vw
+        );
+      }
+    }
+  }
+}

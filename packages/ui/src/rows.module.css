@@ -1,0 +1,86 @@
+/* A row of a list on glass, as every menu draws it, so they read as one: words on no fill, the row under the pointer
+   one step of paper up and the chosen one two, the ring inside the row. Touch lights nothing under the finger: after a
+   tap swaps a row's choices in, the row under it would stay lit. */
+@layer components {
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    width: 100%;
+    min-height: var(--size-control-big);
+    margin: 0;
+    padding-inline: var(--space-s3);
+    border: 0;
+    border-radius: var(--radius-control);
+    --fill: transparent;
+    background-color: var(--fill);
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    text-align: start;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      --fill: var(--color-paper2);
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+      &:hover {
+        --fill: transparent;
+        color: var(--color-ink2);
+      }
+    }
+    /* a list of many rows (sizes, languages) */
+    [data-dense] > & {
+      min-height: var(--size-control);
+      @media (pointer: coarse) {
+        min-height: var(--size-touch);
+      }
+    }
+    &[data-current],
+    &[data-current]:hover {
+      --fill: var(--color-paper3);
+      color: var(--color-ink);
+    }
+    /* a row that cannot be chosen now: a disabled button's look, and nothing lights */
+    &:disabled,
+    &:disabled:hover {
+      opacity: 0.4;
+      cursor: default;
+      --fill: transparent;
+      color: var(--color-ink2);
+    }
+  }
+  /* a row's name at its start and what it is set to at its end */
+  .spread {
+    justify-content: space-between;
+    gap: var(--space-s5);
+  }
+  /* what a row is set to, at its end: a value, set as one */
+  .detail {
+    font-family: var(--font-mono);
+    font-size: var(--font-fs1);
+    color: var(--color-ink3);
+  }
+  /* the hairline between groups of rows */
+  .rule {
+    flex-shrink: 0;
+    height: var(--size-hairline);
+    border: 0;
+    margin-block: var(--space-s1);
+    margin-inline: var(--space-s3);
+    background-color: var(--color-glass-edge);
+  }
+}
