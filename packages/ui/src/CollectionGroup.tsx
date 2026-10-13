@@ -38,7 +38,7 @@ export function CollectionGroup<T>(props: {
   return (
     <section class={styles.group} aria-label={props.title}>
       <div class={styles.head}>
-        <Text variant="h2" truncate dir="auto">
+        <Text variant="title" as="h2" truncate dir="auto">
           <a ref={tip} class={styles.title} href={props.href}>
             {props.title}
           </a>
