@@ -9,6 +9,7 @@ import { KeyList } from "@grabient/ui/KeyList.tsx";
 import { installKeys, type KeyRow, sharedKeys } from "@grabient/ui/keys.ts";
 import { PageRoot } from "@grabient/ui/PageRoot.tsx";
 import { Segmented } from "@grabient/ui/Segmented.tsx";
+import { Shader } from "@grabient/ui/Shader.tsx";
 import { SkipLink } from "@grabient/ui/SkipLink.tsx";
 import { ThemeIcon } from "@grabient/ui/ThemeIcon.tsx";
 import { setThemeOrigin, theme, themeChanging, toggleTheme } from "@grabient/ui/theme.ts";
@@ -22,16 +23,18 @@ import { Foundations } from "./pages/Foundations.tsx";
 import { createRouter } from "./router.ts";
 import { supply } from "./samples.ts";
 
-/* The document's one shell, an app page of grabient.com: the header and its bar cycling through palettes, the pages
-   and the theme in its corner, then the page. A change of page swaps the page alone, so the bar carries on. The keys
-   are the site's own: T for the theme, U for the address, ? for the list. The light behind the paper is the site's
-   Backdrop, still on one palette: the water is not drawn here, and a wash that tweened with the bar would blur the
-   whole page again on every frame of a tween. */
+/* The document's one shell, an app page of grabient.com: the water behind the page, painted from the header's bar as
+   it cycles through palettes, the pages and the theme in the header's corner, then the page. A change of page swaps
+   the page alone, so the bar and the water carry on. Where the water cannot run, the site's Backdrop stands in, still
+   on one palette, since a wash that tweened with the bar would blur the whole page again on every frame. The keys are
+   the site's own: T for the theme, U for the address, ? for the list. */
 export function App() {
   const router = createRouter();
   const palettes = supply();
   const stops = createBarCycle(() => palettes);
   const [keys, setKeys] = createSignal<readonly KeyRow[] | null>(null);
+  const [lit, setLit] = createSignal<boolean | null>(null);
+  let bar: SVGRectElement | undefined;
   let themeHost!: HTMLSpanElement;
   const copyAddress = async () => {
     if (await copyText(location.href)) announce(t("Copied"));
@@ -58,9 +61,16 @@ export function App() {
     <div class={styles.app}>
       <PageRoot>
         <SkipLink />
-        <Backdrop stops={palettes[0] ?? []} />
+        <Shader bar={() => bar} paint={stops} onReady={setLit} onStops={() => {}} />
+        <Show when={lit() === false}>
+          <Backdrop stops={palettes[0] ?? []} />
+        </Show>
         <AppPage
           stops={stops()}
+          lit={!!lit()}
+          barRef={el => {
+            bar = el;
+          }}
           home={{ href: "/", label: "cover" }}
           corner={
             <>
