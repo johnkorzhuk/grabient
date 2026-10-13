@@ -1,12 +1,26 @@
 import { t } from "@grabient/i18n";
 import { createFileRoute } from "@tanstack/solid-router";
-import { Placeholder } from "../app/Placeholder.tsx";
+import { ConnectPage } from "../features/connect/Connect.tsx";
+import { readConsent } from "../features/connect/queries.ts";
 import { NO_STORE } from "../lib/cache.ts";
 
-/* An account's page: the browser draws it, signed in or not, and the server sends the document alone. */
+/* The consent page: the Worker reads the app's request before the page draws (a session that ended goes to sign-in on
+   the way), and the browser draws it alone. */
 export const Route = createFileRoute("/connect")({
-  ssr: false,
+  ssr: "data-only",
   headers: () => NO_STORE,
-  head: () => ({ meta: [{ title: t("Connect an app") }] }),
-  component: () => <Placeholder title={t("Connect an app")} />
+  loader: () => readConsent(),
+  head: () => ({
+    meta: [
+      { title: t("Connect an app") },
+      { name: "description", content: t("Allow an app to use your Grabient account.") },
+      { name: "robots", content: "noindex,nofollow" }
+    ]
+  }),
+  component: Connect
 });
+
+function Connect() {
+  const page = Route.useLoaderData();
+  return <ConnectPage page={page()} />;
+}

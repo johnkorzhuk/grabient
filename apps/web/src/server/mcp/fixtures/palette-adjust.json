@@ -1,0 +1,128 @@
+[
+  {
+    "raw": {
+      "lighten": 0.2
+    },
+    "seed": "kCSg1XCev36V3X_w",
+    "notes": [],
+    "colors": [
+      "#28355c",
+      "#427dff",
+      "#5dd7ff"
+    ]
+  },
+  {
+    "raw": {
+      "chromaScale": 0.5,
+      "hold": [
+        "#0052FF"
+      ]
+    },
+    "seed": "kCQkPH0AUv8Y3B1A",
+    "notes": [],
+    "colors": [
+      "#090f1f",
+      "#0052ff",
+      "#8dc1d4"
+    ]
+  },
+  {
+    "raw": {
+      "reverse": true
+    },
+    "seed": "kCUzJ8EAUv8QULLg",
+    "notes": [],
+    "colors": [
+      "#4cc9f0",
+      "#0052ff",
+      "#050b2e"
+    ]
+  },
+  {
+    "raw": {
+      "colorCount": 5
+    },
+    "seed": "kGQULLkWIY8QBS_xAKDyFMyfA",
+    "notes": [],
+    "colors": [
+      "#050b2e",
+      "#16218f",
+      "#0052ff",
+      "#00a0f2",
+      "#4cc9f0"
+    ]
+  },
+  {
+    "raw": {
+      "chromaScale": 3
+    },
+    "seed": "kSLJq_Q38_OP_Oy",
+    "notes": [
+      "More chroma was asked than sRGB shows at #040041, #0056f7, #00ccfa."
+    ],
+    "colors": [
+      "#040041",
+      "#0056f7",
+      "#00ccfa"
+    ]
+  },
+  {
+    "raw": {},
+    "seed": "kCQULLkAUv8UzJ8A",
+    "notes": [
+      "The change left the palette as it was."
+    ],
+    "colors": [
+      "#050b2e",
+      "#0052ff",
+      "#4cc9f0"
+    ]
+  },
+  {
+    "raw": {
+      "warmth": 1
+    },
+    "seed": "kCRUMFk1XN8X3Hyw",
+    "notes": [],
+    "colors": [
+      "#150c16",
+      "#355cdf",
+      "#7dc7cb"
+    ]
+  },
+  {
+    "raw": {
+      "hueShift": 90
+    },
+    "seed": "kCSUADyGv35dOh8A",
+    "notes": [],
+    "colors": [
+      "#25000f",
+      "#bf0076",
+      "#d3a1f0"
+    ]
+  },
+  {
+    "raw": {
+      "lighten": 70
+    },
+    "error": "lighten is -1 to 1, the share of the way to white, or below 0 to black, so 70 is 0.7."
+  },
+  {
+    "raw": {
+      "colorCount": 4,
+      "hold": [
+        "#050b2e"
+      ]
+    },
+    "error": "hold cannot go with colorCount: resampling makes every color anew."
+  },
+  {
+    "raw": {
+      "hold": [
+        "#123456"
+      ]
+    },
+    "error": "hold \"#123456\" is none of this palette's colors: #050b2e, #0052ff, #4cc9f0."
+  }
+]

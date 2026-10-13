@@ -60,6 +60,9 @@ overrides:
   '@solidjs/babel-plugin': 2.0.0-rc.14
 
 patchedDependencies:
+  '@cloudflare/workers-oauth-provider@1.2.3':
+    hash: 8743a67bd2a4d66f6eae95dd65a7378c7886427480d610f3c927ad383d75975a
+    path: patches/@cloudflare__workers-oauth-provider@1.2.3.patch
   '@tanstack/solid-start@2.0.0-rc.8':
     hash: 79132034195b7e6f6c2bc132995a54c893a68a740cf29ebc0081ef3c2a7ae1ed
     path: patches/@tanstack__solid-start@2.0.0-rc.8.patch
@@ -128,7 +131,7 @@ importers:
     dependencies:
       '@cloudflare/workers-oauth-provider':
         specifier: 1.2.3
-        version: 1.2.3
+        version: 1.2.3(patch_hash=8743a67bd2a4d66f6eae95dd65a7378c7886427480d610f3c927ad383d75975a)
       '@grabient/email':
         specifier: workspace:*
         version: link:../../packages/email
@@ -2680,7 +2683,7 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20261006.1':
     optional: true
 
-  '@cloudflare/workers-oauth-provider@1.2.3': {}
+  '@cloudflare/workers-oauth-provider@1.2.3(patch_hash=8743a67bd2a4d66f6eae95dd65a7378c7886427480d610f3c927ad383d75975a)': {}
 
   '@cloudflare/workers-types@5.20261013.1': {}
 

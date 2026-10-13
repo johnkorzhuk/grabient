@@ -1,0 +1,273 @@
+{
+  "accessSeconds": [
+    [
+      null,
+      1209600
+    ],
+    [
+      "3600",
+      3600
+    ],
+    [
+      "59",
+      1209600
+    ],
+    [
+      "120",
+      120
+    ],
+    [
+      "1209600",
+      1209600
+    ],
+    [
+      "1209601",
+      1209600
+    ],
+    [
+      "soon",
+      1209600
+    ],
+    [
+      "3600.5",
+      1209600
+    ]
+  ],
+  "fetchableClientId": [
+    [
+      "https://goose-docs.ai/oauth/client-metadata.json",
+      true
+    ],
+    [
+      "https://192.0.2.1/client.json",
+      false
+    ],
+    [
+      "https://[2001:db8::1]/client.json",
+      false
+    ],
+    [
+      "https://apps.dev:8443/client.json",
+      false
+    ],
+    [
+      "https://localhost/client.json",
+      false
+    ],
+    [
+      "https://printer.local/client.json",
+      false
+    ],
+    [
+      "https://svc.internal/client.json",
+      false
+    ],
+    [
+      "https://intranet/client.json",
+      false
+    ],
+    [
+      "https://Apps.dev/client.json",
+      false
+    ],
+    [
+      "https://apps.dev/a/../client.json",
+      false
+    ],
+    [
+      "https://grabient.com/client.json",
+      false
+    ],
+    [
+      "https://www.grabient.com/client.json",
+      false
+    ],
+    [
+      "https://grabient-lite.jkorzhuk.workers.dev/client.json",
+      false
+    ],
+    [
+      "https://user@apps.dev/client.json",
+      false
+    ],
+    [
+      "http://apps.dev/client.json",
+      false
+    ],
+    [
+      "https://apps.dev/client.json#x",
+      false
+    ]
+  ],
+  "trustedRedirect": [
+    [
+      "http://127.0.0.1:5000/cb",
+      true
+    ],
+    [
+      "http://localhost/callback",
+      true
+    ],
+    [
+      "http://[::1]:9/x",
+      true
+    ],
+    [
+      "https://localhost/cb",
+      false
+    ],
+    [
+      "https://claude.ai/api/mcp/auth_callback",
+      true
+    ],
+    [
+      "https://chatgpt.com/connector_platform_oauth_redirect",
+      true
+    ],
+    [
+      "https://vscode.dev/redirect",
+      true
+    ],
+    [
+      "http://127.0.0.1:33418/",
+      true
+    ],
+    [
+      "https://evil.example/cb",
+      false
+    ],
+    [
+      "cursor://anysphere.cursor-mcp/oauth/callback",
+      false
+    ]
+  ],
+  "clientKind": [
+    [
+      "https://claude.ai/oauth/mcp-oauth-client-metadata",
+      "saved"
+    ],
+    [
+      "https://goose-docs.ai/oauth/client-metadata.json",
+      "document"
+    ],
+    [
+      "Abc123Def456Ghi7",
+      "registered"
+    ]
+  ],
+  "redirectPlace": [
+    [
+      "http://127.0.0.1:5000/cb",
+      {
+        "kind": "local",
+        "name": "127.0.0.1"
+      }
+    ],
+    [
+      "http://localhost/x",
+      {
+        "kind": "local",
+        "name": "localhost"
+      }
+    ],
+    [
+      "http://[::1]/x",
+      {
+        "kind": "local",
+        "name": "[::1]"
+      }
+    ],
+    [
+      "https://claude.ai/api/mcp/auth_callback",
+      {
+        "kind": "site",
+        "name": "claude.ai"
+      }
+    ],
+    [
+      "cursor://anysphere.cursor-mcp/oauth/callback",
+      {
+        "kind": "app",
+        "name": "cursor"
+      }
+    ],
+    [
+      "not a url",
+      {
+        "kind": "site",
+        "name": ""
+      }
+    ]
+  ],
+  "givenName": [
+    [
+      "Claude",
+      "Claude"
+    ],
+    [
+      "  Visual   Studio\tCode ",
+      "Visual Studio Code"
+    ],
+    [
+      " ​\t\u0007 ",
+      null
+    ],
+    [
+      null,
+      null
+    ],
+    [
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    [
+      "Ｃｌａｕｄｅ",
+      "Claude"
+    ]
+  ],
+  "appName": [
+    [
+      null,
+      "An app"
+    ],
+    [
+      "Cursor",
+      "Cursor"
+    ]
+  ],
+  "scopes": {
+    "MCP_SCOPES": [
+      "account"
+    ],
+    "ADMIN_SCOPES": [
+      "account",
+      "admin"
+    ],
+    "MCP_PATH": "/mcp"
+  },
+  "paths": {
+    "OAUTH_PATHS": {
+      "authorize": "/oauth/authorize",
+      "token": "/oauth/token",
+      "register": "/oauth/register",
+      "consent": "/oauth/consent"
+    },
+    "AS_METADATA_PATH": "/.well-known/oauth-authorization-server",
+    "RESOURCE_METADATA_PATH": "/.well-known/oauth-protected-resource/mcp"
+  },
+  "savedClientIds": [
+    "https://claude.ai/oauth/mcp-oauth-client-metadata",
+    "https://claude.ai/oauth/claude-code-client-metadata",
+    "https://chatgpt.com/oauth/client.json",
+    "https://chatgpt.com/oauth/codex/client.json",
+    "https://vscode.dev/oauth/client-metadata.json"
+  ],
+  "savedRedirects": [
+    "https://claude.ai/api/mcp/auth_callback",
+    "http://localhost/callback",
+    "http://127.0.0.1/callback",
+    "https://chatgpt.com/connector_platform_oauth_redirect",
+    "http://127.0.0.1:33418/",
+    "https://vscode.dev/redirect"
+  ]
+}

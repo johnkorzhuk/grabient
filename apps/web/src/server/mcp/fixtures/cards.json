@@ -1,0 +1,654 @@
+[
+  {
+    "label": "three",
+    "given": {},
+    "view": {
+      "style": "linearGradient",
+      "steps": 7,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kSWUkczDNDewdRK",
+      "url": "https://grabient.com/kSWUkczDNDewdRK",
+      "title": "Title",
+      "colors": [
+        "#642308",
+        "#b06f00",
+        "#d1d396"
+      ],
+      "style": "linearGradient",
+      "steps": 7,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #642308 0.0%, #7b3300 16.7%, #975000 33.3%, #b06f00 50.0%, #c1942f 66.7%, #c9ba6d 83.3%, #d1d396 100.0%);",
+      "files": {
+        "png": "https://grabient.com/kSWUkczDNDewdRK.png",
+        "svg": "https://grabient.com/kSWUkczDNDewdRK.svg",
+        "css": "https://grabient.com/kSWUkczDNDewdRK.css",
+        "card": "https://grabient.com/api/og?seed=kSWUkczDNDewdRK"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "three",
+    "given": {
+      "style": "linearSwatches"
+    },
+    "view": {
+      "style": "linearSwatches",
+      "steps": 3,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kSWUkczDNDewdRK",
+      "url": "https://grabient.com/kSWUkczDNDewdRK?style=linearSwatches&steps=3",
+      "title": "Title",
+      "colors": [
+        "#642308",
+        "#b06f00",
+        "#d1d396"
+      ],
+      "style": "linearSwatches",
+      "steps": 3,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #642308 0.000% 33.333%, #b06f00 33.333% 66.667%, #d1d396 66.667% 100.000%);",
+      "files": {
+        "png": "https://grabient.com/kSWUkczDNDewdRK.png?style=linearSwatches&steps=3",
+        "svg": "https://grabient.com/kSWUkczDNDewdRK.svg?style=linearSwatches&steps=3",
+        "css": "https://grabient.com/kSWUkczDNDewdRK.css?style=linearSwatches&steps=3",
+        "card": "https://grabient.com/api/og?seed=kSWUkczDNDewdRK&style=linearSwatches&steps=3"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "three",
+    "given": {
+      "steps": 3
+    },
+    "view": {
+      "style": "linearGradient",
+      "steps": 3,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kSWUkczDNDewdRK",
+      "url": "https://grabient.com/kSWUkczDNDewdRK?steps=3",
+      "title": "Title",
+      "colors": [
+        "#642308",
+        "#b06f00",
+        "#d1d396"
+      ],
+      "style": "linearGradient",
+      "steps": 3,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #642308 0.0%, #b06f00 50.0%, #d1d396 100.0%);",
+      "files": {
+        "png": "https://grabient.com/kSWUkczDNDewdRK.png?steps=3",
+        "svg": "https://grabient.com/kSWUkczDNDewdRK.svg?steps=3",
+        "css": "https://grabient.com/kSWUkczDNDewdRK.css?steps=3",
+        "card": "https://grabient.com/api/og?seed=kSWUkczDNDewdRK&steps=3"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "three",
+    "given": {
+      "style": "radialSwatches",
+      "steps": 13
+    },
+    "view": {
+      "style": "radialSwatches",
+      "steps": 13,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kSWUkczDNDewdRK",
+      "url": "https://grabient.com/kSWUkczDNDewdRK?style=radialSwatches&steps=13",
+      "title": "Title",
+      "colors": [
+        "#642308",
+        "#b06f00",
+        "#d1d396"
+      ],
+      "style": "radialSwatches",
+      "steps": 13,
+      "angle": 90,
+      "css": "background: radial-gradient(circle at 50% 50%, #642308 0.000% 7.692%, #6e2a06 7.692% 15.385%, #7b3300 15.385% 23.077%, #894100 23.077% 30.769%, #975000 30.769% 38.462%, #a46000 38.462% 46.154%, #b06f00 46.154% 53.846%, #bb8000 53.846% 61.538%, #c1942f 61.538% 69.231%, #c5a850 69.231% 76.923%, #c9ba6d 76.923% 84.615%, #cdc985 84.615% 92.308%, #d1d396 92.308% 100.000%);",
+      "files": {
+        "png": "https://grabient.com/kSWUkczDNDewdRK.png?style=radialSwatches&steps=13",
+        "svg": "https://grabient.com/kSWUkczDNDewdRK.svg?style=radialSwatches&steps=13",
+        "css": "https://grabient.com/kSWUkczDNDewdRK.css?style=radialSwatches&steps=13",
+        "card": "https://grabient.com/api/og?seed=kSWUkczDNDewdRK&style=radialSwatches&steps=13"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "three",
+    "given": {
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30
+    },
+    "view": {
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30
+    },
+    "raised": [],
+    "card": {
+      "seed": "kSWUkczDNDewdRK",
+      "url": "https://grabient.com/kSWUkczDNDewdRK?style=angularGradient&steps=40&angle=30",
+      "title": "Title",
+      "colors": [
+        "#642308",
+        "#b06f00",
+        "#d1d396"
+      ],
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30,
+      "files": {
+        "png": "https://grabient.com/kSWUkczDNDewdRK.png?style=angularGradient&steps=40&angle=30",
+        "svg": "https://grabient.com/kSWUkczDNDewdRK.svg?style=angularGradient&steps=40&angle=30",
+        "css": "https://grabient.com/kSWUkczDNDewdRK.css?style=angularGradient&steps=40&angle=30",
+        "card": "https://grabient.com/api/og?seed=kSWUkczDNDewdRK&style=angularGradient&steps=40&angle=30"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle"
+    ]
+  },
+  {
+    "label": "two",
+    "given": {},
+    "view": {
+      "style": "linearGradient",
+      "steps": 7,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kQf5EOWSTcQ",
+      "url": "https://grabient.com/kQf5EOWSTcQ",
+      "title": "Title",
+      "colors": [
+        "#ba0230",
+        "#79a0dd"
+      ],
+      "style": "linearGradient",
+      "steps": 7,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #ba0230 0.0%, #a84b00 16.7%, #8e7100 33.3%, #4a9536 50.0%, #00a29a 66.7%, #3ea3d0 83.3%, #79a0dd 100.0%);",
+      "files": {
+        "png": "https://grabient.com/kQf5EOWSTcQ.png",
+        "svg": "https://grabient.com/kQf5EOWSTcQ.svg",
+        "css": "https://grabient.com/kQf5EOWSTcQ.css",
+        "card": "https://grabient.com/api/og?seed=kQf5EOWSTcQ"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "two",
+    "given": {
+      "style": "linearSwatches"
+    },
+    "view": {
+      "style": "linearSwatches",
+      "steps": 3,
+      "angle": 90
+    },
+    "raised": [
+      "A view draws at least three bands, so the middle one is the blend of the two colors."
+    ],
+    "card": {
+      "seed": "kQf5EOWSTcQ",
+      "url": "https://grabient.com/kQf5EOWSTcQ?style=linearSwatches&steps=3",
+      "title": "Title",
+      "colors": [
+        "#ba0230",
+        "#4a9536",
+        "#79a0dd"
+      ],
+      "style": "linearSwatches",
+      "steps": 3,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #ba0230 0.000% 33.333%, #4a9536 33.333% 66.667%, #79a0dd 66.667% 100.000%);",
+      "files": {
+        "png": "https://grabient.com/kQf5EOWSTcQ.png?style=linearSwatches&steps=3",
+        "svg": "https://grabient.com/kQf5EOWSTcQ.svg?style=linearSwatches&steps=3",
+        "css": "https://grabient.com/kQf5EOWSTcQ.css?style=linearSwatches&steps=3",
+        "card": "https://grabient.com/api/og?seed=kQf5EOWSTcQ&style=linearSwatches&steps=3"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "two",
+    "given": {
+      "steps": 3
+    },
+    "view": {
+      "style": "linearGradient",
+      "steps": 3,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kQf5EOWSTcQ",
+      "url": "https://grabient.com/kQf5EOWSTcQ?steps=3",
+      "title": "Title",
+      "colors": [
+        "#ba0230",
+        "#79a0dd"
+      ],
+      "style": "linearGradient",
+      "steps": 3,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #ba0230 0.0%, #4a9536 50.0%, #79a0dd 100.0%);",
+      "files": {
+        "png": "https://grabient.com/kQf5EOWSTcQ.png?steps=3",
+        "svg": "https://grabient.com/kQf5EOWSTcQ.svg?steps=3",
+        "css": "https://grabient.com/kQf5EOWSTcQ.css?steps=3",
+        "card": "https://grabient.com/api/og?seed=kQf5EOWSTcQ&steps=3"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "two",
+    "given": {
+      "style": "radialSwatches",
+      "steps": 13
+    },
+    "view": {
+      "style": "radialSwatches",
+      "steps": 13,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kQf5EOWSTcQ",
+      "url": "https://grabient.com/kQf5EOWSTcQ?style=radialSwatches&steps=13",
+      "title": "Title",
+      "colors": [
+        "#ba0230",
+        "#79a0dd"
+      ],
+      "style": "radialSwatches",
+      "steps": 13,
+      "angle": 90,
+      "css": "background: radial-gradient(circle at 50% 50%, #ba0230 0.000% 7.692%, #bb1f00 7.692% 15.385%, #a84b00 15.385% 23.077%, #9b6000 23.077% 30.769%, #8e7100 30.769% 38.462%, #798200 38.462% 46.154%, #4a9536 46.154% 53.846%, #009f72 53.846% 61.538%, #00a29a 61.538% 69.231%, #00a4ba 69.231% 76.923%, #3ea3d0 76.923% 84.615%, #63a1da 84.615% 92.308%, #79a0dd 92.308% 100.000%);",
+      "files": {
+        "png": "https://grabient.com/kQf5EOWSTcQ.png?style=radialSwatches&steps=13",
+        "svg": "https://grabient.com/kQf5EOWSTcQ.svg?style=radialSwatches&steps=13",
+        "css": "https://grabient.com/kQf5EOWSTcQ.css?style=radialSwatches&steps=13",
+        "card": "https://grabient.com/api/og?seed=kQf5EOWSTcQ&style=radialSwatches&steps=13"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "two",
+    "given": {
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30
+    },
+    "view": {
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30
+    },
+    "raised": [],
+    "card": {
+      "seed": "kQf5EOWSTcQ",
+      "url": "https://grabient.com/kQf5EOWSTcQ?style=angularGradient&steps=40&angle=30",
+      "title": "Title",
+      "colors": [
+        "#ba0230",
+        "#79a0dd"
+      ],
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30,
+      "files": {
+        "png": "https://grabient.com/kQf5EOWSTcQ.png?style=angularGradient&steps=40&angle=30",
+        "svg": "https://grabient.com/kQf5EOWSTcQ.svg?style=angularGradient&steps=40&angle=30",
+        "css": "https://grabient.com/kQf5EOWSTcQ.css?style=angularGradient&steps=40&angle=30",
+        "card": "https://grabient.com/api/og?seed=kQf5EOWSTcQ&style=angularGradient&steps=40&angle=30"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle"
+    ]
+  },
+  {
+    "label": "eight",
+    "given": {},
+    "view": {
+      "style": "linearGradient",
+      "steps": 8,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA",
+      "url": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA?steps=8",
+      "title": "Title",
+      "colors": [
+        "#470100",
+        "#4f2c00",
+        "#554b00",
+        "#406e20",
+        "#008d6d",
+        "#00a2af",
+        "#57b1ea",
+        "#aebdff"
+      ],
+      "style": "linearGradient",
+      "steps": 8,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #470100 0.0%, #4f2c00 14.3%, #554b00 28.6%, #406e20 42.9%, #008d6d 57.1%, #00a2af 71.4%, #57b1ea 85.7%, #aebdff 100.0%);",
+      "files": {
+        "png": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.png?steps=8",
+        "svg": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.svg?steps=8",
+        "css": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.css?steps=8",
+        "card": "https://grabient.com/api/og?seed=kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA&steps=8"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "eight",
+    "given": {
+      "style": "linearSwatches"
+    },
+    "view": {
+      "style": "linearSwatches",
+      "steps": 8,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA",
+      "url": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA?style=linearSwatches&steps=8",
+      "title": "Title",
+      "colors": [
+        "#470100",
+        "#4f2c00",
+        "#554b00",
+        "#406e20",
+        "#008d6d",
+        "#00a2af",
+        "#57b1ea",
+        "#aebdff"
+      ],
+      "style": "linearSwatches",
+      "steps": 8,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #470100 0.000% 12.500%, #4f2c00 12.500% 25.000%, #554b00 25.000% 37.500%, #406e20 37.500% 50.000%, #008d6d 50.000% 62.500%, #00a2af 62.500% 75.000%, #57b1ea 75.000% 87.500%, #aebdff 87.500% 100.000%);",
+      "files": {
+        "png": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.png?style=linearSwatches&steps=8",
+        "svg": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.svg?style=linearSwatches&steps=8",
+        "css": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.css?style=linearSwatches&steps=8",
+        "card": "https://grabient.com/api/og?seed=kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA&style=linearSwatches&steps=8"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "eight",
+    "given": {
+      "steps": 3
+    },
+    "view": {
+      "style": "linearGradient",
+      "steps": 8,
+      "angle": 90
+    },
+    "raised": [
+      "Steps were raised to 8, the number of colors the palette has."
+    ],
+    "card": {
+      "seed": "kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA",
+      "url": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA?steps=8",
+      "title": "Title",
+      "colors": [
+        "#470100",
+        "#4f2c00",
+        "#554b00",
+        "#406e20",
+        "#008d6d",
+        "#00a2af",
+        "#57b1ea",
+        "#aebdff"
+      ],
+      "style": "linearGradient",
+      "steps": 8,
+      "angle": 90,
+      "css": "background: linear-gradient(90deg, #470100 0.0%, #4f2c00 14.3%, #554b00 28.6%, #406e20 42.9%, #008d6d 57.1%, #00a2af 71.4%, #57b1ea 85.7%, #aebdff 100.0%);",
+      "files": {
+        "png": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.png?steps=8",
+        "svg": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.svg?steps=8",
+        "css": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.css?steps=8",
+        "card": "https://grabient.com/api/og?seed=kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA&steps=8"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "eight",
+    "given": {
+      "style": "radialSwatches",
+      "steps": 13
+    },
+    "view": {
+      "style": "radialSwatches",
+      "steps": 13,
+      "angle": 90
+    },
+    "raised": [],
+    "card": {
+      "seed": "kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA",
+      "url": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA?style=radialSwatches&steps=13",
+      "title": "Title",
+      "colors": [
+        "#470100",
+        "#513100",
+        "#554300",
+        "#436b17",
+        "#008e73",
+        "#00a7c0",
+        "#48afe2",
+        "#aebdff"
+      ],
+      "style": "radialSwatches",
+      "steps": 13,
+      "angle": 90,
+      "css": "background: radial-gradient(circle at 50% 50%, #470100 0.000% 7.692%, #4a1d00 7.692% 15.385%, #513100 15.385% 23.077%, #554300 23.077% 30.769%, #535600 30.769% 38.462%, #436b17 38.462% 46.154%, #257f48 46.154% 53.846%, #008e73 53.846% 61.538%, #009b99 61.538% 69.231%, #00a7c0 69.231% 76.923%, #48afe2 76.923% 84.615%, #7fb6fe 84.615% 92.308%, #aebdff 92.308% 100.000%);",
+      "files": {
+        "png": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.png?style=radialSwatches&steps=13",
+        "svg": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.svg?style=radialSwatches&steps=13",
+        "css": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.css?style=radialSwatches&steps=13",
+        "card": "https://grabient.com/api/og?seed=kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA&style=radialSwatches&steps=13"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle",
+      "css"
+    ]
+  },
+  {
+    "label": "eight",
+    "given": {
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30
+    },
+    "view": {
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30
+    },
+    "raised": [],
+    "card": {
+      "seed": "kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA",
+      "url": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA?style=angularGradient&steps=40&angle=30",
+      "title": "Title",
+      "colors": [
+        "#470100",
+        "#4f2c00",
+        "#554b00",
+        "#406e20",
+        "#008d6d",
+        "#00a2af",
+        "#57b1ea",
+        "#aebdff"
+      ],
+      "style": "angularGradient",
+      "steps": 40,
+      "angle": 30,
+      "files": {
+        "png": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.png?style=angularGradient&steps=40&angle=30",
+        "svg": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.svg?style=angularGradient&steps=40&angle=30",
+        "css": "https://grabient.com/kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA.css?style=angularGradient&steps=40&angle=30",
+        "card": "https://grabient.com/api/og?seed=kcQFcVqivEDQrxA-K8QSKvEFKrxBcq8QZyvEA&style=angularGradient&steps=40&angle=30"
+      }
+    },
+    "drawn": [
+      "seed",
+      "url",
+      "title",
+      "colors",
+      "style",
+      "steps",
+      "angle"
+    ]
+  }
+]

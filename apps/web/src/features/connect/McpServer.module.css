@@ -1,0 +1,65 @@
+/* few things at once, with room between them; a phone draws the sections a little closer */
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s12);
+  max-width: var(--size-prose);
+  @container page (max-width: 600px) {
+    gap: var(--space-s10);
+  }
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s5);
+}
+.intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+}
+/* the one-click links: a row of presses as wide as their words, wrapping on a phone */
+.clicks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+}
+.ways {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-s2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  margin: 0;
+  padding-inline-start: var(--space-s5);
+}
+/* things to ask: one card, a line to a row, the rows parted by the dashed rule */
+.asks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: var(--size-hairline) solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+}
+.ask {
+  padding: var(--space-s3) var(--space-s4);
+  background-image: var(--color-dash-rule);
+  background-size: var(--size-dash-period) var(--size-hairline);
+  background-repeat: repeat-x;
+  background-position: left top;
+  &:first-child {
+    background-image: none;
+  }
+}
