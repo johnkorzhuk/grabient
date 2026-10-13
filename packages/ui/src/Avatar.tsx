@@ -26,7 +26,7 @@ export function Avatar(props: { size?: "sm" | "lg"; src?: string; name?: string 
           >
             {/* the first letter whole (an emoji is two code units), capitalized in the page's language by the CSS:
                 a Turkish i is İ */}
-            {name => [...name()][0]}
+            {name => <>{[...name()][0]}</>}
           </Show>
         }
       >

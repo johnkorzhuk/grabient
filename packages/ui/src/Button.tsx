@@ -1,4 +1,4 @@
-import type { Element } from "solid-js";
+import { type Element, untrack } from "solid-js";
 import { BarRim } from "./BarRim.tsx";
 import styles from "./Button.module.css";
 import hidden from "./hidden.module.css";
@@ -39,6 +39,8 @@ export interface ButtonProps {
   /** the words that say what a press does now */
   "aria-describedby"?: string;
   "aria-expanded"?: boolean;
+  /** what a press opens: a menu button's list */
+  "aria-haspopup"?: "menu" | "listbox" | "dialog";
   "aria-pressed"?: boolean;
   /** one line on rest: an icon's name, a key or a consequence, never the label again */
   tip?: string;
@@ -53,13 +55,15 @@ export interface ButtonProps {
 const pseudo = (v: boolean | undefined) => (v === undefined ? undefined : v ? "true" : "false");
 
 export function Button(props: ButtonProps) {
+  /* what a press is, a link or a button, among fields or not, is settled once, as it is drawn */
+  const [link, input] = untrack(() => [props.href !== undefined, props.variant === "input"]);
   const tip = "tip" in props ? tooltip(() => props.tip, { turns: props.turns }) : undefined;
   const flag = (on: boolean | undefined) => (on ? "" : undefined);
   const control = () =>
-    props.href !== undefined ? (
+    link ? (
       /* a disabled link has nowhere to go: no address, so neither a press nor the keyboard follows it */
       <a
-        ref={tip}
+        ref={el => tip?.(el)}
         class={styles.button}
         data-variant={props.variant ?? "secondary"}
         data-size={props.size ?? "md"}
@@ -87,7 +91,7 @@ export function Button(props: ButtonProps) {
       </a>
     ) : (
       <button
-        ref={tip}
+        ref={el => tip?.(el)}
         class={styles.button}
         data-variant={props.variant ?? "secondary"}
         data-size={props.size ?? "md"}
@@ -103,6 +107,7 @@ export function Button(props: ButtonProps) {
         aria-describedby={props["aria-describedby"]}
         aria-disabled={props.disabled && props.keep ? "true" : undefined}
         aria-expanded={pseudo(props["aria-expanded"])}
+        aria-haspopup={props["aria-haspopup"]}
         aria-pressed={pseudo(props["aria-pressed"])}
         onClick={e => {
           if (!props.disabled) props.onClick?.(e);
@@ -112,7 +117,7 @@ export function Button(props: ButtonProps) {
       </button>
     );
   /* the input recipe wears a field's rim, so a host owns the hover and the focus that light it */
-  return props.variant === "input" ? (
+  return input ? (
     <span class={styles.rimHost} data-full={flag(props.full)} data-state={props.state}>
       <BarRim />
       {control()}
