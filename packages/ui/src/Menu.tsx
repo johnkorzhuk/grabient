@@ -1,4 +1,12 @@
-import { createSignal, createUniqueId, type Element, For, onSettled, Show } from "solid-js";
+import {
+  children,
+  createSignal,
+  createUniqueId,
+  type Element,
+  For,
+  onSettled,
+  Show
+} from "solid-js";
 import { Button, type ButtonSize, type ButtonVariant } from "./Button.tsx";
 import { Flag, type FlagRegion } from "./Flag.tsx";
 import hidden from "./hidden.module.css";
@@ -341,8 +349,10 @@ export function MenuButton(props: {
   const current = () =>
     props.items.find(i => i.value === props.value) ??
     props.items.flatMap(i => i.items ?? []).find(i => i.value === props.value);
-  /* whether the button shows words of its own (its children, or the chosen item's label), asked without drawing them */
-  const worded = () => "children" in props || props.value !== undefined;
+  /* the button's own words, resolved once, else the chosen item's label */
+  const words = children(() => props.children);
+  const own = "children" in props;
+  const worded = () => own || props.value !== undefined;
   return (
     /* biome-ignore lint/a11y/noStaticElementInteractions: the arrows that open the menu come up from its button */
     <div
@@ -367,6 +377,7 @@ export function MenuButton(props: {
         spread={props.full}
         disabled={props.disabled}
         aria-label={worded() ? undefined : props["aria-label"]}
+        aria-haspopup="menu"
         aria-expanded={open()}
         onClick={() => {
           setSub(null);
@@ -377,7 +388,7 @@ export function MenuButton(props: {
         {worded() && props["aria-label"] && (
           <span class={hidden.text}>{`${props["aria-label"]} `}</span>
         )}
-        {props.children ?? current()?.label ?? ""}
+        {own ? words() : (current()?.label ?? "")}
         <span
           class={styles.chevron}
           data-open={open() ? "" : undefined}

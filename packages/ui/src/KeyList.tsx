@@ -30,7 +30,7 @@ export function KeyList(props: {
       if (from?.isConnected && from !== document.body) from.focus({ preventScroll: true });
     };
     const onKey = (e: KeyboardEvent) => {
-      /* a held Shift is on its way to ?, not a press of its own */
+      /* a held Shift is part of a ? still to come */
       if (MODIFIERS.has(e.key)) return;
       if (e.key === "Escape" || matches(e, "?")) {
         e.preventDefault();

@@ -12,8 +12,8 @@ export interface SelectOption {
   detail?: string;
 }
 
-/** A choice from a short list on the input recipe, opening the system's own menu rather than the platform's list, so
-    it looks the same everywhere. The arrows open it and move, Enter picks, Escape closes. A choice that should stay in
+/** A choice from a short list on the input recipe. It opens the design system's own menu, so it looks the same on
+    every platform. The arrows open it and move, Enter picks, Escape closes. A choice that should stay in
     view is a Segmented. */
 export function Select(props: {
   /** a label above; without one, give an aria-label */
