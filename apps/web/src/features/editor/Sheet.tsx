@@ -86,6 +86,8 @@ export function Sheet(props: {
   taken: () => Taken;
   used: (action: "copy" | "download", format: string) => void;
   actions: Element;
+  /** the way into the selection, at the end of the row of palettes like this one */
+  selection: Element;
   resting: boolean;
   clear: boolean;
   onBand: (height: number) => void;
@@ -96,6 +98,13 @@ export function Sheet(props: {
   let sheet!: HTMLElement;
   const [inks, setInks] = createInks();
   const view = () => ({ style: e.style(), steps: e.steps(), angle: e.angle() });
+  /* the figures under the sheet's head come a task after it: neither is on the first screen, and a phone answers
+     between the two */
+  const [figured, setFigured] = createSignal(false);
+  onSettled(() => {
+    const timer = setTimeout(() => setFigured(true), 0);
+    return () => clearTimeout(timer);
+  });
 
   /* the palettes like this one: the answer read last, or one the browser keeps, so a palette an undo or Back returns
      to shows its palettes at once */
@@ -217,6 +226,7 @@ export function Sheet(props: {
       clear={props.clear}
       resting={props.resting}
       actions={props.actions}
+      selection={props.selection}
       collections={collections()}
       order={
         <Segmented
@@ -239,7 +249,7 @@ export function Sheet(props: {
       onCopy={(id, _text, spelling) =>
         props.used("copy", spelling ? `code:${id}:${spelling}` : `code:${id}`)
       }
-      colors={e.stops()}
+      colors={figured() ? e.stops() : []}
       contrastCopies={
         <FormatStrip
           size="sm"
@@ -258,20 +268,22 @@ export function Sheet(props: {
       inks={inks()}
       onInks={setInks}
       solid={
-        <SolidPane
-          palette={e.shownPalette()}
-          wide={e.wide()}
-          steps={e.steps()}
-          stepped={e.style().endsWith("Swatches")}
-          selection={e.held()}
-          onSelect={e.pick}
-          onSweep={e.sweep}
-          onHover={e.setReading}
-          seed={e.seed()}
-          style={e.style()}
-          angle={e.angle()}
-          onTake={(action, f) => props.used(action, `space:${f}`)}
-        />
+        figured() && (
+          <SolidPane
+            palette={e.shownPalette()}
+            wide={e.wide()}
+            steps={e.steps()}
+            stepped={e.style().endsWith("Swatches")}
+            selection={e.held()}
+            onSelect={e.pick}
+            onSweep={e.sweep}
+            onHover={e.setReading}
+            seed={e.seed()}
+            style={e.style()}
+            angle={e.angle()}
+            onTake={(action, f) => props.used(action, `space:${f}`)}
+          />
+        )
       }
     >
       <Show

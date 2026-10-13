@@ -63,15 +63,15 @@ export function PaletteSheet(props: {
   const copies = children(() => props.contrastCopies);
   const solid = children(() => props.solid);
   const foot = children(() => props.foot);
-  /* a long name takes a second line and its row grows: the page is told, so its first screen ends on the row */
+  /* a long name takes a second line and its row grows: the page is told, so its first screen ends on the row. The
+     observer's first report comes once the sheet is laid out, so its making forces no layout of its own */
   onSettled(() => {
     const tell = props.onBand;
     if (!tell) return;
-    const read = () =>
-      tell(Math.round(name.getBoundingClientRect().bottom - sheet.getBoundingClientRect().top));
-    const sizes = new ResizeObserver(read);
+    const sizes = new ResizeObserver(() =>
+      tell(Math.round(name.getBoundingClientRect().bottom - sheet.getBoundingClientRect().top))
+    );
     sizes.observe(name);
-    read();
     return () => sizes.disconnect();
   });
   return (

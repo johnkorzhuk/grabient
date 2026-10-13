@@ -300,9 +300,9 @@ function Page(props: PageProps) {
       page.style.setProperty("--head", `${page.getBoundingClientRect().top + scrollY || 0}px`);
       onScroll();
     });
+    /* the observer's first report, after the first layout, reads the scroll too: nothing here forces a layout */
     sizes.observe(page);
     addEventListener("scroll", onScroll, { passive: true });
-    read();
     return () => {
       sizes.disconnect();
       removeEventListener("scroll", onScroll);
@@ -388,6 +388,7 @@ function Page(props: PageProps) {
               clear={docked()}
               onBand={height => setBand(height)}
               actions={<Tools editor={e} heart={props.heart} paper />}
+              selection={props.chosen.button()}
             />
           </Loading>
         </Show>
@@ -822,6 +823,20 @@ function Side(props: PageProps & { narrow: boolean }) {
     };
   });
   const height = () => (props.narrow ? PLOT_FLOW : plotH());
+  /* Where the rows follow the strip they stand under the first screen, and each axis comes in a task of its own, so a
+     phone answers between them; beside the page they come at once, as the reader sees them. */
+  const [axes, setAxes] = createSignal(untrack(() => props.narrow) ? 0 : 3);
+  onSettled(() => {
+    if (untrack(axes) === 3) return;
+    let shown = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const next = () => {
+      setAxes(++shown);
+      if (shown < 3) timer = setTimeout(next, 0);
+    };
+    timer = setTimeout(next, 0);
+    return () => clearTimeout(timer);
+  });
   return (
     <aside
       ref={side}
@@ -844,15 +859,13 @@ function Side(props: PageProps & { narrow: boolean }) {
             removeLabel={t(e.multi() ? msg("Remove keyframes") : msg("Remove keyframe"))}
           />
         </div>
-        <div class={styles.section} data-ruled="">
-          <AxisRow editor={e} axis="l" height={height()} />
-        </div>
-        <div class={styles.section} data-ruled="">
-          <AxisRow editor={e} axis="c" height={height()} />
-        </div>
-        <div class={styles.section} data-ruled="">
-          <AxisRow editor={e} axis="h" height={height()} />
-        </div>
+        <For each={(["l", "c", "h"] as const).slice(0, axes())}>
+          {axis => (
+            <div class={styles.section} data-ruled="">
+              <AxisRow editor={e} axis={axis} height={height()} />
+            </div>
+          )}
+        </For>
       </div>
       <div ref={acts} class={styles.section} data-ruled="">
         <Actions editor={e} save={props.save} />
