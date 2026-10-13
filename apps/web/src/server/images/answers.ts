@@ -1,13 +1,13 @@
 /* The answers of the picture addresses, which the route files hand the Worker's bindings and its `waitUntil`. A
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 import { json } from "../../lib/responses.ts";
+import { listWords } from "../../lib/words.ts";
 import { collectionImagePalettes } from "../collections/read.ts";
 import { publicCollections } from "../collections/search.ts";
 import { addressParams, fileName } from "../files/address.ts";
 import { resolvePalette } from "../files/resolve.ts";
 import { listPalettes } from "../gallery/list.ts";
-import { searchLeaders } from "../search/leaders.ts";
-import { listWords } from "../search/query.ts";
+import { type SearchEnv, searchLeaders } from "../search/search.ts";
 import { DEFAULT_SEED, paletteCard, palettePicture } from "./cards.ts";
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "./mark.ts";
 import {
@@ -59,7 +59,7 @@ export function oldCardAnswer(request: Request, env: PictureEnv, keep: Keep) {
     Hot read as Popular, which a search's page shows. */
 export function searchPictureAnswer(
   request: Request,
-  env: PictureEnv,
+  env: PictureEnv & SearchEnv,
   keep: Keep,
   branded: boolean
 ) {

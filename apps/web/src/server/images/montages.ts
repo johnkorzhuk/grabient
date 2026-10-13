@@ -3,10 +3,10 @@
    unless the address sets style, steps or angle for all of them. Turned off for the site, a montage is refused before
    its palettes are read. */
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
+import { DEFAULT_FRAME, isFrame, type RisingFrame } from "../../lib/orders.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, type Saved, viewAt } from "../files/address.ts";
-import { resolvePalette } from "../files/resolve.ts";
-import { searchWords } from "../search/query.ts";
+import { normalizeSearchQuery, queryFromParam } from "../search/search.ts";
 import { drawWedges, lookOf } from "./paint.ts";
 import { answerPicture, drawingPaused, failure, type Keep, type PictureEnv } from "./serve.ts";
 import { CARD, montageSize } from "./size.ts";
@@ -19,15 +19,14 @@ export interface MontagePalette extends Saved {
 }
 
 type MontageSort = "popular" | "rising" | "newest" | "hot";
-const FRAMES = ["1w", "3m", "1y"];
 
 /** A montage's order as its address says it: Rising, Newest (which links from before Rising still name), the home's
     Hot, or else Popular; a frame other than the week's only with Rising. */
-export function montageOrder(params: URLSearchParams): { sort: MontageSort; frame?: string } {
+export function montageOrder(params: URLSearchParams): { sort: MontageSort; frame?: RisingFrame } {
   const sort = params.get("sort");
   const frame = params.get("frame");
   if (sort === "rising")
-    return frame && frame !== "1w" && FRAMES.includes(frame) ? { sort, frame } : { sort };
+    return isFrame(frame) && frame !== DEFAULT_FRAME ? { sort, frame } : { sort };
   return { sort: sort === "newest" || sort === "hot" ? sort : "popular" };
 }
 
@@ -36,16 +35,9 @@ export function montageOrder(params: URLSearchParams): { sort: MontageSort; fram
     null when they are no search. */
 export function pictureWords(path: string, params: URLSearchParams): string | null {
   const asked = params.get("query") ?? params.get("q");
-  if (asked !== null) return searchWords(asked);
+  if (asked !== null) return normalizeSearchQuery(asked);
   const segment = /^\/(?:search|palettes)\/(.+)\.png$/.exec(path)?.[1];
-  if (!segment) return null;
-  let raw: string;
-  try {
-    raw = decodeURIComponent(segment);
-  } catch {
-    return null;
-  }
-  return searchWords(resolvePalette(raw)?.seed ?? raw.replace(/-/g, " "));
+  return segment ? queryFromParam(segment) : null;
 }
 
 /* A montage's palettes, kept a few minutes in this isolate: every size, view, HEAD and refused retry of one card reads
