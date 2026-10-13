@@ -1,0 +1,52 @@
+@layer components {
+  .switch {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--size-switch-min);
+    height: var(--size-control-big);
+    padding: 0 var(--space-s4);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    --fill: var(--color-paper2);
+    background-color: var(--fill);
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    user-select: none;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover,
+    &:active,
+    &[data-state="hover"],
+    &[data-state="pressed"] {
+      --fill: var(--color-paper3);
+      color: var(--color-ink);
+    }
+    &:focus-visible,
+    &[data-state="focus"] {
+      outline-width: 1px;
+    }
+    &[data-on] {
+      color: var(--color-ink);
+    }
+    &[data-danger] {
+      color: var(--color-danger);
+    }
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+}

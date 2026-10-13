@@ -1,0 +1,75 @@
+@layer components {
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  .host {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    &:hover {
+      --rim-hover: 0.35;
+    }
+    &:focus-within {
+      --rim-focus: 1;
+    }
+  }
+  .trigger {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    width: 100%;
+    height: var(--size-control);
+    margin: 0;
+    padding-inline: var(--space-s3) var(--space-s2);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    text-align: start;
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    outline: none;
+    transition: border-color var(--motion-fast) var(--motion-ease);
+    &[data-size="lg"] {
+      height: var(--size-control-big);
+      font-size: var(--font-fs3);
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+      font-size: var(--font-fs-touch);
+      &[data-size="lg"] {
+        font-size: var(--font-fs-touch);
+      }
+    }
+  }
+  /* a line's height, so the clip keeps the tails of g and y and the marks above and below Vietnamese and Thai letters */
+  .value {
+    overflow: hidden;
+    line-height: var(--font-lh-ui);
+    text-overflow: ellipsis;
+    &[data-prompt] {
+      color: var(--color-ink3);
+    }
+  }
+  .chevron {
+    display: flex;
+    flex-shrink: 0;
+    color: var(--color-ink3);
+    transition: transform var(--motion-fast) var(--motion-ease);
+    &[data-open] {
+      transform: rotate(180deg);
+    }
+  }
+}

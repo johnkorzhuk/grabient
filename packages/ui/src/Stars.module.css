@@ -1,0 +1,18 @@
+@layer components {
+  .stars {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s1);
+  }
+  .star {
+    display: flex;
+    color: var(--color-star);
+  }
+  /* digits at the size and ink of the link they stand in, trimmed to the cap height so the row centers them */
+  .count {
+    display: inline-block;
+    font-family: var(--font-system);
+    font-variant-numeric: tabular-nums;
+    text-box: trim-both cap alphabetic;
+  }
+}
