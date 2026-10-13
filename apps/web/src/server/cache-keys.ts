@@ -2,6 +2,7 @@ import { type Locale, localizePath } from "@grabient/i18n";
 import { BUILD } from "../lib/build.ts";
 import { BROWSER_ONLY, FIXED_PAGES } from "../lib/links.ts";
 import { listWords } from "../lib/words.ts";
+import { collectionKeyRules } from "./collections/routing.ts";
 import { searchKeyRules } from "./search/routes.ts";
 
 /* What the edge cache keys an answer by: its path in its language, the query that decides what it holds (sorted, the
@@ -30,6 +31,7 @@ const SITE_FILES = new Set([
 ]);
 
 const RULES: readonly KeyRule[] = [
+  ...collectionKeyRules,
   {
     match: path =>
       SITE_FILES.has(path) ||

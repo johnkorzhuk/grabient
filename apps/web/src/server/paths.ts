@@ -31,7 +31,7 @@ export const uncachedPath = (path: string) =>
   path === "/api/search/status";
 
 const PUBLIC_API =
-  /^\/api\/(og|png|palette|hot$|search\.json$|search-suggestions$|search-colors$|collections(\/[a-z0-9-]+)?$)/;
+  /^\/api\/(og|png|palette|hot$|search\.json$|search-suggestions$|search-colors$|collections(\/[^/]+)?$)/;
 
 /** A file or an answer any site may fetch from a page of its own (CORS). */
 export const publicFile = (path: string) =>

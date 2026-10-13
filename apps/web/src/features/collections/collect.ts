@@ -1,0 +1,382 @@
+import { dominantColors } from "@grabient/engine/dominant.ts";
+import { localHref, msg, t } from "@grabient/i18n";
+import type { CollectChoice } from "@grabient/ui/CollectList.tsx";
+import type { CardCollect } from "@grabient/ui/CollectPress.tsx";
+import { createSignal } from "solid-js";
+import { record } from "../../app/undo.ts";
+import {
+  addOwnPalettes,
+  canMakeOwn,
+  makeOwnCollection,
+  ownCollectionsHolding,
+  ownsCollection,
+  removeOwnPalette,
+  restoreOwnPalette,
+  serverWrote
+} from "../account/collections.ts";
+import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
+import { itemKey } from "./address.ts";
+import {
+  addSitePalettes,
+  changeCollection,
+  deleteCollection,
+  makeCollection,
+  readOwn,
+  readSiteCollections,
+  readSiteHolding,
+  readState,
+  removePalette,
+  restorePalette,
+  unaddSitePalette
+} from "./client.ts";
+import { type CollectionItemInput, MAX_COLLECTION_ITEMS } from "./schema.ts";
+
+/* The account's collections as a checklist for the palettes at hand: a card's Add to collection, and the export
+   column's Save. One list for every card of a page, read when a list opens: from the account's copy, which knows what
+   each holds, or from the server, which lists them without that. An admin's checklist adds Grabient's collections
+   under their name: those that hold the palettes at hand and the five changed last, the rest found by the search row.
+   Each pick is written at once, said on the page's line, and is a step of the page's undo. */
+
+const SITE_SHOWN = 5;
+const SITE_KEPT_MS = 5 * 60_000;
+type Item = CollectionItemInput;
+
+const signedOut = () => sessionReady() && !account();
+const viewOf = (item: Item) => ({ style: item.style, steps: item.steps, angle: item.angle });
+
+/** The palettes into one of the account's own, after the ones it holds, each view once: the ones it took. */
+async function putIn(
+  slug: string,
+  items: readonly Item[]
+): Promise<{ title: string; added: Item[] }> {
+  if (ownsCollection(slug)) return addOwnPalettes(slug, items);
+  const state = await readState(slug);
+  if (!state.owned || !state.collection) throw new Error(t("That collection isn't yours anymore."));
+  const held = state.collection.items.map(i => ({
+    seed: i.kseed,
+    style: i.style,
+    steps: i.steps,
+    angle: i.angle
+  }));
+  const seen = new Set(held.map(itemKey));
+  const added = items.filter(item => !seen.has(itemKey(item)) && seen.add(itemKey(item)));
+  if (held.length + added.length > MAX_COLLECTION_ITEMS)
+    throw new Error(
+      t("Collections hold up to {max} palettes.", { max: String(MAX_COLLECTION_ITEMS) })
+    );
+  if (!added.length) return { title: state.collection.title, added };
+  const { collection } = await changeCollection(slug, { items: [...held, ...added] });
+  serverWrote();
+  return { title: collection.title, added };
+}
+/** The palettes out of one of the account's own, each with the token that puts it back. */
+async function takeOut(slug: string, items: readonly Item[]) {
+  let title = "";
+  const tokens: { item: Item; token: string | null }[] = [];
+  for (const item of items) {
+    const answer = ownsCollection(slug)
+      ? removeOwnPalette(slug, item.seed, viewOf(item))
+      : await removePalette(slug, item);
+    title = answer.collection.title;
+    tokens.push({ item, token: answer.restore ?? null });
+  }
+  if (!ownsCollection(slug)) serverWrote();
+  return { title, tokens };
+}
+async function putBack(slug: string, tokens: readonly { item: Item; token: string | null }[]) {
+  for (const { item, token } of tokens) {
+    if (!token) continue;
+    if (ownsCollection(slug)) restoreOwnPalette(slug, item.seed, token);
+    else await restorePalette(slug, item.seed, token);
+  }
+}
+/** A new private collection of the palettes: made in the copy where it can be, else by the server. */
+async function makeOwn(
+  title: string,
+  items: readonly Item[]
+): Promise<{ slug: string; title: string }> {
+  if (canMakeOwn()) return makeOwnCollection(title, items);
+  const { collection } = await makeCollection(title, items);
+  serverWrote();
+  return collection;
+}
+
+export function createChecklists(say: (message: string, error?: boolean) => void) {
+  const [own, setOwn] = createSignal<
+    readonly (CollectChoice & { keys?: ReadonlySet<string> })[] | null
+  >(null);
+  const [site, setSite] = createSignal<readonly CollectChoice[] | null>(null);
+  const [holding, setHolding] = createSignal<{
+    asked: string;
+    counts: Readonly<Record<string, number>>;
+  } | null>(null);
+  let siteRead = 0;
+  /* the palettes this page put into one of Grabient's collections, with the token that takes each out as if never
+     put in: taking it out again is the add's undo, and leaves nothing on the admins' record */
+  const siteAdds = new Map<string, string>();
+  const siteKey = (slug: string, item: Item) => `${slug}\n${itemKey(item)}`;
+
+  function readOwnList() {
+    const copy = ownCollectionsHolding();
+    if (copy) {
+      setOwn(
+        copy.map(c => ({
+          slug: c.slug,
+          title: c.title,
+          count: c.count,
+          keys: c.keys,
+          colors: dominantColors(c.seeds)
+        }))
+      );
+      return;
+    }
+    readOwn("?limit=96").then(
+      page =>
+        setOwn(
+          page.items.map(c => ({
+            slug: c.slug,
+            title: c.title,
+            count: c.itemCount,
+            colors: dominantColors(c.preview.map(p => p.seed))
+          }))
+        ),
+      () => setOwn(list => list ?? [])
+    );
+  }
+  const askedKey = (items: readonly Item[]) => items.map(itemKey).sort().join("\n");
+  function readSite(items: readonly Item[]) {
+    if (!isAdmin() || !items.length) return;
+    if (Date.now() - siteRead > SITE_KEPT_MS) {
+      siteRead = Date.now();
+      readSiteCollections().then(
+        ({ collections }) =>
+          setSite(
+            collections.map(c => ({
+              slug: c.slug,
+              title: c.title,
+              count: c.count,
+              colors: dominantColors(c.seeds)
+            }))
+          ),
+        () => {
+          siteRead = 0;
+        }
+      );
+    }
+    const asked = askedKey(items);
+    readSiteHolding(items).then(
+      ({ holding: counts }) => setHolding({ asked, counts }),
+      () => {}
+    );
+  }
+  /* whether a collection holds the palettes at hand: all, some or none; unknown where the server listed them */
+  const holds = (
+    keys: ReadonlySet<string> | undefined,
+    wanted: readonly string[]
+  ): CollectChoice["has"] => {
+    if (!keys) return undefined;
+    const n = wanted.filter(key => keys.has(key)).length;
+    return n === 0 ? false : n === wanted.length ? true : "some";
+  };
+  function choices(items: readonly Item[]): CollectChoice[] | null {
+    const list = own();
+    if (!list) return null;
+    const wanted = items.map(itemKey);
+    const mine = list.map(({ keys, ...c }) => ({ ...c, has: holds(keys, wanted) }));
+    if (!isAdmin()) return mine;
+    const known = holding();
+    const counts = known?.asked === askedKey(items) ? known.counts : null;
+    const n = new Set(wanted).size;
+    return [
+      ...mine,
+      ...(site() ?? []).map((c, i) => {
+        const inIt = counts?.[c.slug] ?? 0;
+        return {
+          ...c,
+          group: "Grabient",
+          more: i >= SITE_SHOWN && !inIt,
+          has: !counts ? undefined : inIt === 0 ? false : inIt >= n ? true : ("some" as const)
+        };
+      })
+    ];
+  }
+  const isSite = (slug: string) => !!site()?.some(c => c.slug === slug);
+  /* a step's undo or redo that fails says why where the step was made */
+  const fail = (reason: unknown) => say(failedWrite(reason), true);
+
+  /* the account's own: the palettes in, or out, and the step that takes it back */
+  async function ownIn(slug: string, items: readonly Item[], refresh: () => void) {
+    const { title, added } = await putIn(slug, items);
+    say(t("Added to {title}.", { title }));
+    let tokens: Awaited<ReturnType<typeof takeOut>>["tokens"] = [];
+    record({
+      undo: async () => {
+        tokens = (await takeOut(slug, added)).tokens;
+        refresh();
+      },
+      redo: async () => {
+        await putBack(slug, tokens);
+        refresh();
+      },
+      fail
+    });
+  }
+  async function ownOut(slug: string, items: readonly Item[], refresh: () => void) {
+    let { title, tokens } = await takeOut(slug, items);
+    say(t("Removed from {title}.", { title }));
+    record({
+      undo: async () => {
+        await putBack(slug, tokens);
+        refresh();
+      },
+      redo: async () => {
+        ({ title, tokens } = await takeOut(slug, items));
+        refresh();
+      },
+      fail
+    });
+  }
+  /* Grabient's: an add's undo takes out exactly the membership it made, with nothing recorded; taking out one this tab
+     did not add records an admin's removal, which its undo puts back and takes off the record */
+  async function siteIn(slug: string, items: readonly Item[], refresh: () => void) {
+    const add = async () => {
+      const answer = await addSitePalettes(slug, items);
+      for (const row of answer.added) siteAdds.set(siteKey(slug, row as Item), row.token);
+      return answer;
+    };
+    const { title, added } = await add();
+    say(t("Added to {title}.", { title }));
+    record({
+      undo: async () => {
+        for (const row of added) {
+          const item = row as Item;
+          const token = siteAdds.get(siteKey(slug, item));
+          if (token) await unaddSitePalette(slug, item, token);
+          siteAdds.delete(siteKey(slug, item));
+        }
+        refresh();
+      },
+      redo: async () => {
+        await add();
+        refresh();
+      },
+      fail
+    });
+  }
+  async function siteOut(slug: string, items: readonly Item[], refresh: () => void) {
+    const out = async () => {
+      let title = "";
+      const tokens: { item: Item; token: string | null }[] = [];
+      for (const item of items) {
+        const added = siteAdds.get(siteKey(slug, item));
+        const answer = added
+          ? await unaddSitePalette(slug, item, added)
+          : await removePalette(slug, item, { reasons: [], comment: "" });
+        siteAdds.delete(siteKey(slug, item));
+        title = answer.collection.title;
+        tokens.push({ item, token: added ? null : (answer.restore ?? null) });
+      }
+      return { title, tokens };
+    };
+    let { title, tokens } = await out();
+    say(t("Removed from {title}.", { title }));
+    record({
+      undo: async () => {
+        for (const { item, token } of tokens)
+          if (token) await restorePalette(slug, item.seed, token);
+          else await addSitePalettes(slug, [item]);
+        refresh();
+      },
+      redo: async () => {
+        ({ title, tokens } = await out());
+        refresh();
+      },
+      fail
+    });
+  }
+  /* a new collection's undo deletes it while it still holds exactly the palettes it was made with, under that title */
+  async function made(title: string, items: readonly Item[], refresh: () => void) {
+    let at = await makeOwn(title, items);
+    say(t("Added to {title}.", { title: at.title }));
+    const wanted = items.map(itemKey).sort().join("\n");
+    record({
+      undo: async () => {
+        const state = await readState(at.slug);
+        const now = state.collection;
+        const same =
+          !!now &&
+          now.title === at.title &&
+          now.items
+            .map(i => itemKey({ seed: i.kseed, style: i.style, steps: i.steps, angle: i.angle }))
+            .sort()
+            .join("\n") === wanted;
+        if (!same) throw new Error(t("{title} has changed, so it stays.", { title: at.title }));
+        await deleteCollection(at.slug);
+        serverWrote();
+        say(t("{title} deleted.", { title: at.title }));
+        refresh();
+      },
+      redo: async () => {
+        at = await makeOwn(title, items);
+        refresh();
+      },
+      fail
+    });
+  }
+
+  function writes(items: () => readonly Item[], opened: () => void) {
+    return {
+      onToggle: async (slug: string, on: boolean) => {
+        const at = items();
+        if (isSite(slug)) await (on ? siteIn : siteOut)(slug, at, opened);
+        else await (on ? ownIn : ownOut)(slug, at, opened);
+        opened();
+      },
+      onNew: async (title: string) => {
+        await made(title, items(), opened);
+        opened();
+      }
+    };
+  }
+  const signIn = () => (signedOut() ? localHref(loginHref()) : undefined);
+
+  /** A card's Add to collection, for the palette it shows. */
+  const card = (palette: () => Item): CardCollect => {
+    const opened = () => {
+      readOwnList();
+      readSite([palette()]);
+    };
+    return {
+      get own() {
+        return choices([palette()]);
+      },
+      onOpen: opened,
+      ...writes(() => [palette()], opened),
+      get signIn() {
+        return signIn();
+      }
+    };
+  };
+  /** The export column's Save, for the selection. */
+  const selection = (palettes: () => readonly Item[]) => {
+    const opened = () => {
+      readOwnList();
+      readSite(palettes());
+    };
+    return {
+      get own() {
+        return choices(palettes());
+      },
+      onOwn: opened,
+      ...writes(palettes, opened),
+      get signIn() {
+        return signIn();
+      }
+    };
+  };
+  return { card, selection };
+}
+
+/** Why a write failed, in the reader's words. */
+export const failedWrite = (reason: unknown, fallback = msg("Couldn't save.")): string =>
+  reason instanceof Error && reason.message ? reason.message : t(fallback);

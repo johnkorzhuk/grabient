@@ -1,0 +1,262 @@
+/* The collections' pages: a collection's own, and the lists of them. The band above the row stands where the lists'
+   search stands, so the row, the title and the cards land where the lists have them. */
+@layer components {
+  /* the lists' column: the window's width less its gutters, as the gallery's lists stand */
+  .page {
+    container: page / inline-size;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 100vh;
+    padding-block: var(--space-s16) var(--space-s8);
+    padding-inline: var(--size-gutter);
+    @media (max-width: 800px) {
+      padding-block: var(--space-s10) var(--space-s16);
+      padding-inline: var(--space-s4);
+    }
+  }
+  .band,
+  .find {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    margin-bottom: var(--space-s8);
+  }
+  .back {
+    display: flex;
+    align-items: center;
+    min-height: var(--size-control-big);
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .tags {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--space-s2);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tag {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    min-height: var(--size-control-sm);
+    padding-inline: var(--space-s3);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper2);
+    color: var(--color-ink2);
+    font-size: var(--font-fs2);
+    text-decoration: none;
+    white-space: nowrap;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:hover {
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    max-width: var(--size-prose);
+  }
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s4);
+    min-height: var(--size-control-big);
+    margin-bottom: var(--space-s4);
+  }
+  /* the width of the lists' two sections, so a choice here is the size of one there; full width on a phone */
+  .order {
+    width: 240px;
+    max-width: 100%;
+    @container page (max-width: 800px) {
+      width: 100%;
+    }
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s2);
+    margin-inline-start: auto;
+    @container page (max-width: 800px) {
+      margin-inline-start: 0;
+    }
+  }
+  /* the title line, as a list's heading and a collection's group stand it: the name, then what the collection says */
+  .heading {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: last baseline;
+    justify-content: space-between;
+    gap: var(--space-s2) var(--space-s4);
+    min-width: 0;
+    min-height: var(--size-control-big);
+    margin-bottom: var(--space-s8);
+    @container page (max-width: 800px) {
+      flex-wrap: wrap;
+    }
+    &[data-gone] {
+      display: none;
+    }
+  }
+  .edit {
+    align-self: center;
+    margin-inline-end: auto;
+  }
+  .facts {
+    display: flex;
+    flex-shrink: 0;
+    align-items: baseline;
+    gap: var(--space-s1) var(--space-s3);
+    min-width: 0;
+    max-width: 100%;
+    color: var(--color-ink3);
+    &[data-saved] {
+      @container page (max-width: 800px) {
+        flex-wrap: wrap;
+      }
+    }
+  }
+  .owner {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* a saved collection's source: in the byline on a wide page, a line of its own after the rest on a narrow one */
+  .from {
+    @container page (max-width: 800px) {
+      order: 1;
+      flex-basis: 100%;
+    }
+  }
+  .wide {
+    @container page (max-width: 800px) {
+      display: none;
+    }
+  }
+  .source {
+    color: inherit;
+    text-decoration-line: underline;
+    text-decoration-color: var(--color-ink4);
+    text-underline-offset: 3px;
+    &:hover {
+      color: var(--color-ink);
+    }
+  }
+  .inline {
+    color: var(--color-ink);
+    text-decoration-line: underline;
+    text-decoration-color: var(--color-ink4);
+    text-underline-offset: 3px;
+    &:hover {
+      text-decoration-color: var(--color-ink);
+    }
+  }
+  .editor {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    width: 100%;
+    max-width: var(--size-prose);
+    margin-bottom: var(--space-s8);
+  }
+  .editActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-s3);
+  }
+  .hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .cell {
+    min-width: 0;
+  }
+  /* the line keeps a button's height whether it holds words, a button or nothing */
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s4);
+    min-height: var(--size-control);
+    padding-top: var(--space-s6);
+  }
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s4);
+    min-height: var(--size-control-big);
+    margin-bottom: var(--space-s4);
+  }
+  /* the picture a search by image was made from, its points to move */
+  .picture {
+    margin-bottom: var(--space-s8);
+  }
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-s4);
+    padding-block: var(--space-s10);
+  }
+  .notes {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    max-width: var(--size-prose);
+    padding-block: var(--space-s4);
+  }
+  .noteList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .note {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+    padding: var(--space-s4);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-tight);
+    background-color: var(--color-paper2);
+  }
+  .noteLine {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s2);
+    color: var(--color-ink3);
+  }
+  .noteRow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    min-height: var(--size-control);
+  }
+  .spacer {
+    margin-inline-start: auto;
+  }
+}

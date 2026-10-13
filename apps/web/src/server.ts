@@ -17,7 +17,8 @@ declare module "@solidjs/web" {
   interface RequestEventLocals {
     /** a page's error boundary caught a failure during the render (app/ErrorPage.tsx) */
     renderFailed?: boolean;
-    /** what a page that renders answers with when it is no page to keep: a list past its end, a search cut short */
+    /** the status a page that renders says it answers with: a list past its end, a search cut short, a private
+        collection's */
     status?: number;
   }
 }

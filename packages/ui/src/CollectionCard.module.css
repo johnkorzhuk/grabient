@@ -1,0 +1,84 @@
+/* A collection on a palette card's footprint. The picture is a card's height at every width; the glow is a blurred copy
+   of it, shown under the pointer or with focus inside, and the seams are the page's solid ground, so the glow shows
+   around the picture and never through it. The line beneath is the card's: the title cut with an ellipsis, the count at
+   the end. */
+@layer components {
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+  }
+  .art {
+    position: relative;
+    isolation: isolate;
+    height: var(--size-card);
+    border-radius: var(--radius-surface);
+    --show: 0;
+    &:hover,
+    &:focus-within {
+      --show: 1;
+    }
+  }
+  .grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--space-s1);
+    overflow: hidden;
+    border-radius: var(--radius-surface);
+    background-color: var(--color-bg);
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &[data-glow] {
+      z-index: -1;
+      pointer-events: none;
+      background-color: transparent;
+      filter: blur(var(--size-blur-glass));
+      transform: translateY(6px);
+      opacity: calc(var(--show) * var(--card-glow, 0.75));
+      transition: opacity var(--motion-fast) var(--motion-ease);
+    }
+  }
+  .tile {
+    min-width: 0;
+    min-height: 0;
+  }
+  /* the card's line at the card's height, the touch height under a finger, so both kinds of card share a row pitch */
+  .meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-height: var(--size-control);
+    color: var(--color-ink3);
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .title {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--color-ink);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: var(--radius-tight);
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: 1px;
+    }
+  }
+  .facts {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s2);
+  }
+}

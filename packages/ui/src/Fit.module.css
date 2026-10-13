@@ -1,0 +1,55 @@
+/* Two presses in a card's line, at the line's height, a hair apart. At rest in the line's own ink, which a card lifts
+   while its picture is lit (--card-line); the pressed thumb in full ink, an admin's ruling in danger. */
+@layer components {
+  .row {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s1);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .press {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-control);
+    height: var(--size-control);
+    margin: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    --fill: transparent;
+    background-color: var(--fill);
+    color: var(--card-line, var(--color-ink3));
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      --fill: var(--color-paper2);
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &[data-on] {
+      color: var(--color-ink);
+    }
+    &[data-on][data-ruling] {
+      color: var(--color-danger);
+    }
+    &:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    @media (pointer: coarse) {
+      min-width: var(--size-touch);
+      min-height: var(--size-touch);
+    }
+  }
+}

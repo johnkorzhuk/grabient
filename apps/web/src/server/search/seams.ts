@@ -9,6 +9,10 @@ import { all } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import legacyGallery from "../../../data/legacy-k.json" with { type: "json" };
 import legacyLinks from "../../../data/legacy-links.json" with { type: "json" };
+import { fitOf } from "../collections/fit.ts";
+import { collectionsHolding as holding } from "../collections/read.ts";
+import { publicCollections, suggestCollections } from "../collections/search.ts";
+import { localizeHeld, translatedLocale } from "../mcp/admin/translations.ts";
 
 /* palettes and old ids */
 
@@ -228,31 +232,24 @@ export async function searchableItems(
 /* collections */
 
 /** A palette voted out of a collection: an admin's down, or enough votes and most of them down. */
-export const votedOut = (up: number, down: number, adminDown: number): boolean =>
-  adminDown > 0 || (up + down >= 5 && down >= (2 / 3) * (up + down));
+export const votedOut = (up: number, down: number, adminDown: number): boolean => {
+  const fit = fitOf(up, down, adminDown);
+  return fit.slated || fit.unfit;
+};
 
-/** The public collections that hold a palette, as a search by that palette names them beside its answer. */
+/** The public collections that hold a palette, as a search by that palette names them beside its answer: each title in
+    the reader's language where Grabient's is translated. */
 export async function collectionsHolding(
-  _env: Pick<Env, "DB">,
-  _seed: string,
-  _locale: string
+  env: Pick<Env, "DB">,
+  seed: string,
+  locale: string
 ): Promise<{ slug: string; title: string }[]> {
-  return [];
+  const held = await holding(env, seed);
+  return localizeHeld(
+    env,
+    translatedLocale(locale),
+    held.map(({ slug, title }) => ({ slug, title }))
+  );
 }
 
-/** The public collections whose titles answer these words, best first, as tags; with no words, the most searched. */
-export async function suggestCollections(
-  _env: Pick<Env, "DB">,
-  _words: string,
-  _limit: number
-): Promise<{ slug: string; title: string; href: string; colors: string[] }[]> {
-  return [];
-}
-
-/** A page of the public collections list, searched by these words in Popular order. */
-export async function publicCollections(
-  _env: Pick<Env, "DB">,
-  _query: { query: string; sort: "popular"; page: number; limit: number }
-): Promise<{ items: { slug: string; title: string }[] }> {
-  return { items: [] };
-}
+export { publicCollections, suggestCollections };

@@ -1,0 +1,87 @@
+[
+ [
+  "q=Warm&sort=rising&frame=3m&page=2&limit=12",
+  null,
+  {
+   "style": "auto",
+   "steps": "auto",
+   "angle": "auto",
+   "size": "auto",
+   "query": "warm",
+   "sort": "rising",
+   "frame": "3m",
+   "page": 2,
+   "limit": 12
+  }
+ ],
+ [
+  "limit=96",
+  96,
+  {
+   "style": "auto",
+   "steps": "auto",
+   "angle": "auto",
+   "size": "auto",
+   "query": "",
+   "sort": "newest",
+   "page": 1,
+   "limit": 96
+  }
+ ],
+ [
+  "limit=97",
+  96,
+  {
+   "style": "auto",
+   "steps": "auto",
+   "angle": "auto",
+   "size": "auto",
+   "query": "",
+   "sort": "newest",
+   "page": 1,
+   "limit": 24
+  }
+ ],
+ [
+  "limit=11",
+  null,
+  {
+   "style": "auto",
+   "steps": "auto",
+   "angle": "auto",
+   "size": "auto",
+   "query": "",
+   "sort": "newest",
+   "page": 1,
+   "limit": 24
+  }
+ ],
+ [
+  "q=https%3A%2F%2Fgrabient.com%2FkY4mpDazO-mUuu_fuLqXU49dvVP6%3Fstyle%3DlinearSwatches",
+  null,
+  {
+   "style": "auto",
+   "steps": "auto",
+   "angle": "auto",
+   "size": "auto",
+   "query": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "sort": "newest",
+   "page": 1,
+   "limit": 24
+  }
+ ],
+ [
+  "q=kY4mpDazO-mUuu_fuLqXU49dvVP6",
+  null,
+  {
+   "style": "auto",
+   "steps": "auto",
+   "angle": "auto",
+   "size": "auto",
+   "query": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "sort": "newest",
+   "page": 1,
+   "limit": 24
+  }
+ ]
+]

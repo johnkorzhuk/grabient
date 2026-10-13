@@ -1,0 +1,420 @@
+[
+ {
+  "label": "nothing changed",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "copy": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "merged": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  }
+ },
+ {
+  "label": "copy untouched",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "c@90",
+    "a@90",
+    "b@45",
+    "d@90"
+   ]
+  },
+  "copy": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "merged": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "c@90",
+    "a@90",
+    "b@45",
+    "d@90"
+   ]
+  }
+ },
+ {
+  "label": "copy already like source",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "c@90",
+    "a@90",
+    "b@45",
+    "d@90"
+   ]
+  },
+  "copy": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "c@90",
+    "a@90",
+    "b@45",
+    "d@90"
+   ]
+  },
+  "merged": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "c@90",
+    "a@90",
+    "b@45",
+    "d@90"
+   ]
+  }
+ },
+ {
+  "label": "copy moved its palettes",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "c@90",
+    "a@90",
+    "b@45",
+    "d@90"
+   ]
+  },
+  "copy": {
+   "title": "T",
+   "description": "Mine",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "b@90",
+    "a@90",
+    "c@90",
+    "e@90"
+   ]
+  },
+  "merged": {
+   "title": "T2",
+   "description": "Mine",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "b@45",
+    "d@90",
+    "a@90",
+    "c@90",
+    "e@90"
+   ]
+  }
+ },
+ {
+  "label": "view both changed",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@45",
+    "c@90"
+   ]
+  },
+  "copy": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@180",
+    "c@90"
+   ]
+  },
+  "merged": {
+   "title": "T2",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@180",
+    "c@90"
+   ]
+  }
+ },
+ {
+  "label": "source took out a palette the copy redrew",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "c@90"
+   ]
+  },
+  "copy": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@10",
+    "c@90"
+   ]
+  },
+  "merged": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@10",
+    "c@90"
+   ]
+  }
+ },
+ {
+  "label": "both changed title",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "Theirs",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "copy": {
+   "title": "Mine",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "merged": {
+   "title": "Mine",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  }
+ },
+ {
+  "label": "source changed tags only",
+  "base": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "source": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x",
+    "y"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "copy": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  },
+  "merged": {
+   "title": "T",
+   "description": "D",
+   "tags": [
+    "x",
+    "y"
+   ],
+   "items": [
+    "a@90",
+    "b@90",
+    "c@90"
+   ]
+  }
+ }
+]

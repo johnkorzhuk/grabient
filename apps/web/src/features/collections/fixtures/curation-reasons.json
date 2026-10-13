@@ -1,0 +1,59 @@
+{
+ "reasons": [
+  {
+   "key": "muddy",
+   "label": "Muddy",
+   "hint": "Gray or brown through the middle"
+  },
+  {
+   "key": "banding",
+   "label": "Banding",
+   "hint": "Hard steps where a blend was meant"
+  },
+  {
+   "key": "dull",
+   "label": "Dull",
+   "hint": "Flat, with little color or change"
+  },
+  {
+   "key": "harsh",
+   "label": "Harsh",
+   "hint": "Glaring, clipped or too neon"
+  },
+  {
+   "key": "dark",
+   "label": "Too dark",
+   "hint": "Mostly near black"
+  },
+  {
+   "key": "light",
+   "label": "Too light",
+   "hint": "Mostly near white"
+  },
+  {
+   "key": "ugly",
+   "label": "Ugly turn",
+   "hint": "Passes through a color that spoils it"
+  },
+  {
+   "key": "alike",
+   "label": "Looks alike",
+   "hint": "Too close to another palette here"
+  },
+  {
+   "key": "off",
+   "label": "Off title",
+   "hint": "Doesn't fit the collection"
+  },
+  {
+   "key": "form",
+   "label": "Wrong form",
+   "hint": "Wrong style, steps or angle"
+  }
+ ],
+ "commentMax": 500,
+ "kept": [
+  "muddy",
+  "form"
+ ]
+}

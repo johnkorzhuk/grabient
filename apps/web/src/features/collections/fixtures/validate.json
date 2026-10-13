@@ -1,0 +1,453 @@
+{
+ "cases": [
+  [
+   "empty body",
+   {
+    "ok": false,
+    "error": "Titles are 1 to 80 characters.",
+    "i18n": {
+     "message": "Titles are 1 to {max} characters.",
+     "params": {
+      "max": "80"
+     }
+    }
+   }
+  ],
+  [
+   "no items",
+   {
+    "ok": false,
+    "error": "Add 1 to 100 palettes.",
+    "i18n": {
+     "message": "Add 1 to {max} palettes.",
+     "params": {
+      "max": "100"
+     }
+    }
+   }
+  ],
+  [
+   "bad seed",
+   {
+    "ok": false,
+    "error": "Invalid palette."
+   }
+  ],
+  [
+   "too many",
+   {
+    "ok": false,
+    "error": "Add 1 to 100 palettes.",
+    "i18n": {
+     "message": "Add 1 to {max} palettes.",
+     "params": {
+      "max": "100"
+     }
+    }
+   }
+  ],
+  [
+   "bad style",
+   {
+    "ok": false,
+    "error": "Invalid palette."
+   }
+  ],
+  [
+   "bad visibility",
+   {
+    "ok": false,
+    "error": "Visibility is public or private."
+   }
+  ],
+  [
+   "long title",
+   {
+    "ok": false,
+    "error": "Titles are 1 to 80 characters.",
+    "i18n": {
+     "message": "Titles are 1 to {max} characters.",
+     "params": {
+      "max": "80"
+     }
+    }
+   }
+  ],
+  [
+   "title 80",
+   {
+    "ok": true,
+    "input": {
+     "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+     "description": "",
+     "tags": [],
+     "visibility": "private",
+     "items": 8
+    }
+   }
+  ],
+  [
+   "title with controls",
+   {
+    "ok": true,
+    "input": {
+     "title": "a b c d",
+     "description": "",
+     "tags": [],
+     "visibility": "private",
+     "items": 8
+    }
+   }
+  ],
+  [
+   "long description",
+   {
+    "ok": false,
+    "error": "Descriptions are up to 500 characters.",
+    "i18n": {
+     "message": "Descriptions are up to {max} characters.",
+     "params": {
+      "max": "500"
+     }
+    }
+   }
+  ],
+  [
+   "bad tag",
+   {
+    "ok": false,
+    "error": "Tags are 2 to 32 letters, numbers, spaces or hyphens.",
+    "i18n": {
+     "message": "Tags are 2 to {max} letters, numbers, spaces or hyphens.",
+     "params": {
+      "max": "32"
+     }
+    }
+   }
+  ],
+  [
+   "too many tags",
+   {
+    "ok": false,
+    "error": "Use up to 12 tags.",
+    "i18n": {
+     "message": "Use up to {max} tags.",
+     "params": {
+      "max": "12"
+     }
+    }
+   }
+  ],
+  [
+   "tags normalized",
+   {
+    "ok": true,
+    "input": {
+     "title": "x",
+     "description": "",
+     "tags": [
+      "sunset",
+      "warm",
+      "golden hour",
+      "neon pink",
+      "θάλασσα",
+      "café"
+     ],
+     "visibility": "private",
+     "items": 8
+    }
+   }
+  ],
+  [
+   "tags cjk one char",
+   {
+    "ok": true,
+    "input": {
+     "title": "x",
+     "description": "",
+     "tags": [
+      "春",
+      "봄",
+      "ア",
+      "𠮷"
+     ],
+     "visibility": "private",
+     "items": 8
+    }
+   }
+  ],
+  [
+   "tag one latin",
+   {
+    "ok": false,
+    "error": "Tags are 2 to 32 letters, numbers, spaces or hyphens.",
+    "i18n": {
+     "message": "Tags are 2 to {max} letters, numbers, spaces or hyphens.",
+     "params": {
+      "max": "32"
+     }
+    }
+   }
+  ],
+  [
+   "tag emoji",
+   {
+    "ok": true,
+    "input": {
+     "title": "x",
+     "description": "",
+     "tags": [
+      "red"
+     ],
+     "visibility": "private",
+     "items": 8
+    }
+   }
+  ],
+  [
+   "tag 32",
+   {
+    "ok": true,
+    "input": {
+     "title": "x",
+     "description": "",
+     "tags": [
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+     ],
+     "visibility": "private",
+     "items": 8
+    }
+   }
+  ],
+  [
+   "tag 33",
+   {
+    "ok": false,
+    "error": "Tags are 2 to 32 letters, numbers, spaces or hyphens.",
+    "i18n": {
+     "message": "Tags are 2 to {max} letters, numbers, spaces or hyphens.",
+     "params": {
+      "max": "32"
+     }
+    }
+   }
+  ],
+  [
+   "tag c++",
+   {
+    "ok": false,
+    "error": "Tags are 2 to 32 letters, numbers, spaces or hyphens.",
+    "i18n": {
+     "message": "Tags are 2 to {max} letters, numbers, spaces or hyphens.",
+     "params": {
+      "max": "32"
+     }
+    }
+   }
+  ],
+  [
+   "dedupe items",
+   {
+    "ok": true,
+    "input": {
+     "title": "x",
+     "description": "",
+     "tags": [],
+     "visibility": "private",
+     "items": 2
+    }
+   }
+  ],
+  [
+   "default visibility",
+   {
+    "ok": true,
+    "input": {
+     "title": "x",
+     "description": "",
+     "tags": [],
+     "visibility": "private",
+     "items": 8
+    }
+   }
+  ],
+  [
+   "public asked",
+   {
+    "ok": true,
+    "input": {
+     "title": "x",
+     "description": "",
+     "tags": [],
+     "visibility": "public",
+     "items": 8
+    }
+   }
+  ]
+ ],
+ "partial": {
+  "ok": true,
+  "input": {
+   "title": "Kept",
+   "description": "New",
+   "tags": [
+    "a b"
+   ],
+   "visibility": "private",
+   "items": 2
+  }
+ },
+ "collectionItem": [
+  [
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+   },
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "style": "linearGradient",
+    "steps": 7,
+    "angle": 90
+   }
+  ],
+  [
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "steps": 1
+   },
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "style": "linearGradient",
+    "steps": 6,
+    "angle": 90
+   }
+  ],
+  [
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "steps": 101
+   },
+   null
+  ],
+  [
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "steps": 2.5
+   },
+   null
+  ],
+  [
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "angle": 361
+   },
+   null
+  ],
+  [
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "angle": -1
+   },
+   null
+  ],
+  [
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "style": "radialSwatches",
+    "steps": 3,
+    "angle": 0
+   },
+   {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "style": "radialSwatches",
+    "steps": 6,
+    "angle": 0
+   }
+  ],
+  [
+   {
+    "seed": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+   },
+   null
+  ],
+  [
+   {
+    "seed": "nope"
+   },
+   null
+  ],
+  [
+   null,
+   null
+  ],
+  [
+   "string",
+   null
+  ]
+ ],
+ "normalizeNote": [
+  [
+   "  note  ",
+   "note"
+  ],
+  [
+   "",
+   null
+  ],
+  [
+   "   ",
+   null
+  ],
+  [
+   "a\r\nb\rc",
+   "a\nb\nc"
+  ],
+  [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   null
+  ],
+  [
+   "ctrl\u0001chars\u0007",
+   "ctrlchars"
+  ],
+  [
+   42,
+   null
+  ]
+ ],
+ "searchTokens": [
+  [
+   "Warm, sunset!! a %_ sunset",
+   [
+    "warm",
+    "sunset"
+   ]
+  ],
+  [
+   "a b c d e f g h",
+   []
+  ],
+  [
+   "春の海",
+   [
+    "春の海"
+   ]
+  ],
+  [
+   "zx‍qv",
+   [
+    "zx",
+    "qv"
+   ]
+  ],
+  [
+   "Ｓｕｎｓｅｔ",
+   [
+    "sunset"
+   ]
+  ]
+ ]
+}

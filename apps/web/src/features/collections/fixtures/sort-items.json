@@ -1,0 +1,40 @@
+{
+ "input": [
+  {
+   "position": 0,
+   "likes": 1,
+   "rising": 0,
+   "createdAt": 5
+  },
+  {
+   "position": 1,
+   "likes": 3,
+   "rising": 2,
+   "createdAt": 1
+  },
+  {
+   "position": 2,
+   "likes": 3,
+   "rising": 0,
+   "createdAt": 9
+  },
+  {
+   "position": 3,
+   "likes": 0,
+   "rising": 2,
+   "createdAt": 7
+  }
+ ],
+ "popular": [
+  1,
+  2,
+  0,
+  3
+ ],
+ "rising": [
+  3,
+  1,
+  2,
+  0
+ ]
+}
