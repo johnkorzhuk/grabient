@@ -23,7 +23,8 @@ A page is a file route in `src/routes/`, by address without the language: `palet
 `$id/index.tsx` is every one-segment address (a seed, a collection, an old id), `@{$handle}/$slug/index.tsx` an
 account's collection. The router writes the reader's language on every `<Link>`, navigation and redirect; a plain
 `<a>` takes `localHref(path)` from `@grabient/i18n`. A route declares its cache class with `headers: () => PAGE` (from
-`src/lib/cache.ts`), its head with `head()`, and `ssr: false` or `"data-only"` when the browser draws it alone.
+`src/lib/cache.ts`), its metadata with `head: () => pageHead({ kind: "about" })` (`src/lib/page-meta.ts`), and
+`ssr: false` or `"data-only"` when the browser draws it alone.
 
 A page that reads data does it through TanStack Query, one `queryOptions` factory per read in
 `src/features/<name>/queries.ts`, shared by the loader and the component:
@@ -56,9 +57,11 @@ change as the reader works hands them in with `useContext(ShellContext).paint(()
 `.keys(() => bindings)`, each for as long as it is mounted.
 
 A page's content stands in `AppPage` (the content, then the footer) or `BrandFrame` (the side navigation, one pane and
-the footer) from `src/app/Frames.tsx`; both end in the language menu. A plain `<a>` to one of the site's pages is the
-app's own navigation (`src/app/navigation.ts`), as a `<Link>` is, except a link with a target, a download or `hreflang`.
-The page's undo (`src/app/undo.ts`) is Mod+Z on every page: a feature records a step with `record({ undo, redo })`.
+the footer) from `src/app/Frames.tsx`; both end in the language menu. A page that draws its own `PageFrame` (MCP, an
+app's consent) takes the menu from `Languages` there, and the navigation and footer links from `src/app/site.ts`. A
+plain `<a>` to one of the site's pages is the app's own navigation (`src/app/navigation.ts`), as a `<Link>` is, except a
+link with a target, a download or `hreflang`. The page's undo (`src/app/undo.ts`) is Mod+Z on every page: a feature
+records a step with `record({ undo, redo })`.
 
 ## API routes and files
 
