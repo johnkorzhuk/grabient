@@ -1,0 +1,166 @@
+{
+ "note": "Bodies G4's Worker served for one palette (U01's engine fixtures, scratchpad/fixtures/engine): the CSS file in oklch and in hex, the SVG at 800 by 400 and at a size, the Markdown and JSON without a database, the Markdown with written words, and the four swatch files in base64.",
+ "origin": "https://grabient.com",
+ "seed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+ "view": {
+  "style": "linearGradient",
+  "steps": 8,
+  "angle": 45
+ },
+ "css": {
+  "oklch": "/* https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g?steps=8&angle=45 */\nhtml {\n  min-height: 100%;\n  background: linear-gradient(45deg in oklch, oklch(50.39% 0.1970 271.41) 0.0%, oklch(47.64% 0.2646 278.80) 14.3%, oklch(50.39% 0.2659 292.54) 28.6%, oklch(57.09% 0.2384 315.79) 42.9%, oklch(69.69% 0.1598 347.49) 57.1%, oklch(81.49% 0.1112 44.56) 71.4%, oklch(88.19% 0.1275 84.72) 85.7%, oklch(87.79% 0.1207 81.55) 100.0%);\n}\n",
+  "hex": "/* https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g?steps=8&angle=45 */\nhtml {\n  min-height: 100%;\n  background: linear-gradient(45deg, #4052d2 0.0%, #4d24ea 14.3%, #731bea 28.6%, #ab33d3 42.9%, #e370b0 57.1%, #ffab86 71.4%, #ffd16f 85.7%, #ffcf75 100.0%);\n}\n"
+ },
+ "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"800\" height=\"400\" viewBox=\"0 0 800 400\" preserveAspectRatio=\"none\">\n<!-- https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g?steps=8&angle=45 -->\n<defs><linearGradient id=\"gradient\" gradientUnits=\"userSpaceOnUse\" x1=\"100.000000\" y1=\"500.000000\" x2=\"700.000000\" y2=\"-100.000000\"><stop offset=\"0.000\" stop-color=\"#4052d2\"/><stop offset=\"0.143\" stop-color=\"#4d24ea\"/><stop offset=\"0.286\" stop-color=\"#731bea\"/><stop offset=\"0.429\" stop-color=\"#ab33d3\"/><stop offset=\"0.571\" stop-color=\"#e370b0\"/><stop offset=\"0.714\" stop-color=\"#ffab86\"/><stop offset=\"0.857\" stop-color=\"#ffd16f\"/><stop offset=\"1.000\" stop-color=\"#ffcf75\"/></linearGradient></defs>\n<rect x=\"0\" y=\"0\" width=\"800\" height=\"400\" fill=\"url(#gradient)\"/>\n</svg>",
+ "svgSized": {
+  "size": {
+   "width": 1080,
+   "height": 1920
+  },
+  "svg": "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"1080\" height=\"1920\" viewBox=\"0 0 1080 1920\" preserveAspectRatio=\"none\">\n<!-- https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g?steps=8&angle=45&size=1080x1920 -->\n<defs><linearGradient id=\"gradient\" gradientUnits=\"userSpaceOnUse\" x1=\"-210.000000\" y1=\"1710.000000\" x2=\"1290.000000\" y2=\"210.000000\"><stop offset=\"0.000\" stop-color=\"#4052d2\"/><stop offset=\"0.143\" stop-color=\"#4d24ea\"/><stop offset=\"0.286\" stop-color=\"#731bea\"/><stop offset=\"0.429\" stop-color=\"#ab33d3\"/><stop offset=\"0.571\" stop-color=\"#e370b0\"/><stop offset=\"0.714\" stop-color=\"#ffab86\"/><stop offset=\"0.857\" stop-color=\"#ffd16f\"/><stop offset=\"1.000\" stop-color=\"#ffcf75\"/></linearGradient></defs>\n<rect x=\"0\" y=\"0\" width=\"1080\" height=\"1920\" fill=\"url(#gradient)\"/>\n</svg>"
+ },
+ "markdown": "# Vivid blue, purple, pink and tan linear gradient\n\nVivid blue, purple, pink and tan linear gradient with 8 colors: #4052d2, #4d24ea, #731bea, #ab33d3, #e370b0, #ffab86, #ffd16f, #ffcf75. Edit it and copy or download CSS, SVG, PNG or shader code.\n\n- Seed: `kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g`\n- Page: https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g?steps=8&angle=45\n- Drawn as: linear gradient, 8 steps, 45 degrees\n- Kinds: dark to light, vivid, multicolor\n- Hues: complementary\n- Contrast of its darkest and lightest colors: 5.2 to 1\n\n## Colors\n\nThe name most people give each color, and the text color that reads on it with its contrast.\n\n| Stop | Hex | OKLCH | Name | Text on it |\n| --- | --- | --- | --- | --- |\n| 1 | `#4052d2` | `oklch(50.39% 0.1970 271.41)` | blue | white, 6.2 to 1 |\n| 2 | `#4d24ea` | `oklch(47.64% 0.2646 278.80)` | blue | white, 7.5 to 1 |\n| 3 | `#731bea` | `oklch(50.39% 0.2659 292.54)` | purple | white, 6.8 to 1 |\n| 4 | `#ab33d3` | `oklch(57.09% 0.2384 315.79)` | purple | white, 5 to 1 |\n| 5 | `#e370b0` | `oklch(69.69% 0.1598 347.49)` | pink | black, 7.1 to 1 |\n| 6 | `#ffab86` | `oklch(81.49% 0.1112 44.56)` | peach | black, 11.4 to 1 |\n| 7 | `#ffd16f` | `oklch(88.19% 0.1275 84.72)` | tan | black, 14.6 to 1 |\n| 8 | `#ffcf75` | `oklch(87.79% 0.1207 81.55)` | tan | black, 14.4 to 1 |\n\n## CSS\n\n```css\nbackground: linear-gradient(45deg, #4052d2 0.0%, #4d24ea 14.3%, #731bea 28.6%, #ab33d3 42.9%, #e370b0 57.1%, #ffab86 71.4%, #ffd16f 85.7%, #ffcf75 100.0%);\nbackground: linear-gradient(45deg in oklch, oklch(50.39% 0.1970 271.41) 0.0%, oklch(47.64% 0.2646 278.80) 14.3%, oklch(50.39% 0.2659 292.54) 28.6%, oklch(57.09% 0.2384 315.79) 42.9%, oklch(69.69% 0.1598 347.49) 57.1%, oklch(81.49% 0.1112 44.56) 71.4%, oklch(88.19% 0.1275 84.72) 85.7%, oklch(87.79% 0.1207 81.55) 100.0%);\n```\n\n## Keyframes\n\n8 OKLCH keyframes joined by a Catmull-Rom spline. Hue is unwrapped degrees.\n\n| Keyframe | Lightness | Chroma | Hue |\n| --- | --- | --- | --- |\n| 1 | 0.504 | 0.197 | 271.4 |\n| 2 | 0.476 | 0.265 | 278.8 |\n| 3 | 0.504 | 0.266 | 292.5 |\n| 4 | 0.571 | 0.238 | 315.8 |\n| 5 | 0.697 | 0.16 | 347.5 |\n| 6 | 0.815 | 0.112 | 404.6 |\n| 7 | 0.882 | 0.128 | 444.7 |\n| 8 | 0.878 | 0.127 | 441.5 |\n\n## Other forms\n\n- [JSON](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.json?steps=8&angle=45)\n- [PNG](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.png?steps=8&angle=45)\n- [SVG](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.svg?steps=8&angle=45)\n- [CSS](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.css?steps=8&angle=45)\n- [ASE](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.ase?steps=8&angle=45)\n- [GPL](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.gpl?steps=8&angle=45)\n- [GRD](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.grd?steps=8&angle=45)\n- [Design tokens](https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.tokens.json?steps=8&angle=45)\n- [Social card](https://grabient.com/api/og?seed=kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g&steps=8&angle=45)\n- [Palettes like this one](https://grabient.com/palettes?q=kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g)\n- [Guide for agents](https://grabient.com/llms.txt)\n",
+ "json": {
+  "model": "oklch-keyframes-v1",
+  "seed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+  "kseed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+  "name": "Vivid blue, purple, pink and tan",
+  "spec": {
+   "anchors": [
+    {
+     "l": 0.504,
+     "c": 0.197,
+     "h": 271.4
+    },
+    {
+     "l": 0.476,
+     "c": 0.265,
+     "h": 278.8
+    },
+    {
+     "l": 0.504,
+     "c": 0.266,
+     "h": 292.5
+    },
+    {
+     "l": 0.571,
+     "c": 0.238,
+     "h": 315.8
+    },
+    {
+     "l": 0.697,
+     "c": 0.16,
+     "h": 347.5
+    },
+    {
+     "l": 0.815,
+     "c": 0.112,
+     "h": 404.6
+    },
+    {
+     "l": 0.882,
+     "c": 0.128,
+     "h": 444.7
+    },
+    {
+     "l": 0.878,
+     "c": 0.127,
+     "h": 441.5
+    }
+   ]
+  },
+  "style": "linearGradient",
+  "steps": 8,
+  "angle": 45,
+  "classes": [
+   "sequential",
+   "vivid"
+  ],
+  "kinds": [
+   "dark to light",
+   "vivid",
+   "multicolor"
+  ],
+  "harmony": "complementary",
+  "colors": [
+   "#4052d2",
+   "#4d24ea",
+   "#731bea",
+   "#ab33d3",
+   "#e370b0",
+   "#ffab86",
+   "#ffd16f",
+   "#ffcf75"
+  ],
+  "names": [
+   "blue",
+   "blue",
+   "purple",
+   "purple",
+   "pink",
+   "peach",
+   "tan",
+   "tan"
+  ],
+  "contrast": {
+   "text": [
+    "#ffffff",
+    "#ffffff",
+    "#ffffff",
+    "#ffffff",
+    "#000000",
+    "#000000",
+    "#000000",
+    "#000000"
+   ],
+   "ratios": [
+    6.2,
+    7.5,
+    6.8,
+    5,
+    7.1,
+    11.4,
+    14.6,
+    14.4
+   ],
+   "ends": 5.2
+  },
+  "p3": false,
+  "css": {
+   "hex": "background: linear-gradient(45deg, #4052d2 0.0%, #4d24ea 14.3%, #731bea 28.6%, #ab33d3 42.9%, #e370b0 57.1%, #ffab86 71.4%, #ffd16f 85.7%, #ffcf75 100.0%);",
+   "oklch": "background: linear-gradient(45deg in oklch, oklch(50.39% 0.1970 271.41) 0.0%, oklch(47.64% 0.2646 278.80) 14.3%, oklch(50.39% 0.2659 292.54) 28.6%, oklch(57.09% 0.2384 315.79) 42.9%, oklch(69.69% 0.1598 347.49) 57.1%, oklch(81.49% 0.1112 44.56) 71.4%, oklch(88.19% 0.1275 84.72) 85.7%, oklch(87.79% 0.1207 81.55) 100.0%);"
+  },
+  "url": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g?steps=8&angle=45",
+  "links": {
+   "editor": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g?steps=8&angle=45",
+   "json": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.json?steps=8&angle=45",
+   "png": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.png?steps=8&angle=45",
+   "svg": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.svg?steps=8&angle=45",
+   "css": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.css?steps=8&angle=45",
+   "ase": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.ase?steps=8&angle=45",
+   "gpl": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.gpl?steps=8&angle=45",
+   "grd": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.grd?steps=8&angle=45",
+   "tokens": "https://grabient.com/kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g.tokens.json?steps=8&angle=45",
+   "og": "https://grabient.com/api/og?seed=kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g&steps=8&angle=45"
+  }
+ },
+ "written": {
+  "seed": "kSPTq14zC4voJMs",
+  "view": {
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  },
+  "written": {
+   "title": "Cyan cream diagonal glow"
+  },
+  "heldBy": [],
+  "markdown": "# Cyan cream diagonal glow\n\nTritone navy, teal and beige linear gradient with 7 colors: #001e44, #004b72, #0091b0, #00d1d0, #9aeab9, #e6ecbf, #faf1e0. Edit it and copy or download CSS, SVG, PNG or shader code.\n\n- Seed: `kSPTq14zC4voJMs`\n- Page: https://grabient.com/kSPTq14zC4voJMs\n- Drawn as: linear gradient, 7 steps, 90 degrees\n- Kinds: dark to light, pastel, multicolor\n- Hues: wide\n- Contrast of its darkest and lightest colors: 14.7 to 1\n\n## Colors\n\nThe name most people give each color, and the text color that reads on it with its contrast.\n\n| Stop | Hex | OKLCH | Name | Text on it |\n| --- | --- | --- | --- | --- |\n| 1 | `#001e44` | `oklch(24.02% 0.0799 255.28)` | navy | white, 16.5 to 1 |\n| 2 | `#004b72` | `oklch(39.33% 0.0921 241.24)` | blue | white, 9.3 to 1 |\n| 3 | `#0091b0` | `oklch(60.63% 0.1107 220.33)` | blue | black, 5.6 to 1 |\n| 4 | `#00d1d0` | `oklch(77.95% 0.1333 193.94)` | teal | black, 11 to 1 |\n| 5 | `#9aeab9` | `oklch(87.31% 0.1054 156.53)` | light green | black, 14.8 to 1 |\n| 6 | `#e6ecbf` | `oklch(92.69% 0.0590 113.59)` | beige | black, 17.1 to 1 |\n| 7 | `#faf1e0` | `oklch(96.06% 0.0248 82.98)` | off-white | black, 18.7 to 1 |\n\n## CSS\n\n```css\nbackground: linear-gradient(90deg, #001e44 0.0%, #004b72 16.7%, #0091b0 33.3%, #00d1d0 50.0%, #9aeab9 66.7%, #e6ecbf 83.3%, #faf1e0 100.0%);\nbackground: linear-gradient(90deg in oklch, oklch(24.02% 0.0799 255.28) 0.0%, oklch(39.33% 0.0921 241.24) 16.7%, oklch(60.63% 0.1107 220.33) 33.3%, oklch(77.95% 0.1333 193.94) 50.0%, oklch(87.31% 0.1054 156.53) 66.7%, oklch(92.69% 0.0590 113.59) 83.3%, oklch(96.06% 0.0248 82.98) 100.0%);\n```\n\n## Keyframes\n\n3 OKLCH keyframes joined by a Catmull-Rom spline. Hue is unwrapped degrees.\n\n| Keyframe | Lightness | Chroma | Hue |\n| --- | --- | --- | --- |\n| 1 | 0.24 | 0.08 | 255.2 |\n| 2 | 0.78 | 0.134 | 193.9 |\n| 3 | 0.961 | 0.025 | 83 |\n\n## Other forms\n\n- [JSON](https://grabient.com/kSPTq14zC4voJMs.json)\n- [PNG](https://grabient.com/kSPTq14zC4voJMs.png)\n- [SVG](https://grabient.com/kSPTq14zC4voJMs.svg)\n- [CSS](https://grabient.com/kSPTq14zC4voJMs.css)\n- [ASE](https://grabient.com/kSPTq14zC4voJMs.ase)\n- [GPL](https://grabient.com/kSPTq14zC4voJMs.gpl)\n- [GRD](https://grabient.com/kSPTq14zC4voJMs.grd)\n- [Design tokens](https://grabient.com/kSPTq14zC4voJMs.tokens.json)\n- [Social card](https://grabient.com/api/og?seed=kSPTq14zC4voJMs)\n- [Palettes like this one](https://grabient.com/palettes?q=kSPTq14zC4voJMs)\n- [Guide for agents](https://grabient.com/llms.txt)\n"
+ },
+ "swatches": {
+  "tokens": "ewogICJWaXZpZCBibHVlLCBwdXJwbGUsIHBpbmsgYW5kIHRhbiI6IHsKICAgICIkZGVzY3JpcHRpb24iOiAiaHR0cHM6Ly9ncmFiaWVudC5jb20va2NnSV9CUE9CQTBCZ3daSTFzSzJMcER1ZW94cndMc1M3NjRfZz9zdGVwcz04JmFuZ2xlPTQ1IiwKICAgICIxIEJsdWUiOiB7ICIkdHlwZSI6ICJjb2xvciIsICIkdmFsdWUiOiB7ICJjb2xvclNwYWNlIjogInNyZ2IiLCAiY29tcG9uZW50cyI6IFswLjI1MSwgMC4zMjE2LCAwLjgyMzVdLCAiaGV4IjogIiM0MDUyZDIiIH0gfSwKICAgICIyIEJsdWUiOiB7ICIkdHlwZSI6ICJjb2xvciIsICIkdmFsdWUiOiB7ICJjb2xvclNwYWNlIjogInNyZ2IiLCAiY29tcG9uZW50cyI6IFswLjMwMiwgMC4xNDEyLCAwLjkxNzZdLCAiaGV4IjogIiM0ZDI0ZWEiIH0gfSwKICAgICIzIFB1cnBsZSI6IHsgIiR0eXBlIjogImNvbG9yIiwgIiR2YWx1ZSI6IHsgImNvbG9yU3BhY2UiOiAic3JnYiIsICJjb21wb25lbnRzIjogWzAuNDUxLCAwLjEwNTksIDAuOTE3Nl0sICJoZXgiOiAiIzczMWJlYSIgfSB9LAogICAgIjQgUHVycGxlIjogeyAiJHR5cGUiOiAiY29sb3IiLCAiJHZhbHVlIjogeyAiY29sb3JTcGFjZSI6ICJzcmdiIiwgImNvbXBvbmVudHMiOiBbMC42NzA2LCAwLjIsIDAuODI3NV0sICJoZXgiOiAiI2FiMzNkMyIgfSB9LAogICAgIjUgUGluayI6IHsgIiR0eXBlIjogImNvbG9yIiwgIiR2YWx1ZSI6IHsgImNvbG9yU3BhY2UiOiAic3JnYiIsICJjb21wb25lbnRzIjogWzAuODkwMiwgMC40MzkyLCAwLjY5MDJdLCAiaGV4IjogIiNlMzcwYjAiIH0gfSwKICAgICI2IFBlYWNoIjogeyAiJHR5cGUiOiAiY29sb3IiLCAiJHZhbHVlIjogeyAiY29sb3JTcGFjZSI6ICJzcmdiIiwgImNvbXBvbmVudHMiOiBbMSwgMC42NzA2LCAwLjUyNTVdLCAiaGV4IjogIiNmZmFiODYiIH0gfSwKICAgICI3IFRhbiI6IHsgIiR0eXBlIjogImNvbG9yIiwgIiR2YWx1ZSI6IHsgImNvbG9yU3BhY2UiOiAic3JnYiIsICJjb21wb25lbnRzIjogWzEsIDAuODE5NiwgMC40MzUzXSwgImhleCI6ICIjZmZkMTZmIiB9IH0sCiAgICAiOCBUYW4iOiB7ICIkdHlwZSI6ICJjb2xvciIsICIkdmFsdWUiOiB7ICJjb2xvclNwYWNlIjogInNyZ2IiLCAiY29tcG9uZW50cyI6IFsxLCAwLjgxMTgsIDAuNDU4OF0sICJoZXgiOiAiI2ZmY2Y3NSIgfSB9CiAgfQp9Cg==",
+  "ase": "QVNFRgABAAAAAAAKwAEAAABEACEAVgBpAHYAaQBkACAAYgBsAHUAZQAsACAAcAB1AHIAcABsAGUALAAgAHAAaQBuAGsAIABhAG4AZAAgAHQAYQBuAAAAAQAAACIABwAxACAAQgBsAHUAZQAAUkdCID6AgIE+pKSlP1LS0wACAAEAAAAiAAcAMgAgAEIAbAB1AGUAAFJHQiA+mpqbPhCQkT9q6usAAgABAAAAJgAJADMAIABQAHUAcgBwAGwAZQAAUkdCID7m5uc92NjZP2rq6wACAAEAAAAmAAkANAAgAFAAdQByAHAAbABlAABSR0IgPyurrD5MzM0/U9PUAAIAAQAAACIABwA1ACAAUABpAG4AawAAUkdCID9j4+Q+4ODhPzCwsQACAAEAAAAkAAgANgAgAFAAZQBhAGMAaAAAUkdCID+AAAA/K6usPwaGhwACAAEAAAAgAAYANwAgAFQAYQBuAABSR0IgP4AAAD9R0dI+3t7fAAIAAQAAACAABgA4ACAAVABhAG4AAFJHQiA/gAAAP0/P0D7q6usAAsACAAAAAA==",
+  "gpl": "R0lNUCBQYWxldHRlCk5hbWU6IFZpdmlkIGJsdWUsIHB1cnBsZSwgcGluayBhbmQgdGFuCkNvbHVtbnM6IDgKIyBodHRwczovL2dyYWJpZW50LmNvbS9rY2dJX0JQT0JBMEJnd1pJMXNLMkxwRHVlb3hyd0xzUzc2NF9nP3N0ZXBzPTgmYW5nbGU9NDUKIDY0ICA4MiAyMTAJMSBCbHVlCiA3NyAgMzYgMjM0CTIgQmx1ZQoxMTUgIDI3IDIzNAkzIFB1cnBsZQoxNzEgIDUxIDIxMQk0IFB1cnBsZQoyMjcgMTEyIDE3Ngk1IFBpbmsKMjU1IDE3MSAxMzQJNiBQZWFjaAoyNTUgMjA5IDExMQk3IFRhbgoyNTUgMjA3IDExNwk4IFRhbgo=",
+  "grd": "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"
+ }
+}
