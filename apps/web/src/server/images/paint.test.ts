@@ -1,17 +1,12 @@
+import { readFile } from "node:fs/promises";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { drawnView, STYLES, type View } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
 import { at, decodePng, pixelHash } from "../../../test/png.ts";
+import { emailHead } from "./cards.ts";
 import golden from "./fixtures/pictures.json" with { type: "json" };
-import {
-  drawCard,
-  drawPicture,
-  drawWedges,
-  keyframeColors,
-  type Look,
-  lookOf,
-  wedgeStart
-} from "./paint.ts";
+import { HEX_SIZES } from "./hex-glyphs.data.ts";
+import { drawCard, drawPicture, drawWedges, keyframeColors, lookOf, wedgeStart } from "./paint.ts";
 
 const { defaultSeed, graySeed, eightSeed } = golden;
 const palette = (seed: string) => {
@@ -83,23 +78,32 @@ describe("a share card", () => {
     await matches("card head=800x200", await card(defaultSeed, {}, false, 800, 200));
   });
 
-  test("in the brand's colors is the head of an email that wears no palette", async () => {
-    const brand: Look = {
-      colors: [
-        [255, 210, 95],
-        [255, 95, 109],
-        [161, 127, 255]
-      ],
-      style: "linearGradient",
-      angle: 90
-    };
+  test("sets every hex at 26 or 22 pixels: the smaller fits the widest hex on the narrowest of eight chips", () => {
+    const narrowest = Math.min(
+      ...Array.from(
+        { length: 8 },
+        (_, i) => Math.round((1200 * (i + 1)) / 8) - Math.round((1200 * i) / 8)
+      )
+    );
+    const smallest = HEX_SIZES.at(-1);
+    if (!smallest) throw new Error("No glyphs");
+    const widest = smallest.widths[0] + 6 * Math.max(...smallest.widths.slice(1));
+    expect([HEX_SIZES.map(set => set.size), widest + 2 * 12 <= narrowest]).toEqual([
+      [26, 22],
+      true
+    ]);
+  });
+
+  test("as an email's head wears the palette as saved, or the brand's gradient where it wears none", async () => {
+    await matches("card head=800x200", await emailHead({ seed: defaultSeed }));
+    await matches("brand head 800x200 (account email, no palette)", await emailHead(undefined));
     await matches(
       "brand head 800x200 (account email, no palette)",
-      await drawCard(brand, null, 800, 200)
+      await emailHead({ seed: "kBroken" })
     );
     await matches(
       "brand head 1200x300 (newsletter, no palette)",
-      await drawCard(brand, null, 1200, 300)
+      await emailHead(undefined, 1200, 300)
     );
   });
 });
@@ -137,6 +141,26 @@ describe("a picture of several palettes", () => {
     for (const n of [1, 2, 5, 7, 9]) {
       const middle = wedgeStart(n, 1200, 630) + Math.PI / n;
       expect(middle).toBeCloseTo(Math.atan2(32 + 286 / 2 - 600, 315 - (32 + 97) / 2), 12);
+    }
+  });
+});
+
+describe("the pictures the site serves as files", () => {
+  const served = async (path: string) =>
+    pixelHash(
+      (await decodePng(await readFile(new URL(`../../../../${path}`, import.meta.url)))).pixels
+    );
+  const drawn = async (png: Uint8Array) => pixelHash((await decodePng(png)).pixels);
+
+  test("are what the painter draws today: redraw them with scripts/build-icons.ts", async () => {
+    expect(await served("web/public/grabient.png")).toBe(await drawn(await card(defaultSeed)));
+    for (const [file, width, height] of [
+      ["email/head-sheet.png", 800, 200],
+      ["email/head-letter.png", 1200, 300]
+    ] as const) {
+      const head = await drawn(await emailHead(undefined, width, height));
+      expect([file, await served(`web/public/${file}`)]).toEqual([file, head]);
+      expect([file, await served(`design/public/${file}`)]).toEqual([file, head]);
     }
   });
 });

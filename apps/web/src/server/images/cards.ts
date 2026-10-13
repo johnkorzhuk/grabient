@@ -1,8 +1,12 @@
-/* A palette's pictures by address: its share card (/api/og) and its picture alone (/api/png, /{seed}.png), each in the
-   view the address asks for. The key names what is drawn, so every address of one picture shares it. */
-import { viewAt } from "../files/address.ts";
+/* A palette's pictures: its share card (/api/og) and its picture alone (/api/png, /{seed}.png), each in the view the
+   address asks for, and the head an email wears. The key names what is drawn, so every address of one picture shares
+   it. */
+import { decodePalette } from "@grabient/engine/codec.ts";
+import { hexBytes } from "@grabient/engine/color.ts";
+import { type Saved, viewAt } from "../files/address.ts";
 import type { Resolved } from "../files/resolve.ts";
-import { drawCard, drawPicture, keyframeColors, lookOf } from "./paint.ts";
+import { MARK_FIXED } from "./mark.ts";
+import { drawCard, drawPicture, keyframeColors, type Look, lookOf } from "./paint.ts";
 import { answerPicture, type Keep, type PictureEnv } from "./serve.ts";
 import { cardSize, pictureSize } from "./size.ts";
 
@@ -71,4 +75,15 @@ export function palettePicture(
     },
     keep
   );
+}
+
+const BRAND: Look = { colors: MARK_FIXED.map(hexBytes), style: "linearGradient", angle: 90 };
+
+/** An email's head: the palette it wears in its saved view, or the brand's gradient where it wears none (or one that is
+    no palette), with the wordmark and no chips. An account email carries it as a picture of its own, so no image
+    allowance applies: the email's ceilings bound it. */
+export function emailHead(worn: (Saved & { seed: string }) | undefined, width = 800, height = 200) {
+  const P = worn && decodePalette(worn.seed);
+  const look = P ? lookOf(P, viewAt(new URLSearchParams(), P.anchors.length, worn)) : BRAND;
+  return drawCard(look, null, width, height);
 }
