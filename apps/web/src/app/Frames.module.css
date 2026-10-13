@@ -1,0 +1,8 @@
+/* at least the screen below the header, so the footer falls to the bottom of the screen when the page is short */
+.page {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+  min-height: calc(var(--frame-h, 100vh) - var(--size-top) - var(--size-hairline));
+}

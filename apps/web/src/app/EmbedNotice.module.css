@@ -1,0 +1,48 @@
+/* clear of a phone's home indicator and notch; the line's start, since BackToTop holds its end */
+.note {
+  --edge: max(var(--space-s3), env(safe-area-inset-right), env(safe-area-inset-left));
+  position: fixed;
+  inset-inline-start: var(--edge);
+  bottom: calc(var(--space-s3) + env(safe-area-inset-bottom, 0px));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--space-s2);
+  /* never under BackToTop at the other end of the line */
+  max-width: calc(100% - 2 * var(--edge) - var(--size-touch) - var(--space-s3));
+  padding-block: var(--space-s1);
+  padding-inline: var(--space-s3) var(--space-s1);
+  border: var(--size-hairline) solid var(--color-edge2);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+  color: var(--color-ink2);
+  box-shadow: var(--color-shadow-pop);
+  font-family: var(--font-sans);
+  font-size: var(--font-fs2);
+  line-height: var(--font-lh-ui);
+  /* the editor pins its stops along the bottom: the note stands over the artwork, in its empty top corner on a wide
+     page, and on a phone above the artwork's lower presses, clear of the strip */
+  &[data-strip] {
+    top: calc(var(--size-top) + var(--space-s4));
+    bottom: auto;
+    @media (max-width: 1100px) {
+      top: auto;
+      bottom: calc(
+        var(--size-strip-short) +
+        var(--size-touch) +
+        var(--space-s4) *
+        2 +
+        env(safe-area-inset-bottom, 0px)
+      );
+    }
+  }
+}
+.words {
+  margin: 0;
+  min-width: 0;
+}
+.actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+}

@@ -1,0 +1,29 @@
+/* a page that is no page (404) or that failed: its words and its ways out, centered in the screen below the header */
+.main {
+  display: flex;
+  flex-grow: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s6);
+  padding-block: var(--space-s16);
+  padding-inline: var(--size-gutter);
+  text-align: center;
+  @container page (max-width: 800px) {
+    padding-inline: var(--space-s4);
+  }
+}
+.words {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s3);
+  max-width: var(--size-prose);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s3);
+}
