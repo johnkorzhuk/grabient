@@ -3,6 +3,8 @@ import { type Element, For, Show } from "solid-js";
 import styles from "./CollectionGroup.module.css";
 import { t } from "./i18n.ts";
 import { Label } from "./Label.tsx";
+import { PaletteGrid } from "./PaletteGrid.tsx";
+import { PaletteCardPlaceholder } from "./PalettePlaceholder.tsx";
 import { Placeholder } from "./Placeholder.tsx";
 import { Text } from "./Text.tsx";
 import { tooltip } from "./Tooltip.tsx";
@@ -89,17 +91,15 @@ export function CollectionGroup<T>(props: {
           </Show>
         </span>
       </div>
-      <div class={styles.host}>
-        <div class={styles.grid}>
-          <For each={props.palettes} keyed={false}>
-            {(palette, i) => (
-              <div class={styles.cell} data-whole={props.whole ? "" : undefined}>
-                {props.card(palette, i)}
-              </div>
-            )}
-          </For>
-        </div>
-      </div>
+      <PaletteGrid>
+        <For each={props.palettes} keyed={false}>
+          {(palette, i) => (
+            <div class={styles.cell} data-whole={props.whole ? "" : undefined}>
+              {props.card(palette, i)}
+            </div>
+          )}
+        </For>
+      </PaletteGrid>
     </section>
   );
 }
@@ -115,20 +115,15 @@ export function CollectionGroupPlaceholder(props: { count?: number }) {
         <Placeholder width="260px" height="24px" />
         <Placeholder width="72px" />
       </div>
-      <div class={styles.host}>
-        <div class={styles.grid}>
-          <For each={cards()} keyed={false}>
-            {() => (
-              <div class={styles.cell}>
-                <div class={styles.ghost}>
-                  <Placeholder height="var(--size-card)" round="surface" />
-                  <Placeholder width="40%" />
-                </div>
-              </div>
-            )}
-          </For>
-        </div>
-      </div>
+      <PaletteGrid>
+        <For each={cards()} keyed={false}>
+          {() => (
+            <div class={styles.cell}>
+              <PaletteCardPlaceholder />
+            </div>
+          )}
+        </For>
+      </PaletteGrid>
     </section>
   );
 }

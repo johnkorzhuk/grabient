@@ -1,6 +1,6 @@
 /* A collection in a feed. The title's baseline stands a grid's column gap over the cards: its line box, then the
-   group's gap. The grid is the list's own (1 to 6 columns as its container widens), and each width caps the cards at two
-   rows of its columns, three on a phone; the ranges are disjoint, so no rule depends on the order of another. */
+   group's gap. Each width of the list's grid caps the cards at two rows of its columns, three on a phone; the ranges are
+   disjoint, so no rule depends on the order of another. */
 @layer components {
   .group {
     display: flex;
@@ -46,32 +46,6 @@
     align-items: baseline;
     gap: var(--space-s1);
   }
-  .host {
-    container: list / inline-size;
-    min-width: 0;
-  }
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(1, minmax(0, 1fr));
-    column-gap: var(--space-s10);
-    row-gap: var(--space-s10);
-    align-items: start;
-    @container list (min-width: 728px) and (max-width: 1167px) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    @container list (min-width: 1168px) and (max-width: 1423px) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    @container list (min-width: 1424px) and (max-width: 1807px) {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    @container list (min-width: 1808px) and (max-width: 2959px) {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
-    }
-    @container list (min-width: 2960px) {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-  }
   .cell {
     min-width: 0;
     &:not([data-whole]) {
@@ -101,12 +75,5 @@
         }
       }
     }
-  }
-  /* a card on its way: the picture and its line */
-  .ghost {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-s3);
-    padding-block-end: var(--space-s3);
   }
 }

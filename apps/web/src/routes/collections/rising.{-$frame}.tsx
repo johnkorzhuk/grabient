@@ -1,10 +1,12 @@
-import { t } from "@grabient/i18n";
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
-import { Placeholder } from "../../app/Placeholder.tsx";
-import { FRESH } from "../../lib/cache.ts";
+import { ListRoute } from "../../features/collections/CollectionRoute.tsx";
+import { listHead, listPlace, loadList, searchOf } from "../../features/collections/route.ts";
+import { FRESH, NO_STORE } from "../../lib/cache.ts";
 
-/* Rising over the week is the list's own address; its longer frames are a last segment of their own. */
+/* Rising over the week is the list's own address; its longer frames are a last segment of their own. A frame an admin
+   turned off leads to the week's. */
 export const Route = createFileRoute("/collections/rising/{-$frame}")({
+  validateSearch: (search: Record<string, unknown>) => search,
   beforeLoad: ({ params, search }) => {
     if (params.frame === "1w") {
       throw redirect({
@@ -17,7 +19,25 @@ export const Route = createFileRoute("/collections/rising/{-$frame}")({
     if (params.frame !== undefined && params.frame !== "3m" && params.frame !== "1y")
       throw notFound();
   },
-  headers: () => FRESH,
-  head: () => ({ meta: [{ title: t("Rising gradient and color palette collections") }] }),
-  component: () => <Placeholder title={t("Rising gradient and color palette collections")} />
+  loaderDeps: ({ search }) => ({ search: searchOf(search) }),
+  loader: ({ context, params, deps }) =>
+    loadList(context.queryClient, listPlace("rising", params.frame, deps.search)),
+  headers: ({ loaderData }) => (loaderData?.status ? NO_STORE : FRESH),
+  head: ({ match, params, loaderData }) =>
+    listHead(
+      match.context.queryClient,
+      listPlace("rising", params.frame, searchOf(match.search)),
+      loaderData
+    ),
+  component: function RisingCollections() {
+    const search = Route.useSearch();
+    const params = Route.useParams();
+    const loaded = Route.useLoaderData();
+    return (
+      <ListRoute
+        place={listPlace("rising", params().frame, searchOf(search()))}
+        loaded={loaded()}
+      />
+    );
+  }
 });
