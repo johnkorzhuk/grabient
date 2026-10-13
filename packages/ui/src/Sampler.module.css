@@ -128,6 +128,9 @@
     &:focus-visible {
       outline-width: 1px;
     }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
   }
   .swatch {
     flex-shrink: 0;
