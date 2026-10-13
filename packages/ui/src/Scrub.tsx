@@ -71,9 +71,9 @@ export function Scrub(props: ScrubProps) {
   /* the text follows the value only while nobody types: the markup sets defaultValue alone, since a bound value is
      written again on every run of the input's bindings and would wipe a number being typed */
   createEffect(
-    () => [props.value, editing()] as const,
-    ([v, typing]) => {
-      if (!typing) input.value = fmt(v);
+    () => [fmt(props.value), editing()] as const,
+    ([text, typing]) => {
+      if (!typing) input.value = text;
     }
   );
   const setEdit = (on: boolean) => {
