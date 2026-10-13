@@ -1,7 +1,7 @@
 import { handleAuth } from "@grabient/server/auth/gate.ts";
 import { setReviewerPassword } from "@grabient/server/auth/reviewer.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { cookiesOf, makeAccount, ORIGIN, post, testEnv, unique, watchLimits } from "./helpers.ts";
 
 const PASSWORD = "/api/auth/sign-in/email";
@@ -61,6 +61,22 @@ describe("the app reviewers' password", () => {
     expect(asked).not.toContain("passwordSignIn");
   });
 
+  it("takes a password only while its account is the reviewers' address", async () => {
+    const { env, email } = reviewing();
+    const reviewer = await makeAccount(env, { email });
+    const password = "a long password for the directory review";
+    await setReviewerPassword(env, new Headers({ cookie: reviewer.cookie }), password);
+    // the deploy names another address: the old one's right password is refused as any other address is
+    const moved = testEnv({ REVIEWER_EMAIL: `${unique("reviewer")}@example.test` });
+    const { env: watched, asked } = watchLimits(moved);
+    const answer = await handleAuth(post(PASSWORD, { email, password }), watched);
+    expect([answer.status, await answer.json()]).toEqual([
+      401,
+      { code: "INVALID_EMAIL_OR_PASSWORD", message: "Invalid email or password" }
+    ]);
+    expect(asked).not.toContain("passwordSignIn");
+  });
+
   it("counts each try for the reviewers' address", async () => {
     const { env, email } = reviewing();
     const { env: watched, asked } = watchLimits(env);
@@ -75,6 +91,42 @@ describe("the app reviewers' password", () => {
       400,
       { code: "MISSING_RESPONSE", message: "Missing CAPTCHA response" }
     ]);
+  });
+
+  it("signs the reviewer in once Turnstile passes the page's answer, sent with the secret and no address", async () => {
+    const { env, email } = reviewing({ TURNSTILE_SECRET_KEY: "turnstile-secret" });
+    const reviewer = await makeAccount(env, { email });
+    const password = "a long password for the directory review";
+    await setReviewerPassword(env, new Headers({ cookie: reviewer.cookie }), password);
+    const sent: { url: string; body: unknown }[] = [];
+    let passes = true;
+    const siteverify = vi.spyOn(globalThis, "fetch").mockImplementation(async (input, init) => {
+      sent.push({ url: String(input), body: JSON.parse(String(init?.body)) });
+      return Response.json({ success: passes, hostname: "grabient.test" });
+    });
+    try {
+      const signIn = (answer: string) =>
+        handleAuth(
+          post(PASSWORD, { email, password }, { headers: { "x-captcha-response": answer } }),
+          env
+        );
+      const signedIn = await signIn("a passing answer");
+      expect(signedIn.status).toBe(200);
+      expect(sent).toEqual([
+        {
+          url: "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+          body: { secret: "turnstile-secret", response: "a passing answer" }
+        }
+      ]);
+      passes = false;
+      const refused = await signIn("a failing answer");
+      expect([refused.status, await refused.json()]).toEqual([
+        403,
+        { code: "VERIFICATION_FAILED", message: "Captcha verification failed" }
+      ]);
+    } finally {
+      siteverify.mockRestore();
+    }
   });
 
   it("opens no sign-up and no password reset", async () => {
