@@ -38,6 +38,7 @@ import { Route as ApiFramesRouteImport } from './routes/api/frames'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as ApiHotRouteImport } from './routes/api/hot'
 import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
+import { Route as ApiNewsletterRouteImport } from './routes/api/newsletter'
 import { Route as ApiPaletteRouteImport } from './routes/api/palette'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
 import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
@@ -255,6 +256,11 @@ const ApiHotRoute = ApiHotRouteImport.update({
 const ApiLikeCountsRoute = ApiLikeCountsRouteImport.update({
   id: '/api/like-counts',
   path: '/api/like-counts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiNewsletterRoute = ApiNewsletterRouteImport.update({
+  id: '/api/newsletter',
+  path: '/api/newsletter',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPaletteRoute = ApiPaletteRouteImport.update({
@@ -677,6 +683,7 @@ export interface FileRoutesByFullPath {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
@@ -780,6 +787,7 @@ export interface FileRoutesByTo {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
@@ -884,6 +892,7 @@ export interface FileRoutesById {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
@@ -989,6 +998,7 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/newsletter'
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
@@ -1092,6 +1102,7 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/newsletter'
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
@@ -1195,6 +1206,7 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/newsletter'
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
@@ -1299,6 +1311,7 @@ export interface RootRouteChildren {
   ApiGeoRoute: typeof ApiGeoRoute
   ApiHotRoute: typeof ApiHotRoute
   ApiLikeCountsRoute: typeof ApiLikeCountsRoute
+  ApiNewsletterRoute: typeof ApiNewsletterRoute
   ApiPaletteRoute: typeof ApiPaletteRoute
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
   ApiPalettesRoute: typeof ApiPalettesRoute
@@ -1577,6 +1590,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/like-counts'
       fullPath: '/api/like-counts'
       preLoaderRoute: typeof ApiLikeCountsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/newsletter': {
+      id: '/api/newsletter'
+      path: '/api/newsletter'
+      fullPath: '/api/newsletter'
+      preLoaderRoute: typeof ApiNewsletterRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/palette': {
@@ -2115,6 +2135,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGeoRoute: ApiGeoRoute,
   ApiHotRoute: ApiHotRoute,
   ApiLikeCountsRoute: ApiLikeCountsRoute,
+  ApiNewsletterRoute: ApiNewsletterRoute,
   ApiPaletteRoute: ApiPaletteRoute,
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
   ApiPalettesRoute: ApiPalettesRoute,
