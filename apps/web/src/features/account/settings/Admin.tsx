@@ -240,7 +240,7 @@ export function SiteFeatures() {
                 <div class={styles.choice}>
                   <div class={styles.choiceText}>
                     <Text variant="body" strong id={label()}>
-                      {t(FLAGS[flag()].label)}
+                      {t(FLAGS[flag()].label, { $context: FLAGS[flag()].context })}
                     </Text>
                     <Text variant="small">{t(FLAGS[flag()].line)}</Text>
                   </div>

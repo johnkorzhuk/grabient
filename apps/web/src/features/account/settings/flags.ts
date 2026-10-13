@@ -3,10 +3,18 @@ import type { FlagState } from "@grabient/server/flags/flags.ts";
 import { FLAG_NAMES, type FlagName } from "@grabient/server/flags/names.ts";
 import { api } from "../session.ts";
 
+/** A feature's name and line. A name whose English means something else on another page carries the `context` its
+    translation is read by. */
+interface Words {
+  label: string;
+  context?: string;
+  line: string;
+}
+
 /* The features an admin turns off for every visitor from Settings, each with its name and one line saying what it does
    while on, and what still works when off where that is not plain. The Worker decides what off stops; a flag without
    its words here does not compile. */
-export const FLAGS: Readonly<Record<FlagName, { label: string; line: string }>> = {
+export const FLAGS: Readonly<Record<FlagName, Words>> = {
   all: { label: msg("All features"), line: msg("When off, every feature below is off.") },
   "model-search": {
     label: msg("Search by meaning"),
@@ -61,11 +69,12 @@ export const FLAGS: Readonly<Record<FlagName, { label: string; line: string }>> 
   saving: {
     label: msg("Saving"),
     line: msg(
-      "Save likes, collections and votes from accounts and their apps. When off, pages keep each change until saving is back, and reading still works."
+      "Save likes, collections and votes from accounts and their apps. When off, pages keep likes and changes to an account's collections until saving is back, other saves are refused, and reading still works."
     )
   },
   email: {
-    label: msg("Email"),
+    label: msg("Email", "feature"),
+    context: "feature",
     line: msg(
       "Send sign-in links and codes and contact messages. When off, sign-in offers Google, and deletion emails and owner alerts still go."
     )
