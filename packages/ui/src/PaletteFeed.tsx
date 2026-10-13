@@ -1,34 +1,43 @@
-import { createEffect, createSignal, type Element, For } from "solid-js";
+import { createEffect, createSignal, type Element, For, NoHydration, Show } from "solid-js";
 import styles from "./PaletteFeed.module.css";
 import { columnsAt, PaletteGrid } from "./PaletteGrid.tsx";
 import { createWindow, type WindowRoom } from "./window.ts";
 
-/* a row before one is measured: the picture, the gap to its line, the line, and the grid's own gap */
+/* a row before one is measured: the picture, the gap to its line and the line; and the grid's own gap */
 const room: WindowRoom = { top: 0, width: 0 };
 const kept = { card: 300 + 12 + 32, gap: 40 };
 
 /** A palette list as a feed: every palette loaded so far, with only the rows near the viewport drawn (window.ts).
     Every card is one size, so the rows are measured from the first card and its grid's gap, and kept, so a list
-    returned to lays out at its depth on its first frame. */
+    returned to lays out at its depth on its first frame. The server draws every card it was given; the first `live`
+    are hydrated and the rest stand still until the reader moves. */
 export function PaletteFeed<T>(props: {
   items: readonly T[];
   /** what keeps a card as the window slides: the palette's seed */
   key: (item: T) => string;
   card: (item: () => T) => Element;
+  /** the cards the page starts with live, out of those the server drew: the first screen's */
+  live?: number;
   /** the depth a return is about to restore */
   depth?: number;
 }) {
   const [card, setCard] = createSignal(kept.card);
   const [gap, setGap] = createSignal(kept.gap);
+  const rows = (width: number) => Math.ceil(props.items.length / columnsAt(width));
   const win = createWindow({
-    count: width => Math.ceil(props.items.length / columnsAt(width)),
+    count: rows,
     size: () => card(),
     gap,
-    initial: width => Math.ceil(props.items.length / columnsAt(width)),
+    initial: rows,
     depth: props.depth,
     room
   });
+  const live = () =>
+    win.started()
+      ? props.items.length
+      : Math.min(props.items.length, props.live ?? props.items.length);
   const shown = () => {
+    if (!win.started()) return props.items.slice(0, live());
     const [start, end] = win.range();
     const columns = columnsAt(win.width());
     return props.items.slice(start * columns, end * columns);
@@ -63,6 +72,13 @@ export function PaletteFeed<T>(props: {
         <For each={shown()} keyed={props.key}>
           {item => props.card(item)}
         </For>
+        <Show when={!win.started() && live() < props.items.length}>
+          <div class={styles.still}>
+            <NoHydration>
+              <For each={props.items.slice(live())}>{item => props.card(() => item)}</For>
+            </NoHydration>
+          </div>
+        </Show>
       </PaletteGrid>
     </div>
   );

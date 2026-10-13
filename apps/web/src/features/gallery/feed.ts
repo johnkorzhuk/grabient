@@ -16,6 +16,10 @@ export interface FeedPage {
 const reached = new Map<string, number>();
 const REACHED_KEPT = 64;
 
+/** The cards a page starts with live: two rows of a desktop's grid. The rest of what the server drew stands still
+    until the reader moves. */
+export const FIRST_SCREEN = 8;
+
 /** How far ahead of the end a page is asked for: a screen and more, so it lands before the reader gets there. */
 const AHEAD = "0px 0px 1200px 0px";
 

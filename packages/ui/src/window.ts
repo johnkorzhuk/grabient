@@ -6,11 +6,12 @@ import { createMemo, createSignal, isHydrating, onCleanup, onSettled } from "sol
    moves nothing. Rows of equal cards are blocks of one measured height; a feed's groups have heights of their own,
    measured once drawn and estimated before (createHeights).
 
-   Until the page has settled, the window draws the blocks the server drew, so hydration finds its markup; it starts
-   after. A column made later, after a navigation, is windowed from its first frame, at the depth a return is about to
-   restore and with the room its kind had last time, so a list returned to stands at its depth at once. While any
-   window stands, the browser's scroll anchoring is off: the window places its blocks itself, and anchoring would pull
-   the reader up as a page joins at the end. */
+   The server draws a column's first blocks. The first of them are hydrated and the rest stay the server's still
+   markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key): then the window
+   starts and draws live blocks where it stands. A column made after a navigation is windowed from its first frame, at
+   the depth a return is about to restore and with the room its kind had last time, so a list returned to stands at
+   its depth at once. While any window stands, the browser's scroll anchoring is off: the window places its blocks
+   itself, and anchoring would pull the reader up as a page joins at the end. */
 
 export interface WindowRoom {
   /** where the column starts in the document, and how wide it is: kept by its kind across mounts */
@@ -25,7 +26,7 @@ export interface WindowOptions {
   size: (index: number, width: number) => number;
   /** the space between two blocks */
   gap: () => number;
-  /** the blocks drawn before the window starts: the ones the server drew */
+  /** the blocks the server draws, live or still */
   initial: (width: number) => number;
   /** the depth a return is about to restore, read for the first window alone */
   depth?: number;
@@ -37,6 +38,16 @@ export interface WindowOptions {
 let windows = 0;
 /** The room a column is laid out in before it is measured: the server's guess, a desktop's. */
 const DEFAULT_WIDTH = 1424;
+/** What the reader does that starts a window the page began with: a still block would not answer it. */
+const MOVES = [
+  "scroll",
+  "wheel",
+  "pointerover",
+  "pointerdown",
+  "touchstart",
+  "keydown",
+  "resize"
+] as const;
 
 export function createWindow(o: WindowOptions) {
   let host: HTMLElement | undefined;
@@ -47,10 +58,11 @@ export function createWindow(o: WindowOptions) {
     top: o.room.top,
     width: o.room.width
   });
+  /* a column drawn by the server waits for the reader; one made in the browser is windowed at once */
   const [started, setStarted] = createSignal(!isServer && !isHydrating());
-  /* where each block starts, and past the last, where the column would end with one more gap */
   /* the width blocks are laid out at: the last one read, or a desktop's before any was */
   const width = () => view().width || DEFAULT_WIDTH;
+  /* where each block starts, and past the last, where the column would end with one more gap */
   const offsets = createMemo(() => {
     const w = width();
     const n = o.count(w);
@@ -97,14 +109,21 @@ export function createWindow(o: WindowOptions) {
         });
       }
     };
+    const start = () => {
+      for (const move of MOVES) removeEventListener(move, start, true);
+      read();
+      setStarted(true);
+    };
     addEventListener("scroll", soon, { passive: true });
     addEventListener("resize", soon);
     const resized = new ResizeObserver(soon);
     if (host) resized.observe(host);
     if (++windows === 1) document.documentElement.style.setProperty("overflow-anchor", "none");
     read(o.depth ?? scrollY);
-    setStarted(true);
+    if (!started())
+      for (const move of MOVES) addEventListener(move, start, { capture: true, passive: true });
     return () => {
+      for (const move of MOVES) removeEventListener(move, start, true);
       removeEventListener("scroll", soon);
       removeEventListener("resize", soon);
       resized.disconnect();
@@ -123,7 +142,7 @@ export function createWindow(o: WindowOptions) {
     after,
     /** the column's width as last read: what its columns are counted from */
     width,
-    /** whether the window has started: until then the server's blocks are drawn */
+    /** whether the window has started: until then the server's blocks stand */
     started,
     /** reads the column again, after what stands above it changed its place */
     remeasure: () => read()

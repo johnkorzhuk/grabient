@@ -1,4 +1,4 @@
-import { type Element, For } from "solid-js";
+import { type Element, For, NoHydration, Show } from "solid-js";
 import styles from "./GroupFeed.module.css";
 import { createHeights, createWindow, type WindowRoom } from "./window.ts";
 
@@ -9,8 +9,8 @@ const heights = new Map<string, number>();
 const GAP = 64;
 
 /** A feed of groups of their own heights (a collection and its first palettes): only the groups near the viewport are
-    drawn (window.ts), measured once drawn and estimated before. The server draws the first `initial`, the rest stand
-    as padding until the page settles. */
+    drawn (window.ts), measured once drawn and estimated before. The server draws the first `initial`, the first
+    `live` of them hydrated and the rest still until the reader moves; padding stands in for the others. */
 export function GroupFeed<T>(props: {
   items: readonly T[];
   key: (item: T) => string;
@@ -18,6 +18,7 @@ export function GroupFeed<T>(props: {
   /** a group's height before it is measured, at the feed's width */
   estimate: (item: T, width: number) => number;
   initial: number;
+  live?: number;
   depth?: number;
 }) {
   const measured = createHeights(heights);
@@ -32,9 +33,10 @@ export function GroupFeed<T>(props: {
     depth: props.depth,
     room
   });
+  const live = () => Math.min(props.initial, props.live ?? props.initial);
   const shown = () => {
     const [start, end] = win.range();
-    return props.items.slice(start, end);
+    return win.started() ? props.items.slice(start, end) : props.items.slice(0, live());
   };
   return (
     <div
@@ -53,6 +55,15 @@ export function GroupFeed<T>(props: {
           );
         }}
       </For>
+      <Show when={!win.started() && live() < Math.min(props.initial, props.items.length)}>
+        <div class={styles.still}>
+          <NoHydration>
+            <For each={props.items.slice(live(), props.initial)}>
+              {item => <div data-group={props.key(item)}>{props.group(() => item)}</div>}
+            </For>
+          </NoHydration>
+        </div>
+      </Show>
     </div>
   );
 }

@@ -21,7 +21,7 @@ import { SearchField } from "../search/SearchField.tsx";
 import { Tags } from "../search/Tags.tsx";
 import { type GalleryPlace, LIST_PATHS, listSearch, orderHref } from "./address.ts";
 import { drawnAs, hexesOf, minuteOf, nameOf, paletteHref } from "./drawing.ts";
-import { createFeed, inPlace, preloadHref } from "./feed.ts";
+import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
@@ -230,6 +230,7 @@ export function Palettes(props: { place: ListPlace }) {
             <PaletteFeed
               items={items()}
               key={item => item.kseed}
+              live={FIRST_SCREEN}
               depth={restoring}
               card={item => <GalleryCard item={item()} view={view()} now={now()} words={words()} />}
             />

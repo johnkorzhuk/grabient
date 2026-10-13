@@ -4,7 +4,8 @@ import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionGroup, shownAt } from "@grabient/ui/CollectionGroup.tsx";
 import { GroupFeed } from "@grabient/ui/GroupFeed.tsx";
 import { ListNav } from "@grabient/ui/ListNav.tsx";
-import { columnsAt, PaletteGrid } from "@grabient/ui/PaletteGrid.tsx";
+import { PaletteFeed } from "@grabient/ui/PaletteFeed.tsx";
+import { columnsAt } from "@grabient/ui/PaletteGrid.tsx";
 import { PaletteGridPlaceholder } from "@grabient/ui/PalettePlaceholder.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
@@ -15,7 +16,7 @@ import {
   useRouter,
   useRouterState
 } from "@tanstack/solid-router";
-import { createMemo, For, Loading, Show } from "solid-js";
+import { createMemo, Loading, Show } from "solid-js";
 import { account, isAdmin } from "../account/session.ts";
 import { AppearanceToolbar, listView } from "../list/appearance.ts";
 import { SearchField } from "../search/SearchField.tsx";
@@ -23,7 +24,7 @@ import { Tags } from "../search/Tags.tsx";
 import { homeHref, type ListParams, listSearch, orderHref } from "./address.ts";
 import type { CollectionPage, CollectionSummary } from "./collections.ts";
 import { drawnAs, hexesOf, minuteOf, nameOf, paletteHref, relativeAge } from "./drawing.ts";
-import { createFeed, inPlace, preloadHref } from "./feed.ts";
+import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
@@ -196,11 +197,15 @@ export function Home(props: { params: ListParams }) {
           </Show>
           <Loading fallback={<PaletteGridPlaceholder count={words() ? 60 : 24} />}>
             <Show when={standingHead()?.palettes.length}>
-              <PaletteGrid>
-                <For each={standingHead()?.palettes ?? []} keyed={item => item.kseed}>
-                  {item => <GalleryCard item={item()} view={view()} now={now()} words={words()} />}
-                </For>
-              </PaletteGrid>
+              <PaletteFeed
+                items={standingHead()?.palettes ?? []}
+                key={item => item.kseed}
+                live={FIRST_SCREEN}
+                depth={restoring}
+                card={item => (
+                  <GalleryCard item={item()} view={view()} now={now()} words={words()} />
+                )}
+              />
             </Show>
           </Loading>
         </div>
@@ -210,6 +215,7 @@ export function Home(props: { params: ListParams }) {
             key={collection => collection.slug}
             estimate={estimate}
             initial={FIRST_GROUPS}
+            live={0}
             depth={restoring}
             group={collection => (
               <CollectionGroup

@@ -3,4 +3,8 @@
     width: 100%;
     min-width: 0;
   }
+  /* the server's still cards stand in the grid as its own cells until the window starts */
+  .still {
+    display: contents;
+  }
 }
