@@ -44,6 +44,8 @@ export type KeyPress = { code: string; repeat: boolean } | null;
 
 export interface EditsOptions {
   first: string;
+  /** the steps a history entry kept, taken when they end on `first` */
+  saved?: unknown;
   /** puts a value back when an undo or a redo reaches it, told the value of the step it takes back or makes again and
       which way it went; it must not report that as an edit */
   apply: (value: string, edit: string, back: boolean) => void;
@@ -65,6 +67,8 @@ export function createEdits(opts: EditsOptions) {
   let steps = [opts.first];
   let at = 0;
   let base = 0;
+  const kept = readSnapshot(opts.saved);
+  if (kept && same(kept.steps[kept.at], opts.first)) ({ steps, at, base } = kept);
   let gesture = false;
   /* the step a key's press made, while it stands as the last: that key's repeats carry it on */
   let press: { key: string; at: number } | null = null;

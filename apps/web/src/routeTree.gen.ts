@@ -18,6 +18,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpServerRouteImport } from './routes/mcp-server'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as RandomRouteImport } from './routes/random'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -80,6 +81,11 @@ const NewsletterRoute = NewsletterRouteImport.update({
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RandomRoute = RandomRouteImport.update({
+  id: '/random',
+  path: '/random',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RobotsDottxtRoute = RobotsDottxtRouteImport.update({
@@ -188,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
+  '/random': typeof RandomRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
@@ -217,6 +224,7 @@ export interface FileRoutesByTo {
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
+  '/random': typeof RandomRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
@@ -247,6 +255,7 @@ export interface FileRoutesById {
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
+  '/random': typeof RandomRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
   '/terms': typeof TermsRoute
@@ -278,6 +287,7 @@ export interface FileRouteTypes {
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
+    | '/random'
     | '/robots.txt'
     | '/settings'
     | '/terms'
@@ -307,6 +317,7 @@ export interface FileRouteTypes {
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
+    | '/random'
     | '/robots.txt'
     | '/settings'
     | '/terms'
@@ -336,6 +347,7 @@ export interface FileRouteTypes {
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
+    | '/random'
     | '/robots.txt'
     | '/settings'
     | '/terms'
@@ -366,6 +378,7 @@ export interface RootRouteChildren {
   McpServerRoute: typeof McpServerRoute
   NewsletterRoute: typeof NewsletterRoute
   PrivacyRoute: typeof PrivacyRoute
+  RandomRoute: typeof RandomRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SettingsRoute: typeof SettingsRoute
   TermsRoute: typeof TermsRoute
@@ -449,6 +462,13 @@ declare module '@tanstack/solid-router' {
       path: '/privacy'
       fullPath: '/privacy'
       preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/random': {
+      id: '/random'
+      path: '/random'
+      fullPath: '/random'
+      preLoaderRoute: typeof RandomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/robots.txt': {
@@ -590,6 +610,7 @@ const rootRouteChildren: RootRouteChildren = {
   McpServerRoute: McpServerRoute,
   NewsletterRoute: NewsletterRoute,
   PrivacyRoute: PrivacyRoute,
+  RandomRoute: RandomRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SettingsRoute: SettingsRoute,
   TermsRoute: TermsRoute,

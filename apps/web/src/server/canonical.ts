@@ -6,10 +6,12 @@
    and view, old grabient.com links from the legacy maps, the lists' query forms (order, defaults, out-of-range values).
    A rule answers null for an address it does not know; the first that answers wins. */
 
+import { canonicalSeedAddress } from "../features/editor/address.ts";
+
 /** The canonical form of `address` ("/path?query"), or null when this rule leaves it alone. */
 export type CanonicalRule = (address: string) => string | null;
 
-const RULES: readonly CanonicalRule[] = [];
+const RULES: readonly CanonicalRule[] = [canonicalSeedAddress];
 
 /** The address a page request should be redirected to, or null when it is canonical already. */
 export function canonicalRedirect(address: string, rules = RULES): string | null {

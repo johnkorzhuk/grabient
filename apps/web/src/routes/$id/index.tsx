@@ -1,21 +1,52 @@
 import { isPagePath } from "@grabient/i18n";
 import { createFileRoute, notFound } from "@tanstack/solid-router";
+import { Loading, lazy, Show } from "solid-js";
 import { Placeholder } from "../../app/Placeholder.tsx";
-import { NO_STORE } from "../../lib/cache.ts";
+import { SEED_SHAPE } from "../../features/editor/address.ts";
+import { EditorCorner } from "../../features/editor/EditorCorner.tsx";
+import { paletteData, paletteHead } from "../../features/editor/page.ts";
+import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
+import { NO_STORE, PALETTE_PAGE } from "../../lib/cache.ts";
 
 /* Every one-segment address: a palette's seed (the editor), a collection's slug, an old grabient.com id, or words
-   that lead to a search. The editor draws in the browser alone (`ssr: "data-only"` for a seed), with a static page for
-   crawlers; a collection renders whole. */
+   that lead to a search. A palette's page is the editor, which the browser draws alone: the server runs the loader,
+   for the head and for the static page crawlers and readers without JavaScript read, which the editor takes the place
+   of. A collection renders whole. */
+const Editor = lazy(() => import("../../features/editor/Editor.tsx"));
+
 export const Route = createFileRoute("/$id/")({
   // a name with an extension is a file, and no file is here
   beforeLoad: ({ params }) => {
     if (!isPagePath(`/${params.id}`)) throw notFound();
   },
-  headers: () => NO_STORE,
+  ssr: ({ params }) =>
+    params.status === "success" && SEED_SHAPE.test(params.value.id) ? "data-only" : true,
+  // the view rides the address: a palette's page is read again as it changes, from the address alone
+  loaderDeps: ({ search }) => ({ search: search as Record<string, unknown> }),
+  loader: async ({ params, deps }) => ({ palette: await paletteData(params.id, deps.search) }),
+  headers: ({ loaderData }) => (loaderData?.palette ? PALETTE_PAGE : NO_STORE),
+  head: ({ loaderData }) => (loaderData?.palette ? paletteHead(loaderData.palette) : {}),
+  staticData: { frame: "app", corner: EditorCorner },
+  pendingComponent: Static,
   component: Address
 });
 
+/* what the server sends for a palette, and what stands while the editor's code arrives */
+function Static() {
+  const data = Route.useLoaderData();
+  return <Show when={data()?.palette}>{palette => <StaticPalette data={palette()} />}</Show>;
+}
+
 function Address() {
   const params = Route.useParams();
-  return <Placeholder title={params().id} />;
+  const data = Route.useLoaderData();
+  return (
+    <Show when={data().palette} fallback={<Placeholder title={params().id} />}>
+      {palette => (
+        <Loading fallback={<StaticPalette data={palette()} />}>
+          <Editor data={palette()} />
+        </Loading>
+      )}
+    </Show>
+  );
 }
