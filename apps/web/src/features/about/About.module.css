@@ -1,0 +1,182 @@
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s12);
+  max-width: var(--size-prose);
+  @container page (max-width: 600px) {
+    gap: var(--space-s10);
+  }
+}
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+  min-width: 0;
+}
+.code,
+.seed {
+  padding-inline: var(--space-s1);
+  padding-block: calc(var(--space-s1) / 4);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-control);
+  background-color: var(--color-paper2);
+  font-family: var(--font-mono);
+  font-size: var(--font-fs2);
+  white-space: nowrap;
+}
+/* the first figure's seed: a seed of eight keyframes is 37 characters, wider than a phone's line */
+.seed {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.math {
+  margin: 0;
+  text-align: center;
+}
+/* a figure's parts, one under another, and two of a kind, one over the other */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+  min-width: 0;
+}
+.pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  min-width: 0;
+}
+/* the gradient as the editor's picture draws it, with an edge so a pale end keeps it */
+.band {
+  display: block;
+  width: 100%;
+  height: var(--size-strip-short);
+  border-radius: var(--radius-tight);
+  box-shadow: var(--color-rim);
+}
+/* a press that waits, always laid out, so its coming never moves the line it ends */
+.wait[data-off] {
+  visibility: hidden;
+}
+/* the seed's anatomy, to scale in bits. A cell is never narrower than its words, so on a phone the header's three
+   small fields take their words' width and the keyframe's fields share the rest */
+.map {
+  container-type: inline-size;
+  display: grid;
+  gap: var(--space-s2);
+  font-family: var(--font-mono);
+  font-size: var(--font-fs1);
+  line-height: var(--font-lh-none);
+}
+.mapRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--space-s1);
+}
+.cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s1);
+  min-width: min-content;
+  padding-inline: var(--space-s1);
+  padding-block: var(--space-s2);
+  border: 1px solid var(--color-edge2);
+  border-radius: var(--radius-tight);
+  background-color: var(--color-paper2);
+  color: var(--color-ink2);
+  text-align: center;
+  white-space: nowrap;
+  &[data-head] {
+    border-style: dashed;
+    background-color: transparent;
+  }
+}
+.bits {
+  color: var(--color-ink3);
+  font-size: var(--font-fs0);
+}
+.note {
+  align-self: center;
+  padding-inline-start: var(--space-s2);
+  color: var(--color-ink3);
+  font-size: var(--font-fs1);
+  @container (max-width: 480px) {
+    flex-basis: 100%;
+    padding-inline-start: 0;
+  }
+}
+/* where the map is narrow, the header's three fields stand on a line of their own */
+.break {
+  display: none;
+  flex-basis: 100%;
+  height: 0;
+  @container (max-width: 480px) {
+    display: block;
+  }
+}
+/* an axis: its numbers over its plot */
+.axis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  min-width: 0;
+}
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s2);
+  min-width: 0;
+  min-height: var(--size-control);
+  @media (pointer: coarse) {
+    min-height: var(--size-touch);
+  }
+}
+.field {
+  display: block;
+  flex: 1 1 160px;
+  min-width: 0;
+}
+/* the actions: Random by name taking the room the rest leave, then the presses in place, then the undo and redo */
+.acts {
+  container-type: inline-size;
+  min-inline-size: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-s4);
+  row-gap: var(--space-s2);
+}
+.lead {
+  display: flex;
+  flex-grow: 1;
+  flex-basis: 0;
+  min-width: 0;
+  @container (max-width: 340px) {
+    flex-basis: 100%;
+  }
+}
+.kind {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--space-s2);
+}
+/* a press of the row: the hover preview listens here, around its button */
+.press {
+  display: flex;
+  min-width: 0;
+}
+.spark {
+  flex-shrink: 0;
+}
