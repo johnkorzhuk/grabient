@@ -1,0 +1,9 @@
+アカウント削除の確認
+
+アカウントと保存したパレットが完全に削除されます。
+
+削除を確定: https://grabient.test/settings?token=sample
+
+確定するにはログインしてください。このリンクの有効期限は24時間です。
+
+grabient.test: https://grabient.test/ja

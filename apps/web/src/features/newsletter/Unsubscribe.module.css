@@ -1,0 +1,34 @@
+@layer components {
+  .sheet {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+  }
+  .sub {
+    margin-top: calc(var(--space-s2) * -1);
+  }
+  /* what the sheet can say, and both of the button's words, stacked in one cell: the tallest and the widest hold the
+     place, so a press changes the words and moves nothing */
+  .stack {
+    display: grid;
+  }
+  .labels {
+    justify-items: center;
+  }
+  .cell {
+    grid-area: 1 / 1;
+  }
+  .unseen {
+    visibility: hidden;
+  }
+  /* a link in a line, a finger's height on a touch screen */
+  .link {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-ink);
+    text-decoration: underline;
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+}
