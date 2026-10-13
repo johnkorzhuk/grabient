@@ -1,6 +1,6 @@
 {
  "$schema": "https://static.modelcontextprotocol.io/schemas/v1/server-card.schema.json",
- "name": "com.grabient/palettes",
+ "name": "com.grabient/grabient",
  "title": "Grabient",
  "version": "1.0.0",
  "description": "Color palettes and gradients: search the gallery, make palettes and keep them in a Grabient account.",

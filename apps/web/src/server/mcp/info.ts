@@ -3,6 +3,10 @@
 /** Which tools and instructions a call is given: an account's, or an admin's. */
 export type Tier = "account" | "admin";
 
+/** The server's name in the MCP Registry (server.json at the repository's root) and on its card. Its namespace is
+    grabient.com's, which /.well-known/mcp-registry-auth proves (directories.ts). */
+export const REGISTRY_NAME = "com.grabient/grabient";
+
 /* The name is written as the site writes it, since an app may show it where the title was meant (Claude lists a
    connector by it). The icons are the site's own mark, in the files the browser tab and the home screen already use.
    The same for every tier: it names no tool. */
