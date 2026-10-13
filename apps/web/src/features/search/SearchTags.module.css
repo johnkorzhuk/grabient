@@ -1,0 +1,187 @@
+@layer components {
+  /* the arrows stand on this, outside the scroller, so they stay while the row moves: the field's width and a fade on
+     each side, centered under it; its own formatting context keeps the scroller's negative margins inside */
+  .wrap {
+    position: relative;
+    display: flow-root;
+    min-width: 0;
+    width: 100%;
+    max-width: calc(var(--size-search) + 2 * var(--space-s16));
+    margin-inline: auto;
+  }
+  /* The scroller would cut off anything drawn past its box, so it borrows room for the coins and their light above and
+     below, and gives it back in its margins. It takes no pointer itself, so the room it borrowed is never in the way. */
+  .host {
+    --fade: var(--space-s16);
+    --hole: 0.45;
+    --live: 1;
+    --mask: linear-gradient(
+      to right,
+      transparent 0,
+      transparent calc(var(--l, 0) * var(--fade) * var(--hole)),
+      black calc(var(--l, 0) * var(--fade)),
+      black calc(100% - var(--r, 0) * var(--fade)),
+      transparent calc(100% - var(--r, 0) * var(--fade) * var(--hole)),
+      transparent 100%
+    );
+    position: relative;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding-top: var(--space-s4);
+    margin-top: calc(-1 * var(--space-s4));
+    padding-bottom: var(--space-s12);
+    margin-bottom: calc(-1 * var(--space-s12));
+    pointer-events: none;
+    user-select: none;
+    mask-image: var(--mask);
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    /* a finger has no arrow, so its fade is shorter and clear to the edge */
+    @media (pointer: coarse) {
+      --fade: var(--space-s8);
+      --hole: 0;
+    }
+    /* edge to edge where the row is the page's whole width */
+    @container page (max-width: 640px) {
+      margin-inline: calc(-1 * var(--space-s4));
+      padding-inline: var(--space-s4);
+    }
+    /* a row being dragged opens no colors */
+    &[data-dragging] {
+      --live: 0;
+    }
+  }
+  /* centered while it fits; a tag's height whatever it holds, so tags arriving or leaving move nothing beneath */
+  .row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: var(--space-s2);
+    width: max-content;
+    min-height: var(--size-control-sm);
+    margin-inline: auto;
+    pointer-events: auto;
+    isolation: isolate;
+    &[data-scrolls] {
+      cursor: grab;
+    }
+    .host[data-dragging] & {
+      cursor: grabbing;
+    }
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .lead {
+    flex-shrink: 0;
+    margin-inline-end: var(--space-s1);
+  }
+  /* a tag on its way: the quietest surface at a tag's size */
+  .ghost {
+    display: block;
+    flex-shrink: 0;
+    height: var(--size-control-sm);
+    border-radius: var(--radius-tight);
+    background-color: var(--color-paper2);
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+  }
+  .tag {
+    --bloom: 0;
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    &:hover,
+    &:has(:focus-visible) {
+      --bloom: 1;
+    }
+    /* a tag that cannot be followed now shows no colors */
+    &[data-quiet] {
+      --bloom: 0;
+    }
+  }
+  /* under the tag and behind the row, as wide as the coins and a little more */
+  .bloom {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    z-index: -1;
+    width: calc(var(--w) + var(--space-s6));
+    height: var(--space-s8);
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+  /* the colors' own faint light, so the coins read as lit and nothing reads as a glow */
+  .light {
+    position: absolute;
+    inset-block: var(--space-s2);
+    inset-inline: var(--space-s3);
+    border-radius: var(--radius-circle);
+    filter: blur(var(--size-blur-frost));
+    opacity: calc(var(--bloom) * var(--live) * 0.3);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    @starting-style {
+      opacity: 0;
+    }
+  }
+  /* A coin arrives as the tooltip does: a fade and a few pixels of travel, down from the tag and out from the middle,
+     never past its place, and nothing scales. The middle first, the rest a beat behind; leaving, they fade together. */
+  .coin {
+    position: absolute;
+    top: var(--space-s2);
+    left: calc(50% - 8px);
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-circle);
+    box-shadow: inset 0 0 0 1px var(--color-edge2);
+    opacity: calc(var(--bloom) * var(--live));
+    transform: translate(
+      calc(var(--x) * (0.7 + 0.3 * var(--bloom))),
+      calc((var(--bloom) - 1) * var(--space-s1))
+    );
+    transition:
+      transform var(--motion-base) var(--motion-ease),
+      opacity var(--motion-fast) var(--motion-ease);
+    transition-delay: calc(var(--bloom) * var(--d) * 25ms);
+    @starting-style {
+      opacity: 0;
+      transform: translate(calc(var(--x) * 0.7), calc(-1 * var(--space-s1)));
+    }
+  }
+  /* there only while that side has more, and only where a pointer can rest on them */
+  .arrow {
+    position: absolute;
+    top: 0;
+    display: flex;
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      opacity var(--motion-fast) var(--motion-ease),
+      visibility var(--motion-fast) var(--motion-ease);
+    &[data-on] {
+      opacity: 1;
+      visibility: visible;
+    }
+    &[data-side="before"] {
+      inset-inline-start: 0;
+    }
+    &[data-side="after"] {
+      inset-inline-end: 0;
+    }
+    @media (pointer: coarse) {
+      display: none;
+    }
+    @container page (max-width: 640px) {
+      &[data-side="before"] {
+        inset-inline-start: calc(-1 * var(--space-s4));
+      }
+      &[data-side="after"] {
+        inset-inline-end: calc(-1 * var(--space-s4));
+      }
+    }
+  }
+}

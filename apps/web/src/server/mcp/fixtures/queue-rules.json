@@ -1,0 +1,267 @@
+{
+  "parseDue": [
+    [
+      "2026-10-20",
+      "2026-10-20T14:00:00.000Z"
+    ],
+    [
+      "2026-10-20T09:30:00Z",
+      "2026-10-20T09:30:00.000Z"
+    ],
+    [
+      1791806401000,
+      "2026-10-12T12:00:01.000Z"
+    ],
+    [
+      "2025-01-01",
+      null
+    ],
+    [
+      "2028-01-01",
+      null
+    ],
+    [
+      "whenever",
+      null
+    ],
+    [
+      null,
+      null
+    ]
+  ],
+  "queueLabel": [
+    [
+      "  autumn   batch ",
+      "autumn batch"
+    ],
+    [
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    ],
+    [
+      7,
+      ""
+    ]
+  ],
+  "queueInput": [
+    {
+      "raw": {
+        "kind": "like",
+        "due": "2026-10-20",
+        "actor": "persona-ash",
+        "payload": {
+          "seed": "kSWUkczDNDewdRK"
+        }
+      },
+      "read": {
+        "ok": true,
+        "item": {
+          "key": null,
+          "kind": "like",
+          "actor": "persona-ash",
+          "dueAt": 1792504800000,
+          "payload": {
+            "seed": "kSWUkczDNDewdRK",
+            "style": "linearGradient",
+            "steps": 7,
+            "angle": 90
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "kind": "like",
+        "due": "2026-10-20",
+        "actor": "persona-nobody",
+        "payload": {
+          "seed": "kSWUkczDNDewdRK"
+        }
+      },
+      "read": {
+        "ok": false,
+        "error": "actor names a persona of this agent (its id)."
+      }
+    },
+    {
+      "raw": {
+        "kind": "collection",
+        "due": "2026-10-20",
+        "payload": {
+          "slug": "harvest",
+          "title": "Harvest",
+          "items": [
+            {
+              "seed": "kSWUkczDNDewdRK"
+            }
+          ]
+        }
+      },
+      "read": {
+        "ok": true,
+        "item": {
+          "key": null,
+          "kind": "collection",
+          "actor": null,
+          "dueAt": 1792504800000,
+          "payload": {
+            "slug": "harvest",
+            "title": "Harvest",
+            "description": "",
+            "tags": [],
+            "visibility": "public",
+            "items": [
+              {
+                "seed": "kSWUkczDNDewdRK",
+                "style": "linearGradient",
+                "steps": 7,
+                "angle": 90
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "raw": {
+        "kind": "collection",
+        "due": "2026-10-20",
+        "payload": {
+          "slug": "Not a slug",
+          "title": "x",
+          "items": [
+            {
+              "seed": "kSWUkczDNDewdRK"
+            }
+          ]
+        }
+      },
+      "read": {
+        "ok": false,
+        "error": "payload.slug names the collection."
+      }
+    },
+    {
+      "raw": {
+        "kind": "other",
+        "due": "2026-10-20",
+        "payload": {}
+      },
+      "read": {
+        "ok": false,
+        "error": "kind is like or collection."
+      }
+    },
+    {
+      "raw": {
+        "kind": "like",
+        "due": "soon",
+        "actor": "persona-ash",
+        "payload": {
+          "seed": "kSWUkczDNDewdRK"
+        }
+      },
+      "read": {
+        "ok": false,
+        "error": "due is a day, a moment or milliseconds, within a month back and 400 days ahead."
+      }
+    },
+    {
+      "raw": {
+        "kind": "like",
+        "due": "2026-10-20",
+        "key": "bad key!",
+        "actor": "persona-ash",
+        "payload": {
+          "seed": "kSWUkczDNDewdRK"
+        }
+      },
+      "read": {
+        "ok": false,
+        "error": "key is up to 160 letters, digits and : _ . @ / -"
+      }
+    }
+  ],
+  "personaInput": [
+    [
+      {
+        "handle": "ash",
+        "name": "Ash",
+        "taste": [
+          "dark",
+          "blue",
+          "Dark",
+          "dark"
+        ]
+      },
+      {
+        "handle": "ash",
+        "name": "Ash",
+        "taste": [
+          "dark",
+          "blue"
+        ]
+      }
+    ],
+    [
+      {
+        "handle": "A",
+        "taste": []
+      },
+      null
+    ],
+    [
+      {
+        "handle": "ash-2",
+        "name": "   ",
+        "taste": [
+          "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "ok word"
+        ]
+      },
+      {
+        "handle": "ash-2",
+        "name": "ash-2",
+        "taste": [
+          "ok word"
+        ]
+      }
+    ],
+    [
+      {
+        "handle": "9ash"
+      },
+      null
+    ]
+  ],
+  "reviewSubject": [
+    [
+      {},
+      ""
+    ],
+    [
+      {
+        "collection": "tide-pools"
+      },
+      "collection:tide-pools"
+    ],
+    [
+      {
+        "collection": "Not Valid"
+      },
+      null
+    ],
+    [
+      {
+        "search": "  Sea   Glass "
+      },
+      "search:sea glass"
+    ],
+    [
+      {
+        "search": "   "
+      },
+      null
+    ]
+  ]
+}

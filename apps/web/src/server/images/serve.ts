@@ -1,0 +1,160 @@
+/* A picture's answer. Drawing is the one thing here that costs real CPU (a share card about 40 ms, the largest picture
+   half a second), and any palette can be asked for at any size, so a picture no cache holds is drawn only within
+   allowances and only while the `share-images` flag is on, and either refusal fails closed.
+
+   In front of the drawing: the edge cache (the pipeline's), then, for a share card, R2. A card is kept in the UPLOADS
+   bucket under cards/{version}/{key}.png the first time it is drawn, so each card is drawn once for every data center
+   and every deploy until its version changes. A palette's picture, or several palettes' at a size the asker chose,
+   lives at the edge alone: kept for good, the few asked twice would cost more to store than to draw. A Preview keeps
+   nothing: it may draw differently from staging under the same version, and shares staging's bucket. */
+
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
+import { FILE, NO_STORE } from "../../lib/cache.ts";
+import { CARD } from "./size.ts";
+
+/** The version of everything a share card draws. A change to what any picture draws takes a new version: kept cards
+    are named by it, and card addresses carry it so a network that keeps cards by address asks again. */
+export const CARD_VERSION = "k4";
+
+export type PictureEnv = Pick<Env, "DB" | "DEPLOYMENT"> &
+  Partial<Pick<Env, "UPLOADS" | "RATE_LIMITER" | "USAGE">>;
+
+/** Work that may finish after the answer is sent: the Worker's `waitUntil`. */
+export type Keep = (work: Promise<unknown>) => void;
+
+export interface Picture {
+  /** What was asked for, as the usage counts say it. */
+  kind: "card" | "png" | "montage";
+  /** A share card: kept in R2, and the site's card stands in when it cannot be drawn. */
+  branded: boolean;
+  /** Everything the pixels depend on, in order: the key is their hash, so one picture has one key. */
+  parts: readonly unknown[];
+  width: number;
+  height: number;
+  draw: () => Promise<Uint8Array<ArrayBuffer>>;
+}
+
+/** A card or a picture of several changes with what it shows: a day in the browser, a week at the edge. A palette's
+    own picture changes with nothing but its address, and is kept as its other files are. */
+const CARD_CACHE = {
+  "Cache-Control": "public, max-age=86400",
+  "CDN-Cache-Control": "max-age=604800"
+};
+const ANY_SITE = { "Access-Control-Allow-Origin": "*" };
+
+/** A picture that cannot be answered: plain text no cache keeps. */
+export const failure = (status: number, message: string, headers: Record<string, string> = {}) =>
+  new Response(message, {
+    status,
+    headers: { "Content-Type": "text/plain; charset=utf-8", ...NO_STORE, ...ANY_SITE, ...headers }
+  });
+const unavailable = () => failure(503, "Image temporarily unavailable");
+
+/* The site's card (public/grabient.png), a static file: a shared link still unfurls as Grabient while a card cannot be
+   drawn. Kept a few minutes by the browser and never by the edge, so the palette's own card is drawn once drawing is
+   back. */
+const siteCard = (request: Request) =>
+  new Response(null, {
+    status: 302,
+    headers: {
+      Location: new URL("/grabient.png", request.url).toString(),
+      "Cache-Control": "public, max-age=300",
+      "CDN-Cache-Control": "no-store",
+      ...ANY_SITE
+    }
+  });
+
+/** While an admin has drawing turned off: the site's card for a share card, a refusal for any other picture; null
+    while it is on. A picture a cache holds is still served, so this stands after the caches, or before reads that only
+    a drawing needs. */
+export async function drawingPaused(
+  request: Request,
+  env: Pick<Env, "DB">,
+  branded: boolean
+): Promise<Response | null> {
+  if (!(await flagOff(env, "share-images"))) return null;
+  return branded ? siteCard(request) : unavailable();
+}
+
+/* One call counts the address's minute in this isolate, then a picture larger than a card against the large pictures'
+   day, then the site's day: a large picture its own ceiling refuses never takes a card's place. */
+async function overLimit(request: Request, env: PictureEnv, picture: Picture) {
+  const who = clientAddress(request);
+  const large = picture.width * picture.height > CARD.width * CARD.height;
+  const checks: LimitCheck[] = [
+    ...(who ? [[`image:${who}`, "imageRender"] as const] : []),
+    ...(large ? [["image-large-day", "largeImageDaily"] as const] : []),
+    ["image-day", "imageRenderDaily"]
+  ];
+  const result = await checkLimits(env, checks);
+  if (!result) return unavailable();
+  if (result.success) return null;
+  // The site's day is spent: a share card is the site's card until the day turns, never a blank preview.
+  if (picture.branded && result.type === "imageRenderDaily") return siteCard(request);
+  const wait = Math.max(1, result.reset - Math.floor(Date.now() / 1000));
+  return failure(429, "Too many new images. Try again later.", { "Retry-After": String(wait) });
+}
+
+async function hashOf(parts: readonly unknown[]): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(parts))
+  );
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+const listed = (header: string | null, tag: string) =>
+  !!header?.split(",").some(each => each.trim().replace(/^W\//, "") === tag);
+
+export async function answerPicture(
+  request: Request,
+  env: PictureEnv,
+  picture: Picture,
+  keep: Keep
+): Promise<Response> {
+  const hash = await hashOf(picture.parts);
+  const tag = `"image:${CARD_VERSION}:${hash}"`;
+  const headers = {
+    "Content-Type": "image/png",
+    ...(picture.kind === "png" ? FILE : CARD_CACHE),
+    ...ANY_SITE,
+    ETag: tag
+  };
+  if (listed(request.headers.get("If-None-Match"), tag)) {
+    return new Response(null, { status: 304, headers });
+  }
+  // A HEAD names the picture without reading a cache or drawing it.
+  if (request.method === "HEAD") return new Response(null, { headers });
+  const store = picture.branded && env.DEPLOYMENT !== "preview" ? env.UPLOADS : undefined;
+  const name = `cards/${CARD_VERSION}/${hash}.png`;
+  const kept = await store?.get(name).catch(() => null);
+  if (kept) {
+    countUsage(env, "image", picture.kind, "cache");
+    return new Response(kept.body, { headers: { ...headers, "X-Cache": "HIT" } });
+  }
+  const refused =
+    (await drawingPaused(request, env, picture.branded)) ??
+    (await overLimit(request, env, picture));
+  if (refused) {
+    countUsage(env, "image", picture.kind, "refused");
+    return refused;
+  }
+  let png: Uint8Array<ArrayBuffer>;
+  try {
+    png = await picture.draw();
+  } catch (error) {
+    countUsage(env, "image", picture.kind, "failed");
+    console.error("Palette PNG render failed", error);
+    return unavailable();
+  }
+  countUsage(env, "image", picture.kind, "drawn");
+  if (store) {
+    const put = store.put(name, png, { httpMetadata: { contentType: "image/png" } });
+    keep(put.catch(error => console.warn("cards: R2 kept no card", String(error))));
+  }
+  return new Response(png, { headers: { ...headers, "X-Cache": "MISS" } });
+}

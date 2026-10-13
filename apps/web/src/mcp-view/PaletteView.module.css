@@ -1,0 +1,380 @@
+@layer components {
+  /* inset from the frame's edges by the app's safe area, and far enough that a focus ring is never cut off */
+  .root {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+    padding: calc(var(--inset-top, 0px) + var(--space-s1))
+      calc(var(--inset-right, 0px) + var(--space-s1))
+      calc(var(--inset-bottom, 0px) + var(--space-s1))
+      calc(var(--inset-left, 0px) + var(--space-s1));
+    &[data-full] {
+      gap: var(--space-s4);
+      padding: calc(var(--inset-top, 0px) + var(--space-s4))
+        calc(var(--inset-right, 0px) + var(--space-s4))
+        calc(var(--inset-bottom, 0px) + var(--space-s6))
+        calc(var(--inset-left, 0px) + var(--space-s4));
+    }
+  }
+
+  /* a palette's picture: the only color that is Grabient's, ringed by the app's own border ink */
+  .art {
+    position: relative;
+    display: block;
+    width: 100%;
+    min-width: 0;
+    height: 200px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-surface);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge);
+    &[data-size="slide"] {
+      height: 140px;
+    }
+    &[data-size="stage"] {
+      height: 360px;
+    }
+    &[data-size="tile"] {
+      height: 84px;
+    }
+    &[data-chosen] {
+      box-shadow:
+        inset 0 0 0 var(--size-hairline) var(--color-edge),
+        0 0 0 2px var(--color-ink);
+    }
+  }
+  @container page (max-width: 480px) {
+    .art[data-size="card"] {
+      height: 160px;
+    }
+  }
+  @container page (max-width: 900px) {
+    .art[data-size="stage"] {
+      height: 240px;
+    }
+  }
+
+  /* a picture and the strip on it. A carousel card's strip shows while a pointer rests on its picture or the keys are in
+     it, as a gallery card's tools do, and stays while its text is out to copy by hand */
+  .frame {
+    position: relative;
+    min-width: 0;
+    --show: 0;
+    &[data-slide]:is(:hover, :focus-within, :has([aria-expanded="true"])) {
+      --show: 1;
+    }
+  }
+  /* the strip in the picture's far corner: its names where the frame is wide, its icons on a phone */
+  .corner {
+    position: absolute;
+    bottom: var(--space-s3);
+    inset-inline-end: var(--space-s3);
+    display: flex;
+    max-width: calc(100% - 2 * var(--space-s3));
+    /* a carousel card's corner is the strip's container, never wider than the 300px under which the strip keeps its
+       icons alone, so it fits a card at any width; it takes no press itself, so the picture under it still opens full
+       screen. A finger has no hover, so it always has the strip */
+    &[data-slide] {
+      bottom: var(--space-s2);
+      inset-inline-end: var(--space-s2);
+      justify-content: flex-end;
+      width: min(calc(100% - 2 * var(--space-s2)), 300px);
+      max-width: none;
+      container-type: inline-size;
+      pointer-events: none;
+      opacity: var(--show);
+      transition: opacity var(--motion-fast) var(--motion-ease);
+      @media (pointer: coarse) {
+        opacity: 1;
+      }
+    }
+  }
+  .reach {
+    display: flex;
+    min-width: 0;
+    pointer-events: auto;
+  }
+
+  /* the number the model's reply uses, light on glass at the picture's corner, so it reads on any palette */
+  .badge {
+    position: absolute;
+    top: var(--space-s2);
+    left: var(--space-s2);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--size-control-sm);
+    height: var(--size-control-sm);
+    padding-inline: var(--space-s2);
+    border-radius: var(--radius-tight);
+    background-color: var(--color-art);
+    color: var(--color-on-art);
+    pointer-events: none;
+  }
+
+  /* the words under a picture and the press beside them; a name or seed with nowhere to break wraps where the line
+     ends, so it never widens the page */
+  .head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-width: 0;
+  }
+  .words {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s1);
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s2);
+  }
+  /* the colors as the site's strip, its corners rounded as a control's */
+  .strip {
+    min-width: 0;
+    overflow: hidden;
+    isolation: isolate;
+    border-radius: var(--radius-control);
+  }
+
+  /* a copy the app would not take, under its picture: its text, selected for the keys that copy, and Close */
+  .hand {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: var(--space-s1);
+    min-width: 0;
+    padding: var(--space-s1);
+    border: var(--size-hairline) solid var(--color-edge);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper2);
+  }
+  /* a read-only field, so a reader who listens hears text to copy and Select all stays in it. As tall as its text up to
+     eight lines: a longer one (an SVG) shows its first lines, faded where it is cut, and is still selected whole. Under
+     a finger its type is the size at which a phone does not zoom in on a field */
+  .handText {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-height: calc(8 * var(--font-lh-ui) * var(--font-fs2) + 2 * var(--space-s2));
+    margin: 0;
+    padding: var(--space-s2);
+    overflow: hidden;
+    border: 0;
+    border-radius: var(--radius-tight);
+    resize: none;
+    background-color: transparent;
+    color: var(--color-ink2);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -1px;
+    &:focus-visible {
+      outline-width: var(--size-hairline);
+    }
+    &[data-cut] {
+      -webkit-mask-image: linear-gradient(
+        to bottom,
+        black calc(100% - var(--space-s8)),
+        transparent
+      );
+      mask-image: linear-gradient(to bottom, black calc(100% - var(--space-s8)), transparent);
+    }
+    @media (pointer: coarse) {
+      max-height: calc(8 * var(--font-lh-ui) * var(--font-fs-touch) + 2 * var(--space-s2));
+      font-size: var(--font-fs-touch);
+    }
+  }
+
+  /* the carousel: cards of one size in a row that scrolls sideways, the next one showing at the edge, no scrollbar */
+  .bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-height: var(--size-control);
+  }
+  .presses {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s1);
+  }
+  /* the buttons that move the row a card at a time, where a pointer can rest on them; a finger swipes */
+  .steps {
+    display: flex;
+    gap: var(--space-s1);
+    @media (pointer: coarse) {
+      display: none;
+    }
+  }
+  /* a card with a copy out to take by hand grows alone: the others keep their height */
+  .row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-s3);
+    min-width: 0;
+    margin: 0;
+    padding: var(--space-s1) 0;
+    list-style: none;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: calc(var(--inset-left, 0px) + var(--space-s1));
+    scrollbar-width: none;
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    /* every card at once where the app has no full screen: the row wraps into a grid inside the frame, its cards wide
+       enough under a finger for the strip's fingertip chips */
+    &[data-all] {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 200px), 1fr));
+      overflow-x: visible;
+      scroll-snap-type: none;
+      @media (pointer: coarse) {
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 240px), 1fr));
+      }
+    }
+  }
+  .slide {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    gap: var(--space-s2);
+    width: 248px;
+    min-width: 0;
+    scroll-snap-align: start;
+    &[data-all] {
+      width: auto;
+    }
+  }
+  @container page (max-width: 480px) {
+    .slide:not([data-all]) {
+      width: 76cqw;
+    }
+  }
+  .allItem {
+    display: flex;
+    flex-shrink: 0;
+    scroll-snap-align: start;
+  }
+  /* the card that leads to every palette, at the cards' own size */
+  .all {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s2);
+    width: 160px;
+    height: 140px;
+    margin: 0;
+    padding: var(--space-s3);
+    border: var(--size-hairline) dashed var(--color-edge2);
+    border-radius: var(--radius-surface);
+    --fill: transparent;
+    background-color: var(--fill);
+    color: var(--color-ink2);
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      --fill: var(--color-paper2);
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: var(--size-hairline);
+    }
+    @container page (max-width: 480px) {
+      width: 44cqw;
+    }
+  }
+
+  /* full screen: the chosen palette's picture, its panel, then every palette as a grid; one column on a narrow screen.
+     The panel runs past the picture and the grid's row takes the rest, so the grid sits under the picture */
+  .body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--size-editor-panel);
+    grid-template-rows: auto 1fr;
+    grid-template-areas:
+      "art panel"
+      "grid panel";
+    align-items: start;
+    gap: var(--space-s6);
+  }
+  @container page (max-width: 900px) {
+    .body {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto;
+      grid-template-areas:
+        "art"
+        "panel"
+        "grid";
+      gap: var(--space-s4);
+    }
+  }
+  .stage {
+    display: flex;
+    flex-direction: column;
+    grid-area: art;
+    gap: var(--space-s3);
+    min-width: 0;
+  }
+  /* the palette's name, where the focus goes on in full screen */
+  .heading {
+    min-width: 0;
+    border-radius: var(--radius-tight);
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: var(--size-hairline);
+    }
+  }
+  .panel {
+    display: flex;
+    flex-direction: column;
+    grid-area: panel;
+    gap: var(--space-s4);
+    min-width: 0;
+  }
+  .grid {
+    display: grid;
+    grid-area: grid;
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+    gap: var(--space-s3);
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s1);
+    min-width: 0;
+  }
+
+  /* a carousel card's picture and a grid tile's are presses */
+  .art:is(button) {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: var(--size-hairline);
+    }
+  }
+}

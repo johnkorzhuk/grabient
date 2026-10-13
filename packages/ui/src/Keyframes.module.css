@@ -1,0 +1,120 @@
+@layer components {
+  .row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    min-width: 0;
+  }
+  .strip {
+    display: flex;
+    flex-grow: 1;
+    gap: var(--space-s2);
+    min-width: 0;
+    touch-action: pan-y;
+  }
+  .chip {
+    position: relative;
+    flex: 1 1 0;
+    min-width: 0;
+    height: var(--size-control);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background-color: var(--c);
+    box-shadow: var(--color-rim);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 3px;
+    transition: box-shadow var(--motion-fast) var(--motion-ease);
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &[data-held] {
+      box-shadow:
+        var(--color-rim),
+        0 0 0 calc(2 * var(--size-hairline)) var(--color-ink);
+    }
+    /* the caret under the keyframe the numbers speak for */
+    &[data-lead]::after {
+      content: "";
+      position: absolute;
+      bottom: calc(-1 * var(--space-s1) - 1px);
+      left: 50%;
+      width: var(--space-s2);
+      height: var(--space-s2);
+      transform: translateX(-50%) rotate(45deg);
+      background-color: var(--color-ink);
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  /* on a narrow page the chips sit closer and take the small radius, so eight of them stay chips */
+  @container page (max-width: 480px) {
+    .strip {
+      gap: var(--space-s1);
+    }
+    .chip {
+      border-radius: var(--radius-tight);
+    }
+  }
+  .count {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    height: var(--size-control);
+    overflow: hidden;
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper2);
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  .press {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-control);
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    --fill: transparent;
+    background-color: var(--fill);
+    color: var(--color-ink2);
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      --fill: var(--color-paper3);
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &[aria-disabled="true"] {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+    @media (pointer: coarse) {
+      width: var(--size-touch);
+    }
+  }
+  .number {
+    min-width: var(--space-s6);
+    color: var(--color-ink);
+    font-family: var(--font-system);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-fs2);
+    text-align: center;
+  }
+}

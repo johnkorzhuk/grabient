@@ -1,0 +1,5 @@
+تسجيل الدخول: https://grabient.test/api/auth/magic-link/verify?token=sample
+
+تنتهي صلاحية هذا الرابط خلال 5 دقائق. إن لم تطلبه، فتجاهل هذه الرسالة.
+
+grabient.test: https://grabient.test/ar

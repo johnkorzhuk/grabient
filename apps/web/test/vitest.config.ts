@@ -10,6 +10,8 @@ const web = fileURLToPath(new URL("..", import.meta.url));
 
 export default defineConfig({
   root: web,
+  // the MCP view is built by its own plugin (src/mcp-view/build.ts); the tests serve a page of the same shape
+  resolve: { alias: { "virtual:mcp-view": `${web}/test/mcp-view-page.ts` } },
   plugins: [
     cloudflareTest(async () => ({
       experimental: { newConfig: true },
@@ -20,7 +22,9 @@ export default defineConfig({
           TEST_MIGRATIONS: await readD1Migrations(`${web}/../../packages/server/migrations`)
         },
         // The config binds the class through the Worker's own name, which the test runner's Worker does not have.
-        durableObjects: { RATE_LIMITER: "RateLimiter" }
+        durableObjects: { RATE_LIMITER: "RateLimiter" },
+        // the static files a deploy serves, which the search reads its model, vocabulary and snapshot from
+        assets: { directory: `${web}/public` }
       }
     }))
   ],

@@ -14,16 +14,21 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as BindingsRouteImport } from './routes/bindings'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as LlmsFullDottxtRouteImport } from './routes/llms-full[.]txt'
+import { Route as LlmsDottxtRouteImport } from './routes/llms[.]txt'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as McpServerRouteImport } from './routes/mcp-server'
 import { Route as NewsletterRouteImport } from './routes/newsletter'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as RobotsDottxtRouteImport } from './routes/robots[.]txt'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as IdIndexRouteImport } from './routes/$id/index'
 import { Route as IdEditRouteImport } from './routes/$id/edit'
 import { Route as IdRisingRouteImport } from './routes/$id/rising'
+import { Route as DotwellKnownAiCatalogDotjsonRouteImport } from './routes/[.]well-known/ai-catalog[.]json'
+import { Route as DotwellKnownArdDotjsonRouteImport } from './routes/[.]well-known/ard[.]json'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiBuildRouteImport } from './routes/api/build'
 import { Route as ApiCollectionsRouteImport } from './routes/api/collections'
@@ -31,17 +36,49 @@ import { Route as ApiFramesRouteImport } from './routes/api/frames'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as ApiHotRouteImport } from './routes/api/hot'
 import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
+import { Route as ApiPaletteRouteImport } from './routes/api/palette'
+import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
 import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
 import { Route as ApiSavedRouteImport } from './routes/api/saved'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
+import { Route as FaviconChar123weekChar125DotsvgRouteImport } from './routes/favicon/{$week}[.]svg'
+import { Route as McpServerCardRouteImport } from './routes/mcp/server-card'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
+import { Route as PalettesChar123wordsChar125DotpngRouteImport } from './routes/palettes/{$words}[.]png'
+import { Route as SearchChar123wordsChar125DotpngRouteImport } from './routes/search/{$words}[.]png'
+import { Route as SitemapChar123nameChar125DotxmlIndexRouteImport } from './routes/sitemap-{$name}[.]xml/index'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
+import { Route as Char123keyChar125DottxtIndexRouteImport } from './routes/{$key}[.]txt/index'
+import { Route as Char123nameChar125DotaseIndexRouteImport } from './routes/{$name}[.]ase/index'
+import { Route as Char123nameChar125DotgplIndexRouteImport } from './routes/{$name}[.]gpl/index'
+import { Route as Char123nameChar125DotgrdIndexRouteImport } from './routes/{$name}[.]grd/index'
+import { Route as Char123nameChar125DotjsonIndexRouteImport } from './routes/{$name}[.]json/index'
+import { Route as Char123nameChar125DotmdIndexRouteImport } from './routes/{$name}[.]md/index'
+import { Route as Char123seedChar125DotcssIndexRouteImport } from './routes/{$seed}[.]css/index'
+import { Route as Char123seedChar125DotpngIndexRouteImport } from './routes/{$seed}[.]png/index'
+import { Route as Char123seedChar125DotsvgIndexRouteImport } from './routes/{$seed}[.]svg/index'
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
+import { Route as AtChar123handleChar125Char123slugChar125DotaseIndexRouteImport } from './routes/@{$handle}/{$slug}[.]ase/index'
+import { Route as AtChar123handleChar125Char123slugChar125DotgplIndexRouteImport } from './routes/@{$handle}/{$slug}[.]gpl/index'
+import { Route as AtChar123handleChar125Char123slugChar125DotgrdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]grd/index'
+import { Route as AtChar123handleChar125Char123slugChar125DotjsonIndexRouteImport } from './routes/@{$handle}/{$slug}[.]json/index'
+import { Route as AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]md/index'
+import { Route as ApiOgIndexRouteImport } from './routes/api/og/index'
+import { Route as ApiOgCollectionRouteImport } from './routes/api/og/collection'
+import { Route as ApiOgCollectionsRouteImport } from './routes/api/og/collections'
+import { Route as ApiOgListRouteImport } from './routes/api/og/list'
+import { Route as ApiOgQueryRouteImport } from './routes/api/og/query'
+import { Route as ApiPngIndexRouteImport } from './routes/api/png/index'
+import { Route as ApiPngCollectionRouteImport } from './routes/api/png/collection'
+import { Route as ApiPngQueryRouteImport } from './routes/api/png/query'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
+import { Route as OgVersionChar123seedChar125DotpngRouteImport } from './routes/og/$version/{$seed}[.]png'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
+import { Route as ApiSettingsConnectionsIndexRouteImport } from './routes/api/settings/connections/index'
+import { Route as ApiSettingsConnectionsDisconnectRouteImport } from './routes/api/settings/connections/disconnect'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -66,6 +103,16 @@ const ConnectRoute = ConnectRouteImport.update({
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsFullDottxtRoute = LlmsFullDottxtRouteImport.update({
+  id: '/llms-full.txt',
+  path: '/llms-full.txt',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LlmsDottxtRoute = LlmsDottxtRouteImport.update({
+  id: '/llms.txt',
+  path: '/llms.txt',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -98,6 +145,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
   path: '/terms',
@@ -116,6 +168,17 @@ const IdEditRoute = IdEditRouteImport.update({
 const IdRisingRoute = IdRisingRouteImport.update({
   id: '/$id/rising',
   path: '/$id/rising',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DotwellKnownAiCatalogDotjsonRoute =
+  DotwellKnownAiCatalogDotjsonRouteImport.update({
+    id: '/.well-known/ai-catalog.json',
+    path: '/.well-known/ai-catalog.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const DotwellKnownArdDotjsonRoute = DotwellKnownArdDotjsonRouteImport.update({
+  id: '/.well-known/ard.json',
+  path: '/.well-known/ard.json',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -153,6 +216,16 @@ const ApiLikeCountsRoute = ApiLikeCountsRouteImport.update({
   path: '/api/like-counts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPaletteRoute = ApiPaletteRouteImport.update({
+  id: '/api/palette',
+  path: '/api/palette',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPaletteDotjsonRoute = ApiPaletteDotjsonRouteImport.update({
+  id: '/api/palette.json',
+  path: '/api/palette.json',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPalettesRoute = ApiPalettesRouteImport.update({
   id: '/api/palettes',
   path: '/api/palettes',
@@ -173,6 +246,17 @@ const CollectionsSavedRoute = CollectionsSavedRouteImport.update({
   path: '/collections/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FaviconChar123weekChar125DotsvgRoute =
+  FaviconChar123weekChar125DotsvgRouteImport.update({
+    id: '/favicon/{$week}.svg',
+    path: '/favicon/{$week}.svg',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const McpServerCardRoute = McpServerCardRouteImport.update({
+  id: '/mcp/server-card',
+  path: '/mcp/server-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PalettesIndexRoute = PalettesIndexRouteImport.update({
   id: '/palettes/',
   path: '/palettes/',
@@ -183,10 +267,82 @@ const PalettesSavedRoute = PalettesSavedRouteImport.update({
   path: '/palettes/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PalettesChar123wordsChar125DotpngRoute =
+  PalettesChar123wordsChar125DotpngRouteImport.update({
+    id: '/palettes/{$words}.png',
+    path: '/palettes/{$words}.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SearchChar123wordsChar125DotpngRoute =
+  SearchChar123wordsChar125DotpngRouteImport.update({
+    id: '/search/{$words}.png',
+    path: '/search/{$words}.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SitemapChar123nameChar125DotxmlIndexRoute =
+  SitemapChar123nameChar125DotxmlIndexRouteImport.update({
+    id: '/sitemap-{$name}.xml/',
+    path: '/sitemap-{$name}.xml/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const UnsubscribeChar123TokenChar125Route =
   UnsubscribeChar123TokenChar125RouteImport.update({
     id: '/unsubscribe/{-$token}',
     path: '/unsubscribe/{-$token}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123keyChar125DottxtIndexRoute =
+  Char123keyChar125DottxtIndexRouteImport.update({
+    id: '/{$key}.txt/',
+    path: '/{$key}.txt/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123nameChar125DotaseIndexRoute =
+  Char123nameChar125DotaseIndexRouteImport.update({
+    id: '/{$name}.ase/',
+    path: '/{$name}.ase/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123nameChar125DotgplIndexRoute =
+  Char123nameChar125DotgplIndexRouteImport.update({
+    id: '/{$name}.gpl/',
+    path: '/{$name}.gpl/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123nameChar125DotgrdIndexRoute =
+  Char123nameChar125DotgrdIndexRouteImport.update({
+    id: '/{$name}.grd/',
+    path: '/{$name}.grd/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123nameChar125DotjsonIndexRoute =
+  Char123nameChar125DotjsonIndexRouteImport.update({
+    id: '/{$name}.json/',
+    path: '/{$name}.json/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123nameChar125DotmdIndexRoute =
+  Char123nameChar125DotmdIndexRouteImport.update({
+    id: '/{$name}.md/',
+    path: '/{$name}.md/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123seedChar125DotcssIndexRoute =
+  Char123seedChar125DotcssIndexRouteImport.update({
+    id: '/{$seed}.css/',
+    path: '/{$seed}.css/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123seedChar125DotpngIndexRoute =
+  Char123seedChar125DotpngIndexRouteImport.update({
+    id: '/{$seed}.png/',
+    path: '/{$seed}.png/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const Char123seedChar125DotsvgIndexRoute =
+  Char123seedChar125DotsvgIndexRouteImport.update({
+    id: '/{$seed}.svg/',
+    path: '/{$seed}.svg/',
     getParentRoute: () => rootRouteImport,
   } as any)
 const AtChar123handleChar125SlugIndexRoute =
@@ -201,16 +357,104 @@ const AtChar123handleChar125SlugRisingRoute =
     path: '/@{$handle}/$slug/rising',
     getParentRoute: () => rootRouteImport,
   } as any)
+const AtChar123handleChar125Char123slugChar125DotaseIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotaseIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.ase/',
+    path: '/@{$handle}/{$slug}.ase/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125Char123slugChar125DotgplIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotgplIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.gpl/',
+    path: '/@{$handle}/{$slug}.gpl/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125Char123slugChar125DotgrdIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotgrdIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.grd/',
+    path: '/@{$handle}/{$slug}.grd/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125Char123slugChar125DotjsonIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotjsonIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.json/',
+    path: '/@{$handle}/{$slug}.json/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const AtChar123handleChar125Char123slugChar125DotmdIndexRoute =
+  AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport.update({
+    id: '/@{$handle}/{$slug}.md/',
+    path: '/@{$handle}/{$slug}.md/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiOgIndexRoute = ApiOgIndexRouteImport.update({
+  id: '/api/og/',
+  path: '/api/og/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgCollectionRoute = ApiOgCollectionRouteImport.update({
+  id: '/api/og/collection',
+  path: '/api/og/collection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgCollectionsRoute = ApiOgCollectionsRouteImport.update({
+  id: '/api/og/collections',
+  path: '/api/og/collections',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgListRoute = ApiOgListRouteImport.update({
+  id: '/api/og/list',
+  path: '/api/og/list',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiOgQueryRoute = ApiOgQueryRouteImport.update({
+  id: '/api/og/query',
+  path: '/api/og/query',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPngIndexRoute = ApiPngIndexRouteImport.update({
+  id: '/api/png/',
+  path: '/api/png/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPngCollectionRoute = ApiPngCollectionRouteImport.update({
+  id: '/api/png/collection',
+  path: '/api/png/collection',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPngQueryRoute = ApiPngQueryRouteImport.update({
+  id: '/api/png/query',
+  path: '/api/png/query',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollectionsRisingChar123FrameChar125Route =
   CollectionsRisingChar123FrameChar125RouteImport.update({
     id: '/collections/rising/{-$frame}',
     path: '/collections/rising/{-$frame}',
     getParentRoute: () => rootRouteImport,
   } as any)
+const OgVersionChar123seedChar125DotpngRoute =
+  OgVersionChar123seedChar125DotpngRouteImport.update({
+    id: '/og/$version/{$seed}.png',
+    path: '/og/$version/{$seed}.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PalettesRisingChar123FrameChar125Route =
   PalettesRisingChar123FrameChar125RouteImport.update({
     id: '/palettes/rising/{-$frame}',
     path: '/palettes/rising/{-$frame}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSettingsConnectionsIndexRoute =
+  ApiSettingsConnectionsIndexRouteImport.update({
+    id: '/api/settings/connections/',
+    path: '/api/settings/connections/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSettingsConnectionsDisconnectRoute =
+  ApiSettingsConnectionsDisconnectRouteImport.update({
+    id: '/api/settings/connections/disconnect',
+    path: '/api/settings/connections/disconnect',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -220,15 +464,20 @@ export interface FileRoutesByFullPath {
   '/bindings': typeof BindingsRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
+  '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/collections': typeof ApiCollectionsRoute
@@ -236,18 +485,50 @@ export interface FileRoutesByFullPath {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/palette': typeof ApiPaletteRoute
+  '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/saved': typeof ApiSavedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
+  '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
+  '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
+  '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.ase/': typeof Char123nameChar125DotaseIndexRoute
+  '/{$name}.gpl/': typeof Char123nameChar125DotgplIndexRoute
+  '/{$name}.grd/': typeof Char123nameChar125DotgrdIndexRoute
+  '/{$name}.json/': typeof Char123nameChar125DotjsonIndexRoute
+  '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
+  '/{$seed}.css/': typeof Char123seedChar125DotcssIndexRoute
+  '/{$seed}.png/': typeof Char123seedChar125DotpngIndexRoute
+  '/{$seed}.svg/': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/og/collection': typeof ApiOgCollectionRoute
+  '/api/og/collections': typeof ApiOgCollectionsRoute
+  '/api/og/list': typeof ApiOgListRoute
+  '/api/og/query': typeof ApiOgQueryRoute
+  '/api/png/collection': typeof ApiPngCollectionRoute
+  '/api/png/query': typeof ApiPngQueryRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
+  '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.ase/': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  '/@{$handle}/{$slug}.gpl/': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
+  '/@{$handle}/{$slug}.grd/': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
+  '/@{$handle}/{$slug}.json/': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
+  '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  '/api/og/': typeof ApiOgIndexRoute
+  '/api/png/': typeof ApiPngIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -255,15 +536,20 @@ export interface FileRoutesByTo {
   '/bindings': typeof BindingsRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
+  '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/collections': typeof ApiCollectionsRoute
@@ -271,18 +557,50 @@ export interface FileRoutesByTo {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/palette': typeof ApiPaletteRoute
+  '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/saved': typeof ApiSavedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
+  '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
+  '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
   '/collections': typeof CollectionsIndexRoute
   '/palettes': typeof PalettesIndexRoute
+  '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.ase': typeof Char123nameChar125DotaseIndexRoute
+  '/{$name}.gpl': typeof Char123nameChar125DotgplIndexRoute
+  '/{$name}.grd': typeof Char123nameChar125DotgrdIndexRoute
+  '/{$name}.json': typeof Char123nameChar125DotjsonIndexRoute
+  '/{$name}.md': typeof Char123nameChar125DotmdIndexRoute
+  '/{$seed}.css': typeof Char123seedChar125DotcssIndexRoute
+  '/{$seed}.png': typeof Char123seedChar125DotpngIndexRoute
+  '/{$seed}.svg': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/og/collection': typeof ApiOgCollectionRoute
+  '/api/og/collections': typeof ApiOgCollectionsRoute
+  '/api/og/list': typeof ApiOgListRoute
+  '/api/og/query': typeof ApiOgQueryRoute
+  '/api/png/collection': typeof ApiPngCollectionRoute
+  '/api/png/query': typeof ApiPngQueryRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
+  '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.ase': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  '/@{$handle}/{$slug}.gpl': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
+  '/@{$handle}/{$slug}.grd': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
+  '/@{$handle}/{$slug}.json': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
+  '/@{$handle}/{$slug}.md': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  '/api/og': typeof ApiOgIndexRoute
+  '/api/png': typeof ApiPngIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -291,15 +609,20 @@ export interface FileRoutesById {
   '/bindings': typeof BindingsRoute
   '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
+  '/llms-full.txt': typeof LlmsFullDottxtRoute
+  '/llms.txt': typeof LlmsDottxtRoute
   '/login': typeof LoginRoute
   '/mcp-server': typeof McpServerRoute
   '/newsletter': typeof NewsletterRoute
   '/privacy': typeof PrivacyRoute
   '/robots.txt': typeof RobotsDottxtRoute
   '/settings': typeof SettingsRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
+  '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
   '/api/collections': typeof ApiCollectionsRoute
@@ -307,18 +630,50 @@ export interface FileRoutesById {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/palette': typeof ApiPaletteRoute
+  '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/saved': typeof ApiSavedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
+  '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
+  '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
+  '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
+  '/{$name}.ase/': typeof Char123nameChar125DotaseIndexRoute
+  '/{$name}.gpl/': typeof Char123nameChar125DotgplIndexRoute
+  '/{$name}.grd/': typeof Char123nameChar125DotgrdIndexRoute
+  '/{$name}.json/': typeof Char123nameChar125DotjsonIndexRoute
+  '/{$name}.md/': typeof Char123nameChar125DotmdIndexRoute
+  '/{$seed}.css/': typeof Char123seedChar125DotcssIndexRoute
+  '/{$seed}.png/': typeof Char123seedChar125DotpngIndexRoute
+  '/{$seed}.svg/': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/og/collection': typeof ApiOgCollectionRoute
+  '/api/og/collections': typeof ApiOgCollectionsRoute
+  '/api/og/list': typeof ApiOgListRoute
+  '/api/og/query': typeof ApiOgQueryRoute
+  '/api/png/collection': typeof ApiPngCollectionRoute
+  '/api/png/query': typeof ApiPngQueryRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
+  '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/@{$handle}/{$slug}.ase/': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  '/@{$handle}/{$slug}.gpl/': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
+  '/@{$handle}/{$slug}.grd/': typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
+  '/@{$handle}/{$slug}.json/': typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
+  '/@{$handle}/{$slug}.md/': typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  '/api/og/': typeof ApiOgIndexRoute
+  '/api/png/': typeof ApiPngIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -328,15 +683,20 @@ export interface FileRouteTypes {
     | '/bindings'
     | '/connect'
     | '/contact'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
     | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/ai-catalog.json'
+    | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
     | '/api/collections'
@@ -344,18 +704,50 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/palette'
+    | '/api/palette.json'
     | '/api/palettes'
     | '/api/saved'
     | '/collections/saved'
+    | '/favicon/{$week}.svg'
+    | '/mcp/server-card'
     | '/palettes/saved'
+    | '/palettes/{$words}.png'
+    | '/search/{$words}.png'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
     | '/palettes/'
+    | '/sitemap-{$name}.xml/'
+    | '/{$key}.txt/'
+    | '/{$name}.ase/'
+    | '/{$name}.gpl/'
+    | '/{$name}.grd/'
+    | '/{$name}.json/'
+    | '/{$name}.md/'
+    | '/{$seed}.css/'
+    | '/{$seed}.png/'
+    | '/{$seed}.svg/'
     | '/@{$handle}/$slug/rising'
+    | '/api/og/collection'
+    | '/api/og/collections'
+    | '/api/og/list'
+    | '/api/og/query'
+    | '/api/png/collection'
+    | '/api/png/query'
     | '/collections/rising/{-$frame}'
+    | '/og/$version/{$seed}.png'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/@{$handle}/{$slug}.ase/'
+    | '/@{$handle}/{$slug}.gpl/'
+    | '/@{$handle}/{$slug}.grd/'
+    | '/@{$handle}/{$slug}.json/'
+    | '/@{$handle}/{$slug}.md/'
+    | '/api/og/'
+    | '/api/png/'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -363,15 +755,20 @@ export interface FileRouteTypes {
     | '/bindings'
     | '/connect'
     | '/contact'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
     | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/ai-catalog.json'
+    | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
     | '/api/collections'
@@ -379,18 +776,50 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/palette'
+    | '/api/palette.json'
     | '/api/palettes'
     | '/api/saved'
     | '/collections/saved'
+    | '/favicon/{$week}.svg'
+    | '/mcp/server-card'
     | '/palettes/saved'
+    | '/palettes/{$words}.png'
+    | '/search/{$words}.png'
     | '/unsubscribe/{-$token}'
     | '/$id'
     | '/collections'
     | '/palettes'
+    | '/sitemap-{$name}.xml'
+    | '/{$key}.txt'
+    | '/{$name}.ase'
+    | '/{$name}.gpl'
+    | '/{$name}.grd'
+    | '/{$name}.json'
+    | '/{$name}.md'
+    | '/{$seed}.css'
+    | '/{$seed}.png'
+    | '/{$seed}.svg'
     | '/@{$handle}/$slug/rising'
+    | '/api/og/collection'
+    | '/api/og/collections'
+    | '/api/og/list'
+    | '/api/og/query'
+    | '/api/png/collection'
+    | '/api/png/query'
     | '/collections/rising/{-$frame}'
+    | '/og/$version/{$seed}.png'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug'
+    | '/@{$handle}/{$slug}.ase'
+    | '/@{$handle}/{$slug}.gpl'
+    | '/@{$handle}/{$slug}.grd'
+    | '/@{$handle}/{$slug}.json'
+    | '/@{$handle}/{$slug}.md'
+    | '/api/og'
+    | '/api/png'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections'
   id:
     | '__root__'
     | '/'
@@ -398,15 +827,20 @@ export interface FileRouteTypes {
     | '/bindings'
     | '/connect'
     | '/contact'
+    | '/llms-full.txt'
+    | '/llms.txt'
     | '/login'
     | '/mcp-server'
     | '/newsletter'
     | '/privacy'
     | '/robots.txt'
     | '/settings'
+    | '/sitemap.xml'
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/ai-catalog.json'
+    | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
     | '/api/collections'
@@ -414,18 +848,50 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/palette'
+    | '/api/palette.json'
     | '/api/palettes'
     | '/api/saved'
     | '/collections/saved'
+    | '/favicon/{$week}.svg'
+    | '/mcp/server-card'
     | '/palettes/saved'
+    | '/palettes/{$words}.png'
+    | '/search/{$words}.png'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
     | '/palettes/'
+    | '/sitemap-{$name}.xml/'
+    | '/{$key}.txt/'
+    | '/{$name}.ase/'
+    | '/{$name}.gpl/'
+    | '/{$name}.grd/'
+    | '/{$name}.json/'
+    | '/{$name}.md/'
+    | '/{$seed}.css/'
+    | '/{$seed}.png/'
+    | '/{$seed}.svg/'
     | '/@{$handle}/$slug/rising'
+    | '/api/og/collection'
+    | '/api/og/collections'
+    | '/api/og/list'
+    | '/api/og/query'
+    | '/api/png/collection'
+    | '/api/png/query'
     | '/collections/rising/{-$frame}'
+    | '/og/$version/{$seed}.png'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/@{$handle}/{$slug}.ase/'
+    | '/@{$handle}/{$slug}.gpl/'
+    | '/@{$handle}/{$slug}.grd/'
+    | '/@{$handle}/{$slug}.json/'
+    | '/@{$handle}/{$slug}.md/'
+    | '/api/og/'
+    | '/api/png/'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -434,15 +900,20 @@ export interface RootRouteChildren {
   BindingsRoute: typeof BindingsRoute
   ConnectRoute: typeof ConnectRoute
   ContactRoute: typeof ContactRoute
+  LlmsFullDottxtRoute: typeof LlmsFullDottxtRoute
+  LlmsDottxtRoute: typeof LlmsDottxtRoute
   LoginRoute: typeof LoginRoute
   McpServerRoute: typeof McpServerRoute
   NewsletterRoute: typeof NewsletterRoute
   PrivacyRoute: typeof PrivacyRoute
   RobotsDottxtRoute: typeof RobotsDottxtRoute
   SettingsRoute: typeof SettingsRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
   IdEditRoute: typeof IdEditRoute
   IdRisingRoute: typeof IdRisingRoute
+  DotwellKnownAiCatalogDotjsonRoute: typeof DotwellKnownAiCatalogDotjsonRoute
+  DotwellKnownArdDotjsonRoute: typeof DotwellKnownArdDotjsonRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiBuildRoute: typeof ApiBuildRoute
   ApiCollectionsRoute: typeof ApiCollectionsRoute
@@ -450,18 +921,50 @@ export interface RootRouteChildren {
   ApiGeoRoute: typeof ApiGeoRoute
   ApiHotRoute: typeof ApiHotRoute
   ApiLikeCountsRoute: typeof ApiLikeCountsRoute
+  ApiPaletteRoute: typeof ApiPaletteRoute
+  ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
   ApiPalettesRoute: typeof ApiPalettesRoute
   ApiSavedRoute: typeof ApiSavedRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
+  FaviconChar123weekChar125DotsvgRoute: typeof FaviconChar123weekChar125DotsvgRoute
+  McpServerCardRoute: typeof McpServerCardRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
+  PalettesChar123wordsChar125DotpngRoute: typeof PalettesChar123wordsChar125DotpngRoute
+  SearchChar123wordsChar125DotpngRoute: typeof SearchChar123wordsChar125DotpngRoute
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
   PalettesIndexRoute: typeof PalettesIndexRoute
+  SitemapChar123nameChar125DotxmlIndexRoute: typeof SitemapChar123nameChar125DotxmlIndexRoute
+  Char123keyChar125DottxtIndexRoute: typeof Char123keyChar125DottxtIndexRoute
+  Char123nameChar125DotaseIndexRoute: typeof Char123nameChar125DotaseIndexRoute
+  Char123nameChar125DotgplIndexRoute: typeof Char123nameChar125DotgplIndexRoute
+  Char123nameChar125DotgrdIndexRoute: typeof Char123nameChar125DotgrdIndexRoute
+  Char123nameChar125DotjsonIndexRoute: typeof Char123nameChar125DotjsonIndexRoute
+  Char123nameChar125DotmdIndexRoute: typeof Char123nameChar125DotmdIndexRoute
+  Char123seedChar125DotcssIndexRoute: typeof Char123seedChar125DotcssIndexRoute
+  Char123seedChar125DotpngIndexRoute: typeof Char123seedChar125DotpngIndexRoute
+  Char123seedChar125DotsvgIndexRoute: typeof Char123seedChar125DotsvgIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
+  ApiOgCollectionRoute: typeof ApiOgCollectionRoute
+  ApiOgCollectionsRoute: typeof ApiOgCollectionsRoute
+  ApiOgListRoute: typeof ApiOgListRoute
+  ApiOgQueryRoute: typeof ApiOgQueryRoute
+  ApiPngCollectionRoute: typeof ApiPngCollectionRoute
+  ApiPngQueryRoute: typeof ApiPngQueryRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
+  OgVersionChar123seedChar125DotpngRoute: typeof OgVersionChar123seedChar125DotpngRoute
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
+  AtChar123handleChar125Char123slugChar125DotaseIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
+  AtChar123handleChar125Char123slugChar125DotgplIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
+  AtChar123handleChar125Char123slugChar125DotgrdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRoute
+  AtChar123handleChar125Char123slugChar125DotjsonIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRoute
+  AtChar123handleChar125Char123slugChar125DotmdIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRoute
+  ApiOgIndexRoute: typeof ApiOgIndexRoute
+  ApiPngIndexRoute: typeof ApiPngIndexRoute
+  ApiSettingsConnectionsDisconnectRoute: typeof ApiSettingsConnectionsDisconnectRoute
+  ApiSettingsConnectionsIndexRoute: typeof ApiSettingsConnectionsIndexRoute
 }
 
 declare module '@tanstack/solid-router' {
@@ -499,6 +1002,20 @@ declare module '@tanstack/solid-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms-full.txt': {
+      id: '/llms-full.txt'
+      path: '/llms-full.txt'
+      fullPath: '/llms-full.txt'
+      preLoaderRoute: typeof LlmsFullDottxtRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/llms.txt': {
+      id: '/llms.txt'
+      path: '/llms.txt'
+      fullPath: '/llms.txt'
+      preLoaderRoute: typeof LlmsDottxtRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -543,6 +1060,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/terms': {
       id: '/terms'
       path: '/terms'
@@ -569,6 +1093,20 @@ declare module '@tanstack/solid-router' {
       path: '/$id/rising'
       fullPath: '/$id/rising'
       preLoaderRoute: typeof IdRisingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/ai-catalog.json': {
+      id: '/.well-known/ai-catalog.json'
+      path: '/.well-known/ai-catalog.json'
+      fullPath: '/.well-known/ai-catalog.json'
+      preLoaderRoute: typeof DotwellKnownAiCatalogDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/.well-known/ard.json': {
+      id: '/.well-known/ard.json'
+      path: '/.well-known/ard.json'
+      fullPath: '/.well-known/ard.json'
+      preLoaderRoute: typeof DotwellKnownArdDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -620,6 +1158,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiLikeCountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/palette': {
+      id: '/api/palette'
+      path: '/api/palette'
+      fullPath: '/api/palette'
+      preLoaderRoute: typeof ApiPaletteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/palette.json': {
+      id: '/api/palette.json'
+      path: '/api/palette.json'
+      fullPath: '/api/palette.json'
+      preLoaderRoute: typeof ApiPaletteDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/palettes': {
       id: '/api/palettes'
       path: '/api/palettes'
@@ -648,6 +1200,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof CollectionsSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/favicon/{$week}.svg': {
+      id: '/favicon/{$week}.svg'
+      path: '/favicon/{$week}.svg'
+      fullPath: '/favicon/{$week}.svg'
+      preLoaderRoute: typeof FaviconChar123weekChar125DotsvgRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mcp/server-card': {
+      id: '/mcp/server-card'
+      path: '/mcp/server-card'
+      fullPath: '/mcp/server-card'
+      preLoaderRoute: typeof McpServerCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/palettes/': {
       id: '/palettes/'
       path: '/palettes'
@@ -662,11 +1228,95 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof PalettesSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/palettes/{$words}.png': {
+      id: '/palettes/{$words}.png'
+      path: '/palettes/{$words}.png'
+      fullPath: '/palettes/{$words}.png'
+      preLoaderRoute: typeof PalettesChar123wordsChar125DotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search/{$words}.png': {
+      id: '/search/{$words}.png'
+      path: '/search/{$words}.png'
+      fullPath: '/search/{$words}.png'
+      preLoaderRoute: typeof SearchChar123wordsChar125DotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap-{$name}.xml/': {
+      id: '/sitemap-{$name}.xml/'
+      path: '/sitemap-{$name}.xml'
+      fullPath: '/sitemap-{$name}.xml/'
+      preLoaderRoute: typeof SitemapChar123nameChar125DotxmlIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/unsubscribe/{-$token}': {
       id: '/unsubscribe/{-$token}'
       path: '/unsubscribe/{-$token}'
       fullPath: '/unsubscribe/{-$token}'
       preLoaderRoute: typeof UnsubscribeChar123TokenChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$key}.txt/': {
+      id: '/{$key}.txt/'
+      path: '/{$key}.txt'
+      fullPath: '/{$key}.txt/'
+      preLoaderRoute: typeof Char123keyChar125DottxtIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$name}.ase/': {
+      id: '/{$name}.ase/'
+      path: '/{$name}.ase'
+      fullPath: '/{$name}.ase/'
+      preLoaderRoute: typeof Char123nameChar125DotaseIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$name}.gpl/': {
+      id: '/{$name}.gpl/'
+      path: '/{$name}.gpl'
+      fullPath: '/{$name}.gpl/'
+      preLoaderRoute: typeof Char123nameChar125DotgplIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$name}.grd/': {
+      id: '/{$name}.grd/'
+      path: '/{$name}.grd'
+      fullPath: '/{$name}.grd/'
+      preLoaderRoute: typeof Char123nameChar125DotgrdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$name}.json/': {
+      id: '/{$name}.json/'
+      path: '/{$name}.json'
+      fullPath: '/{$name}.json/'
+      preLoaderRoute: typeof Char123nameChar125DotjsonIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$name}.md/': {
+      id: '/{$name}.md/'
+      path: '/{$name}.md'
+      fullPath: '/{$name}.md/'
+      preLoaderRoute: typeof Char123nameChar125DotmdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$seed}.css/': {
+      id: '/{$seed}.css/'
+      path: '/{$seed}.css'
+      fullPath: '/{$seed}.css/'
+      preLoaderRoute: typeof Char123seedChar125DotcssIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$seed}.png/': {
+      id: '/{$seed}.png/'
+      path: '/{$seed}.png'
+      fullPath: '/{$seed}.png/'
+      preLoaderRoute: typeof Char123seedChar125DotpngIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/{$seed}.svg/': {
+      id: '/{$seed}.svg/'
+      path: '/{$seed}.svg'
+      fullPath: '/{$seed}.svg/'
+      preLoaderRoute: typeof Char123seedChar125DotsvgIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/@{$handle}/$slug/': {
@@ -683,6 +1333,97 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof AtChar123handleChar125SlugRisingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/@{$handle}/{$slug}.ase/': {
+      id: '/@{$handle}/{$slug}.ase/'
+      path: '/@{$handle}/{$slug}.ase'
+      fullPath: '/@{$handle}/{$slug}.ase/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotaseIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/{$slug}.gpl/': {
+      id: '/@{$handle}/{$slug}.gpl/'
+      path: '/@{$handle}/{$slug}.gpl'
+      fullPath: '/@{$handle}/{$slug}.gpl/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotgplIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/{$slug}.grd/': {
+      id: '/@{$handle}/{$slug}.grd/'
+      path: '/@{$handle}/{$slug}.grd'
+      fullPath: '/@{$handle}/{$slug}.grd/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotgrdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/{$slug}.json/': {
+      id: '/@{$handle}/{$slug}.json/'
+      path: '/@{$handle}/{$slug}.json'
+      fullPath: '/@{$handle}/{$slug}.json/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotjsonIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/@{$handle}/{$slug}.md/': {
+      id: '/@{$handle}/{$slug}.md/'
+      path: '/@{$handle}/{$slug}.md'
+      fullPath: '/@{$handle}/{$slug}.md/'
+      preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/': {
+      id: '/api/og/'
+      path: '/api/og'
+      fullPath: '/api/og/'
+      preLoaderRoute: typeof ApiOgIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/collection': {
+      id: '/api/og/collection'
+      path: '/api/og/collection'
+      fullPath: '/api/og/collection'
+      preLoaderRoute: typeof ApiOgCollectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/collections': {
+      id: '/api/og/collections'
+      path: '/api/og/collections'
+      fullPath: '/api/og/collections'
+      preLoaderRoute: typeof ApiOgCollectionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/list': {
+      id: '/api/og/list'
+      path: '/api/og/list'
+      fullPath: '/api/og/list'
+      preLoaderRoute: typeof ApiOgListRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/og/query': {
+      id: '/api/og/query'
+      path: '/api/og/query'
+      fullPath: '/api/og/query'
+      preLoaderRoute: typeof ApiOgQueryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/png/': {
+      id: '/api/png/'
+      path: '/api/png'
+      fullPath: '/api/png/'
+      preLoaderRoute: typeof ApiPngIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/png/collection': {
+      id: '/api/png/collection'
+      path: '/api/png/collection'
+      fullPath: '/api/png/collection'
+      preLoaderRoute: typeof ApiPngCollectionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/png/query': {
+      id: '/api/png/query'
+      path: '/api/png/query'
+      fullPath: '/api/png/query'
+      preLoaderRoute: typeof ApiPngQueryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/collections/rising/{-$frame}': {
       id: '/collections/rising/{-$frame}'
       path: '/collections/rising/{-$frame}'
@@ -690,11 +1431,32 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof CollectionsRisingChar123FrameChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/og/$version/{$seed}.png': {
+      id: '/og/$version/{$seed}.png'
+      path: '/og/$version/{$seed}.png'
+      fullPath: '/og/$version/{$seed}.png'
+      preLoaderRoute: typeof OgVersionChar123seedChar125DotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/palettes/rising/{-$frame}': {
       id: '/palettes/rising/{-$frame}'
       path: '/palettes/rising/{-$frame}'
       fullPath: '/palettes/rising/{-$frame}'
       preLoaderRoute: typeof PalettesRisingChar123FrameChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/connections/': {
+      id: '/api/settings/connections/'
+      path: '/api/settings/connections'
+      fullPath: '/api/settings/connections/'
+      preLoaderRoute: typeof ApiSettingsConnectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/connections/disconnect': {
+      id: '/api/settings/connections/disconnect'
+      path: '/api/settings/connections/disconnect'
+      fullPath: '/api/settings/connections/disconnect'
+      preLoaderRoute: typeof ApiSettingsConnectionsDisconnectRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -706,15 +1468,20 @@ const rootRouteChildren: RootRouteChildren = {
   BindingsRoute: BindingsRoute,
   ConnectRoute: ConnectRoute,
   ContactRoute: ContactRoute,
+  LlmsFullDottxtRoute: LlmsFullDottxtRoute,
+  LlmsDottxtRoute: LlmsDottxtRoute,
   LoginRoute: LoginRoute,
   McpServerRoute: McpServerRoute,
   NewsletterRoute: NewsletterRoute,
   PrivacyRoute: PrivacyRoute,
   RobotsDottxtRoute: RobotsDottxtRoute,
   SettingsRoute: SettingsRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
   IdEditRoute: IdEditRoute,
   IdRisingRoute: IdRisingRoute,
+  DotwellKnownAiCatalogDotjsonRoute: DotwellKnownAiCatalogDotjsonRoute,
+  DotwellKnownArdDotjsonRoute: DotwellKnownArdDotjsonRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiBuildRoute: ApiBuildRoute,
   ApiCollectionsRoute: ApiCollectionsRoute,
@@ -722,20 +1489,60 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGeoRoute: ApiGeoRoute,
   ApiHotRoute: ApiHotRoute,
   ApiLikeCountsRoute: ApiLikeCountsRoute,
+  ApiPaletteRoute: ApiPaletteRoute,
+  ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
   ApiPalettesRoute: ApiPalettesRoute,
   ApiSavedRoute: ApiSavedRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
+  FaviconChar123weekChar125DotsvgRoute: FaviconChar123weekChar125DotsvgRoute,
+  McpServerCardRoute: McpServerCardRoute,
   PalettesSavedRoute: PalettesSavedRoute,
+  PalettesChar123wordsChar125DotpngRoute:
+    PalettesChar123wordsChar125DotpngRoute,
+  SearchChar123wordsChar125DotpngRoute: SearchChar123wordsChar125DotpngRoute,
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,
   PalettesIndexRoute: PalettesIndexRoute,
+  SitemapChar123nameChar125DotxmlIndexRoute:
+    SitemapChar123nameChar125DotxmlIndexRoute,
+  Char123keyChar125DottxtIndexRoute: Char123keyChar125DottxtIndexRoute,
+  Char123nameChar125DotaseIndexRoute: Char123nameChar125DotaseIndexRoute,
+  Char123nameChar125DotgplIndexRoute: Char123nameChar125DotgplIndexRoute,
+  Char123nameChar125DotgrdIndexRoute: Char123nameChar125DotgrdIndexRoute,
+  Char123nameChar125DotjsonIndexRoute: Char123nameChar125DotjsonIndexRoute,
+  Char123nameChar125DotmdIndexRoute: Char123nameChar125DotmdIndexRoute,
+  Char123seedChar125DotcssIndexRoute: Char123seedChar125DotcssIndexRoute,
+  Char123seedChar125DotpngIndexRoute: Char123seedChar125DotpngIndexRoute,
+  Char123seedChar125DotsvgIndexRoute: Char123seedChar125DotsvgIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
+  ApiOgCollectionRoute: ApiOgCollectionRoute,
+  ApiOgCollectionsRoute: ApiOgCollectionsRoute,
+  ApiOgListRoute: ApiOgListRoute,
+  ApiOgQueryRoute: ApiOgQueryRoute,
+  ApiPngCollectionRoute: ApiPngCollectionRoute,
+  ApiPngQueryRoute: ApiPngQueryRoute,
   CollectionsRisingChar123FrameChar125Route:
     CollectionsRisingChar123FrameChar125Route,
+  OgVersionChar123seedChar125DotpngRoute:
+    OgVersionChar123seedChar125DotpngRoute,
   PalettesRisingChar123FrameChar125Route:
     PalettesRisingChar123FrameChar125Route,
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotaseIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotaseIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotgplIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotgplIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotgrdIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotgrdIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotjsonIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotjsonIndexRoute,
+  AtChar123handleChar125Char123slugChar125DotmdIndexRoute:
+    AtChar123handleChar125Char123slugChar125DotmdIndexRoute,
+  ApiOgIndexRoute: ApiOgIndexRoute,
+  ApiPngIndexRoute: ApiPngIndexRoute,
+  ApiSettingsConnectionsDisconnectRoute: ApiSettingsConnectionsDisconnectRoute,
+  ApiSettingsConnectionsIndexRoute: ApiSettingsConnectionsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

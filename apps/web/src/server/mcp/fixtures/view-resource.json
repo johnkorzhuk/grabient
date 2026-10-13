@@ -1,0 +1,22 @@
+{
+  "uri": "ui://grabient/v1/palettes.html",
+  "mimeType": "text/html;profile=mcp-app",
+  "_meta": {
+    "ui": {
+      "prefersBorder": false,
+      "permissions": {
+        "clipboardWrite": {}
+      }
+    },
+    "openai/widgetDescription": "The palettes show_palettes answered, drawn from their seeds and numbered as in its answer, with their colors, a strip that copies each one's address, CSS, SVG or PNG, and links to their pages on Grabient.",
+    "openai/ui": {
+      "availableDisplayModes": [
+        "inline",
+        "fullscreen"
+      ]
+    }
+  },
+  "bytes": 323168,
+  "sha256": "3c563a36f116300f69ddbb2156254766e513421b31aeb3d97648987da2f2f8ff",
+  "note": "the page itself is built per deploy; its bytes change with the code, so only its shape is pinned"
+}

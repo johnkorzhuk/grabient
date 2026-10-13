@@ -1,0 +1,287 @@
+{
+ "candidates": [
+  {
+   "seed": "kQMwAAcoO_4"
+  },
+  {
+   "seed": "x"
+  },
+  {
+   "seed": "kS7Q8Yy5S_SChv0",
+   "style": "angularGradient"
+  },
+  {
+   "seed": "kYuXkT47BBu6sxXjqsk1ilF8Onws",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 0,
+   "name": "Coral lagoon",
+   "note": "Radial"
+  },
+  {
+   "seed": "kW8RUxaqO8dmsPXbqE2x6zBg",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 135,
+   "name": "Peach orchard",
+   "note": "Linear bands"
+  },
+  {
+   "seed": "kWzVMw17K7kq5vM-LD1shs7Y",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 180,
+   "name": "Desert dusk",
+   "note": "Linear"
+  },
+  {
+   "seed": "kW6hdK6pbElaRxXeH9QcJFBI",
+   "style": "radialSwatches",
+   "steps": 5,
+   "angle": 0,
+   "name": "Pistachio macaron",
+   "note": "Radial bands"
+  },
+  {
+   "seed": "kW0ibSWiTBMytwpBMkKMyhAQ",
+   "style": "angularGradient",
+   "steps": 32,
+   "angle": 315,
+   "name": "Orchid velvet",
+   "note": "Angular"
+  },
+  {
+   "seed": "kW1lA1Wy67USpu2xnjjopO8Y",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 180
+  },
+  {
+   "seed": "kW7Q_UZpg_9Mpv2_rz9rKS_4",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 45
+  },
+  {
+   "seed": "kWKC3RLLdA8tNRZbwkJbawtI",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  },
+  {
+   "seed": "kWOhzJKp1B1CxzXoNkIdZ_Bo",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 180
+  },
+  {
+   "seed": "kW5UA4YzU885KPU1NL6GhO-A",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 135
+  },
+  {
+   "seed": "kQ3yUGthcyI",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 0
+  },
+  {
+   "seed": "kYoCnCYRDJe2Wxv1j8P5pFLUYbQq",
+   "style": "angularGradient",
+   "steps": 11,
+   "angle": 180
+  },
+  {
+   "seed": "kWOR7UZp1N9SbtI2lLi8Q5R4",
+   "style": "radialSwatches",
+   "steps": 9,
+   "angle": 0
+  },
+  {
+   "seed": "kWezyUXx8-b4cQNfGa6ZhpMI",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 45
+  },
+  {
+   "seed": "kWQBh4Z5a6EYYQeyFUNp4_Aw",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 210
+  },
+  {
+   "seed": "kWXDFzyB9BFeVQzTkslv6JEo",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 180
+  },
+  {
+   "seed": "kWOxu4MRW6EOdu9NHzxTqA5I",
+   "style": "linearSwatches",
+   "steps": 6,
+   "angle": 135
+  },
+  {
+   "seed": "kW8Rihbha_uUbPlkIbtayi8g",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 0
+  },
+  {
+   "seed": "kY2BWf2hO9kYUvPEkzp1xU6-qPPs",
+   "style": "angularSwatches",
+   "steps": 6,
+   "angle": 225
+  },
+  {
+   "seed": "kW1Cq_XqO_VSgP9cmzGUSc_o",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 90
+  },
+  {
+   "seed": "ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 135,
+   "name": "Deep end",
+   "note": "Linear"
+  },
+  {
+   "seed": "kWk5ENVro_-Mpv_wGb_-we_4",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 90,
+   "name": "Strawberry milk",
+   "note": "Linear bands"
+  },
+  {
+   "seed": "kWelD3zS9AVgeu3fEbQ8xAyQ",
+   "style": "angularSwatches",
+   "steps": 5,
+   "angle": 135,
+   "name": "Paper pinwheel",
+   "note": "Angular bands"
+  },
+  {
+   "seed": "kY4B0o4Bi5UyavQ9GLvL5s9SQVvk",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 90,
+   "name": "Porch light",
+   "note": "Radial"
+  },
+  {
+   "seed": "kWkEqj3Z87moauRiHzrShc_A",
+   "style": "radialSwatches",
+   "steps": 6,
+   "angle": 270,
+   "name": "Tide pool",
+   "note": "Radial bands"
+  },
+  {
+   "seed": "kWRR-muJm7VKlvljp7955I_A",
+   "style": "linearGradient",
+   "steps": 6,
+   "angle": 180
+  },
+  {
+   "seed": "kU0g0o24lNsoRQm7BcAA",
+   "style": "radialSwatches",
+   "steps": 5,
+   "angle": 210
+  },
+  {
+   "seed": "kS5x_Ta5hBfCTQm",
+   "style": "angularSwatches",
+   "steps": 5,
+   "angle": 135
+  },
+  {
+   "seed": "kW2Rl-zaBJGyQVPTnrvXxHSI",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 90
+  },
+  {
+   "seed": "kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg",
+   "style": "radialSwatches",
+   "steps": 8,
+   "angle": 0
+  },
+  {
+   "seed": "kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 45
+  },
+  {
+   "seed": "kWaVzy0cVGmm6xversnTLVHo",
+   "style": "angularSwatches",
+   "steps": 5,
+   "angle": 225
+  },
+  {
+   "seed": "kYp103v7C8Comu4iqrYMiw8ckduq",
+   "style": "linearSwatches",
+   "steps": 6,
+   "angle": 90
+  },
+  {
+   "seed": "kSPkDT1Sq2uC6rG",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 135
+  },
+  {
+   "seed": "kYlzCV2J2316rOrcOTu0kc9kNFvs",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 180
+  },
+  {
+   "seed": "kWmC53Y549PEnPDtMDz2jG-A",
+   "style": "radialSwatches",
+   "steps": 6,
+   "angle": 45
+  },
+  {
+   "seed": "kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 90
+  },
+  {
+   "seed": "kY5TVIZLG7cUnP40GMYyiDCGqYvU",
+   "style": "angularSwatches",
+   "steps": 6,
+   "angle": 270
+  },
+  {
+   "seed": "kW7xJTcZo7mUvP_XLsATZnCg",
+   "style": "linearSwatches",
+   "steps": 6,
+   "angle": 90
+  },
+  {
+   "seed": "kU7Rw_4DM_buYTHWqzeA",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 135
+  }
+ ],
+ "first": {
+  "seed": "kYuXkT47BBu6sxXjqsk1ilF8Onws",
+  "style": "radialGradient",
+  "steps": 32,
+  "angle": 0
+ },
+ "last": {
+  "seed": "kU7Rw_4DM_buYTHWqzeA",
+  "style": "linearGradient",
+  "steps": 32,
+  "angle": 135
+ },
+ "none": null
+}

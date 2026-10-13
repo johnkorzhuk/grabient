@@ -1,0 +1,25 @@
+/* the document's own drawing over a specimen, its words small in the mono token */
+.lines {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.line {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1px;
+}
+.guide {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: 1px;
+  stroke-dasharray: 2 4;
+}
+.label {
+  fill: var(--color-accent);
+  font-family: var(--font-mono);
+  font-size: var(--font-fs0);
+}

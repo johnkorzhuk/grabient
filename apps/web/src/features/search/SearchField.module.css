@@ -1,21 +1,110 @@
-.form {
-  display: flex;
-  width: 100%;
-  max-width: var(--size-search);
-  margin-inline: auto;
-}
-.field {
-  flex-grow: 1;
-  min-width: 0;
-  height: var(--size-control-big);
-  padding-inline: var(--space-s4);
-  border: 1px solid var(--color-edge2);
-  border-radius: var(--radius-control);
-  background-color: var(--color-paper-solid);
-  color: var(--color-ink);
-  font: inherit;
-  @media (pointer: coarse) {
-    height: var(--size-touch);
-    font-size: var(--font-fs-touch);
+@layer components {
+  .form {
+    width: 100%;
+    max-width: var(--size-search);
+    margin-inline: auto;
+  }
+  /* the rim lights faintly under the pointer and whole with focus; disabled, the field dims as one piece and its rim
+     never lights */
+  .wrap {
+    position: relative;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    &:hover {
+      --rim-hover: 0.35;
+    }
+    &:focus-within {
+      --rim-focus: 1;
+    }
+    &[data-disabled] {
+      opacity: 0.4;
+      --rim-hover: 0;
+      --rim-focus: 0;
+    }
+  }
+  /* the input is positioned and comes later, so the glyph needs a layer of its own over the field's paper */
+  .glyph {
+    position: absolute;
+    z-index: 1;
+    inset-inline-start: var(--space-s3);
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    color: var(--color-ink3);
+    pointer-events: none;
+  }
+  .input {
+    position: relative;
+    appearance: none;
+    width: 100%;
+    height: var(--size-control-big);
+    margin: 0;
+    padding-block: 0;
+    padding-inline: var(--space-s10);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    outline: none;
+    transition: border-color var(--motion-fast) var(--motion-ease);
+    &::placeholder {
+      color: var(--color-ink3);
+    }
+    &:focus {
+      border-color: transparent;
+    }
+    /* the browser's own clear press gives way to the field's */
+    &::-webkit-search-cancel-button {
+      display: none;
+    }
+    /* 16px on a coarse pointer, so iOS never zooms in on the field */
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+      font-size: var(--font-fs-touch);
+    }
+  }
+  /* the field's full height and as wide, so a finger finds it; the glyph inside stays small */
+  .press {
+    position: absolute;
+    z-index: 1;
+    inset-inline-end: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-control-big);
+    height: var(--size-control-big);
+    margin: 0;
+    padding: 0;
+    appearance: none;
+    border: 0;
+    border-radius: var(--radius-control);
+    background-color: transparent;
+    color: var(--color-ink3);
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -6px;
+    transition:
+      color var(--motion-fast) var(--motion-ease),
+      opacity var(--motion-fast) var(--motion-ease);
+    &:hover {
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    /* nothing to press: it keeps its place and takes no press and no focus */
+    &[data-idle] {
+      opacity: 0;
+      pointer-events: none;
+    }
+    @media (pointer: coarse) {
+      width: var(--size-touch);
+      height: var(--size-touch);
+    }
   }
 }

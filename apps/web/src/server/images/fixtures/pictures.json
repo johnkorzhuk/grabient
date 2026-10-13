@@ -1,0 +1,823 @@
+{
+ "note": "Decoded RGB (8-bit, no alpha) hashed with sha256; samples are [r,g,b] at x,y. PNG bytes depend on the deflate implementation, the pixels do not. Files under png/ are the PNGs G4 wrote in Node.",
+ "defaultSeed": "kS7Q8Yy5S_SChv0",
+ "graySeed": "kQAAAAfwA_4",
+ "eightSeed": "kcJlcAICvEqyrxK5K8SxivEtKrxLfq8S7CvEo",
+ "pictures": [
+  {
+   "name": "plain linearGradient steps 9 angle 42, 96x64",
+   "width": 96,
+   "height": 64,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "017e15a4baad90b4ad41ff6daf7350db97c05906a4912463ec1b024f514b3db7",
+   "pngBytes": 2012,
+   "samples": {
+    "0,0": [
+     172,
+     132,
+     125
+    ],
+    "95,0": [
+     70,
+     8,
+     12
+    ],
+    "48,32": [
+     158,
+     114,
+     107
+    ],
+    "95,63": [
+     143,
+     97,
+     90
+    ]
+   }
+  },
+  {
+   "name": "plain linearSwatches steps 9 angle 42, 96x64",
+   "width": 96,
+   "height": 64,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "06133b50140d5b756d3c807c01b8b306787f351046302d903361f1c5dc7ead8e",
+   "pngBytes": 534,
+   "samples": {
+    "0,0": [
+     182,
+     144,
+     137
+    ],
+    "95,0": [
+     70,
+     7,
+     11
+    ],
+    "48,32": [
+     158,
+     114,
+     107
+    ],
+    "95,63": [
+     134,
+     85,
+     79
+    ]
+   }
+  },
+  {
+   "name": "plain angularGradient steps 9 angle 42, 96x64",
+   "width": 96,
+   "height": 64,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "53ac29075de0edeb225852de08d34c2e33578850c61c2c0be0082da432f81297",
+   "pngBytes": 3254,
+   "samples": {
+    "0,0": [
+     113,
+     61,
+     56
+    ],
+    "95,0": [
+     241,
+     222,
+     217
+    ],
+    "48,32": [
+     206,
+     175,
+     168
+    ],
+    "95,63": [
+     212,
+     183,
+     176
+    ]
+   }
+  },
+  {
+   "name": "plain angularSwatches steps 9 angle 42, 96x64",
+   "width": 96,
+   "height": 64,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "d1d1010b950ee7efda4b9e1f79604653ee8fdcac300e7bf8fc7975345478a4fc",
+   "pngBytes": 745,
+   "samples": {
+    "0,0": [
+     108,
+     55,
+     50
+    ],
+    "95,0": [
+     246,
+     228,
+     224
+    ],
+    "48,32": [
+     207,
+     177,
+     171
+    ],
+    "95,63": [
+     207,
+     177,
+     171
+    ]
+   }
+  },
+  {
+   "name": "plain radialGradient steps 9 angle 42, 96x64",
+   "width": 96,
+   "height": 64,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "78e51f4939c71a2a66a4f29dcc20bd448e61d8e01e82b859b3624e19eadaf178",
+   "pngBytes": 2204,
+   "samples": {
+    "0,0": [
+     71,
+     9,
+     12
+    ],
+    "95,0": [
+     71,
+     9,
+     12
+    ],
+    "48,32": [
+     245,
+     226,
+     222
+    ],
+    "95,63": [
+     71,
+     9,
+     12
+    ]
+   }
+  },
+  {
+   "name": "plain radialSwatches steps 9 angle 42, 96x64",
+   "width": 96,
+   "height": 64,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "68906721f51687f0b5c0ebb5c170789c3a8716a2bf06322f5d7eca551f99af8e",
+   "pngBytes": 675,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "95,0": [
+     70,
+     7,
+     11
+    ],
+    "48,32": [
+     246,
+     228,
+     224
+    ],
+    "95,63": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "palette png 256x1 strip",
+   "width": 256,
+   "height": 1,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "d399d3e34eeac41760378fab85bb7b45f18076191862602a1d57b39b0f148c15",
+   "pngBytes": 194,
+   "samples": {
+    "0,0": [
+     246,
+     228,
+     223
+    ],
+    "255,0": [
+     70,
+     7,
+     11
+    ],
+    "128,0": [
+     157,
+     114,
+     107
+    ]
+   }
+  },
+  {
+   "name": "palette png 1x1",
+   "width": 1,
+   "height": 1,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "618697cfa6c737dcf1bbb58290d54c61de8233d13ac4fc51c2c99fd077595e7d",
+   "pngBytes": 82,
+   "samples": {
+    "0,0": [
+     158,
+     114,
+     107
+    ]
+   }
+  },
+  {
+   "name": "palette png linearSwatches 7x1",
+   "width": 7,
+   "height": 1,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "d17fb89498f3ed56b0016edc6c66abd61c216c9a29af7a71fdfd6b57a67d5a5b",
+   "pngBytes": 103,
+   "samples": {
+    "0,0": [
+     246,
+     228,
+     224
+    ],
+    "6,0": [
+     70,
+     7,
+     11
+    ],
+    "3,0": [
+     158,
+     114,
+     107
+    ]
+   }
+  },
+  {
+   "name": "palette png default 1200x630",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "54e3ff415edeb44bf340137e0d005a5cdf869a37f86f6e73b39387871820d4df",
+   "pngBytes": 47005,
+   "samples": {
+    "0,0": [
+     246,
+     228,
+     224
+    ],
+    "1199,0": [
+     70,
+     7,
+     11
+    ],
+    "600,315": [
+     158,
+     114,
+     107
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "card default (3 keyframe chips)",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "9fe9c6abf72b6265fccf6fa0eba94dd5d844aab42262d0f2b697b34758a201ed",
+   "pngBytes": 60245,
+   "samples": {
+    "0,0": [
+     246,
+     228,
+     224
+    ],
+    "1199,0": [
+     70,
+     7,
+     11
+    ],
+    "600,315": [
+     158,
+     114,
+     107
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "card chips=off",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "7ce601fc9bf5a36dedb765e192f6c94af14c59fa45482b5215634df1bd886b42",
+   "pngBytes": 54847,
+   "samples": {
+    "0,0": [
+     246,
+     228,
+     224
+    ],
+    "1199,0": [
+     70,
+     7,
+     11
+    ],
+    "600,315": [
+     158,
+     114,
+     107
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "card head=800x200",
+   "width": 800,
+   "height": 200,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "babb7f6752ae166ae799bb4317859c8ccb152fe5d597801553d4ae5b8dd75106",
+   "pngBytes": 14972,
+   "samples": {
+    "0,0": [
+     246,
+     228,
+     224
+    ],
+    "799,0": [
+     70,
+     7,
+     11
+    ],
+    "400,100": [
+     157,
+     114,
+     107
+    ],
+    "799,199": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "card two keyframes (gray)",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "3e2d18e629e623b940dff1f2bf8d538cd0d8c9fa14ddc12e62b243daa2d36b0a",
+   "pngBytes": 38904,
+   "samples": {
+    "0,0": [
+     0,
+     0,
+     0
+    ],
+    "1199,0": [
+     255,
+     255,
+     255
+    ],
+    "600,315": [
+     99,
+     99,
+     99
+    ],
+    "1199,629": [
+     255,
+     255,
+     255
+    ]
+   }
+  },
+  {
+   "name": "card eight keyframes",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "8092d46190ecc582254457a97834a38362e18c8fbedeab9a1c6f82e2dff60ad5",
+   "pngBytes": 55914,
+   "samples": {
+    "0,0": [
+     30,
+     0,
+     10
+    ],
+    "1199,0": [
+     196,
+     201,
+     255
+    ],
+    "600,315": [
+     46,
+     114,
+     45
+    ],
+    "1199,629": [
+     197,
+     201,
+     255
+    ]
+   }
+  },
+  {
+   "name": "card radialGradient steps 100",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "fefbff4d5007c44821a82a496c210053c766120e6ee49c208ff024c04a8f6cc3",
+   "pngBytes": 168168,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "1199,0": [
+     70,
+     7,
+     11
+    ],
+    "600,315": [
+     238,
+     218,
+     213
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "montage card of 1",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "42ae72e12b25fc4b64cef0db1b9d4298eebe8c372b85311ff81d3106c1f4286c",
+   "pngBytes": 169942,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "1199,0": [
+     70,
+     7,
+     11
+    ],
+    "600,315": [
+     246,
+     228,
+     224
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "montage card of 2",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "17f03bb558bab70e080b12c1d90c44af7d798c2b4144b6f525a158b3f9f266b8",
+   "pngBytes": 131511,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "1199,0": [
+     255,
+     255,
+     255
+    ],
+    "600,315": [
+     0,
+     0,
+     0
+    ],
+    "1199,629": [
+     255,
+     255,
+     255
+    ]
+   }
+  },
+  {
+   "name": "montage card of 5",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "080f05b26eb8954d71a650daf6c328642853ae03c3033b800fe3d55424d602f2",
+   "pngBytes": 107246,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "1199,0": [
+     70,
+     7,
+     11
+    ],
+    "600,315": [
+     0,
+     0,
+     0
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "montage card of 9",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "893a27c747e3bca6f19edbe7a7e462eca83e3497b3e7c145402b0944b569578c",
+   "pngBytes": 114971,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "1199,0": [
+     255,
+     255,
+     255
+    ],
+    "600,315": [
+     0,
+     0,
+     0
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "montage card of 10",
+   "width": 1200,
+   "height": 630,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "893a27c747e3bca6f19edbe7a7e462eca83e3497b3e7c145402b0944b569578c",
+   "pngBytes": 114971,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "1199,0": [
+     255,
+     255,
+     255
+    ],
+    "600,315": [
+     0,
+     0,
+     0
+    ],
+    "1199,629": [
+     70,
+     7,
+     11
+    ]
+   }
+  },
+  {
+   "name": "montage png of 7 at 600x400",
+   "width": 600,
+   "height": 400,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "bb5ed86cc658daea9f1e122495f6c03ca082e3e04c23b2a655643bf002770e1b",
+   "pngBytes": 31068,
+   "samples": {
+    "0,0": [
+     70,
+     7,
+     11
+    ],
+    "599,0": [
+     70,
+     7,
+     11
+    ],
+    "300,200": [
+     246,
+     228,
+     224
+    ],
+    "599,399": [
+     255,
+     255,
+     255
+    ]
+   }
+  },
+  {
+   "name": "brand head 800x200 (account email, no palette)",
+   "width": 800,
+   "height": 200,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "4df65d70c305d04537d3a936b44da78e8169edb4a50bbec55076c0293675a5cf",
+   "pngBytes": 13579,
+   "samples": {
+    "0,0": [
+     255,
+     210,
+     95
+    ],
+    "799,0": [
+     161,
+     127,
+     255
+    ],
+    "400,100": [
+     255,
+     95,
+     109
+    ],
+    "799,199": [
+     161,
+     127,
+     255
+    ]
+   }
+  },
+  {
+   "name": "brand head 1200x300 (newsletter, no palette)",
+   "width": 1200,
+   "height": 300,
+   "chunks": [
+    "IHDR",
+    "sRGB",
+    "IDAT",
+    "IEND"
+   ],
+   "rgbSha256": "58f6c35dfbd3b834b45b958d5e17500c94652f863eb1bfcefeb25719d6fbb433",
+   "pngBytes": 25929,
+   "samples": {
+    "0,0": [
+     255,
+     210,
+     95
+    ],
+    "1199,0": [
+     161,
+     127,
+     255
+    ],
+    "600,150": [
+     255,
+     95,
+     109
+    ],
+    "1199,299": [
+     161,
+     127,
+     255
+    ]
+   }
+  }
+ ]
+}

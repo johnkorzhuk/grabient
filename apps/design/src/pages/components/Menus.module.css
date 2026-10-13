@@ -1,0 +1,15 @@
+/* the account's press at the top, its menu hanging from it as the header hangs it, toward the room on the left */
+.anchored {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  align-self: flex-start;
+  width: 100%;
+  max-width: 260px;
+  min-height: 300px;
+}
+.hang {
+  position: relative;
+  width: 100%;
+}

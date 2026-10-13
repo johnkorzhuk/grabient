@@ -1,0 +1,48 @@
+{
+  "unknownToolForAccount": {
+    "code": -32602,
+    "message": "Unknown tool: liked_palettes"
+  },
+  "unknownMethodLegacy": {
+    "code": -32601,
+    "message": "Method not found: prompts/list"
+  },
+  "unknownMethodModern": {
+    "status": 404,
+    "body": {
+      "jsonrpc": "2.0",
+      "id": 11,
+      "error": {
+        "code": -32601,
+        "message": "Method not found: prompts/list"
+      }
+    }
+  },
+  "headerMismatch": {
+    "status": 400,
+    "body": {
+      "jsonrpc": "2.0",
+      "id": 12,
+      "error": {
+        "code": -32020,
+        "message": "Header mismatch: Mcp-Method is tools/call and the body says tools/list."
+      }
+    }
+  },
+  "missingResource": {
+    "code": -32002,
+    "message": "Resource not found",
+    "data": {
+      "uri": "ui://grabient/v9/none.html"
+    }
+  },
+  "argsRefusal": {
+    "content": [
+      {
+        "type": "text",
+        "text": "order is one of popular, rising, newest, hot: \"trending\" was sent."
+      }
+    ],
+    "isError": true
+  }
+}
