@@ -67,8 +67,7 @@ describe("verify", () => {
       "DELETE FROM d1_migrations WHERE name = '0054_search_unread.sql'",
       "migrations"
     ],
-    ["an index dropped", "DROP INDEX k_palettes_hot_idx", "schema"],
-    ["an admin who is not one", "UPDATE auth_user SET role = 'user' WHERE id = 'PA'", "admins"]
+    ["an index dropped", "DROP INDEX k_palettes_hot_idx", "schema"]
   ])("fails a copy with %s", async (_, sql, name) => {
     expect(failed(await checked(db => run(db, [sql])))).toContain(name);
   });

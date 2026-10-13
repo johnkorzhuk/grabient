@@ -1,5 +1,5 @@
 /* Builds production as the rebuild will hold it after the cutover, in a local D1 that cf simulates, from the
-   snapshots read.ts made of production (.data/production) and grabient-lite (.data/lite):
+   snapshots read.ts made of production (.data/production) and grabient-lite (.data/lite), and then staging's copy of it:
 
      1. production's own schema and migration history, then its rows: every account and Google link, its palettes,
         likes and the old app's records. Sessions and sign-in links are left out, Google's tokens are NULL.
@@ -7,11 +7,13 @@
         there, 0022 to 0054 build on them and transform their rows.
      3. the plan: the palette import (palettes.ts), grabient-lite's contributor work (merge.ts), the counts made whole,
         the sign-in cleanup production needs, and the scores (scores.ts).
-     4. grabient-lite's admins as admins, since only admins sign in on staging. The plan leaves this out.
+     4. the full build read back into .data/full and checked against both sources (verify.ts).
+     5. staging's copy (stagingStatements), made from the full build in memory, loaded into a local D1 of its own as
+        load.ts loads staging, read back into .data/local and checked against the full build.
 
    The plan is what production itself takes after its own migrations at the cutover, so it is also written out:
-   .data/plan/plan.sql to read, and .data/plan/NNNN.json, the requests in order, to apply. The copy is then read back
-   into .data/local and checked (verify.ts).
+   .data/plan/plan.sql to read, and .data/plan/NNNN.json, the requests in order, to apply. Staging's rule is no part
+   of it. .data/build ends as the local D1 of staging's copy.
 
      node scripts/data/build.ts */
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -23,13 +25,13 @@ import {
   type Database,
   execute,
   insertRows,
-  literal,
   local,
+  MIGRATIONS,
   name,
   requests,
-  select,
-  WEB
+  select
 } from "./d1.ts";
+import { loadStatements } from "./load.ts";
 import { authCleanup, collectionRepairs, LEFT, mergeStatements } from "./merge.ts";
 import {
   importStatements,
@@ -49,10 +51,13 @@ import {
   type Snapshot,
   writeSnapshot
 } from "./snapshot.ts";
-import { report, verify } from "./verify.ts";
+import { stagingCopy } from "./staging.ts";
+import { report, verify, verifyStaging } from "./verify.ts";
 
 export const BUILD = resolve(DATA, "build");
 export const PLAN = resolve(DATA, "plan");
+export const FULL = resolve(DATA, "full");
+export const LOCAL = resolve(DATA, "local");
 
 /** Production as it stands before the cutover: its schema, its migration history and the rows read.ts read. */
 export function baseStatements(production: Snapshot): string[] {
@@ -103,19 +108,6 @@ export function planStatements(
   };
 }
 
-/** The accounts of grabient-lite's admins made admins, found by email. */
-export const adminStatements = (lite: Snapshot) => {
-  const emails = lite
-    .rows("auth_user")
-    .filter(user => user.role === "admin")
-    .map(user => literal(String(user.email).toLowerCase()));
-  return emails.length
-    ? [
-        `UPDATE auth_user SET role = 'admin' WHERE lower(email) IN (${emails.join(", ")}) AND role <> 'admin'`
-      ]
-    : [];
-};
-
 /** Every row of `table` matching `where`, a page at a time. */
 export async function selectAll(
   db: Database,
@@ -149,7 +141,7 @@ async function migrate(db: Database): Promise<string[]> {
     "--persist-to",
     db.persist!,
     "--dir",
-    resolve(WEB, "migrations")
+    MIGRATIONS
   ])) as { name: string; status: string }[];
   const failed = applied.filter(migration => migration.status !== "✅");
   if (failed.length) throw new Error(`Migrations failed: ${failed.map(m => m.name).join(", ")}`);
@@ -194,7 +186,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     );
   }
   const missing = unmapped(production.rows("palettes"), aliases);
-  const summary = {
+  const summary: Record<string, unknown> = {
     builtAt: now,
     production: production.meta.readAt,
     lite: lite.meta.readAt,
@@ -208,7 +200,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     dropped: merge.dropped,
     left: LEFT
   };
-  writeFileSync(resolve(PLAN, "report.json"), `${JSON.stringify(summary, null, 1)}\n`);
+  const writeReport = () =>
+    writeFileSync(resolve(PLAN, "report.json"), `${JSON.stringify(summary, null, 1)}\n`);
+  writeReport();
   const mapped = [...merge.users].filter(([, to]) => !merge.created.includes(to)).length;
   console.log(
     `\n  ${plan.length} statements in ${requests(plan).length} requests, written to ${PLAN}` +
@@ -220,13 +214,23 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       (Object.keys(merge.dropped).length ? `\n  left behind: ${JSON.stringify(merge.dropped)}` : "")
   );
 
-  step("4. grabient-lite's admins as admins: only they sign in on staging");
-  const admins = await execute(db, adminStatements(lite));
-  console.log(`  ${admins} accounts made admin`);
-
-  step("5. The copy, read back and checked");
+  step("4. The full build, read back and checked against its sources");
   const read = await readDatabase(reader(db), db, 5000);
-  writeSnapshot(resolve(DATA, "local"), read.meta, read.schema, read.tables);
-  const checks = verify(readSnapshot(resolve(DATA, "local")), production, lite, { aliases, now });
-  if (!report(checks)) process.exit(1);
+  writeSnapshot(FULL, read.meta, read.schema, read.tables);
+  const full = readSnapshot(FULL);
+  if (!report(verify(full, production, lite, { aliases, now }))) process.exit(1);
+
+  step("5. Staging's copy, loaded into a local D1 of its own, read back and checked");
+  const copy = await stagingCopy(full, lite, now);
+  rmSync(BUILD, { recursive: true, force: true });
+  const staging = local(BUILD);
+  await execute(staging, loadStatements(copy), done);
+  const back = await readDatabase(reader(staging), staging, 5000);
+  writeSnapshot(LOCAL, back.meta, back.schema, back.tables);
+  summary.staging = Object.fromEntries(
+    Object.entries(copy.meta.tables).map(([table, t]) => [table, t.rows])
+  );
+  writeReport();
+  console.log();
+  if (!report(verifyStaging(readSnapshot(LOCAL), full, lite, { local: copy }))) process.exit(1);
 }

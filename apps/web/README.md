@@ -72,6 +72,14 @@ password of the one account `REVIEWER_EMAIL` names, behind Turnstile where `TURN
 (`packages/server/src/auth`). Every tool keeps a title and its four hints, and its words say what it does
 (`src/server/mcp/tools.test.ts`).
 
+## Staging's data
+
+grabient-staging holds a snapshot of production, made by `scripts/data`: `read.ts` reads production and grabient-lite
+into `.data` (ignored by git, since it holds production's accounts), `build.ts` builds production as the cutover will
+leave it and then staging's copy, and `load.ts --replace` writes that copy to grabient-staging, the one database it
+writes. Anyone may sign in on staging, so the copy (`staging.ts`) holds what every reader sees and, whole, the admins,
+the personas and the accounts the site's work names; no other account, session or token. `verify.ts` checks each copy.
+
 ## Checks
 
 Unit tests sit beside the code (`*.test.ts`). `pnpm e2e` runs the Playwright smoke tests against `vite dev` on a free

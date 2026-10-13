@@ -6,9 +6,12 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DATABASES } from "../../cloudflare.config.ts";
 
 export const WEB = fileURLToPath(new URL("../..", import.meta.url));
 export const DATA = resolve(WEB, ".data");
+/** The database's migrations, which the server package keeps for every Worker on it. */
+export const MIGRATIONS = resolve(WEB, "../../packages/server/migrations");
 
 /** A database these scripts reach: a remote one by its id, or a local simulation kept in `persist`. */
 export interface Database {
@@ -17,15 +20,8 @@ export interface Database {
   persist?: string;
 }
 
-/* The databases by the ids cloudflare.config.ts gives them, which d1.test.ts holds equal. */
-export const PRODUCTION: Database = {
-  name: "grabient-prod",
-  id: "8902a4a8-cca3-4a34-b456-7b35ad021985"
-};
-export const STAGING: Database = {
-  name: "grabient-staging",
-  id: "597c5ce0-b20a-4bb4-892f-35dc508cf19b"
-};
+export const PRODUCTION: Database = DATABASES.production;
+export const STAGING: Database = DATABASES.staging;
 /** grabient4's staging, the live site until the release. */
 export const LITE: Database = { name: "grabient", id: "acb5748b-2b55-404e-8a15-2718a8524b86" };
 /* No remote database has this id, so a command that lost its --local fails instead of reaching one. */

@@ -1,4 +1,3 @@
-import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   insertRows,
@@ -9,20 +8,10 @@ import {
   readOnly,
   requests,
   STAGING,
-  WEB,
   writable
 } from "./d1.ts";
 
 describe("D1 access", () => {
-  it("names the databases as cloudflare.config.ts does", async () => {
-    const config: string = resolve(WEB, "cloudflare.config.ts");
-    const { DATABASES } = (await import(config)) as {
-      DATABASES: Record<string, { name: string; id: string }>;
-    };
-    expect(DATABASES.production).toEqual({ name: PRODUCTION.name, id: PRODUCTION.id });
-    expect(DATABASES.staging).toEqual({ name: STAGING.name, id: STAGING.id });
-  });
-
   it("reads with one SELECT and nothing else", () => {
     expect(readOnly("SELECT 1")).toBe("SELECT 1");
     for (const sql of [
