@@ -30,7 +30,7 @@ interface TextRow {
   title: string;
   embed: string;
 }
-const texts = async (env: Reader, seeds: readonly string[]) =>
+export const texts = async (env: Reader, seeds: readonly string[]) =>
   seeds.length
     ? await all<TextRow>(
         env.DB,
@@ -41,7 +41,7 @@ const texts = async (env: Reader, seeds: readonly string[]) =>
 
 /** A palette's written words as a reader is shown them: the title only where the palette's colors bear it out, and the
     description only beside it and where it holds too. */
-function heldWords(
+export function heldWords(
   text: TextRow | undefined,
   palette: Palette | null
 ): { title: string; embed: string } | null {

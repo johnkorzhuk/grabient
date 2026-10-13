@@ -138,7 +138,7 @@ export interface LikeOutcome {
 
 const LIKED = "EXISTS (SELECT 1 FROM k_likes WHERE user_id = ? AND palette_id = ?)";
 /** When the site first held a palette: the first time a collection did, or now. Bound as (now, seed, now). */
-const FIRST_HELD = `COALESCE(MIN(?, (SELECT MIN(COALESCE(j.created_at, jc.created_at)) FROM k_collection_items j
+export const FIRST_HELD = `COALESCE(MIN(?, (SELECT MIN(COALESCE(j.created_at, jc.created_at)) FROM k_collection_items j
   JOIN k_collections jc ON jc.id = j.collection_id WHERE j.seed = ?)), ?)`;
 
 async function likeContext(env: Pick<Env, "DB">, from: LikeInput["from"]) {
