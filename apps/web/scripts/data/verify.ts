@@ -606,7 +606,11 @@ export function verifyStaging(
   const stays = (id: Value) => id === null || kept.has(String(id)) || holders.has(String(id));
   const leftCollections = new Set(
     userCollections
-      .filter(c => !kept.has(String(c.owner_id)) && !(c.visibility === "public" && holders.has(String(c.owner_id))))
+      .filter(
+        c =>
+          !kept.has(String(c.owner_id)) &&
+          !(c.visibility === "public" && holders.has(String(c.owner_id)))
+      )
       .map(c => String(c.id))
   );
   const userColumns = full.meta.tables.auth_user!.columns;
@@ -649,7 +653,9 @@ export function verifyStaging(
     "admins",
     [...admins].flatMap(email => {
       const user = copy.rows("auth_user").find(u => String(u.email).toLowerCase() === email);
-      return user?.role === "admin" ? [] : [`grabient-lite's admin ${email.replace(/^[^@]*/, "…")} is not one here`];
+      return user?.role === "admin"
+        ? []
+        : [`grabient-lite's admin ${email.replace(/^[^@]*/, "…")} is not one here`];
     }),
     "grabient-lite's admins are admins here"
   );
@@ -658,12 +664,14 @@ export function verifyStaging(
   const own = new Map(OWN_COLUMNS);
   const leftLikes = new Map<string, number>();
   for (const like of full.rows("k_likes")) {
-    if (!stays(like.user_id)) leftLikes.set(String(like.palette_id), (leftLikes.get(String(like.palette_id)) ?? 0) + 1);
+    if (!stays(like.user_id))
+      leftLikes.set(String(like.palette_id), (leftLikes.get(String(like.palette_id)) ?? 0) + 1);
   }
   const expect = (table: string, row: Row): Row | null => {
     const column = own.get(table);
     if (column && !stays(row[column] ?? null)) return null;
-    const inLeft = (id: Value | undefined) => id !== null && id !== undefined && leftCollections.has(String(id));
+    const inLeft = (id: Value | undefined) =>
+      id !== null && id !== undefined && leftCollections.has(String(id));
     switch (table) {
       case "auth_user":
         if (!kept.has(String(row.id))) return null;
@@ -688,7 +696,8 @@ export function verifyStaging(
       case "k_palettes":
         return {
           ...row,
-          legacy_likes_count: Number(row.legacy_likes_count) + (leftLikes.get(String(row.seed)) ?? 0)
+          legacy_likes_count:
+            Number(row.legacy_likes_count) + (leftLikes.get(String(row.seed)) ?? 0)
         };
     }
     return row;
@@ -705,8 +714,12 @@ export function verifyStaging(
     const have = tally(b);
     const short = (key: string) => `${table} ${key.slice(0, 70)}`;
     return [
-      ...[...want].filter(([key, n]) => (have.get(key) ?? 0) < n).map(([key]) => `${short(key)} is missing`),
-      ...[...have].filter(([key, n]) => (want.get(key) ?? 0) < n).map(([key]) => `${short(key)} is extra`)
+      ...[...want]
+        .filter(([key, n]) => (have.get(key) ?? 0) < n)
+        .map(([key]) => `${short(key)} is missing`),
+      ...[...have]
+        .filter(([key, n]) => (want.get(key) ?? 0) < n)
+        .map(([key]) => `${short(key)} is extra`)
     ];
   };
   const own_tables = Object.entries(full.meta.tables).filter(
@@ -742,7 +755,8 @@ export function verifyStaging(
           value.split(/[^\w-]+/).find(word => leftIds.has(word)) ??
           value.match(/[\w.%+-]+@[\w.-]+/g)?.find(email => emails.has(email.toLowerCase())) ??
           [...value.matchAll(/@([^/\s"'@]+)\//g)].find(m => handles.has(m[1]!.toLowerCase()))?.[0];
-        if (hit) named.push(`${table}.${column} names ${hit.length > 12 ? `${hit.slice(0, 8)}…` : hit}`);
+        if (hit)
+          named.push(`${table}.${column} names ${hit.length > 12 ? `${hit.slice(0, 8)}…` : hit}`);
       }
     }
   }
@@ -753,7 +767,9 @@ export function verifyStaging(
   check(
     "nothing private",
     [
-      ...PRIVATE.filter(table => count(table) > 0).map(table => `${table} holds ${count(table)} rows`),
+      ...PRIVATE.filter(table => count(table) > 0).map(
+        table => `${table} holds ${count(table)} rows`
+      ),
       ...copy
         .rows("auth_account")
         .filter(a => CLEARED.some(c => a[c] !== null))
@@ -781,7 +797,10 @@ export function verifyStaging(
     [
       ...copy.rows("k_palettes").flatMap(p => {
         const off = unlike(p, fullPalettes.get(String(p.seed)), ["likes_count", ...scoreColumns]);
-        if (Number(p.likes_count) !== Number(p.legacy_likes_count) + (likeRows.get(String(p.seed)) ?? 0))
+        if (
+          Number(p.likes_count) !==
+          Number(p.legacy_likes_count) + (likeRows.get(String(p.seed)) ?? 0)
+        )
           off.push("likes left out");
         return off.length ? [`palette ${p.seed}: ${off.join(", ")}`] : [];
       }),
@@ -805,7 +824,9 @@ export function verifyStaging(
   check(
     "switches",
     [
-      ...STAGING_OFF.filter(name => Number(flags.get(name)?.enabled ?? 1) !== 0).map(name => `${name} is on`),
+      ...STAGING_OFF.filter(name => Number(flags.get(name)?.enabled ?? 1) !== 0).map(
+        name => `${name} is on`
+      ),
       ...differ(
         "k_flags",
         full.rows("k_flags").filter(f => !STAGING_OFF.includes(String(f.name))),
@@ -817,7 +838,10 @@ export function verifyStaging(
 
   /* the tags under the search field, and the counts they are made from: grabient-lite's */
   const shown = new Set(
-    copy.rows("k_collections").filter(c => c.visibility === "public").map(c => String(c.slug))
+    copy
+      .rows("k_collections")
+      .filter(c => c.visibility === "public")
+      .map(c => String(c.slug))
   );
   check(
     "search tags",
@@ -826,7 +850,12 @@ export function verifyStaging(
         table,
         lite
           .rows(table)
-          .filter(row => table !== "k_popular_searches" || row.kind !== "collections" || shown.has(String(row.value))),
+          .filter(
+            row =>
+              table !== "k_popular_searches" ||
+              row.kind !== "collections" ||
+              shown.has(String(row.value))
+          ),
         copy.rows(table)
       )
     ),
