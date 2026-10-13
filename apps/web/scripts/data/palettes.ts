@@ -78,15 +78,15 @@ export function importStatements(
           .map(([old, seed]) => `(${literal(old)}, ${literal(seed)})`)
           .join(", ")} ON CONFLICT(legacy_seed) DO NOTHING`
     ),
-    /* every production palette at its seed, in production's view and time; of two ids on one seed the older names it */
+    /* every production palette at its seed, in production's view and time; of two ids on one seed the older names it,
+       and a palette the gallery already holds keeps its row */
     `INSERT INTO k_palettes (seed, style, steps, angle, created_at)
 SELECT m.kseed, p.style, ${steps("p.steps", "m.kseed")}, p.angle, p.created_at
 FROM palettes p JOIN k_legacy_map m ON m.legacy_seed = p.id
 WHERE p.style IN (${STYLES.map(literal).join(", ")}) AND p.id = (
   SELECT q.id FROM palettes q JOIN k_legacy_map n ON n.legacy_seed = q.id
   WHERE n.kseed = m.kseed ORDER BY q.created_at, q.id LIMIT 1)
-ON CONFLICT(seed) DO UPDATE SET style = excluded.style, steps = excluded.steps, angle = excluded.angle,
-  created_at = excluded.created_at`,
+ON CONFLICT(seed) DO NOTHING`,
     ...viewed.map(
       original =>
         `INSERT INTO k_palettes (seed, style, steps, angle, created_at) VALUES (${[
