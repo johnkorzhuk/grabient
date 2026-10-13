@@ -1,0 +1,229 @@
+{
+ "countedWords": [
+  {
+   "page": "palettes",
+   "raw": "Sunset",
+   "counted": "sunset",
+   "unread": "sunset"
+  },
+  {
+   "page": "palettes",
+   "raw": "atardecer",
+   "counted": "sunset",
+   "unread": "atardecer"
+  },
+  {
+   "page": "palettes",
+   "raw": "sunsett",
+   "counted": "sunset",
+   "unread": "sunsett"
+  },
+  {
+   "page": "palettes",
+   "raw": "grey",
+   "counted": "gray",
+   "unread": "grey"
+  },
+  {
+   "page": "home",
+   "raw": "cyberpunk",
+   "counted": "cyberpunk",
+   "unread": "cyberpunk"
+  },
+  {
+   "page": "palettes",
+   "raw": "my name is john smith",
+   "counted": null,
+   "unread": "my name is john smith"
+  },
+  {
+   "page": "palettes",
+   "raw": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "counted": null,
+   "unread": null
+  },
+  {
+   "page": "palettes",
+   "raw": "🌊",
+   "counted": "🌊",
+   "unread": null
+  },
+  {
+   "page": "home",
+   "raw": "☀",
+   "counted": "☀️",
+   "unread": null
+  },
+  {
+   "page": "palettes",
+   "raw": "⚡",
+   "counted": null,
+   "unread": null
+  },
+  {
+   "page": "palettes",
+   "raw": "🤍🌹",
+   "counted": "🤍🌹",
+   "unread": null
+  },
+  {
+   "page": "home",
+   "raw": "🌲❄",
+   "counted": "🌲❄️",
+   "unread": null
+  },
+  {
+   "page": "palettes",
+   "raw": "🍆💦",
+   "counted": null,
+   "unread": null
+  },
+  {
+   "page": "palettes",
+   "raw": "🍆",
+   "counted": "eggplant",
+   "unread": null
+  },
+  {
+   "page": "collections",
+   "raw": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "counted": null,
+   "unread": null
+  },
+  {
+   "page": "palettes",
+   "raw": "a b c d e f g",
+   "counted": null,
+   "unread": null
+  },
+  {
+   "page": "palettes",
+   "raw": "dark blue sunset",
+   "counted": null,
+   "unread": "dark blue sunset"
+  }
+ ],
+ "tally": [
+  [
+   "halloween",
+   8.457983
+  ],
+  [
+   "pumpkin",
+   2.717171
+  ],
+  [
+   "blue",
+   67.681993
+  ],
+  [
+   "winter",
+   13.585855
+  ],
+  [
+   "ocean",
+   1.367162
+  ]
+ ],
+ "risingSearches": [
+  {
+   "words": "halloween",
+   "week": 9,
+   "before": 2,
+   "lift": 9
+  },
+  {
+   "words": "pumpkin",
+   "week": 3,
+   "before": 0,
+   "lift": 9
+  }
+ ],
+ "rows": [
+  {
+   "day": 20000,
+   "page": "palettes",
+   "words": "halloween",
+   "count": 4
+  },
+  {
+   "day": 19997,
+   "page": "palettes",
+   "words": "halloween",
+   "count": 5
+  },
+  {
+   "day": 19990,
+   "page": "palettes",
+   "words": "halloween",
+   "count": 2
+  },
+  {
+   "day": 19999,
+   "page": "palettes",
+   "words": "pumpkin",
+   "count": 3
+  },
+  {
+   "day": 20000,
+   "page": "palettes",
+   "words": "blue",
+   "count": 20
+  },
+  {
+   "day": 19998,
+   "page": "palettes",
+   "words": "blue",
+   "count": 22
+  },
+  {
+   "day": 19991,
+   "page": "palettes",
+   "words": "blue",
+   "count": 40
+  },
+  {
+   "day": 19984,
+   "page": "palettes",
+   "words": "blue",
+   "count": 44
+  },
+  {
+   "day": 19977,
+   "page": "palettes",
+   "words": "blue",
+   "count": 41
+  },
+  {
+   "day": 19998,
+   "page": "palettes",
+   "words": "mint",
+   "count": 2
+  },
+  {
+   "day": 19992,
+   "page": "palettes",
+   "words": "winter",
+   "count": 30
+  },
+  {
+   "day": 19970,
+   "page": "palettes",
+   "words": "ocean",
+   "count": 9
+  },
+  {
+   "day": 19999,
+   "page": "palettes",
+   "words": "ocean",
+   "count": 1
+  },
+  {
+   "day": 20000,
+   "page": "palettes",
+   "words": "y2k",
+   "count": 2
+  }
+ ],
+ "today": 20000
+}

@@ -158,6 +158,20 @@ export function decodeSnapshot(bytes: ArrayBuffer | Uint8Array): Snapshot {
   };
 }
 
+/** The fields a snapshot's head leads with, read from the start of its file alone: encodeSnapshot writes them before
+    the seeds. Null when the bytes hold no such start or another format. */
+export function snapshotHead(
+  start: Uint8Array
+): Pick<Snapshot, "version" | "d" | "builtAt" | "mark" | "pending"> | null {
+  const text = new TextDecoder().decode(start);
+  const end = text.indexOf(',"seeds":');
+  if (end < 0) return null;
+  const head = JSON.parse(`${text.slice(0, end)}}`) as Omit<Head, "seeds">;
+  if (head.format !== SNAPSHOT_FORMAT) return null;
+  const { version, d, builtAt, mark, pending } = head;
+  return { version, d, builtAt, mark, pending };
+}
+
 /** One row as the numbers it stands for. */
 export const rowOf = (table: Rows, d: number, i: number): number[] =>
   Array.from({ length: d }, (_, j) => table.q[i * d + j] * table.scale[i]);
