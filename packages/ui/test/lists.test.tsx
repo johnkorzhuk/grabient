@@ -24,6 +24,8 @@ function tags(markup: string, name: string): Attrs[] {
   );
 }
 const tag = (markup: string, name: string, i = 0): Attrs => tags(markup, name)[i] ?? {};
+/** The words of the markup, as a reader reads them. */
+const text = (markup: string) => markup.replace(/<!--.*?-->/g, "").replace(/<[^>]*>/g, "");
 const noop = () => {};
 const helpers = JSON.parse(
   readFileSync(
@@ -223,7 +225,7 @@ describe("the feeds on the server", () => {
     ));
     expect(tag(markup, "section")["aria-label"]).toBe("Ocean blues");
     expect(tag(markup, "a").href).toBe("/ocean-blues");
-    expect(markup).toContain("1 palette");
+    expect(text(markup)).toContain("1 palette");
     expect(markup).toContain("Private");
     expect(tags(markup, "i")).toHaveLength(2);
   });
