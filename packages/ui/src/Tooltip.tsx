@@ -66,7 +66,8 @@ function layer(): HTMLElement {
   bubble.className = styles.bubble;
   bubble.addEventListener("pointerenter", stay);
   bubble.addEventListener("pointerleave", closeSoon);
-  document.body.append(bubble);
+  // appendChild: the Worker's types give Element an append of their own, and the app checks both
+  document.body.appendChild(bubble);
   return bubble;
 }
 

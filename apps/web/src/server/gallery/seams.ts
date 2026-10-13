@@ -1,47 +1,10 @@
 import { all, first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import type { CollectionPage, CollectionSummary } from "../../features/gallery/collections.ts";
-import type { SearchItem } from "../../features/gallery/schema.ts";
-import { itemOf } from "./palettes.ts";
+import { itemOf } from "./list.ts";
 
-/* What the gallery's server takes from the areas around it, each under the name and shape its spec gives it: the
-   search (U07) and the collections (U04). These are stand-ins until those areas land; each says what it stands in
-   for, and the gallery calls nothing of theirs but through here. */
-
-/** Stands in for the search's index write when a palette joins the gallery (U07 J, `afterWrite`). */
-export function paletteJoined(_env: Env, _seed: string): void {}
-
-export interface SearchAnswer {
-  items: SearchItem[];
-  /** who answered: words the vocabulary read, colors, a palette's likeness, or `account` when only an account's search
-      can; `unavailable` when the search files are missing */
-  tier: string;
-  partial?: boolean;
-  /** an allowance ran out */
-  limited?: boolean;
-  /** read without the model a reader would have been given: never kept for others */
-  unkept?: boolean;
-}
-
-/** Stands in for the public search (U07 C, `searchPalettes`): its candidates, at most `limit`. */
-export async function searchPalettes(
-  _env: Env,
-  _words: string,
-  _options: { limit: number; request: Request }
-): Promise<SearchAnswer> {
-  return { items: [], tier: "words" };
-}
-
-/** Stands in for the free search of an account's own likes (U07 G, `searchOwnSeeds`): the seeds that answer the words,
-    best first. */
-export async function searchOwn(
-  _env: Env,
-  _words: string,
-  _seeds: readonly string[],
-  _request: Request
-): Promise<{ tier: string; found: { seed: string; score: number }[] }> {
-  return { tier: "words", found: [] };
-}
+/* What the gallery's server takes from the collections area (U04) until it lands: the collections list's own page,
+   under the name and shape its spec gives it. The gallery calls nothing of theirs but through here. */
 
 interface CollectionRow {
   id: string;

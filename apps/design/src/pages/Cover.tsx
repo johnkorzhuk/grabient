@@ -11,6 +11,7 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { color, font, motion, radius, size, space } from "@grabient/ui/tokens.ts";
 import { type Element, For, useContext } from "solid-js";
 import { PAGES, type Page } from "../contents.ts";
+import { cardTools, sampleName } from "../doc/cards.tsx";
 import { Footer } from "../doc/Footer.tsx";
 import { hexes, POPULAR } from "../samples.ts";
 import styles from "./Cover.module.css";
@@ -121,12 +122,15 @@ function Kit() {
     <div class={styles.kit}>
       <PaletteCard
         seed={sample.seed}
+        name={sampleName(sample)}
         stops={hexes(sample.seed, sample.steps)}
         style={sample.style}
         angle={sample.angle}
+        href={`/${sample.seed}`}
         age="12 days"
         likes={sample.likes}
-        hover
+        state="hover"
+        tools={cardTools}
       />
       <div class={styles.controls}>
         <Segmented

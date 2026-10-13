@@ -1,0 +1,768 @@
+{
+ "keys": [
+  {
+   "label": "list popular",
+   "key": "[\"list\",\"popular\",1,24]"
+  },
+  {
+   "label": "list popular, any view",
+   "key": "[\"list\",\"popular\",1,24]"
+  },
+  {
+   "label": "list rising 1w",
+   "key": "[\"list\",\"rising\",1,24]"
+  },
+  {
+   "label": "list rising 3m p2 l12",
+   "key": "[\"list\",\"rising\",\"3m\",2,12]"
+  },
+  {
+   "label": "search blue",
+   "key": "[\"search\",\"blue\",\"popular\",1,24]"
+  },
+  {
+   "label": "search blue rising 1y",
+   "key": "[\"search\",\"blue\",\"rising\",\"1y\",1,24]"
+  },
+  {
+   "label": "saved",
+   "key": "[\"saved\",\"user-1\",\"\",1,24]"
+  },
+  {
+   "label": "saved searched",
+   "key": "[\"saved\",\"user-1\",\"red\",1,24]"
+  }
+ ],
+ "listOptions": [
+  {
+   "input": {},
+   "output": {
+    "sort": "popular",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "input": {
+    "sort": "unknown",
+    "page": null,
+    "limit": null
+   },
+   "output": {
+    "sort": "popular",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "input": {
+    "page": 50000,
+    "limit": 500
+   },
+   "output": {
+    "sort": "popular",
+    "page": 10000,
+    "limit": 96
+   }
+  },
+  {
+   "input": {
+    "page": 0,
+    "limit": -2
+   },
+   "output": {
+    "sort": "popular",
+    "page": 1,
+    "limit": 1
+   }
+  },
+  {
+   "input": {
+    "sort": "rising",
+    "frame": "1w"
+   },
+   "output": {
+    "sort": "rising",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "input": {
+    "sort": "rising",
+    "frame": "3m"
+   },
+   "output": {
+    "sort": "rising",
+    "page": 1,
+    "limit": 24,
+    "frame": "3m"
+   }
+  },
+  {
+   "input": {
+    "sort": "newest",
+    "frame": "3m"
+   },
+   "output": {
+    "sort": "newest",
+    "page": 1,
+    "limit": 24
+   }
+  }
+ ],
+ "cacheHeaders": [
+  {
+   "fetchedAt": 1791806400000,
+   "now": 1791806400000,
+   "ttl": 300,
+   "headers": {
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "CDN-Cache-Control": "max-age=300"
+   }
+  },
+  {
+   "fetchedAt": 1791806101000,
+   "now": 1791806400000,
+   "ttl": 300,
+   "headers": {
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "CDN-Cache-Control": "max-age=1"
+   }
+  },
+  {
+   "fetchedAt": 1791806100000,
+   "now": 1791806400000,
+   "ttl": 300,
+   "headers": {
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "CDN-Cache-Control": "max-age=0"
+   }
+  },
+  {
+   "fetchedAt": 1791806400000,
+   "now": 1791806400000,
+   "ttl": 60,
+   "headers": {
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "CDN-Cache-Control": "max-age=60"
+   }
+  },
+  {
+   "fetchedAt": 1791806369500,
+   "now": 1791806400000,
+   "ttl": 60,
+   "headers": {
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "CDN-Cache-Control": "max-age=29"
+   }
+  },
+  {
+   "fetchedAt": 1791806405000,
+   "now": 1791806400000,
+   "ttl": 300,
+   "headers": {
+    "Cache-Control": "public, max-age=0, must-revalidate",
+    "CDN-Cache-Control": "max-age=300"
+   }
+  }
+ ],
+ "ttl": {
+  "popular": 300,
+  "rising": 60,
+  "none": 300
+ },
+ "sorts": {
+  "popular": [
+   "kC",
+   "kA",
+   "kB",
+   "kD",
+   "kÄ"
+  ],
+  "rising:1w": [
+   "kB",
+   "kA",
+   "kD",
+   "kÄ",
+   "kC"
+  ],
+  "rising:3m": [
+   "kA",
+   "kB",
+   "kD",
+   "kÄ",
+   "kC"
+  ],
+  "rising:1y": [
+   "kC",
+   "kD",
+   "kÄ",
+   "kB",
+   "kA"
+  ],
+  "newest": [
+   "kD",
+   "kÄ",
+   "kB",
+   "kC",
+   "kA"
+  ],
+  "oldest": [
+   "kA",
+   "kC",
+   "kB",
+   "kD",
+   "kÄ"
+  ]
+ },
+ "routes": [
+  {
+   "address": "/",
+   "kind": "home",
+   "canonical": null,
+   "query": "",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "address": "/?page=2",
+   "kind": "home",
+   "canonical": null,
+   "query": "",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 2,
+    "limit": 24
+   }
+  },
+  {
+   "address": "/?q=Blue%20Sky",
+   "kind": "home",
+   "canonical": "/?q=blue+sky",
+   "query": "blue sky",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "blue sky"
+   }
+  },
+  {
+   "address": "/?q=blue&limit=48&steps=9",
+   "kind": "home",
+   "canonical": "/?q=blue&steps=9",
+   "query": "blue",
+   "params": {
+    "style": "auto",
+    "steps": 9,
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "blue"
+   }
+  },
+  {
+   "address": "/?query=red",
+   "kind": "home",
+   "canonical": "/?q=red",
+   "query": "red",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "red"
+   }
+  },
+  {
+   "address": "/palettes",
+   "kind": "list",
+   "canonical": null,
+   "sort": "popular",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "address": "/palettes?page=1&limit=24",
+   "kind": "list",
+   "canonical": "/palettes",
+   "sort": "popular",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "address": "/palettes?limit=13",
+   "kind": "list",
+   "canonical": null,
+   "sort": "popular",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 13
+   }
+  },
+  {
+   "address": "/palettes?limit=200",
+   "kind": "list",
+   "canonical": "/palettes",
+   "sort": "popular",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "address": "/palettes/rising",
+   "kind": "list",
+   "canonical": null,
+   "sort": "rising",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "frame": "1w"
+   }
+  },
+  {
+   "address": "/palettes/rising/1w",
+   "kind": "redirect",
+   "to": "/palettes/rising"
+  },
+  {
+   "address": "/palettes/rising/3m",
+   "kind": "list",
+   "canonical": null,
+   "sort": "rising",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "frame": "3m"
+   }
+  },
+  {
+   "address": "/palettes/rising/2w",
+   "kind": "notfound"
+  },
+  {
+   "address": "/palettes?q=dark",
+   "kind": "search",
+   "canonical": null,
+   "query": "dark",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "dark",
+    "sort": "popular"
+   }
+  },
+  {
+   "address": "/palettes/rising?q=Dark&steps=2",
+   "kind": "search",
+   "canonical": "/palettes/rising?q=dark&steps=3",
+   "query": "dark",
+   "params": {
+    "style": "auto",
+    "steps": 3,
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "dark",
+    "sort": "rising",
+    "frame": "1w"
+   }
+  },
+  {
+   "address": "/palettes/saved",
+   "kind": "saved",
+   "canonical": null,
+   "query": "",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "address": "/palettes/saved?q=red",
+   "kind": "saved",
+   "canonical": null,
+   "query": "red",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "red"
+   }
+  },
+  {
+   "address": "/newest",
+   "kind": "redirect",
+   "to": "/palettes/rising"
+  },
+  {
+   "address": "/oldest",
+   "kind": "redirect",
+   "to": "/palettes/rising"
+  },
+  {
+   "address": "/saved",
+   "kind": "redirect",
+   "to": "/palettes/saved"
+  },
+  {
+   "address": "/palettes/newest?q=x",
+   "kind": "redirect",
+   "to": "/palettes/rising?q=x"
+  },
+  {
+   "address": "/palettes/sunset-glow",
+   "kind": "redirect",
+   "to": "/palettes?q=sunset+glow"
+  },
+  {
+   "address": "/search/sunset",
+   "kind": "notfound"
+  },
+  {
+   "address": "/palettes?q=%F0%9F%8C%99",
+   "kind": "search",
+   "canonical": null,
+   "query": "🌙",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "🌙",
+    "sort": "popular"
+   }
+  },
+  {
+   "address": "/palettes?selection",
+   "kind": "list",
+   "canonical": null,
+   "sort": "popular",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "selection": true
+   }
+  },
+  {
+   "address": "/?selection&page=3",
+   "kind": "home",
+   "canonical": "/?page=3&selection",
+   "query": "",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 3,
+    "limit": 24,
+    "selection": true
+   }
+  },
+  {
+   "address": "/palettes?q=kS7Q8Yy5S_SChv0",
+   "kind": "search",
+   "canonical": null,
+   "query": "kS7Q8Yy5S_SChv0",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "kS7Q8Yy5S_SChv0",
+    "sort": "popular"
+   }
+  },
+  {
+   "address": "/palettes?q=https%3A%2F%2Fgrabient.com%2FkS7Q8Yy5S_SChv0%3Fstyle%3DradialSwatches",
+   "kind": "search",
+   "canonical": "/palettes?q=kS7Q8Yy5S_SChv0&style=radialSwatches",
+   "query": "kS7Q8Yy5S_SChv0",
+   "params": {
+    "style": "radialSwatches",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "kS7Q8Yy5S_SChv0",
+    "sort": "popular"
+   }
+  },
+  {
+   "address": "/palettes?page=0",
+   "kind": "list",
+   "canonical": "/palettes",
+   "sort": "popular",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   }
+  },
+  {
+   "address": "/palettes?page=1000001",
+   "kind": "list",
+   "canonical": "/palettes",
+   "sort": "popular",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   }
+  }
+ ],
+ "searches": [
+  {
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24
+   },
+   "search": ""
+  },
+  {
+   "params": {
+    "style": "linearSwatches",
+    "steps": 9,
+    "angle": 0,
+    "size": "1200x630",
+    "page": 3,
+    "limit": 48,
+    "query": "blue sky"
+   },
+   "search": "?q=blue+sky&style=linearSwatches&steps=9&angle=0&size=1200x630&page=3&limit=48"
+  },
+  {
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "selection": true
+   },
+   "search": "?selection"
+  },
+  {
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "query": "kS7Q8Yy5S_SChv0"
+   },
+   "search": "?q=kS7Q8Yy5S_SChv0"
+  }
+ ],
+ "queries": [
+  {
+   "raw": "",
+   "list": "",
+   "typed": ""
+  },
+  {
+   "raw": "  Blue   SKY ",
+   "list": "blue sky",
+   "typed": "blue sky"
+  },
+  {
+   "raw": "kS7Q8Yy5S_SChv0",
+   "list": "kS7Q8Yy5S_SChv0",
+   "typed": "kS7Q8Yy5S_SChv0"
+  },
+  {
+   "raw": "https://grabient.com/palettes?q=Red",
+   "list": "red",
+   "typed": "https://grabient.com/palettes?q=red"
+  },
+  {
+   "raw": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   "list": "",
+   "typed": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  {
+   "raw": "red\u0007",
+   "list": "",
+   "typed": "red\u0007"
+  },
+  {
+   "raw": "🌙",
+   "list": "🌙",
+   "typed": "🌙"
+  },
+  {
+   "raw": "ÉTÉ",
+   "list": "été",
+   "typed": "été"
+  }
+ ],
+ "collectionsKeys": [
+  {
+   "args": [
+    "hot",
+    "",
+    1,
+    24,
+    ""
+   ],
+   "key": "[\"hot\",\"\",1,24,\"\"]"
+  },
+  {
+   "args": [
+    "popular",
+    "blue",
+    2,
+    24,
+    ""
+   ],
+   "key": "[\"popular\",\"blue\",2,24,\"\"]"
+  },
+  {
+   "args": [
+    "rising",
+    "",
+    1,
+    24,
+    "",
+    "1w"
+   ],
+   "key": "[\"rising\",\"\",1,24,\"\"]"
+  },
+  {
+   "args": [
+    "rising",
+    "",
+    1,
+    24,
+    "",
+    "3m"
+   ],
+   "key": "[\"rising/3m\",\"\",1,24,\"\"]"
+  },
+  {
+   "args": [
+    "saved",
+    "",
+    1,
+    24,
+    "user-1"
+   ],
+   "key": "[\"saved\",\"\",1,24,\"user-1\"]"
+  }
+ ],
+ "frames": {
+  "nextFrame": [
+   [
+    "1w",
+    "3m",
+    "1y"
+   ],
+   [
+    "3m",
+    "1y",
+    "1w"
+   ],
+   [
+    "1y",
+    "1w",
+    "1w"
+   ]
+  ],
+  "framePath": [
+   "/palettes/rising",
+   "/palettes/rising/3m"
+  ]
+ },
+ "constants": {
+  "DEFAULT_LIMIT": 24,
+  "COLLECTION_LIMIT": 24,
+  "PALETTE_LIST_PATHS": {
+   "popular": "/palettes",
+   "rising": "/palettes/rising",
+   "saved": "/palettes/saved"
+  },
+  "RISING_FRAMES": [
+   "1w",
+   "3m",
+   "1y"
+  ]
+ }
+}

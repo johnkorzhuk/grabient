@@ -46,6 +46,10 @@ export const SearchAnswer = v.object({
   partial: v.optional(v.boolean()),
   /** an allowance ran out: shown, and never kept for anyone */
   limited: v.optional(v.boolean()),
+  /** read without the model a person would have been given (a crawler's): never kept for others */
+  unkept: v.optional(v.boolean()),
+  /** the words are a page an index may keep: they read as what they mean */
+  indexable: v.optional(v.boolean()),
   fetchedAt: v.number()
 });
 export type SearchAnswer = v.InferOutput<typeof SearchAnswer>;
@@ -57,6 +61,7 @@ export const HomeHead = v.object({
   tier: v.optional(v.string()),
   partial: v.optional(v.boolean()),
   limited: v.optional(v.boolean()),
+  unkept: v.optional(v.boolean()),
   fetchedAt: v.number()
 });
 export type HomeHead = v.InferOutput<typeof HomeHead>;

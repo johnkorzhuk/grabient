@@ -7,7 +7,8 @@ import type { LimitCheck } from "@grabient/server/limits/check.ts";
 import * as v from "valibot";
 import type { PaletteItem, SavedPage } from "../../features/gallery/schema.ts";
 import { listWords } from "../../lib/words.ts";
-import { forgetGalleryCount, itemsOf, LIMIT_MAX, type PaletteRow } from "./palettes.ts";
+import { searchOwnSeeds } from "../search/search.ts";
+import { forgetGalleryCount, itemsOf, LIMIT_MAX, type PaletteRow } from "./list.ts";
 import {
   collectionsRisingLiked,
   collectionsRisingUnliked,
@@ -15,7 +16,6 @@ import {
   risingLiked,
   risingUnliked
 } from "./scores.ts";
-import { paletteJoined, searchOwn } from "./seams.ts";
 
 /* An account's like of a palette, as the server applies it. The like is the account's own, an admin's too. A palette's
    first like adds it to the gallery, dated by when the site first held it, unless an admin deleted it; the like is
@@ -292,10 +292,7 @@ export async function setLike(
   let outcome: Omit<LikeOutcome, "likesCount" | "inGallery">;
   if (input.liked) {
     const { joined, change, ...kept } = await save(env, account, input, now);
-    if (joined) {
-      forgetGalleryCount();
-      paletteJoined(env, input.seed);
-    }
+    if (joined) forgetGalleryCount();
     outcome = { liked: true, key: input.seed, joined, change, ...kept };
   } else {
     const was = await unsave(env, account.id, input.seed);
@@ -378,7 +375,7 @@ export async function savedPage(
     const own = new Map(
       (await savedLikes(env, user, SAVED_SEARCHED)).map(item => [item.kseed, item])
     );
-    const { tier, found } = await searchOwn(env, words, [...own.keys()], request);
+    const { tier, found } = await searchOwnSeeds(env, words, [...own.keys()], { request });
     return {
       items: found.slice(at, at + limit).flatMap(hit => own.get(hit.seed) ?? []),
       total: found.length,

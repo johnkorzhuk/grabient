@@ -1,0 +1,73 @@
+@layer components {
+  .group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s8);
+    min-width: 0;
+  }
+  .head {
+    display: flex;
+    align-items: last baseline;
+    justify-content: space-between;
+    gap: var(--space-s4);
+    min-width: 0;
+    min-height: var(--size-control-big);
+  }
+  /* the title is the link: a faint underline fades in under the pointer, and a ring shows for the keyboard */
+  .title {
+    border-radius: var(--radius-tight);
+    color: var(--color-ink);
+    text-decoration-line: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+    text-decoration-color: transparent;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    transition: text-decoration-color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      text-decoration-color: var(--color-ink4);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+  }
+  .end {
+    display: flex;
+    flex-shrink: 0;
+    align-items: baseline;
+    gap: var(--space-s3);
+    color: var(--color-ink3);
+  }
+  .count {
+    font-size: var(--font-fs3);
+  }
+  /* two rows of the grid's columns, three cards on a phone: the grid's own ranges */
+  .cell {
+    min-width: 0;
+    @container list (max-width: 727px) {
+      &:nth-child(n + 4) {
+        display: none;
+      }
+    }
+    @container list (min-width: 728px) and (max-width: 1167px) {
+      &:nth-child(n + 5) {
+        display: none;
+      }
+    }
+    @container list (min-width: 1168px) and (max-width: 1423px) {
+      &:nth-child(n + 7) {
+        display: none;
+      }
+    }
+    @container list (min-width: 1424px) and (max-width: 1807px) {
+      &:nth-child(n + 9) {
+        display: none;
+      }
+    }
+    @container list (min-width: 1808px) and (max-width: 2959px) {
+      &:nth-child(n + 11) {
+        display: none;
+      }
+    }
+  }
+}

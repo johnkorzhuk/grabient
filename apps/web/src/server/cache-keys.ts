@@ -1,6 +1,8 @@
 import { type Locale, localizePath } from "@grabient/i18n";
 import { BUILD } from "../lib/build.ts";
 import { BROWSER_ONLY, FIXED_PAGES } from "../lib/links.ts";
+import { listWords } from "../lib/words.ts";
+import { searchKeyRules } from "./search/routes.ts";
 
 /* What the edge cache keys an answer by: its path in its language, the query that decides what it holds (sorted, the
    rest never enters), and the build. Tracking parameters are gone before this runs.
@@ -36,6 +38,13 @@ const RULES: readonly KeyRule[] = [
       path.startsWith("/favicon/"),
     query: none
   },
+  // the home's head reads its words alone, as the lists write them
+  {
+    match: path => path === "/api/hot",
+    query: params => new URLSearchParams({ q: listWords(params.get("q")) })
+  },
+  { match: path => path === "/api/frames", query: none },
+  ...searchKeyRules,
   {
     match: path => !path.startsWith("/api/"),
     query: params => {

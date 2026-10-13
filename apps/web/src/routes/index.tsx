@@ -1,19 +1,31 @@
-import { t } from "@grabient/i18n";
-import { createFileRoute, Link } from "@tanstack/solid-router";
-import { PAGE } from "../lib/cache.ts";
+import { createFileRoute } from "@tanstack/solid-router";
+import { untrack } from "solid-js";
+import { galleryPlace } from "../features/gallery/address.ts";
+import { Home } from "../features/gallery/Home.tsx";
+import { answerWith, loadHome, searchOf } from "../features/gallery/load.ts";
+import { metaPage } from "../features/gallery/titles.ts";
+import { edgeFor } from "../lib/cache.ts";
+import { pageHead } from "../lib/page-meta.ts";
 
+type Place = Extract<NonNullable<ReturnType<typeof galleryPlace>>, { kind: "home" }>;
+const place = (search: string) => galleryPlace("/", search) as Place;
+
+/* The home, the Hot feed: `?q=` searches it, `?page=` starts its collections at a later page. */
 export const Route = createFileRoute("/")({
-  headers: () => PAGE,
-  head: () => ({ meta: [{ title: t("Grabient — CSS Gradient Generator & Color Palettes") }] }),
-  component: Home
+  validateSearch: (search: Record<string, unknown>) => search,
+  loaderDeps: ({ search }) => ({ query: searchOf(search) }),
+  loader: ({ context, deps }) => loadHome(context.queryClient, place(deps.query).params),
+  headers: ({ loaderData }) => edgeFor(loaderData?.edge ?? 0),
+  head: ({ match, loaderData }) =>
+    pageHead(
+      metaPage(place(searchOf(match.search)), {
+        palettes: loaderData?.palettes,
+        robots: loaderData?.robots
+      })
+    ),
+  component: function HomeRoute() {
+    const search = Route.useSearch();
+    answerWith(untrack(Route.useLoaderData())?.status);
+    return <Home params={place(searchOf(search())).params} />;
+  }
 });
-
-/** The home's place: the Hot feed comes here. */
-function Home() {
-  return (
-    <main id="main">
-      <h1>Grabient</h1>
-      <Link to="/palettes">{t("Browse palettes")}</Link>
-    </main>
-  );
-}

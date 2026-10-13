@@ -164,8 +164,8 @@ describe("the edge cache", () => {
   });
 
   test("keys a page by its language and by what the server draws", async () => {
-    await get("/palettes?selection&page=2");
-    await get("/ja/palettes?page=2&lock=hue");
+    await get("/palettes?page=2&selection");
+    await get("/ja/palettes?page=2&selection");
     expect([...cache.kept.keys()]).toEqual([
       "https://grabient.test/palettes?__build=b1&page=2",
       "https://grabient.test/ja/palettes?__build=b1&page=2"

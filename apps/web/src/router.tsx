@@ -1,6 +1,6 @@
 import { locale, localizePath, splitLocale } from "@grabient/i18n";
 import { QueryClientProvider } from "@tanstack/solid-query";
-import { createRouter } from "@tanstack/solid-router";
+import { createRouter, defaultStringifySearch } from "@tanstack/solid-router";
 import { ErrorPage } from "./app/ErrorPage.tsx";
 import { createQueryClient } from "./lib/query.ts";
 import { routeTree } from "./routeTree.gen.ts";
@@ -24,6 +24,9 @@ export function getRouter() {
         return url;
       }
     },
+    /* A parameter that is a word alone, `?selection`, keeps its form: the server renders an address only as the router
+       would write it, and `selection=` there would send the reader back and forth between the two. */
+    stringifySearch: search => defaultStringifySearch(search).replace(/=(?=&|$)/g, ""),
     defaultPreload: "intent",
     // Query decides whether a preloaded page's data is still fresh
     defaultPreloadStaleTime: 0,

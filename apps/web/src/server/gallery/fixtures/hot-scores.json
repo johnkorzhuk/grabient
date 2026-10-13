@@ -1,0 +1,465 @@
+{
+ "NEW_WEIGHT": 0.5,
+ "RISE_COLUMN": {
+  "1w": "rising",
+  "3m": "rising_3m",
+  "1y": "rising_1y"
+ },
+ "clock": {
+  "1w": 7187.416402021213,
+  "3m": 319.4407289787206,
+  "1y": 79.86018224468015
+ },
+ "paletteHot": [
+  {
+   "likeTimes": [],
+   "createdAt": 0,
+   "now": 1791806400000,
+   "hot": 0
+  },
+  {
+   "likeTimes": [
+    1791806400000
+   ],
+   "createdAt": 0,
+   "now": 1791806400000,
+   "hot": 1
+  },
+  {
+   "likeTimes": [],
+   "createdAt": 1791806400000,
+   "now": 1791806400000,
+   "hot": 0.5
+  },
+  {
+   "likeTimes": [
+    1790596800000
+   ],
+   "createdAt": 0,
+   "now": 1791806400000,
+   "hot": 0.3679
+  },
+  {
+   "likeTimes": [
+    1791720000000,
+    1791633600000
+   ],
+   "createdAt": 1791547200000,
+   "now": 1791806400000,
+   "hot": 2.1237
+  },
+  {
+   "likeTimes": [
+    1783166400000
+   ],
+   "createdAt": 1783166400000,
+   "now": 1791806400000,
+   "hot": 0.0008
+  },
+  {
+   "likeTimes": [
+    1791892800000
+   ],
+   "createdAt": 1791892800000,
+   "now": 1791806400000,
+   "hot": 1.5
+  }
+ ],
+ "rising": [
+  {
+   "frame": "1w",
+   "times": [],
+   "total": 0,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "1w",
+   "times": [
+    1791806400000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 7187.416402021213,
+   "risenNow": 1,
+   "risenWeekLater": 0.0883883476483455
+  },
+  {
+   "frame": "1w",
+   "times": [
+    1791806400000
+   ],
+   "total": 11,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 7185.018506748414,
+   "risenNow": 0.09090909090908364,
+   "risenWeekLater": 0.00803530433166713
+  },
+  {
+   "frame": "1w",
+   "times": [
+    1791633600000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 7186.723254840653,
+   "risenNow": 0.4999999999999138,
+   "risenWeekLater": 0.04419417382416513
+  },
+  {
+   "frame": "1w",
+   "times": [
+    1791806400000,
+    1791720000000,
+    1791374400000
+   ],
+   "total": 3,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 7187.2698298740515,
+   "risenNow": 0.8636634192228729,
+   "risenWeekLater": 0.07633778254943005
+  },
+  {
+   "frame": "1w",
+   "times": [
+    1729512000000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "1w",
+   "times": [],
+   "total": 0,
+   "publishedAt": 1791806400000,
+   "now": 1791806400000,
+   "score": 7186.723254840653,
+   "risenNow": 0.4999999999999138,
+   "risenWeekLater": 0.04419417382416513
+  },
+  {
+   "frame": "1w",
+   "times": [],
+   "total": 0,
+   "publishedAt": 1729512000000,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "1w",
+   "times": [
+    1791720000000
+   ],
+   "total": 40,
+   "publishedAt": 1791547200000,
+   "now": 1791806400000,
+   "score": 7185.778844249618,
+   "risenNow": 0.1944543648263447,
+   "risenWeekLater": 0.017187500000009164
+  },
+  {
+   "frame": "3m",
+   "times": [],
+   "total": 0,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "3m",
+   "times": [
+    1791806400000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 319.4407289787206,
+   "risenNow": 1,
+   "risenWeekLater": 0.8977865850654099
+  },
+  {
+   "frame": "3m",
+   "times": [
+    1791806400000
+   ],
+   "total": 11,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 317.0428337059222,
+   "risenNow": 0.0909090909090888,
+   "risenWeekLater": 0.08161696227867173
+  },
+  {
+   "frame": "3m",
+   "times": [
+    1791633600000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 319.40992243736235,
+   "risenNow": 0.9696631446467069,
+   "risenWeekLater": 0.8705505632961535
+  },
+  {
+   "frame": "3m",
+   "times": [
+    1791806400000,
+    1791720000000,
+    1791374400000
+   ],
+   "total": 3,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 320.0012388937126,
+   "risenNow": 1.7515654220878347,
+   "risenWeekLater": 1.5725319388148904
+  },
+  {
+   "frame": "3m",
+   "times": [
+    1729512000000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "3m",
+   "times": [],
+   "total": 0,
+   "publishedAt": 1791806400000,
+   "now": 1791806400000,
+   "score": 318.74758179816064,
+   "risenNow": 0.49999999999999906,
+   "risenWeekLater": 0.4488932925327041
+  },
+  {
+   "frame": "3m",
+   "times": [],
+   "total": 0,
+   "publishedAt": 1729512000000,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "3m",
+   "times": [
+    1791720000000
+   ],
+   "total": 40,
+   "publishedAt": 1791547200000,
+   "now": 1791806400000,
+   "score": 318.7516508498867,
+   "risenNow": 0.5020386707785625,
+   "risenWeekLater": 0.45072358380906313
+  },
+  {
+   "frame": "1y",
+   "times": [],
+   "total": 0,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "1y",
+   "times": [
+    1791806400000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 79.86018224468015,
+   "risenNow": 1,
+   "risenWeekLater": 0.9734043393240345
+  },
+  {
+   "frame": "1y",
+   "times": [
+    1791806400000
+   ],
+   "total": 11,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 77.46228697188178,
+   "risenNow": 0.09090909090909138,
+   "risenWeekLater": 0.08849130357491268
+  },
+  {
+   "frame": "1y",
+   "times": [
+    1791633600000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 79.85248060934059,
+   "risenNow": 0.9923279462629406,
+   "risenWeekLater": 0.9659363289248537
+  },
+  {
+   "frame": "1y",
+   "times": [
+    1791806400000,
+    1791720000000,
+    1791374400000
+   ],
+   "total": 3,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 80.45480201874442,
+   "risenNow": 1.8123417146125327,
+   "risenWeekLater": 1.7641412893418
+  },
+  {
+   "frame": "1y",
+   "times": [
+    1729512000000
+   ],
+   "total": 1,
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "1y",
+   "times": [],
+   "total": 0,
+   "publishedAt": 1791806400000,
+   "now": 1791806400000,
+   "score": 79.1670350641202,
+   "risenNow": 0.49999999999999906,
+   "risenWeekLater": 0.4867021696620163
+  },
+  {
+   "frame": "1y",
+   "times": [],
+   "total": 0,
+   "publishedAt": 1729512000000,
+   "now": 1791806400000,
+   "score": 0,
+   "risenNow": 0,
+   "risenWeekLater": 0
+  },
+  {
+   "frame": "1y",
+   "times": [
+    1791720000000
+   ],
+   "total": 40,
+   "publishedAt": 1791547200000,
+   "now": 1791806400000,
+   "score": 79.20464086796478,
+   "risenNow": 0.5191609248569606,
+   "risenWeekLater": 0.5053534970632445
+  }
+ ],
+ "collectionHot": [
+  {
+   "itemHot": [],
+   "joinedAt": [],
+   "copiedAt": [],
+   "publishedAt": 0,
+   "now": 1791806400000,
+   "hot": 0
+  },
+  {
+   "itemHot": [
+    2,
+    1,
+    1
+   ],
+   "joinedAt": [
+    1791806400000
+   ],
+   "copiedAt": [
+    1791720000000
+   ],
+   "publishedAt": 1789214400000,
+   "now": 1791806400000,
+   "hot": 3.1879
+  },
+  {
+   "itemHot": [
+    20,
+    19,
+    18,
+    17,
+    16,
+    15,
+    14,
+    13,
+    12,
+    11,
+    10,
+    9,
+    8,
+    7,
+    6,
+    5,
+    4,
+    3,
+    2,
+    1
+   ],
+   "joinedAt": [
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000,
+    1791806400000
+   ],
+   "copiedAt": [],
+   "publishedAt": 1791806400000,
+   "now": 1791806400000,
+   "hot": 90.5
+  }
+ ],
+ "sql": {
+  "risingLiked": "rising = 7187.416402021213 + ln(exp(rising - 7187.416402021213) + 1.0 / (likes_count + 1)), rising_3m = 319.4407289787206 + ln(exp(rising_3m - 319.4407289787206) + 1.0 / (likes_count + 1)), rising_1y = 79.86018224468015 + ln(exp(rising_1y - 79.86018224468015) + 1.0 / (likes_count + 1))",
+  "collectionsRisingLiked": "UPDATE k_collections SET rising = 7187.416402021213 + ln(exp(rising - 7187.416402021213) + 1.0 / (likes_sum + fork_count + 1)), rising_3m = 319.4407289787206 + ln(exp(rising_3m - 319.4407289787206) + 1.0 / (likes_sum + fork_count + 1)), rising_1y = 79.86018224468015 + ln(exp(rising_1y - 79.86018224468015) + 1.0 / (likes_sum + fork_count + 1)) WHERE visibility = 'public' AND id IN (SELECT collection_id FROM k_collection_items WHERE seed = ?)",
+  "risingUnliked": "rising = CASE WHEN exp(rising - 7187.416402021213) - 1.0 / MAX(likes_count, 1) > 1e-9 THEN 7187.416402021213 + ln(exp(rising - 7187.416402021213) - 1.0 / MAX(likes_count, 1)) ELSE 0 END, rising_3m = CASE WHEN exp(rising_3m - 319.4407289787206) - 1.0 / MAX(likes_count, 1) > 1e-9 THEN 319.4407289787206 + ln(exp(rising_3m - 319.4407289787206) - 1.0 / MAX(likes_count, 1)) ELSE 0 END, rising_1y = CASE WHEN exp(rising_1y - 79.86018224468015) - 1.0 / MAX(likes_count, 1) > 1e-9 THEN 79.86018224468015 + ln(exp(rising_1y - 79.86018224468015) - 1.0 / MAX(likes_count, 1)) ELSE 0 END",
+  "collectionsRisingUnliked": "UPDATE k_collections SET rising = CASE WHEN exp(rising - 7187.416402021213) - 1.0 / MAX(likes_sum + fork_count, 1) > 1e-9 THEN 7187.416402021213 + ln(exp(rising - 7187.416402021213) - 1.0 / MAX(likes_sum + fork_count, 1)) ELSE 0 END, rising_3m = CASE WHEN exp(rising_3m - 319.4407289787206) - 1.0 / MAX(likes_sum + fork_count, 1) > 1e-9 THEN 319.4407289787206 + ln(exp(rising_3m - 319.4407289787206) - 1.0 / MAX(likes_sum + fork_count, 1)) ELSE 0 END, rising_1y = CASE WHEN exp(rising_1y - 79.86018224468015) - 1.0 / MAX(likes_sum + fork_count, 1) > 1e-9 THEN 79.86018224468015 + ln(exp(rising_1y - 79.86018224468015) - 1.0 / MAX(likes_sum + fork_count, 1)) ELSE 0 END WHERE visibility = 'public' AND id IN (SELECT collection_id FROM k_collection_items WHERE seed = ?)",
+  "risingSaved": "rising = CASE WHEN TRUE THEN 7187.416402021213 + ln(exp(rising - 7187.416402021213) + 1.0 / (likes_sum + fork_count + 1)) ELSE rising END, rising_3m = CASE WHEN TRUE THEN 319.4407289787206 + ln(exp(rising_3m - 319.4407289787206) + 1.0 / (likes_sum + fork_count + 1)) ELSE rising_3m END, rising_1y = CASE WHEN TRUE THEN 79.86018224468015 + ln(exp(rising_1y - 79.86018224468015) + 1.0 / (likes_sum + fork_count + 1)) ELSE rising_1y END"
+ }
+}

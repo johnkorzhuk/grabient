@@ -16,6 +16,9 @@ const HOSTS = new Set([
 ]);
 const LIST_PAGE = /^\/(?:(?:palettes|collections)(?:\/rising(?:\/(?:1w|3m|1y))?|\/saved)?)?$/;
 
+/** Whether an address's host is one of Grabient's own. */
+export const grabientHost = (hostname: string): boolean => HOSTS.has(hostname.toLowerCase());
+
 /** A palette named in place of words: a seed as the codec writes it, or an old grabient.com id as its `_` seed, which
     the Worker's maps may know. Null for anything else. */
 export function paletteId(raw: string): string | null {
@@ -51,7 +54,7 @@ export function readLink(raw: string): { words: string; view: URLSearchParams } 
   } catch {
     return null;
   }
-  if (!HOSTS.has(url.hostname.toLowerCase()) || url.username || url.password) return null;
+  if (!grabientHost(url.hostname) || url.username || url.password) return null;
   const view = new URLSearchParams();
   for (const name of ["style", "steps", "angle", "size"]) {
     const said = url.searchParams.get(name);
