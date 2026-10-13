@@ -169,17 +169,11 @@ async function run(all: string[], { id, where }: Target): Promise<Answer[]> {
 }
 
 async function migrate(at: Target): Promise<void> {
-  const applied = await cf([
-    "d1",
-    "migrations",
-    "apply",
-    at.id,
-    ...at.where,
-    "--dir",
-    "migrations"
-  ]);
+  const args = ["d1", "migrations", "apply", at.id, ...at.where, "--dir", "migrations"];
+  // A list of what was applied, or words when there was nothing to apply.
+  const applied = await cf(args);
   const names = Array.isArray(applied)
-    ? applied.map(migration => `${migration.status} ${migration.name}`)
+    ? (applied as { name: string; status: string }[]).map(({ name, status }) => `${status} ${name}`)
     : [];
   console.log(names.length ? names.join("\n") : "No migrations to apply.");
 }
