@@ -32,9 +32,14 @@ const start = createStartHandler(
   defineHandlerCallback(async context => {
     const rendered = await defaultStreamHandler(context);
     const response = rendered instanceof Response ? rendered : rendered.response;
-    /* <meta charset> leads the document, within its first 1024 bytes. Written in <head> by hand it would be hydrated
-       by position, which a node a browser extension adds there breaks. */
-    const html = (await response.text()).replace("<head>", '<head><meta charset="utf-8">');
+    /* <meta charset> leads the document, within its first 1024 bytes, and the design system's order of layers comes
+       next, before any stylesheet: the first stylesheet to name a layer would otherwise order them, and the stylesheets
+       arrive in the order the build collects them. Written in <head> by hand they would be hydrated by position, which a
+       node a browser extension adds there breaks. */
+    const html = (await response.text()).replace(
+      "<head>",
+      '<head><meta charset="utf-8"><style>@layer reset, tokens, base, components;</style>'
+    );
     const headers = new Headers(response.headers);
     const failed = getRequestEvent()?.locals.renderFailed === true;
     if (failed) for (const [name, value] of Object.entries(NO_STORE)) headers.set(name, value);
