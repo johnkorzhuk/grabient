@@ -1,0 +1,120 @@
+/* Generated from tokens.json by scripts/build-tokens.ts. Edit tokens.json, then run pnpm --filter @grabient/ui tokens. */
+/* An MCP view is drawn inside another app, which passes its colors, type and radii as variables. Under
+   html[data-host] each token reads the app's variable, with Grabient's own value where the app passes none. */
+@layer reset, tokens, base, components;
+
+@layer tokens {
+  :root[data-host] {
+    --radius-tight: var(--border-radius-sm, 6px);
+    --radius-control: var(--border-radius-lg, 10px);
+    --radius-surface: var(--border-radius-xl, 14px);
+    --radius-circle: var(--border-radius-full, 999px);
+    --font-system: var(
+      --font-sans,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      "Helvetica Neue",
+      Arial,
+      sans-serif
+    );
+    --font-medium: var(--font-weight-normal, 500);
+    --font-bold: var(--font-weight-semibold, 700);
+    --color-bg: var(--color-background-primary, #0c0c0e);
+    --color-sheet: var(--color-background-secondary, #0f0f12);
+    --color-ink: var(--color-text-primary, #ececea);
+    --color-ink2: var(--color-text-secondary, rgba(236, 236, 234, 0.64));
+    --color-ink3: var(--color-text-tertiary, rgba(236, 236, 234, 0.52));
+    --color-ink4: var(--color-text-ghost, rgba(236, 236, 234, 0.22));
+    --color-ink-hover: var(--color-text-secondary, #cfcfcd);
+    --color-on-ink: var(--color-text-inverse, #0c0c0e);
+    --color-on-ink2: rgba(12, 12, 14, 0.62);
+    --color-paper: rgba(255, 255, 255, 0.035);
+    --color-paper2: rgba(255, 255, 255, 0.06);
+    --color-paper3: rgba(255, 255, 255, 0.1);
+    --color-paper-solid: var(--color-background-primary, #151518);
+    --color-frost: rgba(255, 255, 255, 0.035);
+    --color-glass: var(--color-background-primary, rgba(18, 18, 21, 0.92));
+    --color-glass-edge: var(--color-border-tertiary, rgba(255, 255, 255, 0.12));
+    --color-art: rgba(16, 16, 20, 0.62);
+    --color-art-hover: rgba(16, 16, 20, 0.8);
+    --color-art-edge: rgba(255, 255, 255, 0.18);
+    --color-on-art: #f4f4f2;
+    --color-on-light: #000000;
+    --color-on-dark: #ffffff;
+    --color-edge: var(--color-border-tertiary, rgba(255, 255, 255, 0.075));
+    --color-edge2: var(--color-border-secondary, rgba(255, 255, 255, 0.14));
+    --color-sheen: rgba(255, 255, 255, 0.07);
+    --color-ring: var(--color-ring-primary, rgba(236, 236, 234, 0.45));
+    --color-accent: #f0a531;
+    --color-danger: var(--color-text-danger, #d45454);
+    --color-like: #d63b34;
+    --color-star: #f0a531;
+    --color-shadow: var(--shadow-lg, 0 24px 48px -28px rgba(0, 0, 0, 0.85));
+    --color-shadow-pop: var(
+      --shadow-md,
+      0 18px 40px -16px rgba(0, 0, 0, 0.7),
+      0 2px 8px rgba(0, 0, 0, 0.3)
+    );
+    --color-shadow-frost: 0 30px 70px -40px rgba(0, 0, 0, 0.6);
+    --color-rim: inset 0 0 0 1px rgba(255, 255, 255, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.17);
+    --color-hole-rim: rgba(255, 255, 255, 0.3);
+    --color-dash-rule: linear-gradient(
+      to right,
+      rgba(236, 236, 234, 0.14) 0,
+      rgba(236, 236, 234, 0.14) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+    --color-grain: 0.045;
+    --color-scheme: dark;
+  }
+
+  :root[data-host][data-theme="light"] {
+    --color-bg: var(--color-background-primary, #f3f2ee);
+    --color-sheet: var(--color-background-secondary, #f8f7f4);
+    --color-ink: var(--color-text-primary, #17171b);
+    --color-ink2: var(--color-text-secondary, rgba(23, 23, 27, 0.66));
+    --color-ink3: var(--color-text-tertiary, rgba(23, 23, 27, 0.62));
+    --color-ink4: var(--color-text-ghost, rgba(23, 23, 27, 0.24));
+    --color-ink-hover: var(--color-text-secondary, #2f2f36);
+    --color-on-ink: var(--color-text-inverse, #f8f7f4);
+    --color-on-ink2: rgba(248, 247, 244, 0.52);
+    --color-paper: rgba(255, 255, 255, 0.64);
+    --color-paper2: rgba(20, 20, 24, 0.045);
+    --color-paper3: rgba(20, 20, 24, 0.085);
+    --color-paper-solid: var(--color-background-primary, #faf9f7);
+    --color-frost: rgba(255, 255, 255, 0.5);
+    --color-glass: var(--color-background-primary, rgba(250, 249, 247, 0.92));
+    --color-glass-edge: var(--color-border-tertiary, rgba(20, 20, 24, 0.1));
+    --color-edge: var(--color-border-tertiary, rgba(20, 20, 24, 0.085));
+    --color-edge2: var(--color-border-secondary, rgba(20, 20, 24, 0.16));
+    --color-sheen: rgba(255, 255, 255, 0.9);
+    --color-ring: var(--color-ring-primary, rgba(23, 23, 27, 0.5));
+    --color-accent: #a35f04;
+    --color-danger: var(--color-text-danger, #c43d3d);
+    --color-like: #c9332c;
+    --color-shadow: var(--shadow-lg, 0 24px 48px -28px rgba(30, 30, 40, 0.35));
+    --color-shadow-pop: var(
+      --shadow-md,
+      0 18px 40px -16px rgba(30, 30, 40, 0.28),
+      0 2px 8px rgba(30, 30, 40, 0.08)
+    );
+    --color-shadow-frost: 0 30px 70px -40px rgba(30, 30, 40, 0.45);
+    --color-rim:
+      inset 0 0 0 1px rgba(255, 255, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.5),
+      0 0 0 1px rgba(20, 20, 24, 0.06);
+    --color-hole-rim: rgba(20, 20, 24, 0.22);
+    --color-dash-rule: linear-gradient(
+      to right,
+      rgba(23, 23, 27, 0.16) 0,
+      rgba(23, 23, 27, 0.16) 2px,
+      transparent 2px,
+      transparent 6px
+    );
+    --color-grain: 0.06;
+    --color-scheme: light;
+  }
+}
