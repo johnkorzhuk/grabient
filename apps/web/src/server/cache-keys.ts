@@ -1,6 +1,7 @@
 import { type Locale, localizePath } from "@grabient/i18n";
 import { BUILD } from "../lib/build.ts";
 import { BROWSER_ONLY, FIXED_PAGES } from "../lib/links.ts";
+import { collectionKeyRules } from "./collections/routing.ts";
 
 /* What the edge cache keys an answer by: its path in its language, the query that decides what it holds (sorted, the
    rest never enters), and the build. Tracking parameters are gone before this runs.
@@ -28,6 +29,7 @@ const SITE_FILES = new Set([
 ]);
 
 const RULES: readonly KeyRule[] = [
+  ...collectionKeyRules,
   {
     match: path =>
       SITE_FILES.has(path) ||

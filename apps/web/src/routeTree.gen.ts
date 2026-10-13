@@ -34,8 +34,15 @@ import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
+import { Route as ApiCollectionsIndexRouteImport } from './routes/api/collections/index'
+import { Route as ApiCollectionsSplatRouteImport } from './routes/api/collections/$'
+import { Route as ApiMeCollectionVotesRouteImport } from './routes/api/me/collection-votes'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
+import { Route as ApiMeCollectionsIndexRouteImport } from './routes/api/me/collections/index'
+import { Route as ApiMeCollectionsSplatRouteImport } from './routes/api/me/collections/$'
+import { Route as ApiMeSiteCollectionsIndexRouteImport } from './routes/api/me/site-collections/index'
+import { Route as ApiMeSiteCollectionsHoldingRouteImport } from './routes/api/me/site-collections/holding'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -165,6 +172,21 @@ const AtChar123handleChar125SlugRisingRoute =
     path: '/@{$handle}/$slug/rising',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiCollectionsIndexRoute = ApiCollectionsIndexRouteImport.update({
+  id: '/api/collections/',
+  path: '/api/collections/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiCollectionsSplatRoute = ApiCollectionsSplatRouteImport.update({
+  id: '/api/collections/$',
+  path: '/api/collections/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeCollectionVotesRoute = ApiMeCollectionVotesRouteImport.update({
+  id: '/api/me/collection-votes',
+  path: '/api/me/collection-votes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollectionsRisingChar123FrameChar125Route =
   CollectionsRisingChar123FrameChar125RouteImport.update({
     id: '/collections/rising/{-$frame}',
@@ -175,6 +197,28 @@ const PalettesRisingChar123FrameChar125Route =
   PalettesRisingChar123FrameChar125RouteImport.update({
     id: '/palettes/rising/{-$frame}',
     path: '/palettes/rising/{-$frame}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMeCollectionsIndexRoute = ApiMeCollectionsIndexRouteImport.update({
+  id: '/api/me/collections/',
+  path: '/api/me/collections/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeCollectionsSplatRoute = ApiMeCollectionsSplatRouteImport.update({
+  id: '/api/me/collections/$',
+  path: '/api/me/collections/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeSiteCollectionsIndexRoute =
+  ApiMeSiteCollectionsIndexRouteImport.update({
+    id: '/api/me/site-collections/',
+    path: '/api/me/site-collections/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiMeSiteCollectionsHoldingRoute =
+  ApiMeSiteCollectionsHoldingRouteImport.update({
+    id: '/api/me/site-collections/holding',
+    path: '/api/me/site-collections/holding',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -203,9 +247,16 @@ export interface FileRoutesByFullPath {
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/collections/$': typeof ApiCollectionsSplatRoute
+  '/api/me/collection-votes': typeof ApiMeCollectionVotesRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/collections/': typeof ApiCollectionsIndexRoute
+  '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
+  '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
+  '/api/me/collections/': typeof ApiMeCollectionsIndexRoute
+  '/api/me/site-collections/': typeof ApiMeSiteCollectionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -232,9 +283,16 @@ export interface FileRoutesByTo {
   '/collections': typeof CollectionsIndexRoute
   '/palettes': typeof PalettesIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/collections/$': typeof ApiCollectionsSplatRoute
+  '/api/me/collection-votes': typeof ApiMeCollectionVotesRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/collections': typeof ApiCollectionsIndexRoute
+  '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
+  '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
+  '/api/me/collections': typeof ApiMeCollectionsIndexRoute
+  '/api/me/site-collections': typeof ApiMeSiteCollectionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -262,9 +320,16 @@ export interface FileRoutesById {
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/collections/$': typeof ApiCollectionsSplatRoute
+  '/api/me/collection-votes': typeof ApiMeCollectionVotesRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/collections/': typeof ApiCollectionsIndexRoute
+  '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
+  '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
+  '/api/me/collections/': typeof ApiMeCollectionsIndexRoute
+  '/api/me/site-collections/': typeof ApiMeSiteCollectionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -293,9 +358,16 @@ export interface FileRouteTypes {
     | '/collections/'
     | '/palettes/'
     | '/@{$handle}/$slug/rising'
+    | '/api/collections/$'
+    | '/api/me/collection-votes'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/api/collections/'
+    | '/api/me/collections/$'
+    | '/api/me/site-collections/holding'
+    | '/api/me/collections/'
+    | '/api/me/site-collections/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -322,9 +394,16 @@ export interface FileRouteTypes {
     | '/collections'
     | '/palettes'
     | '/@{$handle}/$slug/rising'
+    | '/api/collections/$'
+    | '/api/me/collection-votes'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug'
+    | '/api/collections'
+    | '/api/me/collections/$'
+    | '/api/me/site-collections/holding'
+    | '/api/me/collections'
+    | '/api/me/site-collections'
   id:
     | '__root__'
     | '/'
@@ -351,9 +430,16 @@ export interface FileRouteTypes {
     | '/collections/'
     | '/palettes/'
     | '/@{$handle}/$slug/rising'
+    | '/api/collections/$'
+    | '/api/me/collection-votes'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/api/collections/'
+    | '/api/me/collections/$'
+    | '/api/me/site-collections/holding'
+    | '/api/me/collections/'
+    | '/api/me/site-collections/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -381,9 +467,16 @@ export interface RootRouteChildren {
   CollectionsIndexRoute: typeof CollectionsIndexRoute
   PalettesIndexRoute: typeof PalettesIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
+  ApiCollectionsSplatRoute: typeof ApiCollectionsSplatRoute
+  ApiMeCollectionVotesRoute: typeof ApiMeCollectionVotesRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
+  ApiCollectionsIndexRoute: typeof ApiCollectionsIndexRoute
+  ApiMeCollectionsSplatRoute: typeof ApiMeCollectionsSplatRoute
+  ApiMeSiteCollectionsHoldingRoute: typeof ApiMeSiteCollectionsHoldingRoute
+  ApiMeCollectionsIndexRoute: typeof ApiMeCollectionsIndexRoute
+  ApiMeSiteCollectionsIndexRoute: typeof ApiMeSiteCollectionsIndexRoute
 }
 
 declare module '@tanstack/solid-router' {
@@ -563,6 +656,27 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof AtChar123handleChar125SlugRisingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/collections/': {
+      id: '/api/collections/'
+      path: '/api/collections'
+      fullPath: '/api/collections/'
+      preLoaderRoute: typeof ApiCollectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/collections/$': {
+      id: '/api/collections/$'
+      path: '/api/collections/$'
+      fullPath: '/api/collections/$'
+      preLoaderRoute: typeof ApiCollectionsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/collection-votes': {
+      id: '/api/me/collection-votes'
+      path: '/api/me/collection-votes'
+      fullPath: '/api/me/collection-votes'
+      preLoaderRoute: typeof ApiMeCollectionVotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/collections/rising/{-$frame}': {
       id: '/collections/rising/{-$frame}'
       path: '/collections/rising/{-$frame}'
@@ -575,6 +689,34 @@ declare module '@tanstack/solid-router' {
       path: '/palettes/rising/{-$frame}'
       fullPath: '/palettes/rising/{-$frame}'
       preLoaderRoute: typeof PalettesRisingChar123FrameChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/collections/': {
+      id: '/api/me/collections/'
+      path: '/api/me/collections'
+      fullPath: '/api/me/collections/'
+      preLoaderRoute: typeof ApiMeCollectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/collections/$': {
+      id: '/api/me/collections/$'
+      path: '/api/me/collections/$'
+      fullPath: '/api/me/collections/$'
+      preLoaderRoute: typeof ApiMeCollectionsSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/site-collections/': {
+      id: '/api/me/site-collections/'
+      path: '/api/me/site-collections'
+      fullPath: '/api/me/site-collections/'
+      preLoaderRoute: typeof ApiMeSiteCollectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/site-collections/holding': {
+      id: '/api/me/site-collections/holding'
+      path: '/api/me/site-collections/holding'
+      fullPath: '/api/me/site-collections/holding'
+      preLoaderRoute: typeof ApiMeSiteCollectionsHoldingRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -605,11 +747,18 @@ const rootRouteChildren: RootRouteChildren = {
   CollectionsIndexRoute: CollectionsIndexRoute,
   PalettesIndexRoute: PalettesIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
+  ApiCollectionsSplatRoute: ApiCollectionsSplatRoute,
+  ApiMeCollectionVotesRoute: ApiMeCollectionVotesRoute,
   CollectionsRisingChar123FrameChar125Route:
     CollectionsRisingChar123FrameChar125Route,
   PalettesRisingChar123FrameChar125Route:
     PalettesRisingChar123FrameChar125Route,
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
+  ApiCollectionsIndexRoute: ApiCollectionsIndexRoute,
+  ApiMeCollectionsSplatRoute: ApiMeCollectionsSplatRoute,
+  ApiMeSiteCollectionsHoldingRoute: ApiMeSiteCollectionsHoldingRoute,
+  ApiMeCollectionsIndexRoute: ApiMeCollectionsIndexRoute,
+  ApiMeSiteCollectionsIndexRoute: ApiMeSiteCollectionsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

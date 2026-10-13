@@ -1,3 +1,5 @@
+import { collectionRules } from "./collections/routing.ts";
+
 /* One address per page. Before any cache is read, the Worker asks these rules for the canonical form of a page's
    address (path and query, without the language) and answers 301 to it in the request's language, so a junk or old
    query string never fills the cache and every link people share leads to one place.
@@ -9,7 +11,7 @@
 /** The canonical form of `address` ("/path?query"), or null when this rule leaves it alone. */
 export type CanonicalRule = (address: string) => string | null;
 
-const RULES: readonly CanonicalRule[] = [];
+const RULES: readonly CanonicalRule[] = [...collectionRules];
 
 /** The address a page request should be redirected to, or null when it is canonical already. */
 export function canonicalRedirect(address: string, rules = RULES): string | null {
