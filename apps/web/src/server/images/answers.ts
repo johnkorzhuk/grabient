@@ -1,5 +1,7 @@
 /* The answers of the picture addresses, which the route files hand the Worker's bindings and its `waitUntil`. A
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
+
+import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
 import { json } from "../../lib/responses.ts";
 import { listWords } from "../../lib/words.ts";
 import { collectionImagePalettes } from "../collections/read.ts";
@@ -9,7 +11,6 @@ import { resolvePalette } from "../files/resolve.ts";
 import { listPalettes } from "../gallery/list.ts";
 import { type SearchEnv, searchLeaders } from "../search/search.ts";
 import { DEFAULT_SEED, paletteCard, palettePicture } from "./cards.ts";
-import { MARK_WEEK, markSvg, markWeek, weekMark } from "./mark.ts";
 import {
   MONTAGE_PALETTES,
   type MontagePalette,
