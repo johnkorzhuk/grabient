@@ -12,7 +12,9 @@ import {
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { appName, MCP_PATH } from "../oauth/clients.ts";
 import {
+  type Background,
   discovery,
+  libraryContext,
   type McpProps,
   onSiteOrigin,
   RESOURCE_METADATA_PATH,
@@ -92,8 +94,8 @@ class Timings {
   }
 }
 
-/** What the handler is given: what the library verified, and the Worker's own context riding along. */
-type McpContext = OAuthResourceContext<McpProps> & { worker: ExecutionContext; timings: Timings };
+/** What the handler is given: what the library verified, and the Worker's own way to finish work after the answer. */
+type McpContext = OAuthResourceContext<McpProps> & { worker: Background; timings: Timings };
 
 const reply = (body: unknown, status = 200, headers: Record<string, string> = {}) =>
   Response.json(body, { status, headers: { ...NO_STORE, ...headers } });
@@ -151,15 +153,8 @@ const HANDLER = {
     answer(request, env, ctx as McpContext)
 };
 
-/** Whether the Worker should hand a path (without its language) to serveMcp. */
-export const mcpPath = (path: string) => path === MCP_PATH || path === RESOURCE_METADATA_PATH;
-
 /** /mcp and its metadata document. */
-export async function serveMcp(
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
+export async function serveMcp(request: Request, env: Env, ctx: Background): Promise<Response> {
   const asked = new URL(request.url);
   // a person who opens the address in a browser is shown how an app connects; an app never asks for a page
   if (
@@ -178,14 +173,8 @@ export async function serveMcp(
   request = onSiteOrigin(env, request);
   const url = new URL(request.url);
   const server = resourceServer(url.origin, HANDLER);
-  // the library sets the verified token on this object: the Worker's own context is never written to
   const timings = new Timings();
-  const context = {
-    worker: ctx,
-    timings,
-    waitUntil: (promise: Promise<unknown>) => ctx.waitUntil(promise),
-    passThroughOnException() {}
-  } as unknown as ExecutionContext;
+  const context = libraryContext(ctx, { worker: ctx, timings });
   if (url.pathname === RESOURCE_METADATA_PATH)
     return discovery(await server.fetch(request, env, context));
   if (request.method !== "OPTIONS") {

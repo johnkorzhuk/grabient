@@ -9,12 +9,7 @@ import { countUsage } from "@grabient/server/usage/count.ts";
 import { CLIENT_DOCUMENTS } from "./client-documents.data.ts";
 import { type ClientKind, MCP_PATH, MCP_SCOPES, OAUTH_PATHS } from "./clients.ts";
 
-export {
-  AS_METADATA_PATH,
-  OAUTH_PATHS,
-  PROTECTED_RESOURCE_PREFIX,
-  RESOURCE_METADATA_PATH
-} from "./clients.ts";
+export { AS_METADATA_PATH, OAUTH_PATHS, RESOURCE_METADATA_PATH } from "./clients.ts";
 
 /* Connected apps' OAuth is @cloudflare/workers-oauth-provider: it is the authorization server (metadata,
    registration, client metadata documents, the code exchange, refresh, revocation, token storage in OAUTH_KV) and
@@ -128,6 +123,18 @@ export function resourceServer(
       })
   );
 }
+
+/** What a route has of the Worker's context: a way to finish work after the answer. */
+export type Background = Pick<ExecutionContext, "waitUntil">;
+
+/** The context the library's servers are handed, a new object a request: its resource server writes the verified
+    token on it, and `more` rides along to the handler. */
+export const libraryContext = (ctx: Background, more: object = {}) =>
+  ({
+    ...more,
+    waitUntil: (work: Promise<unknown>) => ctx.waitUntil(work),
+    passThroughOnException() {}
+  }) as unknown as ExecutionContext;
 
 /** A discovery document as apps may keep it: five minutes, in place of the library's no-store. */
 export function discovery(response: Response): Response {
