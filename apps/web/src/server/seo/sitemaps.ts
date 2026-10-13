@@ -9,7 +9,7 @@ import {
 } from "../../lib/page-meta.ts";
 import { all, first } from "../db/d1.ts";
 import type { Env } from "../env.ts";
-import { sitemapQueries } from "../search/read.ts";
+import { sitemapQueries } from "../search/search.ts";
 import { isoDay } from "./text.ts";
 
 /* The sitemaps: an index of the others; the site's own pages in every language, each naming the rest; the searches
