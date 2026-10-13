@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/solid-router";
 import { json } from "../../lib/responses.ts";
-import { freshFor, listQueryOf, listTtl, publicList } from "../../server/gallery/lists.ts";
+import { freshFor, listQueryOf, listTtl, publicList } from "../../server/gallery/cache.ts";
 
 /* A page of a palette list, for anyone: `sort` popular, rising, newest or oldest, Rising's `frame` (3m or 1y), `page`
    and `limit` (12 to 96). It reads the list's own record, shared with the list's pages in every view, so the edge

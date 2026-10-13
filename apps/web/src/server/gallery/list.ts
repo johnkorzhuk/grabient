@@ -3,7 +3,7 @@ import { parseView } from "@grabient/engine/view.ts";
 import { all, type Db, first, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import type { PaletteItem } from "../../features/gallery/schema.ts";
-import { DEFAULT_FRAME, type ListSort, type RisingFrame } from "../../lib/orders.ts";
+import { DEFAULT_FRAME, isFrame, type ListSort } from "../../lib/orders.ts";
 import { RISE_COLUMN } from "./scores.ts";
 
 /* The gallery's palettes as lists read them. Every order reads an index: popular by likes_count (triggers keep it),
@@ -12,8 +12,8 @@ import { RISE_COLUMN } from "./scores.ts";
 export type GallerySort = ListSort | "hot";
 export interface ListOptions {
   sort?: GallerySort;
-  /** Rising's frame; any other order ignores it */
-  frame?: RisingFrame;
+  /** Rising's frame, as an address names it: anything but a frame is the week's, and other orders ignore it */
+  frame?: string;
   page?: number;
   limit?: number;
   /** false for a caller that shows the items alone (the home's head): the gallery is not counted for it */
@@ -122,7 +122,7 @@ export async function listPalettes(
   if (kept !== null && page > 1 && offset >= kept) return pageOf([], kept);
   const order =
     sort === "rising"
-      ? `${RISE_COLUMN[options.frame ?? DEFAULT_FRAME]} DESC, created_at DESC, seed`
+      ? `${RISE_COLUMN[isFrame(options.frame) ? options.frame : DEFAULT_FRAME]} DESC, created_at DESC, seed`
       : ORDER[sort];
   const counting = options.count !== false;
   const [counted, rows] = await Promise.all([

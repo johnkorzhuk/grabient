@@ -18,6 +18,8 @@ export interface Page {
   partial?: boolean;
   /** an allowance ran out before the search could answer in full */
   limited?: boolean;
+  /** a crawler's answer, read without the model: never kept for others */
+  unkept?: boolean;
 }
 
 export type ListSource =
@@ -45,7 +47,8 @@ export function sliceOf(
     fetchedAt: answer.fetchedAt,
     tier: answer.tier,
     ...(answer.partial ? { partial: true } : {}),
-    ...(answer.limited ? { limited: true } : {})
+    ...(answer.limited ? { limited: true } : {}),
+    ...(answer.unkept ? { unkept: true } : {})
   };
 }
 

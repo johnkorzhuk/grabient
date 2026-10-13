@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import corpus from "../public/corpus-k.json" with { type: "json" };
 import golden from "../src/features/gallery/fixtures/list-pages.json" with { type: "json" };
 import { likeCounts, likeInput, savedPage, setLike } from "../src/server/gallery/likes.ts";
-import { forgetGalleryCount, listPalettes } from "../src/server/gallery/palettes.ts";
+import { forgetGalleryCount, listPalettes } from "../src/server/gallery/list.ts";
 import { rescore } from "../src/server/gallery/rescore.ts";
 import { risen } from "../src/server/gallery/scores.ts";
 import { makeAccount, makeAdmin, ORIGIN, testEnv, unique } from "./helpers.ts";

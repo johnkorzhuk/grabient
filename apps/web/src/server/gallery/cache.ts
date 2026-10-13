@@ -12,7 +12,7 @@ import {
   listPalettes,
   PAGE_MAX,
   type PalettePage
-} from "./palettes.ts";
+} from "./list.ts";
 
 /* A public list page is read once for its HTML in every view and for its JSON: this data center's Cache API keeps it
    by order, frame, page, size and build for as long as its data stays fresh from the database read, and both answers

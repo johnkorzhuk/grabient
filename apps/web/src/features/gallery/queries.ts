@@ -5,10 +5,12 @@ import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
 import { DEFAULT_FRAME, type ListSort, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
-import { getJson } from "../../lib/query.ts";
+import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
+import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
-import { listQuery, publicList } from "../../server/gallery/lists.ts";
-import { publicCollections, searchPalettes } from "../../server/gallery/seams.ts";
+import { publicCollections } from "../../server/gallery/seams.ts";
+import { searchPool } from "../../server/gallery/search.ts";
+import { SEARCH_POOL } from "../search/queries.ts";
 import { COLLECTION_LIMIT, CollectionPage } from "./collections.ts";
 import { HomeHead, PalettePage, SavedPage, SearchAnswer } from "./schema.ts";
 
@@ -95,29 +97,25 @@ export const listPageQuery = (key: ListKey) =>
     reconcile: "kseed"
   });
 
-const SEARCH_POOL = 96;
-
 const readSearch = createIsomorphicFn()
-  .server(async (words: string, _signal: AbortSignal): Promise<SearchAnswer | Failed> => {
-    const request = getRequest();
-    const answer = await searchPalettes(env, words, { limit: SEARCH_POOL, request });
-    return {
-      query: words,
-      items: answer.items,
-      tier: answer.tier,
-      ...(answer.partial ? { partial: true } : {}),
-      ...(answer.limited ? { limited: true } : {}),
-      fetchedAt: Date.now()
-    };
-  })
+  .server(
+    async (words: string, _signal: AbortSignal): Promise<SearchAnswer | Failed> =>
+      searchPool(env, getRequest(), words)
+  )
   .client((words: string, signal: AbortSignal) =>
     attempt(
-      () =>
-        getJson(
-          `/api/palettes/search?${new URLSearchParams({ q: words, limit: String(SEARCH_POOL) })}`,
-          SearchAnswer,
-          signal
-        ),
+      async () => {
+        const response = await fetch(
+          `/api/search.json?${new URLSearchParams({ query: words, limit: String(SEARCH_POOL) })}`,
+          { signal: AbortSignal.any([signal, AbortSignal.timeout(READ_TIMEOUT)]) }
+        );
+        const body: unknown = await response.json().catch(() => null);
+        /* a search an allowance cut short, or one without its files, is still an answer the page shows */
+        const answer = v.safeParse(SearchAnswer, body);
+        if (answer.success && [200, 429, 503].includes(response.status)) return answer.output;
+        const error = (body as { error?: unknown } | null)?.error;
+        throw new Error(t(typeof error === "string" ? error : COULD_NOT_LOAD));
+      },
       signal,
       COULD_NOT_LOAD
     )
@@ -126,7 +124,7 @@ const readSearch = createIsomorphicFn()
 /** A search's candidates, read once for the words: every order and page of the search is a slice of them. */
 export const searchQuery = (words: string) =>
   queryOptions({
-    queryKey: ["search", words] as const,
+    queryKey: ["palettes", "search", words] as const,
     queryFn: ({ signal }) => readSearch(words, signal),
     staleTime: freshFor(PUBLIC_TTL),
     reconcile: "kseed"
@@ -214,7 +212,7 @@ export const savedQuery = (key: SavedKey) =>
         async () => {
           const response = await fetch(`/api/saved?${params}`, {
             credentials: "same-origin",
-            signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)])
+            signal: AbortSignal.any([signal, AbortSignal.timeout(READ_TIMEOUT)])
           });
           if (!response.ok) {
             throw new Error(

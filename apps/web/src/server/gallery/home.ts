@@ -3,8 +3,8 @@ import { flagOff } from "@grabient/server/flags/flags.ts";
 import type { HomeHead } from "../../features/gallery/schema.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
 import { RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
-import { listPalettes } from "./palettes.ts";
-import { searchPalettes } from "./seams.ts";
+import { listPalettes } from "./list.ts";
+import { searchPool } from "./search.ts";
 
 /* The head of the home: the twenty-four hottest palettes, the same on every page of the home, or searched
    (`/?q=words`) the palette list's own search in its Popular order, the best sixty. The collections beneath it are the
@@ -13,8 +13,6 @@ import { searchPalettes } from "./seams.ts";
 
 export const HOT_PALETTES = 24;
 export const SEARCH_PALETTES = 60;
-/** The candidates a search reads before it keeps the best: the palette list's own number, so both rank one pool. */
-export const SEARCH_POOL = 96;
 
 export interface HeadAnswer {
   head: HomeHead;
@@ -29,7 +27,7 @@ export async function homeHead(env: Env, request: Request, words: string): Promi
     const { items } = await listPalettes(env, { sort: "hot", limit: HOT_PALETTES, count: false });
     return { head: { palettes: items, fetchedAt: Date.now() }, kept: true, status: 200 };
   }
-  const answer = await searchPalettes(env, words, { limit: SEARCH_POOL, request });
+  const answer = await searchPool(env, request, words);
   return {
     head: {
       query: words,
@@ -37,6 +35,7 @@ export async function homeHead(env: Env, request: Request, words: string): Promi
       tier: answer.tier,
       ...(answer.partial ? { partial: true } : {}),
       ...(answer.limited ? { limited: true } : {}),
+      ...(answer.unkept ? { unkept: true } : {}),
       fetchedAt: Date.now()
     },
     kept: !answer.limited && !answer.unkept && answer.tier !== "unavailable",

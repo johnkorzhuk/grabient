@@ -73,17 +73,17 @@ export async function loadPalettes(
   if (page.tier === "unavailable") return { edge: 0, robots: "noindex,follow", status: 503 };
   const ttl = place.order === "rising" ? RISING_EDGE : PUBLIC_EDGE;
   return {
-    edge: place.params.words ? ttl : left(page.fetchedAt, ttl),
+    edge: page.unkept ? 0 : place.params.words ? ttl : left(page.fetchedAt, ttl),
     ...(robots ? { robots } : {})
   };
 }
 
 export async function loadHome(client: QueryClient, params: ListParams): Promise<Loaded> {
   const order = params.words ? "popular" : "hot";
-  const [head, collections] = (await Promise.all([
+  const [head, collections] = await Promise.all([
     client.ensureQueryData(homeHeadQuery(params.words)),
     client.ensureQueryData(collectionsPageQuery(order, params.words, params.page))
-  ])) as [{ limited?: boolean; tier?: string } | Failed, { totalPages: number } | Failed];
+  ]);
   const robots = params.words ? "noindex,follow" : undefined;
   if (failed(head) || failed(collections)) return { edge: 0, ...(robots ? { robots } : {}) };
   if (head.limited || head.tier === "unavailable") {
@@ -92,5 +92,5 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
   if (params.page > Math.max(1, collections.totalPages)) {
     return { edge: 0, robots: "noindex,follow", status: 404 };
   }
-  return { edge: PUBLIC_EDGE, ...(robots ? { robots } : {}) };
+  return { edge: head.unkept ? 0 : PUBLIC_EDGE, ...(robots ? { robots } : {}) };
 }
