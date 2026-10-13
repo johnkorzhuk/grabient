@@ -1,0 +1,260 @@
+{
+ "log": [
+  [
+   "press b",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b"
+     ],
+     "at": 1,
+     "base": 0
+    },
+    "cur": "b",
+    "pos": 1,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "a",
+    "redoValue": null
+   }
+  ],
+  [
+   "gesture c,d open",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "d"
+     ],
+     "at": 2,
+     "base": 0
+    },
+    "cur": "d",
+    "pos": 2,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "b",
+    "redoValue": null
+   }
+  ],
+  [
+   "gesture closed after quiet",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "d"
+     ],
+     "at": 2,
+     "base": 0
+    },
+    "cur": "d",
+    "pos": 2,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "b",
+    "redoValue": null
+   }
+  ],
+  [
+   "gesture that returns to start is no step",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "d"
+     ],
+     "at": 2,
+     "base": 0
+    },
+    "cur": "d",
+    "pos": 2,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "b",
+    "redoValue": null
+   }
+  ],
+  [
+   "undo",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "d"
+     ],
+     "at": 1,
+     "base": 0
+    },
+    "cur": "b",
+    "pos": 1,
+    "canUndo": true,
+    "canRedo": true,
+    "undoValue": "a",
+    "redoValue": "d"
+   }
+  ],
+  [
+   "edit after undo drops redo",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "x"
+     ],
+     "at": 2,
+     "base": 0
+    },
+    "cur": "x",
+    "pos": 2,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "b",
+    "redoValue": null
+   }
+  ],
+  [
+   "held key: one step",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "x",
+      "r3"
+     ],
+     "at": 3,
+     "base": 0
+    },
+    "cur": "r3",
+    "pos": 3,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "x",
+    "redoValue": null
+   }
+  ],
+  [
+   "tap after hold",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "x",
+      "r3",
+      "t1"
+     ],
+     "at": 4,
+     "base": 0
+    },
+    "cur": "t1",
+    "pos": 4,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "r3",
+    "redoValue": null
+   }
+  ],
+  [
+   "begin with kept snapshot",
+   {
+    "snap": {
+     "steps": [
+      "a",
+      "b",
+      "x",
+      "r3",
+      "t1"
+     ],
+     "at": 4,
+     "base": 0
+    },
+    "cur": "t1",
+    "pos": 4,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "r3",
+    "redoValue": null
+   }
+  ],
+  [
+   "begin with snapshot for another value",
+   {
+    "snap": {
+     "steps": [
+      "zzz"
+     ],
+     "at": 0,
+     "base": 0
+    },
+    "cur": "zzz",
+    "pos": 0,
+    "canUndo": false,
+    "canRedo": false,
+    "undoValue": null,
+    "redoValue": null
+   }
+  ],
+  [
+   "begin with negative base (rejected)",
+   {
+    "snap": {
+     "steps": [
+      "a"
+     ],
+     "at": 0,
+     "base": 0
+    },
+    "cur": "a",
+    "pos": 0,
+    "canUndo": false,
+    "canRedo": false,
+    "undoValue": null,
+    "redoValue": null
+   }
+  ],
+  [
+   "begin with base",
+   {
+    "snap": {
+     "steps": [
+      "p",
+      "q"
+     ],
+     "at": 1,
+     "base": 3
+    },
+    "cur": "q",
+    "pos": 4,
+    "canUndo": true,
+    "canRedo": false,
+    "undoValue": "p",
+    "redoValue": null
+   }
+  ],
+  [
+   "limit",
+   {
+    "len": 101,
+    "at": 100,
+    "base": 30,
+    "pos": 130,
+    "first": "30"
+   }
+  ]
+ ],
+ "applied": [
+  [
+   "b",
+   "d",
+   true
+  ]
+ ]
+}

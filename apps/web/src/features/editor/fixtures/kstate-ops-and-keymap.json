@@ -1,0 +1,390 @@
+{
+ "DEFAULT_SEED": "kS7CQ31Do6asvY-",
+ "DEFAULT_PALETTE": {
+  "anchors": [
+   {
+    "l": 0.9291338582677166,
+    "c": 0.049606299212598425,
+    "h": 78.046875
+   },
+   {
+    "l": 0.6614173228346457,
+    "c": 0.15984251968503937,
+    "h": 31.549810420743654
+   },
+   {
+    "l": 0.33858267716535434,
+    "c": 0.12952755905511812,
+    "h": 335.8942331213307
+   }
+  ]
+ },
+ "clampSteps": [
+  [
+   7,
+   3,
+   7
+  ],
+  [
+   2,
+   3,
+   3
+  ],
+  [
+   2,
+   5,
+   5
+  ],
+  [
+   0,
+   4,
+   4
+  ],
+  [
+   null,
+   4,
+   4
+  ],
+  [
+   7.6,
+   3,
+   8
+  ],
+  [
+   101,
+   3,
+   100
+  ],
+  [
+   100,
+   8,
+   100
+  ],
+  [
+   -5,
+   2,
+   3
+  ]
+ ],
+ "K": 6,
+ "removed": [
+  [
+   [],
+   {
+    "K": 5,
+    "held": []
+   }
+  ],
+  [
+   [
+    0
+   ],
+   {
+    "K": 5,
+    "held": [
+     0
+    ]
+   }
+  ],
+  [
+   [
+    1
+   ],
+   {
+    "K": 5,
+    "held": [
+     1
+    ]
+   }
+  ],
+  [
+   [
+    1,
+    2
+   ],
+   {
+    "K": 4,
+    "held": [
+     1
+    ]
+   }
+  ],
+  [
+   [
+    0,
+    1,
+    2,
+    3,
+    4
+   ],
+   {
+    "K": 2,
+    "held": [
+     1
+    ]
+   }
+  ],
+  [
+   [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   {
+    "K": 5,
+    "held": []
+   }
+  ]
+ ],
+ "removedAtFloor": null,
+ "removedThreeHeldOfThree": {
+  "palette": {
+   "anchors": [
+    {
+     "l": 0.20078740157480315,
+     "c": 0.10059055118110236,
+     "h": 9.84375
+    },
+    {
+     "l": 0.7992125984251969,
+     "c": 0.10059055118110236,
+     "h": 39.432791095890366
+    }
+   ]
+  },
+  "held": [
+   1
+  ]
+ },
+ "added": [
+  [
+   [],
+   {
+    "K": 7,
+    "held": []
+   }
+  ],
+  [
+   [
+    0
+   ],
+   {
+    "K": 7,
+    "held": [
+     0,
+     1
+    ]
+   }
+  ],
+  [
+   [
+    2,
+    3
+   ],
+   {
+    "K": 7,
+    "held": [
+     2,
+     3,
+     4
+    ]
+   }
+  ],
+  [
+   [
+    5
+   ],
+   {
+    "K": 7,
+    "held": [
+     5,
+     6
+    ]
+   }
+  ]
+ ],
+ "eightK": 8,
+ "addedAtCeiling": null,
+ "rolled": [
+  [
+   [],
+   {
+    "kept": false,
+    "K": 6
+   }
+  ],
+  [
+   [
+    1
+   ],
+   {
+    "kept": true,
+    "K": 6
+   }
+  ],
+  [
+   [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   {
+    "kept": false,
+    "K": 6
+   }
+  ]
+ ],
+ "nudgedGroup": [
+  0.8425,
+  0.7953,
+  0.9425,
+  0.8953
+ ],
+ "nudgedOutsideHoldIsSingleClamped": [
+  0.35,
+  0.35
+ ],
+ "keymap": [
+  {
+   "id": "theme",
+   "keys": [
+    "T"
+   ],
+   "label": "Theme",
+   "scope": "Every route"
+  },
+  {
+   "id": "copyUrl",
+   "keys": [
+    "U"
+   ],
+   "label": "Copy URL",
+   "scope": "Every route"
+  },
+  {
+   "id": "help",
+   "keys": [
+    "?"
+   ],
+   "label": "Show shortcuts",
+   "scope": "Every route",
+   "fixed": true
+  },
+  {
+   "id": "random",
+   "keys": [
+    "B"
+   ],
+   "label": "Random palette",
+   "scope": "Editor"
+  },
+  {
+   "id": "invert",
+   "keys": [
+    "I"
+   ],
+   "label": "Invert",
+   "scope": "Editor"
+  },
+  {
+   "id": "reverse",
+   "keys": [
+    "E"
+   ],
+   "label": "Reverse",
+   "scope": "Editor"
+  },
+  {
+   "id": "panel",
+   "keys": [
+    "\\"
+   ],
+   "label": "Show or hide panel",
+   "scope": "Editor"
+  },
+  {
+   "id": "selectAll",
+   "keys": [
+    "Mod+A"
+   ],
+   "label": "Hold all keyframes",
+   "scope": "Editor"
+  },
+  {
+   "id": "remove",
+   "keys": [
+    "Backspace",
+    "Delete"
+   ],
+   "label": "Remove held keyframes",
+   "scope": "Editor"
+  },
+  {
+   "id": "letGo",
+   "keys": [
+    "Escape"
+   ],
+   "label": "Let go of keyframes",
+   "scope": "Editor",
+   "fixed": true
+  },
+  {
+   "id": "stops",
+   "keys": [
+    "[",
+    "]"
+   ],
+   "label": "Fewer or more steps",
+   "scope": "Editor"
+  },
+  {
+   "id": "rotate",
+   "keys": [
+    ",",
+    "."
+   ],
+   "label": "Rotate 15°",
+   "scope": "Editor"
+  },
+  {
+   "id": "undo",
+   "keys": [
+    "Mod+Z",
+    "Mod+Shift+Z"
+   ],
+   "label": "Undo or redo",
+   "scope": "Every route"
+  },
+  {
+   "id": "save",
+   "keys": [
+    "Mod+S"
+   ],
+   "label": "Save",
+   "scope": "Editor",
+   "admin": true
+  },
+  {
+   "keys": [
+    "Escape"
+   ],
+   "label": "Clear the selection",
+   "scope": "Design document",
+   "fixed": true
+  },
+  {
+   "keys": [
+    "Escape"
+   ],
+   "label": "Back to the canvas",
+   "scope": "Present mode",
+   "fixed": true
+  }
+ ]
+}
