@@ -1,0 +1,410 @@
+[
+ [
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": true,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  },
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": true,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  }
+ ],
+ [
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": true,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90,
+   "at": 1700000000000,
+   "title": "Pit ember",
+   "from": {
+    "q": "sea glass"
+   }
+  },
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": true,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90,
+   "at": 1700000000000,
+   "title": "Pit ember",
+   "from": {
+    "q": "sea glass"
+   }
+  }
+ ],
+ [
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": false,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90,
+   "at": 1700000000000,
+   "title": "dropped: no title on an unsave"
+  },
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": false,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90,
+   "at": 1700000000000
+  }
+ ],
+ [
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": true,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90,
+   "title": "dropped: no title without at"
+  },
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": true,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  }
+ ],
+ [
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": "yes",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  },
+  null
+ ],
+ [
+  {
+   "op": "like",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "liked": true,
+   "style": "sparkle",
+   "steps": 7,
+   "angle": 90
+  },
+  null
+ ],
+ [
+  {
+   "op": "like",
+   "seed": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "liked": true,
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.create",
+   "slug": "@ada/night-swim",
+   "title": "Night swim",
+   "visibility": "private",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  },
+  {
+   "op": "collection.create",
+   "slug": "@ada/night-swim",
+   "title": "Night swim",
+   "visibility": "private",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "op": "collection.create",
+   "slug": "Bad Slug",
+   "title": "x",
+   "visibility": "private",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.create",
+   "slug": "@ada/x",
+   "title": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "visibility": "private",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.create",
+   "slug": "@ada/x",
+   "title": "x",
+   "visibility": "friends",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.create",
+   "slug": "@ada/x",
+   "title": "x",
+   "visibility": "private",
+   "items": []
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.add",
+   "slug": "@ada/night-swim",
+   "id": "abc_DEF-1",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  },
+  {
+   "op": "collection.add",
+   "slug": "@ada/night-swim",
+   "id": "abc_DEF-1",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "op": "collection.add",
+   "slug": "@ada/night-swim",
+   "id": "not an id!",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  },
+  {
+   "op": "collection.add",
+   "slug": "@ada/night-swim",
+   "items": [
+    {
+     "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+     "style": "linearGradient",
+     "steps": 7,
+     "angle": 90
+    }
+   ]
+  }
+ ],
+ [
+  {
+   "op": "collection.remove",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  },
+  {
+   "op": "collection.remove",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  }
+ ],
+ [
+  {
+   "op": "collection.remove",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "view": {
+    "style": "radialSwatches",
+    "steps": 5,
+    "angle": 30
+   }
+  },
+  {
+   "op": "collection.remove",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "view": {
+    "style": "radialSwatches",
+    "steps": 6,
+    "angle": 30
+   }
+  }
+ ],
+ [
+  {
+   "op": "collection.remove",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "view": {
+    "style": "sparkle"
+   }
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.restore",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "restore": "token.sig"
+  },
+  {
+   "op": "collection.restore",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "restore": "token.sig"
+  }
+ ],
+ [
+  {
+   "op": "collection.restore",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "item": {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "style": "linearGradient",
+    "steps": 7,
+    "angle": 90
+   }
+  },
+  {
+   "op": "collection.restore",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "item": {
+    "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "style": "linearGradient",
+    "steps": 7,
+    "angle": 90
+   }
+  }
+ ],
+ [
+  {
+   "op": "collection.restore",
+   "slug": "@ada/night-swim",
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "restore": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.update",
+   "slug": "@ada/night-swim",
+   "visibility": "public"
+  },
+  {
+   "op": "collection.update",
+   "slug": "@ada/night-swim",
+   "visibility": "public"
+  }
+ ],
+ [
+  {
+   "op": "collection.update",
+   "slug": "@ada/night-swim",
+   "visibility": "unlisted"
+  },
+  null
+ ],
+ [
+  {
+   "op": "collection.delete",
+   "slug": "@ada/night-swim"
+  },
+  {
+   "op": "collection.delete",
+   "slug": "@ada/night-swim"
+  }
+ ],
+ [
+  {
+   "op": "collection.delete",
+   "slug": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  null
+ ],
+ [
+  {
+   "op": "unknown"
+  },
+  null
+ ],
+ [
+  null,
+  null
+ ],
+ [
+  "like",
+  null
+ ]
+]

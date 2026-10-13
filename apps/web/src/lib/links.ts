@@ -5,6 +5,7 @@ import { isPagePath } from "@grabient/i18n";
 
 const ACCOUNT_PAGES = new Set([
   "/login",
+  "/login/password",
   "/connect",
   "/settings",
   "/unsubscribe",

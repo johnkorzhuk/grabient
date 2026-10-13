@@ -1,0 +1,131 @@
+/* Settings' sections share these. A row's words and its control sit at either end; where the words would be squeezed
+   under 200px (a long press on a phone) the control goes under them, still at the end. Every word a press can say and
+   every line a section can say are stacked in one cell, so the widest and the tallest hold the place and a press
+   moves nothing. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s8);
+}
+.section,
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+.heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s5);
+}
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+}
+.avatarRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s5);
+}
+.avatarText {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-s2);
+}
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s5);
+}
+.facts {
+  display: grid;
+  gap: var(--space-s3);
+  margin: 0;
+}
+/* the label column, and under a 600px page the value under its label */
+.fact {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: var(--space-s5);
+  font-size: var(--font-fs3);
+  @container page (max-width: 600px) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-s1);
+  }
+  & dt {
+    color: var(--color-ink3);
+  }
+  & dd {
+    margin: 0;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s8);
+}
+.choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s5);
+}
+.choiceText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+}
+.setting {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s5);
+}
+.settingText {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+.settingControl {
+  margin-inline-start: auto;
+}
+.words {
+  display: grid;
+  justify-items: center;
+}
+.lines {
+  display: grid;
+}
+.cell {
+  grid-area: 1 / 1;
+}
+.unseen {
+  visibility: hidden;
+}
+.hidden {
+  display: none;
+}
+/* a feature's row, with the line beneath it */
+.flagRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+}
+.flagLine {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-s2);
+  color: var(--color-ink3);
+}
+/* a feature's switch over its other words, unseen: the cell keeps the width of the longest */
+.switchCell {
+  display: grid;
+  flex-shrink: 0;
+  justify-items: end;
+}

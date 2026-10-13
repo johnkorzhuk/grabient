@@ -1,0 +1,238 @@
+{
+ "USERNAME_MAX": 30,
+ "cases": [
+  [
+   "ab",
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   "abc",
+   {
+    "username": "abc",
+    "problem": null
+   }
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   {
+    "username": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "problem": null
+   }
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   {
+    "username": null,
+    "problem": "Use up to 30 characters."
+   }
+  ],
+  [
+   "jo hn",
+   {
+    "username": null,
+    "problem": "Use letters, numbers, underscores and hyphens."
+   }
+  ],
+  [
+   "_name",
+   {
+    "username": null,
+    "problem": "Start and end with a letter or number."
+   }
+  ],
+  [
+   "name_",
+   {
+    "username": null,
+    "problem": "Start and end with a letter or number."
+   }
+  ],
+  [
+   "name-",
+   {
+    "username": null,
+    "problem": "Start and end with a letter or number."
+   }
+  ],
+  [
+   "-name",
+   {
+    "username": null,
+    "problem": "Start and end with a letter or number."
+   }
+  ],
+  [
+   "na-me_9",
+   {
+    "username": "na-me_9",
+    "problem": null
+   }
+  ],
+  [
+   "Grabient",
+   {
+    "username": null,
+    "problem": "That username is reserved."
+   }
+  ],
+  [
+   "GRABIENT",
+   {
+    "username": null,
+    "problem": "That username is reserved."
+   }
+  ],
+  [
+   "admin",
+   {
+    "username": null,
+    "problem": "That username is reserved."
+   }
+  ],
+  [
+   "Support",
+   {
+    "username": null,
+    "problem": "That username is reserved."
+   }
+  ],
+  [
+   "team",
+   {
+    "username": null,
+    "problem": "That username is reserved."
+   }
+  ],
+  [
+   "help",
+   {
+    "username": null,
+    "problem": "That username is reserved."
+   }
+  ],
+  [
+   "helper",
+   {
+    "username": "helper",
+    "problem": null
+   }
+  ],
+  [
+   "  warm-sunsets  ",
+   {
+    "username": "warm-sunsets",
+    "problem": null
+   }
+  ],
+  [
+   "Palette_User",
+   {
+    "username": "Palette_User",
+    "problem": null
+   }
+  ],
+  [
+   "3d",
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   "3dd",
+   {
+    "username": "3dd",
+    "problem": null
+   }
+  ],
+  [
+   "é-name",
+   {
+    "username": null,
+    "problem": "Use letters, numbers, underscores and hyphens."
+   }
+  ],
+  [
+   "naïve",
+   {
+    "username": null,
+    "problem": "Use letters, numbers, underscores and hyphens."
+   }
+  ],
+  [
+   "a.b",
+   {
+    "username": null,
+    "problem": "Use letters, numbers, underscores and hyphens."
+   }
+  ],
+  [
+   "a__b",
+   {
+    "username": "a__b",
+    "problem": null
+   }
+  ],
+  [
+   "a--b",
+   {
+    "username": "a--b",
+    "problem": null
+   }
+  ],
+  [
+   "",
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   "   ",
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   42,
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   null,
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   "(undefined)",
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   [
+    "abc"
+   ],
+   {
+    "username": null,
+    "problem": "Use at least 3 characters."
+   }
+  ],
+  [
+   "ab​c",
+   {
+    "username": null,
+    "problem": "Use letters, numbers, underscores and hyphens."
+   }
+  ]
+ ]
+}

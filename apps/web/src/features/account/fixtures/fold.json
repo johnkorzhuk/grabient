@@ -1,0 +1,53 @@
+[
+ [
+  "like then unlike before sending: nothing goes",
+  []
+ ],
+ [
+  "unsave then save of a palette the server holds: nothing goes",
+  []
+ ],
+ [
+  "a press after one on its way is its own change",
+  [
+   "k5",
+   "k6"
+  ]
+ ],
+ [
+  "a third press folds back into the one on its way",
+  [
+   "k5"
+  ]
+ ],
+ [
+  "undo of a removal not yet sent takes it back",
+  []
+ ],
+ [
+  "undo of a removal on its way is a restore of its own",
+  [
+   "k8",
+   "k9"
+  ]
+ ],
+ [
+  "a collection made and deleted before sending sends nothing",
+  []
+ ],
+ [
+  "its making on its way: the deletion follows it",
+  [
+   "k10",
+   "k12"
+  ]
+ ],
+ [
+  "who sees it, pressed twice before sending: nothing goes",
+  []
+ ],
+ [
+  "a change already in the outbox by its key is kept once (store.add)",
+  "see account-db.ts:153-154"
+ ]
+]

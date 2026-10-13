@@ -1,0 +1,163 @@
+{
+ "SAVED_PAGED": 1000,
+ "COLLECTION_MAX": 100,
+ "savedOrder": [
+  "kamzkm1g",
+  "kc-zpNeq",
+  "kY4mpDaz"
+ ],
+ "pageOf": [
+  [
+   [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   2,
+   2,
+   {
+    "items": [
+     3,
+     4
+    ],
+    "total": 5,
+    "page": 2,
+    "limit": 2,
+    "totalPages": 3
+   }
+  ],
+  [
+   [],
+   1,
+   24,
+   {
+    "items": [],
+    "total": 0,
+    "page": 1,
+    "limit": 24,
+    "totalPages": 1
+   }
+  ],
+  [
+   [
+    1,
+    2,
+    3
+   ],
+   5,
+   2,
+   {
+    "items": [],
+    "total": 3,
+    "page": 5,
+    "limit": 2,
+    "totalPages": 2
+   }
+  ]
+ ],
+ "minePage": [
+  [
+   "",
+   [
+    "b",
+    "c",
+    "a"
+   ]
+  ],
+  [
+   "ocean",
+   [
+    "a"
+   ]
+  ],
+  [
+   "ocaen",
+   [
+    "a"
+   ]
+  ],
+  [
+   "water ocean",
+   [
+    "a"
+   ]
+  ],
+  [
+   "fire",
+   []
+  ],
+  [
+   "春",
+   [
+    "c"
+   ]
+  ],
+  [
+   "kyoto",
+   [
+    "c"
+   ]
+  ],
+  [
+   "des",
+   [
+    "b"
+   ]
+  ],
+  [
+   "deser",
+   [
+    "b"
+   ]
+  ],
+  [
+   "a",
+   []
+  ]
+ ],
+ "matchesWords": [
+  [
+   "Ocean blues",
+   "oecan",
+   true
+  ],
+  [
+   "Ocean blues",
+   "blue",
+   true
+  ],
+  [
+   "Ocean blues",
+   "oce",
+   true
+  ],
+  [
+   "Ocean blues",
+   "x",
+   false
+  ],
+  [
+   "Ocean blues",
+   "blu",
+   true
+  ],
+  [
+   "Café crème",
+   "cafe",
+   true
+  ],
+  [
+   "Café crème",
+   "café",
+   true
+  ],
+  [
+   "Neon nights",
+   "nihgts",
+   true
+  ]
+ ],
+ "previewOfThirteen": 12
+}

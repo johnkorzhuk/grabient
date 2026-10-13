@@ -3,6 +3,7 @@ import { i18n } from "@grabient/i18n/vite.ts";
 import solid from "@solidjs/vite-plugin";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { defineConfig } from "vite";
+import { serviceWorker } from "./scripts/service-worker.ts";
 
 /* One app on one Worker. The Cloudflare plugin reads cloudflare.config.ts for the mode (`vite dev` is development,
    `vite build --mode staging` is staging) and runs the Worker in workerd under `vite dev` and `vite preview`, with every
@@ -42,6 +43,7 @@ export default defineConfig({
       }
     }),
     // The Worker entry stays out of Solid's transform, which would add an export workerd refuses on a main module.
-    solid({ ssr: true, exclude: ["src/server.ts"] })
+    solid({ ssr: true, exclude: ["src/server.ts"] }),
+    serviceWorker()
   ]
 });

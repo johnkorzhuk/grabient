@@ -29,13 +29,21 @@ import { Route as ApiBuildRouteImport } from './routes/api/build'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
+import { Route as LoginPasswordRouteImport } from './routes/login_.password'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiMeFlagsRouteImport } from './routes/api/me/flags'
+import { Route as ApiMeSyncRouteImport } from './routes/api/me/sync'
+import { Route as ApiSettingsAvatarRouteImport } from './routes/api/settings/avatar'
+import { Route as ApiSettingsDeleteAccountRouteImport } from './routes/api/settings/delete-account'
+import { Route as ApiSettingsUsernameRouteImport } from './routes/api/settings/username'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
+import { Route as ApiSettingsUsernameCheckRouteImport } from './routes/api/settings/username_.check'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -137,6 +145,11 @@ const CollectionsSavedRoute = CollectionsSavedRouteImport.update({
   path: '/collections/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginPasswordRoute = LoginPasswordRouteImport.update({
+  id: '/login_/password',
+  path: '/login/password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PalettesIndexRoute = PalettesIndexRouteImport.update({
   id: '/palettes/',
   path: '/palettes/',
@@ -165,6 +178,37 @@ const AtChar123handleChar125SlugRisingRoute =
     path: '/@{$handle}/$slug/rising',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeFlagsRoute = ApiMeFlagsRouteImport.update({
+  id: '/api/me/flags',
+  path: '/api/me/flags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeSyncRoute = ApiMeSyncRouteImport.update({
+  id: '/api/me/sync',
+  path: '/api/me/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettingsAvatarRoute = ApiSettingsAvatarRouteImport.update({
+  id: '/api/settings/avatar',
+  path: '/api/settings/avatar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettingsDeleteAccountRoute =
+  ApiSettingsDeleteAccountRouteImport.update({
+    id: '/api/settings/delete-account',
+    path: '/api/settings/delete-account',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSettingsUsernameRoute = ApiSettingsUsernameRouteImport.update({
+  id: '/api/settings/username',
+  path: '/api/settings/username',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollectionsRisingChar123FrameChar125Route =
   CollectionsRisingChar123FrameChar125RouteImport.update({
     id: '/collections/rising/{-$frame}',
@@ -175,6 +219,12 @@ const PalettesRisingChar123FrameChar125Route =
   PalettesRisingChar123FrameChar125RouteImport.update({
     id: '/palettes/rising/{-$frame}',
     path: '/palettes/rising/{-$frame}',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSettingsUsernameCheckRoute =
+  ApiSettingsUsernameCheckRouteImport.update({
+    id: '/api/settings/username_/check',
+    path: '/api/settings/username/check',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -197,15 +247,23 @@ export interface FileRoutesByFullPath {
   '/api/build': typeof ApiBuildRoute
   '/api/geo': typeof ApiGeoRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/login/password': typeof LoginPasswordRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/me/flags': typeof ApiMeFlagsRoute
+  '/api/me/sync': typeof ApiMeSyncRoute
+  '/api/settings/avatar': typeof ApiSettingsAvatarRoute
+  '/api/settings/delete-account': typeof ApiSettingsDeleteAccountRoute
+  '/api/settings/username': typeof ApiSettingsUsernameRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/settings/username/check': typeof ApiSettingsUsernameCheckRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -226,15 +284,23 @@ export interface FileRoutesByTo {
   '/api/build': typeof ApiBuildRoute
   '/api/geo': typeof ApiGeoRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/login/password': typeof LoginPasswordRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
   '/collections': typeof CollectionsIndexRoute
   '/palettes': typeof PalettesIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/me/flags': typeof ApiMeFlagsRoute
+  '/api/me/sync': typeof ApiMeSyncRoute
+  '/api/settings/avatar': typeof ApiSettingsAvatarRoute
+  '/api/settings/delete-account': typeof ApiSettingsDeleteAccountRoute
+  '/api/settings/username': typeof ApiSettingsUsernameRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/settings/username/check': typeof ApiSettingsUsernameCheckRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -256,15 +322,23 @@ export interface FileRoutesById {
   '/api/build': typeof ApiBuildRoute
   '/api/geo': typeof ApiGeoRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/login_/password': typeof LoginPasswordRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/me/flags': typeof ApiMeFlagsRoute
+  '/api/me/sync': typeof ApiMeSyncRoute
+  '/api/settings/avatar': typeof ApiSettingsAvatarRoute
+  '/api/settings/delete-account': typeof ApiSettingsDeleteAccountRoute
+  '/api/settings/username': typeof ApiSettingsUsernameRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/settings/username_/check': typeof ApiSettingsUsernameCheckRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -287,15 +361,23 @@ export interface FileRouteTypes {
     | '/api/build'
     | '/api/geo'
     | '/collections/saved'
+    | '/login/password'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
     | '/palettes/'
     | '/@{$handle}/$slug/rising'
+    | '/api/auth/$'
+    | '/api/me/flags'
+    | '/api/me/sync'
+    | '/api/settings/avatar'
+    | '/api/settings/delete-account'
+    | '/api/settings/username'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/api/settings/username/check'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -316,15 +398,23 @@ export interface FileRouteTypes {
     | '/api/build'
     | '/api/geo'
     | '/collections/saved'
+    | '/login/password'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id'
     | '/collections'
     | '/palettes'
     | '/@{$handle}/$slug/rising'
+    | '/api/auth/$'
+    | '/api/me/flags'
+    | '/api/me/sync'
+    | '/api/settings/avatar'
+    | '/api/settings/delete-account'
+    | '/api/settings/username'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug'
+    | '/api/settings/username/check'
   id:
     | '__root__'
     | '/'
@@ -345,15 +435,23 @@ export interface FileRouteTypes {
     | '/api/build'
     | '/api/geo'
     | '/collections/saved'
+    | '/login_/password'
     | '/palettes/saved'
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
     | '/palettes/'
     | '/@{$handle}/$slug/rising'
+    | '/api/auth/$'
+    | '/api/me/flags'
+    | '/api/me/sync'
+    | '/api/settings/avatar'
+    | '/api/settings/delete-account'
+    | '/api/settings/username'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/api/settings/username_/check'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -375,15 +473,23 @@ export interface RootRouteChildren {
   ApiBuildRoute: typeof ApiBuildRoute
   ApiGeoRoute: typeof ApiGeoRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
+  LoginPasswordRoute: typeof LoginPasswordRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
   PalettesIndexRoute: typeof PalettesIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiMeFlagsRoute: typeof ApiMeFlagsRoute
+  ApiMeSyncRoute: typeof ApiMeSyncRoute
+  ApiSettingsAvatarRoute: typeof ApiSettingsAvatarRoute
+  ApiSettingsDeleteAccountRoute: typeof ApiSettingsDeleteAccountRoute
+  ApiSettingsUsernameRoute: typeof ApiSettingsUsernameRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
+  ApiSettingsUsernameCheckRoute: typeof ApiSettingsUsernameCheckRoute
 }
 
 declare module '@tanstack/solid-router' {
@@ -528,6 +634,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof CollectionsSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login_/password': {
+      id: '/login_/password'
+      path: '/login/password'
+      fullPath: '/login/password'
+      preLoaderRoute: typeof LoginPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/palettes/': {
       id: '/palettes/'
       path: '/palettes'
@@ -563,6 +676,48 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof AtChar123handleChar125SlugRisingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/flags': {
+      id: '/api/me/flags'
+      path: '/api/me/flags'
+      fullPath: '/api/me/flags'
+      preLoaderRoute: typeof ApiMeFlagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/sync': {
+      id: '/api/me/sync'
+      path: '/api/me/sync'
+      fullPath: '/api/me/sync'
+      preLoaderRoute: typeof ApiMeSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/avatar': {
+      id: '/api/settings/avatar'
+      path: '/api/settings/avatar'
+      fullPath: '/api/settings/avatar'
+      preLoaderRoute: typeof ApiSettingsAvatarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/delete-account': {
+      id: '/api/settings/delete-account'
+      path: '/api/settings/delete-account'
+      fullPath: '/api/settings/delete-account'
+      preLoaderRoute: typeof ApiSettingsDeleteAccountRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/username': {
+      id: '/api/settings/username'
+      path: '/api/settings/username'
+      fullPath: '/api/settings/username'
+      preLoaderRoute: typeof ApiSettingsUsernameRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/collections/rising/{-$frame}': {
       id: '/collections/rising/{-$frame}'
       path: '/collections/rising/{-$frame}'
@@ -575,6 +730,13 @@ declare module '@tanstack/solid-router' {
       path: '/palettes/rising/{-$frame}'
       fullPath: '/palettes/rising/{-$frame}'
       preLoaderRoute: typeof PalettesRisingChar123FrameChar125RouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/username_/check': {
+      id: '/api/settings/username_/check'
+      path: '/api/settings/username/check'
+      fullPath: '/api/settings/username/check'
+      preLoaderRoute: typeof ApiSettingsUsernameCheckRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -599,17 +761,25 @@ const rootRouteChildren: RootRouteChildren = {
   ApiBuildRoute: ApiBuildRoute,
   ApiGeoRoute: ApiGeoRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
+  LoginPasswordRoute: LoginPasswordRoute,
   PalettesSavedRoute: PalettesSavedRoute,
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,
   PalettesIndexRoute: PalettesIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiMeFlagsRoute: ApiMeFlagsRoute,
+  ApiMeSyncRoute: ApiMeSyncRoute,
+  ApiSettingsAvatarRoute: ApiSettingsAvatarRoute,
+  ApiSettingsDeleteAccountRoute: ApiSettingsDeleteAccountRoute,
+  ApiSettingsUsernameRoute: ApiSettingsUsernameRoute,
   CollectionsRisingChar123FrameChar125Route:
     CollectionsRisingChar123FrameChar125Route,
   PalettesRisingChar123FrameChar125Route:
     PalettesRisingChar123FrameChar125Route,
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
+  ApiSettingsUsernameCheckRoute: ApiSettingsUsernameCheckRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

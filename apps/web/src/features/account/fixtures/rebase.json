@@ -1,0 +1,265 @@
+{
+ "a like and a removal over the snapshot": {
+  "likes": [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg"
+  ],
+  "collections": {
+   "blue": {
+    "id": "id-blue",
+    "title": "blue",
+    "visibility": "private",
+    "itemCount": 2,
+    "items": [
+     [
+      "kY4mpDaz",
+      0
+     ],
+     [
+      "kamzkm1g",
+      2
+     ]
+    ],
+    "preview": 2,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/blue"
+   }
+  }
+ },
+ "a removal and its undo on its way: back where it stood": {
+  "likes": [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  "collections": {
+   "blue": {
+    "id": "id-blue",
+    "title": "blue",
+    "visibility": "private",
+    "itemCount": 3,
+    "items": [
+     [
+      "kY4mpDaz",
+      0
+     ],
+     [
+      "kc-zpNeq",
+      1
+     ],
+     [
+      "kamzkm1g",
+      2
+     ]
+    ],
+    "preview": 3,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/blue"
+   }
+  }
+ },
+ "a collection made here, then added to": {
+  "likes": [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  "collections": {
+   "blue": {
+    "id": "id-blue",
+    "title": "blue",
+    "visibility": "private",
+    "itemCount": 3,
+    "items": [
+     [
+      "kY4mpDaz",
+      0
+     ],
+     [
+      "kc-zpNeq",
+      1
+     ],
+     [
+      "kamzkm1g",
+      2
+     ]
+    ],
+    "preview": 0,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/blue"
+   },
+   "@ada/night-swim": {
+    "id": "",
+    "title": "Night swim",
+    "visibility": "private",
+    "itemCount": 3,
+    "items": [
+     [
+      "kWs2um4j",
+      0
+     ],
+     [
+      "kSyQDAzZ",
+      1
+     ],
+     [
+      "kcgI_BPO",
+      2
+     ]
+    ],
+    "preview": 3,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/@ada/night-swim"
+   }
+  }
+ },
+ "an add past 100 is refused whole": 99,
+ "a change named by id shows where the server moved it": {
+  "likes": [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  "collections": {
+   "@ada/blue": {
+    "id": "id-blue",
+    "title": "blue",
+    "visibility": "private",
+    "itemCount": 4,
+    "items": [
+     [
+      "kY4mpDaz",
+      0
+     ],
+     [
+      "kc-zpNeq",
+      1
+     ],
+     [
+      "kamzkm1g",
+      2
+     ],
+     [
+      "kcgI_BPO",
+      3
+     ]
+    ],
+    "preview": 4,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/blue"
+   }
+  }
+ },
+ "the same view of a palette twice is held once": {
+  "likes": [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  "collections": {
+   "blue": {
+    "id": "id-blue",
+    "title": "blue",
+    "visibility": "private",
+    "itemCount": 4,
+    "items": [
+     [
+      "kY4mpDaz",
+      0
+     ],
+     [
+      "kc-zpNeq",
+      1
+     ],
+     [
+      "kamzkm1g",
+      2
+     ],
+     [
+      "kY4mpDaz",
+      3
+     ]
+    ],
+    "preview": 4,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/blue"
+   }
+  }
+ },
+ "a remove without a view takes every view": {
+  "likes": [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  "collections": {
+   "blue": {
+    "id": "id-blue",
+    "title": "blue",
+    "visibility": "private",
+    "itemCount": 1,
+    "items": [
+     [
+      "kc-zpNeq",
+      2
+     ]
+    ],
+    "preview": 1,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/blue"
+   }
+  }
+ },
+ "publishing changes visibility only": {
+  "likes": [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  "collections": {
+   "blue": {
+    "id": "id-blue",
+    "title": "blue",
+    "visibility": "public",
+    "itemCount": 3,
+    "items": [
+     [
+      "kY4mpDaz",
+      0
+     ],
+     [
+      "kc-zpNeq",
+      1
+     ],
+     [
+      "kamzkm1g",
+      2
+     ]
+    ],
+    "preview": 0,
+    "owner": {
+     "kind": "user",
+     "name": "ada",
+     "display": "Ada"
+    },
+    "url": "https://g.test/blue"
+   }
+  }
+ }
+}
