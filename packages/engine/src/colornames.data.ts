@@ -1,6 +1,6 @@
 /* Written by scripts/color-names.mjs from the c3 color naming data (XKCD color survey) and the XKCD and meodai color
    lists. Do not edit: run the script. */
-import { msg } from '@repo/i18n';
+import { msg } from './message.ts';
 
 /** The names people give colors, as English messages, in the order the cells name them. */
 export const COLOR_NAMES = [msg('red'), msg('maroon'), msg('pink'), msg('light pink'), msg('magenta'), msg('salmon'), msg('peach'), msg('orange'), msg('burnt orange'), msg('brown'), msg('tan'), msg('beige'), msg('off-white'), msg('mustard'), msg('yellow'), msg('pale yellow'), msg('olive'), msg('lime green'), msg('green'), msg('dark green'), msg('light green'), msg('teal'), msg('dark teal'), msg('cyan'), msg('light blue'), msg('blue'), msg('dark blue'), msg('navy'), msg('gray blue'), msg('lavender'), msg('purple'), msg('dark purple'), msg('mauve'), msg('gray'), msg('dark gray'), msg('black'), msg('white')] as const;

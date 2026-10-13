@@ -1,0 +1,2 @@
+# Golden outputs of grabient4, one line of JSON each: a diff of them is noise.
+*.json -diff
