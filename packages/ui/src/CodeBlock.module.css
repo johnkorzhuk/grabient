@@ -1,0 +1,164 @@
+@layer components {
+  .paper {
+    min-width: 0;
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+  }
+  .block {
+    composes: paper;
+    display: flex;
+    flex-direction: column;
+    max-height: min(var(--size-code), 70dvh);
+    container: code / inline-size;
+  }
+  /* where the row is wide enough the tabs wrap onto a second before they shrink; Copy keeps the end of the first */
+  .bar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: flex-start;
+    gap: var(--space-s2);
+    padding: var(--space-s1);
+  }
+  .tabs {
+    display: flex;
+    flex-grow: 1;
+    flex-wrap: wrap;
+    gap: var(--space-s1);
+    min-width: 0;
+  }
+  /* what a tab shows: the code, then the line under it; the code gives way in a block at its cap */
+  .body {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 0;
+    min-height: 0;
+  }
+  /* the code's ground is the page's own color, so the code reads as set into the paper its bar is on. It is the part
+     of a tall block that scrolls, and with no line under it, it ends on the block's own corners */
+  .panel {
+    flex-grow: 1;
+    min-width: 0;
+    min-height: 0;
+    padding: var(--space-s3) var(--space-s4) var(--space-s4);
+    overflow-y: auto;
+    border-top: var(--size-hairline) solid var(--color-edge);
+    background-color: var(--color-bg);
+    &:last-child {
+      border-end-start-radius: calc(var(--radius-control) - var(--size-hairline));
+      border-end-end-radius: calc(var(--radius-control) - var(--size-hairline));
+    }
+  }
+  .pre {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border-radius: var(--radius-tight);
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-prose);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    tab-size: 2;
+    counter-reset: line;
+    outline: 0 solid var(--color-ring);
+    outline-offset: var(--space-s1);
+    &:focus-visible {
+      outline-width: 1px;
+    }
+  }
+  /* a line, its number in the gutter: a counter, so the number is never selected or copied and has no words of its own
+     for a screen reader. A long line wraps under its own words, past its indent (--indent, in characters), and the
+     indent stays in the text, so a copy by hand keeps it */
+  .line {
+    position: relative;
+    display: block;
+    min-height: calc(var(--font-lh-prose) * 1em);
+    padding-inline-start: calc(var(--space-s8) + var(--indent, 0) * 1ch);
+    text-indent: calc(var(--indent, 0) * -1ch);
+    &::before {
+      content: counter(line) / "";
+      counter-increment: line;
+      position: absolute;
+      inset-inline-start: 0;
+      width: var(--space-s5);
+      color: var(--color-ink3);
+      text-align: end;
+      text-indent: 0;
+      user-select: none;
+    }
+  }
+  /* a word held whole, since a browser also breaks after a hyphen; an address in one is in parts, so one wider than
+     the row breaks between them. A comment stands back from the code in the quietest ink text may have */
+  .part {
+    display: inline-block;
+    max-width: 100%;
+    text-indent: 0;
+    &[data-comment] {
+      color: var(--color-ink3);
+    }
+  }
+  /* the line under the code, on the block's paper as the bar is, its words starting where the first tab's do */
+  .foot {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s1) var(--space-s4);
+    min-width: 0;
+    min-height: calc(var(--size-control-sm) + 2 * var(--space-s1));
+    padding: var(--space-s1) var(--space-s3);
+    border-top: var(--size-hairline) solid var(--color-edge);
+  }
+  .note {
+    min-width: 0;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    overflow-wrap: anywhere;
+    &[dir="ltr"] {
+      font-family: var(--font-mono);
+    }
+  }
+  @container code (max-width: 520px) {
+    .pre {
+      font-size: var(--font-fs2);
+    }
+  }
+  /* on a phone a bar's tabs are one row that scrolls sideways, and an edge with more beyond it fades out (--less and
+     --more, set from the row's scroll) */
+  @container page (max-width: 600px) {
+    .tabs {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      scrollbar-width: none;
+      --fade: linear-gradient(
+        to right,
+        transparent 0,
+        black calc(var(--less, 0) * var(--space-s8)),
+        black calc(100% - var(--more, 0) * var(--space-s8)),
+        transparent 100%
+      );
+      -webkit-mask-image: var(--fade);
+      mask-image: var(--fade);
+      &::-webkit-scrollbar {
+        display: none;
+      }
+      &:dir(rtl) {
+        --fade: linear-gradient(
+          to left,
+          transparent 0,
+          black calc(var(--less, 0) * var(--space-s8)),
+          black calc(100% - var(--more, 0) * var(--space-s8)),
+          transparent 100%
+        );
+      }
+    }
+  }
+}

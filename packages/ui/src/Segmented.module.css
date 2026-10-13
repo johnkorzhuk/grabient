@@ -1,0 +1,148 @@
+@layer components {
+  .track {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    gap: calc(var(--space-s1) / 2);
+    height: var(--size-control-big);
+    padding: calc(var(--space-s1) / 2);
+    border: 1px solid var(--color-edge);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper2);
+    /* among a row of tools: the control height, the choices sized to their words */
+    &[data-size="sm"] {
+      grid-auto-columns: auto;
+      height: var(--size-control);
+    }
+    /* on a finger's screen each choice is the touch size, less the track's hairline and inset */
+    @media (pointer: coarse) {
+      &,
+      &[data-size="sm"] {
+        height: calc(var(--size-touch) + var(--space-s1));
+      }
+    }
+  }
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s2);
+    min-width: 0;
+    margin: 0;
+    padding-inline: var(--space-s2);
+    overflow: hidden;
+    border: 0;
+    border-radius: calc(var(--radius-control) - var(--space-s1) / 2);
+    --fill: transparent;
+    background-color: var(--fill);
+    color: var(--color-ink2);
+    /* the ink of what a choice is set to: a step quieter than its name, in every state */
+    --detail: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      --fill: var(--color-paper3);
+      color: var(--color-ink);
+      --detail: var(--color-ink2);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    /* the ring on the chosen one is drawn in its own label's ink: the ring's usual ink is the fill's */
+    &[aria-checked="true"],
+    &[aria-current="page"] {
+      --fill: var(--color-ink);
+      color: var(--color-on-ink);
+      --detail: var(--color-on-ink2);
+      outline-color: var(--color-on-ink);
+    }
+    &:disabled,
+    &[aria-disabled="true"] {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+    [data-size="sm"] > & {
+      padding-inline: var(--space-s3);
+      font-size: var(--font-fs1);
+      @media (pointer: coarse) {
+        min-width: var(--size-touch);
+      }
+    }
+  }
+  /* on the narrowest phones a choice trades padding for its words, which run long in some languages */
+  @container page (max-width: 380px) {
+    .choice {
+      padding-inline: var(--space-s1);
+    }
+  }
+  .pair {
+    display: inline-grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    max-width: 100%;
+  }
+  .fit {
+    display: flex;
+    flex-wrap: wrap;
+    grid-area: 1 / 1;
+    align-items: baseline;
+    justify-content: center;
+    gap: calc(var(--space-s1) / 2) var(--space-s1);
+    min-width: 0;
+    visibility: hidden;
+    &::before {
+      content: attr(data-name);
+    }
+  }
+  .forms {
+    display: inline-grid;
+    font-weight: var(--font-medium);
+  }
+  .form {
+    grid-area: 1 / 1;
+    &::before {
+      content: attr(data-form);
+    }
+  }
+  .face {
+    grid-area: 1 / 1;
+    min-width: 0;
+    container-type: size;
+  }
+  /* on one line the setting starts where the widest form would, after the name; on two it is centered under it */
+  .set {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: flex-start;
+    gap: calc(var(--space-s1) / 2) var(--space-s1);
+    width: 100%;
+    height: 100%;
+  }
+  @container (min-height: 1.5em) {
+    .set {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+  }
+  /* the name's own face and size, so the two stand on one baseline at one height, apart by the lighter weight and a
+     quieter ink, which fades with the name's */
+  .detail {
+    color: var(--detail);
+    font-weight: var(--font-medium);
+    transition: color var(--motion-fast) var(--motion-ease);
+  }
+}

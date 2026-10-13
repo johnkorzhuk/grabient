@@ -1,0 +1,42 @@
+/* A link among words, as every page draws it: the line's own type in full ink over a faint underline that comes up to
+   the ink under the pointer. `quiet` is a link standing in a row of its own kind (a footer, the guide under a code
+   block): no underline until the pointer. `current` is a quiet link's own page, `off` a link that leads nowhere now,
+   dimmed as a disabled button is. */
+@layer components {
+  .inline,
+  .quiet {
+    border-radius: var(--radius-tight);
+    text-underline-offset: 3px;
+    outline: 0 solid var(--color-ring);
+    outline-offset: 2px;
+    &:focus-visible {
+      outline-width: 1px;
+    }
+  }
+  .inline {
+    color: var(--color-ink);
+    text-decoration-line: underline;
+    text-decoration-color: var(--color-ink4);
+    &:hover {
+      text-decoration-color: var(--color-ink);
+    }
+  }
+  .quiet {
+    color: var(--color-ink2);
+    text-decoration-line: none;
+    &:hover {
+      color: var(--color-ink);
+      text-decoration-line: underline;
+    }
+    &[aria-current] {
+      color: var(--color-ink);
+      text-decoration-line: underline;
+    }
+    &[aria-disabled="true"] {
+      opacity: 0.4;
+      cursor: default;
+      color: var(--color-ink2);
+      text-decoration-line: none;
+    }
+  }
+}

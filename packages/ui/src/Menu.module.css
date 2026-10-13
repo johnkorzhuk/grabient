@@ -1,0 +1,96 @@
+@layer components {
+  .host {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+    &[data-full] {
+      width: 100%;
+    }
+  }
+  .menu {
+    --menu-gap: var(--space-s2);
+    --menu-edge: var(--space-s4);
+    position: absolute;
+    top: calc(100% + var(--menu-gap));
+    bottom: auto;
+    inset-inline-start: 0;
+    inset-inline-end: auto;
+    z-index: 50;
+    min-width: max(100%, var(--size-menu));
+    margin: 0;
+    padding: var(--space-s2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    list-style: none;
+    border: 1px solid var(--color-glass-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-glass);
+    box-shadow: var(--color-shadow-pop);
+    -webkit-backdrop-filter: blur(var(--size-blur-glass));
+    backdrop-filter: blur(var(--size-blur-glass));
+    &[data-up] {
+      top: auto;
+      bottom: calc(100% + var(--menu-gap));
+    }
+    &[data-align="end"] {
+      inset-inline-start: auto;
+      inset-inline-end: 0;
+    }
+  }
+  .row {
+    composes: row spread from "./rows.module.css";
+  }
+  .rule {
+    composes: rule from "./rows.module.css";
+  }
+  .lead {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  /* a long name ends in an ellipsis before the detail; the box is a full line tall so the clip keeps the tails of g
+     and y */
+  .name {
+    min-width: 0;
+    overflow: hidden;
+    line-height: var(--font-lh-ui);
+    text-overflow: ellipsis;
+    &[data-whole] {
+      flex-shrink: 0;
+    }
+  }
+  /* the end of a row: its detail, then the chevron of a row that opens more */
+  .trail {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+    color: var(--color-ink3);
+    &[data-whole] {
+      flex-shrink: 0;
+    }
+  }
+  .detail {
+    composes: detail from "./rows.module.css";
+    &[data-wraps] {
+      min-width: 0;
+      overflow: hidden;
+      line-height: var(--font-lh-ui);
+      text-overflow: ellipsis;
+    }
+  }
+  .more {
+    display: flex;
+  }
+  .chevron {
+    display: flex;
+    transition: transform var(--motion-fast) var(--motion-ease);
+    &[data-end] {
+      margin-inline-start: auto;
+    }
+    &[data-open] {
+      transform: rotate(180deg);
+    }
+  }
+}
