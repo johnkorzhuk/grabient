@@ -37,6 +37,8 @@ export const PRODUCTION_ORIGIN = "https://grabient.com";
 export const DESCRIPTION_MAX = 160;
 /** The version of what share cards draw. A change to a card's picture takes a new one, so no cache keeps the old. */
 export const OG_VERSION = "k4";
+/** Grabient's code. */
+export const GITHUB_REPO = "https://github.com/johnkorzhuk/grabient";
 
 export type Order = "popular" | "rising";
 export type Frame = "1w" | "3m" | "1y";
@@ -137,8 +139,15 @@ export interface PageMeta {
   structuredData: Record<string, unknown>[];
 }
 
+/** What the browser's page holds of the origin, typed here so the Worker's code, which has no DOM, can read this. */
+interface BrowserPage {
+  document?: {
+    querySelector(selector: string): { getAttribute(name: string): string | null } | null;
+  };
+  location?: { origin: string };
+}
 let originSource: () => string = () => PRODUCTION_ORIGIN;
-let documentOrigin: string | undefined;
+let pageOrigin: string | undefined;
 /** Where the server reads the origin: the deploy's public origin for the request it answers. */
 export function setOriginSource(source: () => string): void {
   originSource = source;
@@ -146,13 +155,13 @@ export function setOriginSource(source: () => string): void {
 /** The origin the page's addresses are written in. In the browser it is the one the server wrote into the canonical
     link, so a page reached on another host of the deploy goes on naming the public one. */
 export function siteOrigin(): string {
-  if (typeof document === "undefined") return originSource();
-  if (!documentOrigin) {
+  const { document, location } = globalThis as BrowserPage;
+  if (!document || !location) return originSource();
+  if (!pageOrigin) {
     const canonical = document.querySelector('link[rel="canonical"]')?.getAttribute("href");
-    documentOrigin =
-      canonical && URL.canParse(canonical) ? new URL(canonical).origin : location.origin;
+    pageOrigin = canonical && URL.canParse(canonical) ? new URL(canonical).origin : location.origin;
   }
-  return documentOrigin;
+  return pageOrigin;
 }
 
 const absolute = (path: string, origin: string) => new URL(path, origin).toString();
@@ -522,10 +531,7 @@ export function siteStructuredData(origin: string): Record<string, unknown>[] {
       name: "Grabient",
       url: site,
       logo: absolute("/icon-512.png", origin),
-      sameAs: [
-        "https://github.com/johnkorzhuk/grabient",
-        "https://www.producthunt.com/products/grabient"
-      ]
+      sameAs: [GITHUB_REPO, "https://www.producthunt.com/products/grabient"]
     }
   ];
 }
