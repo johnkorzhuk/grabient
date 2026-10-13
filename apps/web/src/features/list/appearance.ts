@@ -103,6 +103,8 @@ export const AppearanceContext = createContext<ReturnType<typeof createAppearanc
    the page is live it is As saved on both sides, so the server's links and the first render's agree. */
 const KEY = "grabient-view";
 const [remembered, setRemembered] = createSignal<ListView>(AS_SAVED);
+/* the same view, plain: a page's effect compares against it without reading the signal */
+let kept: ListView = AS_SAVED;
 let live = false;
 
 /** The reader's view, as this tab remembers it. */
@@ -113,8 +115,11 @@ export function recallView(): void {
   if (isServer || live) return;
   live = true;
   try {
-    const kept = JSON.parse(sessionStorage.getItem(KEY) ?? "null");
-    if (kept && typeof kept === "object") setRemembered(readListView(viewParams(kept)));
+    const stored = JSON.parse(sessionStorage.getItem(KEY) ?? "null");
+    if (stored && typeof stored === "object") {
+      kept = readListView(viewParams(stored));
+      setRemembered(kept);
+    }
   } catch {
     /* nothing kept, or storage refused: As saved */
   }
@@ -123,14 +128,14 @@ export function recallView(): void {
 /** Remembers the view a page drew its palettes in. */
 export function rememberView(view: ListView): void {
   if (isServer || !live) return;
-  const now = remembered();
   if (
-    now.style === view.style &&
-    now.steps === view.steps &&
-    now.angle === view.angle &&
-    sizeParam(now.size) === sizeParam(view.size)
+    kept.style === view.style &&
+    kept.steps === view.steps &&
+    kept.angle === view.angle &&
+    sizeParam(kept.size) === sizeParam(view.size)
   )
     return;
+  kept = view;
   setRemembered(view);
   try {
     sessionStorage.setItem(KEY, JSON.stringify(view));

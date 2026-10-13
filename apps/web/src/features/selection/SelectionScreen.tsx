@@ -16,6 +16,7 @@ import {
   onCleanup,
   onSettled,
   Show,
+  untrack,
   useContext
 } from "solid-js";
 import { SELECTION_MARK } from "../../app/navigation.ts";
@@ -295,13 +296,16 @@ export function createSelectionScreen(page: {
         stood = true;
         return;
       }
-      if (stood) close();
-      else
-        void router.navigate({
-          href: href({ selection: undefined }),
-          replace: true,
-          resetScroll: false
-        });
+      /* what Close and the address read is the page's now, not what the effect follows */
+      untrack(() => {
+        if (stood) close();
+        else
+          void router.navigate({
+            href: href({ selection: undefined }),
+            replace: true,
+            resetScroll: false
+          });
+      });
       stood = false;
     }
   );
