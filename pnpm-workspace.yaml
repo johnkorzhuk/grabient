@@ -51,5 +51,8 @@ ignoredBuiltDependencies:
   - core-js
 
 patchedDependencies:
+  # Saved client documents are read, never fetched; a fetched document follows no redirect; and no document client
+  # authenticates with private_key_jwt, which would make a token request fetch the app's keys.
+  "@cloudflare/workers-oauth-provider@1.2.3": patches/@cloudflare__workers-oauth-provider@1.2.3.patch
   # Start rc.8 still calls Solid's server-function URL helpers by their rc.11 names; rc.14 renamed them.
   "@tanstack/solid-start@2.0.0-rc.8": patches/@tanstack__solid-start@2.0.0-rc.8.patch
