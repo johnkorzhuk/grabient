@@ -2,10 +2,18 @@ import { localHref, msg, t } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { createSignal } from "solid-js";
 
-/* Stand-ins for what the account feature gives every page: who is signed in (features/account/session.ts), whether
-   the site can be reached (features/account/connection.ts) and analytics (lib/analytics.ts). Each keeps the name and
-   meaning of the export it stands for, so the merge with that feature makes this file a list of re-exports. Until
-   then the session is read once from the sign-in library, no account reads as an admin's, and no event is counted. */
+/* What every page has from the frame (whether the site can be reached, analytics), and stand-ins for what the account
+   feature gives (who is signed in, features/account/session.ts). Each stand-in keeps the name and meaning of the export
+   it stands for, so the merge with that feature makes this file a list of re-exports. Until then the session is read
+   once from the sign-in library and no account reads as an admin's. */
+
+/* the frame follows the connection on every page (Shell.tsx), so a page asking for it again changes nothing */
+export {
+  offline,
+  unreachable,
+  watchConnection as installConnection
+} from "../../app/connection.ts";
+export { trackEvent } from "../analytics/analytics.ts";
 
 export type Role = "admin" | "user";
 export interface Account {
@@ -47,20 +55,6 @@ export async function signOut(to = "/"): Promise<void> {
   location.assign(localHref(to));
 }
 
-const [online, setOnline] = createSignal(true);
-let watching = false;
-/** Follows the browser's connection once the page is live; it reads online until then, as the server drew it. */
-export function installConnection(): void {
-  if (isServer || watching) return;
-  watching = true;
-  setOnline(navigator.onLine !== false);
-  addEventListener("online", () => setOnline(true));
-  addEventListener("offline", () => setOnline(false));
-}
-export const offline = (): boolean => !online();
-/** Whether a link leads nowhere now: offline, every page these pages link to needs the network. */
-export const unreachable = (_href: string | undefined): boolean => offline();
-
 /** A private JSON call to the site with the session's cookie; a refusal throws the server's words, translated. */
 export async function api<T>(path: string, body: unknown = {}): Promise<T> {
   const response = await fetch(path, {
@@ -82,9 +76,3 @@ export const shownError = (reason: unknown, fallback: string): string =>
   reason instanceof Error && reason.message && !(reason instanceof TypeError)
     ? reason.message
     : t(fallback);
-
-/** Counts an event of the page. */
-export const trackEvent = (
-  _name: string,
-  _properties: Readonly<Record<string, unknown>> = {}
-) => {};

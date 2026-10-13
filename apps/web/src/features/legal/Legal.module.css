@@ -1,0 +1,43 @@
+/* an address longer than a phone is wide wraps, so the page never widens */
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  max-width: var(--size-prose);
+  overflow-wrap: break-word;
+}
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  padding-bottom: var(--space-s4);
+}
+.h2 {
+  margin-top: var(--space-s6);
+}
+.h3 {
+  margin-top: var(--space-s2);
+}
+.p {
+  margin: 0;
+  color: var(--color-ink2);
+  font-family: var(--font-sans);
+  font-weight: var(--font-medium);
+  font-size: var(--font-fs4);
+  line-height: var(--font-lh-prose);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  margin: 0;
+  padding-inline-start: var(--space-s5);
+}
+.code {
+  padding-inline: var(--space-s1);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-control);
+  background-color: var(--color-paper2);
+  font-family: var(--font-mono);
+  font-size: var(--font-fs2);
+}

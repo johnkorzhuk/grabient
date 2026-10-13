@@ -1,21 +1,37 @@
+import "@grabient/ui/tokens.css";
+import "@grabient/ui/base.css";
 import catalogs from "virtual:i18n/assets";
 import { LOCALE_INFO, locale, t } from "@grabient/i18n";
+import { motionScript } from "@grabient/ui/motion.ts";
+import { scrollbarScript } from "@grabient/ui/scrollbar.ts";
+import { themeScript } from "@grabient/ui/theme.ts";
 import type { JSX } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import { createRootRouteWithContext, HeadContent, redirect, Scripts } from "@tanstack/solid-router";
-import { BASE_CSS, BOOT_SCRIPT } from "../app/boot.ts";
+import { createIsomorphicFn } from "@tanstack/solid-start";
 import { newerBuild } from "../app/build-watch.ts";
 import { NotFound } from "../app/NotFound.tsx";
+import { Shell } from "../app/Shell.tsx";
+import type { SiteFacts } from "../app/site.ts";
 import { NO_STORE } from "../lib/cache.ts";
+import { readSite } from "../server/site/facts.ts";
 
 /** Poppins at the two weights the site sets text in; the latin-ext files load only for the letters they hold. */
 const FONTS = ["/fonts/poppins-latin-500-normal.woff2", "/fonts/poppins-latin-700-normal.woff2"];
+
+/* The site's facts are read once, before the first render, and ride in the document: the browser never asks again. */
+const siteFacts = createIsomorphicFn()
+  .server(readSite)
+  .client((): SiteFacts => ({ stars: null }));
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   // a deploy happened since this page loaded: the next page loads whole, with the build that serves it
   beforeLoad: ({ location }) => {
     if (newerBuild()) throw redirect({ href: location.publicHref, reloadDocument: true });
   },
+  loader: () => siteFacts(),
+  staleTime: Number.POSITIVE_INFINITY,
+  shouldReload: false,
   // a page says how long it may be kept; one that says nothing is kept nowhere
   headers: () => NO_STORE,
   head: () => {
@@ -78,14 +94,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         },
         { rel: "ai-catalog", href: "/.well-known/ai-catalog.json" }
       ],
-      styles: [{ children: BASE_CSS }],
-      scripts: [{ children: BOOT_SCRIPT }]
+      /* before the first paint: the reader's theme and motion on <html>, and whether scrollbars take room */
+      scripts: [
+        { children: themeScript },
+        { children: motionScript },
+        { children: scrollbarScript }
+      ]
     };
   },
   shellComponent: Document,
-  /* The root's alone answers a page that throws notFound(). A page route with a not-found component of its own wraps
-     its content in a boundary that rethrows every other error, and the server then sends a failed page as an empty
-     200 instead of a 500. */
+  component: Shell,
+  /* The root's alone answers a page that throws notFound(), inside the frame. A page route with a not-found component of
+     its own wraps its content in a boundary that rethrows every other error, and the server then sends a failed page as
+     an empty 200 instead of a 500. */
   notFoundComponent: NotFound
 });
 

@@ -1,4 +1,6 @@
 import type { Env } from "@grabient/server/env.ts";
+import { prunePaletteUse } from "./palette-use/use.ts";
+import { refreshStars } from "./seo/stars.ts";
 
 /* The scheduled work, one function per trigger in cloudflare.config.ts. Each job runs its steps in order; a step that
    fails is logged and the rest still run, and the run then fails as a whole so the dashboard shows it. A feature adds
@@ -29,12 +31,17 @@ export async function runSteps(
 
 /** Every ten minutes: the GitHub star count, the seeding queue, IndexNow, then the search snapshot. */
 export function everyTenMinutes(env: Env, ctx: ExecutionContext): Promise<void> {
-  return runSteps("every ten minutes", {}, env, ctx);
+  return runSteps("every ten minutes", { "github stars": env => refreshStars(env) }, env, ctx);
 }
 
 /** Every six hours: database upkeep and pruning, the Popular tags, then the hot scores. */
 export function everySixHours(env: Env, ctx: ExecutionContext): Promise<void> {
-  return runSteps("every six hours", {}, env, ctx);
+  return runSteps(
+    "every six hours",
+    { "palette use past keeping": env => prunePaletteUse(env) },
+    env,
+    ctx
+  );
 }
 
 /** The jobs by their trigger's schedule, which must match cloudflare.config.ts to the character. */

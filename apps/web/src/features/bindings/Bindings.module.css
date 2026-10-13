@@ -1,0 +1,104 @@
+.article {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s8);
+  max-width: var(--size-prose);
+}
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-s4);
+}
+.headText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s2);
+  min-width: 0;
+}
+.headAct {
+  flex-shrink: 0;
+  padding-top: var(--space-s1);
+  &[data-off] {
+    visibility: hidden;
+  }
+}
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+}
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+/* the keys, what they do, and Reset; on a phone the keys' column is as wide as its chips */
+.row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-s5);
+  padding-block: var(--space-s3);
+  background-image: var(--color-dash-rule);
+  background-size: var(--size-dash-period) 1px;
+  background-repeat: repeat-x;
+  background-position: left bottom;
+  @container page (max-width: 600px) {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: var(--space-s3);
+  }
+}
+.keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-s2);
+}
+.kbd,
+.press {
+  display: inline-flex;
+  align-items: center;
+  height: var(--size-control-sm);
+  padding-inline: var(--space-s2);
+  border: 1px solid var(--color-edge2);
+  border-radius: var(--radius-tight);
+  background-color: var(--color-paper2);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: var(--font-fs2);
+  line-height: var(--font-lh-none);
+  white-space: nowrap;
+}
+/* a key that can change: a press drawn as the chip */
+.press {
+  margin: 0;
+  outline: 0 solid var(--color-ring);
+  outline-offset: 2px;
+  &:hover {
+    background-color: var(--color-paper3);
+  }
+  &:focus-visible {
+    outline-width: 1px;
+  }
+  &[data-live] {
+    border-color: var(--color-ring);
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+  }
+}
+.what {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+  min-width: 0;
+}
+.action {
+  color: var(--color-ink2);
+}
+/* the reset's column keeps its width, so a change never moves the action */
+.reset {
+  display: flex;
+  justify-content: flex-end;
+  min-width: var(--size-control-sm);
+}

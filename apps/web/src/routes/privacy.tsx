@@ -1,10 +1,16 @@
-import { t } from "@grabient/i18n";
 import { createFileRoute } from "@tanstack/solid-router";
-import { Placeholder } from "../app/Placeholder.tsx";
+import { BrandFrame } from "../app/Frames.tsx";
+import { LegalPage } from "../features/legal/LegalPage.tsx";
 import { PAGE } from "../lib/cache.ts";
+import { pageHead } from "../lib/page-meta.ts";
 
 export const Route = createFileRoute("/privacy")({
+  staticData: { frame: "brand" },
   headers: () => PAGE,
-  head: () => ({ meta: [{ title: t("Privacy policy") }] }),
-  component: () => <Placeholder title={t("Privacy policy")} />
+  head: () => pageHead({ kind: "privacy" }),
+  component: () => (
+    <BrandFrame page="privacy">
+      <LegalPage document="privacy" />
+    </BrandFrame>
+  )
 });

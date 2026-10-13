@@ -1,0 +1,24 @@
+.host {
+  position: relative;
+  display: inline-flex;
+}
+/* a finger's target is the touch size around the picture, which keeps its place on the gutter */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-circle);
+  background-color: transparent;
+  outline: 0 solid var(--color-ring);
+  outline-offset: 2px;
+  &:focus-visible {
+    outline-width: 1px;
+  }
+  @media (pointer: coarse) {
+    min-width: var(--size-touch);
+    min-height: var(--size-touch);
+    margin: calc((var(--size-avatar) - var(--size-touch)) / 2);
+  }
+}

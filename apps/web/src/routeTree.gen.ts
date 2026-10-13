@@ -31,11 +31,15 @@ import { Route as DotwellKnownAiCatalogDotjsonRouteImport } from './routes/[.]we
 import { Route as DotwellKnownArdDotjsonRouteImport } from './routes/[.]well-known/ard[.]json'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as ApiBuildRouteImport } from './routes/api/build'
+import { Route as ApiClientErrorRouteImport } from './routes/api/client-error'
+import { Route as ApiContactRouteImport } from './routes/api/contact'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as ApiPaletteRouteImport } from './routes/api/palette'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
+import { Route as ApiUsedRouteImport } from './routes/api/used'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
+import { Route as ESplatRouteImport } from './routes/e/$'
 import { Route as FaviconChar123weekChar125DotsvgRouteImport } from './routes/favicon/{$week}[.]svg'
 import { Route as McpServerCardRouteImport } from './routes/mcp/server-card'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
@@ -185,6 +189,16 @@ const ApiBuildRoute = ApiBuildRouteImport.update({
   path: '/api/build',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiClientErrorRoute = ApiClientErrorRouteImport.update({
+  id: '/api/client-error',
+  path: '/api/client-error',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiContactRoute = ApiContactRouteImport.update({
+  id: '/api/contact',
+  path: '/api/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiGeoRoute = ApiGeoRouteImport.update({
   id: '/api/geo',
   path: '/api/geo',
@@ -200,6 +214,11 @@ const ApiPaletteDotjsonRoute = ApiPaletteDotjsonRouteImport.update({
   path: '/api/palette.json',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiUsedRoute = ApiUsedRouteImport.update({
+  id: '/api/used',
+  path: '/api/used',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
   id: '/collections/',
   path: '/collections/',
@@ -208,6 +227,11 @@ const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
 const CollectionsSavedRoute = CollectionsSavedRouteImport.update({
   id: '/collections/saved',
   path: '/collections/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ESplatRoute = ESplatRouteImport.update({
+  id: '/e/$',
+  path: '/e/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const FaviconChar123weekChar125DotsvgRoute =
@@ -444,10 +468,14 @@ export interface FileRoutesByFullPath {
   '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/client-error': typeof ApiClientErrorRoute
+  '/api/contact': typeof ApiContactRoute
   '/api/geo': typeof ApiGeoRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
+  '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/e/$': typeof ESplatRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
@@ -510,10 +538,14 @@ export interface FileRoutesByTo {
   '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/client-error': typeof ApiClientErrorRoute
+  '/api/contact': typeof ApiContactRoute
   '/api/geo': typeof ApiGeoRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
+  '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/e/$': typeof ESplatRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
@@ -577,10 +609,14 @@ export interface FileRoutesById {
   '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
   '/api/build': typeof ApiBuildRoute
+  '/api/client-error': typeof ApiClientErrorRoute
+  '/api/contact': typeof ApiContactRoute
   '/api/geo': typeof ApiGeoRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
+  '/api/used': typeof ApiUsedRoute
   '/collections/saved': typeof CollectionsSavedRoute
+  '/e/$': typeof ESplatRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
@@ -645,10 +681,14 @@ export interface FileRouteTypes {
     | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
+    | '/api/client-error'
+    | '/api/contact'
     | '/api/geo'
     | '/api/palette'
     | '/api/palette.json'
+    | '/api/used'
     | '/collections/saved'
+    | '/e/$'
     | '/favicon/{$week}.svg'
     | '/mcp/server-card'
     | '/palettes/saved'
@@ -711,10 +751,14 @@ export interface FileRouteTypes {
     | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
+    | '/api/client-error'
+    | '/api/contact'
     | '/api/geo'
     | '/api/palette'
     | '/api/palette.json'
+    | '/api/used'
     | '/collections/saved'
+    | '/e/$'
     | '/favicon/{$week}.svg'
     | '/mcp/server-card'
     | '/palettes/saved'
@@ -777,10 +821,14 @@ export interface FileRouteTypes {
     | '/.well-known/ard.json'
     | '/api/$'
     | '/api/build'
+    | '/api/client-error'
+    | '/api/contact'
     | '/api/geo'
     | '/api/palette'
     | '/api/palette.json'
+    | '/api/used'
     | '/collections/saved'
+    | '/e/$'
     | '/favicon/{$week}.svg'
     | '/mcp/server-card'
     | '/palettes/saved'
@@ -844,10 +892,14 @@ export interface RootRouteChildren {
   DotwellKnownArdDotjsonRoute: typeof DotwellKnownArdDotjsonRoute
   ApiSplatRoute: typeof ApiSplatRoute
   ApiBuildRoute: typeof ApiBuildRoute
+  ApiClientErrorRoute: typeof ApiClientErrorRoute
+  ApiContactRoute: typeof ApiContactRoute
   ApiGeoRoute: typeof ApiGeoRoute
   ApiPaletteRoute: typeof ApiPaletteRoute
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
+  ApiUsedRoute: typeof ApiUsedRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
+  ESplatRoute: typeof ESplatRoute
   FaviconChar123weekChar125DotsvgRoute: typeof FaviconChar123weekChar125DotsvgRoute
   McpServerCardRoute: typeof McpServerCardRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
@@ -1045,6 +1097,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiBuildRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/client-error': {
+      id: '/api/client-error'
+      path: '/api/client-error'
+      fullPath: '/api/client-error'
+      preLoaderRoute: typeof ApiClientErrorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/contact': {
+      id: '/api/contact'
+      path: '/api/contact'
+      fullPath: '/api/contact'
+      preLoaderRoute: typeof ApiContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/geo': {
       id: '/api/geo'
       path: '/api/geo'
@@ -1066,6 +1132,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiPaletteDotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/used': {
+      id: '/api/used'
+      path: '/api/used'
+      fullPath: '/api/used'
+      preLoaderRoute: typeof ApiUsedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/collections/': {
       id: '/collections/'
       path: '/collections'
@@ -1078,6 +1151,13 @@ declare module '@tanstack/solid-router' {
       path: '/collections/saved'
       fullPath: '/collections/saved'
       preLoaderRoute: typeof CollectionsSavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/e/$': {
+      id: '/e/$'
+      path: '/e/$'
+      fullPath: '/e/$'
+      preLoaderRoute: typeof ESplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/favicon/{$week}.svg': {
@@ -1364,10 +1444,14 @@ const rootRouteChildren: RootRouteChildren = {
   DotwellKnownArdDotjsonRoute: DotwellKnownArdDotjsonRoute,
   ApiSplatRoute: ApiSplatRoute,
   ApiBuildRoute: ApiBuildRoute,
+  ApiClientErrorRoute: ApiClientErrorRoute,
+  ApiContactRoute: ApiContactRoute,
   ApiGeoRoute: ApiGeoRoute,
   ApiPaletteRoute: ApiPaletteRoute,
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
+  ApiUsedRoute: ApiUsedRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
+  ESplatRoute: ESplatRoute,
   FaviconChar123weekChar125DotsvgRoute: FaviconChar123weekChar125DotsvgRoute,
   McpServerCardRoute: McpServerCardRoute,
   PalettesSavedRoute: PalettesSavedRoute,

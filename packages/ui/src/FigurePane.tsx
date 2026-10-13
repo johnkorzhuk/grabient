@@ -1,4 +1,4 @@
-import { createUniqueId, type Element, Show } from "solid-js";
+import { children, createUniqueId, type Element, Show } from "solid-js";
 import styles from "./FigurePane.module.css";
 import { Label } from "./Label.tsx";
 import { Pane } from "./Pane.tsx";
@@ -28,13 +28,18 @@ export function FigurePane(props: {
   children: Element;
 }) {
   const noteId = createUniqueId();
+  /* resolved once: each read of an element prop would build it again, and the server and the browser would number
+     what they built differently */
+  const note = children(() => props.note);
+  const act = children(() => props.act);
+  const has = (part: typeof note) => part.toArray().length > 0;
   return (
     /* a named figure is a group by its name; one without a name is named by its line */
     <figure
       class={styles.pane}
       role={props.name ? "group" : undefined}
       aria-label={props.name}
-      aria-labelledby={!props.name && props.note ? noteId : undefined}
+      aria-labelledby={!props.name && has(note) ? noteId : undefined}
     >
       <Pane variant="paper" padding="sm" tight>
         <div class={styles.in}>
@@ -56,13 +61,13 @@ export function FigurePane(props: {
           >
             {props.children}
           </div>
-          <Show when={props.note || props.act}>
+          <Show when={has(note) || has(act)}>
             <div class={styles.foot}>
               <span id={noteId} class={styles.note}>
-                {props.note}
+                {note()}
               </span>
-              <Show when={props.act}>
-                <span class={styles.act}>{props.act}</span>
+              <Show when={has(act)}>
+                <span class={styles.act}>{act()}</span>
               </Show>
             </div>
           </Show>
