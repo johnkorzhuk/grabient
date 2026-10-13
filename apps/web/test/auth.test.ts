@@ -2,6 +2,7 @@ import { deleteAccount } from "@grabient/server/auth/deletion.ts";
 import { handleAuth } from "@grabient/server/auth/gate.ts";
 import { authFor } from "@grabient/server/auth/library.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
 import { describe, expect, it } from "vitest";
 import {
   address,
@@ -15,7 +16,8 @@ import {
   post,
   type TestEnv,
   testEnv,
-  unique
+  unique,
+  watchLimits
 } from "./helpers.ts";
 
 const LINK = "/api/auth/sign-in/magic-link";
@@ -223,6 +225,47 @@ describe("signing in by an emailed link", () => {
     const env = testEnv();
     const answer = await handleAuth(post(LINK, { callbackURL: "/" }), env);
     expect([answer.status, await answer.json()]).toEqual([400, { error: "Invalid request body" }]);
+  });
+});
+
+describe("email while an admin has it off", () => {
+  it("refuses a link or a code before counting, storing or sending, and points to Google where the deploy has it", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    const email = `${unique("off")}@example.test`;
+    const owner = await makeAccount(env);
+    await setFlag(env, "email", false, unique("admin"));
+    try {
+      const link = await handleAuth(post(LINK, { email }), env);
+      expect([link.status, link.headers.get("Retry-After"), await link.json()]).toEqual([
+        503,
+        "300",
+        { error: "Email sign-in is busy. Try again later." }
+      ]);
+      const google = testEnv({ GOOGLE_CLIENT_ID: "client", GOOGLE_CLIENT_SECRET: "secret" });
+      const code = await handleAuth(post(CODE, { email, type: "sign-in" }), google);
+      expect([code.status, await code.json()]).toEqual([
+        503,
+        { error: "Email sign-in is busy. Try again later or use Google." }
+      ]);
+      expect([asked, env.EMAIL.sent, google.EMAIL.sent]).toEqual([[], [], []]);
+      expect(
+        await count(
+          env,
+          "SELECT COUNT(*) AS n FROM auth_verification WHERE identifier LIKE ?",
+          `%${email}%`
+        )
+      ).toBe(0);
+      // an account's deletion still asks for its email
+      const deletion = await handleAuth(
+        post("/api/auth/delete-user", {}, { cookie: owner.cookie }),
+        env
+      );
+      expect(deletion.status).toBe(200);
+      expect(env.EMAIL.last.subject).toBe("Confirm account deletion");
+    } finally {
+      await setFlag(env, "email", true, unique("admin"));
+    }
+    expect((await handleAuth(post(LINK, { email }), env)).status).toBe(200);
   });
 });
 
