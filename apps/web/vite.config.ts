@@ -3,6 +3,7 @@ import { i18n } from "@grabient/i18n/vite.ts";
 import solid from "@solidjs/vite-plugin";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { defineConfig } from "vite";
+import { serviceWorker } from "./scripts/service-worker.ts";
 import { mcpView } from "./src/mcp-view/build.ts";
 import { draftsStayPrivate } from "./src/server/newsletter/private.ts";
 
@@ -48,6 +49,7 @@ export default defineConfig({
       }
     }),
     // The Worker entry stays out of Solid's transform, which would add an export workerd refuses on a main module.
-    solid({ ssr: true, exclude: ["src/server.ts"] })
+    solid({ ssr: true, exclude: ["src/server.ts"] }),
+    serviceWorker()
   ]
 });

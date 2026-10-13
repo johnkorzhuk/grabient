@@ -10,7 +10,7 @@ import { api } from "./account.ts";
 export const connectionsQuery = (account: string) =>
   queryOptions({
     queryKey: ["connections", account] as const,
-    queryFn: () => api<{ connections: Connection[] }>("/api/settings/connections"),
+    queryFn: () => api<{ connections: Connection[] }>("/api/settings/connections", {}),
     staleTime: 2_000,
     refetchOnWindowFocus: true,
     reconcile: "clientId"

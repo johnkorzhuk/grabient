@@ -1,0 +1,30 @@
+{
+ "likes in and out, a collection removed by id": {
+  "cursor": 9,
+  "admin": true,
+  "likes": [
+   "kWs2um4j"
+  ],
+  "collections": [
+   "green"
+  ]
+ },
+ "a collection is one by its id, whatever its address": {
+  "cursor": 9,
+  "admin": false,
+  "likes": [
+   "kY4mpDaz"
+  ],
+  "collections": [
+   "blue-two"
+  ]
+ },
+ "a reset drops what the copy held": {
+  "cursor": 9,
+  "admin": false,
+  "likes": [
+   "kW0B2lbA"
+  ],
+  "collections": []
+ }
+}

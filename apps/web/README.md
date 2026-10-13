@@ -75,6 +75,24 @@ Worker-only code lives in `src/server/` and reads its bindings with `import { en
 browser's build fails on an import of it from code the browser runs; an import used only inside
 `createIsomorphicFn().server()` or a server handler is removed from the browser's build.
 
+## Accounts and the offline copy
+
+Sign-in is Better Auth behind the server package's gate, mounted on `/api/auth/*`. The browser asks who is signed in
+after the first render (`src/features/account/session.ts`); public HTML never carries an account, and `account()`
+is undefined until that answer, null signed out. Once an account is known the page loads the copy's engine
+(`features/account/sync.ts`): the account's likes and collections in IndexedDB (`grabient-account-{id}`), the
+changes made here in its outbox, and `POST /api/me/sync` sending them in order and bringing back what changed. A page
+reads `accountView()` and writes through `likes.ts` and `collections.ts`, which change the copy at once, offline too.
+Tabs share the copy through a BroadcastChannel, and one tab syncs at a time under a Web Lock.
+
+Browsers keep changes they could not send in IndexedDB, so the sync's wire (`features/account/wire.ts`) and the
+database's version 1 stores never change in place: a new shape takes a new database version that rewrites the outbox.
+The same holds for the removal undo tokens and the username rules, which the browser and the Worker share.
+
+A switch the server keeps outside the copy (a feature flag, the newsletter, a vote) shows its press at once through
+`src/lib/optimistic.ts`. The production build writes `/sw.js` (`scripts/service-worker.ts`), which opens the
+account's pages and the pages whose words are in the code with no connection; `SW=off` builds one that removes itself.
+
 ## Scheduled work
 
 `src/server/jobs.ts` has one function per trigger in `cloudflare.config.ts`. A feature adds its step to the job, in

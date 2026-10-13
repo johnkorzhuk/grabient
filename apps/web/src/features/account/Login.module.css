@@ -1,0 +1,38 @@
+/* The sign-in sheet: its form, the line under the title, the words between the two ways in, and the terms beneath the
+   footer. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+}
+.sub {
+  margin-top: calc(var(--space-s2) * -1);
+}
+.or {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s3);
+  font-family: var(--font-sans);
+  font-weight: var(--font-bold);
+  font-size: var(--font-fs0);
+  line-height: var(--font-lh-none);
+  letter-spacing: var(--font-ls-wide);
+  text-transform: uppercase;
+  color: var(--color-ink3);
+}
+.line {
+  flex-grow: 1;
+  height: 1px;
+  background-image: var(--color-dash-rule);
+  background-size: var(--size-dash-period) 1px;
+  background-repeat: repeat-x;
+}
+/* the footer's note: under the language menu, at the bottom center of the screen */
+.legal {
+  margin: 0;
+  text-align: center;
+  font-family: var(--font-sans);
+  font-size: var(--font-fs2);
+  line-height: var(--font-lh-prose);
+  color: var(--color-ink2);
+}

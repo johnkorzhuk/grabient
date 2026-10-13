@@ -1,4 +1,5 @@
 import type { Env } from "@grabient/server/env.ts";
+import { pruneExpired, pruneSync } from "./account/changes.ts";
 import { prunePaletteUse } from "./palette-use/use.ts";
 import { refreshStars } from "./seo/stars.ts";
 
@@ -38,7 +39,11 @@ export function everyTenMinutes(env: Env, ctx: ExecutionContext): Promise<void> 
 export function everySixHours(env: Env, ctx: ExecutionContext): Promise<void> {
   return runSteps(
     "every six hours",
-    { "palette use past keeping": env => prunePaletteUse(env) },
+    {
+      "palette use past keeping": env => prunePaletteUse(env),
+      pruneSync: env => pruneSync(env),
+      pruneExpired: env => pruneExpired(env)
+    },
     env,
     ctx
   );
