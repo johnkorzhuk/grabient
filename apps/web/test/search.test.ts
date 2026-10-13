@@ -1,8 +1,8 @@
 import { encodePalette } from "@grabient/engine";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import { describe, expect, it } from "vitest";
-import { run } from "../src/server/db/d1.ts";
-import type { Env } from "../src/server/env.ts";
+import { run } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { accountSearchResponse } from "../src/server/search/account.ts";
 import {
   pruneSearchCounts,

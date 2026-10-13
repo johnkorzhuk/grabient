@@ -5,12 +5,12 @@
 import { msg } from "@grabient/i18n";
 import { normalizeQuery } from "@grabient/search/text.ts";
 import { type Tower, textSide } from "@grabient/search/tower.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
+import type { LimitName } from "@grabient/server/limits/config.ts";
 import { isCrawler } from "../crawlers.ts";
-import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
-import { clientAddress } from "../limits/address.ts";
-import { checkLimits, type LimitCheck } from "../limits/check.ts";
-import type { LimitName } from "../limits/config.ts";
 import { loadFallbackModel, loadModel, loadVocabulary } from "./files.ts";
 import { keep } from "./kept.ts";
 import { queryWords } from "./read.ts";

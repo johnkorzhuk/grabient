@@ -1,8 +1,8 @@
 /* The searches an admin's app schedules to lead the tags (the search_tags tool): each stands from a start to an end by
    its dates alone, so nothing runs for one to begin or end. Only a search the vocabulary answers as one phrase is kept,
    in the form its tag says it, so every tag finds palettes and none asks the model. */
-import { all, run } from "../db/d1.ts";
-import type { Env } from "../env.ts";
+import { all, run } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { loadVocabulary } from "./files.ts";
 import { forgetPopular, tagWords } from "./popular.ts";
 import { normalizeListQuery } from "./seams.ts";

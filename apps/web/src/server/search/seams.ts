@@ -5,10 +5,10 @@ import { decodePalette, encodePalette } from "@grabient/engine";
 import { alignedLegacySeed, legacyTarget } from "@grabient/engine/legacy.ts";
 import { parseView, type Style } from "@grabient/engine/view.ts";
 import { delocalizePath } from "@grabient/i18n";
+import { all } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import legacyGallery from "../../../data/legacy-k.json" with { type: "json" };
 import legacyLinks from "../../../data/legacy-links.json" with { type: "json" };
-import { all } from "../db/d1.ts";
-import type { Env } from "../env.ts";
 
 /* palettes and old ids */
 

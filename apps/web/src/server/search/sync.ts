@@ -9,9 +9,9 @@ import {
   SNAPSHOT_FORMAT,
   snapshotHead
 } from "@grabient/search/snapshot.ts";
-import { all, type Db, first } from "../db/d1.ts";
-import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
+import { all, type Db, first } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff } from "@grabient/server/flags/flags.ts";
 import { loadModel, searchAsset } from "./files.ts";
 import { embeddings } from "./model.ts";
 import { votedOut } from "./seams.ts";

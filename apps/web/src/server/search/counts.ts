@@ -8,14 +8,14 @@
    with no address, account or cookie, and goes after 90 days. Each address, or an app's account, counts the same words
    on a page once a day and at most 30 searches an hour, and the site at most 20,000 a day. */
 import { decodePalette } from "@grabient/engine";
+import { readJson, sameOrigin } from "@grabient/server/auth/http.ts";
+import { all, batch, first, run } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import * as v from "valibot";
 import { type SEARCH_PAGES, SearchedBody } from "../../features/search/bodies.ts";
-import { readJson, sameOrigin } from "../auth/http.ts";
 import { isCrawler } from "../crawlers.ts";
-import { all, batch, first, run } from "../db/d1.ts";
-import type { Env } from "../env.ts";
-import { clientAddress } from "../limits/address.ts";
-import { checkLimits, type LimitCheck } from "../limits/check.ts";
 import { loadVocabulary } from "./files.ts";
 import { forgetPopular, mixSearches, rankSearches, tagWords } from "./popular.ts";
 import { normalizeListQuery, publicCollections, suggestCollections } from "./seams.ts";

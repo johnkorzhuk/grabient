@@ -6,7 +6,7 @@ import { DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts"
 import type { Snapshot } from "@grabient/search/snapshot.ts";
 import { queryTokens } from "@grabient/search/text.ts";
 import { FORM_WORDS } from "@grabient/search/words.ts";
-import type { Env } from "../env.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { loadVocabulary, phraseVector, type Vocabulary } from "./files.ts";
 import { keep } from "./kept.ts";
 import { kindOf, leadRow, popularLists, repeats, yearRank } from "./popular.ts";

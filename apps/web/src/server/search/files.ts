@@ -7,7 +7,7 @@ import {
   withEmoji
 } from "@grabient/search/lexicon.ts";
 import { loadTower, type Tower } from "@grabient/search/tower.ts";
-import type { Env } from "../env.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 export type AssetsEnv = Pick<Env, "ASSETS">;
 

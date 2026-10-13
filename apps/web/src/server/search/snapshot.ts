@@ -3,7 +3,7 @@
    most every CHECK_EVERY, conditionally on the copy last seen, so a palette made public now is found within about
    fifteen minutes however much traffic arrives. A search never fails on the store. */
 import { decodeSnapshot, encodeSnapshot, type Snapshot } from "@grabient/search/snapshot.ts";
-import type { Env } from "../env.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { searchAsset } from "./files.ts";
 
 export type SnapshotEnv = Pick<Env, "ASSETS"> & Partial<Pick<Env, "SEARCH_SNAPSHOTS">>;

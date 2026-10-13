@@ -4,11 +4,11 @@
      GET      /api/search-colors                a search's colors (an hour)
    None reads the session; the pipeline adds their CORS. An account's own search is account.ts. */
 import { msg } from "@grabient/i18n";
+import type { Env } from "@grabient/server/env.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import { checkLimits } from "@grabient/server/limits/check.ts";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
 import type { KeyRule } from "../cache-keys.ts";
-import type { Env } from "../env.ts";
-import { clientAddress } from "../limits/address.ts";
-import { checkLimits } from "../limits/check.ts";
 import { searchColors } from "./colors.ts";
 import {
   canonicalPaletteSeed,

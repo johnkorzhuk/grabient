@@ -1,8 +1,8 @@
 /* For the search's Node tests: the shipped search files read from disk, a D1 that shows every palette it is asked for
    the way G4's fixtures were made, the fixtures' fake embedder, and a limiter that refuses what it is told. */
 import { readFileSync } from "node:fs";
+import type { Env } from "@grabient/server/env.ts";
 import { fakeEmbedding } from "../../../../../packages/search/test/fake-embedding.ts";
-import type { Env } from "../env.ts";
 
 const PUBLIC = new URL("../../../public/search/", import.meta.url);
 

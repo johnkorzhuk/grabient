@@ -6,8 +6,8 @@
    Every tag finds palettes: only what the free search answers as one phrase, or a listed emoji, is offered. */
 import { americanSpelling } from "@grabient/search/text.ts";
 import { FORM_WORDS } from "@grabient/search/words.ts";
-import { all } from "../db/d1.ts";
-import type { Env } from "../env.ts";
+import { all } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { kindAt, type Vocabulary } from "./files.ts";
 import { knownQuery, plainPhrase } from "./read.ts";
 import { EMOJI_PAIRS, EMOJI_SEARCHED, SEARCHED } from "./searched.data.ts";

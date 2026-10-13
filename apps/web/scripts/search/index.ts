@@ -18,7 +18,7 @@ import {
 } from "@grabient/search/snapshot.ts";
 import { loadTower } from "@grabient/search/tower.ts";
 import { DATABASES, ORIGINS } from "../../cloudflare.config.ts";
-import type { Db } from "../../src/server/db/d1.ts";
+import type { Db } from "@grabient/server/db/d1.ts";
 import { readMark, readSite } from "../../src/server/search/sync.ts";
 import { cf } from "./cf.ts";
 import { type Embedder, embedTexts } from "./embed.ts";

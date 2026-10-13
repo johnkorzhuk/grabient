@@ -2,9 +2,9 @@
    for an address are read here within the account's own allowance and the site's day of account searches, from the
    same snapshot. Never kept. */
 import { msg } from "@grabient/i18n";
-import { json } from "../auth/http.ts";
-import { getSession } from "../auth/session.ts";
-import type { Env } from "../env.ts";
+import { json } from "@grabient/server/auth/http.ts";
+import { getSession } from "@grabient/server/auth/session.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { statusOf, waitOf } from "./routes.ts";
 import { sortSearchItems } from "./seams.ts";
 import { searchPalettes, searchRequestInput } from "./search.ts";
