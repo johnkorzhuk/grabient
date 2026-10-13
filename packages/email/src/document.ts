@@ -396,7 +396,7 @@ export function inset(options: EmailOptions): { html: string; text: string } {
 }
 
 /** The styles of that tree: the sheet's classes in the colors the page gives, as CSS values, so an issue follows the
-    page's theme, and a phone's measures where the column, not the window, is narrow. */
+    page's theme, and a phone's measures wherever the column is narrow, whatever the window's width. */
 export const insetStyles = (colors: SheetColors): string =>
   `.inset{container-type:inline-size}${rules("", sheetRules(colors))}@container (max-width:${NARROW}){${NARROW_SHEET}}`;
 
