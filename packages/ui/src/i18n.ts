@@ -27,3 +27,31 @@ export function t(message: string, params: Params = {}): string {
     return text.replace(/#/g, formatNumber(n));
   });
 }
+
+/** A message with parts the page draws, `<ground/>` alone or `<n>words</n>` around words: each tag's function gets the
+    words inside it. The translation runtime's `rich`, in English. */
+export function rich<T>(
+  message: string,
+  tags: Readonly<Record<string, (children: (string | T)[]) => T>>,
+  params?: Params
+): (string | T)[] {
+  const out: (string | T)[] = [];
+  const text = t(message, params);
+  const TAG = /<(\w+)\/>|<(\w+)>([^<]*)<\/\2>/g;
+  let at = 0;
+  for (const m of text.matchAll(TAG)) {
+    if (m.index > at) out.push(text.slice(at, m.index));
+    const name = m[1] ?? m[2];
+    const tag = tags[name];
+    if (tag) out.push(tag(m[3] ? [m[3]] : []));
+    at = m.index + m[0].length;
+  }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
+
+/** The reader's language and its direction, the runtime's own; English until this module is pointed at it. */
+export const locale = (): string => "en";
+export const dir = (): "ltr" | "rtl" => "ltr";
+/** A page's address in the reader's language. */
+export const localHref = <T extends string | undefined>(href: T): T => href;

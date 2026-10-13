@@ -1,0 +1,104 @@
+@layer components {
+  .host {
+    position: relative;
+    min-width: 0;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    &:hover {
+      --rim-hover: 0.35;
+    }
+    &:focus-within {
+      --rim-focus: 1;
+    }
+  }
+  .box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: var(--space-s3);
+    height: var(--size-control);
+    padding-inline: var(--space-s3);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    transition: border-color var(--motion-fast) var(--motion-ease);
+    /* the swatch's press is the box's height and starts at its edge */
+    &[data-swatched] {
+      gap: var(--space-s1);
+      padding-inline-start: 0;
+    }
+    &[data-editing] {
+      border-color: transparent;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  .swatch {
+    display: grid;
+    flex-shrink: 0;
+    align-self: stretch;
+    place-items: center;
+    width: var(--size-control);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -4px;
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      width: var(--size-touch);
+    }
+  }
+  /* open, the chip is ringed in ink, as a held keyframe's chip is */
+  .chip {
+    width: var(--space-s5);
+    height: var(--space-s5);
+    border-radius: var(--radius-tight);
+    box-shadow: var(--color-rim);
+    pointer-events: none;
+    &[data-open] {
+      box-shadow:
+        var(--color-rim),
+        0 0 0 2px var(--color-paper-solid),
+        0 0 0 3px var(--color-ink);
+    }
+  }
+  .label {
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    pointer-events: none;
+    /* among number fields that hold their names, as quiet as theirs */
+    &[data-quiet] {
+      color: var(--color-ink3);
+      font-weight: var(--font-medium);
+    }
+  }
+  .input {
+    flex-grow: 1;
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-mono);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-none);
+    text-align: right;
+    outline: none;
+    @media (pointer: coarse) {
+      font-size: var(--font-fs-touch);
+    }
+  }
+}

@@ -1,0 +1,89 @@
+@layer components {
+  .pane {
+    display: grid;
+    min-width: 0;
+    margin: 0;
+    --aside: 0;
+    &:hover,
+    &:focus-within {
+      --aside: 1;
+    }
+    @media (hover: none) {
+      --aside: 1;
+    }
+  }
+  .in {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+    height: 100%;
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-height: var(--size-control-sm);
+  }
+  .end {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  .aside {
+    display: flex;
+    opacity: var(--aside);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+  .body {
+    display: grid;
+    flex-grow: 1;
+    align-content: start;
+    min-width: 0;
+    min-height: 0;
+    &[data-center] {
+      align-content: center;
+    }
+    &[data-stretch] {
+      align-content: stretch;
+    }
+    /* no taller than its box, whatever it draws */
+    &[data-fill] {
+      flex-basis: 0;
+      overflow: hidden;
+    }
+  }
+  /* the line under the figure runs to the pane's edges, as the code block's does, and is no part of the figure */
+  .foot {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s2) var(--space-s4);
+    min-width: 0;
+    min-height: calc(var(--size-control-sm) + 2 * var(--space-s2));
+    margin: var(--space-s1) calc(-1 * var(--space-s4)) calc(-1 * var(--space-s4));
+    padding: var(--space-s2) var(--space-s4);
+    border-top: var(--size-hairline) solid var(--color-edge);
+  }
+  .note {
+    flex: 1 1 240px;
+    min-width: 0;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    overflow-wrap: anywhere;
+  }
+  /* the line's press keeps its place at the end, so it never moves the words */
+  .act {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    margin-inline-start: auto;
+  }
+}
