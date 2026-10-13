@@ -89,7 +89,7 @@ export function Segments() {
       <Block title="Rules">
         <Rules
           rules={[
-            "Four choices at most. A choice that should stay out of sight is a Select.",
+            "Four choices at most; more, or a choice that need not stay in view, is a Select.",
             "Choices that are pages render as links, as the header of this document does.",
             "A choice may say what it is set to after its name: short, at its size, lighter and quieter.",
             "A radio group: one Tab stop, walked by the arrows."

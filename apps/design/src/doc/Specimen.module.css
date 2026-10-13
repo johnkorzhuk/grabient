@@ -6,22 +6,17 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-s3);
+  height: 100%;
   min-width: 0;
-  min-height: 136px;
-  padding: var(--space-s8);
+  min-height: 112px;
+  padding: var(--space-s5);
   border: 1px solid var(--color-edge);
   border-radius: var(--radius-surface);
   background-color: var(--color-paper-solid);
   background-size: cover;
   color: var(--color-ink);
-  color-scheme: var(--color-scheme);
   &[data-art] {
     border-color: transparent;
-  }
-  &[data-tight] {
-    height: 100%;
-    min-height: 112px;
-    padding: var(--space-s5);
   }
   &[data-column] {
     flex-direction: column;

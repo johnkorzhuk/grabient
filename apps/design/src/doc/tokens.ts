@@ -8,8 +8,8 @@ export type Paint = Exclude<keyof typeof color.dark, "grain" | "scheme">;
 const SCALES = { space, radius, font, size, motion } as const;
 type Scale = keyof typeof SCALES;
 
-/** A token's CSS variable: color.paperSolid is --color-paper-solid. */
-export const cssVar = (path: string): string =>
+/* a token's CSS variable: color.paperSolid is --color-paper-solid */
+const cssVar = (path: string): string =>
   `var(--${path.replace(".", "-").replace(/[A-Z]/g, c => `-${c.toLowerCase()}`)})`;
 
 /** A token's value as CSS writes it: 44px, 150ms, 1.45, a font stack. A color is its paint, so it has none here. */

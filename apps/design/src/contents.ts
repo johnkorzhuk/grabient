@@ -1,12 +1,12 @@
 /* The document's outline: its pages, and the sections of each under their groups, in page order. The header's pages,
    each page's side list, the cover's tiles and every section's eyebrow and title read it, so a section is named once. */
-export type PageId = "cover" | "foundations" | "components";
+type PageId = "cover" | "foundations" | "components";
 
-export interface Entry {
+interface Entry {
   id: string;
   title: string;
 }
-export interface Group {
+interface Group {
   name: string;
   entries: readonly Entry[];
 }

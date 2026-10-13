@@ -3,25 +3,14 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { type Element, For, Show } from "solid-js";
 import styles from "./Specimen.module.css";
 
-/** Where a specimen stands: solid paper, or a picture (`art`, a CSS background) for what sits over artwork. Its
-    contents are centered with room around them. */
-export function Stage(props: {
-  art?: string;
-  /** a stage as tall as its row's tallest, with less room: a cell of a grid */
-  tight?: boolean;
-  /** the contents left aligned and stacked */
-  column?: boolean;
-  /** a page of this theme, whatever the document's */
-  theme?: "dark" | "light";
-  children: Element;
-}) {
+/* Where a specimen stands: solid paper, or a picture (`art`, a CSS background) for what sits over artwork. Its
+   contents are centered with room around them, or stacked from the top (`column`). */
+function Stage(props: { art?: string; column?: boolean; children: Element }) {
   return (
     <div
       class={styles.stage}
       data-art={props.art ? "" : undefined}
-      data-tight={props.tight ? "" : undefined}
       data-column={props.column ? "" : undefined}
-      data-theme={props.theme}
       style={props.art ? { "background-image": props.art } : undefined}
     >
       {props.children}
@@ -39,7 +28,7 @@ export function Cell(props: {
 }) {
   return (
     <figure class={styles.cell}>
-      <Stage art={props.art} tight column={props.column}>
+      <Stage art={props.art} column={props.column}>
         {props.children}
       </Stage>
       <figcaption class={styles.caption}>
@@ -87,11 +76,7 @@ export function Matrix<R extends string, C extends string>(props: {
               <Text variant="mono">{row}</Text>
             </span>
             <For each={props.cols}>
-              {col => (
-                <Stage art={props.art?.(row, col)} tight>
-                  {props.cell(row, col)}
-                </Stage>
-              )}
+              {col => <Stage art={props.art?.(row, col)}>{props.cell(row, col)}</Stage>}
             </For>
           </>
         )}

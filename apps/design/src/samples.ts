@@ -59,7 +59,7 @@ export const POPULAR: readonly Sample[] = [
   }
 ];
 
-export interface Collection {
+interface Collection {
   slug: string;
   title: string;
   count: number;
@@ -120,9 +120,6 @@ export function hexes(seed: string, steps = 32): string[] {
   const palette = decodePalette(seed);
   return palette ? sampleStops(palette, steps).map(s => s.hex) : [];
 }
-
-/** A sample as the gallery paints it. */
-export const paint = (s: Sample): string => gradientCss(hexes(s.seed, s.steps), s.style, s.angle);
 
 /** A soft art ground for a specimen over a picture: the nth popular palette, blended across. */
 export const art = (n: number, angle = 120): string =>
