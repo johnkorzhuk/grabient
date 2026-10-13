@@ -12,6 +12,7 @@ export function Made(props: {
   items: readonly PaletteItem[];
   view: ListView;
   picture?: Element;
+  onNote?: (message: string) => void;
 }) {
   return (
     <section aria-label={props.title}>
@@ -19,7 +20,7 @@ export function Made(props: {
       <PaletteGrid>
         {props.picture}
         <For each={props.items} keyed={false}>
-          {item => <GalleryCard item={item()} view={props.view} />}
+          {item => <GalleryCard item={item()} view={props.view} onNote={props.onNote} />}
         </For>
       </PaletteGrid>
     </section>

@@ -20,7 +20,7 @@ import {
 import { createMemo, createSignal, Loading, Show } from "solid-js";
 import { DEFAULT_FRAME } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
-import { account, isAdmin } from "../account/session.ts";
+import { account, isAdmin, sessionReady } from "../account/session.ts";
 import { AppearanceToolbar, listView } from "../list/appearance.ts";
 import { createPicture } from "../search/picture.ts";
 import { type ListParams, listSearch, orderHref, withView } from "./address.ts";
@@ -119,18 +119,20 @@ export function Home(props: { params: ListParams }) {
   });
 
   const view = () => listView(props.params);
-  /* why the field's text could not be searched, said while the words it was typed over stand */
-  const [fieldError, setFieldError] = createSignal<{ words: string; message: string } | null>(null);
-  const fieldMessage = () => {
-    const said = fieldError();
-    return said && said.words === words() ? said.message : "";
+  /* what a press could not do (search the field's text, read a picture, like a palette), said on the line while the
+     words it was said over stand */
+  const [said, setSaid] = createSignal<{ words: string; message: string } | null>(null);
+  const note = () => {
+    const last = said();
+    return last && last.words === words() ? last.message : "";
   };
+  const say = (message: string) => setSaid(message ? { words: words(), message } : null);
   /* a picture is searched by its colors on the palette list, where it stands beside its palettes; its colors are
      nobody's words, so they are not counted */
   const picture = createPicture();
   const searchImage = async (file: File) => {
     const colors = await picture.take(file);
-    if (!colors) return setFieldError({ words: words(), message: t("Couldn't read this image.") });
+    if (!colors) return say(t("Couldn't read this image."));
     void navigate({ href: orderHref("popular", DEFAULT_FRAME, { ...here(), words: colors }) });
   };
   /* words that hold hex colors lead with the palettes those colors make */
@@ -150,15 +152,16 @@ export function Home(props: { params: ListParams }) {
     };
   });
   /* signed out, and the words need the account's search: the way in where the palettes would stand */
-  const signInToSearch = () => standingHead()?.tier === "account" && account() === null;
-  const signInForMore = () => !!standingHead()?.partial && account() === null;
+  const signedOut = () => sessionReady() && account() === null;
+  const signInToSearch = () => standingHead()?.tier === "account" && signedOut();
+  const signInForMore = () => !!standingHead()?.partial && signedOut();
   const headError = () => (failed(head.data) ? head.data.failed : "");
   const firstError = () => (failed(first.data) ? first.data.failed : "");
   const message = () =>
     headError() ||
     firstError() ||
     feed.reason() ||
-    fieldMessage() ||
+    note() ||
     (navigating()
       ? words()
         ? t("Searching…")
@@ -201,7 +204,7 @@ export function Home(props: { params: ListParams }) {
         tool={TOOL}
         to={searchHref}
         counts
-        onError={message => setFieldError(message ? { words: words(), message } : null)}
+        onError={say}
         onImage={file => void searchImage(file)}
       />
       <h1 class={styles.hidden}>{heading(metaPage({ kind: "home", params: props.params }))}</h1>
@@ -220,7 +223,7 @@ export function Home(props: { params: ListParams }) {
       </div>
       <div class={styles.stack}>
         <Show when={made().length}>
-          <Made title={t("From your colors")} items={made()} view={view()} />
+          <Made title={t("From your colors")} items={made()} view={view()} onNote={say} />
         </Show>
         <div>
           <ListHeading title={t("Trending")} words={words()} palette={searched()} />
@@ -245,7 +248,13 @@ export function Home(props: { params: ListParams }) {
                 live={FIRST_SCREEN}
                 depth={restoring}
                 card={item => (
-                  <GalleryCard item={item()} view={view()} now={now()} words={words()} />
+                  <GalleryCard
+                    item={item()}
+                    view={view()}
+                    now={now()}
+                    words={words()}
+                    onNote={say}
+                  />
                 )}
               />
             </Show>
@@ -281,6 +290,7 @@ export function Home(props: { params: ListParams }) {
                     }}
                     view={view()}
                     now={now()}
+                    onNote={say}
                   />
                 )}
               />

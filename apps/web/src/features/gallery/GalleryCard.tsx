@@ -17,6 +17,8 @@ export function GalleryCard(props: {
   now?: number;
   /** the words the list was searched for, which an admin's like answers */
   words?: string;
+  /** why a press could not be done, for the page's line */
+  onNote?: (message: string) => void;
 }) {
   const navigate = useNavigate();
   const shown = createMemo(() =>
@@ -43,9 +45,15 @@ export function GalleryCard(props: {
       age={props.now ? relativeAge(props.item.createdAt, props.now) : ""}
       likes={likeCount(props.item.kseed, props.item.likes)}
       liked={isLiked()}
-      onLike={() => toggleLike(props.item.kseed, !isLiked(), { query: props.words || undefined })}
-      selected={selected(props.item.kseed)}
-      onSelect={() => toggle(props.item.kseed)}
+      onLike={() =>
+        void toggleLike(props.item.kseed, !isLiked(), { query: props.words || undefined }).catch(
+          (error: unknown) => {
+            if (error instanceof Error && error.message) props.onNote?.(error.message);
+          }
+        )
+      }
+      selected={selected(shown())}
+      onSelect={() => void toggle(shown())}
       onOpen={e => inPlace(e, () => void navigate({ href: path() }))}
     />
   );

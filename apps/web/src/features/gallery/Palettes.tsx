@@ -17,7 +17,7 @@ import {
 import { createMemo, createSignal, Loading, onSettled, Show, untrack } from "solid-js";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
-import { account } from "../account/session.ts";
+import { account, sessionReady } from "../account/session.ts";
 import { AppearanceToolbar, listView } from "../list/appearance.ts";
 import { createPicture, type Settled } from "../search/picture.ts";
 import { Sampler } from "../search/Sampler.tsx";
@@ -80,7 +80,7 @@ export function Palettes(props: { place: ListPlace }) {
     const owner = account()?.id;
     return owner ? { kind: "saved", owner, params: place.params } : null;
   });
-  const signedOut = () => props.place.kind === "saved" && account() === null;
+  const signedOut = () => props.place.kind === "saved" && sessionReady() && account() === null;
 
   const head = useQuery((): HeadOptions => {
     const from = source();
@@ -113,12 +113,14 @@ export function Palettes(props: { place: ListPlace }) {
   });
 
   const view = () => listView(params());
-  /* why the field's text could not be searched, said while the words it was typed over stand */
-  const [fieldError, setFieldError] = createSignal<{ words: string; message: string } | null>(null);
-  const fieldMessage = () => {
-    const said = fieldError();
-    return said && said.words === words() ? said.message : "";
+  /* what a press could not do (search the field's text, read a picture, like a palette), said on the line while the
+     words it was said over stand */
+  const [said, setSaid] = createSignal<{ words: string; message: string } | null>(null);
+  const note = () => {
+    const last = said();
+    return last && last.words === words() ? last.message : "";
   };
+  const say = (message: string) => setSaid(message ? { words: words(), message } : null);
   const searchHref = (to: string, linked?: URLSearchParams) =>
     orderHref(order(), frame(), withView({ ...here(), words: to }, linked));
 
@@ -130,7 +132,7 @@ export function Palettes(props: { place: ListPlace }) {
   const held = () => picture.pictureFor(words());
   const searchImage = async (file: File) => {
     const colors = await picture.take(file);
-    if (!colors) return setFieldError({ words: words(), message: t("Couldn't read this image.") });
+    if (!colors) return say(t("Couldn't read this image."));
     void navigate({ href: searchHref(colors) });
   };
   const rest = (done: Settled | null) => {
@@ -183,7 +185,7 @@ export function Palettes(props: { place: ListPlace }) {
   const message = () =>
     headError() ||
     feed.reason() ||
-    fieldMessage() ||
+    note() ||
     (navigating() ? t("Updating…") : feed.loading() ? t("Loading more…") : "") ||
     (standing() && !items().length ? empty() : "");
 
@@ -208,7 +210,7 @@ export function Palettes(props: { place: ListPlace }) {
     const target = toOrder(to);
     void navigate({
       href:
-        to === "saved" && account() === null
+        to === "saved" && sessionReady() && account() === null
           ? `/login?redirect=${encodeURIComponent(target)}`
           : target
     });
@@ -230,7 +232,7 @@ export function Palettes(props: { place: ListPlace }) {
         tool={TOOL}
         to={searchHref}
         counts={props.place.kind !== "saved"}
-        onError={message => setFieldError(message ? { words: words(), message } : null)}
+        onError={say}
         onImage={file => void searchImage(file)}
       />
       <h1 class={styles.hidden}>{heading(metaPage(props.place))}</h1>
@@ -256,6 +258,7 @@ export function Palettes(props: { place: ListPlace }) {
           title={held() ? t("From your image") : t("From your colors")}
           items={made()}
           view={view()}
+          onNote={say}
           picture={
             <Show when={held()}>
               {shown => (
@@ -315,7 +318,9 @@ export function Palettes(props: { place: ListPlace }) {
               key={item => item.kseed}
               live={FIRST_SCREEN}
               depth={restoring}
-              card={item => <GalleryCard item={item()} view={view()} now={now()} words={words()} />}
+              card={item => (
+                <GalleryCard item={item()} view={view()} now={now()} words={words()} onNote={say} />
+              )}
             />
           </Loading>
         </div>

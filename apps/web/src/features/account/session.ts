@@ -1,4 +1,5 @@
-/* Stands in for the accounts area's session (U08) until it lands: no one is signed in here. */
+/* Stands in for the accounts area's session (U08) until it lands, under its names: no one is signed in here, and the
+   stand-in knows it at once. */
 
 export interface Account {
   id: string;
@@ -8,7 +9,10 @@ export interface Account {
   role: "admin" | "user";
 }
 
-/** The signed-in account; null when signed out, and undefined until the session is known. */
-export const account = (): Account | null | undefined => null;
+/** The signed-in account; null when signed out or not known yet. */
+export const account = (): Account | null => null;
+
+/** Whether the page knows who is signed in. */
+export const sessionReady = (): boolean => true;
 
 export const isAdmin = (): boolean => account()?.role === "admin";
