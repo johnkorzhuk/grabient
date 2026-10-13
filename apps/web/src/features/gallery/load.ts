@@ -32,6 +32,8 @@ export interface Loaded {
   robots?: string;
   /** the status a page that renders answers with, when it is no 200 */
   status?: number;
+  /** the palettes the page lists, by seed, for its structured data */
+  palettes?: string[];
 }
 
 /** The status the page answers with, said as it renders on the server: a list past its end is 404, a search an
@@ -64,17 +66,18 @@ export async function loadPalettes(
   ]);
   const page = keptPage(client, source, place.params.page);
   if (failed(data as object) || !page) return { edge: 0, status: (data as Failed).status };
-  /* a Rising page in another frame than the week's, and a search, have one indexed page elsewhere */
-  const robots = place.params.words || place.frame !== "1w" ? "noindex,follow" : undefined;
   if (place.params.page > Math.max(1, page.totalPages)) {
     return { edge: 0, robots: "noindex,follow", status: 404 };
   }
   if (page.limited) return { edge: 0, robots: "noindex,follow", status: 429 };
   if (page.tier === "unavailable") return { edge: 0, robots: "noindex,follow", status: 503 };
   const ttl = place.order === "rising" ? RISING_EDGE : PUBLIC_EDGE;
+  /* words the search cannot read as what they mean are no page of their own for an index */
+  const unread = !!place.params.words && !page.indexable;
   return {
     edge: page.unkept ? 0 : place.params.words ? ttl : left(page.fetchedAt, ttl),
-    ...(robots ? { robots } : {})
+    palettes: page.items.map(item => item.kseed),
+    ...(unread ? { robots: "noindex,follow" } : {})
   };
 }
 
@@ -84,13 +87,15 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
     client.ensureQueryData(homeHeadQuery(params.words)),
     client.ensureQueryData(collectionsPageQuery(order, params.words, params.page))
   ]);
-  const robots = params.words ? "noindex,follow" : undefined;
-  if (failed(head) || failed(collections)) return { edge: 0, ...(robots ? { robots } : {}) };
+  if (failed(head) || failed(collections)) return { edge: 0 };
   if (head.limited || head.tier === "unavailable") {
     return { edge: 0, robots: "noindex,follow", status: head.limited ? 429 : 503 };
   }
   if (params.page > Math.max(1, collections.totalPages)) {
     return { edge: 0, robots: "noindex,follow", status: 404 };
   }
-  return { edge: head.unkept ? 0 : PUBLIC_EDGE, ...(robots ? { robots } : {}) };
+  return {
+    edge: head.unkept ? 0 : PUBLIC_EDGE,
+    palettes: head.palettes.map(item => item.kseed)
+  };
 }

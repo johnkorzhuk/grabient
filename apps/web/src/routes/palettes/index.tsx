@@ -3,8 +3,9 @@ import { untrack } from "solid-js";
 import { galleryPlace } from "../../features/gallery/address.ts";
 import { answerWith, loadPalettes, searchOf } from "../../features/gallery/load.ts";
 import { Palettes } from "../../features/gallery/Palettes.tsx";
-import { title } from "../../features/gallery/titles.ts";
+import { metaPage } from "../../features/gallery/titles.ts";
 import { edgeFor } from "../../lib/cache.ts";
+import { pageHead } from "../../lib/page-meta.ts";
 
 type Place = Extract<NonNullable<ReturnType<typeof galleryPlace>>, { kind: "list" }>;
 const place = (search: string) => galleryPlace("/palettes", search) as Place;
@@ -15,12 +16,13 @@ export const Route = createFileRoute("/palettes/")({
   loaderDeps: ({ search }) => ({ query: searchOf(search) }),
   loader: ({ context, deps }) => loadPalettes(context.queryClient, place(deps.query)),
   headers: ({ loaderData }) => edgeFor(loaderData?.edge ?? 0),
-  head: ({ match, loaderData }) => ({
-    meta: [
-      { title: title(place(searchOf(match.search))) },
-      ...(loaderData?.robots ? [{ name: "robots", content: loaderData.robots }] : [])
-    ]
-  }),
+  head: ({ match, loaderData }) =>
+    pageHead(
+      metaPage(place(searchOf(match.search)), {
+        palettes: loaderData?.palettes,
+        robots: loaderData?.robots
+      })
+    ),
   component: function PopularRoute() {
     const search = Route.useSearch();
     answerWith(untrack(Route.useLoaderData())?.status);

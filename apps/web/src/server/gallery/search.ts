@@ -13,6 +13,7 @@ export async function searchPool(env: Env, request: Request, words: string): Pro
     ...(answer.partial ? { partial: true } : {}),
     ...(answer.limited ? { limited: true } : {}),
     ...(answer.unkept ? { unkept: true } : {}),
+    ...(answer.indexable ? { indexable: true } : {}),
     fetchedAt: Date.now()
   };
 }

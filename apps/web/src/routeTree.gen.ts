@@ -40,6 +40,10 @@ import { Route as ApiPaletteRouteImport } from './routes/api/palette'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
 import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
 import { Route as ApiSavedRouteImport } from './routes/api/saved'
+import { Route as ApiSearchColorsRouteImport } from './routes/api/search-colors'
+import { Route as ApiSearchSuggestionsRouteImport } from './routes/api/search-suggestions'
+import { Route as ApiSearchDotjsonRouteImport } from './routes/api/search[.]json'
+import { Route as ApiSearchedRouteImport } from './routes/api/searched'
 import { Route as CollectionsIndexRouteImport } from './routes/collections/index'
 import { Route as CollectionsSavedRouteImport } from './routes/collections/saved'
 import { Route as FaviconChar123weekChar125DotsvgRouteImport } from './routes/favicon/{$week}[.]svg'
@@ -66,6 +70,8 @@ import { Route as AtChar123handleChar125Char123slugChar125DotgplIndexRouteImport
 import { Route as AtChar123handleChar125Char123slugChar125DotgrdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]grd/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotjsonIndexRouteImport } from './routes/@{$handle}/{$slug}[.]json/index'
 import { Route as AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport } from './routes/@{$handle}/{$slug}[.]md/index'
+import { Route as ApiMeSearchRouteImport } from './routes/api/me/search'
+import { Route as ApiMeSearchVotesRouteImport } from './routes/api/me/search-votes'
 import { Route as ApiOgIndexRouteImport } from './routes/api/og/index'
 import { Route as ApiOgCollectionRouteImport } from './routes/api/og/collection'
 import { Route as ApiOgCollectionsRouteImport } from './routes/api/og/collections'
@@ -74,6 +80,7 @@ import { Route as ApiOgQueryRouteImport } from './routes/api/og/query'
 import { Route as ApiPngIndexRouteImport } from './routes/api/png/index'
 import { Route as ApiPngCollectionRouteImport } from './routes/api/png/collection'
 import { Route as ApiPngQueryRouteImport } from './routes/api/png/query'
+import { Route as ApiSearchStatusRouteImport } from './routes/api/search/status'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as OgVersionChar123seedChar125DotpngRouteImport } from './routes/og/$version/{$seed}[.]png'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
@@ -236,6 +243,26 @@ const ApiSavedRoute = ApiSavedRouteImport.update({
   path: '/api/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSearchColorsRoute = ApiSearchColorsRouteImport.update({
+  id: '/api/search-colors',
+  path: '/api/search-colors',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchSuggestionsRoute = ApiSearchSuggestionsRouteImport.update({
+  id: '/api/search-suggestions',
+  path: '/api/search-suggestions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchDotjsonRoute = ApiSearchDotjsonRouteImport.update({
+  id: '/api/search.json',
+  path: '/api/search.json',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchedRoute = ApiSearchedRouteImport.update({
+  id: '/api/searched',
+  path: '/api/searched',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
   id: '/collections/',
   path: '/collections/',
@@ -387,6 +414,16 @@ const AtChar123handleChar125Char123slugChar125DotmdIndexRoute =
     path: '/@{$handle}/{$slug}.md/',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiMeSearchRoute = ApiMeSearchRouteImport.update({
+  id: '/api/me/search',
+  path: '/api/me/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiMeSearchVotesRoute = ApiMeSearchVotesRouteImport.update({
+  id: '/api/me/search-votes',
+  path: '/api/me/search-votes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiOgIndexRoute = ApiOgIndexRouteImport.update({
   id: '/api/og/',
   path: '/api/og/',
@@ -425,6 +462,11 @@ const ApiPngCollectionRoute = ApiPngCollectionRouteImport.update({
 const ApiPngQueryRoute = ApiPngQueryRouteImport.update({
   id: '/api/png/query',
   path: '/api/png/query',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSearchStatusRoute = ApiSearchStatusRouteImport.update({
+  id: '/api/search/status',
+  path: '/api/search/status',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsRisingChar123FrameChar125Route =
@@ -489,6 +531,10 @@ export interface FileRoutesByFullPath {
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/saved': typeof ApiSavedRoute
+  '/api/search-colors': typeof ApiSearchColorsRoute
+  '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
+  '/api/search.json': typeof ApiSearchDotjsonRoute
+  '/api/searched': typeof ApiSearchedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/mcp/server-card': typeof McpServerCardRoute
@@ -510,12 +556,15 @@ export interface FileRoutesByFullPath {
   '/{$seed}.png/': typeof Char123seedChar125DotpngIndexRoute
   '/{$seed}.svg/': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/me/search': typeof ApiMeSearchRoute
+  '/api/me/search-votes': typeof ApiMeSearchVotesRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
   '/api/png/collection': typeof ApiPngCollectionRoute
   '/api/png/query': typeof ApiPngQueryRoute
+  '/api/search/status': typeof ApiSearchStatusRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
@@ -561,6 +610,10 @@ export interface FileRoutesByTo {
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/saved': typeof ApiSavedRoute
+  '/api/search-colors': typeof ApiSearchColorsRoute
+  '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
+  '/api/search.json': typeof ApiSearchDotjsonRoute
+  '/api/searched': typeof ApiSearchedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/mcp/server-card': typeof McpServerCardRoute
@@ -582,12 +635,15 @@ export interface FileRoutesByTo {
   '/{$seed}.png': typeof Char123seedChar125DotpngIndexRoute
   '/{$seed}.svg': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/me/search': typeof ApiMeSearchRoute
+  '/api/me/search-votes': typeof ApiMeSearchVotesRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
   '/api/png/collection': typeof ApiPngCollectionRoute
   '/api/png/query': typeof ApiPngQueryRoute
+  '/api/search/status': typeof ApiSearchStatusRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
@@ -634,6 +690,10 @@ export interface FileRoutesById {
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/saved': typeof ApiSavedRoute
+  '/api/search-colors': typeof ApiSearchColorsRoute
+  '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
+  '/api/search.json': typeof ApiSearchDotjsonRoute
+  '/api/searched': typeof ApiSearchedRoute
   '/collections/saved': typeof CollectionsSavedRoute
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/mcp/server-card': typeof McpServerCardRoute
@@ -655,12 +715,15 @@ export interface FileRoutesById {
   '/{$seed}.png/': typeof Char123seedChar125DotpngIndexRoute
   '/{$seed}.svg/': typeof Char123seedChar125DotsvgIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
+  '/api/me/search': typeof ApiMeSearchRoute
+  '/api/me/search-votes': typeof ApiMeSearchVotesRoute
   '/api/og/collection': typeof ApiOgCollectionRoute
   '/api/og/collections': typeof ApiOgCollectionsRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
   '/api/png/collection': typeof ApiPngCollectionRoute
   '/api/png/query': typeof ApiPngQueryRoute
+  '/api/search/status': typeof ApiSearchStatusRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
@@ -708,6 +771,10 @@ export interface FileRouteTypes {
     | '/api/palette.json'
     | '/api/palettes'
     | '/api/saved'
+    | '/api/search-colors'
+    | '/api/search-suggestions'
+    | '/api/search.json'
+    | '/api/searched'
     | '/collections/saved'
     | '/favicon/{$week}.svg'
     | '/mcp/server-card'
@@ -729,12 +796,15 @@ export interface FileRouteTypes {
     | '/{$seed}.png/'
     | '/{$seed}.svg/'
     | '/@{$handle}/$slug/rising'
+    | '/api/me/search'
+    | '/api/me/search-votes'
     | '/api/og/collection'
     | '/api/og/collections'
     | '/api/og/list'
     | '/api/og/query'
     | '/api/png/collection'
     | '/api/png/query'
+    | '/api/search/status'
     | '/collections/rising/{-$frame}'
     | '/og/$version/{$seed}.png'
     | '/palettes/rising/{-$frame}'
@@ -780,6 +850,10 @@ export interface FileRouteTypes {
     | '/api/palette.json'
     | '/api/palettes'
     | '/api/saved'
+    | '/api/search-colors'
+    | '/api/search-suggestions'
+    | '/api/search.json'
+    | '/api/searched'
     | '/collections/saved'
     | '/favicon/{$week}.svg'
     | '/mcp/server-card'
@@ -801,12 +875,15 @@ export interface FileRouteTypes {
     | '/{$seed}.png'
     | '/{$seed}.svg'
     | '/@{$handle}/$slug/rising'
+    | '/api/me/search'
+    | '/api/me/search-votes'
     | '/api/og/collection'
     | '/api/og/collections'
     | '/api/og/list'
     | '/api/og/query'
     | '/api/png/collection'
     | '/api/png/query'
+    | '/api/search/status'
     | '/collections/rising/{-$frame}'
     | '/og/$version/{$seed}.png'
     | '/palettes/rising/{-$frame}'
@@ -852,6 +929,10 @@ export interface FileRouteTypes {
     | '/api/palette.json'
     | '/api/palettes'
     | '/api/saved'
+    | '/api/search-colors'
+    | '/api/search-suggestions'
+    | '/api/search.json'
+    | '/api/searched'
     | '/collections/saved'
     | '/favicon/{$week}.svg'
     | '/mcp/server-card'
@@ -873,12 +954,15 @@ export interface FileRouteTypes {
     | '/{$seed}.png/'
     | '/{$seed}.svg/'
     | '/@{$handle}/$slug/rising'
+    | '/api/me/search'
+    | '/api/me/search-votes'
     | '/api/og/collection'
     | '/api/og/collections'
     | '/api/og/list'
     | '/api/og/query'
     | '/api/png/collection'
     | '/api/png/query'
+    | '/api/search/status'
     | '/collections/rising/{-$frame}'
     | '/og/$version/{$seed}.png'
     | '/palettes/rising/{-$frame}'
@@ -925,6 +1009,10 @@ export interface RootRouteChildren {
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
   ApiPalettesRoute: typeof ApiPalettesRoute
   ApiSavedRoute: typeof ApiSavedRoute
+  ApiSearchColorsRoute: typeof ApiSearchColorsRoute
+  ApiSearchSuggestionsRoute: typeof ApiSearchSuggestionsRoute
+  ApiSearchDotjsonRoute: typeof ApiSearchDotjsonRoute
+  ApiSearchedRoute: typeof ApiSearchedRoute
   CollectionsSavedRoute: typeof CollectionsSavedRoute
   FaviconChar123weekChar125DotsvgRoute: typeof FaviconChar123weekChar125DotsvgRoute
   McpServerCardRoute: typeof McpServerCardRoute
@@ -946,12 +1034,15 @@ export interface RootRouteChildren {
   Char123seedChar125DotpngIndexRoute: typeof Char123seedChar125DotpngIndexRoute
   Char123seedChar125DotsvgIndexRoute: typeof Char123seedChar125DotsvgIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
+  ApiMeSearchRoute: typeof ApiMeSearchRoute
+  ApiMeSearchVotesRoute: typeof ApiMeSearchVotesRoute
   ApiOgCollectionRoute: typeof ApiOgCollectionRoute
   ApiOgCollectionsRoute: typeof ApiOgCollectionsRoute
   ApiOgListRoute: typeof ApiOgListRoute
   ApiOgQueryRoute: typeof ApiOgQueryRoute
   ApiPngCollectionRoute: typeof ApiPngCollectionRoute
   ApiPngQueryRoute: typeof ApiPngQueryRoute
+  ApiSearchStatusRoute: typeof ApiSearchStatusRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   OgVersionChar123seedChar125DotpngRoute: typeof OgVersionChar123seedChar125DotpngRoute
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
@@ -1186,6 +1277,34 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/search-colors': {
+      id: '/api/search-colors'
+      path: '/api/search-colors'
+      fullPath: '/api/search-colors'
+      preLoaderRoute: typeof ApiSearchColorsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search-suggestions': {
+      id: '/api/search-suggestions'
+      path: '/api/search-suggestions'
+      fullPath: '/api/search-suggestions'
+      preLoaderRoute: typeof ApiSearchSuggestionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search.json': {
+      id: '/api/search.json'
+      path: '/api/search.json'
+      fullPath: '/api/search.json'
+      preLoaderRoute: typeof ApiSearchDotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/searched': {
+      id: '/api/searched'
+      path: '/api/searched'
+      fullPath: '/api/searched'
+      preLoaderRoute: typeof ApiSearchedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/collections/': {
       id: '/collections/'
       path: '/collections'
@@ -1368,6 +1487,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof AtChar123handleChar125Char123slugChar125DotmdIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/search': {
+      id: '/api/me/search'
+      path: '/api/me/search'
+      fullPath: '/api/me/search'
+      preLoaderRoute: typeof ApiMeSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/me/search-votes': {
+      id: '/api/me/search-votes'
+      path: '/api/me/search-votes'
+      fullPath: '/api/me/search-votes'
+      preLoaderRoute: typeof ApiMeSearchVotesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/og/': {
       id: '/api/og/'
       path: '/api/og'
@@ -1422,6 +1555,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/png/query'
       fullPath: '/api/png/query'
       preLoaderRoute: typeof ApiPngQueryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/search/status': {
+      id: '/api/search/status'
+      path: '/api/search/status'
+      fullPath: '/api/search/status'
+      preLoaderRoute: typeof ApiSearchStatusRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/collections/rising/{-$frame}': {
@@ -1493,6 +1633,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
   ApiPalettesRoute: ApiPalettesRoute,
   ApiSavedRoute: ApiSavedRoute,
+  ApiSearchColorsRoute: ApiSearchColorsRoute,
+  ApiSearchSuggestionsRoute: ApiSearchSuggestionsRoute,
+  ApiSearchDotjsonRoute: ApiSearchDotjsonRoute,
+  ApiSearchedRoute: ApiSearchedRoute,
   CollectionsSavedRoute: CollectionsSavedRoute,
   FaviconChar123weekChar125DotsvgRoute: FaviconChar123weekChar125DotsvgRoute,
   McpServerCardRoute: McpServerCardRoute,
@@ -1516,12 +1660,15 @@ const rootRouteChildren: RootRouteChildren = {
   Char123seedChar125DotpngIndexRoute: Char123seedChar125DotpngIndexRoute,
   Char123seedChar125DotsvgIndexRoute: Char123seedChar125DotsvgIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
+  ApiMeSearchRoute: ApiMeSearchRoute,
+  ApiMeSearchVotesRoute: ApiMeSearchVotesRoute,
   ApiOgCollectionRoute: ApiOgCollectionRoute,
   ApiOgCollectionsRoute: ApiOgCollectionsRoute,
   ApiOgListRoute: ApiOgListRoute,
   ApiOgQueryRoute: ApiOgQueryRoute,
   ApiPngCollectionRoute: ApiPngCollectionRoute,
   ApiPngQueryRoute: ApiPngQueryRoute,
+  ApiSearchStatusRoute: ApiSearchStatusRoute,
   CollectionsRisingChar123FrameChar125Route:
     CollectionsRisingChar123FrameChar125Route,
   OgVersionChar123seedChar125DotpngRoute:

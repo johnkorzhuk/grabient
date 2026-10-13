@@ -1,4 +1,5 @@
 import { localHref, t } from "@grabient/i18n";
+import { queryColors } from "@grabient/search/colors.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionGroup, shownAt } from "@grabient/ui/CollectionGroup.tsx";
@@ -16,25 +17,43 @@ import {
   useRouter,
   useRouterState
 } from "@tanstack/solid-router";
-import { createMemo, Loading, Show } from "solid-js";
+import { createMemo, createSignal, Loading, Show } from "solid-js";
+import { DEFAULT_FRAME } from "../../lib/orders.ts";
+import { heading } from "../../lib/page-meta.ts";
 import { account, isAdmin } from "../account/session.ts";
 import { AppearanceToolbar, listView } from "../list/appearance.ts";
-import { SearchField } from "../search/SearchField.tsx";
-import { Tags } from "../search/Tags.tsx";
-import { homeHref, type ListParams, listSearch, orderHref } from "./address.ts";
+import { createPicture } from "../search/picture.ts";
+import { type ListParams, listSearch, orderHref, withView } from "./address.ts";
 import type { CollectionPage, CollectionSummary } from "./collections.ts";
-import { drawnAs, hexesOf, minuteOf, nameOf, paletteHref, relativeAge } from "./drawing.ts";
+import {
+  drawnAs,
+  hexesOf,
+  madeItems,
+  minuteOf,
+  nameOf,
+  paletteHref,
+  relativeAge
+} from "./drawing.ts";
+import { Find } from "./Find.tsx";
 import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
+import { Made } from "./Made.tsx";
 import { collectionsPageQuery, type Failed, failed, homeHeadQuery } from "./queries.ts";
-import { heading, searchedName } from "./titles.ts";
+import { metaPage, searchedName } from "./titles.ts";
 
 /* The home: the hottest palettes under Trending, then the hot collections as their groups, more joining as the reader
    nears the end. Searched (`/?q=words`) it keeps the shape: the palette list's search, the most liked first, then the
    collections list's. The server draws the head and the first groups; the rest stand as their height until the page
    settles, and only the groups near the viewport are drawn after (GroupFeed). */
+
+const TOOL = {
+  name: "search_grabient",
+  description:
+    "Search Grabient for color palettes, CSS gradients and collections of them by color, mood, theme, hex code or palette link. Opens the palettes that answer the words, then the collections that do, on this page. A palette link or seed finds the palettes and collections like that palette.",
+  words: "Words such as sunset or pastel blue, a hex code, or a Grabient palette link or seed."
+};
 
 /** The groups the server draws after the head: what a first screen shows of them. */
 const FIRST_GROUPS = 2;
@@ -100,6 +119,22 @@ export function Home(props: { params: ListParams }) {
   });
 
   const view = () => listView(props.params);
+  /* why the field's text could not be searched, said while the words it was typed over stand */
+  const [fieldError, setFieldError] = createSignal<{ words: string; message: string } | null>(null);
+  const fieldMessage = () => {
+    const said = fieldError();
+    return said && said.words === words() ? said.message : "";
+  };
+  /* a picture is searched by its colors on the palette list, where it stands beside its palettes; its colors are
+     nobody's words, so they are not counted */
+  const picture = createPicture();
+  const searchImage = async (file: File) => {
+    const colors = await picture.take(file);
+    if (!colors) return setFieldError({ words: words(), message: t("Couldn't read this image.") });
+    void navigate({ href: orderHref("popular", DEFAULT_FRAME, { ...here(), words: colors }) });
+  };
+  /* words that hold hex colors lead with the palettes those colors make */
+  const made = createMemo(() => madeItems(queryColors(words())));
   /* the ages the server printed are told against the minute the head was read in, and hydration agrees */
   const now = () => minuteOf(standingHead()?.fetchedAt ?? 0);
   const searched = createMemo(() => {
@@ -123,6 +158,7 @@ export function Home(props: { params: ListParams }) {
     headError() ||
     firstError() ||
     feed.reason() ||
+    fieldMessage() ||
     (navigating()
       ? words()
         ? t("Searching…")
@@ -139,6 +175,8 @@ export function Home(props: { params: ListParams }) {
           ? t("No results.")
           : "");
   const here = () => ({ ...props.params, page: 1, selection: false });
+  const searchHref = (to: string, linked?: URLSearchParams) =>
+    `/${listSearch(withView({ ...here(), words: to }, linked))}`;
   const toSection = (section: "palettes" | "collections") =>
     section === "palettes"
       ? orderHref("popular", "1w", here())
@@ -156,16 +194,17 @@ export function Home(props: { params: ListParams }) {
 
   return (
     <main id="main" class={styles.page}>
-      <div class={styles.find}>
-        <SearchField
-          surface="home"
-          words={words()}
-          placeholder={t("Search palettes and collections")}
-          to={homeHref}
-        />
-        <Tags surface="home" words={words()} />
-      </div>
-      <h1 class={styles.hidden}>{heading({ kind: "home", params: props.params })}</h1>
+      <Find
+        surface="home"
+        words={words()}
+        placeholder={t("Search palettes and collections")}
+        tool={TOOL}
+        to={searchHref}
+        counts
+        onError={message => setFieldError(message ? { words: words(), message } : null)}
+        onImage={file => void searchImage(file)}
+      />
+      <h1 class={styles.hidden}>{heading(metaPage({ kind: "home", params: props.params }))}</h1>
       {/* the two sections, neither chosen: the home is neither list */}
       <div class={styles.row}>
         <ListNav
@@ -180,6 +219,9 @@ export function Home(props: { params: ListParams }) {
         <AppearanceToolbar view={view()} />
       </div>
       <div class={styles.stack}>
+        <Show when={made().length}>
+          <Made title={t("From your colors")} items={made()} view={view()} />
+        </Show>
         <div>
           <ListHeading title={t("Trending")} words={words()} palette={searched()} />
           <Show when={signInToSearch()}>

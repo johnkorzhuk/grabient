@@ -20,6 +20,8 @@ export interface Page {
   limited?: boolean;
   /** a crawler's answer, read without the model: never kept for others */
   unkept?: boolean;
+  /** a search an index may keep */
+  indexable?: boolean;
 }
 
 export type ListSource =
@@ -48,7 +50,8 @@ export function sliceOf(
     tier: answer.tier,
     ...(answer.partial ? { partial: true } : {}),
     ...(answer.limited ? { limited: true } : {}),
-    ...(answer.unkept ? { unkept: true } : {})
+    ...(answer.unkept ? { unkept: true } : {}),
+    ...(answer.indexable ? { indexable: true } : {})
   };
 }
 

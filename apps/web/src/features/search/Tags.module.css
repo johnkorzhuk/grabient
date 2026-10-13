@@ -1,6 +1,0 @@
-.row {
-  height: var(--size-control-sm);
-  @media (pointer: coarse) {
-    height: var(--size-touch);
-  }
-}

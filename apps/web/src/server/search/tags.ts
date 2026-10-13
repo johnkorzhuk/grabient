@@ -271,14 +271,24 @@ export const suggestionsCache = (typed: string): Record<string, string> => ({
   "Cache-Control": `public, max-age=${normalizeTypedQuery(typed) ? 3600 : 300}`
 });
 
+/** The tags for what a field holds: with nothing typed and `both`, the home's row; else the searches that answer it. */
+export const suggestionsFor = (
+  env: TagEnv,
+  typed: string,
+  options: { both?: boolean; limit?: number }
+): Promise<HomeTag[]> =>
+  !normalizeTypedQuery(typed) && options.both
+    ? homeTags(env, "", Math.max(2, Math.min(24, Math.floor(options.limit ?? 24) || 24)))
+    : suggestSearches(env, typed, options.limit ?? 12);
+
 /** `GET /api/search-suggestions?q=&limit=` (`both=1`: the home's row): public, the same for everyone. */
 export async function searchSuggestionsResponse(request: Request, env: TagEnv): Promise<Response> {
   const url = new URL(request.url);
   const typed = url.searchParams.get("q") ?? "";
   const asked = url.searchParams.get("limit");
-  const suggestions =
-    !normalizeTypedQuery(typed) && url.searchParams.get("both") === "1"
-      ? await homeTags(env, "", Math.max(2, Math.min(24, Math.floor(Number(asked)) || 24)))
-      : await suggestSearches(env, typed, Number(asked ?? 12));
+  const suggestions = await suggestionsFor(env, typed, {
+    both: url.searchParams.get("both") === "1",
+    ...(asked === null ? {} : { limit: Number(asked) })
+  });
   return Response.json({ suggestions }, { headers: suggestionsCache(typed) });
 }

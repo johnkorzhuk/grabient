@@ -1,4 +1,5 @@
 import { localHref, msg, t } from "@grabient/i18n";
+import { queryColors } from "@grabient/search/colors.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { ListNav, type Order } from "@grabient/ui/ListNav.tsx";
@@ -13,22 +14,25 @@ import {
   useRouter,
   useRouterState
 } from "@tanstack/solid-router";
-import { createMemo, Loading, Show } from "solid-js";
+import { createMemo, createSignal, Loading, onSettled, Show, untrack } from "solid-js";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
+import { heading } from "../../lib/page-meta.ts";
 import { account } from "../account/session.ts";
 import { AppearanceToolbar, listView } from "../list/appearance.ts";
-import { SearchField } from "../search/SearchField.tsx";
-import { Tags } from "../search/Tags.tsx";
-import { type GalleryPlace, LIST_PATHS, listSearch, orderHref } from "./address.ts";
-import { drawnAs, hexesOf, minuteOf, nameOf, paletteHref } from "./drawing.ts";
+import { createPicture, type Settled } from "../search/picture.ts";
+import { Sampler } from "../search/Sampler.tsx";
+import { type GalleryPlace, LIST_PATHS, listSearch, orderHref, withView } from "./address.ts";
+import { drawnAs, hexesOf, madeItems, minuteOf, nameOf, paletteHref } from "./drawing.ts";
+import { Find } from "./Find.tsx";
 import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
+import { Made } from "./Made.tsx";
 import { type Failed, failed, framesQuery } from "./queries.ts";
 import type { PaletteItem } from "./schema.ts";
 import { keptPage, type ListSource, type Page, pageQuery, readPage } from "./sources.ts";
-import { heading, searchedName } from "./titles.ts";
+import { metaPage, searchedName } from "./titles.ts";
 
 /* The palette lists: Popular (/palettes) and Rising in its frame (/palettes/rising), each searched with `?q=`, and the
    account's Saved. A list is a feed: its address's own page, then each page after it joining as the reader nears the
@@ -36,6 +40,14 @@ import { heading, searchedName } from "./titles.ts";
    one's first page lands; a failed read keeps them too, beside the reason and Retry. */
 
 type ListPlace = Exclude<GalleryPlace, { kind: "home" }>;
+
+const TOOL = {
+  name: "search_palettes",
+  description:
+    "Search Grabient for color palettes and CSS gradients by color, mood, theme, hex code or palette link. Opens the results on this page. A palette link or seed finds the palettes like that palette.",
+  words:
+    "Words such as sunset or pastel blue, a hex code such as #ff6b6b, or a Grabient palette link or seed."
+};
 
 export function Palettes(props: { place: ListPlace }) {
   const client = useQueryClient();
@@ -97,6 +109,34 @@ export function Palettes(props: { place: ListPlace }) {
   });
 
   const view = () => listView(params());
+  /* why the field's text could not be searched, said while the words it was typed over stand */
+  const [fieldError, setFieldError] = createSignal<{ words: string; message: string } | null>(null);
+  const fieldMessage = () => {
+    const said = fieldError();
+    return said && said.words === words() ? said.message : "";
+  };
+  const searchHref = (to: string, linked?: URLSearchParams) =>
+    orderHref(order(), frame(), withView({ ...here(), words: to }, linked));
+
+  /* A picture is searched by its colors: read in this browser and held in this tab, so a reload or Back finds it
+     beside its search. Its colors are nobody's words and are not counted. A point that comes to rest searches its
+     colors in this page's place in the history, so Back leaves the search by image in one press. */
+  const picture = createPicture();
+  onSettled(() => picture.restore(untrack(words)));
+  const held = () => picture.pictureFor(words());
+  const searchImage = async (file: File) => {
+    const colors = await picture.take(file);
+    if (!colors) return setFieldError({ words: words(), message: t("Couldn't read this image.") });
+    void navigate({ href: searchHref(colors) });
+  };
+  const rest = (done: Settled | null) => {
+    if (done && done.colors !== words())
+      void navigate({ href: searchHref(done.colors), replace: true });
+  };
+  /* a search by colors leads with the palettes the colors make, a picture's as its points move */
+  const made = createMemo(() =>
+    madeItems(held()?.points.map(point => point.hex) ?? queryColors(words()))
+  );
   const now = () => minuteOf(standing()?.fetchedAt ?? 0);
   const pastEnd = () => {
     const page = standing();
@@ -139,6 +179,7 @@ export function Palettes(props: { place: ListPlace }) {
   const message = () =>
     headError() ||
     feed.reason() ||
+    fieldMessage() ||
     (navigating() ? t("Updating…") : feed.loading() ? t("Loading more…") : "") ||
     (standing() && !items().length ? empty() : "");
 
@@ -178,16 +219,17 @@ export function Palettes(props: { place: ListPlace }) {
 
   return (
     <main id="main" class={styles.page}>
-      <div class={styles.find}>
-        <SearchField
-          surface="palettes"
-          words={words()}
-          placeholder={t("Search palettes")}
-          to={w => orderHref(order(), frame(), { ...here(), words: w })}
-        />
-        <Tags surface="palettes" words={words()} />
-      </div>
-      <h1 class={styles.hidden}>{heading(props.place)}</h1>
+      <Find
+        surface="palettes"
+        words={words()}
+        placeholder={t("Search palettes")}
+        tool={TOOL}
+        to={searchHref}
+        counts={props.place.kind !== "saved"}
+        onError={message => setFieldError(message ? { words: words(), message } : null)}
+        onImage={file => void searchImage(file)}
+      />
+      <h1 class={styles.hidden}>{heading(metaPage(props.place))}</h1>
       <div class={styles.row}>
         <ListNav
           section="palettes"
@@ -205,6 +247,43 @@ export function Palettes(props: { place: ListPlace }) {
         />
         <AppearanceToolbar view={view()} />
       </div>
+      <Show when={held() || made().length}>
+        <Made
+          title={held() ? t("From your image") : t("From your colors")}
+          items={made()}
+          view={view()}
+          picture={
+            <Show when={held()}>
+              {shown => (
+                <Sampler
+                  src={shown().src}
+                  width={shown().width}
+                  height={shown().height}
+                  label={t("Your image")}
+                  points={shown().points}
+                  onMove={(i, x, y) => void picture.move(i, x, y)}
+                  onRelease={() => void picture.settle().then(rest)}
+                  onReset={
+                    picture.moved(shown()) ? () => void picture.reset().then(rest) : undefined
+                  }
+                  onAdd={(x, y) => {
+                    void picture.add(x, y);
+                    void picture.settle().then(rest);
+                  }}
+                  onRemove={
+                    picture.canRemove(shown())
+                      ? i => {
+                          void picture.remove(i);
+                          void picture.settle().then(rest);
+                        }
+                      : undefined
+                  }
+                />
+              )}
+            </Show>
+          }
+        />
+      </Show>
       <ListHeading title={feedTitle()} words={words()} palette={searched()} />
       <Show
         when={!signedOut()}

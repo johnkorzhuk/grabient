@@ -85,6 +85,15 @@ export function listSearch(p: ListParams, change: Partial<ListParams> = {}): str
   return parts.length ? `?${parts.join("&")}` : "";
 }
 
+/** A list's params with the view a pasted link draws in, wherever the list sets none of its own. */
+export function withView(params: ListParams, view?: URLSearchParams): ListParams {
+  if (!view) return params;
+  const said = readParams(view);
+  const own = (key: "style" | "steps" | "angle" | "size") =>
+    params[key] === "auto" && view.has(key) ? { [key]: said[key] } : {};
+  return { ...params, ...own("style"), ...own("steps"), ...own("angle"), ...own("size") };
+}
+
 /** A query whose words are a Grabient link, read as what the link means: its palette or words as `q`, and its view
     wherever the query says none of its own. */
 function linked(search: string): URLSearchParams {

@@ -3,7 +3,9 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import { seedName } from "@grabient/engine/name.ts";
 import { effectiveView, parseSize, type Style, viewSearch } from "@grabient/engine/view.ts";
 import { formatDate, locale, localHref, t } from "@grabient/i18n";
+import { madePalettes, madeView } from "@grabient/search/colors.ts";
 import type { ListView } from "./address.ts";
+import type { PaletteItem } from "./schema.ts";
 
 /* A palette as a list draws it: in the list's view over its own, its stops sampled at that view's steps, named by
    its colors in the reader's language, and the way into its editor in that view. */
@@ -73,3 +75,13 @@ export function relativeAge(ms: number, now: number): string {
 
 /** The clock ages are told against: the minute the page's data was read in, so the server and hydration agree. */
 export const minuteOf = (ms: number): number => Math.floor(ms / 60_000) * 60_000;
+
+/** The palettes a search's colors make, as cards draw them: each in the view its place in the row starts in, liked by
+    nobody yet and held by no list, so it tells no age. */
+export const madeItems = (colors: readonly string[]): PaletteItem[] =>
+  madePalettes(colors).map((seed, place) => ({
+    kseed: seed,
+    ...madeView(seed, place),
+    likes: 0,
+    createdAt: 0
+  }));

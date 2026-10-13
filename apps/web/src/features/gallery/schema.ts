@@ -48,6 +48,8 @@ export const SearchAnswer = v.object({
   limited: v.optional(v.boolean()),
   /** read without the model a person would have been given (a crawler's): never kept for others */
   unkept: v.optional(v.boolean()),
+  /** the words are a page an index may keep: they read as what they mean */
+  indexable: v.optional(v.boolean()),
   fetchedAt: v.number()
 });
 export type SearchAnswer = v.InferOutput<typeof SearchAnswer>;
