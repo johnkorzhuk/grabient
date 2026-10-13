@@ -1,0 +1,264 @@
+{
+ "MARK_BAR": {
+  "x": 0,
+  "y": 24,
+  "w": 32,
+  "h": 8
+ },
+ "MARK_FIXED": [
+  "#ffd25f",
+  "#ff5f6d",
+  "#a17fff"
+ ],
+ "MARK_VIEWBOX": "0 0 32 32",
+ "markWeek": [
+  [
+   "2026-01-01T00:00:00Z",
+   "2026-w01"
+  ],
+  [
+   "2026-10-12T12:00:00Z",
+   "2026-w42"
+  ],
+  [
+   "2026-12-31T23:59:59Z",
+   "2026-w53"
+  ],
+  [
+   "2027-01-04T00:00:00Z",
+   "2027-w01"
+  ],
+  [
+   "2020-12-31T00:00:00Z",
+   "2020-w53"
+  ]
+ ],
+ "MARK_WEEK_ok": [
+  [
+   "2026-w01",
+   true
+  ],
+  [
+   "2026-w53",
+   true
+  ],
+  [
+   "2026-w54",
+   false
+  ],
+  [
+   "2026-w00",
+   false
+  ],
+  [
+   "2026-w1",
+   false
+  ]
+ ],
+ "weekMark": [
+  [
+   "2026-w01",
+   {
+    "light": [
+     "#008d9b",
+     "#008d96",
+     "#008d8f",
+     "#008d86",
+     "#008d7c",
+     "#008d71",
+     "#008e64",
+     "#009153",
+     "#009538",
+     "#339800",
+     "#609800",
+     "#7b9800",
+     "#919a00",
+     "#a29b00",
+     "#b09c00",
+     "#ba9d00"
+    ],
+    "dark": [
+     "#00d9ee",
+     "#00d9e7",
+     "#00dbdd",
+     "#00dcd2",
+     "#00ddc4",
+     "#00deb4",
+     "#00e09f",
+     "#00e184",
+     "#4bdf6d",
+     "#70da53",
+     "#8ed530",
+     "#a8ce00",
+     "#bcc700",
+     "#cac100",
+     "#d4bc00",
+     "#dbb900"
+    ]
+   }
+  ],
+  [
+   "2026-w40",
+   {
+    "light": [
+     "#539800",
+     "#379b00",
+     "#009d2e",
+     "#009953",
+     "#009667",
+     "#009374",
+     "#00907f",
+     "#008d87",
+     "#008b8f",
+     "#008a96",
+     "#00889f",
+     "#0086a9",
+     "#0083b4",
+     "#0080c0",
+     "#007dce",
+     "#0078dd"
+    ],
+    "dark": [
+     "#89d94a",
+     "#78dc59",
+     "#5ddf6c",
+     "#2fe182",
+     "#00e09c",
+     "#00deb2",
+     "#00dcc3",
+     "#00dad1",
+     "#00d8dc",
+     "#00d5e9",
+     "#00d3f6",
+     "#36cfff",
+     "#60c9ff",
+     "#75c5ff",
+     "#82c2ff",
+     "#8ac0ff"
+    ]
+   }
+  ],
+  [
+   "2026-w53",
+   {
+    "light": [
+     "#ad40b2",
+     "#a843b9",
+     "#a148c3",
+     "#984dce",
+     "#8c53d8",
+     "#7e5ae0",
+     "#6e61e7",
+     "#5c68eb",
+     "#466eec",
+     "#2375ec",
+     "#007ed9",
+     "#0084c6",
+     "#0088ba",
+     "#008ab1",
+     "#008caa",
+     "#008ea5"
+    ],
+    "dark": [
+     "#f887fb",
+     "#ef8eff",
+     "#e199ff",
+     "#d3a2ff",
+     "#c7a9ff",
+     "#bcafff",
+     "#b3b4ff",
+     "#a9b9ff",
+     "#a1bcff",
+     "#97c0ff",
+     "#8cc5ff",
+     "#7fc9ff",
+     "#6dcdff",
+     "#56d2ff",
+     "#31d6ff",
+     "#00d9fc"
+    ]
+   }
+  ],
+  [
+   "2027-w10",
+   {
+    "light": [
+     "#cc321b",
+     "#cd3033",
+     "#cd2e4a",
+     "#cc2f62",
+     "#c7337b",
+     "#c03993",
+     "#b740a9",
+     "#ac48bd",
+     "#9f4fcd",
+     "#9057db",
+     "#7d61e6",
+     "#656aee",
+     "#4774f1",
+     "#147df0",
+     "#0085da",
+     "#0089cd"
+    ],
+    "dark": [
+     "#ff9581",
+     "#ff958c",
+     "#ff949a",
+     "#ff94aa",
+     "#ff93bd",
+     "#ff90d3",
+     "#ff8bef",
+     "#ef95ff",
+     "#dba4ff",
+     "#cbaeff",
+     "#bdb6ff",
+     "#b2bcff",
+     "#a7c2ff",
+     "#9cc7ff",
+     "#92caff",
+     "#8acdff"
+    ]
+   }
+  ]
+ ],
+ "legibleStops": [
+  [
+   "light",
+   [
+    "#b0b0b0",
+    "#b0b0b0",
+    "#b5b19e",
+    "#000000",
+    "#101010",
+    "#2a2a40",
+    "#ff0000",
+    "#3366cc",
+    "#f6c955"
+   ]
+  ],
+  [
+   "dark",
+   [
+    "#ffffff",
+    "#f0f0f0",
+    "#e8e4d0",
+    "#676767",
+    "#676767",
+    "#62637c",
+    "#ff0000",
+    "#3366cc",
+    "#ffd25f"
+   ]
+  ]
+ ],
+ "markSvg": {
+  "none": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><style>rect{fill:url(#l)}@media (prefers-color-scheme:dark){rect{fill:url(#d)}}</style><linearGradient id=\"l\"><stop offset=\"0\" stop-color=\"#f6c955\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><linearGradient id=\"d\"><stop offset=\"0\" stop-color=\"#ffd25f\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\"/></svg>",
+  "palette": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><style>rect{fill:url(#l)}@media (prefers-color-scheme:dark){rect{fill:url(#d)}}</style><linearGradient id=\"l\"><stop offset=\"0\" stop-color=\"#b6b78c\"/><stop offset=\".067\" stop-color=\"#bcbc7e\"/><stop offset=\".133\" stop-color=\"#c4be74\"/><stop offset=\".2\" stop-color=\"#d0b577\"/><stop offset=\".267\" stop-color=\"#e5ad7b\"/><stop offset=\".333\" stop-color=\"#fba881\"/><stop offset=\".4\" stop-color=\"#ff8e76\"/><stop offset=\".467\" stop-color=\"#ff706a\"/><stop offset=\".533\" stop-color=\"#fc535c\"/><stop offset=\".6\" stop-color=\"#f43750\"/><stop offset=\".667\" stop-color=\"#e91f43\"/><stop offset=\".733\" stop-color=\"#de0537\"/><stop offset=\".8\" stop-color=\"#d4022c\"/><stop offset=\".867\" stop-color=\"#c90421\"/><stop offset=\".933\" stop-color=\"#bc0315\"/><stop offset=\"1\" stop-color=\"#b2010b\"/></linearGradient><linearGradient id=\"d\"><stop offset=\"0\" stop-color=\"#feffd2\"/><stop offset=\".067\" stop-color=\"#feffbe\"/><stop offset=\".133\" stop-color=\"#fef9ad\"/><stop offset=\".2\" stop-color=\"#ffe3a4\"/><stop offset=\".267\" stop-color=\"#ffc693\"/><stop offset=\".333\" stop-color=\"#feab84\"/><stop offset=\".4\" stop-color=\"#ff8e76\"/><stop offset=\".467\" stop-color=\"#ff706a\"/><stop offset=\".533\" stop-color=\"#fc535c\"/><stop offset=\".6\" stop-color=\"#f43750\"/><stop offset=\".667\" stop-color=\"#e91f43\"/><stop offset=\".733\" stop-color=\"#de0537\"/><stop offset=\".8\" stop-color=\"#d4022c\"/><stop offset=\".867\" stop-color=\"#c90421\"/><stop offset=\".933\" stop-color=\"#bc0315\"/><stop offset=\"1\" stop-color=\"#b2010b\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\"/></svg>",
+  "light": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><linearGradient id=\"b\"><stop offset=\"0\" stop-color=\"#b6b78c\"/><stop offset=\".067\" stop-color=\"#bcbc7e\"/><stop offset=\".133\" stop-color=\"#c4be74\"/><stop offset=\".2\" stop-color=\"#d0b577\"/><stop offset=\".267\" stop-color=\"#e5ad7b\"/><stop offset=\".333\" stop-color=\"#fba881\"/><stop offset=\".4\" stop-color=\"#ff8e76\"/><stop offset=\".467\" stop-color=\"#ff706a\"/><stop offset=\".533\" stop-color=\"#fc535c\"/><stop offset=\".6\" stop-color=\"#f43750\"/><stop offset=\".667\" stop-color=\"#e91f43\"/><stop offset=\".733\" stop-color=\"#de0537\"/><stop offset=\".8\" stop-color=\"#d4022c\"/><stop offset=\".867\" stop-color=\"#c90421\"/><stop offset=\".933\" stop-color=\"#bc0315\"/><stop offset=\"1\" stop-color=\"#b2010b\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\" fill=\"url(#b)\"/></svg>",
+  "one": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><rect y=\"24\" width=\"32\" height=\"8\" fill=\"#336699\"/></svg>",
+  "pair": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 32 32\"><style>rect{fill:url(#l)}@media (prefers-color-scheme:dark){rect{fill:url(#d)}}</style><linearGradient id=\"l\"><stop offset=\"0\" stop-color=\"#b0b0b0\"/><stop offset=\"1\" stop-color=\"#b0b0b0\"/></linearGradient><linearGradient id=\"d\"><stop offset=\"0\" stop-color=\"#676767\"/><stop offset=\"1\" stop-color=\"#676767\"/></linearGradient><rect y=\"24\" width=\"32\" height=\"8\"/></svg>"
+ },
+ "svgDataUrl": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect y='24' width='32' height='8' fill='%23336699'/%3E%3C/svg%3E",
+ "tile": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 16 16\"><rect width=\"16\" height=\"16\" rx=\"3.5\" fill=\"#0c0c0e\"/><linearGradient id=\"b\"><stop offset=\"0\" stop-color=\"#ffd25f\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><rect x=\"2\" y=\"11\" width=\"12\" height=\"3\" fill=\"url(#b)\"/></svg>",
+ "square": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 100 100\"><rect width=\"100\" height=\"100\" fill=\"#0c0c0e\"/><linearGradient id=\"b\"><stop offset=\"0\" stop-color=\"#ffd25f\"/><stop offset=\".5\" stop-color=\"#ff5f6d\"/><stop offset=\"1\" stop-color=\"#a17fff\"/></linearGradient><rect x=\"22\" y=\"64\" width=\"56\" height=\"14\" fill=\"url(#b)\"/></svg>"
+}

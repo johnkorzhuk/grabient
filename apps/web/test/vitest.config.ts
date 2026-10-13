@@ -18,7 +18,9 @@ export default defineConfig({
       main: "test/worker.ts",
       remoteBindings: false,
       miniflare: {
-        bindings: { TEST_MIGRATIONS: await readD1Migrations(`${web}/migrations`) },
+        bindings: {
+          TEST_MIGRATIONS: await readD1Migrations(`${web}/../../packages/server/migrations`)
+        },
         // The config binds the class through the Worker's own name, which the test runner's Worker does not have.
         durableObjects: { RATE_LIMITER: "RateLimiter" }
       }

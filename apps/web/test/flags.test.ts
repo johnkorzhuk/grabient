@@ -1,9 +1,9 @@
+import { all, batch, first, replica, run } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { flagOff, listFlags, setFlag } from "@grabient/server/flags/flags.ts";
+import { FLAG_NAMES } from "@grabient/server/flags/names.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { all, batch, first, replica, run } from "../src/server/db/d1.ts";
-import type { Env } from "../src/server/env.ts";
-import { flagOff, listFlags, setFlag } from "../src/server/flags/flags.ts";
-import { FLAG_NAMES } from "../src/server/flags/names.ts";
-import { countUsage } from "../src/server/usage/count.ts";
 import { makeAdmin, testEnv, unique } from "./helpers.ts";
 
 /** Another isolate's view of the same database: a binding object of its own, so it keeps its own copy of the flags.

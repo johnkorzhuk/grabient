@@ -1,4 +1,4 @@
-import { type Element, For, Show } from "solid-js";
+import { children, type Element, For, Show } from "solid-js";
 import styles from "./Footer.module.css";
 import hidden from "./hidden.module.css";
 import { Icon } from "./Icon.tsx";
@@ -17,8 +17,11 @@ export function Footer(props: {
   languages?: Element;
   note?: Element;
 }) {
+  /* resolved once: each read of an element prop would build it again */
+  const note = children(() => props.note);
+  const noted = () => note.toArray().length > 0;
   return (
-    <footer class={styles.footer} data-noted={props.note ? "" : undefined}>
+    <footer class={styles.footer} data-noted={noted() ? "" : undefined}>
       <For each={props.links} keyed={false}>
         {link => (
           <Show
@@ -52,7 +55,9 @@ export function Footer(props: {
         )}
       </For>
       {props.languages}
-      {props.note && <div class={styles.note}>{props.note}</div>}
+      <Show when={noted()}>
+        <div class={styles.note}>{note()}</div>
+      </Show>
     </footer>
   );
 }

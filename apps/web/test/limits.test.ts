@@ -1,7 +1,7 @@
 import { listDurableObjectIds, runInDurableObject } from "cloudflare:test";
+import { overLimit } from "@grabient/server/auth/http.ts";
+import { checkLimits, limiterName } from "@grabient/server/limits/check.ts";
 import { describe, expect, it } from "vitest";
-import { overLimit } from "../src/server/auth/http.ts";
-import { checkLimits, limiterName } from "../src/server/limits/check.ts";
 import { testEnv, unique, watchLimits } from "./helpers.ts";
 
 describe("the RateLimiter object", () => {

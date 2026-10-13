@@ -371,7 +371,10 @@ describe("menus", () => {
     const markup = html(() => (
       <MenuButton items={items} value="radial" aria-label="Style" onPick={noop} />
     ));
-    expect(tag(markup, "button")["aria-expanded"]).toBe("false");
+    expect(tag(markup, "button")).toMatchObject({
+      "aria-haspopup": "menu",
+      "aria-expanded": "false"
+    });
     expect(text(markup)).toContain("Style Radial");
     expect(tags(markup, "div").some(d => d.role === "menu")).toBe(false);
   });

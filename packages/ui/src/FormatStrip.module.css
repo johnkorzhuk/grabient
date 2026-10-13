@@ -1,0 +1,229 @@
+@layer components {
+  /* the edge is drawn over the chips, inside the strip's box, so a chip takes the strip's whole height and a press
+     anywhere in it lands on a chip; the outer height is the size, edge included */
+  .strip {
+    display: inline-grid;
+    min-width: 0;
+    padding: 0;
+    outline: var(--size-hairline) solid;
+    outline-offset: calc(-1 * var(--size-hairline));
+    border-radius: var(--radius-control);
+    &[data-size="sm"] {
+      border-radius: var(--radius-tight);
+    }
+    &[data-variant="art"] {
+      outline-color: var(--color-art-edge);
+      background-color: var(--color-art);
+      color: var(--color-on-art);
+      -webkit-backdrop-filter: blur(var(--size-blur-frost));
+      backdrop-filter: blur(var(--size-blur-frost));
+    }
+    &[data-variant="paper"] {
+      outline-color: var(--color-edge);
+      background-color: var(--color-paper2);
+      color: var(--color-ink2);
+    }
+    &[data-full] {
+      display: grid;
+      width: 100%;
+    }
+  }
+  /* the chips in a row, and the widest row of each layer drawn unseen in the same cell, which sets the width */
+  .row {
+    display: flex;
+    grid-area: 1 / 1;
+    align-items: center;
+    min-width: 0;
+    &[data-unseen] {
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
+  /* a dot for each mode over the mode's glyph, outside the strip, the mode it is in marked; over a picture each is two
+     tones, so it reads on light colors and dark */
+  .dots {
+    position: absolute;
+    bottom: calc(100% + var(--space-s1));
+    inset-inline: 0;
+    display: flex;
+    justify-content: center;
+    gap: var(--space-s1);
+    opacity: var(--dots);
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+  .dot {
+    flex-shrink: 0;
+    width: var(--space-s1);
+    height: var(--space-s1);
+    border-radius: var(--radius-circle);
+    background-color: var(--color-art);
+    box-shadow: 0 0 0 var(--size-hairline) color-mix(in srgb, var(--color-on-art) 60%, transparent);
+    &[data-on] {
+      background-color: var(--color-on-art);
+      box-shadow: 0 0 0 var(--size-hairline) var(--color-art);
+    }
+    [data-size="lg"] & {
+      width: calc(var(--space-s1) + 1px);
+      height: calc(var(--space-s1) + 1px);
+    }
+    [data-variant="paper"] & {
+      background-color: var(--color-edge2);
+      box-shadow: none;
+      &[data-on] {
+        background-color: var(--color-ink2);
+      }
+    }
+  }
+  .chip {
+    display: inline-flex;
+    flex-grow: 1;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-s1);
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    --fill: transparent;
+    background-color: var(--fill);
+    color: inherit;
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    cursor: pointer;
+    outline: 0 solid currentColor;
+    outline-offset: -2px;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease);
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    [data-variant="art"] &:hover {
+      --fill: var(--color-art-hover);
+    }
+    [data-variant="paper"] & {
+      color: var(--color-ink2);
+      &:hover {
+        --fill: var(--color-paper3);
+        color: var(--color-ink);
+      }
+    }
+    /* a chip is the size, so the strip's outer height is the size itself; a finger gets the touch size on the strips it
+       reaches, and an icon alone is a fingertip wide */
+    [data-size="sm"] & {
+      height: var(--size-control-sm);
+      padding-inline: var(--space-s2);
+      border-radius: var(--radius-tight);
+      font-size: var(--font-fs1);
+    }
+    [data-size="md"] & {
+      height: var(--size-control);
+      padding-inline: var(--space-s3);
+      border-radius: var(--radius-control);
+      font-size: var(--font-fs1);
+    }
+    [data-size="lg"] & {
+      height: var(--size-control-big);
+      padding-inline: var(--space-s3);
+      border-radius: var(--radius-control);
+      font-size: var(--font-fs2);
+    }
+    @media (pointer: coarse) {
+      [data-size="md"] &,
+      [data-size="lg"] & {
+        height: var(--size-touch);
+        min-width: var(--size-touch);
+      }
+    }
+    /* chips that share a row are one width, so a turn between modes with as many formats moves none */
+    [data-full] & {
+      flex-basis: 0;
+    }
+    /* a place this mode leaves empty keeps its chip's room */
+    &[data-hole] {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    /* the mode and the swatch book: a glyph alone, square at the size */
+    &[data-square],
+    &[data-mode] {
+      flex-grow: 0;
+      flex-shrink: 0;
+      [data-size="sm"] & {
+        width: var(--size-control-sm);
+      }
+      [data-size="md"] & {
+        width: var(--size-control);
+      }
+      [data-size="lg"] & {
+        width: var(--size-control-big);
+      }
+      @media (pointer: coarse) {
+        [data-size="md"] &,
+        [data-size="lg"] & {
+          width: var(--size-touch);
+        }
+      }
+    }
+    /* the mode leads, a line apart from the formats, its inner corners square so the line runs straight; while the
+       pointer or the keyboard is on it, its dots show */
+    &[data-mode] {
+      position: relative;
+      border-inline-end: var(--size-hairline) solid var(--color-art-edge);
+      border-start-end-radius: 0;
+      border-end-end-radius: 0;
+      --dots: 0;
+      &:hover,
+      &:focus-visible {
+        --dots: 1;
+      }
+      [data-variant="paper"] & {
+        border-inline-end-color: var(--color-edge);
+      }
+    }
+  }
+  /* a name holds the other names its place takes, unseen in the same cell, so its chip keeps one width; each keeps the
+     space before it, part of the gap after the icon */
+  .name {
+    display: inline-grid;
+    justify-items: start;
+    &::before,
+    &::after {
+      grid-area: 1 / 1;
+      visibility: hidden;
+      white-space: pre;
+    }
+    &::before {
+      content: " " attr(data-a);
+    }
+    &::after {
+      content: " " attr(data-b);
+    }
+  }
+  .word {
+    grid-area: 1 / 1;
+    white-space: pre;
+  }
+  /* names give way, clipped to a pixel and never removed, so a chip of an icon alone still says CSS to a reader who
+     listens: a small strip's below 300px of its container, a picture's at a finger's size on a phone too */
+  @container (max-width: 300px) {
+    .strip:is([data-size="sm"], [data-variant="art"]) .name {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+  @container page (max-width: 480px) {
+    .strip[data-variant="art"]:not([data-size="sm"]) .name {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+  }
+}

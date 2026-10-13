@@ -1,7 +1,7 @@
 import { env as bound } from "cloudflare:workers";
-import { authFor } from "../src/server/auth/library.ts";
-import { run } from "../src/server/db/d1.ts";
-import type { Env } from "../src/server/env.ts";
+import { authFor } from "@grabient/server/auth/library.ts";
+import { run } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 /* Accounts, sessions and requests for the Worker's tests. Every test makes its own accounts, addresses and inboxes,
    so tests never share a count or a row whatever order they run in. */

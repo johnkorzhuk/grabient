@@ -1,11 +1,18 @@
 import process from "node:process";
-import { bindings, type CloudflareConfig, defineConfig, exports, triggers } from "cf/config";
+import {
+  bindings,
+  type CloudflareConfig,
+  defineConfig,
+  exports,
+  triggers,
+  type WorkerConfig
+} from "cf/config";
 
 /* One app, three Workers and a local one. A mode inherits nothing from another, so each names every resource it
    binds: a production deploy that kept staging's bindings would serve staging's database on grabient.com.
 
    - development: `vite dev`, every binding simulated on this machine.
-   - staging: grabient-staging on staging.grabient.com, a copy of production's data where only admins sign in.
+   - staging: grabient-staging on staging.grabient.com, on a snapshot of production's data.
      Its branch Previews (`cf previews deploy`) share a database of their own.
    - production: grabient-production on grabient.com.
 
@@ -30,9 +37,12 @@ const EMAIL_FROM = "noreply@grabient.com";
 // The newsletter goes through Resend, on a sender it has verified: Email Sending takes only the emails a reader asks for.
 const NEWSLETTER_FROM = "news@grabient.com";
 // The uploads bucket every deploy but production writes avatars to, and its public address.
-const DEV_UPLOADS = { name: "grabient-uploads-dev", url: "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev" };
+const DEV_UPLOADS = {
+  name: "grabient-uploads-dev",
+  url: "https://pub-a081a47d10f74a968f0995c41036fbe4.r2.dev"
+};
 
-function base(name: string): CloudflareConfig["worker"] {
+function base(name: string): WorkerConfig {
   return {
     name,
     compatibilityDate: "2026-10-01",
@@ -65,7 +75,9 @@ function base(name: string): CloudflareConfig["worker"] {
 
 function production(): CloudflareConfig {
   if (process.env.GRABIENT_RELEASE !== "production") {
-    throw new Error("A production build needs GRABIENT_RELEASE=production. Run `pnpm deploy:production`.");
+    throw new Error(
+      "A production build needs GRABIENT_RELEASE=production. Run `pnpm deploy:production`."
+    );
   }
   return {
     worker: {
@@ -93,7 +105,10 @@ function production(): CloudflareConfig {
         SEARCH_SNAPSHOTS: bindings.r2({ name: "grabient-search-snapshots-production" }),
         CACHE: bindings.kv({ id: "f43a67e1a657473fbe09db8c94e77ed9" }),
         OAUTH_KV: bindings.kv({ id: "e4aa0161bda441c38d861fc065fe1073" }),
-        RATE_LIMITER: bindings.durableObject({ worker: "grabient-production", exportName: "RateLimiter" }),
+        RATE_LIMITER: bindings.durableObject({
+          worker: "grabient-production",
+          exportName: "RateLimiter"
+        }),
         USAGE: bindings.analyticsEngineDataset({ name: "grabient_usage" }),
         ANALYTICS: bindings.analytics(),
         AI: bindings.ai(),
@@ -116,8 +131,6 @@ function staging(): CloudflareConfig {
         PUBLIC_ORIGIN: bindings.text(ORIGINS.staging),
         BETTER_AUTH_URL: bindings.text(ORIGINS.staging),
         BETTER_AUTH_SECRET: bindings.secret(),
-        // Production's data with production's accounts in it: only an admin may sign in here.
-        SIGN_IN: bindings.text("admins"),
         EMAIL_FROM: bindings.text(EMAIL_FROM),
         EMAIL: bindings.sendEmail({ allowedSenderAddresses: [EMAIL_FROM] }),
         NEWSLETTER_FROM: bindings.text(NEWSLETTER_FROM),
@@ -127,7 +140,10 @@ function staging(): CloudflareConfig {
         SEARCH_SNAPSHOTS: bindings.r2({ name: "grabient-staging-snapshots" }),
         CACHE: bindings.kv({ id: "d2bf88b0e0924f3aa2df279257585f97" }),
         OAUTH_KV: bindings.kv({ id: "ea4105282c9a46269c43d9e646875815" }),
-        RATE_LIMITER: bindings.durableObject({ worker: "grabient-staging", exportName: "RateLimiter" }),
+        RATE_LIMITER: bindings.durableObject({
+          worker: "grabient-staging",
+          exportName: "RateLimiter"
+        }),
         USAGE: bindings.analyticsEngineDataset({ name: "grabient_staging_usage" }),
         ANALYTICS: bindings.analytics(),
         AI: bindings.ai(),
@@ -160,7 +176,10 @@ function preview(): CloudflareConfig {
         DB: bindings.d1(DATABASES.previews),
         UPLOADS: bindings.r2({ name: DEV_UPLOADS.name }),
         OAUTH_KV: bindings.kv({ id: "6e967f58fd2240e3bd42641962aaae97" }),
-        RATE_LIMITER: bindings.durableObject({ worker: "grabient-staging", exportName: "RateLimiter" }),
+        RATE_LIMITER: bindings.durableObject({
+          worker: "grabient-staging",
+          exportName: "RateLimiter"
+        }),
         ASSETS: bindings.assets()
       }
     }

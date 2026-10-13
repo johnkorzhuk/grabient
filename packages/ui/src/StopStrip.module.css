@@ -1,0 +1,142 @@
+@layer components {
+  .strip {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    box-shadow: var(--color-rim);
+    --h: var(--size-strip);
+    &[data-two] {
+      --h: var(--size-strip-two);
+    }
+    &[data-short] {
+      --h: var(--size-strip-short);
+    }
+    /* the foot: the seams' dash along the strip's last pixel, over the chips */
+    &::after {
+      content: "";
+      position: absolute;
+      bottom: 0;
+      inset-inline: 0;
+      z-index: 2;
+      height: var(--size-hairline);
+      background-image: linear-gradient(
+        to right,
+        var(--color-paper-solid) var(--size-dash),
+        transparent var(--size-dash)
+      );
+      background-size: var(--size-dash-period) var(--size-hairline);
+      background-repeat: repeat-x;
+      pointer-events: none;
+    }
+  }
+  .row {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    /* the second row runs right to left, so the run reads as one and both ends of the gradient stand at the left; the
+       chips keep the gradient's order for a reader and for Tab */
+    &[data-back] {
+      flex-direction: row-reverse;
+    }
+  }
+  .chip {
+    position: relative;
+    display: flex;
+    flex-grow: var(--span);
+    flex-basis: 0;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    height: var(--h);
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+    outline: 0 solid currentColor;
+    outline-offset: -3px;
+    transition:
+      height var(--motion-fast) var(--motion-ease),
+      margin-top var(--motion-fast) var(--motion-ease),
+      box-shadow var(--motion-fast) var(--motion-ease);
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    &[data-ink="onLight"] {
+      color: var(--color-on-light);
+    }
+    &[data-ink="onDark"] {
+      color: var(--color-on-dark);
+    }
+    /* the seam: the dash in the paper's color whatever the chip's, along its left edge */
+    &[data-seam]::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 1px;
+      background-image: repeating-linear-gradient(
+        to bottom,
+        var(--color-paper-solid) 0 var(--size-dash),
+        transparent var(--size-dash) var(--size-dash-period)
+      );
+      transition: top var(--motion-fast) var(--motion-ease);
+    }
+    /* the chip being read rises 8px over what is above the strip; its seam keeps the strip's height */
+    &[data-read] {
+      z-index: 1;
+      height: calc(var(--h) + var(--space-s2));
+      margin-top: calc(-1 * var(--space-s2));
+      box-shadow:
+        inset 0 var(--size-hairline) 0 color-mix(in oklab, currentColor 40%, transparent),
+        0 calc(-1 * var(--space-s1)) var(--space-s3) 0
+        color-mix(in oklab, var(--paint) 85%, transparent),
+        0 calc(-1 * var(--space-s3)) var(--space-s8) calc(-1 * var(--space-s2))
+        color-mix(in oklab, var(--paint) 60%, transparent);
+      &::before {
+        top: var(--space-s2);
+      }
+    }
+    /* the bottom row reaches beneath a phone's home indicator, its label kept above it */
+    &[data-inset] {
+      box-sizing: content-box;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  }
+  .label {
+    font-family: var(--font-mono);
+    font-weight: var(--font-medium);
+    font-size: var(--sw);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    pointer-events: none;
+    [data-read] > & {
+      font-weight: var(--font-bold);
+    }
+    &[data-vertical] {
+      writing-mode: vertical-rl;
+    }
+    &[data-hide] {
+      display: none;
+    }
+  }
+  .mark {
+    position: absolute;
+    top: var(--space-s1);
+    left: calc(100% * var(--x));
+    z-index: 2;
+    width: var(--space-s2);
+    height: var(--space-s2);
+    translate: -50% 0;
+    border-radius: var(--radius-circle);
+    background-color: var(--c);
+    box-shadow:
+      0 0 0 2px var(--color-on-dark),
+      0 0 0 3px var(--color-on-light);
+    pointer-events: none;
+    transition: left var(--motion-fast) var(--motion-ease);
+  }
+}

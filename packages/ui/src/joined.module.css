@@ -59,7 +59,7 @@
       width: var(--size-touch);
       height: var(--size-touch);
     }
-    /* standing apart, beside what it acts on rather than joined to it: its own edge all round */
+    /* standing apart, beside what it acts on, with its own edge all round */
     &[data-apart] {
       border-inline-start-width: 1px;
       border-radius: var(--radius-control);

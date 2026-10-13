@@ -117,6 +117,10 @@
   body {
     background: transparent;
   }
+  /* a subtree shown in the other theme (a frame of the design document) draws its native controls in it too */
+  [data-theme] {
+    color-scheme: var(--color-scheme);
+  }
   /* the grain behind every page */
   body::before {
     content: "";
