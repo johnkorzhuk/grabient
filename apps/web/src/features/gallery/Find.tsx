@@ -2,8 +2,9 @@ import { delocalizePath, localHref, t } from "@grabient/i18n";
 import { keepPreviousData, useQuery } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
 import { createSignal, Errored, Loading, onCleanup } from "solid-js";
+import type * as v from "valibot";
 import { paletteId } from "../../lib/words.ts";
-import type { SearchPage } from "../search/bodies.ts";
+import type { SearchPage, SearchSuggestions } from "../search/bodies.ts";
 import { countSearch } from "../search/count.ts";
 import { suggestionsQuery } from "../search/queries.ts";
 import { SearchField } from "../search/SearchField.tsx";
@@ -27,12 +28,12 @@ const TYPED = 12;
 export const tagsQuery = (words: string, home: boolean) =>
   suggestionsQuery(words, words ? { limit: TYPED } : { both: home, limit: AT_REST });
 
+type Tags = v.InferOutput<typeof SearchSuggestions>["suggestions"];
 /* the row's read: the last answer stands until the next lands, and the row draws its own copy (queries.ts) */
 const tagsView = (words: string, home: boolean) => ({
   ...tagsQuery(words, home),
   placeholderData: keepPreviousData,
-  select: (tags: readonly { label: string; href: string; colors: string[]; query?: string }[]) =>
-    own(tags)
+  select: (tags: Tags) => own(tags)
 });
 
 /** What a page's search says to an agent in the browser (WebMCP's form annotations), in English as tools are named. */
