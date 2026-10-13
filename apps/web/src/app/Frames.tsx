@@ -19,8 +19,9 @@ type FooterPage = "privacy" | "terms" | "mcp";
 const footerPage = (page: string | undefined): FooterPage | null =>
   page === "privacy" || page === "terms" || page === "mcp" ? page : null;
 
-/** The language menu as a frame draws it: this page in every language, which the shell knows. */
-function Languages() {
+/** The language menu as a frame draws it: this page in every language, which the shell knows. A page that draws its
+    own PageFrame (MCP, an app's consent) takes it from here. */
+export function Languages() {
   const shell = useContext(ShellContext)!;
   return <LanguageMenu path={shell.here} follow={shell.translated()} disabled={offline()} />;
 }
