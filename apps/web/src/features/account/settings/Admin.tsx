@@ -234,12 +234,12 @@ export function SiteFeatures() {
             /* on by its own switch, and off all the same while every feature is */
             const overruled = () => flag() !== "all" && held("all")?.on === false && on();
             const isArmed = () => armed() === flag();
-            const label = `flag-${flag()}-label`;
+            const label = () => `flag-${flag()}-label`;
             return (
               <div class={styles.flagRow}>
                 <div class={styles.choice}>
                   <div class={styles.choiceText}>
-                    <Text variant="body" strong id={label}>
+                    <Text variant="body" strong id={label()}>
                       {t(FLAGS[flag()].label)}
                     </Text>
                     <Text variant="small">{t(FLAGS[flag()].line)}</Text>
@@ -269,7 +269,7 @@ export function SiteFeatures() {
                         <Switch
                           checked={on()}
                           armed={isArmed() ? (on() ? t("Turn off") : t("Turn on")) : undefined}
-                          aria-labelledby={label}
+                          aria-labelledby={label()}
                           aria-describedby={isArmed() ? `flag-${flag()}-armed` : undefined}
                           disabled={offline()}
                           onChange={next => press(flag(), next)}
