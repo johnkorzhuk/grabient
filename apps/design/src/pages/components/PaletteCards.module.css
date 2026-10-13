@@ -1,0 +1,9 @@
+/* the list's own grid: cards a column each, the glow in the gap between them */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-s10);
+}
+.figure {
+  margin: 0;
+}

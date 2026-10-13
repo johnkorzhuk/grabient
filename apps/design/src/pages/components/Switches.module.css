@@ -1,0 +1,17 @@
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+  max-width: var(--size-prose);
+}
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s6);
+}
+.words {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+}
