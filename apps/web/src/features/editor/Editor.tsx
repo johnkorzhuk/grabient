@@ -18,6 +18,7 @@ import { createHold } from "@grabient/ui/press.ts";
 import { SizeControl } from "@grabient/ui/SizeControl.tsx";
 import { StopStrip } from "@grabient/ui/StopStrip.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
+import { space } from "@grabient/ui/tokens.ts";
 import { useLocation, useNavigate, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
@@ -75,6 +76,11 @@ const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet }))
 const PLOT_FLOW = 132;
 const PLOT_LEAST = 96;
 const PLOT_MOST = 220;
+/* a field typed in on a touch screen: how far down the window it may stand and be over any keyboard, the room the side
+   gives its rows to rise there (more than any keyboard is tall), and the least a row keeps under the side's top */
+const OVER_KEYS = 1 / 3;
+const TYPING_ROOM = "60dvh";
+const LIFT_GAP = space.s4;
 
 /* The stage strip's formats: Copy hands over the address, the CSS and the pictures, Download saves the files the
    site serves (the Markdown in the address's place), and Copy link copies those files' addresses. A format keeps its
@@ -823,6 +829,38 @@ function Side(props: PageProps & { narrow: boolean }) {
     };
   });
   const height = () => (props.narrow ? PLOT_FLOW : plotH());
+  /* A field typed in on a touch screen beside the page: the keyboard takes the window's lower half, where most of the
+     side's fields stand, and the side is pinned, so no scroll of the page brings one up. The side gives its rows room
+     to rise and brings the field's row into the window's top third, as far as it needs; a field there already moves
+     nothing. When typing ends the room goes and the rows stand where they stood. */
+  let stood = -1;
+  const lift = (event: FocusEvent) => {
+    const field = event.target;
+    if (
+      props.narrow ||
+      !(field instanceof HTMLInputElement) ||
+      field.readOnly ||
+      !matchMedia("(pointer: coarse)").matches
+    )
+      return;
+    const row = (field.closest('[dir="ltr"]') ?? field).getBoundingClientRect();
+    const by = Math.min(
+      row.bottom - innerHeight * OVER_KEYS,
+      row.top - side.getBoundingClientRect().top - LIFT_GAP
+    );
+    if (by <= 0) return;
+    if (stood < 0) stood = side.scrollTop;
+    side.style.setProperty("--typing", TYPING_ROOM);
+    side.scrollTop += by;
+  };
+  const lower = (event: FocusEvent) => {
+    const next = event.relatedTarget;
+    if (stood < 0 || (next instanceof HTMLInputElement && !next.readOnly && side.contains(next)))
+      return;
+    side.style.removeProperty("--typing");
+    side.scrollTop = stood;
+    stood = -1;
+  };
   /* Where the rows follow the strip they stand under the first screen, and each axis comes in a task of its own, so a
      phone answers between them; beside the page they come at once, as the reader sees them. */
   const [axes, setAxes] = createSignal(untrack(() => props.narrow) ? 0 : 3);
@@ -843,6 +881,8 @@ function Side(props: PageProps & { narrow: boolean }) {
       class={styles.side}
       data-narrow={props.narrow ? "" : undefined}
       aria-label={t("Editor")}
+      onFocusIn={lift}
+      onFocusOut={lower}
     >
       <div ref={rows} class={styles.rows}>
         <div class={styles.section}>
