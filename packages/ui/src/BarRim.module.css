@@ -1,0 +1,28 @@
+@layer components {
+  /* a pixel more radius than the field, so the ring stays a pixel wide round the corners. Without the bar's colors it
+     is drawn in the focus ring's ink */
+  .rim {
+    position: absolute;
+    inset: -1px;
+    z-index: 0;
+    border-radius: calc(var(--radius-control) + var(--size-hairline));
+    background-color: var(--color-ring);
+    pointer-events: none;
+    opacity: max(var(--rim-hover, 0), var(--rim-focus, 0));
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    &[data-square="start"] {
+      border-start-start-radius: 0;
+      border-end-start-radius: 0;
+    }
+    &[data-square="end"] {
+      border-start-end-radius: 0;
+      border-end-end-radius: 0;
+    }
+  }
+  @container page (max-width: 800px) {
+    .rim[data-square="end"]:not([data-kept]) {
+      border-start-end-radius: calc(var(--radius-control) + var(--size-hairline));
+      border-end-end-radius: calc(var(--radius-control) + var(--size-hairline));
+    }
+  }
+}

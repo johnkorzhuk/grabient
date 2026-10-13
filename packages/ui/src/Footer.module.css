@@ -1,0 +1,37 @@
+@layer components {
+  .footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--space-s6);
+    margin-top: auto;
+    padding: var(--space-s12) var(--space-s4) var(--space-s8);
+    &[data-noted] {
+      row-gap: var(--space-s2);
+    }
+  }
+  .note {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  /* a finger's target both ways: Terms, or a language's short word for it, is narrower than a fingertip */
+  .link,
+  .external {
+    composes: quiet from "./link.module.css";
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: var(--size-touch);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    @media (pointer: coarse) {
+      min-width: var(--size-touch);
+    }
+  }
+  /* a link of several parts: the glyph, its words, the stars */
+  .external {
+    gap: var(--space-s2);
+  }
+}

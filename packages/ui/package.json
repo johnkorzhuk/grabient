@@ -3,10 +3,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
     "./*": "./src/*"
   },
+  "sideEffects": [
+    "*.css"
+  ],
   "scripts": {
+    "tokens": "node scripts/build-tokens.ts",
+    "test": "vitest run",
     "typecheck": "tsc -p ."
   },
   "dependencies": {
@@ -16,6 +20,7 @@
     "solid-js": "catalog:"
   },
   "devDependencies": {
+    "@solidjs/vite-plugin": "catalog:",
     "typescript": "catalog:",
     "vite": "catalog:"
   }

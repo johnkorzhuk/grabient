@@ -1,0 +1,25 @@
+@layer components {
+  .icon {
+    display: block;
+    overflow: visible;
+  }
+  .sun,
+  .moon {
+    transform-box: view-box;
+    transform-origin: 12px 12px;
+    [data-moving] > & {
+      transition:
+        transform var(--motion-base) var(--motion-ease),
+        opacity var(--motion-base) var(--motion-ease);
+    }
+  }
+  /* each glyph rests away on its own side, so either change turns both the same way round */
+  .icon:not([data-dark]) > .sun {
+    opacity: 0;
+    transform: rotate(-90deg) scale(0.4);
+  }
+  .icon[data-dark] > .moon {
+    opacity: 0;
+    transform: rotate(90deg) scale(0.4);
+  }
+}

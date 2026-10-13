@@ -1,0 +1,62 @@
+@layer components {
+  .pane {
+    min-width: 0;
+    border-radius: var(--radius-surface);
+    &[data-variant="frost"] {
+      background-color: var(--color-frost);
+      box-shadow: var(--color-shadow-frost);
+      -webkit-backdrop-filter: blur(var(--size-blur-frost)) saturate(1.1);
+      backdrop-filter: blur(var(--size-blur-frost)) saturate(1.1);
+    }
+    &[data-variant="paper"] {
+      border: 1px solid var(--color-edge);
+      background-color: var(--color-paper-solid);
+    }
+    &[data-variant="glass"] {
+      border: 1px solid var(--color-glass-edge);
+      background-color: var(--color-glass);
+      box-shadow: var(--color-shadow-pop);
+      -webkit-backdrop-filter: blur(var(--size-blur-glass)) saturate(1.2);
+      backdrop-filter: blur(var(--size-blur-glass)) saturate(1.2);
+    }
+    &[data-padding="sm"] {
+      padding: var(--space-s4);
+    }
+    &[data-padding="md"] {
+      padding: var(--space-s6);
+    }
+    &[data-padding="lg"] {
+      padding: var(--space-s8);
+    }
+    &[data-tight] {
+      border-radius: var(--radius-control);
+    }
+    &[data-bar] {
+      position: relative;
+      --lit: 0;
+      &:hover,
+      &:focus-within {
+        --lit: 1;
+      }
+    }
+  }
+  @container page (max-width: 800px) {
+    .pane[data-padding="lg"] {
+      padding: var(--space-s6);
+    }
+  }
+  /* the line runs along the straight of the top edge, its ends fading where the corners begin; at rest it keeps 0.4 of
+     its color */
+  .bar {
+    position: absolute;
+    top: 0;
+    inset-inline: var(--radius-surface);
+    height: var(--size-pane-bar);
+    background-color: var(--color-ring);
+    background-image: var(--bar-live, var(--bar));
+    -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+    mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+    opacity: calc(0.4 + 0.6 * var(--lit));
+    transition: opacity var(--motion-slow) var(--motion-ease);
+  }
+}

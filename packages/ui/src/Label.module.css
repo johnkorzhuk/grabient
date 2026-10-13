@@ -1,0 +1,15 @@
+@layer components {
+  .label {
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs1);
+    line-height: var(--font-lh-none);
+    letter-spacing: var(--font-ls-micro);
+    text-transform: uppercase;
+    &[data-field] {
+      padding-inline-start: calc(var(--space-s1) / 2);
+      font-size: var(--font-fs0);
+    }
+  }
+}

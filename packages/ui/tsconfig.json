@@ -1,5 +1,5 @@
 {
   "extends": "../../tsconfig.base.json",
-  "compilerOptions": { "lib": ["ESNext", "DOM", "DOM.Iterable"], "types": ["vite/client"] },
-  "include": ["src"]
+  "compilerOptions": { "lib": ["ESNext", "DOM", "DOM.Iterable"], "types": ["vite/client", "node"] },
+  "include": ["src", "scripts", "test", "vitest.config.ts"]
 }

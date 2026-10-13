@@ -1,0 +1,104 @@
+/* A field and a Textarea share these: the paper, the rim's host, the edge and the help line. */
+@layer components {
+  .field {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    flex-basis: 0;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  /* hover and focus each set their own property and the rim takes the larger, so focus wins while the pointer is still
+     over the field, whatever order the two resolve in */
+  .box {
+    position: relative;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    --filled: 0;
+    &:hover,
+    &[data-state="hover"] {
+      --rim-hover: 0.35;
+    }
+    &:focus-within,
+    &[data-state="focus"] {
+      --rim-focus: 1;
+    }
+    &:has(:autofill) {
+      --filled: 1;
+    }
+    /* dimmed as one piece, rim included, and the rim never lights: a disabled field does not react */
+    &[data-disabled] {
+      opacity: 0.4;
+      --rim-hover: 0;
+      --rim-focus: 0;
+    }
+  }
+  /* the paper under a value the browser filled in, between the rim and the field, where the field's own background no
+     longer reaches; shown only then */
+  .paper {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    pointer-events: none;
+    opacity: var(--filled);
+  }
+  .input {
+    position: relative;
+    width: 100%;
+    height: var(--size-control-big);
+    margin: 0;
+    padding: 0 var(--space-s3);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    outline: none;
+    transition: border-color var(--motion-fast) var(--motion-ease);
+    &::placeholder {
+      color: var(--color-ink3);
+    }
+    &:focus,
+    [data-state="focus"] > & {
+      border-color: transparent;
+    }
+    &[aria-invalid="true"] {
+      border-color: var(--color-danger);
+    }
+    &:disabled {
+      cursor: not-allowed;
+    }
+    /* the browser's background for a filled-in value cannot be overridden: it is held to the text's box (the padding
+       keeps it clear of the edges, and the text stays centered), where an inset shadow of the paper covers it, and
+       the text keeps its ink */
+    &:autofill {
+      padding-block: var(--space-s1);
+      background-clip: content-box;
+      box-shadow: inset 0 0 0 100vmax var(--color-paper-solid);
+      -webkit-text-fill-color: var(--color-ink);
+      filter: none;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+      /* 16px, so iOS never zooms in on a focused field */
+      font-size: var(--font-fs-touch);
+    }
+  }
+  /* a long address in the help line breaks where it must, never past the field */
+  .help {
+    min-width: 0;
+    margin: 0;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    overflow-wrap: anywhere;
+    &[data-error] {
+      color: var(--color-danger);
+    }
+  }
+}

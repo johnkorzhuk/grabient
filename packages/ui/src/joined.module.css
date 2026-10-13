@@ -1,0 +1,110 @@
+/* Two presses that read as one control on the input recipe: a main one and, past a line they share, a square one at
+   its end that clears, closes or saves. Each stands in a part with a rim of its own (BarRim `square`), raised over the
+   shared line while it lights, so the press under the pointer or the keyboard rings alone. A list may hang joined
+   under the two (`over`): that piece carries no rim, and the keyboard's ring is drawn inside each press. */
+@layer components {
+  .part {
+    position: relative;
+    z-index: 0;
+    display: inline-flex;
+    flex-shrink: 0;
+    min-width: 0;
+    --rim-hover: 0;
+    --rim-focus: 0;
+    &:hover {
+      z-index: 1;
+      --rim-hover: 0.35;
+    }
+    &:focus-within {
+      z-index: 1;
+      --rim-focus: 1;
+    }
+  }
+  /* the main press gives up its end corners: its end edge is the line between the two */
+  .start {
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
+  }
+  /* the square press after that line, on the main one's paper */
+  .end {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-control-big);
+    height: var(--size-control-big);
+    margin: 0;
+    padding: 0;
+    appearance: none;
+    border: 1px solid var(--color-edge2);
+    border-inline-start-width: 0;
+    border-start-start-radius: 0;
+    border-end-start-radius: 0;
+    border-start-end-radius: var(--radius-control);
+    border-end-end-radius: var(--radius-control);
+    background-color: var(--color-paper-solid);
+    color: var(--color-ink3);
+    cursor: pointer;
+    outline: 0 solid var(--color-ring);
+    outline-offset: -6px;
+    transition: color var(--motion-fast) var(--motion-ease);
+    &:hover {
+      color: var(--color-ink);
+    }
+    &:focus-visible {
+      outline-width: 1px;
+    }
+    @media (pointer: coarse) {
+      width: var(--size-touch);
+      height: var(--size-touch);
+    }
+    /* standing apart, beside what it acts on rather than joined to it: its own edge all round */
+    &[data-apart] {
+      border-inline-start-width: 1px;
+      border-radius: var(--radius-control);
+    }
+    /* a list hangs joined under the pair: the lower corners give way, and their edge is the line over it */
+    &[data-over] {
+      border-end-start-radius: 0;
+      border-end-end-radius: 0;
+    }
+    /* beside a dense row's field the press takes the field's height; under a finger it keeps its width, so two fields
+       and their names still share a phone's line, and its target reaches past both sides to the touch size */
+    &[data-size="md"] {
+      width: var(--size-control);
+      height: var(--size-control);
+      @media (pointer: coarse) {
+        width: var(--size-control);
+        height: var(--size-touch);
+        &::before {
+          content: "";
+          position: absolute;
+          inset-block: 0;
+          inset-inline: calc((var(--size-control) - var(--size-touch)) / 2);
+        }
+      }
+    }
+    /* over a card's picture the pair takes the small press's height and corners */
+    &[data-size="sm"] {
+      width: var(--size-control-sm);
+      height: var(--size-control-sm);
+      border-start-end-radius: var(--radius-tight);
+      border-end-end-radius: var(--radius-tight);
+      outline-offset: -4px;
+      @media (pointer: coarse) {
+        width: var(--size-touch);
+        height: var(--size-touch);
+      }
+    }
+    /* the end acts on what the main press holds (Save, for a typed title): full ink, and none while that is unwritten */
+    &[data-on] {
+      color: var(--color-ink);
+    }
+    &:disabled {
+      color: var(--color-ink4);
+      cursor: default;
+      pointer-events: none;
+    }
+  }
+}

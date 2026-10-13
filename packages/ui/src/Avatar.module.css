@@ -1,0 +1,34 @@
+@layer components {
+  .avatar {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: var(--size-avatar);
+    height: var(--size-avatar);
+    overflow: hidden;
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-circle);
+    background-color: var(--color-paper3);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    text-transform: uppercase;
+    &[data-size="lg"] {
+      width: var(--size-avatar-lg);
+      height: var(--size-avatar-lg);
+      font-size: var(--font-fs6);
+    }
+  }
+  .picture {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .anon {
+    display: inline-flex;
+    color: var(--color-ink2);
+  }
+}
