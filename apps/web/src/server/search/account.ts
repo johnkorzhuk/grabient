@@ -19,7 +19,7 @@ export async function accountSearchResponse(
   const session = await getSession(env, request.headers);
   if (!session) return json({ error: msg("Sign in to continue.") }, 401);
   const { query, limit, sort } = searchRequestInput(request);
-  if (!query) return json({ error: msg("Invalid search query.") }, 400);
+  if (!query) return json({ error: "Invalid search query." }, 400);
   const result = await searchPalettes(env, query, {
     request,
     ctx,

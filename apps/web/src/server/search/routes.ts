@@ -69,7 +69,7 @@ export async function searchJsonResponse(
   const { query, limit, sort } = searchRequestInput(request);
   if (!query)
     return Response.json(
-      { error: msg("Invalid search query.") },
+      { error: "Invalid search query." },
       { status: 400, headers: NO_STORE }
     );
   const result = await searchPalettes(env, query, { request, ctx, limit });
