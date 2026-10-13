@@ -5,8 +5,10 @@ import { CopyLine } from "@grabient/ui/CopyLine.tsx";
 import { type FrameLink, PageFrame } from "@grabient/ui/PageFrame.tsx";
 import { Rule } from "@grabient/ui/Rule.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { createMemo, createSignal, type Element, For, onSettled, Show } from "solid-js";
-import { account, installConnection, loadAccount, trackEvent, unreachable } from "./account.ts";
+import { createMemo, type Element, For, Show } from "solid-js";
+import { unreachable } from "../../app/connection.ts";
+import { account } from "../account/session.ts";
+import { trackEvent } from "../analytics/analytics.ts";
 import { ConnectedApps } from "./ConnectedApps.tsx";
 import styles from "./McpServer.module.css";
 import { MCP_LINKS, MCP_PATH, MCP_SETUPS, otherSetup } from "./mcp-apps.ts";
@@ -15,7 +17,7 @@ import { MCP_LINKS, MCP_PATH, MCP_SETUPS, otherSetup } from "./mcp-apps.ts";
    added. First the address every app takes, with Copy, and one-click links for the apps whose makers give one; then
    each app's setup by hand, a tab each; then the sign-in. Then what a connected app can do, things to ask it, and the
    apps the account connected, each with the press that ends it. The page's own words read nothing of the account: the
-   list is drawn once the page is live and the account is known. */
+   list is drawn once the browser knows the account, which the server never does. */
 
 const CAN_DO = [
   msg("Search palettes by words, hex codes or another palette."),
@@ -64,13 +66,6 @@ export function McpServerPage(props: {
       where: { text: t("Your app's MCP settings") }
     }
   ]);
-  /* the account's own apps are drawn once the page is live: the server's page reads no session */
-  const [live, setLive] = createSignal(false);
-  onSettled(() => {
-    installConnection();
-    void loadAccount();
-    setLive(true);
-  });
   return (
     <PageFrame
       nav={props.nav}
@@ -181,7 +176,7 @@ export function McpServerPage(props: {
             </For>
           </ul>
         </section>
-        <Show when={live() && account()}>
+        <Show when={account()}>
           {signedIn => (
             <>
               <Rule />
