@@ -17,6 +17,7 @@ import { DEFAULT_SIZE, isSwatchStyle, type Style, viewSearch } from "@grabient/e
 import { DEFAULT_LOCALE, inLocale, msg, t } from "@grabient/i18n";
 import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
+import { colorFormat } from "../../lib/color-format.ts";
 import type { PaletteFacts } from "../../server/editor/facts.ts";
 import type { Rest } from "./rest.ts";
 
@@ -129,6 +130,8 @@ export function codeSources(
               count: n,
               fn: `${kind}()`
             });
+  /* CSS and Colors open in the spelling the reader chose in Settings */
+  const initial = colorFormat();
   return [
     {
       id: "seed",
@@ -143,6 +146,7 @@ export function codeSources(
       id: "css",
       label: "CSS",
       spellings: CSS_SPELLINGS,
+      initial,
       text: s => cssBlock(stops, v.style, v.angle, colorKind(s)),
       note: s => p3(cssNote(colorKind(s)))
     },
@@ -153,6 +157,7 @@ export function codeSources(
         ...COLOR_KINDS.map(([id, label]) => ({ id, label })),
         { id: "gpl", label: "GPL" }
       ],
+      initial,
       text: s => {
         if (s !== "gpl") return colorsText(colorKind(s ?? "hex"), stops);
         const palette = swatch();
