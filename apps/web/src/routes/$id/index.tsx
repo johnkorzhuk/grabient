@@ -1,10 +1,11 @@
 import { isPagePath } from "@grabient/i18n";
+import { isServer } from "@solidjs/web";
 import { createFileRoute, notFound } from "@tanstack/solid-router";
-import { Loading, lazy, Show } from "solid-js";
+import { Loading, lazy, Show, untrack } from "solid-js";
 import { Placeholder } from "../../app/Placeholder.tsx";
 import { SEED_SHAPE } from "../../features/editor/address.ts";
 import { EditorCorner } from "../../features/editor/EditorCorner.tsx";
-import { paletteData, paletteHead } from "../../features/editor/page.ts";
+import { loadEditor, paletteData, paletteHead } from "../../features/editor/page.ts";
 import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
 import { NO_STORE, PALETTE_PAGE } from "../../lib/cache.ts";
 
@@ -12,7 +13,7 @@ import { NO_STORE, PALETTE_PAGE } from "../../lib/cache.ts";
    that lead to a search. A palette's page is the editor, which the browser draws alone: the server runs the loader,
    for the head and for the static page crawlers and readers without JavaScript read, which the editor takes the place
    of. A collection renders whole. */
-const Editor = lazy(() => import("../../features/editor/Editor.tsx"));
+const Editor = lazy(loadEditor);
 
 export const Route = createFileRoute("/$id/")({
   // a name with an extension is a file, and no file is here
@@ -31,9 +32,11 @@ export const Route = createFileRoute("/$id/")({
   component: Address
 });
 
-/* what the server sends for a palette, and what stands while the editor's code arrives */
+/* what the server sends for a palette, and what stands while the editor's code arrives, which the browser asks for
+   as it starts the page rather than once the page has started */
 function Static() {
   const data = Route.useLoaderData();
+  if (!isServer && untrack(() => data()?.palette)) void loadEditor();
   return <Show when={data()?.palette}>{palette => <StaticPalette data={palette()} />}</Show>;
 }
 

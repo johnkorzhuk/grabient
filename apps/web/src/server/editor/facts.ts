@@ -9,7 +9,8 @@ import type { Env } from "@grabient/server/env.ts";
 /* What only the database knows of a palette, for its page: the words written for it that its colors bear out, and the
    public collections that hold it, the most saved first, each titled in the page's language where it is translated.
    The page's title, its description, its static page for crawlers and its Markdown read them. Read once per page the
-   edge has no copy of, from a replica, in one round of two queries. */
+   edge has no copy of, from a replica, in one round of two queries; a read that fails leaves its facts out, and the
+   page goes by the palette's colors. */
 
 export interface PaletteFacts {
   /** in English: a palette's written words are its author's */
@@ -18,6 +19,10 @@ export interface PaletteFacts {
 }
 
 const HELD_MAX = 6;
+const missed = (error: unknown): never[] => {
+  console.error("Palette facts unread", String(error));
+  return [];
+};
 
 /* each collection's first palettes come with it for its colors; CROSS JOIN keeps SQLite on the items' seed index */
 const HOLDING = `SELECT c.slug, c.title, c.description, t.title AS said, t.source,
@@ -49,8 +54,8 @@ export async function paletteFacts(
       db,
       "SELECT title, embed FROM k_palette_texts WHERE seed = ?",
       seed
-    ),
-    all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed)
+    ).catch(missed),
+    all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed).catch(missed)
   ]);
   const text = texts[0];
   /* a title the colors contradict is left out, and the description goes with it */

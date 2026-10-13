@@ -1,3 +1,5 @@
+import "@grabient/ui/tokens.css";
+import "@grabient/ui/base.css";
 import catalogs from "virtual:i18n/assets";
 import { LOCALE_INFO, locale, t } from "@grabient/i18n";
 import type { JSX } from "@solidjs/web";

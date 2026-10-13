@@ -81,6 +81,7 @@ export function Sheet(props: {
   editor: PaletteEditor;
   rest: Rest;
   facts: () => PaletteData["facts"];
+  heading: () => string | undefined;
   opened: () => string;
   taken: () => Taken;
   used: (action: "copy" | "download", format: string) => void;
@@ -183,13 +184,15 @@ export function Sheet(props: {
     return `/palettes?${query}`;
   };
   const title = () =>
+    props.heading() ||
     heading({
       kind: "palette",
       seed: e.seed(),
       palette: e.palette(),
       view: view(),
       ...(props.facts()?.written ? { written: props.facts()?.written } : {})
-    }) || t("Palette editor");
+    }) ||
+    t("Palette editor");
   const contrastCopy = async (f: Format) => {
     try {
       await copyContrast(f, props.taken(), inks());

@@ -24,6 +24,8 @@ import {
   createMemo,
   createSignal,
   For,
+  Loading,
+  lazy,
   onCleanup,
   onSettled,
   Show,
@@ -45,7 +47,6 @@ import { followAddress } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
 import type { PaletteData } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
-import { Sheet } from "./Sheet.tsx";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
 import { usedInEditor } from "./use.ts";
 
@@ -59,6 +60,9 @@ import { usedInEditor } from "./use.ts";
    own scroll. */
 
 const NARROW = 900;
+/* The sheet, under the first screen, comes once the first screen stands: its code arrives apart, and its panes are
+   made in a task of their own, so the controls answer sooner. */
+const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
 /* the plots' height where the controls follow the strip, and the least and most beside the page */
 const PLOT_FLOW = 132;
 const PLOT_LEAST = 96;
@@ -202,6 +206,13 @@ export default function Editor(props: { data: PaletteData }) {
       save={save}
       rest={rest}
       facts={() => (e.seed() === first.page.seed ? first.facts : null)}
+      heading={() =>
+        e.seed() === first.page.seed &&
+        e.style() === first.page.view.style &&
+        e.steps() === first.page.view.steps
+          ? first.heading
+          : undefined
+      }
       opened={opened}
       taken={taken}
       used={used}
@@ -221,6 +232,8 @@ interface PageProps {
   save: PaletteSave;
   rest: Rest;
   facts: () => PaletteData["facts"];
+  /** the server's heading, while the palette and view are the page's own */
+  heading: () => string | undefined;
   opened: () => string;
   taken: (stage: Size) => Taken;
   used: (action: "copy" | "download", format: string) => void;
@@ -278,6 +291,15 @@ function Page(props: PageProps) {
     };
   });
   const go = (top: number) => scrollTo({ top, behavior: reducesNow() ? "auto" : "smooth" });
+  const [late, setLate] = createSignal(false);
+  onSettled(() => {
+    if (typeof requestIdleCallback === "function") {
+      const id = requestIdleCallback(() => setLate(true), { timeout: 1000 });
+      return () => cancelIdleCallback(id);
+    }
+    const id = setTimeout(() => setLate(true), 50);
+    return () => clearTimeout(id);
+  });
   return (
     <main
       ref={page}
@@ -328,21 +350,27 @@ function Page(props: PageProps) {
           onHeight={setDockH}
           onCopy={() => props.used("copy", "hex")}
         />
-        <Show when={narrow()}>
+        {/* where the controls follow the strip they are under the first screen, and come with the sheet */}
+        <Show when={narrow() && late()}>
           <Side {...props} narrow />
         </Show>
-        <Sheet
-          editor={e}
-          rest={props.rest}
-          facts={props.facts}
-          opened={props.opened}
-          taken={() => props.taken(stageSize())}
-          used={props.used}
-          resting={!raised()}
-          clear={docked()}
-          onBand={height => setBand(height)}
-          actions={<Tools editor={e} heart={props.heart} paper />}
-        />
+        <Show when={late()}>
+          <Loading>
+            <Sheet
+              editor={e}
+              rest={props.rest}
+              facts={props.facts}
+              heading={props.heading}
+              opened={props.opened}
+              taken={() => props.taken(stageSize())}
+              used={props.used}
+              resting={!raised()}
+              clear={docked()}
+              onBand={height => setBand(height)}
+              actions={<Tools editor={e} heart={props.heart} paper />}
+            />
+          </Loading>
+        </Show>
       </div>
       <BackToTop
         shown={!narrow() || docked()}
@@ -370,7 +398,9 @@ function Tools(props: { editor: PaletteEditor; heart: Heart; paper?: boolean }) 
           class={styles.like}
           data-paper={props.paper ? "" : undefined}
           aria-pressed={props.heart.liked() ? "true" : "false"}
-          aria-label={t(props.heart.liked() ? msg("Unlike") : msg("Like"))}
+          aria-label={t("{count, plural, one {Like, #} other {Like, #}}", {
+            count: props.heart.count()
+          })}
           onClick={() => void props.heart.toggle()}
         >
           <Icon name="heart" fill={props.heart.liked()} size={16} />
