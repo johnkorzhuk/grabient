@@ -77,7 +77,7 @@ export const planTools: readonly Tool[] = [
               description: text("collection.", { maxLength: 500 }),
               tags: list(text(""), "collection.", 0, 12),
               palettes: list(TITLED, "collection: the palettes to add.", 1, MAX_COLLECTION_ITEMS),
-              persona: text("like: the persona's handle (see personas)."),
+              persona: text("like: a persona's handle, as personas lists them."),
               seed: SEED,
               ...VIEW
             },

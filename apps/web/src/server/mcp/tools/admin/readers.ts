@@ -70,7 +70,7 @@ export const readerTools: readonly Tool[] = [
     title: "What people search for",
     hints: READS,
     description:
-      "The searches people make most, most searched first: a year of grabient.com's searches with the last four weeks on this site added, connected apps' searches among them. `unread` is the last four weeks' searches in words the site can't read, that 3 searches or more made. The searches worth checking first.",
+      "The searches people make most, most searched first: a year of grabient.com's searches with the last four weeks on this site added, connected apps' searches among them. `unread` is the last four weeks' searches in words the site can't read, that 3 searches or more made.",
     inputSchema: shape({ limit: whole("How many, default 100.", 1, 300) }),
     async run(args, c) {
       const vocabulary = await loadVocabulary(c.env);
@@ -184,7 +184,7 @@ export const readerTools: readonly Tool[] = [
     description:
       "What readers did with the public palettes in the last days, counted with no address, account or cookie: with a collection, its page's views, each of its palettes' opens and copies by place, and how readers changed its palettes in the editor before taking them; without, the palettes taken most, the collections seen most and the editor's changes. The raw counts: visitor_signals weighs them by place. Readers' use says what is useful, not what is good: the admins' likes and record stand above it.",
     inputSchema: shape({
-      collection: text("A public collection's slug. Leave out for the whole site."),
+      collection: text("A public collection's slug; left out, the whole site."),
       days: whole("The window in days, default 28.", 1, 90),
       limit: whole("How many, default 30.", 1, 200)
     }),
@@ -331,7 +331,7 @@ export const readerTools: readonly Tool[] = [
     description:
       "What readers' use says about the collections, weighed by each palette's place on its page (a palette near the top is used more for being there): with a collection, each of its palettes' uses against what its place would earn (lift above 1 is more), the ones readers pass over and the ones they take, the styles they switch to and how they change its palettes in the editor; without, the collections seen most and taken least, every collection's passed-over and taken palettes, the searches answered badly or by no collection, and the site's style and editor changes. A collection needs `minUses` uses on its page to be judged. Counted with no address, account or cookie. It ranks below the admins' notes, record and likes in choosing what to make, extend or replace: it never earns a like, and a palette a person liked stays.",
     inputSchema: shape({
-      collection: text("A public collection's slug. Leave out for the whole site."),
+      collection: text("A public collection's slug; left out, the whole site."),
       days: whole("The window in days, default 28.", 1, 90),
       minUses: whole("Uses on a collection's own page before it is judged, default 10.", 1, 1000),
       limit: whole("How many of each list, default 20.", 1, 100)
@@ -431,7 +431,7 @@ export const readerTools: readonly Tool[] = [
     description:
       "The searches readers made with Enter in the last days, in the words the site knows, with how many went on to open, copy or download a palette from the results: each search's count, uses and rate against the site's own, whether it is answered badly (5 searches or more, used at under half the site's rate) and whether a public collection has its words as its title. `unread` is the words the site can't read that 3 searches or more made, by page (mcp is connected apps' searches); `votes` is the thumbs signed-in readers gave the palettes a search showed. With `words`, the searches that hold them. Counted with no address, account or cookie. search_demand ranks what people search for; this says whether they found it.",
     inputSchema: shape({
-      words: text("Words a search holds. Leave out for every search."),
+      words: text("Words a search holds; left out, every search."),
       days: whole("The window in days, default 28.", 1, 90),
       limit: whole("How many, default 50.", 1, 300)
     }),

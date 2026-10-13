@@ -116,7 +116,7 @@
       "properties": {
         "query": {
           "type": "string",
-          "description": "Words: a theme, a use or a brand. Leave out to list.",
+          "description": "Words: a theme, a use or a brand; left out, the most popular.",
           "maxLength": 100
         },
         "page": {
@@ -620,7 +620,7 @@
       "properties": {
         "slug": {
           "type": "string",
-          "description": "The collection to change, by its slug or address. Leave out to make one."
+          "description": "The collection to change, by its slug or address; left out, a new one is made."
         },
         "title": {
           "type": "string",

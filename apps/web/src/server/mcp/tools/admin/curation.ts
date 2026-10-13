@@ -45,7 +45,7 @@ export const curationTools: readonly Tool[] = [
     title: "Edit a palette",
     hints: CHANGES_SITE,
     description:
-      "Put an edited palette in the place of one the site made: in the gallery and in every Grabient collection that holds it, with its date, its title and its scheduled likes. Its new seed is one compose_palette made. Refused for a locked palette. A person's own collections are never touched.",
+      "Put an edited palette in the place of one the site made: in the gallery and in every Grabient collection that holds it, with its date, its title and its scheduled likes. `to` is the edited palette's seed, as compose_palette or adjust_palette gives one. Refused for a locked palette. A person's own collections are never touched.",
     inputSchema: shape({ from: SEED, to: SEED, ...WHY }, ["from", "to"]),
     async run(args, c) {
       const item = collectionItem({ seed: args.from });
@@ -129,7 +129,7 @@ export const curationTools: readonly Tool[] = [
     inputSchema: shape(
       {
         seed: SEED,
-        collection: text("The collection whose drawing of it changes. Leave out for the gallery."),
+        collection: text("The collection whose drawing of it changes; left out, the gallery's."),
         ...VIEW,
         ...WHY
       },

@@ -2,7 +2,7 @@
   {
     "name": "liked_palettes",
     "title": "What the admins liked",
-    "description": "The admins' liked palettes, newest first: every admin's likes together, the site's standard of taste. Every palette in it looks good. `from` says where its latest like was pressed, when that was recorded: a palette liked from a search or a collection is a good answer to it. `in` lists the Grabient collections that hold it now. Read this before judging or making palettes.",
+    "description": "The admins' liked palettes, newest first: every admin's likes together, the site's standard of taste. Every palette in it looks good. `from` says where its latest like was pressed, when that was recorded: a palette liked from a search or a collection is a good answer to it. `in` lists the Grabient collections that hold it now.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -206,7 +206,7 @@
   {
     "name": "search_demand",
     "title": "What people search for",
-    "description": "The searches people make most, most searched first: a year of grabient.com's searches with the last four weeks on this site added, connected apps' searches among them. `unread` is the last four weeks' searches in words the site can't read, that 3 searches or more made. The searches worth checking first.",
+    "description": "The searches people make most, most searched first: a year of grabient.com's searches with the last four weeks on this site added, connected apps' searches among them. `unread` is the last four weeks' searches in words the site can't read, that 3 searches or more made.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -311,7 +311,7 @@
       "properties": {
         "collection": {
           "type": "string",
-          "description": "A public collection's slug. Leave out for the whole site."
+          "description": "A public collection's slug; left out, the whole site."
         },
         "days": {
           "type": "integer",
@@ -371,13 +371,13 @@
   {
     "name": "visitor_signals",
     "title": "What readers use and pass over",
-    "description": "What readers' use says about the collections, weighed by each palette's place on its page (a palette near the top is used more for being there): with a collection, each of its palettes' uses against what its place would earn (lift above 1 is more), the ones readers pass over and the ones they take, the styles they switch to and how they change its palettes in the editor; without, the collections seen most and taken least, every collection's passed-over and taken palettes, the searches answered badly or by no collection, and the site's style and editor changes. A collection needs `minUses` uses on its page to be judged. Counted with no address, account or cookie. Use it to choose what to make, extend or replace, below the admins' notes, record and likes: it never earns a like, and a palette a person liked stays.",
+    "description": "What readers' use says about the collections, weighed by each palette's place on its page (a palette near the top is used more for being there): with a collection, each of its palettes' uses against what its place would earn (lift above 1 is more), the ones readers pass over and the ones they take, the styles they switch to and how they change its palettes in the editor; without, the collections seen most and taken least, every collection's passed-over and taken palettes, the searches answered badly or by no collection, and the site's style and editor changes. A collection needs `minUses` uses on its page to be judged. Counted with no address, account or cookie. It ranks below the admins' notes, record and likes in choosing what to make, extend or replace: it never earns a like, and a palette a person liked stays.",
     "inputSchema": {
       "type": "object",
       "properties": {
         "collection": {
           "type": "string",
-          "description": "A public collection's slug. Leave out for the whole site."
+          "description": "A public collection's slug; left out, the whole site."
         },
         "days": {
           "type": "integer",
@@ -418,7 +418,7 @@
       "properties": {
         "words": {
           "type": "string",
-          "description": "Words a search holds. Leave out for every search."
+          "description": "Words a search holds; left out, every search."
         },
         "days": {
           "type": "integer",
@@ -478,7 +478,7 @@
   {
     "name": "palette_replace",
     "title": "Edit a palette",
-    "description": "Put an edited palette in the place of one the site made: in the gallery and in every Grabient collection that holds it, with its date, its title and its scheduled likes. Make the new seed with compose_palette. Refused for a locked palette. A person's own collections are never touched.",
+    "description": "Put an edited palette in the place of one the site made: in the gallery and in every Grabient collection that holds it, with its date, its title and its scheduled likes. `to` is the edited palette's seed, as compose_palette or adjust_palette gives one. Refused for a locked palette. A person's own collections are never touched.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -544,7 +544,7 @@
         },
         "collection": {
           "type": "string",
-          "description": "The collection whose drawing of it changes. Leave out for the gallery."
+          "description": "The collection whose drawing of it changes; left out, the gallery's."
         },
         "style": {
           "type": "string",
@@ -613,7 +613,7 @@
   {
     "name": "palette_remove",
     "title": "Delete a palette",
-    "description": "Delete a palette the site made from the gallery, and from every Grabient collection that holds it unless `scope` is gallery. It never comes back. Refused for a locked palette. Give the reasons: they teach what to leave out.",
+    "description": "Delete a palette the site made from the gallery, and from every Grabient collection that holds it unless `scope` is gallery. It never comes back. Refused for a locked palette. The reasons given teach what to leave out.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -900,7 +900,7 @@
   {
     "name": "gallery_publish",
     "title": "Publish palettes now",
-    "description": "Add palettes to the public gallery at once, each in the view given and with a title when one is sent. A palette already there is left as it is, and one an admin took out stays out. To have palettes arrive over time, use schedule.",
+    "description": "Add palettes to the public gallery at once, each in the view given and with a title when one is sent. A palette already there is left as it is, and one an admin took out stays out. Palettes that arrive over time go through schedule instead.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -974,7 +974,7 @@
   {
     "name": "collection_publish",
     "title": "Publish a collection now",
-    "description": "Make a public Grabient collection at once, or add to one. Without a slug, or with one no collection has, it makes a collection: give a title and 1 to 100 palettes. With the slug of a Grabient collection it adds the palettes it lacks at the end and replaces any of title, description and tags that are given; nothing it holds moves or leaves. `gallery` also lists the palettes in the public gallery. A palette an admin took out stays out.",
+    "description": "Make a public Grabient collection at once, or add to one. Without a slug, or with one no collection has, it makes a collection from a title and 1 to 100 palettes. With the slug of a Grabient collection it adds the palettes it lacks at the end and replaces any of title, description and tags that are given; nothing it holds moves or leaves. `gallery` also lists the palettes in the public gallery. A palette an admin took out stays out.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1074,7 +1074,7 @@
   {
     "name": "collection_remove_palettes",
     "title": "Take palettes out of a collection",
-    "description": "Take palettes out of one Grabient collection. They stay in the gallery and everywhere else, and never return to this collection. A palette an admin liked stays in: an admin's like says it fits. Give the reasons.",
+    "description": "Take palettes out of one Grabient collection. They stay in the gallery and everywhere else, and never return to this collection. A palette an admin liked stays in: an admin's like says it fits. The reasons given go on the record.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1136,7 +1136,7 @@
   {
     "name": "schedule",
     "title": "Schedule palettes and likes",
-    "description": "Plan work for later, so the site keeps moving: the site applies what is due every ten minutes. A `collection` item adds palettes to a Grabient collection at its time, making the collection if no one has that slug (then give a title). A `like` item has a persona like a palette at its time, which brings the palette into the public gallery and onto the home page as a reader's like does; the palette must be in the gallery or in a public collection by then. `due` is a day (2026-10-05, applied at 14:00 UTC) or a moment (ISO 8601), up to 400 days ahead. Spread items over days and hours as people would arrive. `label` names the batch, to list or cancel it.",
+    "description": "Plan work for later, so the site keeps moving: the site applies what is due every ten minutes. A `collection` item adds palettes to a Grabient collection at its time, making the collection from the title given if no one has that slug. A `like` item has a persona like a palette at its time, which brings the palette into the public gallery and onto the home page as a reader's like does; it needs the palette in the gallery or in a public collection by then. `due` is a day (2026-10-05, applied at 14:00 UTC) or a moment (ISO 8601), up to 400 days ahead. Items spread over days and hours arrive as people would. `label` names the batch, to list or cancel it.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1241,7 +1241,7 @@
               },
               "persona": {
                 "type": "string",
-                "description": "like: the persona's handle (see personas)."
+                "description": "like: a persona's handle, as personas lists them."
               },
               "seed": {
                 "type": "string",
@@ -1299,7 +1299,7 @@
   {
     "name": "schedule_list",
     "title": "What is scheduled",
-    "description": "The seeding queue: what is planned, done, failed or cancelled, soonest first, with the plan by week. Check it before scheduling more.",
+    "description": "The seeding queue: what is planned, done, failed or cancelled, soonest first, with the plan by week.",
     "inputSchema": {
       "type": "object",
       "properties": {
@@ -1395,7 +1395,7 @@
   {
     "name": "personas",
     "title": "The personas",
-    "description": "The accounts scheduled likes are made with: stand-ins for readers, each with a taste, so the gallery's likes look like many people's. They never sign in and are shown nowhere. Lists them; `add` makes new ones or rewrites the taste of ones that exist. Give each scheduled like to a persona whose taste the palette suits.",
+    "description": "The accounts scheduled likes are made with: stand-ins for readers, each with a taste, so the gallery's likes look like many people's. They never sign in and are shown nowhere. Lists them; `add` makes new ones or rewrites the taste of ones that exist. A persona's taste says which palettes its likes suit.",
     "inputSchema": {
       "type": "object",
       "properties": {
