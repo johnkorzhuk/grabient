@@ -61,6 +61,14 @@ browser's build fails on an import of it from code the browser runs; an import u
 `src/server/jobs.ts` has one function per trigger in `cloudflare.config.ts`. A feature adds its step to the job, in
 the order the job needs; a failed step is logged, the rest run, and the run fails at the end.
 
+## Staging's data
+
+grabient-staging holds a snapshot of production, made by `scripts/data`: `read.ts` reads production and grabient-lite
+into `.data` (ignored by git, since it holds production's accounts), `build.ts` builds production as the cutover will
+leave it and then staging's copy, and `load.ts --replace` writes that copy to grabient-staging, the one database it
+writes. Anyone may sign in on staging, so the copy (`staging.ts`) holds what every reader sees and, whole, the admins,
+the personas and the accounts the site's work names; no other account, session or token. `verify.ts` checks each copy.
+
 ## Checks
 
 Unit tests sit beside the code (`*.test.ts`). `pnpm e2e` runs the Playwright smoke tests against `vite dev` on a free
