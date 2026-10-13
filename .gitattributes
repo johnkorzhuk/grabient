@@ -1,0 +1,6 @@
+* text=auto eol=lf
+# The search model files are numbers: never text to git, whatever their first bytes look like.
+*.bin binary
+*.png binary
+*.woff2 binary
+*.ico binary

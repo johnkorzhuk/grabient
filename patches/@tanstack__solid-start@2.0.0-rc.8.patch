@@ -1,0 +1,34 @@
+diff --git a/dist/esm/server-functions-handler.js b/dist/esm/server-functions-handler.js
+index fc6d49794629fddf4241aa8548d819a332fa24da..1220062388a10d03d3e90f8afa57f1b12d548a8b 100644
+--- a/dist/esm/server-functions-handler.js
++++ b/dist/esm/server-functions-handler.js
+@@ -1,7 +1,7 @@
+ import { getSolidStartServerFunctionCodec } from "./solid-rpc-codec.js";
+ import { collectSolidStartFlightData } from "./solid-rpc-flight-server.js";
+ import { redirect } from "@tanstack/solid-router";
+-import { configureServerFunctionsServer, createNoJSHandler, handleServerFunctionRequest, parseServerFunctionUrl, registerFlightDataSource, serverFunctionUrl } from "@solidjs/web/server-functions/server";
++import { configureServerFunctionsServer, createNoJSHandler, handleServerFunctionRequest, parseServerFunctionActionUrl, registerFlightDataSource, serverFunctionActionUrl } from "@solidjs/web/server-functions/server";
+ import { getServerFnById } from "#tanstack-start-server-fn-resolver";
+ import { provideRequestEvent } from "@solidjs/web/storage";
+ import { getStartContext, runWithStartContext } from "@tanstack/start-storage-context";
+@@ -47,7 +47,7 @@ async function handleSolidServerFunctionRequest(request, options = {}) {
+ 	}, handleRequest);
+ }
+ function getSolidServerFunctionId(request) {
+-	const parsedId = parseServerFunctionUrl(request.url);
++	const parsedId = parseServerFunctionActionUrl(request.url);
+ 	if (parsedId) return parsedId;
+ 	const url = new URL(request.url);
+ 	const queryId = url.searchParams.get("id");
+@@ -56,9 +56,9 @@ function getSolidServerFunctionId(request) {
+ 	if (serverFnBase && url.pathname.startsWith(serverFnBase)) return url.pathname.slice(serverFnBase.length).split("/")[0];
+ }
+ function withSolidServerFunctionId(request, serverFnId) {
+-	if (parseServerFunctionUrl(request.url) === serverFnId) return request;
++	if (parseServerFunctionActionUrl(request.url) === serverFnId) return request;
+ 	const url = new URL(request.url);
+-	const canonicalUrl = new URL(serverFunctionUrl(serverFnId), url.origin);
++	const canonicalUrl = new URL(serverFunctionActionUrl(serverFnId), url.origin);
+ 	canonicalUrl.search = url.search;
+ 	return new Request(canonicalUrl, request);
+ }

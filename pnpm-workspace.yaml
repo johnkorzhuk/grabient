@@ -1,0 +1,55 @@
+packages:
+  - apps/*
+  - packages/*
+
+# One version of each shared dependency. Solid's runtime, compiler and the TanStack adapters built on it are one
+# contract: upgrade them together.
+catalog:
+  "@biomejs/biome": 2.5.15
+  "@cloudflare/vite-plugin": 2.0.0-beta.sha-8c6014f9a
+  "@cloudflare/vitest-plugin": 1.4.0
+  "@cloudflare/workers-types": 5.20261013.1
+  "@solidjs/vite-plugin": 3.0.0-next.49
+  "@solidjs/web": 2.0.0-rc.14
+  "@tanstack/solid-query": 6.0.0-rc.5
+  "@tanstack/solid-router": 2.0.0-rc.8
+  "@tanstack/solid-start": 2.0.0-rc.8
+  "@types/node": 26.6.5
+  cf: 1.0.0-beta.16
+  solid-js: 2.0.0-rc.14
+  typescript: 7.0.2
+  valibot: 1.5.0
+  vite: 8.3.4
+  vitest: 5.0.4
+  wrangler: 4.150.0
+
+overrides:
+  solid-js: 2.0.0-rc.14
+  "@solidjs/web": 2.0.0-rc.14
+  "@solidjs/signals": 2.0.0-rc.14
+  "@solidjs/compiler": 2.0.0-rc.14
+  "@solidjs/babel-plugin": 2.0.0-rc.14
+
+# A release must be a day old before it installs, except the pinned release candidates this repository tracks.
+minimumReleaseAge: 1440
+minimumReleaseAgeExclude:
+  - "@cloudflare/*"
+  - "@solidjs/*"
+  - "@tanstack/*"
+  - cf
+  - miniflare
+  - solid-js
+  - workerd
+  - wrangler
+
+onlyBuiltDependencies:
+  - esbuild
+  - workerd
+
+# posthog-js pulls in core-js, whose postinstall only prints a banner.
+ignoredBuiltDependencies:
+  - core-js
+
+patchedDependencies:
+  # Start rc.8 still calls Solid's server-function URL helpers by their rc.11 names; rc.14 renamed them.
+  "@tanstack/solid-start@2.0.0-rc.8": patches/@tanstack__solid-start@2.0.0-rc.8.patch

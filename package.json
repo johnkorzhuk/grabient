@@ -1,0 +1,35 @@
+{
+  "name": "grabient",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "packageManager": "pnpm@10.34.6",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "dev:design": "pnpm --filter design dev",
+    "build": "pnpm --filter web build",
+    "check": "pnpm typecheck && pnpm lint && pnpm test",
+    "typecheck": "pnpm -r --parallel typecheck",
+    "lint": "biome check",
+    "format": "biome check --write",
+    "test": "vitest run",
+    "e2e": "pnpm --filter web e2e",
+    "db:setup": "pnpm --filter web db:setup",
+    "i18n": "node packages/i18n/scripts/i18n.ts",
+    "ci:build": "pnpm check && pnpm build",
+    "deploy:staging": "pnpm --filter web deploy:staging",
+    "deploy:preview": "pnpm --filter web deploy:preview",
+    "deploy:production": "pnpm check && pnpm --filter web deploy:production",
+    "deploy:design": "pnpm --filter design deploy"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "catalog:",
+    "@cloudflare/vitest-plugin": "catalog:",
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}

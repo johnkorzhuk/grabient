@@ -1,0 +1,20 @@
+node_modules
+dist
+.cloudflare
+.wrangler
+.tanstack
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+coverage
+playwright-report
+test-results
+# local copies of a database, production's included
+.local-backups
+# the search training cache (embeddings, features, weights)
+packages/search/train/cache
+__pycache__/

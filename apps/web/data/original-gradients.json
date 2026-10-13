@@ -1,0 +1,30 @@
+{
+  "source": "The 25 gradients the first Grabient shipped in 2017, in its page order: github.com/johnkorzhuk/grabient, branch grabient_original, src/store/stops/reducer.js and src/store/gradients/reducer.js. createdAt is the commit that added each one. An item with legacy is the palette grabient.com already held for that gradient, under that old id, and takes only the date. The others were fitted to the gradient as CSS blends it and join the gallery in the view given.",
+  "items": [
+    { "css": "linear-gradient(43deg, #4158D0 0%, #C850C0 46%, #FFCC70 100%)", "createdAt": 1498510316000, "kseed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g", "legacy": "_gKdgHPgKkgGhgFxgD_gJkgL8gLOgXRgEsgNK" },
+    { "css": "linear-gradient(160deg, #0093E9 0%, #80D0C7 100%)", "createdAt": 1498510316000, "kseed": "kWo3evWSq82MnutpJ745p1CI", "legacy": "_gD6gLCgMkf7sf9jgB1f4Pf3sf1zf-6f-gf-9" },
+    { "css": "linear-gradient(62deg, #8EC5FC 0%, #E0C3FC 100%)", "createdAt": 1498510316000, "kseed": "kUzkiw66E-e4YQltnUXg", "legacy": "_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8O" },
+    { "css": "linear-gradient(0deg, #D9AFD9 0%, #97D9E1 100%)", "createdAt": 1498510316000, "kseed": "kSzDboaAy42sYuM", "style": "linearGradient", "steps": 7, "angle": 0 },
+    { "css": "linear-gradient(180deg, #FFFFFF 0%, #6284FF 50%, #FF0000 100%)", "createdAt": 1504361134000, "kseed": "ka_gDC75W_uErwBSwD-R7HFkbGxpP3cHA", "style": "linearGradient", "steps": 7, "angle": 180 },
+    { "css": "linear-gradient(90deg, #00DBDE 0%, #FC00FF 100%)", "createdAt": 1498510316000, "kseed": "kaz2WL6bFAmWqw5dssYWFVDdfuQTZdMBA", "legacy": "_gGRgGTgPFf20gHif-Jf6Rf4zf37f-BgA1f-U" },
+    { "css": "linear-gradient(62deg, #FBAB7E 0%, #F7CE68 100%)", "createdAt": 1498510316000, "kseed": "kUzlMjbS3DXK0QdvsD9A", "legacy": "_gQQgL2gHngBrf-cgBkf3wf23f6RgCif-vf8S" },
+    { "css": "linear-gradient(45deg, #85FFBD 0%, #FFFB7D 100%)", "createdAt": 1498510316000, "kseed": "kS52lw9jG9Hq1vM", "style": "linearGradient", "steps": 7, "angle": 45 },
+    { "css": "linear-gradient(135deg, #8BC6EC 0%, #9599E2 100%)", "createdAt": 1498510316000, "kseed": "kQyzupWibFA", "style": "linearGradient", "steps": 7, "angle": 135 },
+    { "css": "linear-gradient(0deg, #FFDEE9 0%, #B5FFFC 100%)", "createdAt": 1498510316000, "kseed": "kW7R35eom8vyFsz7Eb3eRm_w", "legacy": "_gMdgOjgP6gDPf-cf-Of6gf5yf0zgAgf9tf-x" },
+    { "css": "linear-gradient(0deg, #08AEEA 0%, #2AF598 100%)", "createdAt": 1498510316000, "kseed": "kWs2um4jE-G62O7xwb3bkk-4", "legacy": "_gBggNWgK-f-cf9PgDsf4Uf2ef55f-Bf_agBD" },
+    { "css": "linear-gradient(180deg, #52ACFF 25%, #FFE32C 100%)", "createdAt": 1504361134000, "kseed": "kcuGyxXDa_9ywv5fmDz45Y3ugnvBttz69EK_A", "style": "linearGradient", "steps": 9, "angle": 180 },
+    { "css": "linear-gradient(147deg, #FFE53B 0%, #FF2525 74%)", "createdAt": 1504361134000, "kseed": "kW6YBH5Lk71hJvLR2T7UVk_w", "style": "linearGradient", "steps": 7, "angle": 147 },
+    { "css": "linear-gradient(19deg, #21D4FD 0%, #B721FF 100%)", "createdAt": 1498510316000, "kseed": "kYzmaa5rK_VwzwnOQsQSVtDc1qQW", "legacy": "_gGbgHogQUf6ngFwf-Zf3xf33f6igBngA6gCn" },
+    { "css": "linear-gradient(19deg, #3EECAC 0%, #EE74E1 100%)", "createdAt": 1498510316000, "kseed": "kY1nh0ZSnBWCUwzdlMpXK3Dl3HwS", "style": "linearGradient", "steps": 7, "angle": 19 },
+    { "css": "linear-gradient(45deg, #FA8BFF 0%, #2BD2FF 52%, #2BFF88 90%)", "createdAt": 1498510316000, "kseed": "kcyo3n4bG82Eru3jsTy5zE9Go2O7uy7279E_o", "style": "linearGradient", "steps": 11, "angle": 45 },
+    { "css": "linear-gradient(90deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%)", "createdAt": 1498510316000, "kseed": "kWx1sXXL0_tpCPZfsj2ZqtBw", "legacy": "_gQOgH9gI9f-cgBkgCrgNHgO1gNof2ggBHgEU" },
+    { "css": "linear-gradient(45deg, #FBDA61 0%, #FF5ACD 100%)", "createdAt": 1498510316000, "kseed": "kY4mpDazO-mUuu_fuLqXU49dvVP6", "legacy": "_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu" },
+    { "css": "linear-gradient(132deg, #F4D03F 0%, #16A085 100%)", "createdAt": 1498510316000, "kseed": "kU3HNDYbBC9etwzQKkMg", "style": "linearGradient", "steps": 7, "angle": 132 },
+    { "css": "linear-gradient(180deg, #A9C9FF 0%, #FFBBEC 100%)", "createdAt": 1498510316000, "kseed": "kW1Dy4bJpCPCcxRwoMHbiQ_w", "legacy": "_gNVgK5gQgf89gBkgCEf2-f8Nf65f_dgAvf9A" },
+    { "css": "linear-gradient(90deg, #74EBD5 0%, #9FACE6 100%)", "createdAt": 1498510316000, "kseed": "kS3FKAZhjEOAfRs", "style": "linearGradient", "steps": 7, "angle": 90 },
+    { "css": "linear-gradient(19deg, #FAACA8 0%, #DDD6F3 100%)", "createdAt": 1498510316000, "kseed": "kS0EMQbBG9PEOuI", "style": "linearGradient", "steps": 7, "angle": 19 },
+    { "css": "linear-gradient(90deg, #FAD961 0%, #F76B1C 100%)", "createdAt": 1501194797000, "kseed": "kS4mdDYzY8lhFPW", "style": "linearGradient", "steps": 7, "angle": 90 },
+    { "css": "linear-gradient(90deg, #FEE140 0%, #FA709A 100%)", "createdAt": 1498510316000, "kseed": "kU53xGajA9GKuO3bvrwA", "style": "linearGradient", "steps": 7, "angle": 90 },
+    { "css": "linear-gradient(225deg, #FF3CAC 0%, #784BA0 50%, #2B86C5 100%)", "createdAt": 1498510316000, "kseed": "kWrbP5ykS-ECxvJEKztzC49A", "style": "linearGradient", "steps": 7, "angle": 225 }
+  ]
+}

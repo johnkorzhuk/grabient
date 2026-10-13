@@ -1,0 +1,26 @@
+{
+  "name": "design",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "typecheck": "tsc -p .",
+    "deploy": "vite build && cf deploy --prebuilt --no-provision"
+  },
+  "dependencies": {
+    "@grabient/email": "workspace:*",
+    "@grabient/engine": "workspace:*",
+    "@grabient/i18n": "workspace:*",
+    "@grabient/ui": "workspace:*",
+    "@solidjs/web": "catalog:",
+    "solid-js": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "catalog:",
+    "@solidjs/vite-plugin": "catalog:",
+    "cf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:"
+  }
+}

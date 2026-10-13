@@ -1,0 +1,45 @@
+{
+  "name": "web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build --mode staging",
+    "typecheck": "tsc -p .",
+    "e2e": "playwright test",
+    "db:setup": "node scripts/d1.ts setup",
+    "deploy:staging": "node scripts/d1.ts migrate --mode staging --remote && cf deploy --prebuilt --mode staging --no-provision",
+    "deploy:preview": "node scripts/d1.ts migrate --mode previews --remote && cf previews deploy --no-provision",
+    "deploy:production": "GRABIENT_RELEASE=production vite build --mode production && node scripts/d1.ts migrate --mode production --remote && cf deploy --prebuilt --mode production --no-provision"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "1.2.3",
+    "@grabient/email": "workspace:*",
+    "@grabient/engine": "workspace:*",
+    "@grabient/i18n": "workspace:*",
+    "@grabient/search": "workspace:*",
+    "@grabient/ui": "workspace:*",
+    "@solidjs/web": "catalog:",
+    "@tanstack/solid-query": "catalog:",
+    "@tanstack/solid-router": "catalog:",
+    "@tanstack/solid-start": "catalog:",
+    "better-auth": "1.7.7",
+    "drizzle-orm": "0.45.4",
+    "posthog-js": "1.438.7",
+    "solid-js": "catalog:",
+    "valibot": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "catalog:",
+    "@cloudflare/vitest-plugin": "catalog:",
+    "@cloudflare/workers-types": "catalog:",
+    "@playwright/test": "1.64.0",
+    "@solidjs/vite-plugin": "catalog:",
+    "@types/node": "catalog:",
+    "cf": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "catalog:",
+    "wrangler": "catalog:"
+  }
+}
