@@ -1,6 +1,6 @@
 import { isServer } from "@solidjs/web";
 import { createSignal, createStore } from "solid-js";
-import { EMPTY_VIEW, type View } from "./model.ts";
+import type { View } from "./model.ts";
 import type { Refusal } from "./store.ts";
 
 /* What pages read of the account's copy, before the copy's engine (sync.ts) has loaded and after: the view, the
@@ -39,6 +39,9 @@ const [status, setStatus] = createSignal<SyncStatus>({
 export const syncStatus = status;
 export const patchStatus = (patch: Partial<SyncStatus>) => setStatus(s => ({ ...s, ...patch }));
 
+/** No account's things: signed out, and until the copy opens. Here rather than with the model, so a page that never
+    opens a copy never loads it. */
+export const EMPTY_VIEW: View = { likes: new Map(), collections: new Map() };
 const [view, setView] = createSignal<View>(EMPTY_VIEW);
 /* the same view, plain: a signal written now reads its old value until the write settles, and the copy's own logic
    reads what it just made */

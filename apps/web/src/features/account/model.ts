@@ -48,7 +48,6 @@ export interface Maker {
 }
 export type CollectionSummary = Omit<SyncCollection, "items" | "id">;
 
-export const EMPTY_VIEW: View = { likes: new Map(), collections: new Map() };
 const PREVIEW_ITEMS = 12;
 /** The latest saved palettes Saved pages through, as the server's list stops. */
 export const SAVED_PAGED = 1000;

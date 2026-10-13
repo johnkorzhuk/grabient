@@ -2,7 +2,6 @@ import { locale, msg, t } from "@grabient/i18n";
 import { focusManager, onlineManager } from "@tanstack/solid-query";
 import * as v from "valibot";
 import {
-  EMPTY_VIEW,
   fold,
   type Maker,
   type Pending,
@@ -14,6 +13,7 @@ import {
 } from "./model.ts";
 import {
   clearView,
+  EMPTY_VIEW,
   HINT_KEY,
   movedCollection,
   patchStatus,
