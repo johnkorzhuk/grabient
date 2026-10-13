@@ -17,19 +17,6 @@ export async function accountRole(env: Pick<Env, "DB">, userId: string): Promise
   return row.role === "admin" ? "admin" : "user";
 }
 
-/** Staging holds production's accounts, so only admins sign in there, by any way in. */
-export const adminsOnly = (env: Pick<Env, "SIGN_IN">): boolean => env.SIGN_IN === "admins";
-
-/** Whether an address belongs to an admin's account. The library stores addresses in lower case. */
-export async function adminAddress(env: Pick<Env, "DB">, email: string): Promise<boolean> {
-  const row = await first<{ role: string }>(
-    env.DB,
-    "SELECT role FROM auth_user WHERE email = ?",
-    email.trim().toLowerCase()
-  );
-  return row?.role === "admin";
-}
-
 /** Whether an address is the app reviewers' account, the one account that signs in with a password. */
 export function reviewerAddress(env: Pick<Env, "REVIEWER_EMAIL">, email: string): boolean {
   const reviewer = env.REVIEWER_EMAIL?.trim().toLowerCase();

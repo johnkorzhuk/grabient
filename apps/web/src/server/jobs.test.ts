@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
+import type { Env } from "@grabient/server/env.ts";
 import { expect, test, vi } from "vitest";
-import type { Env } from "./env.ts";
 import { everyTenMinutes, JOBS, runSteps } from "./jobs.ts";
 
 test("every schedule in cloudflare.config.ts has its job, to the character", () => {

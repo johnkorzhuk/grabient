@@ -18,6 +18,7 @@
     "@grabient/engine": "workspace:*",
     "@grabient/i18n": "workspace:*",
     "@grabient/search": "workspace:*",
+    "@grabient/server": "workspace:*",
     "@grabient/ui": "workspace:*",
     "@solidjs/web": "catalog:",
     "@tanstack/solid-query": "catalog:",

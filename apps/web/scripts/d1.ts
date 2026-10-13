@@ -15,6 +15,8 @@ import { parseArgs } from "node:util";
 import { DATABASES } from "../cloudflare.config.ts";
 
 const WEB = resolve(import.meta.dirname, "..");
+// The database's migrations belong to the server package, which every Worker on this database shares.
+const MIGRATIONS = resolve(WEB, "../../packages/server/migrations");
 // Where the Vite plugin keeps local development's bindings, so both see one database.
 const STATE = ".cloudflare/state";
 // D1 refuses a statement over 100 KB, and one request carries about a megabyte of SQL.
@@ -169,7 +171,7 @@ async function run(all: string[], { id, where }: Target): Promise<Answer[]> {
 }
 
 async function migrate(at: Target): Promise<void> {
-  const args = ["d1", "migrations", "apply", at.id, ...at.where, "--dir", "migrations"];
+  const args = ["d1", "migrations", "apply", at.id, ...at.where, "--dir", MIGRATIONS];
   // A list of what was applied, or words when there was nothing to apply.
   const applied = await cf(args);
   const names = Array.isArray(applied)

@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.hoisted(() => Object.assign(globalThis, { __BUILD_ID__: "b1" }));
 
+import type { Env } from "@grabient/server/env.ts";
 import { PAGE } from "../lib/cache.ts";
 import { canonicalRedirect } from "./canonical.ts";
-import type { Env } from "./env.ts";
 import { handle, misdeployed } from "./pipeline.ts";
 
 /** The Cache API of one data center, in memory. */

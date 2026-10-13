@@ -11,7 +11,7 @@ import {
   sameOrigin
 } from "./http.ts";
 import { authFor, google } from "./library.ts";
-import { accountRole, adminAddress, adminsOnly, reviewerAddress } from "./roles.ts";
+import { accountRole, reviewerAddress } from "./roles.ts";
 import { getSession } from "./session.ts";
 
 /* Everything under /api/auth passes here before the sign-in library sees it. Only the routes the site uses are open,
@@ -91,13 +91,6 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
     // Each reads a row or two by an index and writes nothing before a sign-in completes: the isolate counts them.
     const limited = await overLimit(env, [[`auth-read:${who}`, "authRead"]]);
     if (limited) return limited;
-    if (path === SESSION && adminsOnly(env)) {
-      // Ends any session that is not an admin's; the library's own fresh read then finds it gone and clears its cookies.
-      await getSession(env, request.headers);
-      const url = new URL(request.url);
-      url.searchParams.set("disableCookieCache", "true");
-      request = new Request(url, request);
-    }
     return privateResponse(await authFor(env).handler(request));
   }
 
@@ -129,11 +122,6 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
     // A link and a code count against the same allowances, the address asking first, so probing is throttled.
     const asked = await overLimit(env, [[`${LINK}:${who}`, "emailAsk"]], EMAIL_BUSY);
     if (asked) return asked;
-    // Where only admins sign in, any other address is answered as if its email went out, so the form tells nobody
-    // which addresses are admins'. Nothing is stored, counted or sent for it.
-    if (adminsOnly(env) && !(await adminAddress(env, email))) {
-      return json(path === LINK ? { status: true } : { success: true });
-    }
     const spent = await overLimit(env, signInEmailLimits(email), EMAIL_BUSY);
     if (spent) return spent;
     // The address and where to go next alone: a new account's name comes from Google or Settings, never from whoever

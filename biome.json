@@ -1,18 +1,49 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
-  "files": {
-    "includes": ["**", "!**/routeTree.gen.ts", "!**/*.data.ts", "!**/public/**", "!**/data/**", "!**/fixtures/**", "!packages/i18n/messages/**"]
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
   },
-  "formatter": { "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
+  "files": {
+    "includes": [
+      "**",
+      "!**/routeTree.gen.ts",
+      "!**/*.data.ts",
+      "!**/public",
+      "!**/data",
+      "!**/fixtures",
+      "!packages/i18n/messages",
+      "!packages/search/model-check.json",
+      "!packages/search/train"
+    ]
+  },
+  "formatter": {
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
   "javascript": {
-    "formatter": { "quoteStyle": "double", "trailingCommas": "none", "arrowParentheses": "asNeeded", "semicolons": "always" }
+    "formatter": {
+      "quoteStyle": "double",
+      "trailingCommas": "none",
+      "arrowParentheses": "asNeeded",
+      "semicolons": "always"
+    }
   },
   "linter": {
     "rules": {
-      "recommended": true,
-      "style": { "noNonNullAssertion": "off" }
+      "preset": "recommended",
+      "style": {
+        "noNonNullAssertion": "off"
+      }
     }
   },
-  "assist": { "actions": { "source": { "organizeImports": "on" } } }
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
 }

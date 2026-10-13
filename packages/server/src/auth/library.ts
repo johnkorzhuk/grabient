@@ -9,7 +9,7 @@ import type { Env } from "../env.ts";
 import { accountDeletion, deleteAvatars } from "./account-data.ts";
 import { attribution } from "./attribution.ts";
 import { confirmDeletion, signInCode, signInLink } from "./letters.ts";
-import { accountRole, adminsOnly, reviewerAddress } from "./roles.ts";
+import { reviewerAddress } from "./roles.ts";
 import * as schema from "./schema.ts";
 
 /* Better Auth for one environment: Google, a link by email, a code by email while an app connects, and a password for
@@ -27,9 +27,6 @@ const NO_TOKENS = {
 };
 // The prefix of cookies set for the name every Preview address ends in, which no other deploy reads as its session.
 const PREVIEW_COOKIES = "grabient-previews";
-
-const adminsOnlyRefusal = () =>
-  new APIError("FORBIDDEN", { code: "ADMINS_ONLY", message: "Sign-in here is for admins." });
 
 /** Google's credentials, where the deploy holds them. A Preview holds none: Google sends a sign-in back only to an
     address registered with it, and each branch has its own. */
@@ -53,7 +50,6 @@ function deletionLink(env: Env, request: Request | undefined, token: string): st
 }
 
 function createAuth(env: Env) {
-  const restricted = adminsOnly(env);
   const credentials = google(env);
   return betterAuth({
     secret: env.BETTER_AUTH_SECRET,
@@ -65,9 +61,7 @@ function createAuth(env: Env) {
     // A password only for the reviewers' account, which setReviewerPassword gives one: no sign-up, no reset.
     emailAndPassword: { enabled: Boolean(env.REVIEWER_EMAIL), disableSignUp: true },
     // The page goes to Google and back; an ID token posted alone, which the page never sends, would make a session.
-    socialProviders: credentials
-      ? { google: { ...credentials, disableIdTokenSignIn: true, disableSignUp: restricted } }
-      : {},
+    socialProviders: credentials ? { google: { ...credentials, disableIdTokenSignIn: true } } : {},
     // A failed Google sign-in comes back to the sign-in page, which says so in the reader's language.
     onAPIError: { errorURL: "/login" },
     plugins: [
@@ -76,7 +70,6 @@ function createAuth(env: Env) {
       magicLink({
         expiresIn: 300,
         storeToken: "hashed",
-        disableSignUp: restricted,
         sendMagicLink: ({ email, url }) => sendEmail(env, { to: email, ...signInLink(url) })
       }),
       // A code for the sign-in an app asks for, typed in the window that asked, where a link would open elsewhere.
@@ -85,7 +78,6 @@ function createAuth(env: Env) {
         expiresIn: 300,
         allowedAttempts: 3,
         storeOTP: "hashed",
-        disableSignUp: restricted,
         sendVerificationOTP: async ({ email, otp, type }) => {
           if (type === "sign-in") await sendEmail(env, { to: email, ...signInCode(otp) });
         }
@@ -116,39 +108,26 @@ function createAuth(env: Env) {
     databaseHooks: {
       user: {
         create: {
-          // Where only admins sign in, nobody new is made: a new account is never an admin.
-          before: async (user, context) =>
-            restricted
-              ? false
-              : {
-                  data: {
-                    ...user,
-                    name: String(user.name ?? "")
-                      .trim()
-                      .slice(0, NAME_MAX),
-                    ...attribution(context?.request?.headers ?? context?.headers)
-                  }
-                }
+          before: async (user, context) => ({
+            data: {
+              ...user,
+              name: String(user.name ?? "")
+                .trim()
+                .slice(0, NAME_MAX),
+              ...attribution(context?.request?.headers ?? context?.headers)
+            }
+          })
         }
       },
       account: {
         create: {
-          before: async account => {
-            if (restricted && (await accountRole(env, account.userId)) !== "admin") {
-              throw adminsOnlyRefusal();
-            }
-            return { data: { ...account, ...NO_TOKENS } };
-          }
+          before: async account => ({ data: { ...account, ...NO_TOKENS } })
         },
         update: { before: async account => ({ data: { ...account, ...NO_TOKENS } }) }
       },
       session: {
         create: {
-          // Every way in makes its session here, so where only admins sign in no path yields one for anyone else.
           before: async session => {
-            if (restricted && (await accountRole(env, session.userId)) !== "admin") {
-              throw adminsOnlyRefusal();
-            }
             // Untracked, the library writes an empty address; the column has held none since addresses went.
             return { data: { ...session, ipAddress: null } };
           }

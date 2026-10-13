@@ -1,8 +1,8 @@
+import { deleteAccount } from "@grabient/server/auth/deletion.ts";
+import { handleAuth } from "@grabient/server/auth/gate.ts";
+import { authFor } from "@grabient/server/auth/library.ts";
+import { getSession } from "@grabient/server/auth/session.ts";
 import { describe, expect, it } from "vitest";
-import { deleteAccount } from "../src/server/auth/deletion.ts";
-import { handleAuth } from "../src/server/auth/gate.ts";
-import { authFor } from "../src/server/auth/library.ts";
-import { getSession } from "../src/server/auth/session.ts";
 import {
   address,
   bodyOf,

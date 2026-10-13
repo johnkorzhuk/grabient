@@ -8,8 +8,6 @@ export interface Env {
   PUBLIC_ORIGIN?: string;
   BETTER_AUTH_URL?: string;
   BETTER_AUTH_SECRET?: string;
-  /** "admins" on staging: production's accounts are present there, and only admins may sign in. */
-  SIGN_IN?: "admins";
   /** The name every Preview address ends in, so one sign-in serves every branch's Preview. */
   COOKIE_DOMAIN?: string;
   INDEXNOW_KEY?: string;

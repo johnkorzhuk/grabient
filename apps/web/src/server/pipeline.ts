@@ -8,6 +8,7 @@ import {
   preferredLocale,
   splitLocale
 } from "@grabient/i18n";
+import type { Env } from "@grabient/server/env.ts";
 import { BUILD } from "../lib/build.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { TRACKING_PARAM } from "../lib/links.ts";
@@ -16,7 +17,6 @@ import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { isCrawler } from "./crawlers.ts";
 import { edgeCached } from "./edge-cache.ts";
-import type { Env } from "./env.ts";
 import { connectPath, consentPath, privatePath, publicFile, uncachedPath } from "./paths.ts";
 
 /* The Worker's pipeline around Start, in this order:

@@ -1,4 +1,4 @@
-import type { Env } from "./env.ts";
+import type { Env } from "@grabient/server/env.ts";
 
 /* The scheduled work, one function per trigger in cloudflare.config.ts. Each job runs its steps in order; a step that
    fails is logged and the rest still run, and the run then fails as a whole so the dashboard shows it. A feature adds

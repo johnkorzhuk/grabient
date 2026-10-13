@@ -138,6 +138,9 @@ importers:
       '@grabient/search':
         specifier: workspace:*
         version: link:../../packages/search
+      '@grabient/server':
+        specifier: workspace:*
+        version: link:../../packages/server
       '@grabient/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -246,6 +249,28 @@ importers:
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
+
+  packages/server:
+    dependencies:
+      better-auth:
+        specifier: 1.7.7
+        version: 1.7.7(@tanstack/solid-start@2.0.0-rc.8(patch_hash=79132034195b7e6f6c2bc132995a54c893a68a740cf29ebc0081ef3c2a7ae1ed)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(esbuild@0.28.2)(rolldown@1.2.13)(solid-js@2.0.0-rc.14)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)))(drizzle-orm@0.45.4(@cloudflare/workers-types@5.20261013.1)(kysely@0.29.6))(solid-js@2.0.0-rc.14)(vitest@5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)))
+      drizzle-orm:
+        specifier: 0.45.4
+        version: 0.45.4(@cloudflare/workers-types@5.20261013.1)(kysely@0.29.6)
+    devDependencies:
+      '@cloudflare/workers-types':
+        specifier: 'catalog:'
+        version: 5.20261013.1
+      '@types/node':
+        specifier: 'catalog:'
+        version: 26.6.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.4(@types/node@26.6.5)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
 
   packages/ui:
     dependencies:
