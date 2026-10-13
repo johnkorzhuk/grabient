@@ -12,28 +12,32 @@ import type { Env } from "@grabient/server/env.ts";
 import { BUILD } from "../lib/build.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { TRACKING_PARAM } from "../lib/links.ts";
+import { PRODUCTION_ORIGIN } from "../lib/page-meta.ts";
 import { json, redirect, withHeaders } from "../lib/responses.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { isCrawler } from "./crawlers.ts";
 import { edgeCached } from "./edge-cache.ts";
+import { countFile } from "./files/count.ts";
 import { connectPath, consentPath, privatePath, publicFile, uncachedPath } from "./paths.ts";
+import { countLegacy } from "./seo/legacy.ts";
+import { indexed, NOINDEX } from "./seo/site.ts";
 
-/* The Worker's pipeline around Start, in this order:
+/* The Worker's pipeline around the app, in this order:
    1. grabient.com is answered only by the deploy made for it.
    2. Campaign tags come off the address; every same-origin redirect carries them on.
    3. The language: its prefix written another way (301), a page's trailing slash (301), a prefix on an API or a file
       (404), and an arrival's language (302, before any cache, so the English answer stays shared).
    4. The canonical address, from the rules features add (canonical.ts): 301.
-   5. Private and app addresses go to Start directly and are never kept; every other GET goes through the edge cache.
+   5. An address of the MCP server or the authorization server is the app's to answer as it stands. A private one is
+      answered directly and never kept; every other GET goes through the edge cache.
    6. The headers every answer carries.
    Everything after step 3 reads the path without the language, and every address handed out gets it back. */
 
-/** Start, or whatever answers in its place. */
+/** What answers behind the pipeline: Start, and ahead of it the MCP and authorization servers (server.ts). */
 export type App = (request: Request) => Promise<Response>;
 
 const PRODUCTION_HOSTS = new Set(["grabient.com", "www.grabient.com"]);
-const PRODUCTION_ORIGIN = "https://grabient.com";
 /** The partner that embeds the site may frame its public pages. */
 const PARTNERS = "https://cssgradient.io https://*.cssgradient.io";
 
@@ -83,7 +87,7 @@ export async function handle(
   const { locale, path } = splitLocale(url.pathname);
   let response: Response;
   try {
-    response = await route(request, url, locale, path, ctx, app, env.DEPLOYMENT === "development");
+    response = await route(request, url, locale, path, env, ctx, app);
   } catch (error) {
     // the message and the first lines of the stack, or a production 500 cannot be told from another
     const stack =
@@ -99,10 +103,9 @@ async function route(
   url: URL,
   locale: Locale,
   path: string,
+  env: Env,
   ctx: ExecutionContext,
-  app: App,
-  /* under `vite dev` nothing is kept: a page kept from before an edit would hydrate against the edited code */
-  uncached = false
+  app: App
 ): Promise<Response> {
   const read = request.method === "GET" || request.method === "HEAD";
   const page = isPagePath(path);
@@ -120,6 +123,7 @@ async function route(
     return json({ error: msg("Not found") }, { status: 404 });
   }
 
+  if (page) countLegacy(env, request, address);
   const canonical = page ? canonicalRedirect(address) : null;
   // a reader arriving from elsewhere at an English address is sent to the language they chose or their browser asks
   // for; a click inside the site, a crawler and a reader who chose English are taken as they came
@@ -143,9 +147,11 @@ async function route(
       }
     });
   }
-  if (privatePath(path) || connectPath(path))
-    return withHeaders(await answer(request, app), NO_STORE);
-  if (!read || uncached || uncachedPath(path)) return answer(request, app);
+  if (connectPath(path)) return app(request);
+  if (privatePath(path)) return withHeaders(await answer(request, app), NO_STORE);
+  countFile(env, request, path);
+  // under `vite dev` nothing is kept: a page kept from before an edit would hydrate against the edited code
+  if (!read || env.DEPLOYMENT === "development" || uncachedPath(path)) return answer(request, app);
   return edgeCached(request, cacheKey(url, path, locale), ctx, () => answer(request, app));
 }
 
@@ -190,8 +196,14 @@ function finish(
 ): Response {
   const response = new Response(request.method === "HEAD" ? null : answered.body, answered);
   const headers = response.headers;
-  // only a 200 may be kept anywhere; a 304 keeps the policy of what it confirms
-  if (response.status !== 200 && response.status !== 304) {
+  /* Only a 200 may be kept anywhere; a 304 keeps the policy of what it confirms. A temporary redirect whose handler
+     keeps it from the edge may still name minutes for the browser: what stands in for a picture that is not drawn now
+     (images/serve.ts), so a page of them does not ask again for each. */
+  const standIn =
+    response.status === 302 &&
+    headers.get("CDN-Cache-Control") === "no-store" &&
+    /^public, max-age=\d+$/.test(headers.get("Cache-Control") ?? "");
+  if (response.status !== 200 && response.status !== 304 && !standIn) {
     for (const [name, value] of Object.entries(NO_STORE)) headers.set(name, value);
   }
   const location =
@@ -219,8 +231,8 @@ function finish(
   }
   if (url.protocol === "https:")
     headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-  // staging and Previews hold copies of the site's pages: no search engine may index them
-  if (env.DEPLOYMENT !== "production") headers.set("X-Robots-Tag", "noindex, nofollow");
+  // set over any a file carries of its own: staging and Previews hold copies of the site, which no index may take
+  if (!indexed(env)) for (const [name, value] of Object.entries(NOINDEX)) headers.set(name, value);
   if (publicFile(path)) headers.set("Access-Control-Allow-Origin", "*");
   // the build that answered: a tab opened on an older build loads its next page whole
   headers.append("Server-Timing", `build;desc="${BUILD}"`);

@@ -2,7 +2,10 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.hoisted(() => Object.assign(globalThis, { __BUILD_ID__: "b1" }));
 
+import { decodePalette, encodePalette } from "@grabient/engine";
 import type { Env } from "@grabient/server/env.ts";
+import migrated from "../../data/legacy-k.json" with { type: "json" };
+import links from "../../data/legacy-links.json" with { type: "json" };
 import { PAGE } from "../lib/cache.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { handle, misdeployed } from "./pipeline.ts";
@@ -29,12 +32,20 @@ let cache: ReturnType<typeof memoryCache>;
 let asked: Request[];
 const waits: Promise<unknown>[] = [];
 const ctx = { waitUntil: (p: Promise<unknown>) => waits.push(p) } as unknown as ExecutionContext;
-const env = { DEPLOYMENT: "staging" } as Env;
+/** What the Worker counted, as Analytics Engine would hold it. */
+let counted: string[];
+const env = {
+  DEPLOYMENT: "staging",
+  USAGE: {
+    writeDataPoint: (point: { blobs: string[] }) => void counted.push(point.blobs.join(" "))
+  }
+} as unknown as Env;
 
 beforeEach(() => {
   cache = memoryCache();
   vi.stubGlobal("caches", { default: cache });
   asked = [];
+  counted = [];
 });
 
 const page = (status = 200, headers: Record<string, string> = PAGE) =>
@@ -151,6 +162,58 @@ test("the canonical rules: the first that knows an address decides, and the same
   expect(canonicalRedirect("/about")).toBeNull();
 });
 
+describe("an old grabient.com link", () => {
+  test.each([
+    [
+      "/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu/edit?steps=9&angle=120",
+      "/kY4mpDazO-mUuu_fuLqXU49dvVP6?steps=9&angle=120",
+      "mapped"
+    ],
+    [
+      "/LQBgdAjALAHANGAbBECoFZ6kgJldnCAZgRxhOyJwvChH3B3UTmwgE51XwUXt6IQA",
+      "/kWiWqwzCq9lYquzeObz4Ma-w",
+      "mapped"
+    ],
+    [
+      "/HQVgDGA0od5TB86wIzAldnLdggZiOgDYSB2IA?ref=hackernoon.com&page=6&style=linearSwatches",
+      "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKb?style=linearSwatches&ref=hackernoon.com",
+      "fitted"
+    ],
+    ["/ja/_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu", "/ja/kY4mpDazO-mUuu_fuLqXU49dvVP6", "mapped"]
+  ])("%s leads to %s", async (from, to, via) => {
+    const response = await get(from);
+    expect([response.status, location(response)]).toEqual([301, to]);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(asked).toEqual([]);
+    expect(counted).toEqual([`legacy ${via} reader`]);
+  });
+
+  test("every id the maps hold leads to its palette's canonical address", () => {
+    const maps: Record<string, string>[] = [migrated, links];
+    let checked = 0;
+    for (const map of maps) {
+      for (const [id, seed] of Object.entries(map)) {
+        const palette = decodePalette(seed);
+        if (!palette) throw new Error(`${id} is mapped to ${seed}, which is no palette`);
+        const steps = palette.anchors.length > 7 ? `?steps=${palette.anchors.length}` : "";
+        expect([id, canonicalRedirect(`/${id}`)]).toEqual([
+          id,
+          `/${encodePalette(palette)}${steps}`
+        ]);
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(6000);
+  });
+
+  test("an old id no map holds is its own page, for the reader's browser to fit", async () => {
+    const response = await get("/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa");
+    expect(response.status).toBe(200);
+    expect(asked).toHaveLength(1);
+    expect(counted).toEqual(["legacy fitted reader"]);
+  });
+});
+
 describe("the edge cache", () => {
   test("keeps a public page and answers the next request from it", async () => {
     const first = await get("/about");
@@ -201,12 +264,62 @@ describe("the edge cache", () => {
     expect(asked).toHaveLength(2);
   });
 
+  test("keeps every address of one file under one key, which no stray parameter enters", async () => {
+    const png = () => new Response("png", { headers: { ...PAGE, "Content-Type": "image/png" } });
+    await get("/api/png?seed=kS7Q8Yy5S_SChv0&junk=1", {}, png);
+    const beside = await get("/kS7Q8Yy5S_SChv0.png?amp;junk=2", {}, png);
+    expect(beside.headers.get("X-Grabient-Cache")).toBe("HIT");
+    // a picture's key names the card version in place of the build: a deploy does not draw it again
+    expect([...cache.kept.keys()]).toEqual([
+      "https://grabient.test/kS7Q8Yy5S_SChv0.png?h=630&v=k4&w=1200"
+    ]);
+    await get("/kS7Q8Yy5S_SChv0.css?steps=7&x=1", {}, png);
+    expect([...cache.kept.keys()][1]).toBe("https://grabient.test/kS7Q8Yy5S_SChv0.css?__build=b1");
+  });
+
+  test("counts a file fetched before the cache answers it, by its format and who asked", async () => {
+    const css = () => new Response("css", { headers: { ...PAGE, "Content-Type": "text/css" } });
+    await get("/kS7Q8Yy5S_SChv0.css", { headers: { "Sec-Fetch-Site": "same-origin" } }, css);
+    const hit = await get(
+      "/kS7Q8Yy5S_SChv0.css",
+      { headers: { Referer: "https://example.com/post" } },
+      css
+    );
+    expect(hit.headers.get("X-Grabient-Cache")).toBe("HIT");
+    await get("/about");
+    expect(counted).toEqual(["file css site reader", "file css other reader"]);
+  });
+
+  test("keeps the newsletter's issues by their page and language alone", async () => {
+    const issues = () => Response.json({ issues: [] }, { headers: PAGE });
+    await get("/api/newsletter?before=2&lang=ja&x=1", {}, issues);
+    await get("/api/newsletter?lang=en&before=junk", {}, issues);
+    expect([...cache.kept.keys()]).toEqual([
+      "https://grabient.test/api/newsletter?__build=b1&before=2&lang=ja",
+      "https://grabient.test/api/newsletter?__build=b1"
+    ]);
+  });
+
   test("never holds a private page, which answers no-store", async () => {
     const response = await get("/settings");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Content-Security-Policy")).toBe("frame-ancestors 'self'");
     expect(cache.kept.size).toBe(0);
   });
+});
+
+test("the MCP and authorization servers answer their own addresses as they stand, kept by no cache", async () => {
+  const metadata = () =>
+    Response.json({ issuer: "x" }, { headers: { "Cache-Control": "public, max-age=300" } });
+  const first = await get("/.well-known/oauth-authorization-server", {}, metadata);
+  await get("/.well-known/oauth-authorization-server", {}, metadata);
+  expect(first.headers.get("Cache-Control")).toBe("public, max-age=300");
+  expect([asked.length, cache.kept.size]).toEqual([2, 0]);
+  const accept = "application/json, text/event-stream";
+  await get("/mcp", { method: "POST", headers: { Accept: accept } }, () => Response.json({}));
+  expect(asked[2].headers.get("Accept")).toBe(accept);
+  const token = await get("/oauth/token", { method: "POST" }, () => Response.json({ a: 1 }));
+  expect(token.headers.get("Cache-Control")).toBe("private, no-store");
 });
 
 test("campaign tags never reach Start and ride every same-origin redirect", async () => {
@@ -245,8 +358,16 @@ test("every answer carries the site's headers", async () => {
     "x-robots-tag": "noindex, nofollow",
     "server-timing": 'build;desc="b1"'
   });
-  const production = await get("/about", {}, undefined, { DEPLOYMENT: "production" } as Env);
-  expect(production.headers.has("X-Robots-Tag")).toBe(false);
+  // production at grabient.com alone is indexed: its files keep the noindex of their own, and its pages carry none
+  const production = { DEPLOYMENT: "production", PUBLIC_ORIGIN: "https://grabient.com" } as Env;
+  expect((await get("/about", {}, undefined, production)).headers.has("X-Robots-Tag")).toBe(false);
+  const data = () => Response.json({}, { headers: { ...PAGE, "X-Robots-Tag": "noindex" } });
+  expect((await get("/api/x", {}, data, production)).headers.get("X-Robots-Tag")).toBe("noindex");
+  expect((await get("/api/x", {}, data)).headers.get("X-Robots-Tag")).toBe("noindex, nofollow");
+  const elsewhere = { DEPLOYMENT: "production", PUBLIC_ORIGIN: "https://example.com" } as Env;
+  expect((await get("/terms", {}, undefined, elsewhere)).headers.get("X-Robots-Tag")).toBe(
+    "noindex, nofollow"
+  );
   const consent = await get("/unsubscribe/abc");
   expect(Object.fromEntries(consent.headers)).toMatchObject({
     "content-security-policy": "frame-ancestors 'none'",
@@ -256,6 +377,35 @@ test("every answer carries the site's headers", async () => {
   });
   const file = await get("/kS7Q8Yy5S_SChv0.png", {}, () => new Response("png"));
   expect(file.headers.get("Access-Control-Allow-Origin")).toBe("*");
+});
+
+test("no browser keeps a redirect, but for the minutes a picture's stand-in names", async () => {
+  const to = (headers: Record<string, string>) => () =>
+    new Response(null, { status: 302, headers: { Location: "/grabient.png", ...headers } });
+  const standIn = await get(
+    "/api/og?seed=kS7Q8Yy5S_SChv0",
+    {},
+    to({ "Cache-Control": "public, max-age=300", "CDN-Cache-Control": "no-store" })
+  );
+  expect([
+    standIn.headers.get("Cache-Control"),
+    standIn.headers.get("CDN-Cache-Control"),
+    cache.kept.size
+  ]).toEqual(["public, max-age=300", "no-store", 0]);
+  const others: Record<string, string>[] = [{}, PAGE, { "Cache-Control": "public, max-age=300" }];
+  for (const headers of others) {
+    expect((await get("/random", {}, to(headers))).headers.get("Cache-Control")).toBe("no-store");
+  }
+  const moved = () =>
+    new Response(null, {
+      status: 301,
+      headers: {
+        Location: "/x",
+        "Cache-Control": "public, max-age=300",
+        "CDN-Cache-Control": "no-store"
+      }
+    });
+  expect((await get("/api/y", {}, moved)).headers.get("Cache-Control")).toBe("no-store");
 });
 
 test("a failure is a 500 no cache keeps, logged with its stack", async () => {
