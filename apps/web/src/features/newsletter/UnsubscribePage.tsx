@@ -5,9 +5,8 @@ import { Pane } from "@grabient/ui/Pane.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, For, Show } from "solid-js";
-import * as v from "valibot";
-import { Choice } from "./input.ts";
 import styles from "./Unsubscribe.module.css";
+import { answerUnsubscribe } from "./writes.ts";
 
 /* The page every issue links to: one sheet that ends the newsletter for the account its address names, with no sign-in.
    Opening it changes nothing, since mail scanners open links: the press does, and the same press then offers the way
@@ -22,22 +21,6 @@ const LINES = {
 type Stage = keyof typeof LINES;
 const STAGES = Object.keys(LINES) as Stage[];
 const UNSENT = msg("Something went wrong. Try again.");
-
-/** The press: ends the newsletter for the token's account, or starts it again; what the server holds after. */
-async function answer(token: string, subscribed: boolean): Promise<boolean> {
-  const response = await fetch(`/unsubscribe/${token}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ subscribed }),
-    signal: AbortSignal.timeout(15_000)
-  });
-  const body: unknown = await response.json().catch(() => null);
-  if (!response.ok) {
-    const error = (body as { error?: unknown } | null)?.error;
-    throw new Error(t(typeof error === "string" ? error : UNSENT));
-  }
-  return v.parse(Choice, body).subscribed;
-}
 
 export function UnsubscribePage(props: {
   /** the address's token, read once as the page starts; null where the address holds none */
@@ -56,7 +39,7 @@ export function UnsubscribePage(props: {
     setSending(true);
     setFailure("");
     try {
-      setStage((await answer(token, subscribes())) ? "back" : "ended");
+      setStage((await answerUnsubscribe(token, subscribes())) ? "back" : "ended");
     } catch (error) {
       setFailure(error instanceof Error && error.message ? error.message : t(UNSENT));
     } finally {

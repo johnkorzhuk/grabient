@@ -3,7 +3,7 @@ import { infiniteQueryOptions, queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getJson } from "../../lib/query.ts";
 import { issuesForDocument } from "../../server/newsletter/document.ts";
-import { Drafts, IssuesPage } from "./input.ts";
+import { Choice, Drafts, IssuesPage } from "./input.ts";
 
 /* The newsletter's reads. The server renders the newest issues straight from the issues it holds, the sheets into the
    document and the rest into the data; the browser asks the public API for the issues before them, and an admin's
@@ -44,4 +44,12 @@ export const draftsQuery = (locale: Locale) =>
     staleTime: 0,
     gcTime: 0,
     reconcile: "number"
+  });
+
+/** Whether the signed-in account gets the newsletter: Settings' switch, read once per account. */
+export const choiceQuery = () =>
+  queryOptions({
+    queryKey: ["newsletter", "choice"],
+    queryFn: async () => (await getJson("/api/me/newsletter", Choice)).subscribed,
+    staleTime: Number.POSITIVE_INFINITY
   });
