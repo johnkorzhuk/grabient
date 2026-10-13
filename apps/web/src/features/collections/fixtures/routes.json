@@ -1,0 +1,501 @@
+[
+ [
+  "/collections",
+  {
+   "kind": "collections",
+   "order": "popular",
+   "scope": "public",
+   "query": "",
+   "path": "/collections",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "sort": "popular"
+   },
+   "canonical": null
+  }
+ ],
+ [
+  "/collections/rising",
+  {
+   "kind": "collections",
+   "order": "rising",
+   "scope": "public",
+   "query": "",
+   "path": "/collections/rising",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "sort": "rising",
+    "frame": "1w"
+   },
+   "canonical": null
+  }
+ ],
+ [
+  "/collections/rising/3m",
+  {
+   "kind": "collections",
+   "order": "rising",
+   "scope": "public",
+   "query": "",
+   "path": "/collections/rising/3m",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "sort": "rising",
+    "frame": "3m"
+   },
+   "canonical": null
+  }
+ ],
+ [
+  "/collections/rising/1w",
+  {
+   "kind": "redirect",
+   "to": "/collections/rising"
+  }
+ ],
+ [
+  "/collections/saved?q=hidden&page=3",
+  {
+   "kind": "collections",
+   "order": "saved",
+   "scope": "mine",
+   "query": "hidden",
+   "path": "/collections/saved",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 3,
+    "limit": 24,
+    "sort": "newest"
+   },
+   "canonical": null
+  }
+ ],
+ [
+  "/collections?q=Warm%20Sunsets&sort=oldest&page=2&limit=24",
+  {
+   "kind": "collections",
+   "order": "rising",
+   "scope": "public",
+   "query": "warm sunsets",
+   "path": "/collections/rising",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 2,
+    "limit": 24,
+    "sort": "rising",
+    "frame": "1w"
+   },
+   "canonical": "/collections/rising?q=warm+sunsets&page=2"
+  }
+ ],
+ [
+  "/collections?sort=newest",
+  {
+   "kind": "collections",
+   "order": "rising",
+   "scope": "public",
+   "query": "",
+   "path": "/collections/rising",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "sort": "rising",
+    "frame": "1w"
+   },
+   "canonical": "/collections/rising"
+  }
+ ],
+ [
+  "/collections?sort=popular",
+  {
+   "kind": "collections",
+   "order": "popular",
+   "scope": "public",
+   "query": "",
+   "path": "/collections",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "sort": "popular"
+   },
+   "canonical": "/collections"
+  }
+ ],
+ [
+  "/collections?limit=100",
+  {
+   "kind": "collections",
+   "order": "popular",
+   "scope": "public",
+   "query": "",
+   "path": "/collections",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 24,
+    "sort": "popular"
+   },
+   "canonical": "/collections"
+  }
+ ],
+ [
+  "/collections?limit=12",
+  {
+   "kind": "collections",
+   "order": "popular",
+   "scope": "public",
+   "query": "",
+   "path": "/collections",
+   "params": {
+    "style": "auto",
+    "steps": "auto",
+    "angle": "auto",
+    "size": "auto",
+    "page": 1,
+    "limit": 12,
+    "sort": "popular"
+   },
+   "canonical": null
+  }
+ ],
+ [
+  "/ocean-depths",
+  {
+   "kind": "query",
+   "slug": "ocean-depths",
+   "order": "popular",
+   "words": "ocean depths",
+   "path": "/ocean-depths",
+   "search": "",
+   "resolvedCollection": {
+    "kind": "collection",
+    "slug": "ocean-depths",
+    "order": "popular",
+    "path": "/ocean-depths",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   },
+   "resolvedSearch": {
+    "kind": "search",
+    "query": "ocean depths",
+    "path": "/palettes",
+    "params": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto",
+     "page": 1,
+     "limit": 24,
+     "query": "ocean depths",
+     "sort": "popular"
+    },
+    "canonical": "/palettes?q=ocean+depths"
+   }
+  }
+ ],
+ [
+  "/ocean-depths/rising",
+  {
+   "kind": "query",
+   "slug": "ocean-depths",
+   "order": "rising",
+   "words": "ocean depths",
+   "path": "/ocean-depths/rising",
+   "search": "",
+   "resolvedCollection": {
+    "kind": "collection",
+    "slug": "ocean-depths",
+    "order": "rising",
+    "path": "/ocean-depths/rising",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   },
+   "resolvedSearch": {
+    "kind": "search",
+    "query": "ocean depths",
+    "path": "/palettes/rising",
+    "params": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto",
+     "page": 1,
+     "limit": 24,
+     "query": "ocean depths",
+     "sort": "rising",
+     "frame": "1w"
+    },
+    "canonical": "/palettes/rising?q=ocean+depths"
+   }
+  }
+ ],
+ [
+  "/ocean-depths/newest",
+  {
+   "kind": "notfound"
+  }
+ ],
+ [
+  "/Ocean_Depths",
+  {
+   "kind": "redirect",
+   "to": "/ocean-depths"
+  }
+ ],
+ [
+  "/@ada/warm-sunsets",
+  {
+   "kind": "query",
+   "slug": "@ada/warm-sunsets",
+   "order": "popular",
+   "words": "warm sunsets",
+   "path": "/@ada/warm-sunsets",
+   "search": "",
+   "resolvedCollection": {
+    "kind": "collection",
+    "slug": "@ada/warm-sunsets",
+    "order": "popular",
+    "path": "/@ada/warm-sunsets",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   },
+   "resolvedSearch": {
+    "kind": "collection",
+    "slug": "@ada/warm-sunsets",
+    "order": "popular",
+    "path": "/@ada/warm-sunsets",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   }
+  }
+ ],
+ [
+  "/@first_user/Warm_Sunsets",
+  {
+   "kind": "redirect",
+   "to": "/@first_user/warm-sunsets"
+  }
+ ],
+ [
+  "/@ada/rising",
+  {
+   "kind": "query",
+   "slug": "@ada/rising",
+   "order": "popular",
+   "words": "rising",
+   "path": "/@ada/rising",
+   "search": "",
+   "resolvedCollection": {
+    "kind": "collection",
+    "slug": "@ada/rising",
+    "order": "popular",
+    "path": "/@ada/rising",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   },
+   "resolvedSearch": {
+    "kind": "collection",
+    "slug": "@ada/rising",
+    "order": "popular",
+    "path": "/@ada/rising",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   }
+  }
+ ],
+ [
+  "/@ada/rising/rising",
+  {
+   "kind": "query",
+   "slug": "@ada/rising",
+   "order": "rising",
+   "words": "rising",
+   "path": "/@ada/rising/rising",
+   "search": "",
+   "resolvedCollection": {
+    "kind": "collection",
+    "slug": "@ada/rising",
+    "order": "rising",
+    "path": "/@ada/rising/rising",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   },
+   "resolvedSearch": {
+    "kind": "collection",
+    "slug": "@ada/rising",
+    "order": "rising",
+    "path": "/@ada/rising/rising",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": "auto",
+     "size": "auto"
+    },
+    "canonical": null
+   }
+  }
+ ],
+ [
+  "/collections/Bad_Slug",
+  {
+   "kind": "notfound"
+  }
+ ],
+ [
+  "/collections/x/y",
+  {
+   "kind": "notfound"
+  }
+ ],
+ [
+  "/ocean-depths?style=radialSwatches&steps=9&selection",
+  {
+   "kind": "query",
+   "slug": "ocean-depths",
+   "order": "popular",
+   "words": "ocean depths",
+   "path": "/ocean-depths",
+   "search": "?style=radialSwatches&steps=9&selection",
+   "resolvedCollection": {
+    "kind": "collection",
+    "slug": "ocean-depths",
+    "order": "popular",
+    "path": "/ocean-depths",
+    "view": {
+     "style": "radialSwatches",
+     "steps": 9,
+     "angle": "auto",
+     "size": "auto"
+    },
+    "selection": true,
+    "canonical": null
+   },
+   "resolvedSearch": {
+    "kind": "search",
+    "query": "ocean depths",
+    "path": "/palettes",
+    "params": {
+     "style": "radialSwatches",
+     "steps": 9,
+     "angle": "auto",
+     "size": "auto",
+     "page": 1,
+     "limit": 24,
+     "selection": true,
+     "query": "ocean depths",
+     "sort": "popular"
+    },
+    "canonical": "/palettes?q=ocean+depths&style=radialSwatches&steps=9&selection"
+   }
+  }
+ ],
+ [
+  "/ocean-depths?selection=1&angle=45",
+  {
+   "kind": "query",
+   "slug": "ocean-depths",
+   "order": "popular",
+   "words": "ocean depths",
+   "path": "/ocean-depths",
+   "search": "?selection=1&angle=45",
+   "resolvedCollection": {
+    "kind": "collection",
+    "slug": "ocean-depths",
+    "order": "popular",
+    "path": "/ocean-depths",
+    "view": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": 45,
+     "size": "auto"
+    },
+    "selection": true,
+    "canonical": "/ocean-depths?angle=45&selection"
+   },
+   "resolvedSearch": {
+    "kind": "search",
+    "query": "ocean depths",
+    "path": "/palettes",
+    "params": {
+     "style": "auto",
+     "steps": "auto",
+     "angle": 45,
+     "size": "auto",
+     "page": 1,
+     "limit": 24,
+     "selection": true,
+     "query": "ocean depths",
+     "sort": "popular"
+    },
+    "canonical": "/palettes?q=ocean+depths&angle=45&selection"
+   }
+  }
+ ]
+]

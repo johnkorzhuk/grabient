@@ -1,0 +1,330 @@
+{
+ "slugifyTitle": [
+  [
+   "Warm Sunsets",
+   "warm-sunsets"
+  ],
+  [
+   "  Warm   Sunsets ",
+   "warm-sunsets"
+  ],
+  [
+   "Warm Sünsets & More",
+   "warm-sunsets-more"
+  ],
+  [
+   "Été indien",
+   "ete-indien"
+  ],
+  [
+   "Crème brûlée",
+   "creme-brulee"
+  ],
+  [
+   "   ",
+   "collection"
+  ],
+  [
+   "!!!",
+   "collection"
+  ],
+  [
+   "日本の春",
+   "collection"
+  ],
+  [
+   "Ocean depths, revised",
+   "ocean-depths-revised"
+  ],
+  [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa bbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa-bbbbbbbbbbbbbbbbbbbbbbbbb"
+  ],
+  [
+   "Rising",
+   "rising"
+  ],
+  [
+   "collections",
+   "collections"
+  ],
+  [
+   "Red & Black / 2024",
+   "red-black-2024"
+  ],
+  [
+   "İstanbul nights",
+   "istanbul-nights"
+  ],
+  [
+   "ﬁre",
+   "fire"
+  ],
+  [
+   "Ｓｕｎｓｅｔ",
+   "sunset"
+  ]
+ ],
+ "accountHandle": [
+  [
+   {
+    "id": "AbCdEf1234567890",
+    "username": null
+   },
+   "_abcdef1234"
+  ],
+  [
+   {
+    "id": "x",
+    "username": " Ada_L "
+   },
+   "ada_l"
+  ],
+  [
+   {
+    "id": "id-with-dashes_and.dots",
+    "username": ""
+   },
+   "_idwithdash"
+  ]
+ ],
+ "privateSlug": [
+  [
+   "Warm Sunsets",
+   "ada",
+   [],
+   "@ada/warm-sunsets"
+  ],
+  [
+   "Warm Sunsets",
+   "ada",
+   [
+    "@ada/warm-sunsets"
+   ],
+   "@ada/warm-sunsets-2"
+  ],
+  [
+   "Warm Sunsets",
+   "ada",
+   [
+    "@ada/warm-sunsets",
+    "@ada/warm-sunsets-2",
+    "@ada/warm-sunsets-4"
+   ],
+   "@ada/warm-sunsets-3"
+  ],
+  [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "a_very_long_username_of_thirty",
+   [],
+   "@a_very_long_username_of_thirty/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  [
+   "!!!",
+   "_abcdef1234",
+   [],
+   "@_abcdef1234/collection"
+  ]
+ ],
+ "isPrivateSlug": [
+  [
+   "@ada/warm-sunsets",
+   "Warm Sunsets",
+   "ada",
+   true
+  ],
+  [
+   "@ada/warm-sunsets-2",
+   "Warm Sunsets",
+   "ada",
+   true
+  ],
+  [
+   "@ada/warm-sunsets-0",
+   "Warm Sunsets",
+   "ada",
+   false
+  ],
+  [
+   "@ada/warm-sunsets-12345",
+   "Warm Sunsets",
+   "ada",
+   false
+  ],
+  [
+   "@ada/warm-sunsets-two",
+   "Warm Sunsets",
+   "ada",
+   false
+  ],
+  [
+   "@bob/warm-sunsets",
+   "Warm Sunsets",
+   "ada",
+   false
+  ],
+  [
+   "warm-sunsets",
+   "Warm Sunsets",
+   "ada",
+   false
+  ]
+ ],
+ "isCollectionSlug": [
+  [
+   "ocean-depths",
+   true
+  ],
+  [
+   "@ada/warm-sunsets",
+   true
+  ],
+  [
+   "@first_user/warm-sunsets",
+   true
+  ],
+  [
+   "@_abc123def4/night-swim",
+   true
+  ],
+  [
+   "@ab/x",
+   false
+  ],
+  [
+   "Bad_Slug",
+   false
+  ],
+  [
+   "-lead",
+   false
+  ],
+  [
+   "a--b",
+   false
+  ],
+  [
+   "x/y",
+   false
+  ],
+  [
+   "suggest",
+   false
+  ],
+  [
+   "mine",
+   false
+  ],
+  [
+   "popular",
+   false
+  ],
+  [
+   "new",
+   false
+  ],
+  [
+   "saved",
+   false
+  ],
+  [
+   "collections",
+   false
+  ],
+  [
+   "palettes",
+   false
+  ],
+  [
+   "en",
+   false
+  ],
+  [
+   "ja",
+   false
+  ],
+  [
+   "zh-hans",
+   false
+  ],
+  [
+   "og",
+   false
+  ],
+  [
+   "api",
+   false
+  ],
+  [
+   "llms",
+   false
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   true
+  ],
+  [
+   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+   false
+  ],
+  [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   false
+  ],
+  [
+   "ky4mpdazo-muuu_fulqxu49dvvp6",
+   false
+  ],
+  [
+   "_abc",
+   false
+  ],
+  [
+   "rising",
+   true
+  ]
+ ],
+ "slugAllowed": [
+  [
+   "warm-sunsets",
+   "Warm Sunsets",
+   null,
+   true
+  ],
+  [
+   "@ada/warm-sunsets",
+   "Warm Sunsets",
+   "Ada",
+   true
+  ],
+  [
+   "warm-sunsets-ab3d",
+   "Warm Sunsets",
+   null,
+   true
+  ],
+  [
+   "warm-sunsets-ab",
+   "Warm Sunsets",
+   null,
+   false
+  ],
+  [
+   "something-else",
+   "Warm Sunsets",
+   null,
+   false
+  ],
+  [
+   "@bob/warm-sunsets",
+   "Warm Sunsets",
+   "ada",
+   false
+  ]
+ ],
+ "uniqueSlugShape": true
+}
