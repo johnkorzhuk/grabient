@@ -1,0 +1,81 @@
+/* The view's page under the design system's tokens: transparent, so the app it is drawn in shows through, with no
+   margin and no face to load (the app's type, else the system's), since the frame fetches nothing. The rest of the
+   site's base.css is the page's ground, grain and scrollbars, which a frame inside another app has no use for. */
+@layer reset, tokens, base, components;
+
+/* a control's fill fades as --fill, registered as a color so it fades at all */
+@property --fill {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+  html,
+  body {
+    margin: 0;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+  button {
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  a {
+    color: inherit;
+  }
+}
+
+@layer base {
+  html {
+    background: transparent;
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    background: transparent;
+  }
+  :focus-visible {
+    outline: var(--size-hairline) solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  /* letters that join, and spaced Thai, take no tracking; Korean breaks lines between words only */
+  html:lang(ar) *,
+  html:lang(fa) *,
+  html:lang(th) * {
+    /* biome-ignore lint/complexity/noImportantStyles: it outweighs every component's own tracking */
+    letter-spacing: normal !important;
+  }
+  html:lang(ko) {
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+  /* less motion (the design system's motion.ts): no transition or animation runs, and scrolling jumps */
+  html[data-motion="reduce"] *,
+  html[data-motion="reduce"] *::before,
+  html[data-motion="reduce"] *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: it outweighs every component's own motion */
+    transition: none !important;
+    /* biome-ignore lint/complexity/noImportantStyles: it outweighs every component's own motion */
+    animation: none !important;
+  }
+  html[data-motion="reduce"] {
+    /* biome-ignore lint/complexity/noImportantStyles: it outweighs a smooth scroll asked in code */
+    scroll-behavior: auto !important;
+  }
+}

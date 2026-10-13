@@ -1,0 +1,9 @@
+Xác nhận xóa tài khoản
+
+Thao tác này sẽ xóa vĩnh viễn tài khoản và các bảng màu đã lưu của bạn.
+
+Xác nhận xóa: https://grabient.test/settings?token=sample
+
+Đăng nhập để xác nhận. Liên kết này hết hạn sau 24 giờ.
+
+grabient.test: https://grabient.test/vi

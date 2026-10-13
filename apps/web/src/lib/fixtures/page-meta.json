@@ -1,0 +1,1112 @@
+[
+ {
+  "locale": "en",
+  "path": "/",
+  "facts": {},
+  "title": "Grabient — CSS Gradient Generator & Color Palettes",
+  "description": "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 128,
+  "canonical": "https://grabient.com/",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=hot&v=k4",
+  "imageAlt": "Hot palettes and collections on Grabient",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/?page=2",
+  "facts": {},
+  "title": "Hot palettes and collections, page 2 | Grabient",
+  "description": "Make CSS gradients and explore popular color palettes. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG. Page 2.",
+  "descriptionLength": 136,
+  "canonical": "https://grabient.com/?page=2",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=hot&v=k4",
+  "imageAlt": "Hot palettes and collections on Grabient",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/?q=blue",
+  "facts": {},
+  "title": "Blue palettes and collections | Grabient",
+  "description": "Explore blue gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 124,
+  "canonical": "https://grabient.com/?q=blue",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=blue&v=k4",
+  "imageAlt": "Blue palettes and collections",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/?q=kS7Q8Yy5S_SChv0",
+  "facts": {},
+  "title": "Palettes like analogous gray, brown and maroon | Grabient",
+  "description": "Color palettes and CSS gradients like analogous gray, brown and maroon. Edit any of them, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 126,
+  "canonical": "https://grabient.com/?q=kS7Q8Yy5S_SChv0",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=kS7Q8Yy5S_SChv0&v=k4",
+  "imageAlt": "Palettes like analogous gray, brown and maroon",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes",
+  "facts": {
+   "items": [
+    {
+     "seed": "kS7Q8Yy5S_SChv0"
+    }
+   ]
+  },
+  "title": "Popular gradient palettes | Grabient",
+  "description": "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 134,
+  "canonical": "https://grabient.com/palettes",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=popular&v=k4",
+  "imageAlt": "Popular gradient palettes on Grabient",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [
+   "CollectionPage"
+  ],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes?page=2",
+  "facts": {},
+  "title": "Popular gradient palettes, page 2 | Grabient",
+  "description": "The most liked CSS gradients and color palettes on Grabient. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG. Page 2.",
+  "descriptionLength": 142,
+  "canonical": "https://grabient.com/palettes?page=2",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=popular&v=k4",
+  "imageAlt": "Popular gradient palettes on Grabient",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes/rising",
+  "facts": {},
+  "title": "Rising gradient palettes | Grabient",
+  "description": "CSS gradients and color palettes gaining likes now. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 125,
+  "canonical": "https://grabient.com/palettes/rising",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=rising&v=k4",
+  "imageAlt": "Rising gradient palettes on Grabient",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes/rising/3m",
+  "facts": {},
+  "title": "Rising gradient palettes | Grabient",
+  "description": "CSS gradients and color palettes gaining likes now. Edit colors, steps, angle and style, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 125,
+  "canonical": "https://grabient.com/palettes/rising/3m",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=rising&frame=3m&v=k4",
+  "imageAlt": "Rising gradient palettes on Grabient",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes?q=blue",
+  "facts": {},
+  "title": "Blue gradients and color palettes | Grabient",
+  "description": "Explore blue gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 124,
+  "canonical": "https://grabient.com/palettes?q=blue",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=blue&v=k4",
+  "imageAlt": "Blue gradients and color palettes",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes?q=warm+sunset+gradients",
+  "facts": {},
+  "title": "Warm sunset gradients and color palettes | Grabient",
+  "description": "Explore warm sunset gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 131,
+  "canonical": "https://grabient.com/palettes?q=warm+sunset+gradients",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=warm+sunset+gradients&v=k4",
+  "imageAlt": "Warm sunset gradients and color palettes",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes/rising?q=blue",
+  "facts": {},
+  "title": "Blue gradients and color palettes | Grabient",
+  "description": "Explore blue gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 124,
+  "canonical": "https://grabient.com/palettes/rising?q=blue",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=blue&sort=rising&v=k4",
+  "imageAlt": "Blue gradients and color palettes",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes?q=zqxv",
+  "facts": {
+   "robots": "noindex,follow"
+  },
+  "title": "Zqxv gradients and color palettes | Grabient",
+  "description": "Explore zqxv gradients and color palettes, matched by color and mood. Edit any of them, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 124,
+  "canonical": "https://grabient.com/palettes?q=zqxv",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=zqxv&v=k4",
+  "imageAlt": "Zqxv gradients and color palettes",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": {
+   "robots": "noindex,follow"
+  },
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes?q=kS7Q8Yy5S_SChv0",
+  "facts": {},
+  "title": "Palettes like analogous gray, brown and maroon | Grabient",
+  "description": "Color palettes and CSS gradients like analogous gray, brown and maroon. Edit any of them, then copy CSS or export SVG and PNG.",
+  "descriptionLength": 126,
+  "canonical": "https://grabient.com/palettes?q=kS7Q8Yy5S_SChv0",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=kS7Q8Yy5S_SChv0&v=k4",
+  "imageAlt": "Palettes like analogous gray, brown and maroon",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes/saved",
+  "facts": {},
+  "title": "Saved palettes | Grabient",
+  "description": "Your saved Grabient palettes.",
+  "descriptionLength": 29,
+  "canonical": "https://grabient.com/palettes/saved",
+  "robots": "noindex,nofollow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/palettes/saved?q=red",
+  "facts": {},
+  "title": "Saved palettes | Grabient",
+  "description": "Your saved Grabient palettes.",
+  "descriptionLength": 29,
+  "canonical": "https://grabient.com/palettes/saved",
+  "robots": "noindex,nofollow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/collections",
+  "facts": {
+   "collections": [
+    {
+     "slug": "ocean-gradients",
+     "title": "Ocean gradients"
+    }
+   ]
+  },
+  "title": "Gradient and color palette collections | Grabient",
+  "description": "Collections of gradients and color palettes by color, theme and use, from people and Grabient agents. Open any palette to edit and export it.",
+  "descriptionLength": 141,
+  "canonical": "https://grabient.com/collections",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collections?sort=popular&v=k4",
+  "imageAlt": "Collections of gradients and color palettes on Grabient",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [
+   "CollectionPage"
+  ],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/collections/rising",
+  "facts": {},
+  "title": "Rising gradient and color palette collections | Grabient",
+  "description": "Collections of gradients and color palettes gaining likes now, from people and Grabient agents. Open any palette to edit and export it.",
+  "descriptionLength": 135,
+  "canonical": "https://grabient.com/collections/rising",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collections?sort=rising&v=k4",
+  "imageAlt": "Collections of gradients and color palettes on Grabient",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/collections/rising/1y",
+  "facts": {},
+  "title": "Rising gradient and color palette collections | Grabient",
+  "description": "Collections of gradients and color palettes gaining likes now, from people and Grabient agents. Open any palette to edit and export it.",
+  "descriptionLength": 135,
+  "canonical": "https://grabient.com/collections/rising/1y",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collections?sort=rising&frame=1y&v=k4",
+  "imageAlt": "Collections of gradients and color palettes on Grabient",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/collections?q=blue",
+  "facts": {},
+  "title": "Blue gradient and color palette collections | Grabient",
+  "description": "Collections of gradients and color palettes for blue, by people and Grabient agents.",
+  "descriptionLength": 84,
+  "canonical": "https://grabient.com/collections?q=blue",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collections?sort=popular&q=blue&v=k4",
+  "imageAlt": "Collections of gradients and color palettes on Grabient",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/collections/saved",
+  "facts": {},
+  "title": "Your collections | Grabient",
+  "description": "Your Grabient collections.",
+  "descriptionLength": 26,
+  "canonical": "https://grabient.com/collections/saved",
+  "robots": "noindex,nofollow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/ocean-gradients",
+  "facts": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000
+   }
+  },
+  "title": "Ocean gradients: 16 color palettes | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients.",
+  "descriptionLength": 135,
+  "canonical": "https://grabient.com/ocean-gradients",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collection?slug=ocean-gradients&v=k4&t=1760000000000",
+  "imageAlt": "Ocean gradients: a collection of color palettes",
+  "markdown": "https://grabient.com/ocean-gradients.md",
+  "alternates": null,
+  "structuredData": [
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000
+   }
+  },
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/ocean-gradients/rising",
+  "facts": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000
+   }
+  },
+  "title": "Ocean gradients: 16 color palettes | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients.",
+  "descriptionLength": 135,
+  "canonical": "https://grabient.com/ocean-gradients/rising",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collection?slug=ocean-gradients&sort=rising&v=k4&t=1760000000000",
+  "imageAlt": "Ocean gradients: a collection of color palettes",
+  "markdown": "https://grabient.com/ocean-gradients.md",
+  "alternates": null,
+  "structuredData": [
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000
+   }
+  },
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/ocean-gradients",
+  "facts": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "unlisted": true
+   }
+  },
+  "title": "Ocean gradients: 16 color palettes | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients.",
+  "descriptionLength": 135,
+  "canonical": "https://grabient.com/ocean-gradients",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collection?slug=ocean-gradients&v=k4&t=1760000000000",
+  "imageAlt": "Ocean gradients: a collection of color palettes",
+  "markdown": "https://grabient.com/ocean-gradients.md",
+  "alternates": null,
+  "structuredData": [
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "unlisted": true
+   }
+  },
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/ocean-gradients",
+  "facts": {},
+  "title": "Palette collection | Grabient",
+  "description": "A collection of color palettes on Grabient.",
+  "descriptionLength": 43,
+  "canonical": "https://grabient.com/ocean-gradients",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/ocean-gradients",
+  "facts": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "languages": [
+     "ja",
+     "de"
+    ]
+   }
+  },
+  "title": "Ocean gradients: 16 color palettes | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 color palettes and CSS gradients.",
+  "descriptionLength": 135,
+  "canonical": "https://grabient.com/ocean-gradients",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collection?slug=ocean-gradients&v=k4&t=1760000000000",
+  "imageAlt": "Ocean gradients: a collection of color palettes",
+  "markdown": "https://grabient.com/ocean-gradients.md",
+  "alternates": "4 (en ja de x-default)",
+  "structuredData": [
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "languages": [
+     "ja",
+     "de"
+    ]
+   }
+  },
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/kS7Q8Yy5S_SChv0",
+  "facts": {},
+  "title": "Analogous gray, brown and maroon linear gradient | Grabient",
+  "description": "Analogous gray, brown and maroon palette with 7 colors. #f6e4e0, #be9b94, #9e726b, #5d2522, #46070b. Edit and export CSS, SVG, PNG or a shader.",
+  "descriptionLength": 143,
+  "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0&v=k4",
+  "imageAlt": "Analogous gray, brown and maroon color palette",
+  "themeColor": "#f6e4e0",
+  "markdown": "https://grabient.com/kS7Q8Yy5S_SChv0.md",
+  "alternates": null,
+  "structuredData": [
+   "CreativeWork",
+   "BreadcrumbList"
+  ],
+  "factsSent": null,
+  "icon": "16 colors"
+ },
+ {
+  "locale": "en",
+  "path": "/kS7Q8Yy5S_SChv0?style=radialSwatches&steps=9&angle=30",
+  "facts": {},
+  "title": "Analogous gray, brown and maroon radial swatches | Grabient",
+  "description": "Analogous gray, brown and maroon palette with 9 colors. #f6e4e0, #cfb1ab, #9e726b, #6c3732, #46070b. Edit and export CSS, SVG, PNG or a shader.",
+  "descriptionLength": 143,
+  "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0&v=k4&style=radialSwatches&steps=9&angle=30",
+  "imageAlt": "Analogous gray, brown and maroon color palette",
+  "themeColor": "#f6e4e0",
+  "markdown": "https://grabient.com/kS7Q8Yy5S_SChv0.md?style=radialSwatches&steps=9&angle=30",
+  "alternates": null,
+  "structuredData": [
+   "CreativeWork",
+   "BreadcrumbList"
+  ],
+  "factsSent": null,
+  "icon": "16 colors"
+ },
+ {
+  "locale": "en",
+  "path": "/kS7Q8Yy5S_SChv0",
+  "facts": {
+   "staticOg": true
+  },
+  "title": "Analogous gray, brown and maroon linear gradient | Grabient",
+  "description": "Analogous gray, brown and maroon palette with 7 colors. #f6e4e0, #be9b94, #9e726b, #5d2522, #46070b. Edit and export CSS, SVG, PNG or a shader.",
+  "descriptionLength": 143,
+  "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/og/k4/kS7Q8Yy5S_SChv0.png",
+  "imageAlt": "Analogous gray, brown and maroon color palette",
+  "themeColor": "#f6e4e0",
+  "markdown": "https://grabient.com/kS7Q8Yy5S_SChv0.md",
+  "alternates": null,
+  "structuredData": [
+   "CreativeWork",
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "staticOg": true
+  },
+  "icon": "16 colors"
+ },
+ {
+  "locale": "en",
+  "path": "/kS7Q8Yy5S_SChv0",
+  "facts": {
+   "title": "Dusk over the mesa | Grabient",
+   "description": "Warm browns settle into maroon.",
+   "heldBy": [
+    {
+     "slug": "ocean-gradients",
+     "title": "Ocean gradients"
+    }
+   ]
+  },
+  "title": "Dusk over the mesa | Grabient",
+  "description": "Warm browns settle into maroon. #f6e4e0, #dfc6c0, #be9b94, #9e726b, #7d4b45, #5d2522, #46070b. Edit and export CSS, SVG, PNG or a shader.",
+  "descriptionLength": 137,
+  "canonical": "https://grabient.com/kS7Q8Yy5S_SChv0",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0&v=k4",
+  "imageAlt": "Analogous gray, brown and maroon color palette",
+  "themeColor": "#f6e4e0",
+  "markdown": "https://grabient.com/kS7Q8Yy5S_SChv0.md",
+  "alternates": null,
+  "structuredData": [
+   "CreativeWork",
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "title": "Dusk over the mesa | Grabient",
+   "description": "Warm browns settle into maroon.",
+   "heldBy": [
+    {
+     "slug": "ocean-gradients",
+     "title": "Ocean gradients"
+    }
+   ]
+  },
+  "icon": "16 colors"
+ },
+ {
+  "locale": "en",
+  "path": "/about",
+  "facts": {},
+  "title": "About Grabient",
+  "description": "How Grabient makes gradients from 2 to 8 keyframes in OKLCH: the formula, steps, hue past 360°, colors a screen can't show and the seed in each URL.",
+  "descriptionLength": 148,
+  "canonical": "https://grabient.com/about",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/bindings",
+  "facts": {},
+  "title": "Keyboard shortcuts | Grabient",
+  "description": "Every keyboard shortcut in Grabient: theme, copy URL, undo and redo, random palette, invert, reverse, steps and more. Press one on the page to change it.",
+  "descriptionLength": 153,
+  "canonical": "https://grabient.com/bindings",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/mcp-server",
+  "facts": {},
+  "title": "MCP | Grabient",
+  "description": "Connect an AI app like Claude, ChatGPT or Cursor to your Grabient account. It can search, make and save palettes and collections for you.",
+  "descriptionLength": 137,
+  "canonical": "https://grabient.com/mcp-server",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/newsletter",
+  "facts": {},
+  "title": "Newsletter | Grabient",
+  "description": "Grabient's newsletter, about once a month: rising palettes, featured collections and new features. Read every issue here, or sign up to get it by email.",
+  "descriptionLength": 152,
+  "canonical": "https://grabient.com/newsletter",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/login",
+  "facts": {},
+  "title": "Sign in | Grabient",
+  "description": "Sign in to save your favorite color palettes.",
+  "descriptionLength": 45,
+  "canonical": "https://grabient.com/login",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/connect",
+  "facts": {},
+  "title": "Connect an app | Grabient",
+  "description": "Allow an app to use your Grabient account.",
+  "descriptionLength": 42,
+  "canonical": "https://grabient.com/connect",
+  "robots": "noindex,nofollow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/settings",
+  "facts": {},
+  "title": "Settings | Grabient",
+  "description": "Manage your Grabient account.",
+  "descriptionLength": 29,
+  "canonical": "https://grabient.com/settings",
+  "robots": "noindex,nofollow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/unsubscribe/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "facts": {},
+  "title": "Unsubscribe | Grabient",
+  "description": "Stop the Grabient newsletter.",
+  "descriptionLength": 29,
+  "canonical": "https://grabient.com/unsubscribe",
+  "robots": "noindex,nofollow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/privacy",
+  "facts": {},
+  "title": "Privacy policy | Grabient",
+  "description": "What Grabient collects when you browse, sign in and save palettes, who can see it, who it's shared with, how long it's kept and how to delete it.",
+  "descriptionLength": 145,
+  "canonical": "https://grabient.com/privacy",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/terms",
+  "facts": {},
+  "title": "Terms of service | Grabient",
+  "description": "The terms for using Grabient: your account, the palettes you make and export, what you post, acceptable use, the source code and names, and liability.",
+  "descriptionLength": 150,
+  "canonical": "https://grabient.com/terms",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/contact",
+  "facts": {},
+  "title": "Contact | Grabient",
+  "description": "Tell Grabient what's broken or what you need. Send a message with the contact form, and leave your email only if you want a reply.",
+  "descriptionLength": 130,
+  "canonical": "https://grabient.com/contact",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/no/such",
+  "facts": {
+   "path": "/no/such"
+  },
+  "title": "Palette not found | Grabient",
+  "description": "This page doesn't exist. Browse Grabient for color palettes.",
+  "descriptionLength": 60,
+  "canonical": "https://grabient.com/no/such",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "en",
+  "path": "/not-a.page",
+  "facts": {
+   "path": "/not-a.page"
+  },
+  "title": "Palette not found | Grabient",
+  "description": "This page doesn't exist. Browse Grabient for color palettes.",
+  "descriptionLength": 60,
+  "canonical": "https://grabient.com/",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient gradient palette generator",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "ja",
+  "path": "/",
+  "facts": {},
+  "title": "CSS グラデーションジェネレーターとカラーパレット | Grabient",
+  "description": "CSS グラデーションを作り、人気のカラーパレットを探せます。色、色数、角度、スタイルを編集して、CSS をコピーしたり、SVG や PNG で書き出したりできます。",
+  "descriptionLength": 83,
+  "canonical": "https://grabient.com/ja",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=hot&v=k4",
+  "imageAlt": "Grabient の注目のパレットとコレクション",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "ja",
+  "path": "/palettes",
+  "facts": {},
+  "title": "人気のグラデーションパレット | Grabient",
+  "description": "Grabient で最もいいねの多い CSS グラデーションとカラーパレットです。色、色数、角度、スタイルを編集して、CSS をコピーしたり、SVG や PNG で書き出したりできます。",
+  "descriptionLength": 93,
+  "canonical": "https://grabient.com/ja/palettes",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/list?sort=popular&v=k4",
+  "imageAlt": "Grabient の人気のグラデーションパレット",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "ja",
+  "path": "/kS7Q8Yy5S_SChv0",
+  "facts": {
+   "title": "Dusk | Grabient"
+  },
+  "title": "類似色のグレー、茶色とマルーンの線形グラデーション | Grabient",
+  "description": "類似色のグレー、茶色とマルーンのパレット（7色）。 #f6e4e0, #dfc6c0, #be9b94, #9e726b, #7d4b45, #5d2522, #46070b。編集して、CSS、SVG、PNG、シェーダーとして書き出せます。",
+  "descriptionLength": 120,
+  "canonical": "https://grabient.com/ja/kS7Q8Yy5S_SChv0",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og?seed=kS7Q8Yy5S_SChv0&v=k4",
+  "imageAlt": "類似色のグレー、茶色とマルーンのカラーパレット",
+  "themeColor": "#f6e4e0",
+  "markdown": "https://grabient.com/kS7Q8Yy5S_SChv0.md",
+  "alternates": null,
+  "structuredData": [
+   "CreativeWork",
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "title": "Dusk | Grabient"
+  },
+  "icon": "16 colors"
+ },
+ {
+  "locale": "ja",
+  "path": "/privacy",
+  "facts": {},
+  "title": "プライバシーポリシー | Grabient",
+  "description": "閲覧、ログイン、パレットの保存の際に Grabient が収集する情報と、それを見られる人、共有先、保存期間、削除方法。",
+  "descriptionLength": 60,
+  "canonical": "https://grabient.com/ja/privacy",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient グラデーションパレットジェネレーター",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "ja",
+  "path": "/contact",
+  "facts": {},
+  "title": "お問い合わせ | Grabient",
+  "description": "不具合や必要なことを Grabient にお知らせください。お問い合わせフォームからメッセージを送れます。メールアドレスは返信が必要な場合のみ入力してください。",
+  "descriptionLength": 80,
+  "canonical": "https://grabient.com/ja/contact",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/grabient.png",
+  "imageAlt": "Grabient グラデーションパレットジェネレーター",
+  "alternates": "17 (en ar de es fa fr id ja ko pt ru th tr uk vi zh x-default)",
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ },
+ {
+  "locale": "ja",
+  "path": "/ocean-gradients",
+  "facts": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "languages": [
+     "ja"
+    ]
+   }
+  },
+  "title": "Ocean gradients：カラーパレット16件 | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16件のカラーパレットと CSS グラデーションです。パレットを開けば、編集して書き出せます。",
+  "descriptionLength": 146,
+  "canonical": "https://grabient.com/ja/ocean-gradients",
+  "robots": "index,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collection?slug=ocean-gradients&v=k4&t=1760000000000",
+  "imageAlt": "Ocean gradients：カラーパレットのコレクション",
+  "markdown": "https://grabient.com/ocean-gradients.md",
+  "alternates": "3 (en ja x-default)",
+  "structuredData": [
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "languages": [
+     "ja"
+    ]
+   }
+  },
+  "icon": null
+ },
+ {
+  "locale": "de",
+  "path": "/ocean-gradients",
+  "facts": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "languages": [
+     "ja"
+    ]
+   }
+  },
+  "title": "Ocean gradients: 16 Farbpaletten | Grabient",
+  "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints. 16 Farbpaletten und CSS-Farbverläufe.",
+  "descriptionLength": 136,
+  "canonical": "https://grabient.com/de/ocean-gradients",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/collection?slug=ocean-gradients&v=k4&t=1760000000000",
+  "imageAlt": "Ocean gradients: eine Sammlung von Farbpaletten",
+  "markdown": "https://grabient.com/ocean-gradients.md",
+  "alternates": null,
+  "structuredData": [
+   "BreadcrumbList"
+  ],
+  "factsSent": {
+   "collection": {
+    "title": "Ocean gradients",
+    "description": "Cyan-centered ramps combine turquoise water, clear sky blue, cool mist, and deeper blue endpoints.",
+    "tags": [
+     "ocean",
+     "blue"
+    ],
+    "count": 16,
+    "createdAt": 1750000000000,
+    "updatedAt": 1760000000000,
+    "languages": [
+     "ja"
+    ]
+   }
+  },
+  "icon": null
+ },
+ {
+  "locale": "ar",
+  "path": "/palettes?q=blue",
+  "facts": {},
+  "title": "تدرجات ولوحات ألوان ⁨Blue⁩ | Grabient",
+  "description": "استكشف تدرجات ولوحات ألوان ⁨blue⁩، مطابقة حسب اللون والمزاج. حرّر أيًّا منها، ثم انسخ CSS أو صدّر SVG وPNG.",
+  "descriptionLength": 107,
+  "canonical": "https://grabient.com/ar/palettes?q=blue",
+  "robots": "noindex,follow",
+  "stagingRobots": "noindex,nofollow",
+  "image": "https://grabient.com/api/og/query?query=blue&v=k4",
+  "imageAlt": "تدرجات ولوحات ألوان ⁨Blue⁩",
+  "alternates": null,
+  "structuredData": [],
+  "factsSent": null,
+  "icon": null
+ }
+]

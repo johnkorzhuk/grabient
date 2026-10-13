@@ -1,0 +1,1108 @@
+{
+ "normalizeSearchQuery": [
+  [
+   "x",
+   "x"
+  ],
+  [
+   "Blue  Sky",
+   "Blue Sky"
+  ],
+  [
+   " kY4mpDazO-mUuu_fuLqXU49dvVP6 ",
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  [
+   "https://grabient.com/kY4mpDazO-mUuu_fuLqXU49dvVP6?steps=12",
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  [
+   "https://grabient.com/palettes?q=Warm+Sunset",
+   "warm sunset"
+  ],
+  [
+   "https://evil.invalid/kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "https://evil.invalid/kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  [
+   "a\u0000b",
+   null
+  ],
+  [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  [
+   "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   null
+  ],
+  [
+   "Ｓｕｎｓｅｔ",
+   "Sunset"
+  ],
+  [
+   "",
+   null
+  ]
+ ],
+ "queryFromParam": [
+  [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ],
+  [
+   "blue-pink",
+   "blue pink"
+  ],
+  [
+   "%broken",
+   null
+  ],
+  [
+   "%E6%97%A5%E6%9C%AC%E3%81%AE%E7%A7%8B",
+   "日本の秋"
+  ],
+  [
+   "_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu",
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6"
+  ]
+ ],
+ "searchRequestInput": [
+  [
+   "/api/palettes/search?q=blue&query=red&limit=Infinity",
+   {
+    "query": "red",
+    "limit": 48,
+    "sort": "popular"
+   }
+  ],
+  [
+   "/search/blue.json?limit=0&sort=newest",
+   {
+    "query": "blue",
+    "limit": 1,
+    "sort": "newest"
+   }
+  ],
+  [
+   "/api/palettes/search?query=&q=blue&sort=wrong",
+   {
+    "query": null,
+    "limit": 48,
+    "sort": "popular"
+   }
+  ],
+  [
+   "/palettes/dark-blue.json",
+   {
+    "query": "dark blue",
+    "limit": 48,
+    "sort": "popular"
+   }
+  ],
+  [
+   "/api/search.json?q=sunset&limit=200&sort=rising",
+   {
+    "query": "sunset",
+    "limit": 96,
+    "sort": "rising"
+   }
+  ],
+  [
+   "/api/palettes/search?q=https%3A%2F%2Fgrabient.com%2Fja%2FkY4mpDazO-mUuu_fuLqXU49dvVP6.png",
+   {
+    "query": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+    "limit": 48,
+    "sort": "popular"
+   }
+  ]
+ ],
+ "sixDigits": [
+  [
+   "#FFF",
+   "#ffffff"
+  ],
+  [
+   "#abc",
+   "#aabbcc"
+  ],
+  [
+   "#264653ff",
+   "#264653"
+  ],
+  [
+   "#ABCDEF",
+   "#abcdef"
+  ],
+  [
+   "fff",
+   "#ffffff"
+  ]
+ ],
+ "queryColors": [
+  [
+   "#FFF, #264653ff and navy",
+   [
+    "#ffffff",
+    "#264653"
+   ],
+   ", and navy"
+  ],
+  [
+   "navy",
+   [],
+   "navy"
+  ],
+  [
+   "#12345 #123456",
+   [
+    "#123456"
+   ],
+   "#12345"
+  ],
+  [
+   "#gggggg",
+   [],
+   "#gggggg"
+  ],
+  [
+   "a#fff",
+   [
+    "#ffffff"
+   ],
+   "a"
+  ],
+  [
+   "#fff1",
+   [],
+   "#fff1"
+  ]
+ ],
+ "unreadPalette": [
+  [
+   "_gAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAAgAAA",
+   true
+  ],
+  [
+   "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   false
+  ],
+  [
+   "sunset",
+   false
+  ],
+  [
+   "_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu",
+   false
+  ]
+ ],
+ "plainPhrase": [
+  [
+   "blue",
+   true
+  ],
+  [
+   "light gray",
+   true
+  ],
+  [
+   "light grey",
+   false
+  ],
+  [
+   "best blue",
+   false
+  ],
+  [
+   "🌊",
+   false
+  ],
+  [
+   "sunsett",
+   false
+  ],
+  [
+   "dark blue sunset",
+   false
+  ],
+  [
+   "Blue",
+   true
+  ]
+ ],
+ "supportedTerms": [
+  {
+   "term": "ramp",
+   "support": 508
+  },
+  {
+   "term": "warm",
+   "support": 399
+  },
+  {
+   "term": "polychromatic",
+   "support": 382
+  },
+  {
+   "term": "wcag-aa",
+   "support": 355
+  },
+  {
+   "term": "clipped",
+   "support": 350
+  },
+  {
+   "term": "cooling",
+   "support": 315
+  },
+  {
+   "term": "cool",
+   "support": 312
+  },
+  {
+   "term": "blue",
+   "support": 308
+  },
+  {
+   "term": "multicolor",
+   "support": 307
+  },
+  {
+   "term": "warming",
+   "support": 302
+  },
+  {
+   "term": "hue contrast",
+   "support": 301
+  },
+  {
+   "term": "brightening",
+   "support": 298
+  },
+  {
+   "term": "quarter-wheel",
+   "support": 287
+  },
+  {
+   "term": "yellow",
+   "support": 257
+  },
+  {
+   "term": "analogous",
+   "support": 247
+  },
+  {
+   "term": "banding",
+   "support": 240
+  },
+  {
+   "term": "blue-yellow axis",
+   "support": 231
+  },
+  {
+   "term": "cyan",
+   "support": 222
+  },
+  {
+   "term": "red",
+   "support": 222
+  },
+  {
+   "term": "clipped-highlights",
+   "support": 214
+  },
+  {
+   "term": "orange",
+   "support": 212
+  },
+  {
+   "term": "wcag-aaa",
+   "support": 199
+  },
+  {
+   "term": "warm cool contrast",
+   "support": 198
+  },
+  {
+   "term": "violet",
+   "support": 196
+  },
+  {
+   "term": "vivid",
+   "support": 185
+  },
+  {
+   "term": "flat spot",
+   "support": 174
+  },
+  {
+   "term": "high-key",
+   "support": 169
+  },
+  {
+   "term": "magenta",
+   "support": 169
+  },
+  {
+   "term": "green",
+   "support": 168
+  },
+  {
+   "term": "crushed-shadows",
+   "support": 161
+  },
+  {
+   "term": "half-wheel",
+   "support": 160
+  },
+  {
+   "term": "luminous",
+   "support": 159
+  },
+  {
+   "term": "saturating",
+   "support": 159
+  },
+  {
+   "term": "neutral-anchored",
+   "support": 157
+  },
+  {
+   "term": "ombre",
+   "support": 157
+  },
+  {
+   "term": "darkening",
+   "support": 156
+  },
+  {
+   "term": "temperature-neutral",
+   "support": 156
+  },
+  {
+   "term": "unclipped",
+   "support": 155
+  },
+  {
+   "term": "azure",
+   "support": 154
+  },
+  {
+   "term": "hue-advancing",
+   "support": 154
+  },
+  {
+   "term": "hue-reversing",
+   "support": 150
+  },
+  {
+   "term": "pink",
+   "support": 147
+  },
+  {
+   "term": "brown",
+   "support": 139
+  },
+  {
+   "term": "light",
+   "support": 139
+  },
+  {
+   "term": "monochrome",
+   "support": 137
+  },
+  {
+   "term": "rose",
+   "support": 134
+  },
+  {
+   "term": "green-red axis",
+   "support": 132
+  },
+  {
+   "term": "sunset",
+   "support": 116
+  },
+  {
+   "term": "spectral order",
+   "support": 115
+  },
+  {
+   "term": "desaturating",
+   "support": 110
+  },
+  {
+   "term": "arch",
+   "support": 108
+  },
+  {
+   "term": "high-contrast",
+   "support": 106
+  },
+  {
+   "term": "near-black",
+   "support": 103
+  },
+  {
+   "term": "bright-middle",
+   "support": 100
+  },
+  {
+   "term": "dark",
+   "support": 97
+  },
+  {
+   "term": "sand",
+   "support": 97
+  },
+  {
+   "term": "flat-channel",
+   "support": 95
+  },
+  {
+   "term": "low-contrast",
+   "support": 94
+  },
+  {
+   "term": "muted",
+   "support": 93
+  },
+  {
+   "term": "earthy",
+   "support": 88
+  },
+  {
+   "term": "ocean",
+   "support": 87
+  },
+  {
+   "term": "crimson",
+   "support": 85
+  },
+  {
+   "term": "dusty",
+   "support": 85
+  },
+  {
+   "term": "navy",
+   "support": 83
+  },
+  {
+   "term": "wavy",
+   "support": 82
+  },
+  {
+   "term": "gradient map",
+   "support": 77
+  },
+  {
+   "term": "wash",
+   "support": 77
+  },
+  {
+   "term": "rainbow",
+   "support": 75
+  },
+  {
+   "term": "coral",
+   "support": 71
+  },
+  {
+   "term": "pastel",
+   "support": 71
+  },
+  {
+   "term": "near-white",
+   "support": 70
+  },
+  {
+   "term": "neon",
+   "support": 69
+  },
+  {
+   "term": "purple",
+   "support": 65
+  },
+  {
+   "term": "salmon",
+   "support": 65
+  },
+  {
+   "term": "terracotta",
+   "support": 64
+  },
+  {
+   "term": "dark-middle",
+   "support": 61
+  },
+  {
+   "term": "mint",
+   "support": 61
+  },
+  {
+   "term": "rust",
+   "support": 61
+  },
+  {
+   "term": "turquoise",
+   "support": 60
+  },
+  {
+   "term": "ultramarine",
+   "support": 54
+  },
+  {
+   "term": "amber",
+   "support": 52
+  },
+  {
+   "term": "complementary",
+   "support": 50
+  },
+  {
+   "term": "iso-luminant",
+   "support": 50
+  },
+  {
+   "term": "hue-wandering",
+   "support": 48
+  },
+  {
+   "term": "low-key",
+   "support": 48
+  },
+  {
+   "term": "deep",
+   "support": 47
+  },
+  {
+   "term": "gold",
+   "support": 47
+  },
+  {
+   "term": "lavender",
+   "support": 45
+  },
+  {
+   "term": "olive",
+   "support": 45
+  },
+  {
+   "term": "midtones",
+   "support": 43
+  },
+  {
+   "term": "jewel tones",
+   "support": 42
+  },
+  {
+   "term": "peach",
+   "support": 42
+  },
+  {
+   "term": "cerulean",
+   "support": 41
+  },
+  {
+   "term": "ochre",
+   "support": 40
+  },
+  {
+   "term": "saturation contrast",
+   "support": 40
+  },
+  {
+   "term": "seamless",
+   "support": 40
+  },
+  {
+   "term": "spring green",
+   "support": 36
+  },
+  {
+   "term": "chartreuse",
+   "support": 35
+  },
+  {
+   "term": "maroon",
+   "support": 34
+  },
+  {
+   "term": "sky",
+   "support": 33
+  },
+  {
+   "term": "teal",
+   "support": 33
+  },
+  {
+   "term": "duotone",
+   "support": 32
+  },
+  {
+   "term": "periwinkle",
+   "support": 32
+  },
+  {
+   "term": "near-full-circle",
+   "support": 30
+  },
+  {
+   "term": "chiaroscuro",
+   "support": 28
+  },
+  {
+   "term": "accented analogous",
+   "support": 27
+  },
+  {
+   "term": "autumn",
+   "support": 25
+  },
+  {
+   "term": "highlight band",
+   "support": 25
+  },
+  {
+   "term": "duotone gradient",
+   "support": 21
+  },
+  {
+   "term": "full-wheel",
+   "support": 21
+  },
+  {
+   "term": "pure-black-plateau",
+   "support": 21
+  },
+  {
+   "term": "tints",
+   "support": 21
+  },
+  {
+   "term": "brilliant",
+   "support": 19
+  },
+  {
+   "term": "grayscale",
+   "support": 19
+  },
+  {
+   "term": "mustard",
+   "support": 19
+  },
+  {
+   "term": "cool gray",
+   "support": 16
+  },
+  {
+   "term": "fade to black",
+   "support": 12
+  },
+  {
+   "term": "fade to gray",
+   "support": 10
+  },
+  {
+   "term": "fade to white",
+   "support": 10
+  },
+  {
+   "term": "warm gray",
+   "support": 9
+  },
+  {
+   "term": "hue cycling",
+   "support": 6
+  },
+  {
+   "term": "pure-white-plateau",
+   "support": 6
+  },
+  {
+   "term": "shadow band",
+   "support": 6
+  },
+  {
+   "term": "sepia",
+   "support": 5
+  },
+  {
+   "term": "tones",
+   "support": 5
+  },
+  {
+   "term": "smooth",
+   "support": 4
+  },
+  {
+   "term": "extension contrast",
+   "support": 3
+  },
+  {
+   "term": "repeating",
+   "support": 1
+  },
+  {
+   "term": "shades",
+   "support": 1
+  },
+  {
+   "term": "solid",
+   "support": 1
+  },
+  {
+   "term": "triadic",
+   "support": 1
+  }
+ ],
+ "sitemapQueries": [
+  "warm",
+  "cool",
+  "blue",
+  "multicolor",
+  "yellow",
+  "analogous",
+  "cyan",
+  "red",
+  "orange",
+  "violet",
+  "magenta",
+  "green",
+  "azure",
+  "pink",
+  "brown",
+  "light",
+  "monochrome",
+  "rose",
+  "sunset",
+  "dark",
+  "sand",
+  "muted",
+  "earthy",
+  "ocean",
+  "crimson",
+  "dusty",
+  "navy",
+  "rainbow",
+  "coral",
+  "pastel",
+  "neon",
+  "purple",
+  "salmon",
+  "terracotta",
+  "mint",
+  "rust",
+  "turquoise",
+  "ultramarine",
+  "amber",
+  "complementary",
+  "gold",
+  "lavender",
+  "olive",
+  "jewel tones",
+  "peach",
+  "cerulean",
+  "ochre",
+  "spring green",
+  "chartreuse",
+  "maroon",
+  "sky",
+  "teal",
+  "periwinkle",
+  "autumn",
+  "duotone gradient",
+  "mustard",
+  "cool gray",
+  "warm gray",
+  "sepia",
+  "triadic"
+ ],
+ "answerBar": [
+  [
+   "sunset",
+   0.357654
+  ],
+  [
+   "red and blue",
+   0.083239
+  ]
+ ],
+ "americanSpelling": [
+  [
+   "light grey green",
+   "light gray green"
+  ],
+  [
+   "greyhound colour",
+   "greyhound color"
+  ],
+  [
+   "centre greys greyish",
+   "center grays grayish"
+  ],
+  [
+   "gray",
+   "gray"
+  ]
+ ],
+ "nearWord": [
+  [
+   "purpel",
+   "purple",
+   true
+  ],
+  [
+   "redd",
+   "red",
+   true
+  ],
+  [
+   "blend",
+   "bland",
+   false
+  ],
+  [
+   "song",
+   "sáng",
+   false
+  ],
+  [
+   "turkis",
+   "türkis",
+   true
+  ],
+  [
+   "home",
+   "hope",
+   false
+  ],
+  [
+   "gold",
+   "bold",
+   false
+  ],
+  [
+   "oceans",
+   "ocean",
+   true
+  ],
+  [
+   "clam",
+   "clay",
+   false
+  ]
+ ],
+ "hangulStem": [
+  [
+   "바다의",
+   "바다"
+  ],
+  [
+   "바다에서",
+   "바다"
+  ],
+  [
+   "sea",
+   null
+  ],
+  [
+   "의",
+   null
+  ]
+ ],
+ "joinTokens": [
+  [
+   [
+    "深",
+    "蓝色"
+   ],
+   "深蓝色"
+  ],
+  [
+   [
+    "dark",
+    "blue"
+   ],
+   "dark blue"
+  ],
+  [
+   [
+    "sunset",
+    "日落"
+   ],
+   "sunset 日落"
+  ]
+ ],
+ "textMark": [
+  [
+   "Sunset",
+   "1rdvjd2bpqq.6"
+  ],
+  [
+   "Sunset. Warm skies",
+   "22cz84gb110.i"
+  ],
+  [
+   "Sunset. Warm skies.",
+   "6ki3w34o7w.j"
+  ],
+  [
+   "",
+   "wvjl67o803.0"
+  ],
+  [
+   "日本の秋",
+   "1rhzq1ipi4u.4"
+  ]
+ ],
+ "subjectOf": [
+  [
+   "Ocean deep gradients",
+   "Ocean deep"
+  ],
+  [
+   "Zorblax drinks color palettes",
+   "Zorblax drinks"
+  ],
+  [
+   "Sunset Gradient Palettes",
+   "Sunset"
+  ],
+  [
+   "Gradients",
+   "Gradients"
+  ],
+  [
+   "Blue swatches",
+   "Blue"
+  ],
+  [
+   "Retro colour schemes",
+   "Retro colour schemes"
+  ],
+  [
+   "Neon colors",
+   "Neon"
+  ]
+ ],
+ "collectionText": [
+  [
+   "Ocean deep gradients",
+   "Cold water, far from shore.",
+   [
+    "sea",
+    "marine"
+   ],
+   "Ocean deep gradients. Cold water, far from shore.. sea, marine"
+  ],
+  [
+   "Night",
+   "",
+   [],
+   "Night"
+  ],
+  [
+   " Spaced ",
+   "  ",
+   [
+    "a",
+    "b"
+   ],
+   "Spaced. a, b"
+  ]
+ ],
+ "siteMark": "v1:f1:940:1789010584864:389:389:1790017391256:8091:0:0:0:7412:1790017391323",
+ "harmonyOf": [
+  [
+   [
+    1,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   0,
+   "monochromatic"
+  ],
+  [
+   [
+    0.5,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0.5,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   0,
+   "complementary"
+  ],
+  [
+   [
+    0.34,
+    0,
+    0,
+    0,
+    0.33,
+    0,
+    0,
+    0,
+    0.33,
+    0,
+    0,
+    0
+   ],
+   0,
+   "triadic"
+  ],
+  [
+   [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+   ],
+   0.95,
+   "achromatic"
+  ],
+  [
+   [
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333,
+    0.08333333333333333
+   ],
+   0,
+   "rainbow"
+  ]
+ ]
+}

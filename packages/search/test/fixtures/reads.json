@@ -1,0 +1,2259 @@
+{
+ "contract": "normalizeQuery, queryTokens, queryWords, harmonyFilter, lexicon.lookup, knownQuery (first 4 numbers of the vector), hexQuery and mapQuery for each text. queryTokens of unspaced scripts depends on the ICU of Intl.Segmenter (Node 25 here).",
+ "results": [
+  {
+   "text": "Sunset",
+   "normalized": "sunset",
+   "tokens": [
+    "sunset"
+   ],
+   "words": [
+    "sunset"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "sunset",
+    "how": "exact",
+    "key": "sunset"
+   },
+   "known": {
+    "phrases": [
+     "sunset"
+    ],
+    "rows": [
+     645
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.14687,
+     -0.282573,
+     0.059566,
+     0.021466
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "sunset",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "SUNSET!!",
+   "normalized": "sunset",
+   "tokens": [
+    "sunset"
+   ],
+   "words": [
+    "sunset"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "sunset",
+    "how": "exact",
+    "key": "sunset"
+   },
+   "known": {
+    "phrases": [
+     "sunset"
+    ],
+    "rows": [
+     645
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.14687,
+     -0.282573,
+     0.059566,
+     0.021466
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "sunset",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "sunsett",
+   "normalized": "sunsett",
+   "tokens": [
+    "sunsett"
+   ],
+   "words": [
+    "sunsett"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "sunset",
+    "how": "typo",
+    "key": "sunset"
+   },
+   "known": {
+    "phrases": [
+     "sunset"
+    ],
+    "rows": [
+     645
+    ],
+    "how": "typo",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.14687,
+     -0.282573,
+     0.059566,
+     0.021466
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "sunsett"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "atardecer",
+   "normalized": "atardecer",
+   "tokens": [
+    "atardecer"
+   ],
+   "words": [
+    "atardecer"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "sunset",
+    "how": "exact",
+    "key": "atardecer"
+   },
+   "known": {
+    "phrases": [
+     "sunset"
+    ],
+    "rows": [
+     645
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.14687,
+     -0.282573,
+     0.059566,
+     0.021466
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "atardecer"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "coucher de soleil",
+   "normalized": "coucher de soleil",
+   "tokens": [
+    "coucher",
+    "de",
+    "soleil"
+   ],
+   "words": [
+    "coucher",
+    "soleil"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "sunset",
+    "how": "exact",
+    "key": "coucher de soleil"
+   },
+   "known": {
+    "phrases": [
+     "sunset"
+    ],
+    "rows": [
+     645
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.14687,
+     -0.282573,
+     0.059566,
+     0.021466
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "coucher",
+     "de",
+     "soleil"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "light grey",
+   "normalized": "light grey",
+   "tokens": [
+    "light",
+    "grey"
+   ],
+   "words": [
+    "light",
+    "grey"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "light grey",
+    "how": "exact",
+    "key": "light grey"
+   },
+   "known": {
+    "phrases": [
+     "light grey"
+    ],
+    "rows": [
+     2726
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.134775,
+     0.032803,
+     0.113286,
+     -0.085657
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "light",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "grey"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "dark blue sunset",
+   "normalized": "dark blue sunset",
+   "tokens": [
+    "dark",
+    "blue",
+    "sunset"
+   ],
+   "words": [
+    "dark",
+    "blue",
+    "sunset"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "dark blue",
+     "sunset"
+    ],
+    "rows": [
+     21,
+     645
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.102439,
+     -0.159459,
+     0.120176,
+     0.103478
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "dark",
+      "weight": 1
+     },
+     {
+      "term": "blue",
+      "weight": 0.7
+     },
+     {
+      "term": "sunset",
+      "weight": 0.48999999999999994
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "red and blue",
+   "normalized": "red and blue",
+   "tokens": [
+    "red",
+    "and",
+    "blue"
+   ],
+   "words": [
+    "red",
+    "blue"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "red",
+     "blue"
+    ],
+    "rows": [
+     0,
+     1
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 2,
+    "vector": [
+     0.043731,
+     0.024136,
+     -0.066814,
+     0.145438
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "red",
+      "weight": 1
+     },
+     {
+      "term": "blue",
+      "weight": 0.7
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 1
+   }
+  },
+  {
+   "text": "warm red and blue",
+   "normalized": "warm red and blue",
+   "tokens": [
+    "warm",
+    "red",
+    "and",
+    "blue"
+   ],
+   "words": [
+    "warm",
+    "red",
+    "blue"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "warm",
+     "red",
+     "blue"
+    ],
+    "rows": [
+     1346,
+     0,
+     1
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 3,
+    "vector": [
+     0.038038,
+     0.009756,
+     -0.043626,
+     0.086828
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "warm",
+      "weight": 1
+     },
+     {
+      "term": "red",
+      "weight": 0.7
+     },
+     {
+      "term": "blue",
+      "weight": 0.48999999999999994
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 1
+   }
+  },
+  {
+   "text": "blue and orange",
+   "normalized": "blue and orange",
+   "tokens": [
+    "blue",
+    "and",
+    "orange"
+   ],
+   "words": [
+    "blue",
+    "orange"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "blue and orange",
+    "how": "exact",
+    "key": "blue and orange"
+   },
+   "known": {
+    "phrases": [
+     "blue and orange"
+    ],
+    "rows": [
+     2827
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.030546,
+     -0.213692,
+     -0.151349,
+     0.044179
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "blue",
+      "weight": 1
+     },
+     {
+      "term": "orange",
+      "weight": 0.7
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 1
+   }
+  },
+  {
+   "text": "blue sunset",
+   "normalized": "blue sunset",
+   "tokens": [
+    "blue",
+    "sunset"
+   ],
+   "words": [
+    "blue",
+    "sunset"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "blue",
+     "sunset"
+    ],
+    "rows": [
+     1,
+     645
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.010901,
+     -0.168886,
+     0.086775,
+     0.028274
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "blue",
+      "weight": 1
+     },
+     {
+      "term": "sunset",
+      "weight": 0.7
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "🤍🌹",
+   "normalized": "🤍 🌹",
+   "tokens": [
+    "🤍",
+    "🌹"
+   ],
+   "words": [
+    "🤍",
+    "🌹"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "white",
+     "rose"
+    ],
+    "rows": [
+     10,
+     2744
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.10634,
+     -0.033954,
+     0.099954,
+     0.067998
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "light",
+      "weight": 1
+     },
+     {
+      "term": "rose",
+      "weight": 1
+     },
+     {
+      "term": "red",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "🌊🌅sunset",
+   "normalized": "🌊 🌅 sunset",
+   "tokens": [
+    "🌊",
+    "🌅",
+    "sunset"
+   ],
+   "words": [
+    "🌊",
+    "🌅",
+    "sunset"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "ocean",
+     "sunrise",
+     "sunset"
+    ],
+    "rows": [
+     724,
+     646,
+     645
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.074499,
+     -0.264555,
+     0.047973,
+     -0.034229
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "ocean",
+      "weight": 1
+     },
+     {
+      "term": "sunset",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "日本の秋",
+   "normalized": "日本の秋",
+   "tokens": [
+    "日本",
+    "の",
+    "秋"
+   ],
+   "words": [
+    "日本",
+    "秋"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "japan",
+     "autumn"
+    ],
+    "rows": [
+     914,
+     1552
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.016433,
+     -0.291339,
+     -0.004735,
+     0.02069
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "日本の秋"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "深蓝色",
+   "normalized": "深蓝色",
+   "tokens": [
+    "深蓝色"
+   ],
+   "words": [
+    "深蓝色"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "dark blue",
+    "how": "exact",
+    "key": "深蓝色"
+   },
+   "known": {
+    "phrases": [
+     "dark blue"
+    ],
+    "rows": [
+     21
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.004774,
+     0.046522,
+     0.118334,
+     0.131715
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "深蓝色"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "พระอาทิตย์ตก",
+   "normalized": "พระอาทิตย์ตก",
+   "tokens": [
+    "พระอาทิตย์",
+    "ตก"
+   ],
+   "words": [
+    "พระอาทิตย์",
+    "ตก"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "sunset",
+    "how": "exact",
+    "key": "พระอาทิตย์ตก"
+   },
+   "known": {
+    "phrases": [
+     "sunset"
+    ],
+    "rows": [
+     645
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.14687,
+     -0.282573,
+     0.059566,
+     0.021466
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "พระอาท",
+     "ตย",
+     "ตก"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "เหลืองน้ำเงิน",
+   "normalized": "เหลืองน้ําเงิน",
+   "tokens": [
+    "เหลือง",
+    "น้ําเงิน"
+   ],
+   "words": [
+    "เหลือง",
+    "น้ําเงิน"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "yellow",
+     "blue"
+    ],
+    "rows": [
+     3,
+     1
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 2,
+    "vector": [
+     0.209071,
+     0.02523,
+     0.028292,
+     -0.101182
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "เหล",
+     "องน",
+     "ำเง",
+     "น"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "바다의",
+   "normalized": "바다의",
+   "tokens": [
+    "바다의"
+   ],
+   "words": [
+    "바다의"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "ocean"
+    ],
+    "rows": [
+     724
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.044801,
+     -0.021589,
+     0.091266,
+     0.05079
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "바다의"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "लाल",
+   "normalized": "लाल",
+   "tokens": [
+    "लाल"
+   ],
+   "words": [
+    "लाल"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "red",
+    "how": "exact",
+    "key": "लाल"
+   },
+   "known": {
+    "phrases": [
+     "red"
+    ],
+    "rows": [
+     0
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.10262,
+     0.004286,
+     -0.163234,
+     0.180599
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "ल",
+     "ल"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "gold and cream",
+   "normalized": "gold and cream",
+   "tokens": [
+    "gold",
+    "and",
+    "cream"
+   ],
+   "words": [
+    "gold",
+    "cream"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "gold",
+     "cream"
+    ],
+    "rows": [
+     336,
+     104
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 2,
+    "vector": [
+     0.078731,
+     -0.096903,
+     -0.022259,
+     -0.040545
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "gold",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "cream"
+    ],
+    "stopwordHits": 1
+   }
+  },
+  {
+   "text": "old rose",
+   "normalized": "old rose",
+   "tokens": [
+    "old",
+    "rose"
+   ],
+   "words": [
+    "old",
+    "rose"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "old rose",
+    "how": "exact",
+    "key": "old rose"
+   },
+   "known": {
+    "phrases": [
+     "old rose"
+    ],
+    "rows": [
+     2150
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.01439,
+     -0.042354,
+     0.047187,
+     0.057935
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "rose",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "old"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "or",
+   "normalized": "or",
+   "tokens": [
+    "or"
+   ],
+   "words": [],
+   "harmony": null,
+   "lookup": {
+    "phrase": "gold",
+    "how": "exact",
+    "key": "or"
+   },
+   "known": {
+    "phrases": [
+     "gold"
+    ],
+    "rows": [
+     336
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.018881,
+     -0.097442,
+     -0.10638,
+     -0.081672
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "or"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "sunset over the ocean",
+   "normalized": "sunset over the ocean",
+   "tokens": [
+    "sunset",
+    "over",
+    "the",
+    "ocean"
+   ],
+   "words": [
+    "sunset",
+    "ocean"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "sunset",
+     "ocean"
+    ],
+    "rows": [
+     645,
+     724
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.062477,
+     -0.18618,
+     0.092326,
+     0.044229
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "sunset",
+      "weight": 1
+     },
+     {
+      "term": "ocean",
+      "weight": 0.7
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "over"
+    ],
+    "stopwordHits": 1
+   }
+  },
+  {
+   "text": "coucher de soleil sur la plage",
+   "normalized": "coucher de soleil sur la plage",
+   "tokens": [
+    "coucher",
+    "de",
+    "soleil",
+    "sur",
+    "la",
+    "plage"
+   ],
+   "words": [
+    "coucher",
+    "soleil",
+    "plage"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "sunset",
+     "beach"
+    ],
+    "rows": [
+     645,
+     725
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.045039,
+     -0.277479,
+     0.058575,
+     -0.09094
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "coucher",
+     "de",
+     "soleil",
+     "sur",
+     "la",
+     "plage"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "the of",
+   "normalized": "the of",
+   "tokens": [
+    "the",
+    "of"
+   ],
+   "words": [],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 2
+   }
+  },
+  {
+   "text": "zxqvyk",
+   "normalized": "zxqvyk",
+   "tokens": [
+    "zxqvyk"
+   ],
+   "words": [
+    "zxqvyk"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "zxqvyk"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "blue zxqvyk",
+   "normalized": "blue zxqvyk",
+   "tokens": [
+    "blue",
+    "zxqvyk"
+   ],
+   "words": [
+    "blue",
+    "zxqvyk"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "blue"
+    ],
+    "rows": [
+     1
+    ],
+    "how": "words",
+    "whole": false,
+    "unknown": [
+     "zxqvyk"
+    ],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.163226,
+     0.029163,
+     0.070638,
+     0.020959
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "blue",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "zxqvyk"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "split complementary",
+   "normalized": "split complementary",
+   "tokens": [
+    "split",
+    "complementary"
+   ],
+   "words": [
+    "split",
+    "complementary"
+   ],
+   "harmony": [
+    "split-complementary"
+   ],
+   "lookup": {
+    "phrase": "split complementary",
+    "how": "exact",
+    "key": "split complementary"
+   },
+   "known": {
+    "phrases": [
+     "split complementary"
+    ],
+    "rows": [
+     491
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": [
+     "split-complementary"
+    ],
+    "each": 0,
+    "vector": [
+     -0.011189,
+     -0.211467,
+     -0.113644,
+     0.172429
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "split complementary",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "complimentary palette",
+   "normalized": "complimentary palette",
+   "tokens": [
+    "complimentary",
+    "palette"
+   ],
+   "words": [
+    "complimentary"
+   ],
+   "harmony": [
+    "complementary"
+   ],
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "complementary"
+    ],
+    "rows": [
+     487
+    ],
+    "how": "typo",
+    "whole": true,
+    "unknown": [],
+    "filter": [
+     "complementary"
+    ],
+    "each": 0,
+    "vector": [
+     -0.050193,
+     -0.158956,
+     -0.143812,
+     0.126312
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": "swatches",
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "complimentary"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "monochrome blue",
+   "normalized": "monochrome blue",
+   "tokens": [
+    "monochrome",
+    "blue"
+   ],
+   "words": [
+    "monochrome",
+    "blue"
+   ],
+   "harmony": [
+    "monochromatic"
+   ],
+   "lookup": {
+    "phrase": "monochrome blue",
+    "how": "exact",
+    "key": "monochrome blue"
+   },
+   "known": {
+    "phrases": [
+     "monochrome blue"
+    ],
+    "rows": [
+     509
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": [
+     "monochromatic"
+    ],
+    "each": 0,
+    "vector": [
+     0.0922,
+     0.004171,
+     0.008519,
+     0.016301
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "monochrome",
+      "weight": 1
+     },
+     {
+      "term": "blue",
+      "weight": 0.7
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "rainbow",
+   "normalized": "rainbow",
+   "tokens": [
+    "rainbow"
+   ],
+   "words": [
+    "rainbow"
+   ],
+   "harmony": [
+    "rainbow",
+    "multi-hue"
+   ],
+   "lookup": {
+    "phrase": "rainbow",
+    "how": "exact",
+    "key": "rainbow"
+   },
+   "known": {
+    "phrases": [
+     "rainbow"
+    ],
+    "rows": [
+     524
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": [
+     "rainbow",
+     "multi-hue"
+    ],
+    "each": 0,
+    "vector": [
+     -0.044057,
+     -0.138113,
+     -0.164845,
+     -0.054721
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "rainbow",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "spectrum",
+   "normalized": "spectrum",
+   "tokens": [
+    "spectrum"
+   ],
+   "words": [
+    "spectrum"
+   ],
+   "harmony": [
+    "rainbow",
+    "multi-hue"
+   ],
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "spectrum"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "triad",
+   "normalized": "triad",
+   "tokens": [
+    "triad"
+   ],
+   "words": [
+    "triad"
+   ],
+   "harmony": [
+    "triadic"
+   ],
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "triad"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "Red ❤️!",
+   "normalized": "red ❤",
+   "tokens": [
+    "red",
+    "❤"
+   ],
+   "words": [
+    "red",
+    "❤"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "red"
+    ],
+    "rows": [
+     0
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.10262,
+     0.004286,
+     -0.163234,
+     0.180599
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "red",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "👍🏽",
+   "normalized": "👍",
+   "tokens": [
+    "👍"
+   ],
+   "words": [
+    "👍"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "👍"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "🧑‍🚀",
+   "normalized": "🧑‍🚀",
+   "tokens": [
+    "🧑‍🚀"
+   ],
+   "words": [
+    "🧑‍🚀"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "🧑",
+     "🚀"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊🌊",
+   "normalized": "🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊 🌊",
+   "tokens": [
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊"
+   ],
+   "words": [
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊",
+    "🌊"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": {
+    "phrases": [
+     "ocean"
+    ],
+    "rows": [
+     724
+    ],
+    "how": "words",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.044801,
+     -0.021589,
+     0.091266,
+     0.05079
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "ocean",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "redd",
+   "normalized": "redd",
+   "tokens": [
+    "redd"
+   ],
+   "words": [
+    "redd"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "red",
+    "how": "typo",
+    "key": "red"
+   },
+   "known": {
+    "phrases": [
+     "red"
+    ],
+    "rows": [
+     0
+    ],
+    "how": "typo",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     -0.10262,
+     0.004286,
+     -0.163234,
+     0.180599
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "redd"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "turkis",
+   "normalized": "turkis",
+   "tokens": [
+    "turkis"
+   ],
+   "words": [
+    "turkis"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "turquoise",
+    "how": "typo",
+    "key": "türkis"
+   },
+   "known": {
+    "phrases": [
+     "turquoise"
+    ],
+    "rows": [
+     14
+    ],
+    "how": "typo",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.275405,
+     -0.108437,
+     -0.144711,
+     -0.031784
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "turkis"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "song",
+   "normalized": "song",
+   "tokens": [
+    "song"
+   ],
+   "words": [
+    "song"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "song"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "beige",
+   "normalized": "beige",
+   "tokens": [
+    "beige"
+   ],
+   "words": [
+    "beige"
+   ],
+   "harmony": null,
+   "lookup": {
+    "phrase": "beige",
+    "how": "exact",
+    "key": "beige"
+   },
+   "known": {
+    "phrases": [
+     "beige"
+    ],
+    "rows": [
+     2748
+    ],
+    "how": "exact",
+    "whole": true,
+    "unknown": [],
+    "filter": null,
+    "each": 0,
+    "vector": [
+     0.220367,
+     -0.03761,
+     0.103964,
+     -0.214316
+    ]
+   },
+   "hex": null,
+   "mapped": {
+    "tags": [
+     {
+      "term": "sand",
+      "weight": 1
+     }
+    ],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "blend",
+   "normalized": "blend",
+   "tokens": [
+    "blend"
+   ],
+   "words": [
+    "blend"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": "gradient",
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "mist",
+   "normalized": "mist",
+   "tokens": [
+    "mist"
+   ],
+   "words": [
+    "mist"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "mist"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "xqzv",
+   "normalized": "xqzv",
+   "tokens": [
+    "xqzv"
+   ],
+   "words": [
+    "xqzv"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "xqzv"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "rde",
+   "normalized": "rde",
+   "tokens": [
+    "rde"
+   ],
+   "words": [
+    "rde"
+   ],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [
+     "rde"
+    ],
+    "stopwordHits": 0
+   }
+  },
+  {
+   "text": "",
+   "normalized": "",
+   "tokens": [],
+   "words": [],
+   "harmony": null,
+   "lookup": null,
+   "known": null,
+   "hex": null,
+   "mapped": {
+    "tags": [],
+    "presentation": {
+     "render": null,
+     "style": null,
+     "count": null
+    },
+    "hex": [],
+    "unmapped": [],
+    "stopwordHits": 0
+   }
+  }
+ ]
+}

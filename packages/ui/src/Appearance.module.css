@@ -1,0 +1,213 @@
+@layer components {
+  .control {
+    position: static;
+    display: inline-flex;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  .host {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    min-width: 0;
+  }
+  /* the button on the input recipe, in a part with its own rim; open, it fills with ink */
+  .button {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s3);
+    min-width: 0;
+    height: var(--size-control-big);
+    padding-inline: var(--space-s2) var(--space-s3);
+    border: 1px solid var(--color-edge2);
+    border-radius: var(--radius-control);
+    --fill: var(--color-paper-solid);
+    background-color: var(--fill);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-none);
+    white-space: nowrap;
+    user-select: none;
+    cursor: pointer;
+    outline: none;
+    transition:
+      --fill var(--motion-fast) var(--motion-ease),
+      color var(--motion-fast) var(--motion-ease),
+      border-color var(--motion-fast) var(--motion-ease);
+    &[data-open] {
+      --fill: var(--color-ink);
+      border-color: transparent;
+      color: var(--color-on-ink);
+    }
+    /* with the reset beside it the button gives up its end corners: its end edge is the line between the two */
+    &[data-joined] {
+      border-start-end-radius: 0;
+      border-end-end-radius: 0;
+    }
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  .swatch {
+    flex-shrink: 0;
+    width: var(--space-s6);
+    height: var(--space-s6);
+    border-radius: var(--radius-control);
+    box-shadow: var(--color-rim);
+  }
+  .summary {
+    display: inline-flex;
+    align-items: baseline;
+    gap: var(--space-s2);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .detail {
+    min-width: 0;
+    overflow: hidden;
+    color: inherit;
+    font-family: var(--font-mono);
+    font-size: var(--font-fs1);
+    text-overflow: ellipsis;
+    opacity: 0.6;
+  }
+  .chevron {
+    display: flex;
+    margin-inline-start: auto;
+    transition: transform var(--motion-fast) var(--motion-ease);
+    &[data-open] {
+      transform: rotate(180deg);
+    }
+  }
+  .clear {
+    display: inline-flex;
+  }
+  /* floating under the header's end, or the page's width on a phone; placeMenu hangs it under the header's edge and a
+     short screen scrolls the menu itself */
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    width: 100%;
+    max-width: 560px;
+    padding: var(--space-s5);
+    border: 1px solid var(--color-glass-edge);
+    border-radius: var(--radius-surface);
+    background-color: var(--color-glass);
+    box-shadow: var(--color-shadow-pop);
+    -webkit-backdrop-filter: blur(var(--size-blur-glass));
+    backdrop-filter: blur(var(--size-blur-glass));
+    &[data-floating] {
+      --menu-gap: var(--space-s2);
+      --menu-edge: var(--space-s4);
+      position: absolute;
+      top: calc(100% + var(--space-s2));
+      inset-inline: auto 0;
+      z-index: 40;
+      width: 560px;
+      max-width: calc(100vw - var(--space-s8));
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+  }
+  /* on a phone the button is its swatch alone and the menu's Reset stands in for the joined one */
+  @container page (max-width: 800px) {
+    .summary,
+    .chevron,
+    .clear {
+      display: none;
+    }
+    .button[data-joined] {
+      border-start-end-radius: var(--radius-control);
+      border-end-end-radius: var(--radius-control);
+    }
+    .menu[data-floating] {
+      position: fixed;
+      top: calc(var(--size-top) + var(--space-s2));
+      inset-inline: var(--space-s4);
+      width: auto;
+    }
+  }
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s4);
+  }
+  /* Reset stands just before Close, so the title and Close never move as it comes and goes */
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+  }
+  /* a column to each style, its gradient over its bands; the cells touch, the room between two pictures half in each */
+  .tiles {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    grid-template-rows: repeat(2, auto);
+    margin: calc(-0.5 * var(--space-s3));
+  }
+  .tile {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+    min-width: 0;
+    margin: 0;
+    padding: calc(0.5 * var(--space-s3));
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-align: center;
+    cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+    --tile-ring: var(--color-rim);
+    --tile-focus: 0px;
+    &:hover {
+      --tile-ring: var(--color-rim), 0 0 0 2px var(--color-edge2);
+    }
+    &:focus-visible {
+      --tile-focus: 1px;
+    }
+    &[aria-pressed="true"] {
+      --tile-ring: var(--color-rim), 0 0 0 2px var(--color-ink);
+    }
+  }
+  .art {
+    display: block;
+    width: 100%;
+    height: var(--size-tile);
+    border-radius: var(--radius-control);
+    box-shadow: var(--tile-ring);
+    outline: var(--tile-focus) solid var(--color-ring);
+    outline-offset: 2px;
+    transition: box-shadow var(--motion-fast) var(--motion-ease);
+  }
+  .name {
+    display: block;
+    overflow: hidden;
+    color: var(--color-ink3);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    [aria-pressed="true"] > & {
+      color: var(--color-ink);
+    }
+  }
+  .pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-s3);
+  }
+}

@@ -1,0 +1,1130 @@
+[
+ {
+  "of": {
+   "seed": "kYuXkT47BBu6sxXjqsk1ilF8Onws",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 0,
+   "name": "Coral lagoon",
+   "note": "Radial"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kYuXkT47BBu6sxXjqsk1ilF8Onws.png?style=radialGradient&steps=32&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kYuXkT47BBu6sxXjqsk1ilF8Onws.png?style=radialGradient&steps=32&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kYuXkT47BBu6sxXjqsk1ilF8Onws.png?style=radialGradient&steps=32&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kYuXkT47BBu6sxXjqsk1ilF8Onws&style=radialGradient&steps=32&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kYuXkT47BBu6sxXjqsk1ilF8Onws&style=radialGradient&steps=32&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kYuXkT47BBu6sxXjqsk1ilF8Onws&style=radialGradient&steps=32&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW8RUxaqO8dmsPXbqE2x6zBg",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 135,
+   "name": "Peach orchard",
+   "note": "Linear bands"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW8RUxaqO8dmsPXbqE2x6zBg.png?style=linearSwatches&steps=5&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/kW8RUxaqO8dmsPXbqE2x6zBg.png?style=linearSwatches&steps=5&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/kW8RUxaqO8dmsPXbqE2x6zBg.png?style=linearSwatches&steps=5&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW8RUxaqO8dmsPXbqE2x6zBg&style=linearSwatches&steps=5&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW8RUxaqO8dmsPXbqE2x6zBg&style=linearSwatches&steps=5&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW8RUxaqO8dmsPXbqE2x6zBg&style=linearSwatches&steps=5&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWzVMw17K7kq5vM-LD1shs7Y",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 180,
+   "name": "Desert dusk",
+   "note": "Linear"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWzVMw17K7kq5vM-LD1shs7Y.png?style=linearGradient&steps=32&angle=180&w=1072&h=670",
+   "card": "https://grabient.test/kWzVMw17K7kq5vM-LD1shs7Y.png?style=linearGradient&steps=32&angle=180&w=520&h=390",
+   "tile": "https://grabient.test/kWzVMw17K7kq5vM-LD1shs7Y.png?style=linearGradient&steps=32&angle=180&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWzVMw17K7kq5vM-LD1shs7Y&style=linearGradient&steps=32&angle=180&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWzVMw17K7kq5vM-LD1shs7Y&style=linearGradient&steps=32&angle=180&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWzVMw17K7kq5vM-LD1shs7Y&style=linearGradient&steps=32&angle=180&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW6hdK6pbElaRxXeH9QcJFBI",
+   "style": "radialSwatches",
+   "steps": 5,
+   "angle": 0,
+   "name": "Pistachio macaron",
+   "note": "Radial bands"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW6hdK6pbElaRxXeH9QcJFBI.png?style=radialSwatches&steps=5&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kW6hdK6pbElaRxXeH9QcJFBI.png?style=radialSwatches&steps=5&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kW6hdK6pbElaRxXeH9QcJFBI.png?style=radialSwatches&steps=5&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW6hdK6pbElaRxXeH9QcJFBI&style=radialSwatches&steps=5&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW6hdK6pbElaRxXeH9QcJFBI&style=radialSwatches&steps=5&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW6hdK6pbElaRxXeH9QcJFBI&style=radialSwatches&steps=5&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW0ibSWiTBMytwpBMkKMyhAQ",
+   "style": "angularGradient",
+   "steps": 32,
+   "angle": 315,
+   "name": "Orchid velvet",
+   "note": "Angular"
+  },
+  "headFault": {
+   "sheet": "angular",
+   "letter": "angular",
+   "lead": "angular"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW0ibSWiTBMytwpBMkKMyhAQ.png?style=angularGradient&steps=32&angle=315&w=1072&h=670",
+   "card": "https://grabient.test/kW0ibSWiTBMytwpBMkKMyhAQ.png?style=angularGradient&steps=32&angle=315&w=520&h=390",
+   "tile": "https://grabient.test/kW0ibSWiTBMytwpBMkKMyhAQ.png?style=angularGradient&steps=32&angle=315&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW0ibSWiTBMytwpBMkKMyhAQ&style=angularGradient&steps=32&angle=315&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW0ibSWiTBMytwpBMkKMyhAQ&style=angularGradient&steps=32&angle=315&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW0ibSWiTBMytwpBMkKMyhAQ&style=angularGradient&steps=32&angle=315&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW1lA1Wy67USpu2xnjjopO8Y",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 180
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW1lA1Wy67USpu2xnjjopO8Y.png?style=linearGradient&steps=7&angle=180&w=1072&h=670",
+   "card": "https://grabient.test/kW1lA1Wy67USpu2xnjjopO8Y.png?style=linearGradient&steps=7&angle=180&w=520&h=390",
+   "tile": "https://grabient.test/kW1lA1Wy67USpu2xnjjopO8Y.png?style=linearGradient&steps=7&angle=180&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW1lA1Wy67USpu2xnjjopO8Y&style=linearGradient&steps=7&angle=180&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW1lA1Wy67USpu2xnjjopO8Y&style=linearGradient&steps=7&angle=180&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW1lA1Wy67USpu2xnjjopO8Y&style=linearGradient&steps=7&angle=180&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW7Q_UZpg_9Mpv2_rz9rKS_4",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 45
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW7Q_UZpg_9Mpv2_rz9rKS_4.png?style=linearGradient&steps=7&angle=45&w=1072&h=670",
+   "card": "https://grabient.test/kW7Q_UZpg_9Mpv2_rz9rKS_4.png?style=linearGradient&steps=7&angle=45&w=520&h=390",
+   "tile": "https://grabient.test/kW7Q_UZpg_9Mpv2_rz9rKS_4.png?style=linearGradient&steps=7&angle=45&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW7Q_UZpg_9Mpv2_rz9rKS_4&style=linearGradient&steps=7&angle=45&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW7Q_UZpg_9Mpv2_rz9rKS_4&style=linearGradient&steps=7&angle=45&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW7Q_UZpg_9Mpv2_rz9rKS_4&style=linearGradient&steps=7&angle=45&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWKC3RLLdA8tNRZbwkJbawtI",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWKC3RLLdA8tNRZbwkJbawtI.png?style=linearGradient&steps=7&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWKC3RLLdA8tNRZbwkJbawtI.png?style=linearGradient&steps=7&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWKC3RLLdA8tNRZbwkJbawtI.png?style=linearGradient&steps=7&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWKC3RLLdA8tNRZbwkJbawtI&style=linearGradient&steps=7&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWKC3RLLdA8tNRZbwkJbawtI&style=linearGradient&steps=7&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWKC3RLLdA8tNRZbwkJbawtI&style=linearGradient&steps=7&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWOhzJKp1B1CxzXoNkIdZ_Bo",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 180
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWOhzJKp1B1CxzXoNkIdZ_Bo.png?style=linearGradient&steps=7&angle=180&w=1072&h=670",
+   "card": "https://grabient.test/kWOhzJKp1B1CxzXoNkIdZ_Bo.png?style=linearGradient&steps=7&angle=180&w=520&h=390",
+   "tile": "https://grabient.test/kWOhzJKp1B1CxzXoNkIdZ_Bo.png?style=linearGradient&steps=7&angle=180&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWOhzJKp1B1CxzXoNkIdZ_Bo&style=linearGradient&steps=7&angle=180&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWOhzJKp1B1CxzXoNkIdZ_Bo&style=linearGradient&steps=7&angle=180&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWOhzJKp1B1CxzXoNkIdZ_Bo&style=linearGradient&steps=7&angle=180&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW5UA4YzU885KPU1NL6GhO-A",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 135
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW5UA4YzU885KPU1NL6GhO-A.png?style=linearGradient&steps=7&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/kW5UA4YzU885KPU1NL6GhO-A.png?style=linearGradient&steps=7&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/kW5UA4YzU885KPU1NL6GhO-A.png?style=linearGradient&steps=7&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW5UA4YzU885KPU1NL6GhO-A&style=linearGradient&steps=7&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW5UA4YzU885KPU1NL6GhO-A&style=linearGradient&steps=7&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW5UA4YzU885KPU1NL6GhO-A&style=linearGradient&steps=7&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kQ3yUGthcyI",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 0
+  },
+  "headFault": {
+   "sheet": "faint",
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kQ3yUGthcyI.png?style=radialGradient&steps=32&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kQ3yUGthcyI.png?style=radialGradient&steps=32&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kQ3yUGthcyI.png?style=radialGradient&steps=32&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kQ3yUGthcyI&style=radialGradient&steps=32&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kQ3yUGthcyI&style=radialGradient&steps=32&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kQ3yUGthcyI&style=radialGradient&steps=32&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kYoCnCYRDJe2Wxv1j8P5pFLUYbQq",
+   "style": "angularGradient",
+   "steps": 11,
+   "angle": 180
+  },
+  "headFault": {
+   "sheet": "angular",
+   "letter": "angular",
+   "lead": "angular"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kYoCnCYRDJe2Wxv1j8P5pFLUYbQq.png?style=angularGradient&steps=11&angle=180&w=1072&h=670",
+   "card": "https://grabient.test/kYoCnCYRDJe2Wxv1j8P5pFLUYbQq.png?style=angularGradient&steps=11&angle=180&w=520&h=390",
+   "tile": "https://grabient.test/kYoCnCYRDJe2Wxv1j8P5pFLUYbQq.png?style=angularGradient&steps=11&angle=180&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kYoCnCYRDJe2Wxv1j8P5pFLUYbQq&style=angularGradient&steps=11&angle=180&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kYoCnCYRDJe2Wxv1j8P5pFLUYbQq&style=angularGradient&steps=11&angle=180&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kYoCnCYRDJe2Wxv1j8P5pFLUYbQq&style=angularGradient&steps=11&angle=180&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWOR7UZp1N9SbtI2lLi8Q5R4",
+   "style": "radialSwatches",
+   "steps": 9,
+   "angle": 0
+  },
+  "headFault": {
+   "sheet": "faint",
+   "letter": "faint",
+   "lead": "faint"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWOR7UZp1N9SbtI2lLi8Q5R4.png?style=radialSwatches&steps=9&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWOR7UZp1N9SbtI2lLi8Q5R4.png?style=radialSwatches&steps=9&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWOR7UZp1N9SbtI2lLi8Q5R4.png?style=radialSwatches&steps=9&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWOR7UZp1N9SbtI2lLi8Q5R4&style=radialSwatches&steps=9&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWOR7UZp1N9SbtI2lLi8Q5R4&style=radialSwatches&steps=9&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWOR7UZp1N9SbtI2lLi8Q5R4&style=radialSwatches&steps=9&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWezyUXx8-b4cQNfGa6ZhpMI",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 45
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWezyUXx8-b4cQNfGa6ZhpMI.png?style=linearGradient&steps=32&angle=45&w=1072&h=670",
+   "card": "https://grabient.test/kWezyUXx8-b4cQNfGa6ZhpMI.png?style=linearGradient&steps=32&angle=45&w=520&h=390",
+   "tile": "https://grabient.test/kWezyUXx8-b4cQNfGa6ZhpMI.png?style=linearGradient&steps=32&angle=45&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWezyUXx8-b4cQNfGa6ZhpMI&style=linearGradient&steps=32&angle=45&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWezyUXx8-b4cQNfGa6ZhpMI&style=linearGradient&steps=32&angle=45&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWezyUXx8-b4cQNfGa6ZhpMI&style=linearGradient&steps=32&angle=45&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWQBh4Z5a6EYYQeyFUNp4_Aw",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 210
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWQBh4Z5a6EYYQeyFUNp4_Aw.png?style=linearSwatches&steps=5&angle=210&w=1072&h=670",
+   "card": "https://grabient.test/kWQBh4Z5a6EYYQeyFUNp4_Aw.png?style=linearSwatches&steps=5&angle=210&w=520&h=390",
+   "tile": "https://grabient.test/kWQBh4Z5a6EYYQeyFUNp4_Aw.png?style=linearSwatches&steps=5&angle=210&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWQBh4Z5a6EYYQeyFUNp4_Aw&style=linearSwatches&steps=5&angle=210&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWQBh4Z5a6EYYQeyFUNp4_Aw&style=linearSwatches&steps=5&angle=210&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWQBh4Z5a6EYYQeyFUNp4_Aw&style=linearSwatches&steps=5&angle=210&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWXDFzyB9BFeVQzTkslv6JEo",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 180
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWXDFzyB9BFeVQzTkslv6JEo.png?style=linearGradient&steps=32&angle=180&w=1072&h=670",
+   "card": "https://grabient.test/kWXDFzyB9BFeVQzTkslv6JEo.png?style=linearGradient&steps=32&angle=180&w=520&h=390",
+   "tile": "https://grabient.test/kWXDFzyB9BFeVQzTkslv6JEo.png?style=linearGradient&steps=32&angle=180&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWXDFzyB9BFeVQzTkslv6JEo&style=linearGradient&steps=32&angle=180&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWXDFzyB9BFeVQzTkslv6JEo&style=linearGradient&steps=32&angle=180&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWXDFzyB9BFeVQzTkslv6JEo&style=linearGradient&steps=32&angle=180&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWOxu4MRW6EOdu9NHzxTqA5I",
+   "style": "linearSwatches",
+   "steps": 6,
+   "angle": 135
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWOxu4MRW6EOdu9NHzxTqA5I.png?style=linearSwatches&steps=6&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/kWOxu4MRW6EOdu9NHzxTqA5I.png?style=linearSwatches&steps=6&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/kWOxu4MRW6EOdu9NHzxTqA5I.png?style=linearSwatches&steps=6&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWOxu4MRW6EOdu9NHzxTqA5I&style=linearSwatches&steps=6&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWOxu4MRW6EOdu9NHzxTqA5I&style=linearSwatches&steps=6&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWOxu4MRW6EOdu9NHzxTqA5I&style=linearSwatches&steps=6&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW8Rihbha_uUbPlkIbtayi8g",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 0
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW8Rihbha_uUbPlkIbtayi8g.png?style=radialGradient&steps=32&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kW8Rihbha_uUbPlkIbtayi8g.png?style=radialGradient&steps=32&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kW8Rihbha_uUbPlkIbtayi8g.png?style=radialGradient&steps=32&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW8Rihbha_uUbPlkIbtayi8g&style=radialGradient&steps=32&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW8Rihbha_uUbPlkIbtayi8g&style=radialGradient&steps=32&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW8Rihbha_uUbPlkIbtayi8g&style=radialGradient&steps=32&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kY2BWf2hO9kYUvPEkzp1xU6-qPPs",
+   "style": "angularSwatches",
+   "steps": 6,
+   "angle": 225
+  },
+  "headFault": {
+   "sheet": "gray",
+   "letter": "gray",
+   "lead": "gray"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kY2BWf2hO9kYUvPEkzp1xU6-qPPs.png?style=angularSwatches&steps=6&angle=225&w=1072&h=670",
+   "card": "https://grabient.test/kY2BWf2hO9kYUvPEkzp1xU6-qPPs.png?style=angularSwatches&steps=6&angle=225&w=520&h=390",
+   "tile": "https://grabient.test/kY2BWf2hO9kYUvPEkzp1xU6-qPPs.png?style=angularSwatches&steps=6&angle=225&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kY2BWf2hO9kYUvPEkzp1xU6-qPPs&style=angularSwatches&steps=6&angle=225&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kY2BWf2hO9kYUvPEkzp1xU6-qPPs&style=angularSwatches&steps=6&angle=225&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kY2BWf2hO9kYUvPEkzp1xU6-qPPs&style=angularSwatches&steps=6&angle=225&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW1Cq_XqO_VSgP9cmzGUSc_o",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 90
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW1Cq_XqO_VSgP9cmzGUSc_o.png?style=linearSwatches&steps=5&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kW1Cq_XqO_VSgP9cmzGUSc_o.png?style=linearSwatches&steps=5&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kW1Cq_XqO_VSgP9cmzGUSc_o.png?style=linearSwatches&steps=5&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW1Cq_XqO_VSgP9cmzGUSc_o&style=linearSwatches&steps=5&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW1Cq_XqO_VSgP9cmzGUSc_o&style=linearSwatches&steps=5&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW1Cq_XqO_VSgP9cmzGUSc_o&style=linearSwatches&steps=5&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 135,
+   "name": "Deep end",
+   "note": "Linear"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g.png?style=linearGradient&steps=32&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g.png?style=linearGradient&steps=32&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g.png?style=linearGradient&steps=32&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g&style=linearGradient&steps=32&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g&style=linearGradient&steps=32&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g&style=linearGradient&steps=32&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWk5ENVro_-Mpv_wGb_-we_4",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 90,
+   "name": "Strawberry milk",
+   "note": "Linear bands"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWk5ENVro_-Mpv_wGb_-we_4.png?style=linearSwatches&steps=5&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWk5ENVro_-Mpv_wGb_-we_4.png?style=linearSwatches&steps=5&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWk5ENVro_-Mpv_wGb_-we_4.png?style=linearSwatches&steps=5&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWk5ENVro_-Mpv_wGb_-we_4&style=linearSwatches&steps=5&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWk5ENVro_-Mpv_wGb_-we_4&style=linearSwatches&steps=5&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWk5ENVro_-Mpv_wGb_-we_4&style=linearSwatches&steps=5&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWelD3zS9AVgeu3fEbQ8xAyQ",
+   "style": "angularSwatches",
+   "steps": 5,
+   "angle": 135,
+   "name": "Paper pinwheel",
+   "note": "Angular bands"
+  },
+  "headFault": {
+   "sheet": "angular",
+   "letter": "angular",
+   "lead": "angular"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWelD3zS9AVgeu3fEbQ8xAyQ.png?style=angularSwatches&steps=5&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/kWelD3zS9AVgeu3fEbQ8xAyQ.png?style=angularSwatches&steps=5&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/kWelD3zS9AVgeu3fEbQ8xAyQ.png?style=angularSwatches&steps=5&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWelD3zS9AVgeu3fEbQ8xAyQ&style=angularSwatches&steps=5&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWelD3zS9AVgeu3fEbQ8xAyQ&style=angularSwatches&steps=5&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWelD3zS9AVgeu3fEbQ8xAyQ&style=angularSwatches&steps=5&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kY4B0o4Bi5UyavQ9GLvL5s9SQVvk",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 90,
+   "name": "Porch light",
+   "note": "Radial"
+  },
+  "headFault": {
+   "sheet": "faint",
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kY4B0o4Bi5UyavQ9GLvL5s9SQVvk.png?style=radialGradient&steps=32&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kY4B0o4Bi5UyavQ9GLvL5s9SQVvk.png?style=radialGradient&steps=32&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kY4B0o4Bi5UyavQ9GLvL5s9SQVvk.png?style=radialGradient&steps=32&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kY4B0o4Bi5UyavQ9GLvL5s9SQVvk&style=radialGradient&steps=32&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kY4B0o4Bi5UyavQ9GLvL5s9SQVvk&style=radialGradient&steps=32&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kY4B0o4Bi5UyavQ9GLvL5s9SQVvk&style=radialGradient&steps=32&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWkEqj3Z87moauRiHzrShc_A",
+   "style": "radialSwatches",
+   "steps": 6,
+   "angle": 270,
+   "name": "Tide pool",
+   "note": "Radial bands"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWkEqj3Z87moauRiHzrShc_A.png?style=radialSwatches&steps=6&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWkEqj3Z87moauRiHzrShc_A.png?style=radialSwatches&steps=6&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWkEqj3Z87moauRiHzrShc_A.png?style=radialSwatches&steps=6&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWkEqj3Z87moauRiHzrShc_A&style=radialSwatches&steps=6&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWkEqj3Z87moauRiHzrShc_A&style=radialSwatches&steps=6&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWkEqj3Z87moauRiHzrShc_A&style=radialSwatches&steps=6&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWRR-muJm7VKlvljp7955I_A",
+   "style": "linearGradient",
+   "steps": 6,
+   "angle": 180
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWRR-muJm7VKlvljp7955I_A.png?style=linearGradient&steps=6&angle=180&w=1072&h=670",
+   "card": "https://grabient.test/kWRR-muJm7VKlvljp7955I_A.png?style=linearGradient&steps=6&angle=180&w=520&h=390",
+   "tile": "https://grabient.test/kWRR-muJm7VKlvljp7955I_A.png?style=linearGradient&steps=6&angle=180&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWRR-muJm7VKlvljp7955I_A&style=linearGradient&steps=6&angle=180&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWRR-muJm7VKlvljp7955I_A&style=linearGradient&steps=6&angle=180&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWRR-muJm7VKlvljp7955I_A&style=linearGradient&steps=6&angle=180&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kU0g0o24lNsoRQm7BcAA",
+   "style": "radialSwatches",
+   "steps": 5,
+   "angle": 210
+  },
+  "headFault": {
+   "sheet": "gray",
+   "letter": "gray",
+   "lead": "gray"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kU0g0o24lNsoRQm7BcAA.png?style=radialSwatches&steps=5&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kU0g0o24lNsoRQm7BcAA.png?style=radialSwatches&steps=5&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kU0g0o24lNsoRQm7BcAA.png?style=radialSwatches&steps=5&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kU0g0o24lNsoRQm7BcAA&style=radialSwatches&steps=5&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kU0g0o24lNsoRQm7BcAA&style=radialSwatches&steps=5&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kU0g0o24lNsoRQm7BcAA&style=radialSwatches&steps=5&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kS5x_Ta5hBfCTQm",
+   "style": "angularSwatches",
+   "steps": 5,
+   "angle": 135
+  },
+  "headFault": {
+   "sheet": "angular",
+   "letter": "angular",
+   "lead": "angular"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kS5x_Ta5hBfCTQm.png?style=angularSwatches&steps=5&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/kS5x_Ta5hBfCTQm.png?style=angularSwatches&steps=5&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/kS5x_Ta5hBfCTQm.png?style=angularSwatches&steps=5&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kS5x_Ta5hBfCTQm&style=angularSwatches&steps=5&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kS5x_Ta5hBfCTQm&style=angularSwatches&steps=5&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kS5x_Ta5hBfCTQm&style=angularSwatches&steps=5&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW2Rl-zaBJGyQVPTnrvXxHSI",
+   "style": "linearSwatches",
+   "steps": 5,
+   "angle": 90
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW2Rl-zaBJGyQVPTnrvXxHSI.png?style=linearSwatches&steps=5&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kW2Rl-zaBJGyQVPTnrvXxHSI.png?style=linearSwatches&steps=5&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kW2Rl-zaBJGyQVPTnrvXxHSI.png?style=linearSwatches&steps=5&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW2Rl-zaBJGyQVPTnrvXxHSI&style=linearSwatches&steps=5&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW2Rl-zaBJGyQVPTnrvXxHSI&style=linearSwatches&steps=5&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW2Rl-zaBJGyQVPTnrvXxHSI&style=linearSwatches&steps=5&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg",
+   "style": "radialSwatches",
+   "steps": 8,
+   "angle": 0
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg.png?style=radialSwatches&steps=8&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg.png?style=radialSwatches&steps=8&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg.png?style=radialSwatches&steps=8&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg&style=radialSwatches&steps=8&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg&style=radialSwatches&steps=8&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kcsjQI0RBA9EEr_ckLz54Y8OeLtxbEcGTwfCg&style=radialSwatches&steps=8&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA",
+   "style": "radialGradient",
+   "steps": 32,
+   "angle": 45
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA.png?style=radialGradient&steps=32&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA.png?style=radialGradient&steps=32&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA.png?style=radialGradient&steps=32&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA&style=radialGradient&steps=32&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA&style=radialGradient&steps=32&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kYhkOkWCW6Oe0PBsuT0ZjY8Ve3vA&style=radialGradient&steps=32&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWaVzy0cVGmm6xversnTLVHo",
+   "style": "angularSwatches",
+   "steps": 5,
+   "angle": 225
+  },
+  "headFault": {
+   "sheet": "angular",
+   "letter": "angular",
+   "lead": "angular"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWaVzy0cVGmm6xversnTLVHo.png?style=angularSwatches&steps=5&angle=225&w=1072&h=670",
+   "card": "https://grabient.test/kWaVzy0cVGmm6xversnTLVHo.png?style=angularSwatches&steps=5&angle=225&w=520&h=390",
+   "tile": "https://grabient.test/kWaVzy0cVGmm6xversnTLVHo.png?style=angularSwatches&steps=5&angle=225&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWaVzy0cVGmm6xversnTLVHo&style=angularSwatches&steps=5&angle=225&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWaVzy0cVGmm6xversnTLVHo&style=angularSwatches&steps=5&angle=225&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWaVzy0cVGmm6xversnTLVHo&style=angularSwatches&steps=5&angle=225&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kYp103v7C8Comu4iqrYMiw8ckduq",
+   "style": "linearSwatches",
+   "steps": 6,
+   "angle": 90
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kYp103v7C8Comu4iqrYMiw8ckduq.png?style=linearSwatches&steps=6&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kYp103v7C8Comu4iqrYMiw8ckduq.png?style=linearSwatches&steps=6&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kYp103v7C8Comu4iqrYMiw8ckduq.png?style=linearSwatches&steps=6&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kYp103v7C8Comu4iqrYMiw8ckduq&style=linearSwatches&steps=6&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kYp103v7C8Comu4iqrYMiw8ckduq&style=linearSwatches&steps=6&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kYp103v7C8Comu4iqrYMiw8ckduq&style=linearSwatches&steps=6&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kSPkDT1Sq2uC6rG",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 135
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kSPkDT1Sq2uC6rG.png?style=linearGradient&steps=32&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/kSPkDT1Sq2uC6rG.png?style=linearGradient&steps=32&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/kSPkDT1Sq2uC6rG.png?style=linearGradient&steps=32&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kSPkDT1Sq2uC6rG&style=linearGradient&steps=32&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kSPkDT1Sq2uC6rG&style=linearGradient&steps=32&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kSPkDT1Sq2uC6rG&style=linearGradient&steps=32&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kYlzCV2J2316rOrcOTu0kc9kNFvs",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 180
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kYlzCV2J2316rOrcOTu0kc9kNFvs.png?style=linearGradient&steps=32&angle=180&w=1072&h=670",
+   "card": "https://grabient.test/kYlzCV2J2316rOrcOTu0kc9kNFvs.png?style=linearGradient&steps=32&angle=180&w=520&h=390",
+   "tile": "https://grabient.test/kYlzCV2J2316rOrcOTu0kc9kNFvs.png?style=linearGradient&steps=32&angle=180&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kYlzCV2J2316rOrcOTu0kc9kNFvs&style=linearGradient&steps=32&angle=180&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kYlzCV2J2316rOrcOTu0kc9kNFvs&style=linearGradient&steps=32&angle=180&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kYlzCV2J2316rOrcOTu0kc9kNFvs&style=linearGradient&steps=32&angle=180&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWmC53Y549PEnPDtMDz2jG-A",
+   "style": "radialSwatches",
+   "steps": 6,
+   "angle": 45
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWmC53Y549PEnPDtMDz2jG-A.png?style=radialSwatches&steps=6&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWmC53Y549PEnPDtMDz2jG-A.png?style=radialSwatches&steps=6&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWmC53Y549PEnPDtMDz2jG-A.png?style=radialSwatches&steps=6&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWmC53Y549PEnPDtMDz2jG-A&style=radialSwatches&steps=6&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWmC53Y549PEnPDtMDz2jG-A&style=radialSwatches&steps=6&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWmC53Y549PEnPDtMDz2jG-A&style=radialSwatches&steps=6&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 90
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g.png?style=linearGradient&steps=32&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g.png?style=linearGradient&steps=32&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g.png?style=linearGradient&steps=32&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g&style=linearGradient&steps=32&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g&style=linearGradient&steps=32&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kaXjjbtyK6kwXvNiE7ZcCS6vCvPfisD7g&style=linearGradient&steps=32&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kY5TVIZLG7cUnP40GMYyiDCGqYvU",
+   "style": "angularSwatches",
+   "steps": 6,
+   "angle": 270
+  },
+  "headFault": {
+   "sheet": "angular",
+   "letter": "angular",
+   "lead": "angular"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kY5TVIZLG7cUnP40GMYyiDCGqYvU.png?style=angularSwatches&steps=6&angle=270&w=1072&h=670",
+   "card": "https://grabient.test/kY5TVIZLG7cUnP40GMYyiDCGqYvU.png?style=angularSwatches&steps=6&angle=270&w=520&h=390",
+   "tile": "https://grabient.test/kY5TVIZLG7cUnP40GMYyiDCGqYvU.png?style=angularSwatches&steps=6&angle=270&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kY5TVIZLG7cUnP40GMYyiDCGqYvU&style=angularSwatches&steps=6&angle=270&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kY5TVIZLG7cUnP40GMYyiDCGqYvU&style=angularSwatches&steps=6&angle=270&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kY5TVIZLG7cUnP40GMYyiDCGqYvU&style=angularSwatches&steps=6&angle=270&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kW7xJTcZo7mUvP_XLsATZnCg",
+   "style": "linearSwatches",
+   "steps": 6,
+   "angle": 90
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kW7xJTcZo7mUvP_XLsATZnCg.png?style=linearSwatches&steps=6&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kW7xJTcZo7mUvP_XLsATZnCg.png?style=linearSwatches&steps=6&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kW7xJTcZo7mUvP_XLsATZnCg.png?style=linearSwatches&steps=6&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kW7xJTcZo7mUvP_XLsATZnCg&style=linearSwatches&steps=6&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kW7xJTcZo7mUvP_XLsATZnCg&style=linearSwatches&steps=6&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kW7xJTcZo7mUvP_XLsATZnCg&style=linearSwatches&steps=6&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kU7Rw_4DM_buYTHWqzeA",
+   "style": "linearGradient",
+   "steps": 32,
+   "angle": 135
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kU7Rw_4DM_buYTHWqzeA.png?style=linearGradient&steps=32&angle=135&w=1072&h=670",
+   "card": "https://grabient.test/kU7Rw_4DM_buYTHWqzeA.png?style=linearGradient&steps=32&angle=135&w=520&h=390",
+   "tile": "https://grabient.test/kU7Rw_4DM_buYTHWqzeA.png?style=linearGradient&steps=32&angle=135&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kU7Rw_4DM_buYTHWqzeA&style=linearGradient&steps=32&angle=135&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kU7Rw_4DM_buYTHWqzeA&style=linearGradient&steps=32&angle=135&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kU7Rw_4DM_buYTHWqzeA&style=linearGradient&steps=32&angle=135&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "not-a-seed"
+  },
+  "headFault": {
+   "sheet": "unread",
+   "letter": "unread",
+   "lead": "unread"
+  },
+  "picture": {
+   "lead": "throws: Not a palette seed: \"not-a-seed\"",
+   "card": "throws: Not a palette seed: \"not-a-seed\"",
+   "tile": "throws: Not a palette seed: \"not-a-seed\""
+  },
+  "head": {
+   "sheet": "throws: Not a palette seed: \"not-a-seed\"",
+   "letter": "throws: Not a palette seed: \"not-a-seed\"",
+   "lead": "throws: Not a palette seed: \"not-a-seed\""
+  }
+ },
+ {
+  "of": {
+   "seed": "kS7Q8Yy5S_SChv0",
+   "steps": 2.5
+  },
+  "headFault": {
+   "sheet": "unread",
+   "letter": "unread",
+   "lead": "unread"
+  },
+  "picture": {
+   "lead": "throws: A view's steps and angle are whole numbers the site takes, not 2.5",
+   "card": "throws: A view's steps and angle are whole numbers the site takes, not 2.5",
+   "tile": "throws: A view's steps and angle are whole numbers the site takes, not 2.5"
+  },
+  "head": {
+   "sheet": "throws: A view's steps and angle are whole numbers the site takes, not 2.5",
+   "letter": "throws: A view's steps and angle are whole numbers the site takes, not 2.5",
+   "lead": "throws: A view's steps and angle are whole numbers the site takes, not 2.5"
+  }
+ },
+ {
+  "of": {
+   "seed": "kQMwAAcoO_4"
+  },
+  "headFault": {
+   "sheet": "gray",
+   "letter": "gray",
+   "lead": "gray"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kQMwAAcoO_4.png?style=linearGradient&steps=7&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kQMwAAcoO_4.png?style=linearGradient&steps=7&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kQMwAAcoO_4.png?style=linearGradient&steps=7&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kQMwAAcoO_4&style=linearGradient&steps=7&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kQMwAAcoO_4&style=linearGradient&steps=7&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kQMwAAcoO_4&style=linearGradient&steps=7&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kS7Q8Yy5S_SChv0",
+   "style": "angularGradient"
+  },
+  "headFault": {
+   "sheet": "angular",
+   "letter": "angular",
+   "lead": "angular"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kS7Q8Yy5S_SChv0.png?style=angularGradient&steps=7&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kS7Q8Yy5S_SChv0.png?style=angularGradient&steps=7&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kS7Q8Yy5S_SChv0.png?style=angularGradient&steps=7&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kS7Q8Yy5S_SChv0&style=angularGradient&steps=7&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kS7Q8Yy5S_SChv0&style=angularGradient&steps=7&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kS7Q8Yy5S_SChv0&style=angularGradient&steps=7&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWTFe5cqutCYr0tyq60JivSw",
+   "style": "radialGradient",
+   "steps": 32
+  },
+  "headFault": {
+   "sheet": "busy",
+   "letter": "busy",
+   "lead": "busy"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWTFe5cqutCYr0tyq60JivSw.png?style=radialGradient&steps=32&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWTFe5cqutCYr0tyq60JivSw.png?style=radialGradient&steps=32&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWTFe5cqutCYr0tyq60JivSw.png?style=radialGradient&steps=32&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWTFe5cqutCYr0tyq60JivSw&style=radialGradient&steps=32&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWTFe5cqutCYr0tyq60JivSw&style=radialGradient&steps=32&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWTFe5cqutCYr0tyq60JivSw&style=radialGradient&steps=32&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWTFe5cqutCYr0tyq60JivSw",
+   "style": "linearSwatches",
+   "steps": 16
+  },
+  "headFault": {
+   "sheet": "faint",
+   "letter": "faint",
+   "lead": "faint"
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWTFe5cqutCYr0tyq60JivSw.png?style=linearSwatches&steps=16&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWTFe5cqutCYr0tyq60JivSw.png?style=linearSwatches&steps=16&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWTFe5cqutCYr0tyq60JivSw.png?style=linearSwatches&steps=16&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWTFe5cqutCYr0tyq60JivSw&style=linearSwatches&steps=16&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWTFe5cqutCYr0tyq60JivSw&style=linearSwatches&steps=16&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWTFe5cqutCYr0tyq60JivSw&style=linearSwatches&steps=16&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kS7Q8Yy5S_SChv0"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kS7Q8Yy5S_SChv0.png?style=linearGradient&steps=7&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kS7Q8Yy5S_SChv0.png?style=linearGradient&steps=7&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kS7Q8Yy5S_SChv0.png?style=linearGradient&steps=7&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kS7Q8Yy5S_SChv0&style=linearGradient&steps=7&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kS7Q8Yy5S_SChv0&style=linearGradient&steps=7&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kS7Q8Yy5S_SChv0&style=linearGradient&steps=7&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kWo3evWSq82MnutpJ745p1CI"
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kWo3evWSq82MnutpJ745p1CI.png?style=linearGradient&steps=7&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kWo3evWSq82MnutpJ745p1CI.png?style=linearGradient&steps=7&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kWo3evWSq82MnutpJ745p1CI.png?style=linearGradient&steps=7&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kWo3evWSq82MnutpJ745p1CI&style=linearGradient&steps=7&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kWo3evWSq82MnutpJ745p1CI&style=linearGradient&steps=7&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kWo3evWSq82MnutpJ745p1CI&style=linearGradient&steps=7&angle=90&head=1200x540"
+  }
+ },
+ {
+  "of": {
+   "seed": "kU53xGajA9GKuO3bvrwA",
+   "style": "radialSwatches",
+   "steps": 6
+  },
+  "headFault": {
+   "sheet": null,
+   "letter": null,
+   "lead": null
+  },
+  "picture": {
+   "lead": "https://grabient.test/kU53xGajA9GKuO3bvrwA.png?style=radialSwatches&steps=6&angle=90&w=1072&h=670",
+   "card": "https://grabient.test/kU53xGajA9GKuO3bvrwA.png?style=radialSwatches&steps=6&angle=90&w=520&h=390",
+   "tile": "https://grabient.test/kU53xGajA9GKuO3bvrwA.png?style=radialSwatches&steps=6&angle=90&w=300&h=300"
+  },
+  "head": {
+   "sheet": "https://grabient.test/api/og?seed=kU53xGajA9GKuO3bvrwA&style=radialSwatches&steps=6&angle=90&head=800x200",
+   "letter": "https://grabient.test/api/og?seed=kU53xGajA9GKuO3bvrwA&style=radialSwatches&steps=6&angle=90&head=1200x300",
+   "lead": "https://grabient.test/api/og?seed=kU53xGajA9GKuO3bvrwA&style=radialSwatches&steps=6&angle=90&head=1200x540"
+  }
+ }
+]

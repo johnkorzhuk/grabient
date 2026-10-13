@@ -1,0 +1,24 @@
+/* The document's tables: each row after the head stands under the one rule, the dash. */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.head,
+.cell {
+  padding: var(--space-s3) var(--space-s6) var(--space-s3) 0;
+  text-align: start;
+  vertical-align: middle;
+  &:last-child {
+    padding-inline-end: 0;
+  }
+}
+.head {
+  padding-top: 0;
+}
+:is(tr + tr, thead + tbody > tr:first-child) > :is(.head, .cell) {
+  background: var(--color-dash-rule) left top / var(--size-dash-period) 1px repeat-x;
+}
+/* a column of marks, centered under its head */
+.center {
+  text-align: center;
+}

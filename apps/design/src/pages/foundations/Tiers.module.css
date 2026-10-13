@@ -1,0 +1,14 @@
+.tiers {
+  max-width: 760px;
+}
+.yes,
+.no {
+  display: inline-flex;
+  vertical-align: middle;
+}
+.yes {
+  color: var(--color-ink);
+}
+.no {
+  color: var(--color-ink4);
+}

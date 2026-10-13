@@ -1,0 +1,225 @@
+{
+ "note": "The Cache API key G4 computes for each address (worker.ts cacheUrl), less __build, which every key carries. status is what the Worker answered with no database bound.",
+ "keys": [
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=630&w=1200"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png?w=80&h=60&junk=1",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=60&w=80"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png?size=256x1",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=1&w=256"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png?w=256&h=1",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=1&w=256"
+  },
+  {
+   "address": "/api/png?seed=kS7Q8Yy5S_SChv0&w=80&h=60",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=60&w=80"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png?amp;style=radialSwatches&amp;w=10&amp;h=10",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=10&style=radialSwatches&w=10"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png?style=linearGradient&steps=7&angle=90",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=630&w=1200"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png?steps=2",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=630&steps=3&w=1200"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.png?selection&lock=1",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.png?h=630&w=1200"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.svg",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.svg"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.svg?w=210",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.svg?size=210xauto"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.svg?size=96x64&w=120&h=80",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.svg?size=120x80"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.svg?w=10&h=64",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.svg"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.css?colors=hex&junk=1",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.css?colors=hex"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.css?colors=oklch",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.css"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.css?colors=cmyk",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.css"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.json?steps=9&size=100x100",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.json?steps=9"
+  },
+  {
+   "address": "/api/palette?seed=kS7Q8Yy5S_SChv0",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.json"
+  },
+  {
+   "address": "/api/palette.json?seed=kS7Q8Yy5S_SChv0&style=radialGradient",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.json?style=radialGradient"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.md?steps=9&size=100x100",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.md?steps=9"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.ase?steps=6&style=linearSwatches&nonsense=1",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.ase?steps=6&style=linearSwatches"
+  },
+  {
+   "address": "/kS7Q8Yy5S_SChv0.tokens.json",
+   "status": 200,
+   "key": "/kS7Q8Yy5S_SChv0.tokens.json"
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&v=k4&t=5",
+   "status": 200,
+   "key": "/api/og?h=630&seed=kS7Q8Yy5S_SChv0&w=1200"
+  },
+  {
+   "address": "/api/og?v=k4",
+   "status": 200,
+   "key": "/api/og?h=630&seed=kS7Q8Yy5S_SChv0&w=1200"
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&chips=off",
+   "status": 200,
+   "key": "/api/og?chips=off&h=630&seed=kS7Q8Yy5S_SChv0&w=1200"
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&head=800x200",
+   "status": 200,
+   "key": "/api/og?chips=off&h=200&seed=kS7Q8Yy5S_SChv0&w=800"
+  },
+  {
+   "address": "/api/og?seed=kS7Q8Yy5S_SChv0&w=100&h=100&size=1080x1920",
+   "status": 200,
+   "key": "/api/og?h=630&seed=kS7Q8Yy5S_SChv0&w=1200"
+  },
+  {
+   "address": "/ocean-gradients.md?junk=1",
+   "status": 404,
+   "key": "/ocean-gradients.md"
+  },
+  {
+   "address": "/ocean-gradients.ase?junk=1",
+   "status": 404,
+   "key": "/ocean-gradients.ase?junk=1"
+  },
+  {
+   "address": "/ocean-gradients.ase?junk=2",
+   "status": 404,
+   "key": "/ocean-gradients.ase?junk=2"
+  },
+  {
+   "address": "/@someone/ocean-gradients.md",
+   "status": 404,
+   "key": "/@someone/ocean-gradients.md"
+  },
+  {
+   "address": "/api/og/query?query=Blue&v=k4",
+   "status": 404,
+   "key": "/api/og/query?h=630&query=Blue&w=1200"
+  },
+  {
+   "address": "/api/png/query?q=blue&w=120&h=80",
+   "status": 404,
+   "key": "/api/png/query?h=80&query=blue&w=120"
+  },
+  {
+   "address": "/palettes/blue.png",
+   "status": 404,
+   "key": "/api/png/query?h=630&query=blue&w=1200"
+  },
+  {
+   "address": "/search/warm-sunset.png?style=radialGradient",
+   "status": 404,
+   "key": "/api/png/query?h=630&query=warm+sunset&style=radialGradient&w=1200"
+  },
+  {
+   "address": "/palettes/rising/blue.png",
+   "status": 404,
+   "key": "/api/png/query?h=630&query=rising%2Fblue&w=1200"
+  },
+  {
+   "address": "/api/og/list?sort=popular&v=k4&t=123",
+   "status": 200,
+   "key": "/api/og/list?h=630&sort=popular&w=1200"
+  },
+  {
+   "address": "/api/og/list?sort=rising&frame=3m",
+   "status": 200,
+   "key": "/api/og/list?frame=3m&h=630&sort=rising&w=1200"
+  },
+  {
+   "address": "/api/og/list?sort=oldest",
+   "status": 200,
+   "key": "/api/og/list?h=630&sort=popular&w=1200"
+  },
+  {
+   "address": "/api/og/collections?sort=popular&q=Warm",
+   "status": 404,
+   "key": "/api/og/collections?h=630&q=warm&sort=popular&w=1200"
+  },
+  {
+   "address": "/api/og/collection?slug=ocean-gradients&sort=newest&style=radialGradient",
+   "status": 404,
+   "key": "/api/og/collection?h=630&slug=ocean-gradients&style=radialGradient&w=1200"
+  },
+  {
+   "address": "/api/png/collection?slug=ocean-gradients&w=600&h=400",
+   "status": 404,
+   "key": "/api/png/collection?h=400&slug=ocean-gradients&w=600"
+  },
+  {
+   "address": "/favicon/2026-w42.svg?v=abc",
+   "status": 200,
+   "key": "/favicon/2026-w42.svg"
+  },
+  {
+   "address": "/_aTjVfFfLqJjb9rP5O.png",
+   "status": 404,
+   "key": "/_aTjVfFfLqJjb9rP5O.png"
+  }
+ ]
+}

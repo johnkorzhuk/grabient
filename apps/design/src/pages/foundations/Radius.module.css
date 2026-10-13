@@ -1,0 +1,30 @@
+.radii {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-s4);
+}
+.radius {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+  padding: var(--space-s6);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+}
+.box {
+  width: 112px;
+  height: 72px;
+  margin-bottom: var(--space-s4);
+  border: 1px solid var(--color-edge2);
+  background-color: var(--color-paper3);
+  &[data-circle] {
+    width: 72px;
+  }
+}
+/* a real button cut round at its ends: the shape the system never draws */
+.pill {
+  display: inline-flex;
+  overflow: hidden;
+  border-radius: var(--radius-circle);
+}

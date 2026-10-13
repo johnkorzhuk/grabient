@@ -1,0 +1,71 @@
+{
+  "links": [
+    {
+      "label": "Claude",
+      "web": true,
+      "link": "https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Grabient&connectorUrl=https%3A%2F%2Fgrabient.com%2Fmcp"
+    },
+    {
+      "label": "Cursor",
+      "web": false,
+      "link": "cursor://anysphere.cursor-deeplink/mcp/install?name=Grabient&config=eyJ1cmwiOiJodHRwczovL2dyYWJpZW50LmNvbS9tY3AifQ%3D%3D"
+    },
+    {
+      "label": "VS Code",
+      "web": false,
+      "link": "vscode:mcp/install?%7B%22name%22%3A%22Grabient%22%2C%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fgrabient.com%2Fmcp%22%7D"
+    }
+  ],
+  "setups": [
+    {
+      "label": "Claude Code",
+      "terminal": true,
+      "where": null,
+      "guide": "https://code.claude.com/docs/en/mcp",
+      "code": "claude mcp add --transport http grabient --scope user https://grabient.com/mcp\nclaude mcp login grabient"
+    },
+    {
+      "label": "Codex",
+      "terminal": true,
+      "where": null,
+      "guide": "https://learn.chatgpt.com/docs/extend/mcp",
+      "code": "codex mcp add grabient --url https://grabient.com/mcp\ncodex mcp login grabient"
+    },
+    {
+      "label": "ChatGPT",
+      "terminal": false,
+      "where": "Plugins → + → Add custom MCP server",
+      "guide": "https://developers.openai.com/api/docs/guides/custom-mcp-server",
+      "code": "https://grabient.com/mcp"
+    },
+    {
+      "label": "Cursor",
+      "terminal": false,
+      "where": "~/.cursor/mcp.json",
+      "guide": "https://cursor.com/docs/mcp",
+      "code": "{\n  \"mcpServers\": {\n    \"grabient\": {\n      \"url\": \"https://grabient.com/mcp\"\n    }\n  }\n}"
+    },
+    {
+      "label": "VS Code",
+      "terminal": false,
+      "where": "~/.copilot/mcp-config.json",
+      "guide": "https://code.visualstudio.com/docs/agent-customization/mcp-servers",
+      "code": "{\n  \"mcpServers\": {\n    \"grabient\": {\n      \"type\": \"http\",\n      \"url\": \"https://grabient.com/mcp\"\n    }\n  }\n}"
+    },
+    {
+      "label": "Devin",
+      "terminal": true,
+      "where": null,
+      "guide": "https://docs.devin.ai/cli/extensibility/mcp/configuration",
+      "code": "devin mcp add --scope user grabient https://grabient.com/mcp\ndevin mcp login grabient"
+    },
+    {
+      "label": "Lovable",
+      "terminal": false,
+      "where": "Connectors → + → MCP server",
+      "guide": "https://docs.lovable.dev/integrations/custom-mcp",
+      "code": "https://grabient.com/mcp"
+    }
+  ],
+  "other": "{\n  \"mcpServers\": {\n    \"grabient\": {\n      \"type\": \"http\",\n      \"url\": \"https://grabient.com/mcp\"\n    }\n  }\n}"
+}

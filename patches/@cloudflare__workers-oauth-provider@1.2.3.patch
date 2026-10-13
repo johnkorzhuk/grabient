@@ -1,0 +1,90 @@
+diff --git a/dist/oauth-provider.d.ts b/dist/oauth-provider.d.ts
+index 26fea07ff2cba75cf4c1d93e57f0cec518a4a680..c8d42f2d86c5fd2b9dee4031de1fc088cc6689a2 100644
+--- a/dist/oauth-provider.d.ts
++++ b/dist/oauth-provider.d.ts
+@@ -1118,6 +1118,14 @@ interface OAuthProviderOptions<Env = Cloudflare.Env> {
+    * Defaults to false.
+    */
+   clientIdMetadataDocumentEnabled?: boolean;
++  /** Client ID Metadata Documents kept by the operator, keyed by exact client_id URL; a match is never fetched. */
++  clientIdMetadataDocuments?: Readonly<Record<string, unknown>>;
++  /**
++   * Whether a Client ID Metadata Document client may authenticate with `private_key_jwt`. Defaults to true.
++   * When false, the metadata does not advertise it and a document's keys are ignored, so no token request
++   * makes the server fetch a `jwks_uri`.
++   */
++  privateKeyJwt?: boolean;
+   /**
+    * Prefix for the cookies the consent and upstream helpers set (`<prefix>consent`,
+    * `<prefix>upstream`, `<prefix>approvals`). Must start with `__Host-`, which keeps them
+diff --git a/dist/oauth-provider.js b/dist/oauth-provider.js
+index c12a1c7aee8320c923c86f7fd9c69d7046b1c92d..da78c226f48052258abdc2fc01452aa0c573cd38 100644
+--- a/dist/oauth-provider.js
++++ b/dist/oauth-provider.js
+@@ -82,7 +82,8 @@ function buildOAuthServerCapabilities(options) {
+ 			"none"
+ 		],
+ 		codeChallengeMethods: ["S256"],
+-		allowPrivateUseRedirectUris: options.allowPrivateUseRedirectUris
++		allowPrivateUseRedirectUris: options.allowPrivateUseRedirectUris,
++		privateKeyJwt: options.privateKeyJwt !== false
+ 	};
+ }
+ function validateClientCapabilities(server, client) {
+@@ -1369,7 +1370,7 @@ function resolveClientIdMetadataDocument(metadataUrl, value, server) {
+ 	const redirectUris = requireValidRedirectUris(metadata.redirectUris, validateRedirectUriSafety);
+ 	if ("client_secret" in raw || "client_secret_expires_at" in raw) throw new Error("CIMD documents must not contain client secrets");
+ 	const jwks = parsePublicJwks(raw.jwks);
+-	const privateKeyJwt = metadata.tokenEndpointAuthMethod === "private_key_jwt" || !!metadata.tokenEndpointAuthMethodsSupported?.includes("private_key_jwt") ? resolvePrivateKeyJwtKeys(metadata, jwks) : void 0;
++	const privateKeyJwt = server.privateKeyJwt !== false && (metadata.tokenEndpointAuthMethod === "private_key_jwt" || !!metadata.tokenEndpointAuthMethodsSupported?.includes("private_key_jwt")) ? resolvePrivateKeyJwtKeys(metadata, jwks) : void 0;
+ 	const clientAssertionKeys = privateKeyJwt && "keys" in privateKeyJwt ? privateKeyJwt.keys : void 0;
+ 	let capabilities;
+ 	try {
+@@ -1460,7 +1461,8 @@ function fetchCimdOrigin(metadataUrl, signal) {
+ 			"User-Agent": OUTBOUND_USER_AGENT
+ 		},
+ 		signal,
+-		cache: "no-store"
++		cache: "no-store",
++		redirect: "manual"
+ 	});
+ }
+ async function openCimdCache() {
+@@ -2705,7 +2707,8 @@ var OAuthProviderImpl = class {
+ 		this.serverCapabilities = buildOAuthServerCapabilities({
+ 			allowTokenExchangeGrant: !!this.options.allowTokenExchangeGrant,
+ 			enterpriseManagedAuthorization: !!this.options.enterpriseManagedAuthorization,
+-			allowPrivateUseRedirectUris: this.options.allowPrivateUseRedirectUris === true
++			allowPrivateUseRedirectUris: this.options.allowPrivateUseRedirectUris === true,
++			privateKeyJwt: this.options.privateKeyJwt
+ 		});
+ 		validateAuthorizationServerScopes(this.options.scopesSupported);
+ 		this.validateEmaOptions(this.options.enterpriseManagedAuthorization);
+@@ -3322,6 +3325,7 @@ var OAuthProviderImpl = class {
+ 		const grantTypesSupported = this.serverCapabilities.grantTypes;
+ 		const authorizationGrantProfilesSupported = this.options.enterpriseManagedAuthorization ? [EMA_ID_JAG_GRANT_PROFILE] : [];
+ 		const cimdSupported = !!this.options.clientIdMetadataDocumentEnabled && this.hasGlobalFetchStrictlyPublic();
++		const assertions = cimdSupported && this.options.privateKeyJwt !== false;
+ 		const metadata = {
+ 			issuer: this.getAuthorizationServerIssuer(requestUrl),
+ 			authorization_endpoint: authorizeEndpoint,
+@@ -3333,8 +3337,8 @@ var OAuthProviderImpl = class {
+ 			response_modes_supported: ["query"],
+ 			grant_types_supported: grantTypesSupported,
+ 			...authorizationGrantProfilesSupported.length > 0 ? { authorization_grant_profiles_supported: authorizationGrantProfilesSupported } : {},
+-			token_endpoint_auth_methods_supported: [...this.serverCapabilities.tokenEndpointAuthMethods, ...cimdSupported ? ["private_key_jwt"] : []],
+-			...cimdSupported ? { token_endpoint_auth_signing_alg_values_supported: [...CLIENT_ASSERTION_ALGORITHMS] } : {},
++			token_endpoint_auth_methods_supported: [...this.serverCapabilities.tokenEndpointAuthMethods, ...assertions ? ["private_key_jwt"] : []],
++			...assertions ? { token_endpoint_auth_signing_alg_values_supported: [...CLIENT_ASSERTION_ALGORITHMS] } : {},
+ 			revocation_endpoint: tokenEndpoint,
+ 			code_challenge_methods_supported: this.serverCapabilities.codeChallengeMethods,
+ 			authorization_response_iss_parameter_supported: true,
+@@ -4700,6 +4704,8 @@ var OAuthProviderImpl = class {
+ 				return env.OAUTH_KV.get(clientKey$1, { type: "json" });
+ 			}
+ 			if (!this.hasGlobalFetchStrictlyPublic()) throw new Error(`CIMD is enabled but 'global_fetch_strictly_public' compatibility flag is not set.`);
++			const pinned = this.options.clientIdMetadataDocuments?.[clientId];
++			if (pinned !== void 0) return resolveClientIdMetadataDocument(clientId, pinned, this.serverCapabilities);
+ 			try {
+ 				return await fetchClientIdMetadataDocument(clientId, this.serverCapabilities);
+ 			} catch (error) {

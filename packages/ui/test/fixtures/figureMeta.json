@@ -1,0 +1,326 @@
+[
+ {
+  "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+  "steps7": {
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "keyframes": 6,
+   "steps": 7,
+   "lStart": 0.8898,
+   "lEnd": 0.7205,
+   "cPeak": 0.2343,
+   "hueTravel": -114.1292,
+   "clippedPct": 0,
+   "renderErr": 0.0059,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "keyframes": 6,
+   "steps": 2,
+   "lStart": 0.8898,
+   "lEnd": 0.7205,
+   "cPeak": 0.2343,
+   "hueTravel": -114.1292,
+   "clippedPct": 0,
+   "renderErr": 0.021,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+  "steps7": {
+   "seed": "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+   "keyframes": 8,
+   "steps": 7,
+   "lStart": 0.9882,
+   "lEnd": 0.4803,
+   "cPeak": 0.2288,
+   "hueTravel": -80.3131,
+   "clippedPct": 15,
+   "renderErr": 0.0223,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+   "keyframes": 8,
+   "steps": 2,
+   "lStart": 0.9882,
+   "lEnd": 0.4803,
+   "cPeak": 0.2288,
+   "hueTravel": -80.3131,
+   "clippedPct": 15,
+   "renderErr": 0.0816,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg",
+  "steps7": {
+   "seed": "kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg",
+   "keyframes": 7,
+   "steps": 7,
+   "lStart": 0.6102,
+   "lEnd": 0.1143,
+   "cPeak": 0.0865,
+   "hueTravel": 208.18,
+   "clippedPct": 0,
+   "renderErr": 0.0172,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg",
+   "keyframes": 7,
+   "steps": 2,
+   "lStart": 0.6102,
+   "lEnd": 0.1143,
+   "cPeak": 0.0865,
+   "hueTravel": 208.18,
+   "clippedPct": 0,
+   "renderErr": 0.2375,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kWs2um4jE-G62O7xwb3bkk-4",
+  "steps7": {
+   "seed": "kWs2um4jE-G62O7xwb3bkk-4",
+   "keyframes": 5,
+   "steps": 7,
+   "lStart": 0.7047,
+   "lEnd": 0.8661,
+   "cPeak": 0.2012,
+   "hueTravel": -78.1996,
+   "clippedPct": 11,
+   "renderErr": 0.008,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kWs2um4jE-G62O7xwb3bkk-4",
+   "keyframes": 5,
+   "steps": 2,
+   "lStart": 0.7047,
+   "lEnd": 0.8661,
+   "cPeak": 0.2012,
+   "hueTravel": -78.1996,
+   "clippedPct": 11,
+   "renderErr": 0.0912,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kSyQDAzZa8zgZxS",
+  "steps7": {
+   "seed": "kSyQDAzZa8zgZxS",
+   "keyframes": 3,
+   "steps": 7,
+   "lStart": 0.7913,
+   "lEnd": 0.4409,
+   "cPeak": 0.0703,
+   "hueTravel": 17.9648,
+   "clippedPct": 0,
+   "renderErr": 0.0042,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kSyQDAzZa8zgZxS",
+   "keyframes": 3,
+   "steps": 2,
+   "lStart": 0.7913,
+   "lEnd": 0.4409,
+   "cPeak": 0.0703,
+   "hueTravel": 17.9648,
+   "clippedPct": 0,
+   "renderErr": 0.0475,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kUzkiw66E-e4YQltnUXg",
+  "steps7": {
+   "seed": "kUzkiw66E-e4YQltnUXg",
+   "keyframes": 4,
+   "steps": 7,
+   "lStart": 0.811,
+   "lEnd": 0.8622,
+   "cPeak": 0.0992,
+   "hueTravel": 58.1213,
+   "clippedPct": 0,
+   "renderErr": 0.0042,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kUzkiw66E-e4YQltnUXg",
+   "keyframes": 4,
+   "steps": 2,
+   "lStart": 0.811,
+   "lEnd": 0.8622,
+   "cPeak": 0.0992,
+   "hueTravel": 58.1213,
+   "clippedPct": 0,
+   "renderErr": 0.0486,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+  "steps7": {
+   "seed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+   "keyframes": 8,
+   "steps": 7,
+   "lStart": 0.5039,
+   "lEnd": 0.8779,
+   "cPeak": 0.2713,
+   "hueTravel": 170.137,
+   "clippedPct": 14,
+   "renderErr": 0.0162,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+   "keyframes": 8,
+   "steps": 2,
+   "lStart": 0.5039,
+   "lEnd": 0.8779,
+   "cPeak": 0.2713,
+   "hueTravel": 170.137,
+   "clippedPct": 14,
+   "renderErr": 0.1732,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kcERi8Fyy_zqWO_hlTGb7C9OA3va4rz2CA29A",
+  "steps7": {
+   "seed": "kcERi8Fyy_zqWO_hlTGb7C9OA3va4rz2CA29A",
+   "keyframes": 8,
+   "steps": 7,
+   "lStart": 0.0669,
+   "lEnd": 0.0683,
+   "cPeak": 0.153,
+   "hueTravel": -243.0528,
+   "clippedPct": 26,
+   "renderErr": 0.0539,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kcERi8Fyy_zqWO_hlTGb7C9OA3va4rz2CA29A",
+   "keyframes": 8,
+   "steps": 2,
+   "lStart": 0.0669,
+   "lEnd": 0.0683,
+   "cPeak": 0.153,
+   "hueTravel": -243.0528,
+   "clippedPct": 26,
+   "renderErr": 0.7899,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kW0B2lbAbMXISxv1E0NeJVCg",
+  "steps7": {
+   "seed": "kW0B2lbAbMXISxv1E0NeJVCg",
+   "keyframes": 5,
+   "steps": 7,
+   "lStart": 0.8189,
+   "lEnd": 0.9488,
+   "cPeak": 0.0572,
+   "hueTravel": 214.5205,
+   "clippedPct": 0,
+   "renderErr": 0.0068,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kW0B2lbAbMXISxv1E0NeJVCg",
+   "keyframes": 5,
+   "steps": 2,
+   "lStart": 0.8189,
+   "lEnd": 0.9488,
+   "cPeak": 0.0572,
+   "hueTravel": 214.5205,
+   "clippedPct": 0,
+   "renderErr": 0.0565,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kW1Dy4bJpCPCcxRwoMHbiQ_w",
+  "steps7": {
+   "seed": "kW1Dy4bJpCPCcxRwoMHbiQ_w",
+   "keyframes": 5,
+   "steps": 7,
+   "lStart": 0.8346,
+   "lEnd": 0.8661,
+   "cPeak": 0.0992,
+   "hueTravel": 77.1429,
+   "clippedPct": 8,
+   "renderErr": 0.0036,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kW1Dy4bJpCPCcxRwoMHbiQ_w",
+   "keyframes": 5,
+   "steps": 2,
+   "lStart": 0.8346,
+   "lEnd": 0.8661,
+   "cPeak": 0.0992,
+   "hueTravel": 77.1429,
+   "clippedPct": 8,
+   "renderErr": 0.0494,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kWxm745Do_WgvQBvGkHdZDG4",
+  "steps7": {
+   "seed": "kWxm745Do_WgvQBvGkHdZDG4",
+   "keyframes": 5,
+   "steps": 7,
+   "lStart": 0.7795,
+   "lEnd": 0.9252,
+   "cPeak": 0.1596,
+   "hueTravel": 70.8023,
+   "clippedPct": 4,
+   "renderErr": 0.0054,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kWxm745Do_WgvQBvGkHdZDG4",
+   "keyframes": 5,
+   "steps": 2,
+   "lStart": 0.7795,
+   "lEnd": 0.9252,
+   "cPeak": 0.1596,
+   "hueTravel": 70.8023,
+   "clippedPct": 4,
+   "renderErr": 0.0613,
+   "wide": true
+  }
+ },
+ {
+  "seed": "kW0FBC2LM90Q3vExuj4JClAA",
+  "steps7": {
+   "seed": "kW0FBC2LM90Q3vExuj4JClAA",
+   "keyframes": 5,
+   "steps": 7,
+   "lStart": 0.8189,
+   "lEnd": 0.2835,
+   "cPeak": 0.162,
+   "hueTravel": -63.4051,
+   "clippedPct": 5,
+   "renderErr": 0.0087,
+   "wide": false
+  },
+  "steps2": {
+   "seed": "kW0FBC2LM90Q3vExuj4JClAA",
+   "keyframes": 5,
+   "steps": 2,
+   "lStart": 0.8189,
+   "lEnd": 0.2835,
+   "cPeak": 0.162,
+   "hueTravel": -63.4051,
+   "clippedPct": 5,
+   "renderErr": 0.0688,
+   "wide": true
+  }
+ }
+]

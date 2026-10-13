@@ -1,0 +1,1221 @@
+{
+ "contract": "As queries.json, with AI bound to a fake whose vector for a text is fakeEmbedding(text, dims) in generate.mjs; no request, so only the site-wide day is counted, in the process.",
+ "results": [
+  {
+   "input": "zxqvyk wqrkk",
+   "result": {
+    "query": "zxqvyk wqrkk",
+    "tier": "model",
+    "total": 96,
+    "indexable": false,
+    "read": {
+     "phrases": [],
+     "unread": [],
+     "excluded": []
+    },
+    "tags": [],
+    "items": [
+     [
+      "kc_QpNfyLAmUyOTM0jxoCS_w-QsU7nTfZTe9g",
+      0.492628,
+      "linearGradient",
+      8
+     ],
+     [
+      "kSQCc0U1W7X8ARo",
+      0.452239,
+      "linearGradient",
+      7
+     ],
+     [
+      "kULQBASNS41vFQn6AESg",
+      0.40768,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWIQnip6LFFTRQ9sNsV4zlKI",
+      0.399772,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWqKQS4rpD3M2xToMMXfgc9g",
+      0.398087,
+      "linearGradient",
+      7
+     ],
+     [
+      "kSqZ0aAAA7v8ASo",
+      0.390537,
+      "linearGradient",
+      7
+     ],
+     [
+      "kc_jNN-Cq_F1AOVD0D4E5U_IABMmqlza17E9Q",
+      0.389773,
+      "linearGradient",
+      8
+     ],
+     [
+      "kc_jNOeCq-1zBOVCz74kxM_QABsotF7YWTK9o",
+      0.38478,
+      "linearGradient",
+      8
+     ],
+     [
+      "kWLhIiJRY_7Wgv1O0D94J1BY",
+      0.382984,
+      "linearGradient",
+      7
+     ],
+     [
+      "kSh5cQfwBH4AANU",
+      0.382906,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUNABAU1S5XHDR18DD9A",
+      0.382447,
+      "linearGradient",
+      7
+     ],
+     [
+      "kURBz610rE_U-yR3jE6g",
+      0.376294,
+      "linearGradient",
+      7
+     ],
+     [
+      "kc_DROeCs-9zAuVDz73lBU_IAAsqql7ZWDE9g",
+      0.370284,
+      "linearGradient",
+      8
+     ],
+     [
+      "kUa4PZZb3QfsDv-Ug7_g",
+      0.370054,
+      "linearGradient",
+      7
+     ],
+     [
+      "kc0F0iyyc_jYSRU9nkfWKrAnMtQD8iz2_pE6g",
+      0.369047,
+      "linearGradient",
+      8
+     ],
+     [
+      "kcQ4K0BADMbhCQ7QXj-3cHCniYyd0tEc6jZBY",
+      0.368705,
+      "linearGradient",
+      8
+     ],
+     [
+      "kUvAegAABP7w_Ql_AEgg",
+      0.364677,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUt3sZYY7DjwTRVlDzrA",
+      0.362531,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW7BkyUUG7OK1xJiFtHOBG7Y",
+      0.35437,
+      "linearGradient",
+      7
+     ],
+     [
+      "kSrpUZYY1KqIOMC",
+      0.352698,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW30czX7i8NfOO7qqCt-hQ-I",
+      0.349081,
+      "linearGradient",
+      7
+     ],
+     [
+      "kcHizmNlC99NNyf8s0l_zq_2s9wiwOFEDyc-w",
+      0.347123,
+      "linearGradient",
+      8
+     ],
+     [
+      "kWorUQVszB2U-Q_iTEj5DJEo",
+      0.346806,
+      "linearGradient",
+      7
+     ],
+     [
+      "kSxTFfHpcwNnFxI",
+      0.343476,
+      "linearGradient",
+      7
+     ]
+    ]
+   },
+   "embedded": [
+    {
+     "model": "@cf/google/embeddinggemma-300m",
+     "texts": [
+      "zxqvyk wqrkk"
+     ]
+    }
+   ]
+  },
+  {
+   "input": "ocean zxqvyk",
+   "result": {
+    "query": "ocean zxqvyk",
+    "tier": "model",
+    "total": 96,
+    "indexable": false,
+    "read": {
+     "phrases": [
+      "ocean"
+     ],
+     "unread": [],
+     "excluded": []
+    },
+    "tags": [],
+    "items": [
+     [
+      "kSmGsbp4nRnUQs0",
+      0.459942,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWTiO1vpQ_EgWMXDtjN84ZHY",
+      0.442785,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYkCUyu4lLqaBRvjENGdA1Hsmuug",
+      0.432688,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUmk8kN4fVCQDv_tkq3A",
+      0.411391,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU7RU9w57LtDGqukg7UA",
+      0.410604,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWyFQ5vhFHaka0U_ILFREWug",
+      0.41013,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW3iY8wz25TGuv4pCy6xhqxQ",
+      0.409495,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWSBCIQx89kq6L1vD0VXQMrI",
+      0.400779,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWVhlxyg08XCRuJWtz1vrS-Q",
+      0.399838,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW7hNDPaND2s5OslKd7yZUeo",
+      0.398258,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWQy6zzia4GTbOvwLjpcRC5I",
+      0.384252,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWt22KvTM6nASN_RzDUWUHEY",
+      0.382869,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYOSTadKZU8IIrdcQcPJY4wGuori",
+      0.382234,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYRwfLQgZCnCITLYuTp4bJHsUgq6",
+      0.381947,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWnnwcOBnUUMgPxsnC5QxFNw",
+      0.376086,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU9Aa724W_6OGv_HSL_g",
+      0.376021,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYXg2ryQO5-YKtdyDDwR6i6tmpxu",
+      0.375187,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW6B06xZpD0mstrCna3pATFg",
+      0.373622,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW6hY9Uyo78KjPbCiM8rAlJY",
+      0.373037,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUqGkWow84qsLL7oFDPg",
+      0.37293,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUSROny5cy8u0NhmKsTg",
+      0.372593,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWRRLVLSLBEsYs5rkLJzza6A",
+      0.37052,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU6h08KRDTrOpzpTosdg",
+      0.367843,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUrijVcAvK9SnsFWSMqA",
+      0.36781,
+      "linearGradient",
+      7
+     ]
+    ]
+   },
+   "embedded": [
+    {
+     "model": "@cf/google/embeddinggemma-300m",
+     "texts": [
+      "ocean zxqvyk"
+     ]
+    }
+   ]
+  },
+  {
+   "input": "triadic vivid",
+   "result": {
+    "query": "triadic vivid",
+    "tier": "model",
+    "total": 90,
+    "indexable": false,
+    "read": {
+     "phrases": [
+      "triadic"
+     ],
+     "unread": [],
+     "excluded": []
+    },
+    "tags": [],
+    "items": [
+     [
+      "kW5RA0wQ-0KkJt4_jzcRROwo",
+      0.080873,
+      "linearGradient",
+      7
+     ],
+     [
+      "kY2DQsWIbW0sdU4wFS6t5LE0SOVO",
+      0.056046,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWe1m00qlN-sVw1hKkjdg6_Y",
+      0.041971,
+      "linearGradient",
+      7
+     ],
+     [
+      "kSuEE_txLUeYlVS",
+      0.041179,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU6hM8Wa3ADST0waiUFA",
+      0.03169,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWa1e4Q5VAciPtRHi1M4KTNw",
+      0.021008,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYS0u0vJU_ewXLrxnb6PCc2aYnPs",
+      0.011355,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWyFQ5vhFHaka0U_ILFREWug",
+      0.002416,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUt3SpcTMveM2sz7BL_g",
+      -0.000986,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYqz0sxqe7r6U07xh69OxPRjozy-",
+      -0.011113,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWkUeK0bvF9Wy0F4FcdZSM_4",
+      -0.012453,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWWifV3Yysy8XLLlCi0TZ-z4",
+      -0.013931,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWoXASzjDM7ss0JsEVDqwwrI",
+      -0.019661,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWZy-Kpg1BTGuU50jkh1iu-w",
+      -0.021072,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWyThgJQg47OlK3EjjgyxvUw",
+      -0.036391,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYWzTP2QfTPShxFzDUYXwtUr89Qi",
+      -0.0381,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYOx3xczBPL4JLpkqTHo5FG2cjSo",
+      -0.039156,
+      "linearGradient",
+      7
+     ],
+     [
+      "kY6hJnXJQ_82gsPEmzyupYzhwGv-",
+      -0.047018,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWr5EnegPHD-2xxHC0eQUjHg",
+      -0.049372,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYxXNZUBDIDG1zdaJ1DuhVQy4Pwg",
+      -0.052319,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYy3JiXBrCNUSzpXqsVXiDEmObyO",
+      -0.054106,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW2E4wXEGyXaIrT6kkU9ZGvo",
+      -0.059556,
+      "linearGradient",
+      7
+     ],
+     [
+      "kcYFq4Nh--cUcODRrjw0y0-cuduzDqDkwTS-4",
+      -0.060098,
+      "linearGradient",
+      8
+     ],
+     [
+      "kWiUESUrpNllItKsxS7XMVKg",
+      -0.060554,
+      "linearGradient",
+      7
+     ]
+    ]
+   },
+   "embedded": [
+    {
+     "model": "@cf/google/embeddinggemma-300m",
+     "texts": [
+      "triadic vivid"
+     ]
+    }
+   ]
+  },
+  {
+   "input": "zxqvyk not pink",
+   "result": {
+    "query": "zxqvyk not pink",
+    "tier": "model",
+    "total": 96,
+    "indexable": false,
+    "read": {
+     "phrases": [
+      "pink"
+     ],
+     "unread": [],
+     "excluded": [
+      "pink"
+     ]
+    },
+    "tags": [],
+    "items": [
+     [
+      "kU9Ak9xcu4bMCraTgkIg",
+      0.382069,
+      "linearGradient",
+      7
+     ],
+     [
+      "kULhSxoxXAT6vRluMyrA",
+      0.357539,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWOASoups4MM5LZbMkacBPBQ",
+      0.341987,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWJAiTpYzAT2avpsur0U1WtI",
+      0.330122,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWKQ-9QLzGEa9x_SuEK7DPF4",
+      0.327523,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUY4rYVsxMJSDv_6A7_g",
+      0.319709,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWLQBAbEZDzayrROUkSeYVKg",
+      0.297796,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYnDKWEQPKN0pq-wwKyM6M85wJuk",
+      0.29623,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWKQ-9HZO_1gouXsM7Kxr23I",
+      0.295997,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU7Rk90bi7j8EQ2aAa3g",
+      0.295097,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUIxfAKydAETGyFvMs0g",
+      0.289076,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWNhegMRS--HAOPtuzkVFKzo",
+      0.287589,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU5hdD48DDLq9qwZiL7A",
+      0.282065,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUMyPYMbe_kRSRBbwUlA",
+      0.280014,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUs38kxLk97EDVIchMSA",
+      0.279668,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU6xw-nQRTq4FOTqkTLg",
+      0.278176,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUOzTYuLk_tDAx1qtclg",
+      0.275869,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUIgfTsBS0NmrvxmtLOg",
+      0.275119,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWNhWT2S88WbUO9gujc0cq7Y",
+      0.273428,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWOiLdxFBDFlHRzvwEe1yvPI",
+      0.272033,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWOAfRuxywrQwUpIvUfcJhGo",
+      0.269432,
+      "linearGradient",
+      7
+     ],
+     [
+      "kS0FA10r29jg2ve",
+      0.267052,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUOhSTySY7-dFOhURrWA",
+      0.266786,
+      "linearGradient",
+      7
+     ],
+     [
+      "kULQBASNS41vFQn6AESg",
+      0.264817,
+      "linearGradient",
+      7
+     ]
+    ]
+   },
+   "embedded": [
+    {
+     "model": "@cf/google/embeddinggemma-300m",
+     "texts": [
+      "zxqvyk not pink"
+     ]
+    }
+   ]
+  },
+  {
+   "input": "a calm, trustworthy gradient for a healthcare dashboard hero, soft blues and teal with white",
+   "result": {
+    "query": "a calm, trustworthy gradient for a healthcare dashboard hero, soft blues and teal with white",
+    "tier": "model",
+    "total": 96,
+    "indexable": false,
+    "read": {
+     "phrases": [
+      "calm",
+      "healthcare dashboard",
+      "soft",
+      "teal",
+      "white"
+     ],
+     "unread": [],
+     "excluded": []
+    },
+    "tags": [],
+    "items": [
+     [
+      "kW3iY8wz25TGuv4pCy6xhqxQ",
+      0.42279,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWyFQ5vhFHaka0U_ILFREWug",
+      0.418471,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWnnwcOBnUUMgPxsnC5QxFNw",
+      0.381341,
+      "linearGradient",
+      7
+     ],
+     [
+      "kY2EU126g_kwOv6-BMqLaDHpwbQk",
+      0.372662,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWTiO1vpQ_EgWMXDtjN84ZHY",
+      0.372512,
+      "linearGradient",
+      7
+     ],
+     [
+      "kURBzCOo-6785UHnHUhg",
+      0.369922,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWtFg78BRAUAaxI_FUdwA7GY",
+      0.368416,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWOASoups4MM5LZbMkacBPBQ",
+      0.367904,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWOAfRuxywrQwUpIvUfcJhGo",
+      0.367012,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYOSTadKZU8IIrdcQcPJY4wGuori",
+      0.364417,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWjlcZOqS-aYvMPJrzVS0jUA",
+      0.35922,
+      "linearGradient",
+      7
+     ],
+     [
+      "kayH4xaifCVoiSxMpcFwZ9BbWawOlk8GA",
+      0.358783,
+      "linearGradient",
+      7
+     ],
+     [
+      "kckXQftLC-qISvKniy7vRc5tGdO3dozuW6q8w",
+      0.355973,
+      "linearGradient",
+      8
+     ],
+     [
+      "kWqzpEwTS4MegU5vnTJMhfRg",
+      0.355837,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWvGI7og_RkQQs1AI7lG4zTQ",
+      0.347468,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYjTp1u5fFq6Zx0tpchODVEMC1Qe",
+      0.346964,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWMAzG9JDTy-pteqnTXwx60Q",
+      0.343923,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWdUEPy0i6aevNnJrzVWRY0A",
+      0.339346,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYll4o0ShFsymxO-GkaK6BICqpSM",
+      0.335985,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWkV51p7NKjkkzvJyLp0bbQI",
+      0.335699,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUw3A0JyIregoLDXL7zA",
+      0.335549,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUSRduQR0_zu2L9loMfg",
+      0.334866,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUNhegy6S8kq5rKxmNHg",
+      0.333931,
+      "linearGradient",
+      7
+     ],
+     [
+      "kU4S00VbI8C4aL0-kzFA",
+      0.330386,
+      "linearGradient",
+      7
+     ]
+    ]
+   },
+   "embedded": [
+    {
+     "model": "@cf/google/embeddinggemma-300m",
+     "texts": [
+      "a calm trustworthy gradient for a healthcare dashboard hero soft blues and teal with white"
+     ]
+    }
+   ]
+  },
+  {
+   "input": "barbie dreamhouse",
+   "result": {
+    "query": "barbie dreamhouse",
+    "tier": "model",
+    "total": 96,
+    "indexable": false,
+    "read": {
+     "phrases": [],
+     "unread": [],
+     "excluded": []
+    },
+    "tags": [],
+    "items": [
+     [
+      "kaZJG6sz1BLsyRLHuEUVkjCllEwTcv0Eg",
+      0.3957,
+      "linearGradient",
+      7
+     ],
+     [
+      "kaZJG6szzBLsyRNIOMT1klClnEQTcv0Eg",
+      0.393014,
+      "linearGradient",
+      7
+     ],
+     [
+      "kSR23ARlO-2MoPi",
+      0.361105,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYL2C8LM0_8bVv5buD3ca27HclPy",
+      0.357542,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYUWi6Nkg_8TXv_OTL9WL4-mO1Pa",
+      0.35276,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYLDzHojg_DPOPvJ0D84LU8fKzOm",
+      0.344704,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUOie1ZjVUCEjLFbrj8g",
+      0.332563,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWUXrMr8g-TxLvtORr7YrW8w",
+      0.331924,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYz1GVXCPBlATRbMoEn0jRCVkwwQ",
+      0.331342,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWxkGswD7CCalQdDxMl2kJBY",
+      0.324755,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUJijALci_snavtgvbrA",
+      0.323544,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUglX2UDTC104QbftsBA",
+      0.319054,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYezO9SRFGNAkRhYK8F4CnBtc6Pu",
+      0.311648,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWYGK3Pza_U9Av7cO765jI8w",
+      0.306279,
+      "linearGradient",
+      7
+     ],
+     [
+      "ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g",
+      0.304058,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWZYW7RUG_FQ5Pnasj5Viq-w",
+      0.301266,
+      "linearGradient",
+      7
+     ],
+     [
+      "kcLFa8GjO_6RDv-yz7_xE-_dc8vjrNDo8sQ8I",
+      0.301104,
+      "linearGradient",
+      8
+     ],
+     [
+      "kak0EZVx_ANoXv_QhL4vgivCkUwEYE8DA",
+      0.291391,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUNR29Pk8_1-yvD5CUBg",
+      0.291054,
+      "linearGradient",
+      7
+     ],
+     [
+      "kW4DqSXK9CUjBwu0PcJISvCQ",
+      0.289134,
+      "linearGradient",
+      7
+     ],
+     [
+      "kSMzq5Rkw_XUWP0",
+      0.287119,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUd3S2Szc-180vlsoz7g",
+      0.284854,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWTF_NMqhDsqmRTfLULZK1Ag",
+      0.284442,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWITDVJZ6_T2nRJUNUOYLnCo",
+      0.28369,
+      "linearGradient",
+      7
+     ]
+    ]
+   },
+   "embedded": [
+    {
+     "model": "@cf/google/embeddinggemma-300m",
+     "texts": [
+      "barbie dreamhouse"
+     ]
+    }
+   ]
+  },
+  {
+   "input": "complementary zxqvyk",
+   "result": {
+    "query": "complementary zxqvyk",
+    "tier": "model",
+    "total": 96,
+    "indexable": false,
+    "read": {
+     "phrases": [
+      "complementary"
+     ],
+     "unread": [],
+     "excluded": []
+    },
+    "tags": [],
+    "items": [
+     [
+      "ka_gBM_wBAP6Iv18GEAc5A3msjNtisT2A",
+      0.413,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUYCMi0olPbmVyQnhr4g",
+      0.409515,
+      "linearGradient",
+      7
+     ],
+     [
+      "kcZ27fuUQ9MW9PhVobt4Kg3WC6vVVLz4xpi5Q",
+      0.366642,
+      "linearGradient",
+      8
+     ],
+     [
+      "kY7wmoyg5AGYJP79AbP14ZL2QSKq",
+      0.364343,
+      "linearGradient",
+      7
+     ],
+     [
+      "ka7RMUfBJIf2XQN9lb-fI2_nUDLntHT0A",
+      0.356277,
+      "linearGradient",
+      7
+     ],
+     [
+      "kcdjPwQghPc4ZQVXlrx1w87kwRtM_Kj2OTvCA",
+      0.348602,
+      "linearGradient",
+      8
+     ],
+     [
+      "kUdhutWYm8tsLLo8ED3g",
+      0.345279,
+      "linearGradient",
+      7
+     ],
+     [
+      "kau3Ao8qDCnuHwp6hU-cpLAWQiQJRMsDA",
+      0.340464,
+      "linearGradient",
+      7
+     ],
+     [
+      "ka0jYCbiLJmk0xhoMUO1TRLN8uxnuFcSA",
+      0.339776,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWMBazoRA_KaHv4fgC72w--I",
+      0.334135,
+      "linearGradient",
+      7
+     ],
+     [
+      "kUrDolxwlU9SVQBZkNJg",
+      0.327957,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYsE8u2JBA8uCL41kr2IgxEB-Qyu",
+      0.316013,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYdm2_ww0_NUVLpktj-abs_2I1wA",
+      0.313172,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWo0mtRg3DMmO0DaH8I6pnBo",
+      0.303284,
+      "linearGradient",
+      7
+     ],
+     [
+      "ka2SU25BQ_FkQPzPBTyyggxkwTPnTFr-A",
+      0.302095,
+      "linearGradient",
+      7
+     ],
+     [
+      "ka4hIi9wPPPKPS_wCcD9ootfKUOjxFLyg",
+      0.300169,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWUCa8cTEuuXBwPFNdSrqw_Y",
+      0.29866,
+      "linearGradient",
+      7
+     ],
+     [
+      "kYgDecv5bBMGJQhGBs9TJbCtMgQG",
+      0.297877,
+      "linearGradient",
+      7
+     ],
+     [
+      "kY9w4yZ5EyWEVtt7HLAcxm9lQoLU",
+      0.296932,
+      "linearGradient",
+      7
+     ],
+     [
+      "ka0DngXh8-9CdPZGF71Qwq7koMMvWGryA",
+      0.293913,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWQyS1uZtAtIoLDIL7kJIk6Q",
+      0.291336,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWtHTQ6SfBeinxL1qkz_IbHA",
+      0.290705,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWTB2uRgM__AkrRCAz_oAzTY",
+      0.289639,
+      "linearGradient",
+      7
+     ],
+     [
+      "kWwmdAZMPETq-1THojG0j8tQ",
+      0.289029,
+      "linearGradient",
+      7
+     ]
+    ]
+   },
+   "embedded": [
+    {
+     "model": "@cf/google/embeddinggemma-300m",
+     "texts": [
+      "complementary zxqvyk"
+     ]
+    }
+   ]
+  },
+  {
+   "input": "the of",
+   "result": {
+    "query": "the of",
+    "tier": "account",
+    "total": 0,
+    "indexable": false,
+    "read": {
+     "phrases": [],
+     "unread": [],
+     "excluded": []
+    },
+    "tags": [],
+    "items": []
+   },
+   "embedded": []
+  }
+ ]
+}

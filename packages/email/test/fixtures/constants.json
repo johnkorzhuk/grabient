@@ -1,0 +1,85 @@
+{
+ "SIZE": {
+  "sheet": 400,
+  "letter": 600,
+  "button": 44,
+  "pictures": {
+   "lead": [
+    1072,
+    670
+   ],
+   "card": [
+    520,
+    390
+   ],
+   "tile": [
+    300,
+    300
+   ]
+  },
+  "heads": {
+   "sheet": [
+    800,
+    200
+   ],
+   "letter": [
+    1200,
+    300
+   ],
+   "lead": [
+    1200,
+    540
+   ]
+  },
+  "strip": 52,
+  "stripNarrow": 32,
+  "hairline": 1,
+  "chip": 10.5,
+  "chipNarrow": 8
+ },
+ "BRAND": [
+  "#ffd25f",
+  "#ff5f6d",
+  "#a17fff"
+ ],
+ "HEAD_FILES": {
+  "sheet": "email/head-sheet.png",
+  "letter": "email/head-letter.png"
+ },
+ "HEAD_CID": "grabient-head",
+ "VIEW": {
+  "style": "linearGradient",
+  "steps": 7,
+  "angle": 90
+ },
+ "SCHEMES": {
+  "light": {
+   "bg": "#f3f2ee",
+   "paper": "#faf9f7",
+   "ink": "#17171b",
+   "ink2": "#646466",
+   "ink3": "#6d6d6f",
+   "onInk": "#f8f7f4",
+   "edge": "#e0dfdc",
+   "line": "#d5d4d3",
+   "fill": "#f0efed",
+   "shadow": "0 30px 70px -40px rgba(30,30,40,0.45)",
+   "wash": 0.3
+  },
+  "dark": {
+   "bg": "#0c0c0e",
+   "paper": "#151518",
+   "ink": "#ececea",
+   "ink2": "#9f9f9e",
+   "ink3": "#858585",
+   "onInk": "#0c0c0e",
+   "edge": "#1e1e20",
+   "line": "#363638",
+   "fill": "#232326",
+   "shadow": "0 30px 70px -40px rgba(0,0,0,0.6)",
+   "wash": 0.2
+  }
+ },
+ "UNSUBSCRIBE_TOKEN": "/^[0-9a-f]{64}$/",
+ "READERS_PAGE": 100
+}
