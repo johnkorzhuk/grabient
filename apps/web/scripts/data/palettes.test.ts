@@ -1,11 +1,17 @@
-import { mkdtempSync, writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 import { readAliases, readOriginals, unmapped } from "./palettes.ts";
 
+const made: string[] = [];
+afterAll(() => {
+  for (const at of made) rmSync(at, { recursive: true, force: true });
+});
+/** A data folder holding these files. */
 const dir = (files: Record<string, unknown>) => {
   const at = mkdtempSync(join(tmpdir(), "grabient-palettes-"));
+  made.push(at);
   for (const [name, value] of Object.entries(files))
     writeFileSync(join(at, name), JSON.stringify(value));
   return at;
