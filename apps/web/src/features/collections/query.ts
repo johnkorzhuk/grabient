@@ -36,6 +36,11 @@ export function paletteId(raw: string): string | null {
   return palette ? encodePalette(palette) : OLD_ID.test(raw) ? raw : null;
 }
 
+/** Whether a host serves Grabient: its own, or the page's. */
+export const grabientHost = (host: string): boolean =>
+  PALETTE_HOSTS.has(host.toLowerCase()) ||
+  (typeof location !== "undefined" && host === location.host);
+
 /** Whether text reads as an address: with its scheme, a host and a path, or a path of this site. */
 export const looksLikeLink = (raw: string): boolean =>
   /^\s*(?:https?:\/\/|[^/\s]+\.[^/\s]+\/|\/)/i.test(raw);
@@ -64,7 +69,7 @@ function linkQuery(raw: string): string {
   } catch {
     return "";
   }
-  if (!PALETTE_HOSTS.has(url.hostname.toLowerCase()) && !value.startsWith("/")) return "";
+  if (!grabientHost(url.host) && !value.startsWith("/")) return "";
   const path = delocalizePath(url.pathname).path;
   if (/^\/api\/(?:og|png|palette(?:\.json)?)$/.test(path))
     return paletteId(url.searchParams.get("seed") ?? "") ?? "";

@@ -1,4 +1,5 @@
 import { isStyle, parseSize, STEPS_MAX, STEPS_MIN, type Style } from "@grabient/engine/view.ts";
+import type { Order } from "@grabient/ui/ListNav.tsx";
 import type { CollectionSort, RisingFrame } from "./types.ts";
 
 /* The collections lists' and a collection page's addresses: their query read the one way the server and the browser
@@ -80,3 +81,33 @@ export const listSearch = (
     the selection. */
 export const pageSearch = (view: ListView, selection?: boolean): string =>
   query(viewParts(view), selection);
+
+/** A collections list's address as its page draws it: the order and frame its path says, the words, the page and the
+    size, and the view. */
+export interface ListPlace {
+  order: Order;
+  frame: RisingFrame;
+  query: string;
+  page: number;
+  limit: number;
+  view: ListView;
+}
+
+/** A list's path in its order and frame. */
+export const listPath = (order: Order, frame: RisingFrame): string =>
+  order === "saved"
+    ? "/collections/saved"
+    : order === "rising"
+      ? frame === "1w"
+        ? "/collections/rising"
+        : `/collections/rising/${frame}`
+      : "/collections";
+
+/** The public read a list's page draws. */
+export const listKey = (place: ListPlace): CollectionListParams => ({
+  sort: place.order === "rising" ? "rising" : "popular",
+  frame: place.frame,
+  query: place.query,
+  page: place.page,
+  limit: place.limit
+});

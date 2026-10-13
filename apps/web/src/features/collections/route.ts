@@ -6,11 +6,25 @@ import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { type CollectionFacts, pageHead } from "../../lib/page-meta.ts";
 import { type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
-import type { ListPlace } from "./CollectionsPage.tsx";
-import { COLLECTION_LIMIT, frameOf, intIn, listSearch, listView } from "./params.ts";
-import { collectionQuery, collectionsQuery, failed, type ListKey, tagsQuery } from "./queries.ts";
+import {
+  COLLECTION_LIMIT,
+  frameOf,
+  intIn,
+  type ListPlace,
+  listKey,
+  listSearch,
+  listView
+} from "./params.ts";
+import {
+  collectionQuery,
+  collectionsQuery,
+  type Failed,
+  type Found,
+  failed,
+  tagsQuery
+} from "./queries.ts";
 import { listQuery } from "./query.ts";
-import type { CollectionDocument, RisingFrame } from "./types.ts";
+import type { CollectionDocument, CollectionPage, RisingFrame } from "./types.ts";
 
 /* What the collections' routes share: an address read into the place its page draws, the reads a loader puts in the
    query cache before the page renders (so the server renders from them and hydration asks for nothing), and the status
@@ -58,15 +72,6 @@ export function listPlace(
   };
 }
 
-/** The public read a list's page draws. */
-export const listKey = (place: ListPlace): ListKey => ({
-  sort: place.order === "rising" ? "rising" : "popular",
-  frame: place.frame,
-  query: place.query,
-  page: place.page,
-  limit: place.limit
-});
-
 /** A public list's loader: its page and its tags in the cache. A frame turned off leads to the week's, and a page past
     the end renders its line and answers 404. */
 export async function loadList(client: QueryClient, place: ListPlace): Promise<Loaded> {
@@ -111,7 +116,12 @@ export async function loadCollection(
   client: QueryClient,
   at: { slug: string; order: PaletteOrder; searchStr: string; publicHref: string }
 ): Promise<CollectionLoaded> {
-  const found = await client.ensureQueryData(collectionQuery(at.slug));
+  const query = collectionQuery(at.slug);
+  if (!isServer && !client.getQueryData(query.queryKey)) {
+    const shown = summaryOf(client, at.slug);
+    if (shown) client.setQueryData(query.queryKey, shown);
+  }
+  const found = await client.ensureQueryData(query);
   if (failed(found)) return {};
   if (found.doc) return { facts: factsOf(found.doc) };
   if (found.private || at.slug.startsWith("@")) return { status: 404, robots: "noindex,follow" };
@@ -125,6 +135,38 @@ export async function loadCollection(
     href: `${at.order === "rising" ? "/palettes/rising" : "/palettes"}${search}`,
     statusCode: 301
   });
+}
+
+/* A list this tab read holds the collection's summary: its page shows it at once, provisional and never fresh, while
+   the whole collection is read. A list's first palettes are its page's first, so the cards stay where they stand. */
+function summaryOf(client: QueryClient, slug: string): Found | null {
+  const pages = [
+    ...client.getQueriesData<CollectionPage | Failed>({ queryKey: ["collections"] }),
+    ...client.getQueriesData<CollectionPage | Failed>({ queryKey: ["own-collections"] })
+  ];
+  for (const [, page] of pages) {
+    if (!page || failed(page)) continue;
+    const summary = page.items.find(item => item.slug === slug);
+    if (!summary) continue;
+    const { preview, ...words } = summary;
+    return {
+      doc: {
+        ...words,
+        items: preview.map((item, i) => ({
+          kseed: item.seed,
+          style: item.style,
+          steps: item.steps,
+          angle: item.angle,
+          likes: item.likes ?? 0,
+          createdAt: item.createdAt ?? summary.updatedAt,
+          position: item.position ?? i
+        }))
+      },
+      provisional: true,
+      fetchedAt: page.fetchedAt
+    };
+  }
+  return null;
 }
 
 /** The router's search object as the address wrote it, so a page reads its query as the Worker made it canonical. */

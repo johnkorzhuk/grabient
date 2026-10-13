@@ -2,16 +2,12 @@ import { renderToString } from "@solidjs/web";
 import type { Element } from "solid-js";
 import { describe, expect, test } from "vitest";
 import { CollectionCard, mosaicSpans } from "../src/CollectionCard.tsx";
-import {
-  CollectionGroup,
-  CollectionGroupPlaceholder,
-  columnsAt,
-  shownAt
-} from "../src/CollectionGroup.tsx";
+import { CollectionGroup, CollectionGroupPlaceholder, shownAt } from "../src/CollectionGroup.tsx";
 import { type CollectChoice, CollectList } from "../src/CollectList.tsx";
 import { CollectPress } from "../src/CollectPress.tsx";
 import { Curation } from "../src/Curation.tsx";
 import { Fit } from "../src/Fit.tsx";
+import { columnsAt } from "../src/PaletteGrid.tsx";
 import { SaveToCollection } from "../src/SaveToCollection.tsx";
 
 /* The collections' parts as the server draws them. */

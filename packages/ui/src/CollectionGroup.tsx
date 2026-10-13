@@ -9,19 +9,6 @@ import { Placeholder } from "./Placeholder.tsx";
 import { Text } from "./Text.tsx";
 import { tooltip } from "./Tooltip.tsx";
 
-/** How many columns a list's grid draws at a width: the grid's own ranges, for code that must know. */
-export const columnsAt = (width: number) =>
-  width >= 2960
-    ? 6
-    : width >= 1808
-      ? 5
-      : width >= 1424
-        ? 4
-        : width >= 1168
-          ? 3
-          : width >= 728
-            ? 2
-            : 1;
 /* two rows of the grid's columns, or three cards on a phone */
 const CAP = [3, 4, 6, 8, 10, 12];
 /** How many cards a group shows at a column count. */
@@ -66,6 +53,8 @@ export function CollectionGroup<T>(props: {
   card: (palette: () => T, index: number) => Element;
   /** the palettes are the whole list, not a collection's first: every one shows at every width */
   whole?: boolean;
+  /** the pointer or the keyboard reached the title: the page may read the collection now */
+  onIntent?: () => void;
 }) {
   const words = () =>
     [props.description, [props.owner, props.age].filter(Boolean).join(" · ")]
@@ -77,7 +66,13 @@ export function CollectionGroup<T>(props: {
         {/* the title at the size its own page gives it, so opening the collection changes nothing about its name */}
         <Text variant="title" as="h2" dir="auto" truncate>
           <Show when={props.href} fallback={props.title}>
-            <a class={styles.title} href={props.href} ref={tooltip(words)}>
+            <a
+              class={styles.title}
+              href={props.href}
+              ref={tooltip(words)}
+              onPointerEnter={() => props.onIntent?.()}
+              onFocus={() => props.onIntent?.()}
+            >
               {props.title}
             </a>
           </Show>

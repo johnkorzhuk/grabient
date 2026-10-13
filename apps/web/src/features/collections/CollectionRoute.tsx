@@ -1,8 +1,8 @@
 import { Show, untrack } from "solid-js";
 import type { PaletteOrder } from "./address.ts";
 import { CollectionPage } from "./CollectionPage.tsx";
-import { CollectionsPage, type ListPlace } from "./CollectionsPage.tsx";
-import { listView } from "./params.ts";
+import { CollectionsPage } from "./CollectionsPage.tsx";
+import { type ListPlace, listView } from "./params.ts";
 import { answerWith, type Loaded } from "./route.ts";
 
 /** A collection's page at any of its addresses (/{slug}, /@{handle}/{slug}, either with /rising): a new page for each

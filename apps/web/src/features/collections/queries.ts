@@ -9,6 +9,7 @@ import { getJson } from "../../lib/query.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
 import { localizeCollections, translatedLocale } from "../../server/mcp/admin/translations.ts";
+import { ownCollectionsPage } from "../account/collections.ts";
 import { langQuery, readOwn, readState } from "./client.ts";
 import { COLLECTION_LIMIT, type CollectionListParams, OWN_COLLECTION_LIMIT } from "./params.ts";
 import {
@@ -38,8 +39,12 @@ const PRIVATE_TTL = 60_000;
 const freshFor =
   (ttl: number) =>
   (query: { state: { data?: unknown; dataUpdatedAt: number } }): number => {
-    const data = query.state.data as { fetchedAt?: number } | Failed | null | undefined;
-    if (!data || failed(data)) return 0;
+    const data = query.state.data as
+      | { fetchedAt?: number; provisional?: boolean }
+      | Failed
+      | null
+      | undefined;
+    if (!data || failed(data) || data.provisional) return 0;
     const at = query.state.dataUpdatedAt;
     return Math.max(0, ttl - (at - Math.min(data.fetchedAt ?? at, at)));
   };
@@ -69,6 +74,8 @@ export interface Found {
   doc: CollectionDocument | null;
   /** a private collection lives here: the page names it so, and its owner's browser fills it in */
   private?: boolean;
+  /** a list's summary of the collection, shown while the collection is read */
+  provisional?: boolean;
   fetchedAt: number;
 }
 
@@ -177,17 +184,23 @@ export const tagsQuery = (query: string) =>
     staleTime: PUBLIC_TTL
   });
 
-/** A page of the account's own collections. */
-export const ownQuery = (owner: string, key: CollectionListParams) =>
+/** A page of the account's own collections: from its copy where the copy can say, else the server's. A search a reader
+    made (`model`) goes to the server online, which also reads what the words mean; one typed is read by its letters. */
+export const ownQuery = (owner: string, key: CollectionListParams, model = true) =>
   queryOptions({
-    queryKey: ["own-collections", owner, key.query, key.limit, key.page] as const,
-    queryFn: ({ signal }) => {
+    queryKey: ["own-collections", owner, key.query, key.limit, key.page, model] as const,
+    queryFn: async ({ signal }) => {
+      const copy = await ownCollectionsPage(
+        { page: key.page, limit: key.limit, query: key.query },
+        !model
+      );
+      if (copy) return { ...copy, sort: "newest" as const, fetchedAt: Date.now() };
       const params = new URLSearchParams({
         page: String(key.page),
         limit: String(Math.min(key.limit, OWN_COLLECTION_LIMIT))
       });
       if (key.query) params.set("q", key.query);
-      if (key.query) params.set("model", "1");
+      if (key.query && model) params.set("model", "1");
       return attempt(
         () => readOwn(`?${params}`, signal),
         signal,
