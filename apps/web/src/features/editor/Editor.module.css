@@ -1,0 +1,353 @@
+@layer components {
+  /* What scrolls, then the side beside it. `--head` is the header's height, measured, since a phone's is shorter;
+     `--dock-h` is the strip's; `--peek` is the sheet's name row, which shows under the first screen. */
+  .page {
+    --peek: var(--size-editor-peek);
+    /* the press at the corner of what scrolls stands clear of the side, and in the name's row at rest */
+    --corner-end: var(--size-editor-panel);
+    --corner-rest: visible;
+    position: relative;
+    flex-grow: 1;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) var(--size-editor-panel);
+    align-items: start;
+    /* the selection's export screen stands in its place, and it waits, kept as it was */
+    &[hidden] {
+      display: none;
+    }
+    @media (min-width: 901px) and (max-width: 1280px) {
+      --corner-end: var(--size-editor-panel-narrow);
+      grid-template-columns: minmax(0, 1fr) var(--size-editor-panel-narrow);
+    }
+    /* a window too low leaves the picture no room over the name's row */
+    @media (max-height: 560px) {
+      --peek: 0px;
+      --corner-rest: hidden;
+    }
+    @media (max-width: 900px) {
+      --peek: 0px;
+      --corner-end: 0px;
+      --corner-rest: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+    }
+    &[data-alone] {
+      --corner-end: 0px;
+      grid-template-columns: minmax(0, 1fr);
+    }
+    &[data-railed] {
+      --rail-h: var(--size-control);
+      @media (pointer: coarse) {
+        --rail-h: var(--size-touch);
+      }
+    }
+  }
+  /* where the controls follow the strip, the page's parts stand one under another with the controls among them */
+  .scrolled {
+    grid-column: 1;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    @media (max-width: 900px) {
+      display: contents;
+    }
+  }
+
+  /* The picture: the first screen sized by the small viewport (a phone's toolbar showing), less the header, the strip
+     and the sheet's name. It keeps its place while the strip and the sheet come up over it, so a scroll never draws
+     it again. On a touch screen its presses wait for a tap on it, or for focus inside. */
+  .stage {
+    --tools: 0;
+    --tools-pe: none;
+    position: sticky;
+    top: var(--head, 0px);
+    z-index: 0;
+    flex-shrink: 0;
+    container-type: size;
+    display: grid;
+    place-items: center;
+    height: max(
+      calc(var(--size-touch) * 5),
+      calc(
+        100svh -
+        var(--head, 0px) -
+        var(--dock-h, var(--size-strip)) -
+        var(--rail-h, 0px) -
+        var(--peek)
+      )
+    );
+    @media (max-width: 900px) {
+      height: max(
+        calc(var(--size-touch) * 2 + var(--space-s4) * 3),
+        calc(100svh - var(--head, 0px) - var(--size-strip-short) - env(safe-area-inset-bottom, 0px))
+      );
+    }
+    &:focus-within,
+    &[data-shown] {
+      --tools: 1;
+      --tools-pe: auto;
+    }
+    /* out of sight behind the bar: nothing there takes a key or is read */
+    &[data-out] {
+      visibility: hidden;
+    }
+  }
+  .paint {
+    position: absolute;
+    inset: 0;
+  }
+  /* a chosen size: that shape inside the stage, never larger than its pixels, clear of the presses over and under it */
+  .fitted {
+    width: min(
+      100cqw -
+      2 *
+      var(--space-s6),
+      (100cqh - 2 * (var(--size-control-big) + var(--space-s8))) *
+      var(--ar),
+      var(--w)
+    );
+    aspect-ratio: var(--ar);
+    border-radius: var(--radius-tight);
+    box-shadow: var(--color-shadow);
+  }
+  /* a press that waits for the tap on a touch screen; a mouse always has it, and a keyboard and a reader reach it */
+  .waits {
+    display: inline-flex;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    @media (pointer: coarse) {
+      opacity: var(--tools);
+      pointer-events: var(--tools-pe);
+    }
+  }
+  .tools,
+  .bottomStart,
+  .bottomEnd {
+    position: absolute;
+    z-index: 3;
+    display: flex;
+    gap: var(--space-s2);
+    transition:
+      opacity var(--motion-fast) var(--motion-ease),
+      visibility var(--motion-fast) var(--motion-ease);
+    &[data-away] {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+  }
+  .tools {
+    top: var(--space-s4);
+    inset-inline-end: max(var(--space-s4), env(safe-area-inset-right));
+    align-items: flex-start;
+  }
+  .bottomStart {
+    bottom: var(--space-s4);
+    inset-inline-start: max(var(--space-s4), env(safe-area-inset-left));
+    align-items: center;
+  }
+  .bottomEnd {
+    bottom: var(--space-s4);
+    inset-inline-end: max(var(--space-s4), env(safe-area-inset-right));
+    align-items: center;
+  }
+  /* the heart: glass over the picture, the page's own on paper */
+  .like {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-s2);
+    height: var(--size-control-big);
+    padding-inline: var(--space-s3);
+    border: 1px solid var(--color-art-edge);
+    border-radius: var(--radius-control);
+    background: var(--color-art);
+    color: var(--color-on-art);
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+    &:hover {
+      background: var(--color-art-hover);
+    }
+    &[aria-pressed="true"] {
+      color: var(--color-like);
+    }
+    &[data-paper] {
+      border-color: transparent;
+      background: transparent;
+      color: var(--color-ink);
+      &:hover {
+        background: var(--color-paper2);
+      }
+    }
+  }
+  .count {
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-fs2);
+  }
+
+  /* the strip: the first screen's foot, then the page's bar under the header */
+  .bar {
+    position: sticky;
+    top: var(--head, 0px);
+    z-index: 5;
+    flex-shrink: 0;
+    background-color: var(--color-paper-solid);
+  }
+
+  /* the keyframe rail, while the side is away; a handle's finger target runs past the ends, cut there */
+  .railDock {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    overflow-x: clip;
+    background-color: var(--color-paper-solid);
+    &[data-out] {
+      visibility: hidden;
+    }
+  }
+  .rail {
+    position: relative;
+    height: var(--size-control);
+    margin-inline: var(--space-s3);
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
+  }
+  .railLine {
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: var(--size-hairline);
+    background-image: var(--color-dash-rule);
+    background-size: var(--size-dash-period) 1px;
+    background-repeat: repeat-x;
+  }
+  .handle {
+    position: absolute;
+    top: 50%;
+    left: var(--x);
+    width: var(--size-thumb);
+    height: var(--size-thumb);
+    margin: 0;
+    padding: 0;
+    transform: translate(-50%, -50%);
+    border: 0;
+    border-radius: var(--radius-circle);
+    background-color: var(--c);
+    box-shadow: 0 0 0 2px var(--color-paper-solid);
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    @media (pointer: coarse) {
+      width: var(--size-thumb-touch);
+      height: var(--size-thumb-touch);
+    }
+    &:focus-visible {
+      outline: 1px solid var(--color-ring);
+      outline-offset: 3px;
+    }
+    &[data-held] {
+      box-shadow:
+        0 0 0 2px var(--color-paper-solid),
+        0 0 0 4px var(--color-ink);
+    }
+    /* a finger's target is the touch size around the dot it sees */
+    &::before {
+      content: "";
+      position: absolute;
+      inset: calc((var(--size-thumb-touch) - var(--size-touch)) / 2);
+      border-radius: var(--radius-circle);
+    }
+  }
+
+  /* The side: pinned under the header, as tall as the window leaves. Rows taller than that scroll inside it with no
+     scrollbar, so a finger on the picture moves the page and one on the side moves its rows. */
+  .side {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: var(--head, 0px);
+    z-index: 6;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex-shrink: 0;
+    height: calc(100svh - var(--head, 0px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding-bottom: var(--typing, 0px);
+    background-color: var(--color-paper-solid);
+    border-inline-start: var(--size-hairline) solid var(--color-edge);
+    &::-webkit-scrollbar {
+      display: none;
+    }
+    &[data-narrow] {
+      position: static;
+      z-index: 1;
+      align-self: auto;
+      height: auto;
+      overflow: visible;
+      padding-bottom: 0;
+      border-inline-start-width: 0;
+    }
+  }
+  .rows {
+    display: flex;
+    flex-direction: column;
+  }
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    padding: var(--space-s4);
+    &[data-ruled] {
+      background-image: var(--color-dash-rule);
+      background-size: var(--size-dash-period) 1px;
+      background-repeat: repeat-x;
+      background-position: left top;
+    }
+  }
+  /* the hex line keeps its height while no keyframe is held alone, so the plots above keep theirs */
+  .hexRoom {
+    display: flex;
+    flex-shrink: 0;
+    min-height: var(--size-control);
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+    [data-narrow] > * > & {
+      min-height: 0;
+    }
+  }
+  .read {
+    margin-inline-start: auto;
+    padding-inline-start: var(--space-s3);
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+    font-size: var(--font-fs2);
+    color: var(--color-ink);
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    &[data-unread] {
+      opacity: 0;
+    }
+    [data-narrow] & {
+      display: none;
+    }
+  }
+  .readSwatch {
+    width: var(--space-s5);
+    height: var(--space-s5);
+    flex-shrink: 0;
+    border-radius: var(--radius-circle);
+    box-shadow: var(--color-rim);
+  }
+}

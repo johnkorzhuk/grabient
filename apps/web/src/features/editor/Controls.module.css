@@ -1,0 +1,66 @@
+@layer components {
+  /* an axis: its numbers, then its plot */
+  .axis {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s2);
+    min-width: 0;
+  }
+  .fields {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s2);
+    min-width: 0;
+    min-height: var(--size-control);
+    @media (pointer: coarse) {
+      min-height: var(--size-touch);
+    }
+    & > * {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    /* a line that cannot hold both its fields puts the second under the first: a wrap before a cut */
+    &[data-stacked] {
+      flex-wrap: wrap;
+      & > * {
+        flex-basis: 100%;
+      }
+    }
+  }
+  .field {
+    display: block;
+    min-width: 0;
+  }
+  /* the actions: Random by name taking the room the glyphs leave, then the glyphs in groups; a row too narrow for
+     both gives Random a line of its own */
+  .actions {
+    container-type: inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: var(--space-s4);
+    row-gap: var(--space-s2);
+  }
+  .lead {
+    display: flex;
+    flex-grow: 1;
+    flex-basis: 0;
+    min-width: 0;
+    @container (max-width: 340px) {
+      flex-basis: 100%;
+    }
+  }
+  .kind {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0;
+    gap: var(--space-s2);
+  }
+  .cell {
+    display: flex;
+    min-width: 0;
+  }
+  .whole {
+    flex-basis: 100%;
+  }
+}

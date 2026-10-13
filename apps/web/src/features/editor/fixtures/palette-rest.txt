@@ -1,0 +1,20 @@
+{
+  "constants": {
+    "REST_MS": 500
+  },
+  "openedLeft": 0,
+  "changedLeft": 500,
+  "changedLeftAfter300": 200,
+  "doubling": [
+    1000,
+    2000,
+    2000,
+    2000,
+    2000,
+    2000
+  ],
+  "sameKeyDeduped": true,
+  "minuteRoom": 500,
+  "minuteRoomLater": 2000
+}
+{"afterTwelveIn55s":4000,"afterTwelveAt60s":1000,"quiet10sLater":500,"quietMinuteLater":500}

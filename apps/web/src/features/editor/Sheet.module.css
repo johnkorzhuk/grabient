@@ -1,0 +1,37 @@
+@layer components {
+  .similar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+  }
+  .heading {
+    margin: 0;
+    font-size: var(--font-fs4);
+    & a {
+      color: inherit;
+    }
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(var(--size-card-min), 1fr));
+    gap: var(--space-s4);
+  }
+  .card,
+  .placeholder {
+    display: block;
+    aspect-ratio: 3 / 2;
+    border-radius: var(--radius-surface);
+    overflow: hidden;
+  }
+  .card {
+    box-shadow: var(--color-shadow);
+  }
+  .placeholder {
+    background: var(--color-paper2);
+  }
+  .art {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}

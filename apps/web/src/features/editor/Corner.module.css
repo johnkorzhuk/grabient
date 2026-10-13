@@ -1,0 +1,9 @@
+@layer components {
+  /* the panel press stands where the side stands beside the page */
+  .desk {
+    display: inline-flex;
+    @media (max-width: 900px) {
+      display: none;
+    }
+  }
+}
