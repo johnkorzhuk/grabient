@@ -1,0 +1,2459 @@
+{
+ "note": "splitLocale, isPagePath, canonicalLocalePath (of the pathname), delocalizePath and localizePath in every language (path.ts).",
+ "paths": [
+  {
+   "input": "/",
+   "split": {
+    "locale": "en",
+    "path": "/"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/",
+    "ar": "/ar",
+    "de": "/de",
+    "es": "/es",
+    "fa": "/fa",
+    "fr": "/fr",
+    "id": "/id",
+    "ja": "/ja",
+    "ko": "/ko",
+    "pt-BR": "/pt-br",
+    "ru": "/ru",
+    "th": "/th",
+    "tr": "/tr",
+    "uk": "/uk",
+    "vi": "/vi",
+    "zh-Hans": "/zh-hans"
+   }
+  },
+  {
+   "input": "",
+   "split": {
+    "locale": "en",
+    "path": "/"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": ""
+   },
+   "localize": {
+    "en": "",
+    "ar": "",
+    "de": "",
+    "es": "",
+    "fa": "",
+    "fr": "",
+    "id": "",
+    "ja": "",
+    "ko": "",
+    "pt-BR": "",
+    "ru": "",
+    "th": "",
+    "tr": "",
+    "uk": "",
+    "vi": "",
+    "zh-Hans": ""
+   }
+  },
+  {
+   "input": "/ja",
+   "split": {
+    "locale": "ja",
+    "path": "/",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/ja",
+    "ar": "/ar/ja",
+    "de": "/de/ja",
+    "es": "/es/ja",
+    "fa": "/fa/ja",
+    "fr": "/fr/ja",
+    "id": "/id/ja",
+    "ja": "/ja/ja",
+    "ko": "/ko/ja",
+    "pt-BR": "/pt-br/ja",
+    "ru": "/ru/ja",
+    "th": "/th/ja",
+    "tr": "/tr/ja",
+    "uk": "/uk/ja",
+    "vi": "/vi/ja",
+    "zh-Hans": "/zh-hans/ja"
+   }
+  },
+  {
+   "input": "/ja/",
+   "split": {
+    "locale": "ja",
+    "path": "/",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/ja",
+   "delocalize": {
+    "locale": "ja",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/ja/",
+    "ar": "/ar/ja/",
+    "de": "/de/ja/",
+    "es": "/es/ja/",
+    "fa": "/fa/ja/",
+    "fr": "/fr/ja/",
+    "id": "/id/ja/",
+    "ja": "/ja/ja/",
+    "ko": "/ko/ja/",
+    "pt-BR": "/pt-br/ja/",
+    "ru": "/ru/ja/",
+    "th": "/th/ja/",
+    "tr": "/tr/ja/",
+    "uk": "/uk/ja/",
+    "vi": "/vi/ja/",
+    "zh-Hans": "/zh-hans/ja/"
+   }
+  },
+  {
+   "input": "/JA",
+   "split": {
+    "locale": "ja",
+    "path": "/",
+    "segment": "JA"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/ja",
+   "delocalize": {
+    "locale": "ja",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/JA",
+    "ar": "/ar/JA",
+    "de": "/de/JA",
+    "es": "/es/JA",
+    "fa": "/fa/JA",
+    "fr": "/fr/JA",
+    "id": "/id/JA",
+    "ja": "/ja/JA",
+    "ko": "/ko/JA",
+    "pt-BR": "/pt-br/JA",
+    "ru": "/ru/JA",
+    "th": "/th/JA",
+    "tr": "/tr/JA",
+    "uk": "/uk/JA",
+    "vi": "/vi/JA",
+    "zh-Hans": "/zh-hans/JA"
+   }
+  },
+  {
+   "input": "/JA/palettes",
+   "split": {
+    "locale": "ja",
+    "path": "/palettes",
+    "segment": "JA"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/ja/palettes",
+   "delocalize": {
+    "locale": "ja",
+    "path": "/palettes"
+   },
+   "localize": {
+    "en": "/JA/palettes",
+    "ar": "/ar/JA/palettes",
+    "de": "/de/JA/palettes",
+    "es": "/es/JA/palettes",
+    "fa": "/fa/JA/palettes",
+    "fr": "/fr/JA/palettes",
+    "id": "/id/JA/palettes",
+    "ja": "/ja/JA/palettes",
+    "ko": "/ko/JA/palettes",
+    "pt-BR": "/pt-br/JA/palettes",
+    "ru": "/ru/JA/palettes",
+    "th": "/th/JA/palettes",
+    "tr": "/tr/JA/palettes",
+    "uk": "/uk/JA/palettes",
+    "vi": "/vi/JA/palettes",
+    "zh-Hans": "/zh-hans/JA/palettes"
+   }
+  },
+  {
+   "input": "/ja/palettes",
+   "split": {
+    "locale": "ja",
+    "path": "/palettes",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/palettes"
+   },
+   "localize": {
+    "en": "/ja/palettes",
+    "ar": "/ar/ja/palettes",
+    "de": "/de/ja/palettes",
+    "es": "/es/ja/palettes",
+    "fa": "/fa/ja/palettes",
+    "fr": "/fr/ja/palettes",
+    "id": "/id/ja/palettes",
+    "ja": "/ja/ja/palettes",
+    "ko": "/ko/ja/palettes",
+    "pt-BR": "/pt-br/ja/palettes",
+    "ru": "/ru/ja/palettes",
+    "th": "/th/ja/palettes",
+    "tr": "/tr/ja/palettes",
+    "uk": "/uk/ja/palettes",
+    "vi": "/vi/ja/palettes",
+    "zh-Hans": "/zh-hans/ja/palettes"
+   }
+  },
+  {
+   "input": "/ja/palettes/",
+   "split": {
+    "locale": "ja",
+    "path": "/palettes/",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/palettes/"
+   },
+   "localize": {
+    "en": "/ja/palettes/",
+    "ar": "/ar/ja/palettes/",
+    "de": "/de/ja/palettes/",
+    "es": "/es/ja/palettes/",
+    "fa": "/fa/ja/palettes/",
+    "fr": "/fr/ja/palettes/",
+    "id": "/id/ja/palettes/",
+    "ja": "/ja/ja/palettes/",
+    "ko": "/ko/ja/palettes/",
+    "pt-BR": "/pt-br/ja/palettes/",
+    "ru": "/ru/ja/palettes/",
+    "th": "/th/ja/palettes/",
+    "tr": "/tr/ja/palettes/",
+    "uk": "/uk/ja/palettes/",
+    "vi": "/vi/ja/palettes/",
+    "zh-Hans": "/zh-hans/ja/palettes/"
+   }
+  },
+  {
+   "input": "/ja/palettes?q=blue",
+   "split": {
+    "locale": "ja",
+    "path": "/palettes?q=blue",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/palettes?q=blue"
+   },
+   "localize": {
+    "en": "/ja/palettes?q=blue",
+    "ar": "/ar/ja/palettes?q=blue",
+    "de": "/de/ja/palettes?q=blue",
+    "es": "/es/ja/palettes?q=blue",
+    "fa": "/fa/ja/palettes?q=blue",
+    "fr": "/fr/ja/palettes?q=blue",
+    "id": "/id/ja/palettes?q=blue",
+    "ja": "/ja/ja/palettes?q=blue",
+    "ko": "/ko/ja/palettes?q=blue",
+    "pt-BR": "/pt-br/ja/palettes?q=blue",
+    "ru": "/ru/ja/palettes?q=blue",
+    "th": "/th/ja/palettes?q=blue",
+    "tr": "/tr/ja/palettes?q=blue",
+    "uk": "/uk/ja/palettes?q=blue",
+    "vi": "/vi/ja/palettes?q=blue",
+    "zh-Hans": "/zh-hans/ja/palettes?q=blue"
+   }
+  },
+  {
+   "input": "/ja/palettes/?q=blue",
+   "split": {
+    "locale": "ja",
+    "path": "/palettes/?q=blue",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/palettes/?q=blue"
+   },
+   "localize": {
+    "en": "/ja/palettes/?q=blue",
+    "ar": "/ar/ja/palettes/?q=blue",
+    "de": "/de/ja/palettes/?q=blue",
+    "es": "/es/ja/palettes/?q=blue",
+    "fa": "/fa/ja/palettes/?q=blue",
+    "fr": "/fr/ja/palettes/?q=blue",
+    "id": "/id/ja/palettes/?q=blue",
+    "ja": "/ja/ja/palettes/?q=blue",
+    "ko": "/ko/ja/palettes/?q=blue",
+    "pt-BR": "/pt-br/ja/palettes/?q=blue",
+    "ru": "/ru/ja/palettes/?q=blue",
+    "th": "/th/ja/palettes/?q=blue",
+    "tr": "/tr/ja/palettes/?q=blue",
+    "uk": "/uk/ja/palettes/?q=blue",
+    "vi": "/vi/ja/palettes/?q=blue",
+    "zh-Hans": "/zh-hans/ja/palettes/?q=blue"
+   }
+  },
+  {
+   "input": "/ja?page=2",
+   "split": {
+    "locale": "en",
+    "path": "/ja?page=2"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/?page=2"
+   },
+   "localize": {
+    "en": "/ja?page=2",
+    "ar": "/ar/ja?page=2",
+    "de": "/de/ja?page=2",
+    "es": "/es/ja?page=2",
+    "fa": "/fa/ja?page=2",
+    "fr": "/fr/ja?page=2",
+    "id": "/id/ja?page=2",
+    "ja": "/ja/ja?page=2",
+    "ko": "/ko/ja?page=2",
+    "pt-BR": "/pt-br/ja?page=2",
+    "ru": "/ru/ja?page=2",
+    "th": "/th/ja?page=2",
+    "tr": "/tr/ja?page=2",
+    "uk": "/uk/ja?page=2",
+    "vi": "/vi/ja?page=2",
+    "zh-Hans": "/zh-hans/ja?page=2"
+   }
+  },
+  {
+   "input": "/pt-br",
+   "split": {
+    "locale": "pt-BR",
+    "path": "/",
+    "segment": "pt-br"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "pt-BR",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/pt-br",
+    "ar": "/ar/pt-br",
+    "de": "/de/pt-br",
+    "es": "/es/pt-br",
+    "fa": "/fa/pt-br",
+    "fr": "/fr/pt-br",
+    "id": "/id/pt-br",
+    "ja": "/ja/pt-br",
+    "ko": "/ko/pt-br",
+    "pt-BR": "/pt-br/pt-br",
+    "ru": "/ru/pt-br",
+    "th": "/th/pt-br",
+    "tr": "/tr/pt-br",
+    "uk": "/uk/pt-br",
+    "vi": "/vi/pt-br",
+    "zh-Hans": "/zh-hans/pt-br"
+   }
+  },
+  {
+   "input": "/pt-BR/about",
+   "split": {
+    "locale": "pt-BR",
+    "path": "/about",
+    "segment": "pt-BR"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/pt-br/about",
+   "delocalize": {
+    "locale": "pt-BR",
+    "path": "/about"
+   },
+   "localize": {
+    "en": "/pt-BR/about",
+    "ar": "/ar/pt-BR/about",
+    "de": "/de/pt-BR/about",
+    "es": "/es/pt-BR/about",
+    "fa": "/fa/pt-BR/about",
+    "fr": "/fr/pt-BR/about",
+    "id": "/id/pt-BR/about",
+    "ja": "/ja/pt-BR/about",
+    "ko": "/ko/pt-BR/about",
+    "pt-BR": "/pt-br/pt-BR/about",
+    "ru": "/ru/pt-BR/about",
+    "th": "/th/pt-BR/about",
+    "tr": "/tr/pt-BR/about",
+    "uk": "/uk/pt-BR/about",
+    "vi": "/vi/pt-BR/about",
+    "zh-Hans": "/zh-hans/pt-BR/about"
+   }
+  },
+  {
+   "input": "/PT-BR/about",
+   "split": {
+    "locale": "pt-BR",
+    "path": "/about",
+    "segment": "PT-BR"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/pt-br/about",
+   "delocalize": {
+    "locale": "pt-BR",
+    "path": "/about"
+   },
+   "localize": {
+    "en": "/PT-BR/about",
+    "ar": "/ar/PT-BR/about",
+    "de": "/de/PT-BR/about",
+    "es": "/es/PT-BR/about",
+    "fa": "/fa/PT-BR/about",
+    "fr": "/fr/PT-BR/about",
+    "id": "/id/PT-BR/about",
+    "ja": "/ja/PT-BR/about",
+    "ko": "/ko/PT-BR/about",
+    "pt-BR": "/pt-br/PT-BR/about",
+    "ru": "/ru/PT-BR/about",
+    "th": "/th/PT-BR/about",
+    "tr": "/tr/PT-BR/about",
+    "uk": "/uk/PT-BR/about",
+    "vi": "/vi/PT-BR/about",
+    "zh-Hans": "/zh-hans/PT-BR/about"
+   }
+  },
+  {
+   "input": "/zh-hans",
+   "split": {
+    "locale": "zh-Hans",
+    "path": "/",
+    "segment": "zh-hans"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "zh-Hans",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/zh-hans",
+    "ar": "/ar/zh-hans",
+    "de": "/de/zh-hans",
+    "es": "/es/zh-hans",
+    "fa": "/fa/zh-hans",
+    "fr": "/fr/zh-hans",
+    "id": "/id/zh-hans",
+    "ja": "/ja/zh-hans",
+    "ko": "/ko/zh-hans",
+    "pt-BR": "/pt-br/zh-hans",
+    "ru": "/ru/zh-hans",
+    "th": "/th/zh-hans",
+    "tr": "/tr/zh-hans",
+    "uk": "/uk/zh-hans",
+    "vi": "/vi/zh-hans",
+    "zh-Hans": "/zh-hans/zh-hans"
+   }
+  },
+  {
+   "input": "/zh-Hans/about",
+   "split": {
+    "locale": "zh-Hans",
+    "path": "/about",
+    "segment": "zh-Hans"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/zh-hans/about",
+   "delocalize": {
+    "locale": "zh-Hans",
+    "path": "/about"
+   },
+   "localize": {
+    "en": "/zh-Hans/about",
+    "ar": "/ar/zh-Hans/about",
+    "de": "/de/zh-Hans/about",
+    "es": "/es/zh-Hans/about",
+    "fa": "/fa/zh-Hans/about",
+    "fr": "/fr/zh-Hans/about",
+    "id": "/id/zh-Hans/about",
+    "ja": "/ja/zh-Hans/about",
+    "ko": "/ko/zh-Hans/about",
+    "pt-BR": "/pt-br/zh-Hans/about",
+    "ru": "/ru/zh-Hans/about",
+    "th": "/th/zh-Hans/about",
+    "tr": "/tr/zh-Hans/about",
+    "uk": "/uk/zh-Hans/about",
+    "vi": "/vi/zh-Hans/about",
+    "zh-Hans": "/zh-hans/zh-Hans/about"
+   }
+  },
+  {
+   "input": "/Zh-Hans",
+   "split": {
+    "locale": "zh-Hans",
+    "path": "/",
+    "segment": "Zh-Hans"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/zh-hans",
+   "delocalize": {
+    "locale": "zh-Hans",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/Zh-Hans",
+    "ar": "/ar/Zh-Hans",
+    "de": "/de/Zh-Hans",
+    "es": "/es/Zh-Hans",
+    "fa": "/fa/Zh-Hans",
+    "fr": "/fr/Zh-Hans",
+    "id": "/id/Zh-Hans",
+    "ja": "/ja/Zh-Hans",
+    "ko": "/ko/Zh-Hans",
+    "pt-BR": "/pt-br/Zh-Hans",
+    "ru": "/ru/Zh-Hans",
+    "th": "/th/Zh-Hans",
+    "tr": "/tr/Zh-Hans",
+    "uk": "/uk/Zh-Hans",
+    "vi": "/vi/Zh-Hans",
+    "zh-Hans": "/zh-hans/Zh-Hans"
+   }
+  },
+  {
+   "input": "/zh-hans/@ada/warm",
+   "split": {
+    "locale": "zh-Hans",
+    "path": "/@ada/warm",
+    "segment": "zh-hans"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "zh-Hans",
+    "path": "/@ada/warm"
+   },
+   "localize": {
+    "en": "/zh-hans/@ada/warm",
+    "ar": "/ar/zh-hans/@ada/warm",
+    "de": "/de/zh-hans/@ada/warm",
+    "es": "/es/zh-hans/@ada/warm",
+    "fa": "/fa/zh-hans/@ada/warm",
+    "fr": "/fr/zh-hans/@ada/warm",
+    "id": "/id/zh-hans/@ada/warm",
+    "ja": "/ja/zh-hans/@ada/warm",
+    "ko": "/ko/zh-hans/@ada/warm",
+    "pt-BR": "/pt-br/zh-hans/@ada/warm",
+    "ru": "/ru/zh-hans/@ada/warm",
+    "th": "/th/zh-hans/@ada/warm",
+    "tr": "/tr/zh-hans/@ada/warm",
+    "uk": "/uk/zh-hans/@ada/warm",
+    "vi": "/vi/zh-hans/@ada/warm",
+    "zh-Hans": "/zh-hans/zh-hans/@ada/warm"
+   }
+  },
+  {
+   "input": "/zh-hant/about",
+   "split": {
+    "locale": "en",
+    "path": "/zh-hant/about"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/zh-hant/about"
+   },
+   "localize": {
+    "en": "/zh-hant/about",
+    "ar": "/ar/zh-hant/about",
+    "de": "/de/zh-hant/about",
+    "es": "/es/zh-hant/about",
+    "fa": "/fa/zh-hant/about",
+    "fr": "/fr/zh-hant/about",
+    "id": "/id/zh-hant/about",
+    "ja": "/ja/zh-hant/about",
+    "ko": "/ko/zh-hant/about",
+    "pt-BR": "/pt-br/zh-hant/about",
+    "ru": "/ru/zh-hant/about",
+    "th": "/th/zh-hant/about",
+    "tr": "/tr/zh-hant/about",
+    "uk": "/uk/zh-hant/about",
+    "vi": "/vi/zh-hant/about",
+    "zh-Hans": "/zh-hans/zh-hant/about"
+   }
+  },
+  {
+   "input": "/zh",
+   "split": {
+    "locale": "en",
+    "path": "/zh"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/zh"
+   },
+   "localize": {
+    "en": "/zh",
+    "ar": "/ar/zh",
+    "de": "/de/zh",
+    "es": "/es/zh",
+    "fa": "/fa/zh",
+    "fr": "/fr/zh",
+    "id": "/id/zh",
+    "ja": "/ja/zh",
+    "ko": "/ko/zh",
+    "pt-BR": "/pt-br/zh",
+    "ru": "/ru/zh",
+    "th": "/th/zh",
+    "tr": "/tr/zh",
+    "uk": "/uk/zh",
+    "vi": "/vi/zh",
+    "zh-Hans": "/zh-hans/zh"
+   }
+  },
+  {
+   "input": "/zh-cn",
+   "split": {
+    "locale": "en",
+    "path": "/zh-cn"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/zh-cn"
+   },
+   "localize": {
+    "en": "/zh-cn",
+    "ar": "/ar/zh-cn",
+    "de": "/de/zh-cn",
+    "es": "/es/zh-cn",
+    "fa": "/fa/zh-cn",
+    "fr": "/fr/zh-cn",
+    "id": "/id/zh-cn",
+    "ja": "/ja/zh-cn",
+    "ko": "/ko/zh-cn",
+    "pt-BR": "/pt-br/zh-cn",
+    "ru": "/ru/zh-cn",
+    "th": "/th/zh-cn",
+    "tr": "/tr/zh-cn",
+    "uk": "/uk/zh-cn",
+    "vi": "/vi/zh-cn",
+    "zh-Hans": "/zh-hans/zh-cn"
+   }
+  },
+  {
+   "input": "/pt",
+   "split": {
+    "locale": "en",
+    "path": "/pt"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/pt"
+   },
+   "localize": {
+    "en": "/pt",
+    "ar": "/ar/pt",
+    "de": "/de/pt",
+    "es": "/es/pt",
+    "fa": "/fa/pt",
+    "fr": "/fr/pt",
+    "id": "/id/pt",
+    "ja": "/ja/pt",
+    "ko": "/ko/pt",
+    "pt-BR": "/pt-br/pt",
+    "ru": "/ru/pt",
+    "th": "/th/pt",
+    "tr": "/tr/pt",
+    "uk": "/uk/pt",
+    "vi": "/vi/pt",
+    "zh-Hans": "/zh-hans/pt"
+   }
+  },
+  {
+   "input": "/en",
+   "split": {
+    "locale": "en",
+    "path": "/en"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/",
+   "delocalize": {
+    "locale": "en",
+    "path": "/en"
+   },
+   "localize": {
+    "en": "/en",
+    "ar": "/ar/en",
+    "de": "/de/en",
+    "es": "/es/en",
+    "fa": "/fa/en",
+    "fr": "/fr/en",
+    "id": "/id/en",
+    "ja": "/ja/en",
+    "ko": "/ko/en",
+    "pt-BR": "/pt-br/en",
+    "ru": "/ru/en",
+    "th": "/th/en",
+    "tr": "/tr/en",
+    "uk": "/uk/en",
+    "vi": "/vi/en",
+    "zh-Hans": "/zh-hans/en"
+   }
+  },
+  {
+   "input": "/en/",
+   "split": {
+    "locale": "en",
+    "path": "/en/"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/",
+   "delocalize": {
+    "locale": "en",
+    "path": "/en/"
+   },
+   "localize": {
+    "en": "/en/",
+    "ar": "/ar/en/",
+    "de": "/de/en/",
+    "es": "/es/en/",
+    "fa": "/fa/en/",
+    "fr": "/fr/en/",
+    "id": "/id/en/",
+    "ja": "/ja/en/",
+    "ko": "/ko/en/",
+    "pt-BR": "/pt-br/en/",
+    "ru": "/ru/en/",
+    "th": "/th/en/",
+    "tr": "/tr/en/",
+    "uk": "/uk/en/",
+    "vi": "/vi/en/",
+    "zh-Hans": "/zh-hans/en/"
+   }
+  },
+  {
+   "input": "/EN/about",
+   "split": {
+    "locale": "en",
+    "path": "/EN/about"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/about",
+   "delocalize": {
+    "locale": "en",
+    "path": "/EN/about"
+   },
+   "localize": {
+    "en": "/EN/about",
+    "ar": "/ar/EN/about",
+    "de": "/de/EN/about",
+    "es": "/es/EN/about",
+    "fa": "/fa/EN/about",
+    "fr": "/fr/EN/about",
+    "id": "/id/EN/about",
+    "ja": "/ja/EN/about",
+    "ko": "/ko/EN/about",
+    "pt-BR": "/pt-br/EN/about",
+    "ru": "/ru/EN/about",
+    "th": "/th/EN/about",
+    "tr": "/tr/EN/about",
+    "uk": "/uk/EN/about",
+    "vi": "/vi/EN/about",
+    "zh-Hans": "/zh-hans/EN/about"
+   }
+  },
+  {
+   "input": "/en/about",
+   "split": {
+    "locale": "en",
+    "path": "/en/about"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": "/about",
+   "delocalize": {
+    "locale": "en",
+    "path": "/en/about"
+   },
+   "localize": {
+    "en": "/en/about",
+    "ar": "/ar/en/about",
+    "de": "/de/en/about",
+    "es": "/es/en/about",
+    "fa": "/fa/en/about",
+    "fr": "/fr/en/about",
+    "id": "/id/en/about",
+    "ja": "/ja/en/about",
+    "ko": "/ko/en/about",
+    "pt-BR": "/pt-br/en/about",
+    "ru": "/ru/en/about",
+    "th": "/th/en/about",
+    "tr": "/tr/en/about",
+    "uk": "/uk/en/about",
+    "vi": "/vi/en/about",
+    "zh-Hans": "/zh-hans/en/about"
+   }
+  },
+  {
+   "input": "/en/api/x",
+   "split": {
+    "locale": "en",
+    "path": "/en/api/x"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/en/api/x"
+   },
+   "localize": {
+    "en": "/en/api/x",
+    "ar": "/ar/en/api/x",
+    "de": "/de/en/api/x",
+    "es": "/es/en/api/x",
+    "fa": "/fa/en/api/x",
+    "fr": "/fr/en/api/x",
+    "id": "/id/en/api/x",
+    "ja": "/ja/en/api/x",
+    "ko": "/ko/en/api/x",
+    "pt-BR": "/pt-br/en/api/x",
+    "ru": "/ru/en/api/x",
+    "th": "/th/en/api/x",
+    "tr": "/tr/en/api/x",
+    "uk": "/uk/en/api/x",
+    "vi": "/vi/en/api/x",
+    "zh-Hans": "/zh-hans/en/api/x"
+   }
+  },
+  {
+   "input": "/en-us/about",
+   "split": {
+    "locale": "en",
+    "path": "/en-us/about"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/en-us/about"
+   },
+   "localize": {
+    "en": "/en-us/about",
+    "ar": "/ar/en-us/about",
+    "de": "/de/en-us/about",
+    "es": "/es/en-us/about",
+    "fa": "/fa/en-us/about",
+    "fr": "/fr/en-us/about",
+    "id": "/id/en-us/about",
+    "ja": "/ja/en-us/about",
+    "ko": "/ko/en-us/about",
+    "pt-BR": "/pt-br/en-us/about",
+    "ru": "/ru/en-us/about",
+    "th": "/th/en-us/about",
+    "tr": "/tr/en-us/about",
+    "uk": "/uk/en-us/about",
+    "vi": "/vi/en-us/about",
+    "zh-Hans": "/zh-hans/en-us/about"
+   }
+  },
+  {
+   "input": "/de-luxe",
+   "split": {
+    "locale": "en",
+    "path": "/de-luxe"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/de-luxe"
+   },
+   "localize": {
+    "en": "/de-luxe",
+    "ar": "/ar/de-luxe",
+    "de": "/de/de-luxe",
+    "es": "/es/de-luxe",
+    "fa": "/fa/de-luxe",
+    "fr": "/fr/de-luxe",
+    "id": "/id/de-luxe",
+    "ja": "/ja/de-luxe",
+    "ko": "/ko/de-luxe",
+    "pt-BR": "/pt-br/de-luxe",
+    "ru": "/ru/de-luxe",
+    "th": "/th/de-luxe",
+    "tr": "/tr/de-luxe",
+    "uk": "/uk/de-luxe",
+    "vi": "/vi/de-luxe",
+    "zh-Hans": "/zh-hans/de-luxe"
+   }
+  },
+  {
+   "input": "/japan",
+   "split": {
+    "locale": "en",
+    "path": "/japan"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/japan"
+   },
+   "localize": {
+    "en": "/japan",
+    "ar": "/ar/japan",
+    "de": "/de/japan",
+    "es": "/es/japan",
+    "fa": "/fa/japan",
+    "fr": "/fr/japan",
+    "id": "/id/japan",
+    "ja": "/ja/japan",
+    "ko": "/ko/japan",
+    "pt-BR": "/pt-br/japan",
+    "ru": "/ru/japan",
+    "th": "/th/japan",
+    "tr": "/tr/japan",
+    "uk": "/uk/japan",
+    "vi": "/vi/japan",
+    "zh-Hans": "/zh-hans/japan"
+   }
+  },
+  {
+   "input": "/ja-jp/x",
+   "split": {
+    "locale": "en",
+    "path": "/ja-jp/x"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/ja-jp/x"
+   },
+   "localize": {
+    "en": "/ja-jp/x",
+    "ar": "/ar/ja-jp/x",
+    "de": "/de/ja-jp/x",
+    "es": "/es/ja-jp/x",
+    "fa": "/fa/ja-jp/x",
+    "fr": "/fr/ja-jp/x",
+    "id": "/id/ja-jp/x",
+    "ja": "/ja/ja-jp/x",
+    "ko": "/ko/ja-jp/x",
+    "pt-BR": "/pt-br/ja-jp/x",
+    "ru": "/ru/ja-jp/x",
+    "th": "/th/ja-jp/x",
+    "tr": "/tr/ja-jp/x",
+    "uk": "/uk/ja-jp/x",
+    "vi": "/vi/ja-jp/x",
+    "zh-Hans": "/zh-hans/ja-jp/x"
+   }
+  },
+  {
+   "input": "/fa/kS7Q8Yy5S_SChv0",
+   "split": {
+    "locale": "fa",
+    "path": "/kS7Q8Yy5S_SChv0",
+    "segment": "fa"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "fa",
+    "path": "/kS7Q8Yy5S_SChv0"
+   },
+   "localize": {
+    "en": "/fa/kS7Q8Yy5S_SChv0",
+    "ar": "/ar/fa/kS7Q8Yy5S_SChv0",
+    "de": "/de/fa/kS7Q8Yy5S_SChv0",
+    "es": "/es/fa/kS7Q8Yy5S_SChv0",
+    "fa": "/fa/fa/kS7Q8Yy5S_SChv0",
+    "fr": "/fr/fa/kS7Q8Yy5S_SChv0",
+    "id": "/id/fa/kS7Q8Yy5S_SChv0",
+    "ja": "/ja/fa/kS7Q8Yy5S_SChv0",
+    "ko": "/ko/fa/kS7Q8Yy5S_SChv0",
+    "pt-BR": "/pt-br/fa/kS7Q8Yy5S_SChv0",
+    "ru": "/ru/fa/kS7Q8Yy5S_SChv0",
+    "th": "/th/fa/kS7Q8Yy5S_SChv0",
+    "tr": "/tr/fa/kS7Q8Yy5S_SChv0",
+    "uk": "/uk/fa/kS7Q8Yy5S_SChv0",
+    "vi": "/vi/fa/kS7Q8Yy5S_SChv0",
+    "zh-Hans": "/zh-hans/fa/kS7Q8Yy5S_SChv0"
+   }
+  },
+  {
+   "input": "/ar/sitemap.xml",
+   "split": {
+    "locale": "ar",
+    "path": "/sitemap.xml",
+    "segment": "ar"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ar",
+    "path": "/sitemap.xml"
+   },
+   "localize": {
+    "en": "/ar/sitemap.xml",
+    "ar": "/ar/sitemap.xml",
+    "de": "/ar/sitemap.xml",
+    "es": "/ar/sitemap.xml",
+    "fa": "/ar/sitemap.xml",
+    "fr": "/ar/sitemap.xml",
+    "id": "/ar/sitemap.xml",
+    "ja": "/ar/sitemap.xml",
+    "ko": "/ar/sitemap.xml",
+    "pt-BR": "/ar/sitemap.xml",
+    "ru": "/ar/sitemap.xml",
+    "th": "/ar/sitemap.xml",
+    "tr": "/ar/sitemap.xml",
+    "uk": "/ar/sitemap.xml",
+    "vi": "/ar/sitemap.xml",
+    "zh-Hans": "/ar/sitemap.xml"
+   }
+  },
+  {
+   "input": "/ja/api/palettes",
+   "split": {
+    "locale": "ja",
+    "path": "/api/palettes",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/api/palettes"
+   },
+   "localize": {
+    "en": "/ja/api/palettes",
+    "ar": "/ar/ja/api/palettes",
+    "de": "/de/ja/api/palettes",
+    "es": "/es/ja/api/palettes",
+    "fa": "/fa/ja/api/palettes",
+    "fr": "/fr/ja/api/palettes",
+    "id": "/id/ja/api/palettes",
+    "ja": "/ja/ja/api/palettes",
+    "ko": "/ko/ja/api/palettes",
+    "pt-BR": "/pt-br/ja/api/palettes",
+    "ru": "/ru/ja/api/palettes",
+    "th": "/th/ja/api/palettes",
+    "tr": "/tr/ja/api/palettes",
+    "uk": "/uk/ja/api/palettes",
+    "vi": "/vi/ja/api/palettes",
+    "zh-Hans": "/zh-hans/ja/api/palettes"
+   }
+  },
+  {
+   "input": "/JA/api/likes",
+   "split": {
+    "locale": "ja",
+    "path": "/api/likes",
+    "segment": "JA"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/api/likes"
+   },
+   "localize": {
+    "en": "/JA/api/likes",
+    "ar": "/ar/JA/api/likes",
+    "de": "/de/JA/api/likes",
+    "es": "/es/JA/api/likes",
+    "fa": "/fa/JA/api/likes",
+    "fr": "/fr/JA/api/likes",
+    "id": "/id/JA/api/likes",
+    "ja": "/ja/JA/api/likes",
+    "ko": "/ko/JA/api/likes",
+    "pt-BR": "/pt-br/JA/api/likes",
+    "ru": "/ru/JA/api/likes",
+    "th": "/th/JA/api/likes",
+    "tr": "/tr/JA/api/likes",
+    "uk": "/uk/JA/api/likes",
+    "vi": "/vi/JA/api/likes",
+    "zh-Hans": "/zh-hans/JA/api/likes"
+   }
+  },
+  {
+   "input": "/ja/kAbc.png",
+   "split": {
+    "locale": "ja",
+    "path": "/kAbc.png",
+    "segment": "ja"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/kAbc.png"
+   },
+   "localize": {
+    "en": "/ja/kAbc.png",
+    "ar": "/ja/kAbc.png",
+    "de": "/ja/kAbc.png",
+    "es": "/ja/kAbc.png",
+    "fa": "/ja/kAbc.png",
+    "fr": "/ja/kAbc.png",
+    "id": "/ja/kAbc.png",
+    "ja": "/ja/kAbc.png",
+    "ko": "/ja/kAbc.png",
+    "pt-BR": "/ja/kAbc.png",
+    "ru": "/ja/kAbc.png",
+    "th": "/ja/kAbc.png",
+    "tr": "/ja/kAbc.png",
+    "uk": "/ja/kAbc.png",
+    "vi": "/ja/kAbc.png",
+    "zh-Hans": "/ja/kAbc.png"
+   }
+  },
+  {
+   "input": "/ja/assets/x.js",
+   "split": {
+    "locale": "ja",
+    "path": "/assets/x.js",
+    "segment": "ja"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/assets/x.js"
+   },
+   "localize": {
+    "en": "/ja/assets/x.js",
+    "ar": "/ja/assets/x.js",
+    "de": "/ja/assets/x.js",
+    "es": "/ja/assets/x.js",
+    "fa": "/ja/assets/x.js",
+    "fr": "/ja/assets/x.js",
+    "id": "/ja/assets/x.js",
+    "ja": "/ja/assets/x.js",
+    "ko": "/ja/assets/x.js",
+    "pt-BR": "/ja/assets/x.js",
+    "ru": "/ja/assets/x.js",
+    "th": "/ja/assets/x.js",
+    "tr": "/ja/assets/x.js",
+    "uk": "/ja/assets/x.js",
+    "vi": "/ja/assets/x.js",
+    "zh-Hans": "/ja/assets/x.js"
+   }
+  },
+  {
+   "input": "/ja/og",
+   "split": {
+    "locale": "ja",
+    "path": "/og",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/og"
+   },
+   "localize": {
+    "en": "/ja/og",
+    "ar": "/ar/ja/og",
+    "de": "/de/ja/og",
+    "es": "/es/ja/og",
+    "fa": "/fa/ja/og",
+    "fr": "/fr/ja/og",
+    "id": "/id/ja/og",
+    "ja": "/ja/ja/og",
+    "ko": "/ko/ja/og",
+    "pt-BR": "/pt-br/ja/og",
+    "ru": "/ru/ja/og",
+    "th": "/th/ja/og",
+    "tr": "/tr/ja/og",
+    "uk": "/uk/ja/og",
+    "vi": "/vi/ja/og",
+    "zh-Hans": "/zh-hans/ja/og"
+   }
+  },
+  {
+   "input": "/ja/og/k1/x.png",
+   "split": {
+    "locale": "ja",
+    "path": "/og/k1/x.png",
+    "segment": "ja"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/og/k1/x.png"
+   },
+   "localize": {
+    "en": "/ja/og/k1/x.png",
+    "ar": "/ja/og/k1/x.png",
+    "de": "/ja/og/k1/x.png",
+    "es": "/ja/og/k1/x.png",
+    "fa": "/ja/og/k1/x.png",
+    "fr": "/ja/og/k1/x.png",
+    "id": "/ja/og/k1/x.png",
+    "ja": "/ja/og/k1/x.png",
+    "ko": "/ja/og/k1/x.png",
+    "pt-BR": "/ja/og/k1/x.png",
+    "ru": "/ja/og/k1/x.png",
+    "th": "/ja/og/k1/x.png",
+    "tr": "/ja/og/k1/x.png",
+    "uk": "/ja/og/k1/x.png",
+    "vi": "/ja/og/k1/x.png",
+    "zh-Hans": "/ja/og/k1/x.png"
+   }
+  },
+  {
+   "input": "/ja/e",
+   "split": {
+    "locale": "ja",
+    "path": "/e",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/e"
+   },
+   "localize": {
+    "en": "/ja/e",
+    "ar": "/ar/ja/e",
+    "de": "/de/ja/e",
+    "es": "/es/ja/e",
+    "fa": "/fa/ja/e",
+    "fr": "/fr/ja/e",
+    "id": "/id/ja/e",
+    "ja": "/ja/ja/e",
+    "ko": "/ko/ja/e",
+    "pt-BR": "/pt-br/ja/e",
+    "ru": "/ru/ja/e",
+    "th": "/th/ja/e",
+    "tr": "/tr/ja/e",
+    "uk": "/uk/ja/e",
+    "vi": "/vi/ja/e",
+    "zh-Hans": "/zh-hans/ja/e"
+   }
+  },
+  {
+   "input": "/ja/mcp",
+   "split": {
+    "locale": "ja",
+    "path": "/mcp",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/mcp"
+   },
+   "localize": {
+    "en": "/ja/mcp",
+    "ar": "/ar/ja/mcp",
+    "de": "/de/ja/mcp",
+    "es": "/es/ja/mcp",
+    "fa": "/fa/ja/mcp",
+    "fr": "/fr/ja/mcp",
+    "id": "/id/ja/mcp",
+    "ja": "/ja/ja/mcp",
+    "ko": "/ko/ja/mcp",
+    "pt-BR": "/pt-br/ja/mcp",
+    "ru": "/ru/ja/mcp",
+    "th": "/th/ja/mcp",
+    "tr": "/tr/ja/mcp",
+    "uk": "/uk/ja/mcp",
+    "vi": "/vi/ja/mcp",
+    "zh-Hans": "/zh-hans/ja/mcp"
+   }
+  },
+  {
+   "input": "/ja/mcp-server",
+   "split": {
+    "locale": "ja",
+    "path": "/mcp-server",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/mcp-server"
+   },
+   "localize": {
+    "en": "/ja/mcp-server",
+    "ar": "/ar/ja/mcp-server",
+    "de": "/de/ja/mcp-server",
+    "es": "/es/ja/mcp-server",
+    "fa": "/fa/ja/mcp-server",
+    "fr": "/fr/ja/mcp-server",
+    "id": "/id/ja/mcp-server",
+    "ja": "/ja/ja/mcp-server",
+    "ko": "/ko/ja/mcp-server",
+    "pt-BR": "/pt-br/ja/mcp-server",
+    "ru": "/ru/ja/mcp-server",
+    "th": "/th/ja/mcp-server",
+    "tr": "/tr/ja/mcp-server",
+    "uk": "/uk/ja/mcp-server",
+    "vi": "/vi/ja/mcp-server",
+    "zh-Hans": "/zh-hans/ja/mcp-server"
+   }
+  },
+  {
+   "input": "/ja/oauth/authorize",
+   "split": {
+    "locale": "ja",
+    "path": "/oauth/authorize",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/oauth/authorize"
+   },
+   "localize": {
+    "en": "/ja/oauth/authorize",
+    "ar": "/ar/ja/oauth/authorize",
+    "de": "/de/ja/oauth/authorize",
+    "es": "/es/ja/oauth/authorize",
+    "fa": "/fa/ja/oauth/authorize",
+    "fr": "/fr/ja/oauth/authorize",
+    "id": "/id/ja/oauth/authorize",
+    "ja": "/ja/ja/oauth/authorize",
+    "ko": "/ko/ja/oauth/authorize",
+    "pt-BR": "/pt-br/ja/oauth/authorize",
+    "ru": "/ru/ja/oauth/authorize",
+    "th": "/th/ja/oauth/authorize",
+    "tr": "/tr/ja/oauth/authorize",
+    "uk": "/uk/ja/oauth/authorize",
+    "vi": "/vi/ja/oauth/authorize",
+    "zh-Hans": "/zh-hans/ja/oauth/authorize"
+   }
+  },
+  {
+   "input": "/ja/.well-known/x",
+   "split": {
+    "locale": "ja",
+    "path": "/.well-known/x",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/.well-known/x"
+   },
+   "localize": {
+    "en": "/ja/.well-known/x",
+    "ar": "/ar/ja/.well-known/x",
+    "de": "/de/ja/.well-known/x",
+    "es": "/es/ja/.well-known/x",
+    "fa": "/fa/ja/.well-known/x",
+    "fr": "/fr/ja/.well-known/x",
+    "id": "/id/ja/.well-known/x",
+    "ja": "/ja/ja/.well-known/x",
+    "ko": "/ko/ja/.well-known/x",
+    "pt-BR": "/pt-br/ja/.well-known/x",
+    "ru": "/ru/ja/.well-known/x",
+    "th": "/th/ja/.well-known/x",
+    "tr": "/tr/ja/.well-known/x",
+    "uk": "/uk/ja/.well-known/x",
+    "vi": "/vi/ja/.well-known/x",
+    "zh-Hans": "/zh-hans/ja/.well-known/x"
+   }
+  },
+  {
+   "input": "/ja/i18n",
+   "split": {
+    "locale": "ja",
+    "path": "/i18n",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/i18n"
+   },
+   "localize": {
+    "en": "/ja/i18n",
+    "ar": "/ar/ja/i18n",
+    "de": "/de/ja/i18n",
+    "es": "/es/ja/i18n",
+    "fa": "/fa/ja/i18n",
+    "fr": "/fr/ja/i18n",
+    "id": "/id/ja/i18n",
+    "ja": "/ja/ja/i18n",
+    "ko": "/ko/ja/i18n",
+    "pt-BR": "/pt-br/ja/i18n",
+    "ru": "/ru/ja/i18n",
+    "th": "/th/ja/i18n",
+    "tr": "/tr/ja/i18n",
+    "uk": "/uk/ja/i18n",
+    "vi": "/vi/ja/i18n",
+    "zh-Hans": "/zh-hans/ja/i18n"
+   }
+  },
+  {
+   "input": "/ja/i18n/x",
+   "split": {
+    "locale": "ja",
+    "path": "/i18n/x",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/i18n/x"
+   },
+   "localize": {
+    "en": "/ja/i18n/x",
+    "ar": "/ar/ja/i18n/x",
+    "de": "/de/ja/i18n/x",
+    "es": "/es/ja/i18n/x",
+    "fa": "/fa/ja/i18n/x",
+    "fr": "/fr/ja/i18n/x",
+    "id": "/id/ja/i18n/x",
+    "ja": "/ja/ja/i18n/x",
+    "ko": "/ko/ja/i18n/x",
+    "pt-BR": "/pt-br/ja/i18n/x",
+    "ru": "/ru/ja/i18n/x",
+    "th": "/th/ja/i18n/x",
+    "tr": "/tr/ja/i18n/x",
+    "uk": "/uk/ja/i18n/x",
+    "vi": "/vi/ja/i18n/x",
+    "zh-Hans": "/zh-hans/ja/i18n/x"
+   }
+  },
+  {
+   "input": "/ja/fonts/x.woff2",
+   "split": {
+    "locale": "ja",
+    "path": "/fonts/x.woff2",
+    "segment": "ja"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/fonts/x.woff2"
+   },
+   "localize": {
+    "en": "/ja/fonts/x.woff2",
+    "ar": "/ja/fonts/x.woff2",
+    "de": "/ja/fonts/x.woff2",
+    "es": "/ja/fonts/x.woff2",
+    "fa": "/ja/fonts/x.woff2",
+    "fr": "/ja/fonts/x.woff2",
+    "id": "/ja/fonts/x.woff2",
+    "ja": "/ja/fonts/x.woff2",
+    "ko": "/ja/fonts/x.woff2",
+    "pt-BR": "/ja/fonts/x.woff2",
+    "ru": "/ja/fonts/x.woff2",
+    "th": "/ja/fonts/x.woff2",
+    "tr": "/ja/fonts/x.woff2",
+    "uk": "/ja/fonts/x.woff2",
+    "vi": "/ja/fonts/x.woff2",
+    "zh-Hans": "/ja/fonts/x.woff2"
+   }
+  },
+  {
+   "input": "/ja/cdn-cgi/x",
+   "split": {
+    "locale": "ja",
+    "path": "/cdn-cgi/x",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/cdn-cgi/x"
+   },
+   "localize": {
+    "en": "/ja/cdn-cgi/x",
+    "ar": "/ar/ja/cdn-cgi/x",
+    "de": "/de/ja/cdn-cgi/x",
+    "es": "/es/ja/cdn-cgi/x",
+    "fa": "/fa/ja/cdn-cgi/x",
+    "fr": "/fr/ja/cdn-cgi/x",
+    "id": "/id/ja/cdn-cgi/x",
+    "ja": "/ja/ja/cdn-cgi/x",
+    "ko": "/ko/ja/cdn-cgi/x",
+    "pt-BR": "/pt-br/ja/cdn-cgi/x",
+    "ru": "/ru/ja/cdn-cgi/x",
+    "th": "/th/ja/cdn-cgi/x",
+    "tr": "/tr/ja/cdn-cgi/x",
+    "uk": "/uk/ja/cdn-cgi/x",
+    "vi": "/vi/ja/cdn-cgi/x",
+    "zh-Hans": "/zh-hans/ja/cdn-cgi/x"
+   }
+  },
+  {
+   "input": "//evil.example/x",
+   "split": {
+    "locale": "en",
+    "path": "//evil.example/x"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "//evil.example/x"
+   },
+   "localize": {
+    "en": "//evil.example/x",
+    "ar": "//evil.example/x",
+    "de": "//evil.example/x",
+    "es": "//evil.example/x",
+    "fa": "//evil.example/x",
+    "fr": "//evil.example/x",
+    "id": "//evil.example/x",
+    "ja": "//evil.example/x",
+    "ko": "//evil.example/x",
+    "pt-BR": "//evil.example/x",
+    "ru": "//evil.example/x",
+    "th": "//evil.example/x",
+    "tr": "//evil.example/x",
+    "uk": "//evil.example/x",
+    "vi": "//evil.example/x",
+    "zh-Hans": "//evil.example/x"
+   }
+  },
+  {
+   "input": "/ja//evil.example",
+   "split": {
+    "locale": "ja",
+    "path": "//evil.example",
+    "segment": "ja"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "//evil.example"
+   },
+   "localize": {
+    "en": "/ja//evil.example",
+    "ar": "/ja//evil.example",
+    "de": "/ja//evil.example",
+    "es": "/ja//evil.example",
+    "fa": "/ja//evil.example",
+    "fr": "/ja//evil.example",
+    "id": "/ja//evil.example",
+    "ja": "/ja//evil.example",
+    "ko": "/ja//evil.example",
+    "pt-BR": "/ja//evil.example",
+    "ru": "/ja//evil.example",
+    "th": "/ja//evil.example",
+    "tr": "/ja//evil.example",
+    "uk": "/ja//evil.example",
+    "vi": "/ja//evil.example",
+    "zh-Hans": "/ja//evil.example"
+   }
+  },
+  {
+   "input": "/\\evil.example/x",
+   "split": {
+    "locale": "en",
+    "path": "/\\evil.example/x"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/\\evil.example/x"
+   },
+   "localize": {
+    "en": "/\\evil.example/x",
+    "ar": "/\\evil.example/x",
+    "de": "/\\evil.example/x",
+    "es": "/\\evil.example/x",
+    "fa": "/\\evil.example/x",
+    "fr": "/\\evil.example/x",
+    "id": "/\\evil.example/x",
+    "ja": "/\\evil.example/x",
+    "ko": "/\\evil.example/x",
+    "pt-BR": "/\\evil.example/x",
+    "ru": "/\\evil.example/x",
+    "th": "/\\evil.example/x",
+    "tr": "/\\evil.example/x",
+    "uk": "/\\evil.example/x",
+    "vi": "/\\evil.example/x",
+    "zh-Hans": "/\\evil.example/x"
+   }
+  },
+  {
+   "input": "/a\\b",
+   "split": {
+    "locale": "en",
+    "path": "/a\\b"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/a\\b"
+   },
+   "localize": {
+    "en": "/a\\b",
+    "ar": "/a\\b",
+    "de": "/a\\b",
+    "es": "/a\\b",
+    "fa": "/a\\b",
+    "fr": "/a\\b",
+    "id": "/a\\b",
+    "ja": "/a\\b",
+    "ko": "/a\\b",
+    "pt-BR": "/a\\b",
+    "ru": "/a\\b",
+    "th": "/a\\b",
+    "tr": "/a\\b",
+    "uk": "/a\\b",
+    "vi": "/a\\b",
+    "zh-Hans": "/a\\b"
+   }
+  },
+  {
+   "input": "/palettes",
+   "split": {
+    "locale": "en",
+    "path": "/palettes"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/palettes"
+   },
+   "localize": {
+    "en": "/palettes",
+    "ar": "/ar/palettes",
+    "de": "/de/palettes",
+    "es": "/es/palettes",
+    "fa": "/fa/palettes",
+    "fr": "/fr/palettes",
+    "id": "/id/palettes",
+    "ja": "/ja/palettes",
+    "ko": "/ko/palettes",
+    "pt-BR": "/pt-br/palettes",
+    "ru": "/ru/palettes",
+    "th": "/th/palettes",
+    "tr": "/tr/palettes",
+    "uk": "/uk/palettes",
+    "vi": "/vi/palettes",
+    "zh-Hans": "/zh-hans/palettes"
+   }
+  },
+  {
+   "input": "/palettes?q=red",
+   "split": {
+    "locale": "en",
+    "path": "/palettes?q=red"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/palettes?q=red"
+   },
+   "localize": {
+    "en": "/palettes?q=red",
+    "ar": "/ar/palettes?q=red",
+    "de": "/de/palettes?q=red",
+    "es": "/es/palettes?q=red",
+    "fa": "/fa/palettes?q=red",
+    "fr": "/fr/palettes?q=red",
+    "id": "/id/palettes?q=red",
+    "ja": "/ja/palettes?q=red",
+    "ko": "/ko/palettes?q=red",
+    "pt-BR": "/pt-br/palettes?q=red",
+    "ru": "/ru/palettes?q=red",
+    "th": "/th/palettes?q=red",
+    "tr": "/tr/palettes?q=red",
+    "uk": "/uk/palettes?q=red",
+    "vi": "/vi/palettes?q=red",
+    "zh-Hans": "/zh-hans/palettes?q=red"
+   }
+  },
+  {
+   "input": "/@vite/warm-sunsets",
+   "split": {
+    "locale": "en",
+    "path": "/@vite/warm-sunsets"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/@vite/warm-sunsets"
+   },
+   "localize": {
+    "en": "/@vite/warm-sunsets",
+    "ar": "/ar/@vite/warm-sunsets",
+    "de": "/de/@vite/warm-sunsets",
+    "es": "/es/@vite/warm-sunsets",
+    "fa": "/fa/@vite/warm-sunsets",
+    "fr": "/fr/@vite/warm-sunsets",
+    "id": "/id/@vite/warm-sunsets",
+    "ja": "/ja/@vite/warm-sunsets",
+    "ko": "/ko/@vite/warm-sunsets",
+    "pt-BR": "/pt-br/@vite/warm-sunsets",
+    "ru": "/ru/@vite/warm-sunsets",
+    "th": "/th/@vite/warm-sunsets",
+    "tr": "/tr/@vite/warm-sunsets",
+    "uk": "/uk/@vite/warm-sunsets",
+    "vi": "/vi/@vite/warm-sunsets",
+    "zh-Hans": "/zh-hans/@vite/warm-sunsets"
+   }
+  },
+  {
+   "input": "/og",
+   "split": {
+    "locale": "en",
+    "path": "/og"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/og"
+   },
+   "localize": {
+    "en": "/og",
+    "ar": "/ar/og",
+    "de": "/de/og",
+    "es": "/es/og",
+    "fa": "/fa/og",
+    "fr": "/fr/og",
+    "id": "/id/og",
+    "ja": "/ja/og",
+    "ko": "/ko/og",
+    "pt-BR": "/pt-br/og",
+    "ru": "/ru/og",
+    "th": "/th/og",
+    "tr": "/tr/og",
+    "uk": "/uk/og",
+    "vi": "/vi/og",
+    "zh-Hans": "/zh-hans/og"
+   }
+  },
+  {
+   "input": "/og/k1/kAbc.png",
+   "split": {
+    "locale": "en",
+    "path": "/og/k1/kAbc.png"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/og/k1/kAbc.png"
+   },
+   "localize": {
+    "en": "/og/k1/kAbc.png",
+    "ar": "/og/k1/kAbc.png",
+    "de": "/og/k1/kAbc.png",
+    "es": "/og/k1/kAbc.png",
+    "fa": "/og/k1/kAbc.png",
+    "fr": "/og/k1/kAbc.png",
+    "id": "/og/k1/kAbc.png",
+    "ja": "/og/k1/kAbc.png",
+    "ko": "/og/k1/kAbc.png",
+    "pt-BR": "/og/k1/kAbc.png",
+    "ru": "/og/k1/kAbc.png",
+    "th": "/og/k1/kAbc.png",
+    "tr": "/og/k1/kAbc.png",
+    "uk": "/og/k1/kAbc.png",
+    "vi": "/og/k1/kAbc.png",
+    "zh-Hans": "/og/k1/kAbc.png"
+   }
+  },
+  {
+   "input": "/assets",
+   "split": {
+    "locale": "en",
+    "path": "/assets"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/assets"
+   },
+   "localize": {
+    "en": "/assets",
+    "ar": "/ar/assets",
+    "de": "/de/assets",
+    "es": "/es/assets",
+    "fa": "/fa/assets",
+    "fr": "/fr/assets",
+    "id": "/id/assets",
+    "ja": "/ja/assets",
+    "ko": "/ko/assets",
+    "pt-BR": "/pt-br/assets",
+    "ru": "/ru/assets",
+    "th": "/th/assets",
+    "tr": "/tr/assets",
+    "uk": "/uk/assets",
+    "vi": "/vi/assets",
+    "zh-Hans": "/zh-hans/assets"
+   }
+  },
+  {
+   "input": "/assets/x",
+   "split": {
+    "locale": "en",
+    "path": "/assets/x"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/assets/x"
+   },
+   "localize": {
+    "en": "/assets/x",
+    "ar": "/assets/x",
+    "de": "/assets/x",
+    "es": "/assets/x",
+    "fa": "/assets/x",
+    "fr": "/assets/x",
+    "id": "/assets/x",
+    "ja": "/assets/x",
+    "ko": "/assets/x",
+    "pt-BR": "/assets/x",
+    "ru": "/assets/x",
+    "th": "/assets/x",
+    "tr": "/assets/x",
+    "uk": "/assets/x",
+    "vi": "/assets/x",
+    "zh-Hans": "/assets/x"
+   }
+  },
+  {
+   "input": "/api",
+   "split": {
+    "locale": "en",
+    "path": "/api"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/api"
+   },
+   "localize": {
+    "en": "/api",
+    "ar": "/api",
+    "de": "/api",
+    "es": "/api",
+    "fa": "/api",
+    "fr": "/api",
+    "id": "/api",
+    "ja": "/api",
+    "ko": "/api",
+    "pt-BR": "/api",
+    "ru": "/api",
+    "th": "/api",
+    "tr": "/api",
+    "uk": "/api",
+    "vi": "/api",
+    "zh-Hans": "/api"
+   }
+  },
+  {
+   "input": "/api/hot",
+   "split": {
+    "locale": "en",
+    "path": "/api/hot"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/api/hot"
+   },
+   "localize": {
+    "en": "/api/hot",
+    "ar": "/api/hot",
+    "de": "/api/hot",
+    "es": "/api/hot",
+    "fa": "/api/hot",
+    "fr": "/api/hot",
+    "id": "/api/hot",
+    "ja": "/api/hot",
+    "ko": "/api/hot",
+    "pt-BR": "/api/hot",
+    "ru": "/api/hot",
+    "th": "/api/hot",
+    "tr": "/api/hot",
+    "uk": "/api/hot",
+    "vi": "/api/hot",
+    "zh-Hans": "/api/hot"
+   }
+  },
+  {
+   "input": "/e",
+   "split": {
+    "locale": "en",
+    "path": "/e"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/e"
+   },
+   "localize": {
+    "en": "/e",
+    "ar": "/e",
+    "de": "/e",
+    "es": "/e",
+    "fa": "/e",
+    "fr": "/e",
+    "id": "/e",
+    "ja": "/e",
+    "ko": "/e",
+    "pt-BR": "/e",
+    "ru": "/e",
+    "th": "/e",
+    "tr": "/e",
+    "uk": "/e",
+    "vi": "/e",
+    "zh-Hans": "/e"
+   }
+  },
+  {
+   "input": "/e/x",
+   "split": {
+    "locale": "en",
+    "path": "/e/x"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/e/x"
+   },
+   "localize": {
+    "en": "/e/x",
+    "ar": "/e/x",
+    "de": "/e/x",
+    "es": "/e/x",
+    "fa": "/e/x",
+    "fr": "/e/x",
+    "id": "/e/x",
+    "ja": "/e/x",
+    "ko": "/e/x",
+    "pt-BR": "/e/x",
+    "ru": "/e/x",
+    "th": "/e/x",
+    "tr": "/e/x",
+    "uk": "/e/x",
+    "vi": "/e/x",
+    "zh-Hans": "/e/x"
+   }
+  },
+  {
+   "input": "/es",
+   "split": {
+    "locale": "es",
+    "path": "/",
+    "segment": "es"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "es",
+    "path": "/"
+   },
+   "localize": {
+    "en": "/es",
+    "ar": "/ar/es",
+    "de": "/de/es",
+    "es": "/es/es",
+    "fa": "/fa/es",
+    "fr": "/fr/es",
+    "id": "/id/es",
+    "ja": "/ja/es",
+    "ko": "/ko/es",
+    "pt-BR": "/pt-br/es",
+    "ru": "/ru/es",
+    "th": "/th/es",
+    "tr": "/tr/es",
+    "uk": "/uk/es",
+    "vi": "/vi/es",
+    "zh-Hans": "/zh-hans/es"
+   }
+  },
+  {
+   "input": "/es/e",
+   "split": {
+    "locale": "es",
+    "path": "/e",
+    "segment": "es"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "es",
+    "path": "/e"
+   },
+   "localize": {
+    "en": "/es/e",
+    "ar": "/ar/es/e",
+    "de": "/de/es/e",
+    "es": "/es/es/e",
+    "fa": "/fa/es/e",
+    "fr": "/fr/es/e",
+    "id": "/id/es/e",
+    "ja": "/ja/es/e",
+    "ko": "/ko/es/e",
+    "pt-BR": "/pt-br/es/e",
+    "ru": "/ru/es/e",
+    "th": "/th/es/e",
+    "tr": "/tr/es/e",
+    "uk": "/uk/es/e",
+    "vi": "/vi/es/e",
+    "zh-Hans": "/zh-hans/es/e"
+   }
+  },
+  {
+   "input": "/mcp",
+   "split": {
+    "locale": "en",
+    "path": "/mcp"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/mcp"
+   },
+   "localize": {
+    "en": "/mcp",
+    "ar": "/mcp",
+    "de": "/mcp",
+    "es": "/mcp",
+    "fa": "/mcp",
+    "fr": "/mcp",
+    "id": "/mcp",
+    "ja": "/mcp",
+    "ko": "/mcp",
+    "pt-BR": "/mcp",
+    "ru": "/mcp",
+    "th": "/mcp",
+    "tr": "/mcp",
+    "uk": "/mcp",
+    "vi": "/mcp",
+    "zh-Hans": "/mcp"
+   }
+  },
+  {
+   "input": "/oauth/authorize?client_id=x",
+   "split": {
+    "locale": "en",
+    "path": "/oauth/authorize?client_id=x"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/oauth/authorize?client_id=x"
+   },
+   "localize": {
+    "en": "/oauth/authorize?client_id=x",
+    "ar": "/oauth/authorize?client_id=x",
+    "de": "/oauth/authorize?client_id=x",
+    "es": "/oauth/authorize?client_id=x",
+    "fa": "/oauth/authorize?client_id=x",
+    "fr": "/oauth/authorize?client_id=x",
+    "id": "/oauth/authorize?client_id=x",
+    "ja": "/oauth/authorize?client_id=x",
+    "ko": "/oauth/authorize?client_id=x",
+    "pt-BR": "/oauth/authorize?client_id=x",
+    "ru": "/oauth/authorize?client_id=x",
+    "th": "/oauth/authorize?client_id=x",
+    "tr": "/oauth/authorize?client_id=x",
+    "uk": "/oauth/authorize?client_id=x",
+    "vi": "/oauth/authorize?client_id=x",
+    "zh-Hans": "/oauth/authorize?client_id=x"
+   }
+  },
+  {
+   "input": "/kAbc.png",
+   "split": {
+    "locale": "en",
+    "path": "/kAbc.png"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/kAbc.png"
+   },
+   "localize": {
+    "en": "/kAbc.png",
+    "ar": "/kAbc.png",
+    "de": "/kAbc.png",
+    "es": "/kAbc.png",
+    "fa": "/kAbc.png",
+    "fr": "/kAbc.png",
+    "id": "/kAbc.png",
+    "ja": "/kAbc.png",
+    "ko": "/kAbc.png",
+    "pt-BR": "/kAbc.png",
+    "ru": "/kAbc.png",
+    "th": "/kAbc.png",
+    "tr": "/kAbc.png",
+    "uk": "/kAbc.png",
+    "vi": "/kAbc.png",
+    "zh-Hans": "/kAbc.png"
+   }
+  },
+  {
+   "input": "/sitemap.xml",
+   "split": {
+    "locale": "en",
+    "path": "/sitemap.xml"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/sitemap.xml"
+   },
+   "localize": {
+    "en": "/sitemap.xml",
+    "ar": "/sitemap.xml",
+    "de": "/sitemap.xml",
+    "es": "/sitemap.xml",
+    "fa": "/sitemap.xml",
+    "fr": "/sitemap.xml",
+    "id": "/sitemap.xml",
+    "ja": "/sitemap.xml",
+    "ko": "/sitemap.xml",
+    "pt-BR": "/sitemap.xml",
+    "ru": "/sitemap.xml",
+    "th": "/sitemap.xml",
+    "tr": "/sitemap.xml",
+    "uk": "/sitemap.xml",
+    "vi": "/sitemap.xml",
+    "zh-Hans": "/sitemap.xml"
+   }
+  },
+  {
+   "input": "/llms.txt",
+   "split": {
+    "locale": "en",
+    "path": "/llms.txt"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/llms.txt"
+   },
+   "localize": {
+    "en": "/llms.txt",
+    "ar": "/llms.txt",
+    "de": "/llms.txt",
+    "es": "/llms.txt",
+    "fa": "/llms.txt",
+    "fr": "/llms.txt",
+    "id": "/llms.txt",
+    "ja": "/llms.txt",
+    "ko": "/llms.txt",
+    "pt-BR": "/llms.txt",
+    "ru": "/llms.txt",
+    "th": "/llms.txt",
+    "tr": "/llms.txt",
+    "uk": "/llms.txt",
+    "vi": "/llms.txt",
+    "zh-Hans": "/llms.txt"
+   }
+  },
+  {
+   "input": "https://x.com/a",
+   "split": {
+    "locale": "en",
+    "path": "https://x.com/a"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "https://x.com/a"
+   },
+   "localize": {
+    "en": "https://x.com/a",
+    "ar": "https://x.com/a",
+    "de": "https://x.com/a",
+    "es": "https://x.com/a",
+    "fa": "https://x.com/a",
+    "fr": "https://x.com/a",
+    "id": "https://x.com/a",
+    "ja": "https://x.com/a",
+    "ko": "https://x.com/a",
+    "pt-BR": "https://x.com/a",
+    "ru": "https://x.com/a",
+    "th": "https://x.com/a",
+    "tr": "https://x.com/a",
+    "uk": "https://x.com/a",
+    "vi": "https://x.com/a",
+    "zh-Hans": "https://x.com/a"
+   }
+  },
+  {
+   "input": "palettes",
+   "split": {
+    "locale": "en",
+    "path": "palettes"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "palettes"
+   },
+   "localize": {
+    "en": "palettes",
+    "ar": "palettes",
+    "de": "palettes",
+    "es": "palettes",
+    "fa": "palettes",
+    "fr": "palettes",
+    "id": "palettes",
+    "ja": "palettes",
+    "ko": "palettes",
+    "pt-BR": "palettes",
+    "ru": "palettes",
+    "th": "palettes",
+    "tr": "palettes",
+    "uk": "palettes",
+    "vi": "palettes",
+    "zh-Hans": "palettes"
+   }
+  },
+  {
+   "input": "/palettes#frag",
+   "split": {
+    "locale": "en",
+    "path": "/palettes#frag"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/palettes#frag"
+   },
+   "localize": {
+    "en": "/palettes#frag",
+    "ar": "/ar/palettes#frag",
+    "de": "/de/palettes#frag",
+    "es": "/es/palettes#frag",
+    "fa": "/fa/palettes#frag",
+    "fr": "/fr/palettes#frag",
+    "id": "/id/palettes#frag",
+    "ja": "/ja/palettes#frag",
+    "ko": "/ko/palettes#frag",
+    "pt-BR": "/pt-br/palettes#frag",
+    "ru": "/ru/palettes#frag",
+    "th": "/th/palettes#frag",
+    "tr": "/tr/palettes#frag",
+    "uk": "/uk/palettes#frag",
+    "vi": "/vi/palettes#frag",
+    "zh-Hans": "/zh-hans/palettes#frag"
+   }
+  },
+  {
+   "input": "/ja#frag",
+   "split": {
+    "locale": "en",
+    "path": "/ja#frag"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/#frag"
+   },
+   "localize": {
+    "en": "/ja#frag",
+    "ar": "/ar/ja#frag",
+    "de": "/de/ja#frag",
+    "es": "/es/ja#frag",
+    "fa": "/fa/ja#frag",
+    "fr": "/fr/ja#frag",
+    "id": "/id/ja#frag",
+    "ja": "/ja/ja#frag",
+    "ko": "/ko/ja#frag",
+    "pt-BR": "/pt-br/ja#frag",
+    "ru": "/ru/ja#frag",
+    "th": "/th/ja#frag",
+    "tr": "/tr/ja#frag",
+    "uk": "/uk/ja#frag",
+    "vi": "/vi/ja#frag",
+    "zh-Hans": "/zh-hans/ja#frag"
+   }
+  },
+  {
+   "input": "/ja/palettes?q=a#b",
+   "split": {
+    "locale": "ja",
+    "path": "/palettes?q=a#b",
+    "segment": "ja"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "ja",
+    "path": "/palettes?q=a#b"
+   },
+   "localize": {
+    "en": "/ja/palettes?q=a#b",
+    "ar": "/ar/ja/palettes?q=a#b",
+    "de": "/de/ja/palettes?q=a#b",
+    "es": "/es/ja/palettes?q=a#b",
+    "fa": "/fa/ja/palettes?q=a#b",
+    "fr": "/fr/ja/palettes?q=a#b",
+    "id": "/id/ja/palettes?q=a#b",
+    "ja": "/ja/ja/palettes?q=a#b",
+    "ko": "/ko/ja/palettes?q=a#b",
+    "pt-BR": "/pt-br/ja/palettes?q=a#b",
+    "ru": "/ru/ja/palettes?q=a#b",
+    "th": "/th/ja/palettes?q=a#b",
+    "tr": "/tr/ja/palettes?q=a#b",
+    "uk": "/uk/ja/palettes?q=a#b",
+    "vi": "/vi/ja/palettes?q=a#b",
+    "zh-Hans": "/zh-hans/ja/palettes?q=a#b"
+   }
+  },
+  {
+   "input": "/x.y",
+   "split": {
+    "locale": "en",
+    "path": "/x.y"
+   },
+   "isPagePath": false,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/x.y"
+   },
+   "localize": {
+    "en": "/x.y",
+    "ar": "/x.y",
+    "de": "/x.y",
+    "es": "/x.y",
+    "fa": "/x.y",
+    "fr": "/x.y",
+    "id": "/x.y",
+    "ja": "/x.y",
+    "ko": "/x.y",
+    "pt-BR": "/x.y",
+    "ru": "/x.y",
+    "th": "/x.y",
+    "tr": "/x.y",
+    "uk": "/x.y",
+    "vi": "/x.y",
+    "zh-Hans": "/x.y"
+   }
+  },
+  {
+   "input": "/about.",
+   "split": {
+    "locale": "en",
+    "path": "/about."
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/about."
+   },
+   "localize": {
+    "en": "/about.",
+    "ar": "/ar/about.",
+    "de": "/de/about.",
+    "es": "/es/about.",
+    "fa": "/fa/about.",
+    "fr": "/fr/about.",
+    "id": "/id/about.",
+    "ja": "/ja/about.",
+    "ko": "/ko/about.",
+    "pt-BR": "/pt-br/about.",
+    "ru": "/ru/about.",
+    "th": "/th/about.",
+    "tr": "/tr/about.",
+    "uk": "/uk/about.",
+    "vi": "/vi/about.",
+    "zh-Hans": "/zh-hans/about."
+   }
+  },
+  {
+   "input": "/v1.2/x",
+   "split": {
+    "locale": "en",
+    "path": "/v1.2/x"
+   },
+   "isPagePath": true,
+   "canonicalLocalePath": null,
+   "delocalize": {
+    "locale": "en",
+    "path": "/v1.2/x"
+   },
+   "localize": {
+    "en": "/v1.2/x",
+    "ar": "/ar/v1.2/x",
+    "de": "/de/v1.2/x",
+    "es": "/es/v1.2/x",
+    "fa": "/fa/v1.2/x",
+    "fr": "/fr/v1.2/x",
+    "id": "/id/v1.2/x",
+    "ja": "/ja/v1.2/x",
+    "ko": "/ko/v1.2/x",
+    "pt-BR": "/pt-br/v1.2/x",
+    "ru": "/ru/v1.2/x",
+    "th": "/th/v1.2/x",
+    "tr": "/tr/v1.2/x",
+    "uk": "/uk/v1.2/x",
+    "vi": "/vi/v1.2/x",
+    "zh-Hans": "/zh-hans/v1.2/x"
+   }
+  }
+ ]
+}
