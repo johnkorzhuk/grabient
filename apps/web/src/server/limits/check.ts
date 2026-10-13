@@ -25,7 +25,8 @@ export interface LimitResult {
   type?: LimitName;
 }
 
-type LimitEnv = Pick<Env, "RATE_LIMITER" | "DEPLOYMENT" | "USAGE">;
+/** The bindings counting needs: without a limiter, limits are counted in the isolate alone. */
+export type LimitEnv = Partial<Pick<Env, "RATE_LIMITER" | "DEPLOYMENT" | "USAGE">>;
 
 /* What this isolate counted of one limit for one identifier, until `reset` (seconds). A leased limit also keeps the
    units it holds unspent (`held`), its last block (`block`), what the object had left when last asked (`left`), when

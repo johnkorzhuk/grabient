@@ -1,5 +1,4 @@
-import type { Env } from "../env.ts";
-import { checkLimits, type LimitCheck, type LimitResult } from "../limits/check.ts";
+import { checkLimits, type LimitCheck, type LimitEnv, type LimitResult } from "../limits/check.ts";
 
 /* The answers of private routes: account data, sign-in, anything that reads a cookie. Neither the browser nor the edge
    keeps them. */
@@ -30,7 +29,10 @@ export function sameOrigin(request: Request): boolean {
 }
 
 /** The body, or null when it says or turns out to be longer than `max` bytes. */
-export async function readBytes(request: Request, max: number): Promise<Uint8Array | null> {
+export async function readBytes(
+  request: Request,
+  max: number
+): Promise<Uint8Array<ArrayBuffer> | null> {
   if (!request.body || Number(request.headers.get("Content-Length")) > max) return null;
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -86,7 +88,7 @@ const limitHeaders = (result: LimitResult) => ({
 /** The answer to a request past one of its limits (429), or whose limits could not be checked (503), in `busy`'s words
     when given; null when the request may go on. */
 export async function overLimit(
-  env: Pick<Env, "RATE_LIMITER" | "DEPLOYMENT" | "USAGE">,
+  env: LimitEnv,
   checks: readonly LimitCheck[],
   busy?: string
 ): Promise<Response | null> {

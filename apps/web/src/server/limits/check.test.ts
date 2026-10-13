@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Deployment } from "../env.ts";
 import { clientAddress } from "./address.ts";
 import { checkLimits, limiterName, mcpListLimits } from "./check.ts";
 import { LIMITS, type LimitName, limitOf } from "./config.ts";
@@ -7,7 +8,7 @@ import { RateLimiter } from "./rate-limiter.ts";
 
 /** RateLimiter objects over in-memory storage, as the platform would run them, recording each ask as "limit+limit n".
     Each isolate is a binding object of its own over the same objects, so its memory of the limits starts empty. */
-function objects(deployment?: string) {
+function objects(deployment?: Deployment) {
   const live = new Map<string, RateLimiter>();
   const asks: string[] = [];
   const state = () => {
@@ -45,8 +46,8 @@ function objects(deployment?: string) {
   return { ...isolate(), asks, isolate };
 }
 
-const times = async (n: number, check: () => Promise<unknown>) => {
-  const results = [];
+const times = async <T>(n: number, check: () => Promise<T>): Promise<T[]> => {
+  const results: T[] = [];
   for (let i = 0; i < n; i++) results.push(await check());
   return results;
 };
@@ -212,7 +213,7 @@ describe("checkLimits", () => {
     expect((await checkLimits({ DEPLOYMENT: "production" }, [["c", "authPost"]]))?.success).toBe(
       true
     );
-    const local = { DEPLOYMENT: "development" };
+    const local = { DEPLOYMENT: "development" as const };
     const answers = await times(6, () => checkLimits(local, [[`d-${Math.random()}`, "emailAsk"]]));
     expect(answers.every(answer => answer?.success)).toBe(true);
     const same = await times(6, () => checkLimits(local, [["same-address", "emailAsk"]]));
