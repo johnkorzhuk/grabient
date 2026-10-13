@@ -6,9 +6,9 @@ import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
 import { DEFAULT_FRAME, type ListSort, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
 import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
+import { publicCollections } from "../../server/collections/search.ts";
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
-import { publicCollections } from "../../server/gallery/seams.ts";
 import { searchPool } from "../../server/gallery/search.ts";
 import { SEARCH_POOL } from "../search/queries.ts";
 import { COLLECTION_LIMIT, CollectionPage } from "./collections.ts";
@@ -194,8 +194,7 @@ const readCollections = createIsomorphicFn()
     );
   });
 
-/** A page of the collections list: the home's feed in the hot order, or searched, the popular one. Stands in for the
-    collections area's own read until it lands (U04). */
+/** A page of the collections list: the home's feed in the hot order, or searched, the popular one. */
 export const collectionsPageQuery = (order: CollectionOrder, words: string, page: number) =>
   queryOptions({
     queryKey: ["collections", order, words, COLLECTION_LIMIT, page] as const,
