@@ -1,10 +1,17 @@
 import type { OAuthAuthorizationServer } from "@cloudflare/workers-oauth-provider";
-import { NO_STORE, overLimit, readBytes } from "@grabient/server/auth/http.ts";
+import { NO_STORE, readBytes } from "@grabient/server/auth/http.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
+import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { clientKind } from "./clients.ts";
-import { clientIdAllowed, registerLimits, requester, tokenLimits } from "./limits.ts";
+import {
+  clientIdAllowed,
+  refreshLimits,
+  registerLimits,
+  requester,
+  tokenLimits
+} from "./limits.ts";
 
 /* The two endpoints an app calls itself, with no cookie: registration and the token endpoint (which also revokes).
    Each is the library's, with Grabient's limits, body bound and tolerances in front. */
@@ -41,6 +48,26 @@ export const oauthError = (
     ),
     request
   );
+
+/** A request past its limits (429), or whose limits cannot be counted (503), refused in the shape of the library's
+    errors, with when to try again; null when it may go on. */
+async function overOAuthLimit(
+  request: Request,
+  env: Env,
+  checks: readonly LimitCheck[]
+): Promise<Response | null> {
+  const result = await checkLimits(env, checks);
+  if (result?.success) return null;
+  if (!result) {
+    return oauthError(request, "temporarily_unavailable", "Try again shortly.", 503, {
+      "Retry-After": "5"
+    });
+  }
+  const wait = Math.max(1, result.reset - Math.floor(Date.now() / 1000));
+  return oauthError(request, "temporarily_unavailable", "Too many requests.", 429, {
+    "Retry-After": String(wait)
+  });
+}
 
 /** The body as sent, at most 8 KB, or null past it. */
 async function bodyText(request: Request): Promise<string | null> {
@@ -98,8 +125,8 @@ export async function register(
       "Retry-After": "300"
     });
   }
-  const limited = await overLimit(env, registerLimits(requester(request)));
-  if (limited) return withCors(limited, request);
+  const limited = await overOAuthLimit(request, env, registerLimits(requester(request)));
+  if (limited) return limited;
   const text = await bodyText(request);
   if (text === null)
     return oauthError(request, "invalid_request", "Send a body of at most 8 KB.", 413);
@@ -164,8 +191,8 @@ export async function token(
   ctx: ExecutionContext
 ): Promise<Response> {
   if (request.method !== "POST") return server.fetch(request, env, ctx);
-  const limited = await overLimit(env, tokenLimits(requester(request)));
-  if (limited) return withCors(limited, request);
+  const limited = await overOAuthLimit(request, env, tokenLimits(requester(request)));
+  if (limited) return limited;
   const text = await bodyText(request);
   if (text === null)
     return oauthError(request, "invalid_request", "Send a body of at most 8 KB.", 413);
@@ -219,6 +246,15 @@ export async function token(
   }
   const body = form ? form.toString() : text;
   const grant = form?.get("grant_type") ?? "";
+  const refresh = grant === "refresh_token" && refreshLimits(form?.get("refresh_token"));
+  if (refresh) {
+    const spent = await overOAuthLimit(request, env, refresh);
+    if (spent) {
+      const kind = clientId ? clientKind(clientId) : "none";
+      countUsage(env, "oauth", "token", "refresh_token", String(spent.status), kind);
+      return spent;
+    }
+  }
   const answer = await exchange(
     () =>
       server.fetch(
