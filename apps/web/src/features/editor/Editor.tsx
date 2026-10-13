@@ -135,11 +135,14 @@ export default function Editor(props: { data: PaletteData }) {
   rest.opened(first.page.seed);
   const panel = createPanel();
   holdCorner(() => <Corner editor={e} panel={panel} />);
-  followAddress(e, router, location, page => rest.opened(page.seed));
+  const address = followAddress(e, router, location, page => rest.opened(page.seed));
   const save = createPaletteSave({
     seed: e.seed,
     opened: e.openedSeed,
-    saved: e.setOpenedSeed,
+    saved: seed => {
+      e.setOpenedSeed(seed);
+      address.keep();
+    },
     key: () => keyOf("save")
   });
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });

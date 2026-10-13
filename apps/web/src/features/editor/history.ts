@@ -109,13 +109,6 @@ export function followAddress(
     }
   });
 
-  /* a Save made the page stand for the palette saved: its entry keeps that at once, for a reload or a return */
-  createEffect(e.openedSeed, (_seed, was) => {
-    if (was === undefined) return;
-    latest ??= shown;
-    writeSoon();
-  });
-
   /* a drag's last value is in the address the moment it lets go, a press on a link writes it before the link is
      followed, and a page being left writes what it has not */
   const lift = () => {
@@ -131,4 +124,13 @@ export function followAddress(
     removeEventListener("click", flush, true);
     removeEventListener("pagehide", flush);
   });
+  return {
+    /** The entry keeps what the editor holds, its address unchanged, at the next write: a Save made the page stand
+        for the palette saved, which a reload or a return finds. A write waits its turn, by which time the change that
+        asked for it has settled. */
+    keep() {
+      latest ??= shown;
+      writeSoon();
+    }
+  };
 }
