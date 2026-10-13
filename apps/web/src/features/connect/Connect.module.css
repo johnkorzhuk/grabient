@@ -1,0 +1,118 @@
+/* the consent sheet: its groups a step apart, each in the middle, as a letter is set */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s6);
+  text-align: center;
+}
+/* what the page is, the app's name and who vouches for it: a name is as long as its app made it */
+.who {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s2);
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+/* the account: its letter, then its address over the way to another. The lines start where the page reads from, so a
+   left-to-right address in a right-to-left page stands with the line under it */
+.account {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s3);
+  min-width: 0;
+  max-width: 100%;
+  text-align: start;
+}
+.lines {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-s1);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+/* a link inside a line, a finger's height on a touch screen, dimmed while it leads nowhere */
+.switch {
+  display: inline-flex;
+  align-items: center;
+  &[aria-disabled="true"] {
+    opacity: 0.4;
+    cursor: default;
+  }
+  @media (pointer: coarse) {
+    min-height: var(--size-touch);
+  }
+}
+/* the admin tools: the switch at the end of its title and line, as a Settings row has it */
+.row {
+  display: flex;
+  align-self: stretch;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s5);
+  text-align: start;
+}
+.rowText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s1);
+  min-width: 0;
+}
+/* the answer: the two presses, and under them the small print */
+.answer {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--space-s3);
+}
+/* Cancel and Allow share the row in halves, so neither moves when its words change */
+.actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-s3);
+}
+/* the small print, and in its place what came of the answer: one cell, so the sheet keeps its height */
+.under {
+  display: grid;
+}
+.print,
+.foot {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.print {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-s1);
+  overflow-wrap: anywhere;
+  &[data-unseen] {
+    visibility: hidden;
+  }
+}
+/* where a yes leads back to: what the line is, then the place */
+.place {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  column-gap: var(--space-s2);
+}
+/* the status line, then the way back to the app after a Cancel the page does not follow by itself */
+.foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s2) var(--space-s3);
+}
+/* nothing to answer: the line, then the two ways on across the sheet */
+.ways {
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  gap: var(--space-s3);
+}

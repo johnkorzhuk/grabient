@@ -36,6 +36,8 @@ import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
+import { Route as ApiSettingsConnectionsIndexRouteImport } from './routes/api/settings/connections/index'
+import { Route as ApiSettingsConnectionsDisconnectRouteImport } from './routes/api/settings/connections/disconnect'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -177,6 +179,18 @@ const PalettesRisingChar123FrameChar125Route =
     path: '/palettes/rising/{-$frame}',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiSettingsConnectionsIndexRoute =
+  ApiSettingsConnectionsIndexRouteImport.update({
+    id: '/api/settings/connections/',
+    path: '/api/settings/connections/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiSettingsConnectionsDisconnectRoute =
+  ApiSettingsConnectionsDisconnectRouteImport.update({
+    id: '/api/settings/connections/disconnect',
+    path: '/api/settings/connections/disconnect',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -206,6 +220,8 @@ export interface FileRoutesByFullPath {
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -235,6 +251,8 @@ export interface FileRoutesByTo {
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -265,6 +283,8 @@ export interface FileRoutesById {
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
+  '/api/settings/connections/disconnect': typeof ApiSettingsConnectionsDisconnectRoute
+  '/api/settings/connections/': typeof ApiSettingsConnectionsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -296,6 +316,8 @@ export interface FileRouteTypes {
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -325,6 +347,8 @@ export interface FileRouteTypes {
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections'
   id:
     | '__root__'
     | '/'
@@ -354,6 +378,8 @@ export interface FileRouteTypes {
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
     | '/@{$handle}/$slug/'
+    | '/api/settings/connections/disconnect'
+    | '/api/settings/connections/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -384,6 +410,8 @@ export interface RootRouteChildren {
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
+  ApiSettingsConnectionsDisconnectRoute: typeof ApiSettingsConnectionsDisconnectRoute
+  ApiSettingsConnectionsIndexRoute: typeof ApiSettingsConnectionsIndexRoute
 }
 
 declare module '@tanstack/solid-router' {
@@ -577,6 +605,20 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof PalettesRisingChar123FrameChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/settings/connections/': {
+      id: '/api/settings/connections/'
+      path: '/api/settings/connections'
+      fullPath: '/api/settings/connections/'
+      preLoaderRoute: typeof ApiSettingsConnectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/settings/connections/disconnect': {
+      id: '/api/settings/connections/disconnect'
+      path: '/api/settings/connections/disconnect'
+      fullPath: '/api/settings/connections/disconnect'
+      preLoaderRoute: typeof ApiSettingsConnectionsDisconnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -610,6 +652,8 @@ const rootRouteChildren: RootRouteChildren = {
   PalettesRisingChar123FrameChar125Route:
     PalettesRisingChar123FrameChar125Route,
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
+  ApiSettingsConnectionsDisconnectRoute: ApiSettingsConnectionsDisconnectRoute,
+  ApiSettingsConnectionsIndexRoute: ApiSettingsConnectionsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
