@@ -2,10 +2,10 @@ import { PRODUCTION_ORIGIN } from "../../lib/page-meta.ts";
 import type { Env } from "../env.ts";
 
 /* Which deploy search engines may index, and the origin the addresses it hands out name. Production, at
-   grabient.com, is indexed: its www name serves the same pages, which name grabient.com. Staging.grabient.com, every
-   Preview, every workers.dev address and local development hold copies of the site's pages and refuse every crawler
-   three ways: the robots meta tag (lib/page-meta.ts), robots.txt, and an X-Robots-Tag header on every answer. The
-   header alone keeps a page out of an index while a cached body or robots.txt says otherwise. */
+   grabient.com, is indexed: its www name serves the same pages, which name grabient.com. The staging deploy at
+   staging.grabient.com, every Preview, every workers.dev address and local development hold copies of the site's pages
+   and refuse every crawler three ways: the robots meta tag (lib/page-meta.ts), robots.txt, and an X-Robots-Tag header
+   on every answer. The header alone keeps a page out of an index while a cached body or robots.txt says otherwise. */
 
 /** The origin canonicals, sitemaps, files and share links name: the deploy's public origin, else the request's (a
     Preview's, local development's). Outside a request a deploy without one names a local address no index takes. */

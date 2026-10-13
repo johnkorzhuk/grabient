@@ -46,7 +46,7 @@ interface Entry {
 
 const escaped = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const document = (body: string) => `<?xml version="1.0" encoding="UTF-8"?>\n${body}\n`;
+const xmlFile = (body: string) => `<?xml version="1.0" encoding="UTF-8"?>\n${body}\n`;
 
 function urlset(entries: readonly Entry[], origin: string): string {
   const pictured = entries.some(entry => entry.image);
@@ -68,7 +68,7 @@ function urlset(entries: readonly Entry[], origin: string): string {
       "</url>"
     ].join("");
   });
-  return document(
+  return xmlFile(
     `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"${
       pictured ? ' xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"' : ""
     }${languages ? ' xmlns:xhtml="http://www.w3.org/1999/xhtml"' : ""}>${urls.join("")}</urlset>`
@@ -96,7 +96,7 @@ export function sitemapIndex(origin: string, shards: number): string {
   const sitemaps = paths.map(
     path => `<sitemap><loc>${escaped(new URL(path, origin).toString())}</loc></sitemap>`
   );
-  return document(
+  return xmlFile(
     `<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${sitemaps.join("")}</sitemapindex>`
   );
 }
