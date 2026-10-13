@@ -186,7 +186,8 @@ function preview(): CloudflareConfig {
   };
 }
 
-// `vite dev`: every binding is simulated locally and kept under .cloudflare/state. No paid service is reached.
+// `vite dev`: every binding is simulated locally and kept under .cloudflare/state. No paid service is reached. The
+// secret's value comes from .dev.vars, and without one sign-in answers 503.
 function development(): CloudflareConfig {
   return {
     worker: {
@@ -194,6 +195,7 @@ function development(): CloudflareConfig {
       exports: { RateLimiter: exports.durableObject({ storage: "sqlite" }) },
       env: {
         DEPLOYMENT: bindings.text("development"),
+        BETTER_AUTH_SECRET: bindings.secret(),
         EMAIL_FROM: bindings.text(EMAIL_FROM),
         EMAIL: bindings.sendEmail({ allowedSenderAddresses: [EMAIL_FROM] }),
         NEWSLETTER_FROM: bindings.text(NEWSLETTER_FROM),

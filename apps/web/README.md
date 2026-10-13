@@ -1,7 +1,9 @@
 # web
 
 grabient.com: TanStack Start on Solid 2, one Cloudflare Worker. `vite dev` runs the Worker in workerd with every
-binding local; `vite build --mode staging` then `vite preview` runs the built one.
+binding local; `vite build --mode staging` then `vite preview` runs the built one. Both read their secrets from
+`.dev.vars`, which git ignores: copy `.dev.vars.example` to it, or every `/api/auth/*` route answers 503 and nobody
+signs in.
 
 ## How a request is answered
 

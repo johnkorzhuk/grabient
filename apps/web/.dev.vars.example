@@ -1,0 +1,4 @@
+# The secrets `vite dev` and `vite preview` bind on this machine. Copy this file to .dev.vars, which git ignores.
+
+# Signs sessions and removal tokens. Any 32 characters or more; never a deploy's value.
+BETTER_AUTH_SECRET="local development only, not a deploy's secret"
