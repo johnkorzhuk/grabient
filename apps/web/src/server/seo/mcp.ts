@@ -1,3 +1,4 @@
+import { REGISTRY_NAME } from "../mcp/info.ts";
 import { accountToolList, SUPPORTED, serverInfo } from "../mcp/server.ts";
 import { SKILL_URI } from "../mcp/skill.ts";
 import { MCP_PATH } from "../oauth/clients.ts";
@@ -9,5 +10,6 @@ export const mcpFacts = (): Mcp => ({
   versions: SUPPORTED,
   skill: SKILL_URI,
   tools: accountToolList(),
-  info: serverInfo
+  info: serverInfo,
+  registryName: REGISTRY_NAME
 });

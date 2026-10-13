@@ -340,7 +340,9 @@ export const accountTools: readonly Tool[] = [
     hints: READS,
     description: `Search Grabient's public collections of color palettes and gradients by theme or use, or list the most popular. Each is an ordered list of up to ${MAX_COLLECTION_ITEMS} palettes with a title, a description and tags. \`first\` is the addresses of its first six, each in its view there.`,
     inputSchema: shape({
-      query: text("Words: a theme, a use or a brand. Leave out to list.", { maxLength: 100 }),
+      query: text("Words: a theme, a use or a brand; left out, the most popular.", {
+        maxLength: 100
+      }),
       page: PAGE,
       limit: whole("How many a page, default 12.", 1, 24)
     }),
@@ -732,7 +734,7 @@ export const accountTools: readonly Tool[] = [
     hints: { readOnly: false, destructive: true, idempotent: false, openWorld: ownMayBePublic },
     description: `Make or change a private collection of color palettes, such as a brand's colors or a theme's gradients. Without a slug it makes one from a title and 1 to ${MAX_COLLECTION_ITEMS} palettes. With a slug it changes that one: a field given replaces what is there, \`palettes\` replaces the whole list in order, \`remove\` takes palettes out and \`add\` puts palettes at the end. A palette named without a view keeps the one it has there, else the one Grabient shows it in.`,
     inputSchema: shape({
-      slug: text("The collection to change, by its slug or address. Leave out to make one."),
+      slug: text("The collection to change, by its slug or address; left out, a new one is made."),
       title: text("1 to 80 characters.", { maxLength: 80 }),
       description: text("Up to 500 characters.", { maxLength: 500 }),
       tags: list(
