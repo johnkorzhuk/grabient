@@ -46,8 +46,8 @@ export function platform(): Platform {
       : "windows";
 }
 
-/** Whether a key belongs to what has focus rather than to the page: a field being typed in, or an element that keeps
-    its keys while focused (`data-keys="own"`), such as a block of code, whose select all is its own text. */
+/** Whether a key belongs to what has focus: a field being typed in, or an element that keeps its keys while
+    focused (`data-keys="own"`), such as a block of code, whose select all is its own text. */
 export function typing(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el?.tagName) return false;

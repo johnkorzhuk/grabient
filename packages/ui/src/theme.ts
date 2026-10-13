@@ -173,7 +173,7 @@ export function switchTheme(apply: () => void, from?: RevealFrom, reduced = redu
     apply();
     return true;
   }
-  /* a browser that stalls lets the change go rather than leave the page frozen */
+  /* a browser that stalls lets the change go, so the page is never left frozen */
   guard = setTimeout(() => transition.skipTransition?.(), motion.reveal + 1600);
   transition.finished.then(done, done);
   return true;

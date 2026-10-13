@@ -1,0 +1,17 @@
+@layer components {
+  .input {
+    composes: input from "./Field.module.css";
+    display: block;
+    height: auto;
+    min-height: calc(var(--size-control-big) * 3);
+    padding: var(--space-s3);
+    line-height: var(--font-lh-ui);
+    resize: vertical;
+    &:autofill {
+      padding-block: var(--space-s3);
+    }
+    @media (pointer: coarse) {
+      height: auto;
+    }
+  }
+}

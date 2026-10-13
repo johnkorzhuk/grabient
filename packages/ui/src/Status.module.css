@@ -1,0 +1,14 @@
+@layer components {
+  .status {
+    min-height: calc(1em * var(--font-lh-ui));
+    margin: 0;
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-medium);
+    font-size: var(--font-fs3);
+    line-height: var(--font-lh-ui);
+    &[data-error] {
+      color: var(--color-danger);
+    }
+  }
+}

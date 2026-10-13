@@ -1,0 +1,21 @@
+@layer components {
+  /* never the browser's scroll anchor: the wash is placed by the page's height, and as a page grows Chrome would hold
+     the wash still and move the reader instead */
+  .layer {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    overflow-anchor: none;
+    pointer-events: none;
+  }
+  .wash {
+    position: absolute;
+    inset: -20%;
+    filter: blur(70px);
+    opacity: var(--color-grain);
+    &[data-strong] {
+      opacity: 0.55;
+    }
+  }
+}

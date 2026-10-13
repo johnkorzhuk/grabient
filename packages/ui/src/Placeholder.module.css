@@ -1,0 +1,13 @@
+@layer components {
+  .block {
+    display: block;
+    border-radius: var(--radius-control);
+    background-color: var(--color-paper2);
+    &[data-round="tight"] {
+      border-radius: var(--radius-tight);
+    }
+    &[data-round="surface"] {
+      border-radius: var(--radius-surface);
+    }
+  }
+}
