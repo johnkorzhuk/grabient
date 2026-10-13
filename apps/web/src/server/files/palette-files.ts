@@ -48,12 +48,8 @@ async function paletteFile(
   const origin = env.PUBLIC_ORIGIN ?? url.origin;
   const found = resolvePalette(name);
   if (!found) {
-    const collection =
-      format === "md" ||
-      format === "ase" ||
-      format === "gpl" ||
-      format === "grd" ||
-      format === "tokens";
+    // A collection is Markdown and swatch files alone.
+    const collection = format !== "svg" && format !== "css" && format !== "json";
     return (
       (collection && (await collectionFile(env, name, origin, format))) ||
       json({ error: "Invalid palette seed." }, { status: 404 })

@@ -4,9 +4,9 @@
 
    In front of the drawing: the edge cache (the pipeline's), then, for a share card, R2. A card is kept in the UPLOADS
    bucket under cards/{version}/{key}.png the first time it is drawn, so each card is drawn once for every data center
-   and every deploy until its version changes. A download, a strip or a picture of several palettes at a size of the
-   asker's choosing lives at the edge alone: kept for good, the few asked twice would cost more to store than to draw.
-   A Preview keeps nothing: it may draw differently from staging under the same version, and shares staging's bucket. */
+   and every deploy until its version changes. A palette's picture, or several palettes' at a size the asker chose,
+   lives at the edge alone: kept for good, the few asked twice would cost more to store than to draw. A Preview keeps
+   nothing: it may draw differently from staging under the same version, and shares staging's bucket. */
 import { FILE, NO_STORE } from "../../lib/cache.ts";
 import type { Env } from "../env.ts";
 import { flagOff } from "../flags/flags.ts";

@@ -40,7 +40,7 @@ export function viewAt(
     get: key => {
       if (params.has(key)) return params.get(key);
       const value = saved[key as keyof Saved];
-      return value === undefined ? null : String(value);
+      return value == null ? null : String(value);
     }
   };
   const { style, steps, angle } = parseView(reader);

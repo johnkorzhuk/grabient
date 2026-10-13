@@ -18,7 +18,7 @@ export interface MontagePalette extends Saved {
   seed: string;
 }
 
-export type MontageSort = "popular" | "rising" | "newest" | "hot";
+type MontageSort = "popular" | "rising" | "newest" | "hot";
 const FRAMES = ["1w", "3m", "1y"];
 
 /** A montage's order as its address says it: Rising, Newest (which links from before Rising still name), the home's
