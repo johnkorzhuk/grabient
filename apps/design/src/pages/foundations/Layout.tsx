@@ -3,6 +3,7 @@ import { Pane } from "@grabient/ui/Pane.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { font, size, space } from "@grabient/ui/tokens.ts";
 import { For } from "solid-js";
+import { cardTools, sampleName } from "../../doc/cards.tsx";
 import { Legend, Pin } from "../../doc/Pins.tsx";
 import { Block, Rules, Section } from "../../doc/Section.tsx";
 import table from "../../doc/Table.module.css";
@@ -97,12 +98,15 @@ export function Layout() {
           <div class={styles.card}>
             <PaletteCard
               seed={CARD.seed}
+              name={sampleName(CARD)}
               stops={hexes(CARD.seed, CARD.steps)}
               style={CARD.style}
               angle={CARD.angle}
+              href={`/${CARD.seed}`}
               age="12 days"
               likes={CARD.likes}
-              hover
+              state="hover"
+              tools={cardTools}
             />
             <Pin n={1} left="0%" top="0px" />
             <Pin n={2} left="100%" top="0px" />

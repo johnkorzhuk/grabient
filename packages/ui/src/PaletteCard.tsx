@@ -1,6 +1,6 @@
 import { gradientCss } from "@grabient/engine/css.ts";
 import { isSwatchStyle, type Style } from "@grabient/engine/view.ts";
-import { createSignal, type Element, onSettled, Show } from "solid-js";
+import { createSignal, type Element, onSettled, Show, untrack } from "solid-js";
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
@@ -91,6 +91,8 @@ export interface PaletteCardProps {
   fit?: Element;
   /** taken out of its collection a moment ago: it stands where it stood, faded, with only `lead` over it */
   removed?: boolean;
+  /** a state held at rest, for the design document: lit, with its tools shown */
+  state?: "hover";
 }
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
@@ -99,7 +101,7 @@ export interface PaletteCardProps {
     server's markup and hydration, where they would be most of a list's weight, and mount in idle time or as soon as
     the pointer or focus reaches the card. */
 export function PaletteCard(props: PaletteCardProps) {
-  const [armed, setArmed] = createSignal(false);
+  const [armed, setArmed] = createSignal(untrack(() => props.state === "hover"));
   const arm = () => setArmed(true);
   onSettled(() => (armed() ? undefined : whenIdle(arm)));
   const art = () => gradientCss(props.stops, props.style, props.angle);
@@ -120,6 +122,7 @@ export function PaletteCard(props: PaletteCardProps) {
           the corners that hover opens for a mouse; the keyboard reaches the same presses by Tab, and focus shows them */}
       <div
         class={styles.art}
+        data-open={props.state === "hover" ? "" : undefined}
         data-removed={props.removed ? "" : undefined}
         onPointerOver={arm}
         onPointerDown={e => {

@@ -1,5 +1,6 @@
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { createSignal, untrack } from "solid-js";
+import { cardTools, sampleName } from "../../doc/cards.tsx";
 import { Block, Rules, Section } from "../../doc/Section.tsx";
 import { hexes, POPULAR, type Sample } from "../../samples.ts";
 import styles from "./PaletteCards.module.css";
@@ -20,16 +21,19 @@ function Card(props: {
   return (
     <PaletteCard
       seed={props.sample.seed}
+      name={sampleName(props.sample)}
       stops={hexes(props.sample.seed, props.sample.steps)}
       style={props.sample.style}
       angle={props.sample.angle}
+      href={`/${props.sample.seed}`}
       age={props.age}
       likes={others + (liked() ? 1 : 0)}
       liked={liked()}
-      hover={props.hover}
+      state={props.hover ? "hover" : undefined}
       selected={selected()}
       onLike={() => setLiked(!liked())}
       onSelect={() => setSelected(!selected())}
+      tools={cardTools}
     />
   );
 }
