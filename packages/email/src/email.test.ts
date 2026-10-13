@@ -468,13 +468,11 @@ describe("heads", () => {
   test("with no palette it is the brand's file, drawn at the head's size", () => {
     expect(head(link_.html)?.[0]).toBe(`${origin}/${HEAD_FILES.sheet}`);
     expect(head(newsletter(words({ picks: [] })).html)?.[0]).toBe(`${origin}/${HEAD_FILES.letter}`);
-    for (const root of ["../../../apps/web/public/", "../../../apps/design/public/"]) {
-      for (const [kind, file] of Object.entries(HEAD_FILES)) {
-        const png = readFileSync(new URL(root + file, import.meta.url));
-        expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual(
-          SIZE.heads[kind as keyof typeof HEAD_FILES]
-        );
-      }
+    for (const [kind, file] of Object.entries(HEAD_FILES)) {
+      const png = readFileSync(new URL(`../../../apps/web/public/${file}`, import.meta.url));
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual(
+        SIZE.heads[kind as keyof typeof HEAD_FILES]
+      );
     }
   });
   test("a newsletter's lead is its whole preview, its name and chips under it, drawn once", () => {

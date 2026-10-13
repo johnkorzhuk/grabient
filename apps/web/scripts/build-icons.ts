@@ -2,8 +2,7 @@
    what the site draws:
    - public/grabient.png, the site's card: the default palette's share card, which stands in for any card that cannot
      be drawn and is every page's card that names none of its own;
-   - public/email/head-sheet.png and head-letter.png, the heads of the emails that wear no palette (also the design
-     document's);
+   - public/email/head-sheet.png and head-letter.png, the heads of the emails that wear no palette;
    - favicon.svg and favicon-dark.svg, the mark in the brand's gradient (also the design document's);
    - the icons a browser takes as raster files, drawn from the mark by Chromium: favicon.ico, the bar alone in the light
      scheme's colors, for tabs of a file that names no icon; favicon-tile.ico and its PNGs, for Safari and Google Search,
@@ -31,8 +30,8 @@ await write(
   "grabient.png",
   web
 );
-await write(await emailHead(undefined, 800, 200), "email/head-sheet.png", web, design);
-await write(await emailHead(undefined, 1200, 300), "email/head-letter.png", web, design);
+await write(await emailHead(undefined, 800, 200), "email/head-sheet.png", web);
+await write(await emailHead(undefined, 1200, 300), "email/head-letter.png", web);
 const mark = `${markSvg(MARK_FIXED)}\n`;
 await write(mark, "favicon.svg", web, design);
 await write(mark, "favicon-dark.svg", web);

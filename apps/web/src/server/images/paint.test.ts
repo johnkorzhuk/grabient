@@ -146,21 +146,20 @@ describe("a picture of several palettes", () => {
 });
 
 describe("the pictures the site serves as files", () => {
-  const served = async (path: string) =>
+  const served = async (file: string) =>
     pixelHash(
-      (await decodePng(await readFile(new URL(`../../../../${path}`, import.meta.url)))).pixels
+      (await decodePng(await readFile(new URL(`../../../public/${file}`, import.meta.url)))).pixels
     );
   const drawn = async (png: Uint8Array) => pixelHash((await decodePng(png)).pixels);
 
   test("are what the painter draws today: redraw them with scripts/build-icons.ts", async () => {
-    expect(await served("web/public/grabient.png")).toBe(await drawn(await card(defaultSeed)));
+    expect(await served("grabient.png")).toBe(await drawn(await card(defaultSeed)));
     for (const [file, width, height] of [
       ["email/head-sheet.png", 800, 200],
       ["email/head-letter.png", 1200, 300]
     ] as const) {
       const head = await drawn(await emailHead(undefined, width, height));
-      expect([file, await served(`web/public/${file}`)]).toEqual([file, head]);
-      expect([file, await served(`design/public/${file}`)]).toEqual([file, head]);
+      expect([file, await served(file)]).toEqual([file, head]);
     }
   });
 });
