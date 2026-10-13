@@ -165,7 +165,12 @@ export function verify(
   const held = new Map(
     copy.schema.filter(e => e.sql && !internal(e.name)).map(e => [`${e.type} ${e.name}`, e.sql!])
   );
-  const flat = (sql: string | undefined) => sql?.replace(/\s+/g, " ").trim();
+  /* D1 drops the comments of a statement it stores, and its local simulation keeps them */
+  const flat = (sql: string | undefined) =>
+    sql
+      ?.replace(/^\s*--.*$/gm, "")
+      .replace(/\s+/g, " ")
+      .trim();
   check(
     "schema",
     [

@@ -73,6 +73,21 @@ describe("verify", () => {
     expect(failed(await checked(db => run(db, [sql])))).toContain(name);
   });
 
+  it("reads a schema the way D1 stores it, without the comments of its statements", async () => {
+    const { db } = await copyOf(source);
+    const copy = await snapshotOf(db, 1000);
+    const schema = copy.schema.map(e => ({
+      ...e,
+      sql: e.sql?.replace(/^\s*--.*$/gm, "  ") ?? null
+    }));
+    const checks = verify({ ...copy, schema }, source.production, source.lite, {
+      aliases: ALIASES,
+      originals: ORIGINALS,
+      now: NOW
+    });
+    expect(failed(checks)).toEqual([]);
+  });
+
   it("holds a copy to the local one row for row", async () => {
     const { db } = await copyOf(source);
     const local = await snapshotOf(db, 1000);
