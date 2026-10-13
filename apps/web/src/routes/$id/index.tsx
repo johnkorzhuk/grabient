@@ -29,6 +29,8 @@ export const Route = createFileRoute("/$id/")({
   head: ({ loaderData }) => (loaderData?.palette ? paletteHead(loaderData.palette) : {}),
   staticData: { frame: "app", corner: EditorCorner, strip: true },
   pendingComponent: Static,
+  /* the static page is no spinner that must not flash: the editor takes its place the moment it can */
+  pendingMinMs: 0,
   component: Address
 });
 
