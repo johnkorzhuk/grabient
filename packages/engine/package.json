@@ -2,12 +2,14 @@
   "name": "@grabient/engine",
   "private": true,
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
     "./*": "./src/*"
   },
   "scripts": {
-    "typecheck": "tsc -p ."
+    "typecheck": "tsc -p . && tsc -p test",
+    "test": "vitest run --root ."
   },
   "devDependencies": {
     "typescript": "catalog:"
