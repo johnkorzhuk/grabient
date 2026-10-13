@@ -2,6 +2,7 @@ import { delocalizePath, isPagePath } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { focusMain } from "@grabient/ui/SkipLink.tsx";
 import type { AnyRouter, HistoryLocation } from "@tanstack/solid-router";
+import { pageKey, trackPageView } from "../features/analytics/analytics.ts";
 import { openedOutside } from "./framed.ts";
 import { forgetUndoFrom, landUndo } from "./undo.ts";
 
@@ -14,7 +15,8 @@ import { forgetUndoFrom, landUndo } from "./undo.ts";
 
    After a page is pushed, or reached by Back or Forward, focus moves to the new page's main content when the control
    that held it left with the old page, and a screen reader is told the new page's title once the page has set it. An
-   address rewritten in place moves and says nothing. Each entry keeps its own undo. */
+   address rewritten in place moves and says nothing. Each entry keeps its own undo, and each page reached is counted
+   once (analytics), whatever view it is drawn in. */
 
 /** How long a page has to set its title before it is announced. */
 const LANDED_MS = 120;
@@ -59,7 +61,10 @@ export function watchNavigation(router: AnyRouter): () => void {
       moved = action.type !== "REPLACE";
     }
   );
+  const count = () => trackPageView(pageKey(location.pathname, location.search));
+  count();
   const leaveResolved = router.subscribe("onResolved", () => {
+    count();
     if (moved) land();
     moved = false;
   });

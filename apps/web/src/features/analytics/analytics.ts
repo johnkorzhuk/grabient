@@ -86,6 +86,14 @@ export function accountKey(id: string): string {
   return hash.toString(16).padStart(16, "0");
 }
 
+/** A page as the pageview count names it: its address without the language, and the words it searched for. A view's
+    change rewrites the address and is no page of its own. */
+export function pageKey(pathname: string, search: string): string {
+  const words = new URLSearchParams(search).get("q");
+  const path = delocalizePath(pathname).path;
+  return words ? `${path}\n${words}` : path;
+}
+
 /** The page's address as analytics may hold it: the view and the page, and on a visit's first page its campaign. */
 export function cleanPage(href: string, campaign?: string): string {
   const url = new URL(href);

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { accountKey, cleanPage } from "./analytics.ts";
+import { accountKey, cleanPage, pageKey } from "./analytics.ts";
 import { readConsent } from "./consent.ts";
 
 test("GA4 knows an account by a 64-bit hash of its id, the same one the site always sent", () => {
@@ -18,6 +18,12 @@ test("a page's address keeps its view and page, and a visit's first page its cam
       "https://grabient.com/?utm_source=news&utm_medium=email&gclid=x"
     )
   ).toBe("https://grabient.com/ja/palettes?utm_source=news&utm_medium=email");
+});
+
+test("a page is counted by its address and its words, never its view or its language", () => {
+  expect(pageKey("/ja/palettes", "?style=radialGradient&page=2")).toBe("/palettes");
+  expect(pageKey("/palettes", "?q=blue&steps=9")).toBe("/palettes\nblue");
+  expect(pageKey("/kS7Q8Yy5S_SChv0", "?angle=45")).toBe("/kS7Q8Yy5S_SChv0");
 });
 
 test("a choice the reader made stands; one never made is decided again", () => {
