@@ -1,0 +1,29 @@
+/* https://grabient.com/kY4mpDazO-mUuu_fuLqXU49dvVP6?angle=15 */
+.palette-1 {
+  background: linear-gradient(15deg, #fad95c 0.0%, #f8c751 16.7%, #fdad64 33.3%, #ff9188 50.0%, #fd77b4 66.7%, #fd63d1 83.3%, #fe59d2 100.0%);
+}
+
+/* https://grabient.com/kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ?style=linearSwatches&steps=8&angle=45 */
+.palette-2 {
+  background: linear-gradient(45deg, #feffd2 0.000% 12.500%, #fff7aa 12.500% 25.000%, #febf90 25.000% 37.500%, #ff8271 37.500% 50.000%, #f84354 50.000% 62.500%, #e10c3a 62.500% 75.000%, #cb0522 75.000% 87.500%, #b2010b 87.500% 100.000%);
+}
+
+/* https://grabient.com/kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg?style=radialGradient&steps=9&angle=75 */
+.palette-3 {
+  background: radial-gradient(circle at 50% 50%, #a87655 0.0%, #9e9279 12.5%, #8ca08e 25.0%, #689da1 37.5%, #398a9a 50.0%, #116883 62.5%, #004161 75.0%, #001d3a 87.5%, #000319 100.0%);
+}
+
+/* https://grabient.com/kWs2um4jE-G62O7xwb3bkk-4?style=radialSwatches&steps=10&angle=105 */
+.palette-4 {
+  background: radial-gradient(circle at 50% 50%, #02aded 0.000% 10.000%, #12b6ee 10.000% 20.000%, #1ec5ee 20.000% 30.000%, #0cd7ec 30.000% 40.000%, #1fece3 40.000% 50.000%, #34f9d6 50.000% 60.000%, #32ffc8 60.000% 70.000%, #46ffba 70.000% 80.000%, #31fda6 80.000% 90.000%, #2df999 90.000% 100.000%);
+}
+
+/* https://grabient.com/kSyQDAzZa8zgZxS?style=angularGradient&steps=11&angle=135 */
+.palette-5 {
+  background: conic-gradient(from 135deg, #bbbbbb 0.0%, #b0b3b9 10.0%, #a0a9b7 20.0%, #8b9eb3 30.0%, #7593ad 40.0%, #6388a6 50.0%, #597c9f 60.0%, #546e95 70.0%, #53608a 80.0%, #52547f 90.0%, #514c77 100.0%);
+}
+
+/* https://grabient.com/kUzkiw66E-e4YQltnUXg?style=angularSwatches&steps=12&angle=165 */
+.palette-6 {
+  background: conic-gradient(from 165deg, #8dc7ff 0.000% 8.333%, #8dcbff 8.333% 16.667%, #8cd0ff 16.667% 25.000%, #8ed5ff 25.000% 33.333%, #95d7ff 33.333% 41.667%, #9fd8ff 41.667% 50.000%, #a9d7ff 50.000% 58.333%, #b4d6fe 58.333% 66.667%, #bdd4ff 66.667% 75.000%, #c9cfff 75.000% 83.333%, #d5c9ff 83.333% 91.667%, #dfc5fc 91.667% 100.000%);
+}

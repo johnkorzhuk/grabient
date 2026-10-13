@@ -1,0 +1,4 @@
+# Golden outputs of grabient4: a diff of them is noise.
+*.json -diff
+*.svg -diff
+*.css -diff
