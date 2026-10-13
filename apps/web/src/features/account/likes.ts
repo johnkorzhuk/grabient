@@ -6,7 +6,14 @@ import * as v from "valibot";
 import { openedOutside } from "../../app/framed.ts";
 import { record } from "../../app/undo.ts";
 import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
-import { account, adminAccount, copyEngine, loadAccount, loginHref } from "./session.ts";
+import {
+  account,
+  accountKnown,
+  adminAccount,
+  copyEngine,
+  loadAccount,
+  loginHref
+} from "./session.ts";
 import {
   heartNow,
   heartOn,
@@ -266,6 +273,8 @@ async function setLiked(
   context: LikeContext,
   how: { quiet?: boolean; restore?: boolean }
 ): Promise<void> {
+  // a press made before the page knows who is signed in waits for the answer; one made after never waits
+  if (account() === undefined) await accountKnown();
   if (!account()) {
     trackSignInPrompt("like");
     const to = loginHref();

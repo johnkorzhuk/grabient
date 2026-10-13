@@ -45,8 +45,10 @@ function publish() {
   setCurrent(user ? { ...user, role: admin ? "admin" : "user" } : null);
 }
 
-/** The account signed in here, or null. Null on the server and until the first check answers. */
-export const account = (): Account | null => (isServer ? null : current());
+/** The account signed in here, or null signed out. Undefined until the first check answers, and on the server, which
+    never knows: a page tells "not yet known" from "signed out" and draws neither before it knows. */
+export const account = (): Account | null | undefined =>
+  isServer || !ready() ? undefined : current();
 /** The first session check has answered, or failed. */
 export const sessionReady = (): boolean => !isServer && ready();
 /** The account is an admin's, whatever this browser shows of the admin tools. */
