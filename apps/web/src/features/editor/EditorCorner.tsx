@@ -15,3 +15,6 @@ export function holdCorner(own: Component) {
 
 /** The corner the route names for the frame: nothing until an editor is open. */
 export const EditorCorner = dynamicComponent(() => corner());
+
+/** Whether an editor is open: the page then pins its stops along the foot of the screen. */
+export const editing = (): boolean => corner() !== null;

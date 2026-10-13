@@ -8,6 +8,8 @@ import { type ParamReader, parseView, type View, viewSearch } from "@grabient/en
 
 /** A seed's shape in an address. Whether it decodes is the codec's to say. */
 export const SEED_SHAPE = /^k[A-Za-z0-9_-]{8,49}$/;
+/** Whether an address's one segment is a palette's seed: a collection's slug can have the shape, and never decodes. */
+export const isSeed = (id: string): boolean => SEED_SHAPE.test(id) && decodePalette(id) !== null;
 
 /** What Random keeps (ops.ts): `lock` names the locks closed while no keyframe is held, `unlock` the ones a hold has
     opened, since a hold starts with every lock closed. */
