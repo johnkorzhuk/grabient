@@ -83,7 +83,7 @@ export async function handle(
   const { locale, path } = splitLocale(url.pathname);
   let response: Response;
   try {
-    response = await route(request, url, locale, path, ctx, app);
+    response = await route(request, url, locale, path, ctx, app, env.DEPLOYMENT === "development");
   } catch (error) {
     // the message and the first lines of the stack, or a production 500 cannot be told from another
     const stack =
@@ -100,7 +100,9 @@ async function route(
   locale: Locale,
   path: string,
   ctx: ExecutionContext,
-  app: App
+  app: App,
+  /* under `vite dev` nothing is kept: a page kept from before an edit would hydrate against the edited code */
+  uncached = false
 ): Promise<Response> {
   const read = request.method === "GET" || request.method === "HEAD";
   const page = isPagePath(path);
@@ -143,7 +145,7 @@ async function route(
   }
   if (privatePath(path) || connectPath(path))
     return withHeaders(await answer(request, app), NO_STORE);
-  if (!read || uncachedPath(path)) return answer(request, app);
+  if (!read || uncached || uncachedPath(path)) return answer(request, app);
   return edgeCached(request, cacheKey(url, path, locale), ctx, () => answer(request, app));
 }
 
