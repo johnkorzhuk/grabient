@@ -1,0 +1,67 @@
+.pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-s4);
+}
+.figure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  margin: 0;
+}
+.stage {
+  display: flex;
+  flex-grow: 1;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-s10);
+  min-height: 320px;
+  padding: var(--space-s8);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+}
+/* half again as large, so the room a finger gets is seen */
+.targets {
+  display: flex;
+  align-items: center;
+  gap: var(--space-s8);
+  zoom: 1.5;
+}
+/* the touch target in the measuring accent: a dashed square of the touch size around the control it serves */
+.target {
+  display: grid;
+  place-items: center;
+  min-width: var(--size-touch);
+  min-height: var(--size-touch);
+  outline: 1px dashed var(--color-accent);
+}
+/* a phone in outline, at half its size, with a thumb's reach drawn up from its foot */
+.phone {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 195px;
+  height: 300px;
+  padding: var(--space-s4);
+  overflow: hidden;
+  border: 1px solid var(--color-edge2);
+  border-radius: var(--space-s8);
+  background-color: var(--color-bg);
+}
+.reach {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 55%;
+  background-image: radial-gradient(
+    ellipse 90% 100% at 50% 100%,
+    color-mix(in srgb, var(--color-accent) 30%, transparent),
+    transparent
+  );
+}
+.press {
+  position: relative;
+  display: flex;
+}

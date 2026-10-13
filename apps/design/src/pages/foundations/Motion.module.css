@@ -1,0 +1,101 @@
+.play {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-s4);
+  align-items: start;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+  min-width: 0;
+  padding: var(--space-s5);
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-surface);
+  background-color: var(--color-paper-solid);
+}
+.head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-s3);
+}
+/* The card is the trigger, never the dot: a dot that leaves the pointer would end its own hover. The track is a size
+   container, so the dot crosses exactly its width at any card size. */
+.track {
+  position: relative;
+  height: var(--space-s6);
+  container-type: inline-size;
+  &::before {
+    content: "";
+    position: absolute;
+    inset-inline: 0;
+    top: 50%;
+    height: 1px;
+    background-image: var(--color-dash-rule);
+    background-size: var(--size-dash-period) 1px;
+    background-repeat: repeat-x;
+  }
+}
+.dot {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--space-s6);
+  height: var(--space-s6);
+  border-radius: var(--radius-circle);
+  background-color: var(--color-ink);
+  transition-property: translate;
+  transition-timing-function: var(--motion-ease);
+  .card:hover & {
+    translate: calc(100cqw - var(--space-s6)) 0;
+  }
+}
+
+/* a small page in each theme, one over the other; the one arriving is masked by a circle with a soft edge that opens
+   from the theme button, as the site's own change of theme does */
+.frame {
+  position: relative;
+  height: 132px;
+  overflow: hidden;
+  border: 1px solid var(--color-edge);
+  border-radius: var(--radius-control);
+}
+.page {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s3);
+  padding: var(--space-s3);
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  &[data-arriving] {
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(
+      circle at var(--x) var(--y),
+      black calc(var(--theme-r) - var(--soft)),
+      transparent var(--theme-r)
+    );
+    mask-image: radial-gradient(
+      circle at var(--x) var(--y),
+      black calc(var(--theme-r) - var(--soft)),
+      transparent var(--theme-r)
+    );
+  }
+}
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-s3);
+}
+.art {
+  flex-grow: 1;
+  border-radius: var(--radius-tight);
+}
