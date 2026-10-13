@@ -35,7 +35,7 @@ import {
 } from "solid-js";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
-import { likeCount, liked, refreshCounts, toggleLike } from "../account/likes.ts";
+import { likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { account, loginHref } from "../account/session.ts";
 import { trackSignInPrompt } from "../analytics/analytics.ts";
 import { useInEditor } from "../palette-use/use.ts";
@@ -184,7 +184,7 @@ export default function Editor(props: { data: PaletteData }) {
     rest.is(seed);
     const timer = setTimeout(() => {
       rest.asked(seed);
-      void refreshCounts([seed]).catch(() => {});
+      void readLikeCounts([seed]).catch(() => {});
     }, rest.left());
     return () => clearTimeout(timer);
   });
