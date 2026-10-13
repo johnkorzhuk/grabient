@@ -1,6 +1,6 @@
 /* A stand-in for @grabient/ui/CollectionCard.tsx until the design system lands it, with grabient4's name and props:
    its first palettes as one mosaic the count fills (a row up to three, two to eight, three past that), then its title
-   and how many it holds. Deleted at the merge. */
+   and how many it holds. It goes once the real module lands. */
 import { gradientCss } from "@grabient/engine/css.ts";
 import { Text } from "@grabient/ui/Text.tsx";
 import { For } from "solid-js";

@@ -1,6 +1,6 @@
 /* A stand-in for @grabient/ui/PaletteCard.tsx until the design system lands it, with grabient4's name and props: the
-   picture, its tools while the pointer is in it (or `hover`), and the line of its age and its likes. Deleted at the
-   merge. */
+   picture, its tools while the pointer is in it (or `hover`), and the line of its age and its likes. It goes once the
+   real module lands. */
 import { gradientCss } from "@grabient/engine/css.ts";
 import type { Style } from "@grabient/engine/view.ts";
 import { Button } from "@grabient/ui/Button.tsx";

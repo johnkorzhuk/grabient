@@ -3,8 +3,8 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import { randomPalette } from "@grabient/engine/random.ts";
 import type { Style } from "@grabient/engine/view.ts";
 
-/* The document's sample data: palettes and collections from grabient.com's gallery, each drawn as the site draws it,
-   and the words a sample card shows. */
+/* The document's sample data: palettes and collections from grabient.com's gallery, each with the view the gallery
+   draws it in, and the palettes the header's bar cycles through. */
 export interface Sample {
   seed: string;
   style: Style;

@@ -1,5 +1,5 @@
-/* A section stands clear of the one before by the widest step of the scale. Its link brings its eyebrow to rest a
-   little under the sticky header, past the page's own scroll padding (base.css), its room above it drawn in. */
+/* A section stands clear of the one before by the widest step of the scale. Its link scrolls it up past that room,
+   so its eyebrow rests just under the sticky header and the page's scroll padding (base.css). */
 .section {
   display: flex;
   flex-direction: column;

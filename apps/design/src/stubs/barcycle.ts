@@ -1,6 +1,6 @@
 /* A stand-in for @grabient/ui/barcycle.ts until the design system lands it, with grabient4's name and options: the
    wordmark's bar dwells on each palette, then tweens to the next with the next move (bartween.ts). Under reduced
-   motion it holds; a hidden tab stops the clock. Deleted at the merge. */
+   motion it holds; a hidden tab stops the clock. It goes once the real module lands. */
 import {
   type LCH,
   lchSamples,

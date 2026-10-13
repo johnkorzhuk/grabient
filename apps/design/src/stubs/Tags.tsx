@@ -1,6 +1,6 @@
 /* A stand-in for @grabient/ui/Tags.tsx until the design system lands it, with grabient4's name and props: the lead,
    then one row of tags, each opening its colors under the pointer or focus (`open` holds one open, `state` holds them
-   all in a state). Deleted at the merge. */
+   all in a state). It goes once the real module lands. */
 import { Button } from "@grabient/ui/Button.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { For, Show } from "solid-js";

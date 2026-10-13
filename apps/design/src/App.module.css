@@ -3,7 +3,7 @@
    the full width wherever it is used. A phone draws the page at 1280px wide and shrinks it to fit (index.html). */
 .app {
   --size-gutter: max(var(--space-s12), calc((100% - 1600px) / 2));
-  /* a document for a desktop's window: a narrower one scrolls across it rather than folding it */
+  /* a document for a desktop's window: below 1200px the page scrolls sideways and keeps its columns */
   min-width: 1200px;
 }
 .theme {
