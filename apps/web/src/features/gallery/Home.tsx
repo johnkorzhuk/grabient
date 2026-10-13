@@ -17,11 +17,11 @@ import {
   useRouter,
   useRouterState
 } from "@tanstack/solid-router";
-import { createMemo, createSignal, Loading, Show } from "solid-js";
+import { createMemo, createSignal, Loading, Show, useContext } from "solid-js";
 import { DEFAULT_FRAME } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
-import { AppearanceToolbar, listView } from "../list/appearance.ts";
+import { AppearanceContext } from "../list/appearance.ts";
 import { createPicture } from "../search/picture.ts";
 import { type ListParams, listSearch, orderHref, withView } from "./address.ts";
 import type { CollectionPage, CollectionSummary } from "./collections.ts";
@@ -32,6 +32,7 @@ import {
   minuteOf,
   nameOf,
   paletteHref,
+  picturedAs,
   relativeAge
 } from "./drawing.ts";
 import { Find } from "./Find.tsx";
@@ -118,7 +119,8 @@ export function Home(props: { params: ListParams }) {
     return out;
   });
 
-  const view = () => listView(props.params);
+  /* the header's control sets the view through the address, and the pictures follow it as it moves */
+  const look = useContext(AppearanceContext)!;
   /* what a press could not do (search the field's text, read a picture, like a palette), said on the line while the
      words it was said over stand */
   const [said, setSaid] = createSignal<{ words: string; message: string } | null>(null);
@@ -142,11 +144,13 @@ export function Home(props: { params: ListParams }) {
   const searched = createMemo(() => {
     const name = words() ? searchedName(words()) : null;
     if (!name) return null;
-    const shown = drawnAs({ seed: words(), style: "linearGradient", steps: 7, angle: 90 }, view());
+    const own = { seed: words(), style: "linearGradient", steps: 7, angle: 90 } as const;
+    const shown = drawnAs(own, props.params);
+    const picture = picturedAs(own, props.params, look.draft(), look.peek());
     return {
-      stops: hexesOf(shown.seed, shown.steps),
-      style: shown.style,
-      angle: shown.angle,
+      stops: hexesOf(picture.seed, picture.steps),
+      style: picture.style,
+      angle: picture.angle,
       name: nameOf(shown),
       href: paletteHref(shown, props.params.size)
     };
@@ -219,11 +223,10 @@ export function Home(props: { params: ListParams }) {
           }}
           sectionHref={section => localHref(toSection(section))}
         />
-        <AppearanceToolbar view={view()} />
       </div>
       <div class={styles.stack}>
         <Show when={made().length}>
-          <Made title={t("From your colors")} items={made()} view={view()} onNote={say} />
+          <Made title={t("From your colors")} items={made()} view={props.params} onNote={say} />
         </Show>
         <div>
           <ListHeading title={t("Trending")} words={words()} palette={searched()} />
@@ -250,7 +253,7 @@ export function Home(props: { params: ListParams }) {
                 card={item => (
                   <GalleryCard
                     item={item()}
-                    view={view()}
+                    view={props.params}
                     now={now()}
                     words={words()}
                     onNote={say}
@@ -289,7 +292,7 @@ export function Home(props: { params: ListParams }) {
                       likes: palette().likes ?? 0,
                       createdAt: palette().createdAt ?? collection().updatedAt
                     }}
-                    view={view()}
+                    view={props.params}
                     now={now()}
                     onNote={say}
                   />

@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { drawnAs, hexesOf, paletteHref, relativeAge } from "./drawing.ts";
+import { drawnAs, hexesOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
 import { sortSearch } from "./sort.ts";
 
 const helpers = JSON.parse(
@@ -46,4 +46,17 @@ test("a palette drawn in a list's view, never with fewer steps than its keyframe
   const drawn = drawnAs(own, { style: "auto", steps: "auto", angle: 45, size: "auto" });
   expect(hexesOf(drawn.seed, drawn.steps)).toHaveLength(drawn.steps);
   expect(paletteHref(drawn, "1200x630")).toBe("/kS7Q8Yy5S_SChv0?angle=45&size=1200x630");
+});
+
+test("a picture draws what the control is setting over the address's view, and the style it previews", () => {
+  const own = { seed: "kS7Q8Yy5S_SChv0", style: "linearGradient" as const, steps: 7, angle: 90 };
+  const view = { style: "radialSwatches", steps: 9, angle: "auto", size: "auto" } as const;
+  expect(picturedAs(own, view, null, null)).toEqual(drawnAs(own, view));
+  expect(picturedAs(own, view, { steps: 12, angle: 45 }, "angularGradient")).toEqual({
+    ...own,
+    style: "angularGradient",
+    steps: 12,
+    angle: 45
+  });
+  expect(picturedAs(own, view, { angle: "auto" }, null)).toMatchObject({ steps: 9, angle: 90 });
 });

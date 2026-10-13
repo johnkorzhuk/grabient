@@ -14,15 +14,23 @@ import {
   useRouter,
   useRouterState
 } from "@tanstack/solid-router";
-import { createMemo, createSignal, Loading, onSettled, Show, untrack } from "solid-js";
+import { createMemo, createSignal, Loading, onSettled, Show, untrack, useContext } from "solid-js";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { account, sessionReady } from "../account/session.ts";
-import { AppearanceToolbar, listView } from "../list/appearance.ts";
+import { AppearanceContext } from "../list/appearance.ts";
 import { createPicture, type Settled } from "../search/picture.ts";
 import { Sampler } from "../search/Sampler.tsx";
 import { type GalleryPlace, LIST_PATHS, listSearch, orderHref, withView } from "./address.ts";
-import { drawnAs, hexesOf, madeItems, minuteOf, nameOf, paletteHref } from "./drawing.ts";
+import {
+  drawnAs,
+  hexesOf,
+  madeItems,
+  minuteOf,
+  nameOf,
+  paletteHref,
+  picturedAs
+} from "./drawing.ts";
 import { Find } from "./Find.tsx";
 import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
@@ -112,7 +120,8 @@ export function Palettes(props: { place: ListPlace }) {
     return out;
   });
 
-  const view = () => listView(params());
+  /* the header's control sets the view through the address, and the pictures follow it as it moves */
+  const look = useContext(AppearanceContext)!;
   /* what a press could not do (search the field's text, read a picture, like a palette), said on the line while the
      words it was said over stand */
   const [said, setSaid] = createSignal<{ words: string; message: string } | null>(null);
@@ -152,11 +161,13 @@ export function Palettes(props: { place: ListPlace }) {
   const searched = createMemo(() => {
     const name = words() ? searchedName(words()) : null;
     if (!name) return null;
-    const shown = drawnAs({ seed: words(), style: "linearGradient", steps: 7, angle: 90 }, view());
+    const own = { seed: words(), style: "linearGradient", steps: 7, angle: 90 } as const;
+    const shown = drawnAs(own, params());
+    const picture = picturedAs(own, params(), look.draft(), look.peek());
     return {
-      stops: hexesOf(shown.seed, shown.steps),
-      style: shown.style,
-      angle: shown.angle,
+      stops: hexesOf(picture.seed, picture.steps),
+      style: picture.style,
+      angle: picture.angle,
       name: nameOf(shown),
       href: paletteHref(shown, params().size)
     };
@@ -251,13 +262,12 @@ export function Palettes(props: { place: ListPlace }) {
           sectionHref={section => localHref(toSection(section))}
           orderHref={to => (to === "saved" ? undefined : localHref(toOrder(to)))}
         />
-        <AppearanceToolbar view={view()} />
       </div>
       <Show when={held() || made().length}>
         <Made
           title={held() ? t("From your image") : t("From your colors")}
           items={made()}
-          view={view()}
+          view={params()}
           onNote={say}
           picture={
             <Show when={held()}>
@@ -319,7 +329,13 @@ export function Palettes(props: { place: ListPlace }) {
               live={FIRST_SCREEN}
               depth={restoring}
               card={item => (
-                <GalleryCard item={item()} view={view()} now={now()} words={words()} onNote={say} />
+                <GalleryCard
+                  item={item()}
+                  view={params()}
+                  now={now()}
+                  words={words()}
+                  onNote={say}
+                />
               )}
             />
           </Loading>

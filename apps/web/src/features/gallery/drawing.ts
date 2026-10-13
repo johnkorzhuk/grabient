@@ -4,6 +4,7 @@ import { seedName } from "@grabient/engine/name.ts";
 import { effectiveView, parseSize, type Style, viewSearch } from "@grabient/engine/view.ts";
 import { formatDate, locale, localHref, t } from "@grabient/i18n";
 import { madePalettes, madeView } from "@grabient/search/colors.ts";
+import type { ViewDraft } from "../list/appearance.ts";
 import type { ListView } from "./address.ts";
 import type { PaletteItem } from "./schema.ts";
 
@@ -22,6 +23,18 @@ export function drawnAs(item: Shown, view: ListView): Shown {
   const drawn = effectiveView(item, view);
   const keyframes = decodePalette(item.seed)?.anchors.length ?? 0;
   return { seed: item.seed, ...drawn, steps: Math.max(drawn.steps, keyframes) };
+}
+
+/** A palette's picture while the header's control sets the list's view: the steps and angle on their way to the
+    address at once, and the style a tile previews. Its link, name and selection keep the address's view (drawnAs). */
+export function picturedAs(
+  item: Shown,
+  view: ListView,
+  draft: ViewDraft | null,
+  peek: Style | null
+): Shown {
+  const drawn = drawnAs(item, draft ? { ...view, ...draft } : view);
+  return peek ? { ...drawn, style: peek } : drawn;
 }
 
 /* A page reads the same palettes again and again, and each reading samples and fits the whole curve: the hexes are

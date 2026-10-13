@@ -4,6 +4,7 @@ import { galleryPlace } from "../features/gallery/address.ts";
 import { Home } from "../features/gallery/Home.tsx";
 import { answerWith, loadHome, searchOf } from "../features/gallery/load.ts";
 import { metaPage } from "../features/gallery/titles.ts";
+import { ListAppearance } from "../features/list/ListAppearance.tsx";
 import { edgeFor } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
 
@@ -23,6 +24,7 @@ export const Route = createFileRoute("/")({
         robots: loaderData?.robots
       })
     ),
+  staticData: { corner: ListAppearance },
   component: function HomeRoute() {
     const search = Route.useSearch();
     answerWith(untrack(Route.useLoaderData())?.status);
