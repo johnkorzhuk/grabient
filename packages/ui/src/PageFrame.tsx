@@ -1,4 +1,4 @@
-import { type Element, For, Show } from "solid-js";
+import { children, type Element, For, Show } from "solid-js";
 import { Button } from "./Button.tsx";
 import { Footer } from "./Footer.tsx";
 import { Icon } from "./Icon.tsx";
@@ -41,11 +41,15 @@ export function PageFrame(props: {
   open?: boolean;
   children: Element;
 }) {
+  /* resolved once: each read of an element prop would build it again */
+  const note = children(() => props.note);
+  const languages = children(() => props.languages);
+  const has = (part: typeof note) => part.toArray().length > 0;
   return (
     <div
       class={styles.page}
       data-login={props.login ? "" : undefined}
-      data-noted={props.note ? "" : undefined}
+      data-noted={has(note) ? "" : undefined}
     >
       <div class={styles.frame}>
         <Show when={!props.login}>
@@ -95,9 +99,9 @@ export function PageFrame(props: {
           </Show>
         </div>
       </div>
-      <Show when={props.footer.length || props.languages || props.note}>
+      <Show when={props.footer.length > 0 || has(languages) || has(note)}>
         <div class={styles.foot}>
-          <Footer links={props.footer} languages={props.languages} note={props.note} />
+          <Footer links={props.footer} languages={languages()} note={note()} />
         </div>
       </Show>
     </div>
