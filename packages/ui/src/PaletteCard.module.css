@@ -1,0 +1,124 @@
+@layer components {
+  .card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s3);
+    min-width: 0;
+    container-type: inline-size;
+    /* the line beneath steps up in ink while the picture is lit: the like reads --card-line */
+    --card-line: var(--color-ink3);
+    &:has(.art:hover),
+    &:has(.art:focus-within) {
+      --card-line: var(--color-ink2);
+    }
+  }
+  /* one height at every width: a wider column is a wider picture. Its tools take the pointer only while shown, and are
+     hidden by their opacity so Tab still reaches them and focus shows them */
+  .art {
+    position: relative;
+    isolation: isolate;
+    height: var(--size-card);
+    border-radius: var(--radius-surface);
+    --show: 0;
+    --pe: none;
+    &:focus-within,
+    &[data-open],
+    &:has([role="dialog"]) {
+      --show: 1;
+      --pe: auto;
+    }
+    /* an open sheet lifts the card over the cards after it, which the sheet may overlap */
+    &:has([role="dialog"]) {
+      z-index: 1;
+    }
+    /* a touch screen leaves its hover on whatever it tapped last: only a pointer that hovers lights the card */
+    @media (hover: hover) {
+      &:hover {
+        --show: 1;
+        --pe: auto;
+      }
+    }
+  }
+  .glow {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: var(--radius-surface);
+    filter: blur(var(--size-blur-glass));
+    transform: translateY(6px);
+    opacity: calc(var(--show) * var(--card-glow, 0.75));
+    pointer-events: none;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+  .paint {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius-surface);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    [data-removed] > & {
+      opacity: 0.3;
+    }
+  }
+  /* logical corners: Edit where a line starts, the plus and the strip where it ends; the picture is never mirrored */
+  .lead,
+  .pick,
+  .tools {
+    position: absolute;
+    display: flex;
+    gap: var(--space-s2);
+    opacity: var(--show);
+    pointer-events: var(--pe);
+    transition: opacity var(--motion-fast) var(--motion-ease);
+    &[data-kept] {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+  .lead {
+    top: var(--space-s3);
+    inset-inline-start: var(--space-s3);
+  }
+  /* the plus, and under it Add to collection once the palette is in the selection */
+  .pick {
+    top: var(--space-s3);
+    inset-inline-end: var(--space-s3);
+    flex-direction: column;
+    align-items: flex-end;
+  }
+  /* the strip is a pointer's: on touch the format chips stay in the selection's panel */
+  .tools {
+    bottom: var(--space-s3);
+    inset-inline-end: var(--space-s3);
+    @media (pointer: coarse) {
+      display: none;
+    }
+  }
+  /* the negative end margin lets the like's own padding reach the picture's edge */
+  .meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s3);
+    min-height: var(--size-control);
+    margin-inline-end: calc(-1 * var(--space-s2));
+    color: var(--card-line);
+    transition:
+      color var(--motion-fast) var(--motion-ease),
+      opacity var(--motion-fast) var(--motion-ease);
+    &[data-removed] {
+      opacity: 0.3;
+    }
+  }
+  .age {
+    font-family: var(--font-system);
+    font-variant-numeric: tabular-nums;
+    font-size: var(--font-fs4);
+    line-height: var(--font-lh-none);
+  }
+  .judge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: var(--space-s2);
+  }
+}

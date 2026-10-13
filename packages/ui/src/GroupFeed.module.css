@@ -1,0 +1,12 @@
+@layer components {
+  .feed {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s16);
+    min-width: 0;
+  }
+  /* the server's still groups stand in the column as its own until the window starts */
+  .still {
+    display: contents;
+  }
+}
