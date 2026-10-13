@@ -1,4 +1,4 @@
-import { LIMITS, type LimitName } from "../limits/config.ts";
+import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
 
 /* What agents and programs read: the guide at /llms.txt in the llmstxt.org form (a title, a summary, then sections
    of links), the whole reference at /llms-full.txt, the MCP server's card, and the catalog at

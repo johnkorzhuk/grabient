@@ -1,9 +1,10 @@
 /* How often the files a link copies are fetched, and who asks: a page of this site, another site, or no page at all (an
    app, a script, a typed address), a crawler or a reader. Counted for each GET of a palette's or a collection's file
    before any cache answers it, so the edge's hits count too. Nothing counted names the asker. */
+
+import type { Env } from "@grabient/server/env.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
 import { isCrawler } from "../crawlers.ts";
-import type { Env } from "../env.ts";
-import { countUsage } from "../usage/count.ts";
 import { FILE_PATH } from "./keys.ts";
 
 function sameHost(referer: string, url: string): boolean {

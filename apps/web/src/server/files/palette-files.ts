@@ -13,10 +13,10 @@ import {
   swatchPalette
 } from "@grabient/engine/swatches.ts";
 import { parseSize, parseView } from "@grabient/engine/view.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { FILE, TEXT } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { paletteWords } from "../collections/files.ts";
-import type { Env } from "../env.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
 import { resolvePalette } from "./resolve.ts";

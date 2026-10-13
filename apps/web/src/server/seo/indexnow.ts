@@ -1,8 +1,8 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
 import { isLocale, localizePath } from "@grabient/i18n";
+import { batch } from "@grabient/server/db/d1.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { paletteAddress } from "../../lib/page-meta.ts";
-import { batch } from "../db/d1.ts";
-import type { Env } from "../env.ts";
 import { indexed, publicOrigin } from "./site.ts";
 
 /* IndexNow (indexnow.org): the site tells Bing, and the engines that share what it is told, which pages are new or

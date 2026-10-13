@@ -12,6 +12,7 @@ import {
   swatchPalette
 } from "@grabient/engine/swatches.ts";
 import { drawnView, styleWords, viewSearch } from "@grabient/engine/view.ts";
+import type { Env } from "@grabient/server/env.ts";
 import { PAGE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import {
@@ -19,7 +20,6 @@ import {
   collectionForFiles,
   isCollectionSlug
 } from "../collections/files.ts";
-import type { Env } from "../env.ts";
 import { CARD_VERSION } from "../images/serve.ts";
 
 const day = (time: number) => {

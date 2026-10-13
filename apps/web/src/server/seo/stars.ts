@@ -1,5 +1,5 @@
+import type { Env } from "@grabient/server/env.ts";
 import { GITHUB_REPO } from "../../lib/page-meta.ts";
-import type { Env } from "../env.ts";
 
 /* The stars Grabient's code has on GitHub, which the site shows beside its link to the code. GitHub is asked once a
    day by the ten-minute job, and the count is kept in KV. A page reads only what is kept, and an isolate reads KV at

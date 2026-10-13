@@ -1,5 +1,5 @@
+import type { Env } from "@grabient/server/env.ts";
 import { PRODUCTION_ORIGIN } from "../../lib/page-meta.ts";
-import type { Env } from "../env.ts";
 
 /* Which deploy search engines may index, and the origin the addresses it hands out name. Production, at
    grabient.com, is indexed: its www name serves the same pages, which name grabient.com. The staging deploy at

@@ -1,5 +1,5 @@
+import type { Env } from "@grabient/server/env.ts";
 import { collectionForFiles, isCollectionSlug, paletteWords } from "../collections/files.ts";
-import type { Env } from "../env.ts";
 import type { MarkdownReads } from "./markdown.ts";
 
 /** What the Markdown files read, from the collections area: a palette's words and a public collection. */

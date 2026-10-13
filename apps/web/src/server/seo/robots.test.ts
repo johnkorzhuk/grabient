@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
+import type { Env } from "@grabient/server/env.ts";
 import { expect, test } from "vitest";
-import type { Env } from "../env.ts";
 import { robotsTxt } from "./robots.ts";
 import { indexed, publicOrigin } from "./site.ts";
 

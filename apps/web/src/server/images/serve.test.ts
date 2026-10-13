@@ -1,6 +1,6 @@
+import type { Env } from "@grabient/server/env.ts";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { decodePng } from "../../../test/png.ts";
-import type { Env } from "../env.ts";
 import { cardAnswer, pngAnswer } from "./answers.ts";
 import keys from "./fixtures/image-keys.json" with { type: "json" };
 import { montageAnswer, montagePicture } from "./montages.ts";
