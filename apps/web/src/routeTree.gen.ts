@@ -39,6 +39,7 @@ import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as SitemapChar123nameChar125DotxmlIndexRouteImport } from './routes/sitemap-{$name}[.]xml/index'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
+import { Route as Char123keyChar125DottxtIndexRouteImport } from './routes/{$key}[.]txt/index'
 import { Route as AtChar123handleChar125SlugIndexRouteImport } from './routes/@{$handle}/$slug/index'
 import { Route as AtChar123handleChar125SlugRisingRouteImport } from './routes/@{$handle}/$slug/rising'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
@@ -197,6 +198,12 @@ const UnsubscribeChar123TokenChar125Route =
     path: '/unsubscribe/{-$token}',
     getParentRoute: () => rootRouteImport,
   } as any)
+const Char123keyChar125DottxtIndexRoute =
+  Char123keyChar125DottxtIndexRouteImport.update({
+    id: '/{$key}.txt/',
+    path: '/{$key}.txt/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AtChar123handleChar125SlugIndexRoute =
   AtChar123handleChar125SlugIndexRouteImport.update({
     id: '/@{$handle}/$slug/',
@@ -253,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
@@ -289,6 +297,7 @@ export interface FileRoutesByTo {
   '/collections': typeof CollectionsIndexRoute
   '/palettes': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt': typeof Char123keyChar125DottxtIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
@@ -326,6 +335,7 @@ export interface FileRoutesById {
   '/collections/': typeof CollectionsIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
+  '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
   '/@{$handle}/$slug/rising': typeof AtChar123handleChar125SlugRisingRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
@@ -364,6 +374,7 @@ export interface FileRouteTypes {
     | '/collections/'
     | '/palettes/'
     | '/sitemap-{$name}.xml/'
+    | '/{$key}.txt/'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
@@ -400,6 +411,7 @@ export interface FileRouteTypes {
     | '/collections'
     | '/palettes'
     | '/sitemap-{$name}.xml'
+    | '/{$key}.txt'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
@@ -436,6 +448,7 @@ export interface FileRouteTypes {
     | '/collections/'
     | '/palettes/'
     | '/sitemap-{$name}.xml/'
+    | '/{$key}.txt/'
     | '/@{$handle}/$slug/rising'
     | '/collections/rising/{-$frame}'
     | '/palettes/rising/{-$frame}'
@@ -473,6 +486,7 @@ export interface RootRouteChildren {
   CollectionsIndexRoute: typeof CollectionsIndexRoute
   PalettesIndexRoute: typeof PalettesIndexRoute
   SitemapChar123nameChar125DotxmlIndexRoute: typeof SitemapChar123nameChar125DotxmlIndexRoute
+  Char123keyChar125DottxtIndexRoute: typeof Char123keyChar125DottxtIndexRoute
   AtChar123handleChar125SlugRisingRoute: typeof AtChar123handleChar125SlugRisingRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
@@ -691,6 +705,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof UnsubscribeChar123TokenChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/{$key}.txt/': {
+      id: '/{$key}.txt/'
+      path: '/{$key}.txt'
+      fullPath: '/{$key}.txt/'
+      preLoaderRoute: typeof Char123keyChar125DottxtIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/@{$handle}/$slug/': {
       id: '/@{$handle}/$slug/'
       path: '/@{$handle}/$slug'
@@ -754,6 +775,7 @@ const rootRouteChildren: RootRouteChildren = {
   PalettesIndexRoute: PalettesIndexRoute,
   SitemapChar123nameChar125DotxmlIndexRoute:
     SitemapChar123nameChar125DotxmlIndexRoute,
+  Char123keyChar125DottxtIndexRoute: Char123keyChar125DottxtIndexRoute,
   AtChar123handleChar125SlugRisingRoute: AtChar123handleChar125SlugRisingRoute,
   CollectionsRisingChar123FrameChar125Route:
     CollectionsRisingChar123FrameChar125Route,
