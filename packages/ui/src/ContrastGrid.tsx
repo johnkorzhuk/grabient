@@ -22,13 +22,14 @@ import { tooltip } from "./Tooltip.tsx";
 import { space } from "./tokens.ts";
 
 /* Which text reads on a palette's colors, as samples and no words: the colors stand side by side as grounds, and each
-   row is one ink set as "Aa" on every ground it reads on, at text size where it reaches 4.5 to 1, at large size where
-   it reaches 3 to 1, and not at all under that. White and black always have rows; then each of the palette's colors
-   that reads on another; then the reader's own (`inks`), read or not; no color is two rows (the engine's
-   contrastInks). The line under the grid says the cell under the pointer, a finger or the keyboard: both colors, the
-   contrast and its level, AAA included; at rest what the two sizes stand for. The plus at its start adds a text color
-   where the next coin would stand, and a reader's coin hangs the color picker from it. Eight colors at most, evenly
-   taken, left to right in every language. */
+   row is one ink set as a sample (two letters of the reader's script, "Aa" in Latin) on every ground it reads on, at
+   text size where it reaches 4.5 to 1, at large size where it reaches 3 to 1, and not at all under that. White and
+   black always have rows; then each of the palette's colors that reads on another; then, a step apart, the reader's
+   own (`inks`), read or not; no color is two rows (the engine's contrastInks). The line under the grid says the cell
+   under the pointer, a finger or the keyboard: both colors, the contrast and the WCAG level it reaches, set as a tag so
+   it never reads as a sample; at rest what the two sizes stand for. The plus at its start adds a text color where the
+   next coin would stand, and a reader's coin hangs the color picker from it. Eight colors at most, evenly taken, left
+   to right in every language. */
 
 /** A palette color as the grid draws it: its hex, and the wider color the screen paints where it has one. */
 export interface GridColor {
@@ -57,12 +58,14 @@ const ratioText = (ratio: number) =>
   `${formatNumber(Math.floor(ratio * 100) / 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}:1`;
 const levelOf = (ratio: number) =>
   ratio >= CONTRAST_AAA
-    ? t("AAA")
+    ? t("WCAG AAA")
     : ratio >= CONTRAST_TEXT
-      ? t("AA")
+      ? t("WCAG AA")
       : ratio >= CONTRAST_LARGE
-        ? t("AA Large")
+        ? t("WCAG AA Large")
         : "";
+/** The letters set on the grounds, in the reader's own script. */
+const sample = () => t("Aa", { $context: "sample" });
 const same = (a: Cell | null, b: Cell | null) => !!a && !!b && a[0] === b[0] && a[1] === b[1];
 
 export function ContrastGrid(props: {
@@ -97,6 +100,8 @@ export function ContrastGrid(props: {
               : ON_LIGHT
     }))
   );
+  /* the first of the reader's own rows, which stand a step apart from the palette's */
+  const mineFrom = () => rows().findIndex(row => row.mine !== undefined);
   /* the cell the line says: under a mouse, holding the focus, or the last a finger tapped, until a tap elsewhere */
   const [hovered, setHovered] = createSignal<Cell | null>(null);
   const [focused, setFocused] = createSignal<Cell | null>(null);
@@ -144,7 +149,7 @@ export function ContrastGrid(props: {
   const scoreOf = (r: () => Reading) => (
     <span class={styles.score}>
       {ratioText(r().ratio)}
-      <Show when={levelOf(r().ratio)}>{level => <span>{level()}</span>}</Show>
+      <Show when={levelOf(r().ratio)}>{level => <span class={styles.level}>{level()}</span>}</Show>
     </span>
   );
   const cellOf = (target: EventTarget | null): Cell | null => {
@@ -276,7 +281,11 @@ export function ContrastGrid(props: {
             return (
               /* biome-ignore lint/a11y/useSemanticElements: a row of the grid above */
               /* biome-ignore lint/a11y/useFocusableInteractive: the grid's cells take the focus, not its rows */
-              <div class={styles.row} role="row">
+              <div
+                class={styles.row}
+                role="row"
+                data-apart={i > 0 && i === mineFrom() ? "" : undefined}
+              >
                 {/* biome-ignore lint/a11y/useSemanticElements: the row's ink, in the grid above */}
                 {/* biome-ignore lint/a11y/useFocusableInteractive: the grid's cells take the focus */}
                 <span class={styles.ink} role="rowheader" aria-label={row().hex}>
@@ -313,8 +322,8 @@ export function ContrastGrid(props: {
                 </span>
                 <span
                   class={styles.cells}
-                  data-first={i === 0 ? "" : undefined}
-                  data-last={i === rows().length - 1 ? "" : undefined}
+                  data-first={i === 0 || i === mineFrom() ? "" : undefined}
+                  data-last={i === rows().length - 1 || i === mineFrom() - 1 ? "" : undefined}
                   role="none"
                 >
                   <For each={grounds()} keyed={false}>
@@ -360,7 +369,7 @@ export function ContrastGrid(props: {
                           }}
                         >
                           <Show when={ratio() >= CONTRAST_LARGE}>
-                            <span aria-hidden="true">Aa</span>
+                            <span aria-hidden="true">{sample()}</span>
                           </Show>
                         </span>
                       );
@@ -400,12 +409,12 @@ export function ContrastGrid(props: {
             fallback={
               <>
                 <span class={styles.key}>
-                  <span class={styles.sample}>Aa</span>
+                  <span class={styles.sample}>{sample()}</span>
                   {`${formatNumber(CONTRAST_TEXT)}:1`}
                 </span>
                 <span class={styles.key}>
                   <span class={styles.sample} data-large="">
-                    Aa
+                    {sample()}
                   </span>
                   {`${formatNumber(CONTRAST_LARGE)}:1`}
                 </span>

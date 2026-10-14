@@ -30,6 +30,10 @@
       min-height: var(--size-control);
       max-height: var(--space-s16);
     }
+    /* the reader's own colors, a step apart from the palette's: their grounds a block of their own */
+    &[data-apart] {
+      margin-block-start: var(--space-s1);
+    }
   }
   /* the row's ink at its start: a coin of it, as a collection's colors are shown */
   .ink {
@@ -237,5 +241,18 @@
     gap: var(--space-s2);
     margin-inline-start: auto;
     color: var(--color-ink);
+  }
+  /* the WCAG level a contrast reaches, as a quiet tag in the labels' letters: never mistaken for a sample */
+  .level {
+    padding: calc(var(--space-s1) / 2) var(--space-s1);
+    border: var(--size-hairline) solid var(--color-edge2);
+    border-radius: var(--radius-circle);
+    color: var(--color-ink2);
+    font-family: var(--font-sans);
+    font-weight: var(--font-bold);
+    font-size: var(--font-fs0);
+    line-height: var(--font-lh-none);
+    letter-spacing: var(--font-ls-micro);
+    text-transform: uppercase;
   }
 }
