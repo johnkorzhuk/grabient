@@ -585,6 +585,39 @@ for (const viewport of [
     await expect(page.locator("main")).toContainText("No collections yet.");
   });
 
+test("with no connection Your collections' tags answer the account's own, and the popular ones are read once it returns", {
+  tag: "@served"
+}, async ({ page }) => {
+  const group = page.locator("main").getByRole("heading", { name: "My blues" });
+  const tags = page.getByRole("toolbar", { name: "Tags" });
+  await signIn(page, "ada", false, [blues]);
+  await page.goto("/collections/saved");
+  await expect(group).toBeVisible();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await page.context().setOffline(true);
+  await page.goto("/collections/saved");
+  await expect(group).toBeVisible();
+  await page.getByRole("searchbox").fill("blu");
+  await expect(tags.getByRole("link", { name: "My blues" })).toBeVisible();
+  await page.getByRole("searchbox").fill("");
+  await signIn(page, "ada", false, [blues]);
+  await page.route("**/api/collections/suggest?*", route =>
+    route.fulfill({
+      json: { items: [{ title: summary.title, slug: SLUG, href: `/${SLUG}`, colors: ["#3366cc"] }] }
+    })
+  );
+  await page.context().setOffline(false);
+  // the row in view, and the next page's
+  await expect(tags.getByRole("link", { name: summary.title })).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Order" })
+    .getByRole("link", { name: /^Popular/ })
+    .click();
+  await expect(page).toHaveURL(/\/collections$/);
+  await expect(tags.getByRole("link", { name: summary.title })).toBeVisible();
+});
+
 test("a collection's tags on a page in another language search the words they show", async ({
   page
 }) => {

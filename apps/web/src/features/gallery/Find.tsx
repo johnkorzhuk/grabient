@@ -50,8 +50,10 @@ const tagsView = (words: string, home: boolean) => ({
 });
 const titledView = (words: string) => ({
   ...collectionTagsQuery(words),
-  select: (hits: CollectionHit[]): Suggested =>
-    hits.slice(0, TYPED / 2).map(hit => ({ label: hit.title, href: hit.href, colors: hit.colors }))
+  select: (hits: CollectionHit[] | null): Suggested =>
+    (hits ?? [])
+      .slice(0, TYPED / 2)
+      .map(hit => ({ label: hit.title, href: hit.href, colors: hit.colors }))
 });
 /* The collections that answer the home's words, read only while it holds some: no other page asks for them. */
 function Titled(props: { words: string; children: (collections: () => Suggested) => Element }) {
