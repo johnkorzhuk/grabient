@@ -44,6 +44,18 @@ export const viewOf = (params: URLSearchParams): ListView =>
     size: params.get("size")
   });
 
+/** The page's view, with a pasted link's wherever the page says none of its own. */
+export function viewWith(view: ListView, link?: URLSearchParams): ListView {
+  if (!link) return view;
+  const said = viewOf(link);
+  return {
+    style: view.style === "auto" ? said.style : view.style,
+    steps: view.steps === "auto" ? said.steps : view.steps,
+    angle: view.angle === "auto" ? said.angle : view.angle,
+    size: view.size ?? said.size
+  };
+}
+
 /** A query in its one order: each part given, empty ones left out, and the selection last as a bare word. */
 function query(parts: readonly (string | false | undefined)[], selection?: boolean): string {
   const kept = [...parts, selection && "selection"].filter(Boolean);

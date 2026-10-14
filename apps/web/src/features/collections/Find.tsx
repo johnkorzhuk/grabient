@@ -7,14 +7,13 @@ import { listUnavailable, marked, offline } from "../../app/connection.ts";
 import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
 import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
-import type { ListView } from "../list/appearance.ts";
 import { countSearch, tagPressed } from "../search/count.ts";
 import { SearchField } from "../search/SearchField.tsx";
 import { SearchTags } from "../search/SearchTags.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import styles from "./collections.module.css";
 import { collectionGone } from "./overlay.ts";
-import { type ListPlace, pageSearch, viewOf } from "./params.ts";
+import { type ListPlace, pageSearch } from "./params.ts";
 import { failed, ownQuery, tagsQuery } from "./queries.ts";
 import type { CollectionSummary } from "./types.ts";
 
@@ -169,16 +168,4 @@ export function Find(props: {
       </Errored>
     </div>
   );
-}
-
-/** The page's view, with a pasted link's wherever the page says none of its own. */
-export function viewWith(view: ListView, link?: URLSearchParams): ListView {
-  if (!link) return view;
-  const said = viewOf(link);
-  return {
-    style: view.style === "auto" ? said.style : view.style,
-    steps: view.steps === "auto" ? said.steps : view.steps,
-    angle: view.angle === "auto" ? said.angle : view.angle,
-    size: view.size ?? said.size
-  };
 }
