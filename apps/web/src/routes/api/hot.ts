@@ -3,14 +3,17 @@ import { msg } from "@grabient/i18n";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
 import { createFileRoute } from "@tanstack/solid-router";
+import { homePage } from "../../features/gallery/address.ts";
 import { PAGE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { listWords } from "../../lib/words.ts";
-import { homeHead } from "../../server/gallery/home.ts";
+import { homeCollections, homeHead } from "../../server/gallery/home.ts";
+import { askedLocale } from "../../server/mcp/admin/translations.ts";
 
-/* The head of the home, for anyone: the hottest palettes, or with `q` the best answers to the words. The edge keeps
-   it by its words alone; a read it misses counts against the reader's address. An answer the search could not give
-   in full is never kept, and says so with its status. */
+/* The home as data, for anyone: its page, the hottest palettes or with `q` the best answers to the words, and the
+   page of collections beneath them in the language `lang` names. The edge keeps it by those three; a read it misses
+   counts against the reader's address. An answer the search could not give in full is never kept, and says so with
+   its status. */
 export const Route = createFileRoute("/api/hot")({
   server: {
     handlers: {
@@ -30,10 +33,14 @@ export const Route = createFileRoute("/api/hot")({
           );
         }
         const answer = await homeHead(env, request, words);
-        return json(answer.head, {
-          status: answer.status,
-          headers: answer.kept && answer.status === 200 ? PAGE : {}
-        });
+        const url = new URL(request.url);
+        const page = homePage(url.searchParams);
+        const collections = await homeCollections(env, request, words, page, askedLocale(url));
+        const kept = answer.kept && !collections.unkept && answer.status === 200;
+        return json(
+          { page, ...answer.head, collections },
+          { status: answer.status, headers: kept ? PAGE : {} }
+        );
       }
     }
   }

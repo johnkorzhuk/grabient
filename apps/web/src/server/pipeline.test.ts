@@ -310,6 +310,18 @@ describe("the edge cache", () => {
     ]);
   });
 
+  test("keeps the home's data by its words, its page and its language", async () => {
+    const hot = () => Response.json({ palettes: [] }, { headers: PAGE });
+    await get("/api/hot?page=1&junk=1", {}, hot);
+    await get("/api/hot?q=Blue&page=99999&lang=ja", {}, hot);
+    await get("/api/hot?page=2&lang=en", {}, hot);
+    expect([...cache.kept.keys()]).toEqual([
+      "https://grabient.test/api/hot?__build=b1&page=1",
+      "https://grabient.test/api/hot?__build=b1&lang=ja&page=10000&q=blue",
+      "https://grabient.test/api/hot?__build=b1&page=2"
+    ]);
+  });
+
   test("never holds a private page, which answers no-store", async () => {
     const response = await get("/settings");
     expect(response.headers.get("Cache-Control")).toBe("no-store");

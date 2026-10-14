@@ -66,6 +66,10 @@ function readParams(sp: URLSearchParams, home = false): ListParams {
   };
 }
 
+/** The page of collections an address of the home asks for; one past the 10,000th reads as that one. */
+export const homePage = (sp: URLSearchParams): number =>
+  Math.min(10_000, int(sp.get("page"), 1, PAGE_MAX) ?? 1);
+
 /** A list's query in its one order, defaults left out. */
 export function listSearch(p: ListParams, change: Partial<ListParams> = {}): string {
   const m = { ...p, ...change };
