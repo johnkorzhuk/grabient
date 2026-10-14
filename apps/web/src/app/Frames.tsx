@@ -11,9 +11,10 @@ import { ShellContext } from "./shell.ts";
 import { type FramePage, footerLinks, navLinks, siteFacts } from "./site.ts";
 
 /* The two frames a page stands in under the header. An app page (a list, a collection, the 404) is its content with
-   the footer's links at the bottom; a brand page (About, Settings and the pages beside them) is a side navigation, one
-   frosted pane and the footer (PageFrame). Both end in the language menu. The header, the water and the keys are the
-   shell's and stay as pages change. */
+   the footer's links at the bottom; a list's content is laid out by the parts in list.module.css, which every list
+   shares. A brand page (About, Settings and the pages beside them) is a side navigation, one frosted pane and the
+   footer (PageFrame). Both end in the language menu. The header, the water and the keys are the shell's and stay as
+   pages change. */
 
 type FooterPage = "privacy" | "terms" | "mcp";
 const footerPage = (page: string | undefined): FooterPage | null =>
