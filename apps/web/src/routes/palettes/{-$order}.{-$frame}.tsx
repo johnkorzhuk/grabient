@@ -1,7 +1,7 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
 import { untrack } from "solid-js";
 import { galleryPlace } from "../../features/gallery/address.ts";
-import { answerWith, loadPalettes, searchOf } from "../../features/gallery/load.ts";
+import { loadPalettes } from "../../features/gallery/load.ts";
 import { Palettes } from "../../features/gallery/Palettes.tsx";
 import { framesQuery } from "../../features/gallery/queries.ts";
 import { metaPage } from "../../features/gallery/titles.ts";
@@ -9,6 +9,7 @@ import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { edgeFor } from "../../lib/cache.ts";
 import { DEFAULT_FRAME } from "../../lib/orders.ts";
 import { pageHead } from "../../lib/page-meta.ts";
+import { answerWith, searchOf } from "../../lib/route.ts";
 
 type Place = Extract<NonNullable<ReturnType<typeof galleryPlace>>, { kind: "list" }>;
 /** The public list an address names; none for an order or a frame the lists do not have. */

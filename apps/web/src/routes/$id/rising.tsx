@@ -2,9 +2,10 @@ import { isPagePath } from "@grabient/i18n";
 import { createFileRoute, notFound } from "@tanstack/solid-router";
 import { isCollectionSlug } from "../../features/collections/address.ts";
 import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx";
-import { collectionHead, loadCollection, searchOf } from "../../features/collections/route.ts";
+import { collectionHead, loadCollection } from "../../features/collections/route.ts";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
+import { searchOf } from "../../lib/route.ts";
 
 /* A collection with its rising palettes first, or words that lead to Rising's search. */
 export const Route = createFileRoute("/$id/rising")({

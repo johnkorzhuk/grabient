@@ -1,10 +1,11 @@
-import { getRequestEvent, isServer } from "@solidjs/web";
+import { isServer } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import type { FramedData } from "../../app/shell.ts";
 import { type CollectionFacts, type Page, pageHead } from "../../lib/page-meta.ts";
+import { searchOf } from "../../lib/route.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
@@ -44,13 +45,6 @@ export interface Loaded extends FramedData {
 
 /** The bar and the water read at most this many palettes. */
 const PAINTED = 8;
-
-/** The status the page answers with, said as it renders on the server (server.ts answers with it). */
-export function answerWith(status: number | undefined): void {
-  if (!isServer || !status) return;
-  const event = getRequestEvent();
-  if (event) event.locals.status = status;
-}
 
 /** A list's address as its page draws it. The Worker made the query canonical before the router read it. */
 export function listPlace(
@@ -200,18 +194,6 @@ function summaryOf(client: QueryClient, slug: string): Found | null {
     };
   }
   return null;
-}
-
-/** The router's search object as the address wrote it, so a page reads its query as the Worker made it canonical. A
-    page on its way out reads none: its route's match is gone before the page is. */
-export function searchOf(search: Record<string, unknown> | undefined): string {
-  const params = new URLSearchParams();
-  for (const [name, value] of Object.entries(search ?? {})) {
-    const one = Array.isArray(value) ? value[0] : value;
-    if (one !== undefined) params.set(name, typeof one === "string" ? one : JSON.stringify(one));
-  }
-  const query = params.toString().replace(/=(?=&|$)/g, "");
-  return query ? `?${query}` : "";
 }
 
 /** A collection page's head: its title, words and card from its own words and counts, the palettes it lists in the

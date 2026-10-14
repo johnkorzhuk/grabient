@@ -4,12 +4,7 @@ import { createFileRoute, notFound, redirect, useMatch, useParams } from "@tanst
 import { Errored, Loading, lazy, Match, Show, Switch, untrack } from "solid-js";
 import { isCollectionSlug } from "../../features/collections/address.ts";
 import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx";
-import {
-  answerWith,
-  collectionHead,
-  loadCollection,
-  searchOf
-} from "../../features/collections/route.ts";
+import { collectionHead, loadCollection } from "../../features/collections/route.ts";
 import { isSeed } from "../../features/editor/address.ts";
 import { endBoot } from "../../features/editor/boot.ts";
 import { EditorCorner, editing } from "../../features/editor/EditorCorner.tsx";
@@ -18,6 +13,7 @@ import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE, PALETTE_PAGE } from "../../lib/cache.ts";
 import { pageHead } from "../../lib/page-meta.ts";
+import { answerWith, searchOf } from "../../lib/route.ts";
 
 /* Every one-segment address: a palette's seed, a collection's slug, an old grabient.com link, or words that lead to a
    search. A palette's page is the editor, which the browser draws alone (`ssr: "data-only"`): the server runs the

@@ -10,8 +10,7 @@ import {
   listPlace,
   loadCollection,
   loadList,
-  loadSaved,
-  searchOf
+  loadSaved
 } from "./route.ts";
 import type { CollectionDocument, CollectionPage } from "./types.ts";
 
@@ -105,14 +104,6 @@ describe("a list's address read into its place", () => {
       page: 1,
       limit: 24
     });
-  });
-  test("comes from the router's search as the address wrote it, and from none once its route is gone", () => {
-    expect(searchOf({ q: "sea", steps: 5, selection: "" })).toBe("?q=sea&steps=5&selection");
-    expect(searchOf({ style: ["linearSwatches", "radialGradient"], angle: undefined })).toBe(
-      "?style=linearSwatches"
-    );
-    expect(searchOf({})).toBe("");
-    expect(searchOf(undefined)).toBe("");
   });
 });
 

@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/solid-router";
 import { ListRoute } from "../../features/collections/ListRoute.tsx";
-import { listHead, listPlace, loadList, searchOf } from "../../features/collections/route.ts";
+import { listHead, listPlace, loadList } from "../../features/collections/route.ts";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
+import { searchOf } from "../../lib/route.ts";
 
 /* Popular collections: the most saved first, searched with `?q=`. */
 export const Route = createFileRoute("/collections/")({
