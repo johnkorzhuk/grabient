@@ -821,10 +821,7 @@ function Side(props: Omit<PageProps, "narrow"> & { narrow: boolean }) {
     const list = e.shownStops();
     return at === null || !list.length ? null : list[stopNear(list.length, at)];
   });
-  const [lastRead, setLastRead] = createSignal<ReturnType<typeof read>>(null);
-  createEffect(read, stop => {
-    if (stop) setLastRead(stop);
-  });
+  const lastRead = createMemo<ReturnType<typeof read>>(prev => read() ?? prev ?? null);
   /* The plots share what the window leaves the side under its other rows, read from the rows themselves, so a plot's
      own height takes no part in it. In a window too low for the plots at their least the side scrolls its rows. */
   const [plotH, setPlotH] = createSignal(160);
