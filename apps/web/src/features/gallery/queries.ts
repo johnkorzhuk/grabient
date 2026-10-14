@@ -10,6 +10,7 @@ import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
 import { searchPool } from "../../server/gallery/search.ts";
+import { shownError } from "../account/session.ts";
 import { viewNow } from "../account/state.ts";
 import { COLLECTION_LIMIT } from "../collections/params.ts";
 import { collectionsQuery } from "../collections/queries.ts";
@@ -59,7 +60,8 @@ const freshFor =
     return Math.max(0, ttl - (at - Math.min(data.fetchedAt ?? at, at)));
   };
 
-/** A read in the browser, its failure as a value; a read its last reader let go of is not one. */
+/** A read in the browser, its failure as a value: the server's own words, or `fallback` for a read that never
+    reached it. A read its last reader let go of is no failure. */
 async function attempt<T>(
   read: () => Promise<T>,
   signal: AbortSignal,
@@ -69,11 +71,29 @@ async function attempt<T>(
     return await read();
   } catch (error) {
     if (signal.aborted) throw error;
-    return { failed: error instanceof Error && error.message ? error.message : t(fallback) };
+    return { failed: shownError(error, fallback) };
   }
 }
 
 const COULD_NOT_LOAD = msg("Couldn't load palettes.");
+
+/** A public read's answer from its route. A search an allowance cut short (429) or one without its files (503) is
+    still an answer, sent as the route's body, which the page shows. Anything else fails with the server's words, or
+    with none where it said nothing a reader can read. */
+async function readAnswer<S extends v.GenericSchema>(
+  path: string,
+  schema: S,
+  signal: AbortSignal
+): Promise<v.InferOutput<S>> {
+  const response = await fetch(path, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(READ_TIMEOUT)])
+  });
+  const body: unknown = await response.json().catch(() => null);
+  const answer = v.safeParse(schema, body);
+  if (answer.success && [200, 429, 503].includes(response.status)) return answer.output;
+  const error = (body as { error?: unknown } | null)?.error;
+  throw new Error(typeof error === "string" ? t(error) : "");
+}
 
 export interface ListKey {
   sort: Exclude<ListSort, "newest" | "oldest">;
@@ -96,7 +116,7 @@ const readList = createIsomorphicFn()
       ...(key.sort === "rising" && key.frame !== DEFAULT_FRAME ? { frame: key.frame } : {})
     });
     return attempt(
-      () => getJson(`/api/palettes?${params}`, PalettePage, signal),
+      () => readAnswer(`/api/palettes?${params}`, PalettePage, signal),
       signal,
       COULD_NOT_LOAD
     );
@@ -118,18 +138,12 @@ const readSearch = createIsomorphicFn()
   )
   .client((words: string, signal: AbortSignal) =>
     attempt(
-      async () => {
-        const response = await fetch(
+      () =>
+        readAnswer(
           `/api/search.json?${new URLSearchParams({ query: words, limit: String(SEARCH_POOL) })}`,
-          { signal: AbortSignal.any([signal, AbortSignal.timeout(READ_TIMEOUT)]) }
-        );
-        const body: unknown = await response.json().catch(() => null);
-        /* a search an allowance cut short, or one without its files, is still an answer the page shows */
-        const answer = v.safeParse(SearchAnswer, body);
-        if (answer.success && [200, 429, 503].includes(response.status)) return answer.output;
-        const error = (body as { error?: unknown } | null)?.error;
-        throw new Error(t(typeof error === "string" ? error : COULD_NOT_LOAD));
-      },
+          SearchAnswer,
+          signal
+        ),
       signal,
       COULD_NOT_LOAD
     )
@@ -151,7 +165,7 @@ const readHead = createIsomorphicFn()
   .client((words: string, signal: AbortSignal) =>
     attempt(
       () =>
-        getJson(
+        readAnswer(
           `/api/hot${words ? `?${new URLSearchParams({ q: words })}` : ""}`,
           HomeHead,
           signal
