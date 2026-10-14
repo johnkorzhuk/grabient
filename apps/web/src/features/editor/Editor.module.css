@@ -356,4 +356,75 @@
     border-radius: var(--radius-circle);
     box-shadow: var(--color-rim);
   }
+
+  /* The editor's first screen as the boot draws it (Boot.tsx), shown while the page boots (boot.ts) and never after:
+     the same parts in the same places. Beside the page the first screen is a column the window's height under the
+     header, so the sheet's name row takes the height its name needs and the picture the rest, as the editor measures
+     them. A spacer under it scrolls the page as the editor's does, so a scrollbar that takes room stands in both. */
+  .boot {
+    :root:not([data-seed-boot]) &,
+    :root[data-seed-boot="bare"] & {
+      display: none;
+    }
+    & .paint,
+    & .fitted {
+      background: var(--art);
+      @media (color-gamut: p3) {
+        @supports (color: color(display-p3 1 0 0)) {
+          background: var(--art-p3);
+        }
+      }
+    }
+    & .railDock {
+      display: none;
+    }
+    @media (min-width: 901px) {
+      & .first {
+        display: flex;
+        flex-direction: column;
+        height: calc(100svh - var(--head));
+        overflow: clip;
+      }
+      & .first > .stage {
+        flex: 1 0 0;
+        height: auto;
+        min-height: calc(var(--size-touch) * 5);
+      }
+      /* the side put away, as the reader left it (boot.ts reads it): the rail stands in its place */
+      :root[data-seed-boot="away"] & {
+        grid-template-columns: minmax(0, 1fr);
+        & .side {
+          display: none;
+        }
+        & .railDock {
+          display: block;
+        }
+      }
+    }
+    /* the sheet's name row alone: the rest of the sheet is under the first screen */
+    & .named {
+      flex: none;
+      min-height: 0;
+      & > * > * {
+        grid-template-rows: auto;
+      }
+    }
+    @media (max-width: 900px) {
+      & .first {
+        display: contents;
+      }
+      & .side,
+      & .named {
+        display: none;
+      }
+    }
+    @media (max-height: 560px) {
+      & .named {
+        display: none;
+      }
+    }
+  }
+  .more {
+    height: 100vh;
+  }
 }

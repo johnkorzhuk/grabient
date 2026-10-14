@@ -6,6 +6,7 @@ import { For, Show } from "solid-js";
 import { heading, type Page, pageMeta } from "../../lib/page-meta.ts";
 import type { PaletteFacts } from "../../server/editor/facts.ts";
 import type { SeedPage } from "./address.ts";
+import { Boot } from "./Boot.tsx";
 import { BOOT_MARK, BOOT_SCRIPT } from "./boot.ts";
 import type { PaletteData } from "./page.ts";
 
@@ -128,6 +129,7 @@ export function StaticPalette(props: { data: PaletteData }) {
           <a href={localHref("/about")}>{t("How it works")}</a>
         </p>
       </main>
+      <Boot page={page()} title={title()} />
     </>
   );
 }
