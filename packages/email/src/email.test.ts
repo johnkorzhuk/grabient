@@ -396,6 +396,38 @@ describe("palettes", () => {
       srcs(drawn(collection({ title: "T", href: `${origin}/t`, tiles: Array(8).fill({ seed }) })))
     ).toHaveLength(6);
   });
+  test("a collection's card is its share card in an email and drawn by a page, of palettes an admin liked", () => {
+    const card = {
+      slug: "t",
+      palettes: [{ seed, style: "linearSwatches" as const, steps: 4, angle: 90 }, { seed: second }]
+    };
+    const email = drawn(collection({ title: "T", href: `${origin}/t`, card }));
+    expect(srcs(email)).toHaveLength(1);
+    expect(srcs(email)[0]).toMatch(
+      new RegExp(
+        `^${origin}/api/og/collection\\?slug=t&(amp;)?pick=${seed}~linearSwatches~4~90,${second}~`
+      )
+    );
+    const page = decode(
+      collection({ title: "T", href: `${origin}/t`, card })({ ...ctx, web: true }).html.html
+    );
+    expect(page).not.toMatch(/<img\b/);
+    expect(page.match(/clip-path:polygon/g)).toHaveLength(2);
+    // one palette is the whole card
+    const one = { slug: "t", palettes: [{ seed }] };
+    const whole = decode(
+      collection({ title: "T", href: `${origin}/t`, card: one })({ ...ctx, web: true }).html.html
+    );
+    expect(whole).toMatch(/radial-gradient/);
+    expect(whole).not.toMatch(/clip-path/);
+    const gated = {
+      ...ctx,
+      gateSeed: (of: string) => {
+        if (of !== seed) throw new Error("not liked");
+      }
+    };
+    expect(() => collection({ title: "T", href: `${origin}/t`, card })(gated)).toThrow(/not liked/);
+  });
   test("a worn palette is the wash behind the sheet", () => {
     const wash = (html: string) => /\.wash\{background-image:([^}]+)\}/.exec(html)?.[1];
     expect(wash(signInLink({ origin, url, palette: { seed } }).html)).not.toBe(wash(link_.html));

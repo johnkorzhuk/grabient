@@ -185,7 +185,7 @@ const LIKED: readonly PaletteView[] = [
   ...POPULAR,
   LEAD,
   ...CALM,
-  ...SHELVES.flatMap(of => of.tiles)
+  ...SHELVES.flatMap(of => of.tiles ?? [])
 ];
 const CSS = ".hero {\n  background: linear-gradient(90deg, #4158d0, #c850c0, #ffcc70);\n}";
 

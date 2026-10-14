@@ -14,7 +14,7 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Tags } from "@grabient/ui/Tags.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { useNavigate } from "@tanstack/solid-router";
+import { useNavigate, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -70,7 +70,7 @@ import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
 import { listSearch, pageSearch } from "./params.ts";
-import { collectionQuery, forgetStates, stateQuery } from "./queries.ts";
+import { collectionQuery, type Found, forgetStates, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
@@ -112,6 +112,7 @@ export function CollectionPage(props: {
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
+  const router = useRouter();
   const shell = useContext(ShellContext)!;
   const found = useQuery(() => collectionQuery(props.slug));
   const [note, setNote] = createSignal("");
@@ -131,6 +132,14 @@ export function CollectionPage(props: {
     const read = answer();
     return failed(read) ? read.failed : "";
   };
+  /* a read that failed, asked again: once it answers, the route reads it as well, so the tab's title, the description and
+     the card follow the collection the page now shows */
+  const retry = async () => {
+    const read = await found.refetch();
+    if (!read.data || failed(read.data)) return;
+    const here = router.state.matches.at(-1)?.id;
+    await router.invalidate({ filter: match => match.id === here });
+  };
 
   /* what the account may do here, and whether its copy holds the collection: read once the reader is known, private,
      and never part of what the page is drawn from first */
@@ -147,7 +156,10 @@ export function CollectionPage(props: {
   createEffect(
     () => {
       const who = account()?.id;
-      return who ? { by: reader(), who, slug: props.slug } : null;
+      /* an address the account's collection moved from leads on to it, where its state is read */
+      return who && !ownCollectionMoved(props.slug)
+        ? { by: reader(), who, slug: props.slug }
+        : null;
     },
     asked => {
       if (!asked || untrack(turning)) return;
@@ -199,6 +211,13 @@ export function CollectionPage(props: {
   const readAt = () => data()?.fetchedAt ?? Date.now();
   const now = () => minuteOf(readAt());
 
+  /* the account's private collection its title just moved is its own at the new address, which the copy has not heard
+     of yet: the copy and the private read fill the page there, and the public read could only refuse it */
+  const ownAt = (moved: CollectionDocument) => {
+    if (moved.visibility !== "private" || moved.slug === props.slug) return;
+    const own: Found = { doc: null, own: true, fetchedAt: Date.now() };
+    client.setQueryData(collectionQuery(moved.slug).queryKey, own);
+  };
   /* a collection the server moved (a new title, who sees it, a new username) is followed to its new address; a move of
      the page's own press waits for the press's writes to end, so every press lands on one page */
   const follow = (slug: string) => {
@@ -666,6 +685,7 @@ export function CollectionPage(props: {
                     const answer = await changeCollection(current().slug, words);
                     serverWrote();
                     setOwn(answer.collection);
+                    ownAt(answer.collection);
                     follow(answer.collection.slug);
                   }}
                 />
@@ -800,7 +820,7 @@ export function CollectionPage(props: {
                   : "")}
           </Status>
           <Show when={readFailed()}>
-            <Button size="sm" onClick={() => void found.refetch()}>
+            <Button size="sm" onClick={() => void retry()}>
               {t("Retry")}
             </Button>
           </Show>

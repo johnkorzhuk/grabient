@@ -7,6 +7,7 @@ import { oklchOf } from "./css.ts";
 import { sampleStops } from "./curve.ts";
 import { paletteJson } from "./document.ts";
 import { paletteDescription, paletteTitle, seedReading } from "./name.ts";
+import type { Namer } from "./precise-names.ts";
 import { toSpec } from "./spec.ts";
 import { styleWords, type View } from "./view.ts";
 
@@ -30,10 +31,11 @@ export function paletteMarkdown(
   origin: string,
   view: Partial<View>,
   written: PaletteWords | null,
-  heldBy: readonly { slug: string; title: string }[]
+  heldBy: readonly { slug: string; title: string }[],
+  names?: Namer | null
 ): string | null {
   const P = decodePalette(seed);
-  const doc = P && paletteJson(seed, origin, view);
+  const doc = P && paletteJson(seed, origin, view, names);
   const reading = doc && seedReading(seed, doc.style, doc.steps);
   if (!P || !doc || !reading) return null;
   const base = origin.replace(/\/$/, "");

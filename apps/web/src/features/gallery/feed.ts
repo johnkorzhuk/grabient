@@ -137,6 +137,20 @@ export const inPlace = (e: MouseEvent, answer: () => void) => {
   answer();
 };
 
+/** A More press answered in place: the next page joins, and a reader whose focus left with the press goes on at the
+    first of what joined (`items`: its cards, or its collections), where one long list would have led the next Tab. */
+export async function joinNext(next: () => Promise<boolean>, items: string): Promise<void> {
+  const before = document.querySelectorAll(items).length;
+  if (!(await next())) return;
+  requestAnimationFrame(() => {
+    if (document.activeElement && document.activeElement !== document.body) return;
+    document
+      .querySelectorAll(items)
+      [before]?.querySelector<HTMLElement>("a[href], button")
+      ?.focus();
+  });
+}
+
 /** Asks for what a press on this address would show, so the press lands as a swap. */
 export function preloadHref(router: AnyRouter, href: string): void {
   const url = new URL(href, "https://grabient.invalid");

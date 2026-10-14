@@ -32,6 +32,7 @@ import {
   ownCollectionsFull,
   updateCollection
 } from "../../collections/write.ts";
+import { colorNames } from "../../files/names.ts";
 import { likeLimits, likeTitle, publishLimits, savedCount, setLike } from "../../gallery/likes.ts";
 import { galleryItems, listPalettes } from "../../gallery/list.ts";
 import { countSearch } from "../../search/counts.ts";
@@ -483,11 +484,12 @@ export const accountTools: readonly Tool[] = [
     async run(args, c) {
       const given = args.palettes as PaletteGiven[];
       const seeds = [...new Set(given.map(one => one.seed))];
-      const [views, gallery, texts, holding] = await Promise.all([
+      const [views, gallery, texts, holding, names] = await Promise.all([
         searchableItems(c.env, seeds),
         galleryItems(c.env.DB, seeds),
         paletteTexts(c.env, seeds),
-        collectionsHoldingEach(c.env, seeds, 6)
+        collectionsHoldingEach(c.env, seeds, 6),
+        colorNames(c.env)
       ]);
       const written = new Map(texts.map(t => [t.seed, t]));
       return answer({
@@ -500,7 +502,7 @@ export const accountTools: readonly Tool[] = [
             titleOf(s, written.get(s.seed)),
             [...paletteNotes(s.palette), ...raised(s, one.steps)],
             {
-              details: details(colorsOf(s)),
+              details: details(colorsOf(s), names),
               gallery: row
                 ? {
                     likes: row.likes,

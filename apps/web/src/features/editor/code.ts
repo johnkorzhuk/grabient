@@ -84,11 +84,12 @@ export function codeSources(
   const stops = sampleStops(P, v.steps);
   const n = stops.length;
   const bands = isSwatchStyle(v.style);
-  /* precisely named once the names are read, which asking for a swatch file's text starts */
-  const swatch = () => {
+  /* the precise color names once read: asking for the text of a file that carries them starts the read */
+  const names = () => {
     void preciseNames();
-    return swatchPalette(seed, v, origin(), { names: namesNow() });
+    return namesNow();
   };
+  const swatch = () => swatchPalette(seed, v, origin(), { names: names() });
   const markdown = () => {
     const address = `/${seed}.md${viewSearch(v)}`;
     const had = files().get(address);
@@ -106,7 +107,7 @@ export function codeSources(
     };
     return (
       inLocale(DEFAULT_LOCALE, () =>
-        paletteMarkdown(seed, origin(), v, written ?? null, heldBy)
+        paletteMarkdown(seed, origin(), v, written ?? null, heldBy, names())
       )?.trimEnd() ?? ""
     );
   };

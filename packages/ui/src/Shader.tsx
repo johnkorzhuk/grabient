@@ -1,7 +1,7 @@
 import { type Triple, toHex } from "@grabient/engine/color.ts";
 import { sampleLCH, sampleStops } from "@grabient/engine/curve.ts";
 import type { Palette } from "@grabient/engine/palette.ts";
-import { createEffect, onSettled } from "solid-js";
+import { createEffect, onSettled, untrack } from "solid-js";
 import { type LCH, lchSamples, MOVES, mixStops, toSrgb } from "./bartween.ts";
 import type { Flow } from "./flow.ts";
 import { glowing, waterTakesGlow } from "./glow.ts";
@@ -169,7 +169,8 @@ export function Shader(props: {
           aim: () => ({ x: layer.clientWidth / 2, y: layer.clientHeight / 2 }),
           ramp,
           dark,
-          reduced: holds,
+          /* read when the flow asks, which a change of setting does from inside the effect above */
+          reduced: () => untrack(holds),
           glow,
           strip: () => {
             const el = paneBar();

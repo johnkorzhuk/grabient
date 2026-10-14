@@ -150,20 +150,22 @@ export const pick = (
   name,
   note: STYLE_LABELS[style]
 });
-/** A collection as an issue shows one: its title, its address, what it holds and five of its palettes. */
+/** A collection as an issue shows one: its title, its address, what it holds, and five of its palettes as tiles or its
+    card: palettes it holds, each in a view of the card's own design. */
 export interface Shelf {
   title: string;
   slug: string;
   note: string;
   about: string;
-  tiles: readonly PaletteView[];
+  tiles?: readonly PaletteView[];
+  card?: readonly PaletteView[];
 }
 export const shelf =
   (origin: string) =>
   (of: Shelf): CollectionOptions => ({
     title: of.title,
     href: `${origin}/${of.slug}`,
-    tiles: of.tiles,
+    ...(of.card ? { card: { slug: of.slug, palettes: of.card } } : { tiles: of.tiles }),
     note: of.note,
     about: of.about
   });

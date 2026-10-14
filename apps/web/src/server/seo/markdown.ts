@@ -1,6 +1,7 @@
 import { decodePalette, sampleStops } from "@grabient/engine";
 import { type PaletteWords, paletteMarkdown, plain } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
+import type { Namer } from "@grabient/engine/precise-names.ts";
 import { drawnView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
 import { collectionCard } from "../../lib/page-meta.ts";
@@ -44,6 +45,8 @@ export interface MarkdownReads {
   collection(address: string): Promise<CollectionWords | null>;
   /** whether a name has a collection's address's shape */
   isCollection(address: string): boolean;
+  /** the precise color names, where the deploy holds them */
+  colorNames?(): Promise<Namer | null>;
 }
 
 const markdown = (canonical: string, cache: Record<string, string>) => ({
@@ -102,10 +105,11 @@ export async function markdownFile(
     const { seed, palette } = found;
     // the view as the file's cache key reads it (files/keys.ts), so one key never holds two files
     const view = viewAt(addressParams(new URL(request.url).searchParams), palette.anchors.length);
-    const { written, heldBy } = await reads
-      .paletteWords(seed)
-      .catch(() => ({ written: null, heldBy: [] }));
-    const text = paletteMarkdown(seed, base, view, written, heldBy);
+    const [{ written, heldBy }, names] = await Promise.all([
+      reads.paletteWords(seed).catch(() => ({ written: null, heldBy: [] })),
+      reads.colorNames?.() ?? null
+    ]);
+    const text = paletteMarkdown(seed, base, view, written, heldBy, names);
     if (text !== null) return new Response(text, { headers: markdown(`${base}/${seed}`, TEXT) });
   }
   if (!found && reads.isCollection(name)) {
