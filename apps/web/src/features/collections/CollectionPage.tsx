@@ -215,7 +215,7 @@ export function CollectionPage(props: {
         : null;
     },
     href => {
-      if (href) void navigate({ href, replace: true });
+      if (href) void untrack(() => navigate({ href, replace: true }));
     }
   );
   /* the tab says the collection once the owner's read brings one the server could not draw */
