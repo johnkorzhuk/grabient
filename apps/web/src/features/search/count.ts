@@ -29,21 +29,26 @@ export function countSearch(words: string, page: SearchPage): void {
 export const searchedHere = (words: string, page: SearchPage): boolean =>
   sent.has(keyOf(words, page));
 
-/* the searches a tag led to in this tab, and the answers already told, by words and page */
-const tagged = new Set<string>();
+/* the searches a tag led to in this tab, by words and page, each with the words analytics name it by; and the answers
+   already told */
+const tagged = new Map<string, string>();
 const answered = new Set<string>();
 
 /** A tag under a search pressed: analytics hears which and where it stood, and the answer that follows says a tag
-    asked. */
-export function tagPressed(tag: { label: string; href?: string }, index: number, page: SearchPage) {
+    asked. A tag that says a translation is named by its phrase's English, as the counts name it. */
+export function tagPressed(
+  tag: { label: string; href?: string; english?: string },
+  index: number,
+  page: SearchPage
+) {
   let words = tag.label;
   try {
     words = new URL(tag.href ?? "", location.origin).searchParams.get("q") ?? words;
   } catch {
     /* a tag with no address searches its label */
   }
-  tagged.add(keyOf(words, page));
-  trackEvent("select_tag", { tag: tag.label, position: index, surface: page });
+  tagged.set(keyOf(words, page), tag.english ?? words);
+  trackEvent("select_tag", { tag: tag.english ?? tag.label, position: index, surface: page });
 }
 
 /** What a search found, once its answer is the page's: analytics hears the kind of search and how many it found, once
@@ -61,9 +66,10 @@ export function searchAnswered(
   const key = keyOf(words, page);
   if (isServer || !words || answered.has(key)) return;
   answered.add(key);
+  const named = tagged.get(key);
   trackEvent("view_search_results", {
-    search_term: words,
-    search_type: tagged.has(key) ? "tag" : (found.kind ?? "words"),
+    search_term: named ?? words,
+    search_type: named === undefined ? (found.kind ?? "words") : "tag",
     ...(found.tier ? { tier: found.tier } : {}),
     results: found.results,
     ...(found.collections !== undefined ? { collections: found.collections } : {}),
