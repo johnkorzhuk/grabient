@@ -1,47 +1,85 @@
-import { cardBackground } from "@grabient/engine/css.ts";
+import { decodePalette } from "@grabient/engine";
+import { sampleStops } from "@grabient/engine/curve.ts";
 import { seedName } from "@grabient/engine/name.ts";
-import { isStyle, type Style, viewSearch } from "@grabient/engine/view.ts";
-import { locale, localHref, t } from "@grabient/i18n";
-import { type Format, FormatStrip } from "@grabient/ui/FormatStrip.tsx";
+import { DEFAULT_SIZE } from "@grabient/engine/view.ts";
+import { locale, localHref, msg, t } from "@grabient/i18n";
+import { CollectionGroup, CollectionGroupPlaceholder } from "@grabient/ui/CollectionGroup.tsx";
+import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
+import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { PaletteSheet } from "@grabient/ui/PaletteSheet.tsx";
 import { Segmented } from "@grabient/ui/Segmented.tsx";
 import { SolidPane } from "@grabient/ui/SolidPane.tsx";
 import { useQueryClient } from "@tanstack/solid-query";
+import { useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
   createSignal,
   type Element,
-  For,
+  Loading,
+  lazy,
   onSettled,
   Show,
   untrack
 } from "solid-js";
-import { offline } from "../../app/connection.ts";
+import { signInUnavailable, unreachable } from "../../app/connection.ts";
+import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
+import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
-import { seedAddress } from "./address.ts";
+import { type Drawn, hexesOf } from "../../lib/palette.ts";
+import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
+import { account, shownError } from "../account/session.ts";
+import { accountView } from "../account/state.ts";
+import { collectionHref } from "../collections/address.ts";
+import { relativeAge } from "../gallery/drawing.ts";
+import { inPlace } from "../gallery/feed.ts";
+import { framesQuery } from "../gallery/queries.ts";
+import { sortSearch } from "../gallery/sort.ts";
+import { drawnIn, type ListView, viewParams } from "../list/appearance.ts";
+import { useOpened, useTaken } from "../palette-use/use.ts";
+import { roomNote, selected, toggle } from "../selection/selection.ts";
+import { openedFrom, seedAddress } from "./address.ts";
 import { codeSources } from "./code.ts";
 import type { PaletteEditor } from "./editor.ts";
-import { copyContrast, NO_IMAGE_CLIPBOARD, saveContrast, type Taken } from "./formats.ts";
+import {
+  copyContrast,
+  copyFormat,
+  copyLink,
+  NO_IMAGE_CLIPBOARD,
+  STRIP_COPY,
+  STRIP_FILES,
+  saveContrast,
+  saveFormat,
+  type Taken
+} from "./formats.ts";
 import type { PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
-import styles from "./Sheet.module.css";
-import { ordered, type Similar, similarQuery } from "./similar.ts";
+import { rememberOrder, type Similar, similarOrder, similarQuery } from "./similar.ts";
 
 /* The editor's sheet: the palette's name, the collections that hold it, which of its colors read on which and on the
    reader's own text colors, its path through the color solid, the palette as text, and the palettes like it. All but
-   the last two are read from the palette, in the browser. The palettes like it, and the public collections the
-   answer names, are asked for only while the sheet has a good part of the window and the palette has rested: a
-   palette opened and edited on the first screen asks the server nothing however many edits it takes. */
+   the last two are read from the palette, in the browser, and the reader's own collections from the account's copy.
+   The palettes like it, and the public collections the answer names, are asked for only while the sheet has a good
+   part of the window and the palette has rested: a palette opened and edited on the first screen asks the server
+   nothing however many edits it takes. */
 
 /* how many of the palettes like this one are drawn */
 const SHOWN = 12;
 /* the sheet has the window's lower two fifths: the reader has left the first screen for it */
-const IN_VIEW = "0px 0px -40% 0px";
+const LOWER = 0.4;
 const CONTRAST: Format[] = ["svg", "png"];
 const INKS_KEY = "grabient-contrast-inks";
 const INKS_MAX = 12;
+/* where a palette taken from one of these cards was taken, for the counts */
+const PLACE = { surface: "editor" } as const;
+
+type Item = Similar["items"][number];
+type Holding = typeof import("./Collect.tsx").ownHolding;
+/* a signed-out reader who selects nothing loads none of the account's collections */
+const AddToCollection = lazy(() =>
+  import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
+);
 
 /** The reader's own text colors for the contrast grid, kept in this browser, written once they rest. */
 function createInks() {
@@ -77,6 +115,20 @@ function createInks() {
   return [inks, write] as const;
 }
 
+/** A copy that says why it could not be made, in the reader's words; true when it was. */
+const copied = (work: Promise<void>): Promise<boolean> =>
+  work.then(
+    () => true,
+    (reason: unknown) => {
+      toast(
+        reason instanceof Error && reason.message === NO_IMAGE_CLIPBOARD
+          ? t("Images can't be copied here.")
+          : t("Couldn't copy the palette.")
+      );
+      return false;
+    }
+  );
+
 export function Sheet(props: {
   editor: PaletteEditor;
   rest: Rest;
@@ -95,6 +147,7 @@ export function Sheet(props: {
   const e = untrack(() => props.editor);
   const rest = untrack(() => props.rest);
   const queries = useQueryClient();
+  const router = useRouter();
   let sheet!: HTMLElement;
   const [inks, setInks] = createInks();
   const view = () => ({ style: e.style(), steps: e.steps(), angle: e.angle() });
@@ -112,9 +165,7 @@ export function Sheet(props: {
   onSettled(() => {
     const seen = new IntersectionObserver(
       entries => setInView(entries[entries.length - 1].isIntersecting),
-      {
-        rootMargin: IN_VIEW
-      }
+      { rootMargin: `0px 0px -${LOWER * 100}% 0px` }
     );
     seen.observe(sheet);
     return () => seen.disconnect();
@@ -138,6 +189,8 @@ export function Sheet(props: {
       setFailed(null);
       rest.is(seed);
       const timer = setTimeout(() => {
+        /* a palette opened from a card here lands on its first screen before the observer says the sheet left */
+        if (sheet.getBoundingClientRect().top > innerHeight * (1 - LOWER)) return;
         rest.asked(seed);
         queries.fetchQuery(options).then(
           got => setAnswered({ seed, answer: got }),
@@ -150,47 +203,101 @@ export function Sheet(props: {
       };
     }
   );
-  const [order, setOrder] = createSignal<"popular" | "rising">("popular");
+
+  /* The order is the reader's, kept for the tab: the most liked first, or the rising in a frame. Rising's frames are
+     the ones an admin has left on, asked for only once Rising is the order and the sheet is in the window; Rising
+     pressed while it is the order moves to the next of them. The answer holds every palette like this one, so an order
+     sorts what the page holds and asks nothing. */
+  const [offered, setOffered] = createSignal<readonly RisingFrame[]>(
+    queries.getQueryData(framesQuery().queryKey) ?? [DEFAULT_FRAME]
+  );
+  createEffect(
+    () => inView() && similarOrder().sort === "rising",
+    rising => {
+      if (rising)
+        void queries.fetchQuery(framesQuery()).then(setOffered, () => {
+          /* the week's frame stands */
+        });
+    }
+  );
+  const frame = () => {
+    const kept = similarOrder().frame;
+    return offered().includes(kept) ? kept : DEFAULT_FRAME;
+  };
+  const pickOrder = (next: string) => {
+    const now = similarOrder();
+    if (next !== "rising") rememberOrder({ ...now, sort: "popular" });
+    else if (now.sort !== "rising") rememberOrder({ ...now, sort: "rising" });
+    else rememberOrder({ sort: "rising", frame: nextFrame(frame(), offered()) });
+  };
+  /* a frame's short name, which the lists' own row says after Rising */
+  const short = (f: RisingFrame) => t(f, { $context: "frame" });
   const like = createMemo(() => {
     const got = answer();
     return got
-      ? ordered(
+      ? sortSearch(
           got.items.filter(item => item.kseed !== e.seed()),
-          order()
+          similarOrder().sort,
+          frame()
         ).slice(0, SHOWN)
       : null;
   });
+  /* the counts beside the cards' hearts keep the age of the answer that brought them, and the old ones are asked for
+     again only while the cards are in the window */
+  createEffect(
+    () => (inView() ? like() : null),
+    items => {
+      if (!items?.length) return;
+      noteCounts(
+        items.map(item => ({ seed: item.kseed, likes: item.likes })),
+        untrack(answer)?.fetchedAt
+      );
+      void readLikeCounts(items.map(item => item.kseed)).catch(() => {});
+    }
+  );
 
-  /* the collections that hold the palette the page opened on: the server's, where it sent the page, else the answer's */
+  /* The collections that hold the palette: the reader's own first, private ones too, from the account's copy, which
+     knows what each holds, so a pick in Add to collection shows here at once. Then the public ones, each once: the
+     server's, where it sent the page for this palette, else the answer's. A collection's page needs the server, so
+     with no connection its link stays in its place and leads nowhere; the account's own opens from the copy. */
+  const [holding, setHolding] = createSignal<Holding | null>(null);
+  createEffect(
+    () => !!account(),
+    signedIn => {
+      if (signedIn) void import("./Collect.tsx").then(m => setHolding(() => m.ownHolding));
+    }
+  );
+  const own = createMemo(() => {
+    accountView();
+    return holding()?.(e.seed()) ?? [];
+  });
   const collections = () => {
-    const held = props.facts()?.heldBy ?? answer()?.heldBy ?? [];
-    return held.map(c => ({
-      title: c.title,
-      href: offline() ? undefined : `/${c.slug}`,
-      colors: c.colors
-    }));
+    const mine = own();
+    const held: readonly { slug: string; title: string; colors?: readonly string[] }[] =
+      props.facts()?.heldBy ?? answer()?.heldBy ?? [];
+    return [...mine, ...held.filter(c => !mine.some(m => m.slug === c.slug))].map(c => {
+      const href = collectionHref(c.slug);
+      return { title: c.title, href: unreachable(href) ? undefined : href, colors: c.colors };
+    });
   };
   /* What the reader set on this page (a style, steps or an angle) goes for every palette drawn here, as a list's
      choice goes for its cards; otherwise each is drawn as it was saved. The stage's size goes with every link. */
-  const set = () => e.opened().set;
-  const drawn = (item: { kseed: string; style: string; steps: number; angle: number }) => ({
-    seed: item.kseed,
-    view: {
-      style: set().style
-        ? e.style()
-        : isStyle(item.style)
-          ? item.style
-          : ("linearGradient" as Style),
-      steps: set().steps ? e.steps() : item.steps,
-      angle: set().angle ? e.angle() : item.angle,
+  const listed = (): ListView => {
+    const set = e.opened().set;
+    return {
+      style: set.style ? e.style() : "auto",
+      steps: set.steps ? e.steps() : "auto",
+      angle: set.angle ? e.angle() : "auto",
       size: e.size()
-    }
-  });
+    };
+  };
   const likeHref = () => {
-    const query = new URLSearchParams(viewSearch({ ...view(), size: e.size() }).slice(1));
-    query.set("q", e.seed());
-    if (order() === "rising") return `/palettes/rising?${query}`;
-    return `/palettes?${query}`;
+    const query = new URLSearchParams({ q: e.seed() });
+    for (const [name, value] of Object.entries(viewParams(listed())))
+      if (value !== undefined) query.set(name, String(value));
+    const list =
+      similarOrder().sort === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
+    return `${list}?${query}`;
   };
   const title = () =>
     props.heading() ||
@@ -202,19 +309,109 @@ export function Sheet(props: {
       ...(props.facts()?.written ? { written: props.facts()?.written } : {})
     }) ||
     t("Palette editor");
-  const contrastCopy = async (f: Format) => {
-    try {
-      await copyContrast(f, props.taken(), inks());
-      props.used("copy", `contrast:${f}`);
-      return true;
-    } catch (error) {
-      toast(
-        error instanceof Error && error.message === NO_IMAGE_CLIPBOARD
-          ? t("Images can't be copied here.")
-          : t("Couldn't copy the palette.")
+
+  /* the clock the cards' ages are told against */
+  const now = Date.now();
+  /** One of the palettes like this one, as a list's card: liked, selected, collected, taken and opened from here. */
+  const card = (item: () => Item, position: number) => {
+    const palette = createMemo(() => drawnIn(itemDrawn(item()), listed()));
+    const seed = () => item().kseed;
+    const address = () => seedAddress({ seed: seed(), view: { ...palette(), size: e.size() } });
+    /* a card's pictures are the stage's size once the reader set one, and its files' addresses name it */
+    const taken = (): Taken => {
+      const decoded = decodePalette(seed());
+      return {
+        ...palette(),
+        size: e.size(),
+        pixels: e.size() ? props.taken().pixels : DEFAULT_SIZE,
+        stops: decoded ? sampleStops(decoded, palette().steps) : []
+      };
+    };
+    const count = (action: "copy" | "download", format: string) =>
+      useTaken(action, format, PLACE, [palette()], { position });
+    /* where no picture can go on the clipboard, the file is saved instead */
+    const copy = (f: Format) =>
+      copyFormat(f, taken()).then(
+        () => {
+          count("copy", f);
+          return true;
+        },
+        (reason: unknown) => {
+          if (f !== "png" || !(reason instanceof Error) || reason.message !== NO_IMAGE_CLIPBOARD)
+            return copied(Promise.reject(reason));
+          return saveFormat(f, taken()).then(
+            () => {
+              toast(t("Images can't be copied here, so the file was downloaded."));
+              count("download", f);
+              return false;
+            },
+            () => copied(Promise.reject(reason))
+          );
+        }
       );
-      return false;
-    }
+    return (
+      <PaletteCard
+        seed={seed()}
+        name={
+          seedName(seed(), palette().style, palette().steps, { t, locale: locale() }) ||
+          t("Palette")
+        }
+        stops={hexesOf(palette())}
+        style={palette().style}
+        angle={palette().angle}
+        href={localHref(address())}
+        age={relativeAge(item().createdAt, now)}
+        likes={likeCount(seed(), item().likes)}
+        liked={liked(seed())}
+        likeDisabled={signInUnavailable()}
+        onLike={() => {
+          const { seed: _, ...shown } = palette();
+          toggleLike(seed(), !liked(seed()), { view: shown }).catch((reason: unknown) =>
+            toast(shownError(reason, msg("Couldn't save.")))
+          );
+        }}
+        selected={selected(palette())}
+        onSelect={() => {
+          if (toggle(palette()) === "made room") toast(roomNote(1));
+        }}
+        collect={
+          <Loading>
+            <AddToCollection palette={palette} />
+          </Loading>
+        }
+        onOpen={event => {
+          useOpened(PLACE, palette(), { position });
+          /* opened in place, the palette's page is told its own view and which parts were set here */
+          inPlace(event, () => {
+            const handed = openedFrom(itemDrawn(item()), listed());
+            void router.navigate({ href: address(), ...(handed ? { state: handed } : {}) });
+          });
+        }}
+        tools={() => (
+          <FormatStrip
+            size="sm"
+            variant="art"
+            copy={STRIP_COPY}
+            download={STRIP_FILES}
+            swatches={SWATCH_CHIPS}
+            link={STRIP_FILES}
+            onCopy={copy}
+            onDownload={f =>
+              void saveFormat(f, taken()).then(
+                () => count("download", f),
+                () => toast(t("Couldn't download the file."))
+              )
+            }
+            onLink={f =>
+              copied(copyLink(f, taken())).then(done => {
+                if (done) count("copy", `link:${f}`);
+                return done;
+              })
+            }
+          />
+        )}
+      />
+    );
   };
   return (
     <PaletteSheet
@@ -231,12 +428,18 @@ export function Sheet(props: {
       order={
         <Segmented
           aria-label={t("Order")}
-          value={order()}
+          value={similarOrder().sort}
           options={[
             { value: "popular", label: t("Popular", { $context: "order" }) },
-            { value: "rising", label: t("Rising", { $context: "order" }) }
+            {
+              value: "rising",
+              label: t("Rising", { $context: "order" }),
+              ...(offered().length > 1
+                ? { detail: short(frame()), forms: offered().map(short) }
+                : {})
+            }
           ]}
-          onChange={value => setOrder(value === "rising" ? "rising" : "popular")}
+          onChange={pickOrder}
         />
       }
       sources={codeSources(
@@ -256,7 +459,12 @@ export function Sheet(props: {
           variant="paper"
           copy={CONTRAST}
           download={CONTRAST}
-          onCopy={contrastCopy}
+          onCopy={f =>
+            copied(copyContrast(f, props.taken(), inks())).then(done => {
+              if (done) props.used("copy", `contrast:${f}`);
+              return done;
+            })
+          }
           onDownload={f =>
             void saveContrast(f, props.taken(), inks()).then(
               () => props.used("download", `contrast:${f}`),
@@ -285,62 +493,36 @@ export function Sheet(props: {
           />
         )
       }
+      foot={<SiteFooter />}
     >
       <Show
         when={like()}
         fallback={
           <Show when={inView() && failed() !== e.seed()}>
-            <div class={styles.cards} aria-hidden="true">
-              <For each={Array.from({ length: SHOWN }, (_, i) => i)}>
-                {() => <span class={styles.placeholder} />}
-              </For>
-            </div>
+            <CollectionGroupPlaceholder count={SHOWN} />
           </Show>
         }
       >
         {list => (
           <Show when={list().length}>
-            <section class={styles.similar} aria-labelledby="similar-palettes">
-              <h2 id="similar-palettes" class={styles.heading}>
-                <a href={offline() ? undefined : localHref(likeHref())}>{t("Similar palettes")}</a>
-              </h2>
-              <div class={styles.cards}>
-                <For each={list()} keyed={item => item.kseed}>
-                  {item => {
-                    const card = () => drawn(item());
-                    return (
-                      <a
-                        class={styles.card}
-                        href={localHref(seedAddress(card()))}
-                        aria-label={t("{name} palette", {
-                          name:
-                            seedName(card().seed, card().view.style, card().view.steps, {
-                              t,
-                              locale: locale()
-                            }) ?? card().seed
-                        })}
-                      >
-                        <span
-                          class={styles.art}
-                          style={{
-                            background:
-                              cardBackground(
-                                card().seed,
-                                card().view.style,
-                                card().view.steps,
-                                card().view.angle
-                              ) ?? undefined
-                          }}
-                        />
-                      </a>
-                    );
-                  }}
-                </For>
-              </div>
-            </section>
+            <CollectionGroup
+              title={t("Similar palettes")}
+              href={unreachable(likeHref()) ? undefined : localHref(likeHref())}
+              palettes={list()}
+              card={card}
+              whole
+            />
           </Show>
         )}
       </Show>
     </PaletteSheet>
   );
 }
+
+/** A palette of the answer as it was saved. */
+const itemDrawn = (item: Item): Drawn => ({
+  seed: item.kseed,
+  style: item.style,
+  steps: item.steps,
+  angle: item.angle
+});

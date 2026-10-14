@@ -1,60 +1,63 @@
 import { DEFAULT_LOCALE, type Locale } from "@grabient/i18n";
+import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
-import * as v from "valibot";
+import { createSignal } from "solid-js";
+import { DEFAULT_FRAME, isFrame, type RisingFrame } from "../../lib/orders.ts";
 import { getJson } from "../../lib/query.ts";
+import { SearchAnswer } from "../search/bodies.ts";
+import { SEARCH_POOL } from "../search/queries.ts";
 
-/* The palettes like the one on screen: the search by its seed (the search feature's public answer), which also names
-   the public collections that hold it. One answer of up to 96, kept five minutes, which the sheet sorts as the reader
-   orders it without asking again. */
+/* The palettes like the one on screen: the search by its seed, which also names the public collections that hold it,
+   in the reader's language. One answer of the whole pool, kept five minutes, which the sheet sorts as the reader orders
+   it without asking again. A search an allowance cut short, or one without its files, fails, and the sheet shows
+   nothing for it. */
 
-const Item = v.object({
-  kseed: v.string(),
-  style: v.string(),
-  steps: v.number(),
-  angle: v.number(),
-  likes: v.number(),
-  createdAt: v.number(),
-  rising: v.optional(v.number(), 0),
-  rising3m: v.optional(v.number(), 0),
-  rising1y: v.optional(v.number(), 0),
-  score: v.optional(v.number(), 0)
-});
-const Answer = v.object({
-  items: v.array(Item),
-  heldBy: v.optional(
-    v.array(
-      v.object({
-        slug: v.string(),
-        title: v.string(),
-        colors: v.optional(v.array(v.string()))
-      })
-    ),
-    []
-  )
-});
-export type SimilarItem = v.InferOutput<typeof Item>;
-export type Similar = v.InferOutput<typeof Answer>;
-
-export const LIMIT = 96;
+export type Similar = SearchAnswer;
 
 export const similarQuery = (seed: string, locale: Locale) =>
   queryOptions({
     queryKey: ["similar", seed, locale],
     queryFn: ({ signal }) =>
       getJson(
-        `/api/palettes/search?q=${encodeURIComponent(seed)}&limit=${LIMIT}${locale === DEFAULT_LOCALE ? "" : `&lang=${locale}`}`,
-        Answer,
+        `/api/search.json?${new URLSearchParams({
+          query: seed,
+          limit: String(SEARCH_POOL),
+          ...(locale === DEFAULT_LOCALE ? {} : { lang: locale })
+        })}`,
+        SearchAnswer,
         signal
       ),
     staleTime: 5 * 60_000
   });
 
-/** The answer's palettes in the reader's order: the most liked, or the most risen lately, ties by seed. */
-export function ordered(items: readonly SimilarItem[], order: "popular" | "rising"): SimilarItem[] {
-  const by = order === "rising" ? (i: SimilarItem) => i.rising : (i: SimilarItem) => i.likes;
-  const tie = order === "rising" ? (i: SimilarItem) => i.createdAt : (i: SimilarItem) => i.score;
-  return [...items].sort(
-    (a, b) =>
-      by(b) - by(a) || tie(b) - tie(a) || (a.kseed < b.kseed ? -1 : a.kseed > b.kseed ? 1 : 0)
-  );
+/** The order the reader reads them in: the most liked first, or the rising in one of Rising's frames. */
+export interface SimilarOrder {
+  sort: "popular" | "rising";
+  frame: RisingFrame;
+}
+
+/* The reader's order is the tab's: the palette opened next shows its own in it, and a reload keeps it. */
+const KEY = "grabient-order";
+function kept(): SimilarOrder {
+  let said: Partial<SimilarOrder> | null = null;
+  try {
+    said = isServer ? null : JSON.parse(sessionStorage.getItem(KEY) ?? "null");
+  } catch {
+    /* nothing kept, or storage refused: Popular */
+  }
+  return {
+    sort: said?.sort === "rising" ? "rising" : "popular",
+    frame: isFrame(said?.frame) ? said.frame : DEFAULT_FRAME
+  };
+}
+const [order, setOrder] = createSignal(kept());
+
+export const similarOrder = order;
+export function rememberOrder(next: SimilarOrder): void {
+  setOrder(next);
+  try {
+    sessionStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    /* the page still remembers it */
+  }
 }
