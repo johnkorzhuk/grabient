@@ -28,31 +28,30 @@ const PICKS = [
 /* Each collection's card draws palettes it holds as wedges about the middle, taken in turn, each wedge one ring more than
    the last. The site draws a palette in no fewer steps than its keyframes, so the rings start at the most keyframes among
    them. The palettes are ones an admin liked (LIKED, in the views liked); the rings are the card's. */
-const SUNSET = "kW1lA1Wy67USpu2xnjjopO8Y";
-const FOG = "kW-wQ8cwY_uiJ1DTlMBuJfAA";
-const LAKE = "kW6QZ-Y4jAM-NwI6jcBqYxAw";
-const BLUE_HOUR = "kW-Qmd8xC-2IhQNKp8IsCfCY";
-const TWILIGHT = "kW7Q_UZpg_9Mpv2_rz9rKS_4";
-const TIDE_LINES = "kWfT2g0CA-GOZvBvmTn7p-8g";
-const SHELL = "kYoCnCYRDJe2Wxv1j8P5pFLUYbQq";
-const SAND = "kY9QtP7I05eIWwhdGUG3pHDuaRxu";
-const EELGRASS = "kWXDFzyB9BFeVQzTkslv6JEo";
-const TIDAL_BLUE = "kWYCuqupzC9IbwPnkT78Qq5Q";
-const DEEP_GREEN = "kWTixwPaU_tQpQBhn0A4YrAQ";
-const OLIVE = "kYTy6vO59AFKWPlhkrc4yc8NawP6";
+// Autumn gradients
+const TURNING_LEAVES = "kaVjppNx-_bsYvg3mbgt7E8zy8P5EPUAg";
+const AMBER = "kUjmYmVjXBum6wbzqcCg";
+const BONFIRE = "kYMjsBNLXDtTEQPpuUQ-z9Dvsxv2";
+const EMBERS = "kULh0XMKvAUw9wXoKELA";
+// Fall porch colors
+const MUMS = "kUSRnguCHF0suRLoI8Tg";
+const PORCH_LIGHT = "kUVBioyTBTeAtRJ1DECA";
+const SQUASH = "kUVBppRTMytgvw1vFcIg";
+const PAINTED_DOOR = "kUSROny5cy8u0NhmKsTg";
+// Witchy color palette
+const POTION = "kY7TwjUh5KT2eROsnkPnZ5DQ-eQu";
+const AMETHYST = "kWvlBPWBS9M6TNXFKjxvLg-4";
 const LIKED = [
-  view(SUNSET, "linearGradient", 7, 180),
-  view(FOG, "linearGradient", 7, 90),
-  view(LAKE, "linearGradient", 7, 135),
-  view(BLUE_HOUR, "linearGradient", 7, 45),
-  view(TWILIGHT, "linearGradient", 7, 45),
-  view(TIDE_LINES, "linearSwatches", 6, 180),
-  view(SHELL, "angularGradient", 11, 180),
-  view(SAND, "linearSwatches", 13, 90),
-  view(EELGRASS, "linearGradient", 32, 180),
-  view(TIDAL_BLUE, "radialGradient", 32, 315),
-  view(DEEP_GREEN, "linearGradient", 32, 90),
-  view(OLIVE, "radialGradient", 32, 315)
+  view(TURNING_LEAVES, "angularSwatches", 13, 0),
+  view(AMBER, "linearGradient", 4, 270),
+  view(BONFIRE, "linearGradient", 7, 90),
+  view(EMBERS, "angularGradient", 14, 99),
+  view(MUMS, "linearSwatches", 12, 105),
+  view(PORCH_LIGHT, "radialGradient", 80, 0),
+  view(SQUASH, "radialSwatches", 12, 0),
+  view(PAINTED_DOOR, "linearGradient", 80, 30),
+  view(POTION, "linearGradient", 32, 180),
+  view(AMETHYST, "linearSwatches", 13, 90)
 ];
 const stepping = (...seeds: string[]) => {
   const from = Math.max(3, ...seeds.map(seed => decodePalette(seed)?.anchors.length ?? 0));
@@ -60,29 +59,28 @@ const stepping = (...seeds: string[]) => {
     view(seeds[i % seeds.length]!, "linearSwatches", from + i, 90)
   );
 };
-const LIMINAL: Shelf = {
-  title: "Liminal Hours",
-  slug: "liminal-hours-n5jqs8ak",
-  note: "21 palettes",
-  about:
-    "Gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain.",
-  card: stepping(SUNSET, FOG, LAKE, BLUE_HOUR, TWILIGHT)
+const AUTUMN: Shelf = {
+  title: "Autumn gradients",
+  slug: "autumn-gradients",
+  note: "27 palettes",
+  about: "Burgundy and forest green turning through rust, burnt orange, ochre and gold.",
+  card: stepping(TURNING_LEAVES, AMBER, BONFIRE, EMBERS)
 };
-const TIDES: Shelf = {
-  title: "Between tides",
-  slug: "between-tides",
-  note: "30 palettes",
-  about: "Southwest Florida coastal moods in quiet neutrals, luminous gradients and bolder bands.",
-  card: stepping(TIDE_LINES, SHELL, SAND)
+const PORCH: Shelf = {
+  title: "Fall porch colors",
+  slug: "fall-porch-colors",
+  note: "11 palettes",
+  about: "Painted doors, pumpkins, squash, chrysanthemums, woven straw and weathered wood.",
+  card: stepping(MUMS, PORCH_LIGHT, SQUASH, PAINTED_DOOR)
 };
-const SEAGRASS: Shelf = {
-  title: "Spring tide seagrass",
-  slug: "spring-tide-seagrass",
+const WITCHY: Shelf = {
+  title: "Witchy color palette",
+  slug: "witchy-color-palette",
   note: "22 palettes",
-  about: "Tidal blue, seafoam, eelgrass green, sand and dusky violet.",
-  card: stepping(EELGRASS, TIDAL_BLUE, DEEP_GREEN, OLIVE)
+  about: "Amethyst, moss green, potion teal and candle gold for a moody apothecary this Halloween.",
+  card: stepping(POTION, AMETHYST)
 };
-const SHELVES = [LIMINAL, TIDES, SEAGRASS];
+const SHELVES = [AUTUMN, PORCH, WITCHY];
 const CSS = ".hero {\n  background: linear-gradient(90deg, #4158d0, #c850c0, #ffcc70);\n}";
 
 export const october: Issue = {
