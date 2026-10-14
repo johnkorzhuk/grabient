@@ -165,6 +165,10 @@ export function watchNavigation(router: AnyRouter): () => void {
   count(true);
   const leaveResolved = router.subscribe("onResolved", () => {
     watchPulse();
+    /* an address reached in the app that no page here answers loads whole: the Worker leads an old form of an address
+       to its page (/saved, /newest, a slug's case), and answers the rest with its own 404 */
+    if (moved && router.state.matches.some(m => m.status === "notFound" || m._notFound))
+      return location.reload();
     count(moved);
     if (moved) land();
     moved = false;

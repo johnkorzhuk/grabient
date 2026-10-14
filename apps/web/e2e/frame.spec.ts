@@ -390,3 +390,25 @@ test("an address no page answers is named in its head, and an old id as a palett
       expect(head, `${address} ${tag}`).toContain(tag);
   }
 });
+
+test("a link in the app to an old form of an address reaches its page, as the address loaded whole does", async ({
+  page
+}) => {
+  await open(page, "/palettes");
+  /** Follows a plain link to `href` from the page, as a hand-written link in a page would be. */
+  const follow = (href: string) =>
+    page.evaluate(to => {
+      const link = document.createElement("a");
+      link.href = to;
+      document.querySelector("main")?.append(link);
+      link.click();
+    }, href);
+  await follow("/saved");
+  await expect(page).toHaveURL(/\/palettes\/saved$/);
+  await expect(page.locator("main h1")).toHaveText("Saved palettes");
+  await follow("/newest");
+  await expect(page).toHaveURL(/\/palettes\/rising$/);
+  await follow("/no-such/x");
+  await expect(page).toHaveURL(/\/no-such\/x$/);
+  await expect(page.locator("main h1")).toHaveText("Page not found");
+});
