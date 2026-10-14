@@ -8,7 +8,7 @@ import { colorKind } from "@grabient/engine/css.ts";
 import { parseView, type Size, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
-import { montageOrder, pictureWords } from "../images/montages.ts";
+import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montages.ts";
 import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { svgSize } from "./palette-files.ts";
@@ -72,6 +72,8 @@ function montageKey(path: string, params: URLSearchParams): FileKey {
     if (params.get("sort") === "rising") query.set("sort", "rising");
     const changed = params.get("t");
     if (changed && /^\d{1,15}$/.test(changed)) query.set("t", changed);
+    const picks = picksKey(montagePicks(params));
+    if (picks) query.set("pick", picks);
   } else {
     const { sort, frame } = montageOrder(params);
     query.set("sort", sort);

@@ -2,6 +2,7 @@
    montage's palettes are read through the feature that owns them, the first nine in its page's order, each as saved. */
 
 import { MARK_WEEK, markSvg, markWeek, weekMark } from "@grabient/ui/mark.ts";
+import { MAX_COLLECTION_ITEMS } from "../../features/collections/schema.ts";
 import { DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
 import { listWords } from "../../lib/words.ts";
@@ -17,6 +18,8 @@ import {
   type MontagePalette,
   montageAnswer,
   montageOrder,
+  montagePicks,
+  picksKey,
   pictureWords
 } from "./montages.ts";
 import type { Keep, PictureEnv } from "./serve.ts";
@@ -114,12 +117,21 @@ export function collectionPictureAnswer(
   const params = paramsOf(request);
   const slug = (params.get("slug") ?? "").slice(0, 120);
   const sort = params.get("sort") === "rising" ? "rising" : "popular";
+  const picks = montagePicks(params);
   return montageAnswer(
     request,
     env,
     branded,
-    `collection:${slug}:${sort}`,
-    () => collectionImagePalettes(env, slug, MONTAGE_PALETTES, sort),
+    `collection:${slug}:${sort}:${picksKey(picks)}`,
+    async () => {
+      if (!picks.length) return collectionImagePalettes(env, slug, MONTAGE_PALETTES, sort);
+      /* the palettes the address names, in its order, each one the collection holds */
+      const held = await collectionImagePalettes(env, slug, MAX_COLLECTION_ITEMS, sort);
+      return picks.flatMap(({ seed, view }) => {
+        const saved = held.find(item => item.seed === seed);
+        return saved ? [{ ...saved, ...view }] : [];
+      });
+    },
     keep
   );
 }

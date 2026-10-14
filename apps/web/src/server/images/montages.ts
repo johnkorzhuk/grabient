@@ -3,6 +3,7 @@
    unless the address sets style, steps or angle for all of them. Turned off for the site, a montage is refused before
    its palettes are read. */
 import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
+import { isStyle, STEPS_MAX, STEPS_MIN, type View } from "@grabient/engine/view.ts";
 import { DEFAULT_FRAME, isFrame, type RisingFrame } from "../../lib/orders.ts";
 import { json } from "../../lib/responses.ts";
 import { addressParams, type Saved, viewAt } from "../files/address.ts";
@@ -19,6 +20,34 @@ const WEDGES = "wedges-smooth";
 export interface MontagePalette extends Saved {
   seed: string;
 }
+
+/** A palette a card's address names, with the view to draw it in where the address gives one. */
+export interface MontagePick {
+  seed: string;
+  view?: Pick<View, "style" | "steps" | "angle">;
+}
+/** The palettes a collection's card names (`pick`, a newsletter's hand-picked few): each `seed~style~steps~angle` or a
+    seed alone, in order, nine at most. One that is no palette or no view is left out. */
+export function montagePicks(params: URLSearchParams): MontagePick[] {
+  const named = (params.get("pick") ?? "").split(",").filter(Boolean);
+  return named.slice(0, MONTAGE_PALETTES).flatMap((entry): MontagePick[] => {
+    const [raw = "", style, steps, angle] = entry.split("~");
+    const palette = decodePalette(raw);
+    if (!palette) return [];
+    const seed = encodePalette(palette);
+    if (style === undefined) return [{ seed }];
+    const n = Number(steps);
+    const a = Number(angle);
+    if (!isStyle(style) || !Number.isInteger(n) || n < STEPS_MIN || n > STEPS_MAX) return [];
+    if (!Number.isInteger(a) || a < 0 || a > 360) return [];
+    return [{ seed, view: { style, steps: n, angle: a } }];
+  });
+}
+/** The picks as one word, the same however the address spelled them: the edge's key and the isolate's. */
+export const picksKey = (picks: readonly MontagePick[]): string =>
+  picks
+    .map(({ seed, view }) => (view ? [seed, view.style, view.steps, view.angle].join("~") : seed))
+    .join(",");
 
 type MontageSort = "popular" | "rising" | "newest" | "hot";
 

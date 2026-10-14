@@ -50,6 +50,17 @@ test("a collection's card is drawn again once its page names a newer change", ()
   expect(card("junk")).toBe("/api/og/collection?h=630&slug=coastal-gradients&w=1200");
 });
 
+test("a collection's card keys the palettes it names, however the address spells them", () => {
+  const card = (pick: string) => written(`/api/og/collection?slug=between-tides&pick=${pick}`)?.key;
+  const named = "kS7Q8Yy5S_SChv0~linearSwatches~3~90,kQAAAAfwA_4";
+  expect(card(named)).toBe(
+    "/api/og/collection?h=630&pick=kS7Q8Yy5S_SChv0%7ElinearSwatches%7E3%7E90%2CkQAAAAfwA_4&slug=between-tides&w=1200"
+  );
+  // a pick that is no palette or no view is no part of the key; the order the address gives is
+  expect(card(`${named},nope,kQAAAAfwA_4~sideways~5~0`)).toBe(card(named));
+  expect(card("kQAAAAfwA_4,kS7Q8Yy5S_SChv0~linearSwatches~3~90")).not.toBe(card(named));
+});
+
 test("an old card's address shares the card's key, and other addresses are no file's", () => {
   expect(written("/og/k4/kS7Q8Yy5S_SChv0.png?style=radialGradient")?.key).toBe(
     written("/api/og?seed=kS7Q8Yy5S_SChv0&v=k4")?.key
