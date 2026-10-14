@@ -45,6 +45,18 @@ const rising = (route: Route) =>
     }
   });
 
+/** A private collection of the account's own, as its copy holds it. */
+const blues = {
+  ...summary,
+  id: "e2e-blues",
+  slug: "@e2e-ada/my-blues",
+  title: "My blues",
+  visibility: "private",
+  owner: { kind: "user", name: "e2e-ada", display: "ada" },
+  url: "/@e2e-ada/my-blues",
+  items: summary.preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+};
+
 /** An account signed in here: the session answers with it, and its copy hears from the server once and holds
     `collections`. Every other private read is refused. */
 async function signIn(page: Page, name: string, admin: boolean, collections: object[] = []) {
@@ -278,18 +290,6 @@ test("an admin's own collection made private says so at its new address, and qui
 test("a search of Saved whose server read fails answers from the account's copy", async ({
   page
 }) => {
-  const { preview, ...words } = summary;
-  const blues = {
-    ...words,
-    id: "e2e-blues",
-    slug: "@e2e-ada/my-blues",
-    title: "My blues",
-    visibility: "private",
-    owner: { kind: "user", name: "e2e-ada", display: "ada" },
-    url: "/@e2e-ada/my-blues",
-    preview,
-    items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-  };
   await signIn(page, "ada", false, [blues]);
   await page.route(
     url => url.pathname === "/api/me/collections" && url.searchParams.has("q"),
@@ -342,18 +342,6 @@ test("a signed-in reader's one look at a public collection is counted once", asy
 test("each undo and redo of a pick says what it did, and a new collection goes back through the copy offline", async ({
   page
 }) => {
-  const { preview, ...words } = summary;
-  const blues = {
-    ...words,
-    id: "e2e-blues",
-    slug: "@e2e-ada/my-blues",
-    title: "My blues",
-    visibility: "private",
-    owner: { kind: "user", name: "e2e-ada", display: "ada" },
-    url: "/@e2e-ada/my-blues",
-    preview,
-    items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-  };
   await signIn(page, "ada", false, [blues]);
   // the checklist may ask before the copy has heard from the server
   await page.route(
@@ -368,7 +356,7 @@ test("each undo and redo of a pick says what it did, and a new collection goes b
           total: 1,
           totalPages: 1,
           fetchedAt: Date.now(),
-          items: [{ ...words, ...blues, items: undefined }]
+          items: [{ ...blues, items: undefined }]
         }
       })
   );
@@ -534,20 +522,7 @@ test("a fit vote made on a collection's page is there when the reader comes back
 test("a palette removed with the keyboard leaves the focus on its Undo, which gives it back", async ({
   page
 }) => {
-  const { preview, ...words } = summary;
-  await signIn(page, "ada", false, [
-    {
-      ...words,
-      id: "e2e-blues",
-      slug: "@e2e-ada/my-blues",
-      title: "My blues",
-      visibility: "private",
-      owner: { kind: "user", name: "e2e-ada", display: "ada" },
-      url: "/@e2e-ada/my-blues",
-      preview,
-      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-    }
-  ]);
+  await signIn(page, "ada", false, [blues]);
   await page.goto("/@e2e-ada/my-blues");
   await hydrated(page);
   const card = page.locator("main article").first();
@@ -561,20 +536,7 @@ test("a palette removed with the keyboard leaves the focus on its Undo, which gi
 });
 
 test("a title entered on Saved at once opens the account's collection", async ({ page }) => {
-  const { preview, ...words } = summary;
-  await signIn(page, "ada", false, [
-    {
-      ...words,
-      id: "e2e-blues",
-      slug: "@e2e-ada/my-blues",
-      title: "My blues",
-      visibility: "private",
-      owner: { kind: "user", name: "e2e-ada", display: "ada" },
-      url: "/@e2e-ada/my-blues",
-      preview,
-      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-    }
-  ]);
+  await signIn(page, "ada", false, [blues]);
   await page.goto("/collections/saved");
   await hydrated(page);
   await expect(page.locator("main").getByRole("heading", { name: "My blues" })).toBeVisible();
