@@ -35,16 +35,9 @@ export const issuesQuery = (locale: Locale) =>
     reconcile: "number"
   });
 
-/** The drafts, which the server gives an admin alone. Never kept: each visit asks again. */
-export const draftsQuery = (locale: Locale) =>
-  queryOptions({
-    queryKey: ["newsletter", "drafts", locale],
-    queryFn: async () =>
-      (await getJson(`/api/me/newsletter/drafts${query({ lang: lang(locale) })}`, Drafts)).issues,
-    staleTime: 0,
-    gcTime: 0,
-    reconcile: "number"
-  });
+/** The drafts, which the server gives an admin alone. */
+export const readDrafts = async (locale: Locale) =>
+  (await getJson(`/api/me/newsletter/drafts${query({ lang: lang(locale) })}`, Drafts)).issues;
 
 /** Whether the signed-in account gets the newsletter: Settings' switch, read once per account. */
 export const choiceQuery = () =>
