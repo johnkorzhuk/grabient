@@ -8,7 +8,9 @@ import { record } from "../../app/undo.ts";
 import {
   addOwnPalettes,
   canMakeOwn,
+  deleteOwnCollection,
   makeOwnCollection,
+  ownCollectionDoc,
   ownCollectionsHolding,
   ownsCollection,
   removeOwnPalette,
@@ -114,6 +116,25 @@ async function makeOwn(
   return made;
 }
 
+/** A new collection's undo: it goes while it holds just the palettes it was made with (`wanted`, their keys) under that
+    title. Read and deleted through the copy where the copy holds it, as it was made, with no connection too; else by
+    the server, at the address it lives at now. */
+async function unmake(at: { slug: string; title: string }, wanted: string) {
+  const own = await ownCollectionDoc(at.slug);
+  const held = own ?? (await readState(at.slug)).collection;
+  const keys = held?.items
+    .map(i => itemKey({ seed: i.kseed, style: i.style, steps: i.steps, angle: i.angle }))
+    .sort()
+    .join("\n");
+  if (!held || held.title !== at.title || keys !== wanted)
+    throw new Error(t("{title} has changed, so it stays.", { title: at.title }));
+  if (own) deleteOwnCollection(own.slug);
+  else {
+    await deleteCollection(held.slug);
+    serverWrote();
+  }
+}
+
 export function createChecklists(say: (message: string, error?: boolean) => void) {
   const [own, setOwn] = createSignal<
     readonly (CollectChoice & { keys?: ReadonlySet<string> })[] | null
@@ -217,18 +238,27 @@ export function createChecklists(say: (message: string, error?: boolean) => void
   /* a step's undo or redo that fails says why where the step was made */
   const fail = (reason: unknown) => say(failedWrite(reason), true);
 
+  /* Each pick is a step of the page's undo. The checklist may be closed by the time it is taken back or made again, so
+     the page's line says what each undo and redo did. A pick that put nothing in is no step. */
+  const addedTo = (title: string) => say(t("Added to {title}.", { title }));
+  const removedFrom = (title: string) => say(t("Removed from {title}.", { title }));
+
   /* the account's own: the palettes in, or out, and the step that takes it back */
   async function ownIn(slug: string, items: readonly Item[], refresh: () => void) {
-    const { title, added } = await putIn(slug, items);
-    say(t("Added to {title}.", { title }));
+    const put = await putIn(slug, items);
+    let title = put.title;
+    addedTo(title);
+    if (!put.added.length) return;
     let tokens: Awaited<ReturnType<typeof takeOut>>["tokens"] = [];
     record({
       undo: async () => {
-        tokens = (await takeOut(slug, added)).tokens;
+        ({ title, tokens } = await takeOut(slug, put.added));
+        removedFrom(title);
         refresh();
       },
       redo: async () => {
         await putBack(slug, tokens);
+        addedTo(title);
         refresh();
       },
       fail
@@ -236,14 +266,16 @@ export function createChecklists(say: (message: string, error?: boolean) => void
   }
   async function ownOut(slug: string, items: readonly Item[], refresh: () => void) {
     let { title, tokens } = await takeOut(slug, items);
-    say(t("Removed from {title}.", { title }));
+    removedFrom(title);
     record({
       undo: async () => {
         await putBack(slug, tokens);
+        addedTo(title);
         refresh();
       },
       redo: async () => {
         ({ title, tokens } = await takeOut(slug, items));
+        removedFrom(title);
         refresh();
       },
       fail
@@ -257,20 +289,24 @@ export function createChecklists(say: (message: string, error?: boolean) => void
       for (const row of answer.added) siteAdds.set(siteKey(slug, row as Item), row.token);
       return answer;
     };
-    const { title, added } = await add();
-    say(t("Added to {title}.", { title }));
+    const put = await add();
+    let title = put.title;
+    addedTo(title);
+    if (!put.added.length) return;
     record({
       undo: async () => {
-        for (const row of added) {
+        for (const row of put.added) {
           const item = row as Item;
           const token = siteAdds.get(siteKey(slug, item));
-          if (token) await unaddSitePalette(slug, item, token);
+          if (token) title = (await unaddSitePalette(slug, item, token)).collection.title;
           siteAdds.delete(siteKey(slug, item));
         }
+        removedFrom(title);
         refresh();
       },
       redo: async () => {
-        await add();
+        ({ title } = await add());
+        addedTo(title);
         refresh();
       },
       fail
@@ -292,16 +328,18 @@ export function createChecklists(say: (message: string, error?: boolean) => void
       return { title, tokens };
     };
     let { title, tokens } = await out();
-    say(t("Removed from {title}.", { title }));
+    removedFrom(title);
     record({
       undo: async () => {
         for (const { item, token } of tokens)
           if (token) await restorePalette(slug, item.seed, token);
           else await addSitePalettes(slug, [item]);
+        addedTo(title);
         refresh();
       },
       redo: async () => {
         ({ title, tokens } = await out());
+        removedFrom(title);
         refresh();
       },
       fail
@@ -310,27 +348,17 @@ export function createChecklists(say: (message: string, error?: boolean) => void
   /* a new collection's undo deletes it while it still holds exactly the palettes it was made with, under that title */
   async function made(title: string, items: readonly Item[], refresh: () => void) {
     let at = await makeOwn(title, items);
-    say(t("Added to {title}.", { title: at.title }));
+    addedTo(at.title);
     const wanted = items.map(itemKey).sort().join("\n");
     record({
       undo: async () => {
-        const state = await readState(at.slug);
-        const now = state.collection;
-        const same =
-          !!now &&
-          now.title === at.title &&
-          now.items
-            .map(i => itemKey({ seed: i.kseed, style: i.style, steps: i.steps, angle: i.angle }))
-            .sort()
-            .join("\n") === wanted;
-        if (!same) throw new Error(t("{title} has changed, so it stays.", { title: at.title }));
-        await deleteCollection(at.slug);
-        serverWrote();
+        await unmake(at, wanted);
         say(t("{title} deleted.", { title: at.title }));
         refresh();
       },
       redo: async () => {
         at = await makeOwn(title, items);
+        addedTo(at.title);
         refresh();
       },
       fail
