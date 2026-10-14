@@ -176,7 +176,7 @@ export function PaletteCard(props: PaletteCardProps) {
             </span>
             <span class={styles.pick} data-kept={props.selected ? "" : undefined}>
               {pick(props)}
-              <Show when={props.selected && props.collect}>{props.collect}</Show>
+              <Show when={props.selected}>{props.collect}</Show>
             </span>
             <Show when={armed() && props.tools}>
               <span class={styles.tools}>{props.tools?.()}</span>
