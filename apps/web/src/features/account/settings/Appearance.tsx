@@ -16,6 +16,7 @@ import {
   themeChoice
 } from "@grabient/ui/theme.ts";
 import { createSignal, For } from "solid-js";
+import { pageStarted } from "../../../app/connection.ts";
 import { colorFormat, setColorFormat } from "../../../lib/color-format.ts";
 import { trackEvent } from "../../analytics/analytics.ts";
 import styles from "./Settings.module.css";
@@ -23,7 +24,8 @@ import styles from "./Settings.module.css";
 /* This browser's own choices, signed in or not: the theme, how much the site moves, and how the CSS a reader takes
    spells its colors. Each is one press that steps through its choices, and the line under the heading says what the
    choice in effect does. Every word the press can say and every line are stacked in one cell, so a press moves
-   nothing; the line is read out once the reader has pressed. */
+   nothing; the line is read out once the reader has pressed. The server knows none of these choices: a document
+   draws each row with its room held and its words unseen, until the page has started and read them. */
 
 const THEMES: readonly ThemeChoice[] = ["system", "light", "dark"];
 const themeWord = (c: ThemeChoice) =>
@@ -96,7 +98,7 @@ function Setting<T>(props: {
               )}
             </For>
             <div
-              class={styles.cell}
+              class={[styles.cell, { [styles.unseen]: !pageStarted() }]}
               id={`${props.id}-line`}
               aria-live={props.pressed ? "polite" : undefined}
             >
@@ -114,7 +116,12 @@ function Setting<T>(props: {
             <span class={styles.words} aria-hidden="true">
               <For each={props.steps} keyed={false}>
                 {step => (
-                  <span class={[styles.cell, { [styles.unseen]: step() !== props.choice }]}>
+                  <span
+                    class={[
+                      styles.cell,
+                      { [styles.unseen]: step() !== props.choice || !pageStarted() }
+                    ]}
+                  >
                     {props.word(step())}
                   </span>
                 )}

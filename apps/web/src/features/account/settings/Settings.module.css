@@ -24,6 +24,14 @@
   flex-direction: column;
   gap: var(--space-s2);
 }
+/* The profile draws for an account or for a visitor. Until the session answers it draws for whoever this browser
+   kept, which the document's head marks on <html> before anything paints (keptAccountScript). */
+.profile[data-for="visitor"] .account,
+.profile[data-for="account"] .visitor,
+:global(html[data-account]) .profile:not([data-for]) .visitor,
+:global(html:not([data-account])) .profile:not([data-for]) .account {
+  display: none;
+}
 .avatarRow {
   display: flex;
   align-items: center;

@@ -108,6 +108,9 @@ function keepUser(next: Profile | null) {
 /** The account this browser holds, read at once: the session's, or before any check the one kept here. */
 export const keptUserId = (): string | null =>
   isServer ? null : (user?.id ?? keptUser()?.id ?? null);
+/** A line for a document's head: it marks `<html data-account>` before anything paints when this browser kept an
+    account, so a document that draws for an account or for a visitor shows the likely one until the session answers. */
+export const keptAccountScript = `try{document.documentElement.toggleAttribute("data-account",!!localStorage.getItem(${JSON.stringify(KEPT_USER)}))}catch(e){}`;
 
 /* The copy's engine, loaded once an account is known. */
 type Engine = typeof import("./sync.ts");

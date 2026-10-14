@@ -6,9 +6,18 @@ import { NavLink } from "@grabient/ui/NavLink.tsx";
 import { Placeholder } from "@grabient/ui/Placeholder.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { createSignal, onCleanup, Show } from "solid-js";
+import { isServer } from "@solidjs/web";
+import { createSignal, isHydrating, onCleanup, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
-import { account, api, engineNow, loginHref, refreshSession, sessionReady } from "../session.ts";
+import {
+  account,
+  api,
+  engineNow,
+  keptUserId,
+  loginHref,
+  refreshSession,
+  sessionReady
+} from "../session.ts";
 import { readUsername, USERNAME_MAX } from "../username.ts";
 import styles from "./Settings.module.css";
 
@@ -192,8 +201,17 @@ export function Profile(props: {
   };
 
   const shownName = () => account()?.username || account()?.name || undefined;
+  /* Who the section draws for: the account or a visitor once the session answers, and until then whoever this browser
+     kept, so nothing moves when the answer is the likely one and no reader is shown the other's page first. The
+     server's document cannot know: it holds both the form's shape and the way in, unmarked, and its head's script
+     shows one (Settings.module.css). */
+  const fromDocument = isServer || isHydrating();
+  const drawnFor = () => {
+    if (sessionReady()) return account() ? "account" : "visitor";
+    return fromDocument ? undefined : keptUserId() ? "account" : "visitor";
+  };
   return (
-    <section class={styles.section} id="profile">
+    <section class={[styles.section, styles.profile]} id="profile" data-for={drawnFor()}>
       <div class={styles.head}>
         <div class={styles.heading}>
           <Text variant="h2">{t("Profile")}</Text>
@@ -203,92 +221,91 @@ export function Profile(props: {
             </NavLink>
           </Show>
         </div>
-        <Text variant="lede">
-          {account() ? t("Update your username and avatar.") : t("Sign in to change your profile.")}
-        </Text>
+        <div class={styles.account}>
+          <Text variant="lede">{t("Update your username and avatar.")}</Text>
+        </div>
+        <div class={styles.visitor}>
+          <Text variant="lede">{t("Sign in to change your profile.")}</Text>
+        </div>
       </div>
       {/* the form's own shape while the account answers: the picture, the two lines beside it, the field */}
-      <Show
-        when={sessionReady()}
-        fallback={
-          <div class={styles.form} aria-hidden="true">
-            <div class={styles.avatarRow}>
-              <Placeholder width="64px" height="64px" round="surface" />
-              <div class={styles.avatarText}>
-                <Placeholder width="148px" height="40px" />
-                <Placeholder width="240px" />
-              </div>
+      <Show when={!sessionReady()}>
+        <div class={[styles.form, styles.account]} aria-hidden="true">
+          <div class={styles.avatarRow}>
+            <Placeholder width="64px" height="64px" round="surface" />
+            <div class={styles.avatarText}>
+              <Placeholder width="148px" height="40px" />
+              <Placeholder width="240px" />
             </div>
-            <Placeholder width="100%" height="40px" />
+          </div>
+          <Placeholder width="100%" height="40px" />
+        </div>
+      </Show>
+      <Show
+        when={account()}
+        fallback={
+          <div class={styles.visitor}>
+            <Button
+              variant="primary"
+              size="lg"
+              href={localHref(loginHref(props.back))}
+              disabled={offline()}
+            >
+              {t("Sign in")}
+            </Button>
           </div>
         }
       >
-        <Show
-          when={account()}
-          fallback={
-            <div>
-              <Button
-                variant="primary"
-                size="lg"
-                href={localHref(loginHref(props.back))}
-                disabled={offline()}
-              >
-                {t("Sign in")}
-              </Button>
-            </div>
-          }
-        >
-          <form class={styles.form} onSubmit={e => void save(e)}>
-            <div class={styles.avatarRow}>
-              <Avatar
-                size="lg"
-                name={shownName()}
-                src={staged()?.url || account()?.image || undefined}
-              />
-              <div class={styles.avatarText}>
-                <input
-                  ref={fileInput}
-                  class={styles.hidden}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={event => void choose(event.currentTarget.files?.[0])}
-                />
-                <Button
-                  size="lg"
-                  disabled={saving() || offline()}
-                  onClick={() => (staged() ? unstage() : fileInput.click())}
-                >
-                  {staged() ? t("Keep current avatar") : t("Change avatar")}
-                </Button>
-                <Text variant="caption">{t("JPG, PNG or WebP, up to 5MB.")}</Text>
-              </div>
-            </div>
-            {/* the value follows what was typed: Solid writes it again whenever another of the field's states
-                changes (an error shown, the connection lost), which would put the saved name back */}
-            <Field
-              label={t("Username")}
-              name="username"
-              value={typed() ?? props.name()}
-              autocomplete="username"
-              maxlength={USERNAME_MAX}
-              invalid={failed()}
-              disabled={offline()}
-              help={t("Letters, numbers, underscores and hyphens.")}
-              onInput={check}
+        <form class={styles.form} onSubmit={e => void save(e)}>
+          <div class={styles.avatarRow}>
+            <Avatar
+              size="lg"
+              name={shownName()}
+              src={staged()?.url || account()?.image || undefined}
             />
-            <div class={styles.actions}>
-              {/* with no connection neither the name nor the picture can change, and the line says so */}
-              <Status error={(failed() || !!props.notice()) && !offline()}>
-                {offline()
-                  ? t("You're offline.")
-                  : props.notice() || (checking() ? t("Checking…") : status())}
-              </Status>
-              <Button variant="primary" size="lg" type="submit" disabled={!canSave() || offline()}>
-                {saving() ? t("Saving…") : t("Save")}
+            <div class={styles.avatarText}>
+              <input
+                ref={fileInput}
+                class={styles.hidden}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={event => void choose(event.currentTarget.files?.[0])}
+              />
+              <Button
+                size="lg"
+                disabled={saving() || offline()}
+                onClick={() => (staged() ? unstage() : fileInput.click())}
+              >
+                {staged() ? t("Keep current avatar") : t("Change avatar")}
               </Button>
+              <Text variant="caption">{t("JPG, PNG or WebP, up to 5MB.")}</Text>
             </div>
-          </form>
-        </Show>
+          </div>
+          {/* the value follows what was typed: Solid writes it again whenever another of the field's states
+                changes (an error shown, the connection lost), which would put the saved name back */}
+          <Field
+            label={t("Username")}
+            name="username"
+            value={typed() ?? props.name()}
+            autocomplete="username"
+            maxlength={USERNAME_MAX}
+            invalid={failed()}
+            disabled={offline()}
+            help={t("Letters, numbers, underscores and hyphens.")}
+            onInput={check}
+          />
+          <div class={styles.actions}>
+            {/* with no connection neither the name nor the picture can change, and the line says so */}
+            <Status error={(failed() || !!props.notice()) && !offline()}>
+              {offline()
+                ? t("You're offline.")
+                : props.notice() || (checking() ? t("Checking…") : status())}
+            </Status>
+            <Button variant="primary" size="lg" type="submit" disabled={!canSave() || offline()}>
+              {saving() ? t("Saving…") : t("Save")}
+            </Button>
+          </div>
+        </form>
       </Show>
     </section>
   );
