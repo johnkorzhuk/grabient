@@ -54,13 +54,15 @@ import {
    An account's `@handle/slug` arrives encoded as one segment. */
 
 /** GET /api/collections: kept at the edge, by its words, order, frame, page and size (cache-keys.ts), so each read here
-    is a miss, which an address may make sixty of a minute. */
+    is a miss, which an address may make sixty of a minute across every list and search. */
 export async function listAnswer(
   request: Request,
   env: Env,
   ctx?: { waitUntil(work: Promise<unknown>): void }
 ): Promise<Response> {
-  const limited = await overLimit(env, [[clientAddress(request) ?? "local", "listMiss"]]);
+  const limited = await overLimit(env, [
+    [`list-miss:${clientAddress(request) ?? "local"}`, "listMiss"]
+  ]);
   if (limited) return limited;
   const url = new URL(request.url);
   const params = collectionParams(url.searchParams);

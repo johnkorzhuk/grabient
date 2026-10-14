@@ -5,8 +5,10 @@ import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collec
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
 import { collectionsHolding } from "../src/server/collections/read.ts";
 import { moveAccountAddresses } from "../src/server/collections/write.ts";
+import { searchJsonResponse } from "../src/server/search/routes.ts";
 import {
   type Account,
+  address,
   bodyOf,
   count,
   get,
@@ -296,6 +298,16 @@ describe("the public lists", () => {
     expect(page.items.some(item => item.title === title)).toBe(true);
     const rising = await listAnswer(get("/api/collections?sort=rising"), env);
     expect(rising.headers.get("CDN-Cache-Control")).toBe("max-age=60");
+  });
+
+  it("count a read the edge missed against the one budget an address has for every list", async () => {
+    const ip = address();
+    /* a minute's misses, spent on the palette search */
+    for (let i = 0; i < 60; i++)
+      expect((await searchJsonResponse(get("/api/search.json", { ip }), env)).status).toBe(400);
+    const refused = await listAnswer(get("/api/collections", { ip }), env);
+    expect(refused.status).toBe(429);
+    expect((await listAnswer(get("/api/collections"), env)).status).toBe(200);
   });
 
   it("search titles by their letters, a letter off allowed, and never a private one", async () => {
