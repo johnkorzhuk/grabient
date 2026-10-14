@@ -518,6 +518,55 @@ test("the selection's export screen takes the page's place, and Escape closes it
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
 });
 
+test("a step taken in the selection is the first an undo takes back once it closes", async ({
+  page
+}) => {
+  await open(page);
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  await page.keyboard.press("e");
+  const edited = "/kSqF5vKzob4kSRW";
+  await expect.poll(() => here(page)).toBe(edited);
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  const selection = page.getByRole("button", { name: /^Selection/ }).first();
+  await expect(selection).toHaveAccessibleName("Selection 2");
+  await selection.click();
+  await page.getByRole("button", { name: "Remove palette 1" }).first().click();
+  await page.keyboard.press("Escape");
+  await expect.poll(() => here(page)).toBe(edited);
+  await expect(selection).toHaveAccessibleName("Selection 1");
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(selection).toHaveAccessibleName("Selection 2");
+  expect(here(page)).toBe(edited);
+  // the edits are next, in the order they were made
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(selection).toHaveAccessibleName("Selection 1");
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+});
+
+test("the selection's entry keeps the palette's undo, so a reload there loses none of it", async ({
+  page
+}) => {
+  await open(page);
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  await page.keyboard.press("e");
+  await expect.poll(() => here(page)).toBe("/kSqF5vKzob4kSRW");
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await presses.getByRole("button", { name: /^Selection/ }).click();
+  await expect.poll(() => page.evaluate(() => !!history.state?.edits)).toBe(true);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Close selection" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+});
+
 test("About's first figure is the editor's own controls over a palette of its own, with its own undo", async ({
   page
 }) => {

@@ -108,14 +108,23 @@ export function followAddress(
       return;
     }
     const address = seedAddress(page);
+    /* an address written another way than the canonical (a link from elsewhere) is rewritten in place */
+    let write = !sameAddress(address, at.pathname + at.searchStr);
     if (address !== shown) {
       cancel();
       shown = address;
-      arrived(page);
-      e.arrive(page, at.state as EntryState);
+      /* The selection opening over this palette, closing, or setting the size it exports at: the same page, whose
+         undo and record stay, so a step taken in the selection is walked in its place among the edits. The
+         selection's entry keeps them as the page's does, for a reload there. */
+      if (page.seed === e.seed() && (page.selection || e.selecting())) {
+        write ||= page.selection && !e.selecting();
+        e.take(page);
+      } else {
+        arrived(page);
+        e.arrive(page, at.state as EntryState);
+      }
     }
-    /* an address written another way than the canonical (a link from elsewhere) is rewritten in place */
-    if (!sameAddress(address, at.pathname + at.searchStr)) {
+    if (write) {
       latest = address;
       writeSoon();
     }

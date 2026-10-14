@@ -261,6 +261,15 @@ export function createPaletteEditor(
       track(name);
       run(...args);
     };
+  /* how an address draws the palette, what Random keeps and whether the selection has the stage */
+  const take = (page: SeedPage) => {
+    setSteps(page.view.steps);
+    setStyle(page.view.style);
+    setAngle(page.view.angle);
+    setSize(page.view.size ?? null);
+    setLocks(page.locks);
+    setSelecting(page.selection);
+  };
 
   return {
     palette,
@@ -451,8 +460,9 @@ export function createPaletteEditor(
       setSize(size);
       remember({ size });
     },
-    setSelecting,
-
+    /** The page's own palette at an address that says something else of it: the selection opened over it or closed,
+        or the size its column set. The palette's undo and what the page opened with stay. */
+    take,
     /** Another address landed (Back, Forward, a link, a pasted address): its palette, view and locks, the undo its
         entry kept, and nothing held, since the keyframes held are not these. */
     arrive(page: SeedPage, kept?: { edits?: unknown; opened?: unknown }) {
@@ -460,12 +470,7 @@ export function createPaletteEditor(
       setPeek(null);
       shapes.forget();
       setPalette(page.palette);
-      setSteps(page.view.steps);
-      setStyle(page.view.style);
-      setAngle(page.view.angle);
-      setSize(page.view.size ?? null);
-      setLocks(page.locks);
-      setSelecting(page.selection);
+      take(page);
       setOpened(openedOf(page, kept?.opened));
       setOpenedSeed(seedIn(kept?.edits) ?? page.seed);
       edits.begin(stepOf(page.seed, page.view.steps, page.view.steps), kept?.edits);
