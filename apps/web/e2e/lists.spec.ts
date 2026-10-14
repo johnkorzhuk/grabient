@@ -1,7 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
-/* The palette lists as a reader sets how they are drawn: the header's control, the address it writes, what the feed
-   keeps through a change and the view the tab remembers. They read the palettes `pnpm db:setup` loads. */
+/* The gallery's lists as a reader sets how they are drawn: the header's control, the address it writes, what the feed
+   keeps through a change and the view the tab remembers. Then the home searched, which reads the collections list's
+   own pages. They read the palettes `pnpm db:setup` loads. */
 
 const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 const remembered = (page: Page) => page.evaluate(() => sessionStorage.getItem("grabient-view"));
@@ -84,4 +85,26 @@ test("a document that opens on a list takes its view, which the wordmark leads h
   await page.goto("/palettes");
   await expect.poll(() => remembered(page)).toContain('"style":"auto"');
   await expect(home).toHaveAttribute("href", "/");
+});
+
+test("the home searched reads the collections list's own page, which the list then asks for no more", async ({
+  page
+}) => {
+  const asked: string[] = [];
+  page.on("request", request => {
+    const url = new URL(request.url());
+    if (url.pathname === "/api/collections") asked.push(url.search);
+  });
+  await page.goto("/");
+  await hydrated(page);
+  const field = page.getByPlaceholder("Search palettes and collections");
+  await field.fill("blue");
+  await field.press("Enter");
+  await expect(page).toHaveURL(/\/\?q=blue$/);
+  // as the list asks: the popular order, and the words read through the model
+  await expect.poll(() => asked[0]).toBe("?sort=popular&page=1&limit=24&q=blue&model=1");
+  await page.locator('main a[href="/collections?q=blue"]').click();
+  await expect(page).toHaveURL(/\/collections\?q=blue$/);
+  await expect(page.locator("main h1")).toBeVisible();
+  expect(asked.filter(query => query.includes("page=1&"))).toHaveLength(1);
 });
