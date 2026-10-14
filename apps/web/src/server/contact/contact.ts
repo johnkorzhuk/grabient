@@ -12,7 +12,7 @@ import {
   MESSAGE_MAX
 } from "../../features/contact/input.ts";
 
-// a character of any script is at most three bytes of UTF-8, so the longest message the page sends fits whole
+// the page counts a message in UTF-16 units, each at most three bytes of UTF-8, so the longest it sends fits whole
 const BODY_MAX = MESSAGE_MAX * 3 + EMAIL_MAX + 1024;
 
 /** `POST /api/contact`: a message from the contact page to the site's own address, as plain text, with the sender's
