@@ -64,11 +64,17 @@ function fitting(line: () => HTMLElement, steps: number) {
   return tight;
 }
 
-export function AxisRow(props: { editor: PaletteEditor; axis: Axis; height: number }) {
+export function AxisRow(props: {
+  editor: PaletteEditor;
+  axis: Axis;
+  height: number;
+  /** Random's locks at the fields' ends: a figure with no Random has none */
+  locks?: boolean;
+}) {
   const e = props.editor;
   let line!: HTMLDivElement;
   const tight = fitting(() => line, props.axis === "h" ? 1 : 2);
-  const lock = (k: Lock) => () => e.toggleLock(k);
+  const lock = (k: Lock) => (props.locks === false ? undefined : () => e.toggleLock(k));
   const lead = () => e.palette().anchors[e.lead()] ?? e.palette().anchors[0];
   /* a drag on the line with nothing held: lightness end to end by as much, chroma's peak, or hue round the wheel, each
      from where the drag began */
@@ -264,11 +270,10 @@ function Previewed(props: {
   );
 }
 
-export function Actions(props: { editor: PaletteEditor; save: PaletteSave }) {
+export function Actions(props: { editor: PaletteEditor; save?: PaletteSave }) {
   const e = props.editor;
   const [straight, setStraight] = createSignal(false);
   const span = () => e.straightenSpan();
-  const save = props.save;
   /* a tooltip names a press, then its key after a middle dot: a key is never translated */
   const named = (name: string, key: string) => (key ? `${name} · ${key}` : name);
   return (
@@ -380,23 +385,25 @@ export function Actions(props: { editor: PaletteEditor; save: PaletteSave }) {
         </Previewed>
       </span>
       {/* an admin's Save: the palette on screen in the place of the one this page opened, wherever that stands */}
-      <Show when={save.admin()}>
-        <span
-          class={[styles.cell, styles.whole]}
-          ref={tooltip(() => (save.can() ? "" : save.reason() || save.tip()))}
-        >
-          <Button
-            full
-            wrap
-            disabled={!save.can()}
-            keep
-            tip={save.tip()}
-            onClick={() => void save.save()}
+      <Show when={props.save?.admin() && props.save}>
+        {save => (
+          <span
+            class={[styles.cell, styles.whole]}
+            ref={tooltip(() => (save().can() ? "" : save().reason() || save().tip()))}
           >
-            <Icon name={save.done() ? "check" : "save"} size={14} />{" "}
-            {save.saving() ? t("Saving…") : save.done() ? t("Saved") : t("Save")}
-          </Button>
-        </span>
+            <Button
+              full
+              wrap
+              disabled={!save().can()}
+              keep
+              tip={save().tip()}
+              onClick={() => void save().save()}
+            >
+              <Icon name={save().done() ? "check" : "save"} size={14} />{" "}
+              {save().saving() ? t("Saving…") : save().done() ? t("Saved") : t("Save")}
+            </Button>
+          </span>
+        )}
       </Show>
     </div>
   );
