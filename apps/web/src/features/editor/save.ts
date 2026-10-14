@@ -3,7 +3,7 @@ import { STEPS_MIN } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { createDone } from "@grabient/ui/done.ts";
 import { useQueryClient } from "@tanstack/solid-query";
-import { createEffect, createSignal } from "solid-js";
+import { createEffect, createSignal, untrack } from "solid-js";
 import * as v from "valibot";
 import { toast } from "../../app/toast.ts";
 import { liked, movePaletteLike } from "../account/likes.ts";
@@ -43,7 +43,7 @@ function keep(seed: string, standing: Standing) {
   });
 }
 async function ask(seed: string) {
-  if (asking.has(seed) || standings().has(seed)) return;
+  if (asking.has(seed) || untrack(standings).has(seed)) return;
   asking.add(seed);
   try {
     /* an answer in another shape is no standing: Save waits, as it does when the read fails */

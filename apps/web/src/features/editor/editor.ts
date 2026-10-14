@@ -537,7 +537,7 @@ function openedOf(page: SeedPage, kept: unknown): Opened {
       };
   /* What the tab remembered as the page opened. A part a card handed over as set came from the tab's own memory, so
      letting it go here leaves the tab with no choice of it. */
-  const tab = rememberedView();
+  const tab = untrack(rememberedView);
   const chosen = {
     style: choice(k?.chosen?.style, isStyle) ?? (base.set.style ? "auto" : tab.style),
     steps: choice(k?.chosen?.steps, isCount) ?? (base.set.steps ? "auto" : tab.steps),

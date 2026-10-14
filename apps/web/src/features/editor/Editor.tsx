@@ -390,9 +390,6 @@ function Page(props: PageProps) {
             out={docked()}
             ref={el => {
               rail = el;
-              onCleanup(() => {
-                rail = undefined;
-              });
             }}
           />
         </Show>
@@ -469,7 +466,7 @@ function Tools(props: {
           disabled={signInUnavailable()}
         />
       </span>
-      <Show when={props.chosen}>{screen => screen().press()}</Show>
+      {props.chosen?.press()}
       <span
         class={[styles.stack, { [styles.waits]: !props.paper && !chosen() }]}
         data-flat={props.paper ? "" : undefined}
@@ -671,10 +668,12 @@ function Rail(props: {
   editor: PaletteEditor;
   panel: Panel;
   out: boolean;
-  ref: (el: HTMLElement) => void;
+  /** the rail's box while it stands, for the page to measure */
+  ref: (el: HTMLElement | undefined) => void;
 }) {
   const e = props.editor;
   let rail!: HTMLDivElement;
+  onCleanup(() => props.ref(undefined));
   const reveal = () =>
     queueMicrotask(() => {
       if (e.held().length && !props.panel.open()) props.panel.toggle();
