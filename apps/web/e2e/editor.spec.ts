@@ -234,6 +234,19 @@ test("the document the edge keeps for an address is the same page for its lock w
   ).toHaveAttribute("aria-pressed", "true");
 });
 
+test("a change of view keeps the title the server wrote for the palette", async ({ page }) => {
+  await open(page, "/kQ4RjAYQ6_g?steps=6&angle=180");
+  const title = await page.title();
+  await page.keyboard.press("]");
+  await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?angle=180");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveTitle(title);
+  await page.keyboard.press("[");
+  await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=180");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveTitle(title);
+});
+
 test("random leads to a new palette at the view asked for", async ({ request }) => {
   const answer = await request.get("/random?style=radialGradient", { maxRedirects: 0 });
   expect(answer.status()).toBe(302);
