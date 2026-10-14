@@ -1,4 +1,5 @@
-import { type Locale, localizePath } from "@grabient/i18n";
+import { DEFAULT_LOCALE, isLocale, type Locale, localizePath } from "@grabient/i18n";
+import { homePage } from "../features/gallery/address.ts";
 import { BUILD } from "../lib/build.ts";
 import { BROWSER_ONLY, FIXED_PAGES } from "../lib/links.ts";
 import { listWords } from "../lib/words.ts";
@@ -44,10 +45,24 @@ const RULES: readonly KeyRule[] = [
       path.startsWith("/favicon/"),
     query: none
   },
-  // the home's head reads its words alone, as the lists write them
+  // the home as data: its words as the lists write them, or words refused, which nothing is kept under; then its page
+  // and the language of its collections, or that it is the palettes alone, the same on every page and in every language
   {
     match: path => path === "/api/hot",
-    query: params => new URLSearchParams({ q: listWords(params.get("q")) })
+    query: params => {
+      const asked = params.get("q") ?? "";
+      const q = listWords(asked);
+      const lang = params.get("lang");
+      return new URLSearchParams({
+        ...(q ? { q } : asked.trim() ? { refused: "1" } : {}),
+        ...(params.has("head")
+          ? { head: "1" }
+          : {
+              page: String(homePage(params)),
+              ...(isLocale(lang) && lang !== DEFAULT_LOCALE ? { lang } : {})
+            })
+      });
+    }
   },
   { match: path => path === "/api/frames", query: none },
   { match: path => path === "/api/newsletter", query: issuesKey },

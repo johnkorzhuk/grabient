@@ -1,12 +1,23 @@
 import { all, first, run } from "@grabient/server/db/d1.ts";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import corpus from "../public/corpus-k.json" with { type: "json" };
 import golden from "../src/features/gallery/fixtures/list-pages.json" with { type: "json" };
+import { type HeadAnswer, homeHead } from "../src/server/gallery/home.ts";
 import { likeCounts, likeInput, savedPage, setLike } from "../src/server/gallery/likes.ts";
 import { forgetGalleryCount, listPalettes } from "../src/server/gallery/list.ts";
 import { rescore } from "../src/server/gallery/rescore.ts";
 import { risen } from "../src/server/gallery/scores.ts";
-import { makeAccount, makeAdmin, ORIGIN, testEnv, unique } from "./helpers.ts";
+import { searchPool } from "../src/server/gallery/search.ts";
+import {
+  address,
+  bodyOf,
+  get,
+  makeAccount,
+  makeAdmin,
+  ORIGIN,
+  testEnv,
+  unique
+} from "./helpers.ts";
 
 /* The gallery against D1 with every migration: its lists, likes as the server applies them, and the six-hour pass.
    The list tests read the gallery whole, so each starts from the fifty palettes grabient4's goldens were made with. */
@@ -106,6 +117,115 @@ describe("lists", () => {
     const outside = corpus.items[60]!.kseed;
     expect((await setLike(env, account, like(outside))).joined).toBe(true);
     expect((await listPalettes(env, { limit: 24 })).total).toBe(51);
+  });
+});
+
+type Handler = (context: { request: Request }) => Promise<Response>;
+const hotRoute = import.meta.glob<{
+  Route: { options: { server: { handlers: { GET: Handler } } } };
+}>("../src/routes/api/hot.ts");
+
+describe("the home as data", () => {
+  beforeEach(async () => {
+    await fifty();
+  });
+  const hot = async (query: string) => {
+    const { Route } = await hotRoute["../src/routes/api/hot.ts"]!();
+    const response = await Route.options.server.handlers.GET({ request: get(`/api/hot${query}`) });
+    return { response, body: await bodyOf<{ palettes: { kseed: string }[] }>(response) };
+  };
+
+  it("answers its page, its head and the page of collections beneath it, as llms.txt tells agents", async () => {
+    const first = await hot("?page=1");
+    expect(first.response.headers.get("CDN-Cache-Control")).toBe("max-age=300");
+    expect(Object.keys(first.body).sort()).toEqual([
+      "collections",
+      "fetchedAt",
+      "page",
+      "palettes"
+    ]);
+    const head = first.body.palettes;
+    expect([head.length, head.slice(0, 12).map(item => item.kseed)]).toEqual([
+      24,
+      golden.hot.seeds
+    ]);
+    expect(first.body).toMatchObject({
+      page: 1,
+      collections: { sort: "hot", page: 1, limit: 24, items: [] }
+    });
+    const second = await hot("?page=2");
+    expect(second.body).toMatchObject({
+      page: 2,
+      palettes: first.body.palettes,
+      collections: { sort: "hot", page: 2 }
+    });
+    const searched = await hot("?q=Blue&page=1");
+    expect(searched.body).toMatchObject({
+      page: 1,
+      query: "blue",
+      collections: { query: "blue", sort: "popular", page: 1 }
+    });
+    expect(Object.keys(searched.body)).toEqual(expect.arrayContaining(["palettes", "tier"]));
+    // what the home's own page reads: its collections are the collections list's reads
+    const alone = await hot("?q=Blue&head=1");
+    expect(Object.keys(alone.body).sort()).toEqual(["fetchedAt", "palettes", "query", "tier"]);
+    expect(alone.body.palettes).toEqual(searched.body.palettes);
+  });
+
+  it("refuses words no search takes, and keeps nothing of the refusal", async () => {
+    const refused = await hot("?q=%00%01");
+    expect([refused.response.status, refused.body]).toEqual([
+      400,
+      { error: "Invalid search query." }
+    ]);
+    expect(refused.response.headers.get("Cache-Control")).toBe("no-store");
+  });
+
+  it("says how long to wait once the search's allowance for an address is spent", async () => {
+    const AI = {
+      run: async (_: string, input: { text: string[] }) => ({
+        data: input.text.map(() => Array.from({ length: 768 }, (_, i) => Math.sin(i)))
+      })
+    } as unknown as Ai;
+    const env = { ...testEnv(), AI };
+    const ip = address();
+    let answer: HeadAnswer | undefined;
+    for (let i = 0; i < 30 && answer?.status !== 429; i++) {
+      // words no vocabulary holds, which only the model reads
+      const words = unique("zxq").replace(/[^a-z]/g, "");
+      answer = await homeHead(env, get("/api/hot", { ip }), words);
+    }
+    expect(answer).toMatchObject({ status: 429, kept: false, head: { limited: true } });
+    expect(answer?.retryAfter).toBeGreaterThan(0);
+  });
+});
+
+describe("a list's search", () => {
+  it("answers without waiting for the search's store, which is looked at after the answer", async () => {
+    const env = testEnv();
+    // the bindings as another isolate holds them: its first search reads the snapshot
+    const isolate = {
+      ...env,
+      ASSETS: {
+        fetch: (input: RequestInfo | URL, init?: RequestInit) => env.ASSETS.fetch(input, init)
+      } as Fetcher
+    };
+    await searchPool(isolate, request, "blue");
+    let answer = (_: null) => {};
+    const SEARCH_SNAPSHOTS = {
+      get: () => new Promise<null>(done => (answer = done))
+    } as unknown as R2Bucket;
+    // five minutes on the store is looked at again, and neither it nor the clock moves: a search that waited for it
+    // would never answer
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    vi.setSystemTime(Date.now() + 6 * 60_000);
+    try {
+      const found = await searchPool({ ...isolate, SEARCH_SNAPSHOTS }, request, "blue");
+      expect(found).toMatchObject({ query: "blue", tier: "vocabulary" });
+    } finally {
+      vi.useRealTimers();
+      answer(null);
+    }
   });
 });
 
@@ -347,6 +467,13 @@ describe("likes", () => {
       [outside]: 0
     });
     expect(await likeCounts(env, [seedAt(8)])).toEqual({ [seedAt(8)]: 1 });
+  });
+
+  it("read an old grabient.com id as the palette the legacy maps hold for it", async () => {
+    const old = "_chhgKLgDyjuCgCzgCXgBggPfgS4gO2gMjgMg";
+    const seed = "kYsoNn6TS9Wc2OtcwzzVCjA9amSm";
+    expect(await likeCounts(testEnv(), [old])).toEqual({ [seed]: 0 });
+    expect(like(old).seed).toBe(seed);
   });
 
   it("list an account's saved palettes newest first, drawn as saved", async () => {

@@ -23,6 +23,7 @@ import {
   createSignal,
   deep,
   For,
+  isPending,
   Loading,
   onSettled,
   Show,
@@ -31,7 +32,6 @@ import {
 } from "solid-js";
 import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
-import { record } from "../../app/undo.ts";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
@@ -42,25 +42,16 @@ import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
 import type { CollectionSummary } from "../collections/types.ts";
-import { AppearanceContext, drawnIn, inView } from "../list/appearance.ts";
+import { AppearanceContext, inView } from "../list/appearance.ts";
 import { searchAnswered } from "../search/count.ts";
 import { createSearchFit } from "../search/fit.ts";
-import { createPicture, type Settled } from "../search/picture.ts";
-import { Sampler } from "../search/Sampler.tsx";
+import { PictureSampler } from "../search/PictureSampler.tsx";
+import { createPicture } from "../search/picture.ts";
 import { selection } from "../selection/selection.ts";
 import { createAccountSearch } from "./account.ts";
 import { type GalleryPlace, listHref, listIdentity, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
-import {
-  madeItems,
-  minuteOf,
-  nameOf,
-  ownOf,
-  paintOf,
-  paletteHref,
-  picturedAs,
-  relativeAge
-} from "./drawing.ts";
+import { madeItems, minuteOf, paintOf, picturedAs, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
 import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
@@ -73,7 +64,7 @@ import { type Failed, failed, framesQuery } from "./queries.ts";
 import type { PaletteItem } from "./schema.ts";
 import { sortSearch } from "./sort.ts";
 import { keptPage, type ListSource, type Page, pageView, readPage } from "./sources.ts";
-import { metaPage, searchedName } from "./titles.ts";
+import { metaPage, searchedName, searchedTitle } from "./titles.ts";
 
 /* The palette lists: Popular (/palettes) and Rising in its frame (/palettes/rising), each searched with `?q=`, and the
    account's Saved. A list is a feed: its address's own page, then each page after it joining as the reader nears the
@@ -94,6 +85,9 @@ const TOOL = {
 /** The collections offered where the palettes cannot answer: twelve asked for, eight shown. */
 const OFFER_ASKED = 12;
 const OFFER_SHOWN = 8;
+/* An order pressed between Saved and the public lists, which are pages of their own: the choice leaves with the page
+   it was pressed on, and the page that replaces it gives the focus back to its own. A press in the browser alone. */
+let pressed: Order | null = null;
 
 export function Palettes(props: { place: ListPlace }) {
   const client = useQueryClient();
@@ -164,11 +158,12 @@ export function Palettes(props: { place: ListPlace }) {
     createEffect(asked, now => {
       if (now.of !== reading) readOwn(now);
     });
-    /* a like made or taken back leaves the kept pages behind: the next visit reads them again */
+    /* a like made or taken back leaves the kept pages behind: the next visit reads them again. A read waits for the
+       copy's first sync, so that sync's reset is in what it reads */
     onSettled(() =>
       onAccountChange(change => {
         if (!change.reset && !change.likes.size) return;
-        likes++;
+        if (!change.reset) likes++;
         void client.invalidateQueries({ queryKey: ["saved"] });
       })
     );
@@ -293,10 +288,10 @@ export function Palettes(props: { place: ListPlace }) {
     offline,
     named: asked => searchedName(asked) ?? asked
   });
-  const curation = createCuration({
-    seeds: () => (saved ? [] : items().map(item => item.kseed)),
-    say: page.say
-  });
+  /* none on Saved: every palette there is the account's own like, which curation never changes */
+  const curation = saved
+    ? null
+    : createCuration({ seeds: () => items().map(item => item.kseed), say: page.say });
 
   const searchHref = (to: string, linked?: URLSearchParams) =>
     listHref("palettes", order(), frame(), withView({ ...params(), words: to }, linked));
@@ -315,12 +310,6 @@ export function Palettes(props: { place: ListPlace }) {
   };
   const searchPoints = (colors: string | null) => {
     if (colors && colors !== words()) go(searchHref(colors), true);
-  };
-  const rest = (done: Settled | null) => {
-    if (!done) return;
-    const show = (points: Settled["before"]) => async () => searchPoints(picture.show(points));
-    record({ undo: show(done.before), redo: show(done.after) });
-    searchPoints(done.colors);
   };
   /* a search by colors leads with the palettes the colors make, a picture's as its points move */
   const made = createMemo(() =>
@@ -356,23 +345,9 @@ export function Palettes(props: { place: ListPlace }) {
     return !answered() && !!read && params().page > Math.max(1, read.totalPages);
   };
   /* a palette searched by stands in the title as the card it would be, leading to its page */
-  const searched = createMemo(() => {
-    const name = words() ? searchedName(words()) : null;
-    /* a search by colors is titled by the palette its colors make as written */
-    const item = name
-      ? { kseed: words(), style: "linearGradient" as const, steps: 7, angle: 90 }
-      : made()[0];
-    if (!item) return null;
-    const shown = drawnIn(ownOf(item), params());
-    const drawn = picturedAs(ownOf(item), params(), look.draft(), look.peek());
-    return {
-      stops: hexesOf(drawn),
-      style: drawn.style,
-      angle: drawn.angle,
-      name: nameOf(shown),
-      href: paletteHref(shown, params().size)
-    };
-  });
+  const searched = createMemo(() =>
+    searchedTitle(words(), made(), params(), look.draft(), look.peek())
+  );
   const feedTitle = () =>
     t(
       order() === "saved"
@@ -393,12 +368,16 @@ export function Palettes(props: { place: ListPlace }) {
             ? t("No results. Try a color, mood or theme.")
             : t("No results.");
   const more = () => feed.more() && !headError();
+  /* The cards standing while their list is read: another list, or this one again once it is old. Until the read lands,
+     the query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
+  const updating = () => navigating() || (!!listed && isPending(() => listed.data));
   /* the placeholders say a cold list is on its way; the line speaks only for what the cards cannot */
   const message = () =>
+    (updating() ? t("Updating…") : "") ||
     headError() ||
     feed.reason() ||
     page.line()?.message ||
-    (navigating() ? t("Updating…") : feed.loading() ? t("Loading more…") : "") ||
+    (feed.loading() ? t("Loading more…") : "") ||
     found.note() ||
     (signInForMore() && !more() ? t("Sign in to search with all your words.") : "") ||
     (standing() && !items().length && !signInToSearch() ? empty() : "");
@@ -424,8 +403,18 @@ export function Palettes(props: { place: ListPlace }) {
       trackSignInPrompt("saved");
       return go(loginHref(target));
     }
+    if ((to === "saved") !== saved) pressed = to;
     go(target);
   };
+  let row!: HTMLDivElement;
+  onSettled(() => {
+    const was = pressed;
+    pressed = null;
+    const at = document.activeElement;
+    // the row's last chosen choice is its order's, after its section's
+    if (was === order() && (!at || at === document.body || at.id === "main"))
+      [...row.querySelectorAll<HTMLElement>('[aria-current="page"]')].at(-1)?.focus();
+  });
   const nextHref = () => {
     const last = feed.joined().at(-1) ?? standing();
     return localHref(
@@ -461,7 +450,7 @@ export function Palettes(props: { place: ListPlace }) {
             onImage={file => void searchImage(file)}
           />
           <h1 class={styles.hidden}>{heading(metaPage(props.place))}</h1>
-          <div class={styles.row}>
+          <div class={styles.row} ref={row}>
             <ListNav
               section="palettes"
               order={order()}
@@ -481,7 +470,7 @@ export function Palettes(props: { place: ListPlace }) {
             {page.chosen.button()}
           </div>
           {page.chosen.float()}
-          <div class={styles.list} aria-busy={navigating() ? "true" : "false"}>
+          <div class={styles.list} aria-busy={updating() ? "true" : "false"}>
             <Show when={held() || made().length}>
               <Made
                 title={held() ? t("From your image") : t("From your colors")}
@@ -489,30 +478,7 @@ export function Palettes(props: { place: ListPlace }) {
                 picture={
                   <Show when={held()}>
                     {shown => (
-                      <Sampler
-                        src={shown().src}
-                        width={shown().width}
-                        height={shown().height}
-                        label={t("Your image")}
-                        points={shown().points}
-                        onMove={(i, x, y) => void picture.move(i, x, y)}
-                        onRelease={() => void picture.settle().then(rest)}
-                        onReset={
-                          picture.moved(shown()) ? () => void picture.reset().then(rest) : undefined
-                        }
-                        onAdd={(x, y) => {
-                          void picture.add(x, y);
-                          void picture.settle().then(rest);
-                        }}
-                        onRemove={
-                          picture.canRemove(shown())
-                            ? i => {
-                                void picture.remove(i);
-                                void picture.settle().then(rest);
-                              }
-                            : undefined
-                        }
-                      />
+                      <PictureSampler picture={picture} shown={shown()} search={searchPoints} />
                     )}
                   </Show>
                 }
@@ -630,7 +596,7 @@ export function Palettes(props: { place: ListPlace }) {
                             />
                           </Show>
                         }
-                        lead={curation.presses(item, { view: true, scopes: true })}
+                        lead={curation?.presses(item, { view: true, scopes: true })}
                       />
                     )}
                   />

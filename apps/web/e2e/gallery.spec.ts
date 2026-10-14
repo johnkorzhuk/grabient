@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 /* The gallery's lists as a signed-out reader meets them: what a page asks the server, the cards the server drew that
    wait for the reader, the selection, a heart and Saved. They read the palettes `pnpm db:setup` loads. */
 
+const SEED = "kS7CQ31Do6asvY-";
 const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 const here = (page: Page) => {
   const url = new URL(page.url());
@@ -42,6 +43,26 @@ test("a list hydrates from what the server read, and the next page joins as the 
     .poll(async () => Number(await page.locator("[data-count]").first().getAttribute("data-count")))
     .toBeGreaterThanOrEqual(48);
   expect(here(page)).toBe("/palettes");
+});
+
+test("a screen taller than the first page asks for the next one once, and draws it", async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 2560, height: 1440 });
+  const asked = calls(page);
+  await page.goto("/palettes");
+  await hydrated(page);
+  const feed = page.locator("[data-count]").first();
+  await expect(feed).toHaveAttribute("data-count", "48");
+  const tall = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.waitForTimeout(1500);
+  // the page that joined pushed the end out of reach, so no other page was asked for
+  expect(asked.filter(path => path.startsWith("/api/palettes"))).toEqual([
+    "/api/palettes?sort=popular&page=2&limit=24"
+  ]);
+  await expect(feed).toHaveAttribute("data-count", "48");
+  expect(await page.locator("main article").count()).toBeGreaterThan(24);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(tall);
 });
 
 test("a card the server drew answers focus and a press that reach it before the reader moves", async ({
@@ -114,6 +135,85 @@ test("a card's plus starts the selection, and its screen stands in the page's pl
   // the press is a step of the page's undo
   await page.keyboard.press("Control+z");
   await expect(page.getByRole("button", { name: /^Selection/ })).toHaveCount(0);
+});
+
+/** A browser new to an account, which the session, the copy's sync and Saved's search answer as the server would:
+    one like, of an admin's. Says each read of Saved. */
+async function signedIn(page: Page): Promise<string[]> {
+  const user = {
+    id: "e2e-admin",
+    name: "Admin",
+    email: "admin@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "admin",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const view = { style: "linearGradient", steps: 7, angle: 90 } as const;
+  const at = Date.UTC(2026, 9, 1);
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: user.id }, user } })
+  );
+  // the copy's first sync lands after the page has asked for Saved, as it does over a network
+  await page.route("**/api/me/sync", async route => {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    await route.fulfill({
+      json: {
+        ...{ cursor: 1, reset: true, lastMutation: 0, admin: true },
+        ...{ likes: [{ seed: SEED, ...view, at, likes: 3 }], unliked: [], collections: [] },
+        ...{ removed: [], results: [] }
+      }
+    });
+  });
+  const read: string[] = [];
+  await page.route("**/api/saved?*", route => {
+    read.push(new URL(route.request().url()).search);
+    return route.fulfill({
+      json: {
+        items: [{ kseed: SEED, ...view, likes: 3, createdAt: at }],
+        ...{ total: 1, page: 1, totalPages: 1, query: "blue", tier: "vocabulary" },
+        fetchedAt: Date.now()
+      }
+    });
+  });
+  return read;
+}
+
+test("Saved searched in a browser new to the account reads its page once", async ({ page }) => {
+  const read = await signedIn(page);
+  await page.goto("/palettes/saved?q=blue");
+  await expect(card(page, 0)).toBeVisible();
+  await page.waitForTimeout(1000);
+  expect(read).toEqual(["?page=1&limit=24&q=blue"]);
+});
+
+test("Saved offers an admin no curation: every palette there is their own like", async ({
+  page
+}) => {
+  await signedIn(page);
+  await page.goto("/palettes/saved?q=blue");
+  await card(page, 0).hover();
+  await expect(card(page, 0).getByRole("link", { name: "Edit" })).toBeVisible();
+  await expect(
+    card(page, 0).getByRole("button", { name: /^(Set view|Delete palette)/ })
+  ).toHaveCount(0);
+});
+
+test("a press between Saved and the public lists keeps the focus on the choice pressed", async ({
+  page
+}) => {
+  await signedIn(page);
+  await page.goto("/palettes");
+  await hydrated(page);
+  const order = page.getByRole("navigation", { name: "Order" });
+  await order.getByRole("button", { name: "Saved" }).focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => here(page)).toBe("/palettes/saved");
+  await expect(order.getByRole("button", { name: "Saved" })).toBeFocused();
+  await order.getByRole("link", { name: "Popular" }).focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => here(page)).toBe("/palettes");
+  await expect(order.getByRole("link", { name: "Popular" })).toBeFocused();
 });
 
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {

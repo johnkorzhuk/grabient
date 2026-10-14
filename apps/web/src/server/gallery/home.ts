@@ -1,8 +1,13 @@
+import { waitUntil } from "cloudflare:workers";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
+import { COLLECTION_LIMIT } from "../../features/collections/params.ts";
+import type { CollectionPage } from "../../features/collections/types.ts";
 import { HOT_PALETTES, type HomeHead, SEARCH_PALETTES } from "../../features/gallery/schema.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
 import { RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
+import { publicCollections } from "../collections/search.ts";
+import { localizeCollections, type TranslatedLocale } from "../mcp/admin/translations.ts";
 import { listPalettes } from "./list.ts";
 import { searchPool } from "./search.ts";
 
@@ -17,6 +22,8 @@ export interface HeadAnswer {
   kept: boolean;
   /** 429 when an allowance ran out, 503 when the search files are missing */
   status: number;
+  /** the seconds to wait when an allowance ran out, where the search says */
+  retryAfter?: number;
 }
 
 export async function homeHead(env: Env, request: Request, words: string): Promise<HeadAnswer> {
@@ -24,7 +31,7 @@ export async function homeHead(env: Env, request: Request, words: string): Promi
     const { items } = await listPalettes(env, { sort: "hot", limit: HOT_PALETTES, count: false });
     return { head: { palettes: items, fetchedAt: Date.now() }, kept: true, status: 200 };
   }
-  const answer = await searchPool(env, request, words);
+  const { retryAfter, ...answer } = await searchPool(env, request, words);
   return {
     head: {
       query: words,
@@ -36,8 +43,26 @@ export async function homeHead(env: Env, request: Request, words: string): Promi
       fetchedAt: Date.now()
     },
     kept: !answer.limited && !answer.unkept && answer.tier !== "unavailable",
-    status: answer.limited ? 429 : answer.tier === "unavailable" ? 503 : 200
+    status: answer.limited ? 429 : answer.tier === "unavailable" ? 503 : 200,
+    ...(retryAfter ? { retryAfter } : {})
   };
+}
+
+/** The collections the home shows on a page, in a language: the hot order, or searched, the popular one. Read after
+    the head, so words only the model reads are read by it once. */
+export async function homeCollections(
+  env: Env,
+  request: Request,
+  words: string,
+  page: number,
+  lang: TranslatedLocale | null
+): Promise<CollectionPage> {
+  const found = await publicCollections(
+    env,
+    { sort: words ? "popular" : "hot", query: words, page, limit: COLLECTION_LIMIT },
+    { model: !!words, request, ctx: { waitUntil } }
+  );
+  return { ...found, items: await localizeCollections(env, lang, found.items) };
 }
 
 /** The Rising frames an admin has left on: the week's always, three months and a year by their flags. */

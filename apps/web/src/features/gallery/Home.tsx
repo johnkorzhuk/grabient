@@ -24,6 +24,7 @@ import {
   deep,
   For,
   isHydrating,
+  isPending,
   Loading,
   NoHydration,
   onSettled,
@@ -33,14 +34,13 @@ import {
 import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
 import { heading } from "../../lib/page-meta.ts";
-import { hexesOf } from "../../lib/palette.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
 import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { createFit } from "../collections/fit.ts";
 import { collectionGone, paletteGone } from "../collections/overlay.ts";
 import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
-import { AppearanceContext, drawnIn, inView } from "../list/appearance.ts";
+import { AppearanceContext, inView } from "../list/appearance.ts";
 import { searchAnswered } from "../search/count.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { createPicture } from "../search/picture.ts";
@@ -48,16 +48,7 @@ import { selection } from "../selection/selection.ts";
 import { createAccountSearch } from "./account.ts";
 import { type ListParams, listHref, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
-import {
-  homePaint,
-  madeItems,
-  minuteOf,
-  nameOf,
-  ownOf,
-  paletteHref,
-  picturedAs,
-  relativeAge
-} from "./drawing.ts";
+import { homePaint, madeItems, minuteOf, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
 import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
@@ -69,7 +60,7 @@ import { createGalleryPage, GalleryContext } from "./page.tsx";
 import { type Failed, failed, homeCollectionsQuery, homeHeadQuery } from "./queries.ts";
 import { HOT_PALETTES, SEARCH_PALETTES } from "./schema.ts";
 import { sortSearch } from "./sort.ts";
-import { metaPage, searchedName } from "./titles.ts";
+import { metaPage, searchedName, searchedTitle } from "./titles.ts";
 
 /* The home: the hottest palettes under Trending, then the hot collections as their groups, more joining as the reader
    nears the end. Searched (`/?q=words`) it keeps the shape: the palette list's search, the most liked first, then the
@@ -258,37 +249,21 @@ export function Home(props: { params: ListParams }) {
   const now = () => minuteOf(standingHead()?.fetchedAt ?? 0);
   /* when the head's counts were read: the account's own answer is as fresh as it is */
   const headReadAt = () => (found.items() ? undefined : standingHead()?.fetchedAt);
-  const searched = createMemo(() => {
-    const name = words() ? searchedName(words()) : null;
-    /* a search by colors is titled by the palette its colors make as written */
-    const item = name
-      ? { kseed: words(), style: "linearGradient" as const, steps: 7, angle: 90 }
-      : made()[0];
-    if (!item) return null;
-    const shown = drawnIn(ownOf(item), params());
-    const drawn = picturedAs(ownOf(item), params(), look.draft(), look.peek());
-    return {
-      stops: hexesOf(drawn),
-      style: drawn.style,
-      angle: drawn.angle,
-      name: nameOf(shown),
-      href: paletteHref(shown, params().size)
-    };
-  });
+  const searched = createMemo(() =>
+    searchedTitle(words(), made(), params(), look.draft(), look.peek())
+  );
   const headError = () => (failed(head.data) ? head.data.failed : "");
   const firstError = () => (failed(first.data) ? first.data.failed : "");
+  /* A head standing while it is read again, for other words or in place once it is old. Until the read lands, the
+     query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
+  const updating = () => navigating() || isPending(() => head.data);
   const message = () =>
+    (updating() ? (words() ? t("Searching…") : t("Updating…")) : "") ||
     headError() ||
     firstError() ||
     feed.reason() ||
     page.line()?.message ||
-    (navigating()
-      ? words()
-        ? t("Searching…")
-        : t("Updating…")
-      : feed.loading()
-        ? t("Loading more…")
-        : "") ||
+    (feed.loading() ? t("Loading more…") : "") ||
     found.note() ||
     (signInForMore() && !feed.more() ? t("Sign in to search with all your words.") : "") ||
     (!standingHead() || groups().length

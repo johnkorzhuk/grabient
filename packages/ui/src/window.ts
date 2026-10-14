@@ -7,13 +7,13 @@ import { createMemo, createSignal, flush, isHydrating, onCleanup, onSettled } fr
    measured once drawn and estimated before (createHeights).
 
    The server draws a column's first blocks. The first of them are hydrated and the rest stay the server's still
-   markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key): then the window
-   starts and draws live blocks where it stands. A press or the focus that reaches a still block with no such move (a
+   markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key) or the column is
+   given blocks the server did not draw: then the window starts and draws live blocks where it stands, and the column's
+   host grows to hold the new ones. A press or the focus that reaches a still block with no such move (a
    screen reader's own cursor) starts it too, and lands on the same control of the live block (wake). A column made
    after a navigation is windowed from its first frame, at the depth a return is about to restore and with the room
-   its kind had last time, so a list returned to stands at its depth at once. While any window stands, the browser's
-   scroll anchoring is off: the window places its blocks itself, and anchoring would pull the reader up as a page
-   joins at the end. */
+   its kind had last time, so a list returned to stands at its depth at once. The page a window stands in turns the
+   browser's scroll anchoring off (AppPage's `feed`): the window places its blocks itself. */
 
 export interface WindowRoom {
   /** where the column starts in the document, and how wide it is: kept by its kind across mounts */
@@ -30,6 +30,9 @@ export interface WindowOptions {
   gap: () => number;
   /** the blocks the server draws, live or still */
   initial: (width: number) => number;
+  /** whether the column holds only the blocks the server drew: the still ones cannot change, so a column given others
+      (a page joined, another answer) is windowed then */
+  drawn?: () => boolean;
   /** the depth a return is about to restore, read for the first window alone */
   depth?: number;
   room: WindowRoom;
@@ -37,7 +40,6 @@ export interface WindowOptions {
   overscan?: number;
 }
 
-let windows = 0;
 /** The room a column is laid out in before it is measured: the server's guess, a desktop's. */
 const DEFAULT_WIDTH = 1424;
 /** What the reader does that starts a window the page began with: a still block would not answer it. */
@@ -60,8 +62,10 @@ export function createWindow(o: WindowOptions) {
     top: o.room.top,
     width: o.room.width
   });
-  /* a column drawn by the server waits for the reader; one made in the browser is windowed at once */
-  const [started, setStarted] = createSignal(!isServer && !isHydrating());
+  /* a column drawn by the server waits for the reader, or for blocks it did not draw; one made in the browser is
+     windowed at once */
+  const [moved, setMoved] = createSignal(!isServer && !isHydrating());
+  const started = createMemo((was?: boolean) => !!was || moved() || !(o.drawn?.() ?? true));
   /* the width blocks are laid out at: the last one read, or a desktop's before any was */
   const width = () => view().width || DEFAULT_WIDTH;
   /* where each block starts, and past the last, where the column would end with one more gap */
@@ -104,7 +108,7 @@ export function createWindow(o: WindowOptions) {
   const start = () => {
     for (const move of MOVES) removeEventListener(move, start, true);
     read();
-    setStarted(true);
+    setMoved(true);
   };
   onSettled(() => {
     let frame = 0;
@@ -120,7 +124,6 @@ export function createWindow(o: WindowOptions) {
     addEventListener("resize", soon);
     const resized = new ResizeObserver(soon);
     if (host) resized.observe(host);
-    if (++windows === 1) document.documentElement.style.setProperty("overflow-anchor", "none");
     read(o.depth ?? scrollY);
     if (!started())
       for (const move of MOVES) addEventListener(move, start, { capture: true, passive: true });
@@ -130,7 +133,6 @@ export function createWindow(o: WindowOptions) {
       removeEventListener("resize", soon);
       resized.disconnect();
       cancelAnimationFrame(frame);
-      if (--windows === 0) document.documentElement.style.removeProperty("overflow-anchor");
     };
   });
 
