@@ -36,11 +36,14 @@ export function ListAppearance() {
   const view = (): ListView => readListView(search() as Record<string, unknown>);
   const shown = (): ListView => ({ ...view(), ...look.draft() });
   /* the address with a view over the page's own, as the router writes it */
-  const href = (patch: Partial<ListView>) =>
+  const at = (patch: Partial<ListView>) =>
     router.buildLocation({
       to: location().pathname,
       search: (prev: Record<string, unknown>) => searchInView(prev, patch)
-    } as never).publicHref;
+    } as never);
+  /* The address alone, in place. The router wraps the history's own replaceState to follow every write, so this one
+     goes through the method beneath it, and the route stays where it is. */
+  const write = (to: string) => History.prototype.replaceState.call(history, history.state, "", to);
 
   /* the draft as a plain value too: a signal written now reads its old value until the write settles */
   let pending: ViewDraft | null = null;
@@ -67,11 +70,11 @@ export function ListAppearance() {
     stop();
     since = null;
     pending = null;
-    void router.navigate({
-      href: href({ ...held, ...patch }),
-      replace: true,
-      resetScroll: false
-    });
+    const to = at({ ...held, ...patch });
+    /* a value set and then put back leads to the address the route already has, for which the router writes nothing:
+       what a quiet write left in the address is put right here */
+    if (held && to.href === router.latestLocation.href) write(to.publicHref);
+    void router.navigate({ href: to.publicHref, replace: true, resetScroll: false });
     if (held) look.setDraft(null);
   };
   const settle = () => {
@@ -81,7 +84,7 @@ export function ListAppearance() {
     writeTimer = undefined;
     if (!pending) return;
     lastWrite = Date.now();
-    history.replaceState(history.state, "", href(pending));
+    write(at(pending).publicHref);
   };
   const change = (next: ViewDraft) => {
     since ??= location().href;
