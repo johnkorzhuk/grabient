@@ -5,6 +5,7 @@ import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
+import { untrack } from "solid-js";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
 import { attempt, type Failed, failed, freshFor, getJson } from "../../lib/query.ts";
@@ -87,7 +88,7 @@ const readCollection = createIsomorphicFn()
        the public read otherwise, since a connection that is not there fails that read. So is an address one of them
        moved from, which leads on to it. */
     const own = { doc: null, own: true, fetchedAt: Date.now() };
-    if (ownsCollection(slug) || ownCollectionMoved(slug)) return own;
+    if (untrack(() => ownsCollection(slug) || ownCollectionMoved(slug))) return own;
     const [mine, response] = await Promise.all([
       keptUserId() ? ownsCollectionSoon(slug).catch(() => false) : false,
       fetch(`/api/collections/${encodeURIComponent(slug)}${lang(true)}`, { signal }).catch(
