@@ -554,3 +554,26 @@ test("a palette removed with the keyboard leaves the focus on its Undo, which gi
   await page.keyboard.press("Enter");
   await expect(remove).toBeFocused();
 });
+
+test("a title entered on Saved at once opens the account's collection", async ({ page }) => {
+  const { preview, ...words } = summary;
+  await signIn(page, "ada", false, [
+    {
+      ...words,
+      id: "e2e-blues",
+      slug: "@e2e-ada/my-blues",
+      title: "My blues",
+      visibility: "private",
+      owner: { kind: "user", name: "e2e-ada", display: "ada" },
+      url: "/@e2e-ada/my-blues",
+      preview,
+      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+    }
+  ]);
+  await page.goto("/collections/saved");
+  await hydrated(page);
+  await expect(page.locator("main").getByRole("heading", { name: "My blues" })).toBeVisible();
+  await page.getByRole("searchbox").fill("my blues");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/@e2e-ada\/my-blues$/);
+});
