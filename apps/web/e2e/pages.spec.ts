@@ -237,3 +237,45 @@ test("the sheets stand where one another stand: one width, one middle, and on a 
     expect(sheet.narrow, sheet.path).toEqual([sheets[0]!.narrow[0], sheets[0]!.narrow[1], 0]);
   }
 });
+
+test("a returning reader's Settings stands where its document drew it when the account answers", async ({
+  page
+}) => {
+  const reader = {
+    id: "e2e-reader",
+    name: "Reader",
+    email: "reader@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "reader",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  // this browser kept the account, and the session answers a moment after the page has started
+  await page.addInitScript(
+    kept => localStorage.setItem("grabient-account", kept),
+    JSON.stringify(reader)
+  );
+  let answer = () => {};
+  const answered = new Promise<void>(resolve => {
+    answer = resolve;
+  });
+  await page.route("**/api/auth/get-session*", async route => {
+    await answered;
+    await route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } });
+  });
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  const sections = () =>
+    page.evaluate(() =>
+      ["profile", "account", "theme", "motion", "color-format", "privacy"].map(
+        id => document.getElementById(id)?.getBoundingClientRect().top
+      )
+    );
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/settings");
+  await started(page);
+  const drawn = await sections();
+  answer();
+  await expect(page.locator("#account")).toContainText("reader@grabient.test");
+  await expect(page.locator('#profile input[name="username"]')).toHaveValue("reader");
+  expect(await sections()).toEqual(drawn);
+});
