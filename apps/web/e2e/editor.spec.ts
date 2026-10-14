@@ -443,6 +443,26 @@ test("About's first figure is the editor's own controls over a palette of its ow
   await expect(chips).toHaveCount(6);
 });
 
+test("About's keys leave select all to the article, turn no hue and take no keyframe without a hold", async ({
+  page
+}) => {
+  await page.goto("/about");
+  const chips = page.getByRole("listbox", { name: "Keyframes" }).first().getByRole("option");
+  await expect(chips).toHaveCount(5);
+  const before = await chips.allTextContents();
+  await page.getByRole("heading", { level: 1 }).click();
+  await page.keyboard.press("ControlOrMeta+a");
+  expect(await page.evaluate(() => getSelection()?.toString().length ?? 0)).toBeGreaterThan(100);
+  await expect(page.locator('[role="option"][aria-selected="true"]')).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Delete");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press(".");
+  await page.keyboard.press(",");
+  await expect(chips).toHaveCount(5);
+  expect(await chips.allTextContents()).toEqual(before);
+});
+
 test.describe("on a phone", () => {
   const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
   test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent });
