@@ -112,7 +112,7 @@ describe("the language in the address", () => {
     expect(asked).toEqual([]);
   });
 
-  test.each(["/ja/api/hot", "/ja/kS7Q8Yy5S_SChv0.png", "/api/hot/"])(
+  test.each(["/ja/api/hot", "/ja/kS7Q8Yy5S_SChv0.png", "/api/hot/", "/ja/e/s/"])(
     "%s is 404 JSON",
     async path => {
       const response = await get(path);
@@ -120,6 +120,16 @@ describe("the language in the address", () => {
       expect(await response.json()).toEqual({ error: "Not found" });
     }
   );
+
+  test("the recorder's addresses reach Start as PostHog's library writes them, last slash and all", async () => {
+    const recorded = () => new Response(null, { status: 204 });
+    const posted = await get("/e/s/?ip=0&ver=1", { method: "POST", body: "{}" }, recorded);
+    expect(posted.status).toBe(204);
+    await get("/e/static/recorder.js", {}, recorded);
+    expect(
+      asked.map(request => new URL(request.url).pathname + new URL(request.url).search)
+    ).toEqual(["/e/s/?ip=0&ver=1", "/e/static/recorder.js"]);
+  });
 });
 
 describe("an arrival's language", () => {

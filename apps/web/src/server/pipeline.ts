@@ -19,7 +19,14 @@ import { canonicalRedirect } from "./canonical.ts";
 import { isCrawler } from "./crawlers.ts";
 import { edgeCached } from "./edge-cache.ts";
 import { countFile } from "./files/count.ts";
-import { connectPath, consentPath, privatePath, publicFile, uncachedPath } from "./paths.ts";
+import {
+  connectPath,
+  consentPath,
+  privatePath,
+  publicFile,
+  recorderPath,
+  uncachedPath
+} from "./paths.ts";
 import { countLegacy } from "./seo/legacy.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
 
@@ -115,11 +122,13 @@ async function route(
   const prefix = canonicalLocalePath(url.pathname);
   if (prefix !== null) return redirect(new URL(prefix + url.search, url).toString());
   // a page's address never ends in a slash, which other sites link to both ways; an API keeps its own
-  if (read && path.length > 1 && path.endsWith("/") && !path.startsWith("//")) {
+  const slashed = path.length > 1 && path.endsWith("/");
+  if (read && slashed && !path.startsWith("//")) {
     const trimmed = path.replace(/\/+$/, "") || "/";
     if (isPagePath(trimmed)) return redirect(at(trimmed + url.search));
   }
-  if (!page && (locale !== DEFAULT_LOCALE || (path.length > 1 && path.endsWith("/")))) {
+  // no API or file has a language or a last slash, but the recorder's, which PostHog's library writes
+  if (!page && (locale !== DEFAULT_LOCALE || (slashed && !recorderPath(path)))) {
     return json({ error: msg("Not found") }, { status: 404 });
   }
 
