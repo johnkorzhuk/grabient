@@ -1,6 +1,6 @@
 import { isPagePath } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
-import { createFileRoute, notFound, redirect, useParams } from "@tanstack/solid-router";
+import { createFileRoute, notFound, redirect, useMatch, useParams } from "@tanstack/solid-router";
 import { Errored, Loading, lazy, Match, Show, Switch, untrack } from "solid-js";
 import { reportCaught } from "../../app/error-report.ts";
 import { isCollectionSlug } from "../../features/collections/address.ts";
@@ -105,8 +105,13 @@ export const Route = createFileRoute("/$id/")({
 /** The header's corner: the editor's own on a palette's page, the lists' appearance on a collection's. */
 function Corner() {
   const params = useParams({ strict: false });
+  const page = useMatch({
+    from: Route.id,
+    shouldThrow: false,
+    select: match => match.loaderData?.palette?.page
+  });
   return (
-    <Show when={isCollectionSlug(params().id ?? "")} fallback={<EditorCorner />}>
+    <Show when={isCollectionSlug(params().id ?? "")} fallback={<EditorCorner page={page()} />}>
       <ListAppearance />
     </Show>
   );
