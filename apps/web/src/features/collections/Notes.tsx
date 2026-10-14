@@ -8,6 +8,7 @@ import { relativeAge } from "../gallery/drawing.ts";
 import { addNote, removeNote } from "./client.ts";
 import { failedWrite } from "./collect.ts";
 import styles from "./collections.module.css";
+import { forgetStates } from "./queries.ts";
 import { NOTE_MAX } from "./schema.ts";
 import type { CollectionNote } from "./types.ts";
 
@@ -43,6 +44,7 @@ export function Notes(props: { slug: string; notes: readonly CollectionNote[]; n
     setError("");
     try {
       const { note } = await addNote(props.slug, value);
+      forgetStates();
       setNotes(list => [...list, note]);
       setText("");
     } catch (reason) {
@@ -56,6 +58,7 @@ export function Notes(props: { slug: string; notes: readonly CollectionNote[]; n
     setNotes(list => list.filter(n => n.id !== note.id));
     try {
       await removeNote(props.slug, note.id);
+      forgetStates();
     } catch (reason) {
       setNotes(list =>
         [...list, note].sort((a, b) => a.createdAt - b.createdAt || (a.id < b.id ? -1 : 1))

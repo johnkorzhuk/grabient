@@ -69,7 +69,7 @@ import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
 import { listSearch, pageSearch } from "./params.ts";
-import { collectionQuery, forgetStandings, stateQuery } from "./queries.ts";
+import { collectionQuery, forgetStates, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
@@ -244,7 +244,7 @@ export function CollectionPage(props: {
   const stand = (next: CopyStanding | null) => {
     if (next) recallCollection(next.slug);
     setCopy(next);
-    forgetStandings();
+    forgetStates();
   };
   /* the account's copy went or moved while the page stands, on another page's undo or in another tab */
   onSettled(() =>
@@ -444,6 +444,7 @@ export function CollectionPage(props: {
     if (!current) return;
     const answer = await setPaletteView(current.slug, inputOf(item), view, why);
     setOwn(answer.collection);
+    forgetStates();
     say(t("View saved."));
   };
   const deleteEverywhere = async (item: CollectionItem, why: object) => {
@@ -451,6 +452,7 @@ export function CollectionPage(props: {
     if (!current) return;
     await deletePalette(item.kseed, why);
     forgetPalette(item.kseed);
+    forgetStates();
     const items = current.items.filter(entry => entry.kseed !== item.kseed);
     setOwn({ ...current, items, itemCount: items.length, updatedAt: Date.now() });
     void client.invalidateQueries({ queryKey: ["collections"] });
@@ -488,6 +490,7 @@ export function CollectionPage(props: {
         before = asked;
         if (waiting.get(seed) === asked) waiting.delete(seed);
       }
+      forgetStates();
     } catch (reason) {
       waiting.delete(seed);
       showVote(seed, before);

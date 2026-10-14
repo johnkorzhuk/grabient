@@ -190,7 +190,15 @@ export const tagsQuery = (query: string) =>
     made (`model`) goes to the server online, which also reads what the words mean; one typed is read by its letters. */
 export const ownQuery = (owner: string, key: CollectionListParams, model = true) =>
   queryOptions({
-    queryKey: ["own-collections", owner, key.query, key.limit, key.page, model] as const,
+    queryKey: [
+      "own-collections",
+      owner,
+      ownChanges,
+      key.query,
+      key.limit,
+      key.page,
+      model
+    ] as const,
     queryFn: async ({ signal }) => {
       const asked = { page: key.page, limit: key.limit, query: key.query };
       /* the copy reads its words by their letters: as the reader types, with no connection, and when the server could
@@ -221,28 +229,30 @@ export const ownQuery = (owner: string, key: CollectionListParams, model = true)
     staleTime: freshFor(PRIVATE_TTL)
   });
 
-/* What a reader may do on a collection is kept a minute, for a page returned to. Part of it is how the account's saved
-   copy stands, which moves with the account's collections: one made, deleted or moved since, on this page, on another
-   or in another tab, and what was kept may name a copy that is gone, or none where one was made. Each such change
-   starts the kept answers anew. What the copy holds before it has heard from the server, and what it first says once
-   it has, is its opening and no change. */
-let standings = 0;
-/** A copy was made or taken back here: what was kept of any collection's standing is old. */
-export const forgetStandings = () => void standings++;
+/* What a reader may do on a collection is kept a minute, for a page returned to. It moves with what the account does:
+   how its saved copy stands moves with the account's collections (one made, deleted or moved since, on this page, on
+   another or in another tab, and what was kept may name a copy that is gone, or none where one was made), and its
+   votes, notes and an admin's curation with each write a page makes. Each such change starts the kept answers anew.
+   What the copy holds before it has heard from the server, and what it first says once it has, is its opening and no
+   change. */
+let states = 0;
+/** The account changed what a collection's page reads of it (a copy made or taken back, a vote, a note, a palette
+    curated): what was kept of every collection's state is old. */
+export const forgetStates = () => void states++;
 let ownAddresses: string | null = null;
 if (!isServer)
   onAccountChange(() => {
     const user = keptUserId();
     if (!user || !engineNow()?.copyReady(user)) return;
     const now = [...viewNow().collections.keys()].sort().join(" ");
-    if (ownAddresses !== null && now !== ownAddresses) forgetStandings();
+    if (ownAddresses !== null && now !== ownAddresses) forgetStates();
     ownAddresses = now;
   });
 
 /** What a signed-in reader may do on one collection's page: theirs or theirs to curate, their copy, votes and notes. */
 export const stateQuery = (owner: string, slug: string) =>
   queryOptions({
-    queryKey: ["collection-state", owner, slug, standings] as const,
+    queryKey: ["collection-state", owner, slug, states] as const,
     queryFn: ({ signal }) =>
       readState(slug, signal).catch(error => (signal.aborted ? Promise.reject(error) : null)),
     staleTime: PRIVATE_TTL
