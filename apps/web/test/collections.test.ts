@@ -1,6 +1,8 @@
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
+import * as v from "valibot";
 import { beforeAll, describe, expect, it } from "vitest";
+import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
 import { collectionsHolding } from "../src/server/collections/read.ts";
@@ -320,10 +322,15 @@ describe("the public lists", () => {
     expect(hits.items[0]?.colors.length).toBeGreaterThan(0);
   });
 
-  it("name the public collections that hold a palette, each once", async () => {
+  it("name the public collections that hold a palette, each once, with the colors its page shows", async () => {
     const held = await collectionsHolding(env, SEEDS[0]!);
     expect(new Set(held.map(c => c.slug)).size).toBe(held.length);
     expect(held.every(c => !c.slug.startsWith("@"))).toBe(true);
+    expect(held.length).toBeGreaterThan(0);
+    expect(held.every(c => c.colors.length > 0)).toBe(true);
+    // a palette opened in the browser reads them from the search by its seed
+    const answer = { query: SEEDS[0], items: [], tier: "similar", heldBy: held, fetchedAt: 0 };
+    expect(v.parse(SearchAnswer, answer).heldBy).toEqual(held);
   });
 
   it("answer an account's own list to its owner alone", async () => {

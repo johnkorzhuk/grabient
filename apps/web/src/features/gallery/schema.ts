@@ -53,8 +53,10 @@ export const SearchAnswer = v.object({
   unkept: v.optional(v.boolean()),
   /** the words are a page an index may keep: they read as what they mean */
   indexable: v.optional(v.boolean()),
-  /** the public collections that hold a palette searched by */
-  heldBy: v.optional(v.array(v.object({ slug: v.string(), title: v.string() }))),
+  /** the public collections that hold a palette searched by, each with the colors the pointer shows */
+  heldBy: v.optional(
+    v.array(v.object({ slug: v.string(), title: v.string(), colors: v.array(v.string()) }))
+  ),
   fetchedAt: v.number()
 });
 export type SearchAnswer = v.InferOutput<typeof SearchAnswer>;
