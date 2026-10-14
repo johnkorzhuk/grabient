@@ -1,5 +1,4 @@
 import type { Env } from "@grabient/server/env.ts";
-import { countUsage } from "@grabient/server/usage/count.ts";
 import { CLIENT_DOCUMENTS } from "./client-documents.data.ts";
 import { canonical, differingFields, publishedDocument } from "./documents.ts";
 import { authorizationServer, siteOrigin } from "./server.ts";
@@ -50,11 +49,11 @@ async function sha256(text: string): Promise<string> {
   return Array.from(digest, byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-/** Each saved copy against the document its maker publishes, each check counted. The last state of each is kept in
-    OAUTH_KV, so the owner hears of a change once (`alert` answers whether the email went) and of a document
-    unreachable for a week once. Nothing here changes a copy: only a reviewed commit does. */
+/** Each saved copy against the document its maker publishes. The last state of each is kept in OAUTH_KV, so the owner
+    hears of a change once (`alert` answers whether the email went) and of a document unreachable for a week once.
+    Nothing here changes a copy: only a reviewed commit does. */
 export async function checkClientDocuments(
-  env: Pick<Env, "OAUTH_KV" | "USAGE">,
+  env: Pick<Env, "OAUTH_KV">,
   alert: (check: DocumentCheck) => Promise<boolean>,
   now = Date.now()
 ): Promise<DocumentCheck[]> {
@@ -96,8 +95,6 @@ export async function checkClientDocuments(
     }
     if (check.notify && (await alert(check))) record.notified = true;
     await env.OAUTH_KV?.put(key, JSON.stringify(record), { expirationTtl: RECORD_KEPT_SECONDS });
-    const document = new URL(clientId);
-    countUsage(env, "oauth", "client-document", document.host + document.pathname, check.state);
     checks.push(check);
   }
   return checks;
