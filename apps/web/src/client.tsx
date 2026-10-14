@@ -5,11 +5,14 @@ import { hydrateStart, StartClient } from "@tanstack/solid-start/client";
 import { watchBuild } from "./app/build-watch.ts";
 import { installErrorReports, reportCaught } from "./app/error-report.ts";
 import { framed } from "./app/framed.ts";
+import { guardHistory } from "./app/navigation.ts";
 import { loadAccount } from "./features/account/session.ts";
 import { initializeAnalytics } from "./features/analytics/analytics.ts";
 
 /* before anything can fail: an error while the page loads its language or hydrates is reported too */
 installErrorReports();
+/* before the router takes the history's methods */
+guardHistory();
 
 /* The app starts inside a function, never with an await at the module's top level: an entry that waits as it loads
    is left a file of its own that only imports the chunk the app is in, one more request before the app starts. */

@@ -22,6 +22,8 @@ import { forgetUndoFrom, landUndo } from "./undo.ts";
 
 /** How long a page has to set its title before it is announced. */
 const LANDED_MS = 120;
+/** How long a history write the browser refused waits before the latest is written. */
+const REFUSED_MS = 1000;
 /** A history entry the selection was opened in, over the page beneath it. */
 export const SELECTION_MARK = "selection";
 
@@ -34,6 +36,38 @@ export const rewriteQuietly = (href: string): void =>
 /** Rewrites the page's address in place and has the route take it, the entry staying itself: the router keeps the
     depth a page was left at by the entry's key, which a navigation that replaces makes anew. */
 export const rewriteInPlace = (href: string): void => history.replaceState(history.state, "", href);
+
+type HistoryWrite = Parameters<History["pushState"]>;
+/** Guards every history write, before the router wraps the history's methods: past a browser's rate (Safari's is 100
+    in 30 seconds) a write throws, and the router would then never write the address again. A refused write waits, and
+    the latest lands a second after the last refusal, as a push if any of the waiting ones was. */
+export function guardHistory(): void {
+  const own = { push: History.prototype.pushState, replace: History.prototype.replaceState };
+  let waiting: { push: boolean; args: HistoryWrite } | null = null;
+  const write = (target: History, push: boolean, args: HistoryWrite) => {
+    if (waiting) {
+      waiting = { push: waiting.push || push, args };
+      return;
+    }
+    try {
+      (push ? own.push : own.replace).apply(target, args);
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === "SecurityError")) throw error;
+      waiting = { push, args };
+      setTimeout(() => {
+        const latest = waiting;
+        waiting = null;
+        if (latest) write(target, latest.push, latest.args);
+      }, REFUSED_MS);
+    }
+  };
+  History.prototype.pushState = function (...args: HistoryWrite) {
+    write(this, true, args);
+  };
+  History.prototype.replaceState = function (...args: HistoryWrite) {
+    write(this, false, args);
+  };
+}
 
 /** The router's ways in: link presses, landings and their undo. Returns the way out. */
 export function watchNavigation(router: AnyRouter): () => void {

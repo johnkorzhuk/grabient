@@ -251,3 +251,32 @@ test("a collection opened from a list by its title, and a palette from the colle
   await backTo(page, heading, depth);
   expect(reports).toEqual([]);
 });
+
+test("an address the browser refuses to write lands once it lets writes through again", async ({
+  page
+}) => {
+  // Safari's way past its rate: every history write throws while the page is refused
+  await page.addInitScript(() => {
+    const refusable = (write: History["pushState"]) =>
+      function (this: History, ...args: Parameters<History["pushState"]>) {
+        if ((window as { refusing?: boolean }).refusing)
+          throw new DOMException("Too many calls to the history", "SecurityError");
+        return write.apply(this, args);
+      };
+    History.prototype.pushState = refusable(History.prototype.pushState);
+    History.prototype.replaceState = refusable(History.prototype.replaceState);
+  });
+  const here = () => new URL(page.url()).pathname;
+  await open(page, "/kS7CQ31Do6asvY-");
+  await expect(editor(page)).toBeVisible();
+  await page.evaluate(() => Object.assign(window, { refusing: true }));
+  await page.keyboard.press("i");
+  await page.keyboard.press("e");
+  await page.waitForTimeout(1000);
+  expect(here()).toBe("/kS7CQ31Do6asvY-");
+  await page.evaluate(() => Object.assign(window, { refusing: false }));
+  // the latest edit, a second after the last refusal, and the writes after it as they come
+  await expect.poll(here).toBe("/kSqF5vKzob4kSRW");
+  await page.keyboard.press("i");
+  await expect.poll(here).not.toBe("/kSqF5vKzob4kSRW");
+});
