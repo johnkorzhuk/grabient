@@ -235,6 +235,8 @@ for (const viewport of [
     await signedIn(page);
     await page.goto("/palettes/saved");
     await expect(liked).toBeVisible();
+    // the copy's first sync, which Saved may have stopped waiting for, has landed
+    await page.waitForLoadState("networkidle");
     await page.waitForFunction(() => !!navigator.serviceWorker.controller);
     await page.unrouteAll({ behavior: "ignoreErrors" });
     await page.context().setOffline(true);
