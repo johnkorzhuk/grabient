@@ -1,24 +1,17 @@
-import { decodePalette, encodePalette } from "@grabient/engine/codec.ts";
 import { parseView } from "@grabient/engine/view.ts";
-import { legacySeed } from "../seo/legacy.ts";
+import { resolvePalette } from "../files/resolve.ts";
 import type { PaletteGiven } from "./cards.ts";
 
 /* An account tool's arguments, read against its JSON schema before it runs: a call learns in a sentence what was wrong
    and what is taken. The admins' tools read their own (tool.ts str, num, items, entryOf). */
 
-/** A palette's canonical seed, from its seed or an old grabient.com id the legacy maps hold. */
-function canonicalPaletteSeed(raw: string): string | null {
-  const palette = decodePalette(legacySeed(raw) ?? raw);
-  return palette ? encodePalette(palette) : null;
-}
-
-/** A palette as a call names it: its seed, or its address on any origin, in any language, with or without a file's
-    ending, or its card's address. A seed names no view; an address names a whole one, as its page draws it: what its
-    query leaves out is the default. Null when the text names no palette. */
+/** A palette as a call names it: its seed or an old grabient.com id, or its address on any origin, in any language,
+    with or without a file's ending, or its card's address. A seed names no view; an address names a whole one, as its
+    page draws it: what its query leaves out is the default. Null when the text names no palette. */
 export function paletteNamed(named: string): PaletteGiven | null {
   if (named.length > 400) return null;
-  const bare = canonicalPaletteSeed(named);
-  if (bare) return { seed: bare };
+  const bare = resolvePalette(named);
+  if (bare) return { seed: bare.seed };
   let url: URL;
   try {
     url = new URL(named, "https://palette.invalid");
@@ -27,11 +20,10 @@ export function paletteNamed(named: string): PaletteGiven | null {
   }
   // the palette's page and its files hold the seed in the path, its card (/api/og) in the query
   const last = (url.pathname.split("/").filter(Boolean).pop() ?? "").replace(/\.[a-z0-9]+$/i, "");
-  const seed =
-    canonicalPaletteSeed(last) ?? canonicalPaletteSeed(url.searchParams.get("seed") ?? "");
-  if (!seed) return null;
+  const found = resolvePalette(last) ?? resolvePalette(url.searchParams.get("seed") ?? "");
+  if (!found) return null;
   const { style, steps, angle } = parseView(url.searchParams);
-  return { seed, style, steps, angle };
+  return { seed: found.seed, style, steps, angle };
 }
 
 interface Schema {
