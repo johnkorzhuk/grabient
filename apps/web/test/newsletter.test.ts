@@ -4,7 +4,7 @@ import { setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
 import { ISSUES } from "../src/server/newsletter/issues/index.ts";
-import { issueFoot, newsletterReaders } from "../src/server/newsletter/list.ts";
+import { issueFoot, readerOf } from "../src/server/newsletter/list.ts";
 import {
   choiceResponse,
   draftsResponse,
@@ -278,86 +278,46 @@ describe("the unsubscribe address", () => {
   });
 });
 
-describe("an issue's readers", () => {
-  /* accounts of this test alone, with ids that sort after every other account's */
-  async function accounts(env: TestEnv, stem: string, names: string[]) {
-    const now = Date.now();
-    for (const name of names) {
-      await run(
-        env.DB,
-        `INSERT INTO auth_user (id, name, email, email_verified, role, created_at, updated_at) VALUES (?, '', ?, 1, 'user', ?, ?)`,
-        `${stem}-${name}`,
-        `${name}-${stem}@example.test`,
-        now,
-        now
-      );
-    }
-    return (name: string) => `${stem}-${name}`;
-  }
-
-  it("are the verified accounts that have not ended it, each with its language and its own address", async () => {
+describe("an issue's reader", () => {
+  it("is the account's address, its language and its own way out, written once", async () => {
     const env = newsletterEnv();
-    const stem = `zz-${unique("readers")}`;
-    const id = await accounts(env, stem, ["ada", "cy", "dee", "eve", "fay"]);
-    await run(env.DB, "UPDATE auth_user SET locale = 'ja' WHERE id = ?", id("eve"));
-    await run(env.DB, "UPDATE auth_user SET locale = 'xx' WHERE id = ?", id("cy"));
-    await run(env.DB, "UPDATE auth_user SET email_verified = 0 WHERE id = ?", id("fay"));
-    await env.DB.batch([
-      env.DB.prepare(
-        "INSERT INTO k_newsletter (user_id, token, subscribed, updated_at) VALUES (?, ?, 0, 0)"
-      ).bind(id("dee"), "d".repeat(64))
-    ]);
-    const ours = async () =>
-      (await newsletterReaders(env, ORIGIN, { after: stem })).readers.filter(reader =>
-        reader.email.endsWith(`-${stem}@example.test`)
-      );
-    const everyone = { readers: await ours() };
-    expect(everyone.readers.map(reader => reader.email.split("-")[0])).toEqual([
-      "ada",
-      "cy",
-      "eve"
-    ]);
-    const eve = everyone.readers[2];
-    const eveRow = await rowOf(env, id("eve"));
-    expect(eve).toEqual({
-      email: `eve-${stem}@example.test`,
+    const eve = await makeAccount(env);
+    await run(env.DB, "UPDATE auth_user SET locale = 'ja' WHERE id = ?", eve.id);
+    const reader = await readerOf(env, ORIGIN, eve.id);
+    const row = await rowOf(env, eve.id);
+    expect(reader).toEqual({
+      email: eve.email,
       locale: "ja",
-      unsubscribe: `${ORIGIN}/ja/unsubscribe/${eveRow?.token}`
+      unsubscribe: `${ORIGIN}/ja/unsubscribe/${row?.token}`
     });
-    expect(everyone.readers[1].locale).toBe("en");
-    expect(eveRow?.subscribed).toBeNull();
-    expect(await eventsOf(env, id("eve"))).toEqual([]);
+    expect(row?.subscribed).toBeNull();
+    expect(await eventsOf(env, eve.id)).toEqual([]);
     const batch = vi.spyOn(env.DB, "batch");
-    expect(await ours()).toEqual(everyone.readers);
+    expect(await readerOf(env, ORIGIN, eve.id)).toEqual(reader);
     expect(batch).not.toHaveBeenCalled();
-    const foot = issueFoot(eve);
+    const foot = issueFoot(reader ?? { locale: "en", unsubscribe: "" });
     expect(foot).toEqual({
       locale: "ja",
       reason: translate("ja", "You get this because you signed up for Grabient."),
-      unsubscribe: { label: translate("ja", "Unsubscribe"), href: eve.unsubscribe }
+      unsubscribe: { label: translate("ja", "Unsubscribe"), href: reader?.unsubscribe }
     });
     expect(foot.reason).not.toBe("You get this because you signed up for Grabient.");
   });
 
-  it("come a page at a time, and a choice made before a page is taken holds", async () => {
+  it("is in English for a language the site lacks, and no one for an account that ended it", async () => {
     const env = newsletterEnv();
-    const stem = `zz-${unique("pages")}`;
-    await accounts(env, stem, ["a", "b", "c"]);
-    const first = await newsletterReaders(env, ORIGIN, { after: stem, limit: 2 });
-    expect(first.readers).toHaveLength(2);
-    expect(first.next).toBe(`${stem}-b`);
-    const late = await rowOf(env, `${stem}-c`);
-    expect(late).toBeNull();
+    const cy = await makeAccount(env);
+    await run(env.DB, "UPDATE auth_user SET locale = 'xx' WHERE id = ?", cy.id);
+    expect((await readerOf(env, ORIGIN, cy.id))?.locale).toBe("en");
+    const dee = await makeAccount(env);
     await run(
       env.DB,
       "INSERT INTO k_newsletter (user_id, token, subscribed, updated_at) VALUES (?, ?, 0, 0)",
-      `${stem}-c`,
-      "c".repeat(64)
+      dee.id,
+      "d".repeat(64)
     );
-    const second = await newsletterReaders(env, ORIGIN, { after: first.next ?? "", limit: 2 });
-    expect(second.readers.filter(reader => reader.email.endsWith(`-${stem}@example.test`))).toEqual(
-      []
-    );
+    expect(await readerOf(env, ORIGIN, dee.id)).toBeNull();
+    expect(await readerOf(env, ORIGIN, unique("nobody"))).toBeNull();
   });
 });
 
