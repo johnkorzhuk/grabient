@@ -14,6 +14,7 @@ import {
   validateCollection
 } from "../../../features/collections/schema.ts";
 import type { CollectionSummary } from "../../../features/collections/types.ts";
+import { SHEET_MAX } from "../../../mcp-view/tiles.ts";
 import { heldWords, texts as paletteTexts } from "../../collections/files.ts";
 import {
   collectionBySlug,
@@ -197,8 +198,6 @@ const VARIANT = shape({
   colorCount: whole("Resamples the palette to this many colors.", 2, 8),
   hold: list(HEX, "Colors of the palette that stay as they are.", 1, 8)
 });
-/** As many tiles as a sheet holds, which the view counts too (mcp-view/tiles.ts). */
-export const SHEET_MAX = 24;
 
 export const accountTools: readonly Tool[] = [
   {

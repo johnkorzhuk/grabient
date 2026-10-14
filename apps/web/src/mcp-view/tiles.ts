@@ -25,9 +25,9 @@ import { VIEW_DATA } from "./page.ts";
    one Grabient keeps the palette in, which only the answer knows: until then it is drawn at the default. Everything is
    drawn from the seed. Pure: no DOM. */
 
-/** As many tiles as a sheet holds (server/mcp/tools/account.ts SHEET_MAX). */
+/** As many tiles as a sheet holds, and as many as show_palettes takes (server/mcp/tools/account.ts). */
 export const SHEET_MAX = 24;
-/** As long as the server lets a tile's title be. */
+/** As long as the server lets a tile's title be (features/account/wire.ts PALETTE_TITLE_MAX). */
 const TITLE_MAX = 80;
 /* the names a call and each of its palettes may carry: the server refuses a call with any other */
 const CALL = ["palettes"];
