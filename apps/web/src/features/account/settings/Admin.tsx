@@ -123,7 +123,7 @@ export function SiteFeatures() {
     staleTime: Number.POSITIVE_INFINITY,
     reconcile: "name"
   }));
-  /* the rows a press has drawn over what the server held, until the server's own answer lands on them */
+  /* the rows a press has drawn over what the server held, each until the server answers for it */
   const [pressed, setPressed] = createStore<Partial<Record<FlagName, FlagState>>>({});
   const [failures, setFailures] = createStore<Partial<Record<FlagName, string>>>({});
   const [armed, setArmed] = createSignal<FlagName | null>(null);
