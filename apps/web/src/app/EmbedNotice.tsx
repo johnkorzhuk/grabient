@@ -1,6 +1,7 @@
 import { t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
+import { useLocation } from "@tanstack/solid-router";
 import { createSignal, onSettled, Show } from "solid-js";
 import styles from "./EmbedNotice.module.css";
 import { framed } from "./framed.ts";
@@ -12,9 +13,15 @@ export function EmbedNotice(props: {
   strip: boolean;
 }) {
   const [shown, setShown] = createSignal(false);
+  const here = useLocation();
   onSettled(() => {
     setShown(framed());
   });
+  /* the page's address, read again as the page changes under the note */
+  const whole = () => {
+    here();
+    return location.href;
+  };
   return (
     <Show when={shown()}>
       <aside
@@ -24,11 +31,11 @@ export function EmbedNotice(props: {
       >
         <p class={styles.words}>{t("Some features are limited here.")}</p>
         <span class={styles.actions}>
-          {/* the page's address at the press: the editor rewrites it in place */}
+          {/* and its address at the press: the editor rewrites it in place */}
           <Button
             variant="ghost"
             size="sm"
-            href={location.href}
+            href={whole()}
             external
             onClick={e => {
               (e.currentTarget as HTMLAnchorElement).href = location.href;
