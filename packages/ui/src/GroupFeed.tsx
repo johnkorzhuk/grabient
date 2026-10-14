@@ -56,7 +56,7 @@ export function GroupFeed<T>(props: {
         }}
       </For>
       <Show when={!win.started() && live() < Math.min(props.initial, props.items.length)}>
-        <div class={styles.still}>
+        <div class={styles.still} ref={win.wake}>
           <NoHydration>
             <For each={props.items.slice(live(), props.initial)}>
               {item => <div data-group={props.key(item)}>{props.group(() => item)}</div>}

@@ -1,5 +1,5 @@
 import { isServer } from "@solidjs/web";
-import { createMemo, createSignal, isHydrating, onCleanup, onSettled } from "solid-js";
+import { createMemo, createSignal, flush, isHydrating, onCleanup, onSettled } from "solid-js";
 
 /* A window over a long column of blocks: only the blocks within a screen of the viewport are drawn, and padding on
    the column's host stands in for the rest, so the host is as tall as the whole list and a block joining at the end
@@ -8,7 +8,9 @@ import { createMemo, createSignal, isHydrating, onCleanup, onSettled } from "sol
 
    The server draws a column's first blocks. The first of them are hydrated and the rest stay the server's still
    markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key): then the window
-   starts and draws live blocks where it stands. A column made after a navigation is windowed from its first frame, at
+   starts and draws live blocks where it stands. A press or the focus that reaches a still block with no such move (a
+   screen reader's own cursor) starts it too, and lands on the same control of the live block (wake). A column made
+   after a navigation is windowed from its first frame, at
    the depth a return is about to restore and with the room its kind had last time, so a list returned to stands at
    its depth at once. While any window stands, the browser's scroll anchoring is off: the window places its blocks
    itself, and anchoring would pull the reader up as a page joins at the end. */
@@ -99,6 +101,11 @@ export function createWindow(o: WindowOptions) {
     o.room.width = host.clientWidth;
     setView({ y, h: innerHeight, top: o.room.top, width: o.room.width });
   };
+  const start = () => {
+    for (const move of MOVES) removeEventListener(move, start, true);
+    read();
+    setStarted(true);
+  };
   onSettled(() => {
     let frame = 0;
     const soon = () => {
@@ -108,11 +115,6 @@ export function createWindow(o: WindowOptions) {
           read();
         });
       }
-    };
-    const start = () => {
-      for (const move of MOVES) removeEventListener(move, start, true);
-      read();
-      setStarted(true);
     };
     addEventListener("scroll", soon, { passive: true });
     addEventListener("resize", soon);
@@ -144,6 +146,29 @@ export function createWindow(o: WindowOptions) {
     width,
     /** whether the window has started: until then the server's blocks stand */
     started,
+    /** The server's still blocks as they are drawn: a press or the focus that reaches one of their controls without
+        the reader having moved starts the window at once and lands on the same control of the live block, found by
+        its block's place and its own name. */
+    wake: (still: HTMLElement) => {
+      const twin = (target: EventTarget | null): HTMLElement | undefined => {
+        const control = (target as HTMLElement | null)?.closest<HTMLElement>("a, button");
+        const block = control?.closest("article");
+        if (!host || !control || !block) return undefined;
+        const at = [...host.querySelectorAll("article")].indexOf(block);
+        const name = control.getAttribute("aria-label");
+        start();
+        flush();
+        const live = host.querySelectorAll("article")[at];
+        return [...(live?.querySelectorAll<HTMLElement>(control.tagName) ?? [])].find(
+          again => again.getAttribute("aria-label") === name
+        );
+      };
+      still.addEventListener("focusin", e => twin(e.target)?.focus({ preventScroll: true }));
+      /* a link leads where it leads, still or live: only a press that needs its handler is passed on */
+      still.addEventListener("click", e => {
+        if ((e.target as HTMLElement).closest("button")) twin(e.target)?.click();
+      });
+    },
     /** reads the column again, after what stands above it changed its place */
     remeasure: () => read()
   };
