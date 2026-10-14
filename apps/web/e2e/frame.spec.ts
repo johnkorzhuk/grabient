@@ -412,3 +412,29 @@ test("a link in the app to an old form of an address reaches its page, as the ad
   await expect(page).toHaveURL(/\/no-such\/x$/);
   await expect(page.locator("main h1")).toHaveText("Page not found");
 });
+
+test("a card's copy lands where the browser refuses the clipboard, as the editor's does", async ({
+  page
+}) => {
+  // another site's frame without clipboard-write: the clipboard refuses, and the copy command still copies
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: () => Promise.reject(new DOMException("refused", "NotAllowedError")) }
+    });
+    document.execCommand = () => {
+      const field = document.activeElement as HTMLTextAreaElement | null;
+      Object.assign(window, {
+        copied: field?.value.slice(field.selectionStart, field.selectionEnd)
+      });
+      return true;
+    };
+  });
+  await open(page, "/palettes");
+  const card = page.locator("main article").first();
+  await card.hover();
+  await card.getByRole("group", { name: "Copy" }).getByRole("button", { name: "CSS" }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as { copied?: string }).copied ?? ""))
+    .toContain("gradient(");
+  await expect(page.locator("main")).not.toContainText("Couldn't copy");
+});
