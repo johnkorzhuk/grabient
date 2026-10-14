@@ -110,15 +110,17 @@ export function PaletteCard(props: PaletteCardProps) {
   /* the water takes the glow in while a mouse or a pen is in the picture or focus is within it */
   let over = false;
   let within = false;
-  const shine = (picture: HTMLElement) => {
-    if ((over || within) && !props.removed) {
-      glowOn(
-        picture,
-        [{ stops: props.stops, style: props.style, angle: props.angle }],
-        () => !props.removed
-      );
-    } else glowOff(picture);
-  };
+  /* read as the event finds them: a focus that leaves as a route takes the card away runs inside Solid's commit */
+  const shine = (picture: HTMLElement) =>
+    untrack(() => {
+      if ((over || within) && !props.removed) {
+        glowOn(
+          picture,
+          [{ stops: props.stops, style: props.style, angle: props.angle }],
+          () => !props.removed
+        );
+      } else glowOff(picture);
+    });
   const inside = (e: PointerEvent | FocusEvent) =>
     (e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null);
   let finger = false;
