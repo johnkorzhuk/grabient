@@ -1,5 +1,6 @@
 import { msg } from "@grabient/i18n";
 import { type CardCollect, CollectPress } from "@grabient/ui/CollectPress.tsx";
+import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { createMemo, type Element, onSettled, untrack, useContext } from "solid-js";
 import { signInUnavailable } from "../../app/connection.ts";
@@ -7,10 +8,10 @@ import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { shownError } from "../account/session.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
+import { cardTakings } from "../gallery/take.ts";
 import { AppearanceContext, drawnIn, type ListView } from "../list/appearance.ts";
 import { type UseAt, type UsePlace, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
-import { cardTools } from "./tools.tsx";
 
 /** A palette of a collection as its card, on the collection's page and in a list's group: drawn in the page's view
     over the one the collection saved it in, its picture following the header's control as it is set; liked, selected,
@@ -42,11 +43,11 @@ export function ItemCard(props: {
   const picture = createMemo(() => picturedAs(props.own, props.view, look.draft(), look.peek()));
   const seed = () => props.own.seed;
   const collect = props.collect(shown);
-  const tools = cardTools({
+  const take = cardTakings({
     palette: shown,
     place: () => props.place(),
     at: () => props.at(),
-    note: (message, error) => props.note(message, error)
+    say: (message, error) => props.note(message, error)
   });
   /* a card drawn is on screen or near it: its count starts as the page read it and is asked again where it is old */
   onSettled(() => {
@@ -80,7 +81,18 @@ export function ItemCard(props: {
       }}
       onOpen={() => useOpened(props.place(), shown(), props.at())}
       collect={<CollectPress collect={collect} />}
-      tools={tools}
+      tools={() => (
+        <FormatStrip
+          size="sm"
+          copy={["url", "css", "svg", "png"]}
+          download={["md", "css", "svg", "png"]}
+          link={["md", "css", "svg", "png"]}
+          swatches={SWATCH_CHIPS}
+          onCopy={take.copy}
+          onDownload={take.download}
+          onLink={take.link}
+        />
+      )}
       fit={props.fit}
       lead={props.lead}
       removed={props.removed}
