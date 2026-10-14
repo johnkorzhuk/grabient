@@ -9,6 +9,7 @@ import { Like } from "@grabient/ui/Like.tsx";
 import sheet from "@grabient/ui/PaletteSheet.module.css";
 import { StillStrip } from "@grabient/ui/StopStrip.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
+import { createMemo, Show } from "solid-js";
 import type { SeedPage } from "./address.ts";
 import styles from "./Editor.module.css";
 
@@ -18,11 +19,12 @@ import styles from "./Editor.module.css";
     palette's presses hidden at its end, as at rest; the side's place stands empty until its controls come. */
 export function Boot(props: { page: SeedPage; title: string }) {
   const view = () => props.page.view;
-  const stops = () =>
+  const stops = createMemo(() =>
     sampleStops(props.page.palette, view().steps).map(s => ({
       hex: s.hex,
       paint: toCssP3(lchToP3(...s.lch))
-    }));
+    }))
+  );
   const art = (wide: boolean) =>
     gradientCss(
       stops().map(s => (wide ? s.paint : s.hex)),
@@ -30,7 +32,10 @@ export function Boot(props: { page: SeedPage; title: string }) {
       view().angle
     );
   /* a size with an auto side is the stage's own shape, which only the editor measures: its stage stands empty */
-  const sized = () => view().size;
+  const fixed = () => {
+    const size = view().size;
+    return isFixedSize(size) ? size : null;
+  };
   return (
     <div
       class={[styles.page, styles.boot]}
@@ -43,16 +48,20 @@ export function Boot(props: { page: SeedPage; title: string }) {
       <div class={styles.scrolled}>
         <div class={styles.first}>
           <div class={styles.stage}>
-            {(() => {
-              const size = sized();
-              if (!size) return <div class={styles.paint} />;
-              return isFixedSize(size) ? (
+            <Show when={!view().size}>
+              <div class={styles.paint} />
+            </Show>
+            <Show when={fixed()}>
+              {size => (
                 <div
                   class={styles.fitted}
-                  style={{ "--ar": String(size.width / size.height), "--w": `${size.width}px` }}
+                  style={{
+                    "--ar": String(size().width / size().height),
+                    "--w": `${size().width}px`
+                  }}
                 />
-              ) : null;
-            })()}
+              )}
+            </Show>
           </div>
           <div class={styles.railDock}>
             <div class={styles.rail}>
