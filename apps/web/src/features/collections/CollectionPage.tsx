@@ -221,11 +221,15 @@ export function CollectionPage(props: {
       if (title) document.title = `${title} | Grabient`;
     }
   );
-  /* a public collection's page seen, counted for the seeding agents beside what its readers take */
+  /* a public collection's page seen, counted once for the seeding agents beside what its readers take: the page's
+     reads settle again and again, and an effect runs each time its compute does */
+  let seen = "";
   createEffect(
     () => (doc()?.visibility === "public" ? doc()!.slug : ""),
     slug => {
-      if (slug) useCollectionSeen(slug);
+      if (!slug || slug === seen) return;
+      seen = slug;
+      useCollectionSeen(slug);
     }
   );
 
