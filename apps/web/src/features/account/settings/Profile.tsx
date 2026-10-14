@@ -16,7 +16,8 @@ import {
   keptUserId,
   loginHref,
   refreshSession,
-  sessionReady
+  sessionReady,
+  shownError
 } from "../session.ts";
 import { readUsername, USERNAME_MAX } from "../username.ts";
 import styles from "./Settings.module.css";
@@ -157,7 +158,8 @@ export function Profile(props: {
       setStaged({ blob, url: URL.createObjectURL(blob) });
       say("");
     } catch (error) {
-      say(error instanceof Error ? error.message : t("Couldn't read this image."), true);
+      // a picture the browser cannot decode fails in the browser's own words: the page says its own
+      say(shownError(error, msg("Couldn't read this image.")), true);
     }
     fileInput.value = "";
   };
@@ -194,7 +196,7 @@ export function Profile(props: {
       if (renamed) await engineNow()?.syncWithin(3000);
       say(t("Saved."));
     } catch (error) {
-      say(error instanceof Error ? error.message : t("Couldn't save."), true);
+      say(shownError(error, msg("Couldn't save.")), true);
     } finally {
       setSaving(false);
     }

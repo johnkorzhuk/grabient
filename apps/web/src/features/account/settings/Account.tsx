@@ -5,7 +5,15 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { forgetAnalytics } from "../../analytics/analytics.ts";
-import { type Account, adminAccount, api, authError, forgetAccount, signOut } from "../session.ts";
+import {
+  type Account,
+  adminAccount,
+  api,
+  authError,
+  forgetAccount,
+  shownError,
+  signOut
+} from "../session.ts";
 import styles from "./Settings.module.css";
 
 /** The account itself: its address, whether it is verified, when it joined, and the way out. A sign-out that fails
@@ -20,9 +28,7 @@ export function AccountSection(props: { account: Account; onFailure: (words: str
           disabled={offline()}
           onClick={() =>
             void signOut().catch((error: unknown) =>
-              props.onFailure(
-                error instanceof Error && error.message ? error.message : t("Couldn't sign out.")
-              )
+              props.onFailure(shownError(error, msg("Couldn't sign out.")))
             )
           }
         >
@@ -92,9 +98,7 @@ export function DeletionSection(props: { token: string | null }) {
     } catch (error) {
       setDeleting(false);
       setFailed(true);
-      setStatus(
-        error instanceof Error && error.message ? error.message : t("Couldn't delete the account.")
-      );
+      setStatus(shownError(error, msg("Couldn't delete the account.")));
     }
   };
   return (

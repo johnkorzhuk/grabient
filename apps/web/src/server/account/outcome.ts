@@ -1,4 +1,5 @@
-import { formatMessage, type Params } from "@grabient/i18n";
+import type { Params } from "@grabient/i18n";
+import { refusal } from "../../features/collections/schema.ts";
 
 /* What one of a sync's changes came to, in the shape a page's press would have been answered with: a status, and the
    answer's body. A refusal's `error` is its English and `i18n` its message and values, which the page says in the
@@ -14,10 +15,7 @@ export interface Outcome {
 export const done = (body: Record<string, unknown> = {}): Outcome => ({ status: 200, body });
 export const refused = (status: number, message: string, params?: Params): Outcome => ({
   status,
-  body: {
-    error: params ? formatMessage(message, params, "en") : message,
-    ...(params ? { i18n: { message, params } } : {})
-  }
+  body: { ...refusal(message, params) }
 });
 
 /** An answer another module gave, as an outcome: a limit's refusal keeps its wait. */

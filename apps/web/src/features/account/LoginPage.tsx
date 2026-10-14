@@ -12,7 +12,7 @@ import { offline } from "../../app/connection.ts";
 import { Languages } from "../../app/Frames.tsx";
 import { trackLoginStart } from "../analytics/analytics.ts";
 import styles from "./Login.module.css";
-import { account, authError, loadAccount, loginHref, safeRedirect } from "./session.ts";
+import { account, authError, loadAccount, loginHref, safeRedirect, shownError } from "./session.ts";
 
 /* Sign in and sign up are one page: Google, or a link by email. While an app connects (the authorization page sends
    the reader here with its request), the email sends a code instead, typed in the window that asked: a link opens in
@@ -179,7 +179,7 @@ export function LoginPage(props: {
       say(t("Check your email. The link expires in 5 minutes."));
       startWait();
     } catch (error) {
-      if (!disposed) say(error instanceof Error && error.message ? error.message : t(FAILED), true);
+      if (!disposed) say(shownError(error, FAILED), true);
     } finally {
       if (!disposed) setSending(false);
     }
@@ -207,7 +207,7 @@ export function LoginPage(props: {
         if (!disposed) input("code")?.focus();
       });
     } catch (error) {
-      if (!disposed) say(error instanceof Error && error.message ? error.message : t(FAILED), true);
+      if (!disposed) say(shownError(error, FAILED), true);
     } finally {
       if (!disposed) setSending(false);
     }
@@ -246,7 +246,7 @@ export function LoginPage(props: {
       if (!answer.ok) throw new Error(authError(answer.body, FAILED));
       location.replace(localHref(to()));
     } catch (error) {
-      if (!disposed) say(error instanceof Error && error.message ? error.message : t(FAILED), true);
+      if (!disposed) say(shownError(error, FAILED), true);
     } finally {
       if (!disposed) setChecking(false);
     }
@@ -276,7 +276,7 @@ export function LoginPage(props: {
     } catch (error) {
       if (disposed) return;
       setSending(false);
-      say(error instanceof Error && error.message ? error.message : t(GOOGLE_FAILED), true);
+      say(shownError(error, GOOGLE_FAILED), true);
     }
   };
   /* what the email's press says: sending, waiting to send again, or what it sends */

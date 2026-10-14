@@ -2,6 +2,7 @@ import { delocalizePath, localHref, msg, t } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import * as v from "valibot";
+import { READ_TIMEOUT } from "../../lib/query.ts";
 import { setAnalyticsInternal, setAnalyticsUser, trackEvent } from "../analytics/analytics.ts";
 import { onAccountChange } from "./state.ts";
 import type { Profile } from "./wire.ts";
@@ -361,7 +362,8 @@ export const authError = (body: unknown, fallback: string): string => {
   );
 };
 /** A private JSON call to the site, with the session's cookie. A refusal throws the server's words, translated: the
-    Worker names the ones a page shows with msg(), with their values in `i18n`. */
+    Worker names the ones a page shows with msg(), with their values in `i18n`. A call the server never answers ends
+    as a failure, which shownError says in the page's own words. */
 export async function api<T>(
   path: string,
   body?: unknown,
@@ -371,6 +373,7 @@ export async function api<T>(
     method,
     credentials: "same-origin",
     cache: "no-store",
+    signal: AbortSignal.timeout(READ_TIMEOUT),
     ...(body === undefined
       ? {}
       : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
