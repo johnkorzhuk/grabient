@@ -116,9 +116,11 @@ export async function paletteData(
 }
 
 /** The page's head: its title, description, canonical, card and structured data, from its palette and view, with the
-    server's facts while they are this palette's. */
+    server's facts while they are this palette's: those its page was read with, or those the tab was told since. */
 export const paletteHead = (data: PaletteData) => ({
-  ...headOf(data.meta ?? pageMeta(metaPage(data.page, data.facts))),
+  ...headOf(
+    data.meta ?? pageMeta(metaPage(data.page, data.facts ?? factsOf(data.page.seed) ?? null))
+  ),
   styles: [{ children: STATIC_CSS }]
 });
 
