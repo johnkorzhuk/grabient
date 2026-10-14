@@ -35,7 +35,7 @@ import {
 import { likeLimits, likeTitle, publishLimits, savedCount, setLike } from "../../gallery/likes.ts";
 import { galleryItems, listPalettes } from "../../gallery/list.ts";
 import { countSearch } from "../../search/counts.ts";
-import { searchableItems } from "../../search/seams.ts";
+import { searchableItems } from "../../search/items.ts";
 import { type SearchResult, searchPalettes, unreadPalette } from "../../search/search.ts";
 import { adjustPalette, readChange } from "../adjust.ts";
 import { paletteNamed } from "../args.ts";

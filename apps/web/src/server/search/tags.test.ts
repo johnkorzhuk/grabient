@@ -4,8 +4,9 @@ import {
   mixTags,
   popularSearches,
   searchSuggestionsResponse,
-  suggestionsCache,
-  suggestSearches
+  suggestionsFor,
+  suggestSearches,
+  tagsKey
 } from "./tags.ts";
 import { fixture, searchEnv } from "./testing.ts";
 
@@ -44,15 +45,49 @@ test("the home's row mixes searches and collections, and no tag says a word twic
 });
 
 test("typed answers are kept an hour, the row five minutes", async () => {
-  expect(suggestionsCache("blu")).toEqual(golden.cache.typed);
-  expect(suggestionsCache("")).toEqual(golden.cache.rest);
-  expect(suggestionsCache("kS7Q8Yy5S_SChv0")).toEqual(golden.cache.seed);
-  const response = await searchSuggestionsResponse(
-    new Request("https://grabient.test/api/search-suggestions?q=blu&limit=3"),
-    env
-  );
-  expect(response.headers.get("Cache-Control")).toBe("public, max-age=3600");
+  const get = (query: string) =>
+    searchSuggestionsResponse(
+      new Request(`https://grabient.test/api/search-suggestions?${query}`),
+      env
+    );
+  const kept = (response: Response) => ({ "Cache-Control": response.headers.get("Cache-Control") });
+  const typed = await get("q=blu&limit=3");
+  expect(kept(typed)).toEqual(golden.cache.typed);
   expect(
-    ((await response.json()) as { suggestions: { query: string }[] }).suggestions.map(t => t.query)
+    ((await typed.json()) as { suggestions: { query: string }[] }).suggestions.map(t => t.query)
   ).toEqual(golden.typed.blu.slice(0, 3));
+  expect(kept(await get("limit=3"))).toEqual(golden.cache.rest);
+  expect(kept(await get("q=kS7Q8Yy5S_SChv0"))).toEqual(golden.cache.seed);
+});
+
+test("the edge keeps the tags by what their answer reads: the words as typed, how many, the row, the language", () => {
+  const key = (query: string) => tagsKey(new URLSearchParams(query)).toString();
+  expect(key("q=%20Dark%20%20BLUE&limit=99&junk=1&lang=en")).toBe("q=dark+blue&limit=24");
+  expect(key("q=kS7Q8Yy5S_SChv0&both=1")).toBe("q=kS7Q8Yy5S_SChv0&limit=12");
+  expect(key("both=1&lang=ja")).toBe("q=&limit=24&both=1&lang=ja");
+  expect(key("both=1&limit=1")).toBe("q=&limit=2&both=1");
+  expect(key("limit=junk&lang=xx")).toBe("q=&limit=12");
+});
+
+test("a tag says its words in the language asked, where Grabient translated them, and leads to the same search", async () => {
+  const translated = searchEnv({
+    DB: {
+      prepare: (sql: string) => ({
+        bind: (locale: string) => ({
+          all: async () => ({
+            results:
+              sql.includes("kind = 'tag'") && locale === "ja" ? [{ key: "blue", title: "青" }] : []
+          })
+        })
+      })
+    } as unknown as D1Database
+  });
+  const tags = async (query: string) =>
+    (await suggestionsFor(translated, new URLSearchParams(query))).map(tag => [
+      tag.label,
+      tag.href
+    ]);
+  expect((await tags("q=blue&limit=1&lang=ja"))[0]).toEqual(["青", "/palettes?q=blue"]);
+  expect((await tags("q=blue&limit=1"))[0]).toEqual(["blue", "/palettes?q=blue"]);
+  expect((await tags("q=blue&limit=1&lang=de"))[0]).toEqual(["blue", "/palettes?q=blue"]);
 });

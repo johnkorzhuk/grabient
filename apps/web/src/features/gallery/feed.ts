@@ -1,5 +1,5 @@
 import type { AnyRouter } from "@tanstack/solid-router";
-import { createSignal, onSettled } from "solid-js";
+import { createMemo, createSignal, onSettled, untrack } from "solid-js";
 import { type Failed, failed } from "./queries.ts";
 
 /* A feed: the address's own page, then each page after it that joins beneath it as the reader nears the end, while
@@ -43,8 +43,14 @@ export function createFeed<P extends FeedPage>(o: {
     }
     return out;
   };
-  /* the pages that joined, for the list the address names now: another list starts from what was kept of it */
-  const [joined, setJoined] = createSignal(restore);
+  /* The pages that joined, for the list the address names now: another list starts from what was kept of it. They are
+     read again only when the list or its first page changes, so the same list in another view keeps the pages it has,
+     which the cache may have let go of since. */
+  const origin = createMemo(() => `${o.start()} ${o.key()}`);
+  const [joined, setJoined] = createSignal(() => {
+    origin();
+    return untrack(restore);
+  });
   const [asking, setAsking] = createSignal<{ key: string; reason?: string } | null>(null);
   const ask = () => {
     const now = asking();

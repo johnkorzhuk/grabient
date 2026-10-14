@@ -21,7 +21,14 @@ import { account, sessionReady } from "../account/session.ts";
 import { AppearanceContext } from "../list/appearance.ts";
 import { createPicture, type Settled } from "../search/picture.ts";
 import { Sampler } from "../search/Sampler.tsx";
-import { type GalleryPlace, LIST_PATHS, listSearch, orderHref, withView } from "./address.ts";
+import {
+  type GalleryPlace,
+  LIST_PATHS,
+  listIdentity,
+  listSearch,
+  orderHref,
+  withView
+} from "./address.ts";
 import {
   drawnAs,
   hexesOf,
@@ -97,7 +104,7 @@ export function Palettes(props: { place: ListPlace }) {
   /* the last page that stood: a read that fails leaves it on screen beside its reason */
   const standing = createMemo((last?: Page) => (failed(head.data) ? last : head.data));
   const feed = createFeed<Page>({
-    key: () => JSON.stringify(source()),
+    key: () => listIdentity(props.place, account()?.id),
     start: () => params().page,
     head: () => head.data,
     kept: n => {

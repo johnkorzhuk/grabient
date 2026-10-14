@@ -12,9 +12,9 @@ import {
 import { all, type Db, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
+import { fitOf } from "../collections/fit.ts";
 import { loadModel, searchAsset } from "./files.ts";
 import { embeddings } from "./model.ts";
-import { votedOut } from "./seams.ts";
 import { latestSnapshot, storedMark, storeSnapshot } from "./snapshot.ts";
 
 /** Four tables, each read once as counts and latest times: a row added, changed or removed anywhere the snapshot reads
@@ -88,7 +88,11 @@ export function siteOf(rows: SiteRows, mark: string): Site {
   );
   const out = new Set(
     rows.votes
-      .filter(v => votedOut(Number(v.up) || 0, Number(v.down) || 0, Number(v.admin_down) || 0))
+      .filter(v => {
+        // an admin's down, or enough votes and most of them down, takes a palette out of its collection here
+        const fit = fitOf(Number(v.up) || 0, Number(v.down) || 0, Number(v.admin_down) || 0);
+        return fit.slated || fit.unfit;
+      })
       .map(v => `${v.collection_id}|${v.seed}`)
   );
   for (const item of rows.items) {

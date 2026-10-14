@@ -4,11 +4,13 @@ import { t } from "@grabient/i18n";
 import { APPEARANCE_OPTIONS, Appearance, styleLabel } from "@grabient/ui/Appearance.tsx";
 import { useLocation, useRouter, useSearch } from "@tanstack/solid-router";
 import { createEffect, createSignal, onCleanup, useContext } from "solid-js";
+import { rewriteQuietly } from "../../app/navigation.ts";
 import { RESTING } from "../../app/water.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import {
   AppearanceContext,
   drawnIn,
+  inOrder,
   type ListView,
   readListView,
   rememberView,
@@ -39,7 +41,7 @@ export function ListAppearance() {
   const href = (patch: Partial<ListView>) =>
     router.buildLocation({
       to: location().pathname,
-      search: (prev: Record<string, unknown>) => ({ ...prev, ...viewParams(patch) })
+      search: (prev: Record<string, unknown>) => inOrder(prev, viewParams(patch))
     } as never).publicHref;
 
   /* the draft as a plain value too: a signal written now reads its old value until the write settles */
@@ -61,17 +63,17 @@ export function ListAppearance() {
       look.setDraft(null);
     }
   };
-  /* the route takes the draft with this press's own change, and the draft goes */
+  /* the route takes the draft with this press's own change, and the draft goes. A draft set back to the route's own
+     value leaves the route nothing to take, so the address is written here. */
   const go = (patch: Partial<ListView>) => {
     const held = pending;
     stop();
     since = null;
     pending = null;
-    void router.navigate({
-      href: href({ ...held, ...patch }),
-      replace: true,
-      resetScroll: false
-    });
+    const to = href({ ...held, ...patch });
+    if (held) rewriteQuietly(to);
+    if (to !== location().publicHref)
+      void router.navigate({ href: to, replace: true, resetScroll: false });
     if (held) look.setDraft(null);
   };
   const settle = () => {
@@ -81,7 +83,7 @@ export function ListAppearance() {
     writeTimer = undefined;
     if (!pending) return;
     lastWrite = Date.now();
-    history.replaceState(history.state, "", href(pending));
+    rewriteQuietly(href(pending));
   };
   const change = (next: ViewDraft) => {
     since ??= location().href;

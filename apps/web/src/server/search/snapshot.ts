@@ -173,10 +173,6 @@ export async function loadSnapshot(env: SnapshotEnv, ctx?: Background): Promise<
   return holder.held?.snapshot ?? null;
 }
 
-/** The snapshot this isolate answers from, when it has read one: never a read of its own. */
-export const heldSnapshot = (env: Pick<Env, "ASSETS">): Snapshot | null =>
-  holders.get(env.ASSETS)?.held?.snapshot ?? null;
-
 /** What this isolate answers from, for `GET /api/search/status`. */
 export async function snapshotStatus(env: SnapshotEnv, ctx?: Background) {
   const snapshot = await loadSnapshot(env, ctx);

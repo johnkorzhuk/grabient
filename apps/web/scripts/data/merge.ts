@@ -10,6 +10,12 @@
    scores and sums are left to the counts that follow (palettes.ts, scores.ts), which see every row.
 
    The statements are safe to run again on the same target: what is there already is the same row, kept or updated. */
+import {
+  accountHandle,
+  isCollectionSlug,
+  privateSlug,
+  SLUG_MAX
+} from "../../src/features/collections/address.ts";
 import { chunks, insertRows, literal, name, type Value } from "./d1.ts";
 import type { Row, Snapshot } from "./snapshot.ts";
 
@@ -46,7 +52,6 @@ export const LEFT: Record<string, string> = {
 };
 
 const ID_LETTERS = "abcdefghjkmnpqrstuvwxyz23456789";
-const SLUG_MAX = 80;
 
 /** A fresh collection id: 20 of the letters ids are made of. */
 export function newId(): string {
@@ -54,29 +59,12 @@ export function newId(): string {
   return [...bytes].map(byte => ID_LETTERS[byte % ID_LETTERS.length]).join("");
 }
 
-/** The part of a private address that names its owner: the username, else an underscore and the id's first ten
-    letters and digits (U04 collections/address). */
-export const accountHandle = (user: { id?: Value; username?: Value }) => {
-  const username = typeof user.username === "string" ? user.username.trim() : "";
-  return username
-    ? username.toLowerCase()
-    : `_${String(user.id)
-        .toLowerCase()
-        .replace(/[^a-z0-9]/g, "")
-        .slice(0, 10)}`;
-};
-
-/** A private address moved under `handle`: the same title part, cut to fit, the first free number where taken. */
-export function moveUnder(slug: string, handle: string, taken: (slug: string) => boolean): string {
-  const part = slug
-    .slice(slug.indexOf("/") + 1)
-    .replace(/-[1-9]\d{0,3}$/, "")
-    .slice(0, SLUG_MAX - handle.length - 6)
-    .replace(/-+$/, "");
-  const base = `@${handle}/${part || "collection"}`;
-  if (!taken(base)) return base;
-  for (let n = 2; ; n++) if (!taken(`${base}-${n}`)) return `${base}-${n}`;
-}
+/** An account row's handle: what its private collections' addresses begin with. */
+export const handleOf = (user: Row): string =>
+  accountHandle({
+    id: String(user.id),
+    username: typeof user.username === "string" ? user.username : null
+  });
 
 const update = (columns: readonly string[]) =>
   columns.map(column => `${name(column)} = excluded.${name(column)}`).join(", ");
@@ -123,7 +111,7 @@ export function mergeStatements(lite: Snapshot, target: Target, makeId = newId):
     const there = byEmail.get(String(user.email).toLowerCase());
     if (there) {
       users.set(id, String(there.id));
-      handles.set(String(there.id), accountHandle(there));
+      handles.set(String(there.id), handleOf(there));
       return String(there.id);
     }
     if (user.role === "admin")
@@ -138,7 +126,7 @@ export function mergeStatements(lite: Snapshot, target: Target, makeId = newId):
     if (username) takenNames.add(username.toLowerCase());
     made.push({ ...user, id: own, username });
     users.set(id, own);
-    handles.set(own, accountHandle({ id: own, username }));
+    handles.set(own, handleOf({ id: own, username }));
     return own;
   };
   for (const user of liteUsers.values()) if (user.role === "admin") mapUser(user.id);
@@ -165,7 +153,13 @@ export function mergeStatements(lite: Snapshot, target: Target, makeId = newId):
       return holder !== undefined && holder !== id;
     };
     if (handle && slug.startsWith("@") && !slug.startsWith(`@${handle}/`)) {
-      slug = moveUnder(slug, handle, taken(String(c.id)));
+      // as a username change moves it: the same address under the new handle, else its title's first free one
+      const wanted = `@${handle}/${slug.slice(slug.indexOf("/") + 1)}`;
+      const held = taken(String(c.id));
+      slug =
+        isCollectionSlug(wanted) && !held(wanted)
+          ? wanted
+          : privateSlug(String(c.title), handle, held);
     }
     let id = String(c.id);
     const there = targetIds.get(id);

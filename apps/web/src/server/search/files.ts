@@ -22,9 +22,10 @@ export interface Vocabulary {
   kinds: [number, string][];
 }
 
-/** A search file as the deploy serves it. */
+/** A search file as the deploy serves it. The binding reads the path alone; the host is one `vite dev` serves, which
+    answers the binding from its own files and refuses a host it does not know. */
 export async function searchAsset(env: AssetsEnv, name: string): Promise<Response> {
-  const response = await env.ASSETS.fetch(`https://assets.invalid/search/${name}`);
+  const response = await env.ASSETS.fetch(`http://assets.localhost/search/${name}`);
   if (!response.ok) throw new Error(`search/${name} is missing`);
   return response;
 }

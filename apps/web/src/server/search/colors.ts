@@ -5,11 +5,12 @@
 import { decodePalette, sampleHex } from "@grabient/engine";
 import { DOMINANT_MAX, DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts";
 import type { Snapshot } from "@grabient/search/snapshot.ts";
+import { listWords } from "../../lib/words.ts";
+import { canonicalPaletteSeed } from "../files/resolve.ts";
 import { loadVocabulary } from "./files.ts";
 import { keep } from "./kept.ts";
 import { namedPalettes, snapshotPalettes } from "./rank.ts";
 import { hexLiterals, knownQuery, queryWords } from "./read.ts";
-import { canonicalPaletteSeed, normalizeListQuery } from "./seams.ts";
 import { loadSnapshot, type SnapshotEnv } from "./snapshot.ts";
 
 /** Colors a tab's icon reads along a palette: more than a 32 pixel bar can tell apart. */
@@ -20,7 +21,7 @@ const kept = new WeakMap<Snapshot, Map<string, string[]>>();
 
 /** The colors of what answers these words, darker end first; none when nothing free reads them. */
 export async function searchColors(env: SnapshotEnv, raw: string): Promise<string[]> {
-  const words = normalizeListQuery(raw);
+  const words = listWords(raw);
   if (!words) return [];
   const seed = canonicalPaletteSeed(words);
   const palette = seed && decodePalette(seed);

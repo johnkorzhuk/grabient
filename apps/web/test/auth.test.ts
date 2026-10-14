@@ -130,6 +130,26 @@ describe("signing in by an emailed link", () => {
     expect((await bodyOf<SessionBody>(read)).user.email).toBe(email);
   });
 
+  it("sends the link as the site's own letter, in the asking page's language, carrying its head", async () => {
+    const env = testEnv();
+    const email = `${unique("letter")}@example.test`;
+    const asked = await handleAuth(
+      post(LINK, { email }, { headers: { Referer: `${ORIGIN}/ja/login` } }),
+      env
+    );
+    expect(asked.status).toBe(200);
+    const sent = env.EMAIL.last;
+    expect(sent.to).toBe(email);
+    expect(sent.html).toMatch(/<html[^>]* lang="ja"/);
+    expect(sent.html).toContain('src="cid:grabient-head"');
+    expect(sent.attachments).toMatchObject([
+      { disposition: "inline", contentId: "grabient-head", type: "image/png" }
+    ]);
+    // a PNG, as bytes
+    const head = sent.attachments?.[0]?.content;
+    expect(head instanceof Uint8Array && [...head.subarray(1, 4)]).toEqual([80, 78, 71]);
+  });
+
   it("stores the link's token as its hash, and takes no name from the request", async () => {
     const env = testEnv();
     const email = `${unique("hashed")}@example.test`;

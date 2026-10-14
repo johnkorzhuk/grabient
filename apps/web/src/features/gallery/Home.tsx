@@ -21,10 +21,10 @@ import { createMemo, createSignal, Loading, Show, useContext } from "solid-js";
 import { DEFAULT_FRAME } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
+import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
 import { AppearanceContext } from "../list/appearance.ts";
 import { createPicture } from "../search/picture.ts";
 import { type ListParams, listSearch, orderHref, withView } from "./address.ts";
-import type { CollectionPage, CollectionSummary } from "./collections.ts";
 import {
   drawnAs,
   hexesOf,
@@ -41,7 +41,7 @@ import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
 import { Made } from "./Made.tsx";
-import { collectionsPageQuery, type Failed, failed, homeHeadQuery } from "./queries.ts";
+import { type Failed, failed, homeCollectionsQuery, homeHeadQuery } from "./queries.ts";
 import { metaPage, searchedName } from "./titles.ts";
 
 /* The home: the hottest palettes under Trending, then the hot collections as their groups, more joining as the reader
@@ -90,7 +90,7 @@ export function Home(props: { params: ListParams }) {
   const standingHead = createMemo((last?: Exclude<typeof head.data, Failed>) =>
     failed(head.data) ? last : head.data
   );
-  const first = useQuery(() => collectionsPageQuery(order(), words(), props.params.page));
+  const first = useQuery(() => homeCollectionsQuery(words(), props.params.page));
   const standingFirst = createMemo((last?: CollectionPage) =>
     failed(first.data) ? last : first.data
   );
@@ -99,10 +99,10 @@ export function Home(props: { params: ListParams }) {
     start: () => props.params.page,
     head: () => first.data,
     kept: n => {
-      const page = client.getQueryData(collectionsPageQuery(order(), words(), n).queryKey);
+      const page = client.getQueryData(homeCollectionsQuery(words(), n).queryKey);
       return page && !failed(page) ? page : undefined;
     },
-    read: n => client.fetchQuery(collectionsPageQuery(order(), words(), n))
+    read: n => client.fetchQuery(homeCollectionsQuery(words(), n))
   });
   /* every collection on the feed once, in the order the pages came */
   const groups = createMemo(() => {
