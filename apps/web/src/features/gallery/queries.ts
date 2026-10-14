@@ -4,6 +4,7 @@ import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
+import { untrack } from "solid-js";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
 import { DEFAULT_FRAME, type ListSort, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
@@ -186,10 +187,11 @@ export function savedNow(key: SavedKey): SavedPage | undefined {
   const sync = engineNow();
   if (!model || !sync?.copyReady(key.owner)) return undefined;
   sync.freshen(key.owner);
+  /* the connection as the page is read: a page read once follows no later change of it */
   const copied = model.savedPageOf(
     viewNow(),
     { page: key.page, limit: key.limit, query: key.words },
-    offline()
+    untrack(offline)
   );
   if (!copied) return undefined;
   /* a like's count is as old as the sync that brought it, so every count is asked for again */
