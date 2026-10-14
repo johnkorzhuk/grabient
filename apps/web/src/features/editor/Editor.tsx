@@ -182,11 +182,11 @@ export default function Editor(props: { data: PaletteData }) {
   shell.paint(() => (chosen.open() ? selection() : [drawn()]));
 
   /* an admin's Save from inside a field (a hex being typed), where the page's keys rest: the field lets go, which
-     commits it, then Save; never the browser's own Save page */
+     commits it, then Save; never the browser's own Save page. The selection's fields have no palette to save. */
   onSettled(() => {
     const saveRow = keyRow("save");
     const onKey = (event: KeyboardEvent) => {
-      if (!save.admin() || !typing(event.target) || !saveRow) return;
+      if (!save.admin() || chosen.open() || !typing(event.target) || !saveRow) return;
       if (!rowKeys(saveRow).some(k => matches(event, k))) return;
       event.preventDefault();
       (event.target as HTMLElement).blur();

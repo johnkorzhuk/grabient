@@ -567,6 +567,63 @@ test("the selection's entry keeps the palette's undo, so a reload there loses no
   await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
 });
 
+test("an admin's Mod+S in the selection's fields saves no palette", async ({ page }) => {
+  // an admin's session and account copy, and a palette in the gallery, as the server would answer them
+  const admin = {
+    id: "e2e-admin",
+    name: "Admin",
+    email: "admin@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "admin",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const asked: string[] = [];
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: admin.id }, user: admin } })
+  );
+  await page.route("**/api/me/sync", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        reset: true,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: true
+      }
+    })
+  );
+  await page.route("**/api/me/palettes/*", route => {
+    const seed = new URL(route.request().url()).pathname.split("/").at(-1) ?? "";
+    asked.push(`${route.request().method()} ${seed}`);
+    return route.fulfill({ json: { seed, gallery: {}, collections: [], liked: false } });
+  });
+  await open(page);
+  await expect(page.getByRole("button", { name: "Save", exact: true })).toBeVisible();
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await presses.getByRole("button", { name: /^Selection/ }).click();
+  await page.getByRole("complementary", { name: "Export" }).getByLabel("Width").click();
+  await page.keyboard.press("ControlOrMeta+s");
+  await page.waitForTimeout(1000);
+  // the palette's standing is asked once, for the palette the page opened on
+  expect(asked).toEqual([`GET ${SEED}`]);
+  // in the editor's own fields it is Save
+  await page.getByRole("button", { name: "Close selection" }).click();
+  const side = page.getByRole("complementary", { name: "Editor" });
+  await side.getByRole("option").first().click();
+  await side.getByLabel("Hex color").click();
+  await page.keyboard.press("ControlOrMeta+s");
+  await expect.poll(() => asked).toEqual([`GET ${SEED}`, `PUT ${SEED}`]);
+});
+
 test("About's first figure is the editor's own controls over a palette of its own, with its own undo", async ({
   page
 }) => {
