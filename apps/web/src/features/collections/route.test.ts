@@ -315,6 +315,25 @@ describe("a collection page's loader", () => {
       redirect: { href: "/palettes/rising?q=warm+sunsets", statusCode: 301 }
     });
   });
+  test("leads an old link's newer order to Rising's search for its words, in one step", async () => {
+    const cache = holding("red", { doc: null, fetchedAt: 0 });
+    await expect(
+      loadCollection(cache, at("red", "popular", "?sort=oldest&style=angularSwatches"))
+    ).rejects.toEqual({
+      redirect: { href: "/palettes/rising?q=red&style=angularSwatches", statusCode: 301 }
+    });
+    await expect(loadCollection(cache, at("red", "popular", "?sort=hot"))).rejects.toEqual({
+      redirect: { href: "/palettes?q=red", statusCode: 301 }
+    });
+  });
+  test("leads an old link's order on a collection's address to the collection's own", async () => {
+    await expect(
+      loadCollection(
+        holding("ocean-depths", { doc, fetchedAt: 0 }),
+        at("ocean-depths", "popular", "?sort=newest&steps=5")
+      )
+    ).rejects.toEqual({ redirect: { href: "/ocean-depths?steps=5", statusCode: 301 } });
+  });
   test("renders its page for a read that failed", async () => {
     const cache = holding("ocean-depths", { failed: "No answer." });
     expect(await loadCollection(cache, at("ocean-depths"))).toEqual({});

@@ -4,12 +4,13 @@ import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import type { FramedData } from "../../app/shell.ts";
+import { parseSort } from "../../lib/orders.ts";
 import { type CollectionFacts, type Page, pageHead } from "../../lib/page-meta.ts";
 import { type Failed, failed } from "../../lib/query.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
-import { type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
+import { collectionHref, type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
 import { inputOf } from "./client.ts";
 import {
   COLLECTION_LIMIT,
@@ -18,6 +19,7 @@ import {
   type ListPlace,
   listKey,
   listSearch,
+  pageSearch,
   viewOf
 } from "./params.ts";
 import { collectionQuery, collectionsQuery, type Found, tagsQuery } from "./queries.ts";
@@ -132,8 +134,9 @@ export interface CollectionLoaded extends Loaded {
 
 /** A collection page's loader: the public collection in the cache. A private one renders its page, which names it so
     and which its owner's browser fills in, and answers 404, as does an account's address that holds nothing. A
-    one-segment address that holds nothing is the palette search for its words, in its order and view: only the server
-    can tell nothing from a private collection, so a browser's navigation that finds nothing loads the address whole. */
+    one-segment address that holds nothing is the palette search for its words, in its order and view (an old link's
+    newer `?sort=` is Rising's): only the server can tell nothing from a private collection, so a browser's navigation
+    that finds nothing loads the address whole. */
 export async function loadCollection(
   client: QueryClient,
   at: { slug: string; order: PaletteOrder; searchStr: string; publicHref: string }
@@ -146,6 +149,13 @@ export async function loadCollection(
   const found = await client.ensureQueryData(query);
   if (failed(found)) return {};
   const params = new URLSearchParams(at.searchStr);
+  const here = found.doc || found.private || found.own || at.slug.startsWith("@");
+  /* a collection lives here: an old link's order is none of its page's */
+  if (here && params.has("sort"))
+    throw redirect({
+      href: collectionHref(at.slug, at.order) + pageSearch(viewOf(params), params.has("selection")),
+      statusCode: 301
+    });
   if (found.doc)
     return {
       facts: factsOf(found.doc, found.languages),
@@ -153,15 +163,15 @@ export async function loadCollection(
         .slice(0, PAINTED)
         .map(item => drawnIn(inputOf(item), viewOf(params)))
     };
-  if (found.private || found.own || at.slug.startsWith("@"))
-    return { status: 404, robots: "noindex,follow", signedOut: noSession() };
+  if (here) return { status: 404, robots: "noindex,follow", signedOut: noSession() };
   if (!isServer) throw redirect({ href: at.publicHref, reloadDocument: true });
   const search = listSearch(
     { query: listWords(slugWords(at.slug)), view: viewOf(params) },
     params.has("selection")
   );
+  const rising = at.order === "rising" || parseSort(params.get("sort")) !== "popular";
   throw redirect({
-    href: `${at.order === "rising" ? "/palettes/rising" : "/palettes"}${search}`,
+    href: `${rising ? "/palettes/rising" : "/palettes"}${search}`,
     statusCode: 301
   });
 }
