@@ -2,6 +2,7 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import { isSwatchStyle, type Style } from "@grabient/engine/view.ts";
 import { createSignal, type Element, onSettled, Show, untrack } from "solid-js";
 import { Button } from "./Button.tsx";
+import { glowOff, glowOn } from "./glow.ts";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
 import { Like } from "./Like.tsx";
@@ -96,8 +97,9 @@ export interface PaletteCardProps {
 }
 
 /** One palette in a list: its picture, then its age and its like. Hover or focus inside the picture lights a blurred
-    copy of it under the card and shows the tools on glass; nothing moves. On touch a tap on the picture shows Edit and
-    the plus, one card at a time. The picture is no link: Edit opens the editor. The hover tools stay out of the
+    copy of it under the card, which the water behind the page takes in, and shows the tools on glass; nothing moves.
+    On touch a tap on the picture shows Edit and the plus, one card at a time, and nothing is lit: a finger's hover
+    stays where it last tapped. The picture is no link: Edit opens the editor. The hover tools stay out of the
     server's markup and hydration, where they would be most of a list's weight, and mount in idle time or as soon as
     the pointer or focus reaches the card. */
 export function PaletteCard(props: PaletteCardProps) {
@@ -105,6 +107,20 @@ export function PaletteCard(props: PaletteCardProps) {
   const arm = () => setArmed(true);
   onSettled(() => (armed() ? undefined : whenIdle(arm)));
   const art = () => gradientCss(props.stops, props.style, props.angle);
+  /* the water takes the glow in while a mouse or a pen is in the picture or focus is within it */
+  let over = false;
+  let within = false;
+  const shine = (picture: HTMLElement) => {
+    if ((over || within) && !props.removed) {
+      glowOn(
+        picture,
+        [{ stops: props.stops, style: props.style, angle: props.angle }],
+        () => !props.removed
+      );
+    } else glowOff(picture);
+  };
+  const inside = (e: PointerEvent | FocusEvent) =>
+    (e.currentTarget as HTMLElement).contains(e.relatedTarget as Node | null);
   let finger = false;
   const tap = (e: MouseEvent) => {
     if (!finger || (e.target as HTMLElement).closest("a, button")) return;
@@ -124,7 +140,24 @@ export function PaletteCard(props: PaletteCardProps) {
         class={styles.art}
         data-open={props.state === "hover" ? "" : undefined}
         data-removed={props.removed ? "" : undefined}
-        onPointerOver={arm}
+        onPointerOver={e => {
+          arm();
+          if (e.pointerType === "touch") return;
+          over = true;
+          shine(e.currentTarget);
+        }}
+        onPointerOut={e => {
+          over &&= inside(e);
+          shine(e.currentTarget);
+        }}
+        onFocusIn={e => {
+          within = true;
+          shine(e.currentTarget);
+        }}
+        onFocusOut={e => {
+          within = inside(e);
+          shine(e.currentTarget);
+        }}
         onPointerDown={e => {
           finger = e.pointerType === "touch";
         }}
