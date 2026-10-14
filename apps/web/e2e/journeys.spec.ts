@@ -622,6 +622,89 @@ for (const list of ["/palettes", "/bright-gradients"])
     await agrees("a palette like it");
   });
 
+/** Records the editor's heading from now on: each name it shows, once in turn. */
+const listen = (page: Page) =>
+  page.evaluate(() => {
+    const seen: string[] = [];
+    let last = document.querySelector("h1")?.textContent;
+    const read = () => {
+      const heading = document.querySelector("h1")?.textContent;
+      if (!heading || heading === last) return;
+      last = heading;
+      if (document.querySelector("[role='img'][aria-label='The gradient']")) seen.push(heading);
+    };
+    new MutationObserver(read).observe(document, {
+      subtree: true,
+      childList: true,
+      characterData: true
+    });
+    Object.assign(window, { headings: seen });
+  });
+/** The headings recorded since `listen` or the last call. */
+const heard = (page: Page) =>
+  page.evaluate(() => (window as unknown as { headings: string[] }).headings.splice(0));
+/** What the palette at the page's address is called loaded whole. */
+async function calledWhole(context: BrowserContext, page: Page) {
+  const whole = await context.newPage();
+  await open(whole, page.url());
+  await expect(whole.getByRole("img", { name: "The gradient" })).toBeVisible();
+  const said = await called(whole);
+  await whole.close();
+  return said;
+}
+/** The seed a card's Edit opens. */
+const seedAt = async (card: Locator) =>
+  new URL(
+    (await card.locator("a[aria-label='Edit']").getAttribute("href")) ?? "",
+    "https://grabient.test"
+  ).pathname.slice(1);
+
+test("an undo, Back or Forward to a palette the tab knows calls it that from the first frame", async ({
+  page,
+  context
+}) => {
+  await open(page, "/palettes");
+  const card = cards(page).nth(2);
+  const opened = await seedAt(card);
+  await card.getByRole("img").first().hover();
+  await card.locator("a[aria-label='Edit']").click();
+  await expect.poll(() => seedOf(page)).toBe(opened);
+  const own = await calledWhole(context, page);
+  await expect.poll(() => called(page)).toEqual(own);
+
+  // an edit taken back at once: its own name, then the palette's
+  await listen(page);
+  await page.keyboard.press("i");
+  await page.waitForTimeout(120);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => seedOf(page)).toBe(opened);
+  await expect.poll(() => called(page)).toEqual(own);
+  const edits = await heard(page);
+  expect.soft(edits, "the undo").toEqual([edits[0], own.heading]);
+
+  // one like it, from the sheet's own list, then Back to the palette and Forward to it
+  await page.mouse.move(200, 200);
+  await page.mouse.wheel(0, 2000);
+  const like = page.locator(`a[aria-label='Edit']:not([href*='${opened}'])`).first();
+  await expect(like).toBeAttached({ timeout: 30_000 });
+  const to = new URL((await like.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
+  await like.evaluate(el => (el as HTMLElement).focus());
+  await page.keyboard.press("Enter");
+  await expect.poll(() => seedOf(page)).toBe(to);
+  const other = await calledWhole(context, page);
+  await expect.poll(() => called(page)).toEqual(other);
+  for (const [step, at, said] of [
+    ["Back", opened, own],
+    ["Forward", to, other]
+  ] as const) {
+    await heard(page);
+    await (step === "Back" ? page.goBack() : page.goForward());
+    await expect.poll(() => seedOf(page), step).toBe(at);
+    await expect.poll(() => called(page), step).toEqual(said);
+    expect.soft(await heard(page), step).toEqual([said.heading]);
+  }
+});
+
 test("a link to Rising in a frame an admin turned off leads to the week's in the reader's language", async ({
   page,
   request

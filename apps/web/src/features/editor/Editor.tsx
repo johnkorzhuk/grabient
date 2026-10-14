@@ -65,7 +65,7 @@ import {
 } from "./formats.ts";
 import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
-import { keepFacts, NARROW, type PaletteData, Sheet } from "./page.ts";
+import { factsOf, keepFacts, NARROW, type PaletteData, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
 
@@ -253,7 +253,9 @@ export default function Editor(props: { data: PaletteData }) {
         narrow={narrow}
         save={save}
         rest={rest}
-        facts={() => (e.seed() === props.data.page.seed ? props.data.facts : null)}
+        facts={() =>
+          factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null)
+        }
         frames={first.frames}
         heading={() =>
           e.seed() === first.page.seed &&

@@ -2,7 +2,7 @@ import { env } from "cloudflare:workers";
 import type { ParamReader } from "@grabient/engine/view.ts";
 import { DEFAULT_LOCALE, locale } from "@grabient/i18n";
 import { createIsomorphicFn } from "@tanstack/solid-start";
-import { lazy } from "solid-js";
+import { createStore, lazy } from "solid-js";
 import { DEFAULT_FRAME, type RisingFrame } from "../../lib/orders.ts";
 import { heading, headOf, type PageMeta, pageMeta } from "../../lib/page-meta.ts";
 import { getJson } from "../../lib/query.ts";
@@ -29,19 +29,31 @@ export const searchReader = (search: Readonly<Record<string, unknown>>): ParamRe
   }
 });
 
-/* The facts the server read for the palettes this tab opened, by seed, and the ones still on their way: the page is read
-   again with each change of view and on Back, Forward or an undo, and a palette's written title outlasts them. The
-   last few are kept. Only the browser writes them. */
+/* The facts the server told this tab of the palettes it opened, by seed: the answers on their way, and each answer once
+   it has come, which the editor draws from as it lands. The page is read again with each change of view and on Back,
+   Forward or an undo, and a palette's written title outlasts them. The last few are kept. Only the browser writes
+   them. */
 const KNOWN_KEPT = 40;
 /** How long a press waits for an opened palette's facts before its page opens named by its colors: long enough that
     a page busy taking in the palette never outlasts an answer that came, short enough to bound a slow network. */
 const ASK_MS = 1500;
 const known = new Map<string, Promise<PaletteFacts | null>>();
+const [settled, setSettled] = createStore<Record<string, PaletteFacts>>({});
 function know(seed: string, facts: Promise<PaletteFacts | null>) {
   known.delete(seed);
   known.set(seed, facts);
-  if (known.size > KNOWN_KEPT) known.delete(known.keys().next().value!);
+  const oldest = known.size > KNOWN_KEPT ? known.keys().next().value : undefined;
+  if (oldest) known.delete(oldest);
+  // written as the answer comes, never while a component that hands one in is drawn
+  void facts.then(came =>
+    setSettled(draft => {
+      if (oldest) delete draft[oldest];
+      if (came && known.get(seed) === facts) draft[seed] = came;
+    })
+  );
 }
+/** What the server said of a palette this tab asked about, once its answer has come: reactive. */
+export const factsOf = (seed: string): PaletteFacts | undefined => settled[seed];
 /** The editor hands in the data it opened with: the server's facts, where the document came with them. */
 export function keepFacts(data: PaletteData) {
   if (data.facts) know(data.page.seed, Promise.resolve(data.facts));
