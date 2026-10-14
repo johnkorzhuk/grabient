@@ -34,6 +34,7 @@ import { accountView } from "../account/state.ts";
 import { collectionHref } from "../collections/address.ts";
 import { relativeAge } from "../gallery/drawing.ts";
 import { inPlace } from "../gallery/feed.ts";
+import { readerOrder, recallOrder, rememberOrder } from "../gallery/order.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { sortSearch } from "../gallery/sort.ts";
 import { drawnIn, type ListView, viewParams } from "../list/appearance.ts";
@@ -53,7 +54,6 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
-import { keepOrder, keptOrder, type SimilarOrder } from "./order.ts";
 import type { PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
 import { type Similar, similarQuery } from "./similar.ts";
@@ -214,12 +214,14 @@ export function Sheet(props: {
     }
   );
 
-  /* The order is the reader's, the one the lists are in, kept for the tab: the most liked first, or the rising in a
-     frame. Rising's frames are the ones an admin has left on: the document's own where the server drew this page, a
-     list's where the reader came from one, and otherwise asked for once the sheet is in the window. Rising pressed
-     while it is the order moves to the next of them. The answer holds every palette like this one, so an order sorts
-     what the page holds and asks nothing. */
-  const [order, setOrder] = createSignal(keptOrder());
+  /* The order is the reader's, the one the lists are in, kept for the tab (the lists' own record): the most liked
+     first, or the rising in a frame; Saved is the account's own list and no order of these, so it reads Popular.
+     Rising's frames are the ones an admin has left on: the document's own where the server drew this page, a list's
+     where the reader came from one, and otherwise asked for once the sheet is in the window. Rising pressed while it
+     is the order moves to the next of them. The answer holds every palette like this one, so an order sorts what the
+     page holds and asks nothing. */
+  recallOrder();
+  const sort = () => (readerOrder().order === "rising" ? "rising" : "popular");
   const told = untrack(() => props.frames);
   if (told && !queries.getQueryData(framesQuery().queryKey))
     queries.setQueryData(framesQuery().queryKey, [...told]);
@@ -233,19 +235,13 @@ export function Sheet(props: {
       });
   });
   const frame = () => {
-    const kept = order().frame;
+    const kept = readerOrder().frame;
     return offered().includes(kept) ? kept : DEFAULT_FRAME;
   };
   const pickOrder = (next: string) => {
-    const now = order();
-    const picked: SimilarOrder =
-      next !== "rising"
-        ? { ...now, sort: "popular" }
-        : now.sort !== "rising"
-          ? { ...now, sort: "rising" }
-          : { sort: "rising", frame: nextFrame(frame(), offered()) };
-    setOrder(picked);
-    keepOrder(picked);
+    if (next !== "rising") rememberOrder("popular");
+    else if (sort() !== "rising") rememberOrder("rising");
+    else rememberOrder("rising", nextFrame(frame(), offered()));
   };
   /* Rising's name and a frame's short one, as the lists' own row says them */
   const rising = () => t("Rising", { $context: "order" });
@@ -255,7 +251,7 @@ export function Sheet(props: {
     return got
       ? sortSearch(
           got.items.filter(item => item.kseed !== e.seed()),
-          order().sort,
+          sort(),
           frame()
         ).slice(0, SHOWN)
       : null;
@@ -315,7 +311,7 @@ export function Sheet(props: {
     const query = new URLSearchParams({ q: e.seed() });
     for (const [name, value] of Object.entries(viewParams(listed())))
       if (value !== undefined) query.set(name, String(value));
-    const list = order().sort === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
+    const list = sort() === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
     return `${list}?${query}`;
   };
   const title = () =>
@@ -447,7 +443,7 @@ export function Sheet(props: {
       order={
         <Segmented
           aria-label={t("Order")}
-          value={order().sort}
+          value={sort()}
           options={[
             { value: "popular", label: t("Popular", { $context: "order" }) },
             {
