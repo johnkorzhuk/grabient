@@ -702,6 +702,7 @@ export function CollectionPage(props: {
                                 when={!gone()}
                                 fallback={
                                   <UndoPress
+                                    item={keyOf(item())}
                                     onUndo={() => putBack(gone()!)}
                                     disabled={!!busyItem()}
                                   />
