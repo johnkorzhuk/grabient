@@ -117,6 +117,13 @@ const madeAt = (...times: unknown[]): number | undefined => {
   const known = times.map(Number).filter(time => Number.isFinite(time) && time > 0);
   return known.length ? Math.min(...known) : undefined;
 };
+/* later than any time a row holds, so a time not known is never the earliest */
+const LATE = "9e15";
+/** A palette's week's rising score as a page sorts by it, where it has one. */
+const risingOf = (raw: unknown) => {
+  const rising = Number(raw) || 0;
+  return rising > 0 ? { rising: Math.round(rising * 1e4) / 1e4 } : {};
+};
 
 interface ItemRow {
   collection_id: string;
@@ -150,7 +157,6 @@ export async function itemsOf(
   return rows.flatMap(item => {
     const palette = decodePalette(item.seed);
     if (!palette) return [];
-    const rising = Number(item.rising) || 0;
     return [
       {
         kseed: item.seed,
@@ -162,7 +168,7 @@ export async function itemsOf(
           madeAt(item.gallery_at, item.first_public, item.created_at ?? row.created_at) ??
           Number(row.created_at),
         position: Number(item.position),
-        ...(rising > 0 ? { rising: Math.round(rising * 1e4) / 1e4 } : {})
+        ...risingOf(item.rising)
       }
     ];
   });
@@ -183,12 +189,13 @@ export const previewOf = (items: readonly CollectionItem[]): CollectionPreview[]
     }));
 
 /** Each collection's preview palettes, by its id. `first` reads the first few as the collection orders them, by its
-    order's index alone; otherwise the ones its page shows first, the most liked leading, each with its likes and when
-    it was made. */
+    order's index alone; otherwise the ones its page shows first in `order`, the order the list opens it in, each with
+    its likes, its rising score and when it was made. */
 async function previews(
   env: Reader,
   rows: readonly CollectionRow[],
-  first: boolean
+  first: boolean,
+  order: PaletteOrder
 ): Promise<Map<string, CollectionPreview[]>> {
   const map = new Map<string, CollectionPreview[]>(rows.map(row => [row.id, []]));
   if (!rows.length) return map;
@@ -215,14 +222,20 @@ async function previews(
     return map;
   }
   const created = new Map(rows.map(row => [row.id, Number(row.created_at)]));
+  /* sortCollectionItems in SQL: the most liked first, or the rising first and then the newest (madeAt: the earliest
+     time known), the collection's own order settling a tie */
+  const rising = order === "rising";
+  const rank = rising
+    ? `MAX(ROUND(COALESCE(p.rising, 0), 4), 0) DESC, MIN(COALESCE(p.created_at, ${LATE}),
+         COALESCE(${FIRST_PUBLIC("i.seed")}, ${LATE}), COALESCE(i.created_at, c.created_at)) DESC, i.position`
+    : "COALESCE(p.likes_count, 0) DESC, i.position";
   const held = await all<ItemRow>(
     env.DB,
-    `SELECT t.collection_id, t.position, t.seed, t.style, t.steps, t.angle, t.created_at, t.likes_count, t.gallery_at,
-       ${FIRST_PUBLIC("t.seed")} AS first_public
+    `SELECT t.collection_id, t.position, t.seed, t.style, t.steps, t.angle, t.created_at, t.likes_count, t.rising,
+       t.gallery_at, ${FIRST_PUBLIC("t.seed")} AS first_public
      FROM (SELECT i.collection_id, i.position, i.seed, i.style, i.steps, i.angle, i.created_at, p.likes_count,
-         p.created_at AS gallery_at,
-         ROW_NUMBER() OVER (PARTITION BY i.collection_id ORDER BY COALESCE(p.likes_count, 0) DESC, i.position) AS n
-       FROM k_collection_items i LEFT JOIN k_palettes p ON p.seed = i.seed
+         p.rising, p.created_at AS gallery_at, ROW_NUMBER() OVER (PARTITION BY i.collection_id ORDER BY ${rank}) AS n
+       FROM k_collection_items i ${rising ? "JOIN k_collections c ON c.id = i.collection_id " : ""}LEFT JOIN k_palettes p ON p.seed = i.seed
        WHERE i.collection_id IN (SELECT value FROM json_each(?))) t
      WHERE t.n <= ? ORDER BY t.collection_id, t.n`,
     ids,
@@ -241,7 +254,8 @@ async function previews(
           row.created_at ?? created.get(row.collection_id)
         ) ?? created.get(row.collection_id),
       likes: Math.max(0, Number(row.likes_count) || 0),
-      position: Number(row.position)
+      position: Number(row.position),
+      ...risingOf(row.rising)
     });
   return map;
 }
@@ -267,7 +281,9 @@ export async function pageOf(
   head: PageOf,
   strip: Previews = "page"
 ): Promise<CollectionPage> {
-  const strips = strip ? await previews(env, rows, strip === "first") : new Map();
+  const strips = strip
+    ? await previews(env, rows, strip === "first", head.sort === "rising" ? "rising" : "popular")
+    : new Map();
   return {
     ...head,
     totalPages: Math.max(1, Math.ceil(head.total / head.limit)),

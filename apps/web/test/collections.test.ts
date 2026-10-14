@@ -1,6 +1,11 @@
+import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
+import * as v from "valibot";
 import { beforeAll, describe, expect, it } from "vitest";
+import { sortCollectionItems } from "../src/features/collections/address.ts";
+import type { CollectionDocument, CollectionPage } from "../src/features/collections/types.ts";
+import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
 import { collectionsHolding } from "../src/server/collections/read.ts";
@@ -320,10 +325,58 @@ describe("the public lists", () => {
     expect(hits.items[0]?.colors.length).toBeGreaterThan(0);
   });
 
-  it("name the public collections that hold a palette, each once", async () => {
+  it("name the public collections that hold a palette, each once, with the colors its page shows", async () => {
     const held = await collectionsHolding(env, SEEDS[0]!);
     expect(new Set(held.map(c => c.slug)).size).toBe(held.length);
     expect(held.every(c => !c.slug.startsWith("@"))).toBe(true);
+    expect(held.length).toBeGreaterThan(0);
+    expect(held.every(c => c.colors.length > 0)).toBe(true);
+    // a palette opened in the browser reads them from the search by its seed
+    const answer = { query: SEEDS[0], items: [], tier: "similar", heldBy: held, fetchedAt: 0 };
+    expect(v.parse(SearchAnswer, answer).heldBy).toEqual(held);
+  });
+
+  it("show each collection's palettes as its page opens from that list, so the cards stay put", async () => {
+    // most liked last, rising first: the two orders run opposite ways
+    const seeds = [
+      "kU8QySbp3AmGrQHSq8Dg",
+      "kSjRrX05e_18fP-",
+      "kWywugcpY_95QTjl0FBoCvRo",
+      "kS7CQ31Do6asvY-",
+      "kW7wYSSYW_48Ev_D0D_27Mqo"
+    ];
+    for (const [i, seed] of seeds.entries()) {
+      await run(
+        env.DB,
+        `INSERT OR REPLACE INTO k_palettes (seed, style, steps, angle, likes_count, created_at, rising)
+         VALUES (?, 'linearGradient', 7, 90, ?, 1600000000000, ?)`,
+        seed,
+        i,
+        5 - i
+      );
+    }
+    const named = unique("Risers");
+    const made = await make(admin, {
+      title: named,
+      visibility: "public",
+      items: seeds.map(seed => ({ seed, style: "linearGradient", steps: 7, angle: 90 }))
+    });
+    const slug = made.body.collection.slug;
+    const doc = await bodyOf<CollectionDocument>(
+      await collectionAnswer(get(`/api/collections/${slug}`), env)
+    );
+    for (const order of ["popular", "rising"] as const) {
+      const list = await bodyOf<CollectionPage>(
+        await listAnswer(get(`/api/collections?sort=${order}&q=${encodeURIComponent(named)}`), env)
+      );
+      const preview = list.items.find(item => item.slug === slug)?.preview ?? [];
+      const page = sortCollectionItems(doc.items, order).map(item => item.kseed);
+      expect(
+        preview.map(item => item.seed),
+        order
+      ).toEqual(page);
+      expect(page[0], order).toBe(order === "rising" ? seeds[0] : seeds[4]);
+    }
   });
 
   it("answer an account's own list to its owner alone", async () => {

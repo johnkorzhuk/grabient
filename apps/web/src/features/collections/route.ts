@@ -205,7 +205,8 @@ function summaryOf(client: QueryClient, slug: string): Found | null {
           angle: item.angle,
           likes: item.likes ?? 0,
           createdAt: item.createdAt ?? summary.updatedAt,
-          position: item.position ?? i
+          position: item.position ?? i,
+          ...(item.rising ? { rising: item.rising } : {})
         }))
       },
       provisional: true,
