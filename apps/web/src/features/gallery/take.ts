@@ -15,7 +15,7 @@ import { downloadFile } from "@grabient/ui/copy.ts";
 import { exportGridImage } from "@grabient/ui/exportgrid.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, writeText } from "../../lib/files.ts";
+import { copyImage, fileAddress, writeText } from "../../lib/files.ts";
 import type { Drawn } from "../../lib/palette.ts";
 
 /* What a card's strip hands over: the one palette as the card draws it, copied, saved as a file, or as the address of
@@ -48,15 +48,6 @@ const svg = (p: Drawn) =>
   );
 const picture = (p: Drawn, kind: "png" | "jpeg") =>
   exportGridImage([p], { ...PICTURE, columns: 1, gap: 0, padding: 0, radius: 0 }, `image/${kind}`);
-
-/** The address of the file the site serves for the palette in a format, drawn as the card draws it; its CSS in the
-    spelling chosen in Settings, where that is not OKLCH. */
-export function fileAddress(p: Drawn, format: Format): string {
-  const query = new URLSearchParams(viewSearch(p).slice(1));
-  if (format === "css" && colorFormat() !== "oklch") query.set("colors", colorFormat());
-  const ending = isSwatchFormat(format) ? SWATCH_FILES[format].extension : format;
-  return `${location.origin}/${p.seed}.${ending}${query.size ? `?${query}` : ""}`;
-}
 
 /** The palette onto the clipboard. A PNG saves instead where no picture can be copied. */
 export async function copyPalette(p: Drawn, format: Format): Promise<"copied" | "downloaded"> {
