@@ -4,6 +4,7 @@
 import { all, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { listWords } from "../../lib/words.ts";
+import { randomWord } from "../collections/write.ts";
 import { loadVocabulary } from "./files.ts";
 import { forgetPopular, tagWords } from "./popular.ts";
 import { suggestSearches } from "./tags.ts";
@@ -33,11 +34,6 @@ export interface RefusedSearch {
   nearest?: string[];
 }
 
-const ALPHABET = "abcdefghijklmnopqrstuvwxyz0123456789";
-const newId = () =>
-  Array.from(crypto.getRandomValues(new Uint8Array(20)), b => ALPHABET[b % ALPHABET.length]).join(
-    ""
-  );
 const DAY_ALONE = /^\d{4}-\d{2}-\d{2}$/;
 /* a day (2026-10-20, its first moment in UTC) or a moment (ISO 8601) as a time; null for anything else */
 function moment(value: unknown): number | null {
@@ -105,7 +101,7 @@ export async function scheduleSearches(
       refused.push({ words: sent, why: `It stands longer than ${SCHEDULE_SPAN_DAYS} days.` });
       continue;
     }
-    rows.push([newId(), words, startsAt, endsAt, position]);
+    rows.push([randomWord(20), words, startsAt, endsAt, position]);
   }
   if (rows.length) {
     await run(
