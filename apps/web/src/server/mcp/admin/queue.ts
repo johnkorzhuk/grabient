@@ -370,7 +370,9 @@ export async function removedSeeds(
     that goes wrong (the database away for a moment) is not the item's doing, and it is tried again later. */
 class Refusal extends Error {}
 
-async function applyLike(env: Env, item: QueueItem) {
+async function applyLike(env: Env, item: QueueItem, personas: ReadonlySet<string>) {
+  const actor = item.actor;
+  if (!actor || !personas.has(actor)) throw new Refusal("The actor is no persona.");
   const palette = collectionItem(item.payload);
   if (!palette) throw new Refusal("The payload is not a palette.");
   if ((await removedSeeds(env, [palette.seed])).size)
@@ -386,7 +388,7 @@ async function applyLike(env: Env, item: QueueItem) {
       "The site does not hold this palette: not in the gallery, not in a public collection."
     );
   // a persona's like locks nothing: the lock reads people's likes alone
-  const done = await setLike(env, { id: item.actor!, role: "user" }, { ...palette, liked: true });
+  const done = await setLike(env, { id: actor, role: "user" }, { ...palette, liked: true });
   return { seed: palette.seed, liked: done.change === "new", published: done.joined };
 }
 
@@ -487,9 +489,10 @@ export async function applyQueue(env: Env, now = Date.now()): Promise<QueueRepor
     let result: unknown;
     let status: "done" | "failed";
     try {
-      if (item.kind === "like" && (!item.actor || !personas.has(item.actor)))
-        throw new Refusal("The actor is no persona.");
-      result = item.kind === "like" ? await applyLike(env, item) : await applyCollection(env, item);
+      result =
+        item.kind === "like"
+          ? await applyLike(env, item, personas)
+          : await applyCollection(env, item);
       status = "done";
     } catch (error) {
       const attempts = (Number((item.result as { attempts?: unknown } | null)?.attempts) || 0) + 1;
