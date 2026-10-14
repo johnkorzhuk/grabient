@@ -1,8 +1,17 @@
 import { QueryClient } from "@tanstack/solid-query";
 import { beforeEach, describe, expect, test, vi } from "vitest";
+import { heading } from "../../lib/page-meta.ts";
 import { AS_SAVED } from "../list/appearance.ts";
 import type { ListPlace } from "./params.ts";
-import { listPaint, listPlace, loadCollection, loadList, loadSaved, searchOf } from "./route.ts";
+import {
+  listMeta,
+  listPaint,
+  listPlace,
+  loadCollection,
+  loadList,
+  loadSaved,
+  searchOf
+} from "./route.ts";
 import type { CollectionDocument, CollectionPage } from "./types.ts";
 
 /* The collections' loaders as the server runs them, over a cache already holding what they read: the status and robots
@@ -103,6 +112,23 @@ describe("a list's address read into its place", () => {
     );
     expect(searchOf({})).toBe("");
     expect(searchOf(undefined)).toBe("");
+  });
+});
+
+describe("a list's heading", () => {
+  test("names its order, its words, the palette it was searched by, or whose it is", () => {
+    const said = (over: Partial<ListPlace>) => heading(listMeta(place(over)));
+    expect(said({})).toBe("Gradient and color palette collections");
+    expect(said({ order: "rising", frame: "3m" })).toBe(
+      "Rising gradient and color palette collections"
+    );
+    expect(said({ order: "rising", query: "ocean" })).toBe(
+      "Ocean gradient and color palette collections"
+    );
+    expect(said({ query: SEEDS[0] })).toMatch(/^Collections like \S/);
+    expect(said({ order: "saved" })).toBe("Your collections");
+    expect(said({ order: "saved", query: "sea" })).toBe("Your collections for sea");
+    expect(said({ order: "saved", query: SEEDS[0] })).toMatch(/^Your collections like \S/);
   });
 });
 

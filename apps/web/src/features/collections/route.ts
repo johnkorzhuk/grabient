@@ -4,7 +4,7 @@ import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import type { FramedData } from "../../app/shell.ts";
-import { type CollectionFacts, pageHead } from "../../lib/page-meta.ts";
+import { type CollectionFacts, type Page, pageHead } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
@@ -233,25 +233,27 @@ export function collectionHead(
   });
 }
 
-/** A public list's head: its title for its order, frame, words and page, the collections it lists, and out of the index
-    past its end. */
+/** A list as its metadata reads it: what its head and its heading are worded from. */
+export const listMeta = (place: ListPlace): Page =>
+  place.order === "saved"
+    ? { kind: "own-collections", query: place.query, page: place.page, limit: place.limit }
+    : {
+        kind: "collections",
+        order: place.order,
+        frame: place.frame,
+        query: place.query,
+        page: place.page,
+        limit: place.limit,
+        view: place.view
+      };
+
+/** A list's head: its title for its order, frame, words and page, the collections a public one lists, and out of the
+    index past its end. */
 export function listHead(client: QueryClient, place: ListPlace, loaded: Loaded | undefined) {
+  if (place.order === "saved") return pageHead(listMeta(place));
   const page = client.getQueryData(collectionsQuery(listKey(place)).queryKey);
-  if (place.order === "saved")
-    return pageHead({
-      kind: "own-collections",
-      query: place.query,
-      page: place.page,
-      limit: place.limit
-    });
   return pageHead({
-    kind: "collections",
-    order: place.order,
-    frame: place.frame,
-    query: place.query,
-    page: place.page,
-    limit: place.limit,
-    view: place.view,
+    ...listMeta(place),
     ...(loaded?.robots ? { robots: loaded.robots } : {}),
     ...(page && !failed(page)
       ? { collections: page.items.map(c => ({ slug: c.slug, title: c.title })) }

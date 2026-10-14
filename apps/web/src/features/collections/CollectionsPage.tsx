@@ -1,4 +1,4 @@
-import { localHref, msg, t } from "@grabient/i18n";
+import { localHref, t } from "@grabient/i18n";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import {
@@ -32,6 +32,7 @@ import { AppPage } from "../../app/Frames.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { record } from "../../app/undo.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
+import { heading } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { trackEvent } from "../analytics/analytics.ts";
@@ -57,7 +58,7 @@ import { rememberList } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone } from "./overlay.ts";
 import { type ListPlace, listKey, listPath, listSearch, viewWith } from "./params.ts";
 import { collectionQuery, collectionsQuery, type Failed, failed, ownQuery } from "./queries.ts";
-import { listPaint } from "./route.ts";
+import { listMeta, listPaint } from "./route.ts";
 import type { CollectionPage, CollectionPreview, CollectionSummary } from "./types.ts";
 
 /* The collections lists: Popular (/collections), Rising in its frame (/collections/rising) and the account's own
@@ -418,15 +419,7 @@ export function CollectionsPage(props: {
           onError={setFieldError}
           onImage={file => void searchImage(file)}
         />
-        <h1 class={styles.hidden}>
-          {t(
-            mine()
-              ? msg("Your collections")
-              : place().order === "rising"
-                ? msg("Rising gradient and color palette collections")
-                : msg("Gradient and color palette collections")
-          )}
-        </h1>
+        <h1 class={styles.hidden}>{heading(listMeta(place()))}</h1>
         <div class={styles.nav}>
           <ListNav
             section="collections"
