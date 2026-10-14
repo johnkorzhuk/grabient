@@ -32,6 +32,7 @@ import { ShellContext } from "../../app/shell.ts";
 import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { failed } from "../../lib/query.ts";
+import { listWords } from "../../lib/words.ts";
 import {
   ownCollectionDoc,
   ownCollectionMoved,
@@ -531,7 +532,7 @@ export function CollectionPage(props: {
       (doc()?.tags ?? []).map(tag => ({
         label: tag,
         href: localHref(
-          `/collections${props.order === "rising" ? "/rising" : ""}${listSearch({ query: tag, view: props.view })}`
+          `/collections${props.order === "rising" ? "/rising" : ""}${listSearch({ query: listWords(tag), view: props.view })}`
         )
       }))
     );
