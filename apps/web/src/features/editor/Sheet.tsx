@@ -291,8 +291,10 @@ export function Sheet(props: {
   });
   const collections = () => {
     const mine = own();
+    /* the server's, where it named any for the page it drew; else the answer's, which is read later */
+    const sent = props.facts()?.heldBy;
     const held: readonly { slug: string; title: string; colors?: readonly string[] }[] =
-      props.facts()?.heldBy ?? answer()?.heldBy ?? [];
+      sent?.length ? sent : (answer()?.heldBy ?? []);
     return [...mine, ...held.filter(c => !mine.some(m => m.slug === c.slug))].map(c => {
       const href = collectionHref(c.slug);
       return { title: c.title, href: unreachable(href) ? undefined : href, colors: c.colors };
