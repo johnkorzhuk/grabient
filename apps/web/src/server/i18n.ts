@@ -8,7 +8,7 @@ import {
   setLocaleSource,
   splitLocale
 } from "@grabient/i18n";
-import { RequestContext, type RequestEvent } from "@solidjs/web";
+import { currentRequest } from "./request.ts";
 
 /* The Worker speaks every language: it holds each catalog as text and parses one when a request first needs it, and
    it speaks the language of whichever request it is answering, read once from that request's address. Outside a
@@ -25,13 +25,8 @@ for (const [locale, json] of Object.entries(catalogs)) {
   if (isLocale(locale) && json) addCatalogLoader(locale, () => JSON.parse(json) as Catalog);
 }
 
-/* Solid keeps the request being answered in an AsyncLocalStorage under RequestContext. Asked directly, it says there is
-   none outside a request, where getRequestEvent() would warn. */
-const requests = () =>
-  (globalThis as { [RequestContext]?: { getStore(): RequestEvent | undefined } })[RequestContext];
-
 setLocaleSource(() => {
-  const event = requests()?.getStore();
+  const event = currentRequest();
   if (!event) return DEFAULT_LOCALE;
   event.locals.locale ??= splitLocale(new URL(event.request.url).pathname).locale;
   return event.locals.locale;
