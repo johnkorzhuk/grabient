@@ -28,8 +28,9 @@ import type { CollectionDocument, CollectionPage } from "./types.ts";
 
 /* What the collections' routes share: an address read into the place its page draws, the reads a loader puts in the
    query cache before the page renders (so the server renders from them and hydration asks for nothing), and the status
-   and robots the answer takes. A redirect names its address in the reader's language, which the router leaves to it. A page that renders says its status as it renders, on the server: a list past its end,
-   a collection that is private or missing, each 404 with its words on screen. */
+   and robots the answer takes. A redirect names its address in the reader's language, which the router leaves to it.
+   A page that renders says its status as it renders, on the server: a list past its end, a collection that is private
+   or missing, each 404 with its words on screen. */
 
 /** What a loader tells its route beyond the cache it filled: the frame takes `paint`, the page's first palettes. */
 export interface Loaded extends FramedData {

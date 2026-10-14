@@ -186,8 +186,8 @@ export const tagsQuery = (query: string) =>
     staleTime: PUBLIC_TTL
   });
 
-/* The account's own pages are kept a minute, for a list returned to; any change to its collections (a pick, an edit, one
-   made or deleted, here, on another page or in another tab) starts them anew. */
+/* The account's own pages are kept a minute, for a list returned to; any change to its collections (a pick, an edit,
+   one made or deleted, here, on another page or in another tab) starts them anew. */
 let ownChanges = 0;
 
 /** A page of the account's own collections: from its copy where the copy can say, else the server's. A search a reader
