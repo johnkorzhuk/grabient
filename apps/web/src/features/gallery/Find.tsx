@@ -1,9 +1,9 @@
 import { localHref, t } from "@grabient/i18n";
-import { keepPreviousData, useQuery } from "@tanstack/solid-query";
+import { useQuery } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
-import { createSignal, Errored, Loading, onCleanup, useContext } from "solid-js";
+import { createMemo, createSignal, Errored, Loading, onCleanup, useContext } from "solid-js";
 import type * as v from "valibot";
-import { marked } from "../../app/connection.ts";
+import { marked, offline } from "../../app/connection.ts";
 import { paletteId } from "../../lib/words.ts";
 import type { SearchPage, SearchSuggestions } from "../search/bodies.ts";
 import { countSearch, tagPressed } from "../search/count.ts";
@@ -34,7 +34,6 @@ type Tags = v.InferOutput<typeof SearchSuggestions>["suggestions"];
 /* the row's read: the last answer stands until the next lands, and the row draws its own copy (queries.ts) */
 const tagsView = (words: string, home: boolean) => ({
   ...tagsQuery(words, home),
-  placeholderData: keepPreviousData,
   select: (tags: Tags) => own(tags)
 });
 
@@ -70,7 +69,10 @@ export function Find(props: {
     clearTimeout(pause);
     pause = setTimeout(() => setAsked(typedWords(text)), PAUSE);
   };
-  const tags = useQuery(() => tagsView(asked(), home()));
+  /* With no connection the row keeps the tags it has: a read that cannot be made would wait for the connection, and
+     the page's next step with it. */
+  const answered = createMemo<string>(last => (offline() && last !== undefined ? last : asked()));
+  const tags = useQuery(() => tagsView(answered(), home()));
   /* each in its place with no connection, the ones that need the server disabled */
   const shown = () =>
     marked(
@@ -114,7 +116,7 @@ export function Find(props: {
       />
       {/* a row that cannot be read keeps its room and offers nothing: the field still searches */}
       <Errored fallback={() => <SearchTags tags={[]} />}>
-        <Loading fallback={<SearchTags tags={[]} loading />}>
+        <Loading fallback={<SearchTags tags={[]} loading={!offline()} />}>
           <SearchTags
             lead={typed().trim() ? undefined : t("Popular")}
             tags={shown()}
