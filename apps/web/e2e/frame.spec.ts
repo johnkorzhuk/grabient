@@ -280,3 +280,52 @@ test("an address the browser refuses to write lands once it lets writes through 
   await page.keyboard.press("i");
   await expect.poll(here).not.toBe("/kSqF5vKzob4kSRW");
 });
+
+test("a page whose reactivity stopped loads whole once, and after that loads whole each page it is asked for", async ({
+  page
+}) => {
+  /** Stops the app's own Solid as an error that escapes every boundary does. */
+  const halt = () =>
+    page.evaluate(async () => {
+      const url = performance
+        .getEntriesByType("resource")
+        .map(entry => entry.name)
+        .find(name => /\/\.vite\/deps\/solid-js\.js/.test(name));
+      const { createRoot, createEffect } = await import(url ?? "");
+      createRoot(() =>
+        createEffect(
+          () => 1,
+          () => {
+            throw new Error("escaped every boundary");
+          }
+        )
+      );
+    });
+  /** Marks this document, which a whole load replaces. */
+  const mark = () => page.evaluate(() => Object.assign(window, { marked: true }));
+  const marked = () => page.evaluate(() => "marked" in window);
+  /** Waits for the page to answer a press: it has hydrated, which would revive a reactivity stopped before. */
+  const live = async () => {
+    const appearance = page.getByRole("button", { name: /^Appearance/ });
+    await appearance.click();
+    await expect(appearance).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Escape");
+    await expect(appearance).toHaveAttribute("aria-expanded", "false");
+  };
+  await open(page, "/palettes");
+  await live();
+  await mark();
+  await halt();
+  await page.waitForFunction(() => !("marked" in window));
+  await live();
+  // stopped again within ten seconds: the page stays as it stands
+  await mark();
+  await halt();
+  await page.waitForTimeout(1000);
+  expect(await marked()).toBe(true);
+  // and the page a press asks for loads whole
+  await page.locator('main a[href="/palettes/rising"]').first().click();
+  await expect(page).toHaveURL(/\/palettes\/rising$/);
+  await page.waitForFunction(() => !("marked" in window));
+  await expect(page).toHaveTitle(/^Rising/);
+});
