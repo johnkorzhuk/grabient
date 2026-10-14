@@ -588,7 +588,7 @@ const called = (page: Page) =>
   }));
 
 for (const list of ["/palettes", "/bright-gradients"])
-  test(`a palette opened from ${list}, edited and taken back is called what each address is called loaded whole`, async ({
+  test(`a palette opened from ${list}, edited, taken back and left for one like it is called what each address is called loaded whole`, async ({
     page,
     context
   }) => {
@@ -610,6 +610,16 @@ for (const list of ["/palettes", "/bright-gradients"])
     await page.keyboard.press("ControlOrMeta+z");
     await expect.poll(() => seedOf(page)).toBe(opened);
     await agrees("taken back");
+    // a palette like it, from the sheet's own list, opens in place
+    await page.mouse.move(200, 200);
+    await page.mouse.wheel(0, 2000);
+    const like = page.locator(`a[aria-label='Edit']:not([href*='${opened}'])`).first();
+    await expect(like).toBeAttached({ timeout: 30_000 });
+    const to = new URL((await like.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
+    await like.evaluate(el => (el as HTMLElement).focus());
+    await page.keyboard.press("Enter");
+    await expect.poll(() => seedOf(page)).toBe(to);
+    await agrees("a palette like it");
   });
 
 test("a link to Rising in a frame an admin turned off leads to the week's in the reader's language", async ({

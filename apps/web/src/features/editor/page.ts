@@ -33,8 +33,9 @@ export const searchReader = (search: Readonly<Record<string, unknown>>): ParamRe
    again with each change of view and on Back, Forward or an undo, and a palette's written title outlasts them. The
    last few are kept. Only the browser writes them. */
 const KNOWN_KEPT = 40;
-/** How long a press waits for an opened palette's facts before its page opens named by its colors. */
-const ASK_MS = 400;
+/** How long a press waits for an opened palette's facts before its page opens named by its colors: long enough that
+    a page busy taking in the palette never outlasts an answer that came, short enough to bound a slow network. */
+const ASK_MS = 1500;
 const known = new Map<string, Promise<PaletteFacts | null>>();
 function know(seed: string, facts: Promise<PaletteFacts | null>) {
   known.delete(seed);
