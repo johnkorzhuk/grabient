@@ -1,26 +1,10 @@
-/* The gallery's pages: a column with the search at its head, the lists' row, then the feed and the line under it, on
-   the frame's own ground, so the water shows behind it. */
+/* The gallery's pages stand in the frame's list layout, whose parts hold every distance above the cards: the column,
+   the search over its tags, the lists' row and a list's heading row. */
 .page {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
-  gap: var(--space-s6);
-  min-width: 0;
-  padding-block: var(--space-s16) var(--space-s8);
-  padding-inline: var(--size-gutter);
-  @container page (max-width: 800px) {
-    padding-block: var(--space-s10) var(--space-s16);
-    padding-inline: var(--space-s4);
-  }
-  &[hidden] {
-    display: none;
-  }
+  composes: column from "../../app/list.module.css";
 }
 .find {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-s4);
-  margin-bottom: var(--space-s8);
+  composes: find from "../../app/list.module.css";
 }
 .hidden {
   position: absolute;
@@ -30,22 +14,11 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
-/* the row keeps a control's height whether or not the press beside it is there: nothing beneath moves */
 .row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-s4);
-  min-height: var(--size-control-big);
-  margin-bottom: var(--space-s4);
+  composes: row from "../../app/list.module.css";
 }
 .heading {
-  display: flex;
-  align-items: last baseline;
-  min-width: 0;
-  min-height: var(--size-control-big);
-  margin-bottom: var(--space-s8);
+  composes: heading from "../../app/list.module.css";
 }
 /* a list under its row: its title, its cards, the mark and the line, with no space of the page's between them */
 .list {

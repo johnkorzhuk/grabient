@@ -1,0 +1,48 @@
+/* A list page's parts, which every list composes, so nothing above the cards moves from one list to the next: the
+   column under the header, the search over its tags (find), the lists' row, and a list's heading row over its cards.
+   The column holds the find, the row and then the page's own content in one element, a gap apart; a fourth part would
+   take a gap too. None has a surface: the water shows behind a list as it does behind a brand page. */
+@layer components {
+  .column {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    gap: var(--space-s6);
+    min-width: 0;
+    padding-block: var(--space-s16) var(--space-s8);
+    padding-inline: var(--size-gutter);
+    /* on a phone the foot keeps room for a list's floating Selection press */
+    @container page (max-width: 800px) {
+      padding-block: var(--space-s10) var(--space-s16);
+      padding-inline: var(--space-s4);
+    }
+    /* mounted and out of sight while the export screen stands in for the page */
+    &[hidden] {
+      display: none;
+    }
+  }
+  .find {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s4);
+    margin-bottom: var(--space-s8);
+  }
+  /* the row keeps a control's height whether or not a press stands at its end: nothing beneath moves */
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-s4);
+    min-height: var(--size-control-big);
+    margin-bottom: var(--space-s4);
+  }
+  /* the title's baseline stands a grid's column gap over the cards, as a collection's does in a feed */
+  .heading {
+    display: flex;
+    align-items: last baseline;
+    min-width: 0;
+    min-height: var(--size-control-big);
+    margin-bottom: var(--space-s8);
+  }
+}
