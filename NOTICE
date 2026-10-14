@@ -1,0 +1,198 @@
+Grabient
+Copyright 2017-2026 The Grabient Authors
+
+This product includes the third-party material listed below. Each part
+keeps its own license, and the Apache License 2.0 in LICENSE does not
+apply to it. The license texts follow the list, except where a file
+carries its own. The JavaScript packages the site's browser code bundles
+are listed with their licenses at /licenses.md on the site, which every
+build writes, followed by this file (apps/web/scripts/licenses.ts).
+
+Poppins typeface
+  https://github.com/itfoundry/Poppins
+  apps/web/public/fonts/*.woff2 and apps/design/public/fonts/*.woff2.
+  The editor inlines them in the SVG figures it exports
+  (packages/ui/src/figure.ts), and the share images draw hex codes from
+  their outlines (apps/web/src/server/images/hex-glyphs.data.ts).
+  Copyright 2020 The Poppins Project Authors
+  SIL Open Font License 1.1, in OFL.txt beside the fonts
+
+country-flag-icons 1.6.20
+  https://gitlab.com/catamphetamine/country-flag-icons
+  The flag drawings in packages/ui/src/flags.data.ts.
+  Copyright (c) 2020 @catamphetamine <purecatamphetamine@gmail.com>
+  MIT License, below
+
+Lucide
+  https://lucide.dev
+  Icon paths in packages/ui/src/icons.data.ts.
+  Copyright (c) 2026 Lucide Icons and Contributors
+  ISC License, below
+  The icons Lucide derives from Feather (https://feathericons.com):
+  Copyright (c) 2013-present Cole Bemis
+  MIT License, below
+
+lz-string 1.5.0
+  https://github.com/pieroxy/lz-string
+  decompressFromEncodedURIComponent, adapted to TypeScript in
+  packages/engine/src/legacy.ts.
+  Copyright (c) 2013 pieroxy
+  MIT License, below
+
+Oklab
+  https://bottosson.github.io/posts/oklab/
+  The OKLab conversion in packages/engine/src/color.ts and in the
+  shaders packages/engine/src/shader.ts writes.
+  Copyright (c) 2020 Björn Ottosson
+  Offered in the public domain and under the MIT License; used here
+  under the MIT License, below
+
+Okhsv
+  https://bottosson.github.io/posts/colorpicker/
+  The Okhsv conversion in packages/engine/src/okhsv.ts, which the
+  color picker in packages/ui/src/ColorPicker.tsx draws.
+  Copyright (c) 2021 Björn Ottosson
+  MIT License, below
+
+Color Names (color-name-list)
+  https://github.com/meodai/color-name-list
+  The precise color names swatch files and palette files carry: the
+  build writes color-name-list's names to /assets/color-names-*.txt
+  (apps/web/scripts/color-names.ts). The rows with source "meodai" in
+  packages/search/train/data/pairs.json, on which the search models in
+  apps/web/public/search are trained, and the color word ranges in
+  packages/engine/src/colornames.data.ts, measured from them.
+  Copyright (c) 2017 David Aerne
+  MIT License, below
+
+c3 color naming data
+  https://github.com/StanfordHCI/c3
+  The XKCD color survey's answers as c3 holds them. The color names in
+  packages/engine/src/colornames.data.ts are derived from them.
+  Copyright (c) 2011, Stanford University
+  BSD 3-Clause License, below
+
+Unicode CLDR 48, English emoji annotations
+  https://github.com/unicode-org/cldr-json
+  apps/web/public/search/emoji.json is derived from them by
+  apps/web/scripts/search/emoji.ts.
+  Copyright © 2015-2024 Unicode, Inc.
+  Unicode License v3, below
+
+------------------------------------------------------------------------
+ISC License (Lucide)
+
+Copyright (c) 2026 Lucide Icons and Contributors
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+
+------------------------------------------------------------------------
+MIT License (country-flag-icons, Feather, lz-string, Oklab, Okhsv, Color Names)
+
+Copyright (c) 2020 @catamphetamine <purecatamphetamine@gmail.com>
+Copyright (c) 2013-present Cole Bemis
+Copyright (c) 2013 pieroxy
+Copyright (c) 2020 Björn Ottosson
+Copyright (c) 2021 Björn Ottosson
+Copyright (c) 2017 David Aerne
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+------------------------------------------------------------------------
+BSD 3-Clause License (c3 color naming data)
+
+Copyright (c) 2011, Stanford University
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+* Redistributions of source code must retain the above copyright notice, this
+  list of conditions and the following disclaimer.
+
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
+
+* The name Stanford University may not be used to endorse or promote products
+  derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL STANFORD UNIVERSITY BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+------------------------------------------------------------------------
+Unicode License v3 (Unicode CLDR)
+
+UNICODE LICENSE V3
+
+COPYRIGHT AND PERMISSION NOTICE
+
+Copyright © 2015-2024 Unicode, Inc.
+
+NOTICE TO USER: Carefully read the following legal agreement. BY
+DOWNLOADING, INSTALLING, COPYING OR OTHERWISE USING DATA FILES, AND/OR
+SOFTWARE, YOU UNEQUIVOCALLY ACCEPT, AND AGREE TO BE BOUND BY, ALL OF THE
+TERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE, DO NOT
+DOWNLOAD, INSTALL, COPY, DISTRIBUTE OR USE THE DATA FILES OR SOFTWARE.
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of data files and any associated documentation (the "Data Files") or
+software and any associated documentation (the "Software") to deal in the
+Data Files or Software without restriction, including without limitation
+the rights to use, copy, modify, merge, publish, distribute, and/or sell
+copies of the Data Files or Software, and to permit persons to whom the
+Data Files or Software are furnished to do so, provided that either (a)
+this copyright and permission notice appear with all copies of the Data
+Files or Software, or (b) this copyright and permission notice appear in
+associated Documentation.
+
+THE DATA FILES AND SOFTWARE ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY
+KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF
+THIRD PARTY RIGHTS.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER OR HOLDERS INCLUDED IN THIS NOTICE
+BE LIABLE FOR ANY CLAIM, OR ANY SPECIAL INDIRECT OR CONSEQUENTIAL DAMAGES,
+OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THE DATA
+FILES OR SOFTWARE.
+
+Except as contained in this notice, the name of a copyright holder shall
+not be used in advertising or otherwise to promote the sale, use or other
+dealings in these Data Files or Software without prior written
+authorization of the copyright holder.
