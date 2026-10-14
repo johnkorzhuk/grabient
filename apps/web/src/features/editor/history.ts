@@ -94,7 +94,11 @@ export function followAddress(
 
   createEffect(location, at => {
     const page = pageAt(at);
-    if (!page) return;
+    /* the page left for another, which may still be loading: a write waiting would land on that one's entry */
+    if (!page) {
+      cancel();
+      return;
+    }
     const address = seedAddress(page);
     if (address !== shown) {
       cancel();

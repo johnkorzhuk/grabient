@@ -318,6 +318,41 @@ test("Back leaves an edited palette in one press, and Forward brings it back wit
   await expect.poll(() => here(page)).toBe(first);
 });
 
+test("Back with an edit's address still waiting lands on the page it leaves for", async ({
+  page,
+  request
+}) => {
+  const listed = (await (await request.get("/api/collections")).json()) as {
+    items: { slug: string }[];
+  };
+  const collection = `/${listed.items[0]?.slug}`;
+  await page.goto(collection);
+  // started, so the palette opens in the page
+  await page.waitForFunction(() => !("$_TSR" in window));
+  await page.locator("main article a[aria-label='Edit']").first().focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  // a document of its own, so Back reads the collection again, and slowly
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await page.route("**/api/collections/**", async route => {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    await route.continue();
+  });
+  const before = await entries(page);
+  const opened = here(page);
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).not.toBe(opened);
+  // the address was written a moment ago, so the next edit's waits its turn
+  await page.keyboard.press("i");
+  await page.evaluate(() => history.back());
+  await expect(page.getByRole("complementary", { name: "Editor" })).toHaveCount(0, {
+    timeout: 10_000
+  });
+  expect(here(page)).toBe(collection);
+  expect(await entries(page)).toBe(before);
+});
+
 test("the sheet asks for the palettes like this one only once it is in view", async ({ page }) => {
   const asks: URL[] = [];
   page.on("request", r => {
