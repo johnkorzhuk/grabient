@@ -6,9 +6,8 @@ import { NO_STORE } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
 
 /* The consent page: the Worker reads the app's request before the page draws (a session that ended goes to sign-in on
-   the way), and the browser draws it alone. */
+   the way) and draws the sheet with what it read, as sign-in's sheet is drawn: the answer is private and never kept. */
 export const Route = createFileRoute("/connect")({
-  ssr: "data-only",
   staticData: { frame: "sheet", still: true },
   headers: () => NO_STORE,
   loader: () => readConsent(),

@@ -47,6 +47,14 @@ test("the authorization server answers at its addresses, and refuses in JSON wha
   }
 });
 
+test("the consent sheet comes drawn in the page the server sends, which nothing keeps", async ({
+  request
+}) => {
+  const page = await request.get("/connect?problem=expired");
+  expect(page.headers()["cache-control"]).toBe("private, no-store");
+  expect(await page.text()).toContain("This request expired. Connect again from your app.");
+});
+
 test("a person who opens /mcp in a browser lands on the page that says how to connect", async ({
   page
 }) => {
