@@ -18,7 +18,7 @@ guardNavigation();
    is left a file of its own that only imports the chunk the app is in, one more request before the app starts. */
 async function start() {
   /* The browser speaks the document's language, which the Worker wrote on <html lang>, and only that one: a page never
-     changes language without a load. The head preloads its catalog, so waiting for it before the app starts usually
+     changes language without a load. The head asked for its catalog, so waiting for it before the app starts usually
      costs nothing; a catalog that cannot be read starts the page in English rather than not at all. */
   const lang = document.documentElement.lang;
   const pageLocale = isLocale(lang) ? lang : DEFAULT_LOCALE;
@@ -26,7 +26,7 @@ async function start() {
   const catalog = catalogs[pageLocale];
   if (catalog) {
     try {
-      const response = await fetch(catalog);
+      const response = await (window.$catalog ?? fetch(catalog));
       if (response.ok) addCatalog(pageLocale, await response.json());
     } catch {
       // English, below

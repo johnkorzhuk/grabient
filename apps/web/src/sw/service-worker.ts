@@ -72,8 +72,8 @@ async function trim(cache: Cache, kept: number) {
   for (const key of keys.slice(0, Math.max(0, keys.length - kept))) await cache.delete(key);
 }
 
-/** The shell in a language, and the files it names, kept once per build: whole or not at all, since a shell without
-    its files opens blank offline. While a deploy spreads, the address can still answer with the last build's page,
+/** The shell in a language, and the files it names (its links and scripts, and the messages its head asks for), kept
+    once per build: whole or not at all, since a shell without its files opens blank offline. While a deploy spreads, the address can still answer with the last build's page,
     whose files this build deletes when it takes over: that one is left for the next page to try. */
 async function keepShell(segment: string) {
   const shells = await caches.open(SHELLS);
@@ -82,9 +82,7 @@ async function keepShell(segment: string) {
   const response = await fetch(url, { credentials: "omit", cache: "no-store" });
   if (!response.ok) return;
   const html = await response.clone().text();
-  const named = [
-    ...new Set([...html.matchAll(/(?:href|src)="(\/(?:assets|fonts)\/[^"]+)"/g)].map(m => m[1]!))
-  ];
+  const named = [...new Set([...html.matchAll(/"(\/(?:assets|fonts)\/[^"]+)"/g)].map(m => m[1]!))];
   if (!named.some(path => path.startsWith("/assets/") && CONFIG.assets.includes(path))) return;
   const runtime = await caches.open(RUNTIME);
   for (const path of named) if (!(await caches.match(path))) await runtime.add(path);

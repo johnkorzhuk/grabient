@@ -82,17 +82,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         ...tabIcons(matches, leaf.pathname, String((leaf.search as { q?: unknown }).q ?? "")),
         { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
         { rel: "manifest", href: "/site.webmanifest" },
-        // the page's messages, fetched while the head is read so the app starts in its language at once
-        ...(catalog
-          ? [
-              {
-                rel: "preload",
-                href: catalog,
-                as: "fetch" as const,
-                crossorigin: "anonymous" as const
-              }
-            ]
-          : []),
         ...FONTS.map(href => ({
           rel: "preload",
           href,
@@ -109,11 +98,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { rel: "ai-catalog", href: "/.well-known/ai-catalog.json" },
         ...lost.links
       ],
-      /* before the first paint: the reader's theme and motion on <html>, and whether scrollbars take room */
+      /* before the first paint: the reader's theme and motion on <html>, and whether scrollbars take room. Then the
+         page's messages, asked for while the head is read so the app starts in its language at once: a fetch the app
+         takes up (client.tsx), where a preload that the service worker answers is fetched twice */
       scripts: [
         { children: themeScript },
         { children: motionScript },
-        { children: scrollbarScript }
+        { children: scrollbarScript },
+        ...(catalog ? [{ children: `self.$catalog=fetch(${JSON.stringify(catalog)})` }] : [])
       ]
     };
   },
