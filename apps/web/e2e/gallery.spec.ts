@@ -75,6 +75,23 @@ test("Tab leads from the last live card into the next, live by then", async ({ p
   expect(next).toEqual({ card: 4, still: false });
 });
 
+test("a press on another order keeps the page: its field, its row and the focus on the choice pressed", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  await page.getByRole("searchbox").evaluate(el => el.setAttribute("data-was", "here"));
+  const rising = page
+    .getByRole("navigation", { name: "Order" })
+    .getByRole("link", { name: /^Rising/ });
+  await rising.focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => here(page)).toBe("/palettes/rising");
+  await expect(page.getByRole("heading", { name: "Rising", level: 2 })).toBeVisible();
+  await expect(page.getByRole("searchbox")).toHaveAttribute("data-was", "here");
+  await expect(rising).toBeFocused();
+});
+
 test("a card's plus starts the selection, and its screen stands in the page's place until Escape", async ({
   page
 }) => {
