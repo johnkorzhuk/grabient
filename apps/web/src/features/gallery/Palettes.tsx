@@ -48,7 +48,7 @@ import { createPicture, type Settled } from "../search/picture.ts";
 import { Sampler } from "../search/Sampler.tsx";
 import { selection } from "../selection/selection.ts";
 import { createAccountSearch } from "./account.ts";
-import { type GalleryPlace, listHref, listSearch, withView } from "./address.ts";
+import { type GalleryPlace, listHref, listIdentity, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
 import {
   madeItems,
@@ -217,7 +217,7 @@ export function Palettes(props: { place: ListPlace }) {
       : null;
   });
   const feed = createFeed<Page>({
-    key: () => JSON.stringify(source()),
+    key: () => listIdentity(props.place, account()?.id),
     start: () => params().page,
     head: () => (answered() ? undefined : head()),
     kept: n => {
