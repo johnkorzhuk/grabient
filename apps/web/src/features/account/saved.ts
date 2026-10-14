@@ -63,6 +63,7 @@ export async function savedReady(): Promise<boolean> {
   const user = await accountForCopy();
   if (!user) return false;
   const sync = await copyEngine();
+  await sync.copySettled(user);
   if (!sync.copyReady(user)) return false;
   sync.freshen(user);
   return true;
