@@ -226,6 +226,42 @@ test("the selection's export screen takes the page's place, and Escape closes it
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
 });
 
+test("About's first figure is the editor's own controls over a palette of its own, with its own undo", async ({
+  page
+}) => {
+  await page.goto("/about");
+  const chips = page.getByRole("listbox", { name: "Keyframes" }).first().getByRole("option");
+  const undo = page.getByRole("button", { name: "Undo" }).first();
+  const reset = page.getByRole("button", { name: "Reset", includeHidden: true }).first();
+  await expect(chips).toHaveCount(5);
+  await expect(undo).toBeDisabled();
+  await expect(reset).toBeHidden();
+  const address = here(page);
+  await page.getByRole("button", { name: "Add keyframe" }).first().click();
+  await expect(chips).toHaveCount(6);
+  await expect(undo).toBeEnabled();
+  await expect(reset).toBeVisible();
+  // a held keyframe's numbers are its own, as in the editor's side
+  await chips.nth(1).click();
+  await expect(page.getByRole("spinbutton", { name: "Lightness", exact: true })).toBeVisible();
+  await expect(page.getByRole("spinbutton", { name: "Lightness start" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("spinbutton", { name: "Lightness start" }).first()).toBeVisible();
+  // the figure's undo is its own: the page's address and history never move
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(chips).toHaveCount(5);
+  await expect(undo).toBeDisabled();
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await expect(chips).toHaveCount(6);
+  expect(here(page)).toBe(address);
+  // Reset puts the opened palette back as one step the undo takes back
+  await reset.click();
+  await expect(chips).toHaveCount(5);
+  await expect(reset).toBeHidden();
+  await undo.click();
+  await expect(chips).toHaveCount(6);
+});
+
 test.describe("on a phone", () => {
   const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
   test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent });
