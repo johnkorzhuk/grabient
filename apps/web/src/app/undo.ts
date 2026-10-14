@@ -51,12 +51,13 @@ let edits: EditsWalk | null = null;
 let inSelection: () => boolean = () => false;
 const [version, setVersion] = createSignal(0);
 const changed = () => setVersion(n => n + 1);
-/** An entry's steps: the entry on screen when what reads them was done, which a turn waiting its place keeps. */
-function journal(at = entry): Journal {
+/** An entry's steps: the entry on screen when what reads them was done, which a turn waiting its place keeps. Only a
+    step made keeps a journal, so the entries a tab only passes through take no room. */
+function journal(at = entry, making = false): Journal {
   let j = journals.get(at);
   if (!j) {
     j = { steps: [], at: 0 };
-    journals.set(at, j);
+    if (making) journals.set(at, j);
   }
   return j;
 }
@@ -96,7 +97,7 @@ export function record(step: Step): void {
   const selection = inSelection();
   const at = entry;
   void inTurn(() => {
-    const j = journal(at);
+    const j = journal(at, true);
     j.steps = [
       ...j.steps.slice(Math.max(0, j.at + 1 - LIMIT), j.at),
       { step, edit: edits?.position() ?? 0, selection }
