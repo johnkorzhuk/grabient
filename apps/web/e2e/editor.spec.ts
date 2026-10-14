@@ -289,6 +289,19 @@ test("U copies the address as the last edit leaves it", async ({ page, context }
     .toBe(new URL(here(page), page.url()).href);
 });
 
+test("the campaign tags a reader landed with stay in the address through its edits", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?utm_source=news&steps=9`);
+  await page.waitForTimeout(500);
+  expect(here(page)).toBe(`/${SEED}?utm_source=news&steps=9`);
+  await page.keyboard.press("i");
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/kSEiS3qzo6dQvY-");
+  const params = new URL(page.url()).searchParams;
+  expect(params.get("steps")).toBe("9");
+  expect(params.get("utm_source")).toBe("news");
+});
+
 test("the view's keys change the address, never the undo or the history", async ({ page }) => {
   await open(page);
   const before = await entries(page);

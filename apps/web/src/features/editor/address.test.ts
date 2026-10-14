@@ -33,6 +33,9 @@ test("a canonical address, or the router's spelling of one, stays as it is", () 
   const spelled = `/${SEED}?lock=lightness%2Chue&selection=`;
   expect(canonicalSeedAddress(spelled)).toBe(spelled);
   expect(sameAddress(spelled, `/${SEED}?lock=lightness,hue&selection`)).toBe(true);
+  // campaign tags say where a reader came from, nothing of the page
+  expect(sameAddress(`/${SEED}?utm_source=news&steps=3&gclid=x`, `/${SEED}?steps=3`)).toBe(true);
+  expect(sameAddress(`/${SEED}?utm_source=news&steps=3`, `/${SEED}?steps=4`)).toBe(false);
 });
 
 test("anything but a seed is another rule's", () => {

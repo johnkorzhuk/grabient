@@ -1,5 +1,6 @@
 import type { ParsedLocation, useRouter } from "@tanstack/solid-router";
 import { createEffect, onCleanup, untrack } from "solid-js";
+import { TRACKING_PARAM } from "../../lib/links.ts";
 import { readSeedPage, type SeedPage, sameAddress, seedAddress, seedSearch } from "./address.ts";
 import type { PaletteEditor } from "./editor.ts";
 import { searchReader } from "./page.ts";
@@ -12,7 +13,8 @@ import { searchReader } from "./page.ts";
    page more than a hundred history calls in thirty seconds, and a drag or a run of presses makes that many in a few.
    A press on a link or on the way into the selection lands the last write before it is followed, and so does leaving
    the page. Another address arriving (Back, Forward, a link to another palette) is the editor's to take in, and a
-   write waiting for its turn is dropped with the entry it was for. */
+   write waiting for its turn is dropped with the entry it was for. The campaign tags a reader landed with stay on
+   their entry through its rewrites, where a copy of the address and analytics read them. */
 const WRITE_MS = 350;
 
 type Router = ReturnType<typeof useRouter>;
@@ -34,6 +36,12 @@ export const pageAt = (location: ParsedLocation): SeedPage | null =>
   readSeedPage(
     location.pathname.slice(1),
     searchReader(location.search as Record<string, unknown>)
+  );
+const tagsAt = (location: ParsedLocation) =>
+  Object.fromEntries(
+    Object.entries(location.search as Record<string, unknown>).filter(([name]) =>
+      TRACKING_PARAM.test(name)
+    )
   );
 
 export function followAddress(
@@ -68,7 +76,7 @@ export function followAddress(
     void router.navigate({
       to: "/$id",
       params: { id: page.seed },
-      search: seedSearch(page),
+      search: { ...seedSearch(page), ...tagsAt(location()) },
       replace: true,
       resetScroll: false,
       state: prev => ({ ...prev, ...e.entry() })
