@@ -230,6 +230,108 @@ for (const width of WIDTHS)
       }) => walk(page, width, list));
   });
 
+/** A string of the site's English in the page's language, from the catalog the site translates with. */
+function say(lang: string, english: string): string {
+  if (lang === "en") return english;
+  const url = new URL(`../../../packages/i18n/messages/${lang}.json`, import.meta.url);
+  const catalog = JSON.parse(readFileSync(url, "utf8")) as Record<string, string>;
+  return catalog[english] ?? english;
+}
+/** What a list says it shows, without the marks that keep words in their own direction: the address and its words,
+    the field, the headings, the title and the first row's names. */
+const shows = (page: Page) =>
+  page.evaluate(() => {
+    const bare = (text: string | null | undefined) =>
+      (text ?? "").replace(/[\u2066-\u2069]/g, "").trim();
+    const main = document.querySelector("main");
+    return {
+      address: location.pathname + location.search,
+      words: new URLSearchParams(location.search).get("q") ?? "",
+      field: main?.querySelector<HTMLInputElement>('input[type="search"]')?.value ?? null,
+      headings: [...(main?.querySelectorAll("h1, h2") ?? [])]
+        .slice(0, 2)
+        .map(h => bare(h.textContent)),
+      title: bare(document.title),
+      cards: [...(main?.querySelectorAll("article") ?? [])]
+        .slice(0, 4)
+        .map(card => card.getAttribute("aria-label"))
+    };
+  });
+/** Waits for the list to show what the same address shows when it is loaded whole, and returns that. */
+async function agrees(page: Page) {
+  const whole = await page.context().newPage();
+  await whole.goto(page.url());
+  await whole.waitForFunction(() => !("$_TSR" in window));
+  await expect(whole.locator("main article").first()).toBeVisible();
+  const drawn = await shows(whole);
+  await whole.close();
+  await expect.poll(() => shows(page)).toEqual(drawn);
+  return drawn;
+}
+
+const SEED = "kS7CQ31Do6asvY-";
+const LANGUAGES = [
+  { lang: "en", prefix: "", words: "green" },
+  { lang: "es", prefix: "/es", words: "verde" },
+  { lang: "ja", prefix: "/ja", words: "緑" },
+  { lang: "ar", prefix: "/ar", words: "أخضر" }
+];
+
+for (const width of WIDTHS)
+  test.describe(`on ${width.name}`, () => {
+    test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
+    for (const { lang, prefix, words } of LANGUAGES)
+      test(`a search in ${lang} by a tag, by words, by a palette's address and cleared shows what its address shows`, async ({
+        page,
+        context,
+        baseURL
+      }) => {
+        await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+        const broken = watch(page);
+        await open(page, `${prefix}/palettes`);
+        await expect(page.locator("html")).toHaveAttribute("dir", lang === "ar" ? "rtl" : "ltr");
+        const rest = await agrees(page);
+        const field = page.getByRole("searchbox");
+
+        // a tag of the row at rest, in the page's language: it searches the words it shows
+        const tag = page.locator("main [role=toolbar] a").first();
+        const label = ((await tag.textContent()) ?? "").trim();
+        await press(tag, width);
+        await expect(page).toHaveURL(/[?&]q=/);
+        const tagged = await agrees(page);
+        expect.soft(tagged.field, "the tag's field").toBe(label);
+        expect.soft(tagged.headings[1], "the tag's heading").toContain(label);
+        expect.soft(tagged.words, "the tag's address").toBe(label);
+
+        await field.fill(words);
+        await field.press("Enter");
+        await expect(page).toHaveURL(new RegExp(`[?&]q=${encodeURIComponent(words)}$`));
+        const typed = await agrees(page);
+        expect(typed.field).toBe(words);
+        expect(typed.words).toBe(words);
+        expect(typed.headings[1]).toContain(words);
+
+        // the link the editor copies, pasted over the words: the palettes like it
+        await page.evaluate(
+          address => navigator.clipboard.writeText(address),
+          `${baseURL}${prefix}/${SEED}`
+        );
+        await field.focus();
+        await page.keyboard.press("ControlOrMeta+A");
+        await page.keyboard.press("ControlOrMeta+V");
+        await expect(page).toHaveURL(new RegExp(`[?&]q=${SEED}$`));
+        const pasted = await agrees(page);
+        expect(pasted.field).toBe(SEED);
+        expect(pasted.words).toBe(SEED);
+
+        await press(page.getByRole("button", { name: say(lang, "Clear search") }), width);
+        await expect(page).toHaveURL(new RegExp(`${prefix}/palettes$`));
+        expect(await agrees(page)).toEqual(rest);
+        expect(await sameDocument(page)).toBe(true);
+        expect(broken).toEqual([]);
+      });
+  });
+
 /** Likes or unlikes palettes for verify-ada as her browser's copy would, in one sync. */
 async function like(api: APIRequestContext, items: Item[], liked: boolean) {
   const answer = await api.post("/api/me/sync", {
