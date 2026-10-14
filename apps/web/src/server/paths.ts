@@ -7,6 +7,9 @@ const PRIVATE_API =
   /^\/api\/(auth(\/|$)|settings\/|likes(\/|$)|like-info$|like-counts$|saved$|contact$|geo$|me\/|search\/layers$|searched$|used$|client-error$)/;
 const within = (path: string, prefix: string) => path === prefix || path.startsWith(`${prefix}/`);
 
+/** Start's server functions, of which the app has none: Start answers any id there with a 500 and a logged error. */
+export const serverFunctionPath = (path: string) => within(path, "/_serverFn");
+
 /** One reader's data and pages: answered directly and never kept, framed only by the site itself. */
 export const privatePath = (path: string) => PRIVATE_API.test(path) || accountPage(path);
 

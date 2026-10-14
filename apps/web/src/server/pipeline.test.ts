@@ -112,14 +112,25 @@ describe("the language in the address", () => {
     expect(asked).toEqual([]);
   });
 
-  test.each(["/ja/api/hot", "/ja/kS7Q8Yy5S_SChv0.png", "/api/hot/", "/ja/e/s/"])(
-    "%s is 404 JSON",
-    async path => {
-      const response = await get(path);
-      expect(response.status).toBe(404);
-      expect(await response.json()).toEqual({ error: "Not found" });
-    }
-  );
+  test.each([
+    "/ja/api/hot",
+    "/ja/kS7Q8Yy5S_SChv0.png",
+    "/api/hot/",
+    "/ja/e/s/",
+    "/_serverFn/abc",
+    "/_serverFn/%3Cscript%3E",
+    "/ja/_serverFn"
+  ])("%s is 404 JSON", async path => {
+    const response = await get(path);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Not found" });
+    expect(asked).toEqual([]);
+  });
+
+  test("Start's server functions, of which the app has none, are no address for any method", async () => {
+    const posted = await get("/_serverFn/eyJ0ZXN0IjoxfQ", { method: "POST", body: "{}" });
+    expect([posted.status, asked]).toEqual([404, []]);
+  });
 
   test("the recorder's addresses reach Start as PostHog's library writes them, last slash and all", async () => {
     const recorded = () => new Response(null, { status: 204 });

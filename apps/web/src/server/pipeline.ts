@@ -28,6 +28,7 @@ import {
   privatePath,
   publicFile,
   recorderPath,
+  serverFunctionPath,
   uncachedPath
 } from "./paths.ts";
 import { countLegacy } from "./seo/legacy.ts";
@@ -123,6 +124,7 @@ async function route(
   const address = path + url.search;
   const at = (to: string, language = locale) => new URL(localizePath(to, language), url).toString();
 
+  if (serverFunctionPath(path)) return json({ error: msg("Not found") }, { status: 404 });
   const prefix = canonicalLocalePath(url.pathname);
   if (prefix !== null) return redirect(new URL(prefix + url.search, url).toString());
   // a page's address never ends in a slash, which other sites link to both ways; an API keeps its own
