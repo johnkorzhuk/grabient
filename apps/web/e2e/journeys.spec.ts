@@ -783,16 +783,32 @@ test("an undo, Back or Forward to a palette the tab knows calls it that from the
   }
 });
 
-test("a link to Rising in a frame an admin turned off leads to the week's in the reader's language", async ({
+test("a link to Rising in a frame an admin turned off leads to the week's in the reader's language, the selection still open", async ({
   page,
-  request
+  request,
+  baseURL
 }) => {
   const { frames } = (await (await request.get("/api/frames")).json()) as { frames: string[] };
   const off = ["3m", "1y"].find(frame => !frames.includes(frame));
   expect(off, "a longer frame staging's copy has turned off").toBeDefined();
-  await open(page, `/ja/palettes/rising/${off}?q=blue`);
-  await expect(page).toHaveURL(/\/ja\/palettes\/rising\?q=blue$/);
-  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+  for (const [list, query, lang] of [
+    ["palettes", "q=blue", "ja"],
+    ["collections", "q=sea+sky", "de"]
+  ] as const) {
+    const from = `/${lang}/${list}/rising/${off}?${query}&selection`;
+    const answer = await request.get(from, { maxRedirects: 0 });
+    const to = new URL(answer.headers().location ?? "", baseURL);
+    expect([answer.status(), to.pathname + to.search]).toEqual([
+      302,
+      `/${lang}/${list}/rising?${query}&selection`
+    ]);
+    // an empty selection closes as the page opens
+    await open(page, from);
+    await expect(page).toHaveURL(
+      new RegExp(`/${lang}/${list}/rising\\?${query.replace("+", "\\+")}$`)
+    );
+    await expect(page.locator("html")).toHaveAttribute("lang", lang);
+  }
 });
 
 type Item = { kseed: string; style: string; steps: number; angle: number };

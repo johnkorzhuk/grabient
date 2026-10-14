@@ -74,16 +74,19 @@ export const listPaint = (items: CollectionPage["items"], view: ListView) =>
     .map(palette => drawnIn(inputOf(palette), view));
 
 /** A public list's loader: its page, its tags and the frames Rising offers in the cache. A frame turned off leads to
-    the week's, and a page past the end renders its line and answers 404. */
-export async function loadList(client: QueryClient, place: ListPlace): Promise<Loaded> {
+    the week's, with the selection still open where the address opened it, and a page past the end renders its line and
+    answers 404. */
+export async function loadList(
+  client: QueryClient,
+  place: ListPlace,
+  selection?: boolean
+): Promise<Loaded> {
   const offered = await client.ensureQueryData(framesQuery());
   if (place.order === "rising" && !offered.includes(place.frame)) {
-    const search = listSearch({
-      query: place.query,
-      view: place.view,
-      page: place.page,
-      limit: place.limit
-    });
+    const search = listSearch(
+      { query: place.query, view: place.view, page: place.page, limit: place.limit },
+      selection
+    );
     throw redirect({ href: localHref(`/collections/rising${search}`), statusCode: 302 });
   }
   const [page] = await Promise.all([

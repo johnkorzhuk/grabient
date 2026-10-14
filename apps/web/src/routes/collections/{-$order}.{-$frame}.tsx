@@ -36,8 +36,13 @@ export const Route = createFileRoute("/collections/{-$order}/{-$frame}")({
     }
   },
   loaderDeps: ({ search }) => ({ search: searchOf(drawnSearch(search)) }),
-  loader: ({ context, params, deps }) =>
-    loadList(context.queryClient, placeOf(params, deps.search)!),
+  loader: ({ context, params, deps, location }) =>
+    loadList(
+      context.queryClient,
+      placeOf(params, deps.search)!,
+      // a frame turned off leads to the week's with the selection still open, which the deps leave out
+      new URLSearchParams(location.searchStr).has("selection")
+    ),
   headers: ({ params, loaderData }) =>
     loaderData?.status || loaderData?.unkept ? NO_STORE : params.order ? FRESH : PAGE,
   head: ({ match, params, loaderData }) =>
