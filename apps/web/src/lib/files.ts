@@ -1,17 +1,7 @@
 import { t } from "@grabient/i18n";
 import { copyText } from "@grabient/ui/copy.ts";
 
-/* The browser's side of taking things away: text and pictures onto the clipboard, and files saved. Browser only. */
-
-/** Hands the browser a file to save. */
-export function downloadFile(name: string, data: Blob): void {
-  const url = URL.createObjectURL(data);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
+/* The app's side of taking things away: text and pictures onto the clipboard, each refusal said. Browser only. */
 
 /** Text onto the clipboard, by the copy command where the browser refuses the clipboard (another site's frame without
     clipboard-write); rejects, in the reader's language, when neither takes it. */

@@ -17,10 +17,11 @@ import {
   sizeParam,
   viewSearch
 } from "@grabient/engine/view.ts";
+import { downloadFile } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { svgToPngBlob } from "@grabient/ui/figure.ts";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, downloadFile, writeText } from "../../lib/files.ts";
+import { copyImage, writeText } from "../../lib/files.ts";
 import { seedAddress } from "./address.ts";
 
 /* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves

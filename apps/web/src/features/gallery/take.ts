@@ -11,10 +11,11 @@ import {
 } from "@grabient/engine/swatches.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
 import { locale, t } from "@grabient/i18n";
+import { downloadFile } from "@grabient/ui/copy.ts";
 import { exportGridImage } from "@grabient/ui/exportgrid.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, downloadFile, writeText } from "../../lib/files.ts";
+import { copyImage, writeText } from "../../lib/files.ts";
 import type { Drawn } from "../../lib/palette.ts";
 
 /* What a card's strip hands over: the one palette as the card draws it, copied, saved as a file, or as the address of

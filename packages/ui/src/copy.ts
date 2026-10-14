@@ -1,3 +1,5 @@
+/* Taking things away in the browser: text onto the clipboard, and a file handed over to save. */
+
 /** Writes text to the clipboard; true when it is there. The control that asked shows the result on itself. */
 export async function copyText(text: string): Promise<boolean> {
   try {
@@ -24,4 +26,14 @@ export async function copyText(text: string): Promise<boolean> {
     area.remove();
     if (was?.isConnected) was.focus({ preventScroll: true });
   }
+}
+
+/** Hands the browser a file to save. */
+export function downloadFile(name: string, data: Blob): void {
+  const url = URL.createObjectURL(data);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
