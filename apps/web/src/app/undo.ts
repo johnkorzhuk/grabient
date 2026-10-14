@@ -64,10 +64,8 @@ function journal(at = entry, making = false): Journal {
 
 /* one at a time, in the order asked: each decides what it takes back when its turn comes */
 let chain: Promise<void> = Promise.resolve();
-const [waiting, setWaiting] = createSignal(0);
 function inTurn(work: () => Promise<void> | void): Promise<void> {
-  setWaiting(n => n + 1);
-  const run = chain.then(work).finally(() => setWaiting(n => n - 1));
+  const run = chain.then(work);
   chain = run.catch(() => {});
   return run;
 }
@@ -134,8 +132,6 @@ export function isNextUndo(step: Step): boolean {
   const j = journal();
   return j.steps[j.at - 1]?.step === step;
 }
-/** A step's undo or redo is on its way. */
-export const undoing = (): boolean => waiting() > 0;
 
 export function undo(): Promise<void> {
   return inTurn(async () => {
