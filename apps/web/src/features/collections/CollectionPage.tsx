@@ -38,7 +38,7 @@ import {
   serverWrote
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
-import { accountView, syncStatus } from "../account/state.ts";
+import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
 import { trackSignInPrompt } from "../analytics/analytics.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
@@ -65,9 +65,9 @@ import { Heading } from "./Heading.tsx";
 import { ItemCard } from "./ItemCard.tsx";
 import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
-import { forgetPalette, paletteGone } from "./overlay.ts";
+import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
 import { listSearch, pageSearch } from "./params.ts";
-import { collectionQuery, failed, stateQuery } from "./queries.ts";
+import { collectionQuery, failed, forgetStandings, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
@@ -170,7 +170,11 @@ export function CollectionPage(props: {
   });
   /* the answer of a write the server took straight, which stands until the copy holds as new a collection */
   const [own, setOwn] = createSignal<CollectionDocument | null>(null);
+  /* a collection this tab deleted is not here, whatever an answer kept from before says; read as the page opens, so
+     the page it was deleted on stands until the reader has left it */
+  const deleted = untrack(() => collectionGone(props.slug));
   const doc = (): CollectionDocument | null => {
+    if (deleted) return null;
     const wrote = own();
     const held = copied();
     return (
@@ -222,9 +226,29 @@ export function CollectionPage(props: {
     }
   );
 
-  /* the copy standing: the account's copy of this one, or this one as the account's copy */
+  /* the copy standing: the account's copy of this one, or this one as the account's copy. A copy this tab deleted is
+     none, whatever a read answered before the server heard of it says */
   const [copy, setCopy] = createSignal<CopyStanding | null | undefined>(undefined);
-  const standing = () => (copy() === undefined ? (state()?.copy ?? null) : copy()!);
+  const standing = () => {
+    const held = copy() === undefined ? (state()?.copy ?? null) : copy()!;
+    return held && collectionGone(held.slug) ? null : held;
+  };
+  /* a copy made or taken back by a press here, or by its undo from another page: no kept answer says so */
+  const stand = (next: CopyStanding | null) => {
+    if (next) recallCollection(next.slug);
+    setCopy(next);
+    forgetStandings();
+  };
+  /* the account's copy went or moved while the page stands, on another page's undo or in another tab */
+  onSettled(() =>
+    onAccountChange(change => {
+      const held = untrack(standing);
+      if (!held) return;
+      const to = change.moved.get(held.slug);
+      if (to) setCopy({ ...held, slug: to });
+      else if (change.removed.has(held.slug)) setCopy(null);
+    })
+  );
   const savedFrom = () => {
     const held = standing();
     return held && owned() && held.slug === props.slug ? held : null;
@@ -609,7 +633,7 @@ export function CollectionPage(props: {
                   selection={sel.button()}
                   say={say}
                   onDoc={setOwn}
-                  onCopy={setCopy}
+                  onCopy={stand}
                   onMoved={follow}
                   onTurning={setTurning}
                   onDeleted={() => void navigate({ href: owned() ? "/collections/saved" : back() })}

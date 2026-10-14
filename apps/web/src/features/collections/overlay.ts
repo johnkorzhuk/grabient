@@ -27,3 +27,6 @@ export const collectionGone = (slug: string): boolean => held(collections(), slu
 
 export const forgetPalette = (seed: string) => setPalettes(map => kept(map, seed));
 export const forgetCollection = (slug: string) => setCollections(map => kept(map, slug));
+/** A collection made at an address this tab deleted one from: it is there again. */
+export const recallCollection = (slug: string) =>
+  setCollections(map => (map.has(slug) ? new Map([...map].filter(([at]) => at !== slug)) : map));

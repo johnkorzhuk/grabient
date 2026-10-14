@@ -31,6 +31,7 @@ import {
   restorePalette,
   unaddSitePalette
 } from "./client.ts";
+import { recallCollection } from "./overlay.ts";
 import { type CollectionItemInput, MAX_COLLECTION_ITEMS } from "./schema.ts";
 
 /* The account's collections as a checklist for the palettes at hand: a card's Add to collection, and the export
@@ -108,6 +109,7 @@ async function makeOwn(
     made = (await makeCollection(title, items)).collection;
     serverWrote();
   }
+  recallCollection(made.slug);
   trackEvent("create_collection", { slug: made.slug, visibility: "private", items: items.length });
   return made;
 }

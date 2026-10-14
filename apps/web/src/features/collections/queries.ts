@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { locale, msg, t } from "@grabient/i18n";
 import { replica } from "@grabient/server/db/d1.ts";
+import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
@@ -15,7 +16,8 @@ import {
   ownsCollection,
   ownsCollectionSoon
 } from "../account/collections.ts";
-import { keptUserId } from "../account/session.ts";
+import { engineNow, keptUserId } from "../account/session.ts";
+import { onAccountChange, viewNow } from "../account/state.ts";
 import { langQuery, readOwn, readState } from "./client.ts";
 import { COLLECTION_LIMIT, type CollectionListParams, OWN_COLLECTION_LIMIT } from "./params.ts";
 import {
@@ -227,10 +229,28 @@ export const ownQuery = (owner: string, key: CollectionListParams, model = true)
     staleTime: freshFor(PRIVATE_TTL)
   });
 
+/* What a reader may do on a collection is kept a minute, for a page returned to. Part of it is how the account's saved
+   copy stands, which moves with the account's collections: one made, deleted or moved since, on this page, on another
+   or in another tab, and what was kept may name a copy that is gone, or none where one was made. Each such change
+   starts the kept answers anew. What the copy holds before it has heard from the server, and what it first says once
+   it has, is its opening and no change. */
+let standings = 0;
+/** A copy was made or taken back here: what was kept of any collection's standing is old. */
+export const forgetStandings = () => void standings++;
+let ownAddresses: string | null = null;
+if (!isServer)
+  onAccountChange(() => {
+    const user = keptUserId();
+    if (!user || !engineNow()?.copyReady(user)) return;
+    const now = [...viewNow().collections.keys()].sort().join(" ");
+    if (ownAddresses !== null && now !== ownAddresses) forgetStandings();
+    ownAddresses = now;
+  });
+
 /** What a signed-in reader may do on one collection's page: theirs or theirs to curate, their copy, votes and notes. */
 export const stateQuery = (owner: string, slug: string) =>
   queryOptions({
-    queryKey: ["collection-state", owner, slug] as const,
+    queryKey: ["collection-state", owner, slug, standings] as const,
     queryFn: ({ signal }) =>
       readState(slug, signal).catch(error => (signal.aborted ? Promise.reject(error) : null)),
     staleTime: PRIVATE_TTL
