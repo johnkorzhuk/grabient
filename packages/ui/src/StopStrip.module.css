@@ -139,4 +139,85 @@
     pointer-events: none;
     transition: left var(--motion-fast) var(--motion-ease);
   }
+
+  /* The still strip, drawn before any script runs. Its rows and labels follow layoutStops by the styles alone. Its
+     font size is its count of stops in pixels, so 56em is 56px a stop: a long run stands in two rows where the strip
+     is 640px or more and under 56px a stop, on a page wide enough for the tall strip. Each label is set in a box as
+     wide as the narrowest chip, so its size and its turn are the narrowest chip's, as the strip's own are. */
+  .still {
+    container: strip / inline-size;
+    font-size: calc(var(--units) * 1px);
+    @media (max-width: 900px) {
+      --h: var(--size-strip-short);
+    }
+    & .chip {
+      background: var(--hex);
+      cursor: default;
+      /* set as a press's text is, which the strip's chips are */
+      text-rendering: auto;
+      @media (color-gamut: p3) {
+        @supports (color: color(display-p3 1 0 0)) {
+          background: var(--paint);
+        }
+      }
+    }
+    & .label {
+      font-size: min(13px, round(down, (100cqw - 10px) * 12 / 51.8, 1px));
+    }
+  }
+  .variant {
+    display: flex;
+    flex-direction: column;
+    &[data-rows="2"] {
+      --h: var(--size-strip-two);
+      display: none;
+    }
+  }
+  /* the chip's own box where it is the narrowest, so its hex stands where the strip's does to the pixel */
+  .fit {
+    position: absolute;
+    inset-block: 0;
+    inset-inline: calc((100% - 100% / var(--span) * var(--least)) / 2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container: chip / inline-size;
+  }
+  @media (min-width: 901px) {
+    @container strip (min-width: 640px) and (width < 56em) {
+      .variant[data-rows="1"] {
+        display: none;
+      }
+      .variant[data-rows="2"] {
+        display: flex;
+      }
+    }
+    /* a row of 72px: upright at 13px under 57.48px a chip, smaller under 22.3px, none under 19px */
+    @container chip (width < 57.4834px) {
+      [data-rows="1"] .label {
+        writing-mode: vertical-rl;
+        font-size: min(13px, round(down, (100cqw - 8px) / 1.1, 1px));
+      }
+    }
+    /* a row of 56px: upright at 10px under 53.17px a chip */
+    @container chip (width < 53.1667px) {
+      [data-rows="2"] .label {
+        writing-mode: vertical-rl;
+        font-size: 10px;
+      }
+    }
+    @container chip (width < 19px) {
+      .still .label {
+        display: none;
+      }
+    }
+  }
+  /* a phone's row of 52px has no room for an upright hex: under 53.17px a chip, none */
+  @media (max-width: 900px) {
+    @container chip (width < 53.1667px) {
+      .still .label {
+        display: none;
+      }
+    }
+  }
 }
