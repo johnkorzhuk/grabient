@@ -786,7 +786,6 @@ function Strip(props: {
   onCopy: () => void;
 }) {
   const e = props.editor;
-  const calm = createFlashGuard(e.shownStops, lights);
   const marks = () =>
     props.marked
       ? e.held().map(i => {
@@ -796,8 +795,9 @@ function Strip(props: {
       : [];
   return (
     <div class={styles.bar}>
+      {/* the strip guards its own paint against flashing, as the picture does */}
       <StopStrip
-        stops={calm()}
+        stops={e.shownStops()}
         marks={marks()}
         reading={e.reading()}
         short={props.narrow}

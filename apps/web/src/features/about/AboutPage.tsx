@@ -125,7 +125,6 @@ function KeyframesFigure(props: { figure: Figure; onPress: (e: PointerEvent) => 
 /** The same palette in steps, as the editor's strip draws them, its keyframes marked. */
 function StepsFigure(props: { figure: Figure; onPress: (e: PointerEvent) => void }) {
   const f = props.figure;
-  const steps = createFlashGuard(() => hexesOf(f.palette(), f.steps()), lights);
   const marks = () =>
     f.anchorStops().map((stop, i) => ({ t: f.K() > 1 ? i / (f.K() - 1) : 0, paint: stop.hex }));
   return (
@@ -151,7 +150,8 @@ function StepsFigure(props: { figure: Figure; onPress: (e: PointerEvent) => void
           />
         }
       >
-        <StopStrip stops={steps().map(hex => ({ hex }))} marks={marks()} />
+        {/* the strip guards its own paint against flashing */}
+        <StopStrip stops={hexesOf(f.palette(), f.steps()).map(hex => ({ hex }))} marks={marks()} />
       </FigurePane>
     </div>
   );
