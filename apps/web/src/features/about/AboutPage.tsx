@@ -376,7 +376,7 @@ function waterFollows(f: Figure) {
   };
 }
 
-/* the editor's keys over the first figure while the page is open: the figure's own undo stands in for the page's */
+/* the editor's keys over the first figure while the page is open: the figure's own undo takes the page's place */
 function figureKeys(f: Figure): Binding[] {
   const row = (id: string, run: (i: number) => void, when?: () => boolean): Binding => {
     const r = keyRow(id)!;

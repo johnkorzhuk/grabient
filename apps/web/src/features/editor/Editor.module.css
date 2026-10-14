@@ -1,6 +1,6 @@
 @layer components {
   /* What scrolls, then the side beside it. `--head` is the header's height, the same at every width. `--dock-h` is
-     the strip's, by the rows it stands in; `--peek` is the sheet's name row, which shows under the first screen. */
+     the strip's, by its rows; `--peek` is the sheet's name row, which shows under the first screen. */
   .page {
     --head: calc(var(--size-top) + var(--size-hairline));
     --dock-h: var(--size-strip);
@@ -36,7 +36,7 @@
       flex-direction: column;
       align-items: stretch;
     }
-    /* a long run of stops stands in two rows, which the strip marks itself */
+    /* a long run of stops takes two rows, which the strip marks itself */
     &:has(.bar [data-two]) {
       --dock-h: calc(2 * var(--size-strip-two));
     }
@@ -360,7 +360,7 @@
   /* The editor's first screen as the boot draws it (Boot.tsx), shown while the page boots (boot.ts) and never after:
      the same parts in the same places. Beside the page the first screen is a column the window's height under the
      header, so the sheet's name row takes the height its name needs and the picture the rest, as the editor measures
-     them. A spacer under it scrolls the page as the editor's does, so a scrollbar that takes room stands in both. */
+     them. A spacer under it scrolls the page as the editor's does, so a scrollbar that takes room is in both. */
   .boot {
     :root:not([data-seed-boot]) &,
     :root[data-seed-boot="bare"] & {
@@ -390,7 +390,7 @@
         height: auto;
         min-height: calc(var(--size-touch) * 5);
       }
-      /* the side put away, as the reader left it (boot.ts reads it): the rail stands in its place */
+      /* the side put away, as the reader left it (boot.ts reads it): the rail takes its place */
       :root[data-seed-boot="away"] & {
         grid-template-columns: minmax(0, 1fr);
         & .side {

@@ -60,7 +60,7 @@ const isHeld = (value: unknown): value is Held => !!value && typeof value === "o
 
 /** What the browser holds of the site's lists, with the palette `to` where `from` stood: its steps never under its
     keyframes, and gone where the list already holds `to`. A list is an array of palettes by their `kseed` or `seed`,
-    wherever it stands in an answer. An account's collections are its own, which the server leaves as they are. What
+    wherever it is in an answer. An account's collections are its own, which the server leaves as they are. What
     holds no `from` comes back as it was given. */
 export function replaced<T>(data: T, from: string, to: string): T {
   const floor = Math.max(STEPS_MIN, decodePalette(to)?.anchors.length ?? 0);

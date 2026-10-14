@@ -46,7 +46,7 @@ export const Route = createFileRoute("/$id/")({
   loader: async ({ context, params, deps, location }) => {
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
-      /* A navigation in the browser keeps the page it leaves until the editor can draw, so no page stands in for it.
+      /* A navigation in the browser keeps the page it leaves until the editor can draw, so no other page is drawn first.
          Code that does not come is the page's own to say, where it renders. */
       if (!isServer) await Editor.preload().catch(() => {});
       const { seed, view } = palette.page;
