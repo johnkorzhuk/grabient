@@ -197,7 +197,8 @@
     font-family: var(--font-sans);
     font-weight: var(--font-medium);
     font-size: var(--font-fs2);
-    line-height: var(--font-lh-ui);
+    /* its line is the menu's own text's, a step taller than its type */
+    line-height: calc(var(--font-fs3) * var(--font-lh-ui));
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;
