@@ -6,6 +6,7 @@ import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
+import { offline } from "../../app/connection.ts";
 import { attempt, type Failed, freshFor, getJson } from "../../lib/query.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
@@ -22,7 +23,7 @@ import {
 } from "../account/collections.ts";
 import { engineNow, keptUserId } from "../account/session.ts";
 import { onAccountChange, viewNow } from "../account/state.ts";
-import { langQuery, readOwn, readState } from "./client.ts";
+import { langQuery, readOwn, readState, statusOf } from "./client.ts";
 import { COLLECTION_LIMIT, type CollectionListParams, OWN_COLLECTION_LIMIT } from "./params.ts";
 import {
   type CollectionDocument,
@@ -182,11 +183,15 @@ export const ownQuery = (owner: string, key: CollectionListParams, model = true)
   queryOptions({
     queryKey: ["own-collections", owner, key.query, key.limit, key.page, model] as const,
     queryFn: async ({ signal }) => {
-      const copy = await ownCollectionsPage(
-        { page: key.page, limit: key.limit, query: key.query },
-        !model
-      );
-      if (copy) return { ...copy, sort: "newest" as const, fetchedAt: Date.now() };
+      const asked = { page: key.page, limit: key.limit, query: key.query };
+      /* the copy reads its words by their letters: as the reader types, with no connection, and when the server could
+         not be reached */
+      const copied = async (letters: boolean) => {
+        const copy = await ownCollectionsPage(asked, letters);
+        return copy && { ...copy, sort: "newest" as const, fetchedAt: Date.now() };
+      };
+      const copy = await copied(!model || offline());
+      if (copy) return copy;
       const params = new URLSearchParams({
         page: String(key.page),
         limit: String(Math.min(key.limit, OWN_COLLECTION_LIMIT))
@@ -194,7 +199,12 @@ export const ownQuery = (owner: string, key: CollectionListParams, model = true)
       if (key.query) params.set("q", key.query);
       if (key.query && model) params.set("model", "1");
       return attempt(
-        () => readOwn(`?${params}`, signal),
+        () =>
+          readOwn(`?${params}`, signal).catch(async (error: unknown) => {
+            const local = statusOf(error) || signal.aborted ? null : await copied(true);
+            if (local) return local;
+            throw error;
+          }),
         signal,
         msg("Couldn't load your collections.")
       );
