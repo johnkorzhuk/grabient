@@ -5,10 +5,11 @@ import { MAX_COLLECTION_ITEMS, MAX_OWN_COLLECTIONS } from "../../features/collec
 import type {
   CollectionHit,
   CollectionPage,
-  CollectionSort,
-  RisingFrame
+  CollectionSort
 } from "../../features/collections/types.ts";
+import { DEFAULT_FRAME, type RisingFrame } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
+import { RISE_COLUMN } from "../gallery/scores.ts";
 import {
   folded,
   holds,
@@ -77,14 +78,13 @@ const bounded = (value: number | undefined, fallback: number, min: number, max: 
    change; the home's hot order leads with what was liked and saved lately; Rising is the frame's score. Each reads
    through an index of its own. */
 const POPULAR = "c.fork_count DESC, c.likes_sum DESC, c.updated_at DESC";
-const RISE: Record<RisingFrame, string> = { "1w": "rising", "3m": "rising_3m", "1y": "rising_1y" };
-const orderBy = (sort: CollectionSort, frame: RisingFrame = "1w") =>
+const orderBy = (sort: CollectionSort, frame: RisingFrame = DEFAULT_FRAME) =>
   sort === "popular"
     ? POPULAR
     : sort === "hot"
       ? `c.hot DESC, ${POPULAR}`
       : sort === "rising"
-        ? `c.${RISE[frame]} DESC, c.updated_at DESC`
+        ? `c.${RISE_COLUMN[frame]} DESC, c.updated_at DESC`
         : `c.updated_at ${sort === "oldest" ? "ASC" : "DESC"}`;
 
 /* How many collections are public, counted once in five minutes in an isolate. A write in this isolate counts again;
@@ -223,7 +223,7 @@ export async function publicCollections(
   const query = listWords(input.query);
   const sort: CollectionSort = input.sort ?? "newest";
   const risen = frameOf(input.frame);
-  const frame = sort === "rising" && risen !== "1w" ? risen : undefined;
+  const frame = sort === "rising" && risen !== DEFAULT_FRAME ? risen : undefined;
   const page = bounded(input.page, 1, 1, 10_000);
   const limit = bounded(input.limit, COLLECTION_LIMIT, 1, 96);
   const head = { query, sort, ...(frame ? { frame } : {}), page, limit };

@@ -19,9 +19,9 @@ import type {
   CollectionPage,
   CollectionPreview,
   CollectionSort,
-  CollectionSummary,
-  RisingFrame
+  CollectionSummary
 } from "../../features/collections/types.ts";
+import type { RisingFrame } from "../../lib/orders.ts";
 
 /* Reading collections: one public collection by its address, a page of a list, the collections that hold a palette,
    and the rows the sitemap, the share cards and the admin's checklist read. Every read is bounded: a page of rows, a
