@@ -214,6 +214,8 @@ describe("the owner's alerts", () => {
     const digest = await signInDigest(env);
     expect(digest).toEqual({ watched: 3, emailed: true });
     expect(queries[0]).toContain('FROM events.analyticsEngine."grabient_usage"');
+    // the binding refuses a query that names the sample interval: it weighs each sum itself
+    for (const query of queries) expect(query).toContain("SUM(double1) AS n");
     expect(env.EMAIL.last.subject).toBe("Grabient: apps signing in");
     expect(env.EMAIL.last.text).toContain("- grant/refresh_token_mismatch: 3");
     expect(env.EMAIL.last.text).toContain("- refresh_token cimd: 2");

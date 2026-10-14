@@ -83,7 +83,8 @@ const WATCHED = new Set(["refresh_token_mismatch", "kv_rate_limited"]);
 type Row = Record<string, unknown>;
 
 /** The last six hours of apps signing in, mailed when the counts show an app racing itself or a refresh token used in
-    two places (`refresh_token_mismatch`), or KV refusing writes (`kv_rate_limited`). The six-hour job's step. */
+    two places (`refresh_token_mismatch`), or KV refusing writes (`kv_rate_limited`). The six-hour job's step. The
+    binding weighs a sum by each point's sample interval itself, and knows no column of that name. */
 export async function signInDigest(
   env: Pick<Env, "ANALYTICS" | "DEPLOYMENT" | "EMAIL" | "EMAIL_FROM" | "OAUTH_KV">
 ): Promise<{ skipped?: string; watched: number; emailed: boolean }> {
@@ -100,8 +101,7 @@ export async function signInDigest(
   };
   let errors: Row[];
   try {
-    errors =
-      await rows(`SELECT blob3 AS category, blob4 AS reason, SUM(_sample_interval * double1) AS n
+    errors = await rows(`SELECT blob3 AS category, blob4 AS reason, SUM(double1) AS n
       FROM ${from} WHERE blob1 = 'oauth' AND blob2 = 'error' AND ${since} GROUP BY category, reason ORDER BY n DESC`);
   } catch (error) {
     // a dataset appears with its first point: until then there is nothing to read
@@ -113,8 +113,7 @@ export async function signInDigest(
   }
   const watched = errors.filter(row => WATCHED.has(String(row.reason)));
   if (!watched.length) return { watched: 0, emailed: false };
-  const refused =
-    await rows(`SELECT blob3 AS grant, blob5 AS client, SUM(_sample_interval * double1) AS n
+  const refused = await rows(`SELECT blob3 AS grant, blob5 AS client, SUM(double1) AS n
     FROM ${from} WHERE blob1 = 'oauth' AND blob2 = 'token' AND blob4 = '400' AND ${since}
     GROUP BY grant, client ORDER BY n DESC`);
   const count = (row: Row) => Math.round(Number(row.n) || 0);
