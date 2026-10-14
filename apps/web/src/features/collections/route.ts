@@ -116,15 +116,16 @@ export async function loadSaved(client: QueryClient): Promise<{ signedOut?: bool
   return { signedOut: noSession() };
 }
 
-/** What a collection's page says of it in its head, from its own words and counts. */
-const factsOf = (doc: CollectionDocument): CollectionFacts => ({
+/** What a collection's page says of it in its head, from its own words and counts, and the languages it reads in. */
+const factsOf = (doc: CollectionDocument, languages?: readonly string[]): CollectionFacts => ({
   title: doc.title,
   description: doc.description,
   tags: doc.tags,
   count: doc.itemCount,
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
-  ...(doc.visibility === "private" ? { unlisted: true } : {})
+  ...(doc.visibility === "private" ? { unlisted: true } : {}),
+  ...(languages?.length ? { languages } : {})
 });
 
 export interface CollectionLoaded extends Loaded {
@@ -151,7 +152,7 @@ export async function loadCollection(
   const params = new URLSearchParams(at.searchStr);
   if (found.doc)
     return {
-      facts: factsOf(found.doc),
+      facts: factsOf(found.doc, found.languages),
       paint: sortCollectionItems(found.doc.items, at.order)
         .slice(0, PAINTED)
         .map(item => drawnIn(inputOf(item), viewOf(params)))

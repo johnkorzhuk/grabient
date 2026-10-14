@@ -4,6 +4,7 @@ import { heading } from "../../lib/page-meta.ts";
 import { AS_SAVED } from "../list/appearance.ts";
 import type { ListPlace } from "./params.ts";
 import {
+  collectionHead,
   listMeta,
   listPaint,
   listPlace,
@@ -254,6 +255,23 @@ describe("a collection page's loader", () => {
     const rising = await loadCollection(cache, at("ocean-depths", "rising"));
     expect(rising.paint?.map(p => p.seed)).toEqual([SEEDS[1], SEEDS[0], SEEDS[2]]);
     expect(rising.status).toBeUndefined();
+  });
+  test("names the languages one of Grabient's reads in, and its head each language's copy", async () => {
+    const cache = holding("ocean-depths", { doc, languages: ["ja", "de"], fetchedAt: 0 });
+    const loaded = await loadCollection(cache, at("ocean-depths"));
+    expect(loaded.facts).toMatchObject({ title: "Ocean depths", languages: ["ja", "de"] });
+    const named = (found: typeof loaded) =>
+      collectionHead(cache, { slug: "ocean-depths", order: "popular", search: {} }, found)
+        .links.filter(link => "hreflang" in link)
+        .map(link => [link.hreflang, link.href]);
+    expect(named(loaded)).toEqual([
+      ["en", "https://grabient.com/ocean-depths"],
+      ["ja", "https://grabient.com/ja/ocean-depths"],
+      ["de", "https://grabient.com/de/ocean-depths"],
+      ["x-default", "https://grabient.com/ocean-depths"]
+    ]);
+    // one in English alone names no other language
+    expect(named({ facts: { ...loaded.facts!, languages: undefined } })).toEqual([]);
   });
   test("names a private collection unlisted in what its page says of it", async () => {
     const hidden = { ...doc, visibility: "private" as const };

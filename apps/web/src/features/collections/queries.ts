@@ -9,7 +9,11 @@ import * as v from "valibot";
 import { getJson } from "../../lib/query.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
-import { localizeCollections, translatedLocale } from "../../server/mcp/admin/translations.ts";
+import {
+  localizeCollections,
+  localizeDocument,
+  translatedLocale
+} from "../../server/mcp/admin/translations.ts";
 import {
   ownCollectionMoved,
   ownCollectionsPage,
@@ -86,6 +90,9 @@ export interface Found {
   own?: boolean;
   /** a list's summary of the collection, shown while the collection is read */
   provisional?: boolean;
+  /** the languages besides English one of Grabient's reads in, which the server's read says: its page is indexed in
+      each */
+  languages?: readonly string[];
   fetchedAt: number;
 }
 
@@ -99,8 +106,8 @@ const readCollection = createIsomorphicFn()
         private: (await collectionVisibility(db, slug)) === "private",
         fetchedAt: Date.now()
       };
-    const [shown] = await localizeCollections(env, asked(), [doc]);
-    return { doc: shown ?? doc, fetchedAt: Date.now() };
+    const { doc: shown, languages } = await localizeDocument(env, asked(), doc);
+    return { doc: shown, ...(languages.length ? { languages } : {}), fetchedAt: Date.now() };
   })
   .client(async (slug: string, signal?: AbortSignal): Promise<Found | Failed> => {
     /* The account's own is read as its own, from the browser's copy: at once when the copy is open, and asked beside
