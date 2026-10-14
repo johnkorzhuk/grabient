@@ -29,6 +29,12 @@ import { seedAddress } from "./address.ts";
    declaration to paste into a rule and a download is the file the site serves, which works on its own. Every CSS spells
    its colors as the reader chose in Settings. */
 
+/* A strip's formats over a picture: Copy hands over the address, the CSS and the pictures, Download saves the files the
+   site serves (the Markdown in the address's place), and Copy link copies those files' addresses. A format keeps its
+   place as the mode turns, so only the first chip changes. */
+export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
+export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
+
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
   seed: string;

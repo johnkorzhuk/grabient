@@ -13,13 +13,14 @@ import { Icon } from "@grabient/ui/Icon.tsx";
 import { Keyframes } from "@grabient/ui/Keyframes.tsx";
 import { keyRow } from "@grabient/ui/keymap.ts";
 import { matches, rowKeys, typing } from "@grabient/ui/keys.ts";
+import { Like } from "@grabient/ui/Like.tsx";
 import { reducesNow } from "@grabient/ui/motion.ts";
 import { createHold } from "@grabient/ui/press.ts";
 import { SizeControl } from "@grabient/ui/SizeControl.tsx";
 import { StopStrip } from "@grabient/ui/StopStrip.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
-import { space } from "@grabient/ui/tokens.ts";
-import { useLocation, useNavigate, useRouter } from "@tanstack/solid-router";
+import { size, space } from "@grabient/ui/tokens.ts";
+import { useLocation, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -33,11 +34,11 @@ import {
   untrack,
   useContext
 } from "solid-js";
+import { signInUnavailable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
-import { likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
-import { account, loginHref } from "../account/session.ts";
-import { trackSignInPrompt } from "../analytics/analytics.ts";
+import { countDue, likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
+import { shownError } from "../account/session.ts";
 import { useInEditor } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import {
@@ -52,7 +53,15 @@ import { Corner, type Panel } from "./Corner.tsx";
 import styles from "./Editor.module.css";
 import { holdCorner } from "./EditorCorner.tsx";
 import { createPaletteEditor, type PaletteEditor } from "./editor.ts";
-import { copyFormat, copyLink, NO_IMAGE_CLIPBOARD, saveFormat, type Taken } from "./formats.ts";
+import {
+  copyFormat,
+  copyLink,
+  NO_IMAGE_CLIPBOARD,
+  STRIP_COPY,
+  STRIP_FILES,
+  saveFormat,
+  type Taken
+} from "./formats.ts";
 import { followAddress } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
 import type { PaletteData } from "./page.ts";
@@ -72,6 +81,11 @@ const NARROW = 900;
 /* The sheet, under the first screen, comes once the first screen stands: its code arrives apart, and its panes are
    made in a task of their own, so the controls answer sooner. */
 const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
+/* The account's collections come with the first palette selected: no page needs them before. */
+const AddToCollection = lazy(() =>
+  import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
+);
+const SaveSelection = lazy(() => import("./Collect.tsx").then(m => ({ default: m.SaveSelection })));
 /* the plots' height where the controls follow the strip, and the least and most beside the page */
 const PLOT_FLOW = 132;
 const PLOT_LEAST = 96;
@@ -81,12 +95,6 @@ const PLOT_MOST = 220;
 const OVER_KEYS = 1 / 3;
 const TYPING_ROOM = "60dvh";
 const LIFT_GAP = space.s4;
-
-/* The stage strip's formats: Copy hands over the address, the CSS and the pictures, Download saves the files the
-   site serves (the Markdown in the address's place), and Copy link copies those files' addresses. A format keeps its
-   place as the mode turns (FormatStrip), so only the first chip changes. */
-const COPY: Format[] = ["url", "css", "svg", "png"];
-const FILES: Format[] = ["md", "css", "svg", "png"];
 
 /** The side's panel: shown or put away, kept in this browser. A window 900px wide or less has no side to put away. */
 function createPanel(): Panel {
@@ -123,7 +131,6 @@ function createPanel(): Panel {
 /** The editor over the palette the route names. It mounts in the browser over the page the server sent. */
 export default function Editor(props: { data: PaletteData }) {
   const router = useRouter();
-  const navigate = useNavigate();
   const location = useLocation();
   const shell = useContext(ShellContext);
   const first = untrack(() => props.data);
@@ -147,7 +154,14 @@ export default function Editor(props: { data: PaletteData }) {
   });
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   /* the selection's export screen, in the page's place while the address says `selection` */
-  const chosen = createSelectionScreen({ note: toast });
+  const chosen = createSelectionScreen({
+    note: toast,
+    save: () => (
+      <Loading>
+        <SaveSelection />
+      </Loading>
+    )
+  });
   /* The frame keeps the keys and the palettes a page hands in last, so these come after the screen's and stand for
      both: while the screen stands the editor's keys rest, Escape closes it and the bar carries the selection. */
   shell.keys(() => [
@@ -179,10 +193,12 @@ export default function Editor(props: { data: PaletteData }) {
       root.style.overscrollBehaviorY = was;
     };
   });
-  /* how many like the palette on screen, asked once it has rested: a held key makes many palettes a second */
+  /* how many like the palette on screen, asked once it has rested: a held key makes many palettes a second. A count
+     read lately, as a palette an undo returns to has, is no ask and lengthens no wait. */
   createEffect(e.seed, seed => {
     rest.is(seed);
     const timer = setTimeout(() => {
+      if (!countDue(seed)) return;
       rest.asked(seed);
       void readLikeCounts([seed]).catch(() => {});
     }, rest.left());
@@ -203,22 +219,16 @@ export default function Editor(props: { data: PaletteData }) {
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
-  /* the heart: the count for everyone, the press for an account; signed out it leads to sign in */
-  const heart = {
+  /* the heart: the count for everyone, the press for an account, saved in the view on screen; signed out it leads to
+     sign in, and a refusal says why */
+  const heart: Heart = {
     liked: () => liked(e.seed()),
-    count: () => likeCount(e.seed(), 0),
-    async toggle() {
-      if (!account()) {
-        trackSignInPrompt("like");
-        void navigate({ href: loginHref() });
-        return;
-      }
+    count: () => likeCount(e.seed()),
+    toggle() {
       const { seed, ...view } = drawn();
-      try {
-        await toggleLike(seed, !liked(seed), { view });
-      } catch (error) {
-        toast(error instanceof Error ? error.message : t("Couldn't save the palette."));
-      }
+      toggleLike(seed, !liked(seed), { view }).catch((reason: unknown) =>
+        toast(shownError(reason, msg("Couldn't save the palette.")))
+      );
     }
   };
   return (
@@ -250,7 +260,7 @@ export default function Editor(props: { data: PaletteData }) {
 interface Heart {
   liked: () => boolean;
   count: () => number;
-  toggle: () => Promise<void>;
+  toggle: () => void;
 }
 interface PageProps {
   editor: PaletteEditor;
@@ -295,6 +305,9 @@ function Page(props: PageProps) {
   onSettled(() => {
     let frame = 0;
     let resized = false;
+    /* a press over the picture and the gap under it: as tall as a finger needs where a finger is the pointer */
+    const lift =
+      (matchMedia("(pointer: coarse)").matches ? size.touch : size.controlBig) + space.s2;
     const read = () => {
       frame = 0;
       /* the page hidden behind the selection's screen has no box to measure */
@@ -306,7 +319,7 @@ function Page(props: PageProps) {
       const y = scrollY;
       const far = reach();
       setMoved(y > 1);
-      setRaised(y >= 48);
+      setRaised(y >= lift);
       setDocked(far > 0 && y >= far - 1);
       setNearer(far > 0 && y > far / 2);
     };
@@ -408,7 +421,7 @@ function Page(props: PageProps) {
               clear={docked()}
               onBand={height => setBand(height)}
               actions={<Tools editor={e} heart={props.heart} paper />}
-              selection={props.chosen.button()}
+              selection={props.chosen.press()}
             />
           </Loading>
         </Show>
@@ -421,14 +434,20 @@ function Page(props: PageProps) {
         onDown={() => go(reach())}
         onUp={() => go(0)}
       />
-      {props.chosen.float()}
+      {/* a phone's sheet has the way into the selection at the page's corner, as a list has, once the page has moved:
+          at rest the picture's own presses hold it */}
+      <span class={styles.floats} data-away={moved() ? undefined : ""} inert={!moved()}>
+        {props.chosen.float()}
+      </span>
     </main>
   );
 }
 
-/** The palette's own presses: the heart and the check that puts it in the selection, and over the picture the way into
-    the selection once it holds something. Over the picture they are glass and wait for a tap on a touch screen; in
-    the sheet's head they are the page's own. */
+/** The palette's own presses: the heart, the way into the selection once it holds something, and the check that puts
+    the palette in it, with Add to collection under the check once it is in. Over the picture they are glass, and on a
+    touch screen the heart and the plus wait for a tap on it; Selection, and the check that says the palette is in it,
+    stay, as a card keeps its check. In the sheet's head they are the page's own, without the way into the selection,
+    which its list's row has. */
 function Tools(props: {
   editor: PaletteEditor;
   heart: Heart;
@@ -438,29 +457,23 @@ function Tools(props: {
   const e = props.editor;
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   const chosen = () => selected(drawn());
-  const likeTip = tooltip(() => t(props.heart.liked() ? msg("Unlike") : msg("Like")));
   return (
     <>
-      <span class={props.paper ? undefined : styles.waits}>
-        <button
-          ref={likeTip}
-          type="button"
-          class={styles.like}
-          data-paper={props.paper ? "" : undefined}
-          aria-pressed={props.heart.liked() ? "true" : "false"}
-          aria-label={t("{count, plural, one {Like, #} other {Like, #}}", {
-            count: props.heart.count()
-          })}
-          onClick={() => void props.heart.toggle()}
-        >
-          <Icon name="heart" fill={props.heart.liked()} size={16} />
-          <span class={styles.count}>{props.heart.count()}</span>
-        </button>
+      <span class={props.paper ? styles.hung : styles.waits}>
+        <Like
+          variant={props.paper ? "plain" : "art"}
+          size="lg"
+          count={props.heart.count()}
+          liked={props.heart.liked()}
+          onToggle={props.heart.toggle}
+          disabled={signInUnavailable()}
+        />
       </span>
-      <Show when={props.chosen}>
-        {chosen => <span class={styles.waits}>{chosen().button()}</span>}
-      </Show>
-      <span class={chosen() || props.paper ? undefined : styles.waits}>
+      <Show when={props.chosen}>{screen => screen().press()}</Show>
+      <span
+        class={[styles.stack, { [styles.waits]: !props.paper && !chosen() }]}
+        data-flat={props.paper ? "" : undefined}
+      >
         <Button
           variant={chosen() ? "primary" : props.paper ? "secondary" : "art"}
           icon
@@ -475,6 +488,11 @@ function Tools(props: {
         >
           <Icon name={chosen() ? "check" : "plus"} size={15} />
         </Button>
+        <Show when={chosen()}>
+          <Loading>
+            <AddToCollection palette={drawn} size="lg" />
+          </Loading>
+        </Show>
       </span>
     </>
   );
@@ -633,10 +651,10 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={COPY}
-            download={FILES}
+            copy={STRIP_COPY}
+            download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={FILES}
+            link={STRIP_FILES}
             onCopy={copy}
             onDownload={f => void download(f)}
             onLink={link}
