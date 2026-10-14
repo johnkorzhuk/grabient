@@ -4,7 +4,7 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { useRouter } from "@tanstack/solid-router";
 import { createSignal, onSettled, Show, untrack } from "solid-js";
 import { BrandFrame } from "../../app/Frames.tsx";
-import { account, adminAccount, isAdmin, loadAccount } from "./session.ts";
+import { account, adminAccount, isAdmin, loadAccount, sessionReady } from "./session.ts";
 import { AccountSection, DeletionSection } from "./settings/Account.tsx";
 import { AdminSection, SiteFeatures } from "./settings/Admin.tsx";
 import { ColorFormatSetting, MotionSetting, ThemeSetting } from "./settings/Appearance.tsx";
@@ -49,21 +49,21 @@ export function SettingsPage(props: {
         </header>
         <Rule />
         <Profile back={back} name={name} onSaved={setName} notice={notice} />
-        <Show when={account()}>
-          {signedIn => (
-            <>
-              <Rule />
-              <AccountSection account={signedIn()} onFailure={setNotice} />
-              <Show when={adminAccount()}>
-                <Rule />
-                <AdminSection />
-              </Show>
-              <Show when={isAdmin()}>
-                <Rule />
-                <SiteFeatures />
-              </Show>
-            </>
-          )}
+        {/* drawn before the session answers too, empty, for the account this browser kept, so nothing under it moves
+            when the account lands; a visitor's page shows none of it (Settings.module.css) */}
+        <Show when={account() || !sessionReady()}>
+          <div class={styles.own} data-for={sessionReady() ? "account" : undefined}>
+            <Rule />
+            <AccountSection account={account() ?? undefined} onFailure={setNotice} />
+          </div>
+        </Show>
+        <Show when={adminAccount()}>
+          <Rule />
+          <AdminSection />
+        </Show>
+        <Show when={isAdmin()}>
+          <Rule />
+          <SiteFeatures />
         </Show>
         <Rule />
         <ThemeSetting />

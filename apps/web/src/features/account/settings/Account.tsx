@@ -17,16 +17,20 @@ import {
 } from "../session.ts";
 import styles from "./Settings.module.css";
 
+// a row keeps its line's height while the account it is for has not answered
+const UNKNOWN = " ";
+
 /** The account itself: its address, whether it is verified, when it joined, and the way out. A sign-out that fails
-    says so on the profile's line, since a reader on a shared computer must not walk away signed in. */
-export function AccountSection(props: { account: Account; onFailure: (words: string) => void }) {
+    says so on the profile's line, since a reader on a shared computer must not walk away signed in. Until the session
+    answers there is no account to show: the rows stand empty. */
+export function AccountSection(props: { account?: Account; onFailure: (words: string) => void }) {
   return (
     <section class={styles.section} id="account">
       <div class={styles.heading}>
         <Text variant="h2">{t("Account")}</Text>
         <Button
           size="lg"
-          disabled={offline()}
+          disabled={offline() || !props.account}
           onClick={() =>
             void signOut().catch((error: unknown) =>
               props.onFailure(shownError(error, msg("Couldn't sign out.")))
@@ -40,22 +44,30 @@ export function AccountSection(props: { account: Account; onFailure: (words: str
         <div class={styles.fact}>
           <dt>{t("Email")}</dt>
           <dd>
-            <span dir="auto">{props.account.email}</span>
+            <span dir="auto">{props.account?.email ?? UNKNOWN}</span>
           </dd>
         </div>
         <div class={styles.fact}>
           <dt>{t("Email verification")}</dt>
-          <dd>{props.account.emailVerified ? t("Verified") : t("Not verified")}</dd>
+          <dd>
+            {props.account
+              ? props.account.emailVerified
+                ? t("Verified")
+                : t("Not verified")
+              : UNKNOWN}
+          </dd>
         </div>
         <div class={styles.fact}>
           <dt>{t("Joined")}</dt>
           <dd>
             <Text variant="num">
-              {formatDate(props.account.createdAt, {
-                year: "numeric",
-                month: "numeric",
-                day: "numeric"
-              })}
+              {props.account
+                ? formatDate(props.account.createdAt, {
+                    year: "numeric",
+                    month: "numeric",
+                    day: "numeric"
+                  })
+                : UNKNOWN}
             </Text>
           </dd>
         </div>

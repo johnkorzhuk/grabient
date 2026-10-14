@@ -32,6 +32,14 @@
 :global(html:not([data-account])) .profile:not([data-for]) .account {
   display: none;
 }
+/* The account's own section, drawn before the session answers for the account this browser kept, as the profile is,
+   and in a visitor's page for nobody. */
+.own {
+  display: contents;
+}
+:global(html:not([data-account])) .own:not([data-for]) {
+  display: none;
+}
 .avatarRow {
   display: flex;
   align-items: center;

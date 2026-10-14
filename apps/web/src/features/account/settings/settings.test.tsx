@@ -10,7 +10,7 @@ const count = (markup: string, piece: string) => markup.split(piece).length - 1;
 const tag = (markup: string, id: string) => markup.match(new RegExp(`<[^>]*id="${id}"[^>]*>`))?.[0];
 
 describe("Settings in the server's document", () => {
-  test("the profile holds the way in and the form's shape, unmarked, for the document's head to show one", () => {
+  test("the profile holds the way in and the account's form, unmarked, for the document's head to show one", () => {
     const html = renderToString(() => (
       <Profile back="/settings" name={() => ""} onSaved={() => {}} notice={() => ""} />
     ));
@@ -18,10 +18,12 @@ describe("Settings in the server's document", () => {
     expect(html).toContain('href="/login?redirect=%2Fsettings"');
     expect(html).toMatch(/class="visitor"[^>]*><p[^>]*>Sign in to change your profile\./);
     expect(html).toMatch(/class="account"[^>]*><p[^>]*>Update your username and avatar\./);
-    // the form's shape, kept from a screen reader, and no form
-    expect(html).toMatch(/class="form account"[^>]*aria-hidden="true"/);
-    expect(html).not.toContain("<form");
-    expect(html).not.toContain("<input");
+    // the form stands where it will, and nothing in it can be changed or sent before the account answers
+    expect(html).toMatch(/<form[^>]*class="form account"/);
+    expect(html).toMatch(/<input[^>]*name="username"[^>]*disabled/);
+    const presses = html.match(/<button[^>]*>/g) ?? [];
+    expect(presses.length).toBeGreaterThan(0);
+    expect(presses.every(press => /\bdisabled\b/.test(press))).toBe(true);
   });
 
   test("this browser's choices keep their room and say nothing", () => {

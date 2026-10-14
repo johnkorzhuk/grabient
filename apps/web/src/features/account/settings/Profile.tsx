@@ -205,8 +205,8 @@ export function Profile(props: {
   const shownName = () => account()?.username || account()?.name || undefined;
   /* Who the section draws for: the account or a visitor once the session answers, and until then whoever this browser
      kept, so nothing moves when the answer is the likely one and no reader is shown the other's page first. The
-     server's document cannot know: it holds both the form's shape and the way in, unmarked, and its head's script
-     shows one (Settings.module.css). */
+     server's document cannot know: it holds both the form and the way in, unmarked, and its head's script shows one
+     (Settings.module.css). */
   const fromDocument = isServer || isHydrating();
   const drawnFor = () => {
     if (sessionReady()) return account() ? "account" : "visitor";
@@ -217,10 +217,12 @@ export function Profile(props: {
       <div class={styles.head}>
         <div class={styles.heading}>
           <Text variant="h2">{t("Profile")}</Text>
-          <Show when={account()}>
-            <NavLink href={localHref("/palettes/saved")} small>
-              {t("Saved palettes")}
-            </NavLink>
+          <Show when={!!account() || !sessionReady()}>
+            <span class={styles.account}>
+              <NavLink href={localHref("/palettes/saved")} small>
+                {t("Saved palettes")}
+              </NavLink>
+            </span>
           </Show>
         </div>
         <div class={styles.account}>
@@ -230,41 +232,33 @@ export function Profile(props: {
           <Text variant="lede">{t("Sign in to change your profile.")}</Text>
         </div>
       </div>
-      {/* the form's own shape while the account answers: the picture, the two lines beside it, the field */}
-      <Show when={!sessionReady()}>
-        <div class={[styles.form, styles.account]} aria-hidden="true">
-          <div class={styles.avatarRow}>
-            <Placeholder width="64px" height="64px" round="surface" />
-            <div class={styles.avatarText}>
-              <Placeholder width="148px" height="40px" />
-              <Placeholder width="240px" />
-            </div>
-          </div>
-          <Placeholder width="100%" height="40px" />
+      <Show when={!account()}>
+        <div class={styles.visitor}>
+          <Button
+            variant="primary"
+            size="lg"
+            href={localHref(loginHref(props.back))}
+            disabled={offline()}
+          >
+            {t("Sign in")}
+          </Button>
         </div>
       </Show>
-      <Show
-        when={account()}
-        fallback={
-          <div class={styles.visitor}>
-            <Button
-              variant="primary"
-              size="lg"
-              href={localHref(loginHref(props.back))}
-              disabled={offline()}
-            >
-              {t("Sign in")}
-            </Button>
-          </div>
-        }
-      >
-        <form class={styles.form} onSubmit={e => void save(e)}>
+      {/* drawn before the session answers too, for the account this browser kept, with nothing to change until it
+          does: the form is where it lands, and nothing moves */}
+      <Show when={!!account() || !sessionReady()}>
+        <form class={[styles.form, styles.account]} onSubmit={e => void save(e)}>
           <div class={styles.avatarRow}>
-            <Avatar
-              size="lg"
-              name={shownName()}
-              src={staged()?.url || account()?.image || undefined}
-            />
+            <Show
+              when={account()}
+              fallback={<Placeholder width="64px" height="64px" round="surface" />}
+            >
+              <Avatar
+                size="lg"
+                name={shownName()}
+                src={staged()?.url || account()?.image || undefined}
+              />
+            </Show>
             <div class={styles.avatarText}>
               <input
                 ref={fileInput}
@@ -275,7 +269,7 @@ export function Profile(props: {
               />
               <Button
                 size="lg"
-                disabled={saving() || offline()}
+                disabled={!account() || saving() || offline()}
                 onClick={() => (staged() ? unstage() : fileInput.click())}
               >
                 {staged() ? t("Keep current avatar") : t("Change avatar")}
@@ -292,7 +286,7 @@ export function Profile(props: {
             autocomplete="username"
             maxlength={USERNAME_MAX}
             invalid={failed()}
-            disabled={offline()}
+            disabled={!account() || offline()}
             help={t("Letters, numbers, underscores and hyphens.")}
             onInput={check}
           />
