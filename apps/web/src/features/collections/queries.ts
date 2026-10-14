@@ -7,7 +7,7 @@ import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
-import { attempt, type Failed, freshFor, getJson } from "../../lib/query.ts";
+import { attempt, type Failed, failed, freshFor, getJson } from "../../lib/query.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
 import {
@@ -36,11 +36,18 @@ import {
 
 /* Every read the collections' pages make, one queryOptions each, shared by the routes' loaders and the pages. The server
    renders from the direct read and its answers ride to the browser in the query cache, so hydration asks for nothing;
-   a later navigation asks the API route the edge keeps. A failed read resolves to `{ failed }` (lib/query.ts). */
+   a later navigation asks the API route the edge keeps. A failed read resolves to `{ failed }` (lib/query.ts) beside
+   what the cache held for it, so a page goes on showing that with the reason and Retry. */
 
 const PUBLIC_TTL = 300_000;
 const FRESH_TTL = 60_000;
 const PRIVATE_TTL = 60_000;
+
+/** A read's answer, or its failure beside the answer the cache held for the same read. */
+const keeping = <T>(answer: T | Failed, held: unknown): T | Failed =>
+  failed(answer) && typeof held === "object" && held !== null
+    ? { ...(held as T), ...answer }
+    : answer;
 const asked = () => translatedLocale(locale());
 const lang = (first: boolean) => {
   const q = langQuery();
@@ -107,7 +114,8 @@ const readCollection = createIsomorphicFn()
 export const collectionQuery = (slug: string) =>
   queryOptions({
     queryKey: ["collection", slug] as const,
-    queryFn: ({ signal }) => readCollection(slug, signal),
+    queryFn: ({ signal, client, queryKey }) =>
+      readCollection(slug, signal).then(found => keeping(found, client.getQueryData(queryKey))),
     staleTime: freshFor(PUBLIC_TTL)
   });
 
@@ -150,7 +158,8 @@ const readList = createIsomorphicFn()
 export const collectionsQuery = (key: ListKey) =>
   queryOptions({
     queryKey: ["collections", key.sort, key.frame ?? "1w", key.query, key.limit, key.page] as const,
-    queryFn: ({ signal }) => readList(key, signal),
+    queryFn: ({ signal, client, queryKey }) =>
+      readList(key, signal).then(page => keeping(page, client.getQueryData(queryKey))),
     staleTime: freshFor(key.sort === "rising" ? FRESH_TTL : PUBLIC_TTL)
   });
 

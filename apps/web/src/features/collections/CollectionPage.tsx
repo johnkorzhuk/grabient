@@ -121,9 +121,10 @@ export function CollectionPage(props: {
   };
   /* the loader read the collection before the page was drawn, so its answer is always at hand */
   const answer = () => found.data;
+  /* what the page was read as: a read that failed keeps what it showed, a list's summary or the collection */
   const data = () => {
     const read = answer();
-    return read && !failed(read) ? read : null;
+    return read && "fetchedAt" in read ? read : null;
   };
   const readFailed = () => {
     const read = answer();
@@ -554,7 +555,7 @@ export function CollectionPage(props: {
         id="main"
         class={list.column}
         hidden={sel.open()}
-        aria-busy={provisional() || unknown() ? "true" : "false"}
+        aria-busy={(provisional() && !readFailed()) || unknown() ? "true" : "false"}
       >
         {/* the lists' band above the row: the way back where their search stands, the tags where theirs stand */}
         <div class={list.find}>
@@ -747,7 +748,12 @@ export function CollectionPage(props: {
                       );
                     }}
                   </For>
-                  <For each={Array.from({ length: provisional() ? waitingFor() : 0 }, (_, i) => i)}>
+                  <For
+                    each={Array.from(
+                      { length: provisional() && !readFailed() ? waitingFor() : 0 },
+                      (_, i) => i
+                    )}
+                  >
                     {() => (
                       <div class={styles.cell}>
                         <PaletteCardPlaceholder />

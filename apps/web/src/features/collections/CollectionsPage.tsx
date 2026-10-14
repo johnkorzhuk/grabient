@@ -135,9 +135,10 @@ export function CollectionsPage(props: {
     if (!mine()) void publicList.refetch();
     else if (asked) void readOwn(asked, true);
   };
+  /* the page as it stands: a read that failed keeps the groups it showed beside the reason */
   const head = (): CollectionPage | null => {
     const data = headData();
-    return data && !failed(data) ? data : null;
+    return data && "items" in data ? data : null;
   };
   const headError = () => {
     const data = headData();
