@@ -1,11 +1,8 @@
 import { getRequestEvent, isServer } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import type { FramedData } from "../../app/shell.ts";
-import type { Drawn } from "../../lib/palette.ts";
-import type { CollectionSummary } from "../collections/types.ts";
-import { drawnIn, type ListView } from "../list/appearance.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
-import { ownOf } from "./drawing.ts";
+import { homePaint, paintOf } from "./drawing.ts";
 import {
   type Failed,
   failed,
@@ -13,7 +10,6 @@ import {
   homeCollectionsQuery,
   homeHeadQuery
 } from "./queries.ts";
-import type { PaletteItem } from "./schema.ts";
 import { keptPage, pageQuery } from "./sources.ts";
 
 /* What a gallery page's loader does: it fills the query cache with what the page shows, so the server renders from
@@ -50,31 +46,6 @@ export function answerWith(status: number | undefined): void {
   const event = getRequestEvent();
   if (event) event.locals.status = status;
 }
-
-/** The frame reads at most this many of a page's palettes. */
-const PAINTED = 8;
-
-/** The palettes a list has on screen first, as the list draws them: what the frame paints. */
-export const paintOf = (
-  items: readonly Pick<PaletteItem, "kseed" | "style" | "steps" | "angle">[],
-  view: ListView
-): Drawn[] => items.slice(0, PAINTED).map(item => drawnIn(ownOf(item), view));
-
-/** The home's: its head's palettes, then the first two of each collection, as a searched home may hold no head. */
-export const homePaint = (
-  head: readonly PaletteItem[],
-  groups: readonly CollectionSummary[],
-  view: ListView
-): Drawn[] =>
-  paintOf(
-    [
-      ...head.slice(0, PAINTED),
-      ...groups
-        .slice(0, PAINTED)
-        .flatMap(group => group.preview.slice(0, 2).map(p => ({ ...p, kseed: p.seed })))
-    ],
-    view
-  );
 
 const PUBLIC_EDGE = 300;
 const RISING_EDGE = 60;

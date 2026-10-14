@@ -2,7 +2,16 @@ import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
 import { hexesOf } from "../../lib/palette.ts";
 import { AS_SAVED, drawnIn } from "../list/appearance.ts";
-import { madeItems, nameOf, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
+import {
+  homePaint,
+  madeItems,
+  nameOf,
+  ownOf,
+  paintOf,
+  paletteHref,
+  picturedAs,
+  relativeAge
+} from "./drawing.ts";
 import { sortSearch } from "./sort.ts";
 
 const helpers = JSON.parse(
@@ -73,4 +82,31 @@ test("a picture draws what the control is setting over the address's view, and t
     angle: 45
   });
   expect(picturedAs(own, view, { angle: "auto" }, null)).toMatchObject({ steps: 9, angle: 90 });
+});
+
+test("the frame paints a list's first palettes as the list draws them, and the home's head before its groups", () => {
+  const item = (n: number) => ({
+    kseed: `kS7Q8Yy5S_SChv${n}`,
+    style: "linearGradient" as const,
+    steps: 7,
+    angle: 90,
+    likes: 0,
+    createdAt: 0
+  });
+  const items = Array.from({ length: 12 }, (_, n) => item(n));
+  const view = { ...AS_SAVED, style: "radialSwatches" } as const;
+  const painted = paintOf(items, view);
+  expect(painted).toHaveLength(8);
+  expect(painted[0]).toEqual(drawnIn(ownOf(items[0]!), view));
+  const group = (seeds: number[]) => ({
+    preview: seeds.map(n => ({ seed: item(n).kseed, style: item(n).style, steps: 7, angle: 90 }))
+  });
+  // a searched home may hold no head: its groups' first palettes paint the frame
+  const groups = [group([20, 21, 22]), group([30])];
+  expect(homePaint([], groups, AS_SAVED).map(p => p.seed)).toEqual(
+    [20, 21, 30].map(n => item(n).kseed)
+  );
+  expect(homePaint(items, groups, AS_SAVED).map(p => p.seed)).toEqual(
+    items.slice(0, 8).map(p => p.kseed)
+  );
 });

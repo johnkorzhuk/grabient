@@ -55,6 +55,7 @@ import {
   minuteOf,
   nameOf,
   ownOf,
+  paintOf,
   paletteHref,
   picturedAs,
   relativeAge
@@ -64,7 +65,6 @@ import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
-import { paintOf } from "./load.ts";
 import { Made } from "./Made.tsx";
 import { readerOrder, rememberOrder } from "./order.ts";
 import { createGalleryPage, GalleryContext } from "./page.tsx";

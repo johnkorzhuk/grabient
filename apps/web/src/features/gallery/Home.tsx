@@ -47,6 +47,7 @@ import { createAccountSearch } from "./account.ts";
 import { type ListParams, listHref, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
 import {
+  homePaint,
   madeItems,
   minuteOf,
   nameOf,
@@ -60,7 +61,6 @@ import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
-import { homePaint } from "./load.ts";
 import { Made } from "./Made.tsx";
 import { readerOrder, recallOrder } from "./order.ts";
 import { createGalleryPage, GalleryContext } from "./page.tsx";

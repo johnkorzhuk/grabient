@@ -3,11 +3,13 @@ import { type SizeChoice, type Style, viewSearch } from "@grabient/engine/view.t
 import { formatDate, locale, localHref, t } from "@grabient/i18n";
 import { madePalettes, madeView } from "@grabient/search/colors.ts";
 import type { Drawn } from "../../lib/palette.ts";
+import type { CollectionSummary } from "../collections/types.ts";
 import { drawnIn, type ListView, type ViewDraft } from "../list/appearance.ts";
 import type { PaletteItem } from "./schema.ts";
 
 /* What a list says of a palette beside its picture: its name by its colors in the reader's language, its age, and the
-   way into its editor in the view the list draws it in (the frame's drawnIn). */
+   way into its editor in the view the list draws it in (the frame's drawnIn). And what a page hands the frame to
+   paint its bar and its water with. */
 
 /** A list's palette as it was saved: what the list's view is laid over. */
 export const ownOf = (item: Pick<PaletteItem, "kseed" | "style" | "steps" | "angle">): Drawn => ({
@@ -28,6 +30,31 @@ export function picturedAs(
   const drawn = drawnIn(own, view, draft);
   return peek ? { ...drawn, style: peek } : drawn;
 }
+
+/** The frame reads at most this many of a page's palettes. */
+const PAINTED = 8;
+
+/** The palettes a list has on screen first, as the list draws them: what the frame paints. */
+export const paintOf = (
+  items: readonly Pick<PaletteItem, "kseed" | "style" | "steps" | "angle">[],
+  view: ListView
+): Drawn[] => items.slice(0, PAINTED).map(item => drawnIn(ownOf(item), view));
+
+/** The home's: its head's palettes, then the first two of each collection, as a searched home may hold no head. */
+export const homePaint = (
+  head: readonly PaletteItem[],
+  groups: readonly Pick<CollectionSummary, "preview">[],
+  view: ListView
+): Drawn[] =>
+  paintOf(
+    [
+      ...head.slice(0, PAINTED),
+      ...groups
+        .slice(0, PAINTED)
+        .flatMap(group => group.preview.slice(0, 2).map(p => ({ ...p, kseed: p.seed })))
+    ],
+    view
+  );
 
 /* Naming reads a palette's colors at many points, and a card says its name twice and again when the feed draws it
    live: kept by language, seed and view, the oldest going first. */
