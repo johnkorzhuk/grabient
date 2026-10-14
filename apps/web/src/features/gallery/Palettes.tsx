@@ -147,22 +147,22 @@ export function Palettes(props: { place: ListPlace }) {
   /* the account's likes changed while a page was being read: that read is from before, and is read again */
   let likes = 0;
   let reading = "";
-  const readOwn = (fresh = false) => {
-    const from = source();
-    const of = ownKey();
+  const readOwn = (asked: { of: string; from: ListSource | null; page: number }, fresh = false) => {
+    const { of, from, page } = asked;
     const at = likes;
     if (!from || !of) return;
     reading = of;
-    void readPage(client, from, params().page, fresh).then(read => {
+    void readPage(client, from, page, fresh).then(read => {
       if (of !== ownKey()) return;
-      if (at !== likes) readOwn(true);
+      if (at !== likes) readOwn(asked, true);
       else setOwn({ of, page: read });
     });
   };
+  const asked = () => ({ of: ownKey(), from: source(), page: params().page });
   if (saved) {
     /* a page is read once: a palette unliked here stays where it stood, its heart off, until the next visit */
-    createEffect(ownKey, of => {
-      if (of !== reading) readOwn();
+    createEffect(asked, now => {
+      if (now.of !== reading) readOwn(now);
     });
     /* a like made or taken back leaves the kept pages behind: the next visit reads them again */
     onSettled(() =>
@@ -191,7 +191,7 @@ export function Palettes(props: { place: ListPlace }) {
     return last && last.owner === owner() && !signedOut() ? last : undefined;
   });
   const standing = () => stood()?.page;
-  const retry = () => (listed ? void listed.refetch() : readOwn(true));
+  const retry = () => (listed ? void listed.refetch() : readOwn(asked(), true));
 
   const page = createGalleryPage({
     path: () => listHref("palettes", order(), frame(), params()).split("?")[0]!,
