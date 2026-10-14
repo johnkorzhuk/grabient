@@ -186,6 +186,27 @@ describe("an admin's curation of Grabient's collections", () => {
     slug = doc.slug;
   });
 
+  it("reads a reader's role once for what the reader may do on one", async () => {
+    const roles: string[] = [];
+    const DB = new Proxy(env.DB, {
+      get(target, name) {
+        if (name === "prepare")
+          return (sql: string) => {
+            if (sql.includes("role FROM auth_user")) roles.push(sql);
+            return target.prepare(sql);
+          };
+        const value = Reflect.get(target, name);
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+    });
+    const state = await mineAt(
+      get(`/api/me/collections/${at(slug)}/state`, { cookie: owner.cookie }),
+      { ...env, DB }
+    );
+    expect(state.status).toBe(200);
+    expect(roles).toHaveLength(1);
+  });
+
   it("is an admin's alone", async () => {
     const answer = await mineAt(
       send("DELETE", `/api/me/collections/${at(slug)}/items/${SEEDS[0]}`, {}, owner.cookie),

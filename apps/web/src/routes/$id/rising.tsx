@@ -23,11 +23,7 @@ export const Route = createFileRoute("/$id/rising")({
     }),
   headers: ({ loaderData }) => (loaderData && !loaderData.status ? PAGE : NO_STORE),
   head: ({ match, params, loaderData }) =>
-    collectionHead(
-      match.context.queryClient,
-      { slug: params.id, order: "rising", search: match.search },
-      loaderData
-    ),
+    collectionHead({ slug: params.id, order: "rising", search: match.search }, loaderData),
   staticData: { corner: ListAppearance },
   component: function Rising() {
     const params = Route.useParams();

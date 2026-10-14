@@ -1,8 +1,10 @@
 import { createSignal } from "solid-js";
+import { liked } from "../account/likes.ts";
 
 /* Which palettes an admin may draw another way or delete: the ones no person liked, the seeding agents' personas being
-   no people. A card's count cannot say whose likes they are, so an admin's page asks about the palettes it shows, in
-   batches; until the answer comes a card offers neither, and the server refuses a liked palette all the same. */
+   no people and the admin a person. A card's count cannot say whose likes they are, so an admin's page asks about the
+   palettes it shows, in batches; the server leaves out the admin's own likes, which this browser knows. Until the
+   answer comes a card offers neither, and the server refuses a liked palette all the same. */
 
 const BATCH = 96;
 
@@ -13,7 +15,7 @@ export function createDeletable() {
   const asked = new Set<string>();
   return {
     /** true when no person liked the palette, false when one did, undefined until the server says */
-    of: (seed: string): boolean | undefined => answers().get(seed),
+    of: (seed: string): boolean | undefined => (liked(seed) ? false : answers().get(seed)),
     /** Asks about the palettes not asked about yet. */
     learn(seeds: readonly string[]) {
       const fresh = [...new Set(seeds)].filter(seed => !asked.has(seed));

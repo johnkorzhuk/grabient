@@ -1,6 +1,6 @@
-import { msg, t } from "@grabient/i18n";
+import { msg } from "@grabient/i18n";
 import { CollectPress } from "@grabient/ui/CollectPress.tsx";
-import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
+import { FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { useNavigate } from "@tanstack/solid-router";
 import { createMemo, type Element, onSettled, untrack, useContext } from "solid-js";
@@ -9,13 +9,13 @@ import { hexesOf } from "../../lib/palette.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
 import { shownError } from "../account/session.ts";
 import { AppearanceContext, drawnIn } from "../list/appearance.ts";
-import { type UseAt, useOpened, useTaken } from "../palette-use/use.ts";
+import { type UseAt, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
 import { nameOf, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
 import { inPlace } from "./feed.ts";
 import { GalleryContext } from "./page.tsx";
 import type { PaletteItem } from "./schema.ts";
-import { copyPalette, downloadPalette, linkPalette } from "./take.ts";
+import { cardTakings } from "./take.ts";
 
 /** A palette of a gallery list as its card: drawn in the list's view, liked, selected, collected and taken as the
     account's, and opened in the editor in place. Its picture follows the header's control as it is set; its link,
@@ -57,40 +57,7 @@ export function GalleryCard(props: {
       view: { style: shown().style, steps: shown().steps, angle: shown().angle },
       query: page.words() || undefined
     }).catch((reason: unknown) => page.say(shownError(reason, msg("Couldn't save."))));
-  const refused = (fallback: string) => (reason: unknown) => {
-    page.say(shownError(reason, fallback));
-    return false;
-  };
-  const copy = (format: Format) =>
-    copyPalette(shown(), format).then(
-      done => {
-        if (done === "downloaded")
-          page.say(t("Images can't be copied here, so the file was downloaded."));
-        useTaken(
-          done === "downloaded" ? "download" : "copy",
-          format,
-          page.place(),
-          [shown()],
-          where()
-        );
-        return done === "copied";
-      },
-      refused(msg("Couldn't copy the palette."))
-    );
-  const download = (format: Format) =>
-    void downloadPalette(shown(), format).then(
-      () =>
-        useTaken(format === "url" ? "copy" : "download", format, page.place(), [shown()], where()),
-      refused(msg("Couldn't download the palette."))
-    );
-  const link = (format: Format) =>
-    linkPalette(shown(), format).then(
-      () => {
-        useTaken("copy", `link:${format}`, page.place(), [shown()], where());
-        return true;
-      },
-      refused(msg("Couldn't copy the palette."))
-    );
+  const take = cardTakings({ palette: shown, place: page.place, at: where, say: page.say });
 
   return (
     <PaletteCard
@@ -117,9 +84,9 @@ export function GalleryCard(props: {
           download={["md", "css", "svg", "png"]}
           link={["md", "css", "svg", "png"]}
           swatches={SWATCH_CHIPS}
-          onCopy={copy}
-          onDownload={download}
-          onLink={link}
+          onCopy={take.copy}
+          onDownload={take.download}
+          onLink={take.link}
         />
       )}
       onOpen={e => {

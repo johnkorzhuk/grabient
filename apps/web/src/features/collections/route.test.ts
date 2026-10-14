@@ -1,3 +1,4 @@
+import { setLocaleSource } from "@grabient/i18n";
 import { QueryClient } from "@tanstack/solid-query";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { heading } from "../../lib/page-meta.ts";
@@ -5,6 +6,7 @@ import { AS_SAVED } from "../list/appearance.ts";
 import type { ListPlace } from "./params.ts";
 import {
   collectionHead,
+  listHead,
   listMeta,
   listPaint,
   listPlace,
@@ -28,7 +30,6 @@ vi.mock("@tanstack/solid-start/server", () => ({
 }));
 vi.mock("../gallery/queries.ts", () => ({ framesQuery: () => ({ queryKey: ["frames"] }) }));
 vi.mock("./queries.ts", () => ({
-  failed: (data: unknown) => typeof data === "object" && data !== null && "failed" in data,
   collectionQuery: (slug: string) => ({ queryKey: ["collection", slug] }),
   collectionsQuery: () => ({ queryKey: ["collections"] }),
   tagsQuery: () => ({ queryKey: ["collection-tags"] })
@@ -157,7 +158,8 @@ describe("a public list's loader", () => {
   test("hands the frame the page's first palettes", async () => {
     const loaded = await loadList(lists(pageOf([summary("a", SEEDS)])), place());
     expect(loaded).toEqual({
-      paint: [expect.objectContaining({ seed: SEEDS[0] }), expect.anything()]
+      paint: [expect.objectContaining({ seed: SEEDS[0] }), expect.anything()],
+      collections: [{ slug: "a", title: "a" }]
     });
   });
   test("answers 404, out of the index, for a page past the list's end", async () => {
@@ -165,11 +167,33 @@ describe("a public list's loader", () => {
     expect(await loadList(lists(page), place({ page: 3 }))).toEqual({
       status: 404,
       robots: "noindex,follow",
-      paint: []
+      paint: [],
+      collections: []
     });
-    expect(await loadList(lists(page), place({ page: 2 }))).toEqual({ paint: [] });
+    expect(await loadList(lists(page), place({ page: 2 }))).toEqual({ paint: [], collections: [] });
     // an empty list's first page is the list
-    expect(await loadList(lists(pageOf([], 0)), place())).toEqual({ paint: [] });
+    expect(await loadList(lists(pageOf([], 0)), place())).toEqual({ paint: [], collections: [] });
+  });
+  test("names the collections it read in its head, from what it hands the page", async () => {
+    const loaded = await loadList(lists(pageOf([summary("ocean-depths", SEEDS)])), place());
+    const head = listHead(place(), loaded);
+    const data = head.meta.find(entry => "script:ld+json" in entry)?.["script:ld+json"] as {
+      "@type": string;
+      mainEntity?: { itemListElement: { url: string }[] };
+    }[];
+    const listed = data.find(node => node["@type"] === "CollectionPage");
+    expect(listed?.mainEntity?.itemListElement.map(item => item.url)).toEqual([
+      "https://grabient.com/ocean-depths"
+    ]);
+    // the browser draws the head before its cache holds the page: it reads the loader's data alone
+    expect(listHead(place(), loaded)).toEqual(head);
+  });
+  test("says no cache keeps a search whose words were read in part", async () => {
+    const page = { ...pageOf([summary("ocean-depths", SEEDS)]), unkept: true };
+    expect(await loadList(lists(page), place({ query: "quetzalcoatl marsh" }))).toMatchObject({
+      unkept: true
+    });
+    expect(await loadList(lists(pageOf([])), place())).not.toHaveProperty("unkept");
   });
   test("renders its page for a read that failed, with nothing to hand on", async () => {
     expect(await loadList(lists({ failed: "No answer." }), place())).toEqual({});
@@ -186,7 +210,8 @@ describe("a public list's loader", () => {
     });
     // Popular reads no frame, so one turned off changes nothing for it
     expect(await loadList(lists(pageOf([]), ["1w"]), place({ frame: "3m" }))).toEqual({
-      paint: []
+      paint: [],
+      collections: []
     });
   });
 });
@@ -252,7 +277,7 @@ describe("a collection page's loader", () => {
     const loaded = await loadCollection(cache, at("ocean-depths"));
     expect(loaded.facts).toMatchObject({ title: "Ocean depths", languages: ["ja", "de"] });
     const named = (found: typeof loaded) =>
-      collectionHead(cache, { slug: "ocean-depths", order: "popular", search: {} }, found)
+      collectionHead({ slug: "ocean-depths", order: "popular", search: {} }, found)
         .links.filter(link => "hreflang" in link)
         .map(link => [link.hreflang, link.href]);
     expect(named(loaded)).toEqual([
@@ -299,6 +324,35 @@ describe("a collection page's loader", () => {
     await expect(loadCollection(cache, at("warm-sunsets", "rising"))).rejects.toEqual({
       redirect: { href: "/palettes/rising?q=warm+sunsets", statusCode: 301 }
     });
+  });
+  test("leads an old link's newer order to Rising's search for its words, in one step", async () => {
+    const cache = holding("red", { doc: null, fetchedAt: 0 });
+    await expect(
+      loadCollection(cache, at("red", "popular", "?sort=oldest&style=angularSwatches"))
+    ).rejects.toEqual({
+      redirect: { href: "/palettes/rising?q=red&style=angularSwatches", statusCode: 301 }
+    });
+    await expect(loadCollection(cache, at("red", "popular", "?sort=hot"))).rejects.toEqual({
+      redirect: { href: "/palettes?q=red", statusCode: 301 }
+    });
+  });
+  test("leads in the reader's language", async () => {
+    setLocaleSource(() => "ja");
+    try {
+      await expect(
+        loadCollection(holding("red", { doc: null, fetchedAt: 0 }), at("red"))
+      ).rejects.toEqual({ redirect: { href: "/ja/palettes?q=red", statusCode: 301 } });
+    } finally {
+      setLocaleSource(() => "en");
+    }
+  });
+  test("leads an old link's order on a collection's address to the collection's own", async () => {
+    await expect(
+      loadCollection(
+        holding("ocean-depths", { doc, fetchedAt: 0 }),
+        at("ocean-depths", "popular", "?sort=newest&steps=5")
+      )
+    ).rejects.toEqual({ redirect: { href: "/ocean-depths?steps=5", statusCode: 301 } });
   });
   test("renders its page for a read that failed", async () => {
     const cache = holding("ocean-depths", { failed: "No answer." });

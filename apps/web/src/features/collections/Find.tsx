@@ -6,6 +6,7 @@ import { useNavigate } from "@tanstack/solid-router";
 import { createEffect, createSignal, Errored, Loading, onCleanup, untrack } from "solid-js";
 import { listUnavailable, marked, offline } from "../../app/connection.ts";
 import list from "../../app/list.module.css";
+import { failed } from "../../lib/query.ts";
 import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
 import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
@@ -14,7 +15,7 @@ import { SearchField } from "../search/SearchField.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import { collectionGone } from "./overlay.ts";
 import { type ListPlace, pageSearch } from "./params.ts";
-import { failed, ownQuery, tagsQuery } from "./queries.ts";
+import { ownQuery, tagsQuery } from "./queries.ts";
 import type { CollectionSummary } from "./types.ts";
 
 /* The search over a collections list: the field and the tags under it. Enter searches the collections for the words
@@ -70,6 +71,8 @@ export function Find(props: {
   }));
   /* on Saved, words typed and not yet searched find the account's own, by their letters: a private read, fetched
      through the cache into the bar's own state once the account is known */
+  const ownOf = (who: string, words: string) =>
+    ownQuery(who, { query: words, sort: "newest", page: 1, limit: OWN_TAGS }, false);
   const [ownHits, setOwnHits] = createSignal<{ words: string; items: CollectionSummary[] } | null>(
     null
   );
@@ -82,8 +85,7 @@ export function Find(props: {
     wanted => {
       if (!wanted) return;
       let live = true;
-      const key = { query: wanted.words, sort: "newest" as const, page: 1, limit: OWN_TAGS };
-      untrack(() => client.fetchQuery(ownQuery(wanted.who, key, false))).then(
+      untrack(() => client.fetchQuery(ownOf(wanted.who, wanted.words))).then(
         page => {
           if (live && !failed(page)) setOwnHits({ words: wanted.words, items: page.items });
         },
@@ -124,10 +126,17 @@ export function Find(props: {
     const lower = words.toLowerCase();
     if (!paletteId(words)) {
       if (counted && !mine()) countSearch(words, "collections");
-      /* the collection whose title was typed out opens: on Saved one of the account's own */
+      /* the collection whose title was typed out opens: on Saved one of the account's own, asked for the words as they
+         were entered, since the tags' own ask may not have come yet */
       const at = location.href;
+      const who = account()?.id;
       const titled = mine()
-        ? ownTitled()
+        ? who
+          ? await client.fetchQuery(ownOf(who, words)).then(
+              page => (failed(page) ? [] : page.items),
+              () => []
+            )
+          : []
         : await client.fetchQuery(tagsQuery(words)).catch(() => []);
       // the reader moved on while the title was looked up
       if (location.href !== at) return;

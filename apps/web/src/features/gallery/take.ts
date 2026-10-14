@@ -4,13 +4,15 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteSvg } from "@grabient/engine/svg.ts";
 import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
-import { t } from "@grabient/i18n";
+import { msg, t } from "@grabient/i18n";
 import { downloadFile } from "@grabient/ui/copy.ts";
 import { exportGridImage } from "@grabient/ui/exportgrid.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "../../lib/color-format.ts";
 import { copyImage, fileAddress, saveFile, swatchesOf, writeText } from "../../lib/files.ts";
 import type { Drawn } from "../../lib/palette.ts";
+import { shownError } from "../account/session.ts";
+import { type UseAt, type UsePlace, useTaken } from "../palette-use/use.ts";
 
 /* What a card's strip hands over: the one palette as the card draws it, copied, saved as a file, or as the address of
    the file the site serves for it. Every function rejects with words the page can put on its line, in the reader's
@@ -68,3 +70,44 @@ export async function downloadPalette(p: Drawn, format: Format): Promise<void> {
 /** The address of the palette's file onto the clipboard. */
 export const linkPalette = (p: Drawn, format: Format): Promise<void> =>
   writeText(fileAddress(p, format));
+
+/** What a card's strip does: its palette as the card draws it copied, saved as a file or linked, each counted with the
+    page and where the card stands. What could not be done is said on the page's line. */
+export function cardTakings(card: {
+  palette: () => Drawn;
+  place: () => UsePlace;
+  at: () => UseAt;
+  say: (message: string, error?: boolean) => void;
+}) {
+  const used = (action: "copy" | "download", format: string) =>
+    useTaken(action, format, card.place(), [card.palette()], card.at());
+  const refused = (fallback: string) => (reason: unknown) => {
+    card.say(shownError(reason, fallback), true);
+    return false;
+  };
+  return {
+    copy: (format: Format) =>
+      copyPalette(card.palette(), format).then(
+        done => {
+          if (done === "downloaded")
+            card.say(t("Images can't be copied here, so the file was downloaded."));
+          used(done === "downloaded" ? "download" : "copy", format);
+          return done === "copied";
+        },
+        refused(msg("Couldn't copy the palette."))
+      ),
+    download: (format: Format) =>
+      void downloadPalette(card.palette(), format).then(
+        () => used(format === "url" ? "copy" : "download", format),
+        refused(msg("Couldn't download the palette."))
+      ),
+    link: (format: Format) =>
+      linkPalette(card.palette(), format).then(
+        () => {
+          used("copy", `link:${format}`);
+          return true;
+        },
+        refused(msg("Couldn't copy the palette."))
+      )
+  };
+}

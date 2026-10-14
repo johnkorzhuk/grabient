@@ -61,16 +61,19 @@ const listAddress: CanonicalRule = address => {
 };
 
 /** A collection's address as it was typed (`/Ocean_Depths`, `/Ocean%20Gradients`) leads to its slug, a handle keeping
-    its underscores, and its query to the view in its one order with the selection last. A seed's address and an old
-    id are the editor's, and any other address is no collection's. */
+    its underscores, and its query to the view in its one order with the selection last. An old link's order
+    (`?sort=newest`) stays for the page's loader, which knows whether a collection lives there: it leads words that
+    name none to the search in that order in one step. A seed's address and an old id are the editor's, and any other
+    address is no collection's. */
 const collectionAddress: CanonicalRule = address => {
   const [path, params] = split(address);
   const first = path.slice(1).split("/")[0] ?? "";
   if ((SEED.test(first) && decodePalette(first)) || OLD_ID.test(first)) return null;
   const at = typedCollection(path);
-  return at
-    ? collectionHref(at.slug, at.order) + pageSearch(viewOf(params), params.has("selection"))
-    : null;
+  if (!at) return null;
+  const href = collectionHref(at.slug, at.order);
+  if (!at.slug.startsWith("@") && params.has("sort")) return href + address.slice(path.length);
+  return href + pageSearch(viewOf(params), params.has("selection"));
 };
 
 export const collectionRules: readonly CanonicalRule[] = [listAddress, collectionAddress];

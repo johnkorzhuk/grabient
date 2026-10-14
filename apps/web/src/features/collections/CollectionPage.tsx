@@ -31,6 +31,7 @@ import list from "../../app/list.module.css";
 import { ShellContext } from "../../app/shell.ts";
 import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
 import { hexesOf } from "../../lib/palette.ts";
+import { failed } from "../../lib/query.ts";
 import {
   ownCollectionDoc,
   ownCollectionMoved,
@@ -68,7 +69,7 @@ import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
 import { listSearch, pageSearch } from "./params.ts";
-import { collectionQuery, failed, forgetStandings, stateQuery } from "./queries.ts";
+import { collectionQuery, forgetStates, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
@@ -120,9 +121,10 @@ export function CollectionPage(props: {
   };
   /* the loader read the collection before the page was drawn, so its answer is always at hand */
   const answer = () => found.data;
+  /* what the page was read as: a read that failed keeps what it showed, a list's summary or the collection */
   const data = () => {
     const read = answer();
-    return read && !failed(read) ? read : null;
+    return read && "fetchedAt" in read ? read : null;
   };
   const readFailed = () => {
     const read = answer();
@@ -138,13 +140,16 @@ export function CollectionPage(props: {
   const state = () => mineNow()?.state ?? null;
   const readState = (who: string, slug: string, fresh = false) =>
     client.fetchQuery({ ...stateQuery(who, slug), ...(fresh ? { staleTime: 0 } : {}) });
+  /* who sees it while an admin's press is on its way, which the heading shows; while it is, the collection may leave
+     this address, and what was read of it stands */
+  const [turning, setTurning] = createSignal<Visibility | null>(null);
   createEffect(
     () => {
       const who = account()?.id;
       return who ? { by: reader(), who, slug: props.slug } : null;
     },
     asked => {
-      if (!asked) return;
+      if (!asked || untrack(turning)) return;
       const { by, who, slug } = asked;
       let live = true;
       const keep = (part: Viewer) => {
@@ -193,7 +198,8 @@ export function CollectionPage(props: {
   const readAt = () => data()?.fetchedAt ?? Date.now();
   const now = () => minuteOf(readAt());
 
-  /* a collection the server moved (a new title, who sees it, a new username) is followed to its new address */
+  /* a collection the server moved (a new title, who sees it, a new username) is followed to its new address; a move of
+     the page's own press waits for the press's writes to end, so every press lands on one page */
   const follow = (slug: string) => {
     if (slug !== props.slug)
       void navigate({
@@ -203,13 +209,13 @@ export function CollectionPage(props: {
   };
   createEffect(
     () => {
-      const moved = account() ? ownCollectionMoved(props.slug) : null;
+      const moved = account() && !turning() ? ownCollectionMoved(props.slug) : null;
       return moved && moved !== props.slug
         ? collectionHref(moved, props.order) + pageSearch(props.view)
         : null;
     },
     href => {
-      if (href) void navigate({ href, replace: true });
+      if (href) void untrack(() => navigate({ href, replace: true }));
     }
   );
   /* the tab says the collection once the owner's read brings one the server could not draw */
@@ -219,11 +225,15 @@ export function CollectionPage(props: {
       if (title) document.title = `${title} | Grabient`;
     }
   );
-  /* a public collection's page seen, counted for the seeding agents beside what its readers take */
+  /* a public collection's page seen, counted once for the seeding agents beside what its readers take: the page's
+     reads settle again and again, and an effect runs each time its compute does */
+  let seen = "";
   createEffect(
     () => (doc()?.visibility === "public" ? doc()!.slug : ""),
     slug => {
-      if (slug) useCollectionSeen(slug);
+      if (!slug || slug === seen) return;
+      seen = slug;
+      useCollectionSeen(slug);
     }
   );
 
@@ -238,7 +248,7 @@ export function CollectionPage(props: {
   const stand = (next: CopyStanding | null) => {
     if (next) recallCollection(next.slug);
     setCopy(next);
-    forgetStandings();
+    forgetStates();
   };
   /* the account's copy went or moved while the page stands, on another page's undo or in another tab */
   onSettled(() =>
@@ -438,6 +448,7 @@ export function CollectionPage(props: {
     if (!current) return;
     const answer = await setPaletteView(current.slug, inputOf(item), view, why);
     setOwn(answer.collection);
+    forgetStates();
     say(t("View saved."));
   };
   const deleteEverywhere = async (item: CollectionItem, why: object) => {
@@ -445,6 +456,7 @@ export function CollectionPage(props: {
     if (!current) return;
     await deletePalette(item.kseed, why);
     forgetPalette(item.kseed);
+    forgetStates();
     const items = current.items.filter(entry => entry.kseed !== item.kseed);
     setOwn({ ...current, items, itemCount: items.length, updatedAt: Date.now() });
     void client.invalidateQueries({ queryKey: ["collections"] });
@@ -482,6 +494,7 @@ export function CollectionPage(props: {
         before = asked;
         if (waiting.get(seed) === asked) waiting.delete(seed);
       }
+      forgetStates();
     } catch (reason) {
       waiting.delete(seed);
       showVote(seed, before);
@@ -512,7 +525,6 @@ export function CollectionPage(props: {
     sel.open() ? selection() : palettes().length ? palettes().slice(0, PAINTED) : null
   );
 
-  const [turning, setTurning] = createSignal<Visibility | null>(null);
   /* the collection's tags, each the collections list searched for it in the page's order */
   const tags = () =>
     marked(
@@ -553,7 +565,7 @@ export function CollectionPage(props: {
         id="main"
         class={list.column}
         hidden={sel.open()}
-        aria-busy={provisional() || unknown() ? "true" : "false"}
+        aria-busy={(provisional() && !readFailed()) || unknown() ? "true" : "false"}
       >
         {/* the lists' band above the row: the way back where their search stands, the tags where theirs stand */}
         <div class={list.find}>
@@ -693,6 +705,7 @@ export function CollectionPage(props: {
                                 when={!gone()}
                                 fallback={
                                   <UndoPress
+                                    item={keyOf(item())}
                                     onUndo={() => putBack(gone()!)}
                                     disabled={!!busyItem()}
                                   />
@@ -746,7 +759,12 @@ export function CollectionPage(props: {
                       );
                     }}
                   </For>
-                  <For each={Array.from({ length: provisional() ? waitingFor() : 0 }, (_, i) => i)}>
+                  <For
+                    each={Array.from(
+                      { length: provisional() && !readFailed() ? waitingFor() : 0 },
+                      (_, i) => i
+                    )}
+                  >
                     {() => (
                       <div class={styles.cell}>
                         <PaletteCardPlaceholder />

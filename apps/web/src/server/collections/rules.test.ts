@@ -96,6 +96,15 @@ describe("addresses", () => {
     else if (route.kind !== "notfound") expect(redirect).toBe(route.canonical ?? null);
   });
 
+  test("an old link's order on one word stays for the loader, which knows whether a collection lives there", () => {
+    expect(canonicalRedirect("/red?sort=oldest&style=angularSwatches")).toBeNull();
+    expect(canonicalRedirect("/Red?sort=newest")).toBe("/red?sort=newest");
+    expect(canonicalRedirect("/red?sort=hot")).toBeNull();
+    expect(canonicalRedirect("/red?style=linearSwatches&x=1")).toBe("/red?style=linearSwatches");
+    expect(canonicalRedirect("/red/rising?sort=hot")).toBeNull();
+    expect(canonicalRedirect("/@ada_x/my-blues?sort=oldest")).toBe("/@ada_x/my-blues");
+  });
+
   test("an address that is no collection's is left to its own rule", () => {
     expect(canonicalRedirect("/kY4mpDazO-mUuu_fuLqXU49dvVP6?style=linearSwatches")).toBeNull();
     expect(canonicalRedirect("/_abcdefg")).toBeNull();

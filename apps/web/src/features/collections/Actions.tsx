@@ -29,6 +29,9 @@ import type { CollectionDocument, CopyStanding } from "./types.ts";
    four seconds. With no connection the presses that need the server keep their places, disabled. */
 
 const ARM_MS = 4000;
+const TURNED_MS = 1800;
+/* a turn of who sees it that moved the collection: the page drawn anew at its new address says what the press did */
+const [carried, carry] = createDone<{ slug: string; to: Visibility }>(TURNED_MS);
 
 export function Actions(props: {
   slug: string;
@@ -158,10 +161,14 @@ export function Actions(props: {
   };
 
   /* who sees it, an admin's: the press turns at once and says so a moment; quick presses keep one write on its way
-     and end on the last; a failure turns it back */
+     and end on the last; a failure turns it back. Each write may move the collection, so the next is sent where the
+     last left it, and the page follows only once the presses end */
   const [turned, setTurned] = createSignal<Visibility | null>(null);
-  const [changedTo, markChanged] = createDone<Visibility>(1800);
-  const visibility = () => turned() ?? props.doc.visibility;
+  const [changedTo, markChanged] = createDone<Visibility>(TURNED_MS);
+  /* where the last turn left the collection, while the page is on its way there */
+  const [left, setLeft] = createSignal<{ slug: string; visibility: Visibility } | null>(null);
+  const visibility = () => turned() ?? left()?.visibility ?? props.doc.visibility;
+  const marked = () => changedTo() ?? (carried()?.slug === props.slug ? carried()!.to : null);
   let wanted: Visibility | null = null;
   let writing = false;
   const turn = async () => {
@@ -173,19 +180,22 @@ export function Actions(props: {
     wanted = next;
     if (writing) return;
     writing = true;
+    let at = left()?.slug ?? props.doc.slug;
+    let now = left()?.visibility ?? props.doc.visibility;
     try {
-      while (wanted && wanted !== props.doc.visibility) {
+      while (wanted && wanted !== now) {
         const to: Visibility = wanted;
-        /* the account's own turns in its copy, which the page follows; any other answers as the server holds it */
-        const held = ownsCollection(props.slug);
+        /* the account's own turns in its copy; any other answers as the server holds it */
+        const held = ownsCollection(at);
         const answer = held
-          ? await setOwnVisibility(props.doc.slug, to)
-          : await changeCollection(props.doc.slug, { visibility: to });
+          ? await setOwnVisibility(at, to)
+          : await changeCollection(at, { visibility: to });
         if (!held) {
           serverWrote();
           props.onDoc(answer.collection);
         }
-        if (answer.collection.slug !== props.slug) props.onMoved(answer.collection.slug);
+        at = answer.collection.slug;
+        now = to;
         if (wanted === to) wanted = null;
       }
     } catch (reason) {
@@ -196,6 +206,11 @@ export function Actions(props: {
       setTurned(null);
       props.onTurning(null);
     }
+    if (at === props.slug) return void setLeft(null);
+    setLeft({ slug: at, visibility: now });
+    const done = changedTo();
+    if (done) carry({ slug: at, to: done });
+    props.onMoved(at);
   };
 
   /* deleting asks twice */
@@ -324,11 +339,11 @@ export function Actions(props: {
       </Show>
       <Show when={props.owned && isAdmin()}>
         <Button size="lg" onClick={() => void turn()}>
-          <Show when={changedTo() === visibility()}>
+          <Show when={marked() === visibility()}>
             <Icon name="check" size={15} />{" "}
           </Show>
           {t(
-            changedTo() === visibility()
+            marked() === visibility()
               ? visibility() === "public"
                 ? msg("Now public")
                 : msg("Now private")

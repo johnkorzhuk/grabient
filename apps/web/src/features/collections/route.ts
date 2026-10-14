@@ -1,15 +1,18 @@
+import { localHref } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import type { FramedData } from "../../app/shell.ts";
+import { parseSort } from "../../lib/orders.ts";
 import { type CollectionFacts, type Page, pageHead } from "../../lib/page-meta.ts";
+import { type Failed, failed } from "../../lib/query.ts";
 import { searchOf } from "../../lib/route.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
-import { type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
+import { collectionHref, type PaletteOrder, slugWords, sortCollectionItems } from "./address.ts";
 import { inputOf } from "./client.ts";
 import {
   COLLECTION_LIMIT,
@@ -18,22 +21,17 @@ import {
   type ListPlace,
   listKey,
   listSearch,
+  pageSearch,
   viewOf
 } from "./params.ts";
-import {
-  collectionQuery,
-  collectionsQuery,
-  type Failed,
-  type Found,
-  failed,
-  tagsQuery
-} from "./queries.ts";
+import { collectionQuery, collectionsQuery, type Found, tagsQuery } from "./queries.ts";
 import type { CollectionDocument, CollectionPage } from "./types.ts";
 
 /* What the collections' routes share: an address read into the place its page draws, the reads a loader puts in the
    query cache before the page renders (so the server renders from them and hydration asks for nothing), and the status
-   and robots the answer takes. A page that renders says its status as it renders, on the server: a list past its end,
-   a collection that is private or missing, each 404 with its words on screen. */
+   and robots the answer takes. A redirect names its address in the reader's language, which the router leaves to it.
+   A page that renders says its status as it renders, on the server: a list past its end, a collection that is private
+   or missing, each 404 with its words on screen. */
 
 /** What a loader tells its route beyond the cache it filled: the frame takes `paint`, the page's first palettes. */
 export interface Loaded extends FramedData {
@@ -41,6 +39,11 @@ export interface Loaded extends FramedData {
   status?: number;
   /** what search engines are told, when the page is no index's */
   robots?: string;
+  /** a search whose words were read in part for now (a crawler's, or past an allowance): no cache keeps the page */
+  unkept?: boolean;
+  /** the collections a public list's page lists, which its head names: a head is drawn in the browser before its
+      cache holds the page, and it must say what the server's said */
+  collections?: readonly { slug: string; title: string }[];
 }
 
 /** The bar and the water read at most this many palettes. */
@@ -81,17 +84,20 @@ export async function loadList(client: QueryClient, place: ListPlace): Promise<L
       page: place.page,
       limit: place.limit
     });
-    throw redirect({ href: `/collections/rising${search}`, statusCode: 302 });
+    throw redirect({ href: localHref(`/collections/rising${search}`), statusCode: 302 });
   }
   const [page] = await Promise.all([
     client.ensureQueryData(collectionsQuery(listKey(place))),
     client.ensureQueryData(tagsQuery(place.query))
   ]);
   if (failed(page)) return {};
-  const paint = listPaint(page.items, place.view);
-  return place.page > Math.max(1, page.totalPages)
-    ? { status: 404, robots: "noindex,follow", paint }
-    : { paint };
+  const listed = {
+    paint: listPaint(page.items, place.view),
+    collections: page.items.map(c => ({ slug: c.slug, title: c.title }))
+  };
+  if (place.page > Math.max(1, page.totalPages))
+    return { status: 404, robots: "noindex,follow", ...listed };
+  return page.unkept ? { ...listed, unkept: true } : listed;
 }
 
 /* Whether a request comes with no session's cookie, so its reader is signed out for certain: read on the account's
@@ -124,14 +130,17 @@ const factsOf = (doc: CollectionDocument, languages?: readonly string[]): Collec
 
 export interface CollectionLoaded extends Loaded {
   facts?: CollectionFacts;
+  /** the palettes the collection lists in the address's order, by seed, which its head names */
+  palettes?: readonly string[];
   /** nothing public lives here and the request came with no session: nobody here can be a private one's owner */
   signedOut?: boolean;
 }
 
 /** A collection page's loader: the public collection in the cache. A private one renders its page, which names it so
     and which its owner's browser fills in, and answers 404, as does an account's address that holds nothing. A
-    one-segment address that holds nothing is the palette search for its words, in its order and view: only the server
-    can tell nothing from a private collection, so a browser's navigation that finds nothing loads the address whole. */
+    one-segment address that holds nothing is the palette search for its words, in its order and view (an old link's
+    newer `?sort=` is Rising's): only the server can tell nothing from a private collection, so a browser's navigation
+    that finds nothing loads the address whole. */
 export async function loadCollection(
   client: QueryClient,
   at: { slug: string; order: PaletteOrder; searchStr: string; publicHref: string }
@@ -144,22 +153,32 @@ export async function loadCollection(
   const found = await client.ensureQueryData(query);
   if (failed(found)) return {};
   const params = new URLSearchParams(at.searchStr);
-  if (found.doc)
+  const here = found.doc || found.private || found.own || at.slug.startsWith("@");
+  /* a collection lives here: an old link's order is none of its page's */
+  if (here && params.has("sort"))
+    throw redirect({
+      href: localHref(
+        collectionHref(at.slug, at.order) + pageSearch(viewOf(params), params.has("selection"))
+      ),
+      statusCode: 301
+    });
+  if (found.doc) {
+    const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),
-      paint: sortCollectionItems(found.doc.items, at.order)
-        .slice(0, PAINTED)
-        .map(item => drawnIn(inputOf(item), viewOf(params)))
+      palettes: ordered.map(item => item.kseed),
+      paint: ordered.slice(0, PAINTED).map(item => drawnIn(inputOf(item), viewOf(params)))
     };
-  if (found.private || found.own || at.slug.startsWith("@"))
-    return { status: 404, robots: "noindex,follow", signedOut: noSession() };
+  }
+  if (here) return { status: 404, robots: "noindex,follow", signedOut: noSession() };
   if (!isServer) throw redirect({ href: at.publicHref, reloadDocument: true });
   const search = listSearch(
     { query: listWords(slugWords(at.slug)), view: viewOf(params) },
     params.has("selection")
   );
+  const rising = at.order === "rising" || parseSort(params.get("sort")) !== "popular";
   throw redirect({
-    href: `${at.order === "rising" ? "/palettes/rising" : "/palettes"}${search}`,
+    href: localHref(`${rising ? "/palettes/rising" : "/palettes"}${search}`),
     statusCode: 301
   });
 }
@@ -197,14 +216,12 @@ function summaryOf(client: QueryClient, slug: string): Found | null {
 }
 
 /** A collection page's head: its title, words and card from its own words and counts, the palettes it lists in the
-    address's order, and out of the index where its page is a 404. */
+    address's order, and out of the index where its page is a 404. All of it from what the loader said, the same on
+    both sides. */
 export function collectionHead(
-  client: QueryClient,
   at: { slug: string; order: PaletteOrder; search: Record<string, unknown> },
   loaded: CollectionLoaded | undefined
 ) {
-  const found = client.getQueryData(collectionQuery(at.slug).queryKey);
-  const doc = found && !failed(found) ? found.doc : null;
   return pageHead({
     kind: "collection",
     slug: at.slug,
@@ -212,7 +229,7 @@ export function collectionHead(
     view: viewOf(new URLSearchParams(searchOf(at.search))),
     ...(loaded?.facts ? { collection: loaded.facts } : {}),
     ...(loaded?.robots ? { robots: loaded.robots } : {}),
-    ...(doc ? { palettes: sortCollectionItems(doc.items, at.order).map(item => item.kseed) } : {})
+    ...(loaded?.palettes ? { palettes: loaded.palettes } : {})
   });
 }
 
@@ -232,14 +249,11 @@ export const listMeta = (place: ListPlace): Page =>
 
 /** A list's head: its title for its order, frame, words and page, the collections a public one lists, and out of the
     index past its end. */
-export function listHead(client: QueryClient, place: ListPlace, loaded: Loaded | undefined) {
+export function listHead(place: ListPlace, loaded: Loaded | undefined) {
   if (place.order === "saved") return pageHead(listMeta(place));
-  const page = client.getQueryData(collectionsQuery(listKey(place)).queryKey);
   return pageHead({
     ...listMeta(place),
     ...(loaded?.robots ? { robots: loaded.robots } : {}),
-    ...(page && !failed(page)
-      ? { collections: page.items.map(c => ({ slug: c.slug, title: c.title })) }
-      : {})
+    ...(loaded?.collections ? { collections: loaded.collections } : {})
   });
 }
