@@ -41,7 +41,6 @@ import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
-import type { CollectionSummary } from "../collections/types.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
 import { searchAnswered } from "../search/count.ts";
 import { createSearchFit } from "../search/fit.ts";
@@ -244,36 +243,21 @@ export function Palettes(props: { place: ListPlace }) {
   const items = () => loaded().items;
 
   /* signed out, and the words need the account's search: the way in, and the collections that answer the same words,
-     which are open to everyone */
+     which are open to everyone. They are read through the cache, so Back finds them drawn and the page returns to its
+     depth; while they are on their way the page stands without them. */
   const unsigned = () => !saved && !!words() && sessionReady() && account() === null;
   const signInToSearch = () => unsigned() && standing()?.tier === "account";
   const signInForMore = () => unsigned() && !!standing()?.partial && standing()?.tier !== "account";
-  const [offer, setOffer] = createSignal<{
-    words: string;
-    items: CollectionSummary[];
-    total: number;
-  } | null>(null);
-  createEffect(
-    () => (signInToSearch() ? words() : ""),
-    asked => {
-      if (!asked) return;
-      void client
-        .fetchQuery(
-          collectionsQuery({ sort: "popular", query: asked, page: 1, limit: OFFER_ASKED })
-        )
-        .then(read => {
-          if (!failed(read))
-            setOffer({
-              words: asked,
-              items: read.items.slice(0, OFFER_SHOWN),
-              total: read.total
-            });
-        });
-    }
-  );
+  const matching = useQuery(() => ({
+    ...collectionsQuery({ sort: "popular", query: words(), page: 1, limit: OFFER_ASKED }),
+    enabled: signInToSearch(),
+    placeholderData: (): Failed => ({ failed: "" })
+  }));
   const offers = () => {
-    const held = offer();
-    return held && held.words === words() && signInToSearch() ? held : null;
+    const read = matching.data;
+    return read && !failed(read) && signInToSearch()
+      ? { items: read.items.slice(0, OFFER_SHOWN), total: read.total }
+      : null;
   };
 
   /* every palette a search answers carries thumbs named for its words, or for the palette it is by */
