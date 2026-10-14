@@ -9,9 +9,7 @@
     "deploy": "vite build && cf deploy --prebuilt --no-provision"
   },
   "dependencies": {
-    "@grabient/email": "workspace:*",
     "@grabient/engine": "workspace:*",
-    "@grabient/i18n": "workspace:*",
     "@grabient/ui": "workspace:*",
     "@solidjs/web": "catalog:",
     "solid-js": "catalog:"

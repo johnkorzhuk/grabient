@@ -98,15 +98,9 @@ importers:
 
   apps/design:
     dependencies:
-      '@grabient/email':
-        specifier: workspace:*
-        version: link:../../packages/email
       '@grabient/engine':
         specifier: workspace:*
         version: link:../../packages/engine
-      '@grabient/i18n':
-        specifier: workspace:*
-        version: link:../../packages/i18n
       '@grabient/ui':
         specifier: workspace:*
         version: link:../../packages/ui
