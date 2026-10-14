@@ -90,6 +90,12 @@ export function typedWords(text: string): string {
   return "words" in read ? read.words : "";
 }
 
+/** Two kinds of tag in one row: one of the first and then one of the second in turn, the longer list running on. */
+export const inTurn = <T>(first: readonly T[], second: readonly T[]): T[] =>
+  Array.from({ length: Math.max(first.length, second.length) }, (_, i) => [first[i], second[i]])
+    .flat()
+    .filter(tag => tag !== undefined);
+
 /* whether one keystroke leads from one text to the other: a letter typed, deleted or typed over */
 function oneKey(before: string, text: string): boolean {
   if (Math.abs(text.length - before.length) > 1) return false;

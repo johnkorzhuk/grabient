@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { arrivedWhole, fitted, readField, typedWords } from "./field.ts";
+import { arrivedWhole, fitted, inTurn, readField, typedWords } from "./field.ts";
 
 const SEED = "kY4mpDazO-mUuu_fuLqXU49dvVP6";
 
@@ -59,6 +59,19 @@ describe("what Enter in a list's field searches for", () => {
     expect(typedWords("Blu")).toBe("blu");
     expect(typedWords("https://example.com/")).toBe("");
   });
+});
+
+test("the home's tags with words are a search and then a collection in turn, the longer kind running on", () => {
+  expect(inTurn(["sunset", "sunset orange"], ["Sunset gradients"])).toEqual([
+    "sunset",
+    "Sunset gradients",
+    "sunset orange"
+  ]);
+  expect(inTurn([], ["Ocean gradients", "Ocean swatches"])).toEqual([
+    "Ocean gradients",
+    "Ocean swatches"
+  ]);
+  expect(inTurn([], [])).toEqual([]);
 });
 
 describe("an old grabient.com id in the field", () => {

@@ -22,7 +22,7 @@ import { countSearch, tagPressed } from "../search/count.ts";
 import { suggestionsQuery } from "../search/queries.ts";
 import { SearchField } from "../search/SearchField.tsx";
 import { SearchTags } from "../search/SearchTags.tsx";
-import { arrivedWhole, FIELD_MAX, fitted, readField, typedWords } from "./field.ts";
+import { arrivedWhole, FIELD_MAX, fitted, inTurn, readField, typedWords } from "./field.ts";
 import styles from "./gallery.module.css";
 import { GalleryContext } from "./page.tsx";
 import { own } from "./queries.ts";
@@ -53,15 +53,6 @@ const titledView = (words: string) => ({
   select: (hits: CollectionHit[]): Tags =>
     hits.slice(0, TYPED / 2).map(hit => ({ label: hit.title, href: hit.href, colors: hit.colors }))
 });
-/** A search and then a collection, in turn. */
-const inTurn = (searches: Tags, collections: Tags): Tags =>
-  Array.from({ length: Math.max(searches.length, collections.length) }, (_, i) => [
-    searches[i],
-    collections[i]
-  ])
-    .flat()
-    .filter(tag => tag !== undefined);
-
 /* The collections that answer the home's words, read only while it holds some: no other page asks for them. */
 function Titled(props: { words: string; children: (collections: () => Tags) => Element }) {
   const titled = useQuery(() => titledView(props.words));
