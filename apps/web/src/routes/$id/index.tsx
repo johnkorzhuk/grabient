@@ -46,8 +46,8 @@ export const Route = createFileRoute("/$id/")({
   loader: async ({ context, params, deps, location }) => {
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
-      /* A navigation in the browser keeps the page it leaves until the editor can draw, so no other page is drawn first.
-         Code that does not come is the page's own to say, where it renders. */
+      /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between
+         the two. Code that does not come is the page's own to say, where it renders. */
       if (!isServer) await Editor.preload().catch(() => {});
       const { seed, view } = palette.page;
       /* the frame's bar and water carry the palette from the server's render on, before an editor is open */
@@ -94,8 +94,8 @@ export const Route = createFileRoute("/$id/")({
     }
   },
   /* Only the server's answer for a page the browser draws alone shows this: a navigation in the browser keeps the page
-     it leaves until the next has loaded, as the lists do, and the static page is no spinner that must not flash, so
-     the editor takes its place the moment it can. */
+     it leaves until the next has loaded, as the lists do. What it draws stands still while the editor's code comes
+     (boot.ts), so the editor takes its place the moment it can. */
   pendingComponent: Static,
   pendingMs: Number.POSITIVE_INFINITY,
   pendingMinMs: 0,

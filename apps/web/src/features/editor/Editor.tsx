@@ -344,7 +344,8 @@ function Page(props: PageProps) {
   });
   const go = (top: number) => scrollTo({ top, behavior: reducesNow() ? "auto" : "smooth" });
   /* What stands under the first screen comes once the first screen stands. Beside the page the sheet's name shows
-     under the picture and sizes it, so there the sheet is the first screen's own and comes with it (`ready`). */
+     under the picture and sizes it, so there the sheet is the first screen's own and comes with it, its code with the
+     editor's (page.ts). */
   const [late, setLate] = createSignal(!untrack(narrow));
   onSettled(() => {
     if (untrack(late)) return;
