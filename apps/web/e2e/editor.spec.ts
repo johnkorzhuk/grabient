@@ -251,6 +251,18 @@ test("the view's keys change the address, never the undo or the history", async 
   await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
 });
 
+test("a radial palette's Appearance names and offers its angle, as every style's does", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?style=radialGradient`);
+  await page.keyboard.press(".");
+  await expect.poll(() => here(page)).toBe(`/${SEED}?style=radialGradient&angle=105`);
+  const appearance = page.getByRole("button", { name: /^Appearance:/ });
+  await expect(appearance).toHaveAccessibleName("Appearance: As saved, 105°");
+  await appearance.click();
+  await expect(page.locator('#appearance-menu input[aria-label="Angle"]')).toHaveValue("105°");
+});
+
 test("a drag on a number is one step, however long it rests", async ({ page }) => {
   await open(page);
   const box = await page
