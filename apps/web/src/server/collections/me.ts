@@ -143,7 +143,9 @@ async function stateAnswer(request: Request, env: Env, slug: string): Promise<Re
   if (!record) return notFound();
   const may = await standing(env, record, who);
   if (record.input.visibility !== "public" && !may.owned && !may.canCurate) return notFound();
-  const admin = may.canCurate || (await isAdmin(env, who.id));
+  /* standing read the role for one of Grabient's the reader does not own: it is read once */
+  const asked = record.owner.kind === "agent" && !may.owned;
+  const admin = may.canCurate || (!asked && (await isAdmin(env, who.id)));
   const [copy, votes, notes, doc] = await Promise.all([
     copyStanding(env, record, who),
     ownFitVotes(env, record.id, who.id),
