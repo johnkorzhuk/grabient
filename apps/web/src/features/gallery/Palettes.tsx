@@ -32,7 +32,6 @@ import {
 } from "solid-js";
 import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
-import { record } from "../../app/undo.ts";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
@@ -46,8 +45,8 @@ import type { CollectionSummary } from "../collections/types.ts";
 import { AppearanceContext, inView } from "../list/appearance.ts";
 import { searchAnswered } from "../search/count.ts";
 import { createSearchFit } from "../search/fit.ts";
-import { createPicture, type Settled } from "../search/picture.ts";
-import { Sampler } from "../search/Sampler.tsx";
+import { PictureSampler } from "../search/PictureSampler.tsx";
+import { createPicture } from "../search/picture.ts";
 import { selection } from "../selection/selection.ts";
 import { createAccountSearch } from "./account.ts";
 import { type GalleryPlace, listHref, listIdentity, listSearch, withView } from "./address.ts";
@@ -309,12 +308,6 @@ export function Palettes(props: { place: ListPlace }) {
   const searchPoints = (colors: string | null) => {
     if (colors && colors !== words()) go(searchHref(colors), true);
   };
-  const rest = (done: Settled | null) => {
-    if (!done) return;
-    const show = (points: Settled["before"]) => async () => searchPoints(picture.show(points));
-    record({ undo: show(done.before), redo: show(done.after) });
-    searchPoints(done.colors);
-  };
   /* a search by colors leads with the palettes the colors make, a picture's as its points move */
   const made = createMemo(() =>
     saved ? [] : madeItems(held()?.points.map(point => point.hex) ?? queryColors(words()))
@@ -472,30 +465,7 @@ export function Palettes(props: { place: ListPlace }) {
                 picture={
                   <Show when={held()}>
                     {shown => (
-                      <Sampler
-                        src={shown().src}
-                        width={shown().width}
-                        height={shown().height}
-                        label={t("Your image")}
-                        points={shown().points}
-                        onMove={(i, x, y) => void picture.move(i, x, y)}
-                        onRelease={() => void picture.settle().then(rest)}
-                        onReset={
-                          picture.moved(shown()) ? () => void picture.reset().then(rest) : undefined
-                        }
-                        onAdd={(x, y) => {
-                          void picture.add(x, y);
-                          void picture.settle().then(rest);
-                        }}
-                        onRemove={
-                          picture.canRemove(shown())
-                            ? i => {
-                                void picture.remove(i);
-                                void picture.settle().then(rest);
-                              }
-                            : undefined
-                        }
-                      />
+                      <PictureSampler picture={picture} shown={shown()} search={searchPoints} />
                     )}
                   </Show>
                 }

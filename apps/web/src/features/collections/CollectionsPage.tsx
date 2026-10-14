@@ -31,7 +31,6 @@ import { listUnavailable, offline, signInUnavailable } from "../../app/connectio
 import { AppPage } from "../../app/Frames.tsx";
 import list from "../../app/list.module.css";
 import { ShellContext } from "../../app/shell.ts";
-import { record } from "../../app/undo.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
@@ -42,8 +41,8 @@ import { createFeed, inPlace } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
 import { searchAnswered, searchedHere } from "../search/count.ts";
-import { createPicture, type Settled } from "../search/picture.ts";
-import { Sampler } from "../search/Sampler.tsx";
+import { PictureSampler } from "../search/PictureSampler.tsx";
+import { createPicture } from "../search/picture.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import { selection } from "../selection/selection.ts";
 import { collectionHref, type PaletteOrder } from "./address.ts";
@@ -312,12 +311,6 @@ export function CollectionsPage(props: {
     if (colors && colors !== place().query)
       void navigate({ href: searchHref(colors), replace: true });
   };
-  const rest = (done: Settled | null) => {
-    if (!done) return;
-    const show = (points: Settled["before"]) => async () => searchColors(picture.show(points));
-    record({ undo: show(done.before), redo: show(done.after) });
-    searchColors(done.colors);
-  };
   /* what a search of the public collections found, told once its answer is this page's */
   createEffect(
     () => {
@@ -443,30 +436,7 @@ export function CollectionsPage(props: {
               <section class={styles.picture} aria-label={t("Your image")}>
                 <ListHeading title={t("Your image")} />
                 <PaletteGrid>
-                  <Sampler
-                    src={shown().src}
-                    width={shown().width}
-                    height={shown().height}
-                    label={t("Your image")}
-                    points={shown().points}
-                    onMove={(i, x, y) => void picture.move(i, x, y)}
-                    onRelease={() => void picture.settle().then(rest)}
-                    onReset={
-                      picture.moved(shown()) ? () => void picture.reset().then(rest) : undefined
-                    }
-                    onAdd={(x, y) => {
-                      void picture.add(x, y);
-                      void picture.settle().then(rest);
-                    }}
-                    onRemove={
-                      picture.canRemove(shown())
-                        ? i => {
-                            void picture.remove(i);
-                            void picture.settle().then(rest);
-                          }
-                        : undefined
-                    }
-                  />
+                  <PictureSampler picture={picture} shown={shown()} search={searchColors} />
                 </PaletteGrid>
               </section>
             )}
