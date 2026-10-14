@@ -43,7 +43,7 @@ import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
 import { collectionsQuery } from "../collections/queries.ts";
 import type { CollectionSummary } from "../collections/types.ts";
-import { AppearanceContext, drawnIn, inView } from "../list/appearance.ts";
+import { AppearanceContext, inView } from "../list/appearance.ts";
 import { searchAnswered } from "../search/count.ts";
 import { createSearchFit } from "../search/fit.ts";
 import { createPicture, type Settled } from "../search/picture.ts";
@@ -52,16 +52,7 @@ import { selection } from "../selection/selection.ts";
 import { createAccountSearch } from "./account.ts";
 import { type GalleryPlace, listHref, listIdentity, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
-import {
-  madeItems,
-  minuteOf,
-  nameOf,
-  ownOf,
-  paintOf,
-  paletteHref,
-  picturedAs,
-  relativeAge
-} from "./drawing.ts";
+import { madeItems, minuteOf, paintOf, picturedAs, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
 import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
@@ -74,7 +65,7 @@ import { type Failed, failed, framesQuery } from "./queries.ts";
 import type { PaletteItem } from "./schema.ts";
 import { sortSearch } from "./sort.ts";
 import { keptPage, type ListSource, type Page, pageView, readPage } from "./sources.ts";
-import { metaPage, searchedName } from "./titles.ts";
+import { metaPage, searchedName, searchedTitle } from "./titles.ts";
 
 /* The palette lists: Popular (/palettes) and Rising in its frame (/palettes/rising), each searched with `?q=`, and the
    account's Saved. A list is a feed: its address's own page, then each page after it joining as the reader nears the
@@ -358,23 +349,9 @@ export function Palettes(props: { place: ListPlace }) {
     return !answered() && !!read && params().page > Math.max(1, read.totalPages);
   };
   /* a palette searched by stands in the title as the card it would be, leading to its page */
-  const searched = createMemo(() => {
-    const name = words() ? searchedName(words()) : null;
-    /* a search by colors is titled by the palette its colors make as written */
-    const item = name
-      ? { kseed: words(), style: "linearGradient" as const, steps: 7, angle: 90 }
-      : made()[0];
-    if (!item) return null;
-    const shown = drawnIn(ownOf(item), params());
-    const drawn = picturedAs(ownOf(item), params(), look.draft(), look.peek());
-    return {
-      stops: hexesOf(drawn),
-      style: drawn.style,
-      angle: drawn.angle,
-      name: nameOf(shown),
-      href: paletteHref(shown, params().size)
-    };
-  });
+  const searched = createMemo(() =>
+    searchedTitle(words(), made(), params(), look.draft(), look.peek())
+  );
   const feedTitle = () =>
     t(
       order() === "saved"
