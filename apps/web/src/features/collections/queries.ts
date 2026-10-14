@@ -257,13 +257,14 @@ if (!isServer)
     ownAddresses = now;
   });
 
-/** What a signed-in reader may do on one collection's page: theirs or theirs to curate, their copy, votes and notes. */
+/** What a signed-in reader may do on one collection's page: theirs or theirs to curate, their copy, votes and notes.
+    None where it could not be read, which the next visit asks for again. */
 export const stateQuery = (owner: string, slug: string) =>
   queryOptions({
     queryKey: ["collection-state", owner, slug, states] as const,
     queryFn: ({ signal }) =>
       readState(slug, signal).catch(error => (signal.aborted ? Promise.reject(error) : null)),
-    staleTime: PRIVATE_TTL
+    staleTime: query => (query.state.data === null ? 0 : PRIVATE_TTL)
   });
 
 export { COLLECTION_LIMIT };

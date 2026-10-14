@@ -519,6 +519,52 @@ test("a fit vote made on a collection's page is there when the reader comes back
   await expect(good).toHaveAttribute("aria-pressed", "true");
 });
 
+test("a reader's votes on a collection that could not be read are read again when the reader comes back", async ({
+  page
+}) => {
+  await signIn(page, "reader", false);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({
+      json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+    })
+  );
+  // the first read of what the reader may do finds no connection; the server keeps a vote of theirs
+  let reads = 0;
+  await page.route(`**/api/me/collections/${SLUG}/state*`, route =>
+    reads++ === 0
+      ? route.abort("internetdisconnected")
+      : route.fulfill({
+          json: {
+            owned: false,
+            canCurate: false,
+            canDelete: false,
+            copy: null,
+            votes: { [SEED]: "up" }
+          }
+        })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const good = page
+    .locator("main article")
+    .first()
+    .getByRole("button", { name: /^Good fit/ });
+  await expect.poll(() => reads).toBe(1);
+  await expect(good).toHaveAttribute("aria-pressed", "false");
+  await page.locator("main a", { hasText: "Collections" }).first().click();
+  await expect(page).toHaveURL(/\/collections\/rising$/);
+  await page.goBack();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  await expect(good).toHaveAttribute("aria-pressed", "true");
+});
+
 test("a palette removed with the keyboard leaves the focus on its Undo, which gives it back", async ({
   page
 }) => {
