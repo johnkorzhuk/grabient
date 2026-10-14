@@ -81,6 +81,9 @@ export const LIMITS = {
   oauthRefreshGrant: { requests: 48, window: 86400 },
   oauthRefreshAccount: { requests: 500, window: 86400 },
   oauthRefreshDaily: { requests: 100000, window: 86400, site: true, lease: 50 },
+  // A consent begun writes a transaction, and its answer a grant and a code: the account's day, then the site's.
+  oauthConsentAccount: { requests: 50, window: 86400 },
+  oauthConsentDaily: { requests: 5000, window: 86400, site: true, lease: 10 },
   // Settings reading or ending an account's connected apps: every request in the isolate, and each that reads KV (a
   // read per grant) by the account's day.
   connections: { requests: 60, window: 60, local: true },

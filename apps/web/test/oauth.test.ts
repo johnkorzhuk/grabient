@@ -304,6 +304,31 @@ describe("the authorization page", () => {
     expect(to.origin + to.pathname).toBe(CLAUDE_REDIRECT);
     expect(to.searchParams.get("error")).toBe("invalid_request");
   });
+
+  it("begins an account's consents within its day and the site's, and past either says connecting is paused", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    const account = await makeAccount(env);
+    const { challenge } = await pkce();
+    const query = authorizeQuery(CLAUDE, CLAUDE_REDIRECT, challenge);
+    // where the browser is sent, and the consent's binding cookie when one was begun
+    const paused = (answer: Response) => {
+      const to = new URL(answer.headers.get("Location")!);
+      return [to.pathname + to.search, cookiesOf(answer)];
+    };
+    expect((await authorizeAs(env, account, query)).status).toBe(303);
+    expect(asked).toEqual(["oauthConsentAccount", "oauthConsentDaily"]);
+    expect(await checkLimits(env, [["oauth-consent", "oauthConsentDaily"]])).toMatchObject({
+      success: true,
+      limit: 5000
+    });
+    // the account's day spent: no consent is begun, so nothing is written for it
+    await checkLimits(env, [[`oauth-consent:${account.id}`, "oauthConsentAccount", 49]]);
+    expect(paused(await authorizeAs(env, account, query))).toEqual(["/connect?problem=paused", ""]);
+    // a limiter that cannot answer refuses too
+    const down = testEnv({ DEPLOYMENT: "production", RATE_LIMITER: undefined });
+    const other = await makeAccount(down);
+    expect(paused(await authorizeAs(down, other, query))).toEqual(["/connect?problem=paused", ""]);
+  });
 });
 
 describe("the consent", () => {
