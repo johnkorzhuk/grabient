@@ -9,7 +9,6 @@ import {
   pageSearch,
   viewOf
 } from "../../features/collections/params.ts";
-import { parseSort } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
 import type { KeyRule } from "../cache-keys.ts";
 import type { CanonicalRule } from "../canonical.ts";
@@ -62,10 +61,10 @@ const listAddress: CanonicalRule = address => {
 };
 
 /** A collection's address as it was typed (`/Ocean_Depths`, `/Ocean%20Gradients`) leads to its slug, a handle keeping
-    its underscores, and its query to the view in its one order with the selection last. An old link's newer order
+    its underscores, and its query to the view in its one order with the selection last. An old link's order
     (`?sort=newest`) stays for the page's loader, which knows whether a collection lives there: it leads words that
-    name none to Rising's search in one step. A seed's address and an old id are the editor's, and any other address
-    is no collection's. */
+    name none to the search in that order in one step. A seed's address and an old id are the editor's, and any other
+    address is no collection's. */
 const collectionAddress: CanonicalRule = address => {
   const [path, params] = split(address);
   const first = path.slice(1).split("/")[0] ?? "";
@@ -73,12 +72,7 @@ const collectionAddress: CanonicalRule = address => {
   const at = typedCollection(path);
   if (!at) return null;
   const href = collectionHref(at.slug, at.order);
-  if (
-    at.order === "popular" &&
-    !at.slug.startsWith("@") &&
-    parseSort(params.get("sort")) !== "popular"
-  )
-    return href + address.slice(path.length);
+  if (!at.slug.startsWith("@") && params.has("sort")) return href + address.slice(path.length);
   return href + pageSearch(viewOf(params), params.has("selection"));
 };
 
