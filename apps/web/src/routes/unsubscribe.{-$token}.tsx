@@ -11,10 +11,10 @@ import { pageHead } from "../lib/page-meta.ts";
 import { unsubscribeResponse } from "../server/newsletter/routes.ts";
 
 /* The newsletter's way out: /unsubscribe, or /unsubscribe/{token} from an issue. The address names an account, so the
-   page is never framed, kept or named in a Referer (server/paths.ts), and its head names the page without the token. A
-   POST to the address is the press: the page's own, or a mail app's one-click button. */
+   page is never framed, kept or named in a Referer (server/paths.ts), and its head names the page without the token.
+   The server draws the sheet and reads nothing: opening the address changes nothing. A POST to it is the press, the
+   page's own or a mail app's one-click button. */
 export const Route = createFileRoute("/unsubscribe/{-$token}")({
-  ssr: false,
   staticData: { frame: "sheet", still: true },
   headers: () => NO_STORE,
   head: () => pageHead({ kind: "unsubscribe" }),
