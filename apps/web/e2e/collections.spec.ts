@@ -560,6 +560,39 @@ test("a palette removed with the keyboard leaves the focus on its Undo, which gi
   await expect(remove).toBeFocused();
 });
 
+test("a collection's read that failed and answers on Retry gives the tab the collection's title", async ({
+  page
+}) => {
+  let failing = true;
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      failing
+        ? route.abort()
+        : route.fulfill({
+            json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+          })
+  );
+  // a page that holds no summary of it, so the collection's own read is all the route has
+  await page.goto("/palettes");
+  await hydrated(page);
+  await page.evaluate(href => {
+    const link = document.createElement("a");
+    link.href = href;
+    link.textContent = "into the collection";
+    document.querySelector("main")!.append(link);
+  }, `/${SLUG}`);
+  await page.locator(`main a[href="/${SLUG}"]`).last().click();
+  const retry = page.getByRole("button", { name: "Retry" });
+  await expect(retry).toBeVisible();
+  await expect(page).toHaveTitle(/^Palette collection/);
+  failing = false;
+  await retry.click();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  await expect(page).toHaveTitle(new RegExp(`^${summary.title}`));
+});
+
 test("a private collection renamed on its page is the account's own at its new address", async ({
   page
 }) => {

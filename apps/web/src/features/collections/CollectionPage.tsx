@@ -14,7 +14,7 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Tags } from "@grabient/ui/Tags.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { useNavigate } from "@tanstack/solid-router";
+import { useNavigate, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -112,6 +112,7 @@ export function CollectionPage(props: {
 }) {
   const client = useQueryClient();
   const navigate = useNavigate();
+  const router = useRouter();
   const shell = useContext(ShellContext)!;
   const found = useQuery(() => collectionQuery(props.slug));
   const [note, setNote] = createSignal("");
@@ -130,6 +131,14 @@ export function CollectionPage(props: {
   const readFailed = () => {
     const read = answer();
     return failed(read) ? read.failed : "";
+  };
+  /* a read that failed, asked again: once it answers, the route reads it as well, so the tab's title, the description and
+     the card follow the collection the page now shows */
+  const retry = async () => {
+    const read = await found.refetch();
+    if (!read.data || failed(read.data)) return;
+    const here = router.state.matches.at(-1)?.id;
+    await router.invalidate({ filter: match => match.id === here });
   };
 
   /* what the account may do here, and whether its copy holds the collection: read once the reader is known, private,
@@ -811,7 +820,7 @@ export function CollectionPage(props: {
                   : "")}
           </Status>
           <Show when={readFailed()}>
-            <Button size="sm" onClick={() => void found.refetch()}>
+            <Button size="sm" onClick={() => void retry()}>
               {t("Retry")}
             </Button>
           </Show>
