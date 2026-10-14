@@ -7,9 +7,9 @@ import { createMemo, createSignal, flush, isHydrating, onCleanup, onSettled } fr
    measured once drawn and estimated before (createHeights).
 
    The server draws a column's first blocks. The first of them are hydrated and the rest stay the server's still
-   markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key) or the column is
-   given blocks the server did not draw: then the window starts and draws live blocks where it stands, and the column's
-   host grows to hold the new ones. A press or the focus that reaches a still block with no such move (a
+   markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key) or the blocks
+   stop being what the server drew (others joined, or the page draws them for an account): then the window starts and
+   draws live blocks where it stands, and the column's host grows to hold the new ones. A press or the focus that reaches a still block with no such move (a
    screen reader's own cursor) starts it too, and lands on the same control of the live block (wake). A column made
    after a navigation is windowed from its first frame, at the depth a return is about to restore and with the room
    its kind had last time, so a list returned to stands at its depth at once. The page a window stands in turns the
@@ -30,8 +30,8 @@ export interface WindowOptions {
   gap: () => number;
   /** the blocks the server draws, live or still */
   initial: (width: number) => number;
-  /** whether the column holds only the blocks the server drew: the still ones cannot change, so a column given others
-      (a page joined, another answer) is windowed then */
+  /** whether the column holds only the blocks the server drew, as it drew them: the still ones cannot change, so a
+      column given others (a page joined, another answer) or drawn for an account (its hearts) is windowed then */
   drawn?: () => boolean;
   /** the depth a return is about to restore, read for the first window alone */
   depth?: number;

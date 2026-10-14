@@ -74,7 +74,8 @@ const TOOL = {
   words: "Words such as sunset or pastel blue, a hex code, or a Grabient palette link or seed."
 };
 
-/** The groups the server draws after the head: what a first screen shows of them. */
+/** The groups the server draws after the head: what a first screen shows of them. They stand still until the reader
+    moves; an account's hearts are the reader's own, so once an account is known they are live without waiting. */
 const FIRST_GROUPS = 2;
 /* a group before it is measured: its title line and the gap under it, then two rows of cards (three on a phone) */
 const GROUP_HEAD = 40 + 32;
@@ -357,6 +358,7 @@ export function Home(props: { params: ListParams }) {
                     items={palettes()}
                     key={item => item.kseed}
                     live={FIRST_SCREEN}
+                    still={!account()}
                     depth={restoring}
                     card={item => (
                       <GalleryCard
@@ -389,7 +391,7 @@ export function Home(props: { params: ListParams }) {
                 key={collection => collection.slug}
                 estimate={estimate}
                 initial={FIRST_GROUPS}
-                live={0}
+                live={account() ? FIRST_GROUPS : 0}
                 depth={restoring}
                 group={collection => {
                   const path = () => inView(`/${collection().slug}`, params());

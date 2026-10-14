@@ -561,6 +561,7 @@ export function Palettes(props: { place: ListPlace }) {
                     items={items()}
                     key={item => item.kseed}
                     live={FIRST_SCREEN}
+                    still={!account()}
                     depth={restoring}
                     card={item => (
                       <GalleryCard
