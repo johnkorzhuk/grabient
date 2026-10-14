@@ -1,6 +1,6 @@
 import vm from "node:vm";
 import { describe, expect, it } from "vitest";
-import { OFF, workerSource } from "../../scripts/service-worker.ts";
+import { OFF, offlineFiles, workerSource } from "../../scripts/service-worker.ts";
 
 /* The service worker as a build ships it, run against caches and a network the test keeps: a shell is kept from this
    build with every file it names or not at all, so a page opened offline never mounts blank; offline pages say so. */
@@ -197,6 +197,59 @@ describe("the service worker", () => {
     site["/about"] = new Error("offline");
     const response = await worker.visit("/about");
     expect(await response?.text()).toBe(html(CONFIG.assets));
+  });
+
+  it("keeps at install what a page that opens offline may load, at once or on demand, and no other page's own", () => {
+    /** A chunk of a build: its module (none for code the bundler shared out), and the chunks it imports. */
+    const chunk = (
+      fileName: string,
+      module: string | null,
+      links: { imports?: string[]; dynamicImports?: string[] } = {}
+    ) => ({
+      type: "chunk" as const,
+      fileName,
+      isEntry: module === "src/client.tsx",
+      imports: links.imports ?? [],
+      dynamicImports: links.dynamicImports ?? [],
+      facadeModuleId: module && `/app/${module}`
+    });
+    const bundle: Record<string, ReturnType<typeof chunk> | { type: "asset" }> = {
+      "style.css": { type: "asset" },
+      "i18n-fr.json": { type: "asset" }
+    };
+    for (const file of [
+      chunk("entry.js", "src/client.tsx", {
+        imports: ["vendor.js"],
+        dynamicImports: [
+          "saved.js",
+          "palette.js",
+          "login.js",
+          "editor.js",
+          "sync.js",
+          "recorder.js"
+        ]
+      }),
+      chunk("vendor.js", null),
+      chunk("saved.js", "src/routes/palettes/saved.tsx?tsr-split=component"),
+      chunk("palette.js", "src/routes/$id/index.tsx?tsr-split=component"),
+      chunk("login.js", "src/routes/login.tsx?tsr-split=component", { imports: ["form.js"] }),
+      chunk("form.js", null),
+      chunk("editor.js", "src/features/editor/Editor.tsx", { dynamicImports: ["collect.js"] }),
+      chunk("collect.js", "src/features/editor/Collect.tsx"),
+      chunk("sync.js", "src/features/account/sync.ts"),
+      chunk("recorder.js", "node_modules/posthog-js/dist/module.mjs")
+    ])
+      bundle[file.fileName] = file;
+    expect(offlineFiles(bundle).sort()).toEqual([
+      "collect.js",
+      "editor.js",
+      "entry.js",
+      "palette.js",
+      "saved.js",
+      "style.css",
+      "sync.js",
+      "vendor.js"
+    ]);
   });
 
   it("takes itself and its caches out of the browser in a build with SW=off", async () => {
