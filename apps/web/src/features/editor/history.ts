@@ -117,7 +117,8 @@ export function followAddress(
      read from the router's. Any other press, a drag's end among them, waits its turn: presses faster than WRITE_MS
      would otherwise write once each. A page being left writes what it has not. */
   const leaving = (event: Event) => {
-    if (event.target instanceof Element && event.target.closest("a[href], [data-selection]")) flush();
+    if (event.target instanceof Element && event.target.closest("a[href], [data-selection]"))
+      flush();
   };
   addEventListener("click", leaving, true);
   addEventListener("pagehide", flush);
