@@ -166,22 +166,20 @@ export interface SavedKey {
   page: number;
 }
 
-/* Saved's pages are kept a minute, for a list returned to; a like made or taken back anywhere (on any page, in another
-   tab, on another device) starts them anew. */
-let likesMoved = 0;
+/* Saved's pages are kept a minute, for a list returned to, while the account's likes stand as they were read: a like
+   made or taken back anywhere since (on any page, in another tab, on another device) has them read again. */
+let likesMovedAt = 0;
 if (!isServer)
   onAccountChange(change => {
-    if (change.likes.size) likesMoved++;
+    if (change.reset || change.likes.size) likesMovedAt = Date.now();
   });
-/** How many times the account's likes have moved in this tab: a read of Saved begun before the last move is old. */
-export const likesSeen = () => likesMoved;
 
 /** A page of the account's saved palettes. Only the browser asks for it, as the account it is signed in as: the key
     names the owner, so another account's page never shows across a sign-in. The account's copy answers where it can,
     at once and with no connection, with the likes not yet sent; words are the server's to rank while there is one. */
 export const savedQuery = (key: SavedKey) =>
   queryOptions({
-    queryKey: ["saved", key.owner, likesMoved, key.words, key.limit, key.page] as const,
+    queryKey: ["saved", key.owner, key.words, key.limit, key.page] as const,
     queryFn: async ({ signal }): Promise<SavedPage | Failed> => {
       /* loaded with the list it draws: no other page of the gallery needs the copy's model */
       const { savedReady, savedPageOf } = await import("../account/saved.ts");
@@ -220,7 +218,8 @@ export const savedQuery = (key: SavedKey) =>
     },
     /* the copy answers with no connection, so the read never waits for one */
     networkMode: "always",
-    staleTime: freshFor(PRIVATE_TTL),
+    staleTime: query =>
+      query.state.dataUpdatedAt > likesMovedAt ? freshFor(PRIVATE_TTL)(query) : 0,
     reconcile: "kseed"
   });
 

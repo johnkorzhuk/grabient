@@ -36,6 +36,7 @@ import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts"
 import { heading } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
+import { onAccountChange } from "../account/state.ts";
 import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
 import { ownerLabel } from "../collections/drawing.ts";
 import { paletteGone } from "../collections/overlay.ts";
@@ -58,7 +59,7 @@ import { ListHeading } from "./ListHeading.tsx";
 import { Made } from "./Made.tsx";
 import { readerOrder, rememberOrder } from "./order.ts";
 import { createGalleryPage, GalleryContext } from "./page.tsx";
-import { type Failed, failed, framesQuery, likesSeen } from "./queries.ts";
+import { type Failed, failed, framesQuery } from "./queries.ts";
 import type { PaletteItem } from "./schema.ts";
 import { sortSearch } from "./sort.ts";
 import { keptPage, type ListSource, type Page, pageView, readPage } from "./sources.ts";
@@ -136,25 +137,33 @@ export function Palettes(props: { place: ListPlace }) {
   const [own, setOwn] = createSignal<{ of: string; page: Page | Failed } | null>(null);
   const ownKey = () =>
     owner() ? JSON.stringify([owner(), words(), params().limit, params().page]) : "";
-  /* the account's likes moved while a page was being read: that read is from before, and is read again */
+  /* the account's likes changed while a page was being read: that read is from before, and is read again */
+  let likes = 0;
   let reading = "";
   const readOwn = (asked: { of: string; from: ListSource | null; page: number }, fresh = false) => {
     const { of, from, page } = asked;
-    const at = likesSeen();
+    const at = likes;
     if (!from || !of) return;
     reading = of;
     void readPage(client, from, page, fresh).then(read => {
       if (of !== ownKey()) return;
-      if (at !== likesSeen()) readOwn(asked, true);
+      if (at !== likes) readOwn(asked, true);
       else setOwn({ of, page: read });
     });
   };
   const asked = () => ({ of: ownKey(), from: source(), page: params().page });
-  /* a page is read once: a palette unliked here stays where it stood, its heart off, until the next visit */
-  if (saved)
+  if (saved) {
+    /* a page is read once: a palette unliked here stays where it stood, its heart off, until the next visit */
     createEffect(asked, now => {
       if (now.of !== reading) readOwn(now);
     });
+    /* a read waits for the copy's first sync, so that sync's reset is in what it reads */
+    onSettled(() =>
+      onAccountChange(change => {
+        if (!change.reset && change.likes.size) likes++;
+      })
+    );
+  }
   const head = (): Page | Failed | undefined => {
     if (listed) return listed.data;
     const read = own();
