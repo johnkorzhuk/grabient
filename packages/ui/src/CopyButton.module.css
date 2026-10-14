@@ -1,8 +1,11 @@
 @layer components {
-  /* an action, never an unchosen tab: a step up in ink at rest */
   .press {
     composes: tab from "./tabs.module.css";
     gap: var(--space-s2);
+  }
+  /* an action, never an unchosen tab: a step up in ink at rest. A build writes the tab's rules into every sheet that
+     composes them, before this one or after it, so the ink outweighs the tab's by the button's name */
+  button.press {
     color: var(--color-ink2);
     &:hover {
       color: var(--color-ink);
