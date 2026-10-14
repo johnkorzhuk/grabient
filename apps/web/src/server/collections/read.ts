@@ -346,29 +346,6 @@ export const recordById = (env: Reader, id: string) => recordBy(env, "id", id);
 export const ownedBy = (record: Pick<CollectionRecord, "owner">, owner: CollectionOwner) =>
   record.owner.kind === owner.kind && record.owner.id === owner.id;
 
-/** Public collections by their addresses, in the order asked, at most fifty. */
-export async function collectionsBySlugs(
-  env: Reader,
-  slugs: readonly string[],
-  strip: Previews = "page"
-): Promise<CollectionSummary[]> {
-  const wanted = [...new Set(slugs)].filter(isCollectionSlug).slice(0, 50);
-  if (!wanted.length) return [];
-  const rows = await all<CollectionRow>(
-    env.DB,
-    `${SELECT} WHERE c.visibility = 'public' AND c.slug IN (SELECT value FROM json_each(?))`,
-    JSON.stringify(wanted)
-  );
-  const page = await pageOf(
-    env,
-    rows,
-    { query: "", sort: "popular", page: 1, limit: wanted.length, total: rows.length },
-    strip
-  );
-  const bySlug = new Map(page.items.map(item => [item.slug, item]));
-  return wanted.flatMap(slug => bySlug.get(slug) ?? []);
-}
-
 /* A collection's colors are read from its first palettes, about a millisecond, and only for the rows a request shows. They
    are a pure function of those palettes, so they are kept by them, the oldest out first. */
 const COLORS_KEPT = 512;
