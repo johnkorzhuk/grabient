@@ -18,7 +18,14 @@ export { AS_METADATA_PATH, OAUTH_PATHS, RESOURCE_METADATA_PATH } from "./clients
 
 export const YEAR = 365 * 86400;
 /** Fourteen days: under the 24.8 days a 32-bit timer in some apps can wait before it refreshes. */
-export const ACCESS_SECONDS = 14 * 86400;
+const ACCESS_MAX = 14 * 86400;
+/** How long an access token lasts: fourteen days, or the deploy's OAUTH_ACCESS_TTL when it is a whole number of
+    seconds from two minutes up to that. A deploy sets it short so that every connected app refreshes many times a
+    day, which is how refreshing is watched before a release. */
+export const accessSeconds = (env: Pick<Env, "OAUTH_ACCESS_TTL">): number => {
+  const asked = Number(env.OAUTH_ACCESS_TTL);
+  return Number.isInteger(asked) && asked >= 120 && asked <= ACCESS_MAX ? asked : ACCESS_MAX;
+};
 
 /** What a grant carries, written at consent and encrypted by the library. */
 export interface GrantProps {
@@ -69,7 +76,7 @@ export function authorizationServer(env: Env, origin: string): OAuthAuthorizatio
         clientRegistrationEndpoint: OAUTH_PATHS.register,
         // admin is chosen at consent by an admin, never advertised
         scopesSupported: [...MCP_SCOPES, "offline_access"],
-        accessTokenTTL: ACCESS_SECONDS,
+        accessTokenTTL: accessSeconds(env),
         // a year from the code exchange and from each refresh: an app in use never signs in again
         refreshTokenTTL: YEAR,
         refreshTokenIdleTTL: YEAR,

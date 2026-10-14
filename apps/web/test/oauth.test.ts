@@ -428,6 +428,15 @@ describe("tokens", () => {
     expect(without.scope.split(" ").sort()).toEqual(["account", "offline_access"]);
   });
 
+  it("last as long as the deploy says, within two minutes and fourteen days", async () => {
+    const short = testEnv({ OAUTH_ACCESS_TTL: "3600" });
+    expect((await connect(short, await makeAccount(short))).expires_in).toBe(3600);
+    for (const asked of ["119", "1209601", "90.5", "soon", ""]) {
+      const env = testEnv({ OAUTH_ACCESS_TTL: asked });
+      expect((await connect(env, await makeAccount(env))).expires_in, asked).toBe(14 * 86400);
+    }
+  });
+
   it("take a JSON body and an empty secret as the form they mean, counted", async () => {
     const env = testEnv();
     const account = await makeAccount(env);
