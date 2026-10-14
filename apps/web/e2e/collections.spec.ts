@@ -306,3 +306,35 @@ test("a search of Saved whose server read fails answers from the account's copy"
   await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0);
   await expect(page.locator("main")).not.toContainText("Couldn't load your collections.");
 });
+
+test("a signed-in reader's one look at a public collection is counted once", async ({ page }) => {
+  await signIn(page, "reader", false);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({
+      json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+    })
+  );
+  const seen: string[] = [];
+  page.on("request", request => {
+    const body = request.postData() ?? "";
+    if (new URL(request.url()).pathname === "/api/used" && body.includes('"view"')) seen.push(body);
+  });
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  // what a page saw is sent once the reader is there: at the first input
+  await page.mouse.move(200, 300);
+  await page.keyboard.press("Shift");
+  await page.waitForLoadState("networkidle");
+  await page.mouse.move(300, 400);
+  await expect.poll(() => seen.length).toBe(1);
+  await page.waitForTimeout(1000);
+  expect(seen).toHaveLength(1);
+});
