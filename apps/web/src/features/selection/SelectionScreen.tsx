@@ -373,6 +373,8 @@ export function createSelectionScreen(page: {
     open,
     show,
     close,
+    /** Selection alone, once something is in it, where a page stands it among presses of its own */
+    press,
     /** the end of the page's row of lists: Selection, once something is in it */
     button: () => <span class={styles.end}>{press()}</span>,
     /** a phone's: the same, floating at the foot of the screen */
