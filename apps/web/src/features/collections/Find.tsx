@@ -5,6 +5,7 @@ import { useNavigate } from "@tanstack/solid-router";
 import { createEffect, createSignal, Errored, Loading, onCleanup, untrack } from "solid-js";
 import { listUnavailable, marked, offline } from "../../app/connection.ts";
 import list from "../../app/list.module.css";
+import { failed } from "../../lib/query.ts";
 import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
 import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
@@ -14,7 +15,7 @@ import { SearchTags } from "../search/SearchTags.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import { collectionGone } from "./overlay.ts";
 import { type ListPlace, pageSearch } from "./params.ts";
-import { failed, ownQuery, tagsQuery } from "./queries.ts";
+import { ownQuery, tagsQuery } from "./queries.ts";
 import type { CollectionSummary } from "./types.ts";
 
 /* The search over a collections list: the field and the tags under it. Enter searches the collections for the words

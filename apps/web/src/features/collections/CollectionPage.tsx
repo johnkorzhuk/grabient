@@ -30,6 +30,7 @@ import list from "../../app/list.module.css";
 import { ShellContext } from "../../app/shell.ts";
 import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
 import { hexesOf } from "../../lib/palette.ts";
+import { failed } from "../../lib/query.ts";
 import {
   ownCollectionDoc,
   ownCollectionMoved,
@@ -68,7 +69,7 @@ import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
 import { listSearch, pageSearch } from "./params.ts";
-import { collectionQuery, failed, forgetStandings, stateQuery } from "./queries.ts";
+import { collectionQuery, forgetStandings, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 

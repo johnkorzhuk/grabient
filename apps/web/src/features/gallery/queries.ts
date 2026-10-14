@@ -6,11 +6,10 @@ import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
 import { DEFAULT_FRAME, type ListSort, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
-import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
+import { attempt, type Failed, failed, freshFor, getJson, READ_TIMEOUT } from "../../lib/query.ts";
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
 import { searchPool } from "../../server/gallery/search.ts";
-import { shownError } from "../account/session.ts";
 import { viewNow } from "../account/state.ts";
 import { COLLECTION_LIMIT } from "../collections/params.ts";
 import { collectionsQuery } from "../collections/queries.ts";
@@ -37,43 +36,11 @@ import { HomeHead, PalettePage, SavedPage, SearchAnswer } from "./schema.ts";
 /** A reader's own copy of what the cache holds. */
 export const own = <T>(data: T): T => structuredClone(data);
 
-/** A read that failed: why, in the reader's language, and on the server the status the page answers with. */
-export type Failed = { failed: string; status?: number };
-/** Whether a read failed, told by its reason alone: the collections' reads the home makes say no status. */
-export const failed = (data: object): data is { failed: string } => "failed" in data;
+export { type Failed, failed };
 
 const PUBLIC_TTL = 300_000;
 const RISING_TTL = 60_000;
 const PRIVATE_TTL = 60_000;
-
-/** What freshness reads of a cached answer. */
-interface Held {
-  state: { data?: object; dataUpdatedAt: number };
-}
-/** Fresh for `ttl` from the database read that made the answer; an answer an allowance cut short, not at all. */
-const freshFor =
-  (ttl: number) =>
-  (query: Held): number => {
-    const data = query.state.data as { fetchedAt?: number; limited?: boolean } | Failed | undefined;
-    if (!data || failed(data) || data.limited) return 0;
-    const at = query.state.dataUpdatedAt;
-    return Math.max(0, ttl - (at - Math.min(data.fetchedAt ?? at, at)));
-  };
-
-/** A read in the browser, its failure as a value: the server's own words, or `fallback` for a read that never
-    reached it. A read its last reader let go of is no failure. */
-async function attempt<T>(
-  read: () => Promise<T>,
-  signal: AbortSignal,
-  fallback: string
-): Promise<T | Failed> {
-  try {
-    return await read();
-  } catch (error) {
-    if (signal.aborted) throw error;
-    return { failed: shownError(error, fallback) };
-  }
-}
 
 const COULD_NOT_LOAD = msg("Couldn't load palettes.");
 

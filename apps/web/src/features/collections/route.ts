@@ -5,6 +5,7 @@ import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import type { FramedData } from "../../app/shell.ts";
 import { type CollectionFacts, type Page, pageHead } from "../../lib/page-meta.ts";
+import { type Failed, failed } from "../../lib/query.ts";
 import { listWords } from "../../lib/words.ts";
 import { framesQuery } from "../gallery/queries.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
@@ -19,14 +20,7 @@ import {
   listSearch,
   viewOf
 } from "./params.ts";
-import {
-  collectionQuery,
-  collectionsQuery,
-  type Failed,
-  type Found,
-  failed,
-  tagsQuery
-} from "./queries.ts";
+import { collectionQuery, collectionsQuery, type Found, tagsQuery } from "./queries.ts";
 import type { CollectionDocument, CollectionPage } from "./types.ts";
 
 /* What the collections' routes share: an address read into the place its page draws, the reads a loader puts in the

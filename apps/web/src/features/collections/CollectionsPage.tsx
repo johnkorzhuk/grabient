@@ -35,6 +35,7 @@ import { record } from "../../app/undo.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
+import { type Failed, failed } from "../../lib/query.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { trackEvent } from "../analytics/analytics.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
@@ -58,7 +59,7 @@ import { ItemCard } from "./ItemCard.tsx";
 import { rememberList } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone } from "./overlay.ts";
 import { type ListPlace, listKey, listPath, listSearch, viewWith } from "./params.ts";
-import { collectionQuery, collectionsQuery, type Failed, failed, ownQuery } from "./queries.ts";
+import { collectionQuery, collectionsQuery, ownQuery } from "./queries.ts";
 import { listMeta, listPaint } from "./route.ts";
 import type { CollectionPage, CollectionPreview, CollectionSummary } from "./types.ts";
 

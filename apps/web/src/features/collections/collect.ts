@@ -15,7 +15,7 @@ import {
   restoreOwnPalette,
   serverWrote
 } from "../account/collections.ts";
-import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
+import { account, isAdmin, loginHref, sessionReady, shownError } from "../account/session.ts";
 import { trackEvent } from "../analytics/analytics.ts";
 import { itemKey } from "./address.ts";
 import {
@@ -338,17 +338,27 @@ export function createChecklists(say: (message: string, error?: boolean) => void
   }
 
   function writes(items: () => readonly Item[], opened: () => void) {
-    return {
-      onToggle: async (slug: string, on: boolean) => {
-        const at = items();
-        if (isSite(slug)) await (on ? siteIn : siteOut)(slug, at, opened);
-        else await (on ? ownIn : ownOut)(slug, at, opened);
-        opened();
-      },
-      onNew: async (title: string) => {
-        await made(title, items(), opened);
-        opened();
+    /* the checklist says why a pick failed as it is told, so it is told in the reader's words */
+    const worded = async (write: () => Promise<void>) => {
+      try {
+        await write();
+      } catch (reason) {
+        throw new Error(failedWrite(reason));
       }
+    };
+    return {
+      onToggle: (slug: string, on: boolean) =>
+        worded(async () => {
+          const at = items();
+          if (isSite(slug)) await (on ? siteIn : siteOut)(slug, at, opened);
+          else await (on ? ownIn : ownOut)(slug, at, opened);
+          opened();
+        }),
+      onNew: (title: string) =>
+        worded(async () => {
+          await made(title, items(), opened);
+          opened();
+        })
     };
   }
   const signIn = () => (signedOut() ? localHref(loginHref()) : undefined);
@@ -394,6 +404,7 @@ export function createChecklists(say: (message: string, error?: boolean) => void
   return { card, selection };
 }
 
-/** Why a write failed, in the reader's words. */
+/** Why a write failed, in the reader's words: the server's or the copy's, else the page's own for a write that never
+    reached the server. */
 export const failedWrite = (reason: unknown, fallback = msg("Couldn't save.")): string =>
-  reason instanceof Error && reason.message ? reason.message : t(fallback);
+  shownError(reason, fallback);

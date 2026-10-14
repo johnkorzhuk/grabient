@@ -1,9 +1,10 @@
-import { localHref, msg, t } from "@grabient/i18n";
+import { localHref, msg } from "@grabient/i18n";
 import type { FitVote } from "@grabient/ui/Fit.tsx";
 import { createEffect, createSignal } from "solid-js";
 import { account, loginHref, sessionReady } from "../account/session.ts";
 import { trackSignInPrompt } from "../analytics/analytics.ts";
 import { castVote, readVotes } from "./client.ts";
+import { failedWrite } from "./collect.ts";
 import { COLLECTION_LIMIT } from "./params.ts";
 
 /* Whether a palette fits the collection it is in: the account's votes, read a page of collections at a time once
@@ -62,11 +63,7 @@ export function createFit(options: {
     } catch (reason) {
       waiting.delete(key);
       show(slug, seed, before);
-      options.say(
-        reason instanceof Error && reason.message
-          ? reason.message
-          : t(msg("Couldn't save your vote."))
-      );
+      options.say(failedWrite(reason, msg("Couldn't save your vote.")));
     } finally {
       sending.delete(key);
     }

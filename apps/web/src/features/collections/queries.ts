@@ -1,12 +1,12 @@
 import { env } from "cloudflare:workers";
-import { locale, msg, t } from "@grabient/i18n";
+import { locale, msg } from "@grabient/i18n";
 import { replica } from "@grabient/server/db/d1.ts";
 import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
-import { getJson } from "../../lib/query.ts";
+import { attempt, type Failed, freshFor, getJson } from "../../lib/query.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
 import {
@@ -35,46 +35,11 @@ import {
 
 /* Every read the collections' pages make, one queryOptions each, shared by the routes' loaders and the pages. The server
    renders from the direct read and its answers ride to the browser in the query cache, so hydration asks for nothing;
-   a later navigation asks the API route the edge keeps. A failed read resolves to `{ failed }`, its reason in the
-   reader's language, so a page keeps what it showed beside the reason and Retry. Freshness counts from the database
-   read (`fetchedAt`), never from when an answer reached the browser. */
-
-export type Failed = { failed: string };
-export const failed = (data: unknown): data is Failed =>
-  typeof data === "object" && data !== null && "failed" in data;
+   a later navigation asks the API route the edge keeps. A failed read resolves to `{ failed }` (lib/query.ts). */
 
 const PUBLIC_TTL = 300_000;
 const FRESH_TTL = 60_000;
 const PRIVATE_TTL = 60_000;
-
-/** Fresh for `ttl` from the database read that made the answer; a failure never. */
-const freshFor =
-  (ttl: number) =>
-  (query: { state: { data?: unknown; dataUpdatedAt: number } }): number => {
-    const data = query.state.data as
-      | { fetchedAt?: number; provisional?: boolean }
-      | Failed
-      | null
-      | undefined;
-    if (!data || failed(data) || data.provisional) return 0;
-    const at = query.state.dataUpdatedAt;
-    return Math.max(0, ttl - (at - Math.min(data.fetchedAt ?? at, at)));
-  };
-
-async function attempt<T>(
-  read: () => Promise<T>,
-  signal: AbortSignal | undefined,
-  fallback: string
-) {
-  try {
-    return await read();
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    return {
-      failed: error instanceof Error && error.message ? error.message : t(fallback)
-    } as Failed;
-  }
-}
 const asked = () => translatedLocale(locale());
 const lang = (first: boolean) => {
   const q = langQuery();
@@ -125,7 +90,8 @@ const readCollection = createIsomorphicFn()
     if (response?.status === 404) return { doc: null, fetchedAt: Date.now() };
     return attempt(
       async () => {
-        if (!response?.ok) throw new Error(t("Couldn't load this collection."));
+        // a read that never reached the server, or that it could not answer, says the page's own words
+        if (!response?.ok) throw new Error();
         return {
           doc: v.parse(CollectionDocumentSchema, await response.json()),
           fetchedAt: Date.now()
