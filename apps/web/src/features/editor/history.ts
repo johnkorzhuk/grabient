@@ -9,10 +9,10 @@ import { searchReader } from "./page.ts";
    keeps the palette's undo and what the page opened with, so Back, Forward and a reload bring them back.
 
    The address is written at most once per WRITE_MS, the first of a burst at once and the last always: Safari refuses a
-   page more than a hundred history calls in thirty seconds, and a drag makes that many in two. A press lands the last
-   write before anything it leads to, and so does leaving the page. Another address arriving (Back, Forward, a link
-   to another palette) is the editor's to take in, and a write waiting for its turn is dropped with the entry it
-   was for. */
+   page more than a hundred history calls in thirty seconds, and a drag or a run of presses makes that many in a few.
+   A press on a link or on the way into the selection lands the last write before it is followed, and so does leaving
+   the page. Another address arriving (Back, Forward, a link to another palette) is the editor's to take in, and a
+   write waiting for its turn is dropped with the entry it was for. */
 const WRITE_MS = 350;
 
 type Router = ReturnType<typeof useRouter>;
@@ -113,19 +113,18 @@ export function followAddress(
     }
   });
 
-  /* a drag's last value is in the address the moment it lets go, a press on a link writes it before the link is
-     followed, and a page being left writes what it has not */
-  const lift = () => {
-    if (latest) setTimeout(flush, 0);
+  /* A press that leads to another entry writes what waits before the entry is pushed, since the address it leaves is
+     read from the router's. Any other press, a drag's end among them, waits its turn: presses faster than WRITE_MS
+     would otherwise write once each. A page being left writes what it has not. */
+  const leaving = (event: Event) => {
+    if (event.target instanceof Element && event.target.closest("a[href], [data-selection]")) flush();
   };
-  addEventListener("pointerup", lift, true);
-  addEventListener("click", flush, true);
+  addEventListener("click", leaving, true);
   addEventListener("pagehide", flush);
   /* the page left for another: its address was written as the press that left it landed */
   onCleanup(() => {
     cancel();
-    removeEventListener("pointerup", lift, true);
-    removeEventListener("click", flush, true);
+    removeEventListener("click", leaving, true);
     removeEventListener("pagehide", flush);
   });
   return {

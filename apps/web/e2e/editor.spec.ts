@@ -241,6 +241,39 @@ test("edits rewrite the address in place, and the undo walks them both ways", as
   expect(await entries(page)).toBe(before);
 });
 
+test("a burst of presses writes the address at most once a rhythm, and the last press lands", async ({
+  page
+}) => {
+  // Safari refuses a page more than a hundred history calls in thirty seconds
+  await page.addInitScript(() => {
+    const calls: number[] = [];
+    Object.assign(window, { historyCalls: calls });
+    for (const name of ["replaceState", "pushState"] as const) {
+      const real = History.prototype[name];
+      History.prototype[name] = function (this: History, ...args: [unknown, string, string?]) {
+        calls.push(performance.now());
+        return real.apply(this, args);
+      };
+    }
+  });
+  await open(page);
+  const invert = await page.getByRole("button", { name: "Invert" }).boundingBox();
+  if (!invert) throw new Error("no Invert press");
+  const calls = () =>
+    page.evaluate(() => [...(window as unknown as { historyCalls: number[] }).historyCalls]);
+  const before = (await calls()).length;
+  for (let i = 0; i < 15; i++) {
+    await page.mouse.click(invert.x + invert.width / 2, invert.y + invert.height / 2);
+    await page.waitForTimeout(40);
+  }
+  // an odd count of inverts is the palette inverted once
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  const writes = (await calls()).slice(before);
+  expect(writes.length).toBeGreaterThan(1);
+  for (let i = 1; i < writes.length; i++)
+    expect(writes[i]! - writes[i - 1]!).toBeGreaterThanOrEqual(300);
+});
+
 test("the view's keys change the address, never the undo or the history", async ({ page }) => {
   await open(page);
   const before = await entries(page);
