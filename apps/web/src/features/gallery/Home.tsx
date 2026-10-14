@@ -3,6 +3,7 @@ import { queryColors } from "@grabient/search/colors.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionGroup, shownAt } from "@grabient/ui/CollectionGroup.tsx";
+import { Fit } from "@grabient/ui/Fit.tsx";
 import { GroupFeed } from "@grabient/ui/GroupFeed.tsx";
 import { ListNav } from "@grabient/ui/ListNav.tsx";
 import { PaletteFeed } from "@grabient/ui/PaletteFeed.tsx";
@@ -17,20 +18,42 @@ import {
   useRouter,
   useRouterState
 } from "@tanstack/solid-router";
-import { createMemo, createSignal, Loading, Show, useContext } from "solid-js";
-import { DEFAULT_FRAME } from "../../lib/orders.ts";
-import { heading } from "../../lib/page-meta.ts";
-import { account, isAdmin, sessionReady } from "../account/session.ts";
-import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
-import { AppearanceContext } from "../list/appearance.ts";
-import { createPicture } from "../search/picture.ts";
-import { type ListParams, listSearch, orderHref, withView } from "./address.ts";
 import {
-  drawnAs,
-  hexesOf,
+  createEffect,
+  createMemo,
+  deep,
+  For,
+  isHydrating,
+  Loading,
+  NoHydration,
+  onSettled,
+  Show,
+  useContext
+} from "solid-js";
+import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
+import { AppPage } from "../../app/Frames.tsx";
+import { heading } from "../../lib/page-meta.ts";
+import { hexesOf } from "../../lib/palette.ts";
+import { account, isAdmin, sessionReady } from "../account/session.ts";
+import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
+import { ownerLabel } from "../collections/drawing.ts";
+import { createFit } from "../collections/fit.ts";
+import { collectionGone, paletteGone } from "../collections/overlay.ts";
+import type { CollectionPage, CollectionSummary } from "../collections/types.ts";
+import { AppearanceContext, drawnIn, inView } from "../list/appearance.ts";
+import { searchAnswered } from "../search/count.ts";
+import { createSearchFit } from "../search/fit.ts";
+import { createPicture } from "../search/picture.ts";
+import { selection } from "../selection/selection.ts";
+import { createAccountSearch } from "./account.ts";
+import { type ListParams, listHref, listSearch, withView } from "./address.ts";
+import { createCuration } from "./curate.tsx";
+import {
+  homePaint,
   madeItems,
   minuteOf,
   nameOf,
+  ownOf,
   paletteHref,
   picturedAs,
   relativeAge
@@ -41,7 +64,11 @@ import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
 import { Made } from "./Made.tsx";
+import { readerOrder, recallOrder } from "./order.ts";
+import { createGalleryPage, GalleryContext } from "./page.tsx";
 import { type Failed, failed, homeCollectionsQuery, homeHeadQuery } from "./queries.ts";
+import { HOT_PALETTES, SEARCH_PALETTES } from "./schema.ts";
+import { sortSearch } from "./sort.ts";
 import { metaPage, searchedName } from "./titles.ts";
 
 /* The home: the hottest palettes under Trending, then the hot collections as their groups, more joining as the reader
@@ -69,103 +96,192 @@ const estimate = (collection: CollectionSummary, width: number) => {
   return GROUP_HEAD + rows * CARD + (rows - 1) * ROW_GAP;
 };
 
-/** Who made a collection, as its group's tooltip says it. */
-function ownerOf(collection: CollectionSummary): string {
-  const { owner } = collection;
-  if (owner.kind === "agent") {
-    return isAdmin() && owner.name ? t("{name} (agent)", { name: owner.name }) : "Grabient";
-  }
-  return owner.display || (owner.name ? `@${owner.name}` : t("Grabient user"));
-}
-
 export function Home(props: { params: ListParams }) {
   const client = useQueryClient();
   const navigate = useNavigate();
   const router = useRouter();
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useRouterState({ select: state => state.status === "pending" });
-  const words = () => props.params.words;
-  const order = () => (words() ? "popular" : "hot");
+  const params = () => props.params;
+  const words = () => params().words;
   const head = useQuery(() => homeHeadQuery(words()));
+  /* What stood last, the head and the first collections: a read that fails leaves it on screen beside its reason. A
+     query's store takes each answer in the place of the one before, a failure too, so what stands is a copy. */
   const standingHead = createMemo((last?: Exclude<typeof head.data, Failed>) =>
-    failed(head.data) ? last : head.data
+    failed(head.data) ? last : deep(head.data)
   );
-  const first = useQuery(() => homeCollectionsQuery(words(), props.params.page));
+  const first = useQuery(() => homeCollectionsQuery(words(), params().page));
   const standingFirst = createMemo((last?: CollectionPage) =>
-    failed(first.data) ? last : first.data
+    failed(first.data) ? last : deep(first.data)
   );
   const feed = createFeed<CollectionPage>({
-    key: () => `${order()}\n${words()}`,
-    start: () => props.params.page,
+    key: () => `home\n${words()}`,
+    start: () => params().page,
     head: () => first.data,
     kept: n => {
-      const page = client.getQueryData(homeCollectionsQuery(words(), n).queryKey);
-      return page && !failed(page) ? page : undefined;
+      const read = client.getQueryData(homeCollectionsQuery(words(), n).queryKey);
+      return read && !failed(read) ? read : undefined;
     },
-    read: n => client.fetchQuery(homeCollectionsQuery(words(), n))
+    read: n => {
+      trackEvent("paginate", { page_number: n, surface: "home" });
+      return client.fetchQuery(homeCollectionsQuery(words(), n));
+    }
   });
-  /* every collection on the feed once, in the order the pages came */
-  const groups = createMemo(() => {
-    const seen = new Set<string>();
-    const out: CollectionSummary[] = [];
-    for (const page of [standingFirst(), ...feed.joined()]) {
-      for (const item of page?.items ?? []) {
-        if (!seen.has(item.slug)) {
-          seen.add(item.slug);
-          out.push(item);
-        }
+  /* The page after the last is read ahead, so it joins from memory: at once on a home reached inside the app, and
+     after each page that joins. A document's own first page asks for nothing the reader has not neared. */
+  const reached = !isHydrating();
+  createEffect(
+    () => {
+      const last = (feed.joined().at(-1) ?? standingFirst())?.page;
+      return feed.more() && last !== undefined && (reached || feed.joined().length)
+        ? homeCollectionsQuery(words(), last + 1)
+        : null;
+    },
+    ahead => {
+      if (ahead) void client.prefetchQuery(ahead);
+    }
+  );
+  /* every collection on the feed once, in the order the pages came, less what this tab deleted; each with when its
+     page was read */
+  const loaded = createMemo(() => {
+    const readAt = new Map<string, number>();
+    const groups: CollectionSummary[] = [];
+    for (const read of [standingFirst(), ...feed.joined()]) {
+      for (const item of read?.items ?? []) {
+        if (readAt.has(item.slug) || collectionGone(item.slug)) continue;
+        readAt.set(item.slug, read!.fetchedAt);
+        groups.push(item);
       }
     }
-    return out;
+    return { groups, readAt };
+  });
+  const groups = () => loaded().groups;
+  /* a group's palettes without the ones an admin deleted here */
+  const kept = (collection: CollectionSummary) =>
+    collection.preview.filter(preview => !paletteGone(preview.seed));
+
+  const page = createGalleryPage({
+    path: () => "/",
+    params,
+    surface: () => "home",
+    counted: "home",
+    painted: () => homePaint(palettes(), groups(), params())
+  });
+  const look = useContext(AppearanceContext)!;
+  onSettled(recallOrder);
+
+  /* Words the public search could not read for everyone, or read in part, are the account's own search to answer, once
+     the account is known: its best palettes take the head's place. */
+  const found = createAccountSearch({
+    words,
+    wanted: () => {
+      const read = standingHead();
+      return !!words() && !!read && (read.tier === "account" || !!read.partial);
+    }
+  });
+  const palettes = createMemo(() => {
+    const own = found.items();
+    return (
+      own ? sortSearch(own, "popular").slice(0, SEARCH_PALETTES) : (standingHead()?.palettes ?? [])
+    ).filter(item => !paletteGone(item.kseed));
+  });
+  /* signed out, and the words need the account's search: the way in where the palettes would stand */
+  const unsigned = () => !!words() && sessionReady() && account() === null;
+  const signInToSearch = () => unsigned() && standingHead()?.tier === "account";
+  const signInForMore = () =>
+    unsigned() && !!standingHead()?.partial && standingHead()?.tier !== "account";
+
+  /* every palette the search answers carries thumbs named for its words; one in a collection's group is part of that
+     collection, whatever the words found it, and carries its thumbs instead */
+  const fits = createSearchFit({
+    query: words,
+    account: () => (sessionReady() ? (account()?.id ?? null) : undefined),
+    signIn: () => {
+      trackSignInPrompt("vote");
+      void navigate({ href: page.signIn() });
+    },
+    fail: page.say,
+    offline,
+    named: asked => searchedName(asked) ?? asked
+  });
+  const groupFits = createFit({
+    slugs: () => (words() ? groups().map(group => group.slug) : []),
+    say: page.say
+  });
+  /* an admin deletes a palette no person liked from under its card: the gallery's own, or one in an agent's collection */
+  const curation = createCuration({
+    seeds: () => [
+      ...palettes().map(item => item.kseed),
+      ...groups()
+        .filter(group => group.owner.kind === "agent")
+        .flatMap(group => group.preview.map(preview => preview.seed))
+    ],
+    say: page.say
   });
 
-  /* the header's control sets the view through the address, and the pictures follow it as it moves */
-  const look = useContext(AppearanceContext)!;
-  /* what a press could not do (search the field's text, read a picture, like a palette), said on the line while the
-     words it was said over stand */
-  const [said, setSaid] = createSignal<{ words: string; message: string } | null>(null);
-  const note = () => {
-    const last = said();
-    return last && last.words === words() ? last.message : "";
-  };
-  const say = (message: string) => setSaid(message ? { words: words(), message } : null);
   /* a picture is searched by its colors on the palette list, where it stands beside its palettes; its colors are
      nobody's words, so they are not counted */
   const picture = createPicture();
   const searchImage = async (file: File) => {
     const colors = await picture.take(file);
-    if (!colors) return say(t("Couldn't read this image."));
-    void navigate({ href: orderHref("popular", DEFAULT_FRAME, { ...here(), words: colors }) });
+    if (!colors) return page.refuse(t("Couldn't read this image."));
+    void navigate({ href: toSection("palettes", colors) });
   };
   /* words that hold hex colors lead with the palettes those colors make */
   const made = createMemo(() => madeItems(queryColors(words())));
+  /* what a search found, told once its answer is this page's */
+  createEffect(
+    () => {
+      const read = standingHead();
+      const collections = standingFirst();
+      return words() && read && collections && !navigating()
+        ? {
+            words: words(),
+            kind:
+              read.tier === "similar"
+                ? ("palette" as const)
+                : read.tier === "color"
+                  ? ("colors" as const)
+                  : undefined,
+            tier: read.tier,
+            results: read.palettes.length,
+            collections: collections.total
+          }
+        : null;
+    },
+    told => {
+      if (told) searchAnswered(told.words, "home", told);
+    }
+  );
+
   /* the ages the server printed are told against the minute the head was read in, and hydration agrees */
   const now = () => minuteOf(standingHead()?.fetchedAt ?? 0);
+  /* when the head's counts were read: the account's own answer is as fresh as it is */
+  const headReadAt = () => (found.items() ? undefined : standingHead()?.fetchedAt);
   const searched = createMemo(() => {
     const name = words() ? searchedName(words()) : null;
-    if (!name) return null;
-    const own = { seed: words(), style: "linearGradient", steps: 7, angle: 90 } as const;
-    const shown = drawnAs(own, props.params);
-    const picture = picturedAs(own, props.params, look.draft(), look.peek());
+    /* a search by colors is titled by the palette its colors make as written */
+    const item = name
+      ? { kseed: words(), style: "linearGradient" as const, steps: 7, angle: 90 }
+      : made()[0];
+    if (!item) return null;
+    const shown = drawnIn(ownOf(item), params());
+    const drawn = picturedAs(ownOf(item), params(), look.draft(), look.peek());
     return {
-      stops: hexesOf(picture.seed, picture.steps),
-      style: picture.style,
-      angle: picture.angle,
+      stops: hexesOf(drawn),
+      style: drawn.style,
+      angle: drawn.angle,
       name: nameOf(shown),
-      href: paletteHref(shown, props.params.size)
+      href: paletteHref(shown, params().size)
     };
   });
-  /* signed out, and the words need the account's search: the way in where the palettes would stand */
-  const signedOut = () => sessionReady() && account() === null;
-  const signInToSearch = () => standingHead()?.tier === "account" && signedOut();
-  const signInForMore = () => !!standingHead()?.partial && signedOut();
   const headError = () => (failed(head.data) ? head.data.failed : "");
   const firstError = () => (failed(first.data) ? first.data.failed : "");
   const message = () =>
     headError() ||
     firstError() ||
     feed.reason() ||
-    note() ||
+    page.line()?.message ||
     (navigating()
       ? words()
         ? t("Searching…")
@@ -173,161 +289,242 @@ export function Home(props: { params: ListParams }) {
       : feed.loading()
         ? t("Loading more…")
         : "") ||
+    found.note() ||
     (signInForMore() && !feed.more() ? t("Sign in to search with all your words.") : "") ||
     (!standingHead() || groups().length
       ? ""
       : !words()
         ? t("No collections yet.")
-        : !standingHead()?.palettes.length && !signInToSearch()
+        : !palettes().length && !signInToSearch()
           ? t("No results.")
           : "");
-  const here = () => ({ ...props.params, page: 1, selection: false });
   const searchHref = (to: string, linked?: URLSearchParams) =>
-    `/${listSearch(withView({ ...here(), words: to }, linked))}`;
-  const toSection = (section: "palettes" | "collections") =>
-    section === "palettes"
-      ? orderHref("popular", "1w", here())
-      : `/collections${listSearch(here())}`;
+    `/${listSearch(withView({ ...params(), words: to, page: 1, selection: false }, linked))}`;
+  /* a section opens its list in the order the reader chose last, searched for the home's words; with no connection,
+     the account's own */
+  const toSection = (section: "palettes" | "collections", asked = words()) =>
+    listHref(section, offline() ? "saved" : readerOrder().order, readerOrder().frame, {
+      ...params(),
+      words: asked
+    });
   const nextHref = () => {
     const last = feed.joined().at(-1) ?? standingFirst();
     return localHref(
-      `/${listSearch(props.params, { page: (last?.page ?? props.params.page) + 1, selection: false })}`
+      `/${listSearch(params(), { page: (last?.page ?? params().page) + 1, selection: false })}`
     );
   };
-  const loginHere = () =>
-    localHref(
-      `/login?redirect=${encodeURIComponent(`/${listSearch(props.params, { selection: false })}`)}`
-    );
+  const signIn = (size: "sm" | "lg") => (
+    <Button
+      variant={size === "lg" ? "primary" : undefined}
+      size={size}
+      href={page.signIn()}
+      disabled={signInUnavailable()}
+      onClick={() => trackSignInPrompt("search")}
+    >
+      {t("Sign in")}
+    </Button>
+  );
 
   return (
-    <main id="main" class={styles.page}>
-      <Find
-        surface="home"
-        words={words()}
-        placeholder={t("Search palettes and collections")}
-        tool={TOOL}
-        to={searchHref}
-        counts
-        onError={say}
-        onImage={file => void searchImage(file)}
-      />
-      <h1 class={styles.hidden}>{heading(metaPage({ kind: "home", params: props.params }))}</h1>
-      {/* the two sections, neither chosen: the home is neither list */}
-      <div class={styles.row}>
-        <ListNav
-          section={null}
-          order={null}
-          onSection={section => void navigate({ href: toSection(section) })}
-          onIntent={target => {
-            if (target.section) preloadHref(router, toSection(target.section));
-          }}
-          sectionHref={section => localHref(toSection(section))}
-        />
-      </div>
-      <div class={styles.stack}>
-        <Show when={made().length}>
-          <Made title={t("From your colors")} items={made()} view={props.params} onNote={say} />
-        </Show>
-        <div>
-          <ListHeading title={t("Trending")} words={words()} palette={searched()} />
-          <Show when={signInToSearch()}>
-            <div class={styles.empty}>
-              <Text variant="h3">{t("No results.")}</Text>
-              <Text variant="body">
-                {t(
-                  "Try a color, mood or theme, like navy, cozy or sunset. Or sign in to search in any language."
-                )}
-              </Text>
-              <Button variant="primary" size="lg" href={loginHere()}>
-                {t("Sign in")}
-              </Button>
-            </div>
-          </Show>
-          <Loading fallback={<PaletteGridPlaceholder count={words() ? 60 : 24} />}>
-            <Show when={standingHead()?.palettes.length}>
-              <PaletteFeed
-                items={standingHead()?.palettes ?? []}
-                key={item => item.kseed}
-                live={FIRST_SCREEN}
-                depth={restoring}
-                card={item => (
-                  <GalleryCard
-                    item={item()}
-                    view={props.params}
-                    now={now()}
-                    words={words()}
-                    onNote={say}
-                  />
-                )}
-              />
-            </Show>
-          </Loading>
-        </div>
-        <Loading fallback={null}>
-          <GroupFeed
-            items={groups()}
-            key={collection => collection.slug}
-            estimate={estimate}
-            initial={FIRST_GROUPS}
-            live={0}
-            depth={restoring}
-            group={collection => (
-              <CollectionGroup
-                title={collection().title}
-                href={localHref(`/${collection().slug}`)}
-                onIntent={() => preloadHref(router, `/${collection().slug}`)}
-                description={collection().description}
-                owner={ownerOf(collection())}
-                age={relativeAge(collection().updatedAt, now())}
-                count={collection().itemCount}
-                private={collection().visibility === "private"}
-                palettes={collection().preview}
-                card={palette => (
-                  <GalleryCard
-                    item={{
-                      kseed: palette().seed,
-                      style: palette().style,
-                      steps: palette().steps,
-                      angle: palette().angle,
-                      likes: palette().likes ?? 0,
-                      createdAt: palette().createdAt ?? collection().updatedAt
-                    }}
-                    view={props.params}
-                    now={now()}
-                    onNote={say}
-                  />
-                )}
-              />
-            )}
+    <GalleryContext value={page}>
+      <AppPage feed bare={page.chosen.open()}>
+        {/* the page stays mounted and out of sight under the export screen, so Close returns to the same depth */}
+        <main id="main" class={styles.page} hidden={page.chosen.open()}>
+          <Find
+            surface="home"
+            placeholder={t("Search palettes and collections")}
+            tool={TOOL}
+            to={searchHref}
+            counts
+            disabled={offline()}
+            onImage={file => void searchImage(file)}
           />
-        </Loading>
-      </div>
-      <div class={styles.mark} ref={feed.mark} aria-hidden="true" />
-      <div class={styles.status}>
-        <Status error={!!headError() || !!firstError() || !!feed.reason()}>{message()}</Status>
-        <Show when={headError()}>
-          <Button size="sm" onClick={() => void head.refetch()}>
-            {t("Retry")}
-          </Button>
-        </Show>
-        <Show when={!headError() && (firstError() || feed.reason())}>
-          <Button size="sm" onClick={() => void (firstError() ? first.refetch() : feed.next(true))}>
-            {t("Retry")}
-          </Button>
-        </Show>
-        <Show when={signInForMore() && !feed.more()}>
-          <Button size="sm" href={loginHere()}>
-            {t("Sign in")}
-          </Button>
-        </Show>
-        {/* a link for readers without scripts; a plain press asks for the page in place */}
-        <Show when={feed.more() && !feed.loading() && !feed.reason()}>
-          <Button size="sm" href={nextHref()} onClick={e => inPlace(e, () => void feed.next())}>
-            {t("More collections")}
-          </Button>
-        </Show>
-      </div>
-      <BackToTop />
-    </main>
+          <h1 class={styles.hidden}>{heading(metaPage({ kind: "home", params: params() }))}</h1>
+          {/* the two sections, neither chosen: the home is neither list */}
+          <div class={styles.row}>
+            <ListNav
+              section={null}
+              order={null}
+              disabled={listUnavailable}
+              onSection={section => void navigate({ href: toSection(section) })}
+              onIntent={target => {
+                if (target.section) preloadHref(router, toSection(target.section));
+              }}
+              sectionHref={section => localHref(toSection(section))}
+            />
+            {page.chosen.button()}
+          </div>
+          {page.chosen.float()}
+          <div class={styles.stack}>
+            <Show when={made().length}>
+              <Made title={t("From your colors")} items={made()} />
+            </Show>
+            <div>
+              <ListHeading title={t("Trending")} words={words()} palette={searched()} />
+              <Show when={signInToSearch()}>
+                <div class={styles.empty}>
+                  <Text variant="h3">{t("No results.")}</Text>
+                  <Text variant="body">
+                    {t(
+                      "Try a color, mood or theme, like navy, cozy or sunset. Or sign in to search in any language."
+                    )}
+                  </Text>
+                  {signIn("lg")}
+                </div>
+              </Show>
+              <Loading
+                fallback={
+                  <PaletteGridPlaceholder count={words() ? SEARCH_PALETTES : HOT_PALETTES} />
+                }
+              >
+                <Show when={palettes().length}>
+                  <PaletteFeed
+                    items={palettes()}
+                    key={item => item.kseed}
+                    live={FIRST_SCREEN}
+                    depth={restoring}
+                    card={item => (
+                      <GalleryCard
+                        item={item()}
+                        now={now()}
+                        readAt={headReadAt()}
+                        at={() => ({
+                          position: palettes().findIndex(entry => entry.kseed === item().kseed)
+                        })}
+                        fit={
+                          <Show when={fits.fitOf(item().kseed)}>
+                            <Fit
+                              value={fits.fitOf(item().kseed)?.value}
+                              query={fits.fitOf(item().kseed)?.query}
+                              onVote={next => fits.fitOf(item().kseed)?.onVote(next)}
+                              disabled={offline()}
+                            />
+                          </Show>
+                        }
+                        lead={curation.presses(item, { scopes: true })}
+                      />
+                    )}
+                  />
+                </Show>
+              </Loading>
+            </div>
+            <Loading fallback={null}>
+              <GroupFeed
+                items={groups()}
+                key={collection => collection.slug}
+                estimate={estimate}
+                initial={FIRST_GROUPS}
+                live={0}
+                depth={restoring}
+                group={collection => {
+                  const path = () => inView(`/${collection().slug}`, params());
+                  const agents = () => collection().owner.kind === "agent";
+                  return (
+                    <CollectionGroup
+                      title={collection().title}
+                      href={localHref(path())}
+                      onIntent={() => preloadHref(router, path())}
+                      description={collection().description}
+                      owner={ownerLabel(collection().owner, isAdmin())}
+                      age={relativeAge(collection().updatedAt, now())}
+                      count={
+                        collection().itemCount -
+                        (collection().preview.length - kept(collection()).length)
+                      }
+                      private={collection().visibility === "private"}
+                      palettes={kept(collection())}
+                      card={preview => {
+                        const item = createMemo(() => ({
+                          kseed: preview().seed,
+                          style: preview().style,
+                          steps: preview().steps,
+                          angle: preview().angle,
+                          likes: preview().likes ?? 0,
+                          createdAt: preview().createdAt ?? collection().updatedAt
+                        }));
+                        return (
+                          <GalleryCard
+                            item={item()}
+                            now={now()}
+                            readAt={loaded().readAt.get(collection().slug)}
+                            at={() => ({
+                              collection: collection().slug,
+                              position: kept(collection()).findIndex(
+                                entry => entry.seed === preview().seed
+                              )
+                            })}
+                            fit={
+                              <Show when={words()}>
+                                <Fit
+                                  value={groupFits.of(collection().slug, preview().seed)}
+                                  admin={isAdmin() && agents()}
+                                  collection={collection().title}
+                                  onVote={next =>
+                                    groupFits.vote(collection().slug, preview().seed, next)
+                                  }
+                                  disabled={offline()}
+                                />
+                              </Show>
+                            }
+                            lead={<Show when={agents()}>{curation.presses(item, {})}</Show>}
+                          />
+                        );
+                      }}
+                    />
+                  );
+                }}
+              />
+            </Loading>
+            {/* the rest of this page's collections, for a reader without scripts, whom no window draws them for */}
+            <NoHydration>
+              <noscript>
+                <ul>
+                  <For each={groups().slice(FIRST_GROUPS)}>
+                    {collection => (
+                      <li>
+                        <a href={localHref(inView(`/${collection.slug}`, params()))}>
+                          {collection.title}
+                        </a>
+                      </li>
+                    )}
+                  </For>
+                </ul>
+              </noscript>
+            </NoHydration>
+          </div>
+          <div class={styles.mark} ref={feed.mark} aria-hidden="true" />
+          <div class={styles.status}>
+            <Status
+              error={!!headError() || !!firstError() || !!feed.reason() || !!page.line()?.error}
+            >
+              {message()}
+            </Status>
+            <Show when={headError()}>
+              <Button size="sm" onClick={() => void head.refetch()}>
+                {t("Retry")}
+              </Button>
+            </Show>
+            <Show when={!headError() && (firstError() || feed.reason())}>
+              <Button
+                size="sm"
+                onClick={() => void (firstError() ? first.refetch() : feed.next(true))}
+              >
+                {t("Retry")}
+              </Button>
+            </Show>
+            <Show when={signInForMore() && !feed.more()}>{signIn("sm")}</Show>
+            {/* a link for readers without scripts; a plain press asks for the page in place */}
+            <Show when={feed.more() && !feed.loading() && !feed.reason()}>
+              <Button size="sm" href={nextHref()} onClick={e => inPlace(e, () => void feed.next())}>
+                {t("More collections")}
+              </Button>
+            </Show>
+          </div>
+        </main>
+        {page.chosen.screen()}
+        {/* on a phone it stands above the floating Selection press */}
+        <BackToTop raised={selection().length > 0 && !page.chosen.open()} />
+      </AppPage>
+    </GalleryContext>
   );
 }

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { arrivedWhole, readField, typedWords } from "./field.ts";
+import { arrivedWhole, fitted, inTurn, readField, typedWords } from "./field.ts";
 
 const SEED = "kY4mpDazO-mUuu_fuLqXU49dvVP6";
 
@@ -58,6 +58,37 @@ describe("what Enter in a list's field searches for", () => {
   test("the tags are asked for the words, or for nothing when the text is no search", () => {
     expect(typedWords("Blu")).toBe("blu");
     expect(typedWords("https://example.com/")).toBe("");
+  });
+});
+
+test("the home's tags with words are a search and then a collection in turn, the longer kind running on", () => {
+  expect(inTurn(["sunset", "sunset orange"], ["Sunset gradients"])).toEqual([
+    "sunset",
+    "Sunset gradients",
+    "sunset orange"
+  ]);
+  expect(inTurn([], ["Ocean gradients", "Ocean swatches"])).toEqual([
+    "Ocean gradients",
+    "Ocean swatches"
+  ]);
+  expect(inTurn([], [])).toEqual([]);
+});
+
+describe("an old grabient.com id in the field", () => {
+  test("is fitted here to the palette its link would open, and searched by that", async () => {
+    expect(await fitted(readField("_gLqgLqgPhf83gBkf-cf5cf5Wf4wgA3gDPf8OiWvovogA"))).toEqual({
+      words: "kW5y2bdxk-PoUP17B0O-ovMo"
+    });
+  });
+
+  test("one that cannot be read says so, and anything else is searched as it was read", async () => {
+    expect(await fitted({ words: "_notanoldid" })).toEqual({
+      error: "Couldn't read this palette link."
+    });
+    const words = readField("dark blue");
+    expect(await fitted(words)).toBe(words);
+    const seed = readField(SEED);
+    expect(await fitted(seed)).toBe(seed);
   });
 });
 

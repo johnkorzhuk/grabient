@@ -1,4 +1,3 @@
-import { isStyle, parseSize, STEPS_MAX, STEPS_MIN, type Style } from "@grabient/engine/view.ts";
 import {
   DEFAULT_FRAME,
   framePath,
@@ -8,6 +7,8 @@ import {
   type RisingFrame
 } from "../../lib/orders.ts";
 import { listWords, looksLikeLink, paletteId, readLink } from "../../lib/words.ts";
+import { COLLECTION_LIMIT } from "../collections/params.ts";
+import { type ListView, readListView, viewParams } from "../list/appearance.ts";
 
 /* The gallery's addresses: the home (`/`), the palette lists (/palettes, /palettes/rising in its frames,
    /palettes/saved), what each says in its query, and the one canonical form of each. A list's query is its words (`q`),
@@ -20,19 +21,12 @@ export const LIST_PATHS = {
   rising: "/palettes/rising",
   saved: "/palettes/saved"
 } as const;
-export const DEFAULT_LIMIT = 24;
-export const LIMIT_MIN = 12;
-export const LIMIT_MAX = 96;
+const DEFAULT_LIMIT = 24;
+const LIMIT_MIN = 12;
+const LIMIT_MAX = 96;
 const PAGE_MAX = 1_000_000;
 
-/** How a list draws every card: a style, a stop count, an angle and an export size over each palette's own, or
-    `auto` for its own. */
-export interface ListView {
-  style: Style | "auto";
-  steps: number | "auto";
-  angle: number | "auto";
-  size: string | "auto";
-}
+/** What a list's address says: its words, the view its cards draw in (the frame's), its page and its size. */
 export interface ListParams extends ListView {
   words: string;
   page: number;
@@ -52,18 +46,20 @@ const int = (raw: string | null, min: number, max: number): number | null => {
   return n >= min && n <= max ? n : null;
 };
 
-/** A query's view, page and size as a list reads them: each out of bounds is its default. Steps under three, as few
-    as a palette allows, are raised to three. */
-export function readParams(sp: URLSearchParams, home = false): ListParams {
-  const style = sp.get("style");
-  const steps = int(sp.get("steps"), 1, STEPS_MAX);
-  const size = parseSize(sp.get("size"));
+/** The view a query names, each parameter as it stands first. */
+const viewOf = (sp: URLSearchParams): ListView =>
+  readListView({
+    style: sp.get("style"),
+    steps: sp.get("steps"),
+    angle: sp.get("angle"),
+    size: sp.get("size")
+  });
+
+/** A query as a list reads it: each part out of bounds is its default. */
+function readParams(sp: URLSearchParams, home = false): ListParams {
   return {
     words: listWords(sp.get("q") ?? sp.get("query")),
-    style: isStyle(style) ? style : "auto",
-    steps: steps === null ? "auto" : Math.max(steps, STEPS_MIN),
-    angle: int(sp.get("angle"), 0, 360) ?? "auto",
-    size: size ? `${size.width}x${size.height}` : "auto",
+    ...viewOf(sp),
     page: int(sp.get("page"), 1, PAGE_MAX) ?? 1,
     limit: home ? DEFAULT_LIMIT : (int(sp.get("limit"), LIMIT_MIN, LIMIT_MAX) ?? DEFAULT_LIMIT),
     selection: sp.has("selection")
@@ -75,10 +71,8 @@ export function listSearch(p: ListParams, change: Partial<ListParams> = {}): str
   const m = { ...p, ...change };
   const q = new URLSearchParams();
   if (m.words) q.set("q", m.words);
-  if (m.style !== "auto") q.set("style", m.style);
-  if (m.steps !== "auto") q.set("steps", String(m.steps));
-  if (m.angle !== "auto") q.set("angle", String(m.angle));
-  if (m.size !== "auto") q.set("size", m.size);
+  for (const [name, value] of Object.entries(viewParams(m)))
+    if (value !== undefined) q.set(name, String(value));
   if (m.page !== 1) q.set("page", String(m.page));
   if (m.limit !== DEFAULT_LIMIT) q.set("limit", String(m.limit));
   const parts = [q.toString(), m.selection ? "selection" : ""].filter(Boolean);
@@ -88,10 +82,14 @@ export function listSearch(p: ListParams, change: Partial<ListParams> = {}): str
 /** A list's params with the view a pasted link draws in, wherever the list sets none of its own. */
 export function withView(params: ListParams, view?: URLSearchParams): ListParams {
   if (!view) return params;
-  const said = readParams(view);
-  const own = (key: "style" | "steps" | "angle" | "size") =>
-    params[key] === "auto" && view.has(key) ? { [key]: said[key] } : {};
-  return { ...params, ...own("style"), ...own("steps"), ...own("angle"), ...own("size") };
+  const said = viewOf(view);
+  return {
+    ...params,
+    style: params.style === "auto" ? said.style : params.style,
+    steps: params.steps === "auto" ? said.steps : params.steps,
+    angle: params.angle === "auto" ? said.angle : params.angle,
+    size: params.size ?? said.size
+  };
 }
 
 /** A query whose words are a Grabient link, read as what the link means: its palette or words as `q`, and its view
@@ -142,7 +140,7 @@ export function listIdentity(place: Exclude<GalleryPlace, { kind: "home" }>, own
 }
 
 /** The path a place lives at. */
-export const placePath = (place: GalleryPlace): string =>
+const placePath = (place: GalleryPlace): string =>
   place.kind === "home"
     ? "/"
     : place.kind === "saved"
@@ -193,17 +191,23 @@ export function canonicalGallery(address: string): string | null {
   return null;
 }
 
-/** Where a press on an order of the palette list leads, with the words and view the page keeps. */
-export function orderHref(order: Order, frame: RisingFrame, params: ListParams): string {
-  const path =
-    order === "saved"
-      ? LIST_PATHS.saved
-      : order === "rising"
-        ? framePath(LIST_PATHS.rising, frame)
-        : LIST_PATHS.popular;
-  return path + listSearch(params, { page: 1, selection: false });
+const COLLECTION_PATHS = {
+  popular: "/collections",
+  rising: "/collections/rising",
+  saved: "/collections/saved"
+} as const;
+/** Where a list lives: a section in an order, Rising in its frame, with the words and the view a page keeps. A page
+    size the collections list does not take is left behind. */
+export function listHref(
+  section: "palettes" | "collections",
+  order: Order,
+  frame: RisingFrame,
+  params: ListParams
+): string {
+  const paths = section === "palettes" ? LIST_PATHS : COLLECTION_PATHS;
+  const limit = section === "palettes" ? params.limit : Math.min(params.limit, COLLECTION_LIMIT);
+  return (
+    (order === "rising" ? framePath(paths.rising, frame) : paths[order]) +
+    listSearch(params, { page: 1, limit, selection: false })
+  );
 }
-
-/** The home, searched for these words or at rest. */
-export const homeHref = (words = "") =>
-  `/${words ? listSearch(readParams(new URLSearchParams()), { words }) : ""}`;

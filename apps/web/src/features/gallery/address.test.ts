@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { parseSize } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
 import { framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
@@ -43,7 +44,7 @@ const paramsOf = (p: GoldenParams): ListParams => ({
   style: p.style as ListParams["style"],
   steps: p.steps,
   angle: p.angle,
-  size: p.size,
+  size: parseSize(p.size),
   page: p.page,
   limit: p.limit,
   selection: !!p.selection

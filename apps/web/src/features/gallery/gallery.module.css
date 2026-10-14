@@ -20,11 +20,23 @@
 .heading {
   composes: heading from "../../app/list.module.css";
 }
+/* a list under its row: its title, its cards, the mark and the line, with no space of the page's between them */
+.list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 .stack {
   display: flex;
   flex-direction: column;
   gap: var(--space-s16);
   min-width: 0;
+}
+/* the palettes a search's colors make, a section's space above the list they lead */
+.made {
+  .list > & {
+    padding-bottom: var(--space-s8);
+  }
 }
 /* the way in, where the palettes cannot answer */
 .empty {
@@ -33,6 +45,17 @@
   align-items: flex-start;
   gap: var(--space-s4);
   padding-block: var(--space-s10);
+}
+/* the collections offered where the palettes cannot answer: their name, then their cards on the list's own grid */
+.offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+  padding-bottom: var(--space-s10);
+}
+/* a card's place on the grid, with no box of its own */
+.cell {
+  display: contents;
 }
 /* the mark the next page waits on: a hairline above the line, watched from a screen away */
 .mark {

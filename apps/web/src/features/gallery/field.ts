@@ -75,11 +75,26 @@ export function readField(text: string): FieldRead {
   return { words: listWords(words) };
 }
 
+/** A read whose palette is an old grabient.com id, fitted to keyframes in this browser as its own link would be: the
+    search finds palettes by their seeds, and only the Worker's maps know an old id. */
+export async function fitted(read: FieldRead): Promise<FieldRead> {
+  if (!("words" in read) || read.words[0] !== "_") return read;
+  const { likeSeed } = await import("@grabient/engine/legacy-import.ts");
+  const seed = likeSeed(read.words);
+  return seed ? { ...read, words: seed } : { error: msg("Couldn't read this palette link.") };
+}
+
 /** What the field's text asks the tags for: its words as an address writes them, or the palette it names. */
 export function typedWords(text: string): string {
   const read = readField(text);
   return "words" in read ? read.words : "";
 }
+
+/** Two kinds of tag in one row: one of the first and then one of the second in turn, the longer list running on. */
+export const inTurn = <T>(first: readonly T[], second: readonly T[]): T[] =>
+  Array.from({ length: Math.max(first.length, second.length) }, (_, i) => [first[i], second[i]])
+    .flat()
+    .filter(tag => tag !== undefined);
 
 /* whether one keystroke leads from one text to the other: a letter typed, deleted or typed over */
 function oneKey(before: string, text: string): boolean {

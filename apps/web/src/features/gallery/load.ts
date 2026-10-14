@@ -1,6 +1,8 @@
 import { getRequestEvent, isServer } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
+import type { FramedData } from "../../app/shell.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
+import { homePaint, paintOf } from "./drawing.ts";
 import {
   type Failed,
   failed,
@@ -11,8 +13,9 @@ import {
 import { keptPage, pageQuery } from "./sources.ts";
 
 /* What a gallery page's loader does: it fills the query cache with what the page shows, so the server renders from
-   the reads and the browser hydrates without asking, and it says how long the page may be kept at the edge, no longer
-   than its data stays fresh. A page past a list's end still renders, with its line saying so, and answers 404. */
+   the reads and the browser hydrates without asking; it says how long the page may be kept at the edge, no longer
+   than its data stays fresh; and it hands the frame the palettes the page opens on, for the bar, the water and the
+   appearance control. A page past a list's end still renders, with its line saying so, and answers 404. */
 
 /** A route's search as the router read it, back in the words of its address. */
 export function searchOf(raw: Record<string, unknown>): string {
@@ -25,7 +28,7 @@ export function searchOf(raw: Record<string, unknown>): string {
   return query ? `?${query}` : "";
 }
 
-export interface Loaded {
+export interface Loaded extends FramedData {
   /** seconds the edge may keep the page */
   edge: number;
   /** what search engines are told, when the page is no index's */
@@ -66,10 +69,11 @@ export async function loadPalettes(
   ]);
   const page = keptPage(client, source, place.params.page);
   if (failed(data as object) || !page) return { edge: 0, status: (data as Failed).status };
+  const paint = paintOf(page.items, place.params);
   if (place.params.page > Math.max(1, page.totalPages)) {
     return { edge: 0, robots: "noindex,follow", status: 404 };
   }
-  if (page.limited) return { edge: 0, robots: "noindex,follow", status: 429 };
+  if (page.limited) return { edge: 0, robots: "noindex,follow", status: 429, paint };
   if (page.tier === "unavailable") return { edge: 0, robots: "noindex,follow", status: 503 };
   const ttl = place.order === "rising" ? RISING_EDGE : PUBLIC_EDGE;
   /* words the search cannot read as what they mean are no page of their own for an index */
@@ -77,6 +81,7 @@ export async function loadPalettes(
   return {
     edge: page.unkept ? 0 : place.params.words ? ttl : left(page.fetchedAt, ttl),
     palettes: page.items.map(item => item.kseed),
+    paint,
     ...(unread ? { robots: "noindex,follow" } : {})
   };
 }
@@ -90,14 +95,16 @@ export async function loadHome(client: QueryClient, params: ListParams): Promise
   const head = params.words ? await reads[0]() : reads[0]();
   const [answered, collections] = await Promise.all([head, reads[1]()]);
   if (failed(answered) || failed(collections)) return { edge: 0 };
+  const paint = homePaint(answered.palettes, collections.items, params);
   if (answered.limited || answered.tier === "unavailable") {
-    return { edge: 0, robots: "noindex,follow", status: answered.limited ? 429 : 503 };
+    return { edge: 0, robots: "noindex,follow", status: answered.limited ? 429 : 503, paint };
   }
   if (params.page > Math.max(1, collections.totalPages)) {
-    return { edge: 0, robots: "noindex,follow", status: 404 };
+    return { edge: 0, robots: "noindex,follow", status: 404, paint };
   }
   return {
     edge: answered.unkept || collections.unkept ? 0 : PUBLIC_EDGE,
-    palettes: answered.palettes.map(item => item.kseed)
+    palettes: answered.palettes.map(item => item.kseed),
+    paint
   };
 }

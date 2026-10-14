@@ -83,7 +83,9 @@ test("an address without a suffix is still its page's", () => {
   expect(page("/kS7Q8Yy5S_SChv0")).toBe("/$id/");
   expect(page("/ocean-gradients")).toBe("/$id/");
   expect(page("/@ada/warm-sunsets")).toBe("/@{$handle}/$slug/");
-  expect(page("/palettes")).toBe("/palettes/");
+  expect(page("/palettes")).toBe("/palettes/{-$order}/{-$frame}");
+  expect(page("/palettes/rising/3m")).toBe("/palettes/{-$order}/{-$frame}");
+  expect(page("/palettes/saved")).toBe("/palettes/saved");
 });
 
 test("the recorder's route takes PostHog's addresses, the one that ends in a slash too", () => {

@@ -169,9 +169,10 @@ describe("ListNav", () => {
     const order = tags(markup, "nav")[1]!;
     expect(order["aria-label"]).toBe("Order");
     const links = tags(markup, "a");
-    expect(links.find(a => a["aria-current"] === "page" && a["aria-label"])?.["aria-label"]).toBe(
-      "Rising, 3 months"
-    );
+    /* the name starts with the words on screen, then says the frame in full */
+    const rising = links.find(a => a["aria-current"] === "page" && a["aria-label"]);
+    expect(rising?.["aria-label"]).toBe("Rising 3m, Rising, 3 months");
+    expect(text(markup)).toContain("Rising 3m");
     expect(links.find(a => a["aria-disabled"] === "true")?.href).toBeUndefined();
     expect(markup).toContain("3m");
     expect(tags(markup, "button")).toHaveLength(1);
@@ -209,7 +210,7 @@ describe("the feeds on the server", () => {
       />
     ));
     expect(tags(markup, "i").map(i => i["data-g"])).toEqual(["g0", "g1"]);
-    expect(tag(markup, "div").style).toBe(`padding-top:0px;padding-bottom:${8 * (500 + 64)}px`);
+    expect(tag(markup, "div").style).toBe(`--before:0px;--after:${8 * (500 + 64)}px`);
   });
 
   test("a group shows its title as the way to it, its count and its cards", () => {

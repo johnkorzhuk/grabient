@@ -1,6 +1,6 @@
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
-import type { HomeHead } from "../../features/gallery/schema.ts";
+import { HOT_PALETTES, type HomeHead, SEARCH_PALETTES } from "../../features/gallery/schema.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
 import { RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
 import { listPalettes } from "./list.ts";
@@ -10,9 +10,6 @@ import { searchPool } from "./search.ts";
    (`/?q=words`) the palette list's own search in its Popular order, the best sixty. The collections beneath it are the
    collections list's own pages. So the home costs what the two lists cost, inside the same allowances, and a press on
    either section lands on results the reader has seen the start of. */
-
-export const HOT_PALETTES = 24;
-export const SEARCH_PALETTES = 60;
 
 export interface HeadAnswer {
   head: HomeHead;

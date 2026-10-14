@@ -73,7 +73,7 @@ export function PaletteFeed<T>(props: {
           {item => props.card(item)}
         </For>
         <Show when={!win.started() && live() < props.items.length}>
-          <div class={styles.still}>
+          <div class={styles.still} ref={win.wake}>
             <NoHydration>
               <For each={props.items.slice(live())}>{item => props.card(() => item)}</For>
             </NoHydration>

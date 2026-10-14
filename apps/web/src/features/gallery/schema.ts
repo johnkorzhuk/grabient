@@ -54,6 +54,10 @@ export const SearchAnswer = v.object({
 });
 export type SearchAnswer = v.InferOutput<typeof SearchAnswer>;
 
+/** How many palettes the home's head holds: the hottest, or searched, the best answers. */
+export const HOT_PALETTES = 24;
+export const SEARCH_PALETTES = 60;
+
 /** The head of the home: the hottest palettes, or the best answers to its words. */
 export const HomeHead = v.object({
   palettes: v.array(SearchItem),
@@ -74,6 +78,8 @@ export const SavedPage = v.object({
   totalPages: v.number(),
   query: v.optional(v.string()),
   tier: v.optional(v.string()),
-  fetchedAt: v.number()
+  fetchedAt: v.number(),
+  /** when its like counts were read, where that is before the page was: the account's copy keeps each as it came */
+  countsAt: v.optional(v.number())
 });
 export type SavedPage = v.InferOutput<typeof SavedPage>;
