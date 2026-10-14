@@ -10,7 +10,8 @@ import {
 } from "@playwright/test";
 
 /* The readers' journeys, each walked as a reader walks it, at a desk's width with a mouse and at a phone's with a
-   finger: from every list into a palette or a collection and back. They read a copy of staging's data, with its test
+   finger: from every list into a palette or a collection and back, a search in four languages, the editor from a list,
+   the frame's own pages, and an account's likes and collections. They read a copy of staging's data, with its test
    account verify-ada and her private collections. */
 
 test.describe.configure({ timeout: 90_000 });
@@ -123,8 +124,6 @@ async function fromMenu(page: Page, item: string, width: Width) {
   await pressAt(page, page.getByRole("menuitem", { name: item }), width);
 }
 
-const editor = (page: Page) => page.getByRole("complementary", { name: "Editor" });
-
 /** The address of the link at `at` among those of the list a reader sees at this width, or of its last. */
 async function linkAt(page: Page, selector: string, at: number): Promise<string> {
   await expect(page.locator(selector).first()).toBeAttached();
@@ -210,7 +209,7 @@ async function walk(page: Page, width: Width, list: List) {
       await expect(page.locator("main h1"), way).toHaveText(opened.collection);
       await expect(page.locator("main article").first(), way).toBeVisible();
     } else {
-      await expect(editor(page), way).toBeVisible();
+      await expect(page.getByRole("complementary", { name: "Editor" }), way).toBeVisible();
       await expect(page.getByRole("img", { name: "The gradient" }), way).toBeVisible();
     }
     expect(await styled(page), way).toBe(true);
@@ -239,15 +238,6 @@ const OWN: List[] = [
   { name: "Saved", address: "/palettes/saved", opens: ["edit", "card"] },
   { name: "a private collection", address: "/@ada-verify/my-blues", opens: ["edit", "card"] }
 ];
-
-for (const width of WIDTHS)
-  test.describe(`on ${width.name}`, () => {
-    test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
-    for (const list of LISTS)
-      test(`from ${list.name}, what a reader opens lands whole and Back returns to the list as it was`, ({
-        page
-      }) => walk(page, width, list));
-  });
 
 /** A string of the site's English in the page's language, from the catalog the site translates with. */
 function say(lang: string, english: string): string {
@@ -296,9 +286,45 @@ const LANGUAGES = [
   { lang: "ar", prefix: "/ar", words: "أخضر" }
 ];
 
+/** A drag along a control as the width's reader makes it: a mouse's, or a finger's. */
+async function drag(page: Page, target: Locator, by: number, width: Width) {
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (!box) throw new Error("nothing to drag");
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  if (!width.touch) {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + by, y, { steps: 8 });
+    await page.mouse.up();
+    return;
+  }
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", at?: number) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: at === undefined ? [] : [{ x: x + at, y }]
+    });
+  await touch("touchStart", 0);
+  for (let step = 1; step <= 8; step++) await touch("touchMove", (by * step) / 8);
+  await touch("touchEnd");
+}
+const seedOf = (page: Page) => new URL(page.url()).pathname.slice(1);
+/** The palette's seed once its address has taken an edit's last change: it follows them at most every 350 ms. */
+async function edited(page: Page, was: string) {
+  await expect.poll(() => seedOf(page)).not.toBe(was);
+  await page.waitForTimeout(400);
+  return seedOf(page);
+}
+
 for (const width of WIDTHS)
   test.describe(`on ${width.name}`, () => {
     test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
+    for (const list of LISTS)
+      test(`from ${list.name}, what a reader opens lands whole and Back returns to the list as it was`, ({
+        page
+      }) => walk(page, width, list));
+
     for (const { lang, prefix, words } of LANGUAGES)
       test(`a search in ${lang} by a tag, by words, by a palette's address and cleared shows what its address shows`, async ({
         page,
@@ -354,42 +380,7 @@ for (const width of WIDTHS)
         expect(await sameDocument(page)).toBe(true);
         expect(broken).toEqual([]);
       });
-  });
 
-/** A drag along a control as the width's reader makes it: a mouse's, or a finger's. */
-async function drag(page: Page, target: Locator, by: number, width: Width) {
-  await target.scrollIntoViewIfNeeded();
-  const box = await target.boundingBox();
-  if (!box) throw new Error("nothing to drag");
-  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
-  if (!width.touch) {
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    await page.mouse.move(x + by, y, { steps: 8 });
-    await page.mouse.up();
-    return;
-  }
-  const cdp = await page.context().newCDPSession(page);
-  const touch = (type: "touchStart" | "touchMove" | "touchEnd", at?: number) =>
-    cdp.send("Input.dispatchTouchEvent", {
-      type,
-      touchPoints: at === undefined ? [] : [{ x: x + at, y }]
-    });
-  await touch("touchStart", 0);
-  for (let step = 1; step <= 8; step++) await touch("touchMove", (by * step) / 8);
-  await touch("touchEnd");
-}
-const seedOf = (page: Page) => new URL(page.url()).pathname.slice(1);
-/** The palette's seed once its address has taken an edit's last change: it follows them at most every 350 ms. */
-async function edited(page: Page, was: string) {
-  await expect.poll(() => seedOf(page)).not.toBe(was);
-  await page.waitForTimeout(400);
-  return seedOf(page);
-}
-
-for (const width of WIDTHS)
-  test.describe(`on ${width.name}`, () => {
-    test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
     test("a palette opened from a list takes a key and a drag, walks them back and forth, gives its link and goes Back to the list", async ({
       page,
       context
@@ -436,11 +427,7 @@ for (const width of WIDTHS)
       expect(await sameDocument(page)).toBe(true);
       expect(broken).toEqual([]);
     });
-  });
 
-for (const width of WIDTHS)
-  test.describe(`on ${width.name}`, () => {
-    test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
     test("the sign-in sheet, Settings, About and the newsletter open from the frame's menu and links, and Back returns to the list", async ({
       page
     }) => {
@@ -490,16 +477,15 @@ for (const width of WIDTHS)
   });
 
 type Item = { kseed: string; style: string; steps: number; angle: number };
-const like =
-  (liked: boolean) =>
-  ({ kseed, style, steps, angle }: Item) => ({
+const likes = (items: Item[], liked: boolean) =>
+  items.map(({ kseed, style, steps, angle }) => ({
     op: "like",
     seed: kseed,
     liked,
     style,
     steps,
     angle
-  });
+  }));
 /** Sends changes to verify-ada's account as her browser's copy would, and checks each was taken. A limit reached stops
     the turn, and the rest go once it has passed. */
 async function sync(api: APIRequestContext, ops: object[]) {
@@ -533,7 +519,7 @@ async function reset(api: APIRequestContext) {
   const liked = await read<Item>("/api/saved?page=1&limit=96");
   const own = await read<{ slug: string; title: string }>("/api/me/collections?page=1&limit=96");
   await sync(api, [
-    ...liked.map(like(false)),
+    ...likes(liked, false),
     ...own
       .filter(({ title }) => title.startsWith(MADE))
       .map(({ slug }) => ({ op: "collection.delete", slug }))
@@ -553,7 +539,7 @@ test.describe("signed in as verify-ada", () => {
     });
     await reset(api);
     const listed = await api.get("/api/palettes?sort=popular&page=5&limit=24");
-    await sync(api, ((await listed.json()) as { items: Item[] }).items.slice(0, 6).map(like(true)));
+    await sync(api, likes(((await listed.json()) as { items: Item[] }).items.slice(0, 6), true));
   });
   test.afterAll(async () => {
     await reset(api);
