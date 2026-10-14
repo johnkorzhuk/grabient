@@ -31,6 +31,19 @@ declare global {
   }
 }
 
+/* Solid writes the page's data just after its hydration bootstrap, ahead of everything the head names. The data moves
+   to the head's end, so the title, the description, the card, the stylesheet and the fonts stand in the document's
+   first few kilobytes, where a link preview reads them, and the data still comes before the body and the app. */
+function dataLast(html: string): string {
+  const boot = html.indexOf("window._$HY||");
+  if (boot < 0) return html;
+  const from = html.indexOf("</script>", boot) + "</script>".length;
+  const to = html.indexOf("<!--xs-->", from);
+  const end = html.indexOf("</head>", to);
+  if (to <= from || end < 0) return html;
+  return html.slice(0, from) + html.slice(to, end) + html.slice(from, to) + html.slice(end);
+}
+
 /* A page answers once it has rendered whole, so the query cache rides along in the document and the answer can still
    say the render failed: a broken page is a 500 that no cache keeps. */
 const start = createStartHandler(
@@ -48,7 +61,7 @@ const start = createStartHandler(
 
        The router writes each match's id into its script with a NUL for every slash. HTML allows no NUL in a document,
        so each is written as the escape a script reads as the same character. */
-    const html = (await response.text())
+    const html = dataLast(await response.text())
       .replace(
         "<head>",
         '<head><meta charset="utf-8"><style>@layer reset, tokens, base, components;</style>'

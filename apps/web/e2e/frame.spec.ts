@@ -355,3 +355,18 @@ test("a page opened with the service worker's stored shell wears its own frame",
   await expect(header.getByRole("button", { name: "Sign in" })).toHaveCount(0);
   await expect(header.getByRole("button", { name: /^Appearance/ })).toHaveCount(0);
 });
+
+test("a document names its page in its first few kilobytes, and its data comes after", async ({
+  request
+}) => {
+  for (const address of ["/", "/palettes", "/collections", "/about"]) {
+    const html = await (await request.get(address)).text();
+    const at = (piece: string) => html.indexOf(piece);
+    expect(at("<title"), address).toBeLessThan(2048);
+    expect(at('rel="stylesheet"'), address).toBeLessThan(4096);
+    // the page's data, after every tag a link preview reads and before the body
+    for (const tag of ['property="og:image"', 'name="description"', 'rel="canonical"'])
+      expect(at("self.$R"), `${address} ${tag}`).toBeGreaterThan(at(tag));
+    expect(at("self.$R"), address).toBeLessThan(at("<body"));
+  }
+});
