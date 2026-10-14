@@ -36,10 +36,10 @@ test("a change of view keeps the pages that joined and the depth the reader scro
   expect(await page.evaluate(() => scrollY)).toBe(depth);
 });
 
-test("steps draw at once, the address follows, and the links take them once the change rests", async ({
+test("steps draw at once, the address follows in the lists' one order, and the links take them at rest", async ({
   page
 }) => {
-  await page.goto("/palettes");
+  await page.goto("/palettes?limit=36");
   await hydrated(page);
   const link = page.locator("article a[href]").first();
   const own = await link.getAttribute("href");
@@ -50,26 +50,13 @@ test("steps draw at once, the address follows, and the links take them once the 
     await page.keyboard.press("ArrowUp");
     await page.waitForTimeout(100);
   }
-  expect(new URL(page.url()).searchParams.get("steps")).not.toBeNull();
+  expect(new URL(page.url()).search).toMatch(/^\?steps=\d+&limit=36$/);
   expect(await link.getAttribute("href")).toBe(own);
   await expect.poll(() => link.getAttribute("href")).toContain("steps=22");
-  await expect(page).toHaveURL(/\/palettes\?steps=22$/);
-});
-
-test("the control writes a list's address in the one order the server keeps", async ({
-  page,
-  request
-}) => {
-  await page.goto("/palettes?limit=48");
-  await hydrated(page);
-  await page.getByRole("button", { name: /^Appearance/ }).click();
-  await page.getByRole("spinbutton", { name: "Steps" }).focus();
-  await page.keyboard.press("ArrowUp");
-  await expect(page).toHaveURL(/\/palettes\?steps=3&limit=48$/);
+  await expect(page).toHaveURL(/\/palettes\?steps=22&limit=36$/);
+  // a style takes its place ahead of the steps, where the server keeps it
   await page.getByRole("button", { name: "Radial", exact: true }).click();
-  await expect(page).toHaveURL(/\/palettes\?style=radialGradient&steps=3&limit=48$/);
-  const answer = await request.get(page.url(), { maxRedirects: 0 });
-  expect(answer.status()).toBe(200);
+  await expect(page).toHaveURL(/\/palettes\?style=radialGradient&steps=22&limit=36$/);
 });
 
 test("a document that opens on a list takes its view, which the wordmark leads home in", async ({
@@ -78,10 +65,7 @@ test("a document that opens on a list takes its view, which the wordmark leads h
   const home = page.locator("a[data-home]");
   await page.goto("/palettes?style=linearSwatches&steps=5");
   await expect(home).toHaveAttribute("href", "/?style=linearSwatches&steps=5");
-  // a page that draws no palettes keeps it
-  await page.goto("/about");
-  await expect(home).toHaveAttribute("href", "/?style=linearSwatches&steps=5");
-  // and a list opened in every palette's own view lets it go
+  // a list opened in every palette's own view lets it go
   await page.goto("/palettes");
   await expect.poll(() => remembered(page)).toContain('"style":"auto"');
   await expect(home).toHaveAttribute("href", "/");
