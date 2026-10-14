@@ -1,8 +1,11 @@
 @layer components {
-  /* an action, never an unchosen tab: a step up in ink at rest */
   .press {
     composes: tab from "./tabs.module.css";
     gap: var(--space-s2);
+  }
+  /* an action, never an unchosen tab: a step up in ink at rest. Said of the button, so it holds over a tab's own
+     color wherever that rule loads, before this one or after */
+  button.press {
     color: var(--color-ink2);
     &:hover {
       color: var(--color-ink);
