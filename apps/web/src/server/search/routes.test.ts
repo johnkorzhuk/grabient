@@ -88,18 +88,6 @@ test("a crawler's answer is kept for nobody", async () => {
   expect(await response.json()).toMatchObject({ tier: "account", unkept: true });
 });
 
-test("an address past its minute of misses is turned away before any search", async () => {
-  const env = searchEnv();
-  const ip = "198.51.100.9";
-  for (let i = 0; i < 60; i++)
-    expect((await searchJsonResponse(ask("/api/search.json?q=red&limit=1", ip), env)).status).toBe(
-      200
-    );
-  const refused = await searchJsonResponse(ask("/api/search.json?q=red&limit=1", ip), env);
-  expect(refused.status).toBe(429);
-  expect(refused.headers.get("Retry-After")).toBe("60");
-});
-
 test("the edge keys a search by what its handler reads, whichever of its addresses asked", () => {
   const [json, colors, tags] = searchKeyRules;
   const key = (params: string, path = "/api/search.json") =>

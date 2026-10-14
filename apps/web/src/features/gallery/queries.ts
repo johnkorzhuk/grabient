@@ -103,11 +103,10 @@ export interface ListKey {
 }
 
 const readList = createIsomorphicFn()
-  .server(async (key: ListKey, _signal: AbortSignal): Promise<PalettePage | Failed> => {
-    const answer = await publicList(getRequest(), listQuery(key));
-    if ("refused" in answer) return { failed: t(answer.refused), status: 429 };
-    return answer.page;
-  })
+  .server(
+    (key: ListKey, _signal: AbortSignal): Promise<PalettePage | Failed> =>
+      publicList(getRequest(), listQuery(key))
+  )
   .client((key: ListKey, signal: AbortSignal) => {
     const params = new URLSearchParams({
       sort: key.sort,

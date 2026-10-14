@@ -5,10 +5,7 @@
    The tags' answer is tags.ts's, at /api/search-suggestions and at its first address, /api/popular-searches. None
    reads the session, and the pipeline adds the CORS of those any site may read. An account's own search is
    account.ts. */
-import { msg } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
-import { clientAddress } from "@grabient/server/limits/address.ts";
-import { checkLimits } from "@grabient/server/limits/check.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
 import { listWords } from "../../lib/words.ts";
@@ -16,12 +13,12 @@ import type { KeyRule } from "../cache-keys.ts";
 import { collectionsHolding } from "../collections/read.ts";
 import { canonicalPaletteSeed } from "../files/resolve.ts";
 import { askedLocale, localizeHeld } from "../mcp/admin/translations.ts";
+import { searchJsonPath } from "../paths.ts";
 import { searchColors } from "./colors.ts";
 import { type SearchResult, searchPalettes, searchRequestInput } from "./search.ts";
 import { type Background, snapshotStatus } from "./snapshot.ts";
 import { tagsKey } from "./tags.ts";
 
-const SEARCH_PATH = /^\/(?:api\/search\.json|api\/palettes\/search|(?:search|palettes)\/.+\.json)$/;
 const TAGS = "/api/search-suggestions";
 
 /** The edge cache's keys for these answers: what the handlers read of the query, normalized, so junk parameters and
@@ -29,7 +26,7 @@ const TAGS = "/api/search-suggestions";
     collections, in the reader's language. */
 export const searchKeyRules: readonly KeyRule[] = [
   {
-    match: path => SEARCH_PATH.test(path),
+    match: searchJsonPath,
     path: "/api/search.json",
     query: (params, path) => {
       const { query, limit, sort } = searchRequestInput(
@@ -62,20 +59,12 @@ export const waitOf = (result: SearchResult): Record<string, string> =>
   result.retryAfter ? { "Retry-After": String(result.retryAfter) } : {};
 
 /** The public search as JSON, sorted as asked, with the public collections that hold a palette searched by and when it
-    was read. It runs only when the edge holds no copy, so it counts against the address's misses first. */
+    was read. It runs only when the edge holds no copy, a miss the pipeline has counted against the address. */
 export async function searchJsonResponse(
   request: Request,
   env: Env,
   ctx?: Background
 ): Promise<Response> {
-  const address = clientAddress(request) ?? "local";
-  const missed = await checkLimits(env, [[`list-miss:${address}`, "listMiss"]]);
-  if (!missed?.success) {
-    return Response.json(
-      { error: msg("Too many requests. Try again later.") },
-      { status: 429, headers: { ...NO_STORE, "Retry-After": "60" } }
-    );
-  }
   const { query, limit, sort } = searchRequestInput(request);
   if (!query)
     return Response.json({ error: "Invalid search query." }, { status: 400, headers: NO_STORE });

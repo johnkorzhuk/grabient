@@ -1,8 +1,7 @@
 import { msg } from "@grabient/i18n";
-import { json, overLimit } from "@grabient/server/auth/http.ts";
+import { json } from "@grabient/server/auth/http.ts";
 import { replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { clientAddress } from "@grabient/server/limits/address.ts";
 import {
   isCollectionSlug,
   isPrivateSlug,
@@ -54,16 +53,12 @@ import {
    An account's `@handle/slug` arrives encoded as one segment. */
 
 /** GET /api/collections: kept at the edge, by its words, order, frame, page and size (cache-keys.ts), so each read here
-    is a miss, which an address may make sixty of a minute across every list and search. */
+    is a miss, which an address may make sixty of a minute across every list and search (pipeline.ts). */
 export async function listAnswer(
   request: Request,
   env: Env,
   ctx?: { waitUntil(work: Promise<unknown>): void }
 ): Promise<Response> {
-  const limited = await overLimit(env, [
-    [`list-miss:${clientAddress(request) ?? "local"}`, "listMiss"]
-  ]);
-  if (limited) return limited;
   const url = new URL(request.url);
   const params = collectionParams(url.searchParams);
   const page = await publicCollections(env, params, {

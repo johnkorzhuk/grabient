@@ -310,6 +310,49 @@ describe("the edge cache", () => {
     ]);
   });
 
+  test("counts every list, search and home it misses against one minute per address", async () => {
+    const from = (ip: string) => ({ headers: { "CF-Connecting-IP": ip } });
+    // each a canonical address of its own, so none is redirected or kept for another
+    const listings = [
+      (n: number) => `/palettes?q=w${n}`,
+      (n: number) => `/palettes/rising/3m?page=${n + 2}`,
+      (n: number) => `/?q=w${n}`,
+      (n: number) => `/?page=${n + 2}`,
+      (n: number) => `/collections?q=w${n}`,
+      (n: number) => `/collections/rising?page=${n + 2}`,
+      (n: number) => `/api/hot?q=w${n}`,
+      (n: number) => `/api/collections?page=${n + 2}`,
+      (n: number) => `/api/search.json?query=w${n}`,
+      (n: number) => `/search/w${n}.json`,
+      (n: number) => `/api/palettes?page=${n + 100}`
+    ];
+    for (let n = 0; n < 60; n++) {
+      const response = await get(listings[n % listings.length](n), from("203.0.113.7"));
+      expect(response.status).toBe(200);
+    }
+    expect(asked).toHaveLength(60);
+    const kept = await get("/palettes?q=w0", from("203.0.113.7"));
+    expect(kept.headers.get("X-Grabient-Cache")).toBe("HIT");
+    expect((await get("/about", from("203.0.113.7"))).status).toBe(200);
+    // the list API, which the edge never holds, counts every read
+    for (const listing of ["/collections?q=more", "/api/palettes?page=100"]) {
+      const refused = await get(listing, from("203.0.113.7"));
+      expect([refused.status, await refused.json()]).toEqual([
+        429,
+        { error: "Too many requests. Try again later." }
+      ]);
+      expect(refused.headers.get("Retry-After")).toBe("60");
+      expect(refused.headers.get("Cache-Control")).toBe("no-store");
+    }
+    expect(asked).toHaveLength(61);
+    expect(counted).toContain("limit listMiss client");
+    expect((await get("/collections?q=more", from("203.0.113.8"))).status).toBe(200);
+    // under `vite dev` nothing is counted
+    const development = { ...env, DEPLOYMENT: "development" } as Env;
+    const dev = await get("/collections?q=more", from("203.0.113.7"), undefined, development);
+    expect(dev.status).toBe(200);
+  });
+
   test("never holds a private page, which answers no-store", async () => {
     const response = await get("/settings");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
@@ -416,6 +459,14 @@ test("no browser keeps a redirect, but for the minutes a picture's stand-in name
       }
     });
   expect((await get("/api/y", {}, moved)).headers.get("Cache-Control")).toBe("no-store");
+});
+
+test("a refusal that names no wait of its own says a minute", async () => {
+  // the search's allowance spent: the page renders what it could, and says so with its status
+  const limited = await get("/palettes?q=zqxwv", {}, () => page(429, {}));
+  expect([limited.status, limited.headers.get("Retry-After")]).toEqual([429, "60"]);
+  const waits = () => Response.json({}, { status: 429, headers: { "Retry-After": "7" } });
+  expect((await get("/api/me/search?q=x", {}, waits)).headers.get("Retry-After")).toBe("7");
 });
 
 test("a failure is a 500 no cache keeps, logged with its stack", async () => {

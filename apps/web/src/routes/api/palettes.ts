@@ -10,11 +10,8 @@ export const Route = createFileRoute("/api/palettes")({
     handlers: {
       GET: async ({ request }) => {
         const query = listQueryOf(new URL(request.url).searchParams);
-        const answer = await publicList(request, query);
-        if ("refused" in answer) {
-          return json({ error: answer.refused }, { status: 429, headers: { "Retry-After": "60" } });
-        }
-        return json(answer.page, { headers: freshFor(answer.page.fetchedAt, listTtl(query.sort)) });
+        const page = await publicList(request, query);
+        return json(page, { headers: freshFor(page.fetchedAt, listTtl(query.sort)) });
       }
     }
   }
