@@ -209,6 +209,11 @@ test("a press between Saved and the public lists keeps the focus on the choice p
   await order.getByRole("button", { name: "Saved" }).focus();
   await page.keyboard.press("Enter");
   await expect.poll(() => here(page)).toBe("/palettes/saved");
+  // Saved's own page stands, not the list it left while it came
+  await expect(order.getByRole("button", { name: "Saved" })).toHaveAttribute(
+    "aria-current",
+    "page"
+  );
   await expect(order.getByRole("button", { name: "Saved" })).toBeFocused();
   await order.getByRole("link", { name: "Popular" }).focus();
   await page.keyboard.press("Enter");
