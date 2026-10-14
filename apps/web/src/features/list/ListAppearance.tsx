@@ -12,8 +12,8 @@ import {
   type ListView,
   readListView,
   rememberView,
-  type ViewDraft,
-  viewParams
+  searchInView,
+  type ViewDraft
 } from "./appearance.ts";
 
 /* The appearance control in the header's corner on every page that draws palettes as cards: style, steps and angle
@@ -39,7 +39,7 @@ export function ListAppearance() {
   const href = (patch: Partial<ListView>) =>
     router.buildLocation({
       to: location().pathname,
-      search: (prev: Record<string, unknown>) => ({ ...prev, ...viewParams(patch) })
+      search: (prev: Record<string, unknown>) => searchInView(prev, patch)
     } as never).publicHref;
 
   /* the draft as a plain value too: a signal written now reads its old value until the write settles */
