@@ -26,8 +26,9 @@ const FRAMES: Readonly<Record<Frame, { short: string; name: string }>> = {
     sections alone with neither chosen, and keeps the order's room so its cards stand where a list's do. Given
     addresses, the choices are links that crawlers and new tabs follow, while a plain press still goes through the
     page; Saved has no address and stays a press. Given a frame, Rising says it after its name, sized for the widest
-    of the frames offered, and a press on it while it is the order asks the page for the next. On a phone both rows
-    are full width. */
+    of the frames offered, and a press on it while it is the order asks the page for the next. Its accessible name
+    starts with the words it shows, which a reader who speaks to the page says, then says the frame in full. On a
+    phone both rows are full width. */
 export function ListNav(props: {
   /** the page's section; null on the home, where neither is chosen */
   section: Section | null;
@@ -60,13 +61,15 @@ export function ListNav(props: {
   const orders = () =>
     ORDERS.map(o => {
       const frame = o.value === "rising" && props.frame ? FRAMES[props.frame] : null;
+      const label = t(o.label, { $context: "order" });
+      const detail = frame && t(frame.short, { $context: "frame" });
       return {
         value: o.value,
-        label: t(o.label, { $context: "order" }),
+        label,
         href: props.orderHref?.(o.value),
         disabled: !!props.disabled?.(o.value),
-        ...(frame
-          ? { detail: t(frame.short, { $context: "frame" }), forms: frames(), name: t(frame.name) }
+        ...(frame && detail
+          ? { detail, forms: frames(), name: `${label} ${detail}, ${t(frame.name)}` }
           : {})
       };
     });
