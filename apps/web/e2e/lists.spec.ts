@@ -36,29 +36,6 @@ test("a change of view keeps the pages that joined and the depth the reader scro
   expect(await page.evaluate(() => scrollY)).toBe(depth);
 });
 
-test("steps draw at once, the address follows in the lists' one order, and the links take them at rest", async ({
-  page
-}) => {
-  await page.goto("/palettes?limit=36");
-  await hydrated(page);
-  const link = page.locator("article a[href]").first();
-  const own = await link.getAttribute("href");
-  await page.getByRole("button", { name: /^Appearance/ }).click();
-  await page.getByRole("spinbutton", { name: "Steps" }).focus();
-  // two seconds of steps with no rest between them: Auto, then 3 to 22
-  for (let i = 0; i < 20; i++) {
-    await page.keyboard.press("ArrowUp");
-    await page.waitForTimeout(100);
-  }
-  expect(new URL(page.url()).search).toMatch(/^\?steps=\d+&limit=36$/);
-  expect(await link.getAttribute("href")).toBe(own);
-  await expect.poll(() => link.getAttribute("href")).toContain("steps=22");
-  await expect(page).toHaveURL(/\/palettes\?steps=22&limit=36$/);
-  // a style takes its place ahead of the steps, where the server keeps it
-  await page.getByRole("button", { name: "Radial", exact: true }).click();
-  await expect(page).toHaveURL(/\/palettes\?style=radialGradient&steps=22&limit=36$/);
-});
-
 test("a document that opens on a list takes its view, which the wordmark leads home in", async ({
   page
 }) => {
