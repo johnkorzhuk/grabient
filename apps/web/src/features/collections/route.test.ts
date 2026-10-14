@@ -1,3 +1,4 @@
+import { setLocaleSource } from "@grabient/i18n";
 import { QueryClient } from "@tanstack/solid-query";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { heading } from "../../lib/page-meta.ts";
@@ -325,6 +326,16 @@ describe("a collection page's loader", () => {
     await expect(loadCollection(cache, at("red", "popular", "?sort=hot"))).rejects.toEqual({
       redirect: { href: "/palettes?q=red", statusCode: 301 }
     });
+  });
+  test("leads in the reader's language", async () => {
+    setLocaleSource(() => "ja");
+    try {
+      await expect(
+        loadCollection(holding("red", { doc: null, fetchedAt: 0 }), at("red"))
+      ).rejects.toEqual({ redirect: { href: "/ja/palettes?q=red", statusCode: 301 } });
+    } finally {
+      setLocaleSource(() => "en");
+    }
   });
   test("leads an old link's order on a collection's address to the collection's own", async () => {
     await expect(

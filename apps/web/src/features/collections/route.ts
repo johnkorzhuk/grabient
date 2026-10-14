@@ -1,3 +1,4 @@
+import { localHref } from "@grabient/i18n";
 import { getRequestEvent, isServer } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import { redirect } from "@tanstack/solid-router";
@@ -27,7 +28,7 @@ import type { CollectionDocument, CollectionPage } from "./types.ts";
 
 /* What the collections' routes share: an address read into the place its page draws, the reads a loader puts in the
    query cache before the page renders (so the server renders from them and hydration asks for nothing), and the status
-   and robots the answer takes. A page that renders says its status as it renders, on the server: a list past its end,
+   and robots the answer takes. A redirect names its address in the reader's language, which the router leaves to it. A page that renders says its status as it renders, on the server: a list past its end,
    a collection that is private or missing, each 404 with its words on screen. */
 
 /** What a loader tells its route beyond the cache it filled: the frame takes `paint`, the page's first palettes. */
@@ -85,7 +86,7 @@ export async function loadList(client: QueryClient, place: ListPlace): Promise<L
       page: place.page,
       limit: place.limit
     });
-    throw redirect({ href: `/collections/rising${search}`, statusCode: 302 });
+    throw redirect({ href: localHref(`/collections/rising${search}`), statusCode: 302 });
   }
   const [page] = await Promise.all([
     client.ensureQueryData(collectionsQuery(listKey(place))),
@@ -153,7 +154,9 @@ export async function loadCollection(
   /* a collection lives here: an old link's order is none of its page's */
   if (here && params.has("sort"))
     throw redirect({
-      href: collectionHref(at.slug, at.order) + pageSearch(viewOf(params), params.has("selection")),
+      href: localHref(
+        collectionHref(at.slug, at.order) + pageSearch(viewOf(params), params.has("selection"))
+      ),
       statusCode: 301
     });
   if (found.doc)
@@ -171,7 +174,7 @@ export async function loadCollection(
   );
   const rising = at.order === "rising" || parseSort(params.get("sort")) !== "popular";
   throw redirect({
-    href: `${rising ? "/palettes/rising" : "/palettes"}${search}`,
+    href: localHref(`${rising ? "/palettes/rising" : "/palettes"}${search}`),
     statusCode: 301
   });
 }
