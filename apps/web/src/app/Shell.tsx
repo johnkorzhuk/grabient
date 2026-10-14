@@ -201,11 +201,7 @@ export function Shell() {
             <SkipTarget />
             <Outlet />
           </BarLight>
-          <Show when={keys.rows()}>
-            {rows => (
-              <KeyList rows={rows()} onClose={keys.close} bindingsHref={localHref("/bindings")} />
-            )}
-          </Show>
+          <Show when={keys.rows()}>{rows => <KeyList rows={rows()} onClose={keys.close} />}</Show>
           <Toast />
           <EmbedNotice strip={!!page().options.strip} />
         </PageRoot>
