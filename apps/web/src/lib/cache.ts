@@ -26,8 +26,9 @@ export const TEXT = {
   "CDN-Cache-Control": "max-age=86400, stale-while-revalidate=86400"
 } as const;
 
-/** A page drawn from data cached apart: kept at the edge only while that data stays fresh, never longer. */
-export const edgeFor = (seconds: number) => ({
-  "Cache-Control": REVALIDATE,
-  "CDN-Cache-Control": `max-age=${Math.max(0, Math.floor(seconds))}`
-});
+/** A page drawn from data cached apart: kept at the edge only while that data stays fresh, never longer, and by no
+    cache at all when it may not be kept (a failed read, a crawler's search). */
+export const edgeFor = (seconds: number) =>
+  seconds >= 1
+    ? { "Cache-Control": REVALIDATE, "CDN-Cache-Control": `max-age=${Math.floor(seconds)}` }
+    : NO_STORE;
