@@ -71,6 +71,31 @@ test("signed out, the selection's Save leads to sign in and asks for no account'
   expect(asked).toEqual([]);
 });
 
+test("a press on another order keeps the collections page: its field, its row and the focus on the choice", async ({
+  page
+}) => {
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.getByRole("searchbox").evaluate(el => el.setAttribute("data-was", "here"));
+  const order = (name: RegExp) =>
+    page.getByRole("navigation", { name: "Order" }).getByRole("link", { name });
+  await order(/^Rising/).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/collections\/rising$/);
+  await expect(page.locator(`main a[href="/${SLUG}/rising"]`)).toBeVisible();
+  await expect(page.getByRole("searchbox")).toHaveAttribute("data-was", "here");
+  await expect(order(/^Rising/)).toBeFocused();
+  await order(/^Popular/).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/collections$/);
+  await expect(page.getByRole("searchbox")).toHaveAttribute("data-was", "here");
+  await expect(order(/^Popular/)).toBeFocused();
+});
+
 test("a list read again on purpose that fails keeps its groups beside the reason and Retry", async ({
   page
 }) => {
