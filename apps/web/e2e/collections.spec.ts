@@ -412,3 +412,33 @@ test("a crawler's search of the collections whose words were read in part is kep
     expect(answer.headers()["cdn-cache-control"]).toBe("no-store");
   }
 });
+
+test("a palette the admin likes is offered no curation", async ({ page }) => {
+  await signIn(page, "admin", true);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({
+      json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+    })
+  );
+  await page.route(`**/api/me/collections/${SLUG}/state*`, route =>
+    route.fulfill({
+      json: { owned: false, canCurate: true, canDelete: true, copy: null, votes: {}, notes: [] }
+    })
+  );
+  // no person liked it, as the server knows: it leaves out the admin's own likes
+  await page.route("**/api/me/palettes?*", route => route.fulfill({ json: { liked: [] } }));
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const card = page.locator("main article").first();
+  const view = card.getByRole("button", { name: "Set view" });
+  await expect(view).toBeEnabled();
+  await card.getByRole("button", { name: /^Like/ }).click();
+  await expect(view).toBeDisabled();
+});
