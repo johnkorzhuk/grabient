@@ -30,7 +30,11 @@ export default defineConfig({
     cwd: "..",
     url: `${origin}/api/build`,
     timeout: 90_000,
-    // a clone with no .dev.vars binds the sign-in secret from here, so the session read every page makes answers
-    env: { BETTER_AUTH_SECRET: "the smoke tests' own secret, not a deploy's" }
+    /* a clone with no .dev.vars binds the sign-in secret from here, so the session read every page makes answers, and
+       the reviewers' address, without which their sign-in page is not found */
+    env: {
+      BETTER_AUTH_SECRET: "the smoke tests' own secret, not a deploy's",
+      REVIEWER_EMAIL: "reviewer@grabient.test"
+    }
   }
 });
