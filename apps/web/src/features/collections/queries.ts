@@ -184,7 +184,7 @@ export const tagsQuery = (query: string) =>
   queryOptions({
     queryKey: ["collection-tags", query] as const,
     queryFn: ({ signal }) => readTags(query, signal),
-    staleTime: query => (query.state.data === null ? 0 : PUBLIC_TTL),
+    staleTime: tags => (tags.state.data === null ? 0 : PUBLIC_TTL),
     refetchOnReconnect: true
   });
 
