@@ -257,6 +257,28 @@ for (const viewport of [
     expect(asked.filter(path => path === "/api/client-error")).toEqual([]);
   });
 
+test("Saved opened with no connection asks for Rising's frames again once the connection returns", {
+  tag: "@served"
+}, async ({ page }) => {
+  const rising = page
+    .getByRole("navigation", { name: "Order" })
+    .getByRole("link", { name: /^Rising/ });
+  await signedIn(page);
+  await page.goto("/palettes/saved");
+  await expect(card(page, 0)).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await page.context().setOffline(true);
+  await page.goto("/palettes/saved");
+  await expect(card(page, 0)).toBeVisible();
+  // an admin turned a second frame on meanwhile: Rising offers it once it is read
+  await signedIn(page);
+  await page.route("**/api/frames", route => route.fulfill({ json: { frames: ["1w", "3m"] } }));
+  await page.context().setOffline(false);
+  await expect(rising).toHaveAccessibleName(/^Rising 1w/);
+});
+
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {
   const asked = calls(page);
   await page.goto("/palettes/saved?q=blue");

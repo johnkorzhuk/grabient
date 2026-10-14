@@ -230,7 +230,7 @@ export function Sheet(props: {
     queries.getQueryData(framesQuery().queryKey) ?? [DEFAULT_FRAME]
   );
   createEffect(inView, seen => {
-    if (seen && !queries.getQueryData(framesQuery().queryKey))
+    if (seen)
       void queries.fetchQuery(framesQuery()).then(setOffered, () => {
         /* the week's frame stands */
       });

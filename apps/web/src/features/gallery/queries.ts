@@ -212,6 +212,8 @@ export const savedQuery = (key: SavedKey) =>
   });
 
 const FramesAnswer = v.object({ frames: v.array(v.picklist(RISING_FRAMES)) });
+/* what stands for the frames when they could not be read: the week alone */
+const UNREAD: RisingFrame[] = [DEFAULT_FRAME];
 
 const readFrames = createIsomorphicFn()
   .server(async (): Promise<RisingFrame[]> => framesOffered(env))
@@ -219,16 +221,20 @@ const readFrames = createIsomorphicFn()
     try {
       return (await getJson("/api/frames", FramesAnswer)).frames;
     } catch {
-      return [DEFAULT_FRAME];
+      return UNREAD;
     }
   });
 
 /** The Rising frames an admin has left on, as the page's document was told them: a page kept at the edge for minutes
-    keeps them as long, and a turned-off frame's address leads to the week's list meanwhile. */
+    keeps them as long, and a turned-off frame's address leads to the week's list meanwhile. Frames that could not be
+    read are the week alone until the next page that reads them asks again, or the connection returns. */
 export const framesQuery = () =>
   queryOptions({
     queryKey: ["frames"] as const,
     queryFn: () => readFrames(),
-    staleTime: Infinity,
+    staleTime: query => (query.state.data === UNREAD ? 0 : Infinity),
+    // an answer of the week alone replaces the stand-in, which structural sharing would keep
+    structuralSharing: false,
+    refetchOnReconnect: true,
     select: (frames: RisingFrame[]) => [...frames]
   });
