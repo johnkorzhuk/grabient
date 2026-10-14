@@ -1,7 +1,7 @@
 import { DEFAULT_LOCALE, isLocale, type Locale, localizePath } from "@grabient/i18n";
 import { homePage } from "../features/gallery/address.ts";
 import { BUILD } from "../lib/build.ts";
-import { BROWSER_ONLY, FIXED_PAGES } from "../lib/links.ts";
+import { BROWSER_ONLY } from "../lib/links.ts";
 import { listWords } from "../lib/words.ts";
 import { collectionKeyRules } from "./collections/routing.ts";
 import { fileCacheKey } from "./files/keys.ts";
@@ -40,7 +40,6 @@ const RULES: readonly KeyRule[] = [
   {
     match: path =>
       SITE_FILES.has(path) ||
-      FIXED_PAGES.has(path) ||
       /^\/sitemap(-[a-z]+)?(-\d+)?\.xml$/.test(path) ||
       path.startsWith("/favicon/"),
     query: none

@@ -200,6 +200,19 @@ test("the canonical rules: the first that knows an address decides, and the same
   expect(canonicalRedirect("/about")).toBeNull();
 });
 
+test("a page whose query changes nothing the server draws stands at its path alone", async () => {
+  // its frame reads the words a list is searched by, and the edge keeps it by its path
+  for (const [address, to] of [
+    ["/about?q=sunset", "/about"],
+    ["/ja/privacy?selection&x=1", "/ja/privacy"],
+    ["/newsletter?q=sea&utm_source=news", "/newsletter?utm_source=news"]
+  ]) {
+    const response = await get(address);
+    expect([address, response.status, location(response)]).toEqual([address, 301, to]);
+  }
+  expect([asked, cache.kept.size]).toEqual([[], 0]);
+});
+
 describe("an old grabient.com link", () => {
   test.each([
     [
@@ -256,7 +269,7 @@ describe("the edge cache", () => {
   test("keeps a public page and answers the next request from it", async () => {
     const first = await get("/about");
     expect(first.headers.get("X-Grabient-Cache")).toBe("MISS");
-    const second = await get("/about?x=1&utm_source=news");
+    const second = await get("/about?utm_source=news");
     expect(second.headers.get("X-Grabient-Cache")).toBe("HIT");
     expect(second.headers.get("Cache-Control")).toBe("public, max-age=0, must-revalidate");
     expect(await second.text()).toBe("<!DOCTYPE html><p>page</p>");
@@ -435,8 +448,8 @@ test("the MCP and authorization servers answer their own addresses as they stand
 });
 
 test("campaign tags never reach Start and ride every same-origin redirect", async () => {
-  await get("/about?utm_source=news&fbclid=x&q=1");
-  expect(asked[0].url).toBe("https://grabient.test/about?q=1");
+  await get("/palettes?utm_source=news&fbclid=x&q=sea");
+  expect(asked[0].url).toBe("https://grabient.test/palettes?q=sea");
   const response = await get("/palettes/?utm_source=news", {}, () => page());
   expect(location(response)).toBe("/palettes?utm_source=news");
   const started = await get("/x/edit?gclid=g", {}, () =>
