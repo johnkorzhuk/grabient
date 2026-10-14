@@ -1,10 +1,11 @@
 /* Whether a palette fits the search a page shows: every palette a search answers with carries thumbs named for the
    words ("Good fit for red"), or for the palette a search is by. The account's votes for the words are read once the
-   account is known and again when the words or the account change. A press shows at once and its write follows, one
-   write per palette at a time with the last press winning; signed out, a press leads to sign in and back. */
+   account is known and again when the words or the account change, into the page's own state: a page never waits on
+   them. A press shows at once and its write follows, one write per palette at a time with the last press winning;
+   signed out, a press leads to sign in and back. */
 import { t } from "@grabient/i18n";
-import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createEffect } from "solid-js";
+import { useQueryClient } from "@tanstack/solid-query";
+import { createEffect, createSignal } from "solid-js";
 import type { FitVote } from "./bodies.ts";
 import { searchVotesQuery } from "./queries.ts";
 
@@ -15,6 +16,8 @@ export interface SearchFit {
   onVote: (next: FitVote | null) => void;
   disabled: boolean;
 }
+
+type Votes = Readonly<Record<string, FitVote>>;
 
 export function createSearchFit(options: {
   /** the words the page shows, "" for none */
@@ -31,10 +34,20 @@ export function createSearchFit(options: {
   named?: (query: string) => string;
 }) {
   const client = useQueryClient();
-  const votes = useQuery(() => ({
-    ...searchVotesQuery(options.account() ?? "", options.query()),
-    enabled: !!options.account() && !!options.query()
-  }));
+  /* the votes on the page, with the account and the words they are for: an answer for others draws nothing */
+  const keyOf = (account: string, q: string) => `${account}\n${q}`;
+  const [held, setHeld] = createSignal<{ of: string; votes: Votes }>({ of: "", votes: {} });
+  const read = (account: string, q: string, fresh = false) =>
+    client.fetchQuery({ ...searchVotesQuery(account, q), ...(fresh ? { staleTime: 0 } : {}) }).then(
+      votes => setHeld({ of: keyOf(account, q), votes }),
+      () => {}
+    );
+  createEffect(
+    () => [options.account(), options.query()] as const,
+    ([account, q]) => {
+      if (account && q) void read(account, q);
+    }
+  );
 
   /* one write per palette at a time: a press while one is out waits, and only the last press is sent after it */
   const wanted = new Map<string, FitVote | null>();
@@ -57,17 +70,20 @@ export function createSearchFit(options: {
     } catch {
       wanted.delete(key);
       options.fail(t("Couldn't save your vote."));
-      void client.invalidateQueries({ queryKey: searchVotesQuery(account, q).queryKey });
+      void read(account, q, true);
     } finally {
       busy.delete(key);
     }
   };
 
   const cast = (account: string, q: string, seed: string, next: FitVote | null) => {
-    client.setQueryData(searchVotesQuery(account, q).queryKey, (own = {}) => {
+    const voted = (own: Votes = {}): Votes => {
       const { [seed]: _, ...rest } = own;
       return next ? { ...rest, [seed]: next } : rest;
-    });
+    };
+    /* shown at once, and kept where a return to the search reads it */
+    setHeld(now => (now.of === keyOf(account, q) ? { of: now.of, votes: voted(now.votes) } : now));
+    client.setQueryData(searchVotesQuery(account, q).queryKey, voted);
     wanted.set(`${q}\n${seed}`, next);
     void send(account, q, seed);
   };
@@ -98,8 +114,9 @@ export function createSearchFit(options: {
     fitOf(seed: string): SearchFit | undefined {
       const q = options.query();
       if (!q) return undefined;
+      const own = held();
       return {
-        value: votes.data?.[seed] ?? null,
+        value: (own.of === keyOf(options.account() ?? "", q) && own.votes[seed]) || null,
         query: options.named?.(q) ?? q,
         onVote: next => vote(seed, next),
         disabled: options.offline?.() ?? false
