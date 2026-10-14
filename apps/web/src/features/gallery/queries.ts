@@ -38,8 +38,8 @@ export const own = <T>(data: T): T => structuredClone(data);
 
 /** A read that failed: why, in the reader's language, and on the server the status the page answers with. */
 export type Failed = { failed: string; status?: number };
-export const failed = <T extends object>(data: T): data is Extract<T, { failed: string }> =>
-  "failed" in data;
+/** Whether a read failed, told by its reason alone: the collections' reads the home makes say no status. */
+export const failed = (data: object): data is { failed: string } => "failed" in data;
 
 const PUBLIC_TTL = 300_000;
 const RISING_TTL = 60_000;
@@ -175,7 +175,8 @@ export const homeHeadQuery = (words: string) =>
 const ownPage = (data: CollectionPage | Failed) => own(data);
 
 /** A page of the collections list as the home's feed reads it: the hot order, or searched, the popular one. It is the
-    collections list's own read, so a press on Collections lands on pages the tab holds. */
+    collections list's own read, in the reader's language and with what the model reads of the words, so the home
+    searched and the collections list searched show the same collections, from one page the tab holds. */
 export const homeCollectionsQuery = (words: string, page: number) => ({
   ...collectionsQuery({
     sort: words ? "popular" : "hot",
@@ -183,6 +184,7 @@ export const homeCollectionsQuery = (words: string, page: number) => ({
     page,
     limit: COLLECTION_LIMIT
   }),
+  reconcile: "slug",
   select: ownPage
 });
 
