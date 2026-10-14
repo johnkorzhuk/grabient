@@ -18,8 +18,8 @@ import { copyImage, downloadFile, writeText } from "../../lib/files.ts";
 import type { Drawn } from "../../lib/palette.ts";
 
 /* What a card's strip hands over: the one palette as the card draws it, copied, saved as a file, or as the address of
-   the file the site serves for it. Loaded at the first press, so no list carries the files' code until a reader takes
-   one. Every function rejects with words the page can put on its line, in the reader's language. */
+   the file the site serves for it. Every function rejects with words the page can put on its line, in the reader's
+   language. */
 
 /** A card's picture as a file: two to one, as a share card is. */
 const PICTURE = { width: 800, height: 400 };
