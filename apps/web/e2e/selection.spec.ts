@@ -66,3 +66,28 @@ test("on a palette's page the export's Auto is the picture the reader sees", asy
   const width = Math.round(box?.width ?? 0) + 8;
   await expect(page).toHaveURL(new RegExp(`size=${width}x${Math.round(box?.height ?? 0)}`));
 });
+
+test("Close goes Back to the list after a size is set in the column, and the list takes the size", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  await add(page, 0);
+  await page
+    .getByRole("button", { name: /^Selection/ })
+    .first()
+    .click();
+  await expect(close(page)).toBeVisible();
+  await page.getByRole("spinbutton", { name: "Width" }).focus();
+  await page.keyboard.type("800");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/palettes\?size=800x720&selection$/);
+  // the route has taken it once the wordmark leads home in it
+  await expect(page.locator("header a[data-home]")).toHaveAttribute("href", "/?size=800x720");
+  await close(page).click();
+  await expect(page).toHaveURL(/\/palettes\?size=800x720$/);
+  // the entry the screen was opened in is left behind, and the list's own undo is there
+  expect(await page.evaluate(() => history.state.__TSR_index)).toBe(0);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(page.getByRole("button", { name: /^Selection/ })).toHaveCount(0);
+});

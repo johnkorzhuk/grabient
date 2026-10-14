@@ -19,10 +19,10 @@ import {
   untrack,
   useContext
 } from "solid-js";
-import { rewriteQuietly, SELECTION_MARK } from "../../app/navigation.ts";
+import { rewriteInPlace, rewriteQuietly, SELECTION_MARK } from "../../app/navigation.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { hexesOf } from "../../lib/palette.ts";
-import { inOrder } from "../list/appearance.ts";
+import { inOrder, rememberedView, rememberView } from "../list/appearance.ts";
 import { useTaken } from "../palette-use/use.ts";
 import { copySelection, downloadSelection } from "./export.ts";
 import styles from "./Selection.module.css";
@@ -192,15 +192,16 @@ export function createSelectionScreen(page: {
   };
   const sizeParamOf = (value: string) => (value === "auto" ? undefined : value);
   /* the route takes the size once the drag rests: a route change redraws the page's data, links and metadata. A size
-     dragged back to the route's own leaves the route nothing to take, so the address is written here. */
+     dragged back to the route's own leaves the route nothing to take, so the address is written here. Each write is
+     in the entry's place and keeps what the entry holds, its mark among it. */
   const settle = () => {
     stop();
     const want = draft();
     if (want === null) return;
     lastWrite = Date.now();
-    const to = href({ size: sizeParamOf(want) });
-    rewriteQuietly(to);
-    if (want !== committed()) void router.navigate({ href: to, replace: true, resetScroll: false });
+    (want === committed() ? rewriteQuietly : rewriteInPlace)(href({ size: sizeParamOf(want) }));
+    /* the tab remembers it, so the page beneath takes it when Close goes Back to it */
+    rememberView({ ...rememberedView(), size: parseSize(want) });
     setDraft(null);
   };
   const writeSize = (want: string) => {
@@ -277,11 +278,7 @@ export function createSelectionScreen(page: {
     focusPress("open");
     const state = history.state as { mark?: unknown; __TSR_index?: number } | null;
     if (state?.mark === SELECTION_MARK && (state.__TSR_index ?? 0) > 0) return history.back();
-    void router.navigate({
-      href: href({ selection: undefined }),
-      replace: true,
-      resetScroll: false
-    });
+    rewriteInPlace(href({ selection: undefined }));
     requestAnimationFrame(() => window.scrollTo({ top: scrolledTo, behavior: "instant" }));
   };
   /* nothing left to show: a selection emptied while it stood closes as Close does; an address that asks for an empty
@@ -301,12 +298,7 @@ export function createSelectionScreen(page: {
       /* what Close and the address read is the page's now, not what the effect follows */
       untrack(() => {
         if (stood) close();
-        else
-          void router.navigate({
-            href: href({ selection: undefined }),
-            replace: true,
-            resetScroll: false
-          });
+        else rewriteInPlace(href({ selection: undefined }));
       });
       stood = false;
     }
