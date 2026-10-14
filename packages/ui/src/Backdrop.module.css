@@ -1,12 +1,12 @@
 @layer components {
-  /* never the browser's scroll anchor: the wash is placed by the page's height, and as a page grows Chrome would hold
-     the wash still and move the reader instead */
+  /* the size of the window, as the water's layer is, and under a scrollbar that takes room too: a layer as tall as its
+     page is blurred whole, which a long page pays for on every frame it scrolls */
   .layer {
-    position: absolute;
+    position: fixed;
     inset: 0;
     z-index: -1;
+    margin-right: calc(100% - 100vw);
     overflow: hidden;
-    overflow-anchor: none;
     pointer-events: none;
   }
   .wash {
