@@ -65,7 +65,7 @@ import {
 } from "./formats.ts";
 import { followAddress } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
-import type { PaletteData } from "./page.ts";
+import { NARROW, type PaletteData, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
 
@@ -78,12 +78,8 @@ import { createPaletteSave, type PaletteSave } from "./save.ts";
    the picture and the strip. Under 900px there is no room for a side: the controls follow the strip in the page's
    own scroll. */
 
-const NARROW = 900;
 /* a window this low or lower shows nothing of the sheet under the first screen (the styles' own max-height) */
 const LOW = 560;
-/* The sheet, under the first screen, comes once the first screen stands: its code arrives apart, and its panes are
-   made in a task of their own, so the controls answer sooner. */
-const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
 /* The account's collections come with the first palette selected: no page needs them before. */
 const AddToCollection = lazy(() =>
   import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
@@ -99,8 +95,18 @@ const OVER_KEYS = 1 / 3;
 const TYPING_ROOM = "60dvh";
 const LIFT_GAP = space.s4;
 
+/** Whether the window answers a media query, followed while the calling component is mounted. */
+function createMedia(query: string) {
+  const media = matchMedia(query);
+  const [matches, setMatches] = createSignal(media.matches);
+  const follow = (event: MediaQueryListEvent) => setMatches(event.matches);
+  media.addEventListener("change", follow);
+  onCleanup(() => media.removeEventListener("change", follow));
+  return matches;
+}
+
 /** The side's panel: shown or put away, kept in this browser. A window 900px wide or less has no side to put away. */
-function createPanel(): Panel {
+function createPanel(narrow: () => boolean): Panel {
   const KEY = "grabient-panel";
   const stored = () => {
     try {
@@ -109,12 +115,7 @@ function createPanel(): Panel {
       return true;
     }
   };
-  const query = matchMedia(`(max-width: ${NARROW}px)`);
   const [pref, setPref] = createSignal(stored());
-  const [narrow, setNarrow] = createSignal(query.matches);
-  const follow = (e: MediaQueryListEvent) => setNarrow(e.matches);
-  query.addEventListener("change", follow);
-  onCleanup(() => query.removeEventListener("change", follow));
   const open = () => pref() || narrow();
   return {
     open,
@@ -143,7 +144,9 @@ export default function Editor(props: { data: PaletteData }) {
   );
   const rest = createRest();
   rest.opened(first.page.seed);
-  const panel = createPanel();
+  /* the styles' own answers, so the parts drawn and the rules that lay them out never disagree */
+  const narrow = createMedia(`(max-width: ${NARROW}px)`);
+  const panel = createPanel(narrow);
   holdCorner(() => <Corner editor={e} panel={panel} />);
   const address = followAddress(e, router, location, page => rest.opened(page.seed));
   const save = createPaletteSave({
@@ -240,6 +243,7 @@ export default function Editor(props: { data: PaletteData }) {
       <Page
         editor={e}
         panel={panel}
+        narrow={narrow}
         save={save}
         rest={rest}
         facts={() => (e.seed() === first.page.seed ? first.facts : null)}
@@ -270,6 +274,8 @@ interface Heart {
 interface PageProps {
   editor: PaletteEditor;
   panel: Panel;
+  /** the window has no room for a side: the controls follow the strip */
+  narrow: () => boolean;
   save: PaletteSave;
   rest: Rest;
   facts: () => PaletteData["facts"];
@@ -289,21 +295,13 @@ function Page(props: PageProps) {
   let page!: HTMLElement;
   let stage: HTMLElement | undefined;
   let rail: HTMLElement | undefined;
-  const [width, setWidth] = createSignal(innerWidth);
-  /* the header's height once measured; the styles hold the tokens' until then */
-  const [head, setHead] = createSignal<number | null>(null);
-  const [dockH, setDockH] = createSignal(72);
   const [band, setBand] = createSignal<number | null>(null);
   /* the stage's own pixels: Auto's size, and what an auto side follows */
   const [stageSize, setStageSize] = createSignal<Size>({ width: 800, height: 400 });
-  const narrow = () => width() <= NARROW;
+  const narrow = props.narrow;
   /* a window too low for the sheet's name under the first screen: the styles put its row away, and the height the
      sheet reports for it must not bring it back */
-  const lowWindow = matchMedia(`(max-height: ${LOW}px)`);
-  const [low, setLow] = createSignal(lowWindow.matches);
-  const followLow = (event: MediaQueryListEvent) => setLow(event.matches);
-  lowWindow.addEventListener("change", followLow);
-  onCleanup(() => lowWindow.removeEventListener("change", followLow));
+  const low = createMedia(`(max-height: ${LOW}px)`);
   /* the side stands beside the page, or its rows follow the strip */
   const sided = () => props.panel.open() || narrow();
   const railed = () => !props.panel.open() && !narrow();
@@ -317,18 +315,11 @@ function Page(props: PageProps) {
   const reach = () => (stage?.offsetHeight ?? 0) + (rail?.offsetHeight ?? 0);
   onSettled(() => {
     let frame = 0;
-    let resized = false;
     /* a press over the picture and the gap under it: as tall as a finger needs where a finger is the pointer */
     const lift =
       (matchMedia("(pointer: coarse)").matches ? size.touch : size.controlBig) + space.s2;
     const read = () => {
       frame = 0;
-      /* the page hidden behind the selection's screen has no box to measure */
-      if (resized && page.clientWidth) {
-        setWidth(page.clientWidth);
-        setHead(page.getBoundingClientRect().top + scrollY);
-      }
-      resized = false;
       const y = scrollY;
       const far = reach();
       setMoved(y > 1);
@@ -339,13 +330,10 @@ function Page(props: PageProps) {
     const soon = () => {
       frame ||= requestAnimationFrame(read);
     };
-    /* The observer's first report, after the first layout, reads the page and its scroll, so nothing here forces a
-       layout. It is read in the next frame: a write in the observer's own callback lays the page out again while the
-       browser is still telling of the last layout, which it reports as an error. */
-    const sizes = new ResizeObserver(() => {
-      resized = true;
-      soon();
-    });
+    /* The observer's first report, after the first layout, reads the scroll, so nothing here forces a layout; a
+       page that changes size has another reach. It is read in the next frame: a write in the observer's own callback
+       lays the page out again while the browser is still telling of the last layout, which it reports as an error. */
+    const sizes = new ResizeObserver(soon);
     sizes.observe(page);
     addEventListener("scroll", soon, { passive: true });
     return () => {
@@ -355,8 +343,11 @@ function Page(props: PageProps) {
     };
   });
   const go = (top: number) => scrollTo({ top, behavior: reducesNow() ? "auto" : "smooth" });
-  const [late, setLate] = createSignal(false);
+  /* What stands under the first screen comes once the first screen stands. Beside the page the sheet's name shows
+     under the picture and sizes it, so there the sheet is the first screen's own and comes with it (`ready`). */
+  const [late, setLate] = createSignal(!untrack(narrow));
   onSettled(() => {
+    if (untrack(late)) return;
     if (typeof requestIdleCallback === "function") {
       const id = requestIdleCallback(() => setLate(true), { timeout: 1000 });
       return () => cancelIdleCallback(id);
@@ -373,11 +364,7 @@ function Page(props: PageProps) {
       data-alone={sided() ? undefined : ""}
       data-railed={railed() ? "" : undefined}
       data-beside-scrollbar=""
-      style={{
-        "--dock-h": `${dockH()}px`,
-        ...(head() !== null ? { "--head": `${head()}px` } : {}),
-        ...(band() !== null && !narrow() && !low() ? { "--peek": `${band()}px` } : {})
-      }}
+      style={band() !== null && !narrow() && !low() ? { "--peek": `${band()}px` } : undefined}
     >
       {/* the parts stand in the order they are read and the keyboard walks them: beside the page the side comes first;
           where its rows follow the strip, after the strip */}
@@ -410,7 +397,6 @@ function Page(props: PageProps) {
           editor={e}
           narrow={narrow()}
           marked={sided()}
-          onHeight={setDockH}
           onCopy={() => props.used("copy", "hex")}
         />
         {/* where the controls follow the strip they are under the first screen, and come with the sheet */}
@@ -796,28 +782,10 @@ function Strip(props: {
   narrow: boolean;
   /** the held keyframes are marked on it, except while the rail beside it shows them */
   marked: boolean;
-  onHeight: (height: number) => void;
   onCopy: () => void;
 }) {
   const e = props.editor;
-  let bar!: HTMLDivElement;
   const calm = createFlashGuard(e.shownStops, lights);
-  /* told in the next frame: the page sizes its first screen by this height, and a write in the observer's own callback
-     lays the page out again inside it */
-  onSettled(() => {
-    let frame = 0;
-    const sizes = new ResizeObserver(() => {
-      frame ||= requestAnimationFrame(() => {
-        frame = 0;
-        props.onHeight(Math.round(bar.getBoundingClientRect().height));
-      });
-    });
-    sizes.observe(bar);
-    return () => {
-      sizes.disconnect();
-      cancelAnimationFrame(frame);
-    };
-  });
   const marks = () =>
     props.marked
       ? e.held().map(i => {
@@ -826,7 +794,7 @@ function Strip(props: {
         })
       : [];
   return (
-    <div ref={bar} class={styles.bar}>
+    <div class={styles.bar}>
       <StopStrip
         stops={calm()}
         marks={marks()}
@@ -839,7 +807,7 @@ function Strip(props: {
 }
 
 /** The side: the keyframes, the three axes and the actions, then the hex of a keyframe held alone. */
-function Side(props: PageProps & { narrow: boolean }) {
+function Side(props: Omit<PageProps, "narrow"> & { narrow: boolean }) {
   const e = props.editor;
   let side!: HTMLElement;
   let rows: HTMLDivElement | undefined;

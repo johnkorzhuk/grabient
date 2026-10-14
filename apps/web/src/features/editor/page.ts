@@ -2,6 +2,7 @@ import { env } from "cloudflare:workers";
 import type { ParamReader } from "@grabient/engine/view.ts";
 import { locale } from "@grabient/i18n";
 import { createIsomorphicFn } from "@tanstack/solid-start";
+import { lazy } from "solid-js";
 import { DEFAULT_FRAME, type RisingFrame } from "../../lib/orders.ts";
 import { heading, headOf, type PageMeta, pageMeta } from "../../lib/page-meta.ts";
 import { type PaletteFacts, paletteFacts } from "../../server/editor/facts.ts";
@@ -66,5 +67,17 @@ export const paletteHead = (data: PaletteData) => ({
   styles: [{ children: STATIC_CSS }]
 });
 
-/** The editor's code, asked for as soon as a palette's page starts. */
-export const loadEditor = () => import("./Editor.tsx");
+/** A window this wide or less has no room for a side: the controls follow the strip, under the first screen. */
+export const NARROW = 900;
+
+/** The sheet, under the first screen. */
+export const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
+
+/** The editor's code, asked for as soon as a palette's page starts. Beside the page the sheet's name shows under the
+    picture and sizes it, so there the sheet's code comes with the editor's, and the first screen is whole from its
+    first frame. */
+export const loadEditor = () =>
+  Promise.all([
+    import("./Editor.tsx"),
+    matchMedia(`(min-width: ${NARROW + 1}px)`).matches ? Sheet.preload() : null
+  ]).then(([editor]) => editor);
