@@ -45,7 +45,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   beforeLoad: ({ location }) => {
     if (newerBuild()) throw redirect({ href: location.publicHref, reloadDocument: true });
   },
-  loader: () => siteFacts(),
+  /* the site's facts, and the address the document is drawn for, which the frame hydrates as (app/Shell.tsx) */
+  loader: async ({ location }) => ({ ...(await siteFacts()), drawn: location.pathname }),
   staleTime: Number.POSITIVE_INFINITY,
   shouldReload: false,
   // a page says how long it may be kept; one that says nothing is kept nowhere

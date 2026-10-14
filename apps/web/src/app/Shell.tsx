@@ -20,8 +20,8 @@ import {
   toggleTheme
 } from "@grabient/ui/theme.ts";
 import { Dynamic } from "@solidjs/web";
-import { Outlet, useLocation, useMatches, useRouter } from "@tanstack/solid-router";
-import { createEffect, createMemo, createSignal, onSettled, Show } from "solid-js";
+import { Outlet, useLoaderData, useLocation, useMatches, useRouter } from "@tanstack/solid-router";
+import { createEffect, createMemo, createSignal, onSettled, Show, untrack } from "solid-js";
 import { account } from "../features/account/session.ts";
 import { trackEvent } from "../features/analytics/analytics.ts";
 import {
@@ -58,7 +58,13 @@ export function Shell() {
   const router = useRouter();
   const matches = useMatches();
   const location = useLocation();
-  const page = createMemo(() => pageFrom(matches()));
+  /* The page as the document drew it until the frame is live, so the frame hydrates what the server sent: with no
+     connection the service worker answers a page it never kept with Saved's document. Live, the page on screen. */
+  const drawnAt = untrack(useLoaderData({ from: "__root__" })).drawn;
+  const [live, setLive] = createSignal(false);
+  const page = createMemo(() =>
+    pageFrom(live() || drawnAt === location().pathname ? matches() : router.matchRoutes(drawnAt))
+  );
   const frame = () => page().options.frame ?? "app";
   const brand = () => frame() !== "app";
 
@@ -114,6 +120,7 @@ export function Shell() {
   onSettled(() => {
     /* the theme, motion and color spelling start at the server's values, so the page hydrates as it was sent; once it
        is live they are the browser's own */
+    setLive(true);
     syncTheme();
     syncMotion();
     syncColorFormat();

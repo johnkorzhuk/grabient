@@ -329,3 +329,29 @@ test("a page whose reactivity stopped loads whole once, and after that loads who
   await page.waitForFunction(() => !("marked" in window));
   await expect(page).toHaveTitle(/^Rising/);
 });
+
+test("a page opened with the service worker's stored shell wears its own frame", async ({
+  page,
+  request
+}) => {
+  // with no connection the worker answers a page it never kept with Saved's document
+  const shell = await (await request.get("/palettes/saved")).text();
+  await page.route(
+    url => url.pathname === "/settings" || url.pathname === "/login",
+    route =>
+      route.request().isNavigationRequest()
+        ? route.fulfill({ contentType: "text/html", body: shell })
+        : route.continue()
+  );
+  const header = page.locator("header");
+  await page.goto("/settings");
+  await expect(page.locator("main h1")).toHaveText("Settings");
+  await expect(header.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await expect(header.getByRole("button", { name: /^Appearance/ })).toHaveCount(0);
+  // a sheet's corner holds the theme alone
+  await page.goto("/login");
+  await expect(page.locator("main h1")).toHaveText("Sign in");
+  await expect(header.getByRole("button", { name: /theme$/ })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Sign in" })).toHaveCount(0);
+  await expect(header.getByRole("button", { name: /^Appearance/ })).toHaveCount(0);
+});
