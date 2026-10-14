@@ -107,7 +107,7 @@ export function PrivacySection() {
   return (
     <section class={styles.section} id="privacy">
       <div class={styles.head}>
-        <Text variant="h2">{t("Privacy", { $context: "settings" })}</Text>
+        <Text variant="h2">{t("Privacy & Consent")}</Text>
         <Text variant="lede">{t("Choices for this browser.")}</Text>
       </div>
       <div class={styles.list}>
