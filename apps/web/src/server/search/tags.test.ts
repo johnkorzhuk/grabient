@@ -69,25 +69,46 @@ test("the edge keeps the tags by what their answer reads: the words as typed, ho
   expect(key("limit=junk&lang=xx")).toBe("q=&limit=12");
 });
 
-test("a tag says its words in the language asked, where Grabient translated them, and leads to the same search", async () => {
+test("a tag in the language asked says and searches Grabient's word for its phrase, where the search reads the word as the phrase", async () => {
   const translated = searchEnv({
     DB: {
       prepare: (sql: string) => ({
         bind: (locale: string) => ({
           all: async () => ({
             results:
-              sql.includes("kind = 'tag'") && locale === "ja" ? [{ key: "blue", title: "青" }] : []
+              sql.includes("kind = 'tag'") && locale === "ja"
+                ? [
+                    { key: "blue", title: "青" },
+                    { key: "retro", title: "レトロ" }
+                  ]
+                : []
           })
         })
       })
     } as unknown as D1Database
   });
-  const tags = async (query: string) =>
-    (await suggestionsFor(translated, new URLSearchParams(query))).map(tag => [
-      tag.label,
-      tag.href
-    ]);
-  expect((await tags("q=blue&limit=1&lang=ja"))[0]).toEqual(["青", "/palettes?q=blue"]);
-  expect((await tags("q=blue&limit=1"))[0]).toEqual(["blue", "/palettes?q=blue"]);
-  expect((await tags("q=blue&limit=1&lang=de"))[0]).toEqual(["blue", "/palettes?q=blue"]);
+  const first = async (query: string) => {
+    const [tag] = await suggestionsFor(translated, new URLSearchParams(query));
+    return [tag?.label, tag?.href, tag?.query, tag?.english];
+  };
+  expect(await first("q=blue&limit=1&lang=ja")).toEqual([
+    "青",
+    "/palettes?q=%E9%9D%92",
+    "青",
+    "blue"
+  ]);
+  // the search reads レトロ as no phrase, so its press would find other palettes than retro's
+  expect(await first("q=retro&limit=1&lang=ja")).toEqual([
+    "retro",
+    "/palettes?q=retro",
+    "retro",
+    undefined
+  ]);
+  expect(await first("q=blue&limit=1")).toEqual(["blue", "/palettes?q=blue", "blue", undefined]);
+  expect(await first("q=blue&limit=1&lang=de")).toEqual([
+    "blue",
+    "/palettes?q=blue",
+    "blue",
+    undefined
+  ]);
 });
