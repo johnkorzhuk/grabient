@@ -3,6 +3,10 @@ import { expect, type Page, test } from "@playwright/test";
 /* The account's pages, the newsletter's and the contact form, each as its document arrives and once it has started:
    what the server draws for anyone, and what only the browser fills in. */
 
+/* The first tests meet a dev server that has transformed nothing yet, and they run beside each other: each has a
+   minute. */
+test.describe.configure({ timeout: 60_000 });
+
 /** Collects what the page logs as an error, to be empty at the end. */
 function watch(page: Page): string[] {
   const errors: string[] = [];
@@ -96,6 +100,7 @@ test("an unsubscribe address answers its press, and one with no token says where
   expect(opened?.headers()["x-frame-options"]).toBe("DENY");
   expect(opened?.headers()["referrer-policy"]).toBe("no-referrer");
   await expect(page.locator('link[rel="canonical"]')).toHaveAttribute("href", /\/unsubscribe$/);
+  await started(page);
   // no account holds this address: the Worker's own answer to the press, as an alert
   await page.getByRole("button", { name: "Unsubscribe" }).click();
   await expect(page.getByRole("alert")).toHaveText("This link isn't valid.");
@@ -106,6 +111,38 @@ test("an unsubscribe address answers its press, and one with no token says where
   );
   await expect(page.locator("main").getByRole("button")).toHaveCount(0);
   await expect(page.locator("main").getByRole("link", { name: "Settings" })).toBeVisible();
+});
+
+test("a form the server draws sends nothing of its own before its page has started", async ({
+  page
+}) => {
+  // the app never starts: its scripts do not arrive, as on a connection that stalls
+  await page.route("**/*", route =>
+    route.request().resourceType() === "script" ? route.abort() : route.continue()
+  );
+  const documents: string[] = [];
+  page.on("request", request => {
+    if (request.isNavigationRequest()) documents.push(new URL(request.url()).search);
+  });
+  const sheets = [
+    { path: "/login", fields: { email: "early@grabient.test" } },
+    { path: "/login/password", fields: { email: "early@grabient.test", password: "never-sent" } },
+    { path: "/contact", fields: { email: "early@grabient.test", message: "Typed too early." } }
+  ];
+  for (const { path, fields } of sheets) {
+    await page.goto(path);
+    const form = page.locator("main form");
+    for (const [name, text] of Object.entries(fields))
+      await form.locator(`[name=${name}]`).fill(text);
+    await form.locator("[name=email]").press("Enter");
+    await form.locator("button[type=submit]").click();
+    // a browser asks for the form's own address within a moment of a submit it takes for itself
+    await page.waitForTimeout(500);
+    await expect(form.locator("[name=email]")).toHaveValue("early@grabient.test");
+    expect(new URL(page.url()).search).toBe("");
+  }
+  // one document a sheet, and no field in any address
+  expect(documents).toEqual(["", "", ""]);
 });
 
 test("the contact form says its rule before it asks the server", async ({ page }) => {

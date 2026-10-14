@@ -314,7 +314,9 @@ export function LoginPage(props: {
       }
     >
       <Pane variant="frost" padding="lg" bar>
-        <form ref={form} class={styles.form} onSubmit={submit} novalidate>
+        {/* the server draws this form, so a press can come before the sheet has started: with this method and no dialog
+            around it, a submit the sheet does not take goes nowhere, and no field is written to the address */}
+        <form ref={form} class={styles.form} method="dialog" onSubmit={submit} novalidate>
           <Text variant="title" as="h1">
             {t("Sign in")}
           </Text>

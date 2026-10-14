@@ -53,7 +53,9 @@ export function ContactPage() {
   };
   return (
     <div class={styles.page}>
-      <form class={styles.form} onSubmit={e => void submit(e)} novalidate>
+      {/* a press before the page has started must not write the message to the address: with this method and no
+          dialog around it, a submit the page does not take goes nowhere */}
+      <form class={styles.form} method="dialog" onSubmit={e => void submit(e)} novalidate>
         <div class={styles.head}>
           <Text variant="title" as="h1">
             {t("Contact")}

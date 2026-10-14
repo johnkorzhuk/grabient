@@ -54,7 +54,15 @@ export function PasswordPage(props: { redirect?: string }) {
   return (
     <PageFrame login footer={[]}>
       <Pane variant="frost" padding="lg" bar>
-        <form ref={form} class={styles.form} onSubmit={e => void submit(e)} novalidate>
+        {/* a press before the sheet has started must never write the password to the address: with this method and no
+            dialog around it, a submit the sheet does not take goes nowhere */}
+        <form
+          ref={form}
+          class={styles.form}
+          method="dialog"
+          onSubmit={e => void submit(e)}
+          novalidate
+        >
           <Text variant="title" as="h1">
             {t("Sign in")}
           </Text>
