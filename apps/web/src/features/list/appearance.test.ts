@@ -1,15 +1,6 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { expect, test } from "vitest";
-import { canonicalGallery } from "../gallery/address.ts";
-import {
-  AS_SAVED,
-  drawnIn,
-  inView,
-  type ListView,
-  readListView,
-  searchInView,
-  viewParams
-} from "./appearance.ts";
+import { AS_SAVED, drawnIn, inView, readListView, viewParams } from "./appearance.ts";
 
 const SEED = encodePalette({
   anchors: Array.from({ length: 8 }, (_, i) => ({ l: 0.2 + i * 0.1, c: 0.1, h: i * 30 }))
@@ -42,38 +33,6 @@ test("a view as search params leaves out what each palette keeps", () => {
     inView("/palettes", { style: "linearSwatches", steps: 7, angle: "auto", size: null })
   ).toBe("/palettes?style=linearSwatches&steps=7");
   expect(inView("/", AS_SAVED)).toBe("/");
-});
-
-test("a change of view writes a list's query in the lists' one order, the address the Worker keeps", () => {
-  /* a query as the router reads it into a search and writes the search back, name by name */
-  const written = (address: string, view: Partial<ListView>) => {
-    const [path, query = ""] = address.split("?");
-    const search = searchInView(Object.fromEntries(new URLSearchParams(query)), view);
-    const out = new URLSearchParams(
-      Object.entries(search).map(([name, value]) => [name, String(value)])
-    )
-      .toString()
-      .replace(/=(?=&|$)/g, "");
-    return out ? `${path}?${out}` : path!;
-  };
-  for (const start of [
-    "/palettes",
-    "/palettes?limit=48",
-    "/?page=2",
-    "/palettes/rising?q=blue&page=2",
-    "/palettes/saved?q=warm&selection",
-    "/palettes?angle=45&size=800x600"
-  ]) {
-    const to = written(start, { steps: 5, style: "linearSwatches" });
-    expect(to).toContain("style=linearSwatches&steps=5");
-    expect(canonicalGallery(to), start).toBe(to);
-  }
-  expect(
-    written("/palettes?q=blue&style=linearSwatches&steps=5&limit=48", {
-      style: "auto",
-      steps: "auto"
-    })
-  ).toBe("/palettes?q=blue&limit=48");
 });
 
 test("a card draws the list's view over its own, a draft over both, never fewer steps than keyframes", () => {

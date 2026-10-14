@@ -66,22 +66,6 @@ export function viewParams(view: Partial<ListView>): Record<string, string | num
   return out;
 }
 
-/* the one order the lists write a query in: the words, the view, the page and its size, then the selection */
-const QUERY_ORDER = ["q", "style", "steps", "angle", "size", "page", "limit", "selection"];
-
-/** A list's search with a view over its own, in the lists' one order: the address a change of view writes is the
-    canonical one, which the Worker answers with its page. */
-export function searchInView(
-  search: Readonly<Record<string, unknown>>,
-  view: Partial<ListView>
-): Record<string, unknown> {
-  const merged: Record<string, unknown> = { ...search, ...viewParams(view) };
-  const ordered: Record<string, unknown> = {};
-  for (const name of [...QUERY_ORDER, ...Object.keys(merged)])
-    if (merged[name] !== undefined) ordered[name] = merged[name];
-  return ordered;
-}
-
 /* each seed's keyframe count, read once: a change of the view reads every card's palette again */
 const KEYFRAMES_KEPT = 2048;
 const keyframes = new Map<string, number>();
