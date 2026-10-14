@@ -44,19 +44,6 @@ export const accountSearchQuery = (account: string, query: string) =>
     staleTime: 5 * 60_000
   });
 
-/** A search's colors, for its tag and the tab's icon: they change only with the snapshot. */
-export const searchColorsQuery = (query: string) =>
-  queryOptions({
-    queryKey: ["search-colors", query],
-    queryFn: ({ signal }) =>
-      getJson(
-        `/api/search-colors?${new URLSearchParams({ q: query })}`,
-        v.object({ colors: v.array(v.string()) }),
-        signal
-      ).then(answer => answer.colors),
-    staleTime: 60 * 60_000
-  });
-
 type TagOptions = { both?: boolean; limit?: number };
 /* the tags' address, in the page's language: Grabient's own tags and collections are translated */
 function tagParams(typed: string, options: TagOptions): URLSearchParams {

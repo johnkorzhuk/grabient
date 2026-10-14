@@ -52,7 +52,7 @@ export const listingPath = (path: string) =>
   searchJsonPath(path);
 
 const PUBLIC_API =
-  /^\/api\/(og|png|palette|hot$|search\.json$|search-suggestions$|search-colors$|collections(\/[^/]+)?$)/;
+  /^\/api\/(og|png|palette|hot$|search\.json$|search-suggestions$|collections(\/[^/]+)?$)/;
 
 /** A file or an answer any site may fetch from a page of its own (CORS). */
 export const publicFile = (path: string) =>
