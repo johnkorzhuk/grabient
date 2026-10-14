@@ -1,3 +1,4 @@
+import { localHref } from "@grabient/i18n";
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
 import { untrack } from "solid-js";
 import { galleryPlace } from "../../features/gallery/address.ts";
@@ -30,8 +31,9 @@ export const Route = createFileRoute("/palettes/{-$order}/{-$frame}")({
     if (!at) throw notFound();
     if (at.frame === DEFAULT_FRAME) return;
     const offered = await context.queryClient.ensureQueryData(framesQuery());
+    // a redirect's address is written as it is given, so it names the reader's language itself
     if (!offered.includes(at.frame)) {
-      throw redirect({ href: `/palettes/rising${searchOf(search)}`, statusCode: 302 });
+      throw redirect({ href: localHref(`/palettes/rising${searchOf(search)}`), statusCode: 302 });
     }
   },
   loaderDeps: ({ search }) => ({ query: searchOf(drawnSearch(search)) }),

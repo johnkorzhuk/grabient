@@ -552,6 +552,18 @@ for (const width of WIDTHS)
     });
   });
 
+test("a link to Rising in a frame an admin turned off leads to the week's in the reader's language", async ({
+  page,
+  request
+}) => {
+  const { frames } = (await (await request.get("/api/frames")).json()) as { frames: string[] };
+  const off = ["3m", "1y"].find(frame => !frames.includes(frame));
+  expect(off, "a longer frame staging's copy has turned off").toBeDefined();
+  await open(page, `/ja/palettes/rising/${off}?q=blue`);
+  await expect(page).toHaveURL(/\/ja\/palettes\/rising\?q=blue$/);
+  await expect(page.locator("html")).toHaveAttribute("lang", "ja");
+});
+
 type Item = { kseed: string; style: string; steps: number; angle: number };
 const likes = (items: Item[], liked: boolean) =>
   items.map(({ kseed, style, steps, angle }) => ({
