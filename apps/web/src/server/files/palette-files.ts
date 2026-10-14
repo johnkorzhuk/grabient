@@ -70,7 +70,9 @@ async function paletteFile(
         headers: { ...FILE, "Content-Type": "image/svg+xml; charset=utf-8" }
       });
     case "json":
-      return Response.json(paletteJson(seed, origin, view), { headers: { ...FILE, ...DATA } });
+      return Response.json(paletteJson(seed, origin, view, await colorNames(env)), {
+        headers: { ...FILE, ...DATA }
+      });
     default: {
       const names = await colorNames(env);
       return new Response(swatchFile(format, [swatchPalette(seed, view, origin, { names })!]), {

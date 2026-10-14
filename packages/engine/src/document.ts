@@ -8,6 +8,7 @@ import { cssLine, cssWide } from "./css.ts";
 import { sampleStops } from "./curve.ts";
 import { readingName, seedReading } from "./name.ts";
 import type { Palette } from "./palette.ts";
+import type { Namer } from "./precise-names.ts";
 import { samples, structure } from "./shape.ts";
 import { toSpec } from "./spec.ts";
 import { drawnView, type View, viewSearch } from "./view.ts";
@@ -67,10 +68,15 @@ const BLACK = [0, 0, 0];
 /* a contrast to one place, never rounded up: 4.47 is 4.4, which does not pass at 4.5 */
 const tenths = (ratio: number) => Math.floor(ratio * 10) / 10;
 
-/** A palette's JSON: its document, then its name and each color's, its kinds, how its hues relate, the text color
-    that reads on each color with its contrast, and whether a wide-gamut screen shows more of it. English. Null for a
-    seed that is no palette. */
-export function paletteJson(seed: string, origin: string, input: Partial<View> = {}) {
+/** A palette's JSON: its document, then its name and each color's (its precise name where `names` holds them,
+    precise-names.ts), its kinds, how its hues relate, the text color that reads on each color with its contrast, and
+    whether a wide-gamut screen shows more of it. English. Null for a seed that is no palette. */
+export function paletteJson(
+  seed: string,
+  origin: string,
+  input: Partial<View> = {},
+  names?: Namer | null
+) {
   const P = decodePalette(seed);
   if (!P) return null;
   const doc = paletteDocument(seed, P, origin, input);
@@ -98,7 +104,7 @@ export function paletteJson(seed: string, origin: string, input: Partial<View> =
     kinds: reading.kinds,
     harmony: structure(samples(P)).harmony,
     colors,
-    names: stops.map(s => srgbName(s.rgb)),
+    names: stops.map(s => names?.(s.hex) ?? srgbName(s.rgb)),
     contrast: {
       text,
       ratios: stops.map((_, i) => tenths(text[i] === "#ffffff" ? onWhite[i] : onBlack[i])),

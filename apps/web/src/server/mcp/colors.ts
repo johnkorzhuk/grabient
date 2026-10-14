@@ -3,6 +3,7 @@ import { fitChroma, hexToSrgb, lchToSrgb, srgbToOklab, toHex } from "@grabient/e
 import { srgbName } from "@grabient/engine/colorname.ts";
 import { sampleLCH } from "@grabient/engine/curve.ts";
 import { type Anchor, K_MAX, K_MIN, type Palette } from "@grabient/engine/palette.ts";
+import type { Namer } from "@grabient/engine/precise-names.ts";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 
 /* Hex colors as an app sends them, made a palette, and what an answer says of one: a blend that shows a hue nobody
@@ -93,15 +94,16 @@ function ratio(exact: number): number {
 }
 const linear = (v: number) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4);
 
-/** Each color's name, the one most people give it, and its contrast with white and with black. */
-export function details(hexes: readonly string[]) {
+/** Each color's name, its precise one where `names` holds them (else the one most people give it), and its contrast
+    with white and with black. */
+export function details(hexes: readonly string[], names?: Namer | null) {
   return hexes.map(hex => {
     const rgb = hexToSrgb(hex)!;
     const [r, g, b] = rgb.map(linear) as [number, number, number];
     const y = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     return {
       hex,
-      name: srgbName(rgb),
+      name: names?.(hex) ?? srgbName(rgb),
       onWhite: ratio(1.05 / (y + 0.05)),
       onBlack: ratio((y + 0.05) / 0.05)
     };
