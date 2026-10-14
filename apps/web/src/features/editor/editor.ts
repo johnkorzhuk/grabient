@@ -4,7 +4,15 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import { addKeyframe, anchorHueWalls, type Lock, removeKeyframes } from "@grabient/engine/edits.ts";
 import { clamp } from "@grabient/engine/math.ts";
 import { hexAnchor } from "@grabient/engine/spec.ts";
-import { clampSize, type SizeChoice, type Style, sizeParam } from "@grabient/engine/view.ts";
+import {
+  clampSize,
+  isStyle,
+  type SizeChoice,
+  STEPS_MAX,
+  STEPS_MIN,
+  type Style,
+  sizeParam
+} from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
 import type { PickMode } from "@grabient/ui/Keyframes.tsx";
 import { keyPress } from "@grabient/ui/keys.ts";
@@ -20,7 +28,8 @@ import {
   walkEdits
 } from "../../app/undo.ts";
 import { trackTool } from "../analytics/analytics.ts";
-import { type Locks, SEED_SHAPE, type SeedPage } from "./address.ts";
+import { type ListView, rememberedView, rememberView } from "../list/appearance.ts";
+import { type Locks, type Opened, SEED_SHAPE, type SeedPage } from "./address.ts";
 import { createEdits, type EditsSnapshot } from "./edits.ts";
 import * as ops from "./ops.ts";
 
@@ -34,14 +43,6 @@ import * as ops from "./ops.ts";
 export interface Paint {
   hex: string;
   paint?: string;
-}
-/** What the page opened with, and which of its view the reader has set on it since: As saved in the header's corner
-    reads it, and a set part goes for every palette the sheet draws. */
-export interface Opened {
-  style: Style;
-  steps: number;
-  angle: number;
-  set: { style: boolean; steps: boolean; angle: boolean };
 }
 /** What a press under the pointer would write, painted before it is: a palette, a style, or both. */
 interface Peek {
@@ -238,11 +239,13 @@ export function createPaletteEditor(
     setHold(next.held);
   }
 
-  /* the view: never a step of the undo, never a history entry */
+  /* the view: never a step of the undo, never a history entry. A part the reader sets is theirs for the tab, as a
+     list's is: the next page that draws palettes takes it. */
   const markSet = (part: keyof Opened["set"]) => {
     trackTool(part);
     setOpened(o => ({ ...o, set: { ...o.set, [part]: true } }));
   };
+  const remember = (patch: Partial<ListView>) => rememberView({ ...rememberedView(), ...patch });
   /* a change told once a page as the tool that made it (analytics.ts) */
   const tool =
     <A extends unknown[]>(name: string, run: (...args: A) => void) =>
@@ -397,16 +400,22 @@ export function createPaletteEditor(
     setStyle(s: Style) {
       markSet("style");
       setStyle(s);
+      remember({ style: s });
     },
     setSteps(n: number) {
       markSet("steps");
       setSteps(ops.clampSteps(n, untrack(K)));
+      /* the tab's count is the reader's, whatever this palette's keyframes raise it to */
+      remember({ steps: clamp(Math.round(n) || STEPS_MIN, STEPS_MIN, STEPS_MAX) });
     },
     setAngle(a: number) {
       markSet("angle");
-      setAngle(clamp(Math.round(a) || 0, 0, 360));
+      const angle = clamp(Math.round(a) || 0, 0, 360);
+      setAngle(angle);
+      remember({ angle });
     },
-    /** Parts of the view let go (all three with none named): as the page opened, steps kept to the keyframes. */
+    /** Parts of the view let go (all three with none named): as the page opened, steps kept to the keyframes, and
+        the tab given back what it remembered then. */
     letViewGo(...parts: (keyof Opened["set"])[]) {
       trackTool("reset_view");
       const was = untrack(opened);
@@ -420,10 +429,17 @@ export function createPaletteEditor(
           Object.entries(o.set).map(([k, v]) => [k, all.includes(k as never) ? false : v])
         ) as Opened["set"]
       }));
+      if (was.chosen)
+        remember(
+          Object.fromEntries(all.map(part => [part, was.chosen?.[part]])) as Partial<ListView>
+        );
     },
+    /** The size is the reader's for the tab too: the palette opened next stands at it. */
     setSize(next: SizeChoice | null) {
       const clamped = next && clampSize(next);
-      setSize(clamped && sizeParam(clamped) ? clamped : null);
+      const size = clamped && sizeParam(clamped) ? clamped : null;
+      setSize(size);
+      remember({ size });
     },
     setSelecting,
 
@@ -476,7 +492,13 @@ function hexKeyframe(P: Palette, i: number, hex: string): Palette | null {
   };
 }
 
-/** What a page opened with: the record its entry kept, where it reads as one, else the address's own view. */
+/* a part of the view as the tab remembers one: a value, or auto for each palette's own */
+const choice = <T>(value: unknown, is: (v: unknown) => v is T): T | "auto" | undefined =>
+  value === "auto" || is(value) ? value : undefined;
+const isCount = (v: unknown): v is number => Number.isInteger(v);
+
+/** What a page opened with: the record its entry kept or a card handed it, where it reads as one, else the address's
+    own view. Stored browser data is untrusted. */
 function openedOf(page: SeedPage, kept: unknown): Opened {
   const k = kept as Partial<Opened> | null | undefined;
   const valid =
@@ -486,7 +508,7 @@ function openedOf(page: SeedPage, kept: unknown): Opened {
     Number.isInteger(k.angle) &&
     !!k.set &&
     typeof k.set === "object";
-  const base: Opened = valid
+  const base = valid
     ? {
         style: k.style as Style,
         steps: k.steps as number,
@@ -503,9 +525,18 @@ function openedOf(page: SeedPage, kept: unknown): Opened {
         angle: page.view.angle,
         set: { style: false, steps: false, angle: false }
       };
+  /* What the tab remembered as the page opened. A part a card handed over as set came from the tab's own memory, so
+     letting it go here leaves the tab with no choice of it. */
+  const tab = rememberedView();
+  const chosen = {
+    style: choice(k?.chosen?.style, isStyle) ?? (base.set.style ? "auto" : tab.style),
+    steps: choice(k?.chosen?.steps, isCount) ?? (base.set.steps ? "auto" : tab.steps),
+    angle: choice(k?.chosen?.angle, isCount) ?? (base.set.angle ? "auto" : tab.angle)
+  };
   /* a view that is no longer what the page opened with was chosen since, here or on a page since */
   return {
     ...base,
+    chosen,
     set: {
       style: base.set.style || page.view.style !== base.style,
       steps:
