@@ -4,7 +4,7 @@ import { iconColors, iconHrefs, iconLinks, type Tab } from "./tab-icon.ts";
 
 const SEED = "kS7Q8Yy5S_SChv0";
 const OTHERS = ["kS7CQ31Do6asvY-", "kSa1cV2jbUEYgzi"];
-/* the palette along its curve at sixteen points, as grabient.com's tab drew it */
+/* the palette along its curve at sixteen points */
 const ALONG = [
   "#f6e4e0",
   "#efdad5",
