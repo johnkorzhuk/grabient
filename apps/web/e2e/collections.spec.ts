@@ -1,7 +1,7 @@
 import { expect, type Page, type Route, test } from "@playwright/test";
 
-/* The collections' pages as a reader meets them when a read fails. The lists the reader moves to are answered here,
-   so the tests stand whatever collections the local database holds. */
+/* The collections' pages as a reader meets them. The lists, collections and accounts a test moves through are answered
+   here, so the tests stand whatever the local database holds. */
 
 const SEED = "kS7CQ31Do6asvY-";
 const SLUG = "e2e-gradients";
