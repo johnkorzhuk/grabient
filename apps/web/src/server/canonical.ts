@@ -1,5 +1,6 @@
 import { canonicalSeedAddress } from "../features/editor/address.ts";
 import { canonicalGallery } from "../features/gallery/address.ts";
+import { FIXED_PAGES } from "../lib/links.ts";
 import { collectionRules } from "./collections/routing.ts";
 import { legacyRedirect } from "./seo/legacy.ts";
 
@@ -15,8 +16,16 @@ import { legacyRedirect } from "./seo/legacy.ts";
 /** The canonical form of `address` ("/path?query"), or null when this rule leaves it alone. */
 export type CanonicalRule = (address: string) => string | null;
 
+/** A page whose query changes nothing the server draws stands at its path alone: the edge keeps it by its path, and
+    the frame around it reads the words a list is searched by. */
+const fixedPage: CanonicalRule = address => {
+  const path = address.split("?", 1)[0] ?? address;
+  return FIXED_PAGES.has(path) ? path : null;
+};
+
 const RULES: readonly CanonicalRule[] = [
   legacyRedirect,
+  fixedPage,
   canonicalSeedAddress,
   canonicalGallery,
   ...collectionRules

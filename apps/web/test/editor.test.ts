@@ -3,12 +3,13 @@ import { messageKey } from "@grabient/i18n";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import * as v from "valibot";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { collectionItem } from "../src/features/collections/schema.ts";
+import { PaletteFacts } from "../src/features/editor/facts.ts";
 import { Saved, Standing } from "../src/features/editor/save.ts";
 import { paletteAnswer } from "../src/server/collections/palettes.ts";
 import { createCollection } from "../src/server/collections/write.ts";
-import { paletteFacts } from "../src/server/editor/facts.ts";
+import { paletteFacts, paletteFactsResponse } from "../src/server/editor/facts.ts";
 import {
   type Account,
   bodyOf,
@@ -52,14 +53,14 @@ describe("a palette's facts", () => {
     const shown = await holding(env, unique("Held in public"), [SEED, OTHER], "public");
     const hidden = await holding(env, unique("Held in private"), [SEED], "private");
     const facts = await paletteFacts(SEED, palette, "en", env);
-    const slugs = facts.heldBy.map(c => c.slug);
+    const slugs = facts?.heldBy.map(c => c.slug);
     expect(slugs).toContain(shown.slug);
     expect(slugs).not.toContain(hidden.slug);
-    const held = facts.heldBy.find(c => c.slug === shown.slug)!;
-    expect(held.title).toBe(shown.title);
-    expect(held.english).toBeUndefined();
-    expect(held.colors.length).toBeGreaterThan(0);
-    for (const color of held.colors) expect(color).toMatch(/^#[0-9a-f]{6}$/);
+    const held = facts?.heldBy.find(c => c.slug === shown.slug);
+    expect(held?.title).toBe(shown.title);
+    expect(held?.english).toBeUndefined();
+    expect(held?.colors.length).toBeGreaterThan(0);
+    for (const color of held?.colors ?? []) expect(color).toMatch(/^#[0-9a-f]{6}$/);
   });
 
   it("titles a collection in the page's language while its translation is of the English it has", async () => {
@@ -76,13 +77,13 @@ describe("a palette's facts", () => {
     await translate(current.slug, "いまの題", messageKey(`${current.title}\n`));
     await translate(stale.slug, "むかしの題", messageKey("Another title\n"));
     const facts = await paletteFacts(SEED, palette, "ja", env);
-    expect(facts.heldBy.find(c => c.slug === current.slug)).toMatchObject({
+    expect(facts?.heldBy.find(c => c.slug === current.slug)).toMatchObject({
       title: "いまの題",
       english: current.title
     });
-    expect(facts.heldBy.find(c => c.slug === stale.slug)).toMatchObject({ title: stale.title });
+    expect(facts?.heldBy.find(c => c.slug === stale.slug)).toMatchObject({ title: stale.title });
     const english = await paletteFacts(SEED, palette, "en", env);
-    expect(english.heldBy.find(c => c.slug === current.slug)?.title).toBe(current.title);
+    expect(english?.heldBy.find(c => c.slug === current.slug)?.title).toBe(current.title);
   });
 
   it("keeps the words written for it only while its colors bear them out", async () => {
@@ -95,7 +96,7 @@ describe("a palette's facts", () => {
         embed
       );
     await write("Evening study", "A quiet set of colors for a reading room.");
-    expect((await paletteFacts(SEED, palette, "en", env)).written).toEqual({
+    expect((await paletteFacts(SEED, palette, "en", env))?.written).toEqual({
       title: "Evening study",
       description: "A quiet set of colors for a reading room."
     });
@@ -106,7 +107,52 @@ describe("a palette's facts", () => {
       "INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES ('kSyQDAzZa8zgZxS', ?, '', 1, 1) ON CONFLICT (seed) DO UPDATE SET title = excluded.title",
       titleAgainst(gray)
     );
-    expect((await paletteFacts("kSyQDAzZa8zgZxS", gray, "en", env)).written).toBeUndefined();
+    expect((await paletteFacts("kSyQDAzZa8zgZxS", gray, "en", env))?.written).toBeUndefined();
+  });
+
+  it("answers a browser that opens it with its facts in English, kept at the edge as its page is", async () => {
+    const shown = await holding(env, unique("Held for the browser"), [SEED], "public");
+    await run(
+      env.DB,
+      "INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, 'Evening study', '', 1, 1) ON CONFLICT (seed) DO UPDATE SET title = excluded.title, embed = excluded.embed",
+      SEED
+    );
+    const ask = (query: string) =>
+      paletteFactsResponse(new Request(`${ORIGIN}/api/palette-facts?${query}`), env);
+    const answered = await ask(`seed=${SEED}`);
+    expect([answered.status, answered.headers.get("CDN-Cache-Control")]).toEqual([
+      200,
+      "max-age=86400"
+    ]);
+    const facts = v.parse(PaletteFacts, await answered.json());
+    expect(facts.written?.title).toBe("Evening study");
+    expect(facts.heldBy.map(c => c.slug)).toContain(shown.slug);
+    for (const query of ["seed=nope", "seed=", ""]) expect((await ask(query)).status).toBe(404);
+  });
+
+  it("says nothing of a palette a failed read left out, and answers a browser that no cache may keep it", async () => {
+    // a replica that fails every query
+    const DB = new Proxy(env.DB, {
+      get(target, key) {
+        if (key === "withSession")
+          return () => ({
+            prepare: () => {
+              throw new Error("D1 is unavailable");
+            }
+          });
+        const value = Reflect.get(target, key);
+        return typeof value === "function" ? value.bind(target) : value;
+      }
+    });
+    const logged = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await paletteFacts(SEED, palette, "en", { DB })).toBeNull();
+    const answered = await paletteFactsResponse(
+      new Request(`${ORIGIN}/api/palette-facts?seed=${SEED}`),
+      { DB }
+    );
+    expect(answered.status).toBe(503);
+    expect(logged).toHaveBeenCalled();
+    logged.mockRestore();
   });
 
   it("counts its likes, its heart's first count, and none for a palette the gallery does not hold", async () => {

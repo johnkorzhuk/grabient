@@ -72,10 +72,10 @@ import {
 } from "./formats.ts";
 import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
-import { keepFacts, NARROW, type PaletteData, Sheet } from "./page.ts";
+import { paletteName } from "./name.ts";
+import { factsOf, keepFacts, NARROW, type PaletteData, paletteTitle, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
-import { paletteTitle } from "./title.ts";
 
 /* The editor, at a palette's address. A side that never leaves the window holds the controls: the keyframes, then
    lightness, chroma and hue, each its numbers over its plot, then the actions and the hex of a keyframe held alone.
@@ -218,7 +218,7 @@ export default function Editor(props: { data: PaletteData }) {
      once, offline too, and a count this browser's own like left since stands over an older copy of the page. */
   onSettled(() => {
     const facts = first.facts;
-    if (facts?.likes !== undefined)
+    if (facts?.likes !== undefined && facts.readAt !== undefined)
       noteCounts([{ seed: first.page.seed, likes: facts.likes }], facts.readAt);
   });
   /* how many like the palette on screen, asked once it has rested: a held key makes many palettes a second. A count
@@ -232,6 +232,22 @@ export default function Editor(props: { data: PaletteData }) {
     }, rest.left());
     return () => clearTimeout(timer);
   });
+  /* The tab says what the route's head wrote from the facts its page was read with. An answer that lands after that
+     read names the palette there too, once the router has written the title it had. */
+  createEffect(
+    () => {
+      const data = props.data;
+      const late = data.facts ? undefined : factsOf(data.page.seed);
+      return late?.written ? paletteTitle(data.page, late) : undefined;
+    },
+    title => {
+      if (!title) return;
+      const timer = setTimeout(() => {
+        document.title = title;
+      });
+      return () => clearTimeout(timer);
+    }
+  );
   /* the check's state is this browser's selection, read once the page is live */
   onSettled(loadSelection);
   onSettled(endBoot);
@@ -269,7 +285,9 @@ export default function Editor(props: { data: PaletteData }) {
         narrow={narrow}
         save={save}
         rest={rest}
-        facts={() => (e.seed() === first.page.seed ? first.facts : null)}
+        facts={() =>
+          factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null)
+        }
         frames={first.frames}
         heading={() =>
           e.seed() === first.page.seed &&
@@ -648,7 +666,7 @@ function Stage(
       </Show>
       {/* the name at the picture's foot, on a phone, where the sheet's name row is under the first screen */}
       <p class={styles.caption} dir="auto" aria-hidden="true">
-        {paletteTitle(e, props.heading(), props.facts())}
+        {paletteName(e, props.heading(), props.facts())}
       </p>
       {/* biome-ignore lint/a11y/useSemanticElements: the palette's presses, which a fieldset would box */}
       <div

@@ -41,6 +41,7 @@ import { Route as ApiHotRouteImport } from './routes/api/hot'
 import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
 import { Route as ApiNewsletterRouteImport } from './routes/api/newsletter'
 import { Route as ApiPaletteRouteImport } from './routes/api/palette'
+import { Route as ApiPaletteFactsRouteImport } from './routes/api/palette-facts'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
 import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
 import { Route as ApiPopularSearchesRouteImport } from './routes/api/popular-searches'
@@ -275,6 +276,11 @@ const ApiNewsletterRoute = ApiNewsletterRouteImport.update({
 const ApiPaletteRoute = ApiPaletteRouteImport.update({
   id: '/api/palette',
   path: '/api/palette',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPaletteFactsRoute = ApiPaletteFactsRouteImport.update({
+  id: '/api/palette-facts',
+  path: '/api/palette-facts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPaletteDotjsonRoute = ApiPaletteDotjsonRouteImport.update({
@@ -712,6 +718,7 @@ export interface FileRoutesByFullPath {
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
+  '/api/palette-facts': typeof ApiPaletteFactsRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/popular-searches': typeof ApiPopularSearchesRoute
@@ -820,6 +827,7 @@ export interface FileRoutesByTo {
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
+  '/api/palette-facts': typeof ApiPaletteFactsRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/popular-searches': typeof ApiPopularSearchesRoute
@@ -929,6 +937,7 @@ export interface FileRoutesById {
   '/api/like-counts': typeof ApiLikeCountsRoute
   '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
+  '/api/palette-facts': typeof ApiPaletteFactsRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
   '/api/popular-searches': typeof ApiPopularSearchesRoute
@@ -1039,6 +1048,7 @@ export interface FileRouteTypes {
     | '/api/like-counts'
     | '/api/newsletter'
     | '/api/palette'
+    | '/api/palette-facts'
     | '/api/palette.json'
     | '/api/palettes'
     | '/api/popular-searches'
@@ -1147,6 +1157,7 @@ export interface FileRouteTypes {
     | '/api/like-counts'
     | '/api/newsletter'
     | '/api/palette'
+    | '/api/palette-facts'
     | '/api/palette.json'
     | '/api/palettes'
     | '/api/popular-searches'
@@ -1255,6 +1266,7 @@ export interface FileRouteTypes {
     | '/api/like-counts'
     | '/api/newsletter'
     | '/api/palette'
+    | '/api/palette-facts'
     | '/api/palette.json'
     | '/api/palettes'
     | '/api/popular-searches'
@@ -1364,6 +1376,7 @@ export interface RootRouteChildren {
   ApiLikeCountsRoute: typeof ApiLikeCountsRoute
   ApiNewsletterRoute: typeof ApiNewsletterRoute
   ApiPaletteRoute: typeof ApiPaletteRoute
+  ApiPaletteFactsRoute: typeof ApiPaletteFactsRoute
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
   ApiPalettesRoute: typeof ApiPalettesRoute
   ApiPopularSearchesRoute: typeof ApiPopularSearchesRoute
@@ -1665,6 +1678,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/palette'
       fullPath: '/api/palette'
       preLoaderRoute: typeof ApiPaletteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/palette-facts': {
+      id: '/api/palette-facts'
+      path: '/api/palette-facts'
+      fullPath: '/api/palette-facts'
+      preLoaderRoute: typeof ApiPaletteFactsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/palette.json': {
@@ -2220,6 +2240,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiLikeCountsRoute: ApiLikeCountsRoute,
   ApiNewsletterRoute: ApiNewsletterRoute,
   ApiPaletteRoute: ApiPaletteRoute,
+  ApiPaletteFactsRoute: ApiPaletteFactsRoute,
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
   ApiPalettesRoute: ApiPalettesRoute,
   ApiPopularSearchesRoute: ApiPopularSearchesRoute,

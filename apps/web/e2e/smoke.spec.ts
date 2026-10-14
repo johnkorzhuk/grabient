@@ -71,7 +71,11 @@ test("an address with a parameter that has no value answers with its page", asyn
     const answer = await request.get(address, { maxRedirects: 0 });
     expect(answer.status(), address).toBe(200);
   }
-  expect((await request.get("/about?x=", { maxRedirects: 0 })).status()).toBe(200);
+  // a public page whose own word has no value, which the edge keeps: a fixed page leads any query of its away
+  expect((await request.get("/palettes?selection", { maxRedirects: 0 })).status()).toBe(200);
+  const fixed = await request.get("/about?x=", { maxRedirects: 0 });
+  expect(fixed.status()).toBe(301);
+  expect(fixed.headers().location).toMatch(/\/about$/);
 });
 
 test("an API address answers in its own way whatever the method, never with a page", async ({

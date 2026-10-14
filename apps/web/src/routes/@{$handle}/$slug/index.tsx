@@ -4,7 +4,7 @@ import { CollectionRoute } from "../../../features/collections/CollectionRoute.t
 import { collectionHead, loadCollection } from "../../../features/collections/route.ts";
 import { ListAppearance } from "../../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE } from "../../../lib/cache.ts";
-import { searchOf } from "../../../lib/route.ts";
+import { drawnSearch, searchOf } from "../../../lib/route.ts";
 
 const slugOf = (params: { handle: string; slug: string }) => `@${params.handle}/${params.slug}`;
 
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/@{$handle}/$slug/")({
   beforeLoad: ({ params }) => {
     if (!isCollectionSlug(slugOf(params))) throw notFound();
   },
-  loaderDeps: ({ search }) => ({ search: search as Record<string, unknown> }),
+  loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: ({ context, params, deps, location }) =>
     loadCollection(context.queryClient, {
       slug: slugOf(params),

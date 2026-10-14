@@ -19,7 +19,7 @@ import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
 import { namesNow, preciseNames } from "../../lib/color-names.ts";
-import type { PaletteFacts } from "../../server/editor/facts.ts";
+import type { PaletteFacts } from "./facts.ts";
 import type { Rest } from "./rest.ts";
 
 /* The palette as text, in the sheet's code pane: its seed, CSS, colors, shader, JSON, SVG and Markdown. Labels and notes

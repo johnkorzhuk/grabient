@@ -8,13 +8,18 @@ import { collectionHead, loadCollection } from "../../features/collections/route
 import { isSeed } from "../../features/editor/address.ts";
 import { endBoot } from "../../features/editor/boot.ts";
 import { EditorCorner, editing } from "../../features/editor/EditorCorner.tsx";
-import { loadEditor, paletteData, paletteHead, searchReader } from "../../features/editor/page.ts";
+import {
+  askFacts,
+  loadEditor,
+  paletteData,
+  paletteHead,
+  searchReader
+} from "../../features/editor/page.ts";
 import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE, PALETTE_PAGE } from "../../lib/cache.ts";
-import { BROWSER_ONLY, TRACKING_PARAM } from "../../lib/links.ts";
 import { pageHead } from "../../lib/page-meta.ts";
-import { answerWith, searchOf } from "../../lib/route.ts";
+import { answerWith, drawnSearch, searchOf } from "../../lib/route.ts";
 
 /* Every one-segment address: a palette's seed, a collection's slug, an old grabient.com link, or words that lead to a
    search. A palette's page is the editor, which the browser draws alone (`ssr: "data-only"`): the server runs the
@@ -37,22 +42,19 @@ export const Route = createFileRoute("/$id/")({
     if (params.status !== "success") return true;
     return isSeed(params.value.id) ? "data-only" : !OLD_SEED.test(params.value.id);
   },
-  /* The view rides the address: a page is read again as it changes, from the address alone. The browser's own words
-     (the selection, what Random keeps) and a landing's campaign tags change nothing the server reads, and the edge
-     keeps one document for all of them: the browser reads that document's page as its own. */
-  loaderDeps: ({ search }) => ({
-    search: Object.fromEntries(
-      Object.entries(search as Record<string, unknown>).filter(
-        ([name]) => !BROWSER_ONLY.includes(name) && !TRACKING_PARAM.test(name)
-      )
-    )
-  }),
+  /* The view rides the address: a page is read again as it changes, from the address alone, never as the selection
+     opens or a lock turns. */
+  loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: async ({ context, params, deps, location }) => {
+    /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between the
+       two: its code is asked for at once. Code that does not come is the page's own to say, where it renders. */
+    const code = isServer || !isSeed(params.id) ? null : Editor.preload().catch(() => {});
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
-      /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between
-         the two. Code that does not come is the page's own to say, where it renders. */
-      if (!isServer) await Editor.preload().catch(() => {});
+      /* a palette nothing asked about before the press is asked about now, after the read that waits only for an
+         answer asked for before it, and is named by its colors until the answer lands */
+      if (code) askFacts(params.id, location.state);
+      await code;
       const { seed, view } = palette.page;
       /* the frame's bar and water carry the palette from the server's render on, before an editor is open */
       const paint = [{ seed, style: view.style, steps: view.steps, angle: view.angle }];
@@ -77,7 +79,8 @@ export const Route = createFileRoute("/$id/")({
     throw notFound();
   },
   headers: ({ loaderData }) => {
-    if (loaderData?.palette) return PALETTE_PAGE;
+    // the server reads a palette's facts with its page, and has none only where the read failed: no cache keeps that
+    if (loaderData?.palette) return loaderData.palette.facts ? PALETTE_PAGE : NO_STORE;
     return loaderData?.collection && !loaderData.collection.status ? PAGE : NO_STORE;
   },
   head: ({ match, params, loaderData }) => {

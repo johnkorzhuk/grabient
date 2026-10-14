@@ -7,6 +7,7 @@ import { signInUnavailable } from "../../app/connection.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
+import { askFacts } from "../editor/page.ts";
 import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
 import { cardTakings } from "../gallery/take.ts";
 import { AppearanceContext, drawnIn, type ListView } from "../list/appearance.ts";
@@ -79,6 +80,7 @@ export function ItemCard(props: {
       onSelect={() => {
         if (toggle(shown()) === "made room") props.note(roomNote(1));
       }}
+      onIntent={() => askFacts(seed())}
       onOpen={() => useOpened(props.place(), shown(), props.at())}
       collect={<CollectPress collect={collect} />}
       tools={() => (

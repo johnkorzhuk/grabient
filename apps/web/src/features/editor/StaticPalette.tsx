@@ -4,10 +4,10 @@ import { isFixedSize, viewSearch } from "@grabient/engine/view.ts";
 import { localHref, t } from "@grabient/i18n";
 import { For, Show } from "solid-js";
 import { heading, type Page, pageMeta } from "../../lib/page-meta.ts";
-import type { PaletteFacts } from "../../server/editor/facts.ts";
 import type { SeedPage } from "./address.ts";
 import { Boot } from "./Boot.tsx";
 import { BOOT_MARK, BOOT_SCRIPT } from "./boot.ts";
+import type { PaletteFacts } from "./facts.ts";
 import type { PaletteData } from "./page.ts";
 
 /** The page as its metadata reads it. */

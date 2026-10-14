@@ -39,9 +39,11 @@ export const FIXED_PAGES = new Set([
 export const BROWSER_ONLY = ["selection", "lock", "unlock"];
 
 /** The address the language menu offers for this page in every language: the page with only the query its HTML is kept
-    by, so one reader's query never reaches a menu the cache serves to others. The consent page keeps the request an
-    app made, sign-in keeps where it leads, and an address that is no page, or that the site does not know, is the home. */
-export function languagePath(pathAndSearch: string, found = true): string {
+    by, so one reader's query never reaches a menu the cache serves to others, and never a landing's campaign tags. The
+    consent page keeps the request an app made, sign-in keeps where it leads, and an address that is no page, or that
+    the site does not know, is the home. `own` keeps the browser's own words: the editor's menu, which only the browser
+    draws. */
+export function languagePath(pathAndSearch: string, found = true, own = false): string {
   if (!found || !isPagePath(pathAndSearch)) return "/";
   const url = new URL(pathAndSearch, "https://grabient.invalid");
   const path = url.pathname;
@@ -58,6 +60,8 @@ export function languagePath(pathAndSearch: string, found = true): string {
   ) {
     return path;
   }
-  for (const name of BROWSER_ONLY) url.searchParams.delete(name);
+  for (const name of [...url.searchParams.keys()])
+    if (TRACKING_PARAM.test(name) || (!own && BROWSER_ONLY.includes(name)))
+      url.searchParams.delete(name);
   return path + url.search;
 }

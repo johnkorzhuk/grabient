@@ -7,6 +7,7 @@ import type { Env } from "@grabient/server/env.ts";
 import migrated from "../../data/legacy-k.json" with { type: "json" };
 import links from "../../data/legacy-links.json" with { type: "json" };
 import { PAGE } from "../lib/cache.ts";
+import { drawnSearch, searchOf } from "../lib/route.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { handle, misdeployed } from "./pipeline.ts";
@@ -199,6 +200,19 @@ test("the canonical rules: the first that knows an address decides, and the same
   expect(canonicalRedirect("/about")).toBeNull();
 });
 
+test("a page whose query changes nothing the server draws stands at its path alone", async () => {
+  // its frame reads the words a list is searched by, and the edge keeps it by its path
+  for (const [address, to] of [
+    ["/about?q=sunset", "/about"],
+    ["/ja/privacy?selection&x=1", "/ja/privacy"],
+    ["/newsletter?q=sea&utm_source=news", "/newsletter?utm_source=news"]
+  ]) {
+    const response = await get(address);
+    expect([address, response.status, location(response)]).toEqual([address, 301, to]);
+  }
+  expect([asked, cache.kept.size]).toEqual([[], 0]);
+});
+
 describe("an old grabient.com link", () => {
   test.each([
     [
@@ -255,7 +269,7 @@ describe("the edge cache", () => {
   test("keeps a public page and answers the next request from it", async () => {
     const first = await get("/about");
     expect(first.headers.get("X-Grabient-Cache")).toBe("MISS");
-    const second = await get("/about?x=1&utm_source=news");
+    const second = await get("/about?utm_source=news");
     expect(second.headers.get("X-Grabient-Cache")).toBe("HIT");
     expect(second.headers.get("Cache-Control")).toBe("public, max-age=0, must-revalidate");
     expect(await second.text()).toBe("<!DOCTYPE html><p>page</p>");
@@ -269,6 +283,26 @@ describe("the edge cache", () => {
     expect([...cache.kept.keys()]).toEqual([
       "https://grabient.test/palettes?__build=b1&page=2",
       "https://grabient.test/ja/palettes?__build=b1&page=2"
+    ]);
+  });
+
+  test.each([
+    ["/palettes", { q: "sea", page: "2", selection: "" }],
+    ["/kS7Q8Yy5S_SChv0", { style: "radialSwatches", lock: "hue", unlock: "chroma", selection: "" }]
+  ])("keeps one document for %s at every address its route draws alike", async (path, search) => {
+    const landed = { ...search, utm_source: "news", gclid: "x" };
+    expect((await get(path + searchOf(landed))).status).toBe(200);
+    const drawn = await get(path + searchOf(drawnSearch(landed)));
+    expect([drawn.headers.get("X-Grabient-Cache"), asked.length]).toEqual(["HIT", 1]);
+  });
+
+  test("keeps a palette's facts by its seed alone", async () => {
+    const facts = () => Response.json({ heldBy: [] }, { headers: PAGE });
+    await get("/api/palette-facts?seed=kS7Q8Yy5S_SChv0&x=1", {}, facts);
+    const again = await get("/api/palette-facts?x=2&seed=kS7Q8Yy5S_SChv0", {}, facts);
+    expect(again.headers.get("X-Grabient-Cache")).toBe("HIT");
+    expect([...cache.kept.keys()]).toEqual([
+      "https://grabient.test/api/palette-facts?__build=b1&seed=kS7Q8Yy5S_SChv0"
     ]);
   });
 
@@ -424,14 +458,25 @@ test("the MCP and authorization servers answer their own addresses as they stand
 });
 
 test("campaign tags never reach Start and ride every same-origin redirect", async () => {
-  await get("/about?utm_source=news&fbclid=x&q=1");
-  expect(asked[0].url).toBe("https://grabient.test/about?q=1");
+  await get("/palettes?utm_source=news&fbclid=x&q=sea");
+  expect(asked[0].url).toBe("https://grabient.test/palettes?q=sea");
   const response = await get("/palettes/?utm_source=news", {}, () => page());
   expect(location(response)).toBe("/palettes?utm_source=news");
   const started = await get("/x/edit?gclid=g", {}, () =>
     Response.redirect("https://grabient.test/x", 301)
   );
   expect(location(started)).toBe("/x?gclid=g");
+});
+
+test("campaign tags come off an address and onto a redirect with the rest of it written as it came", async () => {
+  // the selection's bare word, written `selection=`, is another spelling of the list, which leads to its own
+  const listed = await get("/palettes?q=sea&selection&utm_source=news");
+  expect([listed.status, asked[0]?.url]).toEqual([
+    200,
+    "https://grabient.test/palettes?q=sea&selection"
+  ]);
+  const moved = await get("/ja/palettes/?q=sea+sky&selection&gclid=g");
+  expect(location(moved)).toBe("/ja/palettes?q=sea+sky&selection&gclid=g");
 });
 
 test("only a server route takes another method than GET and HEAD", async () => {

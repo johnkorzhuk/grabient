@@ -41,9 +41,10 @@ export const uncachedPath = (path: string) =>
 export const searchJsonPath = (path: string) =>
   /^\/(?:api\/search\.json|api\/palettes\/search|(?:search|palettes)\/.+\.json)$/.test(path);
 
-/** The home, the public palette and collections lists, every search, and the answers that hold them: each read the
-    edge cache does not hold runs the search or reads the database, so an address may make sixty a minute
-    (pipeline.ts). The list API, which the edge never holds, counts every read. */
+/** The home, the public palette and collections lists, every search, and the answers that hold them: each read the edge
+    cache does not hold runs the search or reads the database, so an address may make sixty a minute (pipeline.ts). The
+    list API, which the edge never holds, counts every read. A palette's facts read what its page reads, which nothing
+    counts, and a reader resting on a list's cards asks for many. */
 export const listingPath = (path: string) =>
   /^\/(?:(?:palettes|collections)(?:\/rising(?:\/[^/]+)?)?)?$/.test(path) ||
   path === "/api/hot" ||

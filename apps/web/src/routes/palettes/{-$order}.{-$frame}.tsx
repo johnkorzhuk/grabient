@@ -1,3 +1,4 @@
+import { localHref } from "@grabient/i18n";
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
 import { untrack } from "solid-js";
 import { galleryPlace } from "../../features/gallery/address.ts";
@@ -9,7 +10,7 @@ import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { edgeFor } from "../../lib/cache.ts";
 import { DEFAULT_FRAME } from "../../lib/orders.ts";
 import { pageHead } from "../../lib/page-meta.ts";
-import { answerWith, searchOf } from "../../lib/route.ts";
+import { answerWith, drawnSearch, searchOf } from "../../lib/route.ts";
 
 type Place = Extract<NonNullable<ReturnType<typeof galleryPlace>>, { kind: "list" }>;
 /** The public list an address names; none for an order or a frame the lists do not have. */
@@ -30,11 +31,12 @@ export const Route = createFileRoute("/palettes/{-$order}/{-$frame}")({
     if (!at) throw notFound();
     if (at.frame === DEFAULT_FRAME) return;
     const offered = await context.queryClient.ensureQueryData(framesQuery());
+    // a redirect's address is written as it is given, so it names the reader's language itself
     if (!offered.includes(at.frame)) {
-      throw redirect({ href: `/palettes/rising${searchOf(search)}`, statusCode: 302 });
+      throw redirect({ href: localHref(`/palettes/rising${searchOf(search)}`), statusCode: 302 });
     }
   },
-  loaderDeps: ({ search }) => ({ query: searchOf(search) }),
+  loaderDeps: ({ search }) => ({ query: searchOf(drawnSearch(search)) }),
   loader: ({ context, params, deps }) =>
     loadPalettes(context.queryClient, place(params, deps.query)!),
   headers: ({ loaderData }) => edgeFor(loaderData?.edge ?? 0),

@@ -82,6 +82,8 @@ export interface PaletteCardProps {
   selectable?: boolean;
   /** Edit was pressed, before the editor opens */
   onOpen?: (e: MouseEvent) => void;
+  /** the pointer or the focus reached the card, or a finger's tap opened it: Edit shows, and a press may follow */
+  onIntent?: () => void;
   /** presses beside Edit: an admin's curation, a collection owner's removal, or the Undo of one */
   lead?: Element;
   /** under the check once the palette is selected: Add to collection */
@@ -127,6 +129,7 @@ export function PaletteCard(props: PaletteCardProps) {
   const tap = (e: MouseEvent) => {
     if (!finger || (e.target as HTMLElement).closest("a, button")) return;
     open(e.currentTarget as HTMLElement);
+    props.onIntent?.();
   };
   return (
     <article
@@ -134,7 +137,10 @@ export function PaletteCard(props: PaletteCardProps) {
       aria-label={t(props.removed ? msg("{name} palette, removed") : msg("{name} palette"), {
         name: props.name
       })}
-      onFocusIn={arm}
+      onFocusIn={() => {
+        arm();
+        props.onIntent?.();
+      }}
     >
       {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: a finger's tap opens
           the corners that hover opens for a mouse; the keyboard reaches the same presses by Tab, and focus shows them */}
@@ -145,6 +151,7 @@ export function PaletteCard(props: PaletteCardProps) {
         onPointerOver={e => {
           arm();
           if (e.pointerType === "touch") return;
+          if (!over) props.onIntent?.();
           over = true;
           shine(e.currentTarget);
         }}

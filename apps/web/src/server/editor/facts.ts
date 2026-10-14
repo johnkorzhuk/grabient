@@ -1,32 +1,23 @@
 import { env } from "cloudflare:workers";
-import type { Palette } from "@grabient/engine";
+import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
 import { DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts";
 import { titleFaults } from "@grabient/engine/name.ts";
-import { DEFAULT_LOCALE, type Locale, messageKey } from "@grabient/i18n";
+import { DEFAULT_LOCALE, type Locale, messageKey, msg } from "@grabient/i18n";
 import { all, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import type { PaletteFacts } from "../../features/editor/facts.ts";
+import { PALETTE_PAGE } from "../../lib/cache.ts";
+import { json } from "../../lib/responses.ts";
 
 /* What only the database knows of a palette, for its page: the words written for it that its colors bear out, the
    public collections that hold it, the most saved first, each titled in the page's language where it is translated,
    and how many like it. The page's title, its description, its static page for crawlers and its Markdown read them,
-   and its heart starts from the count. Read once per page the edge has no copy of, from a replica, in one round of
-   three queries; a read that fails leaves its facts out, and the page goes by the palette's colors. */
-
-export interface PaletteFacts {
-  /** in English: a palette's written words are its author's */
-  written?: { title: string; description?: string };
-  heldBy: { slug: string; title: string; english?: string; colors: readonly string[] }[];
-  /** how many like it: 0 for a palette the gallery does not hold, none when the count could not be read */
-  likes?: number;
-  /** when the database was read, which a count kept since is weighed against */
-  readAt: number;
-}
+   and its heart starts from the count. Read once per page, or per answer to a browser that opens the palette, the edge
+   has no copy of, from a replica, in one round of three queries. A failed read of the words or the collections leaves
+   the facts out: the page goes by the palette's colors, and no cache keeps it. A count that cannot be read is left
+   out alone, and the browser asks for it. */
 
 const HELD_MAX = 6;
-const missed = (error: unknown): never[] => {
-  console.error("Palette facts unread", String(error));
-  return [];
-};
 
 /* each collection's first palettes come with it for its colors; CROSS JOIN keeps SQLite on the items' seed index */
 const HOLDING = `SELECT c.slug, c.title, c.description, t.title AS said, t.source,
@@ -46,25 +37,33 @@ interface HeldRow {
   seeds: string | null;
 }
 
+/** A palette's facts, or null when a read failed. */
 export async function paletteFacts(
   seed: string,
   palette: Palette,
   locale: Locale,
   source: Pick<Env, "DB"> = env
-): Promise<PaletteFacts> {
+): Promise<PaletteFacts | null> {
   const db = replica(source);
-  const [texts, held, counted] = await Promise.all([
-    all<{ title: string; embed: string }>(
-      db,
-      "SELECT title, embed FROM k_palette_texts WHERE seed = ?",
-      seed
-    ).catch(missed),
-    all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed).catch(missed),
+  const [read, counted] = await Promise.all([
+    Promise.all([
+      all<{ title: string; embed: string }>(
+        db,
+        "SELECT title, embed FROM k_palette_texts WHERE seed = ?",
+        seed
+      ),
+      all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed)
+    ]).catch((error: unknown) => {
+      console.error("Palette facts unread", String(error));
+      return null;
+    }),
     all<{ n: number }>(db, "SELECT likes_count AS n FROM k_palettes WHERE seed = ?", seed).then(
       rows => Math.max(0, Number(rows[0]?.n) || 0),
-      error => void missed(error)
+      (error: unknown) => void console.error("Palette likes unread", String(error))
     )
   ]);
+  if (!read) return null;
+  const [texts, held] = read;
   const text = texts[0];
   /* a title the colors contradict is left out, and the description goes with it */
   const written =
@@ -91,4 +90,21 @@ export async function paletteFacts(
     ...(counted === undefined ? {} : { likes: counted }),
     readAt: Date.now()
   };
+}
+
+/** `GET /api/palette-facts?seed=`: a palette's facts in English, the language its written words are in, for a page the
+    browser opens on it; kept at the edge as its page is. An address that is no palette's canonical seed is 404, and a
+    failed read 503, which the browser takes for no facts and asks again. */
+export async function paletteFactsResponse(
+  request: Request,
+  source: Pick<Env, "DB"> = env
+): Promise<Response> {
+  const seed = new URL(request.url).searchParams.get("seed") ?? "";
+  const palette = decodePalette(seed);
+  if (!palette || encodePalette(palette) !== seed)
+    return json({ error: msg("Not found") }, { status: 404 });
+  const facts = await paletteFacts(seed, palette, DEFAULT_LOCALE, source);
+  return facts
+    ? json(facts, { headers: PALETTE_PAGE })
+    : json({ error: msg("Something went wrong. Try again.") }, { status: 503 });
 }

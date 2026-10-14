@@ -57,6 +57,42 @@ async function open(page: Page, address: string) {
 }
 const sameDocument = (page: Page) => page.evaluate(() => "journey" in window);
 
+/** What the router says of where it stands: the address it reads, and the address whose pages it has drawn. */
+type ResolvedState = {
+  status: string;
+  location: { href: string };
+  resolvedLocation?: { href: string };
+};
+/** Opens `address` in a tab of its own on the document the server answers `served` with, as the edge serves it when it
+    kept that address's document first, and says what the reader is left with once the app has taken it over: how many
+    pages the document holds, and what Solid's development build says hydration left unclaimed. */
+async function hydrated(context: BrowserContext, address: string, served = address) {
+  const tab = await context.newPage();
+  const unclaimed: string[] = [];
+  tab.on("console", message => {
+    if (/unclaimed/i.test(message.text())) unclaimed.push(message.text().split("\n")[0] ?? "");
+  });
+  if (served !== address)
+    await tab.route(
+      url => url.pathname + url.search === address,
+      async route =>
+        route.fulfill({
+          response: await route.fetch({ url: new URL(served, route.request().url()).href })
+        })
+    );
+  await open(tab, address);
+  // a match the document did not carry loads once the app has started, and its page then draws beside the server's
+  await tab.waitForFunction(() => {
+    const router = (window as { __TSR_ROUTER__?: { state: ResolvedState } }).__TSR_ROUTER__;
+    const at = router?.state;
+    return at?.status === "idle" && at.resolvedLocation?.href === at.location.href;
+  });
+  await settled(tab);
+  const pages = await tab.locator("main").count();
+  await tab.close();
+  return { pages, unclaimed };
+}
+
 /** Whether the site's stylesheet applies: the design system's tokens stand on the document. */
 const styled = (page: Page) =>
   page.evaluate(
@@ -374,6 +410,19 @@ const OWN: List[] = [
   { name: "a private collection", address: "/@ada-verify/my-blues", opens: ["edit", "card"] }
 ];
 
+/* What the server never draws: the browser's own words (the selection) and a landing's campaign tags. The edge keeps
+   one document for every address that differs by them alone, so each of these pages is drawn by documents the server
+   rendered for another address of it. */
+const KEPT_ALIKE = [
+  "/",
+  "/palettes",
+  "/palettes/rising",
+  "/collections",
+  "/collections/rising",
+  "/blue-swatches/rising"
+];
+const CAMPAIGN = "utm_source=newsletter&utm_medium=email";
+
 /** A string of the site's English in the page's language, from the catalog the site translates with. */
 function say(lang: string, english: string): string {
   if (lang === "en") return english;
@@ -460,6 +509,31 @@ for (const width of WIDTHS)
         page
       }) => walk(page, width, list));
 
+    for (const address of KEPT_ALIKE)
+      test(`${address} stands as one page from a campaign's link and from either document its selection shares`, async ({
+        context
+      }) => {
+        const selected = `${address}?selection`;
+        for (const [said, at, served] of [
+          ["a campaign's link", `${address}?${CAMPAIGN}`],
+          ["a campaign's link to the selection", `${selected}&${CAMPAIGN}`],
+          ["kept with the selection", address, selected],
+          ["kept without it", selected, address]
+        ] as const)
+          expect
+            .soft(await hydrated(context, at, served), said)
+            .toEqual({ pages: 1, unclaimed: [] });
+      });
+
+    test("an account's collection, signed out, stands as one page from a campaign's link", async ({
+      context
+    }) => {
+      expect(await hydrated(context, `/@ada-verify/my-blues?${CAMPAIGN}`)).toEqual({
+        pages: 1,
+        unclaimed: []
+      });
+    });
+
     for (const { lang, prefix, words } of LANGUAGES)
       test(`a search in ${lang} by a tag, by words, by a palette's address and cleared shows what its address shows`, async ({
         page,
@@ -515,6 +589,34 @@ for (const width of WIDTHS)
         expect(await sameDocument(page)).toBe(true);
         expect(broken).toEqual([]);
       });
+
+    test("a palette's locks go along to another language from the footer's menu and the account's", async ({
+      page
+    }) => {
+      const broken = watch(page);
+      const hue = page.getByRole("button", { name: "Lock hue", exact: true });
+      const locked = (prefix: string) => new RegExp(`${prefix}/${SEED}\\?lock=hue$`);
+      await open(page, `/es/${SEED}`);
+      await press(hue, width);
+      await expect(page).toHaveURL(locked("/es"));
+
+      await press(page.locator("footer button[aria-controls]"), width);
+      await press(page.locator('footer ul a[hreflang="ja"]'), width);
+      await expect(page).toHaveURL(locked("/ja"));
+      await expect(hue).toHaveAttribute("aria-pressed", "true");
+
+      await page.waitForFunction(() => !("$_TSR" in window));
+      await pressAt(
+        page,
+        page.locator("header").getByRole("button", { name: say("ja", "Sign in") }),
+        width
+      );
+      await pressAt(page, page.getByRole("menuitem", { name: say("ja", "Language") }), width);
+      await pressAt(page, page.getByRole("menuitemradio", { name: "Español" }), width);
+      await expect(page).toHaveURL(locked("/es"));
+      await expect(hue).toHaveAttribute("aria-pressed", "true");
+      expect(broken).toEqual([]);
+    });
 
     test("a palette opened from a list takes a key and a drag, walks them back and forth, gives its link and goes Back to the list", async ({
       page,
@@ -756,6 +858,237 @@ for (const width of WIDTHS)
       expect(broken).toEqual([]);
     });
   });
+
+/** What a palette's page is called: its tab's title and its heading. */
+const called = (page: Page) =>
+  page.evaluate(() => ({
+    title: document.title,
+    heading: document.querySelector("h1")?.textContent
+  }));
+
+for (const list of ["/palettes", "/bright-gradients"])
+  test(`a palette opened from ${list}, edited, taken back and left for one like it is called what each address is called loaded whole`, async ({
+    page,
+    context
+  }) => {
+    const whole = await context.newPage();
+    /** The palette's page as the address it stands at is called when it is loaded whole. */
+    const agrees = async (step: string) => {
+      await open(whole, page.url());
+      await expect(whole.getByRole("img", { name: "The gradient" })).toBeVisible();
+      await expect.poll(() => called(page), { message: step }).toEqual(await called(whole));
+    };
+    await open(page, list);
+    await OPENERS.edit(page);
+    await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+    const opened = seedOf(page);
+    await agrees("opened");
+    await page.keyboard.press("i");
+    await edited(page, opened);
+    await agrees("edited");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => seedOf(page)).toBe(opened);
+    await agrees("taken back");
+    // a palette like it, from the sheet's own list, opens in place
+    await page.mouse.move(200, 200);
+    await page.mouse.wheel(0, 2000);
+    const like = page.locator(`a[aria-label='Edit']:not([href*='${opened}'])`).first();
+    await expect(like).toBeAttached({ timeout: 30_000 });
+    const to = new URL((await like.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
+    await like.evaluate(el => (el as HTMLElement).focus());
+    await page.keyboard.press("Enter");
+    await expect.poll(() => seedOf(page)).toBe(to);
+    await agrees("a palette like it");
+  });
+
+/** Records the editor's heading from now on: each name it shows, once in turn. */
+const listen = (page: Page) =>
+  page.evaluate(() => {
+    const seen: string[] = [];
+    let last = document.querySelector("h1")?.textContent;
+    const read = () => {
+      const heading = document.querySelector("h1")?.textContent;
+      if (!heading || heading === last) return;
+      last = heading;
+      if (document.querySelector("[role='img'][aria-label='The gradient']")) seen.push(heading);
+    };
+    new MutationObserver(read).observe(document, {
+      subtree: true,
+      childList: true,
+      characterData: true
+    });
+    Object.assign(window, { headings: seen });
+  });
+/** The headings recorded since `listen` or the last call. */
+const heard = (page: Page) =>
+  page.evaluate(() => (window as unknown as { headings: string[] }).headings.splice(0));
+/** The palettes whose facts the server has answered for, by seed, from now on. */
+function answered(page: Page): Set<string> {
+  const seeds = new Set<string>();
+  page.on("response", response => {
+    const url = new URL(response.url());
+    if (url.pathname === "/api/palette-facts" && response.ok())
+      seeds.add(url.searchParams.get("seed") ?? "");
+  });
+  return seeds;
+}
+/** What the palette at the page's address is called loaded whole. */
+async function calledWhole(context: BrowserContext, page: Page) {
+  const whole = await context.newPage();
+  await open(whole, page.url());
+  await expect(whole.getByRole("img", { name: "The gradient" })).toBeVisible();
+  const said = await called(whole);
+  await whole.close();
+  return said;
+}
+/** The seed a card's Edit opens. */
+const seedAt = async (card: Locator) =>
+  new URL(
+    (await card.locator("a[aria-label='Edit']").getAttribute("href")) ?? "",
+    "https://grabient.test"
+  ).pathname.slice(1);
+
+test("a palette whose card the pointer reached opens called what the server knows it as, from its first frame", async ({
+  page,
+  context
+}) => {
+  const facts = answered(page);
+  await open(page, "/palettes");
+  const card = cards(page).nth(2);
+  const seed = await seedAt(card);
+  await card.getByRole("img").first().hover();
+  await expect.poll(() => facts.has(seed)).toBe(true);
+  await listen(page);
+  await card.locator("a[aria-label='Edit']").click();
+  await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+  const whole = await calledWhole(context, page);
+  await expect.poll(() => called(page)).toEqual(whole);
+  expect(await heard(page)).toEqual([whole.heading]);
+});
+
+test("a palette whose facts are slow to come opens at once, called by its colors, and takes its title as they come", async ({
+  page,
+  context
+}) => {
+  await open(page, "/palettes");
+  // the editor's code, which the first palette opened waits for, is in
+  await cards(page).first().getByRole("img").first().hover();
+  await cards(page).first().locator("a[aria-label='Edit']").click();
+  await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+  await page.goBack();
+  const card = cards(page).nth(3);
+  await expect(card).toBeVisible();
+  let answer = () => {};
+  const held = new Promise<void>(done => {
+    answer = done;
+  });
+  await page.route(
+    url => url.pathname === "/api/palette-facts",
+    async route => {
+      await held;
+      await route.continue();
+    }
+  );
+  await page.evaluate(() =>
+    addEventListener(
+      "click",
+      () => {
+        const pressed = performance.now();
+        const look = () => {
+          if (document.querySelector("[role='img'][aria-label='The gradient']"))
+            Object.assign(window, { opened: performance.now() - pressed });
+          else requestAnimationFrame(look);
+        };
+        look();
+      },
+      { capture: true, once: true }
+    )
+  );
+  await card.getByRole("img").first().hover();
+  await card.locator("a[aria-label='Edit']").click();
+  // the press waits a moment at most for the answer it asked for as the pointer came
+  await expect
+    .poll(() => page.evaluate(() => (window as { opened?: number }).opened ?? Infinity))
+    .toBeLessThan(1000);
+  const whole = await calledWhole(context, page);
+  expect(await called(page)).not.toEqual(whole);
+  answer();
+  await expect.poll(() => called(page)).toEqual(whole);
+});
+
+test("an undo, Back or Forward to a palette the tab knows calls it that from the first frame", async ({
+  page,
+  context
+}) => {
+  await open(page, "/palettes");
+  const card = cards(page).nth(2);
+  const opened = await seedAt(card);
+  await card.getByRole("img").first().hover();
+  await card.locator("a[aria-label='Edit']").click();
+  await expect.poll(() => seedOf(page)).toBe(opened);
+  const own = await calledWhole(context, page);
+  await expect.poll(() => called(page)).toEqual(own);
+
+  // an edit taken back at once: its own name, then the palette's
+  await listen(page);
+  await page.keyboard.press("i");
+  await page.waitForTimeout(120);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => seedOf(page)).toBe(opened);
+  await expect.poll(() => called(page)).toEqual(own);
+  const edits = await heard(page);
+  expect.soft(edits, "the undo").toEqual([edits[0], own.heading]);
+
+  // one like it, from the sheet's own list, then Back to the palette and Forward to it
+  await page.mouse.move(200, 200);
+  await page.mouse.wheel(0, 2000);
+  const like = page.locator(`a[aria-label='Edit']:not([href*='${opened}'])`).first();
+  await expect(like).toBeAttached({ timeout: 30_000 });
+  const to = new URL((await like.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
+  await like.evaluate(el => (el as HTMLElement).focus());
+  await page.keyboard.press("Enter");
+  await expect.poll(() => seedOf(page)).toBe(to);
+  const other = await calledWhole(context, page);
+  await expect.poll(() => called(page)).toEqual(other);
+  for (const [step, at, said] of [
+    ["Back", opened, own],
+    ["Forward", to, other]
+  ] as const) {
+    await heard(page);
+    await (step === "Back" ? page.goBack() : page.goForward());
+    await expect.poll(() => seedOf(page), step).toBe(at);
+    await expect.poll(() => called(page), step).toEqual(said);
+    expect.soft(await heard(page), step).toEqual([said.heading]);
+  }
+});
+
+test("a link to Rising in a frame an admin turned off leads to the week's in the reader's language, the selection still open", async ({
+  page,
+  request,
+  baseURL
+}) => {
+  const { frames } = (await (await request.get("/api/frames")).json()) as { frames: string[] };
+  const off = ["3m", "1y"].find(frame => !frames.includes(frame));
+  expect(off, "a longer frame staging's copy has turned off").toBeDefined();
+  for (const [list, query, lang] of [
+    ["palettes", "q=blue", "ja"],
+    ["collections", "q=sea+sky", "de"]
+  ] as const) {
+    const from = `/${lang}/${list}/rising/${off}?${query}&selection`;
+    const answer = await request.get(from, { maxRedirects: 0 });
+    const to = new URL(answer.headers().location ?? "", baseURL);
+    expect([answer.status(), to.pathname + to.search]).toEqual([
+      302,
+      `/${lang}/${list}/rising?${query}&selection`
+    ]);
+    // an empty selection closes as the page opens
+    await open(page, from);
+    await expect(page).toHaveURL(
+      new RegExp(`/${lang}/${list}/rising\\?${query.replace("+", "\\+")}$`)
+    );
+    await expect(page.locator("html")).toHaveAttribute("lang", lang);
+  }
+});
 
 type Item = { kseed: string; style: string; steps: number; angle: number };
 const likes = (items: Item[], liked: boolean) =>

@@ -54,10 +54,10 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
-import type { PaletteData } from "./page.ts";
+import { paletteName } from "./name.ts";
+import { askFacts, type PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
 import { type Similar, similarQuery } from "./similar.ts";
-import { paletteTitle } from "./title.ts";
 
 /* The editor's sheet: the palette's name, the collections that hold it, which of its colors read on which and on the
    reader's own text colors, its path through the color solid, the palette as text, and the palettes like it. All but
@@ -315,7 +315,7 @@ export function Sheet(props: {
     const list = sort() === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
     return `${list}?${query}`;
   };
-  const title = () => paletteTitle(e, props.heading(), props.facts());
+  const title = () => paletteName(e, props.heading(), props.facts());
 
   /* the clock the cards' ages are told against */
   const now = Date.now();
@@ -386,6 +386,7 @@ export function Sheet(props: {
             <AddToCollection palette={palette} />
           </Loading>
         }
+        onIntent={() => askFacts(seed())}
         onOpen={event => {
           useOpened(PLACE, palette(), { position });
           /* opened in place, the palette's page is told its own view and which parts were set here */
