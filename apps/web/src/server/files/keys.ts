@@ -4,10 +4,9 @@
    across deploys; a text file is the engine's writing, kept for one build. */
 import { colorKind } from "@grabient/engine/css.ts";
 import { parseView, type Size, viewSearch } from "@grabient/engine/view.ts";
+import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
-import { DEFAULT_SEED } from "../images/cards.ts";
 import { montageOrder, pictureWords } from "../images/montages.ts";
-import { CARD_VERSION } from "../images/serve.ts";
 import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { svgSize } from "./palette-files.ts";

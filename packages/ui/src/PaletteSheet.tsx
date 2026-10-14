@@ -63,16 +63,25 @@ export function PaletteSheet(props: {
   const copies = children(() => props.contrastCopies);
   const solid = children(() => props.solid);
   const foot = children(() => props.foot);
-  /* a long name takes a second line and its row grows: the page is told, so its first screen ends on the row. The
-     observer's first report comes once the sheet is laid out, so its making forces no layout of its own */
+  /* A long name takes a second line and its row grows: the page is told, so its first screen ends on the row. The
+     observer's first report comes once the sheet is laid out, so its making forces no layout of its own, and the page
+     is told in the next frame, since it lays itself out by the answer and a layout inside the observer's own callback
+     is an error the browser reports. */
   onSettled(() => {
     const tell = props.onBand;
     if (!tell) return;
-    const sizes = new ResizeObserver(() =>
-      tell(Math.round(name.getBoundingClientRect().bottom - sheet.getBoundingClientRect().top))
-    );
+    let frame = 0;
+    const sizes = new ResizeObserver(() => {
+      frame ||= requestAnimationFrame(() => {
+        frame = 0;
+        tell(Math.round(name.getBoundingClientRect().bottom - sheet.getBoundingClientRect().top));
+      });
+    });
     sizes.observe(name);
-    return () => sizes.disconnect();
+    return () => {
+      sizes.disconnect();
+      cancelAnimationFrame(frame);
+    };
   });
   return (
     <section

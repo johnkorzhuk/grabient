@@ -100,16 +100,25 @@ test("an address past its minute of misses is turned away before any search", as
   expect(refused.headers.get("Retry-After")).toBe("60");
 });
 
-test("the edge keys a search by what its handler reads", () => {
-  const [json, colors] = searchKeyRules;
-  const key = (params: string) => json.query?.(new URLSearchParams(params)).toString();
+test("the edge keys a search by what its handler reads, whichever of its addresses asked", () => {
+  const [json, colors, tags] = searchKeyRules;
+  const key = (params: string, path = "/api/search.json") =>
+    json.query?.(new URLSearchParams(params), path).toString();
   expect(
     json.match("/api/search.json") && json.match("/search/blue.json") && !json.match("/search")
   ).toBe(true);
+  expect(json.path).toBe("/api/search.json");
   expect(key("q=Blue%20%20Sky&junk=1&limit=500")).toBe(key("query=Blue+Sky&limit=96"));
+  expect(key("limit=96", "/search/blue-sky.json")).toBe(key("query=blue+sky&limit=96"));
+  expect(key("limit=96", "/palettes/Blue%20Sky.json")).toBe(key("query=Blue+Sky&limit=96"));
+  expect(key("q=red", "/api/palettes/search")).toBe("query=red&limit=48&sort=popular");
   expect(key("q=sunset&lang=ja")).toBe("query=sunset&limit=48&sort=popular");
   expect(key("q=kY4mpDazO-mUuu_fuLqXU49dvVP6&lang=ja")).toContain("lang=ja");
-  expect(colors.query?.(new URLSearchParams("q=Ocean&x=1")).toString()).toBe("q=ocean");
+  expect(colors.query?.(new URLSearchParams("q=Ocean&x=1"), "/api/search-colors").toString()).toBe(
+    "q=ocean"
+  );
+  expect(tags.match("/api/search-suggestions") && tags.match("/api/popular-searches")).toBe(true);
+  expect(tags.path).toBe("/api/search-suggestions");
 });
 
 test("the status says what this isolate answers from", async () => {

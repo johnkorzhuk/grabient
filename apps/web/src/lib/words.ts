@@ -12,6 +12,7 @@ const HOSTS = new Set([
   "grabient.com",
   "www.grabient.com",
   "grabient-lite.jkorzhuk.workers.dev",
+  "grabient4.jkorzhuk.workers.dev",
   "staging.grabient.com"
 ]);
 const LIST_PAGE = /^\/(?:(?:palettes|collections)(?:\/rising(?:\/(?:1w|3m|1y))?|\/saved)?)?$/;
@@ -65,7 +66,8 @@ export function readLink(raw: string): { words: string; view: URLSearchParams } 
     const seed = paletteId(url.searchParams.get("seed") ?? "");
     return seed ? { words: seed, view } : null;
   }
-  const one = /^\/([^/]+?)(?:\/edit)?$/.exec(path)?.[1];
+  // a palette at its page, its editor, or the old search address that named one, with or without a last slash
+  const one = /^\/(?:palettes\/)?([^/]+?)(?:\/edit)?\/?$/.exec(path)?.[1];
   const named = one ? paletteId(decoded(one)) : null;
   if (named) return { words: named, view };
   const asked = url.searchParams.get("q") ?? url.searchParams.get("query");

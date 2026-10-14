@@ -29,6 +29,8 @@ export default defineConfig({
     command: `pnpm exec vite dev --port ${process.env.E2E_PORT}`,
     cwd: "..",
     url: `${origin}/api/build`,
-    timeout: 90_000
+    timeout: 90_000,
+    // a clone with no .dev.vars binds the sign-in secret from here, so the session read every page makes answers
+    env: { BETTER_AUTH_SECRET: "the smoke tests' own secret, not a deploy's" }
   }
 });

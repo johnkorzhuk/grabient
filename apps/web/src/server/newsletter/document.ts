@@ -2,13 +2,14 @@ import { env } from "cloudflare:workers";
 import type { Locale } from "@grabient/i18n";
 import { getRequestEvent } from "@solidjs/web";
 import type { IssuesPage } from "../../features/newsletter/input.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { publishedIssues } from "./page.ts";
 
 /* The newest issues as the server renders /newsletter. The document carries each issue's sheet once, as a shadow tree
    of its own (IssueSheet), so the page of issues the render hands to the browser leaves the sheets out: the browser
    keeps the tree it was given. */
 
-const origin = () => env.PUBLIC_ORIGIN ?? new URL(getRequestEvent()?.request.url ?? "").origin;
+const origin = () => publicOrigin(env, getRequestEvent()?.request);
 
 /** A page of published issues without their sheets. */
 export function issuesForDocument(locale: Locale, before: number | null): IssuesPage {

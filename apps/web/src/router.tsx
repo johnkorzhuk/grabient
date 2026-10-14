@@ -1,4 +1,5 @@
 import { locale, localizePath, splitLocale } from "@grabient/i18n";
+import { isServer } from "@solidjs/web";
 import { QueryClientProvider } from "@tanstack/solid-query";
 import { createRouter, defaultStringifySearch } from "@tanstack/solid-router";
 import { ErrorPage } from "./app/ErrorPage.tsx";
@@ -24,9 +25,13 @@ export function getRouter() {
         return url;
       }
     },
-    /* A parameter that is a word alone, `?selection`, keeps its form: the server renders an address only as the router
-       would write it, and `selection=` there would send the reader back and forth between the two. */
-    stringifySearch: search => defaultStringifySearch(search).replace(/=(?=&|$)/g, ""),
+    /* A parameter that is a word alone, `?selection`, keeps that form in the browser, in the address bar and on every
+       navigation. On the server the router writes `selection=`, as Start reads a request's query: it redirects a
+       request to its own writing of the address, and the bare word there would redirect the request to itself. */
+    stringifySearch: search =>
+      isServer
+        ? defaultStringifySearch(search)
+        : defaultStringifySearch(search).replace(/=(?=&|$)/g, ""),
     defaultPreload: "intent",
     // Query decides whether a preloaded page's data is still fresh
     defaultPreloadStaleTime: 0,
