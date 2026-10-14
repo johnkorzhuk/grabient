@@ -48,6 +48,7 @@ import {
   selection,
   toggle as toggleSelected
 } from "../selection/selection.ts";
+import { endBoot } from "./boot.ts";
 import { Actions, AxisRow } from "./Controls.tsx";
 import { Corner, type Panel } from "./Corner.tsx";
 import styles from "./Editor.module.css";
@@ -208,6 +209,7 @@ export default function Editor(props: { data: PaletteData }) {
   });
   /* the check's state is this browser's selection, read once the page is live */
   onSettled(loadSelection);
+  onSettled(endBoot);
 
   /* the palette as a copy or a download takes it */
   const taken = (stage: Size): Taken => ({

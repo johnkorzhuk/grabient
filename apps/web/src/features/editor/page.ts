@@ -66,5 +66,5 @@ export const paletteHead = (data: PaletteData) => ({
   styles: [{ children: STATIC_CSS }]
 });
 
-/** The editor's code, asked for as soon as a palette's page starts: the static page stands until it has come. */
+/** The editor's code, asked for as soon as a palette's page starts. */
 export const loadEditor = () => import("./Editor.tsx");

@@ -1,7 +1,8 @@
 import { isPagePath } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { createFileRoute, notFound, redirect, useParams } from "@tanstack/solid-router";
-import { Loading, lazy, Match, Show, Switch, untrack } from "solid-js";
+import { Errored, Loading, lazy, Match, Show, Switch, untrack } from "solid-js";
+import { reportCaught } from "../../app/error-report.ts";
 import { isCollectionSlug } from "../../features/collections/address.ts";
 import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx";
 import {
@@ -11,6 +12,7 @@ import {
   searchOf
 } from "../../features/collections/route.ts";
 import { isSeed } from "../../features/editor/address.ts";
+import { endBoot } from "../../features/editor/boot.ts";
 import { EditorCorner, editing } from "../../features/editor/EditorCorner.tsx";
 import { loadEditor, paletteData, paletteHead, searchReader } from "../../features/editor/page.ts";
 import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
@@ -21,9 +23,10 @@ import { pageHead } from "../../lib/page-meta.ts";
 /* Every one-segment address: a palette's seed, a collection's slug, an old grabient.com link, or words that lead to a
    search. A palette's page is the editor, which the browser draws alone (`ssr: "data-only"`): the server runs the
    loader, for the head and for the static page crawlers and readers without JavaScript read, which the editor takes the
-   place of. A collection renders whole, and the collections' loader decides its slug: the collection there, the 404
-   page of a private one, or the palette search for its words. An old link the Worker's maps do not hold is a 404 to
-   the server, which never fits one; the browser fits the ones it can read, and the address becomes the palette's. */
+   place of and a reader with JavaScript never sees (features/editor/boot.ts). A collection renders whole, and the
+   collections' loader decides its slug: the collection there, the 404 page of a private one, or the palette search for
+   its words. An old link the Worker's maps do not hold is a 404 to the server, which never fits one; the browser fits
+   the ones it can read, and the address becomes the palette's. */
 const Editor = lazy(loadEditor);
 
 /** An old grabient.com seed the browser can read: `_` and 36 characters, or 44 with its globals. */
@@ -43,6 +46,9 @@ export const Route = createFileRoute("/$id/")({
   loader: async ({ context, params, deps, location }) => {
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
+      /* A navigation in the browser keeps the page it leaves until the editor can draw, so no page stands in for it.
+         Code that does not come is the page's own to say, where it renders. */
+      if (!isServer) await Editor.preload().catch(() => {});
       const { seed, view } = palette.page;
       /* the frame's bar and water carry the palette from the server's render on, before an editor is open */
       const paint = [{ seed, style: view.style, steps: view.steps, angle: view.angle }];
@@ -106,14 +112,14 @@ function Corner() {
   );
 }
 
-/* What the server sends for a page the browser draws alone. A palette's is its static page, which stands while the
-   editor's code arrives, asked for as the browser starts the page rather than once the page has started. An old link
-   has nothing to show until the browser has fitted it, and is a 404 to whoever cannot. */
+/* What the server sends for a page the browser draws alone. A palette's is its static page, in the document while the
+   editor's code arrives, which is asked for as the browser starts the page rather than once the page has started. An
+   old link has nothing to show until the browser has fitted it, and is a 404 to whoever cannot. */
 function Static() {
   const data = Route.useLoaderData();
   const palette = untrack(() => data()?.palette);
   if (!palette) answerWith(404);
-  else if (!isServer) void loadEditor();
+  else if (!isServer) void Editor.preload().catch(() => {});
   return <Show when={data()?.palette}>{shown => <StaticPalette data={shown()} />}</Show>;
 }
 
@@ -125,9 +131,19 @@ function Address() {
     <Switch>
       <Match when={data().palette}>
         {palette => (
-          <Loading fallback={<StaticPalette data={palette()} />}>
-            <Editor data={palette()} />
-          </Loading>
+          /* an editor whose code does not come, or that throws as it mounts, leaves the static page, whole; the
+             failure is reported from here, since the window never hears of one a boundary took */
+          <Errored
+            fallback={error => {
+              reportCaught(error);
+              endBoot();
+              return <StaticPalette data={palette()} />;
+            }}
+          >
+            <Loading fallback={<StaticPalette data={palette()} />}>
+              <Editor data={palette()} />
+            </Loading>
+          </Errored>
         )}
       </Match>
       <Match when={data().collection}>
