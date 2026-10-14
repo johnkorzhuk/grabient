@@ -15,6 +15,7 @@ import {
   view,
   ways
 } from "@grabient/email";
+import { decodePalette } from "@grabient/engine";
 
 /* No. 1, October 2026: collections, and that a palette's CSS is at its own address. */
 const PICKS = [
@@ -24,9 +25,9 @@ const PICKS = [
   pick("kW6hdK6pbElaRxXeH9QcJFBI", "radialSwatches", 5, 0, "Pistachio macaron"),
   pick("kW0ibSWiTBMytwpBMkKMyhAQ", "angularGradient", 32, 315, "Orchid velvet")
 ];
-/* Each collection's card draws palettes it holds as wedges about the middle, taken in turn, their rings stepping up from
-   three to eleven around the card. The palettes are ones an admin liked (LIKED, in the views liked); the rings are the
-   card's. */
+/* Each collection's card draws palettes it holds as wedges about the middle, taken in turn, each wedge one ring more than
+   the last. The site draws a palette in no fewer steps than its keyframes, so the rings start at the most keyframes among
+   them. The palettes are ones an admin liked (LIKED, in the views liked); the rings are the card's. */
 const SUNSET = "kW1lA1Wy67USpu2xnjjopO8Y";
 const FOG = "kW-wQ8cwY_uiJ1DTlMBuJfAA";
 const LAKE = "kW6QZ-Y4jAM-NwI6jcBqYxAw";
@@ -53,8 +54,12 @@ const LIKED = [
   view(DEEP_GREEN, "linearGradient", 32, 90),
   view(OLIVE, "radialGradient", 32, 315)
 ];
-const stepping = (...seeds: string[]) =>
-  Array.from({ length: 9 }, (_, i) => view(seeds[i % seeds.length]!, "linearSwatches", i + 3, 90));
+const stepping = (...seeds: string[]) => {
+  const from = Math.max(3, ...seeds.map(seed => decodePalette(seed)?.anchors.length ?? 0));
+  return Array.from({ length: 9 }, (_, i) =>
+    view(seeds[i % seeds.length]!, "linearSwatches", from + i, 90)
+  );
+};
 const LIMINAL: Shelf = {
   title: "Liminal Hours",
   slug: "liminal-hours-n5jqs8ak",
