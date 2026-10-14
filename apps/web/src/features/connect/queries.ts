@@ -4,7 +4,8 @@ import { redirect } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import { type ConsentPage, consentPage } from "../../server/oauth/consent.ts";
-import { onSiteOrigin, siteOrigin } from "../../server/oauth/server.ts";
+import { onSiteOrigin } from "../../server/oauth/server.ts";
+import { publicOrigin } from "../../server/seo/site.ts";
 
 /* What the connect pages' routes read on the server before a page draws: the consent's facts, from the request itself,
    and the site's origin. */
@@ -22,5 +23,5 @@ export const readConsent = createIsomorphicFn()
 
 /** The site's public origin, the same on both sides of a page: the deploy's, else the request's. */
 export const readOrigin = createIsomorphicFn()
-  .server(() => siteOrigin(env, getRequest()))
+  .server(() => publicOrigin(env, getRequest()))
   .client(() => location.origin);

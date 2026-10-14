@@ -1,7 +1,8 @@
 import type { Env } from "@grabient/server/env.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { CLIENT_DOCUMENTS } from "./client-documents.data.ts";
 import { canonical, differingFields, publishedDocument } from "./documents.ts";
-import { authorizationServer, siteOrigin } from "./server.ts";
+import { authorizationServer } from "./server.ts";
 
 /* The six-hour job's care of connected apps: expired grants and tokens purged, and each saved client document compared
    with the one its maker publishes, so the owner hears of a change before an app fails to connect. The alert itself is
@@ -11,7 +12,7 @@ import { authorizationServer, siteOrigin } from "./server.ts";
 export async function purgeOAuth(env: Env) {
   if (!env.OAUTH_KV) return null;
   const cursor = (await env.OAUTH_KV.get("purge-cursor")) ?? undefined;
-  const result = await authorizationServer(env, siteOrigin(env)).purgeExpiredData(env, {
+  const result = await authorizationServer(env, publicOrigin(env)).purgeExpiredData(env, {
     batchSize: 100,
     cursor
   });

@@ -6,6 +6,7 @@ import {
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { CLIENT_DOCUMENTS } from "./client-documents.data.ts";
 import { type ClientKind, MCP_PATH, MCP_SCOPES, OAUTH_PATHS } from "./clients.ts";
 
@@ -152,14 +153,10 @@ export function discovery(response: Response): Response {
   return out;
 }
 
-/** The origin apps use for this deploy, whichever host a request arrived at (a tunnel, localhost, www). A Preview and
-    local development use the request's own. */
-export const siteOrigin = (env: Pick<Env, "PUBLIC_ORIGIN">, request?: Request): string =>
-  env.PUBLIC_ORIGIN ?? (request ? new URL(request.url).origin : "http://localhost");
-
-/** The request on the site's origin, as the library must see it. */
+/** The request on the deploy's public origin, as the library must see it, whichever host it arrived at (a tunnel,
+    localhost, www). A Preview and local development have none, and a request there stays on its own. */
 export function onSiteOrigin(env: Pick<Env, "PUBLIC_ORIGIN">, request: Request): Request {
   const url = new URL(request.url);
-  const origin = siteOrigin(env, request);
+  const origin = publicOrigin(env, request);
   return url.origin === origin ? request : new Request(origin + url.pathname + url.search, request);
 }

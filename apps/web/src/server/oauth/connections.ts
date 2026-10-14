@@ -2,8 +2,9 @@ import type { GrantSummary } from "@cloudflare/workers-oauth-provider";
 import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { type ClientKind, clientKind, givenName, type Place, redirectPlace } from "./clients.ts";
-import { authorizationServer, siteOrigin, YEAR } from "./server.ts";
+import { authorizationServer, YEAR } from "./server.ts";
 
 /* The apps an account allowed, as Settings and the MCP page list them, and the ways they end: Disconnect, the account's
    deletion, and a consent past the most grants an account keeps. Every grant listed is a KV read, so a list reads at
@@ -177,7 +178,7 @@ export async function connectionsRoute(request: Request, env: Env): Promise<Resp
   const who = `connections:${userId}`;
   const limited = await overLimit(env, [[who, "connections"]]);
   if (limited) return limited;
-  const origin = siteOrigin(env, request);
+  const origin = publicOrigin(env, request);
   if (path === "/api/settings/connections") {
     const held = heldList(userId);
     if (held) return json({ connections: held });
