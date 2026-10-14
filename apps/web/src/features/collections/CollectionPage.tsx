@@ -11,6 +11,7 @@ import { RemovePress, UndoPress } from "@grabient/ui/RemovePress.tsx";
 import { SaveToCollection } from "@grabient/ui/SaveToCollection.tsx";
 import { Segmented } from "@grabient/ui/Segmented.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
+import { Tags } from "@grabient/ui/Tags.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
@@ -44,7 +45,6 @@ import { trackSignInPrompt } from "../analytics/analytics.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
 import { drawnIn, type ListView } from "../list/appearance.ts";
 import { useCollectionSeen } from "../palette-use/use.ts";
-import { SearchTags } from "../search/SearchTags.tsx";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import { selection } from "../selection/selection.ts";
 import { Actions } from "./Actions.tsx";
@@ -563,7 +563,7 @@ export function CollectionPage(props: {
             </Button>
           </div>
           <Show when={doc()}>
-            <SearchTags tags={tags()} />
+            <Tags tags={tags()} />
           </Show>
         </div>
         <Show

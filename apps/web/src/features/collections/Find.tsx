@@ -1,5 +1,6 @@
 import { dominantColors } from "@grabient/engine/dominant.ts";
 import { localHref, t } from "@grabient/i18n";
+import { Tags } from "@grabient/ui/Tags.tsx";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
 import { createEffect, createSignal, Errored, Loading, onCleanup, untrack } from "solid-js";
@@ -10,7 +11,6 @@ import { account } from "../account/session.ts";
 import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
 import { countSearch, tagPressed } from "../search/count.ts";
 import { SearchField } from "../search/SearchField.tsx";
-import { SearchTags } from "../search/SearchTags.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import { collectionGone } from "./overlay.ts";
 import { type ListPlace, pageSearch } from "./params.ts";
@@ -157,9 +157,9 @@ export function Find(props: {
         onSubmit={text => void submit(text, true)}
         onImage={props.onImage}
       />
-      <Errored fallback={() => <SearchTags tags={[]} />}>
-        <Loading fallback={<SearchTags tags={[]} loading={!offline()} />}>
-          <SearchTags
+      <Errored fallback={() => <Tags tags={[]} />}>
+        <Loading fallback={<Tags tags={[]} loading={!offline()} />}>
+          <Tags
             lead={typed().trim() ? undefined : t("Popular")}
             tags={shown()}
             onPick={(tag, index) => tagPressed(tag, index, "collections")}

@@ -164,6 +164,20 @@ describe("the service worker", () => {
     expect(await worker.shell()).toBe(named);
   });
 
+  it("keeps the messages a shell's head asks for along with it", async () => {
+    const named = THIS_BUILD.replace(
+      "</head>",
+      '<script>self.$catalog=fetch("/assets/i18n-fr-b2.json")</script></head>'
+    );
+    const site = files(named);
+    const worker = install(site);
+    await worker.install();
+    expect(await worker.shell()).toBeUndefined();
+    site["/assets/i18n-fr-b2.json"] = "{}";
+    await worker.visit("/about");
+    expect(await worker.shell()).toBe(named);
+  });
+
   it("opens a page it never kept from the shell offline, and says it answered offline", async () => {
     const site = files(THIS_BUILD);
     const worker = install(site);

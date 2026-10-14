@@ -1,6 +1,11 @@
 /** The build's id: its clock in base 36 (vite.config.ts). */
 declare const __BUILD_ID__: string;
 
+interface Window {
+  /** the page's messages, asked for by the head as the document is read (routes/__root.tsx) */
+  $catalog?: Promise<Response>;
+}
+
 declare module "virtual:i18n/catalogs" {
   /** Every translated language's catalog as JSON text: the Worker's alone. */
   const catalogs: Readonly<Partial<Record<import("@grabient/i18n").Locale, string>>>;

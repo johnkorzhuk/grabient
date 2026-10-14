@@ -2,11 +2,12 @@ import { createFileRoute } from "@tanstack/solid-router";
 import { untrack } from "solid-js";
 import { galleryPlace } from "../features/gallery/address.ts";
 import { Home } from "../features/gallery/Home.tsx";
-import { answerWith, loadHome, searchOf } from "../features/gallery/load.ts";
+import { loadHome } from "../features/gallery/load.ts";
 import { metaPage } from "../features/gallery/titles.ts";
 import { ListAppearance } from "../features/list/ListAppearance.tsx";
 import { edgeFor } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
+import { answerWith, searchOf } from "../lib/route.ts";
 
 type Place = Extract<NonNullable<ReturnType<typeof galleryPlace>>, { kind: "home" }>;
 const place = (search: string) => galleryPlace("/", search) as Place;

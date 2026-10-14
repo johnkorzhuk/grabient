@@ -1,4 +1,5 @@
 import { localHref, t } from "@grabient/i18n";
+import { Tags } from "@grabient/ui/Tags.tsx";
 import { useQuery } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
 import {
@@ -21,7 +22,6 @@ import type { SearchPage, SearchSuggestions } from "../search/bodies.ts";
 import { countSearch, tagPressed } from "../search/count.ts";
 import { suggestionsQuery } from "../search/queries.ts";
 import { SearchField } from "../search/SearchField.tsx";
-import { SearchTags } from "../search/SearchTags.tsx";
 import { arrivedWhole, FIELD_MAX, fitted, inTurn, readField, typedWords } from "./field.ts";
 import styles from "./gallery.module.css";
 import { GalleryContext } from "./page.tsx";
@@ -39,22 +39,22 @@ const PAUSE = 150;
 const AT_REST = 24;
 const TYPED = 12;
 
-type Tags = v.InferOutput<typeof SearchSuggestions>["suggestions"];
+type Suggested = v.InferOutput<typeof SearchSuggestions>["suggestions"];
 /* the row's reads: the last answer stands until the next lands, and the row draws its own copy (queries.ts) */
 const tagsView = (words: string, home: boolean) => ({
   ...suggestionsQuery(
     words,
     words ? { limit: home ? TYPED / 2 : TYPED } : { both: home, limit: AT_REST }
   ),
-  select: (tags: Tags) => own(tags)
+  select: (tags: Suggested) => own(tags)
 });
 const titledView = (words: string) => ({
   ...collectionTagsQuery(words),
-  select: (hits: CollectionHit[]): Tags =>
+  select: (hits: CollectionHit[]): Suggested =>
     hits.slice(0, TYPED / 2).map(hit => ({ label: hit.title, href: hit.href, colors: hit.colors }))
 });
 /* The collections that answer the home's words, read only while it holds some: no other page asks for them. */
-function Titled(props: { words: string; children: (collections: () => Tags) => Element }) {
+function Titled(props: { words: string; children: (collections: () => Suggested) => Element }) {
   const titled = useQuery(() => titledView(props.words));
   return props.children(() => titled.data ?? []);
 }
@@ -97,8 +97,8 @@ export function Find(props: {
   const tags = useQuery(() => tagsView(answered(), home()));
   /* a search's tag searches this page, a collection's opens it in the list's view; each in its place with no
      connection, the ones that need the server disabled */
-  const row = (shown: () => Tags) => (
-    <SearchTags
+  const row = (shown: () => Suggested) => (
+    <Tags
       lead={typed().trim() ? undefined : t("Popular")}
       tags={marked(
         shown().map(tag => ({
@@ -143,8 +143,8 @@ export function Find(props: {
         onImage={props.onImage}
       />
       {/* a row that cannot be read keeps its room and offers nothing: the field still searches */}
-      <Errored fallback={() => <SearchTags tags={[]} />}>
-        <Loading fallback={<SearchTags tags={[]} loading={!offline()} />}>
+      <Errored fallback={() => <Tags tags={[]} />}>
+        <Loading fallback={<Tags tags={[]} loading={!offline()} />}>
           <Show when={home() && answered()} fallback={row(() => tags.data ?? [])}>
             <Titled words={answered()}>
               {collections => row(() => inTurn(tags.data ?? [], collections()))}

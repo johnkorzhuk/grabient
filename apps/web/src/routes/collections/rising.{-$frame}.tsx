@@ -1,9 +1,10 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
 import { ListRoute } from "../../features/collections/ListRoute.tsx";
-import { listHead, listPlace, loadList, searchOf } from "../../features/collections/route.ts";
+import { listHead, listPlace, loadList } from "../../features/collections/route.ts";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { FRESH, NO_STORE } from "../../lib/cache.ts";
 import { DEFAULT_FRAME, isFrame } from "../../lib/orders.ts";
+import { searchOf } from "../../lib/route.ts";
 
 /* Rising over the week is the list's own address; its longer frames are a last segment of their own. A frame an admin
    turned off leads to the week's. */

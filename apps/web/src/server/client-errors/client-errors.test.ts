@@ -42,5 +42,6 @@ test("a report keeps the site's own place and words, and nothing that names a re
   expect(clientErrorOf({ message: "" }, null)).toBeNull();
   expect(clientErrorOf({ message: "a", source: "/x?token=1" }, null)).toBeNull();
   expect(clientErrorOf({ message: "a", page: "https://evil.example/" }, null)).toBeNull();
+  expect(clientErrorOf({ message: "a", page: "/@ada/warm-sunsets" }, null)).toBeNull();
   expect(clientErrorOf({ message: "a".repeat(400) }, null)?.message).toHaveLength(300);
 });

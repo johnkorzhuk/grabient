@@ -1,5 +1,3 @@
-import { existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { cloudflare } from "@cloudflare/vite-plugin";
 import { motionScript } from "@grabient/ui/motion.ts";
 import { scrollbarScript } from "@grabient/ui/scrollbar.ts";
@@ -21,24 +19,8 @@ const stamps = (): Plugin => ({
   ]
 });
 
-/* A module the design system has yet to land is drawn from src/stubs until it lands: a stub answers only where
-   packages/ui has no module of that name, as the `paths` in tsconfig.json do for the types. */
-const stubs = (): Plugin => {
-  const ui = fileURLToPath(new URL("../../packages/ui/src/", import.meta.url));
-  const own = fileURLToPath(new URL("./src/stubs/", import.meta.url));
-  return {
-    name: "design-stubs",
-    enforce: "pre",
-    resolveId(id) {
-      const name = /^@grabient\/ui\/(.+)$/.exec(id)?.[1];
-      if (!name || existsSync(ui + name) || !existsSync(own + name)) return null;
-      return own + name;
-    }
-  };
-};
-
 export default defineConfig({
-  plugins: [stubs(), stamps(), cloudflare(), solid()],
+  plugins: [stamps(), cloudflare(), solid()],
   server: { strictPort: true },
   preview: { strictPort: true },
   build: { target: "esnext" }

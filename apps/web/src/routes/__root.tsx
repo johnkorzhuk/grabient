@@ -1,11 +1,11 @@
 import "@grabient/ui/tokens.css";
 import "@grabient/ui/base.css";
 import catalogs from "virtual:i18n/assets";
-import { LOCALE_INFO, locale, t } from "@grabient/i18n";
+import { delocalizePath, LOCALE_INFO, locale, t } from "@grabient/i18n";
 import { motionScript } from "@grabient/ui/motion.ts";
 import { scrollbarScript } from "@grabient/ui/scrollbar.ts";
 import { themeScript } from "@grabient/ui/theme.ts";
-import type { JSX } from "@solidjs/web";
+import { isServer, type JSX } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import { createRootRouteWithContext, HeadContent, redirect, Scripts } from "@tanstack/solid-router";
 import { createIsomorphicFn } from "@tanstack/solid-start";
@@ -16,8 +16,11 @@ import { pageFrom } from "../app/shell.ts";
 import type { SiteFacts } from "../app/site.ts";
 import { iconLinks } from "../app/tab-icon.ts";
 import { NO_STORE } from "../lib/cache.ts";
+import { pageHead } from "../lib/page-meta.ts";
 import { readSite } from "../server/site/facts.ts";
 
+/** An old grabient.com id: one segment that starts with `_` or `~`. */
+const OLD_ID = /^\/[_~][A-Za-z0-9_-]{6,}$/;
 /** Poppins at the two weights the site sets text in; the latin-ext files load only for the letters they hold. */
 const FONTS = ["/fonts/poppins-latin-500-normal.woff2", "/fonts/poppins-latin-700-normal.woff2"];
 
@@ -45,15 +48,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   beforeLoad: ({ location }) => {
     if (newerBuild()) throw redirect({ href: location.publicHref, reloadDocument: true });
   },
-  loader: () => siteFacts(),
+  /* the site's facts, and the address the document is drawn for, which the frame hydrates as (app/Shell.tsx) */
+  loader: async ({ location }) => ({ ...(await siteFacts()), drawn: location.pathname }),
   staleTime: Number.POSITIVE_INFINITY,
   shouldReload: false,
   // a page says how long it may be kept; one that says nothing is kept nowhere
   headers: () => NO_STORE,
-  head: ({ matches }) => {
+  head: ({ matches, loaderData }) => {
     const language = LOCALE_INFO[locale()];
     const catalog = catalogs[language.tag];
     const leaf = matches[matches.length - 1];
+    /* an address no page answers is named as it came, an old grabient.com id as a palette not found */
+    const at = isServer ? (loaderData?.drawn ?? "/") : delocalizePath(location.pathname).path;
+    const lost = matches.some(m => m.status === "notFound" || m._notFound)
+      ? pageHead({ kind: OLD_ID.test(at) ? "legacy" : "notfound", path: at })
+      : { meta: [], links: [] };
     return {
       meta: [
         // viewport-fit=cover runs the page under a notch and makes the safe-area insets real; pinch zoom stays
@@ -64,7 +73,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { name: "google-adsense-account", content: "ca-pub-2436216252635443" },
         { property: "og:type", content: "website" },
         { property: "og:site_name", content: "Grabient" },
-        { property: "og:locale", content: language.og }
+        { property: "og:locale", content: language.og },
+        ...lost.meta
       ],
       links: [
         // the tile for Safari and Google Search (its sizes keeps Chrome on the SVG), then light and dark marks
@@ -72,17 +82,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         ...tabIcons(matches, leaf.pathname, String((leaf.search as { q?: unknown }).q ?? "")),
         { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
         { rel: "manifest", href: "/site.webmanifest" },
-        // the page's messages, fetched while the head is read so the app starts in its language at once
-        ...(catalog
-          ? [
-              {
-                rel: "preload",
-                href: catalog,
-                as: "fetch" as const,
-                crossorigin: "anonymous" as const
-              }
-            ]
-          : []),
         ...FONTS.map(href => ({
           rel: "preload",
           href,
@@ -96,13 +95,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           href: "/llms.txt",
           title: t("Guide for AI agents")
         },
-        { rel: "ai-catalog", href: "/.well-known/ai-catalog.json" }
+        { rel: "ai-catalog", href: "/.well-known/ai-catalog.json" },
+        ...lost.links
       ],
-      /* before the first paint: the reader's theme and motion on <html>, and whether scrollbars take room */
+      /* before the first paint: the reader's theme and motion on <html>, and whether scrollbars take room. Then the
+         page's messages, asked for while the head is read so the app starts in its language at once: a fetch the app
+         takes up (client.tsx), where a preload that the service worker answers is fetched twice */
       scripts: [
         { children: themeScript },
         { children: motionScript },
-        { children: scrollbarScript }
+        { children: scrollbarScript },
+        ...(catalog ? [{ children: `self.$catalog=fetch(${JSON.stringify(catalog)})` }] : [])
       ]
     };
   },

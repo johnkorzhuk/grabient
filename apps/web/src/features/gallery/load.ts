@@ -1,4 +1,3 @@
-import { getRequestEvent, isServer } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import type { FramedData } from "../../app/shell.ts";
 import type { GalleryPlace, ListParams } from "./address.ts";
@@ -17,17 +16,6 @@ import { keptPage, pageQuery } from "./sources.ts";
    than its data stays fresh; and it hands the frame the palettes the page opens on, for the bar, the water and the
    appearance control. A page past a list's end still renders, with its line saying so, and answers 404. */
 
-/** A route's search as the router read it, back in the words of its address. */
-export function searchOf(raw: Record<string, unknown>): string {
-  const params = new URLSearchParams();
-  for (const [name, value] of Object.entries(raw)) {
-    const one = Array.isArray(value) ? value[0] : value;
-    if (one !== undefined) params.set(name, typeof one === "string" ? one : JSON.stringify(one));
-  }
-  const query = params.toString().replace(/=(?=&|$)/g, "");
-  return query ? `?${query}` : "";
-}
-
 export interface Loaded extends FramedData {
   /** seconds the edge may keep the page */
   edge: number;
@@ -37,14 +25,6 @@ export interface Loaded extends FramedData {
   status?: number;
   /** the palettes the page lists, by seed, for its structured data */
   palettes?: string[];
-}
-
-/** The status the page answers with, said as it renders on the server: a list past its end is 404, a search an
-    allowance cut short 429. A page that renders keeps its words on screen either way. */
-export function answerWith(status: number | undefined): void {
-  if (!isServer || !status) return;
-  const event = getRequestEvent();
-  if (event) event.locals.status = status;
 }
 
 const PUBLIC_EDGE = 300;

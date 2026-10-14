@@ -3,7 +3,7 @@ import type { Style } from "@grabient/engine/view.ts";
 import { createSignal, onSettled, Show } from "solid-js";
 import { announce } from "./announce.ts";
 import { Button } from "./Button.tsx";
-import { copyText } from "./copy.ts";
+import { copyText, downloadFile } from "./copy.ts";
 import { FigurePane } from "./FigurePane.tsx";
 import { type Format, FormatStrip } from "./FormatStrip.tsx";
 import type { FigureOpts } from "./figure.ts";
@@ -85,9 +85,8 @@ export function SolidPane(props: {
   };
   const download = async (format: Format) => {
     const { writer, svg, name } = await figure();
-    if (format === "png") writer.downloadFile(`${name}.png`, await writer.svgToPngBlob(svg, 2));
-    else
-      writer.downloadFile(`${name}.svg`, new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+    if (format === "png") downloadFile(`${name}.png`, await writer.svgToPngBlob(svg, 2));
+    else downloadFile(`${name}.svg`, new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
     props.onTake?.("download", format);
   };
   return (

@@ -1,4 +1,4 @@
-import { clampSize, parseSize, sizeParam } from "@grabient/engine/view.ts";
+import { clampSize, parseSize, type Size, sizeParam } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { EXPORT_DEFAULTS, ExportPanel, type ExportSettings } from "@grabient/ui/ExportPanel.tsx";
@@ -19,10 +19,10 @@ import {
   untrack,
   useContext
 } from "solid-js";
-import { rewriteQuietly, SELECTION_MARK } from "../../app/navigation.ts";
+import { rewriteInPlace, rewriteQuietly, SELECTION_MARK } from "../../app/navigation.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { hexesOf } from "../../lib/palette.ts";
-import { inOrder } from "../list/appearance.ts";
+import { inOrder, rememberedView, rememberView } from "../list/appearance.ts";
 import { useTaken } from "../palette-use/use.ts";
 import { copySelection, downloadSelection } from "./export.ts";
 import styles from "./Selection.module.css";
@@ -160,6 +160,9 @@ export function createSelectionScreen(page: {
   const open = () => asked() && selectionRead() && selection().length > 0;
 
   const [layout, setLayout] = createSignal<Layout>(LAYOUT);
+  /* what Auto is: a list's palettes have no picture of their own and take the grid's cell; a page that has one hands
+     its size in (sized), so Auto exports the picture the reader sees */
+  let auto: () => Size | undefined = () => undefined;
   /* each palette's size: the address's, or while a drag goes on, the value it has reached */
   const [draft, setDraft] = createSignal<string | null>(null);
   const committed = () => (typeof params().size === "string" ? (params().size as string) : "auto");
@@ -189,15 +192,16 @@ export function createSelectionScreen(page: {
   };
   const sizeParamOf = (value: string) => (value === "auto" ? undefined : value);
   /* the route takes the size once the drag rests: a route change redraws the page's data, links and metadata. A size
-     dragged back to the route's own leaves the route nothing to take, so the address is written here. */
+     dragged back to the route's own leaves the route nothing to take, so the address is written here. Each write is
+     in the entry's place and keeps what the entry holds, its mark among it. */
   const settle = () => {
     stop();
     const want = draft();
     if (want === null) return;
     lastWrite = Date.now();
-    const to = href({ size: sizeParamOf(want) });
-    rewriteQuietly(to);
-    if (want !== committed()) void router.navigate({ href: to, replace: true, resetScroll: false });
+    (want === committed() ? rewriteQuietly : rewriteInPlace)(href({ size: sizeParamOf(want) }));
+    /* the tab remembers it as the reader's view, which a list that Close goes Back to takes */
+    rememberView({ ...rememberedView(), size: parseSize(want) });
     setDraft(null);
   };
   const writeSize = (want: string) => {
@@ -274,11 +278,7 @@ export function createSelectionScreen(page: {
     focusPress("open");
     const state = history.state as { mark?: unknown; __TSR_index?: number } | null;
     if (state?.mark === SELECTION_MARK && (state.__TSR_index ?? 0) > 0) return history.back();
-    void router.navigate({
-      href: href({ selection: undefined }),
-      replace: true,
-      resetScroll: false
-    });
+    rewriteInPlace(href({ selection: undefined }));
     requestAnimationFrame(() => window.scrollTo({ top: scrolledTo, behavior: "instant" }));
   };
   /* nothing left to show: a selection emptied while it stood closes as Close does; an address that asks for an empty
@@ -298,12 +298,7 @@ export function createSelectionScreen(page: {
       /* what Close and the address read is the page's now, not what the effect follows */
       untrack(() => {
         if (stood) close();
-        else
-          void router.navigate({
-            href: href({ selection: undefined }),
-            replace: true,
-            resetScroll: false
-          });
+        else rewriteInPlace(href({ selection: undefined }));
       });
       stood = false;
     }
@@ -325,7 +320,7 @@ export function createSelectionScreen(page: {
     }))
   );
   const copy = (format: Format) =>
-    copySelection(selection(), settings(), format).then(
+    copySelection(selection(), settings(), format, auto()).then(
       done => {
         if (done === "downloaded")
           page.note(t("Images can't be copied here, so the file was downloaded."));
@@ -343,7 +338,7 @@ export function createSelectionScreen(page: {
       }
     );
   const download = (format: Format) =>
-    void downloadSelection(selection(), settings(), format).then(
+    void downloadSelection(selection(), settings(), format, auto()).then(
       () =>
         useTaken(
           format === "url" ? "copy" : "download",
@@ -372,6 +367,10 @@ export function createSelectionScreen(page: {
     open,
     show,
     close,
+    /** the page's own picture, whose size Auto is: the editor's stage, as it was measured last */
+    sized(picture: () => Size) {
+      auto = picture;
+    },
     /** Selection alone, once something is in it, where a page stands it among presses of its own */
     press,
     /** the end of the page's row of lists: Selection, once something is in it */
@@ -384,7 +383,12 @@ export function createSelectionScreen(page: {
         <main class={styles.screen} data-beside-scrollbar="">
           <div class={styles.stage}>
             <div class={styles.fit}>
-              <ExportPreview items={previews()} settings={settings()} onRemove={removeSelected} />
+              <ExportPreview
+                items={previews()}
+                settings={settings()}
+                autoSize={auto()}
+                onRemove={removeSelected}
+              />
             </div>
           </div>
           <div class={styles.column}>
@@ -397,11 +401,13 @@ export function createSelectionScreen(page: {
                 onCopy={copy}
                 onDownload={download}
                 save={page.save?.()}
+                autoSize={auto()}
                 onClose={close}
                 preview={
                   <ExportPreview
                     items={previews()}
                     settings={settings()}
+                    autoSize={auto()}
                     onRemove={removeSelected}
                   />
                 }

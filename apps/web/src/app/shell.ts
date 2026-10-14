@@ -72,4 +72,5 @@ export interface Shell {
   translated(): boolean;
 }
 
-export const ShellContext = createContext<Shell>();
+/** Null where no frame stands: the root's own error page, which the frame's failure leaves alone in the document. */
+export const ShellContext = createContext<Shell | null>(null);

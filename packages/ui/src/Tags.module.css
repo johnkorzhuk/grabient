@@ -96,7 +96,8 @@
     display: inline-flex;
     flex-shrink: 0;
     &:hover,
-    &:has(:focus-visible) {
+    &:has(:focus-visible),
+    &[data-open] {
       --bloom: 1;
     }
     /* a tag that cannot be followed now shows no colors */
@@ -137,7 +138,7 @@
     width: 16px;
     height: 16px;
     border-radius: var(--radius-circle);
-    box-shadow: inset 0 0 0 1px var(--color-edge2);
+    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
     opacity: calc(var(--bloom) * var(--live));
     transform: translate(
       calc(var(--x) * (0.7 + 0.3 * var(--bloom))),

@@ -1,7 +1,8 @@
 /* A list page's parts, which every list composes, so nothing above the cards moves from one list to the next: the
    column under the header, the search over its tags (find), the lists' row, and a list's heading row over its cards.
    The column holds the find, the row and then the page's own content in one element, a gap apart; a fourth part would
-   take a gap too. None has a surface: the water shows behind a list as it does behind a brand page. */
+   take a gap too. Under the cards, the status line, and the empty state in their place. None has a surface: the water
+   shows behind a list as it does behind a brand page. */
 @layer components {
   .column {
     display: flex;
@@ -44,5 +45,22 @@
     min-width: 0;
     min-height: var(--size-control-big);
     margin-bottom: var(--space-s8);
+  }
+  /* the line keeps a press's height whether it holds words, a press or nothing, so nothing beneath moves */
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s4);
+    box-sizing: content-box;
+    min-height: var(--size-control);
+    padding-top: var(--space-s6);
+  }
+  .empty {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-s4);
+    padding-block: var(--space-s10);
   }
 }

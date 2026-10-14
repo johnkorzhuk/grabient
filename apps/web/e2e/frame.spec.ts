@@ -1,7 +1,8 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 /* The frame around the pages: what its header's corner writes to the address and when the route takes it, the view a
-   list takes on the way back, the document a page arrives in, and the tab's icon. */
+   list takes on the way back, the document a page arrives in, the tab's icon, and the way from a list to the palette or
+   collection it opens and back. */
 
 /** Opens a page and waits for the app to have hydrated the server's document. */
 async function open(page: Page, address: string) {
@@ -88,4 +89,352 @@ test("the tab's icon wears a palette on its page, follows its edits, and is the 
   await expect(icon).toHaveAttribute("href", /^data:image\/svg\+xml,/);
   await page.locator("header a[data-home]").click();
   await expect(icon).toHaveAttribute("href", /^\/favicon\/\d{4}-w\d{2}\.svg\?v=\w+$/);
+});
+
+/** Whether the site's stylesheet applies to the page: the design system's tokens stand on the document. */
+const styled = (page: Page) =>
+  page.evaluate(
+    () => getComputedStyle(document.documentElement).getPropertyValue("--space-s1") !== ""
+  );
+/** Every error the page reports as its own from now on: a page that threw posts one. */
+function reported(page: Page): string[] {
+  const reports: string[] = [];
+  page.on("request", request => {
+    if (new URL(request.url()).pathname === "/api/client-error")
+      reports.push(request.postData() ?? "");
+  });
+  return reports;
+}
+/** Goes down the page to where `link` stands and presses it from there with the keyboard. Returns that depth. */
+async function pressFrom(page: Page, link: Locator): Promise<number> {
+  await link.evaluate(a => scrollTo(0, Math.max(0, a.getBoundingClientRect().top + scrollY - 400)));
+  const depth = await page.evaluate(() => scrollY);
+  await link.evaluate(a => (a as HTMLElement).focus({ preventScroll: true }));
+  await page.keyboard.press("Enter");
+  return depth;
+}
+/** Back from the page a list opened: the list's own heading, at the depth it was left at. */
+async function backTo(page: Page, heading: string, depth: number) {
+  await page.goBack();
+  await expect(page.locator("main h1").first()).toHaveText(heading);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(depth);
+}
+const editor = (page: Page) => page.getByRole("complementary", { name: "Editor" });
+
+for (const address of ["/", "/?q=blue", "/palettes", "/palettes/rising", "/palettes?q=blue"]) {
+  test(`a palette opened from ${address} lands styled, and Back returns to the list at its depth`, async ({
+    page
+  }) => {
+    const reports = reported(page);
+    await open(page, address);
+    const heading = (await page.locator("main h1").first().textContent()) ?? "";
+    const depth = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').nth(8));
+    await expect(editor(page)).toBeVisible();
+    expect(await styled(page)).toBe(true);
+    await backTo(page, heading, depth);
+    expect(await styled(page)).toBe(true);
+    expect(reports).toEqual([]);
+  });
+}
+
+test("the palette a search's heading pictures opens from it, and Back returns to the search", async ({
+  page
+}) => {
+  const reports = reported(page);
+  await open(page, "/palettes?q=kS7CQ31Do6asvY-");
+  const heading = (await page.locator("main h1").first().textContent()) ?? "";
+  const depth = await pressFrom(
+    page,
+    page.locator('main a[href^="/kS7CQ31Do6asvY-"]:not(article a)').first()
+  );
+  await expect(editor(page)).toBeVisible();
+  expect(await styled(page)).toBe(true);
+  await backTo(page, heading, depth);
+  expect(reports).toEqual([]);
+});
+
+test("a palette opened from Saved lands styled, and Back returns to Saved", async ({ page }) => {
+  const reports = reported(page);
+  const reader = {
+    id: "e2e-reader",
+    name: "Reader",
+    email: "reader@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "reader",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } })
+  );
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  const items = ["kS7CQ31Do6asvY-", "kSEiS3qzo6dQvY-"].map((kseed, i) => ({
+    kseed,
+    style: "linearGradient",
+    steps: 7,
+    angle: 90,
+    likes: 1,
+    createdAt: 1_700_000_000_000 - i
+  }));
+  await page.route(
+    url => url.pathname === "/api/saved",
+    route =>
+      route.fulfill({
+        json: { items, total: 2, page: 1, totalPages: 1, fetchedAt: Date.now() }
+      })
+  );
+  await open(page, "/palettes/saved");
+  const heading = (await page.locator("main h1").first().textContent()) ?? "";
+  const depth = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').nth(1));
+  await expect(page).toHaveURL(/\/kSEiS3qzo6dQvY-/);
+  await expect(editor(page)).toBeVisible();
+  expect(await styled(page)).toBe(true);
+  await backTo(page, heading, depth);
+  await expect(page.locator("main article")).toHaveCount(2);
+  expect(reports).toEqual([]);
+});
+
+test("a collection opened from a list by its title, and a palette from the collection, each land styled and Back returns to each", async ({
+  page
+}) => {
+  const reports = reported(page);
+  const slug = "e2e-gradients";
+  const preview = [{ seed: "kS7CQ31Do6asvY-", style: "linearGradient", steps: 7, angle: 90 }];
+  const words = {
+    slug,
+    title: "End to end gradients",
+    description: "",
+    tags: ["blue"],
+    visibility: "public",
+    owner: { kind: "agent", name: "grabient" },
+    itemCount: 1,
+    createdAt: 1_700_000_000_000,
+    updatedAt: 1_700_000_000_000,
+    saves: 0
+  };
+  const item = { createdAt: 1_700_000_000_000, likes: 0, position: 0 };
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    route =>
+      route.fulfill({
+        json: {
+          query: "",
+          sort: "rising",
+          page: 1,
+          limit: 24,
+          total: 1,
+          totalPages: 1,
+          fetchedAt: Date.now(),
+          items: [{ ...words, preview: preview.map(p => ({ ...p, ...item })) }]
+        }
+      })
+  );
+  await page.route(
+    url => url.pathname === `/api/collections/${slug}`,
+    route =>
+      route.fulfill({
+        json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p, ...item })) }
+      })
+  );
+  await open(page, "/collections");
+  await page.locator('main a[href="/collections/rising"]').click();
+  const list = page.locator("main h1").first();
+  await expect(page.locator(`main a[href="/${slug}/rising"]`)).toBeVisible();
+  const heading = (await list.textContent()) ?? "";
+  const depth = await pressFrom(page, page.locator(`main a[href="/${slug}/rising"]`));
+  await expect(list).toHaveText(words.title);
+  expect(await styled(page)).toBe(true);
+  const inside = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').first());
+  await expect(editor(page)).toBeVisible();
+  expect(await styled(page)).toBe(true);
+  await backTo(page, words.title, inside);
+  await backTo(page, heading, depth);
+  expect(reports).toEqual([]);
+});
+
+test("an address the browser refuses to write lands once it lets writes through again", async ({
+  page
+}) => {
+  // Safari's way past its rate: every history write throws while the page is refused
+  await page.addInitScript(() => {
+    const refusable = (write: History["pushState"]) =>
+      function (this: History, ...args: Parameters<History["pushState"]>) {
+        if ((window as { refusing?: boolean }).refusing)
+          throw new DOMException("Too many calls to the history", "SecurityError");
+        return write.apply(this, args);
+      };
+    History.prototype.pushState = refusable(History.prototype.pushState);
+    History.prototype.replaceState = refusable(History.prototype.replaceState);
+  });
+  const here = () => new URL(page.url()).pathname;
+  await open(page, "/kS7CQ31Do6asvY-");
+  await expect(editor(page)).toBeVisible();
+  await page.evaluate(() => Object.assign(window, { refusing: true }));
+  await page.keyboard.press("i");
+  await page.keyboard.press("e");
+  await page.waitForTimeout(1000);
+  expect(here()).toBe("/kS7CQ31Do6asvY-");
+  await page.evaluate(() => Object.assign(window, { refusing: false }));
+  // the latest edit, a second after the last refusal, and the writes after it as they come
+  await expect.poll(here).toBe("/kSqF5vKzob4kSRW");
+  await page.keyboard.press("i");
+  await expect.poll(here).not.toBe("/kSqF5vKzob4kSRW");
+});
+
+test("a page whose reactivity stopped loads whole once, and after that loads whole each page it is asked for", async ({
+  page
+}) => {
+  /** Stops the app's own Solid as an error that escapes every boundary does. */
+  const halt = () =>
+    page.evaluate(async () => {
+      const url = performance
+        .getEntriesByType("resource")
+        .map(entry => entry.name)
+        .find(name => /\/\.vite\/deps\/solid-js\.js/.test(name));
+      const { createRoot, createEffect } = await import(url ?? "");
+      createRoot(() =>
+        createEffect(
+          () => 1,
+          () => {
+            throw new Error("escaped every boundary");
+          }
+        )
+      );
+    });
+  /** Marks this document, which a whole load replaces. */
+  const mark = () => page.evaluate(() => Object.assign(window, { marked: true }));
+  const marked = () => page.evaluate(() => "marked" in window);
+  /** Waits for the page to answer a press: it has hydrated, which would revive a reactivity stopped before. */
+  const live = async () => {
+    const appearance = page.getByRole("button", { name: /^Appearance/ });
+    await appearance.click();
+    await expect(appearance).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Escape");
+    await expect(appearance).toHaveAttribute("aria-expanded", "false");
+  };
+  await open(page, "/palettes");
+  await live();
+  await mark();
+  await halt();
+  await page.waitForFunction(() => !("marked" in window));
+  await live();
+  // stopped again within ten seconds: the page stays as it stands
+  await mark();
+  await halt();
+  await page.waitForTimeout(1000);
+  expect(await marked()).toBe(true);
+  // and the page a press asks for loads whole
+  await page.locator('main a[href="/palettes/rising"]').first().click();
+  await expect(page).toHaveURL(/\/palettes\/rising$/);
+  await page.waitForFunction(() => !("marked" in window));
+  await expect(page).toHaveTitle(/^Rising/);
+});
+
+test("a page opened with the service worker's stored shell wears its own frame", async ({
+  page,
+  request
+}) => {
+  // with no connection the worker answers a page it never kept with Saved's document
+  const shell = await (await request.get("/palettes/saved")).text();
+  await page.route(
+    url => url.pathname === "/settings" || url.pathname === "/login",
+    route =>
+      route.request().isNavigationRequest()
+        ? route.fulfill({ contentType: "text/html", body: shell })
+        : route.continue()
+  );
+  const header = page.locator("header");
+  await page.goto("/settings");
+  await expect(page.locator("main h1")).toHaveText("Settings");
+  await expect(header.getByRole("button", { name: "Sign in" })).toBeVisible();
+  await expect(header.getByRole("button", { name: /^Appearance/ })).toHaveCount(0);
+  // a sheet's corner holds the theme alone
+  await page.goto("/login");
+  await expect(page.locator("main h1")).toHaveText("Sign in");
+  await expect(header.getByRole("button", { name: /theme$/ })).toBeVisible();
+  await expect(header.getByRole("button", { name: "Sign in" })).toHaveCount(0);
+  await expect(header.getByRole("button", { name: /^Appearance/ })).toHaveCount(0);
+});
+
+test("a document names its page in its first few kilobytes, and its data comes after", async ({
+  request
+}) => {
+  for (const address of ["/", "/palettes", "/collections", "/about"]) {
+    const html = await (await request.get(address)).text();
+    const at = (piece: string) => html.indexOf(piece);
+    expect(at("<title"), address).toBeLessThan(2048);
+    expect(at('rel="stylesheet"'), address).toBeLessThan(4096);
+    // the page's data, after every tag a link preview reads and before the body
+    for (const tag of ['property="og:image"', 'name="description"', 'rel="canonical"'])
+      expect(at("self.$R"), `${address} ${tag}`).toBeGreaterThan(at(tag));
+    expect(at("self.$R"), address).toBeLessThan(at("<body"));
+  }
+});
+
+test("an address no page answers is named in its head, and an old id as a palette not found", async ({
+  request
+}) => {
+  for (const [address, title] of [
+    ["/no-such/x", "Page not found | Grabient"],
+    ["/collections/no-such", "Page not found | Grabient"],
+    ["/~abcdefg", "Palette not found | Grabient"]
+  ]) {
+    const answer = await request.get(address);
+    expect(answer.status(), address).toBe(404);
+    const head = (await answer.text()).split("</head>")[0];
+    expect(head.match(/<title[^>]*>([^<]*)<\/title>/)?.[1], address).toBe(title);
+    expect(head.match(/<link rel="canonical" href="([^"]+)"/)?.[1], address).toMatch(
+      new RegExp(`${address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)
+    );
+    for (const tag of ['name="description"', 'property="og:title"', 'name="twitter:card"'])
+      expect(head, `${address} ${tag}`).toContain(tag);
+  }
+});
+
+test("a link in the app to an old form of an address reaches its page, as the address loaded whole does", async ({
+  page
+}) => {
+  await open(page, "/palettes");
+  /** Follows a plain link to `href` from the page, as a hand-written link in a page would be. */
+  const follow = (href: string) =>
+    page.evaluate(to => {
+      const link = document.createElement("a");
+      link.href = to;
+      document.querySelector("main")?.append(link);
+      link.click();
+    }, href);
+  await follow("/saved");
+  await expect(page).toHaveURL(/\/palettes\/saved$/);
+  await expect(page.locator("main h1")).toHaveText("Saved palettes");
+  await follow("/newest");
+  await expect(page).toHaveURL(/\/palettes\/rising$/);
+  await follow("/no-such/x");
+  await expect(page).toHaveURL(/\/no-such\/x$/);
+  await expect(page.locator("main h1")).toHaveText("Page not found");
+});
+
+test("a card's copy lands where the browser refuses the clipboard, as the editor's does", async ({
+  page
+}) => {
+  // another site's frame without clipboard-write: the clipboard refuses, and the copy command still copies
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText: () => Promise.reject(new DOMException("refused", "NotAllowedError")) }
+    });
+    document.execCommand = () => {
+      const field = document.activeElement as HTMLTextAreaElement | null;
+      Object.assign(window, {
+        copied: field?.value.slice(field.selectionStart, field.selectionEnd)
+      });
+      return true;
+    };
+  });
+  await open(page, "/palettes");
+  const card = page.locator("main article").first();
+  await card.hover();
+  await card.getByRole("group", { name: "Copy" }).getByRole("button", { name: "CSS" }).click();
+  await expect
+    .poll(() => page.evaluate(() => (window as { copied?: string }).copied ?? ""))
+    .toContain("gradient(");
+  await expect(page.locator("main")).not.toContainText("Couldn't copy");
 });

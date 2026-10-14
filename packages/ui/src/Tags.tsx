@@ -1,10 +1,10 @@
-import { t } from "@grabient/i18n";
-import { Button } from "@grabient/ui/Button.tsx";
-import { Icon } from "@grabient/ui/Icon.tsx";
-import { reducedMotion } from "@grabient/ui/motion.ts";
-import { Text } from "@grabient/ui/Text.tsx";
 import { createEffect, createSignal, For, onSettled, Show } from "solid-js";
-import styles from "./SearchTags.module.css";
+import { Button } from "./Button.tsx";
+import { Icon } from "./Icon.tsx";
+import { t } from "./i18n.ts";
+import { reducedMotion } from "./motion.ts";
+import styles from "./Tags.module.css";
+import { Text } from "./Text.tsx";
 
 /* The row of searches under the search field, each a small press of words. At rest a tag wears no color; under the
    pointer or keyboard focus its colors arrive beneath it as a tooltip does, one to five coins, the middle one first,
@@ -42,7 +42,7 @@ const coinsOf = (tag: Tag) => (tag.colors ?? []).slice(0, MOST);
 const lightOf = (colors: readonly string[]) =>
   colors.length > 1 ? `linear-gradient(90deg, ${colors.join(", ")})` : colors[0];
 
-export function SearchTags(props: {
+export function Tags(props: {
   /** a word before the tags */
   lead?: string;
   tags: readonly Tag[];
@@ -50,6 +50,10 @@ export function SearchTags(props: {
   onPick?: (tag: Tag, index: number) => void;
   /** the tags are on their way: while there are none, blocks stand in the row */
   loading?: boolean;
+  /** for the design document: the tag at this place holds its colors open */
+  open?: number;
+  /** for the design document: every tag held in a state, its colors open */
+  state?: "hover" | "focus" | "pressed";
 }) {
   let host!: HTMLDivElement;
   let row!: HTMLDivElement;
@@ -365,10 +369,15 @@ export function SearchTags(props: {
           </Show>
           <For each={props.tags} keyed={false}>
             {(tag, index) => (
-              <span class={styles.tag} data-quiet={tag().disabled ? "" : undefined}>
+              <span
+                class={styles.tag}
+                data-quiet={tag().disabled ? "" : undefined}
+                data-open={props.open === index || props.state ? "" : undefined}
+              >
                 <Button
                   size="sm"
                   href={tag().href}
+                  state={props.state}
                   disabled={tag().disabled}
                   onClick={() => {
                     if (!tag().disabled) props.onPick?.(tag(), index);
@@ -377,7 +386,11 @@ export function SearchTags(props: {
                   {/* the words are the readers' own: they read in their direction whatever the page's */}
                   <span dir="auto">{tag().label}</span>
                 </Button>
-                <Show when={armed() && coinsOf(tag()).length}>
+                <Show
+                  when={
+                    (armed() || props.open !== undefined || props.state) && coinsOf(tag()).length
+                  }
+                >
                   <span
                     class={styles.bloom}
                     style={{ "--w": `${COIN + (coinsOf(tag()).length - 1) * STEP}px` }}
