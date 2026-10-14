@@ -150,17 +150,23 @@ export function createWindow(o: WindowOptions) {
     started,
     /** The server's still blocks as they are drawn: a press or the focus that reaches one of their controls without
         the reader having moved starts the window at once and lands on the same control of the live block, found by
-        its block's place and its own name. */
+        its card's group and first link and its own name. The focus may have taken the page down, where the window
+        draws from a later row, so a card's place is no handle. */
     wake: (still: HTMLElement) => {
+      const cardOf = (card: Element) =>
+        [
+          card.closest("[data-group]")?.getAttribute("data-group"),
+          card.querySelector("a[href]")?.getAttribute("href")
+        ].join(" ");
       const twin = (target: EventTarget | null): HTMLElement | undefined => {
         const control = (target as HTMLElement | null)?.closest<HTMLElement>("a, button");
         const block = control?.closest("article");
         if (!host || !control || !block) return undefined;
-        const at = [...host.querySelectorAll("article")].indexOf(block);
+        const card = cardOf(block);
         const name = control.getAttribute("aria-label");
         start();
         flush();
-        const live = host.querySelectorAll("article")[at];
+        const live = [...host.querySelectorAll("article")].find(again => cardOf(again) === card);
         return [...(live?.querySelectorAll<HTMLElement>(control.tagName) ?? [])].find(
           again => again.getAttribute("aria-label") === name
         );
