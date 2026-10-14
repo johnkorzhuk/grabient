@@ -90,18 +90,20 @@ const rhythm = (page: Page) =>
     };
   });
 
-/** Goes down the page to where `target` stands, 400 pixels from the top, and returns that depth once the list has
-    drawn the rows there, as it has by the time a reader's eyes land. */
-async function reach(page: Page, target: Locator): Promise<number> {
-  await target.evaluate(el =>
-    scrollTo(0, Math.max(0, el.getBoundingClientRect().top + scrollY - 400))
-  );
-  return page.evaluate(
+/** The depth once the list has drawn the rows there, as it has by the time a reader's eyes land. */
+const settled = (page: Page) =>
+  page.evaluate(
     () =>
       new Promise<number>(done =>
         requestAnimationFrame(() => requestAnimationFrame(() => done(scrollY)))
       )
   );
+/** Goes down the page to where `target` stands, 400 pixels from the top, and returns that depth. */
+async function reach(page: Page, target: Locator): Promise<number> {
+  await target.evaluate(el =>
+    scrollTo(0, Math.max(0, el.getBoundingClientRect().top + scrollY - 400))
+  );
+  return settled(page);
 }
 
 /** A press as the width's reader makes it: a click, or a finger's tap. */
@@ -154,11 +156,11 @@ type Opened = { href: string; depth: number; collection?: string };
 const OPENERS = {
   async edit(page: Page): Promise<Opened> {
     const href = await linkAt(page, EDIT, 8);
-    const card = cardOf(page, href);
-    const depth = await reach(page, card);
-    await card
+    // the focus comes as a screen reader's cursor brings it, the page following it down
+    await cardOf(page, href)
       .locator("a[aria-label='Edit']")
-      .evaluate(el => (el as HTMLElement).focus({ preventScroll: true }));
+      .evaluate(el => (el as HTMLElement).focus());
+    const depth = await settled(page);
     await page.keyboard.press("Enter");
     return { href, depth };
   },
