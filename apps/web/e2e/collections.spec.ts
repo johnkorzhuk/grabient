@@ -525,3 +525,32 @@ test("a fit vote made on a collection's page is there when the reader comes back
   await expect(page.locator("main h1")).toHaveText(summary.title);
   await expect(good).toHaveAttribute("aria-pressed", "true");
 });
+
+test("a palette removed with the keyboard leaves the focus on its Undo, which gives it back", async ({
+  page
+}) => {
+  const { preview, ...words } = summary;
+  await signIn(page, "ada", false, [
+    {
+      ...words,
+      id: "e2e-blues",
+      slug: "@e2e-ada/my-blues",
+      title: "My blues",
+      visibility: "private",
+      owner: { kind: "user", name: "e2e-ada", display: "ada" },
+      url: "/@e2e-ada/my-blues",
+      preview,
+      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+    }
+  ]);
+  await page.goto("/@e2e-ada/my-blues");
+  await hydrated(page);
+  const card = page.locator("main article").first();
+  const remove = card.getByRole("button", { name: "Remove from collection" });
+  await remove.focus();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await expect(card.getByRole("button", { name: "Undo" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(remove).toBeFocused();
+});
