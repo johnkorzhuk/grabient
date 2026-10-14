@@ -20,3 +20,10 @@ const drawn = menu.filter(
 test.each(drawn)("the language menu on $input", row => {
   expect(languagePath(row.input, row.route !== "notfound")).toBe(row.resolved ?? row.menu);
 });
+
+test("the language menu offers no landing's campaign tags, which say nothing of the page", () => {
+  expect(languagePath("/palettes?q=sea&utm_source=news&gclid=x")).toBe("/palettes?q=sea");
+  expect(languagePath("/kS7Q8Yy5S_SChv0?lock=hue&fbclid=x", true, true)).toBe(
+    "/kS7Q8Yy5S_SChv0?lock=hue"
+  );
+});

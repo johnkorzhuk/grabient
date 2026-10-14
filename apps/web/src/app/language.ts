@@ -24,6 +24,5 @@ export function chooseLanguage(locale: Locale): void {
 export function pageInEveryLanguage(requested: string, found: boolean): string {
   if (isServer) return languagePath(requested, found);
   const { path } = splitLocale(location.pathname);
-  const here = path + location.search;
-  return found && isSeed(path.slice(1)) ? here : languagePath(here, found);
+  return languagePath(path + location.search, found, isSeed(path.slice(1)));
 }
