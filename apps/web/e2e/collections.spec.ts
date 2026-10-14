@@ -55,9 +55,17 @@ test("signed out, the selection's Save leads to sign in and asks for no account'
   });
   await page.goto("/palettes");
   await hydrated(page);
-  await page.locator("main article").first().getByRole("button", { name: "Add to selection" }).focus();
+  await page
+    .locator("main article")
+    .first()
+    .getByRole("button", { name: "Add to selection" })
+    .focus();
   await page.keyboard.press("Enter");
-  await page.getByRole("button", { name: /^Selection/ }).first().click();
+  await page
+    .getByRole("button", { name: /^Selection/ })
+    .first()
+    .click();
+  await page.getByRole("radio", { name: "Save" }).click();
   await expect(page.getByText("Sign in to save collections.")).toBeVisible();
   await page.waitForLoadState("networkidle");
   expect(asked).toEqual([]);
