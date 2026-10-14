@@ -90,6 +90,14 @@ export function createPicture() {
   };
   // the points as the last change that rested left them, which the next one is measured from
   let rested: Sample[] = [];
+  /* the colors asked for before the last change rested: the picture stands beside them too until the address reaches
+     the new ones, so it never leaves the page between the two searches */
+  let leaving: string | null = null;
+  const asking = (picture: Picture, points: Sample[]): Picture => {
+    const asks = colorsOf(points);
+    if (asks !== picture.asks) leaving = picture.asks;
+    return { ...picture, points, asks };
+  };
   // moves are read in the order they came, and a rest waits for the last of them
   let moving: Promise<void> = Promise.resolve();
   const then = (work: () => Promise<void> | void) => {
@@ -108,7 +116,7 @@ export function createPicture() {
     if (!current) return null;
     const before = rested.length ? rested : current.first;
     const after = current.points;
-    const next = { ...current, asks: colorsOf(after) };
+    const next = asking(current, after);
     put(next);
     keep(next);
     rested = after;
@@ -119,7 +127,8 @@ export function createPicture() {
     /** The picture whose colors this search asks for, or null. */
     pictureFor: (query: string): Picture | null => {
       const picture = held();
-      return picture && picture.asks === query ? picture : null;
+      if (picture?.asks === query) leaving = null;
+      return picture && (picture.asks === query || leaving === query) ? picture : null;
     },
     /** Whether a point has moved from where it was read first. */
     moved: (picture: Picture): boolean =>
@@ -146,6 +155,7 @@ export function createPicture() {
       put(picture);
       keep(picture);
       rested = picture.points;
+      leaving = null;
       void pixelsOf(picture.src);
       return picture.asks;
     },
@@ -218,7 +228,7 @@ export function createPicture() {
     /** The points as an undo or a redo puts them: the colors to search for. */
     show(points: Sample[]): string | null {
       if (!current) return null;
-      const next = { ...current, points, asks: colorsOf(points) };
+      const next = asking(current, points);
       put(next);
       keep(next);
       rested = points;
