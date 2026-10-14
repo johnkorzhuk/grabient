@@ -136,7 +136,7 @@ function createPanel(narrow: () => boolean): Panel {
 export default function Editor(props: { data: PaletteData }) {
   const router = useRouter();
   const location = useLocation();
-  const shell = useContext(ShellContext);
+  const shell = useContext(ShellContext)!;
   const first = untrack(() => props.data);
   const e = createPaletteEditor(
     first.page,

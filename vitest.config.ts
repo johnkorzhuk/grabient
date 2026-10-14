@@ -31,6 +31,7 @@ export default defineConfig({
           // the server's renderer: Solid's plugin resolves its browser build for any other environment
           environment: "node",
           include: ["apps/*/src/**/*.test.tsx"],
+          server: { deps: { inline: [/@tanstack\/solid-router/] } },
           css: { include: /\.module\.css$/, modules: { classNameStrategy: "non-scoped" } }
         }
       },
