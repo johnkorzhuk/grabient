@@ -19,6 +19,8 @@ import type { PaletteSave } from "./save.ts";
    With nothing held lightness is the palette's two ends, chroma its peak, hue where it starts and how far it travels;
    one held keyframe's numbers are its own; several held keyframes' lightness and chroma are their means. */
 
+/* The numbers are written as CSS writes them, with a point in every language: they are the values a palette's oklch()
+   carries, and the point keeps them the same on every page. A field reads a typed comma as the point too (numeral). */
 const f3 = (v: number) => v.toFixed(3);
 const degrees = (v: number) => `${Math.round(v)}°`;
 const signed = (v: number) => {
