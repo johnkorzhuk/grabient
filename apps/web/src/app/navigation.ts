@@ -1,4 +1,4 @@
-import { delocalizePath, isPagePath } from "@grabient/i18n";
+import { delocalizePath, isPagePath, t } from "@grabient/i18n";
 import { announce } from "@grabient/ui/announce.ts";
 import { focusMain } from "@grabient/ui/SkipLink.tsx";
 import type { AnyRouter, HistoryLocation } from "@tanstack/solid-router";
@@ -110,8 +110,15 @@ export function guardNavigation(): void {
   addEventListener("error", watchPulse);
 }
 
+const shown = (selector: string) =>
+  [...document.querySelectorAll<HTMLElement>(selector)].find(el => el.offsetParent !== null) ??
+  null;
+
 /** The router's ways in: link presses, landings and their undo. Returns the way out. */
 export function watchNavigation(router: AnyRouter): () => void {
+  const placeOf = (location: HistoryLocation) => location.state.__TSR_index ?? 0;
+  /* the link a page was left by, by its entry: Back lands the focus on it again, at the depth the reader left */
+  const leftBy = new Map<number, string>();
   const onClick = (e: MouseEvent) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)
       return;
@@ -125,12 +132,38 @@ export function watchNavigation(router: AnyRouter): () => void {
     void router.navigate({ href });
   };
   document.addEventListener("click", onClick);
+  /* noted as it is pressed, whatever answers the press: a card's Edit answers its own */
+  const noteLink = (e: MouseEvent) => {
+    const a = (e.target as Element | null)?.closest?.("main a[href]");
+    if (a && e.button === 0)
+      leftBy.set(placeOf(router.history.location), a.getAttribute("href") ?? "");
+  };
+  document.addEventListener("click", noteLink, true);
 
   let timer: ReturnType<typeof setTimeout> | undefined;
+  /* where the focus lands with a page: the selection's Close over it, the link the reader left by (a card's presses
+     come a moment after its list), or the page */
+  const focusLanding = (tries = 20) => {
+    const location = router.history.location;
+    const left = leftBy.get(placeOf(location));
+    const selection = (location.state as { mark?: unknown }).mark === SELECTION_MARK;
+    const target = selection
+      ? shown(`aside button[aria-label="${CSS.escape(t("Close selection"))}"]`)
+      : left
+        ? shown(`main a[href="${CSS.escape(left)}"]`)
+        : null;
+    if (target) target.focus({ preventScroll: true });
+    else if ((selection || left) && tries > 0)
+      timer = setTimeout(() => {
+        if (!document.activeElement || document.activeElement === document.body)
+          focusLanding(tries - 1);
+      }, 50);
+    else focusMain();
+  };
   const land = () => {
     clearTimeout(timer);
     timer = setTimeout(() => {
-      if (!document.activeElement || document.activeElement === document.body) focusMain();
+      if (!document.activeElement || document.activeElement === document.body) focusLanding();
       announce(document.title);
     }, LANDED_MS);
   };
@@ -139,14 +172,16 @@ export function watchNavigation(router: AnyRouter): () => void {
     const at = state.__TSR_index ?? 0;
     return state.mark === SELECTION_MARK ? at - 1 : at;
   };
-  const placeOf = (location: HistoryLocation) => location.state.__TSR_index ?? 0;
   landUndo(entryOf(router.history.location));
   landView(placeOf(router.history.location));
   let moved = false;
   const leaveHistory = router.history.subscribe(
     ({ location, action }: { location: HistoryLocation; action: { type: string } }) => {
       const pushed = action.type === "PUSH";
-      if (pushed) forgetUndoFrom(placeOf(location));
+      if (pushed) {
+        forgetUndoFrom(placeOf(location));
+        for (const at of leftBy.keys()) if (at >= placeOf(location)) leftBy.delete(at);
+      }
       landUndo(entryOf(location));
       const replaced = action.type === "REPLACE";
       // a page rewritten in place as it lands has still landed
@@ -175,6 +210,7 @@ export function watchNavigation(router: AnyRouter): () => void {
   });
   return () => {
     document.removeEventListener("click", onClick);
+    document.removeEventListener("click", noteLink, true);
     clearTimeout(timer);
     leaveHistory();
     leaveResolved();
