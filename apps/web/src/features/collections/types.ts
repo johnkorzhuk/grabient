@@ -1,5 +1,6 @@
 import { STYLES } from "@grabient/engine/view.ts";
 import * as v from "valibot";
+import { RISING_FRAMES } from "../../lib/orders.ts";
 
 /* What the collections API answers, as the Worker writes it and the browser reads it back. The browser checks every
    answer against these before a page draws it. */
@@ -8,9 +9,6 @@ const Style = v.picklist(STYLES);
 const Visibility = v.picklist(["public", "private"]);
 
 export type CollectionSort = "popular" | "rising" | "newest" | "oldest" | "hot";
-/** Rising's frames: a like counts there for a week, three months or a year. */
-export type RisingFrame = "1w" | "3m" | "1y";
-export const DEFAULT_FRAME: RisingFrame = "1w";
 
 /** A palette a list's card of a collection draws: as the collection saved it, with when it was made, its likes and its
     place in the collection, so a list's cards sort as the collection's own page does. */
@@ -71,17 +69,10 @@ export const CollectionDocumentSchema = v.object({
 });
 export type CollectionDocument = v.InferOutput<typeof CollectionDocumentSchema>;
 
-const TagSchema = v.object({
-  label: v.string(),
-  href: v.string(),
-  colors: v.optional(v.array(v.string()))
-});
-export type CollectionTag = v.InferOutput<typeof TagSchema>;
-
 export const CollectionPageSchema = v.object({
   query: v.string(),
   sort: v.picklist(["popular", "rising", "newest", "oldest", "hot"]),
-  frame: v.optional(v.picklist(["1w", "3m", "1y"])),
+  frame: v.optional(v.picklist(RISING_FRAMES)),
   page: v.number(),
   limit: v.number(),
   total: v.number(),
@@ -92,15 +83,6 @@ export const CollectionPageSchema = v.object({
   unkept: v.optional(v.boolean())
 });
 export type CollectionPage = v.InferOutput<typeof CollectionPageSchema>;
-
-/** A collections list as its page starts: the page of collections, the Popular tags under the search field, and for a
-    search the collections whose titles answer the words. */
-export const CollectionsViewSchema = v.object({
-  page: CollectionPageSchema,
-  tags: v.array(TagSchema),
-  suggested: v.array(TagSchema)
-});
-export type CollectionsView = v.InferOutput<typeof CollectionsViewSchema>;
 
 /** A collection a tag under the search field names, with its colors. */
 export const CollectionHitSchema = v.object({

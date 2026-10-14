@@ -6,17 +6,16 @@ import {
   CollectionGroupPlaceholder,
   shownAt
 } from "@grabient/ui/CollectionGroup.tsx";
-import { CollectPress } from "@grabient/ui/CollectPress.tsx";
 import { Curation } from "@grabient/ui/Curation.tsx";
 import { Fit } from "@grabient/ui/Fit.tsx";
 import { GroupFeed } from "@grabient/ui/GroupFeed.tsx";
-import { ListNav, type Order } from "@grabient/ui/ListNav.tsx";
-import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
-import { columnsAt } from "@grabient/ui/PaletteGrid.tsx";
+import { ListNav } from "@grabient/ui/ListNav.tsx";
+import { columnsAt, PaletteGrid } from "@grabient/ui/PaletteGrid.tsx";
+import { SaveToCollection } from "@grabient/ui/SaveToCollection.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { useNavigate, useRouterState } from "@tanstack/solid-router";
+import { useElementScrollRestoration, useNavigate, useRouterState } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -25,41 +24,48 @@ import {
   Loading,
   onSettled,
   Show,
-  untrack
+  untrack,
+  useContext
 } from "solid-js";
+import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
+import { AppPage } from "../../app/Frames.tsx";
+import { ShellContext } from "../../app/shell.ts";
 import { record } from "../../app/undo.ts";
-import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
+import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
+import { hexesOf } from "../../lib/palette.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
+import { trackEvent } from "../analytics/analytics.ts";
+import { minuteOf, relativeAge } from "../gallery/drawing.ts";
+import { createFeed, inPlace } from "../gallery/feed.ts";
+import { ListHeading } from "../gallery/ListHeading.tsx";
+import { framesQuery } from "../gallery/queries.ts";
+import { searchAnswered, searchedHere } from "../search/count.ts";
 import { createPicture, type Settled } from "../search/picture.ts";
 import { Sampler } from "../search/Sampler.tsx";
-import { selected, toggle } from "../selection/selection.ts";
+import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
+import { selection } from "../selection/selection.ts";
 import { collectionHref, type PaletteOrder } from "./address.ts";
 import { deletePalette, inputOf } from "./client.ts";
 import { createChecklists } from "./collect.ts";
 import styles from "./collections.module.css";
 import { createDeletable } from "./deletable.ts";
-import {
-  drawnAs,
-  hexesOf,
-  minuteOf,
-  nameOf,
-  ownerLabel,
-  paletteHref,
-  relativeAge
-} from "./drawing.ts";
+import { ownerLabel } from "./drawing.ts";
 import { Find, viewWith } from "./Find.tsx";
 import { createFit } from "./fit.ts";
-import { followInPlace } from "./navigation.ts";
+import { ItemCard } from "./ItemCard.tsx";
+import { rememberList } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone } from "./overlay.ts";
 import { type ListPlace, listKey, listPath, listSearch } from "./params.ts";
 import { collectionQuery, collectionsQuery, type Failed, failed, ownQuery } from "./queries.ts";
-import type { CollectionPage, CollectionPreview, CollectionSummary, RisingFrame } from "./types.ts";
+import { listPaint } from "./route.ts";
+import type { CollectionPage, CollectionPreview, CollectionSummary } from "./types.ts";
 
 /* The collections lists: Popular (/collections), Rising in its frame (/collections/rising) and the account's own
    (/collections/saved), each searched with `?q=`. A list is a feed: its address's own page, then each page after it
    joining as the reader nears the end, at the same address, with only the groups near the viewport drawn. Each
    collection is a group of its first palettes; a searched list's cards carry thumbs that rate a palette's fit for its
-   group's collection, never for the words. */
+   group's collection, never for the words. The selection's export screen stands in the feed's place while it is
+   open, and the feed stays mounted beneath it. */
 
 /* a group's height before it is measured: its line, and its rows of cards with the gaps between them */
 const HEAD = 72;
@@ -71,21 +77,28 @@ const estimate = (item: CollectionSummary, width: number) => {
   return HEAD + rows * CARD + (rows - 1) * ROW_GAP;
 };
 /* the groups the server draws, a first screen and more, standing still until the reader moves (as the home's do): a
-   group's cards are most of a page's start, and a phone shows three of each group's twelve */
+   group's cards are most of a page's start, and a phone shows three of each group's twelve. An account's hearts and
+   an admin's presses are the reader's own, so once an account is known the groups are live without waiting. */
 const INITIAL = 3;
-const LIVE = 0;
-/* the next page is asked for this far before its mark comes into view */
-const AHEAD = "0px 0px 1200px 0px";
-const FRAMES: readonly RisingFrame[] = ["1w", "3m", "1y"];
+/* an own list not read yet: no page, and none to join */
+const UNREAD: Failed = { failed: "" };
 
-export function CollectionsPage(props: { place: ListPlace }) {
+export function CollectionsPage(props: {
+  place: ListPlace;
+  /** the server saw no session with the request: Saved draws the way in from its first paint */
+  signedOut?: boolean;
+}) {
   const client = useQueryClient();
   const navigate = useNavigate();
+  const shell = useContext(ShellContext)!;
   const go = (href: string) => void navigate({ href });
+  const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
   const navigating = useRouterState({ select: state => state.status === "pending" });
   const place = () => props.place;
   const mine = () => place().order === "saved";
-  const signedOut = () => mine() && sessionReady() && !account();
+  const signedOut = () => mine() && (sessionReady() ? !account() : !!props.signedOut);
+  const frames = useQuery(() => framesQuery());
+  const offered = () => frames.data;
 
   /* A public list reads through its query, which the route's loader filled. The account's own are private and read
      once the account is known: fetched through the same cache into the page's own state, so no read waits on a
@@ -106,7 +119,7 @@ export function CollectionsPage(props: { place: ListPlace }) {
     );
   };
   createEffect(ownKey, asked => {
-    if (asked) void readOwn(asked);
+    if (asked) void untrack(() => readOwn(asked));
   });
   const headData = () => {
     if (!mine()) return publicList.data;
@@ -114,7 +127,6 @@ export function CollectionsPage(props: { place: ListPlace }) {
     const read = own();
     return asked && read?.id === JSON.stringify(asked) ? read.page : undefined;
   };
-  const answered = () => (mine() ? headData() !== undefined : publicList.status !== "pending");
   const retry = () => {
     const asked = ownKey();
     if (!mine()) void publicList.refetch();
@@ -131,65 +143,34 @@ export function CollectionsPage(props: { place: ListPlace }) {
   const [note, setNote] = createSignal("");
   const [fieldError, setFieldError] = createSignal("");
 
-  /* the pages after the address's own, joined as the reader nears the end, for the list they joined; a failed one
-     waits for Retry */
-  const listId = () => JSON.stringify([mine(), listKey(place())]);
-  const [more, setMore] = createSignal<{ id: string; pages: readonly CollectionPage[] }>({
-    id: "",
-    pages: []
-  });
-  const joined = () => (more().id === listId() ? more().pages : []);
-  const [loadingMore, setLoadingMore] = createSignal(false);
-  const [moreError, setMoreError] = createSignal("");
-  const last = () => joined().at(-1) ?? head();
-  const hasMore = () => {
-    const tail = last();
-    return !!tail && tail.page < tail.totalPages;
-  };
-  const readPage = (n: number) =>
-    mine()
-      ? client.fetchQuery(
-          ownQuery(account()?.id ?? "", { ...listKey(place()), sort: "newest", page: n })
+  /* the pages after the address's own join as the reader nears the end, and a list returned to stands as deep as it
+     was left, from the cache */
+  const pageKey = (n: number) => ({ ...listKey(place()), page: n });
+  const keptPage = (n: number) => {
+    const page = mine()
+      ? client.getQueryData(
+          ownQuery(account()?.id ?? "", { ...pageKey(n), sort: "newest" }).queryKey
         )
-      : client.fetchQuery(collectionsQuery({ ...listKey(place()), page: n }));
-  const loadMore = async (retry = false) => {
-    if (!answered()) return;
-    const tail = last();
-    if (!tail || !hasMore() || loadingMore() || (moreError() && !retry)) return;
-    const id = listId();
-    setLoadingMore(true);
-    setMoreError("");
-    try {
-      const next = await readPage(tail.page + 1);
-      if (id !== listId()) return;
-      if (failed(next)) setMoreError(next.failed);
-      else setMore({ id, pages: [...joined(), next] });
-    } finally {
-      setLoadingMore(false);
+      : client.getQueryData(collectionsQuery(pageKey(n)).queryKey);
+    return page && !failed(page) ? page : undefined;
+  };
+  const feed = createFeed<CollectionPage>({
+    key: () => JSON.stringify([mine() ? account()?.id : "", listKey(place())]),
+    start: () => place().page,
+    head: () => headData() ?? UNREAD,
+    kept: keptPage,
+    read: n => {
+      trackEvent("paginate", { page_number: n, surface: "collections" });
+      return mine()
+        ? client.fetchQuery(ownQuery(account()?.id ?? "", { ...pageKey(n), sort: "newest" }))
+        : client.fetchQuery(collectionsQuery(pageKey(n)));
     }
-  };
-  /* the mark at the feed's end, watched once both it and the page are there */
-  let mark: HTMLDivElement | undefined;
-  let watcher: IntersectionObserver | undefined;
-  const watch = (el: HTMLDivElement) => {
-    mark = el;
-    watcher?.observe(el);
-  };
-  onSettled(() => {
-    watcher = new IntersectionObserver(
-      entries => {
-        if (entries.some(entry => entry.isIntersecting)) void loadMore();
-      },
-      { rootMargin: AHEAD }
-    );
-    if (mark) watcher.observe(mark);
-    return () => watcher?.disconnect();
   });
   /* every collection once, in the order the pages came, less what this tab deleted */
   const items = createMemo(() => {
     const seen = new Set<string>();
     const out: CollectionSummary[] = [];
-    for (const page of [head(), ...joined()])
+    for (const page of [head(), ...feed.joined()])
       for (const item of page?.items ?? [])
         if (!seen.has(item.slug) && !collectionGone(item.slug)) {
           seen.add(item.slug);
@@ -197,7 +178,8 @@ export function CollectionsPage(props: { place: ListPlace }) {
         }
     return out;
   });
-  const now = () => minuteOf(head()?.fetchedAt ?? Date.now());
+  const readAt = () => head()?.fetchedAt ?? Date.now();
+  const now = () => minuteOf(readAt());
   /* a searched list's thumbs rate each palette's fit for its group's collection */
   const fit = createFit({
     slugs: () => (place().query ? items().map(c => c.slug) : []),
@@ -223,7 +205,40 @@ export function CollectionsPage(props: { place: ListPlace }) {
     void client.invalidateQueries({ queryKey: ["collection"] });
     setNote(t("Palette deleted."));
   };
+
+  /* the selection: its press at the row's end, its export screen in the feed's place, and its Save into the account's
+     collections, after which Saved reads its list again */
   const checklists = createChecklists(setNote);
+  const saving = checklists.selection(() => selection().map(inputOf));
+  const saved = () => {
+    const asked = ownKey();
+    if (asked) void readOwn(asked, true);
+  };
+  const sel = createSelectionScreen({
+    note: setNote,
+    save: () => (
+      <SaveToCollection
+        own={saving.own}
+        onOwn={saving.onOwn}
+        onToggle={(slug, on) => saving.onToggle(slug, on).then(saved)}
+        onNew={title => saving.onNew(title).then(saved)}
+        signIn={saving.signIn}
+        disabled={signInUnavailable()}
+      />
+    )
+  });
+  /* after the selection's own, so this one stands: the selection while its screen is shown, else the page's palettes */
+  shell.paint(() => (sel.open() ? selection() : listPaint(items(), place().view)));
+  /* the list a collection opened from here leads back to */
+  createEffect(place, rememberList);
+
+  /* where the page stands, for counting what a reader opens and takes */
+  const usePlace = () => ({
+    surface: mine() ? ("saved" as const) : ("collections" as const),
+    ...(mine() || !place().query
+      ? {}
+      : { words: place().query, searched: searchedHere(place().query, "collections") })
+  });
   /* a collection opened from Rising opens with its palettes rising first */
   const openOrder = (): PaletteOrder => (place().order === "rising" ? "rising" : "popular");
   const pageView = () => listSearch({ view: place().view });
@@ -231,37 +246,30 @@ export function CollectionsPage(props: { place: ListPlace }) {
     localHref(collectionHref(slug, mine() ? "popular" : openOrder()) + pageView());
 
   const card = (preview: () => CollectionPreview, collection: () => CollectionSummary) => {
-    const palette = createMemo(() => drawnAs(inputOf(preview()), place().view));
-    const stops = createMemo(() => hexesOf(palette().seed, palette().steps));
     const seed = () => preview().seed;
     const agents = () => isAdmin() && collection().owner.kind === "agent";
-    /* a card drawn is in the window: its count starts as the page read it and is asked again where it is old */
-    onSettled(() => {
-      const shown = untrack(() => ({ seed: seed(), likes: preview().likes ?? 0 }));
-      noteCounts([shown], untrack(now));
-      void readLikeCounts([shown.seed]);
-    });
     return (
-      <PaletteCard
-        seed={seed()}
-        name={nameOf(palette())}
-        stops={stops()}
-        style={palette().style}
-        angle={palette().angle}
-        href={paletteHref(palette(), place().view.size)}
+      <ItemCard
+        own={inputOf(preview())}
+        view={place().view}
         age={relativeAge(preview().createdAt ?? collection().updatedAt, now())}
-        likes={likeCount(seed(), preview().likes ?? 0)}
-        liked={liked(seed())}
-        onLike={() => void toggleLike(seed(), !liked(seed()), { collectionId: collection().slug })}
-        selected={selected(palette())}
-        onSelect={() => toggle(palette())}
-        collect={<CollectPress collect={checklists.card(() => inputOf(preview()))} />}
+        likes={preview().likes ?? 0}
+        readAt={readAt()}
+        collection={collection().slug}
+        place={usePlace}
+        at={() => ({
+          collection: collection().slug,
+          position: kept(collection()).findIndex(entry => entry.seed === seed())
+        })}
+        collect={checklists.card}
+        note={setNote}
         fit={
           place().query ? (
             <Fit
               value={fit.of(collection().slug, seed())}
               admin={agents()}
               collection={collection().title}
+              disabled={offline()}
               onVote={next => fit.vote(collection().slug, seed(), next)}
             />
           ) : undefined
@@ -272,7 +280,7 @@ export function CollectionsPage(props: { place: ListPlace }) {
               mode="delete"
               icon="trash"
               blocked={deletable.of(seed()) ? undefined : t("Liked by someone")}
-              stops={stops()}
+              stops={hexesOf(preview())}
               view={inputOf(preview())}
               onConfirm={result =>
                 removeEverywhere(seed(), { reasons: result.reasons, comment: result.comment })
@@ -308,36 +316,60 @@ export function CollectionsPage(props: { place: ListPlace }) {
     record({ undo: show(done.before), redo: show(done.after) });
     searchColors(done.colors);
   };
+  /* what a search of the public collections found, told once its answer is this page's */
+  createEffect(
+    () => {
+      const first = head();
+      const words = place().query;
+      return !mine() && words && first && first.query === words
+        ? { words, kind: held() ? ("image" as const) : undefined, results: first.total }
+        : null;
+    },
+    found => {
+      if (found) searchAnswered(found.words, "collections", found);
+    }
+  );
 
   /* where each list lives, keeping the words and the view; a press on Rising while it is the order moves its frame */
-  const nextFrame = () => FRAMES[(FRAMES.indexOf(place().frame) + 1) % FRAMES.length]!;
+  const here = () => listSearch({ query: place().query, view: place().view });
   const orderTarget = (order: Order) =>
     listPath(
       order,
-      order === "rising" ? (place().order === "rising" ? nextFrame() : place().frame) : "1w"
-    ) + listSearch({ query: place().query, view: place().view });
-  const sectionTarget = (section: "palettes" | "collections") =>
-    section === "palettes"
-      ? `/palettes${listSearch({ query: place().query, view: place().view })}`
-      : listPath(place().order, place().frame) +
-        listSearch({ query: place().query, view: place().view });
+      order === "rising" && place().order === "rising"
+        ? nextFrame(place().frame, offered())
+        : place().frame
+    ) + here();
+  /* the other section in this list's order; with no connection the account's own, which open from its copy */
+  const sectionTarget = (section: "palettes" | "collections") => {
+    const order = offline() ? "saved" : place().order;
+    if (section === "collections") return listPath(order, place().frame) + here();
+    const path =
+      order === "saved"
+        ? "/palettes/saved"
+        : order === "rising"
+          ? framePath("/palettes/rising", place().frame)
+          : "/palettes";
+    return path + here();
+  };
   const pickOrder = (order: Order) => {
     /* in the page's own place in the history, so Back leaves Rising in one press */
-    if (order === "rising" && place().order === "rising")
-      return void navigate({ href: orderTarget(order), replace: true });
-    if (order === "saved" && !account()) return go(loginHref(orderTarget(order)));
+    if (order === "rising" && place().order === "rising") {
+      if ((offered()?.length ?? 1) > 1) void navigate({ href: orderTarget(order), replace: true });
+      return;
+    }
+    if (order === "saved" && sessionReady() && !account()) return go(loginHref(orderTarget(order)));
     /* Rising chosen on purpose reads its list again */
     if (order === "rising") void client.invalidateQueries({ queryKey: ["collections", "rising"] });
     go(orderTarget(order));
   };
   const intent = (target: { order?: Order }) => {
     const order = target.order;
-    if (!order || order === "saved" || order === place().order) return;
+    if (!order || order === "saved" || order === place().order || offline()) return;
     void client.prefetchQuery(
       collectionsQuery({
         ...listKey(place()),
         sort: order,
-        frame: order === "rising" ? place().frame : "1w",
+        frame: order === "rising" ? place().frame : DEFAULT_FRAME,
         page: 1
       })
     );
@@ -351,13 +383,13 @@ export function CollectionsPage(props: { place: ListPlace }) {
         : t("No public collections yet.");
   const message = () =>
     headError() ||
-    moreError() ||
+    feed.reason() ||
     fieldError() ||
     note() ||
-    (navigating() && head() ? t("Updating…") : loadingMore() ? t("Loading more…") : "") ||
+    (navigating() && head() ? t("Updating…") : feed.loading() ? t("Loading more…") : "") ||
     (head() && !items().length ? emptyNote() : "");
   const nextHref = () => {
-    const tail = last();
+    const tail = feed.joined().at(-1) ?? head();
     return localHref(
       listPath(place().order, place().frame) +
         listSearch({
@@ -371,145 +403,168 @@ export function CollectionsPage(props: { place: ListPlace }) {
   const placeholders = () => <For each={[0, 1]}>{() => <CollectionGroupPlaceholder />}</For>;
 
   return (
-    <main id="main" class={styles.page}>
-      <Find
-        place={place()}
-        to={searchHref}
-        onError={setFieldError}
-        onImage={file => void searchImage(file)}
-      />
-      <h1 class={styles.hidden}>
-        {t(
-          mine()
-            ? msg("Your collections")
-            : place().order === "rising"
-              ? msg("Rising gradient and color palette collections")
-              : msg("Gradient and color palette collections")
-        )}
-      </h1>
-      <div class={styles.nav}>
-        <ListNav
-          section="collections"
-          order={place().order}
-          frame={place().frame}
-          frames={FRAMES}
-          onSection={section => go(sectionTarget(section))}
-          onOrder={pickOrder}
-          onIntent={intent}
-          sectionHref={section => localHref(sectionTarget(section))}
-          orderHref={order => (order === "saved" ? undefined : localHref(orderTarget(order)))}
-        />
-      </div>
-      <Show when={held()}>
-        {shown => (
-          <div class={styles.picture}>
-            <Sampler
-              src={shown().src}
-              width={shown().width}
-              height={shown().height}
-              label={t("Your image")}
-              points={shown().points}
-              onMove={(i, x, y) => void picture.move(i, x, y)}
-              onRelease={() => void picture.settle().then(rest)}
-              onReset={picture.moved(shown()) ? () => void picture.reset().then(rest) : undefined}
-              onAdd={(x, y) => {
-                void picture.add(x, y);
-                void picture.settle().then(rest);
-              }}
-              onRemove={
-                picture.canRemove(shown())
-                  ? i => {
-                      void picture.remove(i);
-                      void picture.settle().then(rest);
-                    }
-                  : undefined
-              }
-            />
-          </div>
-        )}
-      </Show>
-      <Show
-        when={!signedOut()}
-        fallback={
-          <div class={styles.empty}>
-            <Text variant="h3" as="h2">
-              {t("Sign in to see your collections.")}
-            </Text>
-            <Button variant="primary" size="lg" href={localHref(loginHref("/collections/saved"))}>
-              {t("Sign in")}
-            </Button>
-          </div>
-        }
+    <AppPage feed bare={sel.open()}>
+      {/* the page stays mounted and out of sight while the export screen stands in for it, so Close returns to the
+          same groups at the same depth */}
+      <main
+        id="main"
+        class={styles.page}
+        data-away={sel.open() ? "" : undefined}
+        aria-busy={navigating() ? "true" : "false"}
       >
-        <Loading fallback={placeholders()}>
-          {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: the titles and cards
-              are links, which the keyboard follows; this only keeps a plain press in the page */}
-          <div onClick={e => followInPlace(e, go)}>
-            <Show when={head() || headError()} fallback={placeholders()}>
-              <GroupFeed
-                items={items()}
-                key={c => c.slug}
-                estimate={estimate}
-                initial={INITIAL}
-                live={LIVE}
-                group={collection => (
-                  <CollectionGroup
-                    title={collection().title}
-                    href={groupHref(collection().slug)}
-                    description={collection().description}
-                    owner={ownerLabel(collection().owner, isAdmin())}
-                    age={relativeAge(collection().updatedAt, now())}
-                    count={
-                      collection().itemCount -
-                      (collection().preview.length - kept(collection()).length)
+        <Find
+          place={place()}
+          to={searchHref}
+          onError={setFieldError}
+          onImage={file => void searchImage(file)}
+        />
+        <h1 class={styles.hidden}>
+          {t(
+            mine()
+              ? msg("Your collections")
+              : place().order === "rising"
+                ? msg("Rising gradient and color palette collections")
+                : msg("Gradient and color palette collections")
+          )}
+        </h1>
+        <div class={styles.nav}>
+          <ListNav
+            section="collections"
+            order={place().order}
+            frame={(offered()?.length ?? 1) > 1 ? place().frame : undefined}
+            frames={offered()}
+            disabled={listUnavailable}
+            onSection={section => go(sectionTarget(section))}
+            onOrder={pickOrder}
+            onIntent={intent}
+            sectionHref={section => localHref(sectionTarget(section))}
+            orderHref={order => (order === "saved" ? undefined : localHref(orderTarget(order)))}
+          />
+          {sel.button()}
+        </div>
+        {sel.float()}
+        <div class={styles.under}>
+          <Show when={held()}>
+            {shown => (
+              <section class={styles.picture} aria-label={t("Your image")}>
+                <ListHeading title={t("Your image")} />
+                <PaletteGrid>
+                  <Sampler
+                    src={shown().src}
+                    width={shown().width}
+                    height={shown().height}
+                    label={t("Your image")}
+                    points={shown().points}
+                    onMove={(i, x, y) => void picture.move(i, x, y)}
+                    onRelease={() => void picture.settle().then(rest)}
+                    onReset={
+                      picture.moved(shown()) ? () => void picture.reset().then(rest) : undefined
                     }
-                    private={collection().visibility === "private"}
-                    palettes={kept(collection())}
-                    card={preview => card(preview, collection)}
-                    onIntent={() => void client.prefetchQuery(collectionQuery(collection().slug))}
+                    onAdd={(x, y) => {
+                      void picture.add(x, y);
+                      void picture.settle().then(rest);
+                    }}
+                    onRemove={
+                      picture.canRemove(shown())
+                        ? i => {
+                            void picture.remove(i);
+                            void picture.settle().then(rest);
+                          }
+                        : undefined
+                    }
                   />
-                )}
-              />
-            </Show>
-          </div>
-          <div ref={watch} aria-hidden="true" />
-          <div class={styles.status}>
-            <Status error={!!headError() || !!moreError() || !!fieldError()}>{message()}</Status>
-            <Show when={headError()}>
-              <Button size="sm" onClick={retry}>
-                {t("Retry")}
-              </Button>
-            </Show>
-            <Show when={moreError() && !headError()}>
-              <Button size="sm" onClick={() => void loadMore(true)}>
-                {t("Retry")}
-              </Button>
-            </Show>
-            <Show when={mine() && head() && !items().length}>
-              <Button
-                size="sm"
-                href={localHref(`/palettes${listSearch({ query: place().query })}`)}
-              >
-                {t("Browse palettes")}
-              </Button>
-            </Show>
-            <Show when={hasMore() && !loadingMore() && !moreError() && !headError()}>
-              <Button
-                size="sm"
-                href={nextHref()}
-                onClick={e => {
-                  if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
-                  e.preventDefault();
-                  void loadMore();
-                }}
-              >
-                {t("More collections")}
-              </Button>
-            </Show>
-          </div>
-        </Loading>
-      </Show>
-      <BackToTop />
-    </main>
+                </PaletteGrid>
+              </section>
+            )}
+          </Show>
+          <Show
+            when={!signedOut()}
+            fallback={
+              <div class={styles.empty}>
+                <Text variant="h3" as="h2">
+                  {t("Sign in to see your collections.")}
+                </Text>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  href={localHref(loginHref(listPath("saved") + here()))}
+                  disabled={offline()}
+                >
+                  {t("Sign in")}
+                </Button>
+              </div>
+            }
+          >
+            <Loading fallback={placeholders()}>
+              <Show when={head() || headError()} fallback={placeholders()}>
+                <GroupFeed
+                  items={items()}
+                  key={c => c.slug}
+                  estimate={estimate}
+                  initial={INITIAL}
+                  live={account() ? INITIAL : 0}
+                  depth={restoring}
+                  group={collection => (
+                    <CollectionGroup
+                      title={collection().title}
+                      href={groupHref(collection().slug)}
+                      description={collection().description}
+                      owner={ownerLabel(collection().owner, isAdmin())}
+                      age={relativeAge(collection().updatedAt, now())}
+                      count={
+                        collection().itemCount -
+                        (collection().preview.length - kept(collection()).length)
+                      }
+                      private={collection().visibility === "private"}
+                      palettes={kept(collection())}
+                      card={preview => card(preview, collection)}
+                      onIntent={() => {
+                        if (!offline())
+                          void client.prefetchQuery(collectionQuery(collection().slug));
+                      }}
+                    />
+                  )}
+                />
+              </Show>
+              <div class={styles.mark} ref={feed.mark} aria-hidden="true" />
+              <div class={styles.status}>
+                <Status error={!!headError() || !!feed.reason() || !!fieldError()}>
+                  {message()}
+                </Status>
+                <Show when={headError()}>
+                  <Button size="sm" onClick={retry}>
+                    {t("Retry")}
+                  </Button>
+                </Show>
+                <Show when={feed.reason() && !headError()}>
+                  <Button size="sm" onClick={() => void feed.next(true)}>
+                    {t("Retry")}
+                  </Button>
+                </Show>
+                {/* the gallery's palettes for the same words, in the same view */}
+                <Show when={mine() && head() && !items().length}>
+                  <Button size="sm" href={localHref(`/palettes${here()}`)} disabled={offline()}>
+                    {t("Browse palettes")}
+                  </Button>
+                </Show>
+                {/* a link for readers without scripts; a plain press asks for the page in place */}
+                <Show when={feed.more() && !feed.loading() && !feed.reason() && !headError()}>
+                  <Button
+                    size="sm"
+                    href={nextHref()}
+                    onClick={e => inPlace(e, () => void feed.next())}
+                  >
+                    {t("More collections")}
+                  </Button>
+                </Show>
+              </div>
+            </Loading>
+          </Show>
+        </div>
+      </main>
+      {sel.screen()}
+      {/* the way back up a feed that has no end; on a phone it stands above the Selection press */}
+      <BackToTop raised={selection().length > 0 && !sel.open()} />
+    </AppPage>
   );
 }

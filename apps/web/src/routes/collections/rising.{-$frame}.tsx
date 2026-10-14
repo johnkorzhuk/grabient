@@ -1,14 +1,16 @@
 import { createFileRoute, notFound, redirect } from "@tanstack/solid-router";
 import { ListRoute } from "../../features/collections/ListRoute.tsx";
 import { listHead, listPlace, loadList, searchOf } from "../../features/collections/route.ts";
+import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { FRESH, NO_STORE } from "../../lib/cache.ts";
+import { DEFAULT_FRAME, isFrame } from "../../lib/orders.ts";
 
 /* Rising over the week is the list's own address; its longer frames are a last segment of their own. A frame an admin
    turned off leads to the week's. */
 export const Route = createFileRoute("/collections/rising/{-$frame}")({
   validateSearch: (search: Record<string, unknown>) => search,
   beforeLoad: ({ params, search }) => {
-    if (params.frame === "1w") {
+    if (params.frame === DEFAULT_FRAME) {
       throw redirect({
         to: "/collections/rising/{-$frame}",
         params: { frame: undefined },
@@ -16,8 +18,7 @@ export const Route = createFileRoute("/collections/rising/{-$frame}")({
         statusCode: 301
       });
     }
-    if (params.frame !== undefined && params.frame !== "3m" && params.frame !== "1y")
-      throw notFound();
+    if (params.frame !== undefined && !isFrame(params.frame)) throw notFound();
   },
   loaderDeps: ({ search }) => ({ search: searchOf(search) }),
   loader: ({ context, params, deps }) =>
@@ -29,6 +30,7 @@ export const Route = createFileRoute("/collections/rising/{-$frame}")({
       listPlace("rising", params.frame, searchOf(match.search)),
       loaderData
     ),
+  staticData: { corner: ListAppearance },
   component: function RisingCollections() {
     const search = Route.useSearch();
     const params = Route.useParams();

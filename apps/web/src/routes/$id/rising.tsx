@@ -3,6 +3,7 @@ import { createFileRoute, notFound } from "@tanstack/solid-router";
 import { isCollectionSlug } from "../../features/collections/address.ts";
 import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx";
 import { collectionHead, loadCollection, searchOf } from "../../features/collections/route.ts";
+import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
 
 /* A collection with its rising palettes first, or words that lead to Rising's search. */
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/$id/rising")({
       { slug: params.id, order: "rising", search: match.search },
       loaderData
     ),
+  staticData: { corner: ListAppearance },
   component: function Rising() {
     const params = Route.useParams();
     const search = Route.useSearch();

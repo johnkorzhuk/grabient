@@ -9,7 +9,13 @@ import { getJson } from "../../lib/query.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
 import { localizeCollections, translatedLocale } from "../../server/mcp/admin/translations.ts";
-import { ownCollectionsPage } from "../account/collections.ts";
+import {
+  ownCollectionMoved,
+  ownCollectionsPage,
+  ownsCollection,
+  ownsCollectionSoon
+} from "../account/collections.ts";
+import { keptUserId } from "../account/session.ts";
 import { langQuery, readOwn, readState } from "./client.ts";
 import { COLLECTION_LIMIT, type CollectionListParams, OWN_COLLECTION_LIMIT } from "./params.ts";
 import {
@@ -74,6 +80,8 @@ export interface Found {
   doc: CollectionDocument | null;
   /** a private collection lives here: the page names it so, and its owner's browser fills it in */
   private?: boolean;
+  /** the account's copy holds the collection that lives here, which its page draws from the copy */
+  own?: boolean;
   /** a list's summary of the collection, shown while the collection is read */
   provisional?: boolean;
   fetchedAt: number;
@@ -93,9 +101,18 @@ const readCollection = createIsomorphicFn()
     return { doc: shown ?? doc, fetchedAt: Date.now() };
   })
   .client(async (slug: string, signal?: AbortSignal): Promise<Found | Failed> => {
-    const response = await fetch(`/api/collections/${encodeURIComponent(slug)}${lang(true)}`, {
-      signal
-    }).catch(() => null);
+    /* The account's own is read as its own, from the browser's copy: at once when the copy is open, and asked beside
+       the public read otherwise, since a connection that is not there fails that read. So is an address one of them
+       moved from, which leads on to it. */
+    const own = { doc: null, own: true, fetchedAt: Date.now() };
+    if (ownsCollection(slug) || ownCollectionMoved(slug)) return own;
+    const [mine, response] = await Promise.all([
+      keptUserId() ? ownsCollectionSoon(slug).catch(() => false) : false,
+      fetch(`/api/collections/${encodeURIComponent(slug)}${lang(true)}`, { signal }).catch(
+        () => null
+      )
+    ]);
+    if (mine) return own;
     if (response?.status === 404) return { doc: null, fetchedAt: Date.now() };
     return attempt(
       async () => {

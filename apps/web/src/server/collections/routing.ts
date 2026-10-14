@@ -6,8 +6,8 @@ import {
   frameOf,
   intIn,
   listSearch,
-  listView,
-  pageSearch
+  pageSearch,
+  viewOf
 } from "../../features/collections/params.ts";
 import { listWords } from "../../lib/words.ts";
 import type { KeyRule } from "../cache-keys.ts";
@@ -51,7 +51,7 @@ const listAddress: CanonicalRule = address => {
     listSearch(
       {
         query: listWords(params.get("q") ?? params.get("query")),
-        view: listView(params),
+        view: viewOf(params),
         page: intIn(params.get("page"), 1, 10_000) ?? 1,
         limit: intIn(params.get("limit"), 12, COLLECTION_LIMIT) ?? COLLECTION_LIMIT
       },
@@ -69,7 +69,7 @@ const collectionAddress: CanonicalRule = address => {
   if ((SEED.test(first) && decodePalette(first)) || OLD_ID.test(first)) return null;
   const at = typedCollection(path);
   return at
-    ? collectionHref(at.slug, at.order) + pageSearch(listView(params), params.has("selection"))
+    ? collectionHref(at.slug, at.order) + pageSearch(viewOf(params), params.has("selection"))
     : null;
 };
 

@@ -8,10 +8,12 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
 import { createSignal, Show } from "solid-js";
+import { offline } from "../../app/connection.ts";
+import { relativeAge } from "../gallery/drawing.ts";
 import { collectionHref } from "./address.ts";
 import { failedWrite } from "./collect.ts";
 import styles from "./collections.module.css";
-import { ownerLabel, relativeAge } from "./drawing.ts";
+import { ownerLabel } from "./drawing.ts";
 import { DESCRIPTION_MAX, TITLE_MAX } from "./schema.ts";
 import type { CollectionDocument, CopyStanding } from "./types.ts";
 
@@ -106,7 +108,7 @@ export function Heading(props: {
             <Button size="lg" disabled={busy()} onClick={() => setEditing(false)}>
               {t("Cancel")}
             </Button>
-            <Button size="lg" variant="primary" type="submit" disabled={busy()}>
+            <Button size="lg" variant="primary" type="submit" disabled={busy() || offline()}>
               {t(busy() ? msg("Saving…") : msg("Save"))}
             </Button>
           </div>
@@ -120,7 +122,14 @@ export function Heading(props: {
         </Text>
         <Show when={props.editable}>
           <span class={styles.edit}>
-            <Button icon variant="ghost" aria-label={t("Edit")} tip={t("Edit")} onClick={start}>
+            <Button
+              icon
+              variant="ghost"
+              aria-label={t("Edit")}
+              tip={t("Edit")}
+              disabled={offline()}
+              onClick={start}
+            >
               <Icon name="edit" size={14} />
             </Button>
           </span>
@@ -154,14 +163,17 @@ export function Heading(props: {
                     {rich(
                       "Saved from <source>{title}</source>",
                       {
+                        /* the source needs the server: with no connection its title stands as words */
                         source: words => (
-                          <a
-                            class={styles.source}
-                            href={localHref(collectionHref(held().source.slug))}
-                            dir="auto"
-                          >
-                            {words}
-                          </a>
+                          <Show when={!offline()} fallback={<span dir="auto">{words}</span>}>
+                            <a
+                              class={styles.source}
+                              href={localHref(collectionHref(held().source.slug))}
+                              dir="auto"
+                            >
+                              {words}
+                            </a>
+                          </Show>
                         )
                       },
                       { title: held().source.title }

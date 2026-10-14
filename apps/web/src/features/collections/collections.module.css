@@ -1,18 +1,22 @@
-/* The collections' pages: a collection's own, and the lists of them. The band above the row stands where the lists'
-   search stands, so the row, the title and the cards land where the lists have them. */
+/* The collections' pages: a collection's own, and the lists of them. Each is a column on the lists' gutter, its parts
+   a row's gap apart. The band above a collection's row stands where the lists' search stands, so the row, the title
+   and the cards land where the lists have them. The frame's page (AppPage) stands around it. */
 @layer components {
-  /* the lists' column: the window's width less its gutters, as the gallery's lists stand */
   .page {
-    container: page / inline-size;
     display: flex;
     flex-direction: column;
+    gap: var(--space-s6);
     min-width: 0;
-    min-height: 100vh;
     padding-block: var(--space-s16) var(--space-s8);
     padding-inline: var(--size-gutter);
-    @media (max-width: 800px) {
+    /* on a phone the foot keeps room for the floating Selection press */
+    @container page (max-width: 800px) {
       padding-block: var(--space-s10) var(--space-s16);
       padding-inline: var(--space-s4);
+    }
+    /* mounted and out of sight while the selection's export screen stands in for it */
+    &[data-away] {
+      display: none;
     }
   }
   .band,
@@ -26,38 +30,6 @@
     display: flex;
     align-items: center;
     min-height: var(--size-control-big);
-    @media (pointer: coarse) {
-      min-height: var(--size-touch);
-    }
-  }
-  .tags {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: var(--space-s2);
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .tag {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    min-height: var(--size-control-sm);
-    padding-inline: var(--space-s3);
-    border: 1px solid var(--color-edge);
-    border-radius: var(--radius-control);
-    background-color: var(--color-paper2);
-    color: var(--color-ink2);
-    font-size: var(--font-fs2);
-    text-decoration: none;
-    white-space: nowrap;
-    outline: 0 solid var(--color-ring);
-    outline-offset: 2px;
-    &:hover {
-      color: var(--color-ink);
-    }
-    &:focus-visible {
-      outline-width: 1px;
-    }
     @media (pointer: coarse) {
       min-height: var(--size-touch);
     }
@@ -190,14 +162,40 @@
   .cell {
     min-width: 0;
   }
-  /* the line keeps a button's height whether it holds words, a button or nothing */
+  /* a collection's title line and its cards, one under the other with no gap of the page's between them */
+  .body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  /* a list's own content: the picture searched by, the feed, the mark and the line; it stays mounted while the
+     selection is open */
+  .under {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s6);
+    min-width: 0;
+  }
+  /* the mark the next page waits on: a hairline above the line, watched from a screen away */
+  .mark {
+    height: var(--size-hairline);
+  }
+  /* the line keeps a press's height whether it holds words, a press or nothing, so nothing beneath moves */
   .status {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-s4);
+    box-sizing: content-box;
     min-height: var(--size-control);
     padding-top: var(--space-s6);
+  }
+  /* a collection's line, under its cards */
+  .line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s4);
+    min-height: var(--space-s10);
   }
   .nav {
     display: flex;
@@ -208,9 +206,11 @@
     min-height: var(--size-control-big);
     margin-bottom: var(--space-s4);
   }
-  /* the picture a search by image was made from, its points to move */
+  /* the picture a search by image was made from, a section's space above the collections */
   .picture {
-    margin-bottom: var(--space-s8);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--space-s8);
   }
   .empty {
     display: flex;
