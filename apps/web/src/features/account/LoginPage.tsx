@@ -7,10 +7,9 @@ import { Pane } from "@grabient/ui/Pane.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useRouter } from "@tanstack/solid-router";
-import { createSignal, onCleanup, onSettled, Show, untrack, useContext } from "solid-js";
+import { createSignal, onCleanup, onSettled, Show, untrack } from "solid-js";
 import { offline } from "../../app/connection.ts";
-import { LanguageMenu } from "../../app/LanguageMenu.tsx";
-import { ShellContext } from "../../app/shell.ts";
+import { Languages } from "../../app/Frames.tsx";
 import { trackLoginStart } from "../analytics/analytics.ts";
 import styles from "./Login.module.css";
 import { account, authError, loadAccount, loginHref, safeRedirect } from "./session.ts";
@@ -101,13 +100,13 @@ export function LoginPage(props: {
   /** back from a Google sign-in that failed: the library names why in the address */
   error?: string;
 }) {
-  const shell = useContext(ShellContext);
   const router = useRouter();
   const [googleFailed, asked] = untrack(() => [props.error !== undefined, props.redirect]);
-  const resumed = googleFailed ? keptReturn() : null;
-  const to = safeRedirect(asked ?? resumed);
+  /* Where the sheet leads once signed in: what the address asks, which the server reads too, or, back from a Google
+     sign-in that failed, what this tab kept as it left, which the browser alone knows and reads once the sheet stands. */
+  const [to, setTo] = createSignal(safeRedirect(asked));
   // an app's request waits behind this sign-in (the authorization page carries it in `r`)
-  const connecting = to.startsWith("/oauth/authorize");
+  const connecting = () => to().startsWith("/oauth/authorize");
   const [sending, setSending] = createSignal(false);
   const [checking, setChecking] = createSignal(false);
   const [message, setMessage] = createSignal("");
@@ -127,18 +126,20 @@ export function LoginPage(props: {
   };
   onSettled(() => {
     if (googleFailed) {
+      const back = safeRedirect(asked ?? keptReturn());
+      setTo(back);
       // said once the sheet stands, so a screen reader hears the line change
       say(t(GOOGLE_FAILED), true);
       // the sheet's own address again, before any press: a reload or another language says nothing of the failure
       void router.navigate({
-        href: localHref(to === "/" ? "/login" : loginHref(to)),
+        href: localHref(back === "/" ? "/login" : loginHref(back)),
         replace: true
       });
     }
     // what was kept answers one return: a sheet opened any other way starts without it
     keepReturn(null);
     void loadAccount(true).then(() => {
-      if (!disposed && account()) location.replace(localHref(to));
+      if (!disposed && account()) location.replace(localHref(to()));
     });
     // backing out of Google's account picker brings this page back from the browser's cache as it was left
     const restored = (event: PageTransitionEvent) => {
@@ -170,7 +171,7 @@ export function LoginPage(props: {
       trackLoginStart("magic_link");
       const answer = await ask("/api/auth/sign-in/magic-link", {
         email,
-        callbackURL: localHref(to)
+        callbackURL: localHref(to())
       });
       if (disposed) return;
       if (!answer.ok)
@@ -216,7 +217,7 @@ export function LoginPage(props: {
     const field = input("email");
     if (!field?.reportValidity() || sending() || wait()) return;
     const email = field.value.trim();
-    void (connecting ? sendCode(email) : sendLink(email));
+    void (connecting() ? sendCode(email) : sendLink(email));
   };
   const checkCode = async () => {
     const email = input("email");
@@ -243,7 +244,7 @@ export function LoginPage(props: {
         return;
       }
       if (!answer.ok) throw new Error(authError(answer.body, FAILED));
-      location.replace(localHref(to));
+      location.replace(localHref(to()));
     } catch (error) {
       if (!disposed) say(error instanceof Error && error.message ? error.message : t(FAILED), true);
     } finally {
@@ -252,7 +253,7 @@ export function LoginPage(props: {
   };
   const submit = (e: SubmitEvent) => {
     e.preventDefault();
-    if (connecting && codeOpen()) void checkCode();
+    if (connecting() && codeOpen()) void checkCode();
     else send();
   };
   const signInWithGoogle = async () => {
@@ -262,10 +263,10 @@ export function LoginPage(props: {
     try {
       trackLoginStart("google");
       // a failure comes back to this sheet in its language, where what is kept here says where it led
-      keepReturn(to === "/" ? null : to);
+      keepReturn(to() === "/" ? null : to());
       const answer = await ask("/api/auth/sign-in/social", {
         provider: "google",
-        callbackURL: localHref(to),
+        callbackURL: localHref(to()),
         errorCallbackURL: localHref("/login")
       });
       const url = (answer.body as { url?: unknown }).url;
@@ -284,20 +285,14 @@ export function LoginPage(props: {
       ? t("Sending…")
       : wait()
         ? t("{seconds, plural, one {Resend in #s} other {Resend in #s}}", { seconds: wait() })
-        : connecting
+        : connecting()
           ? t("Send code")
           : t("Send link");
   return (
     <PageFrame
       login
       footer={[]}
-      languages={
-        <Show when={shell}>
-          {frame => (
-            <LanguageMenu path={frame().here} follow={frame().translated()} disabled={offline()} />
-          )}
-        </Show>
-      }
+      languages={<Languages />}
       note={
         <p class={styles.legal}>
           {rich(
@@ -325,7 +320,7 @@ export function LoginPage(props: {
           </Text>
           <div class={styles.sub}>
             <Text variant="lede">
-              {connecting
+              {connecting()
                 ? t("Connect an app to your account.")
                 : t("Save your favorite palettes.")}
             </Text>
@@ -367,7 +362,7 @@ export function LoginPage(props: {
           >
             {sendWords()}
           </Button>
-          <Show when={connecting}>
+          <Show when={connecting()}>
             <Field
               label={t("Code")}
               name="code"
