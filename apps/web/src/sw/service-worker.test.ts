@@ -2,7 +2,7 @@ import vm from "node:vm";
 import { describe, expect, it } from "vitest";
 import { OFF, workerSource } from "../../scripts/service-worker.ts";
 
-/* The service worker as a build ships it, run against stand-in caches and a stand-in network: a shell is kept from this
+/* The service worker as a build ships it, run against caches and a network the test keeps: a shell is kept from this
    build with every file it names or not at all, so a page opened offline never mounts blank; offline pages say so. */
 
 const ORIGIN = "https://grabient.test";

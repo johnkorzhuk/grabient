@@ -2,8 +2,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { patchStatus, syncStatus, viewNow } from "./state.ts";
 import type { SyncLike, SyncOp, SyncRequest, SyncResponse, SyncResult } from "./wire.ts";
 
-/* The copy's engine against a stand-in server that applies likes as the real one does: it skips a change it applied
-   before, answers each with its result, and answers what changed since the browser's cursor. */
+/* The copy's engine against a server of the test's own that applies likes as the real one does: it skips a change it
+   applied before, answers each with its result, and answers what changed since the browser's cursor. */
 
 const view = { style: "linearGradient", steps: 7, angle: 90 } as const;
 const like = (seed: string, liked: boolean): SyncOp => ({ op: "like", seed, liked, ...view });
