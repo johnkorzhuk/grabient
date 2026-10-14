@@ -166,3 +166,74 @@ test("the contact form says its rule before it asks the server", async ({ page }
   await expect(page.getByLabel("Message")).toHaveValue("The lists stopped loading for me.");
   expect(asked).toBe(1);
 });
+
+/** Where a page's frame stands: its side list and its main landmark as top, left and width, and where its title
+    starts, whatever the title's own width. */
+const frameOf = (page: Page) =>
+  page.evaluate(() => {
+    const at = (el: Element | null | undefined) => {
+      const box = el?.getBoundingClientRect();
+      return box
+        ? [Math.round(box.top + scrollY), Math.round(box.left), Math.round(box.width)]
+        : null;
+    };
+    const side = [...document.querySelectorAll("nav")].find(nav => !nav.closest("header, footer"));
+    return {
+      side: at(side),
+      main: at(document.querySelector("main")),
+      title: at(document.querySelector("h1"))?.slice(0, 2)
+    };
+  });
+
+test("the brand pages stand in one frame: the side list, the sheet and its title where About has them", async ({
+  page
+}) => {
+  const paths = [
+    "/about",
+    "/bindings",
+    "/mcp-server",
+    "/newsletter",
+    "/contact",
+    "/settings",
+    "/privacy",
+    "/terms"
+  ];
+  const frames = new Map<string, unknown[]>();
+  for (const path of paths) {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto(path);
+    await started(page);
+    const seen = [await frameOf(page)];
+    await page.setViewportSize({ width: 390, height: 844 });
+    seen.push(await frameOf(page));
+    frames.set(path, seen);
+  }
+  for (const path of paths) expect(frames.get(path), path).toEqual(frames.get("/about"));
+});
+
+test("the sheets stand where one another stand: one width, one middle, and on a phone over the footer", async ({
+  page
+}) => {
+  const paths = ["/login", "/unsubscribe", `/unsubscribe/${"0".repeat(64)}`, "/connect"];
+  const sheets = [];
+  for (const path of paths) {
+    await page.setViewportSize({ width: 1600, height: 1000 });
+    await page.goto(path);
+    await started(page);
+    const wide = await page.locator("main").boundingBox();
+    await page.setViewportSize({ width: 390, height: 844 });
+    const narrow = await page.locator("main").boundingBox();
+    const footer = await page.locator("footer").last().boundingBox();
+    if (!wide || !narrow || !footer) throw new Error(`${path} has no sheet`);
+    sheets.push({
+      path,
+      wide: [wide.x, wide.width, Math.round(wide.y + wide.height / 2)],
+      narrow: [narrow.x, narrow.width, Math.round(narrow.y + narrow.height - footer.y)]
+    });
+  }
+  for (const sheet of sheets) {
+    expect(sheet.wide.slice(0, 2), sheet.path).toEqual(sheets[0]!.wide.slice(0, 2));
+    expect(Math.abs(sheet.wide[2]! - sheets[0]!.wide[2]!), sheet.path).toBeLessThanOrEqual(1);
+    expect(sheet.narrow, sheet.path).toEqual([sheets[0]!.narrow[0], sheets[0]!.narrow[1], 0]);
+  }
+});
