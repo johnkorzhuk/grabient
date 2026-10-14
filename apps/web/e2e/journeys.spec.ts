@@ -129,6 +129,8 @@ const cardOf = (page: Page, href: string) =>
     .filter({ visible: true })
     .first();
 const EDIT = "main article a[aria-label='Edit']";
+/** The palettes a list draws, in its order. */
+const cards = (page: Page) => page.locator("main article:has(a[aria-label='Edit'])");
 
 type Opened = { href: string; depth: number; collection?: string };
 /** The ways a list opens what it holds: a palette by its card's Edit from the keyboard and by a press on the card, a
@@ -332,41 +334,74 @@ for (const width of WIDTHS)
       });
   });
 
-/** Likes or unlikes palettes for verify-ada as her browser's copy would, in one sync. */
-async function like(api: APIRequestContext, items: Item[], liked: boolean) {
-  const answer = await api.post("/api/me/sync", {
-    data: {
-      client: `journeys-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`,
-      cursor: null,
-      mutations: items.map(({ kseed, style, steps, angle }, i) => ({
-        id: i + 1,
-        op: { op: "like", seed: kseed, liked, style, steps, angle }
-      }))
-    }
-  });
-  expect(answer.ok()).toBe(true);
-  const { results } = (await answer.json()) as { results: { ok: boolean }[] };
-  expect(results.every(result => result.ok)).toBe(true);
-}
 type Item = { kseed: string; style: string; steps: number; angle: number };
+const like =
+  (liked: boolean) =>
+  ({ kseed, style, steps, angle }: Item) => ({
+    op: "like",
+    seed: kseed,
+    liked,
+    style,
+    steps,
+    angle
+  });
+/** Sends changes to verify-ada's account as her browser's copy would, and checks each was taken. A limit reached stops
+    the turn, and the rest go once it has passed. */
+async function sync(api: APIRequestContext, ops: object[]) {
+  const client = `journeys-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  let sent = 0;
+  while (sent < ops.length) {
+    const answer = await api.post("/api/me/sync", {
+      data: {
+        client,
+        cursor: null,
+        mutations: ops.slice(sent).map((op, i) => ({ id: sent + i + 1, op }))
+      }
+    });
+    expect(answer.ok()).toBe(true);
+    const turn = (await answer.json()) as {
+      results: { ok: boolean }[];
+      lastMutation: number;
+      retryAfter?: number;
+    };
+    expect(turn.results.every(result => result.ok)).toBe(true);
+    sent = turn.lastMutation;
+    if (sent < ops.length)
+      await new Promise(done => setTimeout(done, (turn.retryAfter ?? 1) * 1000));
+  }
+}
+/** Her account as staging's copy holds it, whatever a journey that stopped short left: no likes, and none of the
+    collections the journeys make. */
+async function reset(api: APIRequestContext) {
+  const read = async <T>(address: string) =>
+    ((await (await api.get(address)).json()) as { items: T[] }).items;
+  const liked = await read<Item>("/api/saved?page=1&limit=96");
+  const own = await read<{ slug: string; title: string }>("/api/me/collections?page=1&limit=96");
+  await sync(api, [
+    ...liked.map(like(false)),
+    ...own
+      .filter(({ title }) => title.startsWith(MADE))
+      .map(({ slug }) => ({ op: "collection.delete", slug }))
+  ]);
+}
+const MADE = "Journey ";
 
 /* Her journeys change what her account holds, so they take turns, and Saved holds palettes she liked for them. */
 test.describe("signed in as verify-ada", () => {
   test.describe.configure({ mode: "serial" });
   let api: APIRequestContext;
-  let kept: Item[] = [];
   test.beforeAll(async ({ playwright, baseURL }) => {
     const session = adaSession();
     api = await playwright.request.newContext({
       baseURL,
       extraHTTPHeaders: { Cookie: `${session.name}=${session.value}`, Origin: baseURL ?? "" }
     });
+    await reset(api);
     const listed = await api.get("/api/palettes?sort=popular&page=5&limit=24");
-    kept = ((await listed.json()) as { items: Item[] }).items.slice(0, 6);
-    await like(api, kept, true);
+    await sync(api, ((await listed.json()) as { items: Item[] }).items.slice(0, 6).map(like(true)));
   });
   test.afterAll(async () => {
-    await like(api, kept, false);
+    await reset(api);
     await api.dispose();
   });
 
@@ -374,6 +409,89 @@ test.describe("signed in as verify-ada", () => {
     test.describe(`on ${width.name}`, () => {
       test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
       test.beforeEach(({ context, baseURL }) => signIn(context, baseURL ?? ""));
+
+      test("she likes a palette and finds it on Saved, keeps two as a new collection and takes it back, and opens her own", async ({
+        page
+      }) => {
+        const broken = watch(page);
+        const said = page.locator("main p[aria-live]").first();
+        const menu = () => press(page.getByRole("button", { name: "Your account" }), width);
+        await open(page, "/palettes/rising");
+        const heading = (await page.locator("main h1").first().textContent()) ?? "";
+
+        // a heart on a palette she has not liked, then on Saved
+        const href = await linkAt(page, EDIT, 1);
+        const heart = (from: Page) => cardOf(from, href).getByRole("button", { name: /^Like/ });
+        await expect(heart(page)).toHaveAttribute("aria-pressed", "false");
+        await press(heart(page), width);
+        await expect(heart(page)).toHaveAttribute("aria-pressed", "true");
+        await press(
+          page.getByRole("navigation", { name: "Order" }).getByRole("button", { name: "Saved" }),
+          width
+        );
+        await expect(page).toHaveURL(/\/palettes\/saved$/);
+        await expect(cards(page).first()).toHaveAttribute(
+          "aria-label",
+          (await cardOf(page, href).getAttribute("aria-label")) ?? ""
+        );
+        await expect(heart(page)).toHaveAttribute("aria-pressed", "true");
+        await press(heart(page), width);
+        await expect(heart(page)).toHaveAttribute("aria-pressed", "false");
+        await page.goBack();
+        await expect(page.locator("main h1").first()).toHaveText(heading);
+        await expect(heart(page)).toHaveAttribute("aria-pressed", "false");
+
+        // two palettes in the selection, kept as a new collection from its screen
+        const title = `${MADE}${Date.now().toString(36)}`;
+        for (const at of [2, 3]) {
+          const card = cardOf(page, await linkAt(page, EDIT, at));
+          if (width.touch) await card.getByRole("img").first().tap();
+          else await card.hover();
+          await press(card.getByRole("button", { name: "Add to selection" }), width);
+        }
+        await press(page.getByRole("button", { name: "Selection 2" }).first(), width);
+        await press(page.getByRole("radio", { name: "Save" }), width);
+        const saveTo = page.getByRole("group", { name: "Save to" });
+        await press(saveTo.getByRole("button", { name: "New collection" }), width);
+        await saveTo.getByRole("textbox", { name: "Title" }).fill(title);
+        await saveTo.getByRole("textbox", { name: "Title" }).press("Enter");
+        await expect(said).toHaveText(`Added to ${title}.`);
+        await page.keyboard.press("Escape");
+        await expect(page.getByRole("button", { name: "Close selection" })).toHaveCount(0);
+
+        // where her collections are, from the frame's menu
+        await menu();
+        await press(page.getByRole("menuitem", { name: "Your collections" }), width);
+        await expect(page).toHaveURL(/\/collections\/saved$/);
+        const made = page.getByRole("region", { name: title });
+        await expect(made).toContainText("2 palettes");
+        await press(made.getByRole("link", { name: title }), width);
+        await expect(page.locator("main h1")).toHaveText(title);
+        await expect(page.locator("main article")).toHaveCount(2);
+
+        // Back where it was made, an undo takes it back
+        await page.goBack();
+        await page.goBack();
+        await expect(page.locator("main h1").first()).toHaveText(heading);
+        await page.keyboard.press("ControlOrMeta+z");
+        await expect(
+          page.getByRole("status").filter({ hasText: `${title} deleted.` })
+        ).toBeVisible();
+
+        // and her own private collection opens from the same menu
+        await menu();
+        await press(page.getByRole("menuitem", { name: "Your collections" }), width);
+        await expect(page.getByRole("region", { name: "My blues" })).toBeVisible();
+        await expect(page.getByRole("region", { name: title })).toHaveCount(0);
+        await press(page.getByRole("link", { name: "My blues" }), width);
+        await expect(page).toHaveURL(/\/@ada-verify\/my-blues$/);
+        await expect(page.locator("main h1")).toHaveText("My blues");
+        await expect(page.locator("main article").first()).toBeVisible();
+        expect(await styled(page)).toBe(true);
+        expect(await sameDocument(page)).toBe(true);
+        expect(broken).toEqual([]);
+      });
+
       for (const list of OWN)
         test(`from ${list.name}, what she opens lands whole and Back returns to the list as it was`, ({
           page
