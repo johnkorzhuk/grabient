@@ -3,8 +3,8 @@ import { STEPS_MIN, type Style } from "@grabient/engine/view.ts";
 import { t } from "@grabient/i18n";
 import { APPEARANCE_OPTIONS, Appearance, styleLabel } from "@grabient/ui/Appearance.tsx";
 import { useLocation, useRouter, useSearch } from "@tanstack/solid-router";
-import { createEffect, createSignal, onCleanup, useContext } from "solid-js";
-import { rewriteQuietly } from "../../app/navigation.ts";
+import { createEffect, createSignal, onCleanup, untrack, useContext } from "solid-js";
+import { rewriteInPlace, rewriteQuietly } from "../../app/navigation.ts";
 import { RESTING } from "../../app/water.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import {
@@ -14,6 +14,7 @@ import {
   type ListView,
   readListView,
   rememberView,
+  returnedView,
   type ViewDraft,
   viewParams
 } from "./appearance.ts";
@@ -100,8 +101,15 @@ export function ListAppearance() {
       if (since && now !== since) drop();
     }
   );
-  /* the tab remembers the view this page is drawn in, for the next page that draws palettes */
-  createEffect(view, rememberView);
+  /* the tab remembers the view this page is drawn in, for the next page that draws palettes. A list that Back or
+     Forward returned to first takes the choices made since it was left, in the entry it has: its own address would
+     otherwise put them out of the tab's memory */
+  createEffect(view, own => {
+    const taken = returnedView(own);
+    // the address is read as it stands, as a press reads it
+    if (taken) rewriteInPlace(untrack(() => href(taken)));
+    else rememberView(own);
+  });
   onCleanup(drop);
 
   const chosen = () => {

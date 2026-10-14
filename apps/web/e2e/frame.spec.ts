@@ -1,7 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
-/* The frame around the pages: what its header's corner writes to the address and when the route takes it, the document a page
-   arrives in, and the tab's icon. */
+/* The frame around the pages: what its header's corner writes to the address and when the route takes it, the view a
+   list takes on the way back, the document a page arrives in, and the tab's icon. */
 
 /** Opens a page and waits for the app to have hydrated the server's document. */
 async function open(page: Page, address: string) {
@@ -48,6 +48,24 @@ test("a view being set reaches the address in the lists' order, and the route an
   // the address as written is the one the server answers at, with no redirect
   const answer = await page.request.get(page.url(), { maxRedirects: 0 });
   expect(answer.status()).toBe(200);
+});
+
+test("a list that Back returns to takes the view chosen since it was left", async ({ page }) => {
+  await open(page, "/palettes");
+  await page.getByRole("link", { name: /^Rising/ }).click();
+  await expect(page).toHaveURL(/\/palettes\/rising$/);
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await page.getByRole("button", { name: "Radial", exact: true }).click();
+  await expect(page).toHaveURL(/\/palettes\/rising\?style=radialGradient$/);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/palettes\?style=radialGradient$/);
+  // the tab still remembers it: the wordmark leads home in it
+  await expect(page.locator("header a[data-home]")).toHaveAttribute(
+    "href",
+    "/?style=radialGradient"
+  );
+  await page.goForward();
+  await expect(page).toHaveURL(/\/palettes\/rising\?style=radialGradient$/);
 });
 
 test("no document holds a NUL, which HTML allows nowhere", async ({ request }) => {
