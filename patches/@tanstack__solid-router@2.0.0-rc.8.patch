@@ -1,0 +1,75 @@
+diff --git a/dist/cjs/useMatch.cjs b/dist/cjs/useMatch.cjs
+index 20d1361b7526e94695918e1530f5e56cdf81c059..ae331e46d7ab6825f667689fcfdcb56a29a6b15f 100644
+--- a/dist/cjs/useMatch.cjs
++++ b/dist/cjs/useMatch.cjs
+@@ -13,8 +13,8 @@ function useMatch(opts) {
+ 		if (opts.from) return router.stores.getMatchStore(opts.from).get();
+ 		return nearestMatch?.[1]();
+ 	};
+-	solid_js.createEffect(match, (selectedMatch) => {
+-		if (selectedMatch !== void 0) return;
++	solid_js.createEffect(match, (selectedMatch, previousMatch) => {
++		if (selectedMatch !== void 0 || previousMatch !== void 0) return;
+ 		if (opts.shouldThrow ?? true) {
+ 			if (process.env.NODE_ENV !== "production") throw new Error(`Invariant failed: Could not find ${opts.from ? `an active match from "${opts.from}"` : "a nearest match!"}`);
+ 			(0, _tanstack_router_core.invariant)();
+@@ -22,7 +22,7 @@ function useMatch(opts) {
+ 	});
+ 	return solid_js.createMemo((prev) => {
+ 		const selectedMatch = match();
+-		if (selectedMatch === void 0) return;
++		if (selectedMatch === void 0) return prev;
+ 		const res = opts.select ? opts.select(selectedMatch) : selectedMatch;
+ 		if (prev === void 0) return res;
+ 		return (0, _tanstack_router_core.replaceEqualDeep)(prev, res);
+diff --git a/dist/esm/useMatch.js b/dist/esm/useMatch.js
+index ea7a1a11e97d79ad33befd7e23766b1127f15ad5..14480c9f58aba8c7b01142c56ce8d5c48b4e8486 100644
+--- a/dist/esm/useMatch.js
++++ b/dist/esm/useMatch.js
+@@ -11,8 +11,8 @@ function useMatch(opts) {
+ 		if (opts.from) return router.stores.getMatchStore(opts.from).get();
+ 		return nearestMatch?.[1]();
+ 	};
+-	Solid.createEffect(match, (selectedMatch) => {
+-		if (selectedMatch !== void 0) return;
++	Solid.createEffect(match, (selectedMatch, previousMatch) => {
++		if (selectedMatch !== void 0 || previousMatch !== void 0) return;
+ 		if (opts.shouldThrow ?? true) {
+ 			if (process.env.NODE_ENV !== "production") throw new Error(`Invariant failed: Could not find ${opts.from ? `an active match from "${opts.from}"` : "a nearest match!"}`);
+ 			invariant();
+@@ -20,7 +20,7 @@ function useMatch(opts) {
+ 	});
+ 	return Solid.createMemo((prev) => {
+ 		const selectedMatch = match();
+-		if (selectedMatch === void 0) return;
++		if (selectedMatch === void 0) return prev;
+ 		const res = opts.select ? opts.select(selectedMatch) : selectedMatch;
+ 		if (prev === void 0) return res;
+ 		return replaceEqualDeep(prev, res);
+diff --git a/dist/source/useMatch.jsx b/dist/source/useMatch.jsx
+index 6c703a4607a4885176bbfb9081cc56abaacf7668..70e22ad7f2ab28a335d70be968454fbe68bfed6e 100644
+--- a/dist/source/useMatch.jsx
++++ b/dist/source/useMatch.jsx
+@@ -12,8 +12,9 @@ export function useMatch(opts) {
+         }
+         return nearestMatch?.[1 /* match */]();
+     };
+-    Solid.createEffect(match, (selectedMatch) => {
+-        if (selectedMatch !== undefined) {
++    // a match that leaves while its page is still mounted is no misuse: the page is on its way out
++    Solid.createEffect(match, (selectedMatch, previousMatch) => {
++        if (selectedMatch !== undefined || previousMatch !== undefined) {
+             return;
+         }
+         if (opts.shouldThrow ?? true) {
+@@ -25,8 +26,9 @@ export function useMatch(opts) {
+     });
+     return Solid.createMemo((prev) => {
+         const selectedMatch = match();
++        // a page on its way out keeps reading the match it rendered, until the router takes it down
+         if (selectedMatch === undefined) {
+-            return undefined;
++            return prev;
+         }
+         const res = opts.select ? opts.select(selectedMatch) : selectedMatch;
+         if (prev === undefined)

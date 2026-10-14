@@ -66,6 +66,9 @@ patchedDependencies:
   '@tanstack/solid-query@6.0.0-rc.5':
     hash: 953cce53a9d8792f5d5811453bcfa2001c7befa58744a5f8c966ee366fbe560d
     path: patches/@tanstack__solid-query@6.0.0-rc.5.patch
+  '@tanstack/solid-router@2.0.0-rc.8':
+    hash: 97854d6d6261da0c49782929af702824060f115aba3c6f50a706d2630b57a2ca
+    path: patches/@tanstack__solid-router@2.0.0-rc.8.patch
   '@tanstack/solid-start@2.0.0-rc.8':
     hash: 79132034195b7e6f6c2bc132995a54c893a68a740cf29ebc0081ef3c2a7ae1ed
     path: patches/@tanstack__solid-start@2.0.0-rc.8.patch
@@ -161,7 +164,7 @@ importers:
         version: 6.0.0-rc.5(patch_hash=953cce53a9d8792f5d5811453bcfa2001c7befa58744a5f8c966ee366fbe560d)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/solid-router':
         specifier: 'catalog:'
-        version: 2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
+        version: 2.0.0-rc.8(patch_hash=97854d6d6261da0c49782929af702824060f115aba3c6f50a706d2630b57a2ca)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/solid-start':
         specifier: 'catalog:'
         version: 2.0.0-rc.8(patch_hash=79132034195b7e6f6c2bc132995a54c893a68a740cf29ebc0081ef3c2a7ae1ed)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(esbuild@0.28.2)(rolldown@1.2.13)(solid-js@2.0.0-rc.14)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))
@@ -3265,7 +3268,7 @@ snapshots:
       '@tanstack/query-core': 5.101.4
       solid-js: 2.0.0-rc.14
 
-  '@tanstack/solid-router@2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)':
+  '@tanstack/solid-router@2.0.0-rc.8(patch_hash=97854d6d6261da0c49782929af702824060f115aba3c6f50a706d2630b57a2ca)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)':
     dependencies:
       '@solid-devtools/logger': 0.9.11(solid-js@2.0.0-rc.14)
       '@solid-primitives/refs': 1.1.4(solid-js@2.0.0-rc.14)
@@ -3280,7 +3283,7 @@ snapshots:
     dependencies:
       '@solidjs/web': 2.0.0-rc.14(solid-js@2.0.0-rc.14)
       '@tanstack/router-core': 1.171.22
-      '@tanstack/solid-router': 2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
+      '@tanstack/solid-router': 2.0.0-rc.8(patch_hash=97854d6d6261da0c49782929af702824060f115aba3c6f50a706d2630b57a2ca)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/start-client-core': 1.170.22
       solid-js: 2.0.0-rc.14
 
@@ -3288,7 +3291,7 @@ snapshots:
     dependencies:
       '@solidjs/web': 2.0.0-rc.14(solid-js@2.0.0-rc.14)
       '@tanstack/router-core': 1.171.22
-      '@tanstack/solid-router': 2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
+      '@tanstack/solid-router': 2.0.0-rc.8(patch_hash=97854d6d6261da0c49782929af702824060f115aba3c6f50a706d2630b57a2ca)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/start-server-core': 1.169.26
       solid-js: 2.0.0-rc.14
     transitivePeerDependencies:
@@ -3297,7 +3300,7 @@ snapshots:
   '@tanstack/solid-start@2.0.0-rc.8(patch_hash=79132034195b7e6f6c2bc132995a54c893a68a740cf29ebc0081ef3c2a7ae1ed)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(esbuild@0.28.2)(rolldown@1.2.13)(solid-js@2.0.0-rc.14)(vite@8.3.4(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0))':
     dependencies:
       '@solidjs/web': 2.0.0-rc.14(solid-js@2.0.0-rc.14)
-      '@tanstack/solid-router': 2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
+      '@tanstack/solid-router': 2.0.0-rc.8(patch_hash=97854d6d6261da0c49782929af702824060f115aba3c6f50a706d2630b57a2ca)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/solid-start-client': 2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/solid-start-server': 2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/start-client-core': 1.170.22

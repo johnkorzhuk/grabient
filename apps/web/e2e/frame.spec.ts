@@ -1,7 +1,8 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, type Locator, type Page, test } from "@playwright/test";
 
 /* The frame around the pages: what its header's corner writes to the address and when the route takes it, the view a
-   list takes on the way back, the document a page arrives in, and the tab's icon. */
+   list takes on the way back, the document a page arrives in, the tab's icon, and the way from a list to the palette or
+   collection it opens and back. */
 
 /** Opens a page and waits for the app to have hydrated the server's document. */
 async function open(page: Page, address: string) {
@@ -88,4 +89,165 @@ test("the tab's icon wears a palette on its page, follows its edits, and is the 
   await expect(icon).toHaveAttribute("href", /^data:image\/svg\+xml,/);
   await page.locator("header a[data-home]").click();
   await expect(icon).toHaveAttribute("href", /^\/favicon\/\d{4}-w\d{2}\.svg\?v=\w+$/);
+});
+
+/** Whether the site's stylesheet applies to the page: the design system's tokens stand on the document. */
+const styled = (page: Page) =>
+  page.evaluate(
+    () => getComputedStyle(document.documentElement).getPropertyValue("--space-s1") !== ""
+  );
+/** Every error the page reports as its own from now on: a page that threw posts one. */
+function reported(page: Page): string[] {
+  const reports: string[] = [];
+  page.on("request", request => {
+    if (new URL(request.url()).pathname === "/api/client-error")
+      reports.push(request.postData() ?? "");
+  });
+  return reports;
+}
+/** Goes down the page to where `link` stands and presses it from there with the keyboard. Returns that depth. */
+async function pressFrom(page: Page, link: Locator): Promise<number> {
+  await link.evaluate(a => scrollTo(0, Math.max(0, a.getBoundingClientRect().top + scrollY - 400)));
+  const depth = await page.evaluate(() => scrollY);
+  await link.evaluate(a => (a as HTMLElement).focus({ preventScroll: true }));
+  await page.keyboard.press("Enter");
+  return depth;
+}
+/** Back from the page a list opened: the list's own heading, at the depth it was left at. */
+async function backTo(page: Page, heading: string, depth: number) {
+  await page.goBack();
+  await expect(page.locator("main h1").first()).toHaveText(heading);
+  await expect.poll(() => page.evaluate(() => scrollY)).toBe(depth);
+}
+const editor = (page: Page) => page.getByRole("complementary", { name: "Editor" });
+
+for (const address of ["/", "/?q=blue", "/palettes", "/palettes/rising", "/palettes?q=blue"]) {
+  test(`a palette opened from ${address} lands styled, and Back returns to the list at its depth`, async ({
+    page
+  }) => {
+    const reports = reported(page);
+    await open(page, address);
+    const heading = (await page.locator("main h1").first().textContent()) ?? "";
+    const depth = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').nth(8));
+    await expect(editor(page)).toBeVisible();
+    expect(await styled(page)).toBe(true);
+    await backTo(page, heading, depth);
+    expect(await styled(page)).toBe(true);
+    expect(reports).toEqual([]);
+  });
+}
+
+test("the palette a search's heading pictures opens from it, and Back returns to the search", async ({
+  page
+}) => {
+  const reports = reported(page);
+  await open(page, "/palettes?q=kS7CQ31Do6asvY-");
+  const heading = (await page.locator("main h1").first().textContent()) ?? "";
+  const depth = await pressFrom(
+    page,
+    page.locator('main a[href^="/kS7CQ31Do6asvY-"]:not(article a)').first()
+  );
+  await expect(editor(page)).toBeVisible();
+  expect(await styled(page)).toBe(true);
+  await backTo(page, heading, depth);
+  expect(reports).toEqual([]);
+});
+
+test("a palette opened from Saved lands styled, and Back returns to Saved", async ({ page }) => {
+  const reports = reported(page);
+  const reader = {
+    id: "e2e-reader",
+    name: "Reader",
+    email: "reader@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "reader",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } })
+  );
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  const items = ["kS7CQ31Do6asvY-", "kSEiS3qzo6dQvY-"].map((kseed, i) => ({
+    kseed,
+    style: "linearGradient",
+    steps: 7,
+    angle: 90,
+    likes: 1,
+    createdAt: 1_700_000_000_000 - i
+  }));
+  await page.route(
+    url => url.pathname === "/api/saved",
+    route =>
+      route.fulfill({
+        json: { items, total: 2, page: 1, totalPages: 1, fetchedAt: Date.now() }
+      })
+  );
+  await open(page, "/palettes/saved");
+  const heading = (await page.locator("main h1").first().textContent()) ?? "";
+  const depth = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').nth(1));
+  await expect(page).toHaveURL(/\/kSEiS3qzo6dQvY-/);
+  await expect(editor(page)).toBeVisible();
+  expect(await styled(page)).toBe(true);
+  await backTo(page, heading, depth);
+  await expect(page.locator("main article")).toHaveCount(2);
+  expect(reports).toEqual([]);
+});
+
+test("a collection opened from a list by its title, and a palette from the collection, each land styled and Back returns to each", async ({
+  page
+}) => {
+  const reports = reported(page);
+  const slug = "e2e-gradients";
+  const preview = [{ seed: "kS7CQ31Do6asvY-", style: "linearGradient", steps: 7, angle: 90 }];
+  const words = {
+    slug,
+    title: "End to end gradients",
+    description: "",
+    tags: ["blue"],
+    visibility: "public",
+    owner: { kind: "agent", name: "grabient" },
+    itemCount: 1,
+    createdAt: 1_700_000_000_000,
+    updatedAt: 1_700_000_000_000,
+    saves: 0
+  };
+  const item = { createdAt: 1_700_000_000_000, likes: 0, position: 0 };
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    route =>
+      route.fulfill({
+        json: {
+          query: "",
+          sort: "rising",
+          page: 1,
+          limit: 24,
+          total: 1,
+          totalPages: 1,
+          fetchedAt: Date.now(),
+          items: [{ ...words, preview: preview.map(p => ({ ...p, ...item })) }]
+        }
+      })
+  );
+  await page.route(
+    url => url.pathname === `/api/collections/${slug}`,
+    route =>
+      route.fulfill({
+        json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p, ...item })) }
+      })
+  );
+  await open(page, "/collections");
+  await page.locator('main a[href="/collections/rising"]').click();
+  const list = page.locator("main h1").first();
+  await expect(page.locator(`main a[href="/${slug}/rising"]`)).toBeVisible();
+  const heading = (await list.textContent()) ?? "";
+  const depth = await pressFrom(page, page.locator(`main a[href="/${slug}/rising"]`));
+  await expect(list).toHaveText(words.title);
+  expect(await styled(page)).toBe(true);
+  const inside = await pressFrom(page, page.locator('main article a[aria-label="Edit"]').first());
+  await expect(editor(page)).toBeVisible();
+  expect(await styled(page)).toBe(true);
+  await backTo(page, words.title, inside);
+  await backTo(page, heading, depth);
+  expect(reports).toEqual([]);
 });
