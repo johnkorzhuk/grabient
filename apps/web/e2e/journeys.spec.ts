@@ -125,6 +125,15 @@ async function fromMenu(page: Page, item: string, width: Width) {
   );
   await pressAt(page, page.getByRole("menuitem", { name: item }), width);
 }
+/** Whether the account's menu says changes made here wait for the server, read as it opens. */
+async function waitingToSync(page: Page, width: Width): Promise<boolean> {
+  await pressAt(page, page.locator("header").getByRole("button", { name: "Your account" }), width);
+  await expect(page.getByRole("menuitem", { name: "Saved palettes" })).toBeVisible();
+  const waiting = await page.getByRole("menuitem", { name: /changes? to sync$/ }).count();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("menuitem", { name: "Saved palettes" })).toHaveCount(0);
+  return waiting > 0;
+}
 
 /** The address of the link at `at` among those of the list a reader sees at this width, or of its last. */
 async function linkAt(page: Page, selector: string, at: number): Promise<string> {
@@ -886,6 +895,58 @@ test.describe("signed in as verify-ada", () => {
         ).toBeVisible();
         await expect(heart).toHaveAttribute("aria-pressed", "false");
         await expect(heart).toHaveAttribute("aria-label", count);
+        expect(broken).toEqual([]);
+      });
+
+      test("her like on a palette's page counts at once, and a copy of the page kept from before it shows the like and its count while no count or sync is answered", async ({
+        page
+      }) => {
+        const broken = watch(page);
+        // a palette deep in Popular, which no other journey shows or likes
+        const listed = await api.get("/api/palettes?sort=popular&page=8&limit=24");
+        const item = ((await listed.json()) as { items: Item[] }).items[5]!;
+        const address = `/${item.kseed}`;
+        const asked = await api.get(`/api/like-counts?keys=${item.kseed}`);
+        const count = ((await asked.json()) as { counts: Record<string, number> }).counts[
+          item.kseed
+        ]!;
+        const said = (n: number) => `Like, ${n.toLocaleString("en")}`;
+        /* the page as the server sends it before her like, kept as the service worker keeps it. A document the test
+           hands over has no address of its own, so the browser lets it reach the dev server only when allowed. */
+        await page.context().grantPermissions(["local-network-access"]);
+        let kept = "";
+        await page.route(
+          url => url.pathname === address,
+          async route => {
+            kept ||= await (await route.fetch()).text();
+            await route.fulfill({ body: kept, contentType: "text/html; charset=utf-8" });
+          }
+        );
+        await open(page, address);
+        const heart = page.getByRole("button", { name: /^Like, / });
+        /* a finger's tap on the picture shows its presses */
+        const pressHeart = async () => {
+          if (width.touch) await page.getByRole("img", { name: "The gradient" }).tap();
+          await press(heart, width);
+        };
+        await expect(heart).toHaveAttribute("aria-label", said(count));
+        const sent = sentLike(page, item.kseed);
+        await pressHeart();
+        await expect(heart).toHaveAttribute("aria-pressed", "true");
+        await expect(heart).toHaveAttribute("aria-label", said(count + 1));
+        expect(await sent).toBe(true);
+        await expect.poll(() => waitingToSync(page, width)).toBe(false);
+
+        // the kept copy again, with no count or sync answered: her like and its count, and a press moves the count
+        await page.route("**/api/like-counts*", route => route.abort());
+        await page.route("**/api/me/sync", route => route.abort());
+        await open(page, address);
+        await expect(heart).toHaveAttribute("aria-pressed", "true");
+        await expect(heart).toHaveAttribute("aria-label", said(count + 1));
+        await pressHeart();
+        await expect(heart).toHaveAttribute("aria-pressed", "false");
+        await expect(heart).toHaveAttribute("aria-label", said(count));
+        await sync(api, likes([item], false));
         expect(broken).toEqual([]);
       });
 

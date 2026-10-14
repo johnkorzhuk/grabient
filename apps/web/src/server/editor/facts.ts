@@ -16,8 +16,10 @@ export interface PaletteFacts {
   /** in English: a palette's written words are its author's */
   written?: { title: string; description?: string };
   heldBy: { slug: string; title: string; english?: string; colors: readonly string[] }[];
-  /** how many like it: 0 for a palette the gallery does not hold */
-  likes: number;
+  /** how many like it: 0 for a palette the gallery does not hold, none when the count could not be read */
+  likes?: number;
+  /** when the database was read, which a count kept since is weighed against */
+  readAt: number;
 }
 
 const HELD_MAX = 6;
@@ -58,8 +60,9 @@ export async function paletteFacts(
       seed
     ).catch(missed),
     all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed).catch(missed),
-    all<{ n: number }>(db, "SELECT likes_count AS n FROM k_palettes WHERE seed = ?", seed).catch(
-      missed
+    all<{ n: number }>(db, "SELECT likes_count AS n FROM k_palettes WHERE seed = ?", seed).then(
+      rows => Math.max(0, Number(rows[0]?.n) || 0),
+      error => void missed(error)
     )
   ]);
   const text = texts[0];
@@ -85,6 +88,7 @@ export async function paletteFacts(
         colors: dominantColors((row.seeds ?? "").split(" ").filter(Boolean))
       };
     }),
-    likes: Math.max(0, Number(counted[0]?.n) || 0)
+    ...(counted === undefined ? {} : { likes: counted }),
+    readAt: Date.now()
   };
 }
