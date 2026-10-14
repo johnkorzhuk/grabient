@@ -70,7 +70,8 @@ export function PaletteSheet(props: {
   onSettled(() => {
     const tell = props.onBand;
     if (!tell) return;
-    const read = () => tell(name.getBoundingClientRect().bottom - sheet.getBoundingClientRect().top);
+    const read = () =>
+      tell(name.getBoundingClientRect().bottom - sheet.getBoundingClientRect().top);
     read();
     let frame = 0;
     const sizes = new ResizeObserver(() => {
