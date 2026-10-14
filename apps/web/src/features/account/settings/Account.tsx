@@ -18,7 +18,7 @@ import {
 import styles from "./Settings.module.css";
 
 // a row keeps its line's height while the account it is for has not answered
-const UNKNOWN = " ";
+const UNKNOWN = "\u00a0";
 
 /** The account itself: its address, whether it is verified, when it joined, and the way out. A sign-out that fails
     says so on the profile's line, since a reader on a shared computer must not walk away signed in. Until the session
