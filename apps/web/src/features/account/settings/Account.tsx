@@ -10,6 +10,7 @@ import {
   adminAccount,
   api,
   authError,
+  authPost,
   forgetAccount,
   shownError,
   signOut
@@ -83,16 +84,9 @@ export function DeletionSection(props: { token: string | null }) {
         location.replace(localHref("/"));
         return;
       }
-      const response = await fetch("/api/auth/delete-user", {
-        method: "POST",
-        credentials: "same-origin",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: "{}"
-      });
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(authError(body, msg("Couldn't send the confirmation email.")));
+      const answer = await authPost("/api/auth/delete-user");
+      if (!answer.ok) {
+        throw new Error(authError(answer.body, msg("Couldn't send the confirmation email.")));
       }
       setStatus(t("Check your email to confirm."));
     } catch (error) {

@@ -8,7 +8,7 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, onCleanup } from "solid-js";
 import { offline } from "../../app/connection.ts";
 import styles from "./Login.module.css";
-import { authError, safeRedirect, shownError } from "./session.ts";
+import { authError, authPost, safeRedirect, shownError } from "./session.ts";
 
 const FAILED = msg("Something went wrong. Try again.");
 
@@ -29,21 +29,12 @@ export function PasswordPage(props: { redirect?: string }) {
     setBusy(true);
     setMessage("");
     try {
-      const response = await fetch("/api/auth/sign-in/email", {
-        method: "POST",
-        credentials: "same-origin",
-        cache: "no-store",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: String(data.get("email")).trim(),
-          password: data.get("password")
-        })
+      const answer = await authPost("/api/auth/sign-in/email", {
+        email: String(data.get("email")).trim(),
+        password: data.get("password")
       });
       if (disposed) return;
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(authError(body, FAILED));
-      }
+      if (!answer.ok) throw new Error(authError(answer.body, FAILED));
       location.replace(localHref(safeRedirect(props.redirect)));
     } catch (error) {
       if (!disposed) setMessage(shownError(error, FAILED));

@@ -291,16 +291,8 @@ export async function accountForCopy(): Promise<string | null> {
 /** Signs out here, then loads `to` in the page's language: the consent page sends the reader on to sign in as
     another account. */
 export async function signOut(to = "/"): Promise<void> {
-  const response = await fetch("/api/auth/sign-out", {
-    method: "POST",
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: { "Content-Type": "application/json" },
-    body: "{}"
-  });
-  if (!response.ok) {
-    throw new Error(authError(await response.json().catch(() => ({})), msg("Couldn't sign out.")));
-  }
+  const answer = await authPost("/api/auth/sign-out");
+  if (!answer.ok) throw new Error(authError(answer.body, msg("Couldn't sign out.")));
   trackEvent("logout");
   setAnalyticsUser(null);
   generation++;
@@ -349,6 +341,21 @@ export const shownError = (reason: unknown, fallback: string): string =>
     ? t(fallback)
     : reason.message;
 
+/** A POST to the sign-in library, through the Worker's gate: the answer's status and body. */
+export async function authPost(path: string, body: unknown = {}) {
+  const response = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  return {
+    status: response.status,
+    ok: response.ok,
+    body: (await response.json().catch(() => ({}))) as unknown
+  };
+}
 /** A failed call to the sign-in library, in the reader's words: the library says what went wrong in `message`, the
     Worker's gate in front of it in `error`. */
 export const authError = (body: unknown, fallback: string): string => {

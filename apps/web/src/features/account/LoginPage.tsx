@@ -12,7 +12,15 @@ import { offline } from "../../app/connection.ts";
 import { Languages } from "../../app/Frames.tsx";
 import { trackLoginStart } from "../analytics/analytics.ts";
 import styles from "./Login.module.css";
-import { account, authError, loadAccount, loginHref, safeRedirect, shownError } from "./session.ts";
+import {
+  account,
+  authError,
+  authPost,
+  loadAccount,
+  loginHref,
+  safeRedirect,
+  shownError
+} from "./session.ts";
 
 /* Sign in and sign up are one page: Google, or a link by email. While an app connects (the authorization page sends
    the reader here with its request), the email sends a code instead, typed in the window that asked: a link opens in
@@ -56,22 +64,6 @@ const digitsOf = (typed: string) =>
       String(d.charCodeAt(0) - (d >= "๐" ? 0x0e50 : d >= "۰" ? 0x06f0 : 0x0660))
     )
     .replace(/\D/g, "");
-
-/** A POST to the sign-in library, through the Worker's gate: the answer's status and body. */
-async function ask(path: string, body: unknown) {
-  const response = await fetch(path, {
-    method: "POST",
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body)
-  });
-  return {
-    status: response.status,
-    ok: response.ok,
-    body: await response.json().catch(() => ({}))
-  };
-}
 
 const GoogleG = () => (
   <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
@@ -169,7 +161,7 @@ export function LoginPage(props: {
     say(t("Sending…"));
     try {
       trackLoginStart("magic_link");
-      const answer = await ask("/api/auth/sign-in/magic-link", {
+      const answer = await authPost("/api/auth/sign-in/magic-link", {
         email,
         callbackURL: localHref(to())
       });
@@ -188,7 +180,7 @@ export function LoginPage(props: {
     setSending(true);
     say("");
     try {
-      const answer = await ask("/api/auth/email-otp/send-verification-otp", {
+      const answer = await authPost("/api/auth/email-otp/send-verification-otp", {
         email,
         type: "sign-in"
       });
@@ -237,7 +229,10 @@ export function LoginPage(props: {
     setChecking(true);
     say("");
     try {
-      const answer = await ask("/api/auth/sign-in/email-otp", { email: email.value.trim(), otp });
+      const answer = await authPost("/api/auth/sign-in/email-otp", {
+        email: email.value.trim(),
+        otp
+      });
       if (disposed) return;
       if (answer.status === 400 || answer.status === 403) {
         refused();
@@ -264,7 +259,7 @@ export function LoginPage(props: {
       trackLoginStart("google");
       // a failure comes back to this sheet in its language, where what is kept here says where it led
       keepReturn(to() === "/" ? null : to());
-      const answer = await ask("/api/auth/sign-in/social", {
+      const answer = await authPost("/api/auth/sign-in/social", {
         provider: "google",
         callbackURL: localHref(to()),
         errorCallbackURL: localHref("/login")
