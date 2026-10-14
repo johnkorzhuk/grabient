@@ -13,8 +13,8 @@ import { searchKeyRules } from "./search/routes.ts";
    An address whose answer reads only some of its query has a rule here, so junk parameters cannot fill the cache with
    copies. A feature adding a public route adds its rule: an API's parameters normalized as its handler reads them. A
    palette's or a collection's file and every picture are keyed by the files themselves (files/keys.ts), which also
-   gives every address of one file one path, and keeps a picture across builds so a deploy does not draw them all
-   again. */
+   gives every address of one file one path, and keeps a palette's picture across builds so a deploy does not draw
+   them all again. */
 
 export interface KeyRule {
   match: (path: string) => boolean;

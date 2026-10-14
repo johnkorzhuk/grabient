@@ -25,12 +25,29 @@ test("every address of one file or picture has one key, which no stray parameter
   }
 });
 
-test("a picture is kept across deploys under its card version, a text file for one build", () => {
+test("a palette's picture is kept across deploys under its card version, the rest for one build", () => {
   expect(written("/kS7Q8Yy5S_SChv0.png")?.acrossBuilds).toBe(true);
   expect(written("/api/og?seed=kS7Q8Yy5S_SChv0")?.acrossBuilds).toBe(true);
-  expect(written("/api/png/collection?slug=ocean-gradients")?.acrossBuilds).toBe(true);
+  // several palettes are drawn from what the site holds now
+  for (const montage of [
+    "/api/png/collection?slug=ocean-gradients",
+    "/api/og/list?sort=rising",
+    "/api/og/collections?q=warm",
+    "/palettes/blue.png"
+  ]) {
+    expect([montage, written(montage)?.acrossBuilds]).toEqual([montage, false]);
+  }
   expect(written("/kS7Q8Yy5S_SChv0.css")?.acrossBuilds).toBe(false);
   expect(written("/ocean-gradients.md")?.acrossBuilds).toBe(false);
+});
+
+test("a collection's card is drawn again once its page names a newer change", () => {
+  const card = (t: string) => written(`/api/og/collection?slug=coastal-gradients&v=k4&t=${t}`)?.key;
+  expect(card("1790000000000")).toBe(
+    "/api/og/collection?h=630&slug=coastal-gradients&t=1790000000000&w=1200"
+  );
+  expect(card("1799999999999")).not.toBe(card("1790000000000"));
+  expect(card("junk")).toBe("/api/og/collection?h=630&slug=coastal-gradients&w=1200");
 });
 
 test("an old card's address shares the card's key, and other addresses are no file's", () => {
