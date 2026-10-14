@@ -18,7 +18,7 @@ import {
 import { FIRST_HELD } from "../../../gallery/likes.ts";
 import { forgetGalleryCount } from "../../../gallery/list.ts";
 import { NEW_WEIGHT } from "../../../gallery/scores.ts";
-import { SITE_AGENT } from "../../admin/personas.ts";
+import { SITE_OWNER } from "../../admin/personas.ts";
 import { removedSeeds } from "../../admin/queue.ts";
 import { logContribution } from "../../admin/reviews.ts";
 import { upsertPaletteTexts } from "../../admin/texts.ts";
@@ -169,16 +169,20 @@ export const publishTools: readonly Tool[] = [
         if (stopped) return stopped;
         /* the address asked for, else the title's own; a title whose address is taken or reserved takes the title
            with a short word after it */
-        const owner = { kind: "agent" as const, id: SITE_AGENT };
         const own = slugifyTitle(valid.input.title);
         const wanted = slug || (isCollectionSlug(own) ? own : "");
         let made: Awaited<ReturnType<typeof createCollection>>;
         try {
-          made = await createCollection(c.env, owner, valid.input, wanted ? { slug: wanted } : {});
+          made = await createCollection(
+            c.env,
+            SITE_OWNER,
+            valid.input,
+            wanted ? { slug: wanted } : {}
+          );
         } catch (error) {
           if (!(error instanceof SlugTaken)) throw error;
           if (slug) return refuse("That address is taken. Send another slug.");
-          made = await createCollection(c.env, owner, valid.input);
+          made = await createCollection(c.env, SITE_OWNER, valid.input);
         }
         at = made.slug;
         status = "created";

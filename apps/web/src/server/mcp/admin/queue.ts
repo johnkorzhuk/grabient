@@ -7,7 +7,7 @@ import {
   MAX_COLLECTION_ITEMS,
   validateCollection
 } from "../../../features/collections/schema.ts";
-import { collectionRecord } from "../../collections/read.ts";
+import { collectionRecord, ownedBy } from "../../collections/read.ts";
 import {
   appendCollectionItems,
   createCollection,
@@ -16,7 +16,7 @@ import {
 } from "../../collections/write.ts";
 import { setLike } from "../../gallery/likes.ts";
 import { type RescoreReport, rescore } from "../../gallery/rescore.ts";
-import { personaIds, SITE_AGENT } from "./personas.ts";
+import { personaIds, SITE_AGENT, SITE_OWNER } from "./personas.ts";
 import {
   checkTexts,
   type PaletteTextInput,
@@ -402,7 +402,7 @@ async function applyCollection(env: Env, item: QueueItem) {
   );
   const items: CollectionItemInput[] = valid.input.items.filter(entry => !removed.has(entry.seed));
   const record = await collectionRecord(env, slug);
-  if (record && (record.owner.kind !== "agent" || record.owner.id !== SITE_AGENT))
+  if (record && !ownedBy(record, SITE_OWNER))
     throw new Refusal("The slug belongs to someone else.");
   let status: "created" | "updated";
   let added: number;
@@ -415,7 +415,7 @@ async function applyCollection(env: Env, item: QueueItem) {
     try {
       await createCollection(
         env,
-        { kind: "agent", id: SITE_AGENT },
+        SITE_OWNER,
         { ...valid.input, items: items.slice(0, MAX_COLLECTION_ITEMS) },
         { slug }
       );

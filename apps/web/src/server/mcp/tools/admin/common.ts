@@ -7,9 +7,9 @@ import {
   type CollectionItemInput,
   collectionItem
 } from "../../../../features/collections/schema.ts";
-import type { CollectionRecord } from "../../../collections/read.ts";
+import { type CollectionRecord, ownedBy } from "../../../collections/read.ts";
 import { popularSearches } from "../../../search/tags.ts";
-import { SITE_AGENT } from "../../admin/personas.ts";
+import { SITE_OWNER } from "../../admin/personas.ts";
 import {
   checkTexts,
   PALETTE_EMBED_MAX,
@@ -154,7 +154,7 @@ export const untitledOf = (untitled: readonly { seed: string; words: string[] }[
 
 /** One of Grabient's own collections. */
 export const siteCollection = (record: CollectionRecord | null): record is CollectionRecord =>
-  record?.owner.kind === "agent" && record.owner.id === SITE_AGENT;
+  !!record && ownedBy(record, SITE_OWNER);
 
 /** The words of the tags under the search, which are Grabient's words to translate too. */
 export const searchedWords = async (c: ToolContext) =>
