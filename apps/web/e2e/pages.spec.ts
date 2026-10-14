@@ -279,3 +279,21 @@ test("a returning reader's Settings stands where its document drew it when the a
   await expect(page.locator('#profile input[name="username"]')).toHaveValue("reader");
   expect(await sections()).toEqual(drawn);
 });
+
+test("Settings keeps the still water under reduced motion, as the other brand pages do", async ({
+  page
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // the water drawn, or where the browser draws none (a software renderer), its wash in its place
+  const water = () =>
+    page.evaluate(
+      () =>
+        !!document.querySelector('[aria-hidden="true"][data-lit]') ||
+        !!document.querySelector('[aria-hidden="true"] > [style*="radial-gradient"]')
+    );
+  for (const path of ["/about", "/settings"]) {
+    await page.goto(path);
+    await started(page);
+    await expect.poll(water, { message: path }).toBe(true);
+  }
+});
