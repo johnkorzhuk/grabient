@@ -181,12 +181,9 @@ if (!isServer)
 let model: typeof import("../account/saved.ts") | undefined;
 
 /** A page of Saved from the account's copy, at once: none until this tab has read Saved, while the copy is not open
-    here or has not heard from the server, and for words the server ranks. A copy older than half a minute syncs
-    behind the page. */
+    here or has not heard from the server, and for words the server ranks. */
 export function savedNow(key: SavedKey): SavedPage | undefined {
-  const sync = engineNow();
-  if (!model || !sync?.copyReady(key.owner)) return undefined;
-  sync.freshen(key.owner);
+  if (!model || !engineNow()?.copyReady(key.owner)) return undefined;
   /* the connection as the page is read: a page read once follows no later change of it */
   const copied = model.savedPageOf(
     viewNow(),

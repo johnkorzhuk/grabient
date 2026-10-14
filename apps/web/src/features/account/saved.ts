@@ -57,12 +57,14 @@ export function savedPageOf(
 }
 
 /** Whether Saved can be drawn from the copy: the account is known, its copy open here and heard from the server, a
-    browser new to the account having waited for its first sync, three seconds at most. False: the page reads
-    /api/saved. */
+    browser new to the account having waited for its first sync, three seconds at most. A copy older than half a
+    minute syncs behind the page. False: the page reads /api/saved. */
 export async function savedReady(): Promise<boolean> {
   const user = await accountForCopy();
   if (!user) return false;
   const sync = await copyEngine();
   await sync.copySettled(user);
-  return sync.copyReady(user);
+  if (!sync.copyReady(user)) return false;
+  sync.freshen(user);
+  return true;
 }
