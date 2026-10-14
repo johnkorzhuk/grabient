@@ -973,11 +973,31 @@ describe("the admins' tools", () => {
       {
         title: "Sunset gradients",
         description: "",
-        tags: [],
+        tags: ["electric green"],
         visibility: "public",
         items: [{ seed: SEED, style: "linearGradient", steps: 7, angle: 90 }]
       }
     );
+    // a tag comes with the spellings the search's vocabulary reads it by, those in the language's script alone
+    const tags = async (language: string) =>
+      (
+        await call(env, token, "translations", { language, kind: "tags", limit: 100 })
+      ).value.items.find((item: { tag: string }) => item.tag === "electric green");
+    expect(await tags("ja")).toEqual({
+      tag: "electric green",
+      collections: 1,
+      known: ["エレクトリックグリーン", "电光绿"]
+    });
+    expect((await tags("de")).known).toContain("elektrisch grün");
+    expect(
+      (
+        await call(env, token, "translations_save", {
+          language: "ja",
+          tags: [{ tag: "electric green", word: "エレクトリックグリーン" }]
+        })
+      ).value.kept.tags
+    ).toEqual(["electric green"]);
+    expect(await tags("ja")).toBeUndefined();
     const missing = (await call(env, token, "translations", { language: "zh-Hans" })).value;
     const entry = missing.items.find((item: { slug: string }) => item.slug === slug);
     expect(entry).toMatchObject({ title: "Sunset gradients" });
