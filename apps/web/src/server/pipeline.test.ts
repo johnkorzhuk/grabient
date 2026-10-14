@@ -398,8 +398,24 @@ test("campaign tags never reach Start and ride every same-origin redirect", asyn
 });
 
 test("only a server route takes another method than GET and HEAD", async () => {
-  const post = await get("/palettes", { method: "POST" });
-  expect(post.status).toBe(405);
+  // a page is refused before it renders, so no method makes it draw or search again
+  for (const [path, method] of [
+    ["/palettes?q=%23a1b2c3", "POST"],
+    ["/about", "PUT"],
+    ["/kY4mpDazO-mUuu_fuLqXU49dvVP6", "DELETE"],
+    ["/ja/settings", "PATCH"],
+    ["/unsubscribe/abc", "PUT"]
+  ]) {
+    const refused = await get(path, { method });
+    expect([path, refused.status, refused.headers.get("Allow")]).toEqual([path, 405, "GET, HEAD"]);
+    expect(await refused.json()).toEqual({ error: "Method not allowed" });
+  }
+  expect(asked).toEqual([]);
+  // the newsletter's way out takes its press as a POST
+  const unsubscribed = await get("/unsubscribe/abc", { method: "POST" }, () => Response.json({}));
+  expect([unsubscribed.status, asked.length]).toEqual([200, 1]);
+  // a file's route that takes no POST, where Start would render a page instead
+  expect((await get("/kS7Q8Yy5S_SChv0.png", { method: "POST" })).status).toBe(405);
   const preflight = await get("/kS7Q8Yy5S_SChv0.json", { method: "OPTIONS" });
   expect(preflight.status).toBe(204);
   expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe("*");

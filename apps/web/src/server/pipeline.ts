@@ -151,6 +151,11 @@ async function route(
     }
   }
   if (canonical !== null) return redirect(at(canonical));
+  // Start renders a page for any method, so another than GET and HEAD is refused before it renders, but the newsletter's
+  // way out, whose address takes the press as a POST
+  if (page && !read && !(request.method === "POST" && path.startsWith("/unsubscribe/"))) {
+    return notAllowed();
+  }
 
   if (request.method === "OPTIONS" && publicFile(path)) {
     return new Response(null, {
@@ -197,6 +202,9 @@ function arriving(request: Request, url: URL): boolean {
   }
 }
 
+const notAllowed = () =>
+  json({ error: "Method not allowed" }, { status: 405, headers: { Allow: "GET, HEAD" } });
+
 /** Start's answer. Start renders a page for any address no server route takes, whatever the method: only a server
     route takes a method other than GET and HEAD, so such a page is 405. It answers a page asked for without HTML in
     Accept with a 500, so that request is given HTML among what it accepts. */
@@ -209,9 +217,7 @@ async function answer(request: Request, app: App): Promise<Response> {
   }
   const response = await app(request);
   const read = request.method === "GET" || request.method === "HEAD";
-  if (!read && response.headers.get("Content-Type")?.startsWith("text/html")) {
-    return json({ error: "Method not allowed" }, { status: 405 });
-  }
+  if (!read && response.headers.get("Content-Type")?.startsWith("text/html")) return notAllowed();
   return response;
 }
 
