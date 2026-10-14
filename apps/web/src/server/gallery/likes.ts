@@ -1,4 +1,4 @@
-import { decodePalette, encodePalette } from "@grabient/engine";
+import { decodePalette } from "@grabient/engine";
 import { STEPS_MIN, STYLES, type Style } from "@grabient/engine/view.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { all, batch, first, replica, type Statement } from "@grabient/server/db/d1.ts";
@@ -7,6 +7,7 @@ import type { LimitCheck } from "@grabient/server/limits/check.ts";
 import * as v from "valibot";
 import type { PaletteItem, SavedPage } from "../../features/gallery/schema.ts";
 import { listWords } from "../../lib/words.ts";
+import { canonicalPaletteSeed } from "../files/resolve.ts";
 import { searchOwnSeeds } from "../search/search.ts";
 import { forgetGalleryCount, itemsOf, LIMIT_MAX, type PaletteRow } from "./list.ts";
 import {
@@ -30,11 +31,9 @@ export const SAVED_SEARCHED = 2000;
 const LIKES_BEGAN = Date.UTC(2015, 0, 1);
 const TITLE_MAX = 80;
 
-const canonicalSeed = (raw: unknown): string | null => {
-  if (typeof raw !== "string" || raw.length > 240) return null;
-  const palette = decodePalette(raw);
-  return palette ? encodePalette(palette) : null;
-};
+/** A palette's canonical seed from its seed, or an old id the legacy maps hold, as its page's address reads it. */
+const canonicalSeed = (raw: unknown): string | null =>
+  typeof raw === "string" && raw.length <= 240 ? canonicalPaletteSeed(raw) : null;
 
 /** A like's own label for its palette, one line of 1 to 80 characters; null for anything else. */
 export function likeTitle(value: unknown): string | null {

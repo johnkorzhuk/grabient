@@ -435,6 +435,13 @@ describe("likes", () => {
     expect(await likeCounts(env, [seedAt(8)])).toEqual({ [seedAt(8)]: 1 });
   });
 
+  it("read an old grabient.com id as the palette the legacy maps hold for it", async () => {
+    const old = "_chhgKLgDyjuCgCzgCXgBggPfgS4gO2gMjgMg";
+    const seed = "kYsoNn6TS9Wc2OtcwzzVCjA9amSm";
+    expect(await likeCounts(testEnv(), [old])).toEqual({ [seed]: 0 });
+    expect(like(old).seed).toBe(seed);
+  });
+
   it("list an account's saved palettes newest first, drawn as saved", async () => {
     const env = testEnv();
     const account = await makeAccount(env);
