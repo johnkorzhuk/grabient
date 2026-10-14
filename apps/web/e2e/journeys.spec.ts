@@ -309,12 +309,17 @@ for (const width of WIDTHS)
         const broken = watch(page);
         await open(page, `${prefix}/palettes`);
         await expect(page.locator("html")).toHaveAttribute("dir", lang === "ar" ? "rtl" : "ltr");
-        const rest = await agrees(page);
+        await expect(page.locator("main article").first()).toBeVisible();
+        const rest = await shows(page);
         const field = page.getByRole("searchbox");
 
-        // a tag of the row at rest, in the page's language: it searches the words it shows
+        // a tag of the row at rest, in the page's language: it searches the words it shows, as a list writes words
         const tag = page.locator("main [role=toolbar] a").first();
-        const label = ((await tag.textContent()) ?? "").trim();
+        const label = ((await tag.textContent()) ?? "")
+          .normalize("NFKC")
+          .replace(/\s+/gu, " ")
+          .trim()
+          .toLowerCase();
         await press(tag, width);
         await expect(page).toHaveURL(/[?&]q=/);
         const tagged = await agrees(page);
@@ -345,7 +350,7 @@ for (const width of WIDTHS)
 
         await press(page.getByRole("button", { name: say(lang, "Clear search") }), width);
         await expect(page).toHaveURL(new RegExp(`${prefix}/palettes$`));
-        expect(await agrees(page)).toEqual(rest);
+        await expect.poll(() => shows(page)).toEqual(rest);
         expect(await sameDocument(page)).toBe(true);
         expect(broken).toEqual([]);
       });
