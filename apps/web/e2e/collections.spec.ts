@@ -442,3 +442,41 @@ test("a palette the admin likes is offered no curation", async ({ page }) => {
   await card.getByRole("button", { name: /^Like/ }).click();
   await expect(view).toBeDisabled();
 });
+
+test("Saved shows a pick made on another page when the reader comes back", async ({ page }) => {
+  const { preview, ...words } = summary;
+  await signIn(page, "ada", false, [
+    {
+      ...words,
+      id: "e2e-blues",
+      slug: "@e2e-ada/my-blues",
+      title: "My blues",
+      visibility: "private",
+      owner: { kind: "user", name: "e2e-ada", display: "ada" },
+      url: "/@e2e-ada/my-blues",
+      preview,
+      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+    }
+  ]);
+  await page.goto("/collections/saved");
+  await hydrated(page);
+  const blues = page.getByRole("region", { name: "My blues" });
+  await expect(blues).toContainText("1 palette");
+  await page
+    .getByRole("navigation", { name: "Order" })
+    .getByRole("link", { name: /^Popular/ })
+    .click();
+  await expect(page).toHaveURL(/\/collections$/);
+  const card = page.locator("main article").first();
+  await card.hover();
+  await card.getByRole("button", { name: "Add to selection" }).click();
+  await card.getByRole("button", { name: "Add to collection" }).click();
+  await page
+    .getByRole("dialog", { name: "Add to collection" })
+    .getByRole("button", { name: /My blues/ })
+    .click();
+  await expect(page.locator("main p[aria-live]").first()).toHaveText("Added to My blues.");
+  await page.goBack();
+  await expect(page).toHaveURL(/\/collections\/saved$/);
+  await expect(blues).toContainText("2 palettes");
+});
