@@ -200,7 +200,7 @@ export function createSelectionScreen(page: {
     if (want === null) return;
     lastWrite = Date.now();
     (want === committed() ? rewriteQuietly : rewriteInPlace)(href({ size: sizeParamOf(want) }));
-    /* the tab remembers it, so the page beneath takes it when Close goes Back to it */
+    /* the tab remembers it as the reader's view, which a list that Close goes Back to takes */
     rememberView({ ...rememberedView(), size: parseSize(want) });
     setDraft(null);
   };
