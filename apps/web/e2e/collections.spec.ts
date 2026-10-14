@@ -445,6 +445,8 @@ test("a palette the admin likes is offered no curation", async ({ page }) => {
 
 test("Saved shows a pick made on another page when the reader comes back", async ({ page }) => {
   const { preview, ...words } = summary;
+  // a palette of its own, so the list's first card is one it does not hold
+  const held = [{ ...preview[0]!, seed: "kS7Q8Yy5S_SChv0" }];
   await signIn(page, "ada", false, [
     {
       ...words,
@@ -454,8 +456,8 @@ test("Saved shows a pick made on another page when the reader comes back", async
       visibility: "private",
       owner: { kind: "user", name: "e2e-ada", display: "ada" },
       url: "/@e2e-ada/my-blues",
-      preview,
-      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+      preview: held,
+      items: held.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
     }
   ]);
   await page.goto("/collections/saved");
@@ -467,6 +469,7 @@ test("Saved shows a pick made on another page when the reader comes back", async
     .getByRole("link", { name: /^Popular/ })
     .click();
   await expect(page).toHaveURL(/\/collections$/);
+  await page.waitForLoadState("networkidle");
   const card = page.locator("main article").first();
   await card.hover();
   await card.getByRole("button", { name: "Add to selection" }).click();
