@@ -292,9 +292,10 @@ export function Palettes(props: { place: ListPlace }) {
     if (!colors) return page.refuse(t("Couldn't read this image."));
     go(searchHref(colors));
   };
+  /* the picture's points search again in place: the reader stays at the depth they were editing at */
   const searchPoints = (colors: string | null) => {
     if (colors && colors !== words())
-      void navigate({ href: searchHref(colors), replace: true });
+      void navigate({ href: searchHref(colors), replace: true, resetScroll: false });
   };
   /* a search by colors leads with the palettes the colors make, a picture's as its points move */
   const made = createMemo(() =>

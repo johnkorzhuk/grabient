@@ -309,9 +309,10 @@ export function CollectionsPage(props: {
     if (!colors) return setFieldError(t("Couldn't read this image."));
     go(searchHref(colors));
   };
+  /* the picture's points search again in place: the reader stays at the depth they were editing at */
   const searchColors = (colors: string | null) => {
     if (colors && colors !== place().query)
-      void navigate({ href: searchHref(colors), replace: true });
+      void navigate({ href: searchHref(colors), replace: true, resetScroll: false });
   };
   /* what a search of the public collections found, told once its answer is this page's */
   createEffect(
