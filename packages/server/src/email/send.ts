@@ -11,6 +11,7 @@ export interface Email {
   html: string;
   text: string;
   headers?: Record<string, string>;
+  attachments?: EmailAttachment[];
 }
 
 /** Throws when the deploy has no EMAIL binding or Email Service refuses the message. */
@@ -20,6 +21,37 @@ export async function sendEmail(
 ): Promise<void> {
   if (!env.EMAIL) throw new Error("Email delivery is not configured");
   await env.EMAIL.send({ from: { name: "Grabient", email: env.EMAIL_FROM }, ...email });
+}
+
+/** An email an account is sent: the link or the code that signs it in, or the link that confirms its deletion. */
+export type AccountEmail =
+  | { kind: "sign-in-link"; url: string }
+  | { kind: "sign-in-code"; code: string }
+  | { kind: "deletion"; url: string };
+
+type AccountMailer = (
+  env: Env,
+  to: string,
+  email: AccountEmail,
+  request?: Request
+) => Promise<void>;
+let mailer: AccountMailer | undefined;
+
+/** The app says, once as it starts, how an account's emails are written and sent: their letters, their languages and
+    the pictures they carry are the app's, and sign-in asks for them here. */
+export const setAccountMailer = (send: AccountMailer): void => {
+  mailer = send;
+};
+
+/** Sends an account email as the app writes it, in the language `request` asked in. */
+export async function mailAccount(
+  env: Env,
+  to: string,
+  email: AccountEmail,
+  request?: Request
+): Promise<void> {
+  if (!mailer) throw new Error("No account mailer is set");
+  await mailer(env, to, email, request);
 }
 
 /** The inbox an address reaches, as its emails are counted: one key whatever its case, a +tag or, at Gmail, its dots,

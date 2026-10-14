@@ -32,6 +32,17 @@ test("the server sends the static page, and the editor takes its place", async (
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
 });
 
+test("the editor lays itself out without an error to report", async ({ page }) => {
+  const reports: string[] = [];
+  page.on("request", request => {
+    if (request.url().endsWith("/api/client-error")) reports.push(request.postData() ?? "");
+  });
+  await open(page);
+  // past the first frames, where its observers measure the page, the strip and the sheet
+  await page.waitForTimeout(1000);
+  expect(reports).toEqual([]);
+});
+
 test("another spelling of an address answers with the canonical one", async ({ request }) => {
   const answer = await request.get(`/${SEED}?angle=90&steps=7&lock=hue,lightness`, {
     maxRedirects: 0

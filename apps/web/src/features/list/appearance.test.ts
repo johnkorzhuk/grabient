@@ -1,6 +1,6 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { expect, test } from "vitest";
-import { AS_SAVED, drawnIn, inView, readListView, viewParams } from "./appearance.ts";
+import { AS_SAVED, drawnIn, inOrder, inView, readListView, viewParams } from "./appearance.ts";
 
 const SEED = encodePalette({
   anchors: Array.from({ length: 8 }, (_, i) => ({ l: 0.2 + i * 0.1, c: 0.1, h: i * 30 }))
@@ -33,6 +33,27 @@ test("a view as search params leaves out what each palette keeps", () => {
     inView("/palettes", { style: "linearSwatches", steps: 7, angle: "auto", size: null })
   ).toBe("/palettes?style=linearSwatches&steps=7");
   expect(inView("/", AS_SAVED)).toBe("/");
+});
+
+test("a change to a list's address is written in the lists' one order", () => {
+  const written = (search: Record<string, unknown>, change: Record<string, unknown>) =>
+    Object.entries(inOrder(search, change))
+      .filter(([, value]) => value !== undefined)
+      .map(([name]) => name);
+  expect(
+    written({ q: "blue", page: 2, limit: 48 }, viewParams({ style: "angularSwatches" }))
+  ).toEqual(["q", "style", "page", "limit"]);
+  expect(written({ steps: 9, page: 2, selection: "" }, { size: "1200x630", angle: 45 })).toEqual([
+    "steps",
+    "angle",
+    "size",
+    "page",
+    "selection"
+  ]);
+  expect(written({ q: "blue", style: "linearSwatches" }, viewParams({ style: "auto" }))).toEqual([
+    "q"
+  ]);
+  expect(written({ page: 3 }, { selection: "" })).toEqual(["page", "selection"]);
 });
 
 test("a card draws the list's view over its own, a draft over both, never fewer steps than keyframes", () => {

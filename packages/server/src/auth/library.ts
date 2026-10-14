@@ -4,11 +4,10 @@ import { betterAuth } from "better-auth/minimal";
 import { captcha, emailOTP, magicLink } from "better-auth/plugins";
 import { drizzle } from "drizzle-orm/d1";
 import { batch } from "../db/d1.ts";
-import { sendEmail } from "../email/send.ts";
+import { mailAccount } from "../email/send.ts";
 import type { Env } from "../env.ts";
 import { accountDeletion, deleteAvatars } from "./account-data.ts";
 import { attribution } from "./attribution.ts";
-import { confirmDeletion, signInCode, signInLink } from "./letters.ts";
 import { reviewerAddress } from "./roles.ts";
 import * as schema from "./schema.ts";
 
@@ -70,7 +69,8 @@ function createAuth(env: Env) {
       magicLink({
         expiresIn: 300,
         storeToken: "hashed",
-        sendMagicLink: ({ email, url }) => sendEmail(env, { to: email, ...signInLink(url) })
+        sendMagicLink: ({ email, url }, ctx) =>
+          mailAccount(env, email, { kind: "sign-in-link", url }, ctx?.request)
       }),
       // A code for the sign-in an app asks for, typed in the window that asked, where a link would open elsewhere.
       emailOTP({
@@ -78,8 +78,9 @@ function createAuth(env: Env) {
         expiresIn: 300,
         allowedAttempts: 3,
         storeOTP: "hashed",
-        sendVerificationOTP: async ({ email, otp, type }) => {
-          if (type === "sign-in") await sendEmail(env, { to: email, ...signInCode(otp) });
+        sendVerificationOTP: async ({ email, otp, type }, ctx) => {
+          if (type === "sign-in")
+            await mailAccount(env, email, { kind: "sign-in-code", code: otp }, ctx?.request);
         }
       }),
       ...(env.REVIEWER_EMAIL && env.TURNSTILE_SECRET_KEY
@@ -187,7 +188,12 @@ function createAuth(env: Env) {
           }
         },
         sendDeleteAccountVerification: ({ user, token }, request) =>
-          sendEmail(env, { to: user.email, ...confirmDeletion(deletionLink(env, request, token)) })
+          mailAccount(
+            env,
+            user.email,
+            { kind: "deletion", url: deletionLink(env, request, token) },
+            request
+          )
       }
     },
     // A signed five-minute copy of the session in a cookie spares most reads a database query.

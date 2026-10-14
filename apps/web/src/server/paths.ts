@@ -22,6 +22,10 @@ export const connectPath = (path: string) =>
 export const consentPath = (path: string) =>
   path === "/connect" || path.startsWith("/oauth/") || within(path, "/unsubscribe");
 
+/** The session recorder's way to PostHog (analytics/replay.ts), whose addresses are PostHog's own: a recording is
+    posted to /e/s/, which ends in a slash. */
+export const recorderPath = (path: string) => within(path, "/e");
+
 /** Answered directly, never through the edge cache: the list API reads its own data cache, and the build probe, a
     random palette and the search's status are new on every ask. */
 export const uncachedPath = (path: string) =>

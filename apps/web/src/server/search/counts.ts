@@ -15,10 +15,11 @@ import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import * as v from "valibot";
 import { type SEARCH_PAGES, SearchedBody } from "../../features/search/bodies.ts";
+import { listWords } from "../../lib/words.ts";
+import { publicCollections, suggestCollections } from "../collections/search.ts";
 import { isCrawler } from "../crawlers.ts";
 import { loadVocabulary } from "./files.ts";
 import { forgetPopular, mixSearches, rankSearches, tagWords } from "./popular.ts";
-import { normalizeListQuery, publicCollections, suggestCollections } from "./seams.ts";
 
 /** where a search is made, and a connected app's search of the palettes */
 export type SearchPage = (typeof SEARCH_PAGES)[number] | "mcp";
@@ -48,7 +49,7 @@ export async function countedWords(
   page: SearchPage,
   raw: string
 ): Promise<string | null> {
-  const words = normalizeListQuery(raw);
+  const words = listWords(raw);
   if (!words || !fewWords(words) || decodePalette(words)) return null;
   const vocabulary = await loadVocabulary(env);
   const tag = vocabulary && tagWords(vocabulary, words);
@@ -61,7 +62,7 @@ export async function countedWords(
 /** Words the site does not know, as they are kept: letters, marks, spaces, hyphens and apostrophes alone, six words at
     most. Null for anything else, and while the vocabulary cannot be read to tell. */
 export async function unreadWords(env: Env, raw: string): Promise<string | null> {
-  const words = normalizeListQuery(raw);
+  const words = listWords(raw);
   return words &&
     fewWords(words) &&
     /^[\p{L}\p{M}' -]+$/u.test(words) &&

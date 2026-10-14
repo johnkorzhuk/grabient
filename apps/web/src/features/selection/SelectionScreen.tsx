@@ -19,9 +19,10 @@ import {
   untrack,
   useContext
 } from "solid-js";
-import { SELECTION_MARK } from "../../app/navigation.ts";
+import { rewriteQuietly, SELECTION_MARK } from "../../app/navigation.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { hexesOf } from "../../lib/palette.ts";
+import { inOrder } from "../list/appearance.ts";
 import { useTaken } from "../palette-use/use.ts";
 import { copySelection, downloadSelection } from "./export.ts";
 import styles from "./Selection.module.css";
@@ -175,7 +176,7 @@ export function createSelectionScreen(page: {
   const href = (patch: Record<string, unknown>) =>
     router.buildLocation({
       to: location().pathname,
-      search: (prev: Record<string, unknown>) => ({ ...prev, ...patch })
+      search: (prev: Record<string, unknown>) => inOrder(prev, patch)
     } as never).publicHref;
 
   let writeTimer: ReturnType<typeof setTimeout> | undefined;
@@ -187,18 +188,16 @@ export function createSelectionScreen(page: {
     writeTimer = restTimer = undefined;
   };
   const sizeParamOf = (value: string) => (value === "auto" ? undefined : value);
-  /* the route takes the size once the drag rests: a route change redraws the page's data, links and metadata */
+  /* the route takes the size once the drag rests: a route change redraws the page's data, links and metadata. A size
+     dragged back to the route's own leaves the route nothing to take, so the address is written here. */
   const settle = () => {
     stop();
     const want = draft();
     if (want === null) return;
     lastWrite = Date.now();
-    if (want !== committed())
-      void router.navigate({
-        href: href({ size: sizeParamOf(want) }),
-        replace: true,
-        resetScroll: false
-      });
+    const to = href({ size: sizeParamOf(want) });
+    rewriteQuietly(to);
+    if (want !== committed()) void router.navigate({ href: to, replace: true, resetScroll: false });
     setDraft(null);
   };
   const writeSize = (want: string) => {
@@ -207,7 +206,7 @@ export function createSelectionScreen(page: {
       () => {
         writeTimer = undefined;
         lastWrite = Date.now();
-        history.replaceState(history.state, "", href({ size: sizeParamOf(want) }));
+        rewriteQuietly(href({ size: sizeParamOf(want) }));
       },
       Math.max(0, WRITE_MS - (Date.now() - lastWrite))
     );
