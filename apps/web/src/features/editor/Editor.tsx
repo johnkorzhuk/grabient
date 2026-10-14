@@ -63,7 +63,7 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
-import { followAddress } from "./history.ts";
+import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
 import { NARROW, type PaletteData, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
@@ -138,8 +138,9 @@ export default function Editor(props: { data: PaletteData }) {
   const location = useLocation();
   const shell = useContext(ShellContext);
   const first = untrack(() => props.data);
+  /* what Random keeps and the selection are the address's alone: the route's data never carries them */
   const e = createPaletteEditor(
-    first.page,
+    pageAt(untrack(location)) ?? first.page,
     untrack(location).state as { edits?: unknown; opened?: unknown }
   );
   const rest = createRest();

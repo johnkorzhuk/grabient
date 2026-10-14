@@ -210,6 +210,30 @@ test("another spelling of an address answers with the canonical one", async ({ r
   expect(to.pathname + to.search).toBe(`/${SEED}?lock=lightness,hue`);
 });
 
+test("the document the edge keeps for an address is the same page for its lock words and campaign tags", async ({
+  page,
+  request
+}) => {
+  const plain = "/kQ4RjAYQ6_g?steps=6&angle=180";
+  const kept = await (await request.get(plain)).text();
+  const title = /<title[^>]*>([^<]*)<\/title>/.exec(kept)?.[1] ?? "";
+  for (const words of ["&lock=hue", "&utm_source=news"]) {
+    const address = plain + words;
+    await page.route(
+      url => url.pathname + url.search === address,
+      route => route.fulfill({ body: kept, contentType: "text/html; charset=utf-8" })
+    );
+    await open(page, address);
+    await page.waitForTimeout(1000);
+    await expect(page).toHaveTitle(title);
+    expect(here(page)).toBe(address);
+  }
+  await open(page, `${plain}&lock=hue`);
+  await expect(
+    page.getByRole("complementary", { name: "Editor" }).getByRole("button", { name: "Lock hue" })
+  ).toHaveAttribute("aria-pressed", "true");
+});
+
 test("random leads to a new palette at the view asked for", async ({ request }) => {
   const answer = await request.get("/random?style=radialGradient", { maxRedirects: 0 });
   expect(answer.status()).toBe(302);
