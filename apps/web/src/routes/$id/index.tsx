@@ -47,12 +47,13 @@ export const Route = createFileRoute("/$id/")({
   loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: async ({ context, params, deps, location }) => {
     /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between the
-       two: its code and what the server knows of a palette it opens on are asked for together. Code that does not come
-       is the page's own to say, where it renders. */
+       two: its code is asked for at once. Code that does not come is the page's own to say, where it renders. */
     const code = isServer || !isSeed(params.id) ? null : Editor.preload().catch(() => {});
-    if (code) askFacts(params.id, location.state);
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
+      /* a palette nothing asked about before the press is asked about now, after the read that waits only for an
+         answer asked for before it, and is named by its colors until the answer lands */
+      if (code) askFacts(params.id, location.state);
       await code;
       const { seed, view } = palette.page;
       /* the frame's bar and water carry the palette from the server's render on, before an editor is open */

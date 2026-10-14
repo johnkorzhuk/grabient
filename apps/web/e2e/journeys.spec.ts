@@ -643,6 +643,16 @@ const listen = (page: Page) =>
 /** The headings recorded since `listen` or the last call. */
 const heard = (page: Page) =>
   page.evaluate(() => (window as unknown as { headings: string[] }).headings.splice(0));
+/** The palettes whose facts the server has answered for, by seed, from now on. */
+function answered(page: Page): Set<string> {
+  const seeds = new Set<string>();
+  page.on("response", response => {
+    const url = new URL(response.url());
+    if (url.pathname === "/api/palette-facts" && response.ok())
+      seeds.add(url.searchParams.get("seed") ?? "");
+  });
+  return seeds;
+}
 /** What the palette at the page's address is called loaded whole. */
 async function calledWhole(context: BrowserContext, page: Page) {
   const whole = await context.newPage();
@@ -658,6 +668,74 @@ const seedAt = async (card: Locator) =>
     (await card.locator("a[aria-label='Edit']").getAttribute("href")) ?? "",
     "https://grabient.test"
   ).pathname.slice(1);
+
+test("a palette whose card the pointer reached opens called what the server knows it as, from its first frame", async ({
+  page,
+  context
+}) => {
+  const facts = answered(page);
+  await open(page, "/palettes");
+  const card = cards(page).nth(2);
+  const seed = await seedAt(card);
+  await card.getByRole("img").first().hover();
+  await expect.poll(() => facts.has(seed)).toBe(true);
+  await listen(page);
+  await card.locator("a[aria-label='Edit']").click();
+  await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+  const whole = await calledWhole(context, page);
+  await expect.poll(() => called(page)).toEqual(whole);
+  expect(await heard(page)).toEqual([whole.heading]);
+});
+
+test("a palette whose facts are slow to come opens at once, called by its colors, and takes its title as they come", async ({
+  page,
+  context
+}) => {
+  await open(page, "/palettes");
+  // the editor's code, which the first palette opened waits for, is in
+  await cards(page).first().getByRole("img").first().hover();
+  await cards(page).first().locator("a[aria-label='Edit']").click();
+  await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+  await page.goBack();
+  const card = cards(page).nth(3);
+  await expect(card).toBeVisible();
+  let answer = () => {};
+  const held = new Promise<void>(done => {
+    answer = done;
+  });
+  await page.route(
+    url => url.pathname === "/api/palette-facts",
+    async route => {
+      await held;
+      await route.continue();
+    }
+  );
+  await page.evaluate(() =>
+    addEventListener(
+      "click",
+      () => {
+        const pressed = performance.now();
+        const look = () => {
+          if (document.querySelector("[role='img'][aria-label='The gradient']"))
+            Object.assign(window, { opened: performance.now() - pressed });
+          else requestAnimationFrame(look);
+        };
+        look();
+      },
+      { capture: true, once: true }
+    )
+  );
+  await card.getByRole("img").first().hover();
+  await card.locator("a[aria-label='Edit']").click();
+  // the press waits a moment at most for the answer it asked for as the pointer came
+  await expect
+    .poll(() => page.evaluate(() => (window as { opened?: number }).opened ?? Infinity))
+    .toBeLessThan(1000);
+  const whole = await calledWhole(context, page);
+  expect(await called(page)).not.toEqual(whole);
+  answer();
+  await expect.poll(() => called(page)).toEqual(whole);
+});
 
 test("an undo, Back or Forward to a palette the tab knows calls it that from the first frame", async ({
   page,

@@ -14,8 +14,9 @@ import { metaPage, STATIC_CSS } from "./StaticPalette.tsx";
 
 /* A palette's page as its route reads it. The server reads what only the database knows of the palette, once, for the
    page it renders (its title, the static page crawlers read, its Markdown), and which of Rising's frames are on. A
-   palette the browser opens later asks for the same facts in English, the only language its written words are worn
-   in; one an edit makes is named by its colors and asks the server nothing. */
+   palette the browser opens later has the same facts in English, the only language its written words are worn in,
+   asked for as a reader reaches its card, or else as its page opens; one an edit makes is named by its colors and asks
+   the server nothing. */
 
 /** The router's search object as an address reads it: a number the router parsed is its digits again. */
 export const searchReader = (search: Readonly<Record<string, unknown>>): ParamReader => ({
@@ -29,14 +30,14 @@ export const searchReader = (search: Readonly<Record<string, unknown>>): ParamRe
   }
 });
 
-/* The facts the server told this tab of the palettes it opened, by seed: the answers on their way, and each answer once
-   it has come, which the editor draws from as it lands. The page is read again with each change of view and on Back,
-   Forward or an undo, and a palette's written title outlasts them. The last few are kept. Only the browser writes
-   them. */
+/* The facts the server told this tab of the palettes it opened or may open next, by seed: the answers on their way, and
+   each answer once it has come, which the editor draws from as it lands. The page is read again with each change of
+   view and on Back, Forward or an undo, and a palette's written title outlasts them. The last few are kept. Only the
+   browser writes them. */
 const KNOWN_KEPT = 40;
-/** How long a press waits for an opened palette's facts before its page opens named by its colors: long enough that
-    a page busy taking in the palette never outlasts an answer that came, short enough to bound a slow network. */
-const ASK_MS = 1500;
+/** How long a press waits for an answer asked for ahead of it before its page opens named by its colors: a moment,
+    since the editor takes an answer that comes later as it lands. */
+const ASK_MS = 150;
 const known = new Map<string, Promise<PaletteFacts | null>>();
 const [settled, setSettled] = createStore<Record<string, PaletteFacts>>({});
 function know(seed: string, facts: Promise<PaletteFacts | null>) {
@@ -58,16 +59,17 @@ export const factsOf = (seed: string): PaletteFacts | undefined => settled[seed]
 export function keepFacts(data: PaletteData) {
   if (data.facts) know(data.page.seed, Promise.resolve(data.facts));
 }
-/** In the browser, in English, asks the server what it knows of the palette a page opens on at `seed`. Never of a
-    palette an edit made: its history entry names the palette its page opened on, which is another. */
-export function askFacts(seed: string, state: unknown): void {
+/** In the browser, in English, asks the server what it knows of a palette a press may open: as the pointer, the focus
+    or a tap reaches its card, so the answer is in by the press, and else as its page opens. Never of a palette an
+    edit made: its history entry names the palette its page opened on, which is another. */
+export function askFacts(seed: string, state?: unknown): void {
   const opened = (state as { edits?: { opened?: unknown } } | undefined)?.edits?.opened;
   const made = opened !== undefined && opened !== seed;
-  if (made || locale() !== DEFAULT_LOCALE || known.has(seed) || !isSeed(seed)) return;
+  if (known.has(seed) || made || locale() !== DEFAULT_LOCALE || !isSeed(seed)) return;
   know(
     seed,
     getJson(`/api/palette-facts?${new URLSearchParams({ seed })}`, PaletteFacts).catch(() => {
-      // asked again when the palette is next opened
+      // asked again the next time
       known.delete(seed);
       return null;
     })
@@ -119,6 +121,10 @@ export const paletteHead = (data: PaletteData) => ({
   ...headOf(data.meta ?? pageMeta(metaPage(data.page, data.facts))),
   styles: [{ children: STATIC_CSS }]
 });
+
+/** The tab's title for a palette's page, as its head writes it. */
+export const paletteTitle = (page: SeedPage, facts: PaletteFacts | null): string =>
+  pageMeta(metaPage(page, facts)).title;
 
 /** A window this wide or less has no room for a side: the controls follow the strip, under the first screen. */
 export const NARROW = 900;

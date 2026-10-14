@@ -8,6 +8,7 @@ import { signInUnavailable } from "../../app/connection.ts";
 import { hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, toggleLike } from "../account/likes.ts";
+import { askFacts } from "../editor/page.ts";
 import { AppearanceContext, drawnIn } from "../list/appearance.ts";
 import { type UseAt, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
@@ -89,6 +90,7 @@ export function GalleryCard(props: {
           onLink={take.link}
         />
       )}
+      onIntent={() => askFacts(seed())}
       onOpen={e => {
         useOpened(page.place(), shown(), where());
         inPlace(e, () => void navigate({ href: path() }));

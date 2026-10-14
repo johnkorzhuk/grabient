@@ -55,7 +55,7 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
-import type { PaletteData } from "./page.ts";
+import { askFacts, type PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
 import { type Similar, similarQuery } from "./similar.ts";
 
@@ -395,6 +395,7 @@ export function Sheet(props: {
             <AddToCollection palette={palette} />
           </Loading>
         }
+        onIntent={() => askFacts(seed())}
         onOpen={event => {
           useOpened(PLACE, palette(), { position });
           /* opened in place, the palette's page is told its own view and which parts were set here */

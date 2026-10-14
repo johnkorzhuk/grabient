@@ -65,7 +65,7 @@ import {
 } from "./formats.ts";
 import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
-import { factsOf, keepFacts, NARROW, type PaletteData, Sheet } from "./page.ts";
+import { factsOf, keepFacts, NARROW, type PaletteData, paletteTitle, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
 
@@ -217,6 +217,22 @@ export default function Editor(props: { data: PaletteData }) {
     }, rest.left());
     return () => clearTimeout(timer);
   });
+  /* The tab says what the route's head wrote from the facts its page was read with. An answer that lands after that
+     read names the palette there too, once the router has written the title it had. */
+  createEffect(
+    () => {
+      const data = props.data;
+      const late = data.facts ? undefined : factsOf(data.page.seed);
+      return late?.written ? paletteTitle(data.page, late) : undefined;
+    },
+    title => {
+      if (!title) return;
+      const timer = setTimeout(() => {
+        document.title = title;
+      });
+      return () => clearTimeout(timer);
+    }
+  );
   /* the check's state is this browser's selection, read once the page is live */
   onSettled(loadSelection);
   onSettled(endBoot);
