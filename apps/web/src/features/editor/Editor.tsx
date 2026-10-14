@@ -298,6 +298,7 @@ function Page(props: PageProps) {
   const [band, setBand] = createSignal<number | null>(null);
   /* the stage's own pixels: Auto's size, and what an auto side follows */
   const [stageSize, setStageSize] = createSignal<Size>({ width: 800, height: 400 });
+  props.chosen.sized(stageSize);
   const narrow = props.narrow;
   /* a window too low for the sheet's name under the first screen: the styles put its row away, and the height the
      sheet reports for it must not bring it back */

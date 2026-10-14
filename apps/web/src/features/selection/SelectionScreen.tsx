@@ -1,4 +1,4 @@
-import { clampSize, parseSize, sizeParam } from "@grabient/engine/view.ts";
+import { clampSize, parseSize, type Size, sizeParam } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { EXPORT_DEFAULTS, ExportPanel, type ExportSettings } from "@grabient/ui/ExportPanel.tsx";
@@ -160,6 +160,9 @@ export function createSelectionScreen(page: {
   const open = () => asked() && selectionRead() && selection().length > 0;
 
   const [layout, setLayout] = createSignal<Layout>(LAYOUT);
+  /* what Auto is: a list's palettes have no picture of their own and take the grid's cell; a page that has one hands
+     its size in (sized), so Auto exports the picture the reader sees */
+  let auto: () => Size | undefined = () => undefined;
   /* each palette's size: the address's, or while a drag goes on, the value it has reached */
   const [draft, setDraft] = createSignal<string | null>(null);
   const committed = () => (typeof params().size === "string" ? (params().size as string) : "auto");
@@ -325,7 +328,7 @@ export function createSelectionScreen(page: {
     }))
   );
   const copy = (format: Format) =>
-    copySelection(selection(), settings(), format).then(
+    copySelection(selection(), settings(), format, auto()).then(
       done => {
         if (done === "downloaded")
           page.note(t("Images can't be copied here, so the file was downloaded."));
@@ -343,7 +346,7 @@ export function createSelectionScreen(page: {
       }
     );
   const download = (format: Format) =>
-    void downloadSelection(selection(), settings(), format).then(
+    void downloadSelection(selection(), settings(), format, auto()).then(
       () =>
         useTaken(
           format === "url" ? "copy" : "download",
@@ -372,6 +375,10 @@ export function createSelectionScreen(page: {
     open,
     show,
     close,
+    /** the page's own picture, whose size Auto is: the editor's stage, as it was measured last */
+    sized(picture: () => Size) {
+      auto = picture;
+    },
     /** Selection alone, once something is in it, where a page stands it among presses of its own */
     press,
     /** the end of the page's row of lists: Selection, once something is in it */
@@ -384,7 +391,12 @@ export function createSelectionScreen(page: {
         <main class={styles.screen} data-beside-scrollbar="">
           <div class={styles.stage}>
             <div class={styles.fit}>
-              <ExportPreview items={previews()} settings={settings()} onRemove={removeSelected} />
+              <ExportPreview
+                items={previews()}
+                settings={settings()}
+                autoSize={auto()}
+                onRemove={removeSelected}
+              />
             </div>
           </div>
           <div class={styles.column}>
@@ -397,11 +409,13 @@ export function createSelectionScreen(page: {
                 onCopy={copy}
                 onDownload={download}
                 save={page.save?.()}
+                autoSize={auto()}
                 onClose={close}
                 preview={
                   <ExportPreview
                     items={previews()}
                     settings={settings()}
+                    autoSize={auto()}
                     onRemove={removeSelected}
                   />
                 }

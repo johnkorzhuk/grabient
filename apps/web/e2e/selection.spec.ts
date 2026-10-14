@@ -50,3 +50,19 @@ test("an undo on the selection's screen walks only the steps made there", async 
     "Selection 1"
   );
 });
+
+test("on a palette's page the export's Auto is the picture the reader sees", async ({ page }) => {
+  await page.goto("/kS7CQ31Do6asvY-");
+  const picture = page.getByRole("img", { name: "The gradient" });
+  await expect(picture).toBeVisible();
+  const box = await picture.boundingBox();
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await presses.getByRole("button", { name: /^Selection/ }).click();
+  await expect(close(page)).toBeVisible();
+  // a width set from Auto keeps the other side at the picture's
+  await page.getByRole("spinbutton", { name: "Width" }).focus();
+  await page.keyboard.press("ArrowUp");
+  const width = Math.round(box?.width ?? 0) + 8;
+  await expect(page).toHaveURL(new RegExp(`size=${width}x${Math.round(box?.height ?? 0)}`));
+});
