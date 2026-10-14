@@ -13,13 +13,9 @@ import { json } from "../../lib/responses.ts";
    public collections that hold it, the most saved first, each titled in the page's language where it is translated.
    The page's title, its description, its static page for crawlers and its Markdown read them. Read once per page, or
    per answer to a browser that opens the palette, the edge has no copy of, from a replica, in one round of two
-   queries; a read that fails leaves its facts out, and the page goes by the palette's colors. */
+   queries. A read that fails leaves the facts out: the page goes by the palette's colors, and no cache keeps it. */
 
 const HELD_MAX = 6;
-const missed = (error: unknown): never[] => {
-  console.error("Palette facts unread", String(error));
-  return [];
-};
 
 /* each collection's first palettes come with it for its colors; CROSS JOIN keeps SQLite on the items' seed index */
 const HOLDING = `SELECT c.slug, c.title, c.description, t.title AS said, t.source,
@@ -39,21 +35,27 @@ interface HeldRow {
   seeds: string | null;
 }
 
+/** A palette's facts, or null when a read failed. */
 export async function paletteFacts(
   seed: string,
   palette: Palette,
   locale: Locale,
   source: Pick<Env, "DB"> = env
-): Promise<PaletteFacts> {
+): Promise<PaletteFacts | null> {
   const db = replica(source);
-  const [texts, held] = await Promise.all([
+  const read = await Promise.all([
     all<{ title: string; embed: string }>(
       db,
       "SELECT title, embed FROM k_palette_texts WHERE seed = ?",
       seed
-    ).catch(missed),
-    all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed).catch(missed)
-  ]);
+    ),
+    all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed)
+  ]).catch((error: unknown) => {
+    console.error("Palette facts unread", String(error));
+    return null;
+  });
+  if (!read) return null;
+  const [texts, held] = read;
   const text = texts[0];
   /* a title the colors contradict is left out, and the description goes with it */
   const written =
@@ -81,7 +83,8 @@ export async function paletteFacts(
 }
 
 /** `GET /api/palette-facts?seed=`: a palette's facts in English, the language its written words are in, for a page the
-    browser opens on it; kept at the edge as its page is. An address that is no palette's canonical seed is 404. */
+    browser opens on it; kept at the edge as its page is. An address that is no palette's canonical seed is 404, and a
+    failed read 503, which the browser takes for no facts and asks again. */
 export async function paletteFactsResponse(
   request: Request,
   source: Pick<Env, "DB"> = env
@@ -90,5 +93,8 @@ export async function paletteFactsResponse(
   const palette = decodePalette(seed);
   if (!palette || encodePalette(palette) !== seed)
     return json({ error: msg("Not found") }, { status: 404 });
-  return json(await paletteFacts(seed, palette, DEFAULT_LOCALE, source), { headers: PALETTE_PAGE });
+  const facts = await paletteFacts(seed, palette, DEFAULT_LOCALE, source);
+  return facts
+    ? json(facts, { headers: PALETTE_PAGE })
+    : json({ error: msg("Something went wrong. Try again.") }, { status: 503 });
 }

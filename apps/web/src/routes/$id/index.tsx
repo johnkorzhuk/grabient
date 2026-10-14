@@ -79,7 +79,8 @@ export const Route = createFileRoute("/$id/")({
     throw notFound();
   },
   headers: ({ loaderData }) => {
-    if (loaderData?.palette) return PALETTE_PAGE;
+    // the server reads a palette's facts with its page, and has none only where the read failed: no cache keeps that
+    if (loaderData?.palette) return loaderData.palette.facts ? PALETTE_PAGE : NO_STORE;
     return loaderData?.collection && !loaderData.collection.status ? PAGE : NO_STORE;
   },
   head: ({ match, params, loaderData }) => {
