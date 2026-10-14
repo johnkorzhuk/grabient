@@ -441,13 +441,16 @@ function wedgeGround(show: Shown): string {
 /* how far a wedge reaches past its end, under the next one drawn over it: two clipped sides meeting on a pixel would each
    cover it in part and let the ground through as a dark seam. The first reaches back under the last. */
 const UNDER = 0.01;
-/** On a page the browser draws the card itself: each wedge a layer clipped to its angle, and one palette the whole. */
-function cardBlock(shows: readonly Shown[]): Html {
+/** On a page the browser draws the card itself: each wedge a layer clipped to its angle, and one palette the whole. It
+    is one picture to a reader who listens, named as the email's image is, which names the link it stands in. */
+function cardBlock(shows: readonly Shown[], label: string): Html {
   const n = shows.length;
   const start = firstWedge(n);
   return h(
     "div",
     {
+      role: "img",
+      "aria-label": label,
       style: {
         position: "relative",
         width: "100%",
@@ -480,7 +483,7 @@ function cardOf(ctx: Ctx, card: NonNullable<CollectionOptions["card"]>, alt: str
     ctx.gateSeed?.(show.seed);
     return show;
   });
-  if (ctx.web) return rounded(pictureLink(cardBlock(shows), href));
+  if (ctx.web) return rounded(pictureLink(cardBlock(shows, alt), href));
   const picks = shows.map(({ seed, view }) => [seed, view.style, view.steps, view.angle].join("~"));
   const src = `${ctx.origin}/api/og/collection?slug=${encodeURIComponent(card.slug)}&pick=${picks.join(",")}`;
   const width = ctx.measure;

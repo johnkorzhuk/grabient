@@ -413,6 +413,8 @@ describe("palettes", () => {
     );
     expect(page).not.toMatch(/<img\b/);
     expect(page.match(/clip-path:polygon/g)).toHaveLength(2);
+    // the drawn card is one picture named as the email's image is, so its link has a name
+    expect(page).toMatch(/<a [^>]*><div role="img" aria-label="T"/);
     // one palette is the whole card
     const one = { slug: "t", palettes: [{ seed }] };
     const whole = decode(
