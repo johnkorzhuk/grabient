@@ -84,8 +84,12 @@ export function createPicture() {
   // the pixels a moved point reads from, made once per picture
   let pixels: { src: string; read: Promise<Pixels> } | null = null;
   const pixelsOf = (src: string) => {
-    if (pixels?.src !== src)
-      pixels = { src, read: image().then(module => module.pointPixels(src)) };
+    if (pixels?.src !== src) {
+      const read = image().then(module => module.pointPixels(src));
+      // read ahead of any move: a picture that can't be read says so to the move that asks, never as an error alone
+      read.catch(() => {});
+      pixels = { src, read };
+    }
     return pixels.read;
   };
   // the points as the last change that rested left them, which the next one is measured from

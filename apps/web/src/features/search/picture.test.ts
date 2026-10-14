@@ -21,13 +21,6 @@ beforeEach(() => {
     getItem: (key: string) => store.get(key) ?? null,
     setItem: (key: string, value: string) => store.set(key, value)
   });
-  // the points' pixels are read in the browser alone
-  vi.stubGlobal(
-    "Image",
-    class {
-      decode = () => new Promise(() => {});
-    }
-  );
 });
 afterEach(() => vi.unstubAllGlobals());
 
