@@ -103,9 +103,9 @@
     }
   }
 
+  /* the bar keeps its height at every width: what stands under it (a sheet, a sticky column) is placed by it */
   @container page (max-width: 960px) {
     .bar:not([data-brand]) {
-      min-height: 0;
       padding-block: var(--space-s3);
       padding-inline: var(--space-s4);
     }
