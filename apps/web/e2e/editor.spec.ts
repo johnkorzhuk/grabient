@@ -1,4 +1,4 @@
-import { devices, expect, type Page, test } from "@playwright/test";
+import { devices, expect, type Page, type Route, test } from "@playwright/test";
 
 /* The editor at a palette's address: the static page the server sends, the editor the browser draws over it, the
    address that follows each edit in place, the undo the entry keeps, and what the page asks the server. */
@@ -30,6 +30,85 @@ test("the server sends the static page, and the editor takes its place", async (
   await open(page);
   await expect(page.locator(".palette-static")).toHaveCount(0);
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+});
+
+test.describe("while the editor's code loads", () => {
+  /** Holds every script the page asks for; the returned function lets them through, or fails them. */
+  async function holdScripts(page: Page) {
+    const held: Route[] = [];
+    let holding = true;
+    await page.route("**/*", route => {
+      if (holding && route.request().resourceType() === "script") held.push(route);
+      else void route.continue();
+    });
+    return async (how: "continue" | "abort") => {
+      holding = false;
+      await Promise.all(held.map(route => (how === "abort" ? route.abort() : route.continue())));
+    };
+  }
+  /** Whether the static page was visible, frame by frame, from the first frame that held it. */
+  const frames = (page: Page) => page.evaluate(() => (window as { shown?: boolean[] }).shown ?? []);
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => {
+      const shown: boolean[] = [];
+      Object.assign(window, { shown });
+      const record = () => {
+        const fallback = document.querySelector(".palette-static");
+        if (fallback && shown.length < 2000) shown.push(fallback.checkVisibility());
+        requestAnimationFrame(record);
+      };
+      requestAnimationFrame(record);
+    });
+  });
+
+  test("no frame shows the static page, and the editor takes its place", async ({ page }) => {
+    const release = await holdScripts(page);
+    await page.goto(`/${SEED}?size=2560x1664`, { waitUntil: "commit" });
+    await page.locator(".palette-static").waitFor({ state: "attached" });
+    await page.waitForTimeout(500);
+    await expect(page.locator("html")).toHaveAttribute("data-seed-boot", "");
+    await expect(page.locator(".palette-static")).toBeHidden();
+    const before = await frames(page);
+    expect(before.length).toBeGreaterThan(0);
+    expect(before).not.toContain(true);
+    await release("continue");
+    await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+    await expect(page.locator("html")).not.toHaveAttribute("data-seed-boot");
+    await expect(page.locator(".palette-static")).toHaveCount(0);
+    expect(await frames(page)).not.toContain(true);
+  });
+
+  test("a script that fails to load brings the static page back, whole", async ({ page }) => {
+    const release = await holdScripts(page);
+    await page.goto(`/${SEED}?size=2560x1664`, { waitUntil: "commit" });
+    await page.locator(".palette-static").waitFor({ state: "attached" });
+    await expect(page.locator(".palette-static")).toBeHidden();
+    await release("abort");
+    await expect(page.locator(".palette-static")).toBeVisible();
+    await expect(page.locator("html")).not.toHaveAttribute("data-seed-boot");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Download PNG" })).toHaveAttribute(
+      "href",
+      `/${SEED}.png?w=2560&h=1664`
+    );
+  });
+
+  test.describe("without JavaScript", () => {
+    test.use({ javaScriptEnabled: false });
+    test("the static page is whole", async ({ page }) => {
+      await page.goto(`/${SEED}?size=2560x1664`);
+      await expect(page.locator("html")).not.toHaveAttribute("data-seed-boot");
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const picture = await page.locator(".palette-static [data-picture]").boundingBox();
+      if (!picture) throw new Error("no picture");
+      expect(picture.width / picture.height).toBeCloseTo(2560 / 1664, 2);
+      await expect(page.locator(".palette-static [data-stops] li")).toHaveCount(7);
+      await expect(page.getByRole("link", { name: "Palette JSON" })).toHaveAttribute(
+        "href",
+        `/${SEED}.json`
+      );
+    });
+  });
 });
 
 test("the editor lays itself out without an error to report", async ({ page }) => {
