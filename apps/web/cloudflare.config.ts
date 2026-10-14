@@ -131,6 +131,10 @@ function staging(): CloudflareConfig {
         PUBLIC_ORIGIN: bindings.text(ORIGINS.staging),
         BETTER_AUTH_URL: bindings.text(ORIGINS.staging),
         BETTER_AUTH_SECRET: bindings.secret(),
+        // Google sign-in and the newsletter's sender: a deploy without them is refused, not a site without sign-in
+        GOOGLE_CLIENT_ID: bindings.secret(),
+        GOOGLE_CLIENT_SECRET: bindings.secret(),
+        RESEND_API_KEY: bindings.secret(),
         EMAIL_FROM: bindings.text(EMAIL_FROM),
         EMAIL: bindings.sendEmail({ allowedSenderAddresses: [EMAIL_FROM] }),
         NEWSLETTER_FROM: bindings.text(NEWSLETTER_FROM),
