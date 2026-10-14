@@ -199,7 +199,7 @@ let checkedAt = 0;
 let generation = 0;
 /** Asks the server who is signed in: one ask at a time, and a check made within the last minute answers again unless
     `fresh` asks the database instead of the session's signed five-minute copy. A failed check never signs anyone out:
-    with no connection, the account last signed in here stands. */
+    with no connection, or none that answers, the account last signed in here stands. */
 export function refreshSession(fresh = false): Promise<Profile | null> {
   if (isServer) return Promise.resolve(null);
   if (request && (!fresh || requestFresh)) return request;
@@ -213,7 +213,7 @@ export function refreshSession(fresh = false): Promise<Profile | null> {
     try {
       const response = await fetch(
         `/api/auth/get-session${fresh ? "?disableCookieCache=true" : ""}`,
-        { credentials: "same-origin", cache: "no-store" }
+        { credentials: "same-origin", cache: "no-store", signal: AbortSignal.timeout(READ_TIMEOUT) }
       );
       if (!response.ok) throw new Error(`session ${response.status}`);
       const next = v.parse(SessionAnswer, await response.json())?.user ?? null;
