@@ -39,6 +39,9 @@ export interface Loaded extends FramedData {
   robots?: string;
   /** a search whose words were read in part for now (a crawler's, or past an allowance): no cache keeps the page */
   unkept?: boolean;
+  /** the collections a public list's page lists, which its head names: a head is drawn in the browser before its
+      cache holds the page, and it must say what the server's said */
+  collections?: readonly { slug: string; title: string }[];
 }
 
 /** The bar and the water read at most this many palettes. */
@@ -93,10 +96,13 @@ export async function loadList(client: QueryClient, place: ListPlace): Promise<L
     client.ensureQueryData(tagsQuery(place.query))
   ]);
   if (failed(page)) return {};
-  const paint = listPaint(page.items, place.view);
+  const listed = {
+    paint: listPaint(page.items, place.view),
+    collections: page.items.map(c => ({ slug: c.slug, title: c.title }))
+  };
   if (place.page > Math.max(1, page.totalPages))
-    return { status: 404, robots: "noindex,follow", paint };
-  return page.unkept ? { paint, unkept: true } : { paint };
+    return { status: 404, robots: "noindex,follow", ...listed };
+  return page.unkept ? { ...listed, unkept: true } : listed;
 }
 
 /* Whether a request comes with no session's cookie, so its reader is signed out for certain: read on the account's
@@ -129,6 +135,8 @@ const factsOf = (doc: CollectionDocument, languages?: readonly string[]): Collec
 
 export interface CollectionLoaded extends Loaded {
   facts?: CollectionFacts;
+  /** the palettes the collection lists in the address's order, by seed, which its head names */
+  palettes?: readonly string[];
   /** nothing public lives here and the request came with no session: nobody here can be a private one's owner */
   signedOut?: boolean;
 }
@@ -159,13 +167,14 @@ export async function loadCollection(
       ),
       statusCode: 301
     });
-  if (found.doc)
+  if (found.doc) {
+    const ordered = sortCollectionItems(found.doc.items, at.order);
     return {
       facts: factsOf(found.doc, found.languages),
-      paint: sortCollectionItems(found.doc.items, at.order)
-        .slice(0, PAINTED)
-        .map(item => drawnIn(inputOf(item), viewOf(params)))
+      palettes: ordered.map(item => item.kseed),
+      paint: ordered.slice(0, PAINTED).map(item => drawnIn(inputOf(item), viewOf(params)))
     };
+  }
   if (here) return { status: 404, robots: "noindex,follow", signedOut: noSession() };
   if (!isServer) throw redirect({ href: at.publicHref, reloadDocument: true });
   const search = listSearch(
@@ -224,14 +233,12 @@ export function searchOf(search: Record<string, unknown> | undefined): string {
 }
 
 /** A collection page's head: its title, words and card from its own words and counts, the palettes it lists in the
-    address's order, and out of the index where its page is a 404. */
+    address's order, and out of the index where its page is a 404. All of it from what the loader said, the same on
+    both sides. */
 export function collectionHead(
-  client: QueryClient,
   at: { slug: string; order: PaletteOrder; search: Record<string, unknown> },
   loaded: CollectionLoaded | undefined
 ) {
-  const found = client.getQueryData(collectionQuery(at.slug).queryKey);
-  const doc = found && !failed(found) ? found.doc : null;
   return pageHead({
     kind: "collection",
     slug: at.slug,
@@ -239,7 +246,7 @@ export function collectionHead(
     view: viewOf(new URLSearchParams(searchOf(at.search))),
     ...(loaded?.facts ? { collection: loaded.facts } : {}),
     ...(loaded?.robots ? { robots: loaded.robots } : {}),
-    ...(doc ? { palettes: sortCollectionItems(doc.items, at.order).map(item => item.kseed) } : {})
+    ...(loaded?.palettes ? { palettes: loaded.palettes } : {})
   });
 }
 
@@ -259,14 +266,11 @@ export const listMeta = (place: ListPlace): Page =>
 
 /** A list's head: its title for its order, frame, words and page, the collections a public one lists, and out of the
     index past its end. */
-export function listHead(client: QueryClient, place: ListPlace, loaded: Loaded | undefined) {
+export function listHead(place: ListPlace, loaded: Loaded | undefined) {
   if (place.order === "saved") return pageHead(listMeta(place));
-  const page = client.getQueryData(collectionsQuery(listKey(place)).queryKey);
   return pageHead({
     ...listMeta(place),
     ...(loaded?.robots ? { robots: loaded.robots } : {}),
-    ...(page && !failed(page)
-      ? { collections: page.items.map(c => ({ slug: c.slug, title: c.title })) }
-      : {})
+    ...(loaded?.collections ? { collections: loaded.collections } : {})
   });
 }

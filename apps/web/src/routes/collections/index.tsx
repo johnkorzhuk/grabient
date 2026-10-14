@@ -12,11 +12,7 @@ export const Route = createFileRoute("/collections/")({
     loadList(context.queryClient, listPlace("popular", undefined, deps.search)),
   headers: ({ loaderData }) => (loaderData?.status || loaderData?.unkept ? NO_STORE : PAGE),
   head: ({ match, loaderData }) =>
-    listHead(
-      match.context.queryClient,
-      listPlace("popular", undefined, searchOf(match.search)),
-      loaderData
-    ),
+    listHead(listPlace("popular", undefined, searchOf(match.search)), loaderData),
   staticData: { corner: ListAppearance, translated: true },
   component: function PopularCollections() {
     const search = Route.useSearch();

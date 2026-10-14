@@ -115,3 +115,37 @@ test("a collection opened from a list keeps the list's summary when its own read
   await expect(page.locator("main article")).toHaveCount(1);
   await expect(page.locator("main")).toContainText("Couldn't load this collection.");
 });
+
+test("each page's head holds one block of structured data, its own", async ({ page }) => {
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+      })
+  );
+  const blocks = page.locator('script[type="application/ld+json"]');
+  const kinds = () =>
+    blocks.evaluateAll(scripts =>
+      scripts.flatMap(script =>
+        (JSON.parse(script.textContent ?? "[]") as { "@type": string }[]).map(node => node["@type"])
+      )
+    );
+  await page.goto("/collections");
+  await hydrated(page);
+  await expect(blocks).toHaveCount(1);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  await expect(blocks).toHaveCount(1);
+  expect(await kinds()).toContain("BreadcrumbList");
+  await page.locator("main a", { hasText: "Collections" }).first().click();
+  await expect(page).toHaveURL(/\/collections\/rising$/);
+  await expect(blocks).toHaveCount(1);
+  expect(await kinds()).not.toContain("BreadcrumbList");
+});

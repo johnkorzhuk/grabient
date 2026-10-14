@@ -25,11 +25,7 @@ export const Route = createFileRoute("/collections/rising/{-$frame}")({
     loadList(context.queryClient, listPlace("rising", params.frame, deps.search)),
   headers: ({ loaderData }) => (loaderData?.status || loaderData?.unkept ? NO_STORE : FRESH),
   head: ({ match, params, loaderData }) =>
-    listHead(
-      match.context.queryClient,
-      listPlace("rising", params.frame, searchOf(match.search)),
-      loaderData
-    ),
+    listHead(listPlace("rising", params.frame, searchOf(match.search)), loaderData),
   staticData: { corner: ListAppearance, translated: true },
   component: function RisingCollections() {
     const search = Route.useSearch();

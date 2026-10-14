@@ -10,12 +10,7 @@ export const Route = createFileRoute("/collections/saved")({
   validateSearch: (search: Record<string, unknown>) => search,
   loader: ({ context }) => loadSaved(context.queryClient),
   headers: () => NO_STORE,
-  head: ({ match }) =>
-    listHead(
-      match.context.queryClient,
-      listPlace("saved", undefined, searchOf(match.search)),
-      undefined
-    ),
+  head: ({ match }) => listHead(listPlace("saved", undefined, searchOf(match.search)), undefined),
   staticData: { corner: ListAppearance },
   component: function SavedCollections() {
     const search = Route.useSearch();

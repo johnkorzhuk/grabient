@@ -22,11 +22,7 @@ export const Route = createFileRoute("/@{$handle}/$slug/")({
     }),
   headers: ({ loaderData }) => (loaderData && !loaderData.status ? PAGE : NO_STORE),
   head: ({ match, params, loaderData }) =>
-    collectionHead(
-      match.context.queryClient,
-      { slug: slugOf(params), order: "popular", search: match.search },
-      loaderData
-    ),
+    collectionHead({ slug: slugOf(params), order: "popular", search: match.search }, loaderData),
   staticData: { corner: ListAppearance },
   component: function Collection() {
     const params = Route.useParams();

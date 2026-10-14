@@ -78,7 +78,6 @@ export const Route = createFileRoute("/$id/")({
     if (loaderData?.palette) return paletteHead(loaderData.palette);
     if (loaderData?.collection)
       return collectionHead(
-        match.context.queryClient,
         { slug: params.id, order: "popular", search: match.search },
         loaderData.collection
       );

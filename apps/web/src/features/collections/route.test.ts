@@ -6,6 +6,7 @@ import { AS_SAVED } from "../list/appearance.ts";
 import type { ListPlace } from "./params.ts";
 import {
   collectionHead,
+  listHead,
   listMeta,
   listPaint,
   listPlace,
@@ -166,7 +167,8 @@ describe("a public list's loader", () => {
   test("hands the frame the page's first palettes", async () => {
     const loaded = await loadList(lists(pageOf([summary("a", SEEDS)])), place());
     expect(loaded).toEqual({
-      paint: [expect.objectContaining({ seed: SEEDS[0] }), expect.anything()]
+      paint: [expect.objectContaining({ seed: SEEDS[0] }), expect.anything()],
+      collections: [{ slug: "a", title: "a" }]
     });
   });
   test("answers 404, out of the index, for a page past the list's end", async () => {
@@ -174,11 +176,26 @@ describe("a public list's loader", () => {
     expect(await loadList(lists(page), place({ page: 3 }))).toEqual({
       status: 404,
       robots: "noindex,follow",
-      paint: []
+      paint: [],
+      collections: []
     });
-    expect(await loadList(lists(page), place({ page: 2 }))).toEqual({ paint: [] });
+    expect(await loadList(lists(page), place({ page: 2 }))).toEqual({ paint: [], collections: [] });
     // an empty list's first page is the list
-    expect(await loadList(lists(pageOf([], 0)), place())).toEqual({ paint: [] });
+    expect(await loadList(lists(pageOf([], 0)), place())).toEqual({ paint: [], collections: [] });
+  });
+  test("names the collections it read in its head, from what it hands the page", async () => {
+    const loaded = await loadList(lists(pageOf([summary("ocean-depths", SEEDS)])), place());
+    const head = listHead(place(), loaded);
+    const data = head.meta.find(entry => "script:ld+json" in entry)?.["script:ld+json"] as {
+      "@type": string;
+      mainEntity?: { itemListElement: { url: string }[] };
+    }[];
+    const listed = data.find(node => node["@type"] === "CollectionPage");
+    expect(listed?.mainEntity?.itemListElement.map(item => item.url)).toEqual([
+      "https://grabient.com/ocean-depths"
+    ]);
+    // the browser draws the head before its cache holds the page: it reads the loader's data alone
+    expect(listHead(place(), loaded)).toEqual(head);
   });
   test("says no cache keeps a search whose words were read in part", async () => {
     const page = { ...pageOf([summary("ocean-depths", SEEDS)]), unkept: true };
@@ -202,7 +219,8 @@ describe("a public list's loader", () => {
     });
     // Popular reads no frame, so one turned off changes nothing for it
     expect(await loadList(lists(pageOf([]), ["1w"]), place({ frame: "3m" }))).toEqual({
-      paint: []
+      paint: [],
+      collections: []
     });
   });
 });
@@ -268,7 +286,7 @@ describe("a collection page's loader", () => {
     const loaded = await loadCollection(cache, at("ocean-depths"));
     expect(loaded.facts).toMatchObject({ title: "Ocean depths", languages: ["ja", "de"] });
     const named = (found: typeof loaded) =>
-      collectionHead(cache, { slug: "ocean-depths", order: "popular", search: {} }, found)
+      collectionHead({ slug: "ocean-depths", order: "popular", search: {} }, found)
         .links.filter(link => "hreflang" in link)
         .map(link => [link.hreflang, link.href]);
     expect(named(loaded)).toEqual([
