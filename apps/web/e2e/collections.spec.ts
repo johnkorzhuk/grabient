@@ -396,3 +396,19 @@ test("each undo and redo of a pick says what it did, and a new collection goes b
   await page.keyboard.press("ControlOrMeta+z");
   await expect(said).toHaveText("Review temp deleted.");
 });
+
+test("a crawler's search of the collections whose words were read in part is kept by no cache", async ({
+  request
+}) => {
+  const crawler = {
+    "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+  };
+  for (const path of [
+    "/collections?q=quetzalcoatl+marsh+zz",
+    "/collections/rising?q=quetzalcoatl+marsh+zz"
+  ]) {
+    const answer = await request.get(path, { headers: crawler, maxRedirects: 0 });
+    expect(answer.status()).toBe(200);
+    expect(answer.headers()["cdn-cache-control"]).toBe("no-store");
+  }
+});
