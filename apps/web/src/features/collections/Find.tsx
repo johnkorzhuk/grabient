@@ -2,7 +2,7 @@ import { dominantColors } from "@grabient/engine/dominant.ts";
 import { localHref, t } from "@grabient/i18n";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
-import { createEffect, createSignal, Errored, Loading, onCleanup } from "solid-js";
+import { createEffect, createSignal, Errored, Loading, onCleanup, untrack } from "solid-js";
 import { listUnavailable, marked, offline } from "../../app/connection.ts";
 import list from "../../app/list.module.css";
 import { paletteId } from "../../lib/words.ts";
@@ -83,7 +83,7 @@ export function Find(props: {
       if (!wanted) return;
       let live = true;
       const key = { query: wanted.words, sort: "newest" as const, page: 1, limit: OWN_TAGS };
-      client.fetchQuery(ownQuery(wanted.who, key, false)).then(
+      untrack(() => client.fetchQuery(ownQuery(wanted.who, key, false))).then(
         page => {
           if (live && !failed(page)) setOwnHits({ words: wanted.words, items: page.items });
         },
