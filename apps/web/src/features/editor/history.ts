@@ -131,9 +131,9 @@ export function followAddress(
     }
   });
 
-  /* A press that leads to another entry writes what waits before the entry is pushed, since the address it leaves is
-     read from the router's. Any other press, a drag's end among them, waits its turn: presses faster than WRITE_MS
-     would otherwise write once each. A page being left writes what it has not. */
+  /* A press that leads to another entry (a link, the way into the selection) writes what waits first: the entry it
+     leaves keeps the router's address, and the selection's is made from it. Other presses, a drag's end among them,
+     wait their turn, since a run of presses would otherwise write once each. A page being left writes what it has not. */
   const leaving = (event: Event) => {
     if (event.target instanceof Element && event.target.closest("a[href], [data-selection]"))
       flush();
