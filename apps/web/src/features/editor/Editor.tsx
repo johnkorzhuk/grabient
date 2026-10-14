@@ -78,6 +78,8 @@ import { createPaletteSave, type PaletteSave } from "./save.ts";
    own scroll. */
 
 const NARROW = 900;
+/* a window this low or lower shows nothing of the sheet under the first screen (the styles' own max-height) */
+const LOW = 560;
 /* The sheet, under the first screen, comes once the first screen stands: its code arrives apart, and its panes are
    made in a task of their own, so the controls answer sooner. */
 const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
@@ -293,6 +295,13 @@ function Page(props: PageProps) {
   /* the stage's own pixels: Auto's size, and what an auto side follows */
   const [stageSize, setStageSize] = createSignal<Size>({ width: 800, height: 400 });
   const narrow = () => width() <= NARROW;
+  /* a window too low for the sheet's name under the first screen: the styles put its row away, and the height the
+     sheet reports for it must not bring it back */
+  const lowWindow = matchMedia(`(max-height: ${LOW}px)`);
+  const [low, setLow] = createSignal(lowWindow.matches);
+  const followLow = (event: MediaQueryListEvent) => setLow(event.matches);
+  lowWindow.addEventListener("change", followLow);
+  onCleanup(() => lowWindow.removeEventListener("change", followLow));
   /* the side stands beside the page, or its rows follow the strip */
   const sided = () => props.panel.open() || narrow();
   const railed = () => !props.panel.open() && !narrow();
@@ -365,7 +374,7 @@ function Page(props: PageProps) {
       style={{
         "--dock-h": `${dockH()}px`,
         ...(head() !== null ? { "--head": `${head()}px` } : {}),
-        ...(band() !== null && !narrow() ? { "--peek": `${band()}px` } : {})
+        ...(band() !== null && !narrow() && !low() ? { "--peek": `${band()}px` } : {})
       }}
     >
       {/* the parts stand in the order they are read and the keyboard walks them: beside the page the side comes first;
