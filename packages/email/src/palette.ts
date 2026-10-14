@@ -13,6 +13,7 @@ import {
   DEFAULT_ANGLE,
   DEFAULT_STEPS,
   DEFAULT_STYLE,
+  isSwatchStyle,
   STEPS_MAX,
   STEPS_MIN,
   STYLES,
@@ -146,6 +147,22 @@ export function likedGate(liked: readonly PaletteView[]): NonNullable<Ctx["gate"
   };
 }
 
+/** What a collection's card may draw: palettes an admin liked, in any view, since the card draws them as rings and
+    blends of its own design. */
+export function likedSeedGate(liked: readonly PaletteView[]): NonNullable<Ctx["gateSeed"]> {
+  const held = new Set<string>();
+  for (const like of liked) {
+    try {
+      held.add(shown(like).seed);
+    } catch {
+      // a like the codec no longer reads
+    }
+  }
+  return seed => {
+    if (!held.has(seed))
+      throw new Error(`An issue draws only palettes an admin liked. Not among them: ${seed}`);
+  };
+}
 /** The view written in CSS under a picture, over its middle color: the shorthand alone, since Gmail on Android rewrites
     a gradient written as background-image, or beside one, into nothing it can draw. */
 export const viewGround = (show: Shown, more: Record<string, string> = {}) => ({
@@ -362,19 +379,129 @@ export interface CollectionOptions {
   title: string;
   href: string;
   /** three to six of its palettes, each a square tile in its view */
-  tiles: readonly PaletteView[];
+  tiles?: readonly PaletteView[];
+  /** in the tiles' place, its card: palettes it holds as wedges about the middle, each in a view of the card's own
+      design (the site's share card for a collection, /api/og/collection, `pick`), up to nine */
+  card?: { slug: string; palettes: readonly PaletteView[] };
   /** quiet words at the end of the title's row: how many palettes it holds */
   note?: string;
   /** a line under the title */
   about?: string;
 }
-/** A collection: a row of its palettes as tiles, the seams the sheet's paper, then its title. More than six tiles are
-    cut to six. */
+/* the share card's own pixels, which give its picture its shape (apps/web server/images/size.ts, CARD) */
+const CARD = { width: 1200, height: 630 };
+/* Where the card's first wedge stands, as the Worker's painter turns it (server/images/paint.ts, wedgeStart): centered
+   on the wordmark's place at the top left. Angles run clockwise from straight up. */
+const firstWedge = (count: number) =>
+  Math.atan2(
+    (175 / 1200) * CARD.width - CARD.width / 2,
+    CARD.height / 2 - (64.5 / 630) * CARD.height
+  ) -
+  Math.PI / count;
+/** A point of the card's edge straight out from its middle at `angle`, as percentages of its width and height. */
+function edgeAt(angle: number): [number, number] {
+  const dx = Math.sin(angle);
+  const dy = -Math.cos(angle);
+  const reach = Math.min(
+    dx ? CARD.width / 2 / Math.abs(dx) : Number.POSITIVE_INFINITY,
+    dy ? CARD.height / 2 / Math.abs(dy) : Number.POSITIVE_INFINITY
+  );
+  return [50 + ((dx * reach) / CARD.width) * 100, 50 + ((dy * reach) / CARD.height) * 100];
+}
+const CORNERS: [number, number][] = [
+  [0, 0],
+  [100, 0],
+  [100, 100],
+  [0, 100]
+];
+const turn = (angle: number) => angle - 2 * Math.PI * Math.floor(angle / (2 * Math.PI));
+/** One wedge, `from` to `to` clockwise, as a clip path: the middle, its sides' ends on the edge, the corners between. */
+function wedgePath(from: number, to: number): string {
+  const corners = CORNERS.filter(([x, y]) => {
+    const at = Math.atan2(((x - 50) / 100) * CARD.width, ((50 - y) / 100) * CARD.height);
+    return turn(at - from) < turn(to - from);
+  }).sort(
+    (a, b) =>
+      turn(Math.atan2(((a[0] - 50) / 100) * CARD.width, ((50 - a[1]) / 100) * CARD.height) - from) -
+      turn(Math.atan2(((b[0] - 50) / 100) * CARD.width, ((50 - b[1]) / 100) * CARD.height) - from)
+  );
+  const points = [[50, 50], edgeAt(from), ...corners, edgeAt(to)];
+  return `polygon(${points.map(([x, y]) => `${x!.toFixed(3)}% ${y!.toFixed(3)}%`).join(",")})`;
+}
+/** A wedge's colors running out from the middle to the far corners: bands for a swatch style, else a blend. */
+function wedgeGround(show: Shown): string {
+  const n = show.colors.length;
+  const stops = isSwatchStyle(show.view.style)
+    ? show.colors.map(
+        (hex, i) => `${hex} ${((i / n) * 100).toFixed(3)}% ${(((i + 1) / n) * 100).toFixed(3)}%`
+      )
+    : show.colors.map((hex, i) => `${hex} ${((i / Math.max(1, n - 1)) * 100).toFixed(3)}%`);
+  return `radial-gradient(circle farthest-corner at 50% 50%,${stops.join(",")})`;
+}
+/** On a page the browser draws the card itself: each wedge a layer clipped to its angle. */
+function cardBlock(shows: readonly Shown[]): Html {
+  const n = shows.length;
+  const start = firstWedge(n);
+  return h(
+    "div",
+    {
+      style: {
+        position: "relative",
+        width: "100%",
+        "aspect-ratio": `${CARD.width} / ${CARD.height}`
+      }
+    },
+    shows.map((show, k) =>
+      h("div", {
+        style: {
+          position: "absolute",
+          inset: "0",
+          "clip-path": wedgePath(
+            start + (2 * Math.PI * k) / n,
+            start + (2 * Math.PI * (k + 1)) / n
+          ),
+          background: wedgeGround(show)
+        }
+      })
+    )
+  );
+}
+/** A collection's card at the sheet's measure, leading to the collection: the Worker's picture in an email, drawn by
+    the browser on a page. */
+function cardOf(ctx: Ctx, card: NonNullable<CollectionOptions["card"]>, alt: string, href: string) {
+  const shows = card.palettes.slice(0, 9).map(of => {
+    const show = shown(of);
+    ctx.gateSeed?.(show.seed);
+    return show;
+  });
+  if (ctx.web) return rounded(pictureLink(cardBlock(shows), href));
+  const picks = shows.map(({ seed, view }) => [seed, view.style, view.steps, view.angle].join("~"));
+  const src = `${ctx.origin}/api/og/collection?slug=${encodeURIComponent(card.slug)}&pick=${picks.join(",")}`;
+  const width = ctx.measure;
+  const picture = h("img", {
+    src: address(src),
+    alt,
+    width,
+    height: Math.round((width * CARD.height) / CARD.width),
+    loading: ctx.web ? "lazy" : false,
+    style: {
+      display: "block",
+      width: "100%",
+      "max-width": ctx.web ? false : px(width),
+      height: "auto"
+    }
+  });
+  return rounded(pictureLink(picture, href));
+}
+/** A collection: a row of its palettes as tiles, the seams the sheet's paper, or its card, then its title. More than
+    six tiles are cut to six. */
 export const collection =
   (options: CollectionOptions): Part =>
   ctx => {
     const href = address(options.href);
-    const tiles = options.tiles.slice(0, 6).map(shown);
+    if (options.card)
+      return titled(ctx, options, href, cardOf(ctx, options.card, options.title, href));
+    const tiles = (options.tiles ?? []).slice(0, 6).map(shown);
     if (tiles.length < 3)
       throw new Error(`A collection shows 3 to 6 of its palettes, not ${tiles.length}`);
     const gap = SPACE.s1;
@@ -387,26 +514,29 @@ export const collection =
         picture(ctx, tile, "tile", side, { href })
       )
     ]);
-    const titled = caption(ctx, options.title, href, options.note, false);
-    const about = options.about ? text(options.about, { role: "small" })(ctx) : null;
-    return {
-      html: table(
-        { ...FULL, "data-part": "collection" },
-        tr(
-          h(
-            "td",
-            null,
-            rounded(table({ ...FULL, dir: "ltr", style: { "table-layout": "fixed" } }, tr(cells)))
-          )
-        ),
-        titled && tr(h("td", { style: { "padding-top": px(SPACE.s2) } }, titled)),
-        about && tr(h("td", { style: { "padding-top": px(SPACE.s1) } }, about.html))
-      ),
-      text: [[options.title, options.note].filter(Boolean).join(", "), href, options.about]
-        .filter(Boolean)
-        .join("\n")
-    };
+    return titled(
+      ctx,
+      options,
+      href,
+      rounded(table({ ...FULL, dir: "ltr", style: { "table-layout": "fixed" } }, tr(cells)))
+    );
   };
+/** A collection's picture, then its title and the line under it. */
+function titled(ctx: Ctx, options: CollectionOptions, href: string, picture: Html): Rendered {
+  const heading = caption(ctx, options.title, href, options.note, false);
+  const about = options.about ? text(options.about, { role: "small" })(ctx) : null;
+  return {
+    html: table(
+      { ...FULL, "data-part": "collection" },
+      tr(h("td", null, picture)),
+      heading && tr(h("td", { style: { "padding-top": px(SPACE.s2) } }, heading)),
+      about && tr(h("td", { style: { "padding-top": px(SPACE.s1) } }, about.html))
+    ),
+    text: [[options.title, options.note].filter(Boolean).join(", "), href, options.about]
+      .filter(Boolean)
+      .join("\n")
+  };
+}
 
 /** Collections one under another. */
 export const collections = (items: readonly CollectionOptions[]): Part =>

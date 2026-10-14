@@ -7,7 +7,13 @@
 import { DEFAULT_LOCALE, dirOf, type Locale } from "@grabient/i18n";
 import { brandHead, paletteHead, seedStops } from "./head.ts";
 import { type Html, h, mso, notMso, raw, table, tr } from "./html.ts";
-import { likedGate, type PaletteOptions, type PaletteView, under } from "./palette.ts";
+import {
+  likedGate,
+  likedSeedGate,
+  type PaletteOptions,
+  type PaletteView,
+  under
+} from "./palette.ts";
 import { BLANK, type Ctx, L, named, type Part, type Parts, px, rule, stack } from "./parts.ts";
 import {
   BRAND,
@@ -95,6 +101,7 @@ function context(options: {
     sans: locale === "vi" ? FONT.system : FONT.sans,
     measure: width - 2 * PAD - 2 * SIZE.hairline,
     gate: options.liked ? likedGate(options.liked) : undefined,
+    gateSeed: options.liked ? likedSeedGate(options.liked) : undefined,
     web: options.web
   };
 }

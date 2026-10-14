@@ -83,7 +83,7 @@ export const november: Issue = {
       title: "Rising in November",
       lede: LEDE,
       ahead: "In this issue: palettes from your AI app, and two collections.",
-      liked: [...PICKS, ...CALM, ...SHELVES.flatMap(of => of.tiles)],
+      liked: [...PICKS, ...CALM, ...SHELVES.flatMap(of => of.tiles ?? [])],
       picks: PICKS,
       more: rising(origin),
       body: [

@@ -30,6 +30,8 @@ export interface Ctx {
   measure: number;
   /** refuses, by throwing, a palette the email may not draw (palette.ts, `likedGate`) */
   gate?: (seed: string, view: View) => void;
+  /** refuses a palette no admin liked in any view: a collection's card draws views of its own design */
+  gateSeed?: (seed: string) => void;
   /** drawn for a page of the site: the browser draws every view and the wordmark, and the page's own title stands
       over every heading */
   web?: boolean;

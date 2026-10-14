@@ -24,45 +24,58 @@ const PICKS = [
   pick("kW6hdK6pbElaRxXeH9QcJFBI", "radialSwatches", 5, 0, "Pistachio macaron"),
   pick("kW0ibSWiTBMytwpBMkKMyhAQ", "angularGradient", 32, 315, "Orchid velvet")
 ];
+/* Each collection's card draws palettes it holds as wedges about the middle, taken in turn, their rings stepping up from
+   three to eleven around the card. The palettes are ones an admin liked (LIKED, in the views liked); the rings are the
+   card's. */
+const SUNSET = "kW1lA1Wy67USpu2xnjjopO8Y";
+const FOG = "kW-wQ8cwY_uiJ1DTlMBuJfAA";
+const LAKE = "kW6QZ-Y4jAM-NwI6jcBqYxAw";
+const BLUE_HOUR = "kW-Qmd8xC-2IhQNKp8IsCfCY";
+const TWILIGHT = "kW7Q_UZpg_9Mpv2_rz9rKS_4";
+const TIDE_LINES = "kWfT2g0CA-GOZvBvmTn7p-8g";
+const SHELL = "kYoCnCYRDJe2Wxv1j8P5pFLUYbQq";
+const SAND = "kY9QtP7I05eIWwhdGUG3pHDuaRxu";
+const EELGRASS = "kWXDFzyB9BFeVQzTkslv6JEo";
+const TIDAL_BLUE = "kWYCuqupzC9IbwPnkT78Qq5Q";
+const DEEP_GREEN = "kWTixwPaU_tQpQBhn0A4YrAQ";
+const OLIVE = "kYTy6vO59AFKWPlhkrc4yc8NawP6";
+const LIKED = [
+  view(SUNSET, "linearGradient", 7, 180),
+  view(FOG, "linearGradient", 7, 90),
+  view(LAKE, "linearGradient", 7, 135),
+  view(BLUE_HOUR, "linearGradient", 7, 45),
+  view(TWILIGHT, "linearGradient", 7, 45),
+  view(TIDE_LINES, "linearSwatches", 6, 180),
+  view(SHELL, "angularGradient", 11, 180),
+  view(SAND, "linearSwatches", 13, 90),
+  view(EELGRASS, "linearGradient", 32, 180),
+  view(TIDAL_BLUE, "radialGradient", 32, 315),
+  view(DEEP_GREEN, "linearGradient", 32, 90),
+  view(OLIVE, "radialGradient", 32, 315)
+];
+const stepping = (...seeds: string[]) =>
+  Array.from({ length: 9 }, (_, i) => view(seeds[i % seeds.length]!, "linearSwatches", i + 3, 90));
 const LIMINAL: Shelf = {
   title: "Liminal Hours",
   slug: "liminal-hours-n5jqs8ak",
   note: "21 palettes",
   about:
     "Gradients for the in-between moments: blue hour, fog lifting, the last light on a lake, neon rain.",
-  tiles: [
-    view("kW1lA1Wy67USpu2xnjjopO8Y", "linearGradient", 7, 180),
-    view("kW7Q_UZpg_9Mpv2_rz9rKS_4", "linearGradient", 7, 45),
-    view("kWKC3RLLdA8tNRZbwkJbawtI", "linearGradient", 7, 90),
-    view("kWOhzJKp1B1CxzXoNkIdZ_Bo", "linearGradient", 7, 180),
-    view("kW5UA4YzU885KPU1NL6GhO-A", "linearGradient", 7, 135)
-  ]
+  card: stepping(SUNSET, FOG, LAKE, BLUE_HOUR, TWILIGHT)
 };
 const TIDES: Shelf = {
   title: "Between tides",
   slug: "between-tides",
   note: "30 palettes",
   about: "Southwest Florida coastal moods in quiet neutrals, luminous gradients and bolder bands.",
-  tiles: [
-    view("kQ3yUGthcyI", "radialGradient", 32, 0),
-    view("kYoCnCYRDJe2Wxv1j8P5pFLUYbQq", "angularGradient", 11, 180),
-    view("kWOR7UZp1N9SbtI2lLi8Q5R4", "radialSwatches", 9, 0),
-    view("kWezyUXx8-b4cQNfGa6ZhpMI", "linearGradient", 32, 45),
-    view("kWQBh4Z5a6EYYQeyFUNp4_Aw", "linearSwatches", 5, 210)
-  ]
+  card: stepping(TIDE_LINES, SHELL, SAND)
 };
 const SEAGRASS: Shelf = {
   title: "Spring tide seagrass",
   slug: "spring-tide-seagrass",
   note: "22 palettes",
   about: "Tidal blue, seafoam, eelgrass green, sand and dusky violet.",
-  tiles: [
-    view("kWXDFzyB9BFeVQzTkslv6JEo", "linearGradient", 32, 180),
-    view("kWOxu4MRW6EOdu9NHzxTqA5I", "linearSwatches", 6, 135),
-    view("kW8Rihbha_uUbPlkIbtayi8g", "radialGradient", 32, 0),
-    view("kY2BWf2hO9kYUvPEkzp1xU6-qPPs", "angularSwatches", 6, 225),
-    view("kW1Cq_XqO_VSgP9cmzGUSc_o", "linearSwatches", 5, 90)
-  ]
+  card: stepping(EELGRASS, TIDAL_BLUE, DEEP_GREEN, OLIVE)
 };
 const SHELVES = [LIMINAL, TIDES, SEAGRASS];
 const CSS = ".hero {\n  background: linear-gradient(90deg, #4158d0, #c850c0, #ffcc70);\n}";
@@ -77,7 +90,7 @@ export const october: Issue = {
     title: "Rising in October",
     lede: LEDE,
     ahead: "In this issue: collections, and a quick tip.",
-    liked: [...PICKS, ...SHELVES.flatMap(of => of.tiles)],
+    liked: [...PICKS, ...LIKED],
     picks: PICKS,
     more: rising(origin),
     body: [

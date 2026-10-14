@@ -43,7 +43,7 @@ describe("the issues", () => {
     ["001-email-ar", 1, "ar"],
     ["002-email-en", 2, "en"],
     ["002-email-ar", 2, "ar"]
-  ] as const)("%s says what grabient4 sent", (name, number, locale) => {
+  ] as const)("%s is the email the issue sends", (name, number, locale) => {
     const letter = newsletter({
       ...byNumber(number).write(ORIGIN),
       ...footFor(locale),
@@ -55,7 +55,7 @@ describe("the issues", () => {
   test.each([
     ["001-page-en", 1],
     ["002-page-en", 2]
-  ] as const)("%s is the sheet /newsletter showed", (name, number) => {
+  ] as const)("%s is the sheet /newsletter shows", (name, number) => {
     const foot = issueFoot({ locale: "en", unsubscribe: `${ORIGIN}/unsubscribe` });
     const page = issuePage({ ...byNumber(number).write(ORIGIN), ...foot, origin: ORIGIN });
     expect(page.text).toBe(fixture(`${name}.txt`));
