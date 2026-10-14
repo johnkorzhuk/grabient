@@ -63,6 +63,9 @@ patchedDependencies:
   '@cloudflare/workers-oauth-provider@1.2.3':
     hash: 8743a67bd2a4d66f6eae95dd65a7378c7886427480d610f3c927ad383d75975a
     path: patches/@cloudflare__workers-oauth-provider@1.2.3.patch
+  '@tanstack/solid-query@6.0.0-rc.5':
+    hash: 953cce53a9d8792f5d5811453bcfa2001c7befa58744a5f8c966ee366fbe560d
+    path: patches/@tanstack__solid-query@6.0.0-rc.5.patch
   '@tanstack/solid-start@2.0.0-rc.8':
     hash: 79132034195b7e6f6c2bc132995a54c893a68a740cf29ebc0081ef3c2a7ae1ed
     path: patches/@tanstack__solid-start@2.0.0-rc.8.patch
@@ -155,7 +158,7 @@ importers:
         version: 2.0.0-rc.14(solid-js@2.0.0-rc.14)
       '@tanstack/solid-query':
         specifier: 'catalog:'
-        version: 6.0.0-rc.5(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
+        version: 6.0.0-rc.5(patch_hash=953cce53a9d8792f5d5811453bcfa2001c7befa58744a5f8c966ee366fbe560d)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
       '@tanstack/solid-router':
         specifier: 'catalog:'
         version: 2.0.0-rc.8(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)
@@ -3256,7 +3259,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@tanstack/solid-query@6.0.0-rc.5(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)':
+  '@tanstack/solid-query@6.0.0-rc.5(patch_hash=953cce53a9d8792f5d5811453bcfa2001c7befa58744a5f8c966ee366fbe560d)(@solidjs/web@2.0.0-rc.14(solid-js@2.0.0-rc.14))(solid-js@2.0.0-rc.14)':
     dependencies:
       '@solidjs/web': 2.0.0-rc.14(solid-js@2.0.0-rc.14)
       '@tanstack/query-core': 5.101.4
