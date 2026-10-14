@@ -205,7 +205,7 @@ test("an old id nobody can read is a page not found, never a page named by the i
   await expect(page.getByRole("complementary", { name: "Editor" })).toHaveCount(0);
 });
 
-test("the selection's export screen stands in the page's place, and Escape closes it", async ({
+test("the selection's export screen takes the page's place, and Escape closes it", async ({
   page
 }) => {
   await open(page);

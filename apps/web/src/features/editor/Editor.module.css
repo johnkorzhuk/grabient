@@ -14,7 +14,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--size-editor-panel);
     align-items: start;
-    /* the selection's export screen stands in its place, and it waits, kept as it was */
+    /* the selection's export screen takes its place, and it waits, kept as it was */
     &[hidden] {
       display: none;
     }

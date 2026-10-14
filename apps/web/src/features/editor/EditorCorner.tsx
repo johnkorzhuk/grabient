@@ -5,7 +5,7 @@ import { type Component, createSignal, onSettled } from "solid-js";
    own corner while it is mounted, so the corner's code comes with the editor's. Written only in the browser. */
 const [corner, setCorner] = createSignal<Component | null>(null);
 
-/** The calling editor's corner stands in the header from when it has settled until it unmounts. */
+/** The calling editor's corner is the header's from when it has settled until it unmounts. */
 export function holdCorner(own: Component) {
   onSettled(() => {
     setCorner(() => own);
