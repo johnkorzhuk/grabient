@@ -8,7 +8,7 @@ import { Icon } from "@grabient/ui/Icon.tsx";
 import { Plot } from "@grabient/ui/Plot.tsx";
 import { Scrub } from "@grabient/ui/Scrub.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
-import { createSignal, type Element, flush, onSettled, Show } from "solid-js";
+import { createEffect, createSignal, type Element, onSettled, Show } from "solid-js";
 import styles from "./Controls.module.css";
 import type { PaletteEditor } from "./editor.ts";
 import { keyOf } from "./keys.ts";
@@ -26,42 +26,98 @@ const signed = (v: number) => {
   return `${r > 0 ? "+" : ""}${r}°`;
 };
 
-/* A line of two fields gives way where it cannot hold both: lightness's names shorten, End first, and hue's fields
-   stand one under the other. A field is too narrow when its number runs past its box; the line is read when its width
-   changes, never as a number does, so nothing moves under a drag. */
-function fitting(line: () => HTMLElement, steps: number) {
+/* Two fields on a line share it by what each needs: its name as it is drawn and its widest number, since a name is
+   longer in one language than in another, then its box's sides and the lock it carries. Where the line cannot hold
+   lightness's name twice, the second field reads End alone, and where it cannot hold it once the two read Start and
+   End; hue's two stand one under the other where they cannot share a line. Read when the line's width, its names or
+   the fonts change, never as a number does, so nothing moves under a drag. */
+const WIDEST: Record<Axis, readonly string[]> = {
+  l: ["0.000", "0.000"],
+  c: ["0.000"],
+  h: ["359°", "+1440°"]
+};
+/* what a field keeps clear past its name, its number and its box's sides */
+const SPARE = 4;
+const px = (length: string) => Number.parseFloat(length) || 0;
+
+function sharing(line: () => HTMLElement, axis: Axis, names: () => unknown) {
   const [tight, setTight] = createSignal(0);
+  const [stacked, setStacked] = createSignal(false);
+  let read = () => {};
   onSettled(() => {
     const el = line();
-    const cut = () =>
-      [...el.querySelectorAll("input")].some(input => input.scrollWidth > input.clientWidth + 1);
+    const pen = document.createElement("canvas").getContext("2d");
+    if (!pen) return;
+    const drawn = (text: string, like: HTMLElement) => {
+      const type = getComputedStyle(like);
+      pen.font = `${type.fontWeight} ${type.fontSize} ${type.fontFamily}`;
+      return pen.measureText(text).width;
+    };
+    /* a field's room with the name it shows, or with the one given */
+    const need = (field: HTMLElement, widest: string, named?: string) => {
+      const input = field.querySelector("input");
+      const name = input?.previousElementSibling;
+      const box = input?.parentElement;
+      if (!input || !box?.parentElement || !(name instanceof HTMLElement)) return 0;
+      const sides = getComputedStyle(box);
+      /* the lock, and the gap that sets it apart, are what the field is wider by than its box */
+      const lock =
+        field.getBoundingClientRect().width - box.parentElement.getBoundingClientRect().width;
+      return (
+        (named === undefined ? name.offsetWidth : drawn(named, name)) +
+        drawn(widest, input) +
+        px(sides.paddingLeft) +
+        px(sides.paddingRight) +
+        px(sides.columnGap) +
+        px(sides.borderLeftWidth) +
+        px(sides.borderRightWidth) +
+        SPARE +
+        lock
+      );
+    };
     /* fields standing one under another change the line's height, never its width: only a new width is read */
     let width = -1;
     let frame = 0;
-    const read = () => {
+    read = () => {
+      cancelAnimationFrame(frame);
       frame = 0;
+      if (!el.isConnected) return;
       width = el.clientWidth;
-      let next = 0;
-      setTight(0);
-      flush();
-      while (next < steps && cut()) {
-        setTight(++next);
-        flush();
-      }
+      const fields = [...el.children].filter(
+        (child): child is HTMLElement => child instanceof HTMLElement
+      );
+      const needs = fields.map((field, i) => need(field, WIDEST[axis][i] ?? ""));
+      for (const [i, field] of fields.entries())
+        field.style.flexGrow = String(Math.max(1, Math.ceil(needs[i] ?? 0)));
+      const [first, second] = fields;
+      if (!first || !second) return;
+      const room = width - px(getComputedStyle(el).columnGap);
+      if (axis === "h") setStacked((needs[0] ?? 0) + (needs[1] ?? 0) > room);
+      if (axis !== "l") return;
+      /* by the whole names' widths, whichever are drawn now, so the answer never turns on itself */
+      const start = need(first, WIDEST.l[0] ?? "", t("Lightness start"));
+      const end = (name: string) => need(second, WIDEST.l[1] ?? "", name);
+      setTight(start + end(t("Lightness end")) <= room ? 0 : start + end(t("End")) <= room ? 1 : 2);
     };
+    /* a frame after the observer reports: a write in its callback would have it report again in the same frame */
     const sizes = new ResizeObserver(() => {
       if (el.clientWidth !== width && !frame) frame = requestAnimationFrame(read);
     });
     sizes.observe(el);
-    void document.fonts.ready.then(() => {
-      if (el.isConnected) read();
-    });
+    void document.fonts.ready.then(read);
+    read();
     return () => {
       sizes.disconnect();
       cancelAnimationFrame(frame);
+      read = () => {};
     };
   });
-  return tight;
+  /* the names came or went: the fields are drawn by now, and are measured before the screen shows them */
+  createEffect(
+    () => [names(), tight()] as const,
+    () => read()
+  );
+  return { tight, stacked };
 }
 
 export function AxisRow(props: {
@@ -73,7 +129,11 @@ export function AxisRow(props: {
 }) {
   const e = props.editor;
   let line!: HTMLDivElement;
-  const tight = fitting(() => line, props.axis === "h" ? 1 : 2);
+  const { tight, stacked } = sharing(
+    () => line,
+    props.axis,
+    () => `${e.whole()} ${e.multi()}`
+  );
   const lock = (k: Lock) => (props.locks === false ? undefined : () => e.toggleLock(k));
   const lead = () => e.palette().anchors[e.lead()] ?? e.palette().anchors[0];
   /* a drag on the line with nothing held: lightness end to end by as much, chroma's peak, or hue round the wheel, each
@@ -89,12 +149,7 @@ export function AxisRow(props: {
     t(props.axis === "l" ? msg("Lightness") : props.axis === "c" ? msg("Chroma") : msg("Hue"));
   return (
     <div class={styles.axis}>
-      <div
-        ref={line}
-        class={styles.fields}
-        data-stacked={props.axis === "h" && tight() ? "" : undefined}
-        dir="ltr"
-      >
+      <div ref={line} class={styles.fields} data-stacked={stacked() ? "" : undefined} dir="ltr">
         <Show when={props.axis === "l"}>
           <Show
             when={e.whole()}
