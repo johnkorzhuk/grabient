@@ -319,10 +319,13 @@ describe("the edge cache", () => {
     await get("/api/hot?page=1&junk=1", {}, hot);
     await get("/api/hot?q=Blue&page=99999&lang=ja", {}, hot);
     await get("/api/hot?page=2&lang=en", {}, hot);
+    // the palettes alone, the same on every page and in every language
+    await get("/api/hot?q=Blue&head=1&page=3&lang=ja", {}, hot);
     expect([...cache.kept.keys()]).toEqual([
       "https://grabient.test/api/hot?__build=b1&page=1",
       "https://grabient.test/api/hot?__build=b1&lang=ja&page=10000&q=blue",
-      "https://grabient.test/api/hot?__build=b1&page=2"
+      "https://grabient.test/api/hot?__build=b1&page=2",
+      "https://grabient.test/api/hot?__build=b1&head=1&q=blue"
     ]);
     const refused = await get("/api/hot?q=%00%01", {}, hot);
     expect([refused.status, refused.headers.get("X-Grabient-Cache")]).toEqual([400, "MISS"]);

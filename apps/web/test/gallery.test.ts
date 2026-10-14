@@ -166,6 +166,10 @@ describe("the home as data", () => {
       collections: { query: "blue", sort: "popular", page: 1 }
     });
     expect(Object.keys(searched.body)).toEqual(expect.arrayContaining(["palettes", "tier"]));
+    // what the home's own page reads: its collections are the collections list's reads
+    const alone = await hot("?q=Blue&head=1");
+    expect(Object.keys(alone.body).sort()).toEqual(["fetchedAt", "palettes", "query", "tier"]);
+    expect(alone.body.palettes).toEqual(searched.body.palettes);
   });
 
   it("refuses words no search takes, and keeps nothing of the refusal", async () => {

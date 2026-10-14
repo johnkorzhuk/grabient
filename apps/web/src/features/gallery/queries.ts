@@ -166,7 +166,7 @@ const readHead = createIsomorphicFn()
     attempt(
       () =>
         readAnswer(
-          `/api/hot${words ? `?${new URLSearchParams({ q: words })}` : ""}`,
+          `/api/hot?${new URLSearchParams({ ...(words ? { q: words } : {}), head: "1" })}`,
           HomeHead,
           signal
         ),
