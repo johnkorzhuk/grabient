@@ -334,6 +334,88 @@ for (const width of WIDTHS)
       });
   });
 
+/** A drag along a control as the width's reader makes it: a mouse's, or a finger's. */
+async function drag(page: Page, target: Locator, by: number, width: Width) {
+  await target.scrollIntoViewIfNeeded();
+  const box = await target.boundingBox();
+  if (!box) throw new Error("nothing to drag");
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  if (!width.touch) {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x + by, y, { steps: 8 });
+    await page.mouse.up();
+    return;
+  }
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", at?: number) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: at === undefined ? [] : [{ x: x + at, y }]
+    });
+  await touch("touchStart", 0);
+  for (let step = 1; step <= 8; step++) await touch("touchMove", (by * step) / 8);
+  await touch("touchEnd");
+}
+const seedOf = (page: Page) => new URL(page.url()).pathname.slice(1);
+/** The palette's seed once its address has taken an edit's last change: it follows them at most every 350 ms. */
+async function edited(page: Page, was: string) {
+  await expect.poll(() => seedOf(page)).not.toBe(was);
+  await page.waitForTimeout(400);
+  return seedOf(page);
+}
+
+for (const width of WIDTHS)
+  test.describe(`on ${width.name}`, () => {
+    test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
+    test("a palette opened from a list takes a key and a drag, walks them back and forth, gives its link and goes Back to the list", async ({
+      page,
+      context
+    }) => {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+      const broken = watch(page);
+      await open(page, "/palettes");
+      const heading = (await page.locator("main h1").first().textContent()) ?? "";
+      const before = await rhythm(page);
+      const { depth } = await OPENERS.card(page, width);
+      await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+      const seeds = [seedOf(page)];
+      await page.keyboard.press("i");
+      seeds.push(await edited(page, seeds[0]!));
+      // the hue turns at any value, where a chroma may stand at its end
+      await drag(page, page.getByRole("spinbutton", { name: "Hue", exact: true }), 60, width);
+      seeds.push(await edited(page, seeds[1]!));
+      // a phone's reader takes them back with the editor's own presses
+      const walk = (back: boolean) =>
+        width.touch
+          ? press(page.getByRole("button", { name: back ? "Undo" : "Redo" }), width)
+          : page.keyboard.press(back ? "ControlOrMeta+z" : "ControlOrMeta+Shift+z");
+      for (const at of [1, 0]) {
+        await walk(true);
+        await expect.poll(() => seedOf(page)).toBe(seeds[at]);
+      }
+      for (const at of [1, 2]) {
+        await walk(false);
+        await expect.poll(() => seedOf(page)).toBe(seeds[at]);
+      }
+      // up to the picture, whose presses a finger's tap on it shows
+      await page.evaluate(() => scrollTo(0, 0));
+      if (width.touch) await page.getByRole("img", { name: "The gradient" }).tap();
+      await press(page.getByRole("button", { name: "URL", exact: true }).first(), width);
+      await expect
+        .poll(
+          async () => new URL(await page.evaluate(() => navigator.clipboard.readText())).pathname
+        )
+        .toBe(`/${seeds[2]}`);
+      await page.goBack();
+      await expect(page.locator("main h1").first()).toHaveText(heading);
+      await expect.poll(() => page.evaluate(() => scrollY)).toBe(depth);
+      expect(await rhythm(page)).toEqual(before);
+      expect(await sameDocument(page)).toBe(true);
+      expect(broken).toEqual([]);
+    });
+  });
+
 type Item = { kseed: string; style: string; steps: number; angle: number };
 const like =
   (liked: boolean) =>
