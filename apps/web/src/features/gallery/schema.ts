@@ -78,6 +78,8 @@ export const SavedPage = v.object({
   totalPages: v.number(),
   query: v.optional(v.string()),
   tier: v.optional(v.string()),
-  fetchedAt: v.number()
+  fetchedAt: v.number(),
+  /** when its like counts were read, where that is before the page was: the account's copy keeps each as it came */
+  countsAt: v.optional(v.number())
 });
 export type SavedPage = v.InferOutput<typeof SavedPage>;

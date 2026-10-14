@@ -11,9 +11,13 @@ import { sortSearch } from "./sort.ts";
 
 export interface Page {
   items: readonly PaletteItem[];
+  /** how many palettes the list holds in all */
+  total: number;
   page: number;
   totalPages: number;
   fetchedAt: number;
+  /** when its like counts were read, where that is before the page was */
+  countsAt?: number;
   tier?: string;
   partial?: boolean;
   /** an allowance ran out before the search could answer in full */
@@ -44,6 +48,7 @@ export function sliceOf(
   const sorted = sortSearch(answer.items, sort, frame);
   return {
     items: sorted.slice((n - 1) * limit, n * limit),
+    total: sorted.length,
     page: n,
     totalPages: Math.max(1, Math.ceil(sorted.length / limit)),
     fetchedAt: answer.fetchedAt,
@@ -94,12 +99,18 @@ export function keptPage(client: QueryClient, source: ListSource, n: number): Pa
   return failed(page) ? undefined : page;
 }
 
-/** Page `n`, from the cache while it is fresh, else read. */
+/** Page `n`, from the cache while it is fresh, else read; `fresh` reads it whatever the cache holds. */
 export async function readPage(
   client: QueryClient,
   source: ListSource,
-  n: number
+  n: number,
+  fresh = false
 ): Promise<Page | Failed> {
   const { options, shape } = pageQuery(source, n);
-  return shape(await client.fetchQuery(options as Parameters<QueryClient["fetchQuery"]>[0]));
+  return shape(
+    await client.fetchQuery({
+      ...(options as Parameters<QueryClient["fetchQuery"]>[0]),
+      ...(fresh ? { staleTime: 0 } : {})
+    })
+  );
 }
