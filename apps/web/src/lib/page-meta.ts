@@ -241,11 +241,6 @@ export const paletteName = (P: Palette, view?: Partial<Pick<View, "style" | "ste
   readingName(readPalette(P, view?.style, view?.steps), language());
 /** The same name inside a sentence: "Palettes like navy to lavender". */
 const paletteInline = (P: Palette) => readingPhrase(readPalette(P), language());
-/** What a search is for, as a page says it: its words, or the name of the palette it searches by. */
-export function searchedFor(query: string): string {
-  const like = decodePalette(query);
-  return like ? paletteInline(like) : query;
-}
 /** A search's subject as a title says it: its words without the nouns the title adds itself. */
 function subjectOf(query: string): string {
   const bare = query

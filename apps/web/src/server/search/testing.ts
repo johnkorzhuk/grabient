@@ -34,11 +34,9 @@ type View = { style: string; steps: number; angle: number };
 export function galleryDb(
   view: (seed: string) => View = () => ({ style: "linearGradient", steps: 7, angle: 90 })
 ): D1Database {
-  const reads: string[] = [];
   const statement = (sql: string, values: unknown[] = []) => ({
     bind: (...bound: unknown[]) => statement(sql, bound),
     async all() {
-      reads.push(sql);
       if (!/FROM k_palettes\s+WHERE seed IN/.test(sql)) return { results: [] };
       return {
         results: (values as string[]).map(seed => ({
@@ -63,16 +61,9 @@ export function galleryDb(
     prepare: (sql: string) => statement(sql),
     batch: async (statements: { all(): Promise<unknown> }[]) =>
       Promise.all(statements.map(s => s.all())),
-    withSession: () => ({ prepare: (sql: string) => statement(sql) }),
-    reads
+    withSession: () => ({ prepare: (sql: string) => statement(sql) })
   } as unknown as D1Database;
 }
-
-/** How many reads of the gallery a database made, by the number of seeds each asked for. */
-export const galleryReads = (db: D1Database): number =>
-  (db as unknown as { reads: string[] }).reads.filter(sql =>
-    /FROM k_palettes\s+WHERE seed IN/.test(sql)
-  ).length;
 
 /** Workers AI with the fixtures' embedder, recording each call. */
 export function fakeAi(calls: { model: string; texts: string[] }[] = []): Ai {
