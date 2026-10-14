@@ -413,6 +413,13 @@ describe("palettes", () => {
     );
     expect(page).not.toMatch(/<img\b/);
     expect(page.match(/clip-path:polygon/g)).toHaveLength(2);
+    // one palette is the whole card
+    const one = { slug: "t", palettes: [{ seed }] };
+    const whole = decode(
+      collection({ title: "T", href: `${origin}/t`, card: one })({ ...ctx, web: true }).html.html
+    );
+    expect(whole).toMatch(/radial-gradient/);
+    expect(whole).not.toMatch(/clip-path/);
     const gated = {
       ...ctx,
       gateSeed: (of: string) => {

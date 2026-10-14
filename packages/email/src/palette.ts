@@ -438,7 +438,10 @@ function wedgeGround(show: Shown): string {
     : show.colors.map((hex, i) => `${hex} ${((i / Math.max(1, n - 1)) * 100).toFixed(3)}%`);
   return `radial-gradient(circle farthest-corner at 50% 50%,${stops.join(",")})`;
 }
-/** On a page the browser draws the card itself: each wedge a layer clipped to its angle. */
+/* how far a wedge reaches past its end, under the next one drawn over it: two clipped sides meeting on a pixel would each
+   cover it in part and let the ground through as a dark seam. The first reaches back under the last. */
+const UNDER = 0.01;
+/** On a page the browser draws the card itself: each wedge a layer clipped to its angle, and one palette the whole. */
 function cardBlock(shows: readonly Shown[]): Html {
   const n = shows.length;
   const start = firstWedge(n);
@@ -456,10 +459,13 @@ function cardBlock(shows: readonly Shown[]): Html {
         style: {
           position: "absolute",
           inset: "0",
-          "clip-path": wedgePath(
-            start + (2 * Math.PI * k) / n,
-            start + (2 * Math.PI * (k + 1)) / n
-          ),
+          "clip-path":
+            n > 1
+              ? wedgePath(
+                  start + (2 * Math.PI * k) / n - (k === 0 ? UNDER : 0),
+                  start + (2 * Math.PI * (k + 1)) / n + (k < n - 1 ? UNDER : 0)
+                )
+              : undefined,
           background: wedgeGround(show)
         }
       })
