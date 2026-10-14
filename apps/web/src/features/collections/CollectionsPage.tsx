@@ -66,8 +66,8 @@ import type { CollectionPage, CollectionPreview, CollectionSummary } from "./typ
    (/collections/saved), each searched with `?q=`. A list is a feed: its address's own page, then each page after it
    joining as the reader nears the end, at the same address, with only the groups near the viewport drawn. Each
    collection is a group of its first palettes; a searched list's cards carry thumbs that rate a palette's fit for its
-   group's collection, never for the words. The selection's export screen stands in the feed's place while it is
-   open, and the feed stays mounted beneath it. */
+   group's collection, never for the words. The selection's export screen takes the feed's place while it is open,
+   and the feed stays mounted beneath it. */
 
 /* a group's height before it is measured: its line, and its rows of cards with the gaps between them */
 const HEAD = 72;
@@ -406,7 +406,7 @@ export function CollectionsPage(props: {
 
   return (
     <AppPage feed bare={sel.open()}>
-      {/* the page stays mounted and out of sight while the export screen stands in for it, so Close returns to the
+      {/* the page stays mounted and out of sight while the export screen takes its place, so Close returns to the
           same groups at the same depth */}
       <main
         id="main"

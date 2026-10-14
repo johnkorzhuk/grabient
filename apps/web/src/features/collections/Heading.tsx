@@ -20,7 +20,7 @@ import type { CollectionDocument, CopyStanding } from "./types.ts";
 /* A collection's heading: its title, with the description as the title's tooltip and in a paragraph for a screen
    reader, then the byline: Private, who made it (or, on the owner's saved copy, where it was saved from), its age and
    how many palettes it holds. The owner of an account's collection edits its words here: the title and the
-   description stand in the heading's place, Enter saves and Escape lets them be. */
+   description take the heading's place, Enter saves and Escape lets them be. */
 
 export function Heading(props: {
   doc: CollectionDocument;

@@ -1,4 +1,4 @@
-/* The collections' pages: a collection's own, and the lists of them. They stand in the frame's list layout
+/* The collections' pages: a collection's own, and the lists of them. They take the frame's list layout
    (app/list.module.css), whose parts hold every distance above the cards: a collection's way back and its tags fill
    the part a list's search and tags fill, so its row, its title and its cards land where the lists have theirs. */
 @layer components {

@@ -27,7 +27,7 @@ const NEAR_SPREAD = 0.12;
 
 /** A search as the collections read it. */
 export interface Reading {
-  /** where the query stands in the search's space */
+  /** where the query lies in the search's space */
   vector: readonly number[];
   /** what the query names, each a place of its own; empty for a palette or hex codes, which name nothing */
   names: readonly ArrayLike<number>[];
@@ -52,7 +52,7 @@ export interface SearchSpace {
   read(query: string): Promise<{ reading: Reading | null; unkept?: boolean }>;
   /** what words name, as the vocabulary's rows: a title's subject, or a tag */
   names(words: string): readonly number[];
-  /** where a row of the vocabulary stands in the space */
+  /** where a row of the vocabulary lies in the space */
   place(row: number): ArrayLike<number>;
   /** every public collection the space holds, in its order */
   collections: readonly {

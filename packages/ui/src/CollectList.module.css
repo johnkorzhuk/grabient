@@ -1,5 +1,5 @@
 /* The checklist as one piece on one paper: the head on the input recipe, the rows joined under it, the head's lower
-   edge the line over them. Hung from a press it floats as a menu does, its rows standing in and a long list scrolling in
+   edge the line over them. Hung from a press it floats as a menu does, its rows inset and a long list scrolling in
    itself; in a column it is a field among fields, its rows and the hairlines between them running to its edges. Over a
    card's picture it takes the small press's height and corners all through. */
 @layer components {
@@ -60,7 +60,7 @@
     @media (pointer: coarse) {
       height: var(--size-touch);
     }
-    /* in a column the rows run to the piece's edges, so the head's mark stands in by a row's own inset */
+    /* in a column the rows run to the piece's edges, so the head's mark sits a row's own inset in */
     &[data-flush] {
       padding-inline-start: var(--space-s3);
     }

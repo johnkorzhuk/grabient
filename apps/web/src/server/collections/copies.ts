@@ -89,7 +89,7 @@ function baseOf(raw: string | null | undefined): CollectionContent | null {
 /* one side's change over no change; where both changed the same thing, the copy's own */
 const pick = <T>(base: T, source: T, copy: T, same: (a: T, b: T) => boolean): T =>
   same(source, base) ? copy : same(copy, base) ? source : copy;
-/** Whether the items two lists share stand in the same order in both. */
+/** Whether the items two lists share keep the same order in both. */
 function sameOrder(a: readonly CollectionItemInput[], b: readonly CollectionItemInput[]): boolean {
   const inA = new Set(a.map(itemKey));
   const inB = new Set(b.map(itemKey));

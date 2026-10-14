@@ -547,7 +547,7 @@ export function CollectionPage(props: {
 
   return (
     <AppPage bare={sel.open()}>
-      {/* the page stays mounted and out of sight while the export screen stands in for it, so Close returns to the
+      {/* the page stays mounted and out of sight while the export screen takes its place, so Close returns to the
           same cards */}
       <main
         id="main"

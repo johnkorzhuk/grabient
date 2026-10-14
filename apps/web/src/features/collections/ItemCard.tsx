@@ -25,7 +25,7 @@ export function ItemCard(props: {
   /** its likes as the page read them, and when, shown until the shared counts say more */
   likes: number;
   readAt: number;
-  /** the collection the card stands in, which an admin's like is told */
+  /** the collection the card is in, which an admin's like is told */
   collection: string;
   /** the page, and where on it the card stands, read at a press */
   place: () => UsePlace;
