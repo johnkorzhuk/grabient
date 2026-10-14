@@ -1,5 +1,5 @@
 import { all, first, run } from "@grabient/server/db/d1.ts";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import corpus from "../public/corpus-k.json" with { type: "json" };
 import golden from "../src/features/gallery/fixtures/list-pages.json" with { type: "json" };
 import { type HeadAnswer, homeHead } from "../src/server/gallery/home.ts";
@@ -7,6 +7,7 @@ import { likeCounts, likeInput, savedPage, setLike } from "../src/server/gallery
 import { forgetGalleryCount, listPalettes } from "../src/server/gallery/list.ts";
 import { rescore } from "../src/server/gallery/rescore.ts";
 import { risen } from "../src/server/gallery/scores.ts";
+import { searchPool } from "../src/server/gallery/search.ts";
 import {
   address,
   bodyOf,
@@ -192,6 +193,35 @@ describe("the home as data", () => {
     }
     expect(answer).toMatchObject({ status: 429, kept: false, head: { limited: true } });
     expect(answer?.retryAfter).toBeGreaterThan(0);
+  });
+});
+
+describe("a list's search", () => {
+  it("answers without waiting for the search's store, which is looked at after the answer", async () => {
+    const env = testEnv();
+    // the bindings as another isolate holds them: its first search reads the snapshot
+    const isolate = {
+      ...env,
+      ASSETS: {
+        fetch: (input: RequestInfo | URL, init?: RequestInit) => env.ASSETS.fetch(input, init)
+      } as Fetcher
+    };
+    await searchPool(isolate, request, "blue");
+    let answer = (_: null) => {};
+    const SEARCH_SNAPSHOTS = {
+      get: () => new Promise<null>(done => (answer = done))
+    } as unknown as R2Bucket;
+    // five minutes on the store is looked at again, and neither it nor the clock moves: a search that waited for it
+    // would never answer
+    vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+    vi.setSystemTime(Date.now() + 6 * 60_000);
+    try {
+      const found = await searchPool({ ...isolate, SEARCH_SNAPSHOTS }, request, "blue");
+      expect(found).toMatchObject({ query: "blue", tier: "vocabulary" });
+    } finally {
+      vi.useRealTimers();
+      answer(null);
+    }
   });
 });
 
