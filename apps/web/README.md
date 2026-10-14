@@ -122,4 +122,5 @@ the personas and the accounts the site's work names; no other account, session o
 ## Checks
 
 Unit tests sit beside the code (`*.test.ts`). `pnpm e2e` runs the Playwright smoke tests against `vite dev` on a free
-port.
+port, and the ones tagged @served, which meet the service worker, against the staging build `vite preview` serves on
+another.
