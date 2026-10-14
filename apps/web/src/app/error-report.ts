@@ -5,21 +5,19 @@ import { isServer } from "@solidjs/web";
    address, account or cookie: a failure in one browser alone, a hydration that breaks on a phone, would otherwise go
    unseen. Only the site's own scripts are reported (an extension's errors are not the site's), each message once per
    page load and five at most. Addresses go without their query, which can hold a sign-in or deletion token, and a page
-   is named by its kind; only a palette's or a collection's public address is sent whole. Installed before the app
-   starts, so an error while it hydrates is reported too. */
+   is named by its kind; only a palette's or a public collection's address is sent whole, never an account's, which
+   can be private. Installed before the app starts, so an error while it hydrates is reported too. */
 const MAX = 5;
 const MESSAGE_MAX = 300;
 const FRAMES = 6;
 const sent = new Set<string>();
 
-/** The page, as a report names it: a palette's or a public collection's address, else the first part of its path. */
+/** The page, as a report names it: a palette's or a public collection's address, an account's collection by its kind,
+    else the first part of its path. */
 export function pageOf(pathname: string): string {
   const path = delocalizePath(pathname).path;
-  if (
-    /^\/k[A-Za-z0-9_-]{8,49}$/.test(path) ||
-    /^\/(@[a-z0-9_-]{3,30}\/)?[a-z0-9]+(-[a-z0-9]+)*$/.test(path)
-  )
-    return path;
+  if (/^\/k[A-Za-z0-9_-]{8,49}$/.test(path) || /^\/[a-z0-9]+(-[a-z0-9]+)*$/.test(path)) return path;
+  if (path.startsWith("/@")) return "collection";
   return path.split("/")[1] || "home";
 }
 

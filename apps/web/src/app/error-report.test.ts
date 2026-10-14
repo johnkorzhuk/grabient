@@ -1,12 +1,14 @@
 import { expect, test } from "vitest";
 import { ownStack, pageOf } from "./error-report.ts";
 
-test("a page is named by its kind, or by a palette's or a collection's public address", () => {
+test("a page is named by its kind, or by a palette's or a public collection's address", () => {
   expect(pageOf("/")).toBe("home");
   expect(pageOf("/ja/palettes/rising")).toBe("palettes");
   expect(pageOf("/kS7Q8Yy5S_SChv0")).toBe("/kS7Q8Yy5S_SChv0");
   expect(pageOf("/ja/ocean-gradients")).toBe("/ocean-gradients");
-  expect(pageOf("/@ada/warm-sunsets")).toBe("/@ada/warm-sunsets");
+  // an account's collection can be private: its handle and title stay in the browser
+  expect(pageOf("/@ada/warm-sunsets")).toBe("collection");
+  expect(pageOf("/de/@ada/warm-sunsets/rising")).toBe("collection");
   expect(pageOf("/settings")).toBe("/settings");
 });
 

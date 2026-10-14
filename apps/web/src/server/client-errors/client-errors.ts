@@ -27,7 +27,8 @@ const Report = v.object({
   source: v.optional(v.nullable(v.pipe(v.string(), v.regex(/^\/[^?#\s]{0,200}$/)))),
   line: v.optional(place),
   column: v.optional(place),
-  page: v.optional(v.pipe(v.string(), v.regex(/^[\w/.~@-]{1,120}$/)), "unknown")
+  /* a page's kind or a public address: an account's collection, which can be private, is never named */
+  page: v.optional(v.pipe(v.string(), v.regex(/^(?!\/@)[\w/.~@-]{1,120}$/)), "unknown")
 });
 
 const BROWSERS: readonly [string, RegExp][] = [
