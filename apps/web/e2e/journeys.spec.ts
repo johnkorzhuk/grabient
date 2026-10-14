@@ -246,16 +246,19 @@ const STILL: { name: string; address: string; cards: [string, number][] }[] = [
 ];
 
 /** Her account as her browser's copy hears it: she likes the palettes in `liked`, whatever the server holds, and each
-    like her browser sends is taken here as the server takes one. */
+    like her browser sends is taken here as the server takes one, dated when it came, so Saved lists it first. */
 function likedHere(page: Page, liked: Set<string>) {
+  const at = new Map<string, number>();
   return page.route("**/api/me/sync", route => {
     const { mutations } = JSON.parse(route.request().postData() ?? "{}") as {
       mutations: { id: number; op: { op: string; seed?: string; liked?: boolean } }[];
     };
     for (const { op } of mutations) {
       if (op.op !== "like" || !op.seed) continue;
-      if (op.liked) liked.add(op.seed);
-      else liked.delete(op.seed);
+      if (op.liked) {
+        liked.add(op.seed);
+        at.set(op.seed, Date.now());
+      } else liked.delete(op.seed);
     }
     return route.fulfill({
       json: {
@@ -266,7 +269,7 @@ function likedHere(page: Page, liked: Set<string>) {
           style: "linearGradient",
           steps: 7,
           angle: 90,
-          at: 1,
+          at: at.get(seed) ?? 1,
           likes: 1
         })),
         unliked: [],
@@ -627,6 +630,61 @@ for (const width of WIDTHS)
         expect(await sent).toBe(!was);
         await expect(heart).toHaveAttribute("aria-pressed", String(!was));
       }
+      expect(broken).toEqual([]);
+    });
+
+    test("signed in, Saved two pages deep comes Back after a heart pressed elsewhere with its cards in its first frame", async ({
+      page,
+      context,
+      baseURL,
+      request
+    }) => {
+      await signIn(context, baseURL ?? "");
+      const broken = watch(page);
+      // twenty-five palettes she likes, as her account's copy hears them: two of Saved's pages
+      const listed = await request.get("/api/palettes?sort=popular&page=2&limit=48");
+      const liked = new Set(
+        ((await listed.json()) as { items: Item[] }).items.slice(0, 25).map(item => item.kseed)
+      );
+      await likedHere(page, liked);
+      await open(page, "/palettes/saved");
+      const feed = page.locator("main [data-count]");
+      await expect(feed).toHaveAttribute("data-count", "24");
+      await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+      await expect(feed).toHaveAttribute("data-count", "25");
+
+      // a heart pressed on Popular, in the app: that palette leads Saved, and her first page's last moves to the second
+      await press(
+        page.getByRole("navigation", { name: "Order" }).getByRole("link", { name: /^Popular/ }),
+        width
+      );
+      await expect(page.getByRole("heading", { name: "Popular", level: 2 })).toBeVisible();
+      let other = "";
+      for (let at = 0; !other; at++) {
+        const href = await linkAt(page, EDIT, at);
+        if (!liked.has(itemAt(href).kseed)) other = href;
+      }
+      const heart = cardOf(page, other).getByRole("button", { name: /^Like/ });
+      await press(heart, width);
+      await expect(heart).toHaveAttribute("aria-pressed", "true");
+
+      // Back, on a phone's slower processor: each frame Saved draws holds its cards
+      const cdp = await page.context().newCDPSession(page);
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+      const drawn = () => page.evaluate(() => (window as unknown as { saved: number[] }).saved);
+      await page.evaluate(() => {
+        const saved: number[] = [];
+        Object.assign(window, { saved });
+        const tick = () => {
+          if (location.pathname.endsWith("/palettes/saved"))
+            saved.push(document.querySelectorAll("main article").length);
+          if (saved.length < 30) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+      await page.goBack();
+      await expect.poll(async () => (await drawn()).length).toBe(30);
+      expect(await drawn()).not.toContain(0);
       expect(broken).toEqual([]);
     });
 

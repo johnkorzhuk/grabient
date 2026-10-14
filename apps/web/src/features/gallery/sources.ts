@@ -1,7 +1,15 @@
 import type { QueryClient } from "@tanstack/solid-query";
 import type { ListSort, RisingFrame } from "../../lib/orders.ts";
 import type { ListParams } from "./address.ts";
-import { type Failed, failed, listPageQuery, own, savedQuery, searchQuery } from "./queries.ts";
+import {
+  type Failed,
+  failed,
+  listPageQuery,
+  own,
+  savedNow,
+  savedQuery,
+  searchQuery
+} from "./queries.ts";
 import type { PaletteItem, SearchAnswer } from "./schema.ts";
 import { sortSearch } from "./sort.ts";
 
@@ -90,6 +98,17 @@ export function pageView(source: ListSource, n: number) {
   return { ...options, select: (data: unknown) => shape(own(data)) };
 }
 
+/* Saved's page `n` from the account's copy, where it can say at once: a return draws it in its first frame */
+const fromCopy = (source: ListSource, n: number): Page | undefined =>
+  source.kind === "saved"
+    ? savedNow({
+        owner: source.owner,
+        words: source.params.words,
+        limit: source.params.limit,
+        page: n
+      })
+    : undefined;
+
 /** Page `n` as the cache holds it now; none when it holds nothing of it, or only a failure. */
 export function keptPage(client: QueryClient, source: ListSource, n: number): Page | undefined {
   const { options, shape } = pageQuery(source, n);
@@ -99,13 +118,16 @@ export function keptPage(client: QueryClient, source: ListSource, n: number): Pa
   return failed(page) ? undefined : page;
 }
 
-/** Page `n`, from the cache while it is fresh, else read; `fresh` reads it whatever the cache holds. */
+/** Page `n`: from the account's copy where it can say at once, else from the cache while it is fresh, else read;
+    `fresh` reads it whatever the cache holds. */
 export async function readPage(
   client: QueryClient,
   source: ListSource,
   n: number,
   fresh = false
 ): Promise<Page | Failed> {
+  const copied = fromCopy(source, n);
+  if (copied) return copied;
   const { options, shape } = pageQuery(source, n);
   return shape(
     await client.fetchQuery({

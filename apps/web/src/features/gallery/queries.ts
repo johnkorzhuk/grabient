@@ -19,6 +19,7 @@ import {
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
 import { searchPool } from "../../server/gallery/search.ts";
+import { engineNow } from "../account/session.ts";
 import { onAccountChange, viewNow } from "../account/state.ts";
 import { COLLECTION_LIMIT } from "../collections/params.ts";
 import { collectionsQuery } from "../collections/queries.ts";
@@ -174,6 +175,27 @@ if (!isServer)
     if (change.reset || change.likes.size) likesMovedAt = Date.now();
   });
 
+/* the copy's model, loaded with the list it draws (no other page of the gallery needs it) and kept, so a return to
+   Saved draws from the copy at once */
+let model: typeof import("../account/saved.ts") | undefined;
+
+/** A page of Saved from the account's copy, at once: none until this tab has read Saved, while the copy is not open
+    here or has not heard from the server, and for words the server ranks. A copy older than half a minute syncs
+    behind the page. */
+export function savedNow(key: SavedKey): SavedPage | undefined {
+  const sync = engineNow();
+  if (!model || !sync?.copyReady(key.owner)) return undefined;
+  sync.freshen(key.owner);
+  const copied = model.savedPageOf(
+    viewNow(),
+    { page: key.page, limit: key.limit, query: key.words },
+    offline()
+  );
+  if (!copied) return undefined;
+  /* a like's count is as old as the sync that brought it, so every count is asked for again */
+  return { ...copied, items: [...copied.items], fetchedAt: Date.now(), countsAt: 0 };
+}
+
 /** A page of the account's saved palettes. Only the browser asks for it, as the account it is signed in as: the key
     names the owner, so another account's page never shows across a sign-in. The account's copy answers where it can,
     at once and with no connection, with the likes not yet sent; words are the server's to rank while there is one. */
@@ -181,17 +203,10 @@ export const savedQuery = (key: SavedKey) =>
   queryOptions({
     queryKey: ["saved", key.owner, key.words, key.limit, key.page] as const,
     queryFn: async ({ signal }): Promise<SavedPage | Failed> => {
-      /* loaded with the list it draws: no other page of the gallery needs the copy's model */
-      const { savedReady, savedPageOf } = await import("../account/saved.ts");
-      if (await savedReady()) {
-        const copied = savedPageOf(
-          viewNow(),
-          { page: key.page, limit: key.limit, query: key.words },
-          offline()
-        );
-        /* a like's count is as old as the sync that brought it, so every count is asked for again */
-        if (copied)
-          return { ...copied, items: [...copied.items], fetchedAt: Date.now(), countsAt: 0 };
+      model ??= await import("../account/saved.ts");
+      if (await model.savedReady()) {
+        const copied = savedNow(key);
+        if (copied) return copied;
       }
       const params = new URLSearchParams({ page: String(key.page), limit: String(key.limit) });
       if (key.words) params.set("q", key.words);
