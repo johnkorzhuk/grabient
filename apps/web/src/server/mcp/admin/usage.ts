@@ -23,7 +23,8 @@ const USAGE_COLUMNS = {
   file: ["format", "from", "who"]
 } as const;
 type UsageEventName = keyof typeof USAGE_COLUMNS;
-const EVENTS = Object.keys(USAGE_COLUMNS) as UsageEventName[];
+/** Every event the dataset holds, in the order a report lists them. */
+export const USAGE_EVENTS = Object.keys(USAGE_COLUMNS) as UsageEventName[];
 
 export interface UsageReport {
   dataset: string;
@@ -40,7 +41,7 @@ export interface UsageReport {
 }
 
 const zero = () =>
-  Object.fromEntries(EVENTS.map(event => [event, 0])) as Record<UsageEventName, number>;
+  Object.fromEntries(USAGE_EVENTS.map(event => [event, 0])) as Record<UsageEventName, number>;
 const whole = (value: unknown) => Math.round(Number(value) || 0);
 const isEvent = (value: unknown): value is UsageEventName =>
   typeof value === "string" && value in USAGE_COLUMNS;
@@ -72,7 +73,7 @@ export async function readUsage(
     empty: !rows.length,
     totals: zero(),
     events: Object.fromEntries(
-      EVENTS.map(event => [event, []])
+      USAGE_EVENTS.map(event => [event, []])
     ) as unknown as UsageReport["events"],
     daily: [],
     ceilings: []
