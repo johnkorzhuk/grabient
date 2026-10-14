@@ -153,8 +153,8 @@ test("the palette a search's heading pictures opens from it, and Back returns to
   expect(reports).toEqual([]);
 });
 
-test("a palette opened from Saved lands styled, and Back returns to Saved", async ({ page }) => {
-  const reports = reported(page);
+/** A reader signed in here: the session answers with the account, and the server holds nothing else of it. */
+async function signedIn(page: Page) {
   const reader = {
     id: "e2e-reader",
     name: "Reader",
@@ -168,6 +168,11 @@ test("a palette opened from Saved lands styled, and Back returns to Saved", asyn
     route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } })
   );
   await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+}
+
+test("a palette opened from Saved lands styled, and Back returns to Saved", async ({ page }) => {
+  const reports = reported(page);
+  await signedIn(page);
   const items = ["kS7CQ31Do6asvY-", "kSEiS3qzo6dQvY-"].map((kseed, i) => ({
     kseed,
     style: "linearGradient",
@@ -355,6 +360,69 @@ test("a page opened with the service worker's stored shell wears its own frame",
   await expect(header.getByRole("button", { name: "Sign in" })).toHaveCount(0);
   await expect(header.getByRole("button", { name: /^Appearance/ })).toHaveCount(0);
 });
+
+/* With no connection, on the build a deploy serves, for a reader signed in here: a palette is the editor's to draw,
+   loaded whole from the page the service worker kept or its shell, or from a list it kept. Each test starts on a list
+   the worker took over, and the list's next load is its to keep. */
+for (const viewport of [
+  { width: 1600, height: 1000 },
+  { width: 390, height: 844 }
+]) {
+  /** The list kept, the worker in charge, and the address of the list's second palette. */
+  const kept = async (page: Page) => {
+    await page.setViewportSize(viewport);
+    await signedIn(page);
+    await open(page, "/palettes");
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    await open(page, "/palettes");
+    return (await listed(page).getAttribute("href")) ?? "";
+  };
+  const listed = (page: Page) => page.locator('main article a[aria-label="Edit"]').nth(1);
+  const cutOff = async (page: Page) => {
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+    await page.context().setOffline(true);
+  };
+  /** The editor stands at the palette's address, whole: styled, with nothing thrown or reported. */
+  const opened = async (page: Page, href: string, broken: string[]) => {
+    await expect.poll(() => new URL(page.url()).pathname).toBe(href.split("?")[0]);
+    await expect(editor(page)).toBeVisible();
+    expect(await styled(page)).toBe(true);
+    expect(broken).toEqual([]);
+  };
+  const watched = (page: Page) => {
+    const broken = reported(page);
+    page.on("pageerror", error => broken.push(error.message));
+    return broken;
+  };
+
+  test(`with no connection a palette never opened opens in the editor, loaded whole and from a list, ${viewport.width} wide`, {
+    tag: "@served"
+  }, async ({ page }) => {
+    const broken = watched(page);
+    const href = await kept(page);
+    await cutOff(page);
+    await page.goto("/kS7CQ31Do6asvY-");
+    await opened(page, "/kS7CQ31Do6asvY-", broken);
+    await open(page, "/palettes");
+    await pressFrom(page, listed(page));
+    await opened(page, href, broken);
+  });
+
+  test(`with no connection a palette opened before opens in the editor, loaded whole and from a list, ${viewport.width} wide`, {
+    tag: "@served"
+  }, async ({ page }) => {
+    const broken = watched(page);
+    const href = await kept(page);
+    await page.goto(href);
+    await expect(editor(page)).toBeVisible();
+    await cutOff(page);
+    await page.goto(href);
+    await opened(page, href, broken);
+    await open(page, "/palettes");
+    await pressFrom(page, listed(page));
+    await opened(page, href, broken);
+  });
+}
 
 test("a document names its page in its first few kilobytes, and its data comes after", async ({
   request

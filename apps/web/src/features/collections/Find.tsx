@@ -137,7 +137,10 @@ export function Find(props: {
               () => []
             )
           : []
-        : await client.fetchQuery(tagsQuery(words)).catch(() => []);
+        : await client.fetchQuery(tagsQuery(words)).then(
+            hits => hits ?? [],
+            () => []
+          );
       // the reader moved on while the title was looked up
       if (location.href !== at) return;
       const named = titled.find(c => c.title.toLowerCase() === lower);

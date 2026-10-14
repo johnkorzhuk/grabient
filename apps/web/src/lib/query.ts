@@ -10,6 +10,9 @@ export const createQueryClient = () =>
       queries: {
         // a failed read shows its error and Retry at once
         retry: false,
+        /* a read is made with no connection too: it fails at once and the page says why, or the account's copy
+           answers it. One held until the connection returns would hold its page as long. */
+        networkMode: "always",
         refetchOnWindowFocus: false,
         refetchOnReconnect: false,
         // what the server read is fresh when the page starts; each query says how long it stays so

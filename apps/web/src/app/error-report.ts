@@ -4,7 +4,8 @@ import { isServer } from "@solidjs/web";
 /* Errors a page meets in the reader's browser, sent to the Worker (POST /api/client-error), which logs them with no
    address, account or cookie: a failure in one browser alone, a hydration that breaks on a phone, would otherwise go
    unseen. Only the site's own scripts are reported (an extension's errors are not the site's), each message once per
-   page load and five at most. Addresses go without their query, which can hold a sign-in or deletion token, and a page
+   page load and five at most, and none while the browser has no connection: a report could not leave, and what fails
+   then is the connection. Addresses go without their query, which can hold a sign-in or deletion token, and a page
    is named by its kind; only a palette's or a public collection's address is sent whole, never an account's, which
    can be private. Installed before the app starts, so an error while it hydrates is reported too. */
 const MAX = 5;
@@ -57,7 +58,7 @@ function report(
   stack = ""
 ) {
   const text = message.slice(0, MESSAGE_MAX);
-  if (!text || sent.size >= MAX || sent.has(text)) return;
+  if (!text || navigator.onLine === false || sent.size >= MAX || sent.has(text)) return;
   sent.add(text);
   try {
     fetch("/api/client-error", {

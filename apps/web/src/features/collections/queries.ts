@@ -169,22 +169,23 @@ const readTags = createIsomorphicFn()
     const hits = await suggestCollections(env, query, query ? 12 : 24);
     return localizeCollections(env, asked(), hits);
   })
-  .client(async (query: string, signal?: AbortSignal): Promise<CollectionHit[]> => {
+  .client((query: string, signal?: AbortSignal): Promise<CollectionHit[] | null> => {
     const params = new URLSearchParams({ q: query, limit: String(query ? 12 : 24) });
-    const answer = await getJson(
-      `/api/collections/suggest?${params}${lang(false)}`,
-      SuggestSchema,
-      signal
-    ).catch(() => ({ items: [] }));
-    return answer.items;
+    return getJson(`/api/collections/suggest?${params}${lang(false)}`, SuggestSchema, signal).then(
+      answer => answer.items,
+      () => null
+    );
   });
 
-/** The tags under the collections search: the popular collections at rest, the ones whose titles answer the words. */
+/** The tags under the collections search: the popular collections at rest, the ones whose titles answer the words.
+    None where they could not be read, which is never fresh: the next page that shows the row asks again, as does the
+    connection's return. */
 export const tagsQuery = (query: string) =>
   queryOptions({
     queryKey: ["collection-tags", query] as const,
     queryFn: ({ signal }) => readTags(query, signal),
-    staleTime: PUBLIC_TTL
+    staleTime: tags => (tags.state.data === null ? 0 : PUBLIC_TTL),
+    refetchOnReconnect: true
   });
 
 /* The account's own pages are kept a minute, for a list returned to; any change to its collections (a pick, an edit,
@@ -256,13 +257,14 @@ if (!isServer)
     ownAddresses = now;
   });
 
-/** What a signed-in reader may do on one collection's page: theirs or theirs to curate, their copy, votes and notes. */
+/** What a signed-in reader may do on one collection's page: theirs or theirs to curate, their copy, votes and notes.
+    None where it could not be read, which the next visit asks for again. */
 export const stateQuery = (owner: string, slug: string) =>
   queryOptions({
     queryKey: ["collection-state", owner, slug, states] as const,
     queryFn: ({ signal }) =>
       readState(slug, signal).catch(error => (signal.aborted ? Promise.reject(error) : null)),
-    staleTime: PRIVATE_TTL
+    staleTime: query => (query.state.data === null ? 0 : PRIVATE_TTL)
   });
 
 export { COLLECTION_LIMIT };

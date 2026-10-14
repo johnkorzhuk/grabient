@@ -65,7 +65,9 @@ export default defineConfig({
   // Base 36 of the build's clock: in each Worker answer's Server-Timing and in the edge cache's keys.
   define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
   server: { strictPort: true },
-  preview: { strictPort: true },
+  /* The served build answers as a deploy does. Vite's own CORS would add `Vary: Origin` to every file, and a module
+     script's request, which carries an Origin, would then miss every file the service worker kept. */
+  preview: { strictPort: true, cors: false },
   /* One stylesheet for the whole site, which the document links and every later page already has. Split by chunk, a
      page's styles are up to thirty requests its first paint waits for, in an order that differs from page to page. */
   build: { cssCodeSplit: false },

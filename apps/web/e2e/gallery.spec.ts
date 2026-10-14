@@ -221,6 +221,64 @@ test("a press between Saved and the public lists keeps the focus on the choice p
   await expect(order.getByRole("link", { name: "Popular" })).toBeFocused();
 });
 
+/* With no connection, on the build a deploy serves: the service worker answers every document, and the account's copy
+   what it holds. */
+for (const viewport of [
+  { width: 1600, height: 1000 },
+  { width: 390, height: 844 }
+])
+  test(`with no connection Saved opens from the account's copy, loaded whole and from another page, ${viewport.width} wide`, {
+    tag: "@served"
+  }, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    const asked = calls(page);
+    const liked = card(page, 0).locator(`a[href^="/${SEED}"]`);
+    await signedIn(page);
+    await page.goto("/palettes/saved");
+    await expect(liked).toBeVisible();
+    // the copy's first sync, which Saved may have stopped waiting for, has landed
+    await page.waitForLoadState("networkidle");
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+    await page.context().setOffline(true);
+    await page.goto("/palettes/saved");
+    await expect(liked).toBeVisible();
+    await page.goto("/about");
+    await page.locator("header").getByRole("button", { name: "Your account" }).click();
+    await page.getByRole("menuitem", { name: "Saved palettes" }).click();
+    await expect.poll(() => here(page)).toBe("/palettes/saved");
+    await expect(liked).toBeVisible();
+    // searched, its tags are a read that fails, which the page reports to nobody
+    await page.goto("/palettes/saved?q=blue");
+    await expect
+      .poll(() => asked.some(path => path.startsWith("/api/search-suggestions?q=blue")))
+      .toBe(true);
+    await page.waitForLoadState("networkidle");
+    expect(asked.filter(path => path === "/api/client-error")).toEqual([]);
+  });
+
+test("Saved opened with no connection asks for Rising's frames again once the connection returns", {
+  tag: "@served"
+}, async ({ page }) => {
+  const rising = page
+    .getByRole("navigation", { name: "Order" })
+    .getByRole("link", { name: /^Rising/ });
+  await signedIn(page);
+  await page.goto("/palettes/saved");
+  await expect(card(page, 0)).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await page.context().setOffline(true);
+  await page.goto("/palettes/saved");
+  await expect(card(page, 0)).toBeVisible();
+  // an admin turned a second frame on meanwhile: Rising offers it once it is read
+  await signedIn(page);
+  await page.route("**/api/frames", route => route.fulfill({ json: { frames: ["1w", "3m"] } }));
+  await page.context().setOffline(false);
+  await expect(rising).toHaveAccessibleName(/^Rising 1w/);
+});
+
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {
   const asked = calls(page);
   await page.goto("/palettes/saved?q=blue");

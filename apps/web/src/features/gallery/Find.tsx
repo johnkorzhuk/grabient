@@ -50,8 +50,10 @@ const tagsView = (words: string, home: boolean) => ({
 });
 const titledView = (words: string) => ({
   ...collectionTagsQuery(words),
-  select: (hits: CollectionHit[]): Suggested =>
-    hits.slice(0, TYPED / 2).map(hit => ({ label: hit.title, href: hit.href, colors: hit.colors }))
+  select: (hits: CollectionHit[] | null): Suggested =>
+    (hits ?? [])
+      .slice(0, TYPED / 2)
+      .map(hit => ({ label: hit.title, href: hit.href, colors: hit.colors }))
 });
 /* The collections that answer the home's words, read only while it holds some: no other page asks for them. */
 function Titled(props: { words: string; children: (collections: () => Suggested) => Element }) {
@@ -91,8 +93,7 @@ export function Find(props: {
     clearTimeout(pause);
     pause = setTimeout(() => setAsked(typedWords(text)), PAUSE);
   };
-  /* With no connection the row keeps the tags it has: a read that cannot be made would wait for the connection, and
-     the page's next step with it. */
+  /* With no connection the row keeps the tags it has, which a read that cannot be made would take away. */
   const answered = createMemo<string>(last => (offline() && last !== undefined ? last : asked()));
   const tags = useQuery(() => tagsView(answered(), home()));
   /* a search's tag searches this page, a collection's opens it in the list's view; each in its place with no

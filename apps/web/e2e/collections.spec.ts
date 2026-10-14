@@ -45,6 +45,18 @@ const rising = (route: Route) =>
     }
   });
 
+/** A private collection of the account's own, as its copy holds it. */
+const blues = {
+  ...summary,
+  id: "e2e-blues",
+  slug: "@e2e-ada/my-blues",
+  title: "My blues",
+  visibility: "private",
+  owner: { kind: "user", name: "e2e-ada", display: "ada" },
+  url: "/@e2e-ada/my-blues",
+  items: summary.preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+};
+
 /** An account signed in here: the session answers with it, and its copy hears from the server once and holds
     `collections`. Every other private read is refused. */
 async function signIn(page: Page, name: string, admin: boolean, collections: object[] = []) {
@@ -278,18 +290,6 @@ test("an admin's own collection made private says so at its new address, and qui
 test("a search of Saved whose server read fails answers from the account's copy", async ({
   page
 }) => {
-  const { preview, ...words } = summary;
-  const blues = {
-    ...words,
-    id: "e2e-blues",
-    slug: "@e2e-ada/my-blues",
-    title: "My blues",
-    visibility: "private",
-    owner: { kind: "user", name: "e2e-ada", display: "ada" },
-    url: "/@e2e-ada/my-blues",
-    preview,
-    items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-  };
   await signIn(page, "ada", false, [blues]);
   await page.route(
     url => url.pathname === "/api/me/collections" && url.searchParams.has("q"),
@@ -342,18 +342,6 @@ test("a signed-in reader's one look at a public collection is counted once", asy
 test("each undo and redo of a pick says what it did, and a new collection goes back through the copy offline", async ({
   page
 }) => {
-  const { preview, ...words } = summary;
-  const blues = {
-    ...words,
-    id: "e2e-blues",
-    slug: "@e2e-ada/my-blues",
-    title: "My blues",
-    visibility: "private",
-    owner: { kind: "user", name: "e2e-ada", display: "ada" },
-    url: "/@e2e-ada/my-blues",
-    preview,
-    items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-  };
   await signIn(page, "ada", false, [blues]);
   // the checklist may ask before the copy has heard from the server
   await page.route(
@@ -368,7 +356,7 @@ test("each undo and redo of a pick says what it did, and a new collection goes b
           total: 1,
           totalPages: 1,
           fetchedAt: Date.now(),
-          items: [{ ...words, ...blues, items: undefined }]
+          items: [{ ...blues, items: undefined }]
         }
       })
   );
@@ -531,23 +519,56 @@ test("a fit vote made on a collection's page is there when the reader comes back
   await expect(good).toHaveAttribute("aria-pressed", "true");
 });
 
+test("a reader's votes on a collection that could not be read are read again when the reader comes back", async ({
+  page
+}) => {
+  await signIn(page, "reader", false);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({
+      json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+    })
+  );
+  // the first read of what the reader may do finds no connection; the server keeps a vote of theirs
+  let reads = 0;
+  await page.route(`**/api/me/collections/${SLUG}/state*`, route =>
+    reads++ === 0
+      ? route.abort("internetdisconnected")
+      : route.fulfill({
+          json: {
+            owned: false,
+            canCurate: false,
+            canDelete: false,
+            copy: null,
+            votes: { [SEED]: "up" }
+          }
+        })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const good = page
+    .locator("main article")
+    .first()
+    .getByRole("button", { name: /^Good fit/ });
+  await expect.poll(() => reads).toBe(1);
+  await expect(good).toHaveAttribute("aria-pressed", "false");
+  await page.locator("main a", { hasText: "Collections" }).first().click();
+  await expect(page).toHaveURL(/\/collections\/rising$/);
+  await page.goBack();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  await expect(good).toHaveAttribute("aria-pressed", "true");
+});
+
 test("a palette removed with the keyboard leaves the focus on its Undo, which gives it back", async ({
   page
 }) => {
-  const { preview, ...words } = summary;
-  await signIn(page, "ada", false, [
-    {
-      ...words,
-      id: "e2e-blues",
-      slug: "@e2e-ada/my-blues",
-      title: "My blues",
-      visibility: "private",
-      owner: { kind: "user", name: "e2e-ada", display: "ada" },
-      url: "/@e2e-ada/my-blues",
-      preview,
-      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-    }
-  ]);
+  await signIn(page, "ada", false, [blues]);
   await page.goto("/@e2e-ada/my-blues");
   await hydrated(page);
   const card = page.locator("main article").first();
@@ -663,26 +684,86 @@ test("a private collection renamed on its page is the account's own at its new a
 });
 
 test("a title entered on Saved at once opens the account's collection", async ({ page }) => {
-  const { preview, ...words } = summary;
-  await signIn(page, "ada", false, [
-    {
-      ...words,
-      id: "e2e-blues",
-      slug: "@e2e-ada/my-blues",
-      title: "My blues",
-      visibility: "private",
-      owner: { kind: "user", name: "e2e-ada", display: "ada" },
-      url: "/@e2e-ada/my-blues",
-      preview,
-      items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
-    }
-  ]);
+  await signIn(page, "ada", false, [blues]);
   await page.goto("/collections/saved");
   await hydrated(page);
   await expect(page.locator("main").getByRole("heading", { name: "My blues" })).toBeVisible();
   await page.getByRole("searchbox").fill("my blues");
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/@e2e-ada\/my-blues$/);
+});
+
+/* With no connection, on the build a deploy serves: the service worker answers every document, and the account's copy
+   its collections. */
+for (const viewport of [
+  { width: 1600, height: 1000 },
+  { width: 390, height: 844 }
+])
+  test(`with no connection the account's collections open from its copy, loaded whole and from another page, ${viewport.width} wide`, {
+    tag: "@served"
+  }, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    const group = page.locator("main").getByRole("heading", { name: "My blues" });
+    const own = async () => {
+      await expect(page.locator("main h1")).toHaveText("My blues");
+      await expect(page.locator(`main article a[href^="/${SEED}"]`)).toBeVisible();
+    };
+    await signIn(page, "ada", false, [blues]);
+    await page.goto("/collections/saved");
+    await expect(group).toBeVisible();
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+    await page.context().setOffline(true);
+    await page.goto("/collections/saved");
+    await expect(group).toBeVisible();
+    await page.goto("/@e2e-ada/my-blues");
+    await own();
+    await page.goto("/palettes/saved");
+    await page.locator("header").getByRole("button", { name: "Your account" }).click();
+    await page.getByRole("menuitem", { name: "Your collections" }).click();
+    await expect(page).toHaveURL(/\/collections\/saved$/);
+    await expect(group).toBeVisible();
+    await page.locator("main").getByRole("link", { name: "My blues" }).first().click();
+    await expect(page).toHaveURL(/\/@e2e-ada\/my-blues$/);
+    await own();
+    // deleted here, it leaves for the list, which the copy draws without it
+    await page.getByRole("button", { name: "Delete collection" }).click();
+    await page.getByRole("button", { name: "Press again to delete" }).click();
+    await expect(page).toHaveURL(/\/collections\/saved$/);
+    await expect(page.locator("main")).toContainText("No collections yet.");
+  });
+
+test("with no connection Your collections' tags answer the account's own, and the popular ones are read once it returns", {
+  tag: "@served"
+}, async ({ page }) => {
+  const group = page.locator("main").getByRole("heading", { name: "My blues" });
+  const tags = page.getByRole("toolbar", { name: "Tags" });
+  await signIn(page, "ada", false, [blues]);
+  await page.goto("/collections/saved");
+  await expect(group).toBeVisible();
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.unrouteAll({ behavior: "ignoreErrors" });
+  await page.context().setOffline(true);
+  await page.goto("/collections/saved");
+  await expect(group).toBeVisible();
+  await page.getByRole("searchbox").fill("blu");
+  await expect(tags.getByRole("link", { name: "My blues" })).toBeVisible();
+  await page.getByRole("searchbox").fill("");
+  await signIn(page, "ada", false, [blues]);
+  await page.route("**/api/collections/suggest?*", route =>
+    route.fulfill({
+      json: { items: [{ title: summary.title, slug: SLUG, href: `/${SLUG}`, colors: ["#3366cc"] }] }
+    })
+  );
+  await page.context().setOffline(false);
+  // the row in view, and the next page's
+  await expect(tags.getByRole("link", { name: summary.title })).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Order" })
+    .getByRole("link", { name: /^Popular/ })
+    .click();
+  await expect(page).toHaveURL(/\/collections$/);
+  await expect(tags.getByRole("link", { name: summary.title })).toBeVisible();
 });
 
 test("a collection's tags on a page in another language search the words they show", async ({
