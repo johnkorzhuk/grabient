@@ -174,3 +174,96 @@ test("each page's head holds one block of structured data, its own", async ({ pa
   await expect(blocks).toHaveCount(1);
   expect(await kinds()).not.toContain("BreadcrumbList");
 });
+
+test("an admin's own collection made private says so at its new address, and quick presses send one write", async ({
+  page
+}) => {
+  const admin = {
+    id: "e2e-admin",
+    name: "Admin",
+    email: "admin@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "e2e-admin",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const { preview, ...words } = summary;
+  const shown = { ...words, owner: { kind: "user", name: admin.username, display: admin.name } };
+  const doc = { ...shown, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) };
+  const hidden = { ...doc, slug: `@${admin.username}/${SLUG}`, visibility: "private" };
+  const state = (collection: typeof doc) => ({
+    owned: true,
+    canCurate: false,
+    canDelete: true,
+    copy: null,
+    votes: {},
+    collection
+  });
+  await page.route("**/api/me/**", route => route.fulfill({ status: 404, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: admin.id }, user: admin } })
+  );
+  // the account's copy hears it is an admin's and holds none of its collections, so the writes go to the server
+  await page.route("**/api/me/sync*", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: true,
+        account: admin
+      }
+    })
+  );
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    route =>
+      route.fulfill({
+        json: {
+          query: "",
+          sort: "rising",
+          page: 1,
+          limit: 24,
+          total: 1,
+          totalPages: 1,
+          fetchedAt: Date.now(),
+          items: [{ ...shown, preview }]
+        }
+      })
+  );
+  const writes: string[] = [];
+  await page.route(`**/api/collections/${SLUG}`, async route => {
+    if (route.request().method() === "GET") return route.fulfill({ json: doc });
+    writes.push(route.request().postData() ?? "");
+    await new Promise(resolve => setTimeout(resolve, 600));
+    await route.fulfill({ json: { collection: hidden } });
+  });
+  await page.route(`**/api/collections/${encodeURIComponent(hidden.slug)}*`, route =>
+    route.fulfill({ status: 404, json: {} })
+  );
+  await page.route(`**/api/me/collections/${SLUG}/state*`, route =>
+    route.fulfill({ json: state(doc) })
+  );
+  await page.route(`**/api/me/collections/${encodeURIComponent(hidden.slug)}/state*`, route =>
+    route.fulfill({ json: state(hidden) })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const turn = page.locator("main button", { hasText: /^\s*(Make|Now) (public|private)$/ });
+  await expect(turn).toHaveText("Make private");
+  // private, public and private again while the first write is on its way: one write, ending on the last press
+  await turn.click();
+  await expect(turn).toHaveText("Now private");
+  await turn.click();
+  await expect(turn).toHaveText("Now public");
+  await turn.click();
+  await expect(page).toHaveURL(`/${hidden.slug}/rising`);
+  await expect(turn).toHaveText("Now private");
+  expect(writes).toEqual([JSON.stringify({ visibility: "private" })]);
+});

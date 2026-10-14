@@ -140,13 +140,16 @@ export function CollectionPage(props: {
   const state = () => mineNow()?.state ?? null;
   const readState = (who: string, slug: string, fresh = false) =>
     client.fetchQuery({ ...stateQuery(who, slug), ...(fresh ? { staleTime: 0 } : {}) });
+  /* who sees it while an admin's press is on its way, which the heading shows; while it is, the collection may leave
+     this address, and what was read of it stands */
+  const [turning, setTurning] = createSignal<Visibility | null>(null);
   createEffect(
     () => {
       const who = account()?.id;
       return who ? { by: reader(), who, slug: props.slug } : null;
     },
     asked => {
-      if (!asked) return;
+      if (!asked || untrack(turning)) return;
       const { by, who, slug } = asked;
       let live = true;
       const keep = (part: Viewer) => {
@@ -195,7 +198,8 @@ export function CollectionPage(props: {
   const readAt = () => data()?.fetchedAt ?? Date.now();
   const now = () => minuteOf(readAt());
 
-  /* a collection the server moved (a new title, who sees it, a new username) is followed to its new address */
+  /* a collection the server moved (a new title, who sees it, a new username) is followed to its new address; a move of
+     the page's own press waits for the press's writes to end, so every press lands on one page */
   const follow = (slug: string) => {
     if (slug !== props.slug)
       void navigate({
@@ -205,7 +209,7 @@ export function CollectionPage(props: {
   };
   createEffect(
     () => {
-      const moved = account() ? ownCollectionMoved(props.slug) : null;
+      const moved = account() && !turning() ? ownCollectionMoved(props.slug) : null;
       return moved && moved !== props.slug
         ? collectionHref(moved, props.order) + pageSearch(props.view)
         : null;
@@ -521,7 +525,6 @@ export function CollectionPage(props: {
     sel.open() ? selection() : palettes().length ? palettes().slice(0, PAINTED) : null
   );
 
-  const [turning, setTurning] = createSignal<Visibility | null>(null);
   /* the collection's tags, each the collections list searched for it in the page's order */
   const tags = () =>
     marked(
