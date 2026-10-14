@@ -5433,10 +5433,10 @@
       "packages/design/src/palettename.ts:365"
     ]
   },
-  "settings\u0004Privacy": {
-    "note": "Settings: heading of the section with the analytics and session replay switches. The privacy choices, not the Privacy Policy.",
+  "Privacy & Consent": {
+    "note": "Settings: heading of the section with the analytics and session replay switches, the reader's consent choices for this browser. Not the Privacy Policy.",
     "refs": [
-      "apps/web/src/pages/Settings.tsx:524"
+      "apps/web/src/features/account/settings/Privacy.tsx:110"
     ]
   },
   "spare": {
