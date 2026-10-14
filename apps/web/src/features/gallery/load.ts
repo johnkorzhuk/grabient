@@ -2,10 +2,10 @@ import { getRequestEvent, isServer } from "@solidjs/web";
 import type { QueryClient } from "@tanstack/solid-query";
 import type { GalleryPlace, ListParams } from "./address.ts";
 import {
-  collectionsPageQuery,
   type Failed,
   failed,
   framesQuery,
+  homeCollectionsQuery,
   homeHeadQuery
 } from "./queries.ts";
 import { keptPage, pageQuery } from "./sources.ts";
@@ -82,20 +82,22 @@ export async function loadPalettes(
 }
 
 export async function loadHome(client: QueryClient, params: ListParams): Promise<Loaded> {
-  const order = params.words ? "popular" : "hot";
-  const [head, collections] = await Promise.all([
-    client.ensureQueryData(homeHeadQuery(params.words)),
-    client.ensureQueryData(collectionsPageQuery(order, params.words, params.page))
-  ]);
-  if (failed(head) || failed(collections)) return { edge: 0 };
-  if (head.limited || head.tier === "unavailable") {
-    return { edge: 0, robots: "noindex,follow", status: head.limited ? 429 : 503 };
+  const reads = [
+    () => client.ensureQueryData(homeHeadQuery(params.words)),
+    () => client.ensureQueryData(homeCollectionsQuery(params.words, params.page))
+  ] as const;
+  /* searched, the palettes are read before the collections, so words only the model reads are read by it once */
+  const head = params.words ? await reads[0]() : reads[0]();
+  const [answered, collections] = await Promise.all([head, reads[1]()]);
+  if (failed(answered) || failed(collections)) return { edge: 0 };
+  if (answered.limited || answered.tier === "unavailable") {
+    return { edge: 0, robots: "noindex,follow", status: answered.limited ? 429 : 503 };
   }
   if (params.page > Math.max(1, collections.totalPages)) {
     return { edge: 0, robots: "noindex,follow", status: 404 };
   }
   return {
-    edge: head.unkept ? 0 : PUBLIC_EDGE,
-    palettes: head.palettes.map(item => item.kseed)
+    edge: answered.unkept || collections.unkept ? 0 : PUBLIC_EDGE,
+    palettes: answered.palettes.map(item => item.kseed)
   };
 }

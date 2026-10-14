@@ -6,12 +6,13 @@ import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
 import { DEFAULT_FRAME, type ListSort, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
 import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
-import { publicCollections } from "../../server/collections/search.ts";
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
 import { searchPool } from "../../server/gallery/search.ts";
+import { COLLECTION_LIMIT } from "../collections/params.ts";
+import { collectionsQuery } from "../collections/queries.ts";
+import type { CollectionPage } from "../collections/types.ts";
 import { SEARCH_POOL } from "../search/queries.ts";
-import { COLLECTION_LIMIT, CollectionPage } from "./collections.ts";
 import { HomeHead, PalettePage, SavedPage, SearchAnswer } from "./schema.ts";
 
 /* Every read the gallery's pages make, one queryOptions each, shared by the routes' loaders and the pages. The server
@@ -35,7 +36,8 @@ export const own = <T>(data: T): T => structuredClone(data);
 
 /** A read that failed: why, in the reader's language, and on the server the status the page answers with. */
 export type Failed = { failed: string; status?: number };
-export const failed = (data: object): data is Failed => "failed" in data;
+/** Whether a read failed, told by its reason alone: the collections' reads the home makes say no status. */
+export const failed = (data: object): data is { failed: string } => "failed" in data;
 
 const PUBLIC_TTL = 300_000;
 const RISING_TTL = 60_000;
@@ -168,41 +170,21 @@ export const homeHeadQuery = (words: string) =>
     select: (data: HomeHead | Failed) => own(data)
   });
 
-export type CollectionOrder = "hot" | "popular";
+const ownPage = (data: CollectionPage | Failed) => own(data);
 
-const readCollections = createIsomorphicFn()
-  .server(
-    async (
-      order: CollectionOrder,
-      words: string,
-      page: number,
-      _signal: AbortSignal
-    ): Promise<CollectionPage | Failed> =>
-      publicCollections(env, { query: words, sort: order, page, limit: COLLECTION_LIMIT })
-  )
-  .client((order: CollectionOrder, words: string, page: number, signal: AbortSignal) => {
-    const params = new URLSearchParams({
-      sort: order,
-      page: String(page),
-      limit: String(COLLECTION_LIMIT)
-    });
-    if (words) params.set("q", words);
-    return attempt(
-      () => getJson(`/api/collections?${params}`, CollectionPage, signal),
-      signal,
-      msg("Couldn't load collections.")
-    );
-  });
-
-/** A page of the collections list: the home's feed in the hot order, or searched, the popular one. */
-export const collectionsPageQuery = (order: CollectionOrder, words: string, page: number) =>
-  queryOptions({
-    queryKey: ["collections", order, words, COLLECTION_LIMIT, page] as const,
-    queryFn: ({ signal }) => readCollections(order, words, page, signal),
-    staleTime: freshFor(PUBLIC_TTL),
-    reconcile: "slug",
-    select: (data: CollectionPage | Failed) => own(data)
-  });
+/** A page of the collections list as the home's feed reads it: the hot order, or searched, the popular one. It is the
+    collections list's own read, in the reader's language and with what the model reads of the words, so the home
+    searched and the collections list searched show the same collections, from one page the tab holds. */
+export const homeCollectionsQuery = (words: string, page: number) => ({
+  ...collectionsQuery({
+    sort: words ? "popular" : "hot",
+    query: words,
+    page,
+    limit: COLLECTION_LIMIT
+  }),
+  reconcile: "slug",
+  select: ownPage
+});
 
 export interface SavedKey {
   owner: string;
