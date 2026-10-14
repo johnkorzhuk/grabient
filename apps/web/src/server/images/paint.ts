@@ -268,6 +268,37 @@ export async function drawCard(
 
 /** Where the first of `count` wedges begins, clockwise from the top: turned so its middle runs through the wordmark's
     middle (175, 64.5 on a 1200 by 630 card, scaled with the picture). */
+const mix = (into: number[], with_: readonly number[], part: number) => {
+  for (let i = 0; i < 3; i++) into[i] = into[i]! + (with_[i]! - into[i]!) * part;
+};
+/** A wedge's color `t` of the way out from the middle: blended between two stops, or a band whose edges are a pixel
+    soft, so its rings are smooth (`ring`, a band's width in pixels). */
+function wedgeColor(
+  into: number[],
+  colors: readonly Rgb[],
+  bands: boolean,
+  t: number,
+  ring: number
+) {
+  const n = colors.length;
+  if (!bands) {
+    const position = t * (n - 1);
+    const index = Math.min(n - 1, Math.floor(position));
+    const a = colors[index]!;
+    const b = colors[Math.min(n - 1, index + 1)]!;
+    for (let i = 0; i < 3; i++) into[i] = a[i]! + (b[i]! - a[i]!) * (position - index);
+    return;
+  }
+  const position = Math.min(n, t * n);
+  const index = Math.min(n - 1, Math.floor(position));
+  const a = colors[index]!;
+  for (let i = 0; i < 3; i++) into[i] = a[i]!;
+  const inside = (position - index) * ring;
+  const left = ring - inside;
+  if (left < 0.5 && index < n - 1) mix(into, colors[index + 1]!, 0.5 - left);
+  else if (inside < 0.5 && index > 0) mix(into, colors[index - 1]!, 0.5 - inside);
+}
+
 export function wedgeStart(count: number, width: number, height: number): number {
   const x = (175 / 1200) * width - width / 2;
   const y = (64.5 / 630) * height - height / 2;
@@ -288,15 +319,34 @@ export async function drawWedges(
   const radius = Math.hypot(width, height) / 2;
   const start = wedgeStart(n, width, height);
   const bands = looks.map(look => isSwatchStyle(look.style));
+  const rings = looks.map(look => radius / look.colors.length);
+  const own: number[] = [0, 0, 0];
+  const next: number[] = [0, 0, 0];
   for (let y = 0; y < height; y++) {
     const dy = y + 0.5 - height / 2;
     for (let x = 0; x < width; x++) {
       const dx = x + 0.5 - width / 2;
       let around = (Math.atan2(dx, -dy) - start) / (2 * Math.PI);
       around -= Math.floor(around);
-      const k = Math.min(n - 1, Math.floor(around * n));
-      const out = Math.min(1, Math.hypot(dx, dy) / radius);
-      colorAt(canvas, (y * width + x) * 3, looks[k].colors, bands[k], out);
+      const from = Math.hypot(dx, dy);
+      const out = Math.min(1, from / radius);
+      const step = around * n;
+      const k = Math.min(n - 1, Math.floor(step));
+      wedgeColor(own, looks[k].colors, bands[k], out, rings[k]);
+      /* a pixel on a wedge's side is shared with the wedge beside it as far as the side crosses it: its distance from
+         the side, along the arc it stands on, gives each its part */
+      const arc = (2 * Math.PI * from) / n;
+      const after = (k + 1 - step) * arc;
+      const before = (step - k) * arc;
+      const side = after < 0.5 ? (k + 1) % n : before < 0.5 ? (k + n - 1) % n : -1;
+      if (side >= 0) {
+        wedgeColor(next, looks[side].colors, bands[side], out, rings[side]);
+        mix(own, next, 0.5 - Math.min(after, before));
+      }
+      const at = (y * width + x) * 3;
+      canvas.data[at] = Math.round(own[0]!);
+      canvas.data[at + 1] = Math.round(own[1]!);
+      canvas.data[at + 2] = Math.round(own[2]!);
     }
   }
   if (branded) await paintWordmark(canvas, looks[0].colors);

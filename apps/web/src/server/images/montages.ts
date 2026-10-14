@@ -13,6 +13,8 @@ import { CARD, montageSize } from "./size.ts";
 
 /** The most palettes a picture shows: its wedges. */
 export const MONTAGE_PALETTES = 9;
+/* How the wedges are drawn: a new drawing names itself anew, so a card kept in R2 is drawn again */
+const WEDGES = "wedges-smooth";
 
 export interface MontagePalette extends Saved {
   seed: string;
@@ -97,7 +99,7 @@ export function montagePicture(
       kind: "montage",
       branded,
       parts: [
-        "query",
+        WEDGES,
         shown.map(({ seed, view }) => [seed, view.style, view.steps, view.angle]),
         width,
         height,

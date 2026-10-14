@@ -1,5 +1,5 @@
 {
- "note": "ETag = \"image:{OG_VERSION}:{sha256 of JSON parts}\" (og.ts imageKey). Parts: palette: [palette, seed, style, steps, angle, width, height, branded, chips?]; montage: [query, [[seed, style, steps, angle]...], width, height, branded]. A new OG_VERSION changes every key.",
+ "note": "ETag = \"image:{OG_VERSION}:{sha256 of JSON parts}\" (og.ts imageKey). Parts: palette: [palette, seed, style, steps, angle, width, height, branded, chips?]; montage: [the drawing's name (montages.ts WEDGES), [[seed, style, steps, angle]...], width, height, branded]. A new OG_VERSION changes every key.",
  "keys": [
   {
    "address": "/api/png?seed=kS7Q8Yy5S_SChv0",
@@ -89,17 +89,17 @@
   {
    "address": "/api/og/list (montage of seed and gray)",
    "branded": true,
-   "etag": "\"image:k4:f27831bb0b8f2e28f5513a7e287d8363dab34bf746da3a32fd472b169a4e5f38\""
+   "etag": "\"image:k4:74ad399870db5f490509938105e825083a430105ed9f44ff1e79338d81c27f66\""
   },
   {
    "address": "/api/png/collection (montage of seed and gray)",
    "branded": false,
-   "etag": "\"image:k4:0d88d35007558fc703ab75143d61c33ee4eed1b9a105a98f9a66d35baea3fc02\""
+   "etag": "\"image:k4:e9d53f60c8bf5462eeead16acec3464ccebad7f0827e81f648dff1a302b4d492\""
   },
   {
    "address": "/api/png/collection?w=600&h=400 (montage)",
    "branded": false,
-   "etag": "\"image:k4:b9f780dcf1b273f6ef67d2671768d6a5bcb748cc84c03b9e436182c6072988a9\""
+   "etag": "\"image:k4:ef382ba4278bdf0c95194be403dfcaa5d3d4367f3ebf04d71a00bc82278f7025\""
   }
  ]
 }
