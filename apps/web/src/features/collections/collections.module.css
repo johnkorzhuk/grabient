@@ -114,12 +114,7 @@
     gap: var(--space-s3);
   }
   .hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    composes: text from "@grabient/ui/hidden.module.css";
   }
   .cell {
     min-width: 0;
@@ -142,15 +137,8 @@
   .mark {
     height: var(--size-hairline);
   }
-  /* the line keeps a press's height whether it holds words, a press or nothing, so nothing beneath moves */
   .status {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-s4);
-    box-sizing: content-box;
-    min-height: var(--size-control);
-    padding-top: var(--space-s6);
+    composes: status from "../../app/list.module.css";
   }
   /* a collection's line, under its cards */
   .line {
@@ -166,11 +154,7 @@
     padding-bottom: var(--space-s8);
   }
   .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-s4);
-    padding-block: var(--space-s10);
+    composes: empty from "../../app/list.module.css";
   }
   .notes {
     display: flex;
