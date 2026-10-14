@@ -43,7 +43,7 @@ const tagList = (raw: string | null | undefined): string[] => {
   }
 };
 
-/* —— What pages read —— */
+/* What pages read. */
 
 export interface Words {
   title: string;
@@ -216,7 +216,7 @@ export async function localizeTags<T extends { label: string; href: string; quer
   });
 }
 
-/* —— What the admins' apps read and keep —— */
+/* What the admins' apps read and keep. */
 
 /** The scripts a translation must be written in; the other languages are written in the Latin alphabet. */
 const SCRIPTS: Partial<Record<TranslatedLocale, RegExp>> = {
