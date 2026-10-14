@@ -1,4 +1,6 @@
 import { readFile } from "node:fs/promises";
+import { SIZE } from "@grabient/email";
+import { WORDMARK } from "@grabient/email/head.ts";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { drawnView, STYLES, type View } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
@@ -106,6 +108,46 @@ describe("a share card", () => {
       await emailHead(undefined, 1200, 300)
     );
   });
+});
+
+test("an email's head measures the wordmark where the painter sets it, in the painter's two inks", async () => {
+  // on one flat color the bar is that color too, so every other pixel is the wordmark's ink
+  for (const [ground, ink] of [
+    [255, WORDMARK.inks[0]],
+    [0, WORDMARK.inks[1]]
+  ] as const) {
+    const flat = [ground, ground, ground];
+    const [width, height] = SIZE.heads.sheet;
+    const head = await decodePng(
+      await drawCard(
+        { colors: [flat, flat], style: "linearGradient", angle: 90 },
+        null,
+        width,
+        height
+      )
+    );
+    const box = { left: width, top: height, right: -1, bottom: -1 };
+    let furthest: number = ground;
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const tone = at(head, x, y)[0];
+        if (tone === ground) continue;
+        box.left = Math.min(box.left, x);
+        box.top = Math.min(box.top, y);
+        box.right = Math.max(box.right, x);
+        box.bottom = Math.max(box.bottom, y);
+        if (Math.abs(tone - ground) > Math.abs(furthest - ground)) furthest = tone;
+      }
+    }
+    expect(furthest).toBe(ink);
+    // the letters reach the edges of their mask, which is the box the email samples under
+    expect(box).toEqual({
+      left: WORDMARK.x,
+      top: WORDMARK.y,
+      right: WORDMARK.x + WORDMARK.width - 1,
+      bottom: WORDMARK.y + WORDMARK.height - 1
+    });
+  }
 });
 
 describe("a picture of several palettes", () => {

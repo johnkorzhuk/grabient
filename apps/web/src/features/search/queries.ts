@@ -1,7 +1,7 @@
 /* The search's reads, one queryOptions each, shared by loaders and components. A search answers the whole pool of up to
    96 palettes once per words; a list sorts and pages it in the browser, so another order or page asks nothing again. */
 import { env } from "cloudflare:workers";
-import { msg, t } from "@grabient/i18n";
+import { DEFAULT_LOCALE, locale, msg, t } from "@grabient/i18n";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import * as v from "valibot";
@@ -58,18 +58,23 @@ export const searchColorsQuery = (query: string) =>
   });
 
 type TagOptions = { both?: boolean; limit?: number };
+/* the tags' address, in the page's language: Grabient's own tags and collections are translated */
+function tagParams(typed: string, options: TagOptions): URLSearchParams {
+  const params = new URLSearchParams({ q: typed, limit: String(options.limit ?? 12) });
+  if (options.both) params.set("both", "1");
+  if (locale() !== DEFAULT_LOCALE) params.set("lang", locale());
+  return params;
+}
 /* the server renders the tags from the snapshot it holds, so a page shows them from its first paint */
 const readSuggestions = createIsomorphicFn()
   .server((typed: string, options: TagOptions, _signal: AbortSignal) =>
-    suggestionsFor(env, typed, options)
+    suggestionsFor(env, tagParams(typed, options))
   )
-  .client((typed: string, options: TagOptions, signal: AbortSignal) => {
-    const params = new URLSearchParams({ q: typed, limit: String(options.limit ?? 12) });
-    if (options.both) params.set("both", "1");
-    return getJson(`/api/search-suggestions?${params}`, SearchSuggestions, signal).then(
+  .client((typed: string, options: TagOptions, signal: AbortSignal) =>
+    getJson(`/api/search-suggestions?${tagParams(typed, options)}`, SearchSuggestions, signal).then(
       answer => answer.suggestions
-    );
-  });
+    )
+  );
 
 /** The tags under the field for what it holds: the row at rest, typed words' phrases, or a palette's searches. `both`
     is the home's row of searches and collections. */

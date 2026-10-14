@@ -274,6 +274,8 @@ function Page(props: PageProps) {
   let stage: HTMLElement | undefined;
   let rail: HTMLElement | undefined;
   const [width, setWidth] = createSignal(innerWidth);
+  /* the header's height once measured; the styles hold the tokens' until then */
+  const [head, setHead] = createSignal<number | null>(null);
   const [dockH, setDockH] = createSignal(72);
   const [band, setBand] = createSignal<number | null>(null);
   /* the stage's own pixels: Auto's size, and what an auto side follows */
@@ -292,8 +294,15 @@ function Page(props: PageProps) {
   const reach = () => (stage?.offsetHeight ?? 0) + (rail?.offsetHeight ?? 0);
   onSettled(() => {
     let frame = 0;
+    let resized = false;
     const read = () => {
       frame = 0;
+      /* the page hidden behind the selection's screen has no box to measure */
+      if (resized && page.clientWidth) {
+        setWidth(page.clientWidth);
+        setHead(page.getBoundingClientRect().top + scrollY);
+      }
+      resized = false;
       const y = scrollY;
       const far = reach();
       setMoved(y > 1);
@@ -301,20 +310,21 @@ function Page(props: PageProps) {
       setDocked(far > 0 && y >= far - 1);
       setNearer(far > 0 && y > far / 2);
     };
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(read);
+    const soon = () => {
+      frame ||= requestAnimationFrame(read);
     };
+    /* The observer's first report, after the first layout, reads the page and its scroll, so nothing here forces a
+       layout. It is read in the next frame: a write in the observer's own callback lays the page out again while the
+       browser is still telling of the last layout, which it reports as an error. */
     const sizes = new ResizeObserver(() => {
-      setWidth(page.clientWidth);
-      page.style.setProperty("--head", `${page.getBoundingClientRect().top + scrollY || 0}px`);
-      onScroll();
+      resized = true;
+      soon();
     });
-    /* the observer's first report, after the first layout, reads the scroll too: nothing here forces a layout */
     sizes.observe(page);
-    addEventListener("scroll", onScroll, { passive: true });
+    addEventListener("scroll", soon, { passive: true });
     return () => {
       sizes.disconnect();
-      removeEventListener("scroll", onScroll);
+      removeEventListener("scroll", soon);
       cancelAnimationFrame(frame);
     };
   });
@@ -339,6 +349,7 @@ function Page(props: PageProps) {
       data-beside-scrollbar=""
       style={{
         "--dock-h": `${dockH()}px`,
+        ...(head() !== null ? { "--head": `${head()}px` } : {}),
         ...(band() !== null && !narrow() ? { "--peek": `${band()}px` } : {})
       }}
     >
@@ -760,12 +771,21 @@ function Strip(props: {
   const e = props.editor;
   let bar!: HTMLDivElement;
   const calm = createFlashGuard(e.shownStops, lights);
+  /* told in the next frame: the page sizes its first screen by this height, and a write in the observer's own callback
+     lays the page out again inside it */
   onSettled(() => {
-    const sizes = new ResizeObserver(() =>
-      props.onHeight(Math.round(bar.getBoundingClientRect().height))
-    );
+    let frame = 0;
+    const sizes = new ResizeObserver(() => {
+      frame ||= requestAnimationFrame(() => {
+        frame = 0;
+        props.onHeight(Math.round(bar.getBoundingClientRect().height));
+      });
+    });
     sizes.observe(bar);
-    return () => sizes.disconnect();
+    return () => {
+      sizes.disconnect();
+      cancelAnimationFrame(frame);
+    };
   });
   const marks = () =>
     props.marked

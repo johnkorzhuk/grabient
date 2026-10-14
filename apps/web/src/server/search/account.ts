@@ -5,8 +5,8 @@ import { msg } from "@grabient/i18n";
 import { json } from "@grabient/server/auth/http.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { sortSearch } from "../../features/gallery/sort.ts";
 import { statusOf, waitOf } from "./routes.ts";
-import { sortSearchItems } from "./seams.ts";
 import { searchPalettes, searchRequestInput } from "./search.ts";
 import type { Background } from "./snapshot.ts";
 
@@ -27,7 +27,7 @@ export async function accountSearchResponse(
     payer: { account: session.user.id }
   });
   return json(
-    { ...result, items: sortSearchItems(result.items, sort) },
+    { ...result, items: sortSearch(result.items, sort) },
     statusOf(result),
     waitOf(result)
   );

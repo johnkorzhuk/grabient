@@ -1,7 +1,8 @@
 /* D1 through cf, by the database ids in cloudflare.config.ts. Without --remote it is the local database `vite dev`
    serves, kept in .cloudflare/state; with --remote it is staging's, or the mode's.
 
-     node scripts/d1.ts setup                     every migration on the local database, then the gallery's palettes
+     node scripts/d1.ts setup                     every migration and the gallery's palettes, on both local databases:
+                                                  `vite dev`'s, and the one `vite preview` of a staging build reads
      node scripts/d1.ts migrate [--remote] [--mode staging|previews|production]
      node scripts/d1.ts file <path.sql> [--remote] [--mode staging|previews|production]
 
@@ -29,10 +30,12 @@ interface Target {
   where: string[];
 }
 
+const local = (id: string): Target => ({ id, where: ["--local", "--persist-to", STATE] });
+
 function target(remote: boolean, mode: string | undefined): Target {
   if (!remote) {
     if (mode) throw new Error(`The ${mode} database has no local copy: add --remote.`);
-    return { id: DATABASES.development.id, where: ["--local", "--persist-to", STATE] };
+    return local(DATABASES.development.id);
   }
   const name = mode ?? "staging";
   if (!REMOTE.some(known => known === name)) {
@@ -234,10 +237,16 @@ async function main(): Promise<void> {
   });
   const [command, path] = positionals;
   if (command === "setup") {
-    const local = target(false, values.mode);
-    await migrate(local);
-    const written = changed(await run(gallery(), local));
-    console.log(`The local gallery holds the shipped palettes (${written} rows written).`);
+    if (values.remote || values.mode) throw new Error(USAGE);
+    // a staging build served by `vite preview` reads a local database under staging's id
+    for (const mode of ["development", "staging"] as const) {
+      const at = local(DATABASES[mode].id);
+      await migrate(at);
+      const written = changed(await run(gallery(), at));
+      console.log(
+        `The local ${mode} gallery holds the shipped palettes (${written} rows written).`
+      );
+    }
   } else if (command === "migrate") {
     await migrate(target(values.remote, values.mode));
   } else if (command === "file" && path) {

@@ -66,6 +66,16 @@ export function viewParams(view: Partial<ListView>): Record<string, string | num
   return out;
 }
 
+/** A list's search with a change over its own, in the lists' one order: the words, the view, whatever else the
+    address says, then the selection. An address written in another order is one the Worker redirects on a reload. */
+export function inOrder(
+  search: Readonly<Record<string, unknown>>,
+  change: Readonly<Record<string, unknown>>
+): Record<string, unknown> {
+  const { q, style, steps, angle, size, selection, ...rest } = { ...search, ...change };
+  return { q, style, steps, angle, size, ...rest, selection };
+}
+
 /* each seed's keyframe count, read once: a change of the view reads every card's palette again */
 const KEYFRAMES_KEPT = 2048;
 const keyframes = new Map<string, number>();
@@ -106,11 +116,14 @@ const [remembered, setRemembered] = createSignal<ListView>(AS_SAVED);
 /* the same view, plain: a page's effect compares against it without reading the signal */
 let kept: ListView = AS_SAVED;
 let live = false;
+/* the view of the list the document opened on, which it drew before the memory was live */
+let opened: ListView | null = null;
 
 /** The reader's view, as this tab remembers it. */
 export const rememberedView = remembered;
 
-/** Reads the tab's memory once the page is live. */
+/** Reads the tab's memory once the page is live. A document that opened on a list takes that list's view over the
+    one kept, As saved included: its address is what the reader sees. */
 export function recallView(): void {
   if (isServer || live) return;
   live = true;
@@ -123,11 +136,16 @@ export function recallView(): void {
   } catch {
     /* nothing kept, or storage refused: As saved */
   }
+  if (opened) rememberView(opened);
 }
 
 /** Remembers the view a page drew its palettes in. */
 export function rememberView(view: ListView): void {
-  if (isServer || !live) return;
+  if (isServer) return;
+  if (!live) {
+    opened = view;
+    return;
+  }
   if (
     kept.style === view.style &&
     kept.steps === view.steps &&

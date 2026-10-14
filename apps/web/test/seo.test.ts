@@ -1,13 +1,9 @@
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { afterEach, describe, expect, it } from "vitest";
+import { collectionSitemapRows } from "../src/server/collections/read.ts";
 import { indexNowKeyFile, sendIndexNow } from "../src/server/seo/indexnow.ts";
-import {
-  collectionRows,
-  paletteRows,
-  paletteShards,
-  sitemapFile
-} from "../src/server/seo/sitemaps.ts";
+import { paletteRows, paletteShards, sitemapFile } from "../src/server/seo/sitemaps.ts";
 import { githubStars, refreshStars } from "../src/server/seo/stars.ts";
 import { testEnv, unique } from "./helpers.ts";
 
@@ -92,7 +88,7 @@ describe("sitemaps", () => {
     const older = await collection(env, "public", 1_000);
     const hidden = await collection(env, "private", 3_000);
     const newer = await collection(env, "public", 2_000);
-    const rows = await collectionRows(env);
+    const rows = await collectionSitemapRows(env);
     expect(rows).toEqual([
       { slug: newer.slug, updatedAt: 2_000 },
       { slug: older.slug, updatedAt: 1_000 }
