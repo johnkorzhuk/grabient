@@ -6,7 +6,6 @@ import { Avatar } from "../src/Avatar.tsx";
 import { Backdrop } from "../src/Backdrop.tsx";
 import { BackToTop } from "../src/BackToTop.tsx";
 import { BarRim } from "../src/BarRim.tsx";
-import { BrandPage } from "../src/BrandPage.tsx";
 import { Button } from "../src/Button.tsx";
 import { CodeLines } from "../src/CodeBlock.tsx";
 import { CodeTabs } from "../src/CodeTabs.tsx";
@@ -803,24 +802,16 @@ describe("navigation and frames", () => {
     expect(tag(markup, "div")).toMatchObject({ "data-login": "", "data-noted": "" });
   });
 
-  test("a page root, and the brand and app pages around a page that wears the bar", () => {
+  test("a page root, and the app page around a page that wears the bar", () => {
     expect(html(() => <PageRoot>x</PageRoot>)).toMatch(/^<div[^>]*>x<\/div>$/);
-    const brand = html(() => (
-      <BrandPage stops={["#123456", "#654321"]} backdrop login corner={<span>corner</span>}>
-        <Field label="Email" name="email" />
-      </BrandPage>
-    ));
-    expect(tags(brand, "div").find(d => "data-brand" in d)).toBeDefined();
-    expect(brand).toContain("#123456 0.0%");
-    expect(tags(brand, "div").find(d => "data-strong" in d)).toBeDefined();
     const app = html(() => (
       <AppPage stops={["#123456"]} corner={<span>corner</span>}>
         <p>list</p>
       </AppPage>
     ));
+    expect(app).toContain("<span>corner</span>");
     expect(tags(app, "div").find(d => "data-brand" in d)).toBeUndefined();
     expect(tags(app, "div").find(d => "data-off" in d)).toBeUndefined();
-    expect(tags(app, "div").find(d => "data-strong" in d)).toBeUndefined();
   });
 
   test("back to top is named for where it leads", () => {

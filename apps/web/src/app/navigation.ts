@@ -3,6 +3,7 @@ import { announce } from "@grabient/ui/announce.ts";
 import { focusMain } from "@grabient/ui/SkipLink.tsx";
 import type { AnyRouter, HistoryLocation } from "@tanstack/solid-router";
 import { pageKey, trackPageView } from "../features/analytics/analytics.ts";
+import { landView } from "../features/list/appearance.ts";
 import { openedOutside } from "./framed.ts";
 import { forgetUndoFrom, landUndo } from "./undo.ts";
 
@@ -15,8 +16,9 @@ import { forgetUndoFrom, landUndo } from "./undo.ts";
 
    After a page is pushed, or reached by Back or Forward, focus moves to the new page's main content when the control
    that held it left with the old page, and a screen reader is told the new page's title once the page has set it. An
-   address rewritten in place moves and says nothing. Each entry keeps its own undo, and each page reached is counted
-   once (analytics), whatever its palettes are edited into or drawn in. */
+   address rewritten in place moves and says nothing. Each entry keeps its own undo and what the tab remembered of the
+   reader's view when it was left, and each page reached is counted once (analytics), whatever its palettes are edited
+   into or drawn in. */
 
 /** How long a page has to set its title before it is announced. */
 const LANDED_MS = 120;
@@ -28,6 +30,10 @@ export const SELECTION_MARK = "selection";
     object, whose methods it wraps, so this one is made with the browser's own. */
 export const rewriteQuietly = (href: string): void =>
   History.prototype.replaceState.call(history, history.state, "", href);
+
+/** Rewrites the page's address in place and has the route take it, the entry staying itself: the router keeps the
+    depth a page was left at by the entry's key, which a navigation that replaces makes anew. */
+export const rewriteInPlace = (href: string): void => history.replaceState(history.state, "", href);
 
 /** The router's ways in: link presses, landings and their undo. Returns the way out. */
 export function watchNavigation(router: AnyRouter): () => void {
@@ -58,13 +64,19 @@ export function watchNavigation(router: AnyRouter): () => void {
     const at = state.__TSR_index ?? 0;
     return state.mark === SELECTION_MARK ? at - 1 : at;
   };
+  const placeOf = (location: HistoryLocation) => location.state.__TSR_index ?? 0;
   landUndo(entryOf(router.history.location));
+  landView(placeOf(router.history.location));
   let moved = false;
   const leaveHistory = router.history.subscribe(
     ({ location, action }: { location: HistoryLocation; action: { type: string } }) => {
-      if (action.type === "PUSH") forgetUndoFrom(location.state.__TSR_index ?? 0);
+      const pushed = action.type === "PUSH";
+      if (pushed) forgetUndoFrom(placeOf(location));
       landUndo(entryOf(location));
-      moved = action.type !== "REPLACE";
+      const replaced = action.type === "REPLACE";
+      // a page rewritten in place as it lands has still landed
+      if (!replaced) moved = true;
+      landView(placeOf(location), pushed ? "pushed" : replaced ? undefined : "returned");
     }
   );
   /* a page is counted by the address it was reached at: one rewritten in place on the same route (an edit, a change of

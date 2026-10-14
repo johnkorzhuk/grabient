@@ -1,6 +1,15 @@
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { expect, test } from "vitest";
-import { AS_SAVED, drawnIn, inOrder, inView, readListView, viewParams } from "./appearance.ts";
+import {
+  AS_SAVED,
+  drawnIn,
+  inOrder,
+  inView,
+  type ListView,
+  readListView,
+  viewParams,
+  viewSince
+} from "./appearance.ts";
 
 const SEED = encodePalette({
   anchors: Array.from({ length: 8 }, (_, i) => ({ l: 0.2 + i * 0.1, c: 0.1, h: i * 30 }))
@@ -69,4 +78,18 @@ test("a card draws the list's view over its own, a draft over both, never fewer 
     steps: 20,
     angle: 200
   });
+});
+
+test("a list returned to takes each choice made since it was left, a cleared one included, over its own address", () => {
+  const radial: ListView = { ...AS_SAVED, style: "radialGradient" };
+  const own: ListView = { ...AS_SAVED, steps: 5 };
+  // Radial was chosen on another list: the steps this address names stay
+  expect(viewSince(own, AS_SAVED, radial)).toEqual({ ...own, style: "radialGradient" });
+  // nothing was chosen since: the address stands, whatever the tab remembers
+  expect(viewSince(own, radial, radial)).toEqual(own);
+  // the steps were let go elsewhere, and a size chosen
+  const sized: ListView = { ...AS_SAVED, size: { width: 1200, height: 630 } };
+  expect(viewSince(own, own, sized)).toEqual(sized);
+  // no record of the leaving, as after a reload: the list takes the tab's view whole
+  expect(viewSince(own, undefined, radial)).toEqual(radial);
 });

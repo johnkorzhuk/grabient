@@ -1,0 +1,74 @@
+diff --git a/build/dev.js b/build/dev.js
+index 2ce38f1c5174c81466be1d2bd820e216cab55696..ecd05fd74b60da35471bde3a584ca57c0afcbc93 100644
+--- a/build/dev.js
++++ b/build/dev.js
+@@ -101,7 +101,7 @@ var useIsRestoring = () => useContext(IsRestoringContext);
+ 
+ // src/useBaseQuery.ts
+ var isServer2 = typeof window === "undefined";
+-var NEVER = new Promise(noop);
++var never = () => new Promise(noop);
+ function metaFrom(state) {
+   return {
+     dataUpdateCount: state.dataUpdateCount,
+@@ -305,19 +305,19 @@ function useBaseQueryLayer(options, Observer, queryClient) {
+     if (state.data !== void 0) return wrap(state.data);
+     if (isEnabled()) {
+       if (isHydrating()) {
+-        return NEVER;
++        return never();
+       }
+       if (!primed()) {
+-        return NEVER;
++        return never();
+       }
+       if (isRestoring()) {
+-        return NEVER;
++        return never();
+       }
+       if (!isServer2) observer.setOptions(opts);
+       return chainOnce(q.fetch(opts), select, wrap);
+     }
+     if (isServer2) return { value: void 0 };
+-    return NEVER;
++    return never();
+   };
+   const dataStore = createProjection(
+     (draft) => computeData(draft.value),
+diff --git a/build/index.js b/build/index.js
+index 2ce38f1c5174c81466be1d2bd820e216cab55696..ecd05fd74b60da35471bde3a584ca57c0afcbc93 100644
+--- a/build/index.js
++++ b/build/index.js
+@@ -101,7 +101,7 @@ var useIsRestoring = () => useContext(IsRestoringContext);
+ 
+ // src/useBaseQuery.ts
+ var isServer2 = typeof window === "undefined";
+-var NEVER = new Promise(noop);
++var never = () => new Promise(noop);
+ function metaFrom(state) {
+   return {
+     dataUpdateCount: state.dataUpdateCount,
+@@ -305,19 +305,19 @@ function useBaseQueryLayer(options, Observer, queryClient) {
+     if (state.data !== void 0) return wrap(state.data);
+     if (isEnabled()) {
+       if (isHydrating()) {
+-        return NEVER;
++        return never();
+       }
+       if (!primed()) {
+-        return NEVER;
++        return never();
+       }
+       if (isRestoring()) {
+-        return NEVER;
++        return never();
+       }
+       if (!isServer2) observer.setOptions(opts);
+       return chainOnce(q.fetch(opts), select, wrap);
+     }
+     if (isServer2) return { value: void 0 };
+-    return NEVER;
++    return never();
+   };
+   const dataStore = createProjection(
+     (draft) => computeData(draft.value),

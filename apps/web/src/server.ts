@@ -40,11 +40,21 @@ const start = createStartHandler(
     /* <meta charset> leads the document, within its first 1024 bytes, and the design system's order of layers comes
        next, before any stylesheet: the first stylesheet to name a layer would otherwise order them, and the stylesheets
        arrive in the order the build collects them. Written in <head> by hand they would be hydrated by position, which a
-       node a browser extension adds there breaks. */
-    const html = (await response.text()).replace(
-      "<head>",
-      '<head><meta charset="utf-8"><style>@layer reset, tokens, base, components;</style>'
-    );
+       node a browser extension adds there breaks.
+
+       The page's scripts are preloaded at low priority: at the default they compete with the stylesheet and the fonts,
+       and the first paint on a slow connection waits for them. The router's head and Solid's lazy components both
+       write these links, so the priority is set here, on the document.
+
+       The router writes each match's id into its script with a NUL for every slash. HTML allows no NUL in a document,
+       so each is written as the escape a script reads as the same character. */
+    const html = (await response.text())
+      .replace(
+        "<head>",
+        '<head><meta charset="utf-8"><style>@layer reset, tokens, base, components;</style>'
+      )
+      .replaceAll('<link rel="modulepreload"', '<link rel="modulepreload" fetchpriority="low"')
+      .replaceAll("\0", "\\u0000");
     const headers = new Headers(response.headers);
     const locals = getRequestEvent()?.locals;
     const failed = locals?.renderFailed === true;

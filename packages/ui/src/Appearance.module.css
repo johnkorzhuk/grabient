@@ -197,7 +197,8 @@
     font-family: var(--font-sans);
     font-weight: var(--font-medium);
     font-size: var(--font-fs2);
-    line-height: var(--font-lh-ui);
+    /* the line of the menu's own text, which the smaller name stands on */
+    line-height: calc(var(--font-fs3) * var(--font-lh-ui));
     text-align: center;
     text-overflow: ellipsis;
     white-space: nowrap;

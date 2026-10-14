@@ -162,6 +162,54 @@ export function rememberView(view: ListView): void {
   }
 }
 
+/** The view a list takes when Back or Forward returns to it: its address's own, with each choice the reader made
+    since the entry was left as it stands now, a cleared one included. `left` is what the tab remembered at the
+    leaving; with no record of it every choice counts. */
+export function viewSince(own: ListView, left: ListView | undefined, now: ListView): ListView {
+  const was = left && viewParams(left);
+  const is = viewParams(now);
+  const made = (part: keyof ListView) => !was || was[part] !== is[part];
+  return {
+    style: made("style") ? now.style : own.style,
+    steps: made("steps") ? now.steps : own.steps,
+    angle: made("angle") ? now.angle : own.angle,
+    size: made("size") ? now.size : own.size
+  };
+}
+
+/* What the tab remembered when each history entry was left, by the entry's place in the history, for the entries
+   this document has shown: the last of them, as many as a browser keeps to go back to. */
+const ENTRIES_KEPT = 100;
+const leftWith = new Map<number, ListView>();
+let entry = 0;
+let returned: { left: ListView | undefined; now: ListView } | null = null;
+
+/** The history moved to the entry at `at`: `pushed` after the one on screen, or `returned` to by Back or Forward.
+    Neither is the document's first entry or one replaced, which leave no entry. */
+export function landView(at: number, how?: "pushed" | "returned"): void {
+  returned = null;
+  if (how) {
+    // set again, an entry moves to the end, so the first is the one left longest ago
+    leftWith.delete(entry);
+    leftWith.set(entry, kept);
+    if (leftWith.size > ENTRIES_KEPT) leftWith.delete(leftWith.keys().next().value!);
+    if (how === "returned") returned = { left: leftWith.get(at), now: kept };
+    // a push takes the place of every entry after the one left
+    else for (const later of [...leftWith.keys()]) if (later >= at) leftWith.delete(later);
+  }
+  entry = at;
+}
+
+/** The view a list that Back or Forward returned to takes over its address's own, once: null where the address has
+    it already, or the page was reached another way. */
+export function returnedView(own: ListView): ListView | null {
+  const since = returned;
+  returned = null;
+  if (!since) return null;
+  const view = viewSince(own, since.left, since.now);
+  return inView("", view) === inView("", own) ? null : view;
+}
+
 /** A page that draws palettes, in the reader's view: `/palettes` with the style, steps, angle and size remembered. */
 export function inView(path: string, view: ListView = remembered()): string {
   const params = new URLSearchParams();

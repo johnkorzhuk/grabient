@@ -1,26 +1,15 @@
-/* The collections' pages: a collection's own, and the lists of them. The band above the row stands where the lists'
-   search stands, so the row, the title and the cards land where the lists have them. */
+/* The collections' pages: a collection's own, and the lists of them. They stand in the frame's list layout, whose
+   parts hold every distance above the cards. The band above a collection's row stands where the lists' search stands,
+   so the row, the title and the cards land where the lists have them. */
 @layer components {
-  /* the lists' column: the window's width less its gutters, as the gallery's lists stand */
   .page {
-    container: page / inline-size;
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    min-height: 100vh;
-    padding-block: var(--space-s16) var(--space-s8);
-    padding-inline: var(--size-gutter);
-    @media (max-width: 800px) {
-      padding-block: var(--space-s10) var(--space-s16);
-      padding-inline: var(--space-s4);
-    }
+    composes: column from "../../app/list.module.css";
   }
-  .band,
+  .band {
+    composes: find from "../../app/list.module.css";
+  }
   .find {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-s4);
-    margin-bottom: var(--space-s8);
+    composes: find from "../../app/list.module.css";
   }
   .back {
     display: flex;
@@ -69,13 +58,10 @@
     max-width: var(--size-prose);
   }
   .row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-s4);
-    min-height: var(--size-control-big);
-    margin-bottom: var(--space-s4);
+    composes: row from "../../app/list.module.css";
+  }
+  .nav {
+    composes: row from "../../app/list.module.css";
   }
   /* the width of the lists' two sections, so a choice here is the size of one there; full width on a phone */
   .order {
@@ -97,14 +83,9 @@
   }
   /* the title line, as a list's heading and a collection's group stand it: the name, then what the collection says */
   .heading {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: last baseline;
+    composes: heading from "../../app/list.module.css";
     justify-content: space-between;
     gap: var(--space-s2) var(--space-s4);
-    min-width: 0;
-    min-height: var(--size-control-big);
-    margin-bottom: var(--space-s8);
     @container page (max-width: 800px) {
       flex-wrap: wrap;
     }
@@ -198,15 +179,6 @@
     gap: var(--space-s4);
     min-height: var(--size-control);
     padding-top: var(--space-s6);
-  }
-  .nav {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-s4);
-    min-height: var(--size-control-big);
-    margin-bottom: var(--space-s4);
   }
   /* the picture a search by image was made from, its points to move */
   .picture {

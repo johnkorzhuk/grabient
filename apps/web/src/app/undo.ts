@@ -51,22 +51,21 @@ let edits: EditsWalk | null = null;
 let inSelection: () => boolean = () => false;
 const [version, setVersion] = createSignal(0);
 const changed = () => setVersion(n => n + 1);
-/** An entry's steps: the entry on screen when what reads them was done, which a turn waiting its place keeps. */
-function journal(at = entry): Journal {
+/** An entry's steps: the entry on screen when what reads them was done, which a turn waiting its place keeps. Only a
+    step made keeps a journal, so the entries a tab only passes through take no room. */
+function journal(at = entry, making = false): Journal {
   let j = journals.get(at);
   if (!j) {
     j = { steps: [], at: 0 };
-    journals.set(at, j);
+    if (making) journals.set(at, j);
   }
   return j;
 }
 
 /* one at a time, in the order asked: each decides what it takes back when its turn comes */
 let chain: Promise<void> = Promise.resolve();
-const [waiting, setWaiting] = createSignal(0);
 function inTurn(work: () => Promise<void> | void): Promise<void> {
-  setWaiting(n => n + 1);
-  const run = chain.then(work).finally(() => setWaiting(n => n - 1));
+  const run = chain.then(work);
   chain = run.catch(() => {});
   return run;
 }
@@ -96,7 +95,7 @@ export function record(step: Step): void {
   const selection = inSelection();
   const at = entry;
   void inTurn(() => {
-    const j = journal(at);
+    const j = journal(at, true);
     j.steps = [
       ...j.steps.slice(Math.max(0, j.at + 1 - LIMIT), j.at),
       { step, edit: edits?.position() ?? 0, selection }
@@ -133,8 +132,6 @@ export function isNextUndo(step: Step): boolean {
   const j = journal();
   return j.steps[j.at - 1]?.step === step;
 }
-/** A step's undo or redo is on its way. */
-export const undoing = (): boolean => waiting() > 0;
 
 export function undo(): Promise<void> {
   return inTurn(async () => {

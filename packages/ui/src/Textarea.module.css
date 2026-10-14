@@ -1,6 +1,10 @@
 @layer components {
   .input {
     composes: input from "./Field.module.css";
+  }
+  /* a build writes the field's rules into this sheet and into the field's own, before these or after them, so these
+     outweigh the field's by the element's name: on a phone too, where a field takes a finger's height */
+  textarea.input {
     display: block;
     height: auto;
     min-height: calc(var(--size-control-big) * 3);
@@ -9,9 +13,6 @@
     resize: vertical;
     &:autofill {
       padding-block: var(--space-s3);
-    }
-    @media (pointer: coarse) {
-      height: auto;
     }
   }
 }

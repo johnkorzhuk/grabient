@@ -210,7 +210,8 @@ export function Solid(props: {
   createEffect(
     () => (seen() ? ([frame(), props.height, props.kept] as const) : null),
     now => {
-      if (now) paint();
+      /* in sight, as the compute read */
+      if (now && !raf) raf = requestAnimationFrame(draw);
     }
   );
   let pointer: number | null = null;
