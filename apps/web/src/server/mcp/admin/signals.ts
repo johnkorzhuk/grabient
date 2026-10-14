@@ -1,29 +1,9 @@
+import type { EditRow, SiteItem, SiteRead, UseRow } from "../../palette-use/record.ts";
+
 /* The visitors' signals: what people search for on the site and what they do with its palettes, made into what an
    admin acts on. Pure functions over the use and search records and a read of the site's public collections. What
    the signals say ranks below the admins' likes, notes and record, and never earns a like. */
 
-export interface UseRow {
-  seed: string;
-  action: string;
-  format: string;
-  surface: string;
-  collection: string;
-  words?: string;
-  position: number;
-  view: string;
-  count: number;
-}
-export interface EditRow {
-  seed: string;
-  collection: string;
-  n: number;
-  anchors: number;
-  meanL: number;
-  rangeL: number;
-  meanC: number;
-  maxC: number;
-  hueSpan: number;
-}
 export interface UseRecord {
   uses?: UseRow[];
   edits?: EditRow[];
@@ -32,25 +12,6 @@ export interface UseRecord {
 export interface SearchRecord {
   ranked?: { rank: number; words: string; score?: number }[];
   counted?: { page: string; words: string; count: number; used: number }[];
-}
-interface View {
-  style: string;
-  steps: number;
-  angle: number;
-}
-export interface SiteItem extends View {
-  seed: string;
-  likes?: number;
-}
-/** The site as the signals read it: its public collections with their palettes' views and likes, and the gallery's. */
-export interface SiteRead {
-  collections?: {
-    slug: string;
-    title: string /** readers' saved copies */;
-    saves?: number;
-    items: SiteItem[];
-  }[];
-  gallery?: ({ seed: string } & View)[];
 }
 
 /** A collection title's form words: Rose gold gradients and Rose gold swatches are one title, rose-gold. */
@@ -127,7 +88,7 @@ export interface PaletteLift {
     would earn from the other collections' pages. A lift above 1 is used more than its place explains. A palette passed
     over has `expected` of 3 or more and no use; one taken has a lift of 2 or more over 3 uses. */
 export function collectionUse(record: UseRecord, site: SiteRead, { minUses = 10 } = {}) {
-  const collections = site.collections ?? [];
+  const collections = site.collections;
   const sizes = new Map(collections.map(c => [c.slug, c.items.length]));
   const uses = record.uses ?? [];
   const weights = positionWeights(uses, sizes);
@@ -197,7 +158,7 @@ export function searchAnswers(
   site: SiteRead,
   slugOf: (title: string) => string
 ) {
-  const stems = new Set((site.collections ?? []).map(c => stemOf(c.slug)));
+  const stems = new Set(site.collections.map(c => stemOf(c.slug)));
   const rows = (record.counted ?? []).filter(r => r.page !== "collections" && r.page !== "mcp");
   const rate = sum(rows) ? sum(rows, r => r.used) / sum(rows) : 0;
   const searches = [...group(rows, r => r.words)]
@@ -217,6 +178,7 @@ export function searchAnswers(
   return { rate: round(rate), searches };
 }
 
+type View = Pick<SiteItem, "style" | "steps" | "angle">;
 const viewOf = (text: string): View => {
   const [style = "", steps, angle] = String(text).split(":");
   return { style, steps: Number(steps), angle: Number(angle) };
@@ -226,9 +188,9 @@ const viewOf = (text: string): View => {
     gallery's): how often the style changed and to what, and whether the steps went up or down. */
 export function viewsTaken(record: UseRecord, site: SiteRead) {
   const inCollection = new Map<string, View>();
-  for (const c of site.collections ?? [])
+  for (const c of site.collections)
     for (const item of c.items) inCollection.set(`${c.slug} ${item.seed}`, item);
-  const inGallery = new Map<string, View>((site.gallery ?? []).map(g => [g.seed, g]));
+  const inGallery = new Map<string, View>(site.gallery.map(g => [g.seed, g]));
   const styles = new Map<string, number>();
   const byCollection = new Map<string, { takes: number; styleChanged: number }>();
   let takes = 0;

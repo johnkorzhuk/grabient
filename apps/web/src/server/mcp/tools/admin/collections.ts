@@ -1,12 +1,11 @@
 import { all, first } from "@grabient/server/db/d1.ts";
+import { likedByPeople } from "../../../collections/curation.ts";
+import { texts as paletteTexts } from "../../../collections/files.ts";
+import { itemFits } from "../../../collections/fit.ts";
+import { folded } from "../../../collections/letters.ts";
+import { listNotes } from "../../../collections/notes.ts";
+import { collectionBySlug, collectionRecord, tagsOf } from "../../../collections/read.ts";
 import { reviewsOf } from "../../admin/reviews.ts";
-import {
-  collectionBySlug,
-  collectionRecord,
-  likedByPeople,
-  listNotes,
-  paletteTexts
-} from "../../site.ts";
 import {
   answer,
   moment,
@@ -23,17 +22,6 @@ import { ADMINS, hexes, PAGE, siteCollection } from "./common.ts";
 
 /* Grabient's own collections as the admins read them: how much of each the admins liked and reviewed, and one in full. */
 
-const tagsOf = (raw: string): string[] => {
-  try {
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed)
-      ? parsed.filter((tag): tag is string => typeof tag === "string")
-      : [];
-  } catch {
-    return [];
-  }
-};
-
 export const collectionTools: readonly Tool[] = [
   {
     name: "site_collections",
@@ -48,7 +36,7 @@ export const collectionTools: readonly Tool[] = [
       limit: whole("How many a page, default 50.", 1, 100)
     }),
     async run(args, c) {
-      const words = str(args.query, 100).toLowerCase();
+      const words = folded(str(args.query, 100));
       const page = num(args.page, 1, 1, 10000);
       const limit = num(args.limit, 50, 1, 100);
       const where = `m.owner_kind = 'agent'${words ? " AND instr(m.search_text, ?) > 0" : ""}`;
@@ -118,10 +106,10 @@ export const collectionTools: readonly Tool[] = [
       const slug = str(args.slug, 120);
       const record = slug ? await collectionRecord(c.env, slug) : null;
       if (!siteCollection(record)) return refuse("No Grabient collection has this address.");
-      const doc = await collectionBySlug(c.env, record.slug, record.owner);
+      const doc = await collectionBySlug(c.env, record.slug, true);
       if (!doc) return refuse("No Grabient collection has this address.");
       const seeds = doc.items.map(item => item.kseed);
-      const [admins, locked, texts, reviews, notes, due, votes] = await Promise.all([
+      const [admins, locked, texts, reviews, notes, due, fits] = await Promise.all([
         seeds.length
           ? all<{ seed: string }>(
               c.env.DB,
@@ -139,18 +127,10 @@ export const collectionTools: readonly Tool[] = [
           "SELECT COUNT(*) AS n FROM k_queue WHERE status = 'due' AND kind = 'collection' AND json_extract(payload, '$.slug') = ?",
           record.slug
         ),
-        all<{ seed: string; up: number; down: number }>(
-          c.env.DB,
-          `SELECT seed, SUM(vote > 0) AS up, SUM(vote < 0) AS down FROM k_collection_votes
-           WHERE collection_id = ? GROUP BY seed`,
-          record.id
-        )
+        itemFits(c.env, record.id)
       ]);
       const liked = new Set(admins.map(row => row.seed));
       const words = new Map(texts.map(t => [t.seed, t.title]));
-      const fit = new Map(
-        votes.map(row => [row.seed, { up: Number(row.up), down: Number(row.down) }])
-      );
       const subject = `collection:${record.slug}`;
       return answer({
         slug: doc.slug,
@@ -168,7 +148,7 @@ export const collectionTools: readonly Tool[] = [
           const about = (reviews.get(item.kseed) ?? []).filter(
             r => r.subject === "" || r.subject === subject
           );
-          const votesOn = fit.get(item.kseed);
+          const fit = fits.get(item.kseed);
           return {
             n: i + 1,
             seed: item.kseed,
@@ -181,7 +161,7 @@ export const collectionTools: readonly Tool[] = [
             ...(words.has(item.kseed) ? { title: words.get(item.kseed) } : {}),
             ...(liked.has(item.kseed) ? { liked: true } : {}),
             ...(locked.has(item.kseed) ? { locked: true } : {}),
-            ...(votesOn && votesOn.up + votesOn.down ? { fit: votesOn } : {}),
+            ...(fit && fit.up + fit.down ? { fit: { up: fit.up, down: fit.down } } : {}),
             ...(about.length
               ? {
                   reviews: about.map(r => ({

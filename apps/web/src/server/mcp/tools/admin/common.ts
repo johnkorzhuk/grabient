@@ -1,20 +1,22 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { drawnView, isSwatchStyle, STYLES, type Style } from "@grabient/engine/view.ts";
-import { SITE_AGENT } from "../../admin/personas.ts";
-import { CURATION_REASONS } from "../../admin/record.ts";
+import { CURATION_REASONS } from "@grabient/ui/curation.ts";
+import { PALETTE_TITLE_MAX } from "../../../../features/account/wire.ts";
 import {
   type CollectionItemInput,
-  type CollectionRecord,
+  collectionItem
+} from "../../../../features/collections/schema.ts";
+import { type CollectionRecord, ownedBy } from "../../../collections/read.ts";
+import { popularSearches } from "../../../search/tags.ts";
+import { SITE_OWNER } from "../../admin/personas.ts";
+import {
   checkTexts,
-  collectionItem,
   PALETTE_EMBED_MAX,
-  PALETTE_TITLE_MAX,
   type PaletteTextInput,
   paletteTextInput,
-  popularSearches,
   REFUSED_TEXT
-} from "../../site.ts";
+} from "../../admin/texts.ts";
 import {
   entryOf,
   type Hints,
@@ -152,7 +154,7 @@ export const untitledOf = (untitled: readonly { seed: string; words: string[] }[
 
 /** One of Grabient's own collections. */
 export const siteCollection = (record: CollectionRecord | null): record is CollectionRecord =>
-  record?.owner.kind === "agent" && record.owner.id === SITE_AGENT;
+  !!record && ownedBy(record, SITE_OWNER);
 
 /** The words of the tags under the search, which are Grabient's words to translate too. */
 export const searchedWords = async (c: ToolContext) =>

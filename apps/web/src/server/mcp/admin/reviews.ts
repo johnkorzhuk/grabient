@@ -1,6 +1,8 @@
 import { all, batch, run, type Statement } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { isCollectionSlug, newId, normalizeListQuery } from "../site.ts";
+import { isCollectionSlug } from "../../../features/collections/address.ts";
+import { listWords } from "../../../lib/words.ts";
+import { randomWord } from "../../collections/write.ts";
 import { actorName } from "./record.ts";
 
 /* What the admins' connected apps keep and read beside the site itself: the log of every change one made, and the
@@ -26,7 +28,7 @@ export async function logContribution(
   await run(
     env.DB,
     "INSERT INTO k_contributions (id, actor_id, client, tool, target, detail, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    newId(),
+    randomWord(20),
     who.userId,
     who.client.slice(0, 80),
     tool,
@@ -90,7 +92,7 @@ export function reviewSubject(
     return isCollectionSlug(about.collection) ? `collection:${about.collection}` : null;
   }
   if (typeof about?.search === "string" && about.search) {
-    const words = normalizeListQuery(about.search);
+    const words = listWords(about.search);
     return words ? `search:${words}` : null;
   }
   return "";

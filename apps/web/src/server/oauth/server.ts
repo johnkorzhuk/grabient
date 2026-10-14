@@ -6,15 +6,11 @@ import {
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { CLIENT_DOCUMENTS } from "./client-documents.data.ts";
 import { type ClientKind, MCP_PATH, MCP_SCOPES, OAUTH_PATHS } from "./clients.ts";
 
-export {
-  AS_METADATA_PATH,
-  OAUTH_PATHS,
-  PROTECTED_RESOURCE_PREFIX,
-  RESOURCE_METADATA_PATH
-} from "./clients.ts";
+export { AS_METADATA_PATH, OAUTH_PATHS, RESOURCE_METADATA_PATH } from "./clients.ts";
 
 /* Connected apps' OAuth is @cloudflare/workers-oauth-provider: it is the authorization server (metadata,
    registration, client metadata documents, the code exchange, refresh, revocation, token storage in OAUTH_KV) and
@@ -23,7 +19,14 @@ export {
 
 export const YEAR = 365 * 86400;
 /** Fourteen days: under the 24.8 days a 32-bit timer in some apps can wait before it refreshes. */
-export const ACCESS_SECONDS = 14 * 86400;
+const ACCESS_MAX = 14 * 86400;
+/** How long an access token lasts: fourteen days, or the deploy's OAUTH_ACCESS_TTL when it is a whole number of
+    seconds from two minutes up to that. A deploy sets it short so that every connected app refreshes many times a
+    day, which is how refreshing is watched before a release. */
+export const accessSeconds = (env: Pick<Env, "OAUTH_ACCESS_TTL">): number => {
+  const asked = Number(env.OAUTH_ACCESS_TTL);
+  return Number.isInteger(asked) && asked >= 120 && asked <= ACCESS_MAX ? asked : ACCESS_MAX;
+};
 
 /** What a grant carries, written at consent and encrypted by the library. */
 export interface GrantProps {
@@ -74,7 +77,7 @@ export function authorizationServer(env: Env, origin: string): OAuthAuthorizatio
         clientRegistrationEndpoint: OAUTH_PATHS.register,
         // admin is chosen at consent by an admin, never advertised
         scopesSupported: [...MCP_SCOPES, "offline_access"],
-        accessTokenTTL: ACCESS_SECONDS,
+        accessTokenTTL: accessSeconds(env),
         // a year from the code exchange and from each refresh: an app in use never signs in again
         refreshTokenTTL: YEAR,
         refreshTokenIdleTTL: YEAR,
@@ -129,6 +132,18 @@ export function resourceServer(
   );
 }
 
+/** What a route has of the Worker's context: a way to finish work after the answer. */
+export type Background = Pick<ExecutionContext, "waitUntil">;
+
+/** The context the library's servers are handed, a new object a request: its resource server writes the verified
+    token on it, and `more` rides along to the handler. */
+export const libraryContext = (ctx: Background, more: object = {}) =>
+  ({
+    ...more,
+    waitUntil: (work: Promise<unknown>) => ctx.waitUntil(work),
+    passThroughOnException() {}
+  }) as unknown as ExecutionContext;
+
 /** A discovery document as apps may keep it: five minutes, in place of the library's no-store. */
 export function discovery(response: Response): Response {
   if (response.status !== 200) return response;
@@ -138,14 +153,10 @@ export function discovery(response: Response): Response {
   return out;
 }
 
-/** The origin apps use for this deploy, whichever host a request arrived at (a tunnel, localhost, www). A Preview and
-    local development use the request's own. */
-export const siteOrigin = (env: Pick<Env, "PUBLIC_ORIGIN">, request?: Request): string =>
-  env.PUBLIC_ORIGIN ?? (request ? new URL(request.url).origin : "http://localhost");
-
-/** The request on the site's origin, as the library must see it. */
+/** The request on the deploy's public origin, as the library must see it, whichever host it arrived at (a tunnel,
+    localhost, www). A Preview and local development have none, and a request there stays on its own. */
 export function onSiteOrigin(env: Pick<Env, "PUBLIC_ORIGIN">, request: Request): Request {
   const url = new URL(request.url);
-  const origin = siteOrigin(env, request);
+  const origin = publicOrigin(env, request);
   return url.origin === origin ? request : new Request(origin + url.pathname + url.search, request);
 }

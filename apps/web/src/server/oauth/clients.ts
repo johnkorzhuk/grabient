@@ -19,9 +19,8 @@ export const OAUTH_PATHS = {
 } as const;
 /** RFC 8414's address for an issuer that is the origin. */
 export const AS_METADATA_PATH = "/.well-known/oauth-authorization-server";
-export const PROTECTED_RESOURCE_PREFIX = "/.well-known/oauth-protected-resource";
 /** The MCP server's own metadata (RFC 9728). The root document is never served: the challenge names this one. */
-export const RESOURCE_METADATA_PATH = PROTECTED_RESOURCE_PREFIX + MCP_PATH;
+export const RESOURCE_METADATA_PATH = `/.well-known/oauth-protected-resource${MCP_PATH}`;
 
 /** The client ids Grabient keeps a copy for: the only apps the consent may offer the admin tools to. */
 export const SAVED_CLIENT_IDS: ReadonlySet<string> = new Set(Object.keys(CLIENT_DOCUMENTS));

@@ -6,8 +6,10 @@ import {
   type Locale,
   messageKey
 } from "@grabient/i18n";
+import type { LexiconFile } from "@grabient/search/lexicon.ts";
 import { all, batch, type Statement } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { searchAsset } from "../../search/files.ts";
 
 /* Grabient's own words in the site's other languages. An admin's app translates the titles and descriptions of
    Grabient's public collections and the tags they carry (the translations tools), and k_translations keeps them. A
@@ -41,7 +43,7 @@ const tagList = (raw: string | null | undefined): string[] => {
   }
 };
 
-/* —— What pages read —— */
+/* What pages read. */
 
 export interface Words {
   title: string;
@@ -214,7 +216,7 @@ export async function localizeTags<T extends { label: string; href: string; quer
   });
 }
 
-/* —— What the admins' apps read and keep —— */
+/* What the admins' apps read and keep. */
 
 /** The scripts a translation must be written in; the other languages are written in the Latin alphabet. */
 const SCRIPTS: Partial<Record<TranslatedLocale, RegExp>> = {
@@ -261,13 +263,12 @@ export function translationFault(
 
 /* the words the search already reads in every language (public/search/lex.json): each spelling leads to a phrase of
    the vocabulary, so a phrase's spellings are the ways the languages say it */
-type Lexicon = { index: Record<string, number>; spellings: Map<number, string[]> };
+type Lexicon = { index: LexiconFile; spellings: Map<number, string[]> };
 let lexicon: Promise<Lexicon | null> | undefined;
 function readLexicon(env: Pick<Env, "ASSETS">): Promise<Lexicon | null> {
-  lexicon ??= env.ASSETS.fetch("https://assets.local/search/lex.json")
-    .then(response => (response.ok ? (response.json() as Promise<Record<string, number>>) : null))
+  lexicon ??= searchAsset(env, "lex.json")
+    .then(response => response.json() as Promise<LexiconFile>)
     .then(index => {
-      if (!index) return null;
       const spellings = new Map<number, string[]>();
       for (const [word, at] of Object.entries(index))
         spellings.set(at, [...(spellings.get(at) ?? []), word]);

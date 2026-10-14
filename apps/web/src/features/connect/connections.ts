@@ -1,6 +1,6 @@
 import { queryOptions } from "@tanstack/solid-query";
 import type { Connection } from "../../server/oauth/connections.ts";
-import { api } from "./account.ts";
+import { api } from "../account/session.ts";
 
 /* The account's connected apps, read in the browser once the account is known: the page they sit on is public HTML,
    which never carries an account. */

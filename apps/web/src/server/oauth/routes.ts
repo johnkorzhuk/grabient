@@ -8,32 +8,27 @@ import { register, token } from "./endpoints.ts";
 import {
   AS_METADATA_PATH,
   authorizationServer,
+  type Background,
   discovery,
+  libraryContext,
   OAUTH_PATHS,
-  onSiteOrigin,
-  PROTECTED_RESOURCE_PREFIX
+  onSiteOrigin
 } from "./server.ts";
 
 /* The authorization server's addresses: its metadata, registration, the token endpoint (with revocation), the
    authorization page and the consent's answer. Each needs OAUTH_KV alone, so a deploy with no sign-in secret still
    answers what it can. */
 
-/** Whether the Worker should hand a path (without its language) to handleOAuth. */
-export const oauthPath = (path: string) =>
-  path === AS_METADATA_PATH ||
-  path.startsWith(`${AS_METADATA_PATH}/`) ||
-  path.startsWith("/oauth/") ||
-  path === PROTECTED_RESOURCE_PREFIX ||
-  (path.startsWith(`${PROTECTED_RESOURCE_PREFIX}/`) && path !== `${PROTECTED_RESOURCE_PREFIX}/mcp`);
-
-/** /oauth/*, /.well-known/oauth-authorization-server, and the protected-resource documents other than the MCP
-    server's own (which serveMcp answers): the root one is never served, since the challenge names the MCP server's. */
+/** /oauth/* and /.well-known/oauth-authorization-server. Any other address handed here is not found: the
+    protected-resource documents other than the MCP server's own (which serveMcp answers), the root one among them,
+    since the challenge names the MCP server's. */
 export async function handleOAuth(
   request: Request,
   env: Env,
-  ctx: ExecutionContext
+  background: Background
 ): Promise<Response> {
   request = onSiteOrigin(env, request);
+  const ctx = libraryContext(background);
   const path = new URL(request.url).pathname;
   if (path !== AS_METADATA_PATH && !path.startsWith("/oauth/"))
     return json({ error: "Not found" }, 404);

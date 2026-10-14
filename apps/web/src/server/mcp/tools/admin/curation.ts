@@ -1,27 +1,29 @@
-import { SITE_AGENT } from "../../admin/personas.ts";
-import { removedSeeds } from "../../admin/queue.ts";
-import { parseWhy, recordAction, viewPatch } from "../../admin/record.ts";
-import { logContribution } from "../../admin/reviews.ts";
+import { PALETTE_TITLE_MAX } from "../../../../features/account/wire.ts";
+import { collectionItem } from "../../../../features/collections/schema.ts";
 import {
-  agentCollectionsHolding,
-  checkTexts,
-  collectionItem,
-  collectionRecord,
+  likedByPeople,
+  removeMembership,
+  setSitePaletteView
+} from "../../../collections/curation.ts";
+import {
   deleteGalleryPalette,
   galleryPalette,
-  likedByPeople,
-  PALETTE_EMBED_MAX,
-  PALETTE_TITLE_MAX,
-  type PaletteTextInput,
   paletteStanding,
+  replacePalette,
+  setGalleryPaletteView
+} from "../../../collections/gallery.ts";
+import { agentCollectionsHolding, collectionRecord } from "../../../collections/read.ts";
+import { parseWhy, recordAction } from "../../../collections/record.ts";
+import { removedSeeds } from "../../admin/queue.ts";
+import { logContribution } from "../../admin/reviews.ts";
+import {
+  checkTexts,
+  PALETTE_EMBED_MAX,
+  type PaletteTextInput,
   paletteTextInput,
   REFUSED_TEXT,
-  removeAgentCollectionPalette,
-  replacePalette,
-  setAgentCollectionPaletteView,
-  setGalleryPaletteView,
   upsertPaletteTexts
-} from "../../site.ts";
+} from "../../admin/texts.ts";
 import { answer, entryOf, items, list, refuse, shape, str, type Tool, text } from "../../tool.ts";
 import {
   CHANGES_SITE,
@@ -150,10 +152,18 @@ export const curationTools: readonly Tool[] = [
           record ? "That palette is not in this collection." : "That palette is not in the gallery."
         );
       if ((await likedByPeople(c.env, [item.seed])).has(item.seed)) return refuse(LOCKED);
-      const patch = viewPatch(args, current);
-      const valid = patch && collectionItem({ ...patch.view, seed: item.seed });
-      if (!patch || !valid) return refuse("Send the style, steps or angle to change, each valid.");
-      if (!patch.changed) {
+      const valid = collectionItem({
+        seed: item.seed,
+        style: args.style ?? current.style,
+        steps: args.steps ?? current.steps,
+        angle: args.angle ?? current.angle
+      });
+      if (!valid) return refuse("Send the style, steps or angle to change, each valid.");
+      if (
+        valid.style === current.style &&
+        valid.steps === current.steps &&
+        valid.angle === current.angle
+      ) {
         return answer({
           seed: item.seed,
           style: valid.style,
@@ -165,7 +175,7 @@ export const curationTools: readonly Tool[] = [
       const stopped = await curation(c);
       if (stopped) return stopped;
       const done = record
-        ? await setAgentCollectionPaletteView(c.env, record.id, item.seed, valid, c.grant.userId)
+        ? await setSitePaletteView(c.env, record.id, item.seed, valid, c.grant.userId)
         : await setGalleryPaletteView(c.env, item.seed, valid, c.grant.userId);
       if (!done) return refuse("This account can no longer change it.");
       await recordAction(c.env, {
@@ -229,8 +239,14 @@ export const curationTools: readonly Tool[] = [
       // each membership on the record as its own removal, so a collection's history is whole; the reasons ride on the deletion
       const collections: string[] = [];
       for (const held of holding) {
-        if (!(await removeAgentCollectionPalette(c.env, held.id, item.seed, c.grant.userId)))
-          continue;
+        const { removed } = await removeMembership(
+          c.env,
+          "curator",
+          held.id,
+          item.seed,
+          c.grant.userId
+        );
+        if (!removed) continue;
         collections.push(held.slug);
         await recordAction(c.env, {
           actorId: c.grant.userId,
@@ -325,7 +341,7 @@ export const curationTools: readonly Tool[] = [
       }
       const stopped = await carried(c, held.length);
       if (stopped) return stopped;
-      await upsertPaletteTexts(c.env, SITE_AGENT, held);
+      await upsertPaletteTexts(c.env, held);
       await logContribution(c.env, who(c), "palette_titles", held[0]!.seed, {
         titles: held.length
       });

@@ -2,8 +2,10 @@ import { createExecutionContext } from "cloudflare:test";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { documentAlert } from "../src/server/alerts/alerts.ts";
 import { serveMcp } from "../src/server/mcp/server.ts";
+import { CLIENT_DOCUMENTS } from "../src/server/oauth/client-documents.data.ts";
 import {
   connectionsRoute,
   forgetAccount,
@@ -14,6 +16,7 @@ import { consentPage } from "../src/server/oauth/consent.ts";
 import { exchange } from "../src/server/oauth/endpoints.ts";
 import { requester } from "../src/server/oauth/limits.ts";
 import { encodeResume } from "../src/server/oauth/resume.ts";
+import { checkClientDocuments, purgeOAuth } from "../src/server/oauth/upkeep.ts";
 import {
   authorizeAs,
   authorizeQuery,
@@ -425,6 +428,15 @@ describe("tokens", () => {
     expect(without.scope.split(" ").sort()).toEqual(["account", "offline_access"]);
   });
 
+  it("last as long as the deploy says, within two minutes and fourteen days", async () => {
+    const short = testEnv({ OAUTH_ACCESS_TTL: "3600" });
+    expect((await connect(short, await makeAccount(short))).expires_in).toBe(3600);
+    for (const asked of ["119", "1209601", "90.5", "soon", ""]) {
+      const env = testEnv({ OAUTH_ACCESS_TTL: asked });
+      expect((await connect(env, await makeAccount(env))).expires_in, asked).toBe(14 * 86400);
+    }
+  });
+
   it("take a JSON body and an empty secret as the form they mean, counted", async () => {
     const env = testEnv();
     const account = await makeAccount(env);
@@ -638,5 +650,91 @@ describe("connected apps", () => {
     expect(kept).toHaveLength(GRANTS_KEPT);
     expect(kept).not.toContain(held.at(-1));
     expect(kept).toContain(held[0]);
+  });
+});
+
+describe("the six-hour upkeep", () => {
+  it("purges a grant whose app is no longer registered, a batch at a time from where the last stopped", async () => {
+    const env = testEnv();
+    const account = await makeAccount(env);
+    const { access_token, clientId } = await connect(env, account, { registered: true });
+    const asks = () =>
+      serveMcp(
+        new Request(`${ORIGIN}/mcp`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${access_token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "ping" })
+        }),
+        env,
+        createExecutionContext()
+      );
+    expect((await asks()).status).toBe(200);
+    await env.OAUTH_KV!.delete(`client:${clientId}`);
+    // more grants than one pass reads
+    await holdGrants(env, (await makeAccount(env)).id, 120);
+    let purged = 0;
+    let passes = 0;
+    for (;;) {
+      const result = await purgeOAuth(env);
+      passes++;
+      purged += result?.grantsPurged ?? 0;
+      // a pass that stopped short keeps its place; the last one clears it
+      expect(await env.OAUTH_KV!.get("purge-cursor")).toBe(result?.cursor ?? null);
+      if (!result?.cursor || passes > 50) break;
+    }
+    expect(passes).toBeGreaterThan(1);
+    expect(purged).toBeGreaterThanOrEqual(1);
+    expect(await grantsOf(env, account.id)).toEqual([]);
+    expect((await asks()).status).toBe(401);
+    expect(await purgeOAuth({ ...env, OAUTH_KV: undefined })).toBeNull();
+  });
+
+  it("tells the owner once of a saved document that changed, and once of one unreachable for a week", async () => {
+    const env = testEnv();
+    const [changed, down] = Object.keys(CLIENT_DOCUMENTS) as [string, string];
+    const published = vi.spyOn(globalThis, "fetch").mockImplementation(async input => {
+      const url = input instanceof Request ? input.url : String(input);
+      if (url === down) return new Response("busy", { status: 503 });
+      const saved = CLIENT_DOCUMENTS[url];
+      return Response.json(
+        url === changed ? { ...saved, redirect_uris: ["https://elsewhere.test/back"] } : saved
+      );
+    });
+    try {
+      const told: string[] = [];
+      const day = Date.UTC(2026, 9, 14, 6);
+      const check = (now: number) =>
+        checkClientDocuments(
+          env,
+          found => {
+            told.push(`${found.notify} ${found.clientId}`);
+            return documentAlert(env, found, now);
+          },
+          now
+        );
+      expect((await check(day)).map(found => found.state)).toEqual([
+        "changed",
+        "unreachable",
+        "same",
+        "same",
+        "same"
+      ]);
+      expect(told).toEqual([`changed ${changed}`]);
+      expect(env.EMAIL.last.subject).toBe("Grabient: a saved client document changed");
+      expect(env.EMAIL.last.text).toContain("Fields that differ: redirect_uris.");
+      // the same change is told once; a week without an answer is told, once too
+      await check(day + 6 * 3_600_000);
+      expect(told).toHaveLength(1);
+      const week = await check(day + 7 * 86_400_000);
+      expect(week[1]).toMatchObject({ clientId: down, why: "HTTP 503", notify: "unreachable" });
+      expect(env.EMAIL.last.subject).toBe(
+        "Grabient: a client document has been unreachable for a week"
+      );
+      await check(day + 8 * 86_400_000);
+      expect(told).toEqual([`changed ${changed}`, `unreachable ${down}`]);
+      expect(env.EMAIL.sent).toHaveLength(2);
+    } finally {
+      published.mockRestore();
+    }
   });
 });

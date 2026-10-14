@@ -28,6 +28,7 @@ import { Route as TermsRouteImport } from './routes/terms'
 import { Route as IdIndexRouteImport } from './routes/$id/index'
 import { Route as IdEditRouteImport } from './routes/$id/edit'
 import { Route as IdRisingRouteImport } from './routes/$id/rising'
+import { Route as DotwellKnownSplatRouteImport } from './routes/[.]well-known/$'
 import { Route as DotwellKnownAiCatalogDotjsonRouteImport } from './routes/[.]well-known/ai-catalog[.]json'
 import { Route as DotwellKnownArdDotjsonRouteImport } from './routes/[.]well-known/ard[.]json'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
@@ -54,7 +55,9 @@ import { Route as CollectionsSavedRouteImport } from './routes/collections/saved
 import { Route as ESplatRouteImport } from './routes/e/$'
 import { Route as FaviconChar123weekChar125DotsvgRouteImport } from './routes/favicon/{$week}[.]svg'
 import { Route as LoginPasswordRouteImport } from './routes/login_.password'
+import { Route as McpIndexRouteImport } from './routes/mcp/index'
 import { Route as McpServerCardRouteImport } from './routes/mcp/server-card'
+import { Route as OauthSplatRouteImport } from './routes/oauth/$'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as PalettesChar123wordsChar125DotjsonRouteImport } from './routes/palettes/{$words}[.]json'
@@ -211,6 +214,11 @@ const IdRisingRoute = IdRisingRouteImport.update({
   path: '/$id/rising',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotwellKnownSplatRoute = DotwellKnownSplatRouteImport.update({
+  id: '/.well-known/$',
+  path: '/.well-known/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DotwellKnownAiCatalogDotjsonRoute =
   DotwellKnownAiCatalogDotjsonRouteImport.update({
     id: '/.well-known/ai-catalog.json',
@@ -343,9 +351,19 @@ const LoginPasswordRoute = LoginPasswordRouteImport.update({
   path: '/login/password',
   getParentRoute: () => rootRouteImport,
 } as any)
+const McpIndexRoute = McpIndexRouteImport.update({
+  id: '/mcp/',
+  path: '/mcp/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const McpServerCardRoute = McpServerCardRouteImport.update({
   id: '/mcp/server-card',
   path: '/mcp/server-card',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OauthSplatRoute = OauthSplatRouteImport.update({
+  id: '/oauth/$',
+  path: '/oauth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PalettesIndexRoute = PalettesIndexRouteImport.update({
@@ -699,6 +717,7 @@ export interface FileRoutesByFullPath {
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
   '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
@@ -725,6 +744,7 @@ export interface FileRoutesByFullPath {
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/login/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
+  '/oauth/$': typeof OauthSplatRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
@@ -733,6 +753,7 @@ export interface FileRoutesByFullPath {
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
+  '/mcp/': typeof McpIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
@@ -807,6 +828,7 @@ export interface FileRoutesByTo {
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
   '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
@@ -833,6 +855,7 @@ export interface FileRoutesByTo {
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/login/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
+  '/oauth/$': typeof OauthSplatRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
@@ -841,6 +864,7 @@ export interface FileRoutesByTo {
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
   '/collections': typeof CollectionsIndexRoute
+  '/mcp': typeof McpIndexRoute
   '/palettes': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt': typeof Char123keyChar125DottxtIndexRoute
@@ -916,6 +940,7 @@ export interface FileRoutesById {
   '/terms': typeof TermsRoute
   '/$id/edit': typeof IdEditRoute
   '/$id/rising': typeof IdRisingRoute
+  '/.well-known/$': typeof DotwellKnownSplatRoute
   '/.well-known/ai-catalog.json': typeof DotwellKnownAiCatalogDotjsonRoute
   '/.well-known/ard.json': typeof DotwellKnownArdDotjsonRoute
   '/api/$': typeof ApiSplatRoute
@@ -942,6 +967,7 @@ export interface FileRoutesById {
   '/favicon/{$week}.svg': typeof FaviconChar123weekChar125DotsvgRoute
   '/login_/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
+  '/oauth/$': typeof OauthSplatRoute
   '/palettes/saved': typeof PalettesSavedRoute
   '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
@@ -950,6 +976,7 @@ export interface FileRoutesById {
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
+  '/mcp/': typeof McpIndexRoute
   '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
@@ -1026,6 +1053,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/$'
     | '/.well-known/ai-catalog.json'
     | '/.well-known/ard.json'
     | '/api/$'
@@ -1052,6 +1080,7 @@ export interface FileRouteTypes {
     | '/favicon/{$week}.svg'
     | '/login/password'
     | '/mcp/server-card'
+    | '/oauth/$'
     | '/palettes/saved'
     | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
@@ -1060,6 +1089,7 @@ export interface FileRouteTypes {
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
+    | '/mcp/'
     | '/palettes/'
     | '/sitemap-{$name}.xml/'
     | '/{$key}.txt/'
@@ -1134,6 +1164,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/$'
     | '/.well-known/ai-catalog.json'
     | '/.well-known/ard.json'
     | '/api/$'
@@ -1160,6 +1191,7 @@ export interface FileRouteTypes {
     | '/favicon/{$week}.svg'
     | '/login/password'
     | '/mcp/server-card'
+    | '/oauth/$'
     | '/palettes/saved'
     | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
@@ -1168,6 +1200,7 @@ export interface FileRouteTypes {
     | '/unsubscribe/{-$token}'
     | '/$id'
     | '/collections'
+    | '/mcp'
     | '/palettes'
     | '/sitemap-{$name}.xml'
     | '/{$key}.txt'
@@ -1242,6 +1275,7 @@ export interface FileRouteTypes {
     | '/terms'
     | '/$id/edit'
     | '/$id/rising'
+    | '/.well-known/$'
     | '/.well-known/ai-catalog.json'
     | '/.well-known/ard.json'
     | '/api/$'
@@ -1268,6 +1302,7 @@ export interface FileRouteTypes {
     | '/favicon/{$week}.svg'
     | '/login_/password'
     | '/mcp/server-card'
+    | '/oauth/$'
     | '/palettes/saved'
     | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
@@ -1276,6 +1311,7 @@ export interface FileRouteTypes {
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
+    | '/mcp/'
     | '/palettes/'
     | '/sitemap-{$name}.xml/'
     | '/{$key}.txt/'
@@ -1351,6 +1387,7 @@ export interface RootRouteChildren {
   TermsRoute: typeof TermsRoute
   IdEditRoute: typeof IdEditRoute
   IdRisingRoute: typeof IdRisingRoute
+  DotwellKnownSplatRoute: typeof DotwellKnownSplatRoute
   DotwellKnownAiCatalogDotjsonRoute: typeof DotwellKnownAiCatalogDotjsonRoute
   DotwellKnownArdDotjsonRoute: typeof DotwellKnownArdDotjsonRoute
   ApiSplatRoute: typeof ApiSplatRoute
@@ -1377,6 +1414,7 @@ export interface RootRouteChildren {
   FaviconChar123weekChar125DotsvgRoute: typeof FaviconChar123weekChar125DotsvgRoute
   LoginPasswordRoute: typeof LoginPasswordRoute
   McpServerCardRoute: typeof McpServerCardRoute
+  OauthSplatRoute: typeof OauthSplatRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
   PalettesChar123wordsChar125DotjsonRoute: typeof PalettesChar123wordsChar125DotjsonRoute
   PalettesChar123wordsChar125DotpngRoute: typeof PalettesChar123wordsChar125DotpngRoute
@@ -1385,6 +1423,7 @@ export interface RootRouteChildren {
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
+  McpIndexRoute: typeof McpIndexRoute
   PalettesIndexRoute: typeof PalettesIndexRoute
   SitemapChar123nameChar125DotxmlIndexRoute: typeof SitemapChar123nameChar125DotxmlIndexRoute
   Char123keyChar125DottxtIndexRoute: typeof Char123keyChar125DottxtIndexRoute
@@ -1576,6 +1615,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof IdRisingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.well-known/$': {
+      id: '/.well-known/$'
+      path: '/.well-known/$'
+      fullPath: '/.well-known/$'
+      preLoaderRoute: typeof DotwellKnownSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.well-known/ai-catalog.json': {
       id: '/.well-known/ai-catalog.json'
       path: '/.well-known/ai-catalog.json'
@@ -1758,11 +1804,25 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof LoginPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/mcp/': {
+      id: '/mcp/'
+      path: '/mcp'
+      fullPath: '/mcp/'
+      preLoaderRoute: typeof McpIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/mcp/server-card': {
       id: '/mcp/server-card'
       path: '/mcp/server-card'
       fullPath: '/mcp/server-card'
       preLoaderRoute: typeof McpServerCardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/oauth/$': {
+      id: '/oauth/$'
+      path: '/oauth/$'
+      fullPath: '/oauth/$'
+      preLoaderRoute: typeof OauthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/palettes/': {
@@ -2207,6 +2267,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermsRoute: TermsRoute,
   IdEditRoute: IdEditRoute,
   IdRisingRoute: IdRisingRoute,
+  DotwellKnownSplatRoute: DotwellKnownSplatRoute,
   DotwellKnownAiCatalogDotjsonRoute: DotwellKnownAiCatalogDotjsonRoute,
   DotwellKnownArdDotjsonRoute: DotwellKnownArdDotjsonRoute,
   ApiSplatRoute: ApiSplatRoute,
@@ -2233,6 +2294,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaviconChar123weekChar125DotsvgRoute: FaviconChar123weekChar125DotsvgRoute,
   LoginPasswordRoute: LoginPasswordRoute,
   McpServerCardRoute: McpServerCardRoute,
+  OauthSplatRoute: OauthSplatRoute,
   PalettesSavedRoute: PalettesSavedRoute,
   PalettesChar123wordsChar125DotjsonRoute:
     PalettesChar123wordsChar125DotjsonRoute,
@@ -2243,6 +2305,7 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,
+  McpIndexRoute: McpIndexRoute,
   PalettesIndexRoute: PalettesIndexRoute,
   SitemapChar123nameChar125DotxmlIndexRoute:
     SitemapChar123nameChar125DotxmlIndexRoute,

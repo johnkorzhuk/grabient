@@ -8,6 +8,8 @@ import type { Env } from "@grabient/server/env.ts";
 
 /** The one agent the site's public collections, queue and personas belong to. */
 export const SITE_AGENT = "grabient";
+/** It as the owner of the collections the site publishes. */
+export const SITE_OWNER = { kind: "agent", id: SITE_AGENT } as const;
 
 export interface PersonaInput {
   handle: string;

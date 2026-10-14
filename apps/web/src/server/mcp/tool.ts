@@ -18,7 +18,8 @@ export interface Grant {
 
 export interface ToolContext {
   env: Env;
-  ctx: ExecutionContext;
+  /** work that may finish after the answer: a search counted */
+  ctx: Pick<ExecutionContext, "waitUntil">;
   request: Request;
   /** the site's origin, for the addresses an answer names */
   origin: string;

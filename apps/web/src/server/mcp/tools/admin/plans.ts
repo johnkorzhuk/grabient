@@ -1,3 +1,6 @@
+import { isCollectionSlug } from "../../../../features/collections/address.ts";
+import { MAX_COLLECTION_ITEMS } from "../../../../features/collections/schema.ts";
+import { type CollectionRecord, collectionRecord } from "../../../collections/read.ts";
 import {
   ensurePersonas,
   listPersonas,
@@ -17,12 +20,6 @@ import {
   queueSummary
 } from "../../admin/queue.ts";
 import { logContribution } from "../../admin/reviews.ts";
-import {
-  type CollectionRecord,
-  collectionRecord,
-  isCollectionSlug,
-  MAX_COLLECTION_ITEMS
-} from "../../site.ts";
 import {
   answer,
   entryOf,

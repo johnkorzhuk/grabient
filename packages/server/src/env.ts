@@ -15,6 +15,8 @@ export interface Env {
   EMAIL?: SendEmail;
   NEWSLETTER_FROM?: string;
   R2_PUBLIC_URL?: string;
+  /** How many seconds a connected app's access token lasts, where a deploy shortens it (oauth/server.ts). */
+  OAUTH_ACCESS_TTL?: string;
 
   DB: D1Database;
   UPLOADS?: R2Bucket;

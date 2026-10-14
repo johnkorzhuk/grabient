@@ -7,10 +7,11 @@ import { Pane } from "@grabient/ui/Pane.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { createSignal, type Element, onCleanup, onSettled, Show, untrack } from "solid-js";
+import { createSignal, type Element, onCleanup, Show, untrack } from "solid-js";
+import { offline, unreachable } from "../../app/connection.ts";
 import type { ConsentProblem } from "../../server/oauth/authorize.ts";
 import type { ConsentApp, ConsentPage } from "../../server/oauth/consent.ts";
-import { installConnection, offline, signOut, unreachable } from "./account.ts";
+import { signOut } from "../account/session.ts";
 import styles from "./Connect.module.css";
 
 /* The consent page. An app sent the account to /oauth/authorize, which led here with the request's handle and the
@@ -134,7 +135,6 @@ export function ConnectPage(props: {
   /** the language menu, at the end of the frame's footer */
   languages?: Element;
 }) {
-  onSettled(() => installConnection());
   /* read once: nothing on this page rewrites the request it answers */
   const page = untrack(() => props.page);
   if (page.state !== "ready") {

@@ -24,4 +24,16 @@ describe("an account tool's arguments", () => {
     ];
     expect(named.map(paletteNamed)).toEqual(namedGolden.map(golden => golden.read));
   });
+
+  it("name a palette by its old grabient.com id, alone or in its old address", () => {
+    const old = "_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu";
+    const seed = "kY4mpDazO-mUuu_fuLqXU49dvVP6";
+    expect(paletteNamed(old)).toEqual({ seed });
+    expect(paletteNamed(`https://grabient.com/${old}?style=radialGradient`)).toEqual({
+      seed,
+      style: "radialGradient",
+      steps: 7,
+      angle: 90
+    });
+  });
 });

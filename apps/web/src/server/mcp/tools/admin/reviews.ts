@@ -1,3 +1,4 @@
+import { collectionItem } from "../../../../features/collections/schema.ts";
 import {
   listContributions,
   listReviews,
@@ -9,7 +10,6 @@ import {
   VERDICTS,
   type Verdict
 } from "../../admin/reviews.ts";
-import { collectionItem } from "../../site.ts";
 import {
   answer,
   entryOf,
