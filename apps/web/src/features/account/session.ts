@@ -27,7 +27,8 @@ const SessionAnswer = v.nullable(
       emailVerified: v.boolean(),
       image: v.nullable(v.string()),
       username: v.nullable(v.string()),
-      createdAt: v.number()
+      createdAt: v.number(),
+      reviewer: v.optional(v.literal(true))
     })
   })
 );

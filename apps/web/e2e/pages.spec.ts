@@ -372,3 +372,47 @@ test("back from Google with an app's request kept in the tab, the sheet is the a
   await expect(page).toHaveURL(/\/login\?redirect=%2Foauth%2Fauthorize%3Fr%3Dx$/);
   await expect(page.locator('main [name="code"]')).toBeVisible();
 });
+
+test("the app reviewers' account gives itself its password in Settings, and no other account is offered one", async ({
+  page
+}) => {
+  let reviewer = false;
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({
+      json: {
+        session: { id: "e2e", userId: "e2e-reviewer" },
+        user: {
+          id: "e2e-reviewer",
+          name: "Reviewer",
+          email: "reviewer@grabient.test",
+          emailVerified: true,
+          image: null,
+          username: "reviewer",
+          createdAt: Date.UTC(2026, 6, 15),
+          ...(reviewer ? { reviewer: true } : {})
+        }
+      }
+    })
+  );
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  const sent: unknown[] = [];
+  await page.route("**/api/auth/reviewer-password", route => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ok: true } });
+  });
+  const section = page.locator("#account");
+  await page.goto("/settings");
+  await started(page);
+  await expect(section).toContainText("reviewer@grabient.test");
+  await expect(section.locator('input[name="password"]')).toHaveCount(0);
+
+  reviewer = true;
+  await page.goto("/settings");
+  await started(page);
+  const password = section.locator('input[name="password"]');
+  await password.fill("a long password for the review");
+  await section.getByRole("button", { name: "Save" }).click();
+  await expect(section.getByRole("status")).toHaveText("Saved.");
+  expect(sent).toEqual([{ password: "a long password for the review" }]);
+  await expect(password).toHaveValue("");
+});

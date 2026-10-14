@@ -466,6 +466,19 @@ describe("the session the page reads", () => {
     expect(body.user).toMatchObject({ id: ada.id, name: "Ada", emailVerified: true });
     expect(await bodyOf(await handleAuthRoute(get("/api/auth/get-session"), env))).toBeNull();
   });
+
+  it("says when the account is the app reviewers', whose Settings set its password", async () => {
+    const email = `${unique("reviewer")}@example.test`;
+    const env = testEnv({ REVIEWER_EMAIL: email });
+    const read = async (cookie: string) =>
+      (
+        await bodyOf<{ user: { reviewer?: boolean } }>(
+          await handleAuthRoute(get("/api/auth/get-session", { cookie }), env)
+        )
+      ).user.reviewer;
+    expect(await read((await makeAccount(env, { email })).cookie)).toBe(true);
+    expect(await read((await makeAccount(env)).cookie)).toBeUndefined();
+  });
 });
 
 describe("the profile", () => {

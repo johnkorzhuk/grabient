@@ -1,8 +1,9 @@
 import { formatDate, localHref, msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
+import { Field } from "@grabient/ui/Field.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { createSignal } from "solid-js";
+import { createSignal, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { forgetAnalytics } from "../../analytics/analytics.ts";
 import {
@@ -72,7 +73,57 @@ export function AccountSection(props: { account?: Account; onFailure: (words: st
           </dd>
         </div>
       </dl>
+      <Show when={props.account?.reviewer}>
+        <ReviewerPassword />
+      </Show>
     </section>
+  );
+}
+
+/** The password the app directories' reviewers sign in with (/login/password), which their account gives itself here,
+    once: the server takes it from that account alone, and refuses a second. */
+function ReviewerPassword() {
+  const [saving, setSaving] = createSignal(false);
+  const [status, setStatus] = createSignal("");
+  const [failed, setFailed] = createSignal(false);
+  let form!: HTMLFormElement;
+  const save = async (event: SubmitEvent) => {
+    event.preventDefault();
+    if (saving() || !form.reportValidity()) return;
+    setSaving(true);
+    setFailed(false);
+    setStatus(t("Saving…"));
+    try {
+      const answer = await authPost("/api/auth/reviewer-password", {
+        password: new FormData(form).get("password")
+      });
+      if (!answer.ok) throw new Error(authError(answer.body, msg("Couldn't save.")));
+      form.reset();
+      setStatus(t("Saved."));
+    } catch (error) {
+      setFailed(true);
+      setStatus(shownError(error, msg("Couldn't save.")));
+    } finally {
+      setSaving(false);
+    }
+  };
+  return (
+    <form ref={form} class={styles.form} onSubmit={e => void save(e)} novalidate>
+      {/* nothing of the field changes once drawn: a change of any of its states writes its value again */}
+      <Field
+        label={t("Password")}
+        name="password"
+        type="password"
+        autocomplete="new-password"
+        required
+      />
+      <div class={styles.actions}>
+        <Status error={failed()}>{status()}</Status>
+        <Button variant="primary" size="lg" type="submit" disabled={saving() || offline()}>
+          {saving() ? t("Saving…") : t("Save")}
+        </Button>
+      </div>
+    </form>
   );
 }
 
