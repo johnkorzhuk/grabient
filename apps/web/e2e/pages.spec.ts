@@ -297,3 +297,41 @@ test("Settings keeps the still water under reduced motion, as the other brand pa
     await expect.poll(water, { message: path }).toBe(true);
   }
 });
+
+test("the account menu opens the lists in the reader's view, and a visitor's Collections in the order chosen last", async ({
+  page
+}) => {
+  const menu = (row: string) => async () => {
+    await page.locator("header button[aria-haspopup=menu]").click();
+    await page.getByRole("menuitem", { name: row }).click();
+  };
+  const list = "/palettes/rising?style=linearSwatches&steps=5";
+  await page.goto(list);
+  await started(page);
+  await menu("Collections")();
+  await expect(page).toHaveURL(/\/collections\/rising\?style=linearSwatches&steps=5$/);
+
+  // signed in: the session answers for a reader, whose copy never syncs here
+  const reader = {
+    id: "e2e-reader",
+    name: "Reader",
+    email: "reader@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "reader",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } })
+  );
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  for (const [row, to] of [
+    ["Saved palettes", /\/palettes\/saved\?style=linearSwatches&steps=5$/],
+    ["Your collections", /\/collections\/saved\?style=linearSwatches&steps=5$/]
+  ] as const) {
+    await page.goto(list);
+    await started(page);
+    await menu(row)();
+    await expect(page).toHaveURL(to);
+  }
+});

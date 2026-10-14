@@ -25,6 +25,9 @@ import {
 import { syncStatus, viewNow } from "../features/account/state.ts";
 import { trackSignInPrompt } from "../features/analytics/analytics.ts";
 import { collectionHref } from "../features/collections/address.ts";
+import { listPath, listSearch } from "../features/collections/params.ts";
+import { readerOrder, recallOrder } from "../features/gallery/order.ts";
+import { inView, rememberedView } from "../features/list/appearance.ts";
 import styles from "./AccountMenu.module.css";
 import { offline, opensOffline } from "./connection.ts";
 import { chooseLanguage } from "./language.ts";
@@ -166,6 +169,15 @@ export function AccountMenu(props: {
     );
   };
   const go = (to: string) => void router.navigate({ href: localHref(to) });
+  /* the lists open in the reader's view, as the wordmark's home does, and a visitor's Collections in the order the
+     reader chose last */
+  const listed = (to: string) => {
+    if (to !== "/collections") return to.endsWith("/saved") ? inView(to) : to;
+    recallOrder();
+    return (
+      listPath(readerOrder().order, readerOrder().frame) + listSearch({ view: rememberedView() })
+    );
+  };
   const pick = (item: MenuItem) => {
     if (item.value === "language") {
       keep = true;
@@ -189,11 +201,13 @@ export function AccountMenu(props: {
       const slug = latest?.slug && viewNow().collections.has(latest.slug) ? latest.slug : null;
       void engineNow()?.dismissRefused();
       go(
-        slug
-          ? collectionHref(slug)
-          : latest?.op === "like"
-            ? "/palettes/saved"
-            : "/collections/saved"
+        inView(
+          slug
+            ? collectionHref(slug)
+            : latest?.op === "like"
+              ? "/palettes/saved"
+              : "/collections/saved"
+        )
       );
     } else if (item.value === "sync:now") engineNow()?.schedule(0, true);
     else if (item.value === "sync:signin" || item.value === "signin") {
@@ -202,7 +216,7 @@ export function AccountMenu(props: {
     } else if (item.value === "signout") {
       /* a refusal says so: on a shared computer the reader would otherwise walk away signed in */
       signOut().catch((error: unknown) => toast(shownError(error, msg("Couldn't sign out."))));
-    } else go(item.value);
+    } else go(listed(item.value));
   };
   const name = () => account()?.username || account()?.name || undefined;
   // made here, in the component's scope, so the tip it attaches goes when the menu does

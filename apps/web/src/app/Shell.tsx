@@ -139,7 +139,7 @@ export function Shell() {
   /* where the wordmark leads: the home in the reader's view, or with no connection a signed-in reader's Saved palettes */
   const home = () =>
     offline() && account()
-      ? { href: localHref("/palettes/saved"), label: t("Saved palettes") }
+      ? { href: localHref(inView("/palettes/saved")), label: t("Saved palettes") }
       : { href: localHref(inView("/")), label: t("home") };
   /* under reduced motion only the brand pages whose sheet stands on the water keep it, as one still frame */
   const waterOff = () => reducedMotion() && !page().options.still && !page().options.moving;

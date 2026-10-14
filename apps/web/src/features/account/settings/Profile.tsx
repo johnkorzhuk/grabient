@@ -9,6 +9,7 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { isServer } from "@solidjs/web";
 import { createSignal, isHydrating, onCleanup, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
+import { inView } from "../../list/appearance.ts";
 import {
   account,
   api,
@@ -219,7 +220,7 @@ export function Profile(props: {
           <Text variant="h2">{t("Profile")}</Text>
           <Show when={!!account() || !sessionReady()}>
             <span class={styles.account}>
-              <NavLink href={localHref("/palettes/saved")} small>
+              <NavLink href={localHref(inView("/palettes/saved"))} small>
                 {t("Saved palettes")}
               </NavLink>
             </span>
