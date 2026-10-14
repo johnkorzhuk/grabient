@@ -1,4 +1,4 @@
-import { createSignal, onSettled, Show } from "solid-js";
+import { createSignal, onSettled, Show, untrack } from "solid-js";
 import { Button } from "./Button.tsx";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
@@ -43,8 +43,9 @@ export function RemovePress(props: {
   let host: HTMLSpanElement | undefined;
   onSettled(() => takeFocus(props.item, "remove", host));
   const armed = () => armedItem() === props.item;
+  /* the focus leaves as the press itself leaves the page, while the page is being drawn: a read, never tracked */
   const disarm = () => {
-    if (!armed()) return;
+    if (!untrack(armed)) return;
     clearTimeout(armTimer);
     setArmedItem(null);
   };
