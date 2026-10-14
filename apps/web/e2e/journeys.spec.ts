@@ -150,6 +150,105 @@ const EDIT = "main article a[aria-label='Edit']";
 /** The palettes a list draws, in its order. */
 const cards = (page: Page) => page.locator("main article:has(a[aria-label='Edit'])");
 
+/** The cards whose heart says other than her account, to the eye or to a screen reader, on screen or below it: each
+    palette she likes has its heart pressed, and every other one not. */
+const misdrawn = (page: Page, liked: ReadonlySet<string>) =>
+  page.evaluate(
+    seeds => {
+      const hers = new Set(seeds);
+      return [...document.querySelectorAll("main article")]
+        .filter(card => card.checkVisibility())
+        .flatMap(card => {
+          const edit = card.querySelector("a[aria-label='Edit']")?.getAttribute("href");
+          const heart = card
+            .querySelector("button[aria-label^='Like']")
+            ?.getAttribute("aria-pressed");
+          if (!edit || !heart) return [];
+          const seed = new URL(edit, location.href).pathname.slice(1);
+          return heart === String(hers.has(seed)) ? [] : [`${seed} ${heart}`];
+        });
+    },
+    [...liked]
+  );
+/** What her browser sends for the palette's like next, once the server has answered the sync that carries it. */
+const sentLike = (page: Page, seed: string) =>
+  page
+    .waitForResponse(
+      response =>
+        response.url().endsWith("/api/me/sync") &&
+        (response.request().postData() ?? "").includes(`"seed":"${seed}"`)
+    )
+    .then(
+      response =>
+        (
+          JSON.parse(response.request().postData() ?? "{}") as {
+            mutations: { op: { seed?: string; liked?: boolean } }[];
+          }
+        ).mutations.find(change => change.op.seed === seed)?.op.liked
+    );
+/** Down the page to the card that leads there: a list draws only the rows near the screen. */
+async function scrollToCard(page: Page, href: string): Promise<Locator> {
+  const card = cardOf(page, href);
+  for (let depth = 0; !(await card.count()) && depth < 20_000; depth += 300) {
+    await page.evaluate(to => scrollTo(0, to), depth);
+    await settled(page);
+  }
+  await reach(page, card);
+  return card;
+}
+const GROUP_EDIT = "main section article a[aria-label='Edit']";
+/* A card past a list's first row, or in the home's first collections: the server drew it, and it stands still until the
+   reader moves. */
+const STILL: { name: string; address: string; cards: [string, number][] }[] = [
+  { name: "Palettes", address: "/palettes", cards: [[EDIT, 8]] },
+  { name: "Rising", address: "/palettes/rising", cards: [[EDIT, 8]] },
+  { name: "a palette search", address: "/palettes?q=blue", cards: [[EDIT, 8]] },
+  {
+    name: "the home",
+    address: "/",
+    cards: [
+      [EDIT, 8],
+      [GROUP_EDIT, 0]
+    ]
+  },
+  { name: "Collections", address: "/collections", cards: [[GROUP_EDIT, 1]] }
+];
+
+/** Her account as her browser's copy hears it: she likes the palettes in `liked`, whatever the server holds, and each
+    like her browser sends is taken here as the server takes one. */
+function likedHere(page: Page, liked: Set<string>) {
+  return page.route("**/api/me/sync", route => {
+    const { mutations } = JSON.parse(route.request().postData() ?? "{}") as {
+      mutations: { id: number; op: { op: string; seed?: string; liked?: boolean } }[];
+    };
+    for (const { op } of mutations) {
+      if (op.op !== "like" || !op.seed) continue;
+      if (op.liked) liked.add(op.seed);
+      else liked.delete(op.seed);
+    }
+    return route.fulfill({
+      json: {
+        cursor: 1,
+        reset: true,
+        likes: [...liked].map(seed => ({
+          seed,
+          style: "linearGradient",
+          steps: 7,
+          angle: 90,
+          at: 1,
+          likes: 1
+        })),
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: Math.max(0, ...mutations.map(change => change.id)),
+        results: mutations.map(change => ({ id: change.id, ok: true })),
+        admin: false
+      }
+    });
+  });
+}
+
 type Opened = { href: string; depth: number; collection?: string };
 /** The ways a list opens what it holds: a palette by its card's Edit from the keyboard and by a press on the card, a
     collection by a group's title and by a collection's card. Each says what it opened, from what depth. */
@@ -455,6 +554,51 @@ for (const width of WIDTHS)
       expect(broken).toEqual([]);
     });
 
+    test("signed in, a reader's hearts on every list are her account's before she moves, and a press does what its heart shows", async ({
+      page,
+      context,
+      baseURL
+    }) => {
+      await signIn(context, baseURL ?? "");
+      const broken = watch(page);
+      const liked = new Set<string>();
+      await likedHere(page, liked);
+      const picked: string[] = [];
+      for (const list of STILL) {
+        await open(page, list.address);
+        // liked on another device: the page learns of them from her account alone
+        for (const [card, at] of list.cards) {
+          const href = await linkAt(page, card, at);
+          picked.push(href);
+          liked.add(itemAt(href).kseed);
+        }
+        await open(page, list.address);
+        await expect
+          .poll(() => misdrawn(page, liked), { message: list.name, timeout: 10_000 })
+          .toEqual([]);
+      }
+
+      // on Popular, a press on the heart she liked takes it back, and one on a heart she has not liked likes it
+      await open(page, "/palettes");
+      let other = "";
+      for (let at = 0; !other; at++) {
+        const href = await linkAt(page, EDIT, at);
+        if (!liked.has(itemAt(href).kseed)) other = href;
+      }
+      for (const [href, was] of [
+        [picked[0]!, true],
+        [other, false]
+      ] as const) {
+        const heart = (await scrollToCard(page, href)).getByRole("button", { name: /^Like/ });
+        await expect(heart).toHaveAttribute("aria-pressed", String(was));
+        const sent = sentLike(page, itemAt(href).kseed);
+        await press(heart, width);
+        expect(await sent).toBe(!was);
+        await expect(heart).toHaveAttribute("aria-pressed", String(!was));
+      }
+      expect(broken).toEqual([]);
+    });
+
     test("the sign-in sheet, Settings, About and the newsletter open from the frame's menu and links, and Back returns to the list", async ({
       page
     }) => {
@@ -571,64 +715,6 @@ function itemAt(href: string): Item {
     angle: Number(url.searchParams.get("angle") ?? 90)
   };
 }
-/** The cards whose heart says other than her account, to the eye or to a screen reader, on screen or below it: each
-    palette she likes has its heart pressed, and every other one not. */
-const misdrawn = (page: Page, liked: ReadonlySet<string>) =>
-  page.evaluate(
-    seeds => {
-      const hers = new Set(seeds);
-      return [...document.querySelectorAll("main article")]
-        .filter(card => card.checkVisibility())
-        .flatMap(card => {
-          const edit = card.querySelector("a[aria-label='Edit']")?.getAttribute("href");
-          const heart = card
-            .querySelector("button[aria-label^='Like']")
-            ?.getAttribute("aria-pressed");
-          if (!edit || !heart) return [];
-          const seed = new URL(edit, location.href).pathname.slice(1);
-          return heart === String(hers.has(seed)) ? [] : [`${seed} ${heart}`];
-        });
-    },
-    [...liked]
-  );
-/** What her browser sends for the palette's like next, as her account's sync carries it. */
-const sentLike = (page: Page, seed: string) =>
-  page
-    .waitForRequest(
-      request =>
-        request.url().endsWith("/api/me/sync") &&
-        (request.postData() ?? "").includes(`"seed":"${seed}"`)
-    )
-    .then(
-      request =>
-        (
-          JSON.parse(request.postData() ?? "{}") as {
-            mutations: { op: { seed?: string; liked?: boolean } }[];
-          }
-        ).mutations.find(change => change.op.seed === seed)?.op.liked
-    );
-/** Down the page to the card that leads there: a list draws only the rows near the screen. */
-async function scrollToCard(page: Page, href: string): Promise<Locator> {
-  const card = cardOf(page, href);
-  for (let depth = 0; !(await card.count()) && depth < 20_000; depth += 300) {
-    await page.evaluate(to => scrollTo(0, to), depth);
-    await settled(page);
-  }
-  await reach(page, card);
-  return card;
-}
-const GROUP_EDIT = "main section article a[aria-label='Edit']";
-/* A card past a list's first row, or in the home's first collections: the server drew it, and it stands still until the
-   reader moves. */
-const STILL = [
-  { name: "Palettes", address: "/palettes", card: EDIT, at: 8 },
-  { name: "Rising", address: "/palettes/rising", card: EDIT, at: 8 },
-  { name: "a palette search", address: "/palettes?q=blue", card: EDIT, at: 8 },
-  { name: "the home", address: "/", card: EDIT, at: 8 },
-  { name: "the home's collections", address: "/", card: GROUP_EDIT, at: 0 },
-  { name: "Collections", address: "/collections", card: GROUP_EDIT, at: 1 }
-];
-
 /* Her journeys change what her account holds, so they take turns, and Saved holds palettes she liked for them. */
 test.describe("signed in as verify-ada", () => {
   test.describe.configure({ mode: "serial" });
@@ -730,51 +816,6 @@ test.describe("signed in as verify-ada", () => {
         await expect(page.locator("main article").first()).toBeVisible();
         expect(await styled(page)).toBe(true);
         expect(await sameDocument(page)).toBe(true);
-        expect(broken).toEqual([]);
-      });
-
-      test("her hearts are her own on every list before she moves, and a press does what its heart shows", async ({
-        page
-      }) => {
-        const broken = watch(page);
-        const liked = await herLikes(api);
-        const picked: string[] = [];
-        const added: Item[] = [];
-        for (const list of STILL) {
-          await open(page, list.address);
-          const href = await linkAt(page, list.card, list.at);
-          picked.push(href);
-          // liked on another device: the page learns it from her account alone
-          if (!liked.has(itemAt(href).kseed)) {
-            await sync(api, likes([itemAt(href)], true));
-            liked.add(itemAt(href).kseed);
-            added.push(itemAt(href));
-          }
-          await open(page, list.address);
-          await expect
-            .poll(() => misdrawn(page, liked), { message: list.name, timeout: 10_000 })
-            .toEqual([]);
-        }
-
-        // on Popular, a press on the heart she liked takes it back, and one on a heart she has not liked likes it
-        await open(page, "/palettes");
-        let other = "";
-        for (let at = 0; !other; at++) {
-          const href = await linkAt(page, EDIT, at);
-          if (!liked.has(itemAt(href).kseed)) other = href;
-        }
-        for (const [href, was] of [
-          [picked[0]!, true],
-          [other, false]
-        ] as const) {
-          const heart = (await scrollToCard(page, href)).getByRole("button", { name: /^Like/ });
-          await expect(heart).toHaveAttribute("aria-pressed", String(was));
-          const sent = sentLike(page, itemAt(href).kseed);
-          await press(heart, width);
-          expect(await sent).toBe(!was);
-          await expect(heart).toHaveAttribute("aria-pressed", String(!was));
-        }
-        await sync(api, likes([...added, itemAt(other)], false));
         expect(broken).toEqual([]);
       });
 
