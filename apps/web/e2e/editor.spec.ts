@@ -263,6 +263,21 @@ test("a radial palette's Appearance names and offers its angle, as every style's
   await expect(page.locator('#appearance-menu input[aria-label="Angle"]')).toHaveValue("105°");
 });
 
+test("an entry's record of a view no address could carry is no record", async ({ page }) => {
+  await open(page, `/${SEED}?steps=9`);
+  // the browser hands back whatever a history entry kept
+  await page.evaluate(() => {
+    const opened = { style: "bogus", steps: 9999, angle: 9999, set: { style: true, angle: true } };
+    History.prototype.replaceState.call(history, { ...history.state, opened }, "");
+  });
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Appearance:/ })).toHaveAccessibleName(
+    "Appearance: As saved"
+  );
+  expect(here(page)).toBe(`/${SEED}?steps=9`);
+});
+
 test("a drag on a number is one step, however long it rests", async ({ page }) => {
   await open(page);
   const box = await page

@@ -505,17 +505,23 @@ function hexKeyframe(P: Palette, i: number, hex: string): Palette | null {
 /* a part of the view as the tab remembers one: a value, or auto for each palette's own */
 const choice = <T>(value: unknown, is: (v: unknown) => v is T): T | "auto" | undefined =>
   value === "auto" || is(value) ? value : undefined;
-const isCount = (v: unknown): v is number => Number.isInteger(v);
+/* a count of steps or an angle an address could carry */
+const within =
+  (min: number, max: number) =>
+  (v: unknown): v is number =>
+    typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+const isSteps = within(STEPS_MIN, STEPS_MAX);
+const isAngle = within(0, 360);
 
 /** What a page opened with: the record its entry kept or a card handed it, where it reads as one, else the address's
-    own view. Stored browser data is untrusted. */
+    own view. Stored browser data is untrusted: a view no address could carry is no record. */
 function openedOf(page: SeedPage, kept: unknown): Opened {
   const k = kept as Partial<Opened> | null | undefined;
   const valid =
     !!k &&
-    typeof k.style === "string" &&
-    Number.isInteger(k.steps) &&
-    Number.isInteger(k.angle) &&
+    isStyle(k.style) &&
+    isSteps(k.steps) &&
+    isAngle(k.angle) &&
     !!k.set &&
     typeof k.set === "object";
   const base = valid
@@ -540,8 +546,8 @@ function openedOf(page: SeedPage, kept: unknown): Opened {
   const tab = untrack(rememberedView);
   const chosen = {
     style: choice(k?.chosen?.style, isStyle) ?? (base.set.style ? "auto" : tab.style),
-    steps: choice(k?.chosen?.steps, isCount) ?? (base.set.steps ? "auto" : tab.steps),
-    angle: choice(k?.chosen?.angle, isCount) ?? (base.set.angle ? "auto" : tab.angle)
+    steps: choice(k?.chosen?.steps, isSteps) ?? (base.set.steps ? "auto" : tab.steps),
+    angle: choice(k?.chosen?.angle, isAngle) ?? (base.set.angle ? "auto" : tab.angle)
   };
   /* a view that is no longer what the page opened with was chosen since, here or on a page since */
   return {
