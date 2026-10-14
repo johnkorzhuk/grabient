@@ -29,7 +29,6 @@ vi.mock("@tanstack/solid-start/server", () => ({
 }));
 vi.mock("../gallery/queries.ts", () => ({ framesQuery: () => ({ queryKey: ["frames"] }) }));
 vi.mock("./queries.ts", () => ({
-  failed: (data: unknown) => typeof data === "object" && data !== null && "failed" in data,
   collectionQuery: (slug: string) => ({ queryKey: ["collection", slug] }),
   collectionsQuery: () => ({ queryKey: ["collections"] }),
   tagsQuery: () => ({ queryKey: ["collection-tags"] })
@@ -179,6 +178,13 @@ describe("a public list's loader", () => {
     expect(await loadList(lists(page), place({ page: 2 }))).toEqual({ paint: [] });
     // an empty list's first page is the list
     expect(await loadList(lists(pageOf([], 0)), place())).toEqual({ paint: [] });
+  });
+  test("says no cache keeps a search whose words were read in part", async () => {
+    const page = { ...pageOf([summary("ocean-depths", SEEDS)]), unkept: true };
+    expect(await loadList(lists(page), place({ query: "quetzalcoatl marsh" }))).toMatchObject({
+      unkept: true
+    });
+    expect(await loadList(lists(pageOf([])), place())).not.toHaveProperty("unkept");
   });
   test("renders its page for a read that failed, with nothing to hand on", async () => {
     expect(await loadList(lists({ failed: "No answer." }), place())).toEqual({});

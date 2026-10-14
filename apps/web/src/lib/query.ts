@@ -35,14 +35,14 @@ export const failed = (data: unknown): data is Failed =>
   typeof data === "object" && data !== null && "failed" in data;
 
 /** Fresh for `ttl` from the database read that made the answer. A failure is never fresh, nor an answer an allowance
-    cut short, nor a list's summary shown while the whole is read. */
+    cut short or whose words were read in part, nor a list's summary shown while the whole is read. */
 export const freshFor =
   (ttl: number) =>
   (query: { state: { data?: unknown; dataUpdatedAt: number } }): number => {
     const data = query.state.data as
-      | { fetchedAt?: number; limited?: boolean; provisional?: boolean }
+      | { fetchedAt?: number; limited?: boolean; unkept?: boolean; provisional?: boolean }
       | undefined;
-    if (!data || failed(data) || data.limited || data.provisional) return 0;
+    if (!data || failed(data) || data.limited || data.unkept || data.provisional) return 0;
     const at = query.state.dataUpdatedAt;
     return Math.max(0, ttl - (at - Math.min(data.fetchedAt ?? at, at)));
   };

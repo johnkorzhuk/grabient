@@ -34,6 +34,8 @@ export interface Loaded extends FramedData {
   status?: number;
   /** what search engines are told, when the page is no index's */
   robots?: string;
+  /** a search whose words were read in part for now (a crawler's, or past an allowance): no cache keeps the page */
+  unkept?: boolean;
 }
 
 /** The bar and the water read at most this many palettes. */
@@ -89,9 +91,9 @@ export async function loadList(client: QueryClient, place: ListPlace): Promise<L
   ]);
   if (failed(page)) return {};
   const paint = listPaint(page.items, place.view);
-  return place.page > Math.max(1, page.totalPages)
-    ? { status: 404, robots: "noindex,follow", paint }
-    : { paint };
+  if (place.page > Math.max(1, page.totalPages))
+    return { status: 404, robots: "noindex,follow", paint };
+  return page.unkept ? { paint, unkept: true } : { paint };
 }
 
 /* Whether a request comes with no session's cookie, so its reader is signed out for certain: read on the account's

@@ -40,12 +40,13 @@ describe("freshness", () => {
   test("counts from the database read that made the answer", () => {
     expect(freshFor(60_000)(held({ fetchedAt: at - 20_000 }))).toBe(40_000);
   });
-  test("is none for a failure, an answer cut short or a list's summary", () => {
+  test("is none for a failure, an answer cut short or read in part, or a list's summary", () => {
     const stale = [
       { failed: "x" },
       { fetchedAt: at, limited: true },
+      { fetchedAt: at, unkept: true },
       { fetchedAt: at, provisional: true }
     ];
-    expect(stale.map(data => freshFor(60_000)(held(data)))).toEqual([0, 0, 0]);
+    expect(stale.map(data => freshFor(60_000)(held(data)))).toEqual([0, 0, 0, 0]);
   });
 });

@@ -10,7 +10,7 @@ export const Route = createFileRoute("/collections/")({
   loaderDeps: ({ search }) => ({ search: searchOf(search) }),
   loader: ({ context, deps }) =>
     loadList(context.queryClient, listPlace("popular", undefined, deps.search)),
-  headers: ({ loaderData }) => (loaderData?.status ? NO_STORE : PAGE),
+  headers: ({ loaderData }) => (loaderData?.status || loaderData?.unkept ? NO_STORE : PAGE),
   head: ({ match, loaderData }) =>
     listHead(
       match.context.queryClient,

@@ -23,7 +23,7 @@ export const Route = createFileRoute("/collections/rising/{-$frame}")({
   loaderDeps: ({ search }) => ({ search: searchOf(search) }),
   loader: ({ context, params, deps }) =>
     loadList(context.queryClient, listPlace("rising", params.frame, deps.search)),
-  headers: ({ loaderData }) => (loaderData?.status ? NO_STORE : FRESH),
+  headers: ({ loaderData }) => (loaderData?.status || loaderData?.unkept ? NO_STORE : FRESH),
   head: ({ match, params, loaderData }) =>
     listHead(
       match.context.queryClient,
