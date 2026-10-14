@@ -44,6 +44,26 @@ test("a list hydrates from what the server read, and the next page joins as the 
   expect(here(page)).toBe("/palettes");
 });
 
+test("a screen taller than the first page asks for the next one once, and draws it", async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 2560, height: 1440 });
+  const asked = calls(page);
+  await page.goto("/palettes");
+  await hydrated(page);
+  const feed = page.locator("[data-count]").first();
+  await expect(feed).toHaveAttribute("data-count", "48");
+  const tall = await page.evaluate(() => document.documentElement.scrollHeight);
+  await page.waitForTimeout(1500);
+  // the page that joined pushed the end out of reach, so no other page was asked for
+  expect(asked.filter(path => path.startsWith("/api/palettes"))).toEqual([
+    "/api/palettes?sort=popular&page=2&limit=24"
+  ]);
+  await expect(feed).toHaveAttribute("data-count", "48");
+  expect(await page.locator("main article").count()).toBeGreaterThan(24);
+  expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(tall);
+});
+
 test("a card the server drew answers focus and a press that reach it before the reader moves", async ({
   page
 }) => {

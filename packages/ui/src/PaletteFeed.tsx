@@ -1,4 +1,12 @@
-import { createEffect, createSignal, type Element, For, NoHydration, Show } from "solid-js";
+import {
+  createEffect,
+  createSignal,
+  type Element,
+  For,
+  NoHydration,
+  Show,
+  untrack
+} from "solid-js";
 import styles from "./PaletteFeed.module.css";
 import { columnsAt, PaletteGrid } from "./PaletteGrid.tsx";
 import { createWindow, type WindowRoom } from "./window.ts";
@@ -10,7 +18,7 @@ const kept = { card: 300 + 12 + 32, gap: 40 };
 /** A palette list as a feed: every palette loaded so far, with only the rows near the viewport drawn (window.ts).
     Every card is one size, so the rows are measured from the first card and its grid's gap, and kept, so a list
     returned to lays out at its depth on its first frame. The server draws every card it was given; the first `live`
-    are hydrated and the rest stand still until the reader moves. */
+    are hydrated and the rest stand still until the reader moves or the list holds other cards. */
 export function PaletteFeed<T>(props: {
   items: readonly T[];
   /** what keeps a card as the window slides: the palette's seed */
@@ -24,11 +32,15 @@ export function PaletteFeed<T>(props: {
   const [card, setCard] = createSignal(kept.card);
   const [gap, setGap] = createSignal(kept.gap);
   const rows = (width: number) => Math.ceil(props.items.length / columnsAt(width));
+  const drawn = untrack(() => props.items.map(props.key));
   const win = createWindow({
     count: rows,
     size: () => card(),
     gap,
     initial: rows,
+    drawn: () =>
+      props.items.length === drawn.length &&
+      props.items.every((item, i) => props.key(item) === drawn[i]),
     depth: props.depth,
     room
   });
