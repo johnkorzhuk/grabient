@@ -12,7 +12,9 @@ import { createIsomorphicFn } from "@tanstack/solid-start";
 import { newerBuild } from "../app/build-watch.ts";
 import { NotFound } from "../app/NotFound.tsx";
 import { Shell } from "../app/Shell.tsx";
+import { pageFrom } from "../app/shell.ts";
 import type { SiteFacts } from "../app/site.ts";
+import { iconLinks } from "../app/tab-icon.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { readSite } from "../server/site/facts.ts";
 
@@ -24,6 +26,20 @@ const siteFacts = createIsomorphicFn()
   .server(readSite)
   .client((): SiteFacts => ({ stars: null }));
 
+/* The tab's icon in the colors the page's loader paints, or the week's (app/tab-icon.ts). Only the server names it:
+   the frame sets these two links by hand as the page changes, which a head that named them again would undo. */
+const tabIcons = createIsomorphicFn()
+  .server((matches: Parameters<typeof pageFrom>[0], path: string, words: string) => {
+    const page = pageFrom(matches);
+    return iconLinks({
+      frame: page.options.frame ?? "app",
+      path,
+      words,
+      seeds: page.painted.map(palette => palette.seed)
+    });
+  })
+  .client((): ReturnType<typeof iconLinks> => []);
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   // a deploy happened since this page loaded: the next page loads whole, with the build that serves it
   beforeLoad: ({ location }) => {
@@ -34,9 +50,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   shouldReload: false,
   // a page says how long it may be kept; one that says nothing is kept nowhere
   headers: () => NO_STORE,
-  head: () => {
+  head: ({ matches }) => {
     const language = LOCALE_INFO[locale()];
     const catalog = catalogs[language.tag];
+    const leaf = matches[matches.length - 1];
     return {
       meta: [
         // viewport-fit=cover runs the page under a notch and makes the safe-area insets real; pinch zoom stays
@@ -52,20 +69,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       links: [
         // the tile for Safari and Google Search (its sizes keeps Chrome on the SVG), then light and dark marks
         { rel: "icon", href: "/favicon-tile.ico", sizes: "32x32" },
-        {
-          rel: "icon",
-          href: "/favicon.svg",
-          type: "image/svg+xml",
-          sizes: "any",
-          media: "(prefers-color-scheme: light)"
-        },
-        {
-          rel: "icon",
-          href: "/favicon-dark.svg",
-          type: "image/svg+xml",
-          sizes: "any",
-          media: "(prefers-color-scheme: dark)"
-        },
+        ...tabIcons(matches, leaf.pathname, String((leaf.search as { q?: unknown }).q ?? "")),
         { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
         { rel: "manifest", href: "/site.webmanifest" },
         // the page's messages, fetched while the head is read so the app starts in its language at once

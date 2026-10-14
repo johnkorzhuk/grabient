@@ -1,4 +1,5 @@
 import type { Binding } from "@grabient/ui/keys.ts";
+import type { StaticDataRouteOption } from "@tanstack/solid-router";
 import { type Component, createContext } from "solid-js";
 import type { Drawn } from "../lib/palette.ts";
 
@@ -37,6 +38,25 @@ declare module "@tanstack/solid-router" {
 export interface FramedData {
   /** the palettes the page opens on, at most eight read: the bar cycles through them and the water carries them */
   paint?: readonly Drawn[];
+}
+
+/** The page on screen as the frame reads it from the router's matches: its route's options and the palettes its
+    loader returned, or none where no page answered the address. */
+export function pageFrom(
+  matches: readonly {
+    status: string;
+    _notFound?: boolean;
+    staticData: StaticDataRouteOption;
+    loaderData?: unknown;
+  }[]
+) {
+  const lost = matches.some(m => m.status === "notFound" || m._notFound);
+  const leaf = lost ? undefined : matches[matches.length - 1];
+  return {
+    lost,
+    options: leaf?.staticData ?? {},
+    painted: (leaf?.loaderData as FramedData | undefined)?.paint ?? []
+  };
 }
 
 export interface Shell {

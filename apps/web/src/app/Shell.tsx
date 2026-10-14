@@ -21,7 +21,7 @@ import {
 } from "@grabient/ui/theme.ts";
 import { Dynamic } from "@solidjs/web";
 import { Outlet, useLocation, useMatches, useRouter } from "@tanstack/solid-router";
-import { createMemo, createSignal, onSettled, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, onSettled, Show } from "solid-js";
 import { account } from "../features/account/session.ts";
 import { trackEvent } from "../features/analytics/analytics.ts";
 import {
@@ -40,8 +40,8 @@ import { createSiteKeys } from "./keys.ts";
 import { pageInEveryLanguage } from "./language.ts";
 import { watchNavigation } from "./navigation.ts";
 import styles from "./Shell.module.css";
-import type { FramedData, Shell as ShellApi } from "./shell.ts";
-import { ShellContext } from "./shell.ts";
+import type { Shell as ShellApi } from "./shell.ts";
+import { pageFrom, ShellContext } from "./shell.ts";
 import { Toast } from "./Toast.tsx";
 import { createWater } from "./water.ts";
 
@@ -57,17 +57,7 @@ export function Shell() {
   const router = useRouter();
   const matches = useMatches();
   const location = useLocation();
-  /* the page on screen: its route's options and what its loader returned, or none where no page answered */
-  const page = createMemo(() => {
-    const all = matches();
-    const lost = all.some(m => m.status === "notFound" || m._notFound);
-    const leaf = lost ? undefined : all[all.length - 1];
-    return {
-      lost,
-      options: leaf?.staticData ?? {},
-      painted: (leaf?.loaderData as FramedData | undefined)?.paint ?? []
-    };
-  });
+  const page = createMemo(() => pageFrom(matches()));
   const frame = () => page().options.frame ?? "app";
   const brand = () => frame() !== "app";
 
@@ -97,6 +87,21 @@ export function Shell() {
     translated: () =>
       !!page().options.translated && !new URLSearchParams(location().searchStr).has("q")
   };
+
+  /* the tab's icon wears what the page paints (tab-icon.ts). The server wrote the first one, so the code that draws
+     it is asked for when a page first changes it */
+  createEffect(
+    () => ({
+      frame: frame(),
+      path: location().pathname,
+      words: new URLSearchParams(location().searchStr).get("q") ?? "",
+      seeds: drawn().map(palette => palette.seed)
+    }),
+    tab => {
+      void import("./tab-icon.ts").then(icon => icon.showIcon(tab));
+    },
+    { defer: true }
+  );
 
   /* the page has scrolled under the header: a brand header takes its surface, so the wordmark never sits on the text */
   const [scrolled, setScrolled] = createSignal(false);

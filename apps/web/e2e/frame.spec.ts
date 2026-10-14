@@ -1,6 +1,7 @@
 import { expect, type Page, test } from "@playwright/test";
 
-/* The frame around the pages: what its header's corner writes to the address and when the route takes it. */
+/* The frame around the pages: what its header's corner writes to the address and when the route takes it, and the
+   tab's icon. */
 
 /** Opens a page and waits for the app to have hydrated the server's document. */
 async function open(page: Page, address: string) {
@@ -35,4 +36,19 @@ test("a view being set reaches the address in the lists' order, and the route on
   // the address as written is the one the server answers at, with no redirect
   const answer = await page.request.get(page.url(), { maxRedirects: 0 });
   expect(answer.status()).toBe(200);
+});
+
+test("the tab's icon wears a palette on its page, follows its edits, and is the week's on a list", async ({
+  page
+}) => {
+  await open(page, "/kS7CQ31Do6asvY-");
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  const icon = page.locator('link[rel="icon"][type="image/svg+xml"]').first();
+  await expect(icon).toHaveAttribute("href", /^data:image\/svg\+xml,/);
+  const first = (await icon.getAttribute("href")) ?? "";
+  await page.keyboard.press("b");
+  await expect(icon).not.toHaveAttribute("href", first);
+  await expect(icon).toHaveAttribute("href", /^data:image\/svg\+xml,/);
+  await page.locator("header a[data-home]").click();
+  await expect(icon).toHaveAttribute("href", /^\/favicon\/\d{4}-w\d{2}\.svg\?v=\w+$/);
 });

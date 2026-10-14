@@ -149,6 +149,13 @@ export function markSvg(fill?: MarkFill | null, scheme?: MarkScheme): string {
   );
 }
 
+/** The name of a week's picture, which the addresses of its files carry: the same wherever the week is drawn, and
+    another once the drawing changes, so no browser shows a picture it kept under the address of a new one. */
+export function weekPicture(week: string): string {
+  const colors = weekMark(week);
+  return fnv1a(markSvg(colors, "light") + markSvg(colors)).toString(36);
+}
+
 /** An SVG as a data address, escaped only where it must be: quotes made single, and %, #, < and > encoded. */
 export const svgDataUrl = (source: string): string =>
   `data:image/svg+xml,${source.replace(/"/g, "'").replace(/[%#<>]/g, c => encodeURIComponent(c))}`;
