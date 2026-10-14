@@ -1,7 +1,7 @@
 import { t } from "@grabient/i18n";
 import { accountHandle, collectionHref, itemKey, privateSlug } from "../collections/address.ts";
 import { minePage, type View } from "./model.ts";
-import { account, accountForCopy, api, copyEngine, engineNow, keptUserId } from "./session.ts";
+import { account, accountForCopy, copyEngine, engineNow, keptUserId } from "./session.ts";
 import { movedCollection, viewNow } from "./state.ts";
 import {
   COLLECTION_MAX,
@@ -263,24 +263,4 @@ export function deleteOwnCollection(slug: string): { deleted: string } {
   if (!sync) throw new Error(t("That collection isn't yours anymore."));
   settle(sync.changeAccount({ op: "collection.delete", slug }));
   return { deleted: slug };
-}
-
-/** The account's collection's words, or its palettes' order: the server writes them (a new title can move its
-    address), and the copy hears it in the sync that follows. */
-export async function editOwnCollection(
-  slug: string,
-  patch: {
-    title?: string;
-    description?: string;
-    tags?: string[];
-    items?: CollectionItemInput[];
-  }
-): Promise<{ collection: SyncCollection }> {
-  const answer = await api<{ collection: SyncCollection }>(
-    `/api/collections/${encodeURIComponent(slug)}`,
-    patch,
-    "PATCH"
-  );
-  serverWrote();
-  return answer;
 }

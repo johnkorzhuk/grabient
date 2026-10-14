@@ -1,7 +1,7 @@
 import { msg } from "@grabient/i18n";
-import { overLimit } from "@grabient/server/auth/http.ts";
 import { all } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { writeRefusal } from "@grabient/server/limits/writes.ts";
 import type { SyncCollection, SyncOp } from "../../features/account/wire.ts";
 import { isPrivateSlug, itemKey } from "../../features/collections/address.ts";
 import {
@@ -47,6 +47,8 @@ export interface Writer {
   id: string;
   admin: boolean;
 }
+/** The account's role, as its limits are counted by. */
+export const roleOf = (account: Writer) => (account.admin ? "admin" : "user");
 
 /** The most collections a reset reads, and how many of them are read at once. */
 const COLLECTIONS_READ_AT_ONCE = 8;
@@ -57,10 +59,12 @@ const full = () =>
   refused(409, msg("Collections hold up to {max} palettes."), {
     max: String(MAX_COLLECTION_ITEMS)
   });
-/** A write's limits, counted first: the account's collection writes, or its palettes taken out and put back. */
+/** What stands before a write: saving paused for every account, then the write's limits, the account's collection
+    writes or its palettes taken out and put back. */
 async function limited(env: Env, account: Writer, items = false): Promise<Outcome | null> {
-  const over = await overLimit(
+  const over = await writeRefusal(
     env,
+    roleOf(account),
     items
       ? [[`collection-items:${account.id}`, ["collectionItems", "collectionItemsDaily"]]]
       : collectionWriteLimits(account.id)

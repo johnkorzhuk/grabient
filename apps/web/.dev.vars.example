@@ -1,4 +1,14 @@
-# The secrets `vite dev` and `vite preview` bind on this machine. Copy this file to .dev.vars, which git ignores.
+# The secrets `vite dev` binds on this machine, the first for `vite preview` too. Copy this file to .dev.vars, which
+# git ignores.
 
 # Signs sessions and removal tokens. Any 32 characters or more; never a deploy's value.
 BETTER_AUTH_SECRET="local development only, not a deploy's secret"
+
+# The one address that signs in with a password, at /login/password: the app directories' reviewers. Empty, that
+# sign-in answers 404.
+REVIEWER_EMAIL="reviewer@grabient.test"
+
+# Turnstile's secret. With one, the password sign-in asks for Turnstile's answer, which the page does not send yet.
+# Empty leaves the check off. Cloudflare's test secrets: 1x0000000000000000000000000000000AA passes every answer and
+# 2x0000000000000000000000000000000AA fails every one.
+TURNSTILE_SECRET_KEY=""

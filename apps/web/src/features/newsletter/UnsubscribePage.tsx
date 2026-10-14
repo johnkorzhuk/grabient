@@ -1,10 +1,12 @@
 import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
 import { localHref, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
+import link from "@grabient/ui/link.module.css";
 import { Pane } from "@grabient/ui/Pane.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, For, Show } from "solid-js";
+import { shownError } from "../account/session.ts";
 import styles from "./Unsubscribe.module.css";
 import { answerUnsubscribe } from "./writes.ts";
 
@@ -41,7 +43,7 @@ export function UnsubscribePage(props: {
     try {
       setStage((await answerUnsubscribe(token, subscribes())) ? "back" : "ended");
     } catch (error) {
-      setFailure(error instanceof Error && error.message ? error.message : t(UNSENT));
+      setFailure(shownError(error, UNSENT));
     } finally {
       setSending(false);
     }
@@ -60,7 +62,11 @@ export function UnsubscribePage(props: {
                     "This link isn't valid. Turn the newsletter off in Settings or write to <email>{email}</email>.",
                     {
                       email: words => (
-                        <a class={styles.link} href={`mailto:${CONTACT_EMAIL}`} dir="ltr">
+                        <a
+                          class={[styles.link, link.inline]}
+                          href={`mailto:${CONTACT_EMAIL}`}
+                          dir="ltr"
+                        >
                           {words}
                         </a>
                       )
@@ -69,7 +75,8 @@ export function UnsubscribePage(props: {
                   )}
                 </Text>
               </div>
-              <Button size="lg" full href={localHref("/settings")} disabled={props.offline}>
+              {/* Settings opens with no connection too */}
+              <Button size="lg" full href={localHref("/settings")}>
                 {t("Settings")}
               </Button>
             </>

@@ -1,5 +1,6 @@
 import { encodePalette } from "@grabient/engine";
 import { handleAuth } from "@grabient/server/auth/gate.ts";
+import { setFlag } from "@grabient/server/flags/flags.ts";
 import { describe, expect, it } from "vitest";
 import type { SyncOp, SyncResponse } from "../src/features/account/wire.ts";
 import { accountHandle, privateSlug } from "../src/features/collections/address.ts";
@@ -9,6 +10,7 @@ import { confirmDeletion } from "../src/server/account/deletion.ts";
 import { handleFlags } from "../src/server/account/flags.ts";
 import { checkUsername, saveUsername, uploadAvatar } from "../src/server/account/profile.ts";
 import { handleSync } from "../src/server/account/sync.ts";
+import { connect } from "./connect.ts";
 import {
   bodyOf,
   cookiesOf,
@@ -340,6 +342,58 @@ describe("the sync", () => {
     expect(turn.body.retryAfter).toBeGreaterThan(0);
   });
 
+  it("puts every change off while an admin has saving paused, and reads on", async () => {
+    const env = testEnv();
+    const ada = await makeAccount(env);
+    const id = client();
+    const [kept, waiting] = [palette(), palette()];
+    const slug = privateSlug("Low tide", accountHandle({ id: ada.id }), () => false);
+    const start = await sync(env, ada.cookie, {
+      client: id,
+      cursor: null,
+      mutations: [{ id: 1, op: like(kept) }]
+    });
+    const create: SyncOp = {
+      op: "collection.create",
+      slug,
+      title: "Low tide",
+      visibility: "private",
+      items: [{ seed: waiting, ...view }]
+    };
+    const mutations = [
+      { id: 2, op: like(waiting) },
+      { id: 3, op: create }
+    ];
+    await setFlag(env, "saving", false, unique("admin"));
+    try {
+      // neither applied nor refused: the browser keeps both, shows them, and sends them again in five minutes
+      const paused = await sync(env, ada.cookie, { client: id, cursor: null, mutations });
+      expect([
+        paused.status,
+        paused.body.results,
+        paused.body.lastMutation,
+        paused.body.retryAfter
+      ]).toEqual([200, [], 1, 300]);
+      // what the account held before is still read
+      expect(paused.body.likes.map(entry => entry.seed)).toEqual([kept]);
+      expect(paused.body.collections).toEqual([]);
+      const alone = await sync(env, ada.cookie, {
+        client: client(),
+        cursor: null,
+        mutations: [{ id: 1, op: create }]
+      });
+      expect([alone.body.results, alone.body.retryAfter]).toEqual([[], 300]);
+    } finally {
+      await setFlag(env, "saving", true, unique("admin"));
+    }
+    const back = await sync(env, ada.cookie, { client: id, cursor: start.body.cursor, mutations });
+    expect(back.body.results).toEqual([
+      { id: 2, ok: true, likesCount: 1 },
+      { id: 3, ok: true, slug }
+    ]);
+    expect(back.body.retryAfter).toBeUndefined();
+  });
+
   it("sends everything to a browser behind what was pruned", async () => {
     const env = testEnv();
     const ada = await makeAccount(env);
@@ -486,10 +540,14 @@ describe("the profile", () => {
 });
 
 describe("deleting an account", () => {
-  it("confirms only with a token the account was sent, and burns none of another's", async () => {
+  it("confirms only with a token the account was sent, burns none of another's, and ends its apps' grants", async () => {
     const env = testEnv();
     const ada = await makeAccount(env);
     const bob = await makeAccount(env);
+    await connect(env, ada);
+    const grants = async () =>
+      (await env.OAUTH_KV!.list({ prefix: `grant:${ada.id}:` })).keys.length;
+    expect(await grants()).toBe(1);
     const asked = await handleAuth(post("/api/auth/delete-user", {}, { cookie: ada.cookie }), env);
     expect(asked.status).toBe(200);
     const token = env.EMAIL.link("/settings").searchParams.get("token") ?? "";
@@ -510,6 +568,8 @@ describe("deleting an account", () => {
     expect(
       await env.DB.prepare("SELECT 1 AS held FROM auth_user WHERE id = ?").bind(ada.id).first()
     ).toBeNull();
+    // the app it had connected holds no grant now
+    expect(await grants()).toBe(0);
   });
 });
 

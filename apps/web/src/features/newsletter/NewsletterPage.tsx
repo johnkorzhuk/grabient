@@ -2,21 +2,22 @@ import { locale, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { useInfiniteQuery, useQuery } from "@tanstack/solid-query";
-import { For, Loading, onSettled, Show } from "solid-js";
+import { useInfiniteQuery } from "@tanstack/solid-query";
+import { createEffect, createSignal, Errored, For, Loading, onSettled, Show } from "solid-js";
 import { IssueSheet } from "./IssueSheet.tsx";
 import type { PageIssue } from "./input.ts";
 import { monthOf } from "./month.ts";
 import styles from "./Newsletter.module.css";
-import { draftsQuery, issuesQuery } from "./queries.ts";
+import { issuesQuery, readDrafts } from "./queries.ts";
 
 /* /newsletter: the issues, newest first, each its email's own sheet with the month it is for over it. The newest come
-   with the document; the ones before them as the reader nears the end. An admin also sees the drafts, first, from a
-   route of their own once the account is known: the document and the public answers hold none of them. The page's
-   frame (PageFrame `open`) is the caller's. */
+   with the document, or are asked for as a page reached in the browser draws; the ones before them as the reader nears
+   the end. An admin also sees the drafts, first, from a route of their own once the account is known: the document and
+   the public answers hold none of them. The page's frame (PageFrame `open`) is the caller's. */
 
 /* how far before the end the next issues are asked for */
 const AHEAD = "0px 0px 1200px 0px";
+const NO_DRAFTS: readonly PageIssue[] = [];
 
 function Sheet(props: { issue: PageIssue }) {
   return (
@@ -32,14 +33,47 @@ function Sheet(props: { issue: PageIssue }) {
   );
 }
 
+/** The line after the issues on screen: more on their way, or the ones that did not come and the way to ask again. */
+function Tail(props: { failed?: boolean; asking?: boolean; onRetry?: () => void }) {
+  return (
+    <div class={styles.tail} data-part="status">
+      <Status error={props.failed}>
+        {props.failed ? t("Couldn't load the newsletter.") : props.asking ? t("Loading more…") : ""}
+      </Status>
+      <Show when={props.failed}>
+        <Button size="sm" onClick={() => props.onRetry?.()}>
+          {t("Retry")}
+        </Button>
+      </Show>
+    </div>
+  );
+}
+
 export function NewsletterPage(props: {
   /** an admin account with the admin tools on in this browser */
   admin: boolean;
 }) {
   const issues = useInfiniteQuery(() => issuesQuery(locale()));
-  const drafts = useQuery(() => ({ ...draftsQuery(locale()), enabled: props.admin }));
-  /* read only once there are drafts to show: a disabled query's data waits */
-  const shown = () => (props.admin && drafts.isSuccess ? drafts.data : []);
+  /* An admin's drafts: asked for once the account is known and on every visit, never kept, and gone with the admin
+     tools. A read that fails leaves the published issues alone, and a reader's page asks nothing. */
+  const [shown, setShown] = createSignal(NO_DRAFTS);
+  createEffect(
+    () => (props.admin ? locale() : null),
+    language => {
+      if (!language) {
+        setShown(NO_DRAFTS);
+        return;
+      }
+      let live = true;
+      readDrafts(language).then(
+        drafts => live && setShown(drafts),
+        () => {}
+      );
+      return () => {
+        live = false;
+      };
+    }
+  );
   /* each issue once, though a page may repeat one a newer issue pushed down */
   const published = () => {
     const byNumber = new Map<number, PageIssue>();
@@ -95,41 +129,44 @@ export function NewsletterPage(props: {
           </For>
         </section>
       </Show>
-      <Loading>
-        <section
-          class={styles.group}
-          aria-labelledby={shown().length > 0 ? "newsletter-published" : undefined}
-          data-part="issues"
-        >
-          <Show when={shown().length > 0}>
-            <div class={styles.words}>
-              <Text variant="h2" id="newsletter-published">
-                {t("Published")}
-              </Text>
-            </div>
-          </Show>
-          <For each={published()} keyed={issue => issue.number}>
-            {issue => <Sheet issue={issue()} />}
-          </For>
-        </section>
-        <Show when={issues.hasNextPage}>
-          <div class={styles.mark} ref={watch} aria-hidden="true" />
-          <div class={styles.tail} data-part="status">
-            <Status error={issues.isFetchNextPageError}>
-              {issues.isFetchNextPageError
-                ? t("Couldn't load the newsletter.")
-                : issues.isFetchingNextPage
-                  ? t("Loading more…")
-                  : ""}
-            </Status>
-            <Show when={issues.isFetchNextPageError}>
-              <Button size="sm" onClick={() => void issues.fetchNextPage().then(look)}>
-                {t("Retry")}
-              </Button>
+      <Errored
+        fallback={(_, reset) => (
+          <Tail
+            failed
+            onRetry={() => {
+              void issues.refetch();
+              reset();
+            }}
+          />
+        )}
+      >
+        <Loading fallback={<Tail asking />}>
+          <section
+            class={styles.group}
+            aria-labelledby={shown().length > 0 ? "newsletter-published" : undefined}
+            data-part="issues"
+          >
+            <Show when={shown().length > 0}>
+              <div class={styles.words}>
+                <Text variant="h2" id="newsletter-published">
+                  {t("Published")}
+                </Text>
+              </div>
             </Show>
-          </div>
-        </Show>
-      </Loading>
+            <For each={published()} keyed={issue => issue.number}>
+              {issue => <Sheet issue={issue()} />}
+            </For>
+          </section>
+          <Show when={issues.hasNextPage}>
+            <div class={styles.mark} ref={watch} aria-hidden="true" />
+            <Tail
+              failed={issues.isFetchNextPageError}
+              asking={issues.isFetchingNextPage}
+              onRetry={() => void issues.fetchNextPage().then(look)}
+            />
+          </Show>
+        </Loading>
+      </Errored>
     </div>
   );
 }

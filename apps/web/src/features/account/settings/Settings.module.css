@@ -24,6 +24,22 @@
   flex-direction: column;
   gap: var(--space-s2);
 }
+/* The profile draws for an account or for a visitor. Until the session answers it draws for whoever this browser
+   kept, which the document's head marks on <html> before anything paints (keptAccountScript). */
+.profile[data-for="visitor"] .account,
+.profile[data-for="account"] .visitor,
+:global(html[data-account]) .profile:not([data-for]) .visitor,
+:global(html:not([data-account])) .profile:not([data-for]) .account {
+  display: none;
+}
+/* The account's own section, drawn before the session answers for the account this browser kept, as the profile is,
+   and in a visitor's page for nobody. */
+.own {
+  display: contents;
+}
+:global(html:not([data-account])) .own:not([data-for]) {
+  display: none;
+}
 .avatarRow {
   display: flex;
   align-items: center;

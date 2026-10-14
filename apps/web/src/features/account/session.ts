@@ -2,6 +2,7 @@ import { delocalizePath, localHref, msg, t } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { createSignal } from "solid-js";
 import * as v from "valibot";
+import { READ_TIMEOUT } from "../../lib/query.ts";
 import { setAnalyticsInternal, setAnalyticsUser, trackEvent } from "../analytics/analytics.ts";
 import { onAccountChange } from "./state.ts";
 import type { Profile } from "./wire.ts";
@@ -108,6 +109,9 @@ function keepUser(next: Profile | null) {
 /** The account this browser holds, read at once: the session's, or before any check the one kept here. */
 export const keptUserId = (): string | null =>
   isServer ? null : (user?.id ?? keptUser()?.id ?? null);
+/** A line for a document's head: it marks `<html data-account>` before anything paints when this browser kept an
+    account, so a document that draws for an account or for a visitor shows the likely one until the session answers. */
+export const keptAccountScript = `try{document.documentElement.toggleAttribute("data-account",!!localStorage.getItem(${JSON.stringify(KEPT_USER)}))}catch(e){}`;
 
 /* The copy's engine, loaded once an account is known. */
 type Engine = typeof import("./sync.ts");
@@ -287,16 +291,8 @@ export async function accountForCopy(): Promise<string | null> {
 /** Signs out here, then loads `to` in the page's language: the consent page sends the reader on to sign in as
     another account. */
 export async function signOut(to = "/"): Promise<void> {
-  const response = await fetch("/api/auth/sign-out", {
-    method: "POST",
-    credentials: "same-origin",
-    cache: "no-store",
-    headers: { "Content-Type": "application/json" },
-    body: "{}"
-  });
-  if (!response.ok) {
-    throw new Error(authError(await response.json().catch(() => ({})), msg("Couldn't sign out.")));
-  }
+  const answer = await authPost("/api/auth/sign-out");
+  if (!answer.ok) throw new Error(authError(answer.body, msg("Couldn't sign out.")));
   trackEvent("logout");
   setAnalyticsUser(null);
   generation++;
@@ -345,6 +341,21 @@ export const shownError = (reason: unknown, fallback: string): string =>
     ? t(fallback)
     : reason.message;
 
+/** A POST to the sign-in library, through the Worker's gate: the answer's status and body. */
+export async function authPost(path: string, body: unknown = {}) {
+  const response = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body)
+  });
+  return {
+    status: response.status,
+    ok: response.ok,
+    body: (await response.json().catch(() => ({}))) as unknown
+  };
+}
 /** A failed call to the sign-in library, in the reader's words: the library says what went wrong in `message`, the
     Worker's gate in front of it in `error`. */
 export const authError = (body: unknown, fallback: string): string => {
@@ -358,7 +369,8 @@ export const authError = (body: unknown, fallback: string): string => {
   );
 };
 /** A private JSON call to the site, with the session's cookie. A refusal throws the server's words, translated: the
-    Worker names the ones a page shows with msg(), with their values in `i18n`. */
+    Worker names the ones a page shows with msg(), with their values in `i18n`. A call the server never answers ends
+    as a failure, which shownError says in the page's own words. */
 export async function api<T>(
   path: string,
   body?: unknown,
@@ -368,6 +380,7 @@ export async function api<T>(
     method,
     credentials: "same-origin",
     cache: "no-store",
+    signal: AbortSignal.timeout(READ_TIMEOUT),
     ...(body === undefined
       ? {}
       : { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })

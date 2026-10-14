@@ -2,8 +2,8 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { patchStatus, syncStatus, viewNow } from "./state.ts";
 import type { SyncLike, SyncOp, SyncRequest, SyncResponse, SyncResult } from "./wire.ts";
 
-/* The copy's engine against a stand-in server that applies likes as the real one does: it skips a change it applied
-   before, answers each with its result, and answers what changed since the browser's cursor. */
+/* The copy's engine against a server of the test's own that applies likes as the real one does: it skips a change it
+   applied before, answers each with its result, and answers what changed since the browser's cursor. */
 
 const view = { style: "linearGradient", steps: 7, angle: 90 } as const;
 const like = (seed: string, liked: boolean): SyncOp => ({ op: "like", seed, liked, ...view });
@@ -121,6 +121,34 @@ describe("the account's copy, syncing", () => {
     await expect(done).rejects.toThrow("Invalid palette.");
     expect(viewNow().likes.has("kC")).toBe(false);
     expect(syncStatus().refused.map(refusal => refusal.op)).toEqual(["like"]);
+  });
+
+  it("keeps a change the server put off, shown and waiting, and sends it again", async () => {
+    await open();
+    // saving is paused for every account: nothing is applied or refused, and the answer says when to ask again
+    server.next.push(
+      Response.json({
+        cursor: 0,
+        reset: false,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: false,
+        retryAfter: 300
+      } satisfies SyncResponse)
+    );
+    const { done } = sync.makeChange(like("kF", true));
+    await vi.waitUntil(() => server.bodies.at(-1)?.mutations.length === 1 && !syncStatus().syncing);
+    expect(viewNow().likes.has("kF")).toBe(true);
+    expect([syncStatus().pending, syncStatus().refused]).toEqual([1, []]);
+    expect(server.likes.has("kF")).toBe(false);
+    await sync.syncNow();
+    await done;
+    expect(server.likes.has("kF")).toBe(true);
+    expect(syncStatus().pending).toBe(0);
   });
 
   it("names the page's language until the server keeps one", async () => {

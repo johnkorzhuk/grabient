@@ -104,8 +104,6 @@ export const currentView = (user: string): View | null =>
 export const copyReady = (user: string) => copy?.user.id === user && copy.snapshot.cursor !== null;
 /** The copy is open for the account: what the browser kept is read, whether or not a sync answered yet. */
 export const copyOpen = (user: string) => copy?.user.id === user;
-/** The account is an admin's, as the copy last heard. */
-export const copyAdmin = (user: string) => copy?.user.id === user && copy.snapshot.admin;
 /** The copy for the account, once it is open in this tab: at once when it is, or when none is opening. */
 export const whenOpen = (user: string): Promise<void> =>
   opening?.user === user ? opening.work.then(() => undefined) : Promise.resolve();
@@ -144,7 +142,7 @@ export async function syncWithin(ms = 3000): Promise<void> {
 const waiters = new Map<string, { resolve: () => void; reject: (reason: Error) => void }>();
 type Heard = Pick<Refusal, "error" | "i18n">;
 /** A refusal in the reader's words: the server names the ones a page shows with msg(). */
-export const refusalText = (refusal: Heard) =>
+const refusalText = (refusal: Heard) =>
   refusal.i18n?.message
     ? t(refusal.i18n.message, refusal.i18n.params)
     : t(refusal.error || msg("Couldn't save."));
@@ -504,9 +502,6 @@ export async function dismissRefused() {
   tell({ user: c.user.id, kind: "outbox" });
 }
 
-/** The server ended the session: the copy stays, its changes wait, and the menu asks the reader to sign in. */
-export const accountSignedOut = () => patchStatus({ signedOut: true });
-
 /* syncing */
 let timer: ReturnType<typeof setTimeout> | undefined;
 let running = false;
@@ -662,9 +657,10 @@ async function syncOnce(c: Copy, forced: boolean, renamed = false): Promise<bool
   }
   if (response.status === 401) {
     await release(c);
-    /* the session is over on the server: the pages ask for it once, and the copy waits longer each time it is
-       refused, so a session the browser still believes in never turns into a loop of requests */
-    accountSignedOut();
+    /* the session is over on the server: the copy stays, the menu asks the reader to sign in, the pages ask for the
+       session once, and the copy waits longer each time it is refused, so a session the browser still believes in
+       never turns into a loop of requests */
+    patchStatus({ signedOut: true });
     if (!c.refusedSession++) sessionEnded();
     throw new Wait(Math.min(BACKOFF_MAX * 10, BACKOFF_MIN * 2 ** Math.min(c.refusedSession, 10)));
   }

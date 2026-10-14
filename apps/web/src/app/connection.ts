@@ -19,6 +19,9 @@ import {
    started (watchConnection), so a page hydrates as the server drew it. */
 
 const [started, setStarted] = createSignal(false);
+/** The first page stands and the browser's own choices have been read (the shell's settle). Until then both sides
+    draw what the server knows, and a page holds back what only the browser can say. */
+export const pageStarted = started;
 /* the service worker answered this page from its kept copy, the network having failed */
 const [answeredOffline, setAnsweredOffline] = createSignal(false);
 export const offline = (): boolean =>

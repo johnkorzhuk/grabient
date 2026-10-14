@@ -187,7 +187,9 @@ function preview(): CloudflareConfig {
 }
 
 // `vite dev`: every binding is simulated locally and kept under .cloudflare/state. No paid service is reached. The
-// secret's value comes from .dev.vars, and without one sign-in answers 503.
+// secrets' values come from .dev.vars, and only a secret declared here is bound from it. Without the first, sign-in
+// answers 503. The other two are the reviewers' password sign-in: without an address it answers 404, and without
+// Turnstile's secret it asks for no answer from Turnstile.
 function development(): CloudflareConfig {
   return {
     worker: {
@@ -196,6 +198,8 @@ function development(): CloudflareConfig {
       env: {
         DEPLOYMENT: bindings.text("development"),
         BETTER_AUTH_SECRET: bindings.secret(),
+        REVIEWER_EMAIL: bindings.secret(),
+        TURNSTILE_SECRET_KEY: bindings.secret(),
         EMAIL_FROM: bindings.text(EMAIL_FROM),
         EMAIL: bindings.sendEmail({ allowedSenderAddresses: [EMAIL_FROM] }),
         NEWSLETTER_FROM: bindings.text(NEWSLETTER_FROM),

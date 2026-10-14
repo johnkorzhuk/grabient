@@ -19,6 +19,7 @@ import {
   engineNow,
   loadAccount,
   loginHref,
+  shownError,
   signOut
 } from "../features/account/session.ts";
 import { syncStatus, viewNow } from "../features/account/state.ts";
@@ -200,9 +201,7 @@ export function AccountMenu(props: {
       go(loginHref());
     } else if (item.value === "signout") {
       /* a refusal says so: on a shared computer the reader would otherwise walk away signed in */
-      signOut().catch((error: unknown) =>
-        toast(error instanceof Error && error.message ? error.message : t("Couldn't sign out."))
-      );
+      signOut().catch((error: unknown) => toast(shownError(error, msg("Couldn't sign out."))));
     } else go(item.value);
   };
   const name = () => account()?.username || account()?.name || undefined;
