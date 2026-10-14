@@ -23,11 +23,12 @@ export async function sendEmail(
   await env.EMAIL.send({ from: { name: "Grabient", email: env.EMAIL_FROM }, ...email });
 }
 
-/** An email an account is sent: the link or the code that signs it in, or the link that confirms its deletion. */
+/** An email an account is sent: the link or the code that signs it in, or the token that confirms its deletion, which
+    the email's link hands Settings in the email's language. */
 export type AccountEmail =
   | { kind: "sign-in-link"; url: string }
   | { kind: "sign-in-code"; code: string }
-  | { kind: "deletion"; url: string };
+  | { kind: "deletion"; token: string };
 
 type AccountMailer = (
   env: Env,

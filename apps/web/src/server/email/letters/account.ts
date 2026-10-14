@@ -12,6 +12,7 @@ import {
   cookieLocale,
   DEFAULT_LOCALE,
   type Locale,
+  localizePath,
   negotiateLocale,
   splitLocale
 } from "@grabient/i18n";
@@ -72,11 +73,14 @@ async function wornPalette(env: Pick<Env, "DB">): Promise<PaletteView | undefine
 
 function letterOf(
   email: AccountEmail,
-  sent: Omit<Parameters<typeof signInLink>[0], "url">
+  sent: Omit<Parameters<typeof signInLink>[0], "url"> & { locale: Locale }
 ): Letter {
   if (email.kind === "sign-in-link") return signInLink({ ...sent, url: email.url });
   if (email.kind === "sign-in-code") return signInCode({ ...sent, code: email.code });
-  return confirmDeletion({ ...sent, url: email.url });
+  // Settings, where the deletion is confirmed, opens in the language the email is written in
+  const settings = localizePath("/settings", sent.locale);
+  const url = `${sent.origin}${settings}?token=${encodeURIComponent(email.token)}`;
+  return confirmDeletion({ ...sent, url });
 }
 
 /** Sends an account email. Its head goes as PNG bytes, never base64 (the binding sends a string as the attachment's own

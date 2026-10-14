@@ -303,7 +303,7 @@ describe("account emails", () => {
     await sendAccountEmail(
       env,
       "reader@example.test",
-      { kind: "deletion", url: `${ORIGIN}/settings?token=d` },
+      { kind: "deletion", token: "d" },
       {
         paint: async () => PNG
       }
