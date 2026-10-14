@@ -124,12 +124,15 @@ async function route(
   const address = path + url.search;
   const at = (to: string, language = locale) => new URL(localizePath(to, language), url).toString();
 
-  if (serverFunctionPath(path)) return json({ error: msg("Not found") }, { status: 404 });
+  // an empty first segment is no address of the site's, and a URL would read it as another host's (//host/path)
+  if (path.startsWith("//") || serverFunctionPath(path)) {
+    return json({ error: msg("Not found") }, { status: 404 });
+  }
   const prefix = canonicalLocalePath(url.pathname);
   if (prefix !== null) return redirect(new URL(prefix + url.search, url).toString());
   // a page's address never ends in a slash, which other sites link to both ways; an API keeps its own
   const slashed = path.length > 1 && path.endsWith("/");
-  if (read && slashed && !path.startsWith("//")) {
+  if (read && slashed) {
     const trimmed = path.replace(/\/+$/, "") || "/";
     if (isPagePath(trimmed)) return redirect(at(trimmed + url.search));
   }

@@ -65,7 +65,8 @@ const RULES: readonly KeyRule[] = [
 export function cacheKey(url: URL, path: string, locale: Locale, rules = RULES): string {
   const file = fileCacheKey(path, url.searchParams);
   const rule = file ? undefined : rules.find(r => r.match(path));
-  const key = new URL(file?.path ?? localizePath(rule?.path ?? path, locale), url.origin);
+  // joined as text: resolved against the origin, a path that starts with two slashes would name another host
+  const key = new URL(url.origin + (file?.path ?? localizePath(rule?.path ?? path, locale)));
   const query = new URLSearchParams(url.search);
   key.search = (file?.query ?? rule?.query?.(query, path) ?? query).toString();
   if (!file?.acrossBuilds) key.searchParams.set("__build", BUILD);

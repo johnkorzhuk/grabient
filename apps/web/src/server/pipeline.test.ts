@@ -7,6 +7,7 @@ import type { Env } from "@grabient/server/env.ts";
 import migrated from "../../data/legacy-k.json" with { type: "json" };
 import links from "../../data/legacy-links.json" with { type: "json" };
 import { PAGE } from "../lib/cache.ts";
+import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { handle, misdeployed } from "./pipeline.ts";
 
@@ -125,6 +126,21 @@ describe("the language in the address", () => {
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Not found" });
     expect(asked).toEqual([]);
+  });
+
+  test.each(["//evil.example/", "//evil.example", "/\\evil.example/", "/ja//evil.example"])(
+    "%s, with an empty first segment, is no address and fills no cache",
+    async path => {
+      const response = await get(path);
+      expect([response.status, asked.length, cache.kept.size]).toEqual([404, 0, 0]);
+    }
+  );
+
+  test("an edge key always names the request's own origin", () => {
+    const url = new URL("https://grabient.test//evil.example/palettes");
+    expect(cacheKey(url, url.pathname, "en")).toBe(
+      "https://grabient.test//evil.example/palettes?__build=b1"
+    );
   });
 
   test("Start's server functions, of which the app has none, are no address for any method", async () => {
