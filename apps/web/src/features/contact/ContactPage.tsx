@@ -9,33 +9,15 @@ import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { createSignal } from "solid-js";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
+import { api, shownError } from "../account/session.ts";
 import styles from "./Contact.module.css";
 import { CONTACT_INVALID, ContactInput, EMAIL_MAX, MESSAGE_MAX } from "./input.ts";
 
-/** What the Worker answers when it refuses a message: its words in English, which the page translates. */
-const Refusal = v.object({ error: v.string() });
-
-/** Sends a message; rejects with the words to show, already in the reader's language. */
-async function send(input: ContactInput): Promise<void> {
-  let answer: Response;
-  try {
-    answer = await fetch("/api/contact", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input)
-    });
-  } catch {
-    throw new Error(t("Couldn't send the message. Try again."));
-  }
-  if (answer.ok) return;
-  const refusal = v.safeParse(Refusal, await answer.json().catch(() => null));
-  throw new Error(
-    t(refusal.success ? refusal.output.error : msg("Couldn't send the message. Try again."))
-  );
-}
+const UNSENT = msg("Couldn't send the message. Try again.");
 
 /** /contact: the form, checked here as the Worker checks it, then the address for a reader who would rather write from
-    their own mail. A field no person sees takes what fills every field; its word stays as it is. */
+    their own mail. A refusal says the Worker's own words (a limit, contact turned off), in the reader's language. A
+    field no person sees takes what fills every field; its word stays as it is. */
 export function ContactPage() {
   const [said, setSaid] = createSignal("");
   const [failed, setFailed] = createSignal(false);
@@ -59,12 +41,12 @@ export function ContactPage() {
     }
     setBusy(true);
     try {
-      await send(input.output);
+      await api("/api/contact", input.output);
       setSaid(t("Sent. Thanks."));
       form.reset();
     } catch (error) {
       setFailed(true);
-      setSaid(error instanceof Error ? error.message : t("Couldn't send the message. Try again."));
+      setSaid(shownError(error, UNSENT));
     } finally {
       setBusy(false);
     }
