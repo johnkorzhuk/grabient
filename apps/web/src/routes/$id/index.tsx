@@ -12,9 +12,8 @@ import { loadEditor, paletteData, paletteHead, searchReader } from "../../featur
 import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE, PALETTE_PAGE } from "../../lib/cache.ts";
-import { BROWSER_ONLY, TRACKING_PARAM } from "../../lib/links.ts";
 import { pageHead } from "../../lib/page-meta.ts";
-import { answerWith, searchOf } from "../../lib/route.ts";
+import { answerWith, drawnSearch, searchOf } from "../../lib/route.ts";
 
 /* Every one-segment address: a palette's seed, a collection's slug, an old grabient.com link, or words that lead to a
    search. A palette's page is the editor, which the browser draws alone (`ssr: "data-only"`): the server runs the
@@ -37,16 +36,9 @@ export const Route = createFileRoute("/$id/")({
     if (params.status !== "success") return true;
     return isSeed(params.value.id) ? "data-only" : !OLD_SEED.test(params.value.id);
   },
-  /* The view rides the address: a page is read again as it changes, from the address alone. The browser's own words
-     (the selection, what Random keeps) and a landing's campaign tags change nothing the server reads, and the edge
-     keeps one document for all of them: the browser reads that document's page as its own. */
-  loaderDeps: ({ search }) => ({
-    search: Object.fromEntries(
-      Object.entries(search as Record<string, unknown>).filter(
-        ([name]) => !BROWSER_ONLY.includes(name) && !TRACKING_PARAM.test(name)
-      )
-    )
-  }),
+  /* The view rides the address: a page is read again as it changes, from the address alone, never as the selection
+     opens or a lock turns. */
+  loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: async ({ context, params, deps, location }) => {
     const palette = await paletteData(params.id, deps.search);
     if (palette) {

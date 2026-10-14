@@ -9,7 +9,7 @@ import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { edgeFor } from "../../lib/cache.ts";
 import { DEFAULT_FRAME } from "../../lib/orders.ts";
 import { pageHead } from "../../lib/page-meta.ts";
-import { answerWith, searchOf } from "../../lib/route.ts";
+import { answerWith, drawnSearch, searchOf } from "../../lib/route.ts";
 
 type Place = Extract<NonNullable<ReturnType<typeof galleryPlace>>, { kind: "list" }>;
 /** The public list an address names; none for an order or a frame the lists do not have. */
@@ -34,7 +34,7 @@ export const Route = createFileRoute("/palettes/{-$order}/{-$frame}")({
       throw redirect({ href: `/palettes/rising${searchOf(search)}`, statusCode: 302 });
     }
   },
-  loaderDeps: ({ search }) => ({ query: searchOf(search) }),
+  loaderDeps: ({ search }) => ({ query: searchOf(drawnSearch(search)) }),
   loader: ({ context, params, deps }) =>
     loadPalettes(context.queryClient, place(params, deps.query)!),
   headers: ({ loaderData }) => edgeFor(loaderData?.edge ?? 0),

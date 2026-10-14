@@ -6,7 +6,7 @@ import { listHead, listPlace, loadList } from "../../features/collections/route.
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { FRESH, NO_STORE, PAGE } from "../../lib/cache.ts";
 import { DEFAULT_FRAME, isFrame } from "../../lib/orders.ts";
-import { searchOf } from "../../lib/route.ts";
+import { drawnSearch, searchOf } from "../../lib/route.ts";
 
 type Params = { order?: string; frame?: string };
 /** The public list an address names: Popular, or Rising in a frame; none for an order or a frame the lists lack. */
@@ -35,7 +35,7 @@ export const Route = createFileRoute("/collections/{-$order}/{-$frame}")({
       });
     }
   },
-  loaderDeps: ({ search }) => ({ search: searchOf(search) }),
+  loaderDeps: ({ search }) => ({ search: searchOf(drawnSearch(search)) }),
   loader: ({ context, params, deps }) =>
     loadList(context.queryClient, placeOf(params, deps.search)!),
   headers: ({ params, loaderData }) =>

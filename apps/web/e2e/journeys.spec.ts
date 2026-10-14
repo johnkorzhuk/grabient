@@ -57,6 +57,42 @@ async function open(page: Page, address: string) {
 }
 const sameDocument = (page: Page) => page.evaluate(() => "journey" in window);
 
+/** What the router says of where it stands: the address it reads, and the address whose pages it has drawn. */
+type ResolvedState = {
+  status: string;
+  location: { href: string };
+  resolvedLocation?: { href: string };
+};
+/** Opens `address` in a tab of its own on the document the server answers `served` with, as the edge serves it when it
+    kept that address's document first, and says what the reader is left with once the app has taken it over: how many
+    pages the document holds, and what Solid's development build says hydration left unclaimed. */
+async function hydrated(context: BrowserContext, address: string, served = address) {
+  const tab = await context.newPage();
+  const unclaimed: string[] = [];
+  tab.on("console", message => {
+    if (/unclaimed/i.test(message.text())) unclaimed.push(message.text().split("\n")[0] ?? "");
+  });
+  if (served !== address)
+    await tab.route(
+      url => url.pathname + url.search === address,
+      async route =>
+        route.fulfill({
+          response: await route.fetch({ url: new URL(served, route.request().url()).href })
+        })
+    );
+  await open(tab, address);
+  // a match the document did not carry loads once the app has started, and its page then draws beside the server's
+  await tab.waitForFunction(() => {
+    const router = (window as { __TSR_ROUTER__?: { state: ResolvedState } }).__TSR_ROUTER__;
+    const at = router?.state;
+    return at?.status === "idle" && at.resolvedLocation?.href === at.location.href;
+  });
+  await settled(tab);
+  const pages = await tab.locator("main").count();
+  await tab.close();
+  return { pages, unclaimed };
+}
+
 /** Whether the site's stylesheet applies: the design system's tokens stand on the document. */
 const styled = (page: Page) =>
   page.evaluate(
@@ -241,6 +277,19 @@ const OWN: List[] = [
   { name: "a private collection", address: "/@ada-verify/my-blues", opens: ["edit", "card"] }
 ];
 
+/* What the server never draws: the browser's own words (the selection) and a landing's campaign tags. The edge keeps
+   one document for every address that differs by them alone, so each of these pages is drawn by documents the server
+   rendered for another address of it. */
+const KEPT_ALIKE = [
+  "/",
+  "/palettes",
+  "/palettes/rising",
+  "/collections",
+  "/collections/rising",
+  "/blue-swatches/rising"
+];
+const CAMPAIGN = "utm_source=newsletter&utm_medium=email";
+
 /** A string of the site's English in the page's language, from the catalog the site translates with. */
 function say(lang: string, english: string): string {
   if (lang === "en") return english;
@@ -326,6 +375,31 @@ for (const width of WIDTHS)
       test(`from ${list.name}, what a reader opens lands whole and Back returns to the list as it was`, ({
         page
       }) => walk(page, width, list));
+
+    for (const address of KEPT_ALIKE)
+      test(`${address} stands as one page from a campaign's link and from either document its selection shares`, async ({
+        context
+      }) => {
+        const selected = `${address}?selection`;
+        for (const [said, at, served] of [
+          ["a campaign's link", `${address}?${CAMPAIGN}`],
+          ["a campaign's link to the selection", `${selected}&${CAMPAIGN}`],
+          ["kept with the selection", address, selected],
+          ["kept without it", selected, address]
+        ] as const)
+          expect
+            .soft(await hydrated(context, at, served), said)
+            .toEqual({ pages: 1, unclaimed: [] });
+      });
+
+    test("an account's collection, signed out, stands as one page from a campaign's link", async ({
+      context
+    }) => {
+      expect(await hydrated(context, `/@ada-verify/my-blues?${CAMPAIGN}`)).toEqual({
+        pages: 1,
+        unclaimed: []
+      });
+    });
 
     for (const { lang, prefix, words } of LANGUAGES)
       test(`a search in ${lang} by a tag, by words, by a palette's address and cleared shows what its address shows`, async ({

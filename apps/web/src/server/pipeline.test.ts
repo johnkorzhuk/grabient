@@ -7,6 +7,7 @@ import type { Env } from "@grabient/server/env.ts";
 import migrated from "../../data/legacy-k.json" with { type: "json" };
 import links from "../../data/legacy-links.json" with { type: "json" };
 import { PAGE } from "../lib/cache.ts";
+import { drawnSearch, searchOf } from "../lib/route.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { handle, misdeployed } from "./pipeline.ts";
@@ -270,6 +271,16 @@ describe("the edge cache", () => {
       "https://grabient.test/palettes?__build=b1&page=2",
       "https://grabient.test/ja/palettes?__build=b1&page=2"
     ]);
+  });
+
+  test.each([
+    ["/palettes", { q: "sea", page: "2", selection: "" }],
+    ["/kS7Q8Yy5S_SChv0", { style: "radialSwatches", lock: "hue", unlock: "chroma", selection: "" }]
+  ])("keeps one document for %s at every address its route draws alike", async (path, search) => {
+    const landed = { ...search, utm_source: "news", gclid: "x" };
+    expect((await get(path + searchOf(landed))).status).toBe(200);
+    const drawn = await get(path + searchOf(drawnSearch(landed)));
+    expect([drawn.headers.get("X-Grabient-Cache"), asked.length]).toEqual(["HIT", 1]);
   });
 
   test("a HEAD reads what a GET kept and keeps nothing itself", async () => {

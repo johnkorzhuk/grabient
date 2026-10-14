@@ -5,7 +5,7 @@ import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx"
 import { collectionHead, loadCollection } from "../../features/collections/route.ts";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE } from "../../lib/cache.ts";
-import { searchOf } from "../../lib/route.ts";
+import { drawnSearch, searchOf } from "../../lib/route.ts";
 
 /* A collection with its rising palettes first, or words that lead to Rising's search. */
 export const Route = createFileRoute("/$id/rising")({
@@ -13,12 +13,13 @@ export const Route = createFileRoute("/$id/rising")({
   beforeLoad: ({ params }) => {
     if (!isPagePath(`/${params.id}`) || !isCollectionSlug(params.id)) throw notFound();
   },
-  loaderDeps: ({ search }) => ({ search: search as Record<string, unknown> }),
-  loader: ({ context, params, deps, location }) =>
+  loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
+  loader: ({ context, params, location }) =>
     loadCollection(context.queryClient, {
       slug: params.id,
       order: "rising",
-      searchStr: searchOf(deps.search),
+      // words that are no collection lead to their search with the selection still open
+      searchStr: searchOf(location.search as Record<string, unknown>),
       publicHref: location.publicHref
     }),
   headers: ({ loaderData }) => (loaderData && !loaderData.status ? PAGE : NO_STORE),

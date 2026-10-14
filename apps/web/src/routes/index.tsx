@@ -7,7 +7,7 @@ import { metaPage } from "../features/gallery/titles.ts";
 import { ListAppearance } from "../features/list/ListAppearance.tsx";
 import { edgeFor } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
-import { answerWith, searchOf } from "../lib/route.ts";
+import { answerWith, drawnSearch, searchOf } from "../lib/route.ts";
 
 type Place = Extract<NonNullable<ReturnType<typeof galleryPlace>>, { kind: "home" }>;
 const place = (search: string) => galleryPlace("/", search) as Place;
@@ -15,7 +15,7 @@ const place = (search: string) => galleryPlace("/", search) as Place;
 /* The home, the Hot feed: `?q=` searches it, `?page=` starts its collections at a later page. */
 export const Route = createFileRoute("/")({
   validateSearch: (search: Record<string, unknown>) => search,
-  loaderDeps: ({ search }) => ({ query: searchOf(search) }),
+  loaderDeps: ({ search }) => ({ query: searchOf(drawnSearch(search)) }),
   loader: ({ context, deps }) => loadHome(context.queryClient, place(deps.query).params),
   headers: ({ loaderData }) => edgeFor(loaderData?.edge ?? 0),
   head: ({ match, loaderData }) =>
