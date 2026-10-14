@@ -207,8 +207,6 @@ export const savedQuery = (key: SavedKey) =>
         COULD_NOT_LOAD
       );
     },
-    /* the copy answers with no connection, so the read never waits for one */
-    networkMode: "always",
     staleTime: freshFor(PRIVATE_TTL),
     reconcile: "kseed"
   });

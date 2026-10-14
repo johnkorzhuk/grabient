@@ -545,6 +545,46 @@ test("a title entered on Saved at once opens the account's collection", async ({
   await expect(page).toHaveURL(/\/@e2e-ada\/my-blues$/);
 });
 
+/* With no connection, on the build a deploy serves: the service worker answers every document, and the account's copy
+   its collections. */
+for (const viewport of [
+  { width: 1600, height: 1000 },
+  { width: 390, height: 844 }
+])
+  test(`with no connection the account's collections open from its copy, loaded whole and from another page, ${viewport.width} wide`, {
+    tag: "@served"
+  }, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    const group = page.locator("main").getByRole("heading", { name: "My blues" });
+    const own = async () => {
+      await expect(page.locator("main h1")).toHaveText("My blues");
+      await expect(page.locator(`main article a[href^="/${SEED}"]`)).toBeVisible();
+    };
+    await signIn(page, "ada", false, [blues]);
+    await page.goto("/collections/saved");
+    await expect(group).toBeVisible();
+    await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+    await page.context().setOffline(true);
+    await page.goto("/collections/saved");
+    await expect(group).toBeVisible();
+    await page.goto("/@e2e-ada/my-blues");
+    await own();
+    await page.goto("/palettes/saved");
+    await page.locator("header").getByRole("button", { name: "Your account" }).click();
+    await page.getByRole("menuitem", { name: "Your collections" }).click();
+    await expect(page).toHaveURL(/\/collections\/saved$/);
+    await expect(group).toBeVisible();
+    await page.locator("main").getByRole("link", { name: "My blues" }).first().click();
+    await expect(page).toHaveURL(/\/@e2e-ada\/my-blues$/);
+    await own();
+    // deleted here, it leaves for the list, which the copy draws without it
+    await page.getByRole("button", { name: "Delete collection" }).click();
+    await page.getByRole("button", { name: "Press again to delete" }).click();
+    await expect(page).toHaveURL(/\/collections\/saved$/);
+    await expect(page.locator("main")).toContainText("No collections yet.");
+  });
+
 test("a collection's tags on a page in another language search the words they show", async ({
   page
 }) => {
