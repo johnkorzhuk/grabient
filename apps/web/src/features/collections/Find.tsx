@@ -155,7 +155,7 @@ export function Find(props: {
         disabled={listUnavailable(props.place.order)}
         onInput={input}
         onSubmit={text => void submit(text, true)}
-        onImage={mine() ? undefined : props.onImage}
+        onImage={props.onImage}
       />
       <Errored fallback={() => <SearchTags tags={[]} />}>
         <Loading fallback={<SearchTags tags={[]} loading={!offline()} />}>
