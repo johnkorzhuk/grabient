@@ -97,6 +97,26 @@
     [
       "https://apps.dev/client.json#x",
       false
+    ],
+    [
+      "https://grabient.com./x",
+      false
+    ],
+    [
+      "https://staging.grabient.com./x",
+      false
+    ],
+    [
+      "https://grabient-lite.jkorzhuk.workers.dev./client.json",
+      false
+    ],
+    [
+      "https://localhost./x",
+      false
+    ],
+    [
+      "https://example./x",
+      false
     ]
   ],
   "trustedRedirect": [
