@@ -2,7 +2,6 @@ import { canonical, encodePalette } from "@grabient/engine/codec.ts";
 import { localHref, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { useHead } from "@solidjs/web";
 import { inView, newPaletteHref } from "../features/list/appearance.ts";
 import { AppPage } from "./Frames.tsx";
 import styles from "./Lost.module.css";
@@ -18,13 +17,9 @@ const EDITOR_SEED = encodePalette(
   })
 );
 
-/** An address the site does not know, answered 404 inside the frame, so the header and the water stay. The ways out
-    take the reader's view: the palettes, and the editor on a palette of its own. */
+/** An address the site does not know, answered 404 inside the frame, so the header and the water stay; the root's
+    head names it. The ways out take the reader's view: the palettes, and the editor on a palette of its own. */
 export function NotFound() {
-  useHead([
-    { tag: "title", props: { children: `${t("Page not found")} | Grabient` } },
-    { tag: "meta", props: { name: "robots", content: "noindex,follow" } }
-  ]);
   return (
     <AppPage>
       <main id="main" class={styles.main}>

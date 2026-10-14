@@ -370,3 +370,23 @@ test("a document names its page in its first few kilobytes, and its data comes a
     expect(at("self.$R"), address).toBeLessThan(at("<body"));
   }
 });
+
+test("an address no page answers is named in its head, and an old id as a palette not found", async ({
+  request
+}) => {
+  for (const [address, title] of [
+    ["/no-such/x", "Page not found | Grabient"],
+    ["/collections/no-such", "Page not found | Grabient"],
+    ["/~abcdefg", "Palette not found | Grabient"]
+  ]) {
+    const answer = await request.get(address);
+    expect(answer.status(), address).toBe(404);
+    const head = (await answer.text()).split("</head>")[0];
+    expect(head.match(/<title[^>]*>([^<]*)<\/title>/)?.[1], address).toBe(title);
+    expect(head.match(/<link rel="canonical" href="([^"]+)"/)?.[1], address).toMatch(
+      new RegExp(`${address.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`)
+    );
+    for (const tag of ['name="description"', 'property="og:title"', 'name="twitter:card"'])
+      expect(head, `${address} ${tag}`).toContain(tag);
+  }
+});
