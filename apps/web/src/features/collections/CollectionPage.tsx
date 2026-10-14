@@ -746,8 +746,14 @@ export function CollectionPage(props: {
           </div>
         </Show>
         <div class={styles.line}>
-          <Status error={error() || !!readFailed()}>
-            {readFailed() || note() || (empty() ? t("This collection is empty.") : "")}
+          <Status error={error() || !!readFailed() || (missing() && !note())}>
+            {readFailed() ||
+              note() ||
+              (missing()
+                ? t("Collection not found. It may have been deleted.")
+                : empty()
+                  ? t("This collection is empty.")
+                  : "")}
           </Status>
           <Show when={readFailed()}>
             <Button size="sm" onClick={() => void found.refetch()}>
