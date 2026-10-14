@@ -1,52 +1,11 @@
-/* The collections' pages: a collection's own, and the lists of them. They stand in the frame's list layout, whose
-   parts hold every distance above the cards. The band above a collection's row stands where the lists' search stands,
-   so the row, the title and the cards land where the lists have them. */
+/* The collections' pages: a collection's own, and the lists of them. They take the frame's list layout
+   (app/list.module.css), whose parts hold every distance above the cards: a collection's way back and its tags fill
+   the part a list's search and tags fill, so its row, its title and its cards land where the lists have theirs. */
 @layer components {
-  .page {
-    composes: column from "../../app/list.module.css";
-  }
-  .band {
-    composes: find from "../../app/list.module.css";
-  }
-  .find {
-    composes: find from "../../app/list.module.css";
-  }
   .back {
     display: flex;
     align-items: center;
     min-height: var(--size-control-big);
-    @media (pointer: coarse) {
-      min-height: var(--size-touch);
-    }
-  }
-  .tags {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: var(--space-s2);
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-  .tag {
-    display: inline-flex;
-    flex-shrink: 0;
-    align-items: center;
-    min-height: var(--size-control-sm);
-    padding-inline: var(--space-s3);
-    border: 1px solid var(--color-edge);
-    border-radius: var(--radius-control);
-    background-color: var(--color-paper2);
-    color: var(--color-ink2);
-    font-size: var(--font-fs2);
-    text-decoration: none;
-    white-space: nowrap;
-    outline: 0 solid var(--color-ring);
-    outline-offset: 2px;
-    &:hover {
-      color: var(--color-ink);
-    }
-    &:focus-visible {
-      outline-width: 1px;
-    }
     @media (pointer: coarse) {
       min-height: var(--size-touch);
     }
@@ -56,12 +15,6 @@
     flex-direction: column;
     gap: var(--space-s3);
     max-width: var(--size-prose);
-  }
-  .row {
-    composes: row from "../../app/list.module.css";
-  }
-  .nav {
-    composes: row from "../../app/list.module.css";
   }
   /* the width of the lists' two sections, so a choice here is the size of one there; full width on a phone */
   .order {
@@ -171,18 +124,46 @@
   .cell {
     min-width: 0;
   }
-  /* the line keeps a button's height whether it holds words, a button or nothing */
+  /* a collection's title line and its cards, one under the other with no gap of the page's between them */
+  .body {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  /* a list's own content: the picture searched by, the feed, the mark and the line; it stays mounted while the
+     selection is open */
+  .under {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s6);
+    min-width: 0;
+  }
+  /* the mark the next page waits on: a hairline above the line, watched from a screen away */
+  .mark {
+    height: var(--size-hairline);
+  }
+  /* the line keeps a press's height whether it holds words, a press or nothing, so nothing beneath moves */
   .status {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: var(--space-s4);
+    box-sizing: content-box;
     min-height: var(--size-control);
     padding-top: var(--space-s6);
   }
-  /* the picture a search by image was made from, its points to move */
+  /* a collection's line, under its cards */
+  .line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s4);
+    min-height: var(--space-s10);
+  }
+  /* the picture a search by image was made from, a section's space above the collections */
   .picture {
-    margin-bottom: var(--space-s8);
+    display: flex;
+    flex-direction: column;
+    padding-bottom: var(--space-s8);
   }
   .empty {
     display: flex;

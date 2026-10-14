@@ -2,10 +2,11 @@ import { localHref, msg, t } from "@grabient/i18n";
 import type { FitVote } from "@grabient/ui/Fit.tsx";
 import { createEffect, createSignal } from "solid-js";
 import { account, loginHref, sessionReady } from "../account/session.ts";
+import { trackSignInPrompt } from "../analytics/analytics.ts";
 import { castVote, readVotes } from "./client.ts";
 import { COLLECTION_LIMIT } from "./params.ts";
 
-/* Whether a palette fits the collection it stands in: the account's votes, read a page of collections at a time once
+/* Whether a palette fits the collection it is in: the account's votes, read a page of collections at a time once
    the account is known, and its presses. A press shows at once and its write follows, one write per palette at a time,
    the last press winning; a failure puts the vote back and says why. Signed out, a press leads to sign in and back. */
 
@@ -74,8 +75,9 @@ export function createFit(options: {
     of: (slug: string, seed: string): FitVote | null => votes()[slug]?.[seed] ?? null,
     vote(slug: string, seed: string, next: FitVote | null) {
       if (!account()) {
-        if (sessionReady()) location.assign(localHref(loginHref()));
-        return;
+        if (!sessionReady()) return;
+        trackSignInPrompt("vote");
+        return location.assign(localHref(loginHref()));
       }
       const key = `${slug} ${seed}`;
       const before = votes()[slug]?.[seed] ?? null;

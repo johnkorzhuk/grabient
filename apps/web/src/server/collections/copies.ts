@@ -10,6 +10,7 @@ import {
   refusal
 } from "../../features/collections/schema.ts";
 import type { CollectionDocument, CopyStanding } from "../../features/collections/types.ts";
+import { risingSaved } from "../gallery/scores.ts";
 import {
   type CollectionOwner,
   type CollectionRecord,
@@ -19,7 +20,6 @@ import {
   type Reader,
   recordById
 } from "./read.ts";
-import { risingSaved } from "./scores.ts";
 import { ITEM_KEY, insertCollection, recountCopies, updateCollection } from "./write.ts";
 
 /* Saved collections. Save on someone else's public collection makes the account's own private copy of it, once. The
@@ -89,7 +89,7 @@ function baseOf(raw: string | null | undefined): CollectionContent | null {
 /* one side's change over no change; where both changed the same thing, the copy's own */
 const pick = <T>(base: T, source: T, copy: T, same: (a: T, b: T) => boolean): T =>
   same(source, base) ? copy : same(copy, base) ? source : copy;
-/** Whether the items two lists share stand in the same order in both. */
+/** Whether the items two lists share keep the same order in both. */
 function sameOrder(a: readonly CollectionItemInput[], b: readonly CollectionItemInput[]): boolean {
   const inA = new Set(a.map(itemKey));
   const inB = new Set(b.map(itemKey));

@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { locale, msg, t } from "@grabient/i18n";
 import { replica } from "@grabient/server/db/d1.ts";
+import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
@@ -8,8 +9,19 @@ import * as v from "valibot";
 import { getJson } from "../../lib/query.ts";
 import { collectionBySlug, collectionVisibility } from "../../server/collections/read.ts";
 import { publicCollections, suggestCollections } from "../../server/collections/search.ts";
-import { localizeCollections, translatedLocale } from "../../server/mcp/admin/translations.ts";
-import { ownCollectionsPage } from "../account/collections.ts";
+import {
+  localizeCollections,
+  localizeDocument,
+  translatedLocale
+} from "../../server/mcp/admin/translations.ts";
+import {
+  ownCollectionMoved,
+  ownCollectionsPage,
+  ownsCollection,
+  ownsCollectionSoon
+} from "../account/collections.ts";
+import { engineNow, keptUserId } from "../account/session.ts";
+import { onAccountChange, viewNow } from "../account/state.ts";
 import { langQuery, readOwn, readState } from "./client.ts";
 import { COLLECTION_LIMIT, type CollectionListParams, OWN_COLLECTION_LIMIT } from "./params.ts";
 import {
@@ -74,8 +86,13 @@ export interface Found {
   doc: CollectionDocument | null;
   /** a private collection lives here: the page names it so, and its owner's browser fills it in */
   private?: boolean;
+  /** the account's copy holds the collection that lives here, which its page draws from the copy */
+  own?: boolean;
   /** a list's summary of the collection, shown while the collection is read */
   provisional?: boolean;
+  /** the languages besides English one of Grabient's reads in, which the server's read says: its page is indexed in
+      each */
+  languages?: readonly string[];
   fetchedAt: number;
 }
 
@@ -89,13 +106,22 @@ const readCollection = createIsomorphicFn()
         private: (await collectionVisibility(db, slug)) === "private",
         fetchedAt: Date.now()
       };
-    const [shown] = await localizeCollections(env, asked(), [doc]);
-    return { doc: shown ?? doc, fetchedAt: Date.now() };
+    const { doc: shown, languages } = await localizeDocument(env, asked(), doc);
+    return { doc: shown, ...(languages.length ? { languages } : {}), fetchedAt: Date.now() };
   })
   .client(async (slug: string, signal?: AbortSignal): Promise<Found | Failed> => {
-    const response = await fetch(`/api/collections/${encodeURIComponent(slug)}${lang(true)}`, {
-      signal
-    }).catch(() => null);
+    /* The account's own is read as its own, from the browser's copy: at once when the copy is open, and asked beside
+       the public read otherwise, since a connection that is not there fails that read. So is an address one of them
+       moved from, which leads on to it. */
+    const own = { doc: null, own: true, fetchedAt: Date.now() };
+    if (ownsCollection(slug) || ownCollectionMoved(slug)) return own;
+    const [mine, response] = await Promise.all([
+      keptUserId() ? ownsCollectionSoon(slug).catch(() => false) : false,
+      fetch(`/api/collections/${encodeURIComponent(slug)}${lang(true)}`, { signal }).catch(
+        () => null
+      )
+    ]);
+    if (mine) return own;
     if (response?.status === 404) return { doc: null, fetchedAt: Date.now() };
     return attempt(
       async () => {
@@ -210,10 +236,28 @@ export const ownQuery = (owner: string, key: CollectionListParams, model = true)
     staleTime: freshFor(PRIVATE_TTL)
   });
 
+/* What a reader may do on a collection is kept a minute, for a page returned to. Part of it is how the account's saved
+   copy stands, which moves with the account's collections: one made, deleted or moved since, on this page, on another
+   or in another tab, and what was kept may name a copy that is gone, or none where one was made. Each such change
+   starts the kept answers anew. What the copy holds before it has heard from the server, and what it first says once
+   it has, is its opening and no change. */
+let standings = 0;
+/** A copy was made or taken back here: what was kept of any collection's standing is old. */
+export const forgetStandings = () => void standings++;
+let ownAddresses: string | null = null;
+if (!isServer)
+  onAccountChange(() => {
+    const user = keptUserId();
+    if (!user || !engineNow()?.copyReady(user)) return;
+    const now = [...viewNow().collections.keys()].sort().join(" ");
+    if (ownAddresses !== null && now !== ownAddresses) forgetStandings();
+    ownAddresses = now;
+  });
+
 /** What a signed-in reader may do on one collection's page: theirs or theirs to curate, their copy, votes and notes. */
 export const stateQuery = (owner: string, slug: string) =>
   queryOptions({
-    queryKey: ["collection-state", owner, slug] as const,
+    queryKey: ["collection-state", owner, slug, standings] as const,
     queryFn: ({ signal }) =>
       readState(slug, signal).catch(error => (signal.aborted ? Promise.reject(error) : null)),
     staleTime: PRIVATE_TTL

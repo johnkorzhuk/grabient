@@ -3,6 +3,7 @@ import { localHref, msg, t } from "@grabient/i18n";
 import type { CollectChoice } from "@grabient/ui/CollectList.tsx";
 import type { CardCollect } from "@grabient/ui/CollectPress.tsx";
 import { createSignal } from "solid-js";
+import { signInUnavailable } from "../../app/connection.ts";
 import { record } from "../../app/undo.ts";
 import {
   addOwnPalettes,
@@ -15,6 +16,7 @@ import {
   serverWrote
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
+import { trackEvent } from "../analytics/analytics.ts";
 import { itemKey } from "./address.ts";
 import {
   addSitePalettes,
@@ -29,6 +31,7 @@ import {
   restorePalette,
   unaddSitePalette
 } from "./client.ts";
+import { recallCollection } from "./overlay.ts";
 import { type CollectionItemInput, MAX_COLLECTION_ITEMS } from "./schema.ts";
 
 /* The account's collections as a checklist for the palettes at hand: a card's Add to collection, and the export
@@ -49,7 +52,11 @@ async function putIn(
   slug: string,
   items: readonly Item[]
 ): Promise<{ title: string; added: Item[] }> {
-  if (ownsCollection(slug)) return addOwnPalettes(slug, items);
+  if (ownsCollection(slug)) {
+    const put = addOwnPalettes(slug, items);
+    if (put.added.length) trackEvent("add_to_collection", { slug, items: put.added.length });
+    return put;
+  }
   const state = await readState(slug);
   if (!state.owned || !state.collection) throw new Error(t("That collection isn't yours anymore."));
   const held = state.collection.items.map(i => ({
@@ -67,6 +74,7 @@ async function putIn(
   if (!added.length) return { title: state.collection.title, added };
   const { collection } = await changeCollection(slug, { items: [...held, ...added] });
   serverWrote();
+  trackEvent("add_to_collection", { slug: collection.slug, items: added.length });
   return { title: collection.title, added };
 }
 /** The palettes out of one of the account's own, each with the token that puts it back. */
@@ -95,10 +103,15 @@ async function makeOwn(
   title: string,
   items: readonly Item[]
 ): Promise<{ slug: string; title: string }> {
-  if (canMakeOwn()) return makeOwnCollection(title, items);
-  const { collection } = await makeCollection(title, items);
-  serverWrote();
-  return collection;
+  let made: { slug: string; title: string };
+  if (canMakeOwn()) made = makeOwnCollection(title, items);
+  else {
+    made = (await makeCollection(title, items)).collection;
+    serverWrote();
+  }
+  recallCollection(made.slug);
+  trackEvent("create_collection", { slug: made.slug, visibility: "private", items: items.length });
+  return made;
 }
 
 export function createChecklists(say: (message: string, error?: boolean) => void) {
@@ -354,6 +367,10 @@ export function createChecklists(say: (message: string, error?: boolean) => void
       ...writes(() => [palette()], opened),
       get signIn() {
         return signIn();
+      },
+      /* signed out with no connection, the press has nowhere to lead */
+      get disabled() {
+        return signInUnavailable();
       }
     };
   };

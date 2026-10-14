@@ -4,10 +4,10 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { createSignal, For, Show, untrack } from "solid-js";
+import { relativeAge } from "../gallery/drawing.ts";
 import { addNote, removeNote } from "./client.ts";
 import { failedWrite } from "./collect.ts";
 import styles from "./collections.module.css";
-import { relativeAge } from "./drawing.ts";
 import { NOTE_MAX } from "./schema.ts";
 import type { CollectionNote } from "./types.ts";
 

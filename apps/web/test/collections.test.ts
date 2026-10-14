@@ -5,8 +5,10 @@ import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collec
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
 import { collectionsHolding } from "../src/server/collections/read.ts";
 import { moveAccountAddresses } from "../src/server/collections/write.ts";
+import { searchJsonResponse } from "../src/server/search/routes.ts";
 import {
   type Account,
+  address,
   bodyOf,
   count,
   get,
@@ -298,6 +300,16 @@ describe("the public lists", () => {
     expect(rising.headers.get("CDN-Cache-Control")).toBe("max-age=60");
   });
 
+  it("count a read the edge missed against the one budget an address has for every list", async () => {
+    const ip = address();
+    /* a minute's misses, spent on the palette search */
+    for (let i = 0; i < 60; i++)
+      expect((await searchJsonResponse(get("/api/search.json", { ip }), env)).status).toBe(400);
+    const refused = await listAnswer(get("/api/collections", { ip }), env);
+    expect(refused.status).toBe(429);
+    expect((await listAnswer(get("/api/collections"), env)).status).toBe(200);
+  });
+
   it("search titles by their letters, a letter off allowed, and never a private one", async () => {
     const word = title.split(" ")[0]!.toLowerCase();
     const found = await bodyOf<{ items: Doc[] }>(
@@ -408,6 +420,52 @@ describe("saved copies", () => {
       404,
       "The original collection is gone."
     ]);
+  });
+});
+
+describe("the hot and Rising orders", () => {
+  it("hold a collection from the request that made it public, and a saved copy lifts it", async () => {
+    type Scores = { hot: number; rising: number; rising_3m: number; rising_1y: number };
+    const scores = async (slug: string) =>
+      (await env.DB.prepare(
+        "SELECT hot, rising, rising_3m, rising_1y FROM k_collections WHERE slug = ?"
+      )
+        .bind(slug)
+        .first<Scores>())!;
+    const unlisted = (await make(admin, { title: unique("Unlisted"), items: items(3) })).body
+      .collection;
+    expect(await scores(unlisted.slug)).toEqual({ hot: 0, rising: 0, rising_3m: 0, rising_1y: 0 });
+    const published = await bodyOf<{ collection: Doc }>(
+      await collectionAnswer(
+        send(
+          "PATCH",
+          `/api/collections/${at(unlisted.slug)}`,
+          { visibility: "public" },
+          { cookie: admin.cookie }
+        ),
+        env
+      )
+    );
+    const arrived = await scores(published.collection.slug);
+    /* half a like of newness, and its palettes that joined lately */
+    expect(arrived.hot).toBeGreaterThanOrEqual(0.5);
+    for (const score of [arrived.rising, arrived.rising_3m, arrived.rising_1y])
+      expect(score).toBeGreaterThan(0);
+
+    const source = (
+      await make(admin, { title: unique("Arrivals"), visibility: "public", items: items(3) })
+    ).body.collection;
+    const fresh = await scores(source.slug);
+    expect(fresh.rising).toBeGreaterThan(0);
+    const reader = await makeAccount(env);
+    await collectionAnswer(
+      send("POST", `/api/collections/${at(source.slug)}/copies`, {}, { cookie: reader.cookie }),
+      env
+    );
+    /* a first copy beside half a like of newness: the faded sum goes from a half to one and a half */
+    const lifted = await scores(source.slug);
+    expect(lifted.rising - fresh.rising).toBeCloseTo(Math.log(3), 1);
+    expect(lifted.rising_1y).toBeGreaterThan(fresh.rising_1y);
   });
 });
 

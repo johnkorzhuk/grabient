@@ -436,15 +436,59 @@ describe("an admin's curation of the gallery", () => {
     ]);
   });
 
+  it("tells the editor where a palette stands, in the shape its Save reads", async () => {
+    const seed = "kUzkiw66E-e4YQltnUXg";
+    const stands = async (who: Account) => {
+      const answer = await palette("GET", seed, undefined, who);
+      return [answer.status, await bodyOf(answer)];
+    };
+    expect(await stands(admin)).toEqual([
+      200,
+      { seed, gallery: null, collections: [], liked: false }
+    ]);
+    const doc = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Standing"),
+        description: "",
+        tags: [],
+        visibility: "public",
+        items: [item(seed)]
+      }
+    );
+    const held = { slug: doc.slug, title: doc.title };
+    expect(await stands(admin)).toEqual([
+      200,
+      { seed, gallery: null, collections: [held], liked: false }
+    ]);
+    await env.DB.prepare(
+      "INSERT INTO k_palettes (seed, style, steps, angle, likes_count, created_at) VALUES (?, 'radialGradient', 9, 45, 0, ?)"
+    )
+      .bind(seed, Date.now())
+      .run();
+    const reader = await makeAccount(env);
+    await env.DB.prepare(
+      "INSERT INTO k_likes (user_id, palette_id, steps, style, angle, created_at) VALUES (?, ?, 9, 'radialGradient', 45, ?)"
+    )
+      .bind(reader.id, seed, Date.now())
+      .run();
+    expect(await stands(admin)).toEqual([
+      200,
+      {
+        seed,
+        gallery: { style: "radialGradient", steps: 9, angle: 45, likes: 1 },
+        collections: [held],
+        liked: true
+      }
+    ]);
+    expect((await stands(owner))[0]).toBe(403);
+    expect((await paletteAnswer(get(`/api/me/palettes/${seed}`), env)).status).toBe(401);
+  });
+
   it("deletes a palette everywhere, each membership on the record", async () => {
     const seed = GALLERY[1]!;
     const slug = await held(seed);
-    expect(await bodyOf(await palette("GET", seed, undefined, admin))).toMatchObject({
-      seed,
-      gallery: { style: "linearGradient", steps: 7, angle: 90, likes: 0 },
-      collections: [{ slug }],
-      liked: false
-    });
     expect((await palette("DELETE", seed, { scope: "everywhere" }, owner)).status).toBe(403);
     expect(
       await bodyOf(await palette("DELETE", seed, { scope: "everywhere", reasons: ["dull"] }, admin))

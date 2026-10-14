@@ -1,24 +1,36 @@
 import { decodePalette } from "@grabient/engine";
 import { localHref, msg, rich, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
-import { CollectPress } from "@grabient/ui/CollectPress.tsx";
 import { Curation } from "@grabient/ui/Curation.tsx";
 import { Fit, type FitVote } from "@grabient/ui/Fit.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { PaletteCard } from "@grabient/ui/PaletteCard.tsx";
 import { PaletteGrid } from "@grabient/ui/PaletteGrid.tsx";
 import { PaletteCardPlaceholder } from "@grabient/ui/PalettePlaceholder.tsx";
 import { Placeholder } from "@grabient/ui/Placeholder.tsx";
 import { RemovePress, UndoPress } from "@grabient/ui/RemovePress.tsx";
+import { SaveToCollection } from "@grabient/ui/SaveToCollection.tsx";
 import { Segmented } from "@grabient/ui/Segmented.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
-import { createEffect, createMemo, createSignal, For, onSettled, Show, untrack } from "solid-js";
-import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
 import {
-  type OwnedDoc,
+  createEffect,
+  createMemo,
+  createSignal,
+  For,
+  onSettled,
+  Show,
+  untrack,
+  useContext
+} from "solid-js";
+import { marked, offline, signInUnavailable, unreachable } from "../../app/connection.ts";
+import { AppPage } from "../../app/Frames.tsx";
+import list from "../../app/list.module.css";
+import { ShellContext } from "../../app/shell.ts";
+import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
+import { hexesOf } from "../../lib/palette.ts";
+import {
   ownCollectionDoc,
   ownCollectionMoved,
   ownsCollection,
@@ -26,9 +38,15 @@ import {
   restoreOwnPalette,
   serverWrote
 } from "../account/collections.ts";
-import { likeCount, liked, noteCounts, toggleLike } from "../account/likes.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
-import { selected, toggle } from "../selection/selection.ts";
+import { accountView, onAccountChange, syncStatus } from "../account/state.ts";
+import { trackSignInPrompt } from "../analytics/analytics.ts";
+import { minuteOf, relativeAge } from "../gallery/drawing.ts";
+import { drawnIn, type ListView } from "../list/appearance.ts";
+import { useCollectionSeen } from "../palette-use/use.ts";
+import { SearchTags } from "../search/SearchTags.tsx";
+import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
+import { selection } from "../selection/selection.ts";
 import { Actions } from "./Actions.tsx";
 import { collectionHref, type PaletteOrder, sortCollectionItems } from "./address.ts";
 import {
@@ -44,13 +62,13 @@ import {
 import { createChecklists, failedWrite } from "./collect.ts";
 import styles from "./collections.module.css";
 import { createDeletable } from "./deletable.ts";
-import { drawnAs, hexesOf, minuteOf, nameOf, paletteHref, relativeAge } from "./drawing.ts";
 import { Heading } from "./Heading.tsx";
+import { ItemCard } from "./ItemCard.tsx";
 import { Notes } from "./Notes.tsx";
-import { followInPlace } from "./navigation.ts";
-import { forgetPalette, paletteGone } from "./overlay.ts";
-import { type ListView, listSearch, pageSearch } from "./params.ts";
-import { collectionQuery, failed, stateQuery } from "./queries.ts";
+import { listBack, recallList, rememberOrder } from "./navigation.ts";
+import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
+import { listSearch, pageSearch } from "./params.ts";
+import { collectionQuery, failed, forgetStandings, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
@@ -61,13 +79,16 @@ type ViewerRead = ViewerState & { collection?: CollectionDocument };
    collection whole; a private one is its owner's alone, so the server answers 404 naming it private, and the owner's
    browser fills it in from the account's copy or its own read. Once the reader is known, one read says what else they
    may do here: save a copy or bring one up to date, vote on each palette's fit, change their own (its words, who sees
-   it, its palettes), and for an admin curate Grabient's and leave the agents notes. */
+   it, its palettes), and for an admin curate Grabient's and leave the agents notes. With no connection every press
+   that needs the server keeps its place, disabled. */
 
 /* a palette taken out stands faded, with Undo over it, this long before it leaves the grid; a mouse resting on it or
    the keyboard in it holds it, checked again each second */
 const REMOVED_STAYS_MS = 6000;
 const HOLD_MS = 1000;
 const PLACEHOLDERS_MAX = 24;
+/** The bar and the water read at most this many palettes. */
+const PAINTED = 8;
 const ORDERS: readonly { value: PaletteOrder; label: string }[] = [
   { value: "popular", label: msg("Popular", "order") },
   { value: "rising", label: msg("Rising", "order") }
@@ -80,9 +101,16 @@ interface Removal {
   step: Step;
 }
 
-export function CollectionPage(props: { slug: string; order: PaletteOrder; view: ListView }) {
+export function CollectionPage(props: {
+  slug: string;
+  order: PaletteOrder;
+  view: ListView;
+  /** the server saw no session with the request: nobody here can be the owner of a private collection */
+  signedOut?: boolean;
+}) {
   const client = useQueryClient();
   const navigate = useNavigate();
+  const shell = useContext(ShellContext)!;
   const found = useQuery(() => collectionQuery(props.slug));
   const [note, setNote] = createSignal("");
   const [error, setError] = createSignal(false);
@@ -101,15 +129,15 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     return failed(read) ? read.failed : "";
   };
 
-  /* what the account may do here, and its own collection from its copy where the copy holds it: read once the reader
-     is known, private, and never part of what the page is drawn from first */
+  /* what the account may do here, and whether its copy holds the collection: read once the reader is known, private,
+     and never part of what the page is drawn from first */
   const reader = () => (account() ? `${account()!.id} ${props.slug}` : "");
-  const [read, setRead] = createSignal<{ by: string; state?: ViewerRead; copy?: OwnedDoc }>({
-    by: ""
-  });
+  type Viewer = { state?: ViewerRead | null; copy?: CollectionDocument | null };
+  const [read, setRead] = createSignal<{ by: string } & Viewer>({ by: "" });
   const mineNow = () => (read().by && read().by === reader() ? read() : null);
   const state = () => mineNow()?.state ?? null;
-  const copied = () => mineNow()?.copy;
+  const readState = (who: string, slug: string, fresh = false) =>
+    client.fetchQuery({ ...stateQuery(who, slug), ...(fresh ? { staleTime: 0 } : {}) });
   createEffect(
     () => {
       const who = account()?.id;
@@ -119,28 +147,51 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
       if (!asked) return;
       const { by, who, slug } = asked;
       let live = true;
-      const keep = (part: { state?: ViewerRead; copy?: OwnedDoc }) => {
+      const keep = (part: Viewer) => {
         if (live) setRead(now => ({ ...(now.by === by ? now : {}), by, ...part }));
       };
-      client.fetchQuery(stateQuery(who, slug)).then(
-        state => keep({ state: state ?? undefined }),
-        () => {}
+      readState(who, slug).then(
+        state => keep({ state }),
+        () => keep({ state: null })
       );
-      void ownCollectionDoc(slug).then(copy => keep({ copy }));
+      void untrack(() => ownCollectionDoc(slug)).then(
+        copy => keep({ copy: copy ?? null }),
+        () => keep({ copy: null })
+      );
       return () => {
         live = false;
       };
     }
   );
-  /* every write's answer, newer than any read */
+  /* the account's own, once its copy holds it: the page follows the copy as it changes, here, in another tab, or by an
+     undo made from another page */
+  const copied = createMemo(() => {
+    const held = mineNow()?.copy;
+    return held ? (accountView().collections.get(held.slug) ?? held) : undefined;
+  });
+  /* the answer of a write the server took straight, which stands until the copy holds as new a collection */
   const [own, setOwn] = createSignal<CollectionDocument | null>(null);
-  const doc = (): CollectionDocument | null =>
-    own() ?? copied() ?? state()?.collection ?? data()?.doc ?? null;
+  /* a collection this tab deleted is not here, whatever an answer kept from before says; read as the page opens, so
+     the page it was deleted on stands until the reader has left it */
+  const deleted = untrack(() => collectionGone(props.slug));
+  const doc = (): CollectionDocument | null => {
+    if (deleted) return null;
+    const wrote = own();
+    const held = copied();
+    return (
+      (wrote && held && held.updatedAt >= wrote.updatedAt ? held : (wrote ?? held)) ??
+      state()?.collection ??
+      data()?.doc ??
+      null
+    );
+  };
   const owned = () => !!copied() || !!state()?.owned;
   const curating = () => !!state()?.canCurate && isAdmin();
   const provisional = () => !own() && !copied() && !state()?.collection && !!data()?.provisional;
-  /* the minute the page's data was read: the clock its ages are told against, the same for the server and hydration */
-  const now = () => minuteOf(data()?.fetchedAt ?? Date.now());
+  /* when the page's data was read, and its minute: the clock its ages are told against, the same for the server and
+     hydration */
+  const readAt = () => data()?.fetchedAt ?? Date.now();
+  const now = () => minuteOf(readAt());
 
   /* a collection the server moved (a new title, who sees it, a new username) is followed to its new address */
   const follow = (slug: string) => {
@@ -161,17 +212,6 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
       if (href) void navigate({ href, replace: true });
     }
   );
-  /* the counts beside the hearts start as the page read them */
-  createEffect(
-    () => data(),
-    read => {
-      if (read?.doc)
-        noteCounts(
-          read.doc.items.map(item => ({ seed: item.kseed, likes: item.likes })),
-          read.fetchedAt
-        );
-    }
-  );
   /* the tab says the collection once the owner's read brings one the server could not draw */
   createEffect(
     () => (data()?.doc ? null : doc()?.title),
@@ -179,20 +219,69 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
       if (title) document.title = `${title} | Grabient`;
     }
   );
+  /* a public collection's page seen, counted for the seeding agents beside what its readers take */
+  createEffect(
+    () => (doc()?.visibility === "public" ? doc()!.slug : ""),
+    slug => {
+      if (slug) useCollectionSeen(slug);
+    }
+  );
 
-  /* the copy standing: the account's copy of this one, or this one as the account's copy */
+  /* the copy standing: the account's copy of this one, or this one as the account's copy. A copy this tab deleted is
+     none, whatever a read answered before the server heard of it says */
   const [copy, setCopy] = createSignal<CopyStanding | null | undefined>(undefined);
-  const standing = () => (copy() === undefined ? (state()?.copy ?? null) : copy()!);
+  const standing = () => {
+    const held = copy() === undefined ? (state()?.copy ?? null) : copy()!;
+    return held && collectionGone(held.slug) ? null : held;
+  };
+  /* a copy made or taken back by a press here, or by its undo from another page: no kept answer says so */
+  const stand = (next: CopyStanding | null) => {
+    if (next) recallCollection(next.slug);
+    setCopy(next);
+    forgetStandings();
+  };
+  /* the account's copy went or moved while the page stands, on another page's undo or in another tab */
+  onSettled(() =>
+    onAccountChange(change => {
+      const held = untrack(standing);
+      if (!held) return;
+      const to = change.moved.get(held.slug);
+      if (to) setCopy({ ...held, slug: to });
+      else if (change.removed.has(held.slug)) setCopy(null);
+    })
+  );
   const savedFrom = () => {
     const held = standing();
     return held && owned() && held.slug === props.slug ? held : null;
   };
+  /* a saved collection the account changed stands differently against its source: asked again once the changes
+     waiting for the server are all sent */
+  createEffect(
+    () => {
+      const sync = syncStatus();
+      return sync.pending ? 0 : sync.syncedAt;
+    },
+    (at, was) => {
+      const who = untrack(() => account()?.id);
+      if (!at || was !== 0 || !who || !untrack(savedFrom)) return;
+      const slug = untrack(() => props.slug);
+      readState(who, slug, true).then(
+        state => {
+          if (state && untrack(reader) === `${who} ${slug}`) setCopy(state.copy);
+        },
+        () => {}
+      );
+    }
+  );
 
   /* the palettes taken out while the page stands, each keeping its place a while, faded, with Undo over it */
   const [removals, setRemovals] = createSignal<ReadonlyMap<string, Removal>>(new Map());
   const leaving = new Map<string, ReturnType<typeof setTimeout>>();
-  onSettled(() => () => {
-    for (const timer of leaving.values()) clearTimeout(timer);
+  onSettled(() => {
+    recallList();
+    return () => {
+      for (const timer of leaving.values()) clearTimeout(timer);
+    };
   });
   const showRemoved = (key: string, removal: Removal | null) => {
     clearTimeout(leaving.get(key));
@@ -220,18 +309,23 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     later(REMOVED_STAYS_MS);
   };
   /* the palettes in the order the address says, by the likes the page was sent, so a like moves a count, never a card */
+  const ordered = createMemo(() =>
+    sortCollectionItems(
+      (doc()?.items ?? []).filter(item => !paletteGone(item.kseed)),
+      props.order
+    )
+  );
   const shown = createMemo(() => {
-    const items = (doc()?.items ?? []).filter(item => !paletteGone(item.kseed));
-    const held = new Set(items.map(keyOf));
+    const held = new Set(ordered().map(keyOf));
     const gone = [...removals().values()].map(r => r.item).filter(item => !held.has(keyOf(item)));
-    return sortCollectionItems([...items, ...gone], props.order);
+    return gone.length ? sortCollectionItems([...ordered(), ...gone], props.order) : ordered();
   });
   const removedKey = (item: CollectionItem) => {
     const key = keyOf(item);
     return removals().has(key) && !doc()?.items.some(i => keyOf(i) === key) ? key : null;
   };
-  const draw = (item: CollectionItem) => drawnAs(inputOf(item), props.view);
-  const palettes = createMemo(() => (doc()?.items ?? []).map(draw));
+  /* the collection's palettes as the page draws them, in its order: what Add all takes and the frame paints */
+  const palettes = createMemo(() => ordered().map(item => drawnIn(inputOf(item), props.view)));
 
   /* the owner takes a palette out: through the account's copy where it holds the collection, else the server. The
      removal is a step of the page's undo, and its token puts the palette back where it stood */
@@ -244,16 +338,20 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
           angle: item.angle
         })
       : await removePalette(slug, inputOf(item));
-    if (!ownsCollection(slug)) serverWrote();
-    setOwn(answer.collection);
+    if (!ownsCollection(slug)) {
+      serverWrote();
+      setOwn(answer.collection);
+    }
     return answer.restore ?? null;
   };
   const restoreTo = async (slug: string, item: CollectionItem, token: string) => {
     const answer = ownsCollection(slug)
       ? restoreOwnPalette(slug, item.kseed, token)
       : await restorePalette(slug, item.kseed, token);
-    if (!ownsCollection(slug)) serverWrote();
-    setOwn(answer.collection);
+    if (!ownsCollection(slug)) {
+      serverWrote();
+      setOwn(answer.collection);
+    }
   };
   const takeOut = async (item: CollectionItem) => {
     const current = doc();
@@ -367,8 +465,9 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     const current = doc();
     if (!current) return;
     if (!account()) {
-      if (sessionReady()) location.assign(localHref(loginHref()));
-      return;
+      if (!sessionReady()) return;
+      trackSignInPrompt("vote");
+      return location.assign(localHref(loginHref()));
     }
     const seed = item.kseed;
     const sending = waiting.has(seed);
@@ -390,274 +489,314 @@ export function CollectionPage(props: { slug: string; order: PaletteOrder; view:
     }
   };
 
+  /* the selection: its press at the head of the row's actions, its export screen in the page's place, and its Save
+     into the account's collections */
   const checklists = createChecklists(say);
+  const saving = checklists.selection(() => selection().map(inputOf));
+  const sel = createSelectionScreen({
+    note: say,
+    save: () => (
+      <SaveToCollection
+        own={saving.own}
+        onOwn={saving.onOwn}
+        onToggle={saving.onToggle}
+        onNew={saving.onNew}
+        signIn={saving.signIn}
+        disabled={signInUnavailable()}
+      />
+    )
+  });
+  /* after the selection's own, so this one stands: the selection while its screen is shown, else the page's first
+     palettes; with none of its own yet, whatever the loader read */
+  shell.paint(() =>
+    sel.open() ? selection() : palettes().length ? palettes().slice(0, PAINTED) : null
+  );
+
   const [turning, setTurning] = createSignal<Visibility | null>(null);
+  /* the collection's tags, each the collections list searched for it in the page's order */
   const tags = () =>
-    (doc()?.tags ?? []).map(tag => ({
-      label: tag,
-      href: localHref(
-        `/collections${props.order === "rising" ? "/rising" : ""}${listSearch({ query: tag, view: props.view })}`
-      )
-    }));
+    marked(
+      (doc()?.tags ?? []).map(tag => ({
+        label: tag,
+        href: localHref(
+          `/collections${props.order === "rising" ? "/rising" : ""}${listSearch({ query: tag, view: props.view })}`
+        )
+      }))
+    );
   const pageHref = (order: PaletteOrder) =>
     localHref(collectionHref(props.slug, order) + pageSearch(props.view));
+  const back = () => listBack(props.order, props.view);
+  /* nothing public lives here, and whether this reader may see more is not known yet: until the session answers
+     (unless the request came with none), and then until the account's own read does, the page waits to say */
+  const unknown = () => {
+    if (doc() || !data()) return false;
+    if (!sessionReady()) return !props.signedOut;
+    const mine = mineNow();
+    return !!account() && !(mine && mine.state !== undefined && mine.copy !== undefined);
+  };
   /* a private collection's words for a reader not signed in: the way to sign in as its owner */
-  const privateHere = () => !doc() && !!data()?.private && !account();
-  const missing = () => !doc() && !!data() && !privateHere();
+  const privateHere = () => !doc() && !!data()?.private && !unknown() && !account();
+  const missing = () => !doc() && !!data() && !unknown() && !privateHere();
   const empty = () => !!doc() && !provisional() && !doc()!.items.length;
   const waitingFor = () => {
     const drawn = shown().length;
     const count = doc()?.itemCount;
     return Math.max(0, Math.min(count ?? 6, PLACEHOLDERS_MAX) - drawn);
   };
+  const place = () => ({ surface: "collection" as const });
 
   return (
-    <main id="main" class={styles.page}>
-      <div class={styles.band}>
-        <div class={styles.back}>
-          <Button
-            size="sm"
-            href={localHref(
-              (props.order === "rising" ? "/collections/rising" : "/collections") +
-                listSearch({ view: props.view })
-            )}
-          >
-            <Icon name="back" size={13} /> {t("Collections")}
-          </Button>
-        </div>
-        <Show when={tags().length}>
-          <nav class={styles.tags} aria-label={t("Tags")}>
-            <For each={tags()} keyed={false}>
-              {tag => (
-                <a class={styles.tag} href={tag().href} dir="auto">
-                  {tag().label}
-                </a>
-              )}
-            </For>
-          </nav>
-        </Show>
-      </div>
-      <Show
-        when={doc()}
-        fallback={
-          <Show when={data() || readFailed()}>
-            <div class={styles.words}>
-              <Text variant="title" as="h1">
-                {t(
-                  privateHere()
-                    ? msg("This collection is private.")
-                    : readFailed()
-                      ? msg("Couldn't load this collection.")
-                      : msg("Collection not found")
-                )}
-              </Text>
-              <Show when={privateHere() || missing()}>
-                <Text variant="lede">
-                  {privateHere()
-                    ? rich("<signin>Sign in</signin> as its owner to see it.", {
-                        signin: words => (
-                          <a
-                            class={styles.inline}
-                            href={localHref(loginHref(collectionHref(props.slug, props.order)))}
-                          >
-                            {words}
-                          </a>
-                        )
-                      })
-                    : t("It may have been deleted.")}
-                </Text>
-              </Show>
-            </div>
-          </Show>
-        }
+    <AppPage bare={sel.open()}>
+      {/* the page stays mounted and out of sight while the export screen takes its place, so Close returns to the
+          same cards */}
+      <main
+        id="main"
+        class={list.column}
+        hidden={sel.open()}
+        aria-busy={provisional() || unknown() ? "true" : "false"}
       >
-        {current => (
-          <>
-            <div class={styles.row}>
-              <div class={styles.order}>
-                <Segmented
-                  aria-label={t("Order")}
-                  value={props.order}
-                  options={ORDERS.map(o => ({
-                    value: o.value,
-                    label: t(o.label, { $context: "order" }),
-                    href: pageHref(o.value)
-                  }))}
-                  onChange={value =>
-                    void navigate({
-                      href:
-                        collectionHref(props.slug, value as PaletteOrder) + pageSearch(props.view),
-                      resetScroll: false
-                    })
-                  }
+        {/* the lists' band above the row: the way back where their search stands, the tags where theirs stand */}
+        <div class={list.find}>
+          <div class={styles.back}>
+            <Button size="sm" href={localHref(back())} disabled={unreachable(back())}>
+              <Icon name="back" size={13} /> {t("Collections")}
+            </Button>
+          </div>
+          <Show when={doc()}>
+            <SearchTags tags={tags()} />
+          </Show>
+        </div>
+        <Show
+          when={doc()}
+          fallback={
+            <Show when={(data() && !unknown()) || readFailed()}>
+              <div class={styles.words}>
+                <Text variant="title" as="h1">
+                  {t(
+                    privateHere()
+                      ? msg("This collection is private.")
+                      : readFailed()
+                        ? msg("Couldn't load this collection.")
+                        : msg("Collection not found")
+                  )}
+                </Text>
+                <Show when={privateHere() || missing()}>
+                  <Text variant="lede">
+                    {privateHere()
+                      ? rich("<signin>Sign in</signin> as its owner to see it.", {
+                          signin: words => (
+                            <a
+                              class={styles.inline}
+                              href={localHref(loginHref(collectionHref(props.slug, props.order)))}
+                            >
+                              {words}
+                            </a>
+                          )
+                        })
+                      : t("It may have been deleted.")}
+                  </Text>
+                </Show>
+              </div>
+            </Show>
+          }
+        >
+          {current => (
+            <>
+              <div class={list.row}>
+                <div class={styles.order}>
+                  <Segmented
+                    aria-label={t("Order")}
+                    value={props.order}
+                    options={ORDERS.map(o => ({
+                      value: o.value,
+                      label: t(o.label, { $context: "order" }),
+                      href: pageHref(o.value)
+                    }))}
+                    onChange={value => {
+                      rememberOrder(value as PaletteOrder);
+                      void navigate({
+                        href:
+                          collectionHref(props.slug, value as PaletteOrder) +
+                          pageSearch(props.view),
+                        resetScroll: false
+                      });
+                    }}
+                  />
+                </div>
+                <Actions
+                  slug={props.slug}
+                  doc={current()}
+                  palettes={palettes()}
+                  owned={owned()}
+                  canDelete={owned() || curating()}
+                  copy={standing()}
+                  provisional={provisional()}
+                  selection={sel.button()}
+                  say={say}
+                  onDoc={setOwn}
+                  onCopy={stand}
+                  onMoved={follow}
+                  onTurning={setTurning}
+                  onDeleted={() => void navigate({ href: owned() ? "/collections/saved" : back() })}
                 />
               </div>
-              <Actions
-                slug={props.slug}
-                doc={current()}
-                palettes={palettes()}
-                owned={owned()}
-                canDelete={!!copied() || !!state()?.canDelete}
-                copy={standing()}
-                provisional={provisional()}
-                say={say}
-                onDoc={setOwn}
-                onCopy={setCopy}
-                onMoved={follow}
-                onTurning={setTurning}
-                onDeleted={() =>
-                  void navigate({ href: owned() ? "/collections/saved" : "/collections" })
-                }
-              />
-            </div>
-            <Heading
-              doc={current()}
-              visibility={turning() ?? current().visibility}
-              savedFrom={savedFrom()}
-              now={now()}
-              admin={isAdmin()}
-              editable={owned() && current().owner.kind === "user"}
-              onWords={async words => {
-                const answer = await changeCollection(current().slug, words);
-                serverWrote();
-                setOwn(answer.collection);
-                follow(answer.collection.slug);
-              }}
-            />
-            {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: the cards' presses
-                are links and buttons the keyboard reaches; this only keeps a plain press of Edit in the page */}
-            <div onClick={e => followInPlace(e, href => void navigate({ href }))}>
-              <PaletteGrid>
-                <For each={shown()} keyed={item => keyOf(item)}>
-                  {item => {
-                    const palette = createMemo(() => draw(item()));
-                    const stops = createMemo(() => hexesOf(palette().seed, palette().steps));
-                    const collect = checklists.card(() => inputOf(item()));
-                    const gone = () => removedKey(item());
-                    const seed = () => item().kseed;
-                    return (
-                      <div class={styles.cell} data-item={keyOf(item())}>
-                        <PaletteCard
-                          seed={seed()}
-                          name={nameOf(palette())}
-                          stops={stops()}
-                          style={palette().style}
-                          angle={palette().angle}
-                          href={paletteHref(palette(), props.view.size)}
-                          age={relativeAge(item().createdAt, now())}
-                          likes={likeCount(seed(), item().likes)}
-                          liked={liked(seed())}
-                          onLike={() =>
-                            void toggleLike(seed(), !liked(seed()), {
-                              collectionId: current().slug
-                            })
-                          }
-                          selected={selected(palette())}
-                          onSelect={() => toggle(palette())}
-                          removed={!!gone()}
-                          collect={<CollectPress collect={collect} />}
-                          fit={
-                            <Fit
-                              value={voteOf(seed())}
-                              admin={curating()}
-                              collection={current().title}
-                              onVote={next => void vote(item(), next)}
-                            />
-                          }
-                          lead={
-                            <Show
-                              when={!gone()}
-                              fallback={
-                                <UndoPress
-                                  onUndo={() => putBack(gone()!)}
-                                  disabled={!!busyItem()}
-                                />
-                              }
-                            >
-                              <Show when={owned() && current().owner.kind === "user"}>
-                                <RemovePress
-                                  item={keyOf(item())}
-                                  onRemove={() => takeOut(item())}
-                                  disabled={!!busyItem()}
-                                />
-                              </Show>
-                              <Show when={curating() && deletable.of(seed()) !== undefined}>
-                                <Curation
-                                  mode="view"
-                                  icon="sliders"
-                                  blocked={deletable.of(seed()) ? undefined : t("Liked by someone")}
-                                  stops={hexesOf(seed(), item().steps)}
-                                  view={inputOf(item())}
-                                  stopsAt={steps => hexesOf(seed(), steps)}
-                                  minSteps={decodePalette(seed())?.anchors.length}
-                                  onConfirm={result =>
-                                    setView(item(), result.view!, {
-                                      reasons: result.reasons,
-                                      comment: result.comment
-                                    })
-                                  }
-                                />
-                                <Curation
-                                  mode="delete"
-                                  icon="trash"
-                                  blocked={deletable.of(seed()) ? undefined : t("Liked by someone")}
-                                  stops={hexesOf(seed(), item().steps)}
-                                  view={inputOf(item())}
-                                  onConfirm={result =>
-                                    deleteEverywhere(item(), {
-                                      reasons: result.reasons,
-                                      comment: result.comment
-                                    })
-                                  }
-                                />
-                              </Show>
-                            </Show>
-                          }
-                        />
-                      </div>
-                    );
+              {sel.float()}
+              <div class={styles.body}>
+                <Heading
+                  doc={current()}
+                  visibility={turning() ?? current().visibility}
+                  savedFrom={savedFrom()}
+                  now={now()}
+                  admin={isAdmin()}
+                  editable={owned() && current().owner.kind === "user"}
+                  onWords={async words => {
+                    const answer = await changeCollection(current().slug, words);
+                    serverWrote();
+                    setOwn(answer.collection);
+                    follow(answer.collection.slug);
                   }}
-                </For>
-                <For each={Array.from({ length: provisional() ? waitingFor() : 0 }, (_, i) => i)}>
-                  {() => (
-                    <div class={styles.cell}>
-                      <PaletteCardPlaceholder />
-                    </div>
-                  )}
-                </For>
-              </PaletteGrid>
+                />
+                <PaletteGrid>
+                  <For each={shown()} keyed={item => keyOf(item)}>
+                    {item => {
+                      const gone = () => removedKey(item());
+                      const seed = () => item().kseed;
+                      return (
+                        <div class={styles.cell} data-item={keyOf(item())}>
+                          <ItemCard
+                            own={inputOf(item())}
+                            view={props.view}
+                            age={relativeAge(item().createdAt, now())}
+                            likes={item().likes}
+                            readAt={readAt()}
+                            collection={current().slug}
+                            place={place}
+                            at={() => ({
+                              collection:
+                                current().visibility === "public" ? current().slug : undefined,
+                              position: shown().findIndex(entry => entry.kseed === seed())
+                            })}
+                            collect={checklists.card}
+                            note={say}
+                            removed={!!gone()}
+                            fit={
+                              <Fit
+                                value={voteOf(seed())}
+                                admin={curating()}
+                                collection={current().title}
+                                disabled={offline()}
+                                onVote={next => void vote(item(), next)}
+                              />
+                            }
+                            lead={
+                              <Show
+                                when={!gone()}
+                                fallback={
+                                  <UndoPress
+                                    onUndo={() => putBack(gone()!)}
+                                    disabled={!!busyItem()}
+                                  />
+                                }
+                              >
+                                <Show when={owned() && current().owner.kind === "user"}>
+                                  <RemovePress
+                                    item={keyOf(item())}
+                                    onRemove={() => takeOut(item())}
+                                    disabled={!!busyItem()}
+                                  />
+                                </Show>
+                                <Show when={curating() && deletable.of(seed()) !== undefined}>
+                                  <Curation
+                                    mode="view"
+                                    icon="sliders"
+                                    blocked={
+                                      deletable.of(seed()) ? undefined : t("Liked by someone")
+                                    }
+                                    stops={hexesOf(inputOf(item()))}
+                                    view={inputOf(item())}
+                                    stopsAt={steps => hexesOf({ seed: seed(), steps })}
+                                    minSteps={decodePalette(seed())?.anchors.length}
+                                    onConfirm={result =>
+                                      setView(item(), result.view!, {
+                                        reasons: result.reasons,
+                                        comment: result.comment
+                                      })
+                                    }
+                                  />
+                                  <Curation
+                                    mode="delete"
+                                    icon="trash"
+                                    blocked={
+                                      deletable.of(seed()) ? undefined : t("Liked by someone")
+                                    }
+                                    stops={hexesOf(inputOf(item()))}
+                                    view={inputOf(item())}
+                                    onConfirm={result =>
+                                      deleteEverywhere(item(), {
+                                        reasons: result.reasons,
+                                        comment: result.comment
+                                      })
+                                    }
+                                  />
+                                </Show>
+                              </Show>
+                            }
+                          />
+                        </div>
+                      );
+                    }}
+                  </For>
+                  <For each={Array.from({ length: provisional() ? waitingFor() : 0 }, (_, i) => i)}>
+                    {() => (
+                      <div class={styles.cell}>
+                        <PaletteCardPlaceholder />
+                      </div>
+                    )}
+                  </For>
+                </PaletteGrid>
+              </div>
+            </>
+          )}
+        </Show>
+        <Show when={unknown() || (!doc() && !data() && !readFailed())}>
+          <div class={styles.body}>
+            <div class={styles.heading}>
+              <Placeholder width="320px" height="32px" />
             </div>
-          </>
-        )}
-      </Show>
-      <Show when={!doc() && !data() && !readFailed()}>
-        <div class={styles.heading}>
-          <Placeholder width="320px" height="32px" />
+            <PaletteGrid>
+              <For each={Array.from({ length: 6 }, (_, i) => i)}>
+                {() => <PaletteCardPlaceholder />}
+              </For>
+            </PaletteGrid>
+          </div>
+        </Show>
+        <div class={styles.line}>
+          <Status error={error() || !!readFailed() || (missing() && !note())}>
+            {readFailed() ||
+              note() ||
+              (missing()
+                ? t("Collection not found. It may have been deleted.")
+                : empty()
+                  ? t("This collection is empty.")
+                  : "")}
+          </Status>
+          <Show when={readFailed()}>
+            <Button size="sm" onClick={() => void found.refetch()}>
+              {t("Retry")}
+            </Button>
+          </Show>
+          {/* its owner fills it again from the lists: the selection's Save adds to a collection of theirs */}
+          <Show when={empty() && owned()}>
+            <Button size="sm" href={localHref("/palettes")} disabled={offline()}>
+              {t("Browse palettes")}
+            </Button>
+          </Show>
         </div>
-        <PaletteGrid>
-          <For each={Array.from({ length: 6 }, (_, i) => i)}>
-            {() => <PaletteCardPlaceholder />}
-          </For>
-        </PaletteGrid>
-      </Show>
-      <div class={styles.status}>
-        <Status error={error() || !!readFailed()}>
-          {readFailed() || note() || (empty() ? t("This collection is empty.") : "")}
-        </Status>
-        <Show when={readFailed()}>
-          <Button size="sm" onClick={() => void found.refetch()}>
-            {t("Retry")}
-          </Button>
+        <Show when={isAdmin() && doc() && state()?.notes}>
+          {notes => <Notes slug={untrack(() => props.slug)} notes={notes()} now={now()} />}
         </Show>
-        <Show when={empty() && owned()}>
-          <Button size="sm" href={localHref("/palettes")}>
-            {t("Browse palettes")}
-          </Button>
-        </Show>
-      </div>
-      <Show when={isAdmin() && doc() && state()?.notes}>
-        {notes => <Notes slug={untrack(() => props.slug)} notes={notes()} now={now()} />}
-      </Show>
-    </main>
+      </main>
+      {sel.screen()}
+    </AppPage>
   );
 }

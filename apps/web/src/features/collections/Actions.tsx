@@ -2,7 +2,8 @@ import { localHref, msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createSignal, onSettled, Show } from "solid-js";
+import { createEffect, createSignal, type Element, onSettled, Show } from "solid-js";
+import { offline } from "../../app/connection.ts";
 import { record } from "../../app/undo.ts";
 import type { Drawn } from "../../lib/palette.ts";
 import {
@@ -12,6 +13,7 @@ import {
   setOwnVisibility
 } from "../account/collections.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
+import { trackEvent } from "../analytics/analytics.ts";
 import { addAll, removeAll, roomNote, selected } from "../selection/selection.ts";
 import { collectionHref } from "./address.ts";
 import { changeCollection, deleteCollection, readState, saveCopy, syncCopy } from "./client.ts";
@@ -21,9 +23,10 @@ import { forgetCollection } from "./overlay.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CopyStanding } from "./types.ts";
 
-/* The presses at the end of a collection's row: every palette into the selection or out of it; Save (someone else's
-   collection), Saved and Update while the source moved on; on the owner's saved copy Update or Reset; an admin's own
-   made public or private; Delete. Reset and Delete ask twice: the first press arms them for four seconds. */
+/* The presses at the end of a collection's row: the selection's own, then every palette into the selection or out of
+   it; Save (someone else's collection), Saved and Update while the source moved on; on the owner's saved copy Update
+   or Reset; an admin's own made public or private; Delete. Reset and Delete ask twice: the first press arms them for
+   four seconds. With no connection the presses that need the server keep their places, disabled. */
 
 const ARM_MS = 4000;
 
@@ -38,6 +41,8 @@ export function Actions(props: {
   copy: CopyStanding | null;
   /** the page shows the list's summary while the collection is read */
   provisional: boolean;
+  /** the selection's press, which stands before the others as it stands at the end of the lists' row */
+  selection: Element;
   say: (message: string, error?: boolean) => void;
   /** a write answered with the collection as it now stands */
   onDoc: (doc: CollectionDocument) => void;
@@ -75,7 +80,10 @@ export function Actions(props: {
       const answer = await saveCopy(props.slug);
       props.onCopy(answer.copy);
       serverWrote();
-      if (answer.made) record(saveStep(answer.collection.slug, answer.collection.title));
+      /* a copy the account held already, saved in another tab, is not this press's to take back */
+      if (!answer.made) return;
+      trackEvent("copy_collection", { slug: props.slug, copy: answer.collection.slug });
+      record(saveStep(answer.collection.slug, answer.collection.title));
     } catch (reason) {
       props.say(failedWrite(reason, msg("Couldn't save the collection.")), true);
     } finally {
@@ -108,6 +116,12 @@ export function Actions(props: {
   const [resetArmed, setResetArmed] = createSignal(false);
   let resetTimer: ReturnType<typeof setTimeout> | undefined;
   onSettled(() => () => clearTimeout(resetTimer));
+  /* Reset waits for the server: a press armed before the connection dropped rests again */
+  createEffect(offline, off => {
+    if (!off) return;
+    clearTimeout(resetTimer);
+    setResetArmed(false);
+  });
   const sync = async (mode: "update" | "reset") => {
     const held = props.copy;
     if (!held || syncing()) return;
@@ -126,6 +140,7 @@ export function Actions(props: {
       props.onCopy(answer.copy);
       if (answer.collection.slug === props.slug) props.onDoc(answer.collection);
       serverWrote();
+      trackEvent(mode === "update" ? "update_collection" : "reset_collection", { slug: held.slug });
       if (mode === "update") markSynced("update");
     } catch (reason) {
       props.say(
@@ -161,11 +176,15 @@ export function Actions(props: {
     try {
       while (wanted && wanted !== props.doc.visibility) {
         const to: Visibility = wanted;
-        const answer = ownsCollection(props.slug)
+        /* the account's own turns in its copy, which the page follows; any other answers as the server holds it */
+        const held = ownsCollection(props.slug);
+        const answer = held
           ? await setOwnVisibility(props.doc.slug, to)
           : await changeCollection(props.doc.slug, { visibility: to });
-        if (!ownsCollection(props.slug)) serverWrote();
-        props.onDoc(answer.collection);
+        if (!held) {
+          serverWrote();
+          props.onDoc(answer.collection);
+        }
         if (answer.collection.slug !== props.slug) props.onMoved(answer.collection.slug);
         if (wanted === to) wanted = null;
       }
@@ -222,7 +241,7 @@ export function Actions(props: {
       size="lg"
       aria-label={updateName()}
       tip={t("Update")}
-      disabled={!!syncing() || !!synced()}
+      disabled={!!syncing() || !!synced() || offline()}
       onClick={() => void sync("update")}
     >
       <Icon name={synced() ? "check" : "refresh"} size={15} />
@@ -231,6 +250,7 @@ export function Actions(props: {
 
   return (
     <div class={styles.actions}>
+      {props.selection}
       <Button
         icon
         size="lg"
@@ -252,7 +272,9 @@ export function Actions(props: {
               size="lg"
               aria-label={t(saving() ? msg("Saving…") : msg("Save"))}
               tip={t("Save")}
-              disabled={!props.doc.items.length || props.provisional || saving() || deleting()}
+              disabled={
+                !props.doc.items.length || props.provisional || saving() || deleting() || offline()
+              }
               onClick={() => void save()}
             >
               <Icon name="bookmark" size={15} />
@@ -287,7 +309,7 @@ export function Actions(props: {
                 icon={!resetArmed() && !syncing()}
                 aria-label={resetArmed() || syncing() ? undefined : t("Reset")}
                 tip={t("Reset")}
-                disabled={!held().differs || !!syncing()}
+                disabled={!held().differs || !!syncing() || offline()}
                 onClick={() => void sync("reset")}
               >
                 <Show when={resetArmed() || syncing()} fallback={<Icon name="reset" size={15} />}>
@@ -323,7 +345,7 @@ export function Actions(props: {
           danger
           aria-label={armed() || deleting() ? undefined : t("Delete collection")}
           tip={t("Delete collection")}
-          disabled={deleting()}
+          disabled={deleting() || (offline() && !ownsCollection(props.slug))}
           onClick={() => void remove()}
         >
           <Show when={armed() || deleting()} fallback={<Icon name="trash" size={15} />}>

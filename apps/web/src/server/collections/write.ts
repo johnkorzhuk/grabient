@@ -15,6 +15,7 @@ import {
   MAX_OWN_COLLECTIONS
 } from "../../features/collections/schema.ts";
 import type { CollectionDocument } from "../../features/collections/types.ts";
+import { scoreCollection } from "../gallery/rescore.ts";
 import { folded } from "./letters.ts";
 import {
   type CollectionOwner,
@@ -22,7 +23,6 @@ import {
   collectionBySlug,
   type Reader
 } from "./read.ts";
-import { scoreArrival } from "./scores.ts";
 import { forgetTitles } from "./search.ts";
 
 /* Writing collections: a new one, a change, palettes added, a deletion. Each is one batch, which D1 runs as one
@@ -262,7 +262,7 @@ export async function insertCollection(
     }
     if (!wrote) return null;
     forgetTitles();
-    if (input.visibility === "public") await scoreArrival(env, id, now);
+    if (input.visibility === "public") await scoreCollection(env, id, now);
     return slug;
   }
 }
@@ -375,7 +375,7 @@ export async function updateCollection(
     ]);
   const results = await batch(env.DB, statements);
   forgetTitles();
-  if (arriving && results[0]?.meta.changes) await scoreArrival(env, id, now);
+  if (arriving && results[0]?.meta.changes) await scoreCollection(env, id, now);
   return (results[arriving ? 1 : 0]?.meta.changes ?? 0) > 0;
 }
 

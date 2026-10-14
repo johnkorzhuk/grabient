@@ -1,6 +1,7 @@
 import { decodePalette, encodePalette } from "@grabient/engine";
 import { alignedLegacySeed } from "@grabient/engine/legacy.ts";
 import { delocalizePath } from "@grabient/i18n";
+import { slugWords, typedCollection } from "../features/collections/address.ts";
 
 /* The words of a search as every list's address writes them, so one search has one address: NFKC, one space between
    words, lowercase, 100 characters at most, no control characters. A palette is a search too, for the palettes like
@@ -40,7 +41,8 @@ const decoded = (part: string) => {
 };
 
 /** What a Grabient link searches for, and the view it draws in: the palette it names (its page in any language, its
-    editor, its picture or data), or the words of a list's address. Null for a link off the site or to neither. */
+    editor, its picture or data), or the words of a list's address or of a collection's. Null for a link off the site
+    or to none of them. */
 export function readLink(raw: string): { words: string; view: URLSearchParams } | null {
   const value = raw.trim();
   let url: URL;
@@ -73,7 +75,9 @@ export function readLink(raw: string): { words: string; view: URLSearchParams } 
   const asked = url.searchParams.get("q") ?? url.searchParams.get("query");
   if (asked && LIST_PAGE.test(path)) return { words: listWords(asked), view };
   const old = /^\/palettes\/([^/]+)$/.exec(path)?.[1];
-  return old ? { words: listWords(decoded(old).replace(/-/g, " ")), view } : null;
+  if (old) return { words: listWords(decoded(old).replace(/-/g, " ")), view };
+  const collection = typedCollection(path);
+  return collection ? { words: listWords(slugWords(collection.slug)), view } : null;
 }
 
 /** Words as a search takes them; empty for words no search takes. */

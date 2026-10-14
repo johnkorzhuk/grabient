@@ -6,10 +6,10 @@ import {
   frameOf,
   intIn,
   listSearch,
-  listView,
-  pageSearch
+  pageSearch,
+  viewOf
 } from "../../features/collections/params.ts";
-import { collectionQuery, listQuery, paletteId } from "../../features/collections/query.ts";
+import { listWords } from "../../lib/words.ts";
 import type { KeyRule } from "../cache-keys.ts";
 import type { CanonicalRule } from "../canonical.ts";
 
@@ -50,8 +50,8 @@ const listAddress: CanonicalRule = address => {
     at +
     listSearch(
       {
-        query: listQuery(params.get("q") ?? params.get("query")),
-        view: listView(params),
+        query: listWords(params.get("q") ?? params.get("query")),
+        view: viewOf(params),
         page: intIn(params.get("page"), 1, 10_000) ?? 1,
         limit: intIn(params.get("limit"), 12, COLLECTION_LIMIT) ?? COLLECTION_LIMIT
       },
@@ -69,7 +69,7 @@ const collectionAddress: CanonicalRule = address => {
   if ((SEED.test(first) && decodePalette(first)) || OLD_ID.test(first)) return null;
   const at = typedCollection(path);
   return at
-    ? collectionHref(at.slug, at.order) + pageSearch(listView(params), params.has("selection"))
+    ? collectionHref(at.slug, at.order) + pageSearch(viewOf(params), params.has("selection"))
     : null;
 };
 
@@ -96,7 +96,7 @@ export const collectionKeyRules: readonly KeyRule[] = [
       const sort = params.get("sort");
       const known = sort === "popular" || sort === "rising" || sort === "hot" || sort === "oldest";
       return pick({
-        q: listQuery(params.get("q")),
+        q: listWords(params.get("q")),
         sort: known && sort,
         frame:
           sort === "rising" &&
@@ -112,10 +112,9 @@ export const collectionKeyRules: readonly KeyRule[] = [
   {
     match: path => path === "/api/collections/suggest",
     query: params => {
-      const typed = collectionQuery(params.get("q"));
       const limit = Math.max(1, Math.min(24, Math.floor(Number(params.get("limit") ?? 12)) || 12));
       return pick({
-        q: paletteId(typed) ?? typed.toLowerCase(),
+        q: listWords(params.get("q")),
         limit: String(limit),
         lang: lang(params)
       });

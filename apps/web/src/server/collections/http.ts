@@ -46,9 +46,6 @@ export const unavailable = () => json({ error: msg("Collections are unavailable.
 export const collectionsFull = () =>
   said(msg("You can have up to {max} collections."), 409, { max: String(MAX_OWN_COLLECTIONS) });
 
-/** The origin addresses are written at: the deploy's public one, else the request's. */
-export const originOf = (env: Pick<Env, "PUBLIC_ORIGIN">, request: Request) =>
-  env.PUBLIC_ORIGIN ?? new URL(request.url).origin;
 /** An answer's collection with its address at that origin. */
 export const withUrl = <T extends { slug: string }>(origin: string, doc: T) => ({
   ...doc,

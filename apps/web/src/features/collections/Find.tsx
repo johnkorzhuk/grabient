@@ -2,16 +2,18 @@ import { dominantColors } from "@grabient/engine/dominant.ts";
 import { localHref, t } from "@grabient/i18n";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/solid-query";
 import { useNavigate } from "@tanstack/solid-router";
-import { createEffect, createSignal, Errored, Loading, onCleanup } from "solid-js";
+import { createEffect, createSignal, Errored, Loading, onCleanup, untrack } from "solid-js";
+import { listUnavailable, marked, offline } from "../../app/connection.ts";
+import list from "../../app/list.module.css";
+import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
-import { countSearch } from "../search/count.ts";
+import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
+import { countSearch, tagPressed } from "../search/count.ts";
 import { SearchField } from "../search/SearchField.tsx";
 import { SearchTags } from "../search/SearchTags.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
-import styles from "./collections.module.css";
-import { arrivedWhole, FIELD_MAX, readField, typedWords } from "./field.ts";
-import { followInPlace } from "./navigation.ts";
-import { type ListPlace, type ListView, listSearch, listView, pageSearch } from "./params.ts";
+import { collectionGone } from "./overlay.ts";
+import { type ListPlace, pageSearch } from "./params.ts";
 import { failed, ownQuery, tagsQuery } from "./queries.ts";
 import type { CollectionSummary } from "./types.ts";
 
@@ -20,7 +22,8 @@ import type { CollectionSummary } from "./types.ts";
    own), and a search of the public lists counts for the Popular tags. A palette or a Grabient link pasted or dropped
    whole searches at once, and an emptied field lets go of the words. At rest the tags are the popular collections;
    while the field holds words, the collections whose titles answer them, asked once typing pauses; on Saved, the
-   account's own that answer them. */
+   account's own that answer them. With no connection the public lists' field and the tags that need the server keep
+   their places, disabled. */
 
 const PAUSE = 150;
 const OWN_PAUSE = 250;
@@ -41,7 +44,6 @@ export function Find(props: {
   /** why the field's text cannot be searched, for the page's line; "" once the reader types again */
   onError: (message: string) => void;
   onImage?: (file: File) => void;
-  disabled?: boolean;
 }) {
   const navigate = useNavigate();
   const client = useQueryClient();
@@ -81,7 +83,7 @@ export function Find(props: {
       if (!wanted) return;
       let live = true;
       const key = { query: wanted.words, sort: "newest" as const, page: 1, limit: OWN_TAGS };
-      client.fetchQuery(ownQuery(wanted.who, key, false)).then(
+      untrack(() => client.fetchQuery(ownQuery(wanted.who, key, false))).then(
         page => {
           if (live && !failed(page)) setOwnHits({ words: wanted.words, items: page.items });
         },
@@ -97,17 +99,19 @@ export function Find(props: {
     return hits && hits.words === asked() ? hits.items : [];
   };
   const shown = () => {
-    if (mine() && typed().trim())
-      return ownTitled().map(c => ({
-        label: c.title,
-        href: open(c.slug),
-        colors: dominantColors(c.preview.map(p => p.seed))
-      }));
-    return (tags.data ?? []).map(hit => ({
-      label: hit.title,
-      href: open(hit.slug),
-      colors: hit.colors
-    }));
+    const own = mine() && !!typed().trim();
+    const hits = own
+      ? ownTitled().map(c => ({
+          title: c.title,
+          slug: c.slug,
+          colors: dominantColors(c.preview.map(p => p.seed))
+        }))
+      : (tags.data ?? []);
+    return marked(
+      hits
+        .filter(hit => !collectionGone(hit.slug))
+        .map(hit => ({ label: hit.title, href: open(hit.slug), colors: hit.colors }))
+    );
   };
 
   const submit = async (text: string, counted: boolean) => {
@@ -118,7 +122,7 @@ export function Find(props: {
     if ("open" in read) return void navigate({ href: read.open });
     const words = read.words;
     const lower = words.toLowerCase();
-    if (!read.palette) {
+    if (!paletteId(words)) {
       if (counted && !mine()) countSearch(words, "collections");
       /* the collection whose title was typed out opens: on Saved one of the account's own */
       const at = location.href;
@@ -142,34 +146,26 @@ export function Find(props: {
   };
 
   return (
-    <div class={styles.find}>
+    <div class={list.find}>
       <SearchField
         value={typed()}
         placeholder={t("Search collections")}
         maxlength={FIELD_MAX}
         tool={TOOL}
-        disabled={props.disabled}
+        disabled={listUnavailable(props.place.order)}
         onInput={input}
         onSubmit={text => void submit(text, true)}
-        onImage={mine() ? undefined : props.onImage}
+        onImage={props.onImage}
       />
-      {/* biome-ignore lint/a11y/noStaticElementInteractions lint/a11y/useKeyWithClickEvents: the tags are links, which
-          the keyboard follows; this only keeps a plain press in the page */}
-      <div onClick={e => followInPlace(e, href => void navigate({ href }))}>
-        <Errored fallback={() => <SearchTags tags={[]} />}>
-          <Loading fallback={<SearchTags tags={[]} loading />}>
-            <SearchTags lead={typed().trim() ? undefined : t("Popular")} tags={shown()} />
-          </Loading>
-        </Errored>
-      </div>
+      <Errored fallback={() => <SearchTags tags={[]} />}>
+        <Loading fallback={<SearchTags tags={[]} loading={!offline()} />}>
+          <SearchTags
+            lead={typed().trim() ? undefined : t("Popular")}
+            tags={shown()}
+            onPick={(tag, index) => tagPressed(tag, index, "collections")}
+          />
+        </Loading>
+      </Errored>
     </div>
   );
-}
-
-/** The page's view, with a pasted link's wherever the page says none of its own. */
-export function viewWith(view: ListView, link?: URLSearchParams): ListView {
-  if (!link) return view;
-  const params = new URLSearchParams(listSearch({ view }).slice(1));
-  for (const [key, value] of link) if (!params.has(key)) params.set(key, value);
-  return listView(params);
 }

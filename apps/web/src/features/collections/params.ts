@@ -1,9 +1,17 @@
-import { isStyle, parseSize, STEPS_MAX, STEPS_MIN, type Style } from "@grabient/engine/view.ts";
-import type { Order } from "@grabient/ui/ListNav.tsx";
-import type { CollectionSort, RisingFrame } from "./types.ts";
+import {
+  DEFAULT_FRAME,
+  framePath,
+  isFrame,
+  type Order,
+  type RisingFrame
+} from "../../lib/orders.ts";
+import { listWords } from "../../lib/words.ts";
+import { AS_SAVED, type ListView, readListView, viewParams } from "../list/appearance.ts";
+import type { CollectionSort } from "./types.ts";
 
 /* The collections lists' and a collection page's addresses: their query read the one way the server and the browser
-   both read it, and written back in one order, defaults left out, so one page has one address and one cache key. */
+   both read it, and written back in one order, defaults left out, so one page has one address and one cache key. The
+   view is the lists' own (features/list). */
 
 /** A public list's page: 12 to 24 collections, which bounds what a page no cache held reads. */
 export const COLLECTION_LIMIT = 24;
@@ -19,33 +27,32 @@ export interface CollectionListParams {
   limit: number;
 }
 
-/** How a list draws its palettes: each in the view it was saved in (`auto`), or the reader's. */
-export interface ListView {
-  style: Style | "auto";
-  steps: number | "auto";
-  angle: number | "auto";
-  size: string | "auto";
-}
-export const AUTO_VIEW: ListView = { style: "auto", steps: "auto", angle: "auto", size: "auto" };
-
 export const intIn = (raw: string | null, min: number, max: number): number | null => {
   if (raw == null || !/^\d+$/.test(raw)) return null;
   const n = Number(raw);
   return n >= min && n <= max ? n : null;
 };
 export const frameOf = (raw: string | null | undefined): RisingFrame =>
-  raw === "3m" || raw === "1y" ? raw : "1w";
+  isFrame(raw) ? raw : DEFAULT_FRAME;
 
-/** The view an address names: steps under three mean as few as a palette allows, and read as three. */
-export function listView(params: URLSearchParams): ListView {
-  const style = params.get("style");
-  const steps = intIn(params.get("steps"), 1, STEPS_MAX);
-  const size = parseSize(params.get("size"));
+/** The view a query names, each parameter as it stands first. */
+export const viewOf = (params: URLSearchParams): ListView =>
+  readListView({
+    style: params.get("style"),
+    steps: params.get("steps"),
+    angle: params.get("angle"),
+    size: params.get("size")
+  });
+
+/** The page's view, with a pasted link's wherever the page says none of its own. */
+export function viewWith(view: ListView, link?: URLSearchParams): ListView {
+  if (!link) return view;
+  const said = viewOf(link);
   return {
-    style: isStyle(style) ? style : "auto",
-    steps: steps === null ? "auto" : Math.max(steps, STEPS_MIN),
-    angle: intIn(params.get("angle"), 0, 360) ?? "auto",
-    size: size ? `${size.width}x${size.height}` : "auto"
+    style: view.style === "auto" ? said.style : view.style,
+    steps: view.steps === "auto" ? said.steps : view.steps,
+    angle: view.angle === "auto" ? said.angle : view.angle,
+    size: view.size ?? said.size
   };
 }
 
@@ -54,12 +61,10 @@ function query(parts: readonly (string | false | undefined)[], selection?: boole
   const kept = [...parts, selection && "selection"].filter(Boolean);
   return kept.length ? `?${kept.join("&")}` : "";
 }
-const viewParts = (view: ListView) => [
-  view.style !== "auto" && `style=${view.style}`,
-  view.steps !== "auto" && `steps=${view.steps}`,
-  view.angle !== "auto" && `angle=${view.angle}`,
-  view.size !== "auto" && `size=${view.size}`
-];
+const viewParts = (view: ListView) =>
+  Object.entries(viewParams(view)).map(
+    ([name, value]) => value !== undefined && `${name}=${value}`
+  );
 
 /** A collections list's query: the words, the view, the page and the limit, then the selection. The order is the
     path's, never a parameter. */
@@ -70,7 +75,7 @@ export const listSearch = (
   query(
     [
       !!p.query && new URLSearchParams({ q: p.query }).toString(),
-      ...viewParts(p.view ?? AUTO_VIEW),
+      ...viewParts(p.view ?? AS_SAVED),
       !!p.page && p.page !== 1 && `page=${p.page}`,
       !!p.limit && p.limit !== COLLECTION_LIMIT && `limit=${p.limit}`
     ],
@@ -94,13 +99,11 @@ export interface ListPlace {
 }
 
 /** A list's path in its order and frame. */
-export const listPath = (order: Order, frame: RisingFrame): string =>
+export const listPath = (order: Order, frame: RisingFrame = DEFAULT_FRAME): string =>
   order === "saved"
     ? "/collections/saved"
     : order === "rising"
-      ? frame === "1w"
-        ? "/collections/rising"
-        : `/collections/rising/${frame}`
+      ? framePath("/collections/rising", frame)
       : "/collections";
 
 /** The public read a list's page draws. */
@@ -111,3 +114,24 @@ export const listKey = (place: ListPlace): CollectionListParams => ({
   page: place.page,
   limit: place.limit
 });
+
+/** A collections list's query as its address or the API sends it. A public list's page is 12 to COLLECTION_LIMIT
+    collections, anything else the default; an account's own list reads up to `maxLimit` at once. */
+export function collectionParams(
+  params: URLSearchParams,
+  maxLimit = COLLECTION_LIMIT
+): CollectionListParams {
+  const sort = params.get("sort");
+  return {
+    query: listWords(params.get("q")),
+    sort:
+      sort === "oldest" || sort === "popular" || sort === "hot" || sort === "rising"
+        ? sort
+        : "newest",
+    frame: sort === "rising" ? frameOf(params.get("frame")) : undefined,
+    page: intIn(params.get("page"), 1, 10_000) ?? 1,
+    limit: intIn(params.get("limit"), 12, maxLimit) ?? COLLECTION_LIMIT
+  };
+}
+export const ownParams = (params: URLSearchParams) =>
+  collectionParams(params, OWN_COLLECTION_LIMIT);

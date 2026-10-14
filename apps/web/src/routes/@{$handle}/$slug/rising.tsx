@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/solid-router";
 import { isCollectionSlug } from "../../../features/collections/address.ts";
 import { CollectionRoute } from "../../../features/collections/CollectionRoute.tsx";
 import { collectionHead, loadCollection, searchOf } from "../../../features/collections/route.ts";
+import { ListAppearance } from "../../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE } from "../../../lib/cache.ts";
 
 const slugOf = (params: { handle: string; slug: string }) => `@${params.handle}/${params.slug}`;
@@ -26,6 +27,7 @@ export const Route = createFileRoute("/@{$handle}/$slug/rising")({
       { slug: slugOf(params), order: "rising", search: match.search },
       loaderData
     ),
+  staticData: { corner: ListAppearance },
   component: function Rising() {
     const params = Route.useParams();
     const search = Route.useSearch();

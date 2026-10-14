@@ -1,4 +1,6 @@
 import { describe, expect, test } from "vitest";
+import { listWords } from "../../lib/words.ts";
+import { readField } from "../gallery/field.ts";
 import {
   accountHandle,
   collectionHref,
@@ -21,6 +23,19 @@ import {
 } from "./schema.ts";
 
 /* grabient4's own answers (fixtures/*.json), which addresses and validation must keep. */
+
+describe("a link in a search field", () => {
+  test("to a collections search is its words, and to a collection the words of its address", () => {
+    expect(readField("https://grabient.com/collections/rising?q=Warm")).toMatchObject({
+      words: "warm"
+    });
+    expect(readField("grabient.com/ocean-depths")).toMatchObject({ words: "ocean depths" });
+    expect(listWords("https://grabient.com/ja/@ada/warm-sunsets/rising")).toBe("warm sunsets");
+    expect(readField("https://grabient.com/about")).toEqual({
+      error: "Paste a link to one palette."
+    });
+  });
+});
 
 describe("addresses", () => {
   test.each(slugs.slugifyTitle)("%j as an address is %j", (title, slug) => {
