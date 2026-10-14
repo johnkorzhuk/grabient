@@ -37,7 +37,8 @@ export const SearchItem = v.object({
 });
 export type SearchItem = v.InferOutput<typeof SearchItem>;
 
-/** Who answered a search: words the vocabulary reads, colors, a palette's likeness, or the account's search alone. */
+/** A search's answer as every page reads it, the public one's and an account's: who answered (words the vocabulary
+    reads, colors, a palette's likeness, or the account's search alone) and what a page shows of why. */
 export const SearchAnswer = v.object({
   query: v.string(),
   items: v.array(SearchItem),
@@ -46,10 +47,14 @@ export const SearchAnswer = v.object({
   partial: v.optional(v.boolean()),
   /** an allowance ran out: shown, and never kept for anyone */
   limited: v.optional(v.boolean()),
+  /** why the model was refused, a message to translate */
+  message: v.optional(v.string()),
   /** read without the model a person would have been given (a crawler's): never kept for others */
   unkept: v.optional(v.boolean()),
   /** the words are a page an index may keep: they read as what they mean */
   indexable: v.optional(v.boolean()),
+  /** the public collections that hold a palette searched by */
+  heldBy: v.optional(v.array(v.object({ slug: v.string(), title: v.string() }))),
   fetchedAt: v.number()
 });
 export type SearchAnswer = v.InferOutput<typeof SearchAnswer>;

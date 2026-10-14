@@ -27,7 +27,7 @@ export async function accountSearchResponse(
     payer: { account: session.user.id }
   });
   return json(
-    { ...result, items: sortSearch(result.items, sort) },
+    { ...result, items: sortSearch(result.items, sort), fetchedAt: Date.now() },
     statusOf(result),
     waitOf(result)
   );

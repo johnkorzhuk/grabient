@@ -3,7 +3,9 @@ import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
+import * as v from "valibot";
 import { describe, expect, it } from "vitest";
+import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { accountSearchResponse } from "../src/server/search/account.ts";
 import {
   pruneSearchCounts,
@@ -300,7 +302,10 @@ describe("an account's own search", () => {
     );
     expect(answer.status).toBe(200);
     expect(answer.headers.get("Cache-Control")).toBe("private, no-store");
-    expect(await bodyOf(answer)).toMatchObject({ query: "blue", tier: "vocabulary" });
+    const body = await bodyOf(answer);
+    expect(body).toMatchObject({ query: "blue", tier: "vocabulary" });
+    // a page reads it as it reads the public search's answer
+    expect(v.safeParse(SearchAnswer, body).success).toBe(true);
   });
 
   it("buys words nothing free reads from the account's own allowance", async () => {

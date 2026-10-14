@@ -23,6 +23,24 @@ export const createQueryClient = () =>
 /** A read a page waits on ends as a failure after this long: a browser's fetch has no end of its own. */
 export const READ_TIMEOUT = 15_000;
 
+/** A public read whose refusals are answers too: a search an allowance cut short (429) or one without its files (503)
+    is sent as the route's body, which the page shows. Anything else fails with the server's words, translated, or with
+    none where it said nothing a reader can read. */
+export async function readAnswer<S extends v.GenericSchema>(
+  path: string,
+  schema: S,
+  signal: AbortSignal
+): Promise<v.InferOutput<S>> {
+  const response = await fetch(path, {
+    signal: AbortSignal.any([signal, AbortSignal.timeout(READ_TIMEOUT)])
+  });
+  const body: unknown = await response.json().catch(() => null);
+  const answer = v.safeParse(schema, body);
+  if (answer.success && [200, 429, 503].includes(response.status)) return answer.output;
+  const error = (body as { error?: unknown } | null)?.error;
+  throw new Error(typeof error === "string" ? t(error) : "");
+}
+
 /** The browser's side of a public read: a GET of the API route that answers it, checked against the schema the server
     answers with. A failure carries the server's own message, translated. */
 export async function getJson<S extends v.GenericSchema>(

@@ -1,46 +1,29 @@
 /* The search's reads, one queryOptions each, shared by loaders and components. A search answers the whole pool of up to
-   96 palettes once per words; a list sorts and pages it in the browser, so another order or page asks nothing again. */
+   96 palettes once per words; a list sorts and pages it in the browser, so another order or page asks nothing again.
+   The public search's pool is read as the gallery's lists read it (gallery/queries.ts). */
 import { env } from "cloudflare:workers";
-import { DEFAULT_LOCALE, locale, msg, t } from "@grabient/i18n";
+import { DEFAULT_LOCALE, locale } from "@grabient/i18n";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
-import * as v from "valibot";
-import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
+import { getJson, readAnswer } from "../../lib/query.ts";
 import { suggestionsFor } from "../../server/search/tags.ts";
-import { SearchAnswer, SearchSuggestions, SearchVotes } from "./bodies.ts";
+import { SearchAnswer } from "../gallery/schema.ts";
+import { SearchSuggestions, SearchVotes } from "./bodies.ts";
 
 /** How many palettes a search answers: its orders and pages are cut from these. */
 export const SEARCH_POOL = 96;
 
-/* A search's answer, whatever its status: a refused or unavailable search is an answer the page shows (tier account,
-   limited, unavailable), never a failure. Anything else fails with the server's message. */
-async function readSearch(path: string, signal: AbortSignal): Promise<SearchAnswer> {
-  const response = await fetch(path, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(READ_TIMEOUT)])
-  });
-  const body: unknown = await response.json().catch(() => null);
-  const answer = v.safeParse(SearchAnswer, body);
-  if (answer.success && [200, 429, 503].includes(response.status)) return answer.output;
-  const error = (body as { error?: unknown } | null)?.error;
-  throw new Error(t(typeof error === "string" ? error : msg("Something went wrong. Try again.")));
-}
-
-const poolPath = (base: string, query: string) =>
-  `${base}?${new URLSearchParams({ query, limit: String(SEARCH_POOL) })}`;
-
-/** The public search's pool for these words, the same for everyone and kept at the edge. */
-export const searchQuery = (query: string) =>
-  queryOptions({
-    queryKey: ["search", query],
-    queryFn: ({ signal }) => readSearch(poolPath("/api/search.json", query), signal),
-    staleTime: 5 * 60_000
-  });
-
-/** A signed-in account's search of words the public answer could not read for it (tier account, or partial). */
+/** A signed-in account's search of words the public answer could not read for it (tier account, or partial). A search
+    its allowance refused is an answer too, which says so. */
 export const accountSearchQuery = (account: string, query: string) =>
   queryOptions({
     queryKey: ["search", query, "account", account],
-    queryFn: ({ signal }) => readSearch(poolPath("/api/me/search", query), signal),
+    queryFn: ({ signal }) =>
+      readAnswer(
+        `/api/me/search?${new URLSearchParams({ query, limit: String(SEARCH_POOL) })}`,
+        SearchAnswer,
+        signal
+      ),
     staleTime: 5 * 60_000
   });
 

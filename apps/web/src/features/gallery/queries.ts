@@ -6,7 +6,7 @@ import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
 import { DEFAULT_FRAME, type ListSort, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
-import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
+import { getJson, READ_TIMEOUT, readAnswer } from "../../lib/query.ts";
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
 import { searchPool } from "../../server/gallery/search.ts";
@@ -76,24 +76,6 @@ async function attempt<T>(
 }
 
 const COULD_NOT_LOAD = msg("Couldn't load palettes.");
-
-/** A public read's answer from its route. A search an allowance cut short (429) or one without its files (503) is
-    still an answer, sent as the route's body, which the page shows. Anything else fails with the server's words, or
-    with none where it said nothing a reader can read. */
-async function readAnswer<S extends v.GenericSchema>(
-  path: string,
-  schema: S,
-  signal: AbortSignal
-): Promise<v.InferOutput<S>> {
-  const response = await fetch(path, {
-    signal: AbortSignal.any([signal, AbortSignal.timeout(READ_TIMEOUT)])
-  });
-  const body: unknown = await response.json().catch(() => null);
-  const answer = v.safeParse(schema, body);
-  if (answer.success && [200, 429, 503].includes(response.status)) return answer.output;
-  const error = (body as { error?: unknown } | null)?.error;
-  throw new Error(typeof error === "string" ? t(error) : "");
-}
 
 export interface ListKey {
   sort: Exclude<ListSort, "newest" | "oldest">;
