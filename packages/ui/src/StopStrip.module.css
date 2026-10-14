@@ -145,8 +145,15 @@
      is 640px or more and under 56px a stop, on a page wide enough for the tall strip. Each label is set in a box as
      wide as the narrowest chip, so its size and its turn are the narrowest chip's, as the strip's own are. */
   .still {
+    /* layoutStops' own numbers: a hex at most 13px and at least 10px, what a hex across a chip leaves along it and
+       what an upright one leaves across it, and the pixel a size is rounded down to */
+    --fit-most: var(--font-fs3);
+    --fit-least: 10px;
+    --fit-along: 10px;
+    --fit-across: 8px;
+    --px: 1px;
     container: strip / inline-size;
-    font-size: calc(var(--units) * 1px);
+    font-size: calc(var(--units) * var(--px));
     @media (max-width: 900px) {
       --h: var(--size-strip-short);
     }
@@ -162,7 +169,10 @@
       }
     }
     & .label {
-      font-size: min(13px, round(down, (100cqw - 10px) * 12 / 51.8, 1px));
+      font-size: min(
+        var(--fit-most),
+        round(down, (100cqw - var(--fit-along)) * 12 / 51.8, var(--px))
+      );
     }
   }
   .variant {
@@ -196,14 +206,14 @@
     @container chip (width < 57.4834px) {
       [data-rows="1"] .label {
         writing-mode: vertical-rl;
-        font-size: min(13px, round(down, (100cqw - 8px) / 1.1, 1px));
+        font-size: min(var(--fit-most), round(down, (100cqw - var(--fit-across)) / 1.1, var(--px)));
       }
     }
     /* a row of 56px: upright at 10px under 53.17px a chip */
     @container chip (width < 53.1667px) {
       [data-rows="2"] .label {
         writing-mode: vertical-rl;
-        font-size: 10px;
+        font-size: var(--fit-least);
       }
     }
     @container chip (width < 19px) {
