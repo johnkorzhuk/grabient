@@ -116,8 +116,9 @@ export function followAddress(
       /* The selection opening over this palette, closing, or setting the size it exports at: the same page, whose
          undo and record stay, so a step taken in the selection is walked in its place among the edits. The
          selection's entry keeps them as the page's does, for a reload there. */
-      if (page.seed === e.seed() && (page.selection || e.selecting())) {
-        write ||= page.selection && !e.selecting();
+      const selecting = untrack(e.selecting);
+      if (page.seed === untrack(e.seed) && (page.selection || selecting)) {
+        write ||= page.selection && !selecting;
         e.take(page);
       } else {
         arrived(page);
