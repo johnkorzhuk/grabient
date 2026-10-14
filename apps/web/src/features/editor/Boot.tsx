@@ -62,6 +62,9 @@ export function Boot(props: { page: SeedPage; title: string }) {
                 />
               )}
             </Show>
+            <p class={styles.caption} dir="auto">
+              {props.title}
+            </p>
           </div>
           <div class={styles.railDock}>
             <div class={styles.rail}>

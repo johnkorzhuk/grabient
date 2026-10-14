@@ -114,6 +114,37 @@
     border-radius: var(--radius-tight);
     box-shadow: var(--color-shadow);
   }
+  /* On a touch phone the first screen is the picture and the strip alone, and the sheet's name row is under it: the
+     name stands at the picture's foot instead, quiet on the art's glass, and gives way to the presses a tap brings to
+     the same corners. They are the first screen's words, which the browser's measure of the page's paint reads too. */
+  .caption {
+    display: none;
+    @media (max-width: 900px) and (pointer: coarse) {
+      position: absolute;
+      z-index: 2;
+      bottom: var(--space-s4);
+      inset-inline-start: max(var(--space-s4), env(safe-area-inset-left));
+      display: block;
+      max-width: calc(100% - 2 * var(--space-s4));
+      margin: 0;
+      padding: var(--space-s2) var(--space-s3);
+      border: var(--size-hairline) solid var(--color-art-edge);
+      border-radius: var(--radius-control);
+      background-color: var(--color-art);
+      -webkit-backdrop-filter: blur(var(--size-blur-frost));
+      backdrop-filter: blur(var(--size-blur-frost));
+      color: var(--color-on-art);
+      font-size: var(--font-fs2);
+      font-weight: var(--font-medium);
+      line-height: var(--font-lh-tight);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      pointer-events: none;
+      opacity: calc(1 - var(--tools));
+      transition: opacity var(--motion-fast) var(--motion-ease);
+    }
+  }
   /* a press that waits for the tap on a touch screen; a mouse always has it, and a keyboard and a reader reach it */
   .waits {
     display: inline-flex;

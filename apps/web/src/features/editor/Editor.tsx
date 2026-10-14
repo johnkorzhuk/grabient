@@ -68,6 +68,7 @@ import { editorBindings, keyOf } from "./keys.ts";
 import { keepFacts, NARROW, type PaletteData, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
+import { paletteTitle } from "./title.ts";
 
 /* The editor, at a palette's address. A side that never leaves the window holds the controls: the keyframes, then
    lightness, chroma and hue, each its numbers over its plot, then the actions and the hex of a keyframe held alone.
@@ -630,6 +631,10 @@ function Stage(
           />
         )}
       </Show>
+      {/* the name at the picture's foot, on a phone, where the sheet's name row is under the first screen */}
+      <p class={styles.caption} dir="auto" aria-hidden="true">
+        {paletteTitle(e, props.heading(), props.facts())}
+      </p>
       {/* biome-ignore lint/a11y/useSemanticElements: the palette's presses, which a fieldset would box */}
       <div
         class={styles.tools}
