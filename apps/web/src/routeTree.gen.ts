@@ -55,7 +55,6 @@ import { Route as ESplatRouteImport } from './routes/e/$'
 import { Route as FaviconChar123weekChar125DotsvgRouteImport } from './routes/favicon/{$week}[.]svg'
 import { Route as LoginPasswordRouteImport } from './routes/login_.password'
 import { Route as McpServerCardRouteImport } from './routes/mcp/server-card'
-import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
 import { Route as PalettesChar123wordsChar125DotjsonRouteImport } from './routes/palettes/{$words}[.]json'
 import { Route as PalettesChar123wordsChar125DotpngRouteImport } from './routes/palettes/{$words}[.]png'
@@ -102,7 +101,7 @@ import { Route as ApiSettingsDeleteAccountRouteImport } from './routes/api/setti
 import { Route as ApiSettingsUsernameRouteImport } from './routes/api/settings/username'
 import { Route as CollectionsRisingChar123FrameChar125RouteImport } from './routes/collections/rising.{-$frame}'
 import { Route as OgVersionChar123seedChar125DotpngRouteImport } from './routes/og/$version/{$seed}[.]png'
-import { Route as PalettesRisingChar123FrameChar125RouteImport } from './routes/palettes/rising.{-$frame}'
+import { Route as PalettesChar123OrderChar125Char123FrameChar125RouteImport } from './routes/palettes/{-$order}.{-$frame}'
 import { Route as ApiMeCollectionsIndexRouteImport } from './routes/api/me/collections/index'
 import { Route as ApiMeCollectionsSplatRouteImport } from './routes/api/me/collections/$'
 import { Route as ApiMeNewsletterIndexRouteImport } from './routes/api/me/newsletter/index'
@@ -346,11 +345,6 @@ const LoginPasswordRoute = LoginPasswordRouteImport.update({
 const McpServerCardRoute = McpServerCardRouteImport.update({
   id: '/mcp/server-card',
   path: '/mcp/server-card',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PalettesIndexRoute = PalettesIndexRouteImport.update({
-  id: '/palettes/',
-  path: '/palettes/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PalettesSavedRoute = PalettesSavedRouteImport.update({
@@ -608,10 +602,10 @@ const OgVersionChar123seedChar125DotpngRoute =
     path: '/og/$version/{$seed}.png',
     getParentRoute: () => rootRouteImport,
   } as any)
-const PalettesRisingChar123FrameChar125Route =
-  PalettesRisingChar123FrameChar125RouteImport.update({
-    id: '/palettes/rising/{-$frame}',
-    path: '/palettes/rising/{-$frame}',
+const PalettesChar123OrderChar125Char123FrameChar125Route =
+  PalettesChar123OrderChar125Char123FrameChar125RouteImport.update({
+    id: '/palettes/{-$order}/{-$frame}',
+    path: '/palettes/{-$order}/{-$frame}',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiMeCollectionsIndexRoute = ApiMeCollectionsIndexRouteImport.update({
@@ -733,7 +727,6 @@ export interface FileRoutesByFullPath {
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
-  '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
   '/{$name}.ase/': typeof Char123nameChar125DotaseIndexRoute
@@ -765,7 +758,7 @@ export interface FileRoutesByFullPath {
   '/api/settings/username': typeof ApiSettingsUsernameRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
-  '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
+  '/palettes/{-$order}/{-$frame}': typeof PalettesChar123OrderChar125Char123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
   '/@{$handle}/{$slug}.ase/': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
   '/@{$handle}/{$slug}.gpl/': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
@@ -841,7 +834,6 @@ export interface FileRoutesByTo {
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
   '/collections': typeof CollectionsIndexRoute
-  '/palettes': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt': typeof Char123keyChar125DottxtIndexRoute
   '/{$name}.ase': typeof Char123nameChar125DotaseIndexRoute
@@ -873,7 +865,7 @@ export interface FileRoutesByTo {
   '/api/settings/username': typeof ApiSettingsUsernameRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
-  '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
+  '/palettes/{-$order}/{-$frame}': typeof PalettesChar123OrderChar125Char123FrameChar125Route
   '/@{$handle}/$slug': typeof AtChar123handleChar125SlugIndexRoute
   '/@{$handle}/{$slug}.ase': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
   '/@{$handle}/{$slug}.gpl': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
@@ -950,7 +942,6 @@ export interface FileRoutesById {
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
   '/collections/': typeof CollectionsIndexRoute
-  '/palettes/': typeof PalettesIndexRoute
   '/sitemap-{$name}.xml/': typeof SitemapChar123nameChar125DotxmlIndexRoute
   '/{$key}.txt/': typeof Char123keyChar125DottxtIndexRoute
   '/{$name}.ase/': typeof Char123nameChar125DotaseIndexRoute
@@ -982,7 +973,7 @@ export interface FileRoutesById {
   '/api/settings/username': typeof ApiSettingsUsernameRoute
   '/collections/rising/{-$frame}': typeof CollectionsRisingChar123FrameChar125Route
   '/og/$version/{$seed}.png': typeof OgVersionChar123seedChar125DotpngRoute
-  '/palettes/rising/{-$frame}': typeof PalettesRisingChar123FrameChar125Route
+  '/palettes/{-$order}/{-$frame}': typeof PalettesChar123OrderChar125Char123FrameChar125Route
   '/@{$handle}/$slug/': typeof AtChar123handleChar125SlugIndexRoute
   '/@{$handle}/{$slug}.ase/': typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
   '/@{$handle}/{$slug}.gpl/': typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
@@ -1060,7 +1051,6 @@ export interface FileRouteTypes {
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
-    | '/palettes/'
     | '/sitemap-{$name}.xml/'
     | '/{$key}.txt/'
     | '/{$name}.ase/'
@@ -1092,7 +1082,7 @@ export interface FileRouteTypes {
     | '/api/settings/username'
     | '/collections/rising/{-$frame}'
     | '/og/$version/{$seed}.png'
-    | '/palettes/rising/{-$frame}'
+    | '/palettes/{-$order}/{-$frame}'
     | '/@{$handle}/$slug/'
     | '/@{$handle}/{$slug}.ase/'
     | '/@{$handle}/{$slug}.gpl/'
@@ -1168,7 +1158,6 @@ export interface FileRouteTypes {
     | '/unsubscribe/{-$token}'
     | '/$id'
     | '/collections'
-    | '/palettes'
     | '/sitemap-{$name}.xml'
     | '/{$key}.txt'
     | '/{$name}.ase'
@@ -1200,7 +1189,7 @@ export interface FileRouteTypes {
     | '/api/settings/username'
     | '/collections/rising/{-$frame}'
     | '/og/$version/{$seed}.png'
-    | '/palettes/rising/{-$frame}'
+    | '/palettes/{-$order}/{-$frame}'
     | '/@{$handle}/$slug'
     | '/@{$handle}/{$slug}.ase'
     | '/@{$handle}/{$slug}.gpl'
@@ -1276,7 +1265,6 @@ export interface FileRouteTypes {
     | '/unsubscribe/{-$token}'
     | '/$id/'
     | '/collections/'
-    | '/palettes/'
     | '/sitemap-{$name}.xml/'
     | '/{$key}.txt/'
     | '/{$name}.ase/'
@@ -1308,7 +1296,7 @@ export interface FileRouteTypes {
     | '/api/settings/username'
     | '/collections/rising/{-$frame}'
     | '/og/$version/{$seed}.png'
-    | '/palettes/rising/{-$frame}'
+    | '/palettes/{-$order}/{-$frame}'
     | '/@{$handle}/$slug/'
     | '/@{$handle}/{$slug}.ase/'
     | '/@{$handle}/{$slug}.gpl/'
@@ -1385,7 +1373,6 @@ export interface RootRouteChildren {
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
-  PalettesIndexRoute: typeof PalettesIndexRoute
   SitemapChar123nameChar125DotxmlIndexRoute: typeof SitemapChar123nameChar125DotxmlIndexRoute
   Char123keyChar125DottxtIndexRoute: typeof Char123keyChar125DottxtIndexRoute
   Char123nameChar125DotaseIndexRoute: typeof Char123nameChar125DotaseIndexRoute
@@ -1417,7 +1404,7 @@ export interface RootRouteChildren {
   ApiSettingsUsernameRoute: typeof ApiSettingsUsernameRoute
   CollectionsRisingChar123FrameChar125Route: typeof CollectionsRisingChar123FrameChar125Route
   OgVersionChar123seedChar125DotpngRoute: typeof OgVersionChar123seedChar125DotpngRoute
-  PalettesRisingChar123FrameChar125Route: typeof PalettesRisingChar123FrameChar125Route
+  PalettesChar123OrderChar125Char123FrameChar125Route: typeof PalettesChar123OrderChar125Char123FrameChar125Route
   AtChar123handleChar125SlugIndexRoute: typeof AtChar123handleChar125SlugIndexRoute
   AtChar123handleChar125Char123slugChar125DotaseIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotaseIndexRoute
   AtChar123handleChar125Char123slugChar125DotgplIndexRoute: typeof AtChar123handleChar125Char123slugChar125DotgplIndexRoute
@@ -1765,13 +1752,6 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof McpServerCardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/palettes/': {
-      id: '/palettes/'
-      path: '/palettes'
-      fullPath: '/palettes/'
-      preLoaderRoute: typeof PalettesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/palettes/saved': {
       id: '/palettes/saved'
       path: '/palettes/saved'
@@ -2094,11 +2074,11 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof OgVersionChar123seedChar125DotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/palettes/rising/{-$frame}': {
-      id: '/palettes/rising/{-$frame}'
-      path: '/palettes/rising/{-$frame}'
-      fullPath: '/palettes/rising/{-$frame}'
-      preLoaderRoute: typeof PalettesRisingChar123FrameChar125RouteImport
+    '/palettes/{-$order}/{-$frame}': {
+      id: '/palettes/{-$order}/{-$frame}'
+      path: '/palettes/{-$order}/{-$frame}'
+      fullPath: '/palettes/{-$order}/{-$frame}'
+      preLoaderRoute: typeof PalettesChar123OrderChar125Char123FrameChar125RouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/me/collections/': {
@@ -2243,7 +2223,6 @@ const rootRouteChildren: RootRouteChildren = {
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,
-  PalettesIndexRoute: PalettesIndexRoute,
   SitemapChar123nameChar125DotxmlIndexRoute:
     SitemapChar123nameChar125DotxmlIndexRoute,
   Char123keyChar125DottxtIndexRoute: Char123keyChar125DottxtIndexRoute,
@@ -2278,8 +2257,8 @@ const rootRouteChildren: RootRouteChildren = {
     CollectionsRisingChar123FrameChar125Route,
   OgVersionChar123seedChar125DotpngRoute:
     OgVersionChar123seedChar125DotpngRoute,
-  PalettesRisingChar123FrameChar125Route:
-    PalettesRisingChar123FrameChar125Route,
+  PalettesChar123OrderChar125Char123FrameChar125Route:
+    PalettesChar123OrderChar125Char123FrameChar125Route,
   AtChar123handleChar125SlugIndexRoute: AtChar123handleChar125SlugIndexRoute,
   AtChar123handleChar125Char123slugChar125DotaseIndexRoute:
     AtChar123handleChar125Char123slugChar125DotaseIndexRoute,
