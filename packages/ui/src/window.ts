@@ -10,10 +10,10 @@ import { createMemo, createSignal, flush, isHydrating, onCleanup, onSettled } fr
    markup, which costs a page's start nothing, until the reader moves (scrolls, points, presses a key): then the window
    starts and draws live blocks where it stands. A press or the focus that reaches a still block with no such move (a
    screen reader's own cursor) starts it too, and lands on the same control of the live block (wake). A column made
-   after a navigation is windowed from its first frame, at
-   the depth a return is about to restore and with the room its kind had last time, so a list returned to stands at
-   its depth at once. While any window stands, the browser's scroll anchoring is off: the window places its blocks
-   itself, and anchoring would pull the reader up as a page joins at the end. */
+   after a navigation is windowed from its first frame, at the depth a return is about to restore and with the room
+   its kind had last time, so a list returned to stands at its depth at once. While any window stands, the browser's
+   scroll anchoring is off: the window places its blocks itself, and anchoring would pull the reader up as a page
+   joins at the end. */
 
 export interface WindowRoom {
   /** where the column starts in the document, and how wide it is: kept by its kind across mounts */
