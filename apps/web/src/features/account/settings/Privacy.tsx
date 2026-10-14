@@ -4,17 +4,24 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Switch } from "@grabient/ui/Switch.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { createSignal, For, Show, untrack } from "solid-js";
+import { createSignal, For, onSettled, Show, untrack } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { createOptimisticWrites } from "../../../lib/optimistic.ts";
-import { type ConsentCategory, consent, setConsentCategory } from "../../analytics/consent.ts";
+import {
+  type ConsentCategory,
+  consent,
+  initConsent,
+  setConsentCategory
+} from "../../analytics/consent.ts";
 import { choiceQuery } from "../../newsletter/queries.ts";
 import { writeChoice } from "../../newsletter/writes.ts";
 import { account, shownError } from "../session.ts";
 import styles from "./Settings.module.css";
 
 /* What this browser lets the site measure, signed in or not, and beside it, signed in, the account's newsletter, which
-   the server keeps. */
+   the server keeps. The browser's record is read as the section settles, on every deploy: analytics, which reads it
+   too, runs on production alone. Until it is read, or decided for a reader who has none (the defaults follow the
+   region, which the server names), each switch's place is held. */
 
 const CONSENT: readonly [ConsentCategory, string, string][] = [
   ["analytics", msg("Analytics"), msg("Google Analytics measures how Grabient is used.")],
@@ -92,6 +99,10 @@ function NewsletterChoice() {
 }
 
 export function PrivacySection() {
+  const [read, setRead] = createSignal(false);
+  onSettled(() => {
+    void initConsent().then(() => setRead(true));
+  });
   return (
     <section class={styles.section} id="privacy">
       <div class={styles.head}>
@@ -108,11 +119,13 @@ export function PrivacySection() {
                 </Text>
                 <Text variant="small">{t(entry()[2])}</Text>
               </div>
-              <Switch
-                checked={consent().categories[entry()[0]]}
-                aria-labelledby={`consent-${entry()[0]}-label`}
-                onChange={on => setConsentCategory(entry()[0], on)}
-              />
+              <Show when={read()} fallback={<Placeholder width="56px" height="40px" />}>
+                <Switch
+                  checked={consent().categories[entry()[0]]}
+                  aria-labelledby={`consent-${entry()[0]}-label`}
+                  onChange={on => setConsentCategory(entry()[0], on)}
+                />
+              </Show>
             </div>
           )}
         </For>
