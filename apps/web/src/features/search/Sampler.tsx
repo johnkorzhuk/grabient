@@ -215,7 +215,9 @@ export function Sampler(props: {
               onClick={() => choose(i)}
             >
               <span class={styles.swatch} style={{ "background-color": p().hex }} />
-              <Text variant="mono">{p().hex}</Text>
+              <Text variant="mono" dir="ltr">
+                {p().hex}
+              </Text>
             </button>
           )}
         </For>
