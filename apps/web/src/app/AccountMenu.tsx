@@ -12,7 +12,7 @@ import { Avatar } from "@grabient/ui/Avatar.tsx";
 import { type MenuItem, MenuList } from "@grabient/ui/Menu.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
 import { useRouter } from "@tanstack/solid-router";
-import { createSignal, onSettled, Show } from "solid-js";
+import { createMemo, createSignal, onSettled, Show, untrack } from "solid-js";
 import {
   account,
   checkAccount,
@@ -107,6 +107,9 @@ export function AccountMenu(props: {
       }
     ];
   };
+  /* the sync's row as it stood when the menu opened: one that a sync settles while the menu is open would leave from
+     under a press, moving every row after it */
+  const held = createMemo(() => (open() ? untrack(sync) : []));
   const rows = (): MenuItem[] => {
     if (!account()) {
       return [
@@ -118,7 +121,7 @@ export function AccountMenu(props: {
         language()
       ];
     }
-    const lead = sync();
+    const lead = held();
     return [
       ...lead,
       { value: "/palettes/saved", label: t("Saved palettes"), group: lead.length > 0 },
