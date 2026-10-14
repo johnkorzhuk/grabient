@@ -430,6 +430,31 @@ for (const width of WIDTHS)
       expect(broken).toEqual([]);
     });
 
+    test("a palette's page says how many like it from its first frame, and keeps saying it with no answer to its ask", async ({
+      page,
+      request
+    }) => {
+      const broken = watch(page);
+      // a palette no journey likes: none presses a heart on Popular's third page
+      const listed = await request.get("/api/palettes?sort=popular&page=3&limit=24");
+      const seed = ((await listed.json()) as { items: Item[] }).items[12]!.kseed;
+      const asked = await request.get(`/api/like-counts?keys=${seed}`);
+      const count = ((await asked.json()) as { counts: Record<string, number> }).counts[seed]!;
+      expect(count).toBeGreaterThan(0);
+      const said = `Like, ${count.toLocaleString("en")}`;
+      // the page the server sends, which the service worker keeps for a visit with no connection
+      expect(await (await request.get(`/${seed}`)).text()).toContain(`aria-label="${said}"`);
+      // the editor, with every ask for counts unanswered
+      await page.route("**/api/like-counts*", route => route.abort());
+      await open(page, `/${seed}`);
+      const heart = page.getByRole("button", { name: /^Like, / });
+      await expect(heart).toHaveAttribute("aria-label", said);
+      // past the editor's rest, when it asks
+      await page.waitForTimeout(1500);
+      await expect(heart).toHaveAttribute("aria-label", said);
+      expect(broken).toEqual([]);
+    });
+
     test("the sign-in sheet, Settings, About and the newsletter open from the frame's menu and links, and Back returns to the list", async ({
       page
     }) => {

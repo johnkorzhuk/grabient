@@ -17,7 +17,7 @@ import styles from "./Editor.module.css";
     the editor arriving changes nothing in the picture or the strip. The parts are the editor's own, with its classes:
     the picture in its stage, the rail while the side is away, the strip, and the sheet's name row under them with the
     palette's presses hidden at its end, as at rest; the side's place stands empty until its controls come. */
-export function Boot(props: { page: SeedPage; title: string }) {
+export function Boot(props: { page: SeedPage; title: string; likes: number }) {
   const view = () => props.page.view;
   const stops = createMemo(() =>
     sampleStops(props.page.palette, view().steps).map(s => ({
@@ -82,7 +82,7 @@ export function Boot(props: { page: SeedPage; title: string }) {
                 <div class={sheet.takes} data-away="">
                   <div class={sheet.actions}>
                     <span class={styles.hung}>
-                      <Like variant="plain" count={0} />
+                      <Like variant="plain" count={props.likes} />
                     </span>
                     <span class={styles.stack} data-flat="">
                       <Button variant="secondary" icon size="lg" aria-label={t("Add to selection")}>
