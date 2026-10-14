@@ -1,6 +1,6 @@
-Coral lagoon, Radial
-https://grabient.test/kYuXkT47BBu6sxXjqsk1ilF8Onws?style=radialGradient&steps=32&angle=0
-#ff786b #ff9b73 #f5d070 #63d0a9 #26a8c5 #2473a5
+Witching hour, Linear
+https://grabient.test/kWMS7qPZ68084TQkCrUnaNBo?steps=40&angle=135
+#230722 #685386 #cc6708 #312532 #37022d
 
 No. 1 · October 2026
 
@@ -10,17 +10,17 @@ Five palettes from the Rising list, picked by hand.
 
 In this issue: collections, and a quick tip.
 
-Peach orchard, Linear bands
-https://grabient.test/kW8RUxaqO8dmsPXbqE2x6zBg?style=linearSwatches&steps=5&angle=135
+Harvest moon, Radial
+https://grabient.test/kU9ClB669AFIzOk9Lj2g?style=radialGradient&steps=32&angle=0
 
-Desert dusk, Linear
-https://grabient.test/kWzVMw17K7kq5vM-LD1shs7Y?steps=32&angle=180
+Black cherry, Angular bands
+https://grabient.test/kWziAlUZi-bxAvSmqr2kRe7g?style=angularSwatches&steps=32&angle=0
 
-Pistachio macaron, Radial bands
-https://grabient.test/kW6hdK6pbElaRxXeH9QcJFBI?style=radialSwatches&steps=5&angle=0
+Turning leaves, Angular bands
+https://grabient.test/kUby9y5jE3PaQwI4IDlg?style=angularSwatches&steps=24&angle=60
 
-Orchid velvet, Angular
-https://grabient.test/kW0ibSWiTBMytwpBMkKMyhAQ?style=angularGradient&steps=32&angle=315
+Dark academia, Linear bands
+https://grabient.test/kUkSoUPQrBKiNOiSm75A?style=linearSwatches&steps=13
 
 See all rising palettes: https://grabient.test/palettes/rising
 
