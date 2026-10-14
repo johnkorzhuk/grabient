@@ -12,8 +12,11 @@ import type { Style } from "@grabient/engine/view.ts";
 import { labOf, sixDigits } from "@grabient/search/colors.ts";
 import { harmonyFilter, normalizeQuery, QUERY_MAX } from "@grabient/search/text.ts";
 import { queryIntent } from "@grabient/search/words.ts";
-import type { ListSort, RisingFrame } from "../../lib/orders.ts";
+import { sortSearch } from "../../features/gallery/sort.ts";
+import { type ListSort, parseSort, type RisingFrame } from "../../lib/orders.ts";
+import { listWords, looksLikeLink, paletteId } from "../../lib/words.ts";
 import { isCrawler } from "../crawlers.ts";
+import { canonicalPaletteSeed } from "../files/resolve.ts";
 import {
   blendOf,
   factsOf,
@@ -23,6 +26,7 @@ import {
   strayDistance
 } from "./facts.ts";
 import { type AssetsEnv, loadVocabulary } from "./files.ts";
+import { type Item, searchableItems } from "./items.ts";
 import { type ModelEnv, modelQuery, type Payer } from "./model.ts";
 import {
   answerBar,
@@ -46,16 +50,6 @@ import {
   plainPhrase,
   queryWords
 } from "./read.ts";
-import {
-  canonicalPaletteSeed,
-  type Item,
-  looksLikeLink,
-  normalizeListQuery,
-  paletteId,
-  parseSearchSort,
-  searchableItems,
-  sortSearchItems
-} from "./seams.ts";
 import { type Background, loadSnapshot, type SnapshotEnv } from "./snapshot.ts";
 
 export type SearchTier =
@@ -134,7 +128,7 @@ const NOTHING: SearchRead = { phrases: [], unread: [], excluded: [] };
 /** A query as every search takes it: a Grabient link as what it leads to, then NFKC and one space. Null when empty,
     longer than 100 characters, or holding control characters. */
 export function normalizeSearchQuery(raw: string): string | null {
-  const asked = looksLikeLink(raw) ? normalizeListQuery(raw) || raw : raw;
+  const asked = looksLikeLink(raw) ? listWords(raw) || raw : raw;
   const query = asked.normalize("NFKC").replace(/\s+/gu, " ").trim();
   // biome-ignore lint/suspicious/noControlCharactersInRegex: the control characters are what is refused
   return query && query.length <= QUERY_MAX && !/[\u0000-\u001f\u007f]/u.test(query) ? query : null;
@@ -176,7 +170,7 @@ export function searchRequestInput(request: Request): {
   return {
     query: query === null ? null : normalizeSearchQuery(query),
     limit: searchLimit(url.searchParams.get("limit")),
-    sort: parseSearchSort(url.searchParams.get("sort"))
+    sort: parseSort(url.searchParams.get("sort"))
   };
 }
 
@@ -446,7 +440,7 @@ export async function searchLeaders(
 ): Promise<SearchItem[]> {
   const { sort, frame, ...asked } = options;
   const { items } = await searchPalettes(env, query, { ...asked, limit: SEARCH_ANSWER });
-  return sortSearchItems(items, sort, frame).slice(0, count);
+  return sortSearch(items, sort, frame).slice(0, count);
 }
 
 /** A list someone holds, searched (an account's Saved palettes): which of these seeds answer the words, best first.

@@ -7,17 +7,15 @@ import type { Snapshot } from "@grabient/search/snapshot.ts";
 import { queryTokens } from "@grabient/search/text.ts";
 import { FORM_WORDS } from "@grabient/search/words.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { paletteId } from "../../lib/words.ts";
+import { suggestCollections } from "../collections/search.ts";
+import { canonicalPaletteSeed } from "../files/resolve.ts";
+import { localizeTags, translatedLocale } from "../mcp/admin/translations.ts";
 import { loadVocabulary, phraseVector, type Vocabulary } from "./files.ts";
 import { keep } from "./kept.ts";
 import { kindOf, leadRow, popularLists, repeats, yearRank } from "./popular.ts";
 import { seedQueryVector, snapshotPalettes } from "./rank.ts";
 import { knownQuery, plainPhrase } from "./read.ts";
-import {
-  canonicalPaletteSeed,
-  normalizeTypedQuery,
-  paletteId,
-  suggestCollections
-} from "./seams.ts";
 import { loadSnapshot, type SnapshotEnv } from "./snapshot.ts";
 
 /** A search as a tag: its words as a label, where a press leads, the colors of what answers, and the words. */
@@ -62,6 +60,13 @@ const tagOf = (files: Files, words: string): SearchTag => ({
 });
 const bounded = (limit: number, fallback: number) =>
   Math.max(1, Math.min(24, Math.floor(limit) || fallback));
+
+/** What a search field holds, as its tags are asked for and kept: the words in lowercase, 100 characters at most, or a
+    palette's seed in its own case. */
+export function typedWords(raw: string | null | undefined): string {
+  const typed = (raw ?? "").normalize("NFKC").replace(/\s+/gu, " ").trim();
+  return paletteId(typed) ?? typed.toLowerCase().slice(0, 100);
+}
 
 async function searchFiles(env: SnapshotEnv): Promise<Files | null> {
   const [snapshot, vocabulary] = await Promise.all([loadSnapshot(env), loadVocabulary(env)]);
@@ -177,7 +182,7 @@ export function closeness(candidate: string, typed: string): number {
     the phrases they begin, hold or are a letter from, the most searched first. Nothing typed is the row at rest; a
     palette in the words' place is answered by the searches it answers. */
 export async function suggestSearches(env: TagEnv, raw = "", limit = 12): Promise<SearchTag[]> {
-  const typed = normalizeTypedQuery(raw);
+  const typed = typedWords(raw);
   if (!typed) return popularSearches(env, limit);
   const files = await searchFiles(env);
   if (!files) return [];
@@ -265,30 +270,46 @@ export async function homeTags(env: TagEnv, words = "", count = 24): Promise<Hom
   );
 }
 
-/** How long tags are kept: answers to typed words an hour, since the vocabulary gives them; the row at rest five
-    minutes, so a search scheduled for now is in it soon after its time. */
-export const suggestionsCache = (typed: string): Record<string, string> => ({
-  "Cache-Control": `public, max-age=${normalizeTypedQuery(typed) ? 3600 : 300}`
-});
+/* What the tags' address asks (`q`, `limit`, `both=1` for the home's row at rest, `lang`), read once for the answer
+   and for the key the edge keeps it by. */
+function asked(params: URLSearchParams) {
+  const typed = typedWords(params.get("q"));
+  const both = !typed && params.get("both") === "1";
+  const limit = Math.floor(Number(params.get("limit") ?? ""));
+  return {
+    typed,
+    both,
+    limit: Math.max(both ? 2 : 1, Math.min(24, limit || (both ? 24 : 12))),
+    lang: translatedLocale(params.get("lang"))
+  };
+}
 
-/** The tags for what a field holds: with nothing typed and `both`, the home's row; else the searches that answer it. */
-export const suggestionsFor = (
-  env: TagEnv,
-  typed: string,
-  options: { both?: boolean; limit?: number }
-): Promise<HomeTag[]> =>
-  !normalizeTypedQuery(typed) && options.both
-    ? homeTags(env, "", Math.max(2, Math.min(24, Math.floor(options.limit ?? 24) || 24)))
-    : suggestSearches(env, typed, options.limit ?? 12);
-
-/** `GET /api/search-suggestions?q=&limit=` (`both=1`: the home's row): public, the same for everyone. */
-export async function searchSuggestionsResponse(request: Request, env: TagEnv): Promise<Response> {
-  const url = new URL(request.url);
-  const typed = url.searchParams.get("q") ?? "";
-  const asked = url.searchParams.get("limit");
-  const suggestions = await suggestionsFor(env, typed, {
-    both: url.searchParams.get("both") === "1",
-    ...(asked === null ? {} : { limit: Number(asked) })
+/** The query the tags are kept at the edge by: what their answer reads, as it reads it. */
+export function tagsKey(params: URLSearchParams): URLSearchParams {
+  const { typed, both, limit, lang } = asked(params);
+  return new URLSearchParams({
+    q: typed,
+    limit: String(limit),
+    ...(both ? { both: "1" } : {}),
+    ...(lang ? { lang } : {})
   });
-  return Response.json({ suggestions }, { headers: suggestionsCache(typed) });
+}
+
+/** The tags for what a field holds, in the language asked: with nothing typed and `both`, the home's row; else the
+    searches that answer it. A page's first paint and `GET /api/search-suggestions` both read them here. */
+export async function suggestionsFor(env: TagEnv, params: URLSearchParams): Promise<HomeTag[]> {
+  const { typed, both, limit, lang } = asked(params);
+  const tags = await (both ? homeTags(env, "", limit) : suggestSearches(env, typed, limit));
+  return localizeTags(env, lang, tags);
+}
+
+/** `GET /api/search-suggestions?q=&limit=&lang=` (`both=1`: the home's row): public, the same for everyone. Answers to
+    typed words are kept an hour, since the vocabulary gives them; the row at rest five minutes, so a search scheduled
+    for now is in it soon after its time. */
+export async function searchSuggestionsResponse(request: Request, env: TagEnv): Promise<Response> {
+  const params = new URL(request.url).searchParams;
+  return Response.json(
+    { suggestions: await suggestionsFor(env, params) },
+    { headers: { "Cache-Control": `public, max-age=${typedWords(params.get("q")) ? 3600 : 300}` } }
+  );
 }

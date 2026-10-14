@@ -23,6 +23,12 @@ const LANDED_MS = 120;
 /** A history entry the selection was opened in, over the page beneath it. */
 export const SELECTION_MARK = "selection";
 
+/** Rewrites the page's address in place without the route taking it: a value still being set (a view or a size
+    being dragged), which the route takes once it rests. The router hears of every write made through the history
+    object, whose methods it wraps, so this one is made with the browser's own. */
+export const rewriteQuietly = (href: string): void =>
+  History.prototype.replaceState.call(history, history.state, "", href);
+
 /** The router's ways in: link presses, landings and their undo. Returns the way out. */
 export function watchNavigation(router: AnyRouter): () => void {
   const onClick = (e: MouseEvent) => {

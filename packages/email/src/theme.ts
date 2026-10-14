@@ -2,6 +2,7 @@
    alpha, so a translucent token is laid over the ground it stands on and written opaque, and font stacks lose their
    quotes so a style attribute never needs one. */
 import { withBlack, withWhite } from "@grabient/engine/contrast.ts";
+import { MARK_FIXED } from "@grabient/ui/mark.ts";
 import { color, font, radius, size, space } from "@grabient/ui/tokens.ts";
 
 export type Mode = "light" | "dark";
@@ -181,8 +182,8 @@ export const SIZE = {
 export type PictureSize = keyof typeof SIZE.pictures;
 export type HeadSize = keyof typeof SIZE.heads;
 
-/** The brand's gradient: what an email wears when it has no palette of its own. */
-export const BRAND: readonly string[] = ["#ffd25f", "#ff5f6d", "#a17fff"];
+/** The brand's gradient, the mark's own: what an email wears when it has no palette of its own. */
+export const BRAND = MARK_FIXED;
 /** The brand's heads, drawn ahead by the site's card painter and served from the site's public files. */
 export const HEAD_FILES = {
   sheet: "email/head-sheet.png",

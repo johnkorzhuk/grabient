@@ -14,11 +14,8 @@ import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { FILE, NO_STORE } from "../../lib/cache.ts";
+import { CARD_VERSION } from "../../lib/page-meta.ts";
 import { CARD } from "./size.ts";
-
-/** The version of everything a share card draws. A change to what any picture draws takes a new version: kept cards
-    are named by it, and card addresses carry it so a network that keeps cards by address asks again. */
-export const CARD_VERSION = "k4";
 
 export type PictureEnv = Pick<Env, "DB" | "DEPLOYMENT"> &
   Partial<Pick<Env, "UPLOADS" | "RATE_LIMITER" | "USAGE">>;

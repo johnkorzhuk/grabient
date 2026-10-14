@@ -14,10 +14,12 @@ import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
+import { RISING_FRAMES, type RisingFrame } from "../../src/lib/orders.ts";
+import { RISE_COLUMN } from "../../src/server/gallery/scores.ts";
 import { DATA, MIGRATIONS, type Value } from "./d1.ts";
-import { accountHandle } from "./merge.ts";
+import { handleOf } from "./merge.ts";
 import { type Original, readAliases, readOriginals, STYLES } from "./palettes.ts";
-import { type Frame, RISE_COLUMN, SCORE_READS, scoreInput, scores } from "./scores.ts";
+import { SCORE_READS, scoreInput, scores } from "./scores.ts";
 import { internal, openSnapshot, type Row, readSnapshot, type Snapshot } from "./snapshot.ts";
 import {
   BYLINE_MAIL,
@@ -404,7 +406,7 @@ export function verify(
       const user = copyUsers.get(String(owner));
       const slug = String(c.slug);
       const moved =
-        user && slug.startsWith("@") && String(held.slug).startsWith(`@${accountHandle(user)}/`);
+        user && slug.startsWith("@") && String(held.slug).startsWith(`@${handleOf(user)}/`);
       if (held.slug !== slug && !moved) return [`${slug} is at ${held.slug}`];
       const differ = words.filter(w => !same(held[w], c[w]));
       if (differ.length) return [`${slug} differs in ${differ.join(", ")}`];
@@ -502,8 +504,8 @@ export function verify(
     }),
     options.now
   );
-  const frames = Object.keys(RISE_COLUMN) as Frame[];
-  const off = (row: Row, s: ({ hot: number } & Record<Frame, number>) | undefined) =>
+  const frames = RISING_FRAMES;
+  const off = (row: Row, s: ({ hot: number } & Record<RisingFrame, number>) | undefined) =>
     Math.abs(num(row.hot) - (s?.hot ?? 0)) > 1e-9 ||
     frames.some(f => Math.abs(num(row[RISE_COLUMN[f]]) - (s?.[f] ?? 0)) > 1e-6);
   check(
@@ -750,7 +752,7 @@ export function verifyStaging(
 
   /* nothing names an account left out: no value of any row holds one's id, email or private address */
   const emails = new Set(left.map(user => String(user.email).toLowerCase()));
-  const handles = new Set(left.map(user => accountHandle(user)));
+  const handles = new Set(left.map(handleOf));
   const named: string[] = [];
   for (const table of Object.keys(copy.meta.tables)) {
     for (const row of copy.rows(table)) {

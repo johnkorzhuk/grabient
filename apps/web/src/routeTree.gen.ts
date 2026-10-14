@@ -38,9 +38,11 @@ import { Route as ApiFramesRouteImport } from './routes/api/frames'
 import { Route as ApiGeoRouteImport } from './routes/api/geo'
 import { Route as ApiHotRouteImport } from './routes/api/hot'
 import { Route as ApiLikeCountsRouteImport } from './routes/api/like-counts'
+import { Route as ApiNewsletterRouteImport } from './routes/api/newsletter'
 import { Route as ApiPaletteRouteImport } from './routes/api/palette'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
 import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
+import { Route as ApiPopularSearchesRouteImport } from './routes/api/popular-searches'
 import { Route as ApiSavedRouteImport } from './routes/api/saved'
 import { Route as ApiSearchColorsRouteImport } from './routes/api/search-colors'
 import { Route as ApiSearchSuggestionsRouteImport } from './routes/api/search-suggestions'
@@ -55,7 +57,9 @@ import { Route as LoginPasswordRouteImport } from './routes/login_.password'
 import { Route as McpServerCardRouteImport } from './routes/mcp/server-card'
 import { Route as PalettesIndexRouteImport } from './routes/palettes/index'
 import { Route as PalettesSavedRouteImport } from './routes/palettes/saved'
+import { Route as PalettesChar123wordsChar125DotjsonRouteImport } from './routes/palettes/{$words}[.]json'
 import { Route as PalettesChar123wordsChar125DotpngRouteImport } from './routes/palettes/{$words}[.]png'
+import { Route as SearchChar123wordsChar125DotjsonRouteImport } from './routes/search/{$words}[.]json'
 import { Route as SearchChar123wordsChar125DotpngRouteImport } from './routes/search/{$words}[.]png'
 import { Route as SitemapChar123nameChar125DotxmlIndexRouteImport } from './routes/sitemap-{$name}[.]xml/index'
 import { Route as UnsubscribeChar123TokenChar125RouteImport } from './routes/unsubscribe.{-$token}'
@@ -88,6 +92,7 @@ import { Route as ApiOgCollectionRouteImport } from './routes/api/og/collection'
 import { Route as ApiOgCollectionsRouteImport } from './routes/api/og/collections'
 import { Route as ApiOgListRouteImport } from './routes/api/og/list'
 import { Route as ApiOgQueryRouteImport } from './routes/api/og/query'
+import { Route as ApiPalettesSearchRouteImport } from './routes/api/palettes_.search'
 import { Route as ApiPngIndexRouteImport } from './routes/api/png/index'
 import { Route as ApiPngCollectionRouteImport } from './routes/api/png/collection'
 import { Route as ApiPngQueryRouteImport } from './routes/api/png/query'
@@ -257,6 +262,11 @@ const ApiLikeCountsRoute = ApiLikeCountsRouteImport.update({
   path: '/api/like-counts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiNewsletterRoute = ApiNewsletterRouteImport.update({
+  id: '/api/newsletter',
+  path: '/api/newsletter',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPaletteRoute = ApiPaletteRouteImport.update({
   id: '/api/palette',
   path: '/api/palette',
@@ -270,6 +280,11 @@ const ApiPaletteDotjsonRoute = ApiPaletteDotjsonRouteImport.update({
 const ApiPalettesRoute = ApiPalettesRouteImport.update({
   id: '/api/palettes',
   path: '/api/palettes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPopularSearchesRoute = ApiPopularSearchesRouteImport.update({
+  id: '/api/popular-searches',
+  path: '/api/popular-searches',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSavedRoute = ApiSavedRouteImport.update({
@@ -343,10 +358,22 @@ const PalettesSavedRoute = PalettesSavedRouteImport.update({
   path: '/palettes/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PalettesChar123wordsChar125DotjsonRoute =
+  PalettesChar123wordsChar125DotjsonRouteImport.update({
+    id: '/palettes/{$words}.json',
+    path: '/palettes/{$words}.json',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const PalettesChar123wordsChar125DotpngRoute =
   PalettesChar123wordsChar125DotpngRouteImport.update({
     id: '/palettes/{$words}.png',
     path: '/palettes/{$words}.png',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const SearchChar123wordsChar125DotjsonRoute =
+  SearchChar123wordsChar125DotjsonRouteImport.update({
+    id: '/search/{$words}.json',
+    path: '/search/{$words}.json',
     getParentRoute: () => rootRouteImport,
   } as any)
 const SearchChar123wordsChar125DotpngRoute =
@@ -528,6 +555,11 @@ const ApiOgQueryRoute = ApiOgQueryRouteImport.update({
   path: '/api/og/query',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPalettesSearchRoute = ApiPalettesSearchRouteImport.update({
+  id: '/api/palettes_/search',
+  path: '/api/palettes/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPngIndexRoute = ApiPngIndexRouteImport.update({
   id: '/api/png/',
   path: '/api/png/',
@@ -677,9 +709,11 @@ export interface FileRoutesByFullPath {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
+  '/api/popular-searches': typeof ApiPopularSearchesRoute
   '/api/saved': typeof ApiSavedRoute
   '/api/search-colors': typeof ApiSearchColorsRoute
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
@@ -692,7 +726,9 @@ export interface FileRoutesByFullPath {
   '/login/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
+  '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/search/{$words}.json': typeof SearchChar123wordsChar125DotjsonRoute
   '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
@@ -720,6 +756,7 @@ export interface FileRoutesByFullPath {
   '/api/og/collections': typeof ApiOgCollectionsRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
+  '/api/palettes/search': typeof ApiPalettesSearchRoute
   '/api/png/collection': typeof ApiPngCollectionRoute
   '/api/png/query': typeof ApiPngQueryRoute
   '/api/search/status': typeof ApiSearchStatusRoute
@@ -780,9 +817,11 @@ export interface FileRoutesByTo {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
+  '/api/popular-searches': typeof ApiPopularSearchesRoute
   '/api/saved': typeof ApiSavedRoute
   '/api/search-colors': typeof ApiSearchColorsRoute
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
@@ -795,7 +834,9 @@ export interface FileRoutesByTo {
   '/login/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
+  '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/search/{$words}.json': typeof SearchChar123wordsChar125DotjsonRoute
   '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id': typeof IdIndexRoute
@@ -823,6 +864,7 @@ export interface FileRoutesByTo {
   '/api/og/collections': typeof ApiOgCollectionsRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
+  '/api/palettes/search': typeof ApiPalettesSearchRoute
   '/api/png/collection': typeof ApiPngCollectionRoute
   '/api/png/query': typeof ApiPngQueryRoute
   '/api/search/status': typeof ApiSearchStatusRoute
@@ -884,9 +926,11 @@ export interface FileRoutesById {
   '/api/geo': typeof ApiGeoRoute
   '/api/hot': typeof ApiHotRoute
   '/api/like-counts': typeof ApiLikeCountsRoute
+  '/api/newsletter': typeof ApiNewsletterRoute
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
+  '/api/popular-searches': typeof ApiPopularSearchesRoute
   '/api/saved': typeof ApiSavedRoute
   '/api/search-colors': typeof ApiSearchColorsRoute
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
@@ -899,7 +943,9 @@ export interface FileRoutesById {
   '/login_/password': typeof LoginPasswordRoute
   '/mcp/server-card': typeof McpServerCardRoute
   '/palettes/saved': typeof PalettesSavedRoute
+  '/palettes/{$words}.json': typeof PalettesChar123wordsChar125DotjsonRoute
   '/palettes/{$words}.png': typeof PalettesChar123wordsChar125DotpngRoute
+  '/search/{$words}.json': typeof SearchChar123wordsChar125DotjsonRoute
   '/search/{$words}.png': typeof SearchChar123wordsChar125DotpngRoute
   '/unsubscribe/{-$token}': typeof UnsubscribeChar123TokenChar125Route
   '/$id/': typeof IdIndexRoute
@@ -927,6 +973,7 @@ export interface FileRoutesById {
   '/api/og/collections': typeof ApiOgCollectionsRoute
   '/api/og/list': typeof ApiOgListRoute
   '/api/og/query': typeof ApiOgQueryRoute
+  '/api/palettes_/search': typeof ApiPalettesSearchRoute
   '/api/png/collection': typeof ApiPngCollectionRoute
   '/api/png/query': typeof ApiPngQueryRoute
   '/api/search/status': typeof ApiSearchStatusRoute
@@ -989,9 +1036,11 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/newsletter'
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
+    | '/api/popular-searches'
     | '/api/saved'
     | '/api/search-colors'
     | '/api/search-suggestions'
@@ -1004,7 +1053,9 @@ export interface FileRouteTypes {
     | '/login/password'
     | '/mcp/server-card'
     | '/palettes/saved'
+    | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
+    | '/search/{$words}.json'
     | '/search/{$words}.png'
     | '/unsubscribe/{-$token}'
     | '/$id/'
@@ -1032,6 +1083,7 @@ export interface FileRouteTypes {
     | '/api/og/collections'
     | '/api/og/list'
     | '/api/og/query'
+    | '/api/palettes/search'
     | '/api/png/collection'
     | '/api/png/query'
     | '/api/search/status'
@@ -1092,9 +1144,11 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/newsletter'
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
+    | '/api/popular-searches'
     | '/api/saved'
     | '/api/search-colors'
     | '/api/search-suggestions'
@@ -1107,7 +1161,9 @@ export interface FileRouteTypes {
     | '/login/password'
     | '/mcp/server-card'
     | '/palettes/saved'
+    | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
+    | '/search/{$words}.json'
     | '/search/{$words}.png'
     | '/unsubscribe/{-$token}'
     | '/$id'
@@ -1135,6 +1191,7 @@ export interface FileRouteTypes {
     | '/api/og/collections'
     | '/api/og/list'
     | '/api/og/query'
+    | '/api/palettes/search'
     | '/api/png/collection'
     | '/api/png/query'
     | '/api/search/status'
@@ -1195,9 +1252,11 @@ export interface FileRouteTypes {
     | '/api/geo'
     | '/api/hot'
     | '/api/like-counts'
+    | '/api/newsletter'
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
+    | '/api/popular-searches'
     | '/api/saved'
     | '/api/search-colors'
     | '/api/search-suggestions'
@@ -1210,7 +1269,9 @@ export interface FileRouteTypes {
     | '/login_/password'
     | '/mcp/server-card'
     | '/palettes/saved'
+    | '/palettes/{$words}.json'
     | '/palettes/{$words}.png'
+    | '/search/{$words}.json'
     | '/search/{$words}.png'
     | '/unsubscribe/{-$token}'
     | '/$id/'
@@ -1238,6 +1299,7 @@ export interface FileRouteTypes {
     | '/api/og/collections'
     | '/api/og/list'
     | '/api/og/query'
+    | '/api/palettes_/search'
     | '/api/png/collection'
     | '/api/png/query'
     | '/api/search/status'
@@ -1299,9 +1361,11 @@ export interface RootRouteChildren {
   ApiGeoRoute: typeof ApiGeoRoute
   ApiHotRoute: typeof ApiHotRoute
   ApiLikeCountsRoute: typeof ApiLikeCountsRoute
+  ApiNewsletterRoute: typeof ApiNewsletterRoute
   ApiPaletteRoute: typeof ApiPaletteRoute
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
   ApiPalettesRoute: typeof ApiPalettesRoute
+  ApiPopularSearchesRoute: typeof ApiPopularSearchesRoute
   ApiSavedRoute: typeof ApiSavedRoute
   ApiSearchColorsRoute: typeof ApiSearchColorsRoute
   ApiSearchSuggestionsRoute: typeof ApiSearchSuggestionsRoute
@@ -1314,7 +1378,9 @@ export interface RootRouteChildren {
   LoginPasswordRoute: typeof LoginPasswordRoute
   McpServerCardRoute: typeof McpServerCardRoute
   PalettesSavedRoute: typeof PalettesSavedRoute
+  PalettesChar123wordsChar125DotjsonRoute: typeof PalettesChar123wordsChar125DotjsonRoute
   PalettesChar123wordsChar125DotpngRoute: typeof PalettesChar123wordsChar125DotpngRoute
+  SearchChar123wordsChar125DotjsonRoute: typeof SearchChar123wordsChar125DotjsonRoute
   SearchChar123wordsChar125DotpngRoute: typeof SearchChar123wordsChar125DotpngRoute
   UnsubscribeChar123TokenChar125Route: typeof UnsubscribeChar123TokenChar125Route
   IdIndexRoute: typeof IdIndexRoute
@@ -1342,6 +1408,7 @@ export interface RootRouteChildren {
   ApiOgCollectionsRoute: typeof ApiOgCollectionsRoute
   ApiOgListRoute: typeof ApiOgListRoute
   ApiOgQueryRoute: typeof ApiOgQueryRoute
+  ApiPalettesSearchRoute: typeof ApiPalettesSearchRoute
   ApiPngCollectionRoute: typeof ApiPngCollectionRoute
   ApiPngQueryRoute: typeof ApiPngQueryRoute
   ApiSearchStatusRoute: typeof ApiSearchStatusRoute
@@ -1579,6 +1646,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiLikeCountsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/newsletter': {
+      id: '/api/newsletter'
+      path: '/api/newsletter'
+      fullPath: '/api/newsletter'
+      preLoaderRoute: typeof ApiNewsletterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/palette': {
       id: '/api/palette'
       path: '/api/palette'
@@ -1598,6 +1672,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/palettes'
       fullPath: '/api/palettes'
       preLoaderRoute: typeof ApiPalettesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/popular-searches': {
+      id: '/api/popular-searches'
+      path: '/api/popular-searches'
+      fullPath: '/api/popular-searches'
+      preLoaderRoute: typeof ApiPopularSearchesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saved': {
@@ -1698,11 +1779,25 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof PalettesSavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/palettes/{$words}.json': {
+      id: '/palettes/{$words}.json'
+      path: '/palettes/{$words}.json'
+      fullPath: '/palettes/{$words}.json'
+      preLoaderRoute: typeof PalettesChar123wordsChar125DotjsonRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/palettes/{$words}.png': {
       id: '/palettes/{$words}.png'
       path: '/palettes/{$words}.png'
       fullPath: '/palettes/{$words}.png'
       preLoaderRoute: typeof PalettesChar123wordsChar125DotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search/{$words}.json': {
+      id: '/search/{$words}.json'
+      path: '/search/{$words}.json'
+      fullPath: '/search/{$words}.json'
+      preLoaderRoute: typeof SearchChar123wordsChar125DotjsonRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search/{$words}.png': {
@@ -1929,6 +2024,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiOgQueryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/palettes_/search': {
+      id: '/api/palettes_/search'
+      path: '/api/palettes/search'
+      fullPath: '/api/palettes/search'
+      preLoaderRoute: typeof ApiPalettesSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/png/': {
       id: '/api/png/'
       path: '/api/png'
@@ -2115,9 +2217,11 @@ const rootRouteChildren: RootRouteChildren = {
   ApiGeoRoute: ApiGeoRoute,
   ApiHotRoute: ApiHotRoute,
   ApiLikeCountsRoute: ApiLikeCountsRoute,
+  ApiNewsletterRoute: ApiNewsletterRoute,
   ApiPaletteRoute: ApiPaletteRoute,
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
   ApiPalettesRoute: ApiPalettesRoute,
+  ApiPopularSearchesRoute: ApiPopularSearchesRoute,
   ApiSavedRoute: ApiSavedRoute,
   ApiSearchColorsRoute: ApiSearchColorsRoute,
   ApiSearchSuggestionsRoute: ApiSearchSuggestionsRoute,
@@ -2130,8 +2234,11 @@ const rootRouteChildren: RootRouteChildren = {
   LoginPasswordRoute: LoginPasswordRoute,
   McpServerCardRoute: McpServerCardRoute,
   PalettesSavedRoute: PalettesSavedRoute,
+  PalettesChar123wordsChar125DotjsonRoute:
+    PalettesChar123wordsChar125DotjsonRoute,
   PalettesChar123wordsChar125DotpngRoute:
     PalettesChar123wordsChar125DotpngRoute,
+  SearchChar123wordsChar125DotjsonRoute: SearchChar123wordsChar125DotjsonRoute,
   SearchChar123wordsChar125DotpngRoute: SearchChar123wordsChar125DotpngRoute,
   UnsubscribeChar123TokenChar125Route: UnsubscribeChar123TokenChar125Route,
   IdIndexRoute: IdIndexRoute,
@@ -2160,6 +2267,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiOgCollectionsRoute: ApiOgCollectionsRoute,
   ApiOgListRoute: ApiOgListRoute,
   ApiOgQueryRoute: ApiOgQueryRoute,
+  ApiPalettesSearchRoute: ApiPalettesSearchRoute,
   ApiPngCollectionRoute: ApiPngCollectionRoute,
   ApiPngQueryRoute: ApiPngQueryRoute,
   ApiSearchStatusRoute: ApiSearchStatusRoute,

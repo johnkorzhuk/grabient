@@ -98,6 +98,34 @@ describe("an account's write", () => {
     expect(asked).toEqual(["fitVote", "fitVoteDaily"]);
   });
 
+  it("stops a like as any write: while saving is off, past the account's minute, and when nothing can count", async () => {
+    const { env, asked } = watchLimits(testEnv());
+    // a like's checks: the account's minute and day, then the site's day of hearts
+    const like: LimitCheck[] = [
+      [`user:${unique("liker")}`, ["toggleLike", "toggleLikeDaily"]],
+      [unique("likes"), "likesDaily"]
+    ];
+    await setFlag(env, "saving", false, unique("admin"));
+    try {
+      const paused = await writeRefusal(env, "user", like);
+      expect([paused?.status, paused?.headers.get("Retry-After")]).toEqual([503, "300"]);
+      expect(asked).toEqual([]);
+    } finally {
+      await setFlag(env, "saving", true, unique("admin"));
+    }
+    for (let i = 0; i < 20; i++) expect(await writeRefusal(env, "user", like)).toBeNull();
+    expect(new Set(asked)).toEqual(new Set(["toggleLikeDaily", "likesDaily"]));
+    const over = await writeRefusal(env, "user", like);
+    expect([over?.status, await over?.json()]).toEqual([
+      429,
+      { error: "Too many requests. Try again later." }
+    ]);
+    expect(Number(over?.headers.get("Retry-After"))).toBeGreaterThan(0);
+    // production without its limiter counts nothing, so the like waits
+    const down = testEnv({ DEPLOYMENT: "production", RATE_LIMITER: undefined });
+    expect((await writeRefusal(down, "user", like))?.status).toBe(503);
+  });
+
   it("on staging allows an admin a hundred times as much under keys of its own, and anyone else production's", async () => {
     const bound = testEnv({ DEPLOYMENT: "staging" });
     const namespace = bound.RATE_LIMITER!;

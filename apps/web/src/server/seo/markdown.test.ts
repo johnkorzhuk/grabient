@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { seedName } from "@grabient/engine/name.ts";
 import { parseView } from "@grabient/engine/view.ts";
 import { describe, expect, test } from "vitest";
+import files from "../files/fixtures/file-bodies.json" with { type: "json" };
 import {
   type CollectionWords,
   collectionMarkdown,
@@ -77,6 +78,43 @@ describe("a collection as Markdown", () => {
     });
   });
 
+  test("writes its words as plain text, an account's collection at its own address", () => {
+    const text = collectionMarkdown(
+      {
+        slug: "@ada/ocean-gradients",
+        title: "Ocean gradients",
+        description: "Blues and *greens* of the sea",
+        tags: ["ocean", "blue"],
+        itemCount: 2,
+        owner: "Ada",
+        updatedAt: Date.parse("2026-10-01T12:00:00Z"),
+        items: [
+          { seed: files.seed, style: "linearGradient", steps: 8, angle: 45, title: "Sea [glass]" },
+          { seed: "kQAAAAfwA_4", style: "radialSwatches", steps: 5, angle: 90 }
+        ]
+      },
+      files.origin
+    );
+    expect(text.split("\n").slice(0, 9)).toEqual([
+      "# Ocean gradients",
+      "",
+      "Blues and \\*greens\\* of the sea",
+      "",
+      `- Page: ${files.origin}/@ada/ocean-gradients`,
+      "- Palettes: 2",
+      "- Tags: ocean, blue",
+      "- Collected by: Ada",
+      "- Updated: 2026-10-01"
+    ]);
+    expect(text).toContain(
+      `1. [Sea \\[glass\\]](${files.origin}/${files.seed}?steps=8&angle=45): linear gradient, \`#4052d2\` \`#4d24ea\``
+    );
+    expect(text).toContain(
+      `(${files.origin}/kQAAAAfwA_4?style=radialSwatches&steps=5): radial swatches, \`#000000\``
+    );
+    expect(text).toContain(`- [GPL](${files.origin}/@ada/ocean-gradients.gpl)\n`);
+  });
+
   test("is a 404 for an address no public collection has", async () => {
     const response = await markdownFile("no-such-collection-xyz", get("/x.md"), ORIGIN, reads());
     expect([response.status, await response.json()]).toEqual([
@@ -103,6 +141,37 @@ describe("a palette as Markdown", () => {
       "cache-control": "public, max-age=3600",
       "cdn-cache-control": "max-age=86400, stale-while-revalidate=86400"
     });
+  });
+
+  test("is the file grabient.com served, with the words written for it too", async () => {
+    const plain = await markdownFile(
+      files.seed,
+      get(`/${files.seed}.md?steps=8&angle=45`),
+      files.origin,
+      reads()
+    );
+    expect(await plain.text()).toBe(files.markdown);
+    const written = await markdownFile(
+      files.written.seed,
+      get(`/${files.written.seed}.md`),
+      files.origin,
+      reads({
+        paletteWords: async () => ({
+          written: files.written.written,
+          heldBy: files.written.heldBy
+        })
+      })
+    );
+    expect(await written.text()).toBe(files.written.markdown);
+  });
+
+  test("reads its view as its cache key does: a key a crawler copied as amp;steps, and the last of a repeated one", async () => {
+    const at = async (query: string) =>
+      (
+        await markdownFile(files.seed, get(`/${files.seed}.md?${query}`), files.origin, reads())
+      ).text();
+    expect(await at("amp;steps=8&amp;angle=45")).toBe(files.markdown);
+    expect(await at("angle=10&steps=8&angle=45")).toBe(files.markdown);
   });
 
   test("says the words written for it and the collections that hold it, and goes on without them when they fail", async () => {
