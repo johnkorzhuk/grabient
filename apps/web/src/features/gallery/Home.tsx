@@ -21,6 +21,7 @@ import {
 import {
   createEffect,
   createMemo,
+  deep,
   For,
   isHydrating,
   Loading,
@@ -104,12 +105,14 @@ export function Home(props: { params: ListParams }) {
   const params = () => props.params;
   const words = () => params().words;
   const head = useQuery(() => homeHeadQuery(words()));
+  /* What stood last, the head and the first collections: a read that fails leaves it on screen beside its reason. A
+     query's store takes each answer in the place of the one before, a failure too, so what stands is a copy. */
   const standingHead = createMemo((last?: Exclude<typeof head.data, Failed>) =>
-    failed(head.data) ? last : head.data
+    failed(head.data) ? last : deep(head.data)
   );
   const first = useQuery(() => homeCollectionsQuery(words(), params().page));
   const standingFirst = createMemo((last?: CollectionPage) =>
-    failed(first.data) ? last : first.data
+    failed(first.data) ? last : deep(first.data)
   );
   const feed = createFeed<CollectionPage>({
     key: () => `home\n${words()}`,

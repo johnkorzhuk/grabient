@@ -21,6 +21,7 @@ import {
   createEffect,
   createMemo,
   createSignal,
+  deep,
   For,
   Loading,
   onSettled,
@@ -181,11 +182,12 @@ export function Palettes(props: { place: ListPlace }) {
     const read = head();
     return read && failed(read) ? read.failed : "";
   };
-  /* the last page that stood, while it is the same reader's: a read that fails leaves it on screen beside its reason,
-     and no account's page outlives its account */
+  /* The last page that stood, while it is the same reader's: a read that fails leaves it on screen beside its reason,
+     and no account's page outlives its account. A query's store takes each answer in the place of the one before, a
+     failure too, so what stands is a copy. */
   const stood = createMemo((last?: { owner: string; page: Page }) => {
     const read = head();
-    if (read && !failed(read)) return { owner: owner(), page: read };
+    if (read && !failed(read)) return { owner: owner(), page: deep(read) };
     return last && last.owner === owner() && !signedOut() ? last : undefined;
   });
   const standing = () => stood()?.page;
