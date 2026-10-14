@@ -21,8 +21,7 @@ import {
   createUniqueId,
   For,
   onSettled,
-  Show,
-  untrack
+  Show
 } from "solid-js";
 import { copyPng } from "./copies.ts";
 import styles from "./PaletteView.module.css";
@@ -46,7 +45,7 @@ import {
    app takes no copy, the text comes out under the picture to copy by hand. No press reaches the server or changes
    anything on Grabient: the palette chosen in full screen is handed to `onChoose`, which tells the app's model what is
    on screen. The chrome takes the app's colors and type through the host tokens; the palettes are the only color of
-   Grabient's own. main.tsx wires the bridge; the design document draws the same component in its states. */
+   Grabient's own. main.tsx wires the bridge. */
 
 /** At most this many cards inline; the rest are a card away: full screen, or every card in a grid inside the frame
     where the app has no full screen. */
@@ -78,10 +77,6 @@ export interface PaletteViewProps {
   /** opens an address through the app: true when it took the press, so the link does not open itself */
   onOpen?: (url: string) => boolean;
   onDownload?: (tile: Tile, format: DownloadFormat) => void;
-  /** for the design document: the app refused a copy of the first palette's CSS, which is out to copy by hand */
-  refused?: boolean;
-  /** for the design document: every card inline, as an app with no full screen shows them once asked */
-  expanded?: boolean;
 }
 
 const COPY: readonly Format[] = ["url", "css", "svg", "png"];
@@ -112,7 +107,6 @@ interface HandCopy {
   label: string;
   from: HTMLElement | null;
   settle: (copied: boolean) => void;
-  select: boolean;
 }
 /** A format's chip in a strip, found by its name: the press that asked, where the press took no focus (Safari). */
 const chipOf = (strip: HTMLElement | undefined, format: Format): HTMLElement | null =>
@@ -133,22 +127,8 @@ export function PaletteView(props: PaletteViewProps) {
     }));
     props.onChoose?.(next);
   };
-  /* the one copy out to take by hand; the design document's starts with the first palette's CSS, unselected */
-  const [hand, setHand] = createSignal<HandCopy | null>(
-    untrack(() => {
-      const first = props.refused ? props.tiles?.[0] : undefined;
-      return first
-        ? {
-            tile: first.tile,
-            text: cssOf(stopsOf(first), first),
-            label: "CSS",
-            from: null,
-            settle: () => undefined,
-            select: false
-          }
-        : null;
-    })
-  );
+  /* the one copy out to take by hand */
+  const [hand, setHand] = createSignal<HandCopy | null>(null);
   const open = (e: MouseEvent, url: string) => {
     if (props.onOpen?.(url)) e.preventDefault();
   };
@@ -179,7 +159,7 @@ export function PaletteView(props: PaletteViewProps) {
   ): Promise<boolean> {
     return new Promise<boolean>(settle => {
       putAway(false, false);
-      setHand({ tile: tile.tile, text, label, from, settle, select: true });
+      setHand({ tile: tile.tile, text, label, from, settle });
       from?.setAttribute("aria-expanded", "true");
       from?.setAttribute("aria-controls", handId);
       announce(why);
@@ -353,11 +333,9 @@ export function PaletteView(props: PaletteViewProps) {
         fit();
       });
       sizes.observe(held);
-      if (p.hand.select) {
-        held.focus();
-        held.select();
-        held.scrollTop = 0;
-      }
+      held.focus();
+      held.select();
+      held.scrollTop = 0;
       return () => sizes.disconnect();
     });
     const copied = (e: ClipboardEvent) => {
@@ -538,7 +516,7 @@ export function PaletteView(props: PaletteViewProps) {
       card to card in the reading direction. */
   function Carousel() {
     let row: HTMLUListElement | undefined;
-    const [all, setAll] = createSignal(untrack(() => !!props.expanded));
+    const [all, setAll] = createSignal(false);
     const over = () => tiles().length > INLINE_MAX;
     const cards = () => (all() || !over() ? tiles() : tiles().slice(0, INLINE_MAX));
     /* whether the row runs on before and after what shows, in its reading direction */
