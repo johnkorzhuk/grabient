@@ -431,13 +431,14 @@ export function Palettes(props: { place: ListPlace }) {
         listSearch(params(), { page: (last?.page ?? params().page) + 1, selection: false })
     );
   };
-  const signIn = (reason: "search" | "saved") => (
+  /* the way in; a search that needs an account counts as a prompt to sign in, Saved's own page as none */
+  const signIn = (prompted: boolean) => (
     <Button
       variant="primary"
       size="lg"
       href={page.signIn()}
       disabled={signInUnavailable()}
-      onClick={() => trackSignInPrompt(reason)}
+      onClick={() => prompted && trackSignInPrompt("search")}
     >
       {t("Sign in")}
     </Button>
@@ -523,7 +524,7 @@ export function Palettes(props: { place: ListPlace }) {
                   <Text variant="h3" as="h2">
                     {t("Sign in to see your saved palettes.")}
                   </Text>
-                  {signIn("saved")}
+                  {signIn(false)}
                 </div>
               }
             >
@@ -535,7 +536,7 @@ export function Palettes(props: { place: ListPlace }) {
                       "Try a color, mood or theme, like navy, cozy or sunset. Or sign in to search in any language."
                     )}
                   </Text>
-                  {signIn("search")}
+                  {signIn(true)}
                 </div>
                 <Show when={offers()?.items.length}>
                   <section class={styles.offer} aria-label={t("Matching collections")}>
