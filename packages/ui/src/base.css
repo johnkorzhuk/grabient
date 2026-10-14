@@ -249,4 +249,11 @@
   html[data-theme-switch="dissolve"]::view-transition-group(root) {
     animation-duration: var(--motion-dissolve);
   }
+  /* No element fades its own colors under the change: the arriving picture is the page as it will stand, so the reveal
+     draws without restyling every button on the page in each of its first frames. A list's cards hold hundreds. The
+     theme button's glyphs turn in it, as they are meant to (ThemeIcon). */
+  html[data-theme-switch] :not([data-moving] > *) {
+    /* biome-ignore lint/complexity/noImportantStyles: an important rule here outweighs every component's own */
+    transition: none !important;
+  }
 }
