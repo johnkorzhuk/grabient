@@ -122,11 +122,14 @@ const [remembered, setRemembered] = createSignal<ListView>(AS_SAVED);
 /* the same view, plain: a page's effect compares against it without reading the signal */
 let kept: ListView = AS_SAVED;
 let live = false;
+/* the view of the list the document opened on, which it drew before the memory was live */
+let opened: ListView | null = null;
 
 /** The reader's view, as this tab remembers it. */
 export const rememberedView = remembered;
 
-/** Reads the tab's memory once the page is live. */
+/** Reads the tab's memory once the page is live. A document that opened on a list takes that list's view over the
+    one kept, As saved included: its address is what the reader sees. */
 export function recallView(): void {
   if (isServer || live) return;
   live = true;
@@ -139,11 +142,16 @@ export function recallView(): void {
   } catch {
     /* nothing kept, or storage refused: As saved */
   }
+  if (opened) rememberView(opened);
 }
 
 /** Remembers the view a page drew its palettes in. */
 export function rememberView(view: ListView): void {
-  if (isServer || !live) return;
+  if (isServer) return;
+  if (!live) {
+    opened = view;
+    return;
+  }
   if (
     kept.style === view.style &&
     kept.steps === view.steps &&
