@@ -40,7 +40,8 @@ export const clientKind = (clientId: string): ClientKind =>
   SAVED_CLIENT_IDS.has(clientId) ? "saved" : isUrlClientId(clientId) ? "document" : "registered";
 
 /* What CIMD asks a server not to fetch: a URL spelled otherwise than URL parsing spells it, an IP literal, a port, a
-   single-label or special-use name, and this site's own hosts, which would make the Worker fetch itself. */
+   single-label or special-use name, and this site's own hosts, which would make the Worker fetch itself. A name with
+   an empty label is refused too, since a trailing dot names the same host the comparisons below would miss. */
 const SPECIAL =
   /(^|\.)(localhost|local|internal|intranet|lan|home\.arpa|test|example|invalid|onion|arpa)$/i;
 
@@ -57,7 +58,8 @@ export function fetchableClientId(id: string, origin: string): boolean {
   if (url.hash) return false;
   const host = url.hostname;
   if (host.startsWith("[") || /^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return false;
-  if (!host.includes(".") || SPECIAL.test(host)) return false;
+  const labels = host.split(".");
+  if (labels.length < 2 || labels.includes("") || SPECIAL.test(host)) return false;
   return (
     host !== new URL(origin).hostname && host !== "grabient.com" && !host.endsWith(".grabient.com")
   );

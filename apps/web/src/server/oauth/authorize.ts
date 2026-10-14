@@ -16,6 +16,7 @@ import { json, NO_STORE, overLimit } from "@grabient/server/auth/http.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
+import { checkLimits } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { trustedRedirect } from "./clients.ts";
 import { clientIdAllowed, requester } from "./limits.ts";
@@ -133,7 +134,15 @@ export async function authorize(
     counted("client-error");
     return seeOther(error.redirectTo, 302);
   }
-  if (!(await signedIn(env, request))) return toSignIn();
+  const session = await signedIn(env, request);
+  if (!session) return toSignIn();
+  /* a consent begun writes a transaction to KV, and its one answer writes a grant and a code: counting the begun
+     ones against the account's day and the site's bounds both */
+  const begun = await checkLimits(env, [
+    [`oauth-consent:${session.user.id}`, "oauthConsentAccount"],
+    ["oauth-consent", "oauthConsentDaily"]
+  ]);
+  if (!begun?.success) return problem("paused", "limit");
   const consent = await oauth.beginConsent(parsed);
   counted("consent");
   const headers = new Headers(consent.headers);

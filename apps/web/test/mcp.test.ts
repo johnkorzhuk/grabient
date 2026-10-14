@@ -271,6 +271,44 @@ describe("the MCP server's door", () => {
       await setFlag(env, "mcp", true, admin.id);
     }
   });
+
+  it("refuses a tool call past the account's minute in the limit's words, and still lists", async () => {
+    const env = testEnv();
+    const { account, token } = await connected(env);
+    await checkLimits(env, [[`mcp:${account.id}`, "mcpAccount", 120]]);
+    expect((await call(env, token, "get_account")).error).toMatch(
+      /^This account's limit of 120 tool calls a minute is reached\. Try again in \d+ seconds\.$/
+    );
+    expect((await rpc(env, token, "tools/list")).response.status).toBe(200);
+  });
+
+  it("refuses a listing past its minute with the wait, and both kinds of request while the limiter cannot answer", async () => {
+    const env = testEnv();
+    const { account, token } = await connected(env);
+    const who = `mcp:${account.id}`;
+    await checkLimits(env, [[who, "mcpList", 600]]);
+    const listing = await rpc(env, token, "tools/list");
+    expect([listing.response.status, listing.body?.error]).toEqual([
+      429,
+      expect.stringMatching(
+        /^This account's limit of 600 requests to connect or list tools a minute is reached\. Try again in \d+ seconds\.$/
+      )
+    ]);
+    expect(Number(listing.response.headers.get("Retry-After"))).toBeGreaterThan(0);
+    /* a production deploy without its limiter refuses as one whose limiter fails, and a listing asks it once the
+       account's free listings of the day are spent */
+    const down = testEnv({ DEPLOYMENT: "production", RATE_LIMITER: undefined });
+    await checkLimits(down, [[who, "mcpListFree", 200]]);
+    const unanswered = await rpc(down, token, "tools/list");
+    expect([
+      unanswered.response.status,
+      unanswered.body,
+      unanswered.response.headers.get("Retry-After")
+    ]).toEqual([503, { error: "The limiter could not be reached. Try again shortly." }, "5"]);
+    expect((await call(down, token, "get_account")).error).toBe(
+      "The limiter could not be reached. Try again shortly."
+    );
+  });
 });
 
 describe("the protocol", () => {
@@ -507,6 +545,38 @@ describe("the tools", () => {
     const words = await call(env, plain.token, "show_palettes", { palettes: [SEED] });
     expect(words.result._meta).toBeUndefined();
     expect(words.value.tiles[0].png).toBe(`${ORIGIN}/${SEED}.png`);
+  });
+
+  it("show palettes as words with each picture's address to every app while the view is off, and still serve it", async () => {
+    const env = testEnv();
+    const { token } = await connected(env);
+    const admin = await makeAdmin(env);
+    await setFlag(env, "mcp-view", false, admin.id);
+    try {
+      const { body } = await rpc(env, token, "initialize", {
+        protocolVersion: "2025-11-25",
+        capabilities: {},
+        clientInfo: { name: "x", version: "1" }
+      });
+      expect(body?.result.capabilities.extensions).toEqual({
+        "io.modelcontextprotocol/skills": {}
+      });
+      const tools = (await rpc(env, token, "tools/list")).body?.result.tools;
+      expect(
+        tools.find((tool: { name: string }) => tool.name === "show_palettes")
+      ).not.toHaveProperty("_meta");
+      // Claude draws the view, and is answered as an app that draws none
+      const shown = await call(env, token, "show_palettes", { palettes: [SEED] });
+      expect(shown.result._meta).toBeUndefined();
+      expect(shown.value.tiles[0].png).toBe(`${ORIGIN}/${SEED}.png`);
+      // a conversation kept from before still draws its palettes
+      const page = await rpc(env, token, "resources/read", {
+        uri: "ui://grabient/v1/palettes.html"
+      });
+      expect(page.body?.result.contents[0].mimeType).toBe("text/html;profile=mcp-app");
+    } finally {
+      await setFlag(env, "mcp-view", true, admin.id);
+    }
   });
 
   it("save a palette new to Grabient into the gallery, and keep its first view", async () => {
