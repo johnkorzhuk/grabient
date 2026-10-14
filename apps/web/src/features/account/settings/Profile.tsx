@@ -9,6 +9,7 @@ import { Text } from "@grabient/ui/Text.tsx";
 import { isServer } from "@solidjs/web";
 import { createSignal, isHydrating, onCleanup, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
+import { shownError } from "../../../lib/query.ts";
 import { inView } from "../../list/appearance.ts";
 import {
   account,
@@ -17,8 +18,7 @@ import {
   keptUserId,
   loginHref,
   refreshSession,
-  sessionReady,
-  shownError
+  sessionReady
 } from "../session.ts";
 import { readUsername, USERNAME_MAX } from "../username.ts";
 import styles from "./Settings.module.css";

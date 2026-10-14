@@ -6,7 +6,7 @@ import { Pane } from "@grabient/ui/Pane.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, For, Show } from "solid-js";
-import { shownError } from "../account/session.ts";
+import { shownError } from "../../lib/query.ts";
 import styles from "./Unsubscribe.module.css";
 import { answerUnsubscribe } from "./writes.ts";
 

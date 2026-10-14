@@ -19,7 +19,6 @@ import {
   engineNow,
   loadAccount,
   loginHref,
-  shownError,
   signOut
 } from "../features/account/session.ts";
 import { syncStatus, viewNow } from "../features/account/state.ts";
@@ -28,6 +27,7 @@ import { collectionHref } from "../features/collections/address.ts";
 import { listPath, listSearch } from "../features/collections/params.ts";
 import { readerOrder, recallOrder } from "../features/gallery/order.ts";
 import { inView, rememberedView } from "../features/list/appearance.ts";
+import { shownError } from "../lib/query.ts";
 import styles from "./AccountMenu.module.css";
 import { offline, opensOffline } from "./connection.ts";
 import { chooseLanguage } from "./language.ts";

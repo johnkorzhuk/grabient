@@ -7,8 +7,9 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, onCleanup } from "solid-js";
 import { offline } from "../../app/connection.ts";
+import { shownError } from "../../lib/query.ts";
 import styles from "./Login.module.css";
-import { authError, authPost, safeRedirect, shownError } from "./session.ts";
+import { authError, authPost, safeRedirect } from "./session.ts";
 
 const FAILED = msg("Something went wrong. Try again.");
 

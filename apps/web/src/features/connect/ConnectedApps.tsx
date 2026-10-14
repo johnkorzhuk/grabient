@@ -7,8 +7,9 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
 import { createSignal, Errored, For, Loading, Show } from "solid-js";
+import { shownError } from "../../lib/query.ts";
 import type { Connection } from "../../server/oauth/connections.ts";
-import { adminAccount, shownError } from "../account/session.ts";
+import { adminAccount } from "../account/session.ts";
 import styles from "./ConnectedApps.module.css";
 import { connectionsQuery, disconnectApp } from "./connections.ts";
 

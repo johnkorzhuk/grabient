@@ -8,8 +8,9 @@ import { useQuery, useQueryClient } from "@tanstack/solid-query";
 import { createSignal, createStore, For, onCleanup, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { createOptimisticWrites } from "../../../lib/optimistic.ts";
+import { shownError } from "../../../lib/query.ts";
 import { sendTestIssue } from "../../newsletter/writes.ts";
-import { account, adminTools, isAdmin, setAdminTools, shownError } from "../session.ts";
+import { account, adminTools, isAdmin, setAdminTools } from "../session.ts";
 import { FLAG_NAMES, FLAGS, type FlagName, type FlagState, readFlags, writeFlag } from "./flags.ts";
 import styles from "./Settings.module.css";
 

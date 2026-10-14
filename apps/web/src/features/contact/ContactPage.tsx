@@ -9,7 +9,8 @@ import { Textarea } from "@grabient/ui/Textarea.tsx";
 import { createSignal } from "solid-js";
 import * as v from "valibot";
 import { offline } from "../../app/connection.ts";
-import { api, shownError } from "../account/session.ts";
+import { shownError } from "../../lib/query.ts";
+import { api } from "../account/session.ts";
 import styles from "./Contact.module.css";
 import { CONTACT_INVALID, ContactInput, EMAIL_MAX, MESSAGE_MAX } from "./input.ts";
 

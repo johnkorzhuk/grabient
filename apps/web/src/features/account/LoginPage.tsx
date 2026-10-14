@@ -10,17 +10,10 @@ import { useRouter } from "@tanstack/solid-router";
 import { createSignal, onCleanup, onSettled, Show, untrack } from "solid-js";
 import { offline } from "../../app/connection.ts";
 import { Languages } from "../../app/Frames.tsx";
+import { shownError } from "../../lib/query.ts";
 import { trackLoginStart } from "../analytics/analytics.ts";
 import styles from "./Login.module.css";
-import {
-  account,
-  authError,
-  authPost,
-  loadAccount,
-  loginHref,
-  safeRedirect,
-  shownError
-} from "./session.ts";
+import { account, authError, authPost, loadAccount, loginHref, safeRedirect } from "./session.ts";
 
 /* Sign in and sign up are one page: Google, or a link by email. While an app connects (the authorization page sends
    the reader here with its request), the email sends a code instead, typed in the window that asked: a link opens in

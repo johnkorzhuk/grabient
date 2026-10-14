@@ -332,16 +332,6 @@ export function loginHref(returnTo?: string): string {
   return `/login?redirect=${encodeURIComponent(safeRedirect(returnTo ?? here))}`;
 }
 
-/** What a page shows for a failed read or write: the server's own words, or for a request that never reached the
-    server, or the browser's own refusal, the page's fallback in the reader's language, not the browser's English. */
-export const shownError = (reason: unknown, fallback: string): string =>
-  reason instanceof TypeError ||
-  (typeof DOMException !== "undefined" && reason instanceof DOMException) ||
-  !(reason instanceof Error) ||
-  !reason.message
-    ? t(fallback)
-    : reason.message;
-
 /** A POST to the sign-in library, through the Worker's gate: the answer's status and body. */
 export async function authPost(path: string, body: unknown = {}) {
   const response = await fetch(path, {

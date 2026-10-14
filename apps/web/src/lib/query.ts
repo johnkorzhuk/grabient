@@ -1,7 +1,6 @@
 import { msg, t } from "@grabient/i18n";
 import { QueryClient } from "@tanstack/solid-query";
 import * as v from "valibot";
-import { shownError } from "../features/account/session.ts";
 
 /* One QueryClient per request on the server and one per tab in the browser (router.tsx). The server's cache rides to
    the browser inside the document, so the first render reads what the server read and fetches nothing. */
@@ -41,6 +40,16 @@ export async function readAnswer<S extends v.GenericSchema>(
   const error = (body as { error?: unknown } | null)?.error;
   throw new Error(typeof error === "string" ? t(error) : "");
 }
+
+/** What a page shows for a failed read or write: the server's own words, or for a request that never reached the
+    server, or the browser's own refusal, the page's fallback in the reader's language, not the browser's English. */
+export const shownError = (reason: unknown, fallback: string): string =>
+  reason instanceof TypeError ||
+  (typeof DOMException !== "undefined" && reason instanceof DOMException) ||
+  !(reason instanceof Error) ||
+  !reason.message
+    ? t(fallback)
+    : reason.message;
 
 /* A list's or a page's read that fails resolves to `{ failed }`, the reason in the reader's language, so the page keeps
    what it showed beside the reason and its Retry. Freshness counts from the database read (`fetchedAt`), never from the

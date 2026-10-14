@@ -11,7 +11,7 @@ import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "../../lib/color-format.ts";
 import { copyImage, fileAddress, saveFile, swatchesOf, writeText } from "../../lib/files.ts";
 import type { Drawn } from "../../lib/palette.ts";
-import { shownError } from "../account/session.ts";
+import { shownError } from "../../lib/query.ts";
 import { type UseAt, type UsePlace, useTaken } from "../palette-use/use.ts";
 
 /* What a card's strip hands over: the one palette as the card draws it, copied, saved as a file, or as the address of

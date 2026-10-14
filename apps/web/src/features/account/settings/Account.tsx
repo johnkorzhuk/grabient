@@ -5,6 +5,7 @@ import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, Show } from "solid-js";
 import { offline } from "../../../app/connection.ts";
+import { shownError } from "../../../lib/query.ts";
 import { forgetAnalytics } from "../../analytics/analytics.ts";
 import {
   type Account,
@@ -13,7 +14,6 @@ import {
   authError,
   authPost,
   forgetAccount,
-  shownError,
   signOut
 } from "../session.ts";
 import styles from "./Settings.module.css";

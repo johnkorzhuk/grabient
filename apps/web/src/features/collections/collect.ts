@@ -5,6 +5,7 @@ import type { CardCollect } from "@grabient/ui/CollectPress.tsx";
 import { createSignal } from "solid-js";
 import { signInUnavailable } from "../../app/connection.ts";
 import { record } from "../../app/undo.ts";
+import { shownError } from "../../lib/query.ts";
 import {
   addOwnPalettes,
   canMakeOwn,
@@ -17,14 +18,7 @@ import {
   restoreOwnPalette,
   serverWrote
 } from "../account/collections.ts";
-import {
-  account,
-  accountKnown,
-  isAdmin,
-  loginHref,
-  sessionReady,
-  shownError
-} from "../account/session.ts";
+import { account, accountKnown, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { trackEvent } from "../analytics/analytics.ts";
 import { itemKey } from "./address.ts";
 import {

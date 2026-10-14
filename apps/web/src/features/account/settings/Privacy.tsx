@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/solid-query";
 import { createSignal, For, onSettled, Show, untrack } from "solid-js";
 import { offline } from "../../../app/connection.ts";
 import { createOptimisticWrites } from "../../../lib/optimistic.ts";
+import { shownError } from "../../../lib/query.ts";
 import {
   type ConsentCategory,
   consent,
@@ -15,7 +16,7 @@ import {
 } from "../../analytics/consent.ts";
 import { choiceQuery } from "../../newsletter/queries.ts";
 import { writeChoice } from "../../newsletter/writes.ts";
-import { account, shownError } from "../session.ts";
+import { account } from "../session.ts";
 import styles from "./Settings.module.css";
 
 /* What this browser lets the site measure, signed in or not, and beside it, signed in, the account's newsletter, which

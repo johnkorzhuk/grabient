@@ -37,8 +37,8 @@ import {
 import { signInUnavailable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
+import { shownError } from "../../lib/query.ts";
 import { countDue, likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
-import { shownError } from "../account/session.ts";
 import { useInEditor } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import {

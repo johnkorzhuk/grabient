@@ -6,8 +6,9 @@ import { useQueryClient } from "@tanstack/solid-query";
 import { createEffect, createSignal, untrack } from "solid-js";
 import * as v from "valibot";
 import { toast } from "../../app/toast.ts";
+import { shownError } from "../../lib/query.ts";
 import { liked, movePaletteLike } from "../account/likes.ts";
-import { api, isAdmin, shownError } from "../account/session.ts";
+import { api, isAdmin } from "../account/session.ts";
 
 /* An admin's Save: the palette on screen takes the place of the one the page opened, in the gallery (its date, likes and
    heat) and in every one of Grabient's collections that holds it. The page asks where the opened palette stands as it
