@@ -457,6 +457,34 @@ for (const width of WIDTHS)
         expect(broken).toEqual([]);
       });
 
+    test("a palette's locks go along to another language from the footer's menu and the account's", async ({
+      page
+    }) => {
+      const broken = watch(page);
+      const hue = page.getByRole("button", { name: "Lock hue", exact: true });
+      const locked = (prefix: string) => new RegExp(`${prefix}/${SEED}\\?lock=hue$`);
+      await open(page, `/es/${SEED}`);
+      await press(hue, width);
+      await expect(page).toHaveURL(locked("/es"));
+
+      await press(page.locator("footer button[aria-controls]"), width);
+      await press(page.locator('footer ul a[hreflang="ja"]'), width);
+      await expect(page).toHaveURL(locked("/ja"));
+      await expect(hue).toHaveAttribute("aria-pressed", "true");
+
+      await page.waitForFunction(() => !("$_TSR" in window));
+      await pressAt(
+        page,
+        page.locator("header").getByRole("button", { name: say("ja", "Sign in") }),
+        width
+      );
+      await pressAt(page, page.getByRole("menuitem", { name: say("ja", "Language") }), width);
+      await pressAt(page, page.getByRole("menuitemradio", { name: "Español" }), width);
+      await expect(page).toHaveURL(locked("/es"));
+      await expect(hue).toHaveAttribute("aria-pressed", "true");
+      expect(broken).toEqual([]);
+    });
+
     test("a palette opened from a list takes a key and a drag, walks them back and forth, gives its link and goes Back to the list", async ({
       page,
       context
