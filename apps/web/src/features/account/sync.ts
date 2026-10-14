@@ -369,6 +369,28 @@ function closeCopy() {
   setWaitingLikes(new Set());
   patchStatus({ pending: 0, syncing: false, refused: [], cutOff: false });
   c?.store.close();
+  if (c) withdraw(c);
+}
+
+/** The likes not yet sent leave the page with the copy and wait in the outbox for its next opening: the hearts they
+    turned go back to the server's, as a refused one does, so the counts beside them drop the presses. */
+function withdraw(c: Copy) {
+  const turned = new Map<string, boolean>();
+  for (const { op } of c.pending) {
+    if (!isLike(op)) continue;
+    const held = c.snapshot.likes.has(op.seed);
+    if (c.view.likes.has(op.seed) !== held) turned.set(op.seed, held);
+  }
+  if (!turned.size) return;
+  tellChange({
+    reset: false,
+    likes: new Set(turned.keys()),
+    turned,
+    collections: new Set(),
+    removed: new Set(),
+    moved: new Map(),
+    admin: false
+  });
 }
 
 /** The reader signed out, or the server ended the session: the copy closes. `forget` deletes it from the browser,

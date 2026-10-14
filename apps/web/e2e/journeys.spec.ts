@@ -821,6 +821,33 @@ test.describe("signed in as verify-ada", () => {
         expect(broken).toEqual([]);
       });
 
+      test("when the server ends her session with a like not yet sent, the heart goes out and its count with it", async ({
+        page
+      }) => {
+        const broken = watch(page);
+        const synced = page.waitForResponse(
+          response => response.url().endsWith("/api/me/sync") && response.ok()
+        );
+        await open(page, "/palettes");
+        await synced;
+        const href = await linkAt(page, EDIT, 1);
+        const heart = cardOf(page, href).getByRole("button", { name: /^Like/ });
+        await expect(heart).toHaveAttribute("aria-pressed", "false");
+        const count = (await heart.getAttribute("aria-label")) ?? "";
+        // the server ended the session: the sync is refused, and the session check finds none
+        await page.route("**/api/me/sync", route =>
+          route.fulfill({ status: 401, json: { error: "Sign in to continue." } })
+        );
+        await page.route("**/api/auth/get-session*", route => route.fulfill({ json: null }));
+        await press(heart, width);
+        await expect(
+          page.locator("header").getByRole("button", { name: "Sign in", exact: true })
+        ).toBeVisible();
+        await expect(heart).toHaveAttribute("aria-pressed", "false");
+        await expect(heart).toHaveAttribute("aria-label", count);
+        expect(broken).toEqual([]);
+      });
+
       for (const list of OWN)
         test(`from ${list.name}, what she opens lands whole and Back returns to the list as it was`, ({
           page
