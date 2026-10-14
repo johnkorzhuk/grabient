@@ -24,6 +24,7 @@ import {
   deep,
   For,
   isHydrating,
+  isPending,
   Loading,
   NoHydration,
   onSettled,
@@ -277,18 +278,16 @@ export function Home(props: { params: ListParams }) {
   });
   const headError = () => (failed(head.data) ? head.data.failed : "");
   const firstError = () => (failed(first.data) ? first.data.failed : "");
+  /* A head standing while it is read again, for other words or in place once it is old. Until the read lands, the
+     query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
+  const updating = () => navigating() || isPending(() => head.data);
   const message = () =>
+    (updating() ? (words() ? t("Searching…") : t("Updating…")) : "") ||
     headError() ||
     firstError() ||
     feed.reason() ||
     page.line()?.message ||
-    (navigating()
-      ? words()
-        ? t("Searching…")
-        : t("Updating…")
-      : feed.loading()
-        ? t("Loading more…")
-        : "") ||
+    (feed.loading() ? t("Loading more…") : "") ||
     found.note() ||
     (signInForMore() && !feed.more() ? t("Sign in to search with all your words.") : "") ||
     (!standingHead() || groups().length

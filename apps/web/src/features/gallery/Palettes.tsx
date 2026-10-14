@@ -23,6 +23,7 @@ import {
   createSignal,
   deep,
   For,
+  isPending,
   Loading,
   onSettled,
   Show,
@@ -394,12 +395,16 @@ export function Palettes(props: { place: ListPlace }) {
             ? t("No results. Try a color, mood or theme.")
             : t("No results.");
   const more = () => feed.more() && !headError();
+  /* The cards standing while their list is read: another list, or this one again once it is old. Until the read lands,
+     the query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
+  const updating = () => navigating() || (!!listed && isPending(() => listed.data));
   /* the placeholders say a cold list is on its way; the line speaks only for what the cards cannot */
   const message = () =>
+    (updating() ? t("Updating…") : "") ||
     headError() ||
     feed.reason() ||
     page.line()?.message ||
-    (navigating() ? t("Updating…") : feed.loading() ? t("Loading more…") : "") ||
+    (feed.loading() ? t("Loading more…") : "") ||
     found.note() ||
     (signInForMore() && !more() ? t("Sign in to search with all your words.") : "") ||
     (standing() && !items().length && !signInToSearch() ? empty() : "");
@@ -482,7 +487,7 @@ export function Palettes(props: { place: ListPlace }) {
             {page.chosen.button()}
           </div>
           {page.chosen.float()}
-          <div class={styles.list} aria-busy={navigating() ? "true" : "false"}>
+          <div class={styles.list} aria-busy={updating() ? "true" : "false"}>
             <Show when={held() || made().length}>
               <Made
                 title={held() ? t("From your image") : t("From your colors")}

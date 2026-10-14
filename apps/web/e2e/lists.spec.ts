@@ -149,3 +149,33 @@ test("a list whose read fails keeps the cards of the list before it, beside Retr
   await expect(feed.locator("article a[href]").first()).toHaveAttribute("href", first ?? "");
   expect(reports).toEqual([]);
 });
+
+for (const [path, read] of [
+  ["/palettes", "/api/palettes"],
+  ["/", "/api/hot"]
+] as const) {
+  test(`${path} left until its palettes are old reads them again once, saying so while its cards stand`, async ({
+    page
+  }) => {
+    // the browser's clock six minutes on: what the server read is past its five minutes
+    await page.addInitScript(() => {
+      const now = Date.now;
+      Date.now = () => now() + 6 * 60_000;
+    });
+    const asked: string[] = [];
+    await page.route(
+      url => url.pathname === read,
+      async route => {
+        asked.push(read);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        await route.continue();
+      }
+    );
+    await page.goto(path);
+    const line = page.locator("main p[role=status]").last();
+    await expect(line).toHaveText("Updating…");
+    await expect(page.locator("main article").first()).toBeVisible();
+    await expect(line).toHaveText("");
+    expect(asked).toEqual([read]);
+  });
+}
