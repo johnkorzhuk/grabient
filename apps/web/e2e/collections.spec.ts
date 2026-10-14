@@ -45,6 +45,24 @@ const rising = (route: Route) =>
     }
   });
 
+test("signed out, the selection's Save leads to sign in and asks for no account's collections", async ({
+  page
+}) => {
+  const asked: string[] = [];
+  page.on("request", request => {
+    const url = new URL(request.url());
+    if (url.pathname.startsWith("/api/me/")) asked.push(url.pathname);
+  });
+  await page.goto("/palettes");
+  await hydrated(page);
+  await page.locator("main article").first().getByRole("button", { name: "Add to selection" }).focus();
+  await page.keyboard.press("Enter");
+  await page.getByRole("button", { name: /^Selection/ }).first().click();
+  await expect(page.getByText("Sign in to save collections.")).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  expect(asked).toEqual([]);
+});
+
 test("a list read again on purpose that fails keeps its groups beside the reason and Retry", async ({
   page
 }) => {

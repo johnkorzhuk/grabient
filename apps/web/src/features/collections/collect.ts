@@ -17,7 +17,14 @@ import {
   restoreOwnPalette,
   serverWrote
 } from "../account/collections.ts";
-import { account, isAdmin, loginHref, sessionReady, shownError } from "../account/session.ts";
+import {
+  account,
+  accountKnown,
+  isAdmin,
+  loginHref,
+  sessionReady,
+  shownError
+} from "../account/session.ts";
 import { trackEvent } from "../analytics/analytics.ts";
 import { itemKey } from "./address.ts";
 import {
@@ -150,33 +157,37 @@ export function createChecklists(say: (message: string, error?: boolean) => void
   const siteAdds = new Map<string, string>();
   const siteKey = (slug: string, item: Item) => `${slug}\n${itemKey(item)}`;
 
-  function readOwnList() {
-    const copy = ownCollectionsHolding();
-    if (copy) {
-      setOwn(
-        copy.map(c => ({
-          slug: c.slug,
-          title: c.title,
-          count: c.count,
-          keys: c.keys,
-          colors: dominantColors(c.seeds)
-        }))
-      );
-      return;
-    }
-    readOwn("?limit=96").then(
-      page =>
+  /* once the page knows who reads it: a reader signed out has no collections to ask the server for, and the side
+     leads to sign in */
+  const readOwnList = () =>
+    void accountKnown().then(() => {
+      if (!account()) return;
+      const copy = ownCollectionsHolding();
+      if (copy) {
         setOwn(
-          page.items.map(c => ({
+          copy.map(c => ({
             slug: c.slug,
             title: c.title,
-            count: c.itemCount,
-            colors: dominantColors(c.preview.map(p => p.seed))
+            count: c.count,
+            keys: c.keys,
+            colors: dominantColors(c.seeds)
           }))
-        ),
-      () => setOwn(list => list ?? [])
-    );
-  }
+        );
+        return;
+      }
+      readOwn("?limit=96").then(
+        page =>
+          setOwn(
+            page.items.map(c => ({
+              slug: c.slug,
+              title: c.title,
+              count: c.itemCount,
+              colors: dominantColors(c.preview.map(p => p.seed))
+            }))
+          ),
+        () => setOwn(list => list ?? [])
+      );
+    });
   const askedKey = (items: readonly Item[]) => items.map(itemKey).sort().join("\n");
   function readSite(items: readonly Item[]) {
     if (!isAdmin() || !items.length) return;
