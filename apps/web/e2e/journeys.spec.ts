@@ -159,25 +159,47 @@ const EDIT = "main article a[aria-label='Edit']";
 /** The palettes a list draws, in its order. */
 const cards = (page: Page) => page.locator("main article:has(a[aria-label='Edit'])");
 
-/** The cards whose heart says other than her account, to the eye or to a screen reader, on screen or below it: each
-    palette she likes has its heart pressed, and every other one not. */
-const misdrawn = (page: Page, liked: ReadonlySet<string>) =>
+/** Every card a list draws, on screen or below it, as where its Edit leads and whether its press named `name` is
+    pressed, to the eye or to a screen reader. */
+const pressedOn = (page: Page, name: RegExp) =>
   page.evaluate(
-    seeds => {
-      const hers = new Set(seeds);
+    ([source, flags]) => {
+      const named = new RegExp(source, flags);
       return [...document.querySelectorAll("main article")]
         .filter(card => card.checkVisibility())
         .flatMap(card => {
           const edit = card.querySelector("a[aria-label='Edit']")?.getAttribute("href");
-          const heart = card
-            .querySelector("button[aria-label^='Like']")
-            ?.getAttribute("aria-pressed");
-          if (!edit || !heart) return [];
-          const seed = new URL(edit, location.href).pathname.slice(1);
-          return heart === String(hers.has(seed)) ? [] : [`${seed} ${heart}`];
+          const press = [...card.querySelectorAll("button")].find(button =>
+            named.test(button.getAttribute("aria-label") ?? "")
+          );
+          return edit && press
+            ? [[edit, press.getAttribute("aria-pressed") === "true"] as const]
+            : [];
         });
     },
-    [...liked]
+    [name.source, name.flags]
+  );
+/** The cards whose heart says other than her account: each palette she likes has its heart pressed, and every other
+    one not. */
+const misdrawn = async (page: Page, liked: ReadonlySet<string>) =>
+  (await pressedOn(page, /^Like/)).flatMap(([href, on]) =>
+    on === liked.has(itemAt(href).kseed) ? [] : [`${href} ${on}`]
+  );
+/** The cards whose selection press says other than this browser's selection: each palette chosen, in the view its
+    list draws it in, shows its check, and every other one its plus. */
+const misselected = async (page: Page, chosen: ReadonlySet<string>) =>
+  (await pressedOn(page, /selection$/)).flatMap(([href, on]) =>
+    on === chosen.has(href) ? [] : [`${href} ${on}`]
+  );
+/** This browser's selection, as another tab leaves it: these palettes, each in the view its Edit leads to. */
+const chosenHere = (page: Page, hrefs: Iterable<string>) =>
+  page.evaluate(
+    items =>
+      localStorage.setItem("grabient-keyframe-exports", JSON.stringify({ version: 1, items })),
+    [...hrefs].map(href => {
+      const { kseed, ...view } = itemAt(href);
+      return { seed: kseed, ...view };
+    })
   );
 /** What her browser sends for the palette's like next, once the server has answered the sync that carries it. */
 const sentLike = (page: Page, seed: string) =>
@@ -604,6 +626,25 @@ for (const width of WIDTHS)
         await press(heart, width);
         expect(await sent).toBe(!was);
         await expect(heart).toHaveAttribute("aria-pressed", String(!was));
+      }
+      expect(broken).toEqual([]);
+    });
+
+    test("a reader's selection shows on every list's cards before she moves", async ({ page }) => {
+      const broken = watch(page);
+      await open(page, STILL[0]!.address);
+      for (const list of STILL) {
+        // nothing chosen: the cards past the first row stand as the server drew them
+        await chosenHere(page, []);
+        await open(page, list.address);
+        const chosen = new Set<string>();
+        for (const [card, at] of list.cards) chosen.add(await linkAt(page, card, at));
+        // chosen in another tab: the page learns of them from this browser's selection alone
+        await chosenHere(page, chosen);
+        await open(page, list.address);
+        await expect
+          .poll(() => misselected(page, chosen), { message: list.name, timeout: 10_000 })
+          .toEqual([]);
       }
       expect(broken).toEqual([]);
     });

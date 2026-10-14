@@ -27,7 +27,8 @@ export function PaletteFeed<T>(props: {
   card: (item: () => T) => Element;
   /** the cards the page starts with live, out of those the server drew: the first screen's */
   live?: number;
-  /** false once the cards are the reader's own (an account's hearts), which the server's still ones cannot show */
+  /** false once the cards are the reader's own (an account's hearts, a selection's checks), which the server's still
+      ones cannot show */
   still?: boolean;
   /** the depth a return is about to restore */
   depth?: number;
