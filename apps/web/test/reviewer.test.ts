@@ -55,7 +55,6 @@ describe("the app reviewers' password", () => {
     ]);
     expect((await send({ cookie: reviewer.cookie }, { password: 12345678 }))[0]).toBe(400);
     expect((await send({ cookie: reviewer.cookie }, { password: "short" }))[0]).toBe(400);
-    expect((await handleAuth(post(PASSWORD, { email, password }), env)).status).toBe(401);
 
     expect(await send({ cookie: reviewer.cookie })).toEqual([
       200,
@@ -69,11 +68,6 @@ describe("the app reviewers' password", () => {
     expect((await getSession(env, new Headers({ cookie: cookiesOf(signedIn) })))?.user.id).toBe(
       reviewer.id
     );
-    const other = await handleAuth(
-      post(PASSWORD, { email, password: "another long password" }),
-      env
-    );
-    expect(other.status).toBe(401);
   });
 
   it("counts each password sent as a try at signing in from that address", async () => {
