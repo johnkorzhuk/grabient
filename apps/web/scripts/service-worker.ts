@@ -46,16 +46,15 @@ export async function workerSource(config: {
   return code.replace("__GRABIENT_SW__", JSON.stringify(config));
 }
 
-/** The chunk's files and those it imports, with their styles. */
+/** The chunk's files and those it imports, and the site's stylesheet, which belongs to no chunk. */
 function closure(
   bundle: Rolldown.OutputBundle,
   from: readonly Rolldown.OutputChunk[]
 ): Set<string> {
-  const files = new Set<string>();
+  const files = new Set(Object.keys(bundle).filter(name => name.endsWith(".css")));
   const visit = (chunk: Rolldown.OutputChunk) => {
     if (files.has(chunk.fileName)) return;
     files.add(chunk.fileName);
-    for (const css of chunk.viteMetadata?.importedCss ?? []) files.add(css);
     for (const name of chunk.imports) {
       const next = bundle[name];
       if (next?.type === "chunk") visit(next);
@@ -69,6 +68,8 @@ export function serviceWorker(): Plugin {
   return {
     name: "grabient:service-worker",
     apply: "build",
+    // after the build has written the stylesheet into the bundle
+    enforce: "post",
     applyToEnvironment: environment => environment.name === "client",
     async generateBundle(_options, bundle) {
       if (process.env.SW === "off") {

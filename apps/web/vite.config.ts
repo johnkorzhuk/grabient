@@ -15,6 +15,9 @@ export default defineConfig({
   define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
   server: { strictPort: true },
   preview: { strictPort: true },
+  /* One stylesheet for the whole site, which the document links and every later page already has. Split by chunk, a
+     page's styles are up to thirty requests its first paint waits for, in an order that differs from page to page. */
+  build: { cssCodeSplit: false },
   environments: {
     ssr: {
       // The Worker parses less on a cold start.
