@@ -5,7 +5,8 @@ import { paletteOf } from "@grabient/search/colors.ts";
 import { type Rows, rowOf, type Snapshot } from "@grabient/search/snapshot.ts";
 import { nearWord } from "@grabient/search/text.ts";
 import { blend, paletteVector, seedVector } from "@grabient/search/vectors.ts";
-import { type AssetsEnv, loadModel } from "./files.ts";
+import type { AssetsEnv } from "../assets.ts";
+import { loadModel } from "./files.ts";
 import { keep } from "./kept.ts";
 import { lineStart, queryWords } from "./read.ts";
 

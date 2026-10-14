@@ -38,6 +38,7 @@
     "@solidjs/vite-plugin": "catalog:",
     "@types/node": "catalog:",
     "cf": "catalog:",
+    "color-name-list": "14.51.0",
     "typescript": "catalog:",
     "vite": "catalog:",
     "vitest": "catalog:",

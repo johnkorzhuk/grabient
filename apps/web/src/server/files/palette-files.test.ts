@@ -1,8 +1,10 @@
+import { colorNamesText, preciseNamer } from "@grabient/engine/precise-names.ts";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { collectionForFiles } from "../collections/files.ts";
 import golden from "./fixtures/file-bodies.json" with { type: "json" };
 import { apiJsonAnswer, fileAnswer } from "./palette-files.ts";
 
+vi.hoisted(() => Object.assign(globalThis, { __COLOR_NAMES__: "/assets/color-names-test.txt" }));
 vi.mock("../collections/files.ts", () => ({
   isCollectionSlug: (name: string) =>
     /^(?:@[a-z0-9_-]{3,30}\/)?[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name),
@@ -86,6 +88,39 @@ describe("a palette's file", () => {
         base64(await answer.arrayBuffer())
       ]).toEqual([format, types[format], golden.swatches[format]]);
     }
+  });
+
+  test("a swatch file names its colors precisely where the deploy holds the names", async () => {
+    const list = colorNamesText([
+      { name: "Lights Out", hex: "#000000" },
+      { name: "Pure White", hex: "#ffffff" },
+      { name: "Red Alert", hex: "#ff0000" },
+      { name: "Blue Hour", hex: "#2244cc" },
+      { name: "Meadow", hex: "#55aa44" }
+    ]);
+    const ASSETS = {
+      fetch: async (url: string) =>
+        new URL(url).pathname === "/assets/color-names-test.txt"
+          ? new Response(list)
+          : new Response(null, { status: 404 })
+    } as unknown as Fetcher;
+    const text = await (
+      await fileAnswer(at(`/${seed}.gpl?${view}`), { ...env, ASSETS }, "gpl")
+    ).text();
+    const swatches = text.split("\n").slice(4).filter(Boolean);
+    const name = preciseNamer(list);
+    expect(swatches).toHaveLength(8);
+    expect(swatches.map(line => line.split("\t")[1])).toEqual(
+      swatches.map((line, i) => {
+        const hex = `#${line
+          .split("\t")[0]
+          .trim()
+          .split(/\s+/)
+          .map(v => Number(v).toString(16).padStart(2, "0"))
+          .join("")}`;
+        return `${i + 1} ${name(hex)}`;
+      })
+    );
   });
 
   test("an old grabient.com id is the palette the migration made of it", async () => {

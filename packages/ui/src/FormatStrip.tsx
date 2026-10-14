@@ -4,6 +4,7 @@ import { createDone } from "./done.ts";
 import styles from "./FormatStrip.module.css";
 import { Icon, type IconName } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
+import { openSwatches, swatchesOpen } from "./swatch-book.ts";
 import { tooltip } from "./Tooltip.tsx";
 
 /* The copies, the downloads and the links as one strip: first the mode, its glyph alone, which a press turns from
@@ -82,10 +83,10 @@ const TURN: Readonly<Record<StripMode, Partial<Record<StripMode, string>>>> = {
   link: { copy: msg("Copying links. Switch to copy") }
 };
 
-/* every strip on the page is one strip: a turn of one turns them all, and the swatch files open on all that have them,
-   for as long as the page is open. Only a press writes these, so the server, which never presses, draws Copy */
+/* every strip on the page is one strip: a turn of one turns them all, and the swatch files open on all that have them
+   (swatch-book.ts), for as long as the page is open. Only a press writes these, so the server, which never presses,
+   draws Copy */
 const [sharedMode, shareMode] = createSignal<StripMode>("copy");
-const [sharedOpen, shareOpen] = createSignal(false);
 /** The mode every strip is in, for a place that names it; a strip that lacks it shows Copy. */
 export const stripMode = (): StripMode => sharedMode();
 
@@ -149,13 +150,13 @@ export function FormatStrip(props: FormatStripProps) {
   };
   const swatched = () => modes().some(m => swatchesOf(m).length > 0);
   /* the swatch files stay open as the mode turns; the formats come back with Back */
-  const swatching = () => sharedOpen() && swatchesOf(mode()).length > 0;
+  const swatching = () => swatchesOpen() && swatchesOf(mode()).length > 0;
   const formats = () => (swatching() ? swatchesOf(mode()) : listOf(mode()));
   const formatPlaces = createMemo(() => placesOf(modes().map(listOf)));
   const swatchPlaces = createMemo(() =>
     placesOf(modes().map(m => (swatchesOf(m).length > 0 ? swatchesOf(m) : listOf(m))))
   );
-  const places = () => (sharedOpen() && swatched() ? swatchPlaces() : formatPlaces());
+  const places = () => (swatchesOpen() && swatched() ? swatchPlaces() : formatPlaces());
   /* each layer drawn unseen keeps the strip at the wider one's width; chips that share the row need none */
   const layers = () =>
     props.full ? [] : swatched() ? [formatPlaces(), swatchPlaces()] : [formatPlaces()];
@@ -281,7 +282,7 @@ export function FormatStrip(props: FormatStripProps) {
               class={styles.chip}
               data-square=""
               aria-label={book()}
-              onClick={() => shareOpen(!swatching())}
+              onClick={() => openSwatches(!swatching())}
             >
               <Icon name={swatching() ? "back" : "swatches"} size={glyph()} />
             </button>

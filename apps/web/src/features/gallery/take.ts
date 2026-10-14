@@ -9,7 +9,14 @@ import { downloadFile } from "@grabient/ui/copy.ts";
 import { exportGridImage } from "@grabient/ui/exportgrid.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, fileAddress, saveFile, swatchesOf, writeText } from "../../lib/files.ts";
+import {
+  copyImage,
+  copySwatches,
+  fileAddress,
+  saveFile,
+  swatchesOf,
+  writeText
+} from "../../lib/files.ts";
 import type { Drawn } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { type UseAt, type UsePlace, useTaken } from "../palette-use/use.ts";
@@ -48,11 +55,9 @@ export async function copyPalette(p: Drawn, format: Format): Promise<"copied" | 
     downloadFile(`${name(p)}.${format}`, await image);
     return "downloaded";
   }
-  if (isSwatchFormat(format)) {
-    const file = swatchFile(format, [swatchesOf(p)]);
-    if (typeof file !== "string") throw cannot();
-    await writeText(file);
-  } else if (format === "css") await writeText(cssLine(stops(p), p.style, p.angle, colorFormat()));
+  if (isSwatchFormat(format))
+    await copySwatches(names => swatchFile(format, [swatchesOf(p, names)]));
+  else if (format === "css") await writeText(cssLine(stops(p), p.style, p.angle, colorFormat()));
   else await writeText(format === "svg" ? svg(p) : address(p));
   return "copied";
 }

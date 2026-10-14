@@ -72,15 +72,19 @@ test("formats, media types and a translated swatch name", () => {
     type: "application/design-tokens+json"
   });
   const french = { t: (m: string) => (m === "navy" ? "bleu marine" : ENGLISH.t(m)), locale: "fr" };
-  const p = swatchPalette(
-    "kWNS69s7i_sVKwfTx8K6arBQ",
-    { style: "linearGradient", steps: 7, angle: 90 },
-    ORIGIN,
-    "Nuit",
-    french
-  );
+  const view = { style: "linearGradient", steps: 7, angle: 90 } as const;
+  const p = swatchPalette("kWNS69s7i_sVKwfTx8K6arBQ", view, ORIGIN, {
+    name: "Nuit",
+    language: french
+  });
   expect(p?.name).toBe("Nuit");
   expect(p?.names?.[0]).toBe("1 Bleu marine");
+  // the precise names, where they are read, in every language
+  const named = swatchPalette("kWNS69s7i_sVKwfTx8K6arBQ", view, ORIGIN, {
+    language: french,
+    names: hex => `Exactly ${hex}`
+  });
+  expect(named?.names?.[0]).toBe(`1 Exactly ${named?.colors[0]}`);
   expect(
     swatchPalette("not a seed", { style: "linearGradient", steps: 7, angle: 90 }, ORIGIN)
   ).toBeNull();

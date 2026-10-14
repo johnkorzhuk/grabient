@@ -1,3 +1,4 @@
+import type { Namer } from "@grabient/engine/precise-names.ts";
 import {
   isSwatchFormat,
   type SwatchPalette,
@@ -19,7 +20,8 @@ import {
 } from "@grabient/ui/exportgrid.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, writeText } from "../../lib/files.ts";
+import { namesWithin } from "../../lib/color-names.ts";
+import { copyImage, copySwatches, writeText } from "../../lib/files.ts";
 import type { SelectedPalette } from "./selection.ts";
 
 /* The selection's copies and files, all from the grid the export column's settings describe, so the image shown is the
@@ -31,9 +33,9 @@ type AutoSize = { width: number; height: number };
 const fileName = (p: SelectedPalette) => `grabient-${p.seed}`;
 const addressOf = (p: SelectedPalette) => `${location.origin}/${p.seed}${viewSearch(p)}`;
 const language = () => ({ t, locale: locale() });
-const swatches = (items: readonly SelectedPalette[]) =>
+const swatches = (items: readonly SelectedPalette[], names: Namer | null) =>
   items
-    .map(item => swatchPalette(item.seed, item, location.origin, undefined, language()))
+    .map(item => swatchPalette(item.seed, item, location.origin, { language: language(), names }))
     .filter((p): p is SwatchPalette => !!p);
 const swatchBlob = (format: Parameters<typeof swatchFile>[0], palettes: readonly SwatchPalette[]) =>
   new Blob([swatchFile(format, palettes, t("Selection"))], { type: "application/octet-stream" });
@@ -47,8 +49,7 @@ export async function copySelection(
 ): Promise<"copied" | "downloaded"> {
   if (!items.length) throw new Error(t("Select a palette first."));
   if (isSwatchFormat(format)) {
-    const text = swatchFile(format, swatches(items), t("Selection"));
-    await writeText(typeof text === "string" ? text : new TextDecoder().decode(text));
+    await copySwatches(names => swatchFile(format, swatches(items, names), t("Selection")));
     return "copied";
   }
   const grid = gridFor(items.length, settings, autoSize);
@@ -73,7 +74,10 @@ export async function downloadSelection(
 ): Promise<void> {
   if (!items.length) throw new Error(t("Select a palette first."));
   if (isSwatchFormat(format)) {
-    downloadFile(swatchName(t("Selection"), format), swatchBlob(format, swatches(items)));
+    downloadFile(
+      swatchName(t("Selection"), format),
+      swatchBlob(format, swatches(items, await namesWithin()))
+    );
     return;
   }
   const grid = gridFor(items.length, settings, autoSize);

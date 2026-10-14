@@ -3,6 +3,7 @@ import { i18n } from "@grabient/i18n/vite.ts";
 import solid from "@solidjs/vite-plugin";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { defineConfig, type Rolldown } from "vite";
+import { colorNames } from "./scripts/color-names.ts";
 import { serviceWorker } from "./scripts/service-worker.ts";
 import { mcpView } from "./src/mcp-view/build.ts";
 import { draftsStayPrivate } from "./src/server/newsletter/private.ts";
@@ -97,6 +98,8 @@ export default defineConfig({
     mcpView(),
     // A newsletter issue that has no publication day yet never reaches a file the browser is given.
     draftsStayPrivate(),
+    // The precise color names swatch files carry, one file the browser and the Worker read when a file needs them.
+    colorNames(),
     cloudflare({ viteEnvironment: { name: "ssr" }, remoteBindings: false }),
     tanstackStart({
       // Worker-only code never reaches the browser: the build fails on an import of it from code the client runs.

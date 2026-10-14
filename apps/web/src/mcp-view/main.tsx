@@ -187,7 +187,10 @@ async function download(tile: Tile, format: DownloadFormat) {
   let resource: Params;
   if (isSwatchFormat(format)) {
     const words = { t, locale: locale() };
-    const palette = swatchPalette(tile.seed, tile, origin(), nameOf(tile, words), words);
+    const palette = swatchPalette(tile.seed, tile, origin(), {
+      name: nameOf(tile, words),
+      language: words
+    });
     if (!palette) {
       openFile();
       return;

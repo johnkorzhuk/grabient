@@ -15,6 +15,7 @@ import { queryIntent } from "@grabient/search/words.ts";
 import { sortSearch } from "../../features/gallery/sort.ts";
 import { type ListSort, parseSort, type RisingFrame } from "../../lib/orders.ts";
 import { listWords, looksLikeLink, paletteId } from "../../lib/words.ts";
+import type { AssetsEnv } from "../assets.ts";
 import { isCrawler } from "../crawlers.ts";
 import { canonicalPaletteSeed } from "../files/resolve.ts";
 import {
@@ -25,7 +26,7 @@ import {
   shownDistance,
   strayDistance
 } from "./facts.ts";
-import { type AssetsEnv, loadVocabulary } from "./files.ts";
+import { loadVocabulary } from "./files.ts";
 import { type Item, searchableItems } from "./items.ts";
 import { type ModelEnv, modelQuery, type Payer } from "./model.ts";
 import {

@@ -1,6 +1,7 @@
 import { decodePalette } from "@grabient/engine";
 import { paletteCss } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
+import type { Namer } from "@grabient/engine/precise-names.ts";
 import {
   isSwatchFormat,
   SWATCH_FILES,
@@ -15,6 +16,7 @@ import { locale, t } from "@grabient/i18n";
 import { copyText, downloadFile } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "./color-format.ts";
+import { namesNow, namesWithin } from "./color-names.ts";
 
 /* The app's side of taking things away: text and pictures onto the clipboard, each refusal said, and a palette's own
    files, the same from a card and from the editor. Browser only. */
@@ -22,11 +24,37 @@ import { colorFormat } from "./color-format.ts";
 type Shown = View & { seed: string };
 const cannot = () => new Error(t("This palette can't be exported."));
 
-/** A palette as a swatch file holds it, its colors named in the reader's language. */
-export function swatchesOf(p: Shown): SwatchPalette {
-  const palette = swatchPalette(p.seed, p, location.origin, undefined, { t, locale: locale() });
+/** A palette as a swatch file holds it: its colors by their precise names where `names` holds them, else by the broad
+    names in the reader's language. */
+export function swatchesOf(p: Shown, names?: Namer | null): SwatchPalette {
+  const palette = swatchPalette(p.seed, p, location.origin, {
+    language: { t, locale: locale() },
+    names
+  });
   if (!palette) throw cannot();
   return palette;
+}
+
+/** A swatch file onto the clipboard, written once its colors' names are read: the copy is asked for while the press
+    still counts, as a browser wants, and filled when they arrive. A file that is no text can't be copied. */
+export async function copySwatches(
+  file: (names: Namer | null) => ReturnType<typeof swatchFile>
+): Promise<void> {
+  const text = (names: Namer | null) => {
+    const made = file(names);
+    if (typeof made !== "string") throw cannot();
+    return made;
+  };
+  if (navigator.clipboard?.write && typeof ClipboardItem !== "undefined") {
+    const blob = namesWithin().then(names => new Blob([text(names)], { type: "text/plain" }));
+    try {
+      await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
+      return;
+    } catch {
+      // refused: the copy command's way below
+    }
+  }
+  return writeText(text(namesNow()));
 }
 
 /** A palette's file as the site serves it, saved: its Markdown, its CSS or a swatch file. */
@@ -46,7 +74,7 @@ export async function saveFile(p: Shown, format: "md" | "css" | SwatchFormat): P
     const css = paletteCss(stops, p, page, colorFormat());
     return downloadFile(`${name}.css`, new Blob([css], { type: "text/css;charset=utf-8" }));
   }
-  const palette = swatchesOf(p);
+  const palette = swatchesOf(p, await namesWithin());
   downloadFile(
     swatchName(palette.name, format),
     new Blob([swatchFile(format, [palette])], { type: SWATCH_FILES[format].type })
