@@ -9,7 +9,7 @@ import {
   sampleIssue,
   sampleMcpIssue,
   samplePartnerIssue
-} from "../src/sample.ts";
+} from "../test/sample.ts";
 
 const [folder, origin = "https://staging.grabient.com"] = process.argv.slice(2);
 if (!folder) {

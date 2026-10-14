@@ -53,6 +53,15 @@ describe("the contact form", () => {
     expect(env.EMAIL.last.replyTo).toBeUndefined();
   });
 
+  it("sends the longest message the page allows in any script", async () => {
+    const env = testEnv();
+    for (const words of ["色".repeat(5000), "й".repeat(5000), "😀".repeat(2500)]) {
+      const answer = await contactResponse(post("/api/contact", { message: words }), env);
+      expect([answer.status, await bodyOf(answer)]).toEqual([200, { success: true }]);
+      expect(env.EMAIL.last.text).toBe(words);
+    }
+  });
+
   it("refuses another site, a bad message, and a deploy that cannot count or send", async () => {
     const env = testEnv();
     const refused = async (request: Request, environment: TestEnv = env) => {
@@ -224,6 +233,9 @@ describe("the owner's alerts", () => {
       watched: 0
     });
     expect((await signInDigest({ ...env, DEPLOYMENT: "preview" })).skipped).toBeTruthy();
+    // each deploy that counts reads its own dataset, the one the usage report reads
+    await signInDigest({ ...env, DEPLOYMENT: "development" });
+    expect(queries.at(-1)).toContain('FROM events.analyticsEngine."grabient_dev_usage"');
   });
 });
 
@@ -294,7 +306,7 @@ describe("account emails", () => {
     await sendAccountEmail(
       env,
       "reader@example.test",
-      { kind: "deletion", url: `${ORIGIN}/settings?token=d` },
+      { kind: "deletion", token: "d" },
       {
         paint: async () => PNG
       }

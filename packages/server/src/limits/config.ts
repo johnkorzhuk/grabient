@@ -130,6 +130,8 @@ export const LIMITS = {
   clientErrorDaily: { requests: 5000, window: 86400, site: true, lease: 10 },
   // A public list or search the edge cache did not hold: each reads the database.
   listMiss: { requests: 60, window: 60, local: true },
+  // Like counts a page reads again once its own are old: up to 96 rows each, which no cache keeps.
+  likeCounts: { requests: 60, window: 60, local: true },
   // An account's own Saved list and sync, a page load or a window focus each.
   savedRead: { requests: 60, window: 60, local: true }
 } as const satisfies Record<string, Limit>;

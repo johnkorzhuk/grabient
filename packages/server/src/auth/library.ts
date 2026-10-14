@@ -35,19 +35,6 @@ export function google(env: Env) {
     : null;
 }
 
-/** The link in a deletion email: Settings at the site's origin, in the language of the Settings page that asked. */
-function deletionLink(env: Env, request: Request | undefined, token: string): string {
-  const origin = env.BETTER_AUTH_URL ?? (request ? new URL(request.url).origin : "");
-  let path = "/settings";
-  try {
-    const page = new URL(request?.headers.get("Referer") ?? "");
-    if (page.origin === origin && /^\/[^/]+\/settings$/.test(page.pathname)) path = page.pathname;
-  } catch {
-    // No page named: the default language.
-  }
-  return `${origin}${path}?token=${encodeURIComponent(token)}`;
-}
-
 function createAuth(env: Env) {
   const credentials = google(env);
   return betterAuth({
@@ -188,12 +175,7 @@ function createAuth(env: Env) {
           }
         },
         sendDeleteAccountVerification: ({ user, token }, request) =>
-          mailAccount(
-            env,
-            user.email,
-            { kind: "deletion", url: deletionLink(env, request, token) },
-            request
-          )
+          mailAccount(env, user.email, { kind: "deletion", token }, request)
       }
     },
     // A signed five-minute copy of the session in a cookie spares most reads a database query.

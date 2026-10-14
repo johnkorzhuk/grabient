@@ -1,7 +1,9 @@
 /* What the edge cache keeps a file or a picture under: one canonical path and only the query that decides its bytes, so
    every address of one answer (an old id, `/api/png?seed=`, `amp;` keys, a stray parameter) shares one entry and junk
-   cannot fill the cache. A picture's bytes change only with the card version, which its key names, so it is kept
-   across deploys; a text file is the engine's writing, kept for one build. */
+   cannot fill the cache. A palette's picture changes only with the card version, which its key names, so it is kept
+   across deploys. A picture of several palettes changes with what the site holds, so it is kept for one build, as its
+   page is, and a collection's also by when the collection changed (`t`, which its page names). A text file is the
+   engine's writing, kept for one build. */
 import { colorKind } from "@grabient/engine/css.ts";
 import { parseView, type Size, viewSearch } from "@grabient/engine/view.ts";
 import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
@@ -32,11 +34,11 @@ const MONTAGES = new Set([
   "/api/og/collections"
 ]);
 
-function picture(path: string, query: URLSearchParams, size: Size): FileKey {
+function picture(path: string, query: URLSearchParams, size: Size, acrossBuilds = true): FileKey {
   query.set("w", String(size.width));
   query.set("h", String(size.height));
-  query.set("v", CARD_VERSION);
-  return { path, query, acrossBuilds: true };
+  if (acrossBuilds) query.set("v", CARD_VERSION);
+  return { path, query, acrossBuilds };
 }
 
 /* A view a montage's address sets for all its palettes, read as drawn; a view it leaves to each palette is no key. */
@@ -57,7 +59,8 @@ function searchKey(path: string, params: URLSearchParams): FileKey {
   return picture(
     branded ? "/api/og/query" : "/api/png/query",
     query,
-    branded ? CARD : montageSize(params)
+    branded ? CARD : montageSize(params),
+    false
   );
 }
 
@@ -67,6 +70,8 @@ function montageKey(path: string, params: URLSearchParams): FileKey {
   if (path.endsWith("/collection")) {
     query.set("slug", (params.get("slug") ?? "").slice(0, 120));
     if (params.get("sort") === "rising") query.set("sort", "rising");
+    const changed = params.get("t");
+    if (changed && /^\d{1,15}$/.test(changed)) query.set("t", changed);
   } else {
     const { sort, frame } = montageOrder(params);
     query.set("sort", sort);
@@ -75,7 +80,7 @@ function montageKey(path: string, params: URLSearchParams): FileKey {
     if (words) query.set("q", words);
   }
   montageView(query, params);
-  return picture(path, query, branded ? CARD : montageSize(params));
+  return picture(path, query, branded ? CARD : montageSize(params), false);
 }
 
 function namedFile(path: string, params: URLSearchParams) {

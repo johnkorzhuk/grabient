@@ -9,6 +9,8 @@ import {
   splitLocale
 } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
+import { clientAddress } from "@grabient/server/limits/address.ts";
+import { checkLimits } from "@grabient/server/limits/check.ts";
 import { BUILD } from "../lib/build.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { TRACKING_PARAM } from "../lib/links.ts";
@@ -22,9 +24,11 @@ import { countFile } from "./files/count.ts";
 import {
   connectPath,
   consentPath,
+  listingPath,
   privatePath,
   publicFile,
   recorderPath,
+  serverFunctionPath,
   uncachedPath
 } from "./paths.ts";
 import { countLegacy } from "./seo/legacy.ts";
@@ -37,7 +41,8 @@ import { indexed, NOINDEX } from "./seo/site.ts";
       (404), and an arrival's language (302, before any cache, so the English answer stays shared).
    4. The canonical address, from the rules features add (canonical.ts): 301.
    5. An address of the MCP server or the authorization server is the app's to answer as it stands. A private one is
-      answered directly and never kept; every other GET goes through the edge cache.
+      answered directly and never kept; every other GET goes through the edge cache. A list, a search or the home that
+      no cache holds reads the database or runs the search: an address may make sixty of those a minute.
    6. The headers every answer carries.
    Everything after step 3 reads the path without the language, and every address handed out gets it back. */
 
@@ -119,11 +124,16 @@ async function route(
   const address = path + url.search;
   const at = (to: string, language = locale) => new URL(localizePath(to, language), url).toString();
 
+  // an empty first segment is no address of the site's, which a URL reads as another host (//host/path), and the app
+  // has no server functions for Start's endpoint to call
+  if (path.startsWith("//") || serverFunctionPath(path)) {
+    return json({ error: msg("Not found") }, { status: 404 });
+  }
   const prefix = canonicalLocalePath(url.pathname);
   if (prefix !== null) return redirect(new URL(prefix + url.search, url).toString());
   // a page's address never ends in a slash, which other sites link to both ways; an API keeps its own
   const slashed = path.length > 1 && path.endsWith("/");
-  if (read && slashed && !path.startsWith("//")) {
+  if (read && slashed) {
     const trimmed = path.replace(/\/+$/, "") || "/";
     if (isPagePath(trimmed)) return redirect(at(trimmed + url.search));
   }
@@ -145,6 +155,11 @@ async function route(
     }
   }
   if (canonical !== null) return redirect(at(canonical));
+  // Start renders a page whatever the method, so a page is refused any method but GET and HEAD before it renders. The
+  // newsletter's way out takes its press as a POST.
+  if (page && !read && !(request.method === "POST" && path.startsWith("/unsubscribe/"))) {
+    return notAllowed();
+  }
 
   if (request.method === "OPTIONS" && publicFile(path)) {
     return new Response(null, {
@@ -159,9 +174,23 @@ async function route(
   if (connectPath(path)) return app(request);
   if (privatePath(path)) return withHeaders(await answer(request, app), NO_STORE);
   countFile(env, request, path);
-  // under `vite dev` nothing is kept: a page kept from before an edit would hydrate against the edited code
-  if (!read || env.DEPLOYMENT === "development" || uncachedPath(path)) return answer(request, app);
-  return edgeCached(request, cacheKey(url, path, locale), ctx, () => answer(request, app));
+  // under `vite dev` nothing is kept or counted: a page kept from before an edit would hydrate against the edited code
+  if (!read || env.DEPLOYMENT === "development") return answer(request, app);
+  const render = async () =>
+    (listingPath(path) && (await overListing(env, request))) || answer(request, app);
+  return uncachedPath(path)
+    ? render()
+    : edgeCached(request, cacheKey(url, path, locale), ctx, render);
+}
+
+/** The refusal of a list, a search or the home past the address's sixty reads a minute in this isolate, or null. */
+async function overListing(env: Env, request: Request): Promise<Response | null> {
+  const counted = await checkLimits(env, [
+    [`list-miss:${clientAddress(request) ?? "local"}`, "listMiss"]
+  ]);
+  return counted?.success
+    ? null
+    : json({ error: msg("Too many requests. Try again later.") }, { status: 429 });
 }
 
 /** A page navigation from outside the site: a search result, another site, a typed address or a bookmark. */
@@ -177,6 +206,9 @@ function arriving(request: Request, url: URL): boolean {
   }
 }
 
+const notAllowed = () =>
+  json({ error: "Method not allowed" }, { status: 405, headers: { Allow: "GET, HEAD" } });
+
 /** Start's answer. Start renders a page for any address no server route takes, whatever the method: only a server
     route takes a method other than GET and HEAD, so such a page is 405. It answers a page asked for without HTML in
     Accept with a 500, so that request is given HTML among what it accepts. */
@@ -189,9 +221,7 @@ async function answer(request: Request, app: App): Promise<Response> {
   }
   const response = await app(request);
   const read = request.method === "GET" || request.method === "HEAD";
-  if (!read && response.headers.get("Content-Type")?.startsWith("text/html")) {
-    return json({ error: "Method not allowed" }, { status: 405 });
-  }
+  if (!read && response.headers.get("Content-Type")?.startsWith("text/html")) return notAllowed();
   return response;
 }
 
@@ -215,6 +245,8 @@ function finish(
   if (response.status !== 200 && response.status !== 304 && !standIn) {
     for (const [name, value] of Object.entries(NO_STORE)) headers.set(name, value);
   }
+  // a refusal that names no wait: the allowances that refuse without one count by the minute
+  if (response.status === 429 && !headers.has("Retry-After")) headers.set("Retry-After", "60");
   const location =
     tracking.size && response.status >= 300 && response.status < 400
       ? headers.get("Location")

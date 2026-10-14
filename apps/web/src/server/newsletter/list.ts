@@ -7,7 +7,7 @@ import {
   msg,
   translate
 } from "@grabient/i18n";
-import { all, batch, first, type Statement } from "@grabient/server/db/d1.ts";
+import { batch, first } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 
 /* The newsletter's list (migration 0051). An account gets the newsletter until it says otherwise: with no row, or a row
@@ -84,92 +84,45 @@ export interface Reader {
   locale: Locale;
   unsubscribe: string;
 }
-interface Account {
-  id: string;
-  email: string;
-  locale: string | null;
+interface Choice {
   token: string | null;
   subscribed: number | null;
 }
-const ACCOUNT =
-  "u.id, u.email, u.locale, n.token, n.subscribed FROM auth_user u LEFT JOIN k_newsletter n ON n.user_id = u.id";
 
-/* Each account with its unsubscribe address. An account no issue was addressed to before gets its row here, a token
-   and no choice, and the rows are read back in the same transaction: one that chose at that moment keeps the token its
-   choice wrote, and is left out if it ended the newsletter. */
-async function readersOf(env: Pick<Env, "DB">, origin: string, accounts: readonly Account[]) {
-  const held = new Map(accounts.map(account => [account.id, account] as const));
-  const fresh = accounts.filter(account => !account.token).map(account => account.id);
-  if (fresh.length) {
-    const now = Date.now();
-    const statements: Statement[] = fresh.map(id => [
-      "INSERT INTO k_newsletter (user_id, token, updated_at) VALUES (?, ?, ?) ON CONFLICT (user_id) DO NOTHING",
-      id,
-      newToken(),
-      now
-    ]);
-    statements.push([
-      `SELECT user_id, token, subscribed FROM k_newsletter WHERE user_id IN (${fresh.map(() => "?").join(",")})`,
-      ...fresh
-    ]);
-    const results = await batch(env.DB, statements);
-    const rows = (results.at(-1)?.results ?? []) as {
-      user_id: string;
-      token: string;
-      subscribed: number | null;
-    }[];
-    for (const row of rows) {
-      const account = held.get(row.user_id);
-      if (account)
-        held.set(row.user_id, { ...account, token: row.token, subscribed: row.subscribed });
-    }
-  }
-  return [...held.values()].flatMap((account): Reader[] => {
-    if (!account.token || !subscribedBy(account.subscribed)) return [];
-    const locale = isLocale(account.locale) ? account.locale : DEFAULT_LOCALE;
-    return [
-      {
-        email: account.email,
-        locale,
-        unsubscribe: origin + localizePath(`/unsubscribe/${account.token}`, locale)
-      }
-    ];
-  });
-}
-
-/** The most readers a page holds: a statement's bound values, and one request to the sender. */
-export const READERS_PAGE = 100;
-
-/** The accounts an issue goes to, a page at a time in the order of their ids: every account with a verified address that
-    has not ended the newsletter. `next` is the `after` of the next page, or null at the end. The choice is read as
-    each page is taken, so a long send never writes to an account that ended the newsletter before its page. */
-export async function newsletterReaders(
-  env: Pick<Env, "DB">,
-  origin: string,
-  options: { after?: string; limit?: number } = {}
-): Promise<{ readers: Reader[]; next: string | null }> {
-  const limit = Math.max(1, Math.min(READERS_PAGE, Math.floor(options.limit ?? READERS_PAGE)));
-  const accounts = await all<Account>(
-    env.DB,
-    `SELECT ${ACCOUNT} WHERE u.id > ? AND u.email_verified = 1 AND COALESCE(n.subscribed, 1) = 1
-     ORDER BY u.id LIMIT ?`,
-    options.after ?? "",
-    limit
-  );
-  return {
-    readers: await readersOf(env, origin, accounts),
-    next: accounts.length === limit ? accounts[limit - 1].id : null
-  };
-}
-
-/** One account as a reader, or null when it ended the newsletter or does not exist. */
+/** One account as a reader, or null when it ended the newsletter or does not exist. An account no issue was addressed
+    to before gets its row here, a token and no choice, read back in the same transaction: one that chose at that
+    moment keeps the token its choice wrote, and is left out if it ended the newsletter. */
 export async function readerOf(
   env: Pick<Env, "DB">,
   origin: string,
   userId: string
 ): Promise<Reader | null> {
-  const account = await first<Account>(env.DB, `SELECT ${ACCOUNT} WHERE u.id = ?`, userId);
-  return account ? ((await readersOf(env, origin, [account]))[0] ?? null) : null;
+  const account = await first<Choice & { email: string; locale: string | null }>(
+    env.DB,
+    "SELECT u.email, u.locale, n.token, n.subscribed FROM auth_user u LEFT JOIN k_newsletter n ON n.user_id = u.id WHERE u.id = ?",
+    userId
+  );
+  if (!account) return null;
+  let choice: Choice | undefined = account;
+  if (!account.token) {
+    const results = await batch(env.DB, [
+      [
+        "INSERT INTO k_newsletter (user_id, token, updated_at) VALUES (?, ?, ?) ON CONFLICT (user_id) DO NOTHING",
+        userId,
+        newToken(),
+        Date.now()
+      ],
+      ["SELECT token, subscribed FROM k_newsletter WHERE user_id = ?", userId]
+    ]);
+    choice = results.at(-1)?.results?.[0] as Choice | undefined;
+  }
+  if (!choice?.token || !subscribedBy(choice.subscribed)) return null;
+  const locale = isLocale(account.locale) ? account.locale : DEFAULT_LOCALE;
+  return {
+    email: account.email,
+    locale,
+    unsubscribe: origin + localizePath(`/unsubscribe/${choice.token}`, locale)
+  };
 }
 
 const REASON = msg("You get this because you signed up for Grabient.");

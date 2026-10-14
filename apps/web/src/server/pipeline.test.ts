@@ -7,6 +7,7 @@ import type { Env } from "@grabient/server/env.ts";
 import migrated from "../../data/legacy-k.json" with { type: "json" };
 import links from "../../data/legacy-links.json" with { type: "json" };
 import { PAGE } from "../lib/cache.ts";
+import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { handle, misdeployed } from "./pipeline.ts";
 
@@ -112,14 +113,40 @@ describe("the language in the address", () => {
     expect(asked).toEqual([]);
   });
 
-  test.each(["/ja/api/hot", "/ja/kS7Q8Yy5S_SChv0.png", "/api/hot/", "/ja/e/s/"])(
-    "%s is 404 JSON",
+  test.each([
+    "/ja/api/hot",
+    "/ja/kS7Q8Yy5S_SChv0.png",
+    "/api/hot/",
+    "/ja/e/s/",
+    "/_serverFn/abc",
+    "/_serverFn/%3Cscript%3E",
+    "/ja/_serverFn"
+  ])("%s is 404 JSON", async path => {
+    const response = await get(path);
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Not found" });
+    expect(asked).toEqual([]);
+  });
+
+  test.each(["//evil.example/", "//evil.example", "/\\evil.example/", "/ja//evil.example"])(
+    "%s, with an empty first segment, is no address and fills no cache",
     async path => {
       const response = await get(path);
-      expect(response.status).toBe(404);
-      expect(await response.json()).toEqual({ error: "Not found" });
+      expect([response.status, asked.length, cache.kept.size]).toEqual([404, 0, 0]);
     }
   );
+
+  test("an edge key always names the request's own origin", () => {
+    const url = new URL("https://grabient.test//evil.example/palettes");
+    expect(cacheKey(url, url.pathname, "en")).toBe(
+      "https://grabient.test//evil.example/palettes?__build=b1"
+    );
+  });
+
+  test("Start's server functions, of which the app has none, are no address for any method", async () => {
+    const posted = await get("/_serverFn/eyJ0ZXN0IjoxfQ", { method: "POST", body: "{}" });
+    expect([posted.status, asked]).toEqual([404, []]);
+  });
 
   test("the recorder's addresses reach Start as PostHog's library writes them, last slash and all", async () => {
     const recorded = () => new Response(null, { status: 204 });
@@ -310,6 +337,49 @@ describe("the edge cache", () => {
     ]);
   });
 
+  test("counts every list, search and home it misses against one minute per address", async () => {
+    const from = (ip: string) => ({ headers: { "CF-Connecting-IP": ip } });
+    // each a canonical address of its own, so none is redirected or kept for another
+    const listings = [
+      (n: number) => `/palettes?q=w${n}`,
+      (n: number) => `/palettes/rising/3m?page=${n + 2}`,
+      (n: number) => `/?q=w${n}`,
+      (n: number) => `/?page=${n + 2}`,
+      (n: number) => `/collections?q=w${n}`,
+      (n: number) => `/collections/rising?page=${n + 2}`,
+      (n: number) => `/api/hot?q=w${n}`,
+      (n: number) => `/api/collections?page=${n + 2}`,
+      (n: number) => `/api/search.json?query=w${n}`,
+      (n: number) => `/search/w${n}.json`,
+      (n: number) => `/api/palettes?page=${n + 100}`
+    ];
+    for (let n = 0; n < 60; n++) {
+      const response = await get(listings[n % listings.length](n), from("203.0.113.7"));
+      expect(response.status).toBe(200);
+    }
+    expect(asked).toHaveLength(60);
+    const kept = await get("/palettes?q=w0", from("203.0.113.7"));
+    expect(kept.headers.get("X-Grabient-Cache")).toBe("HIT");
+    expect((await get("/about", from("203.0.113.7"))).status).toBe(200);
+    // the list API, which the edge never holds, counts every read
+    for (const listing of ["/collections?q=more", "/api/palettes?page=100"]) {
+      const refused = await get(listing, from("203.0.113.7"));
+      expect([refused.status, await refused.json()]).toEqual([
+        429,
+        { error: "Too many requests. Try again later." }
+      ]);
+      expect(refused.headers.get("Retry-After")).toBe("60");
+      expect(refused.headers.get("Cache-Control")).toBe("no-store");
+    }
+    expect(asked).toHaveLength(61);
+    expect(counted).toContain("limit listMiss client");
+    expect((await get("/collections?q=more", from("203.0.113.8"))).status).toBe(200);
+    // under `vite dev` nothing is counted
+    const development = { ...env, DEPLOYMENT: "development" } as Env;
+    const dev = await get("/collections?q=more", from("203.0.113.7"), undefined, development);
+    expect(dev.status).toBe(200);
+  });
+
   test("never holds a private page, which answers no-store", async () => {
     const response = await get("/settings");
     expect(response.headers.get("Cache-Control")).toBe("no-store");
@@ -344,8 +414,24 @@ test("campaign tags never reach Start and ride every same-origin redirect", asyn
 });
 
 test("only a server route takes another method than GET and HEAD", async () => {
-  const post = await get("/palettes", { method: "POST" });
-  expect(post.status).toBe(405);
+  // a page is refused before it renders, so no method makes it draw or search again
+  for (const [path, method] of [
+    ["/palettes?q=%23a1b2c3", "POST"],
+    ["/about", "PUT"],
+    ["/kY4mpDazO-mUuu_fuLqXU49dvVP6", "DELETE"],
+    ["/ja/settings", "PATCH"],
+    ["/unsubscribe/abc", "PUT"]
+  ]) {
+    const refused = await get(path, { method });
+    expect([path, refused.status, refused.headers.get("Allow")]).toEqual([path, 405, "GET, HEAD"]);
+    expect(await refused.json()).toEqual({ error: "Method not allowed" });
+  }
+  expect(asked).toEqual([]);
+  // the newsletter's way out takes its press as a POST
+  const unsubscribed = await get("/unsubscribe/abc", { method: "POST" }, () => Response.json({}));
+  expect([unsubscribed.status, asked.length]).toEqual([200, 1]);
+  // a file's route that takes no POST, where Start would render a page instead
+  expect((await get("/kS7Q8Yy5S_SChv0.png", { method: "POST" })).status).toBe(405);
   const preflight = await get("/kS7Q8Yy5S_SChv0.json", { method: "OPTIONS" });
   expect(preflight.status).toBe(204);
   expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe("*");
@@ -416,6 +502,14 @@ test("no browser keeps a redirect, but for the minutes a picture's stand-in name
       }
     });
   expect((await get("/api/y", {}, moved)).headers.get("Cache-Control")).toBe("no-store");
+});
+
+test("a refusal that names no wait of its own says a minute", async () => {
+  // the search's allowance spent: the page renders what it could, and says so with its status
+  const limited = await get("/palettes?q=zqxwv", {}, () => page(429, {}));
+  expect([limited.status, limited.headers.get("Retry-After")]).toEqual([429, "60"]);
+  const waits = () => Response.json({}, { status: 429, headers: { "Retry-After": "7" } });
+  expect((await get("/api/me/search?q=x", {}, waits)).headers.get("Retry-After")).toBe("7");
 });
 
 test("a failure is a 500 no cache keeps, logged with its stack", async () => {

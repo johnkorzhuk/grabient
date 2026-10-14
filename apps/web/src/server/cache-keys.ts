@@ -13,8 +13,8 @@ import { searchKeyRules } from "./search/routes.ts";
    An address whose answer reads only some of its query has a rule here, so junk parameters cannot fill the cache with
    copies. A feature adding a public route adds its rule: an API's parameters normalized as its handler reads them. A
    palette's or a collection's file and every picture are keyed by the files themselves (files/keys.ts), which also
-   gives every address of one file one path, and keeps a picture across builds so a deploy does not draw them all
-   again. */
+   gives every address of one file one path, and keeps a palette's picture across builds so a deploy does not draw
+   them all again. */
 
 export interface KeyRule {
   match: (path: string) => boolean;
@@ -65,7 +65,8 @@ const RULES: readonly KeyRule[] = [
 export function cacheKey(url: URL, path: string, locale: Locale, rules = RULES): string {
   const file = fileCacheKey(path, url.searchParams);
   const rule = file ? undefined : rules.find(r => r.match(path));
-  const key = new URL(file?.path ?? localizePath(rule?.path ?? path, locale), url.origin);
+  // joined as text: resolved against the origin, a path that starts with two slashes would name another host
+  const key = new URL(url.origin + (file?.path ?? localizePath(rule?.path ?? path, locale)));
   const query = new URLSearchParams(url.search);
   key.search = (file?.query ?? rule?.query?.(query, path) ?? query).toString();
   if (!file?.acrossBuilds) key.searchParams.set("__build", BUILD);

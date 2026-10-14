@@ -2,7 +2,7 @@
 import { createRootRoute, createRoute, createRouter } from "@tanstack/solid-router";
 import { expect, test } from "vitest";
 import generated from "../src/routeTree.gen.ts?raw";
-import { get } from "./helpers.ts";
+import { address, get } from "./helpers.ts";
 
 /* A file beside a page (/{seed}.png beside /{seed}) is a route with a suffix, and the router must rank it above the
    page's own, which takes any one segment. Nothing in the router's contract says it does: a suffixed route wins only
@@ -33,9 +33,9 @@ const modules = import.meta.glob<{
   Route: { options: { server?: { handlers?: Record<string, Handler | undefined> } } };
 }>("../src/routes/**/*.ts");
 
-/** The route the router gives an address to, by its path, and that route's own answer to a GET. */
-async function reach(address: string) {
-  const request = get(address);
+/** The route the router gives an address to, by its path, and that route's own answer to a GET from `ip`. */
+async function reach(address: string, ip?: string) {
+  const request = get(address, { ip });
   const [, params, found] = router.getMatchedRoutes(new URL(request.url).pathname);
   const route = routes.find(known => known.path === found?.fullPath);
   const load = route && modules[`../src/routes/${route.file}.ts`];
@@ -92,4 +92,14 @@ test("the recorder's route takes PostHog's addresses, the one that ends in a sla
   const taken = (path: string) => router.getMatchedRoutes(path)[2]?.fullPath;
   expect(taken("/e/s/")).toBe("/e/$");
   expect(taken("/e/static/recorder.js")).toBe("/e/$");
+});
+
+test("like counts, which no cache keeps, answer an address sixty times a minute", async () => {
+  const ip = address();
+  const asked = "/api/like-counts?keys=kS7Q8Yy5S_SChv0";
+  const statuses = [];
+  for (let i = 0; i < 61; i++) statuses.push((await reach(asked, ip)).status);
+  expect(statuses.filter(status => status === 200)).toHaveLength(60);
+  expect(statuses.at(-1)).toBe(429);
+  expect((await reach(asked)).status).toBe(200);
 });

@@ -1,10 +1,5 @@
 import { expect, test } from "vitest";
-import {
-  searchColorsResponse,
-  searchJsonResponse,
-  searchKeyRules,
-  searchStatusResponse
-} from "./routes.ts";
+import { searchJsonResponse, searchKeyRules, searchStatusResponse } from "./routes.ts";
 import { assets, fakeAi, fixture, refusing, searchEnv } from "./testing.ts";
 
 const ask = (path: string, ip = "192.0.2.77") =>
@@ -88,20 +83,8 @@ test("a crawler's answer is kept for nobody", async () => {
   expect(await response.json()).toMatchObject({ tier: "account", unkept: true });
 });
 
-test("an address past its minute of misses is turned away before any search", async () => {
-  const env = searchEnv();
-  const ip = "198.51.100.9";
-  for (let i = 0; i < 60; i++)
-    expect((await searchJsonResponse(ask("/api/search.json?q=red&limit=1", ip), env)).status).toBe(
-      200
-    );
-  const refused = await searchJsonResponse(ask("/api/search.json?q=red&limit=1", ip), env);
-  expect(refused.status).toBe(429);
-  expect(refused.headers.get("Retry-After")).toBe("60");
-});
-
 test("the edge keys a search by what its handler reads, whichever of its addresses asked", () => {
-  const [json, colors, tags] = searchKeyRules;
+  const [json, tags] = searchKeyRules;
   const key = (params: string, path = "/api/search.json") =>
     json.query?.(new URLSearchParams(params), path).toString();
   expect(
@@ -114,9 +97,6 @@ test("the edge keys a search by what its handler reads, whichever of its address
   expect(key("q=red", "/api/palettes/search")).toBe("query=red&limit=48&sort=popular");
   expect(key("q=sunset&lang=ja")).toBe("query=sunset&limit=48&sort=popular");
   expect(key("q=kY4mpDazO-mUuu_fuLqXU49dvVP6&lang=ja")).toContain("lang=ja");
-  expect(colors.query?.(new URLSearchParams("q=Ocean&x=1"), "/api/search-colors").toString()).toBe(
-    "q=ocean"
-  );
   expect(tags.match("/api/search-suggestions") && tags.match("/api/popular-searches")).toBe(true);
   expect(tags.path).toBe("/api/search-suggestions");
 });
@@ -135,13 +115,4 @@ test("the status says what this isolate answers from", async () => {
   ).toEqual({
     available: false
   });
-});
-
-test("the search colors are the same for everyone, kept an hour", async () => {
-  const response = await searchColorsResponse(
-    ask("/api/search-colors?q=%23264653+%232a9d8f"),
-    searchEnv()
-  );
-  expect(await response.json()).toEqual({ colors: ["#264653", "#2a9d8f"] });
-  expect(response.headers.get("Cache-Control")).toBe("public, max-age=3600");
 });

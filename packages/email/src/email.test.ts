@@ -4,6 +4,15 @@ import { translate } from "@grabient/i18n";
 import { LOGO_BAR, LOGO_PATH } from "@grabient/ui/logo.data.ts";
 import { describe, expect, test } from "vitest";
 import {
+  sampleAccount,
+  sampleBlurbs,
+  sampleIssue,
+  sampleMcpIssue,
+  samplePartnerIssue,
+  sampleParts
+} from "../test/sample.ts";
+import { PARTS } from "../test/spec.ts";
+import {
   bare,
   bytes,
   classes,
@@ -34,15 +43,6 @@ import {
   strong,
   text
 } from "./parts.ts";
-import {
-  sampleAccount,
-  sampleBlurbs,
-  sampleIssue,
-  sampleMcpIssue,
-  samplePartnerIssue,
-  sampleParts
-} from "./sample.ts";
-import { PARTS } from "./spec.ts";
 import { BRAND, HEAD_CID, HEAD_FILES, SIZE } from "./theme.ts";
 
 const seed = "kS7Q8Yy5S_SChv0";

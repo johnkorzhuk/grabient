@@ -5,7 +5,15 @@ import type { Env } from "@grabient/server/env.ts";
 import { flagOff } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import * as v from "valibot";
-import { CONTACT_INVALID, ContactInput } from "../../features/contact/input.ts";
+import {
+  CONTACT_INVALID,
+  ContactInput,
+  EMAIL_MAX,
+  MESSAGE_MAX
+} from "../../features/contact/input.ts";
+
+// the page counts a message in UTF-16 units, each at most three bytes of UTF-8, so the longest it sends fits whole
+const BODY_MAX = MESSAGE_MAX * 3 + EMAIL_MAX + 1024;
 
 /** `POST /api/contact`: a message from the contact page to the site's own address, as plain text, with the sender's
     address to reply to when given. Each message is an email Email Service may bill for, so it is refused while an admin
@@ -18,7 +26,7 @@ export async function contactResponse(request: Request, env: Env): Promise<Respo
   if (!who || !env.RATE_LIMITER || !env.EMAIL || (await flagOff(env, "email"))) {
     return json({ error: msg("Contact is temporarily unavailable.") }, 503);
   }
-  const input = v.safeParse(ContactInput, await readJson(request));
+  const input = v.safeParse(ContactInput, await readJson(request, BODY_MAX));
   if (!input.success) return json({ error: CONTACT_INVALID }, 400);
   const limited = await overLimit(env, [[`contact:${who}`, "contactForm"]]);
   if (limited) return limited;

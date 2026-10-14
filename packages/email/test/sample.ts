@@ -1,16 +1,14 @@
-/* Sample emails and one of each part, for the design document, the preview script and the tests. Never sent.
+/* Sample emails and one of each part, for the preview script and the tests. Never sent.
 
    The palettes are staging's gallery as it stood when the samples were written; every palette a sample issue draws is
    in LIKED, which stands in for the admins' likes. The sample foot's unsubscribe token is 64 zeros, which names no
    account. */
 import { encodePalette } from "@grabient/engine";
 import type { Locale } from "@grabient/i18n";
-import type { Letter } from "./document.ts";
+import type { Letter } from "../src/document.ts";
 import {
   type IssueContent,
-  issuePage,
   LEDE,
-  type NewsletterOptions,
   newsletter,
   pick,
   rising,
@@ -18,10 +16,10 @@ import {
   shelf,
   view,
   ways
-} from "./issue.ts";
-import { confirmDeletion, signInCode, signInLink } from "./letters.ts";
-import { collection, collections, type PaletteView, palette, palettes } from "./palette.ts";
-import { blurb, mentions, promo } from "./partner.ts";
+} from "../src/issue.ts";
+import { confirmDeletion, signInCode, signInLink } from "../src/letters.ts";
+import { collection, collections, type PaletteView, palette, palettes } from "../src/palette.ts";
+import { blurb, mentions, promo } from "../src/partner.ts";
 import {
   button,
   code,
@@ -42,7 +40,7 @@ import {
   subheading,
   text,
   title
-} from "./parts.ts";
+} from "../src/parts.ts";
 
 interface Shown {
   origin: string;
@@ -430,18 +428,6 @@ export const samplePartnerIssue = (shown: Shown): Letter =>
       section("Also worth a look", partners())
     ]
   });
-
-/** The first two sample issues as the newsletter page shows them, newest first: the second a draft, the first
-    published. */
-export const samplePages = (origin: string, locale?: Locale) =>
-  [
-    { number: 2, month: "2026-11", published: null, words: second(origin) },
-    { number: 1, month: "2026-10", published: "2026-10-08", words: first(origin) }
-  ].map(({ words, ...issue }) => ({
-    ...issue,
-    title: words.title,
-    html: issuePage({ ...foot(origin), ...words, origin, locale } satisfies NewsletterOptions).html
-  }));
 
 /** Grabient as a partner's newsletter shows it, in its three sizes. */
 export const sampleBlurbs = (origin: string) => ({

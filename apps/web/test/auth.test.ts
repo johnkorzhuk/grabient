@@ -529,6 +529,27 @@ describe("a Preview", () => {
 });
 
 describe("deleting an account", () => {
+  it("leads to Settings in the email's language when no page is named", async () => {
+    const env = testEnv();
+    for (const [language, chosen, browser] of [
+      ["ja", "", "ja"],
+      ["fr", "; grabient-locale=fr", "de"]
+    ]) {
+      const owner = await makeAccount(env);
+      const asked = await handleAuth(
+        post(
+          "/api/auth/delete-user",
+          {},
+          { cookie: owner.cookie + chosen, headers: { "Accept-Language": browser } }
+        ),
+        env
+      );
+      expect(asked.status, await asked.clone().text()).toBe(200);
+      expect(env.EMAIL.last.html).toContain(`lang="${language}"`);
+      expect(env.EMAIL.link("/settings?token=").pathname).toBe(`/${language}/settings`);
+    }
+  });
+
   it("asks for an email, and confirms only with the account's own token", async () => {
     const env = testEnv();
     const owner = await makeAccount(env);

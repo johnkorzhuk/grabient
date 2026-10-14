@@ -1,7 +1,4 @@
 import { env, waitUntil } from "cloudflare:workers";
-import { msg } from "@grabient/i18n";
-import { clientAddress } from "@grabient/server/limits/address.ts";
-import { checkLimits } from "@grabient/server/limits/check.ts";
 import type { PalettePage as AnsweredPage } from "../../features/gallery/schema.ts";
 import { BUILD } from "../../lib/build.ts";
 import { isFrame, type ListSort, parseSort, type RisingFrame } from "../../lib/orders.ts";
@@ -17,8 +14,8 @@ import {
 /* A public list page is read once for its HTML in every view and for its JSON: this data center's Cache API keeps it
    by order, frame, page, size and build for as long as its data stays fresh from the database read, and both answers
    are kept at the edge no longer than that. A cache that cannot be read or written is passed by, and a failed read is
-   never kept. A read the cache misses counts against the reader's address, so paging deep through every list costs a
-   scraper its minute instead of the database its rows. */
+   never kept. Each request that reaches a read here was counted against the reader's address (pipeline.ts), so paging
+   deep through every list costs a scraper its minute instead of the database its rows. */
 
 export interface ListQuery {
   sort: ListSort;
@@ -91,10 +88,8 @@ function fresh(value: unknown, query: ListQuery, now: number): value is Answered
   );
 }
 
-export type ListAnswer = { page: AnsweredPage } | { refused: string };
-
-/** A public list page from the record cache, or from the database once the reader's address may ask it. */
-export async function publicList(request: Request, query: ListQuery): Promise<ListAnswer> {
+/** A public list page from the record cache, or from the database. */
+export async function publicList(request: Request, query: ListQuery): Promise<AnsweredPage> {
   const cache = cacheOf();
   const key = new Request(
     `${new URL(request.url).origin}/.grabient-cache/list?${new URLSearchParams({
@@ -108,14 +103,10 @@ export async function publicList(request: Request, query: ListQuery): Promise<Li
   try {
     const kept = await cache?.match(key);
     const page: unknown = kept?.ok ? await kept.json() : null;
-    if (fresh(page, query, Date.now())) return { page };
+    if (fresh(page, query, Date.now())) return page;
   } catch {
     // a cache that cannot be read is passed by
   }
-  const limited = await checkLimits(env, [
-    [`list-miss:${clientAddress(request) ?? "local"}`, "listMiss"]
-  ]);
-  if (!limited?.success) return { refused: msg("Too many requests. Try again later.") };
   const read: PalettePage = await listPalettes(env, query);
   const page = { ...read, fetchedAt: Date.now() };
   if (cache) {
@@ -124,5 +115,5 @@ export async function publicList(request: Request, query: ListQuery): Promise<Li
     });
     waitUntil(cache.put(key, kept).catch(() => {}));
   }
-  return { page };
+  return page;
 }

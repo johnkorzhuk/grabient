@@ -1,7 +1,7 @@
 import { DEFAULT_LOCALE, type Locale } from "@grabient/i18n";
 import { queryOptions } from "@tanstack/solid-query";
 import { getJson } from "../../lib/query.ts";
-import { SearchAnswer } from "../search/bodies.ts";
+import { SearchAnswer } from "../gallery/schema.ts";
 import { SEARCH_POOL } from "../search/queries.ts";
 
 /* The palettes like the one on screen: the search by its seed, which also names the public collections that hold it,
