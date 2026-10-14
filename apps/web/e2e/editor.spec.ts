@@ -72,11 +72,79 @@ test.describe("while the editor's code loads", () => {
     expect(before.length).toBeGreaterThan(0);
     expect(before).not.toContain(true);
     await release("continue");
-    await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+    await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible({
+      timeout: 30_000
+    });
     await expect(page.locator("html")).not.toHaveAttribute("data-seed-boot");
     await expect(page.locator(".palette-static")).toHaveCount(0);
     expect(await frames(page)).not.toContain(true);
   });
+
+  /** The picture and the strip as a reader sees them: their boxes, the picture's paint, and each hex where it stands. */
+  const drawn = (page: Page, root: string) =>
+    page.evaluate(root => {
+      const at = document.querySelector(root);
+      const box = (el: Element | null | undefined) => {
+        const r = el?.getBoundingClientRect();
+        return r ? [r.x, r.y, r.width, r.height].map(v => Math.round(v * 10) / 10) : null;
+      };
+      const stage = at?.querySelector('[class*="_stage_"]');
+      const art = stage?.firstElementChild;
+      const strip = at?.querySelector('[aria-label="Palette colors"], [class*="_still_"]');
+      const labels = [...(strip?.querySelectorAll('[class*="_label_"]') ?? [])]
+        .filter(label => label.checkVisibility())
+        .map(label => {
+          const style = getComputedStyle(label);
+          return [label.textContent, box(label), style.fontSize, style.writingMode].join(" ");
+        });
+      return {
+        stage: box(stage),
+        art: art ? [box(art), getComputedStyle(art).backgroundImage] : null,
+        strip: box(strip),
+        labels
+      };
+    }, root);
+  for (const { name, address, size, away } of [
+    {
+      name: "beside its side",
+      address: `/${SEED}`,
+      size: { width: 1600, height: 1000 },
+      away: false
+    },
+    {
+      name: "at a fixed size with the side away",
+      address: `/${SEED}?size=1920x1080`,
+      size: { width: 1600, height: 1000 },
+      away: true
+    },
+    {
+      name: "in two rows of upright hexes",
+      address: `/${SEED}?steps=21`,
+      size: { width: 1024, height: 768 },
+      away: false
+    },
+    { name: "on a phone", address: `/${SEED}`, size: { width: 390, height: 844 }, away: false }
+  ])
+    test(`the picture and the strip stand drawn before the editor's code comes, as the editor draws them: ${name}`, async ({
+      page
+    }) => {
+      await page.setViewportSize(size);
+      if (away) await page.addInitScript(() => localStorage.setItem("grabient-panel", "0"));
+      const release = await holdScripts(page);
+      await page.goto(address, { waitUntil: "commit" });
+      const boot = '[aria-hidden="true"][data-beside-scrollbar]';
+      await page.locator(boot).waitFor();
+      await page.evaluate(() => document.fonts.ready);
+      const before = await drawn(page, boot);
+      await release("continue");
+      // the scripts held come at once, which a dev server that has transformed nothing yet takes its time over
+      await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible({
+        timeout: 30_000
+      });
+      const after = await drawn(page, "main#main");
+      expect(before.labels.length).toBeGreaterThan(0);
+      expect(before).toEqual(after);
+    });
 
   test("a script that fails to load brings the static page back, whole", async ({ page }) => {
     const release = await holdScripts(page);
