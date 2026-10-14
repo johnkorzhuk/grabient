@@ -1,22 +1,19 @@
 import { env } from "cloudflare:workers";
-import type { Palette } from "@grabient/engine";
+import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
 import { DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts";
 import { titleFaults } from "@grabient/engine/name.ts";
-import { DEFAULT_LOCALE, type Locale, messageKey } from "@grabient/i18n";
+import { DEFAULT_LOCALE, type Locale, messageKey, msg } from "@grabient/i18n";
 import { all, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
+import type { PaletteFacts } from "../../features/editor/facts.ts";
+import { PALETTE_PAGE } from "../../lib/cache.ts";
+import { json } from "../../lib/responses.ts";
 
 /* What only the database knows of a palette, for its page: the words written for it that its colors bear out, and the
    public collections that hold it, the most saved first, each titled in the page's language where it is translated.
-   The page's title, its description, its static page for crawlers and its Markdown read them. Read once per page the
-   edge has no copy of, from a replica, in one round of two queries; a read that fails leaves its facts out, and the
-   page goes by the palette's colors. */
-
-export interface PaletteFacts {
-  /** in English: a palette's written words are its author's */
-  written?: { title: string; description?: string };
-  heldBy: { slug: string; title: string; english?: string; colors: readonly string[] }[];
-}
+   The page's title, its description, its static page for crawlers and its Markdown read them. Read once per page, or
+   per answer to a browser that opens the palette, the edge has no copy of, from a replica, in one round of two
+   queries; a read that fails leaves its facts out, and the page goes by the palette's colors. */
 
 const HELD_MAX = 6;
 const missed = (error: unknown): never[] => {
@@ -81,4 +78,17 @@ export async function paletteFacts(
       };
     })
   };
+}
+
+/** `GET /api/palette-facts?seed=`: a palette's facts in English, the language its written words are in, for a page the
+    browser opens on it; kept at the edge as its page is. An address that is no palette's canonical seed is 404. */
+export async function paletteFactsResponse(
+  request: Request,
+  source: Pick<Env, "DB"> = env
+): Promise<Response> {
+  const seed = new URL(request.url).searchParams.get("seed") ?? "";
+  const palette = decodePalette(seed);
+  if (!palette || encodePalette(palette) !== seed)
+    return json({ error: msg("Not found") }, { status: 404 });
+  return json(await paletteFacts(seed, palette, DEFAULT_LOCALE, source), { headers: PALETTE_PAGE });
 }

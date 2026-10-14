@@ -8,7 +8,13 @@ import { collectionHead, loadCollection } from "../../features/collections/route
 import { isSeed } from "../../features/editor/address.ts";
 import { endBoot } from "../../features/editor/boot.ts";
 import { EditorCorner, editing } from "../../features/editor/EditorCorner.tsx";
-import { loadEditor, paletteData, paletteHead, searchReader } from "../../features/editor/page.ts";
+import {
+  askFacts,
+  loadEditor,
+  paletteData,
+  paletteHead,
+  searchReader
+} from "../../features/editor/page.ts";
 import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE, PALETTE_PAGE } from "../../lib/cache.ts";
@@ -40,11 +46,14 @@ export const Route = createFileRoute("/$id/")({
      opens or a lock turns. */
   loaderDeps: ({ search }) => ({ search: drawnSearch(search as Record<string, unknown>) }),
   loader: async ({ context, params, deps, location }) => {
+    /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between the
+       two: its code and what the server knows of a palette it opens on are asked for together. Code that does not come
+       is the page's own to say, where it renders. */
+    const code = isServer || !isSeed(params.id) ? null : Editor.preload().catch(() => {});
+    if (code) askFacts(params.id, location.state);
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
-      /* A navigation in the browser keeps the page it leaves until the editor can draw, so nothing is drawn between
-         the two. Code that does not come is the page's own to say, where it renders. */
-      if (!isServer) await Editor.preload().catch(() => {});
+      await code;
       const { seed, view } = palette.page;
       /* the frame's bar and water carry the palette from the server's render on, before an editor is open */
       const paint = [{ seed, style: view.style, steps: view.steps, angle: view.angle }];

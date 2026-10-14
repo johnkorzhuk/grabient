@@ -5,10 +5,11 @@ import type { Env } from "@grabient/server/env.ts";
 import * as v from "valibot";
 import { beforeAll, describe, expect, it } from "vitest";
 import { collectionItem } from "../src/features/collections/schema.ts";
+import { PaletteFacts } from "../src/features/editor/facts.ts";
 import { Saved, Standing } from "../src/features/editor/save.ts";
 import { paletteAnswer } from "../src/server/collections/palettes.ts";
 import { createCollection } from "../src/server/collections/write.ts";
-import { paletteFacts } from "../src/server/editor/facts.ts";
+import { paletteFacts, paletteFactsResponse } from "../src/server/editor/facts.ts";
 import {
   type Account,
   bodyOf,
@@ -107,6 +108,26 @@ describe("a palette's facts", () => {
       titleAgainst(gray)
     );
     expect((await paletteFacts("kSyQDAzZa8zgZxS", gray, "en", env)).written).toBeUndefined();
+  });
+
+  it("answers a browser that opens it with its facts in English, kept at the edge as its page is", async () => {
+    const shown = await holding(env, unique("Held for the browser"), [SEED], "public");
+    await run(
+      env.DB,
+      "INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, 'Evening study', '', 1, 1) ON CONFLICT (seed) DO UPDATE SET title = excluded.title, embed = excluded.embed",
+      SEED
+    );
+    const ask = (query: string) =>
+      paletteFactsResponse(new Request(`${ORIGIN}/api/palette-facts?${query}`), env);
+    const answered = await ask(`seed=${SEED}`);
+    expect([answered.status, answered.headers.get("CDN-Cache-Control")]).toEqual([
+      200,
+      "max-age=86400"
+    ]);
+    const facts = v.parse(PaletteFacts, await answered.json());
+    expect(facts.written?.title).toBe("Evening study");
+    expect(facts.heldBy.map(c => c.slug)).toContain(shown.slug);
+    for (const query of ["seed=nope", "seed=", ""]) expect((await ask(query)).status).toBe(404);
   });
 });
 

@@ -296,6 +296,16 @@ describe("the edge cache", () => {
     expect([drawn.headers.get("X-Grabient-Cache"), asked.length]).toEqual(["HIT", 1]);
   });
 
+  test("keeps a palette's facts by its seed alone", async () => {
+    const facts = () => Response.json({ heldBy: [] }, { headers: PAGE });
+    await get("/api/palette-facts?seed=kS7Q8Yy5S_SChv0&x=1", {}, facts);
+    const again = await get("/api/palette-facts?x=2&seed=kS7Q8Yy5S_SChv0", {}, facts);
+    expect(again.headers.get("X-Grabient-Cache")).toBe("HIT");
+    expect([...cache.kept.keys()]).toEqual([
+      "https://grabient.test/api/palette-facts?__build=b1&seed=kS7Q8Yy5S_SChv0"
+    ]);
+  });
+
   test("a HEAD reads what a GET kept and keeps nothing itself", async () => {
     const miss = await get("/about", { method: "HEAD" });
     expect(miss.headers.get("X-Grabient-Cache")).toBe("MISS");

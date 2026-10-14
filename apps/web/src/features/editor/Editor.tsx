@@ -253,7 +253,7 @@ export default function Editor(props: { data: PaletteData }) {
         narrow={narrow}
         save={save}
         rest={rest}
-        facts={() => (e.seed() === first.page.seed ? first.facts : null)}
+        facts={() => (e.seed() === props.data.page.seed ? props.data.facts : null)}
         frames={first.frames}
         heading={() =>
           e.seed() === first.page.seed &&

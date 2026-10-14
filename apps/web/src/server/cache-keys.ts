@@ -64,6 +64,11 @@ const RULES: readonly KeyRule[] = [
     }
   },
   { match: path => path === "/api/frames", query: none },
+  // a palette's facts: its seed alone, which the answer refuses unless it is canonical
+  {
+    match: path => path === "/api/palette-facts",
+    query: params => new URLSearchParams({ seed: params.get("seed") ?? "" })
+  },
   { match: path => path === "/api/newsletter", query: issuesKey },
   ...searchKeyRules,
   {

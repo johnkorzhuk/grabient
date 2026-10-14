@@ -580,6 +580,38 @@ for (const width of WIDTHS)
     });
   });
 
+/** What a palette's page is called: its tab's title and its heading. */
+const called = (page: Page) =>
+  page.evaluate(() => ({
+    title: document.title,
+    heading: document.querySelector("h1")?.textContent
+  }));
+
+for (const list of ["/palettes", "/bright-gradients"])
+  test(`a palette opened from ${list}, edited and taken back is called what each address is called loaded whole`, async ({
+    page,
+    context
+  }) => {
+    const whole = await context.newPage();
+    /** The palette's page as the address it stands at is called when it is loaded whole. */
+    const agrees = async (step: string) => {
+      await open(whole, page.url());
+      await expect(whole.getByRole("img", { name: "The gradient" })).toBeVisible();
+      await expect.poll(() => called(page), { message: step }).toEqual(await called(whole));
+    };
+    await open(page, list);
+    await OPENERS.edit(page);
+    await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
+    const opened = seedOf(page);
+    await agrees("opened");
+    await page.keyboard.press("i");
+    await edited(page, opened);
+    await agrees("edited");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => seedOf(page)).toBe(opened);
+    await agrees("taken back");
+  });
+
 test("a link to Rising in a frame an admin turned off leads to the week's in the reader's language", async ({
   page,
   request

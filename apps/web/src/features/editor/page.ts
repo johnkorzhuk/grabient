@@ -1,18 +1,21 @@
 import { env } from "cloudflare:workers";
 import type { ParamReader } from "@grabient/engine/view.ts";
-import { locale } from "@grabient/i18n";
+import { DEFAULT_LOCALE, locale } from "@grabient/i18n";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { lazy } from "solid-js";
 import { DEFAULT_FRAME, type RisingFrame } from "../../lib/orders.ts";
 import { heading, headOf, type PageMeta, pageMeta } from "../../lib/page-meta.ts";
-import { type PaletteFacts, paletteFacts } from "../../server/editor/facts.ts";
+import { getJson } from "../../lib/query.ts";
+import { paletteFacts } from "../../server/editor/facts.ts";
 import { framesOffered } from "../../server/gallery/home.ts";
-import { readSeedPage, type SeedPage } from "./address.ts";
+import { isSeed, readSeedPage, type SeedPage } from "./address.ts";
+import { PaletteFacts } from "./facts.ts";
 import { metaPage, STATIC_CSS } from "./StaticPalette.tsx";
 
 /* A palette's page as its route reads it. The server reads what only the database knows of the palette, once, for the
-   page it renders (its title, the static page crawlers read, its Markdown), and which of Rising's frames are on; a
-   palette the browser opens or makes later is named by its colors, and asks the server nothing. */
+   page it renders (its title, the static page crawlers read, its Markdown), and which of Rising's frames are on. A
+   palette the browser opens later asks for the same facts in English, the only language its written words are worn
+   in; one an edit makes is named by its colors and asks the server nothing. */
 
 /** The router's search object as an address reads it: a number the router parsed is its digits again. */
 export const searchReader = (search: Readonly<Record<string, unknown>>): ParamReader => ({
@@ -26,17 +29,41 @@ export const searchReader = (search: Readonly<Record<string, unknown>>): ParamRe
   }
 });
 
-/* The facts the server read for the palette the document came with, which the browser keeps for that palette: the page
-   is read again with each change of view, and its written title outlasts the change. Only the browser writes it. */
-let documentFacts: { seed: string; facts: PaletteFacts } | null = null;
+/* The facts the server read for the palettes this tab opened, by seed, and the ones still on their way: the page is read
+   again with each change of view and on Back, Forward or an undo, and a palette's written title outlasts them. The
+   last few are kept. Only the browser writes them. */
+const KNOWN_KEPT = 40;
+/** How long a press waits for an opened palette's facts before its page opens named by its colors. */
+const ASK_MS = 400;
+const known = new Map<string, Promise<PaletteFacts | null>>();
+function know(seed: string, facts: Promise<PaletteFacts | null>) {
+  known.delete(seed);
+  known.set(seed, facts);
+  if (known.size > KNOWN_KEPT) known.delete(known.keys().next().value!);
+}
 /** The editor hands in the data it opened with: the server's facts, where the document came with them. */
 export function keepFacts(data: PaletteData) {
-  if (data.facts) documentFacts = { seed: data.page.seed, facts: data.facts };
+  if (data.facts) know(data.page.seed, Promise.resolve(data.facts));
+}
+/** In the browser, in English, asks the server what it knows of the palette a page opens on at `seed`. Never of a
+    palette an edit made: its history entry names the palette its page opened on, which is another. */
+export function askFacts(seed: string, state: unknown): void {
+  const opened = (state as { edits?: { opened?: unknown } } | undefined)?.edits?.opened;
+  const made = opened !== undefined && opened !== seed;
+  if (made || locale() !== DEFAULT_LOCALE || known.has(seed) || !isSeed(seed)) return;
+  know(
+    seed,
+    getJson(`/api/palette-facts?${new URLSearchParams({ seed })}`, PaletteFacts).catch(() => {
+      // asked again when the palette is next opened
+      known.delete(seed);
+      return null;
+    })
+  );
 }
 
 /* The server reads the facts and names the palette once, for the head and the static page, and the page carries
    them: naming a palette takes a phone a moment, which the browser starting on the page spends on nothing. A palette
-   the browser opens or makes later is named there, as it is drawn. */
+   the browser opens or makes later is named there, as it is drawn, by the facts it was given. */
 const read = createIsomorphicFn()
   .server(async (page: SeedPage) => {
     const [facts, frames] = await Promise.all([
@@ -47,9 +74,12 @@ const read = createIsomorphicFn()
     const meta = metaPage(page, facts);
     return { facts, frames, meta: pageMeta(meta), heading: heading(meta) };
   })
-  .client(async (page: SeedPage) => ({
-    facts: documentFacts?.seed === page.seed ? documentFacts.facts : null
-  }));
+  .client(async (page: SeedPage) => {
+    const asked = known.get(page.seed);
+    if (!asked) return { facts: null };
+    const late = new Promise<null>(done => setTimeout(done, ASK_MS, null));
+    return { facts: await Promise.race([asked, late]) };
+  });
 
 export interface PaletteData {
   page: SeedPage;
