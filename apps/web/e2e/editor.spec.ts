@@ -274,6 +274,21 @@ test("a burst of presses writes the address at most once a rhythm, and the last 
     expect(writes[i]! - writes[i - 1]!).toBeGreaterThanOrEqual(300);
 });
 
+test("U copies the address as the last edit leaves it", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await open(page);
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).not.toBe(`/${SEED}`);
+  const inverted = here(page);
+  // the address was written a moment ago, so the next edit's waits its turn
+  await page.keyboard.press("e");
+  await page.keyboard.press("u");
+  await expect.poll(() => here(page)).not.toBe(inverted);
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(new URL(here(page), page.url()).href);
+});
+
 test("the view's keys change the address, never the undo or the history", async ({ page }) => {
   await open(page);
   const before = await entries(page);

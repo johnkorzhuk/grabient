@@ -171,7 +171,12 @@ export default function Editor(props: { data: PaletteData }) {
   /* The frame keeps the keys and the palettes a page hands in last, so these come after the screen's and stand for
      both: while the screen stands the editor's keys rest, Escape closes it and the bar carries the selection. */
   shell.keys(() => [
-    ...editorBindings(e, { live: () => !chosen.open(), togglePanel: panel.toggle, save }),
+    ...editorBindings(e, {
+      live: () => !chosen.open(),
+      togglePanel: panel.toggle,
+      save,
+      settle: address.settle
+    }),
     { key: "Escape", label: msg("Close selection"), run: chosen.close, when: chosen.open }
   ]);
   shell.paint(() => (chosen.open() ? selection() : [drawn()]));

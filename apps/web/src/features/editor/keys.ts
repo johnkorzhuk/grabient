@@ -1,5 +1,6 @@
 import { keyRow } from "@grabient/ui/keymap.ts";
 import { type Binding, rowKeys, showKey } from "@grabient/ui/keys.ts";
+import { copyAddress } from "../../app/keys.ts";
 import type { PaletteEditor } from "./editor.ts";
 import type { PaletteSave } from "./save.ts";
 
@@ -22,7 +23,7 @@ export const keyOf = (id: string, i = 0): string => {
     palette to edit, so none does, the undo included. */
 export function editorBindings(
   e: PaletteEditor,
-  o: { live: () => boolean; togglePanel: () => void; save: PaletteSave }
+  o: { live: () => boolean; togglePanel: () => void; save: PaletteSave; settle: () => void }
 ): Binding[] {
   const bind = (id: string, run: Binding["run"], when?: () => boolean): Binding => {
     const r = row(id);
@@ -37,6 +38,11 @@ export function editorBindings(
   };
   const held = () => e.held().length > 0;
   return [
+    /* the address as the last edit leaves it, whose write may still be waiting its turn */
+    bind("copyUrl", () => {
+      o.settle();
+      copyAddress();
+    }),
     bind("random", () => e.random()),
     bind("invert", () => e.invert()),
     bind("reverse", () => e.reverse()),

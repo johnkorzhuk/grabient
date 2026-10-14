@@ -135,6 +135,12 @@ export function followAddress(
     keep() {
       latest ??= shown;
       writeSoon();
+    },
+    /** The address bar shows the palette now, out of turn: for what reads it there (U copies it). The router hands
+        the browser its writes a moment later, unless told to now. */
+    settle() {
+      flush();
+      router.history.flush();
     }
   };
 }
