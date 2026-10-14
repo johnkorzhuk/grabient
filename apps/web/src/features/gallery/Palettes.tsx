@@ -164,11 +164,12 @@ export function Palettes(props: { place: ListPlace }) {
     createEffect(asked, now => {
       if (now.of !== reading) readOwn(now);
     });
-    /* a like made or taken back leaves the kept pages behind: the next visit reads them again */
+    /* a like made or taken back leaves the kept pages behind: the next visit reads them again. A read waits for the
+       copy's first sync, so that sync's reset is in what it reads */
     onSettled(() =>
       onAccountChange(change => {
         if (!change.reset && !change.likes.size) return;
-        likes++;
+        if (!change.reset) likes++;
         void client.invalidateQueries({ queryKey: ["saved"] });
       })
     );

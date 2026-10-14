@@ -179,6 +179,14 @@ async function signedIn(page: Page): Promise<string[]> {
   return read;
 }
 
+test("Saved searched in a browser new to the account reads its page once", async ({ page }) => {
+  const read = await signedIn(page);
+  await page.goto("/palettes/saved?q=blue");
+  await expect(card(page, 0)).toBeVisible();
+  await page.waitForTimeout(1000);
+  expect(read).toEqual(["?page=1&limit=24&q=blue"]);
+});
+
 test("Saved offers an admin no curation: every palette there is their own like", async ({
   page
 }) => {
