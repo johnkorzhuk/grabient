@@ -27,8 +27,9 @@ export function createFeed<P extends FeedPage>(o: {
   /** the list's identity: the pages that joined belong to it */
   key: () => string;
   start: () => number;
-  /** the address's own page as it stands, or the reason it could not be read */
-  head: () => P | Failed;
+  /** the address's own page as it stands, or the reason it could not be read; none while it is not the feed's to
+      continue */
+  head: () => P | Failed | undefined;
   /** a page the cache holds now */
   kept: (n: number) => P | undefined;
   read: (n: number) => Promise<P | Failed>;
@@ -51,10 +52,10 @@ export function createFeed<P extends FeedPage>(o: {
     return now && now.key === o.key() ? now : null;
   };
 
-  const last = (): P | Failed => joined().at(-1) ?? o.head();
+  const last = (): P | Failed | undefined => joined().at(-1) ?? o.head();
   const more = () => {
     const end = last();
-    return !failed(end) && end.page < end.totalPages;
+    return !!end && !failed(end) && end.page < end.totalPages;
   };
 
   /** The next page, as the reader nears the end; again after a failure only when `retry` says so. Says whether a
