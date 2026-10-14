@@ -12,9 +12,8 @@ import { createMemo, createSignal, flush, isHydrating, onCleanup, onSettled } fr
    host grows to hold the new ones. A press or the focus that reaches a still block with no such move (a
    screen reader's own cursor) starts it too, and lands on the same control of the live block (wake). A column made
    after a navigation is windowed from its first frame, at the depth a return is about to restore and with the room
-   its kind had last time, so a list returned to stands at its depth at once. While any window stands, the browser's
-   scroll anchoring is off: the window places its blocks itself, and anchoring would pull the reader up as a page
-   joins at the end. */
+   its kind had last time, so a list returned to stands at its depth at once. The page a window stands in turns the
+   browser's scroll anchoring off (AppPage's `feed`): the window places its blocks itself. */
 
 export interface WindowRoom {
   /** where the column starts in the document, and how wide it is: kept by its kind across mounts */
@@ -41,7 +40,6 @@ export interface WindowOptions {
   overscan?: number;
 }
 
-let windows = 0;
 /** The room a column is laid out in before it is measured: the server's guess, a desktop's. */
 const DEFAULT_WIDTH = 1424;
 /** What the reader does that starts a window the page began with: a still block would not answer it. */
@@ -126,7 +124,6 @@ export function createWindow(o: WindowOptions) {
     addEventListener("resize", soon);
     const resized = new ResizeObserver(soon);
     if (host) resized.observe(host);
-    if (++windows === 1) document.documentElement.style.setProperty("overflow-anchor", "none");
     read(o.depth ?? scrollY);
     if (!started())
       for (const move of MOVES) addEventListener(move, start, { capture: true, passive: true });
@@ -136,7 +133,6 @@ export function createWindow(o: WindowOptions) {
       removeEventListener("resize", soon);
       resized.disconnect();
       cancelAnimationFrame(frame);
-      if (--windows === 0) document.documentElement.style.removeProperty("overflow-anchor");
     };
   });
 
