@@ -174,6 +174,28 @@ describe("the MCP server's door", () => {
     expect([getting.status, getting.headers.get("Allow")]).toEqual([405, "POST, OPTIONS"]);
   });
 
+  it("answers a browser app's preflight from its own origin, before any token", async () => {
+    const preflight = await serveMcp(
+      new Request(`${ORIGIN}/mcp`, {
+        method: "OPTIONS",
+        headers: {
+          Origin: "https://app.example",
+          "Access-Control-Request-Method": "POST",
+          "Access-Control-Request-Headers": "authorization, content-type, mcp-protocol-version"
+        }
+      }),
+      testEnv(),
+      createExecutionContext()
+    );
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("Access-Control-Allow-Origin")).toBe("https://app.example");
+    expect(preflight.headers.get("Access-Control-Allow-Headers")).toBe("Authorization, *");
+    // a browser app reads the challenge and the wait from a refusal
+    expect(preflight.headers.get("Access-Control-Expose-Headers")).toBe(
+      "WWW-Authenticate, Retry-After"
+    );
+  });
+
   it("refuses a token for this server at another origin", async () => {
     const env = testEnv();
     const { token } = await connected(env);
