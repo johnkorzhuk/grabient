@@ -42,12 +42,12 @@ const coinsOf = (tag: Tag) => (tag.colors ?? []).slice(0, MOST);
 const lightOf = (colors: readonly string[]) =>
   colors.length > 1 ? `linear-gradient(90deg, ${colors.join(", ")})` : colors[0];
 
-export function Tags(props: {
+export function Tags<T extends Tag>(props: {
   /** a word before the tags */
   lead?: string;
-  tags: readonly Tag[];
-  /** a tag pressed, with its place in the row */
-  onPick?: (tag: Tag, index: number) => void;
+  tags: readonly T[];
+  /** a tag pressed, as the page gave it, with its place in the row */
+  onPick?: (tag: T, index: number) => void;
   /** the tags are on their way: while there are none, blocks stand in the row */
   loading?: boolean;
   /** for the design document: the tag at this place holds its colors open */

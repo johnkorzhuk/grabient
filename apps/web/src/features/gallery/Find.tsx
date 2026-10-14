@@ -104,7 +104,8 @@ export function Find(props: {
         shown().map(tag => ({
           label: tag.label,
           colors: tag.colors,
-          href: localHref(tag.query ? props.to(tag.query) : inView(tag.href, page.params()))
+          href: localHref(tag.query ? props.to(tag.query) : inView(tag.href, page.params())),
+          english: tag.english
         }))
       )}
       onPick={(tag, index) => tagPressed(tag, index, props.surface)}

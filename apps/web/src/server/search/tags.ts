@@ -7,23 +7,30 @@ import type { Snapshot } from "@grabient/search/snapshot.ts";
 import { queryTokens } from "@grabient/search/text.ts";
 import { FORM_WORDS } from "@grabient/search/words.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { paletteId } from "../../lib/words.ts";
+import { listWords, paletteId } from "../../lib/words.ts";
 import { suggestCollections } from "../collections/search.ts";
 import { canonicalPaletteSeed } from "../files/resolve.ts";
-import { localizeTags, translatedLocale } from "../mcp/admin/translations.ts";
+import {
+  collectionWords,
+  type TranslatedLocale,
+  tagWords as tagTranslations,
+  translatedLocale
+} from "../mcp/admin/translations.ts";
 import { loadVocabulary, phraseVector, type Vocabulary } from "./files.ts";
 import { keep } from "./kept.ts";
-import { kindOf, leadRow, popularLists, repeats, yearRank } from "./popular.ts";
+import { kindOf, leadRow, popularLists, repeats, tagWords, yearRank } from "./popular.ts";
 import { seedQueryVector, snapshotPalettes } from "./rank.ts";
 import { knownQuery, plainPhrase } from "./read.ts";
 import { loadSnapshot, type SnapshotEnv } from "./snapshot.ts";
 
-/** A search as a tag: its words as a label, where a press leads, the colors of what answers, and the words. */
+/** A search as a tag: its words as a label, where a press leads, the colors of what answers, and the words. A tag that
+    says a translation keeps its phrase's English, which analytics name it by. */
 export interface SearchTag {
   label: string;
   href: string;
   colors: string[];
   query: string;
+  english?: string;
 }
 
 type TagEnv = SnapshotEnv & Pick<Env, "DB">;
@@ -52,9 +59,10 @@ function colorsOf({ snapshot, vocabulary }: Files, words: string): string[] {
 }
 
 /* a tag leads to the palette list, searched; a page that searches elsewhere writes its own address from `query` */
+const searchHref = (words: string) => `/palettes?${new URLSearchParams({ q: words })}`;
 const tagOf = (files: Files, words: string): SearchTag => ({
   label: words,
-  href: `/palettes?${new URLSearchParams({ q: words })}`,
+  href: searchHref(words),
   colors: colorsOf(files, words),
   query: words
 });
@@ -251,6 +259,7 @@ export interface HomeTag {
   href: string;
   colors: string[];
   query?: string;
+  english?: string;
 }
 
 /** The home's row: searches and collections in turn. At rest no tag says again a word one before it said; with words,
@@ -295,12 +304,49 @@ export function tagsKey(params: URLSearchParams): URLSearchParams {
   });
 }
 
+/* A row as a page in another language shows it: a collection's tag says its translated title, and a search's tag the
+   word Grabient translated its phrase as, searched in its place where the search reads it as that phrase, so a press
+   finds what the English finds. Any other translation leaves the tag in English: a tag never says one search and makes
+   another. */
+async function inLanguage(
+  env: TagEnv,
+  lang: TranslatedLocale | null,
+  tags: readonly HomeTag[]
+): Promise<HomeTag[]> {
+  if (!lang || !tags.length) return [...tags];
+  const slugOf = (tag: HomeTag) =>
+    !tag.query && /^\/[^?/@]+$/.test(tag.href) ? decodeURIComponent(tag.href.slice(1)) : null;
+  const phrases = tags.flatMap(tag => (tag.query ? [tag.query] : []));
+  const [titles, translated, vocabulary] = await Promise.all([
+    collectionWords(
+      env,
+      lang,
+      tags.map(slugOf).filter((slug): slug is string => !!slug)
+    ),
+    tagTranslations(env, lang, phrases),
+    phrases.length ? loadVocabulary(env) : null
+  ]);
+  return tags.map(tag => {
+    const slug = slugOf(tag);
+    if (slug) {
+      const title = titles.get(slug)?.title;
+      return title ? { ...tag, label: title } : tag;
+    }
+    const word = tag.query && translated.get(tag.query);
+    const words = listWords(word);
+    if (!word || !vocabulary || tagWords(vocabulary, words) !== tag.query) return tag;
+    return words === tag.query
+      ? { ...tag, label: word }
+      : { ...tag, label: word, href: searchHref(words), query: words, english: tag.query };
+  });
+}
+
 /** The tags for what a field holds, in the language asked: with nothing typed and `both`, the home's row; else the
     searches that answer it. A page's first paint and `GET /api/search-suggestions` both read them here. */
 export async function suggestionsFor(env: TagEnv, params: URLSearchParams): Promise<HomeTag[]> {
   const { typed, both, limit, lang } = asked(params);
   const tags = await (both ? homeTags(env, "", limit) : suggestSearches(env, typed, limit));
-  return localizeTags(env, lang, tags);
+  return inLanguage(env, lang, tags);
 }
 
 /** `GET /api/search-suggestions?q=&limit=&lang=` (`both=1`: the home's row): public, the same for everyone. Answers to

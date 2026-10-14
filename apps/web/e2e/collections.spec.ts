@@ -582,3 +582,34 @@ test("a title entered on Saved at once opens the account's collection", async ({
   await page.keyboard.press("Enter");
   await expect(page).toHaveURL(/\/@e2e-ada\/my-blues$/);
 });
+
+test("a collection's tags on a page in another language search the words they show", async ({
+  page
+}) => {
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: {
+          ...words,
+          // Grabient's tags as a German page reads them
+          tags: ["blaue Stunde", "Ozean"],
+          items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+        }
+      })
+  );
+  await page.goto("/de/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/de/collections/rising"]').click();
+  await page.locator(`main a[href="/de/${SLUG}/rising"]`).click();
+  const tag = page.getByRole("toolbar").getByRole("link", { name: "blaue Stunde" });
+  await expect(tag).toHaveAttribute("href", "/de/collections/rising?q=blaue+stunde");
+  await tag.click();
+  await expect(page).toHaveURL(/\/de\/collections\/rising\?q=blaue\+stunde$/);
+  await expect(page.getByRole("searchbox")).toHaveValue("blaue stunde");
+});

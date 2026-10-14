@@ -187,35 +187,6 @@ export async function localizeHeld<T extends { slug: string; title: string }>(
   });
 }
 
-/** A row of tags as a page in `locale` shows it: a collection's tag says its translated title, a search's tag the word
-    Grabient translated for those words; the addresses stay. */
-export async function localizeTags<T extends { label: string; href: string; query?: string }>(
-  env: DB,
-  locale: TranslatedLocale | null,
-  tags: readonly T[]
-): Promise<T[]> {
-  if (!locale || !tags.length) return [...tags];
-  const slugOf = (tag: T) =>
-    !tag.query && /^\/[^?/@]+$/.test(tag.href) ? decodeURIComponent(tag.href.slice(1)) : null;
-  const [titles, tagged] = await Promise.all([
-    collectionWords(
-      env,
-      locale,
-      tags.map(slugOf).filter((slug): slug is string => !!slug)
-    ),
-    tagWords(
-      env,
-      locale,
-      tags.flatMap(tag => (tag.query ? [tag.query] : []))
-    )
-  ]);
-  return tags.map(tag => {
-    const slug = slugOf(tag);
-    const label = slug ? titles.get(slug)?.title : tag.query ? tagged.get(tag.query) : undefined;
-    return label ? { ...tag, label } : tag;
-  });
-}
-
 /* What the admins' apps read and keep. */
 
 /** The scripts a translation must be written in; the other languages are written in the Latin alphabet. */

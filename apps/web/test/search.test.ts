@@ -6,6 +6,7 @@ import { setFlag } from "@grabient/server/flags/flags.ts";
 import * as v from "valibot";
 import { describe, expect, it } from "vitest";
 import { SearchAnswer } from "../src/features/gallery/schema.ts";
+import { keepTranslations, type TranslatedLocale } from "../src/server/mcp/admin/translations.ts";
 import { accountSearchResponse } from "../src/server/search/account.ts";
 import {
   pruneSearchCounts,
@@ -21,7 +22,11 @@ import {
 import { searchPalettes } from "../src/server/search/search.ts";
 import { snapshotStatus } from "../src/server/search/snapshot.ts";
 import { syncSnapshot } from "../src/server/search/sync.ts";
-import { popularSearches } from "../src/server/search/tags.ts";
+import {
+  popularSearches,
+  searchSuggestionsResponse,
+  suggestionsFor
+} from "../src/server/search/tags.ts";
 import { searchVotesResponse } from "../src/server/search/votes.ts";
 import {
   address,
@@ -541,5 +546,96 @@ describe("searches scheduled to lead the tags", () => {
       now
     );
     expect(await pruneScheduled(env, now)).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("tags in another language", () => {
+  /* the words an admin's app kept for two phrases, as each language says them */
+  const SAID = {
+    es: ["hora azul", "atardecer"],
+    ja: ["ブルーアワー", "夕焼け"],
+    ar: ["الساعة الزرقاء", "غروب الشمس"],
+    de: ["blaue Stunde", "Sonnenuntergang"]
+  } as const;
+  const keep = (env: Env) =>
+    Promise.all(
+      Object.entries(SAID).map(([lang, [hour, sunset]]) =>
+        keepTranslations(
+          env,
+          lang as TranslatedLocale,
+          [],
+          [
+            { tag: "blue hour", word: hour, note: "" },
+            { tag: "sunset", word: sunset, note: "" }
+          ]
+        )
+      )
+    );
+  const tagOf = (word: string, english: string) => {
+    const words = word.toLowerCase();
+    return {
+      label: word,
+      href: `/palettes?${new URLSearchParams({ q: words })}`,
+      query: words,
+      english
+    };
+  };
+
+  it("say Grabient's word for their phrase and search it, read while typing and at rest alike", async () => {
+    const env = testEnv();
+    await keep(env);
+    const english = await searchPalettes(env, "blue hour");
+    for (const [lang, [hour, sunset]] of Object.entries(SAID)) {
+      const typed = await searchSuggestionsResponse(
+        get(`/api/search-suggestions?${new URLSearchParams({ q: hour, limit: "3", lang })}`),
+        env
+      );
+      const [first] = (await bodyOf<{ suggestions: object[] }>(typed)).suggestions;
+      expect(first, lang).toMatchObject(tagOf(hour, "blue hour"));
+      // the words search what the English searches
+      const found = await searchPalettes(env, hour.toLowerCase());
+      expect([found.tier, found.read, found.items], lang).toEqual([
+        english.tier,
+        english.read,
+        english.items
+      ]);
+      // a page's first paint: the lists' row at rest, and the home's
+      for (const rest of ["limit=24", "both=1&limit=24"]) {
+        const row = await suggestionsFor(env, new URLSearchParams(`${rest}&lang=${lang}`));
+        expect(row, `${lang} ${rest}`).toContainEqual(
+          expect.objectContaining(tagOf(sunset, "sunset"))
+        );
+      }
+    }
+  });
+
+  it("stay in English where the search reads Grabient's word as another search or as none, and on an English page", async () => {
+    const env = testEnv();
+    await keep(env);
+    // azul is a color of its own to the search, and レトロ is no phrase it reads
+    await keepTranslations(env, "es", [], [{ tag: "blue", word: "azul", note: "" }]);
+    await keepTranslations(env, "ja", [], [{ tag: "retro", word: "レトロ", note: "" }]);
+    const first = async (query: string) => {
+      const [tag] = await suggestionsFor(env, new URLSearchParams(query));
+      return [tag?.label, tag?.href, tag?.query, tag?.english];
+    };
+    expect(await first("q=blue&limit=1&lang=es")).toEqual([
+      "blue",
+      "/palettes?q=blue",
+      "blue",
+      undefined
+    ]);
+    expect(await first("q=retro&limit=1&lang=ja")).toEqual([
+      "retro",
+      "/palettes?q=retro",
+      "retro",
+      undefined
+    ]);
+    expect(await first("q=blue+hour&limit=1")).toEqual([
+      "blue hour",
+      "/palettes?q=blue+hour",
+      "blue hour",
+      undefined
+    ]);
   });
 });
