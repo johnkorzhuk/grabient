@@ -68,7 +68,7 @@ export function AppPage(props: { feed?: boolean; bare?: boolean; children: Eleme
     palettes, since the home needs the server. */
 export const homeLink = (): FrameLink =>
   offline() && account()
-    ? { href: localHref("/palettes/saved"), label: t("Saved palettes") }
+    ? { href: localHref(inView("/palettes/saved")), label: t("Saved palettes") }
     : { href: localHref(inView("/")), label: t("Home") };
 
 /** A brand page's frame: the navigation with `page` marked, the way home over it, the pane, and the footer with the

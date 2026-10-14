@@ -8,6 +8,16 @@
 .sub {
   margin-top: calc(var(--space-s2) * -1);
 }
+/* the code's field and its Sign in, rows of the form like the others */
+.rows {
+  display: contents;
+}
+/* Back from Google with no request in its address, until the sheet knows whether an app connects, it shows the way
+   the document's head marked (connectingScript). */
+:global(html:not([data-connecting])) .app,
+:global(html[data-connecting]) .plain {
+  display: none;
+}
 .or {
   display: flex;
   align-items: center;

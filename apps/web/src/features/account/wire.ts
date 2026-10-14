@@ -99,6 +99,8 @@ export interface Profile {
   username: string | null;
   /** when the account was made, in ms */
   createdAt: number;
+  /** the app reviewers' account, which gives itself the password their sign-in takes */
+  reviewer?: true;
 }
 
 export interface SyncResponse {

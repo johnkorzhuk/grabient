@@ -56,6 +56,11 @@ function keepReturn(to: string | null) {
     // no storage: the sheet comes back without where it led
   }
 }
+/** A line for the document's head: back from Google with no request in its address, the sheet may still be an app's,
+    which only this tab's kept return knows. The line marks `<html data-connecting>` before anything paints, and the
+    sheet holds both ways until it reads the kept return itself, so it never grows. */
+export const connectingScript = `try{var k=/^(\\d+) \\/oauth\\/authorize/.exec(sessionStorage.getItem(${JSON.stringify(KEPT_RETURN)})||""),q=new URLSearchParams(location.search);document.documentElement.toggleAttribute("data-connecting",!!k&&q.has("error")&&!q.has("redirect")&&Date.now()-k[1]<${KEPT_FOR_MS})}catch(e){}`;
+
 /** The digits of a code typed in any script, with any spaces or dashes between them. */
 const digitsOf = (typed: string) =>
   typed
@@ -99,6 +104,20 @@ export function LoginPage(props: {
   const [to, setTo] = createSignal(safeRedirect(asked));
   // an app's request waits behind this sign-in (the authorization page carries it in `r`)
   const connecting = () => to().startsWith("/oauth/authorize");
+  // back from Google with no request in the address, the sheet holds both ways until it has read what this tab kept
+  const [unsure, setUnsure] = createSignal(googleFailed && asked === undefined);
+  /* words that differ while an app connects: while the sheet is unsure, both, and the head's mark shows one */
+  const either = (plain: string, app: string) =>
+    unsure() ? (
+      <>
+        <span class={styles.plain}>{plain}</span>
+        <span class={styles.app}>{app}</span>
+      </>
+    ) : connecting() ? (
+      app
+    ) : (
+      plain
+    );
   const [sending, setSending] = createSignal(false);
   const [checking, setChecking] = createSignal(false);
   const [message, setMessage] = createSignal("");
@@ -120,6 +139,7 @@ export function LoginPage(props: {
     if (googleFailed) {
       const back = safeRedirect(asked ?? keptReturn());
       setTo(back);
+      setUnsure(false);
       // said once the sheet stands, so a screen reader hears the line change
       say(t(GOOGLE_FAILED), true);
       // the sheet's own address again, before any press: a reload or another language says nothing of the failure
@@ -280,9 +300,7 @@ export function LoginPage(props: {
       ? t("Sending…")
       : wait()
         ? t("{seconds, plural, one {Resend in #s} other {Resend in #s}}", { seconds: wait() })
-        : connecting()
-          ? t("Send code")
-          : t("Send link");
+        : either(t("Send link"), t("Send code"));
   return (
     <PageFrame
       login
@@ -317,9 +335,7 @@ export function LoginPage(props: {
           </Text>
           <div class={styles.sub}>
             <Text variant="lede">
-              {connecting()
-                ? t("Connect an app to your account.")
-                : t("Save your favorite palettes.")}
+              {either(t("Save your favorite palettes."), t("Connect an app to your account."))}
             </Text>
           </div>
           <Button
@@ -359,25 +375,27 @@ export function LoginPage(props: {
           >
             {sendWords()}
           </Button>
-          <Show when={connecting()}>
-            <Field
-              label={t("Code")}
-              name="code"
-              autocomplete="one-time-code"
-              inputmode="numeric"
-              required
-              disabled={!codeOpen()}
-              help={t("Enter the 6-digit code from your email.")}
-            />
-            <Button
-              variant={codeOpen() ? "primary" : "secondary"}
-              size="lg"
-              full
-              type={codeOpen() ? "submit" : "button"}
-              disabled={!codeOpen() || checking() || offline()}
-            >
-              {t("Sign in")}
-            </Button>
+          <Show when={connecting() || unsure()}>
+            <div class={[styles.rows, { [styles.app]: unsure() }]}>
+              <Field
+                label={t("Code")}
+                name="code"
+                autocomplete="one-time-code"
+                inputmode="numeric"
+                required
+                disabled={!codeOpen()}
+                help={t("Enter the 6-digit code from your email.")}
+              />
+              <Button
+                variant={codeOpen() ? "primary" : "secondary"}
+                size="lg"
+                full
+                type={codeOpen() ? "submit" : "button"}
+                disabled={!codeOpen() || checking() || offline()}
+              >
+                {t("Sign in")}
+              </Button>
+            </div>
           </Show>
           <Status error={failed()}>{message()}</Status>
         </form>

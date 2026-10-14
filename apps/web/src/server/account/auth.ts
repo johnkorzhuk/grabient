@@ -16,9 +16,9 @@ export async function handleAuthRoute(request: Request, env: Env): Promise<Respo
     .clone()
     .json()
     .catch(() => null)) as {
-    user?: Parameters<typeof profileOf>[0];
+    user?: Parameters<typeof profileOf>[1];
   } | null;
-  const body = read?.user ? { user: profileOf(read.user) } : null;
+  const body = read?.user ? { user: profileOf(env, read.user) } : null;
   const headers = new Headers(answer.headers);
   headers.delete("Content-Length");
   return privateResponse(new Response(JSON.stringify(body), { status: 200, headers }));

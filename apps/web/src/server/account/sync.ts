@@ -1,6 +1,7 @@
 import { isLocale, msg } from "@grabient/i18n";
 import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
-import { getSession, type Session } from "@grabient/server/auth/session.ts";
+import { reviewerAddress } from "@grabient/server/auth/roles.ts";
+import { renewSession, type Session } from "@grabient/server/auth/session.ts";
 import { first, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { writeRefusal } from "@grabient/server/limits/writes.ts";
@@ -43,7 +44,7 @@ const Body = v.object({
 });
 
 /** The account as its menu and Settings show it, from the session the server read. */
-export function profileOf(user: Session["user"]): Profile {
+export function profileOf(env: Env, user: Session["user"]): Profile {
   return {
     id: user.id,
     name: user.name,
@@ -51,7 +52,8 @@ export function profileOf(user: Session["user"]): Profile {
     emailVerified: user.emailVerified,
     image: user.image ?? null,
     username: user.username ?? null,
-    createdAt: new Date(user.createdAt).getTime()
+    createdAt: new Date(user.createdAt).getTime(),
+    ...(reviewerAddress(env, user.email) ? { reviewer: true as const } : {})
   };
 }
 
@@ -147,8 +149,16 @@ const transient = (status: number) => status === 429 || status >= 500;
 export async function handleSync(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json({ error: "Method not allowed" }, 405);
   if (!sameOrigin(request)) return json({ error: msg("Invalid request.") }, 403);
-  const session = await getSession(env, request.headers, { fresh: true });
-  if (!session) return json({ error: msg("Sign in to continue.") }, 401);
+  // every open tab syncs, so a session in use is extended here, and every answer carries its cookie
+  const { session, cookies } = await renewSession(env, request.headers);
+  const answer = session
+    ? await syncFor(request, env, session)
+    : json({ error: msg("Sign in to continue.") }, 401);
+  for (const cookie of cookies.getSetCookie()) answer.headers.append("Set-Cookie", cookie);
+  return answer;
+}
+
+async function syncFor(request: Request, env: Env, session: Session): Promise<Response> {
   const userId = session.user.id;
   // a sync reads what a page of Saved reads, and is counted with those reads
   const over = await overLimit(env, [[`saved:${userId}`, "savedRead"]]);
@@ -283,6 +293,6 @@ export async function handleSync(request: Request, env: Env): Promise<Response> 
     admin: account.admin,
     ...(language ? { language } : {}),
     ...(retryAfter ? { retryAfter } : {}),
-    account: profileOf(session.user)
+    account: profileOf(env, session.user)
   } satisfies SyncResponse);
 }

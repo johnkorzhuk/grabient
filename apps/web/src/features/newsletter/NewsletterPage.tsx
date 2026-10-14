@@ -2,8 +2,8 @@ import { locale, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
-import { useInfiniteQuery } from "@tanstack/solid-query";
-import { createEffect, createSignal, Errored, For, Loading, onSettled, Show } from "solid-js";
+import { useInfiniteQuery, useQuery } from "@tanstack/solid-query";
+import { Errored, For, Loading, onSettled, Show } from "solid-js";
 import { IssueSheet } from "./IssueSheet.tsx";
 import type { PageIssue } from "./input.ts";
 import { monthOf } from "./month.ts";
@@ -56,24 +56,14 @@ export function NewsletterPage(props: {
   const issues = useInfiniteQuery(() => issuesQuery(locale()));
   /* An admin's drafts: asked for once the account is known and on every visit, never kept, and gone with the admin
      tools. A read that fails leaves the published issues alone, and a reader's page asks nothing. */
-  const [shown, setShown] = createSignal(NO_DRAFTS);
-  createEffect(
-    () => (props.admin ? locale() : null),
-    language => {
-      if (!language) {
-        setShown(NO_DRAFTS);
-        return;
-      }
-      let live = true;
-      readDrafts(language).then(
-        drafts => live && setShown(drafts),
-        () => {}
-      );
-      return () => {
-        live = false;
-      };
-    }
-  );
+  const drafts = useQuery(() => ({
+    queryKey: ["newsletter", "drafts", locale()],
+    queryFn: () => readDrafts(locale()),
+    enabled: props.admin,
+    gcTime: 0,
+    reconcile: "number"
+  }));
+  const shown = () => (props.admin && drafts.isSuccess ? drafts.data : NO_DRAFTS);
   /* each issue once, though a page may repeat one a newer issue pushed down */
   const published = () => {
     const byNumber = new Map<number, PageIssue>();

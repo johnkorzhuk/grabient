@@ -279,3 +279,140 @@ test("a returning reader's Settings stands where its document drew it when the a
   await expect(page.locator('#profile input[name="username"]')).toHaveValue("reader");
   expect(await sections()).toEqual(drawn);
 });
+
+test("Settings keeps the still water under reduced motion, as the other brand pages do", async ({
+  page
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // the water drawn, or where the browser draws none (a software renderer), its wash in its place
+  const water = () =>
+    page.evaluate(
+      () =>
+        !!document.querySelector('[aria-hidden="true"][data-lit]') ||
+        !!document.querySelector('[aria-hidden="true"] > [style*="radial-gradient"]')
+    );
+  for (const path of ["/about", "/settings"]) {
+    await page.goto(path);
+    await started(page);
+    await expect.poll(water, { message: path }).toBe(true);
+  }
+});
+
+test("the account menu opens the lists in the reader's view, and a visitor's Collections in the order chosen last", async ({
+  page
+}) => {
+  const menu = (row: string) => async () => {
+    await page.locator("header button[aria-haspopup=menu]").click();
+    await page.getByRole("menuitem", { name: row }).click();
+  };
+  const list = "/palettes/rising?style=linearSwatches&steps=5";
+  await page.goto(list);
+  await started(page);
+  await menu("Collections")();
+  await expect(page).toHaveURL(/\/collections\/rising\?style=linearSwatches&steps=5$/);
+
+  // signed in: the session answers for a reader, whose copy never syncs here
+  const reader = {
+    id: "e2e-reader",
+    name: "Reader",
+    email: "reader@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "reader",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: reader.id }, user: reader } })
+  );
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  for (const [row, to] of [
+    ["Saved palettes", /\/palettes\/saved\?style=linearSwatches&steps=5$/],
+    ["Your collections", /\/collections\/saved\?style=linearSwatches&steps=5$/]
+  ] as const) {
+    await page.goto(list);
+    await started(page);
+    await menu(row)();
+    await expect(page).toHaveURL(to);
+  }
+});
+
+test("back from Google with an app's request kept in the tab, the sheet is the app's from its first paint", async ({
+  context
+}) => {
+  for (const kept of ["/oauth/authorize?r=x", "/settings", null]) {
+    const page = await context.newPage();
+    // the app never starts: the sheet is the server's document and its head's mark alone
+    await page.route("**/*", route =>
+      route.request().resourceType() === "script" ? route.abort() : route.continue()
+    );
+    if (kept)
+      await page.addInitScript(
+        to => sessionStorage.setItem("grabient-sign-in-return", `${Date.now()} ${to}`),
+        kept
+      );
+    await page.goto("/login?error=access_denied");
+    const app = kept?.startsWith("/oauth/") ?? false;
+    const sheet = page.locator("main");
+    await expect(sheet.getByText("Connect an app to your account."), String(kept)).toBeVisible({
+      visible: app
+    });
+    await expect(sheet.getByText("Save your favorite palettes.")).toBeVisible({ visible: !app });
+    await expect(sheet.getByRole("button", { name: "Send code" })).toBeVisible({ visible: app });
+    await expect(sheet.locator('[name="code"]')).toBeVisible({ visible: app });
+    await page.close();
+  }
+  // started, the sheet says why it is back and keeps the app's request in its address
+  const page = await context.newPage();
+  await page.addInitScript(() =>
+    sessionStorage.setItem("grabient-sign-in-return", `${Date.now()} /oauth/authorize?r=x`)
+  );
+  await page.goto("/login?error=access_denied");
+  await started(page);
+  await expect(page.getByRole("alert")).toHaveText("Google sign-in failed.");
+  await expect(page).toHaveURL(/\/login\?redirect=%2Foauth%2Fauthorize%3Fr%3Dx$/);
+  await expect(page.locator('main [name="code"]')).toBeVisible();
+});
+
+test("the app reviewers' account gives itself its password in Settings, and no other account is offered one", async ({
+  page
+}) => {
+  let reviewer = false;
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({
+      json: {
+        session: { id: "e2e", userId: "e2e-reviewer" },
+        user: {
+          id: "e2e-reviewer",
+          name: "Reviewer",
+          email: "reviewer@grabient.test",
+          emailVerified: true,
+          image: null,
+          username: "reviewer",
+          createdAt: Date.UTC(2026, 6, 15),
+          ...(reviewer ? { reviewer: true } : {})
+        }
+      }
+    })
+  );
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  const sent: unknown[] = [];
+  await page.route("**/api/auth/reviewer-password", route => {
+    sent.push(route.request().postDataJSON());
+    return route.fulfill({ json: { ok: true } });
+  });
+  const section = page.locator("#account");
+  await page.goto("/settings");
+  await started(page);
+  await expect(section).toContainText("reviewer@grabient.test");
+  await expect(section.locator('input[name="password"]')).toHaveCount(0);
+
+  reviewer = true;
+  await page.goto("/settings");
+  await started(page);
+  const password = section.locator('input[name="password"]');
+  await password.fill("a long password for the review");
+  await section.getByRole("button", { name: "Save" }).click();
+  await expect(section.getByRole("status")).toHaveText("Saved.");
+  expect(sent).toEqual([{ password: "a long password for the review" }]);
+  await expect(password).toHaveValue("");
+});
