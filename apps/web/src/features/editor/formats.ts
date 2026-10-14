@@ -1,21 +1,14 @@
 import { type ContrastMeasures, contrastPicture, contrastSvg } from "@grabient/engine/contrast.ts";
-import { cssBlock, paletteCss } from "@grabient/engine/css.ts";
+import { cssBlock } from "@grabient/engine/css.ts";
 import type { Stop } from "@grabient/engine/curve.ts";
 import { artworkSvg } from "@grabient/engine/svg.ts";
-import {
-  isSwatchFormat,
-  SWATCH_FILES,
-  type SwatchFormat,
-  swatchFile,
-  swatchName,
-  swatchPalette
-} from "@grabient/engine/swatches.ts";
+import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { type Size, type SizeChoice, type Style, sizeParam } from "@grabient/engine/view.ts";
 import { downloadFile } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { svgToPngBlob } from "@grabient/ui/figure.ts";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, fileAddress, writeText } from "../../lib/files.ts";
+import { copyImage, fileAddress, saveFile, swatchesOf, writeText } from "../../lib/files.ts";
 import { seedAddress } from "./address.ts";
 
 /* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves
@@ -60,8 +53,7 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
 /** The format onto the clipboard. */
 export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (isSwatchFormat(f)) {
-    const palette = swatchPalette(p.seed, view(p), origin());
-    const file = palette && swatchFile(f, [palette]);
+    const file = swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) })]);
     if (typeof file !== "string") throw new Error();
     return writeText(file);
   }
@@ -75,35 +67,11 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
   );
 }
 
-/** The format to a file. Markdown is the site's own file, saved as it serves it. */
+/** The format to a file. */
 export async function saveFormat(f: Format, p: Taken): Promise<void> {
   const name = `grabient-${p.seed}`;
-  if (isSwatchFormat(f)) {
-    const palette = swatchPalette(p.seed, view(p), origin());
-    if (!palette) throw new Error();
-    const file = swatchFile(f, [palette]);
-    return downloadFile(
-      swatchName(palette.name, f),
-      new Blob([file], { type: SWATCH_FILES[f as SwatchFormat].type })
-    );
-  }
-  if (f === "md") {
-    const answer = await fetch(fileUrl(p, "md"));
-    if (!answer.ok) throw new Error();
-    return downloadFile(
-      `${name}.md`,
-      new Blob([await answer.text()], { type: "text/markdown;charset=utf-8" })
-    );
-  }
-  if (f === "css") {
-    const address = origin() + seedAddress({ seed: p.seed, view: view(p) });
-    return downloadFile(
-      `${name}.css`,
-      new Blob([paletteCss(p.stops, view(p), address, colorFormat())], {
-        type: "text/css;charset=utf-8"
-      })
-    );
-  }
+  if (f === "md" || f === "css" || isSwatchFormat(f))
+    return saveFile({ seed: p.seed, ...view(p) }, f);
   if (f === "svg")
     return downloadFile(
       `${name}.svg`,

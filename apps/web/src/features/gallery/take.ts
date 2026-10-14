@@ -1,21 +1,15 @@
 import { decodePalette } from "@grabient/engine";
-import { cssLine, paletteCss } from "@grabient/engine/css.ts";
+import { cssLine } from "@grabient/engine/css.ts";
 import { sampleStops } from "@grabient/engine/curve.ts";
 import { paletteSvg } from "@grabient/engine/svg.ts";
-import {
-  isSwatchFormat,
-  SWATCH_FILES,
-  swatchFile,
-  swatchName,
-  swatchPalette
-} from "@grabient/engine/swatches.ts";
+import { isSwatchFormat, swatchFile } from "@grabient/engine/swatches.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
-import { locale, t } from "@grabient/i18n";
+import { t } from "@grabient/i18n";
 import { downloadFile } from "@grabient/ui/copy.ts";
 import { exportGridImage } from "@grabient/ui/exportgrid.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, fileAddress, writeText } from "../../lib/files.ts";
+import { copyImage, fileAddress, saveFile, swatchesOf, writeText } from "../../lib/files.ts";
 import type { Drawn } from "../../lib/palette.ts";
 
 /* What a card's strip hands over: the one palette as the card draws it, copied, saved as a file, or as the address of
@@ -32,11 +26,6 @@ function stops(p: Drawn) {
   const palette = decodePalette(p.seed);
   if (!palette) throw cannot();
   return sampleStops(palette, Math.max(p.steps, palette.anchors.length));
-}
-function swatches(p: Drawn) {
-  const palette = swatchPalette(p.seed, p, location.origin, undefined, { t, locale: locale() });
-  if (!palette) throw cannot();
-  return palette;
 }
 const svg = (p: Drawn) =>
   paletteSvg(
@@ -58,7 +47,7 @@ export async function copyPalette(p: Drawn, format: Format): Promise<"copied" | 
     return "downloaded";
   }
   if (isSwatchFormat(format)) {
-    const file = swatchFile(format, [swatches(p)]);
+    const file = swatchFile(format, [swatchesOf(p)]);
     if (typeof file !== "string") throw cannot();
     await writeText(file);
   } else if (format === "css") await writeText(cssLine(stops(p), p.style, p.angle, colorFormat()));
@@ -66,33 +55,10 @@ export async function copyPalette(p: Drawn, format: Format): Promise<"copied" | 
   return "copied";
 }
 
-/** The palette as a file. The Markdown is the site's own, saved as it serves it. */
+/** The palette as a file. */
 export async function downloadPalette(p: Drawn, format: Format): Promise<void> {
-  if (isSwatchFormat(format)) {
-    const palette = swatches(p);
-    return downloadFile(
-      swatchName(palette.name, format),
-      new Blob([swatchFile(format, [palette])], { type: SWATCH_FILES[format].type })
-    );
-  }
+  if (format === "md" || format === "css" || isSwatchFormat(format)) return saveFile(p, format);
   if (format === "url") return writeText(address(p));
-  if (format === "md") {
-    const answer = await fetch(fileAddress(p, "md"));
-    if (!answer.ok) throw new Error(t("Couldn't download the file."));
-    return downloadFile(
-      `${name(p)}.md`,
-      new Blob([await answer.text()], { type: "text/markdown;charset=utf-8" })
-    );
-  }
-  if (format === "css") {
-    const drawn = stops(p);
-    return downloadFile(
-      `${name(p)}.css`,
-      new Blob([paletteCss(drawn, p, address({ ...p, steps: drawn.length }), colorFormat())], {
-        type: "text/css"
-      })
-    );
-  }
   if (format === "svg")
     return downloadFile(`${name(p)}.svg`, new Blob([svg(p)], { type: "image/svg+xml" }));
   const kind = format === "jpeg" ? "jpeg" : "png";
