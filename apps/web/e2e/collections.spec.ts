@@ -45,6 +45,40 @@ const rising = (route: Route) =>
     }
   });
 
+/** An account signed in here: the session answers with it, and its copy hears from the server once and holds
+    `collections`. Every other private read is refused. */
+async function signIn(page: Page, name: string, admin: boolean, collections: object[] = []) {
+  const account = {
+    id: `e2e-${name}`,
+    name,
+    email: `${name}@grabient.test`,
+    emailVerified: true,
+    image: null,
+    username: `e2e-${name}`,
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/me/**", route => route.fulfill({ status: 404, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: account.id }, user: account } })
+  );
+  await page.route("**/api/me/sync*", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        likes: [],
+        unliked: [],
+        collections,
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin,
+        account
+      }
+    })
+  );
+  return account;
+}
+
 test("signed out, the selection's Save leads to sign in and asks for no account's collections", async ({
   page
 }) => {
@@ -178,15 +212,8 @@ test("each page's head holds one block of structured data, its own", async ({ pa
 test("an admin's own collection made private says so at its new address, and quick presses send one write", async ({
   page
 }) => {
-  const admin = {
-    id: "e2e-admin",
-    name: "Admin",
-    email: "admin@grabient.test",
-    emailVerified: true,
-    image: null,
-    username: "e2e-admin",
-    createdAt: Date.UTC(2026, 6, 15)
-  };
+  // the account's copy hears it is an admin's and holds none of its collections, so the writes go to the server
+  const admin = await signIn(page, "admin", true);
   const { preview, ...words } = summary;
   const shown = { ...words, owner: { kind: "user", name: admin.username, display: admin.name } };
   const doc = { ...shown, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) };
@@ -199,26 +226,6 @@ test("an admin's own collection made private says so at its new address, and qui
     votes: {},
     collection
   });
-  await page.route("**/api/me/**", route => route.fulfill({ status: 404, json: {} }));
-  await page.route("**/api/auth/get-session*", route =>
-    route.fulfill({ json: { session: { id: "e2e", userId: admin.id }, user: admin } })
-  );
-  // the account's copy hears it is an admin's and holds none of its collections, so the writes go to the server
-  await page.route("**/api/me/sync*", route =>
-    route.fulfill({
-      json: {
-        cursor: 1,
-        likes: [],
-        unliked: [],
-        collections: [],
-        removed: [],
-        lastMutation: 0,
-        results: [],
-        admin: true,
-        account: admin
-      }
-    })
-  );
   await page.route(
     url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
     route =>
@@ -266,4 +273,36 @@ test("an admin's own collection made private says so at its new address, and qui
   await expect(page).toHaveURL(`/${hidden.slug}/rising`);
   await expect(turn).toHaveText("Now private");
   expect(writes).toEqual([JSON.stringify({ visibility: "private" })]);
+});
+
+test("a search of Saved whose server read fails answers from the account's copy", async ({
+  page
+}) => {
+  const { preview, ...words } = summary;
+  const blues = {
+    ...words,
+    id: "e2e-blues",
+    slug: "@e2e-ada/my-blues",
+    title: "My blues",
+    visibility: "private",
+    owner: { kind: "user", name: "e2e-ada", display: "ada" },
+    url: "/@e2e-ada/my-blues",
+    preview,
+    items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+  };
+  await signIn(page, "ada", false, [blues]);
+  await page.route(
+    url => url.pathname === "/api/me/collections" && url.searchParams.has("q"),
+    route => route.abort()
+  );
+  await page.goto("/collections/saved");
+  await hydrated(page);
+  const group = page.locator("main").getByRole("heading", { name: "My blues" });
+  await expect(group).toBeVisible();
+  await page.getByRole("searchbox").fill("blues");
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(/\/collections\/saved\?q=blues$/);
+  await expect(group).toBeVisible();
+  await expect(page.getByRole("button", { name: "Retry" })).toHaveCount(0);
+  await expect(page.locator("main")).not.toContainText("Couldn't load your collections.");
 });
