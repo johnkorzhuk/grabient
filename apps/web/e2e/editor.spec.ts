@@ -516,6 +516,27 @@ test("the order of the palettes like this one is kept for the tab, in the lists'
   await expect(again.getByRole("radio", { name: /^Rising/ })).toBeChecked();
 });
 
+test("the sheet opened with no connection asks for Rising's frames again once it returns", {
+  tag: "@served"
+}, async ({ page }) => {
+  await page.goto("/palettes");
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.context().setOffline(true);
+  await open(page);
+  const order = page.getByRole("radiogroup", { name: "Order" });
+  const rising = order.getByRole("radio", { name: /^Rising/ });
+  const asked = page.waitForRequest("**/api/frames");
+  await order.scrollIntoViewIfNeeded();
+  await asked;
+  await expect(rising).toHaveAccessibleName("Rising");
+  // an admin turned a second frame on meanwhile: the sheet offers it once it is back in view
+  await page.route("**/api/frames", route => route.fulfill({ json: { frames: ["1w", "3m"] } }));
+  await page.context().setOffline(false);
+  await page.evaluate(() => scrollTo(0, 0));
+  await order.scrollIntoViewIfNeeded();
+  await expect(rising).toHaveAccessibleName(/^Rising 1w/);
+});
+
 test("a palette in the selection offers Add to collection under its check", async ({ page }) => {
   await open(page);
   const presses = page.getByRole("group", { name: "Palette actions" }).first();
