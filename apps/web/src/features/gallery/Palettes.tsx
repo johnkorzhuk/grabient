@@ -157,13 +157,10 @@ export function Palettes(props: { place: ListPlace }) {
     createEffect(asked, now => {
       if (now.of !== reading) readOwn(now);
     });
-    /* a like made or taken back leaves the kept pages behind: the next visit reads them again. A read waits for the
-       copy's first sync, so that sync's reset is in what it reads */
+    /* a read waits for the copy's first sync, so that sync's reset is in what it reads */
     onSettled(() =>
       onAccountChange(change => {
-        if (!change.reset && !change.likes.size) return;
-        if (!change.reset) likes++;
-        void client.invalidateQueries({ queryKey: ["saved"] });
+        if (!change.reset && change.likes.size) likes++;
       })
     );
   }
@@ -563,6 +560,7 @@ export function Palettes(props: { place: ListPlace }) {
                     items={items()}
                     key={item => item.kseed}
                     live={FIRST_SCREEN}
+                    still={!account() && !selection().length}
                     depth={restoring}
                     card={item => (
                       <GalleryCard

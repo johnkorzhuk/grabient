@@ -129,7 +129,7 @@ export function StaticPalette(props: { data: PaletteData }) {
           <a href={localHref("/about")}>{t("How it works")}</a>
         </p>
       </main>
-      <Boot page={page()} title={title()} />
+      <Boot page={page()} title={title()} likes={props.data.facts?.likes ?? 0} />
     </>
   );
 }

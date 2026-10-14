@@ -6,16 +6,20 @@ import { DEFAULT_LOCALE, type Locale, messageKey } from "@grabient/i18n";
 import { all, replica } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 
-/* What only the database knows of a palette, for its page: the words written for it that its colors bear out, and the
-   public collections that hold it, the most saved first, each titled in the page's language where it is translated.
-   The page's title, its description, its static page for crawlers and its Markdown read them. Read once per page the
-   edge has no copy of, from a replica, in one round of two queries; a read that fails leaves its facts out, and the
-   page goes by the palette's colors. */
+/* What only the database knows of a palette, for its page: the words written for it that its colors bear out, the
+   public collections that hold it, the most saved first, each titled in the page's language where it is translated,
+   and how many like it. The page's title, its description, its static page for crawlers and its Markdown read them,
+   and its heart starts from the count. Read once per page the edge has no copy of, from a replica, in one round of
+   three queries; a read that fails leaves its facts out, and the page goes by the palette's colors. */
 
 export interface PaletteFacts {
   /** in English: a palette's written words are its author's */
   written?: { title: string; description?: string };
   heldBy: { slug: string; title: string; english?: string; colors: readonly string[] }[];
+  /** how many like it: 0 for a palette the gallery does not hold, none when the count could not be read */
+  likes?: number;
+  /** when the database was read, which a count kept since is weighed against */
+  readAt: number;
 }
 
 const HELD_MAX = 6;
@@ -49,13 +53,17 @@ export async function paletteFacts(
   source: Pick<Env, "DB"> = env
 ): Promise<PaletteFacts> {
   const db = replica(source);
-  const [texts, held] = await Promise.all([
+  const [texts, held, counted] = await Promise.all([
     all<{ title: string; embed: string }>(
       db,
       "SELECT title, embed FROM k_palette_texts WHERE seed = ?",
       seed
     ).catch(missed),
-    all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed).catch(missed)
+    all<HeldRow>(db, HOLDING, locale === DEFAULT_LOCALE ? "" : locale, seed).catch(missed),
+    all<{ n: number }>(db, "SELECT likes_count AS n FROM k_palettes WHERE seed = ?", seed).then(
+      rows => Math.max(0, Number(rows[0]?.n) || 0),
+      error => void missed(error)
+    )
   ]);
   const text = texts[0];
   /* a title the colors contradict is left out, and the description goes with it */
@@ -79,6 +87,8 @@ export async function paletteFacts(
         ...(current ? { english: row.title } : {}),
         colors: dominantColors((row.seeds ?? "").split(" ").filter(Boolean))
       };
-    })
+    }),
+    ...(counted === undefined ? {} : { likes: counted }),
+    readAt: Date.now()
   };
 }

@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { SyncResponse } from "./wire.ts";
 
 /* The counts beside the hearts, with the page's clock in the test's hands: what is asked of the server, when, and in
    how many requests, and which count a card shows. */
@@ -19,18 +20,23 @@ vi.mock("../analytics/analytics.ts", () => ({
 let asked: string[][] = [];
 let answer: (keys: string[]) => Promise<Response> = async keys =>
   Response.json({ counts: Object.fromEntries(keys.map(key => [key, 7])) });
+/* the account's sync, answered as the server would: what it holds of the account, and nothing to apply */
+let synced: SyncResponse | null = null;
 const kept = new Map<string, string>();
 
 let likes: typeof import("./likes.ts");
 let state: typeof import("./state.ts");
 beforeAll(async () => {
   vi.stubGlobal("addEventListener", () => {});
+  vi.stubGlobal("location", { origin: "https://g.test" });
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => kept.get(key) ?? null,
     setItem: (key: string, value: string) => kept.set(key, String(value)),
     removeItem: (key: string) => kept.delete(key)
   });
   vi.stubGlobal("fetch", async (url: string) => {
+    if (url === "/api/me/sync")
+      return synced ? Response.json(synced) : new Response(null, { status: 503 });
     const keys = decodeURIComponent(new URL(url, "https://g.test").searchParams.get("keys") ?? "");
     asked.push(keys.split(","));
     return answer(keys.split(","));
@@ -126,5 +132,41 @@ describe("the counts beside the hearts", () => {
     vi.setSystemTime(NOW + 16 * 60_000);
     likes.noteCounts([{ seed: b, likes: 10 }], NOW + 16 * 60_000);
     expect(likes.likeCount(b, 8)).toBe(10);
+  });
+
+  it("takes a press the server never had out of its count when the copy closes", async () => {
+    const sync = await import("./sync.ts");
+    const view = { style: "linearGradient", steps: 7, angle: 90 } as const;
+    const [a, b] = [seed(), seed()];
+    answer = async keys => Response.json({ counts: Object.fromEntries(keys.map(key => [key, 4])) });
+    likes.noteCounts(
+      [
+        { seed: a, likes: 4 },
+        { seed: b, likes: 4 }
+      ],
+      NOW
+    );
+    // the server holds her like of b, counted in b's four
+    synced = {
+      cursor: 1,
+      reset: true,
+      likes: [{ seed: b, ...view, at: NOW, likes: 4 }],
+      unliked: [],
+      collections: [],
+      removed: [],
+      lastMutation: 0,
+      results: [],
+      admin: false
+    };
+    expect(await sync.openAccount({ id: "closing", name: "ada", display: "Ada" })).toBe(true);
+    await sync.syncNow();
+    expect([state.heartNow(b), likes.likeCount(b)]).toEqual([true, 4]);
+    // she likes a, and the sync that would send it never runs
+    void sync.makeChange({ op: "like", seed: a, liked: true, ...view }).done.catch(() => {});
+    expect([state.heartNow(a), likes.likeCount(a)]).toEqual([true, 5]);
+    // the server ended her session: the like waits for her next sign-in here, and the page shows what the server holds
+    await sync.closeAccount("closing", true);
+    expect([state.heartNow(a), likes.likeCount(a)]).toEqual([false, 4]);
+    expect([state.heartNow(b), likes.likeCount(b)]).toEqual([false, 4]);
   });
 });

@@ -38,7 +38,14 @@ import { signInUnavailable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
 import { shownError } from "../../lib/query.ts";
-import { countDue, likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
+import {
+  countDue,
+  likeCount,
+  liked,
+  noteCounts,
+  readLikeCounts,
+  toggleLike
+} from "../account/likes.ts";
 import { useInEditor } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import {
@@ -207,6 +214,13 @@ export default function Editor(props: { data: PaletteData }) {
       root.style.overscrollBehaviorY = was;
     };
   });
+  /* The count the server read with the page, kept at its age as a list keeps its cards' counts: a press moves it at
+     once, offline too, and a count this browser's own like left since stands over an older copy of the page. */
+  onSettled(() => {
+    const facts = first.facts;
+    if (facts?.likes !== undefined)
+      noteCounts([{ seed: first.page.seed, likes: facts.likes }], facts.readAt);
+  });
   /* how many like the palette on screen, asked once it has rested: a held key makes many palettes a second. A count
      read lately, as a palette an undo returns to has, is no ask and lengthens no wait. */
   createEffect(e.seed, seed => {
@@ -235,10 +249,11 @@ export default function Editor(props: { data: PaletteData }) {
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
   /* the heart: the count for everyone, the press for an account, saved in the view on screen; signed out it leads to
-     sign in, and a refusal says why */
+     sign in, and a refusal says why. The page's own palette shows the count the server read with it from its first
+     frame, before the page notes it */
   const heart: Heart = {
     liked: () => liked(e.seed()),
-    count: () => likeCount(e.seed()),
+    count: () => likeCount(e.seed(), e.seed() === first.page.seed ? (first.facts?.likes ?? 0) : 0),
     toggle() {
       const { seed, ...view } = drawn();
       toggleLike(seed, !liked(seed), { view }).catch((reason: unknown) =>

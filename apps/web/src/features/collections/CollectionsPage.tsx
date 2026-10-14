@@ -79,8 +79,9 @@ const estimate = (item: CollectionSummary, width: number) => {
   return HEAD + rows * CARD + (rows - 1) * ROW_GAP;
 };
 /* the groups the server draws, a first screen and more, standing still until the reader moves (as the home's do): a
-   group's cards are most of a page's start, and a phone shows three of each group's twelve. An account's hearts and
-   an admin's presses are the reader's own, so once an account is known the groups are live without waiting. */
+   group's cards are most of a page's start, and a phone shows three of each group's twelve. An account's hearts, an
+   admin's presses and a selection's checks are the reader's own, so once either is known the groups are live without
+   waiting. */
 const INITIAL = 3;
 /* an own list not read yet: no page, and none to join */
 const UNREAD: Failed = { failed: "" };
@@ -476,7 +477,7 @@ export function CollectionsPage(props: {
                   key={c => c.slug}
                   estimate={estimate}
                   initial={INITIAL}
-                  live={account() ? INITIAL : 0}
+                  live={account() || selection().length ? INITIAL : 0}
                   depth={restoring}
                   group={collection => (
                     <CollectionGroup

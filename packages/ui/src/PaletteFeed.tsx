@@ -18,7 +18,8 @@ const kept = { card: 300 + 12 + 32, gap: 40 };
 /** A palette list as a feed: every palette loaded so far, with only the rows near the viewport drawn (window.ts).
     Every card is one size, so the rows are measured from the first card and its grid's gap, and kept, so a list
     returned to lays out at its depth on its first frame. The server draws every card it was given; the first `live`
-    are hydrated and the rest stand still until the reader moves or the list holds other cards. */
+    are hydrated and the rest stand still until the reader moves, the list holds other cards, or the page draws the
+    cards for the reader (`still` false). */
 export function PaletteFeed<T>(props: {
   items: readonly T[];
   /** what keeps a card as the window slides: the palette's seed */
@@ -26,6 +27,9 @@ export function PaletteFeed<T>(props: {
   card: (item: () => T) => Element;
   /** the cards the page starts with live, out of those the server drew: the first screen's */
   live?: number;
+  /** false once the cards are the reader's own (an account's hearts, a selection's checks), which the server's still
+      ones cannot show */
+  still?: boolean;
   /** the depth a return is about to restore */
   depth?: number;
 }) {
@@ -39,6 +43,7 @@ export function PaletteFeed<T>(props: {
     gap,
     initial: rows,
     drawn: () =>
+      props.still !== false &&
       props.items.length === drawn.length &&
       props.items.every((item, i) => props.key(item) === drawn[i]),
     depth: props.depth,

@@ -108,6 +108,17 @@ describe("a palette's facts", () => {
     );
     expect((await paletteFacts("kSyQDAzZa8zgZxS", gray, "en", env)).written).toBeUndefined();
   });
+
+  it("counts its likes, its heart's first count, and none for a palette the gallery does not hold", async () => {
+    await run(
+      env.DB,
+      "INSERT INTO k_palettes (seed, style, steps, angle, likes_count, created_at) VALUES (?, 'linearGradient', 7, 90, 12, 1) ON CONFLICT (seed) DO UPDATE SET likes_count = 12",
+      SEED
+    );
+    expect((await paletteFacts(SEED, palette, "en", env)).likes).toBe(12);
+    const unheld = decodePalette("kSyQDAzZa8zgZxS")!;
+    expect((await paletteFacts("kSyQDAzZa8zgZxS", unheld, "en", env)).likes).toBe(0);
+  });
 });
 
 /** A title naming a color the palette has none of: the first of these its own colors contradict. */
