@@ -2,9 +2,19 @@ import { handleAuth } from "@grabient/server/auth/gate.ts";
 import { setReviewerPassword } from "@grabient/server/auth/reviewer.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
 import { describe, expect, it, vi } from "vitest";
-import { cookiesOf, makeAccount, ORIGIN, post, testEnv, unique, watchLimits } from "./helpers.ts";
+import {
+  address,
+  cookiesOf,
+  makeAccount,
+  ORIGIN,
+  post,
+  testEnv,
+  unique,
+  watchLimits
+} from "./helpers.ts";
 
 const PASSWORD = "/api/auth/sign-in/email";
+const SET = "/api/auth/reviewer-password";
 
 describe("the app reviewers' password", () => {
   const reviewing = (values: Parameters<typeof testEnv>[0] = {}) => {
@@ -18,6 +28,60 @@ describe("the app reviewers' password", () => {
       testEnv()
     );
     expect(answer.status).toBe(404);
+    const reader = await makeAccount(testEnv());
+    const set = await handleAuth(
+      post(SET, { password: "a long password" }, { cookie: reader.cookie }),
+      testEnv()
+    );
+    expect(set.status).toBe(404);
+  });
+
+  it("takes the password the reviewers' account sends from the site, once, and no other account's", async () => {
+    const { env, email } = reviewing();
+    const reviewer = await makeAccount(env, { email });
+    const reader = await makeAccount(env);
+    const password = "a long password for the directory review";
+    const send = async (init: Parameters<typeof post>[2], body: unknown = { password }) => {
+      const answer = await handleAuth(post(SET, body, init), env);
+      return [answer.status, await answer.json(), answer.headers.get("Cache-Control")];
+    };
+    const refusal = { error: "Only the reviewers' account has a password." };
+    expect(await send({})).toEqual([403, refusal, "private, no-store"]);
+    expect(await send({ cookie: reader.cookie })).toEqual([403, refusal, "private, no-store"]);
+    expect(await send({ cookie: reviewer.cookie, origin: `${ORIGIN}.evil` })).toEqual([
+      403,
+      { error: "Invalid request." },
+      "private, no-store"
+    ]);
+    expect((await send({ cookie: reviewer.cookie }, { password: 12345678 }))[0]).toBe(400);
+    expect((await send({ cookie: reviewer.cookie }, { password: "short" }))[0]).toBe(400);
+
+    expect(await send({ cookie: reviewer.cookie })).toEqual([
+      200,
+      { ok: true },
+      "private, no-store"
+    ]);
+    const again = await send({ cookie: reviewer.cookie }, { password: "another long password" });
+    expect([again[0], typeof (again[1] as { error: unknown }).error]).toEqual([400, "string"]);
+    const signedIn = await handleAuth(post(PASSWORD, { email, password }), env);
+    expect(signedIn.status).toBe(200);
+    expect((await getSession(env, new Headers({ cookie: cookiesOf(signedIn) })))?.user.id).toBe(
+      reviewer.id
+    );
+  });
+
+  it("counts each password sent as a try at signing in from that address", async () => {
+    const { env } = reviewing();
+    const { env: watched, asked } = watchLimits(env);
+    const ip = address();
+    const statuses: number[] = [];
+    for (let sent = 0; sent < 11; sent++) {
+      const answer = await handleAuth(post(SET, { password: "a long password" }, { ip }), watched);
+      statuses.push(answer.status);
+    }
+    // the eleventh is refused by what the isolate already counted, without asking again
+    expect(asked).toEqual(Array.from({ length: 10 }, () => "passwordSignIn"));
+    expect(statuses).toEqual([...Array.from({ length: 10 }, () => 403), 429]);
   });
 
   it("is set once, for the reviewers' own session, and then signs that account in", async () => {

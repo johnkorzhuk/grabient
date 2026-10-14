@@ -1,12 +1,13 @@
-import { decodePalette, encodePalette, sampleStops } from "@grabient/engine";
+import { decodePalette, sampleStops } from "@grabient/engine";
 import { type PaletteWords, paletteMarkdown, plain } from "@grabient/engine/markdown.ts";
 import { seedName } from "@grabient/engine/name.ts";
-import { drawnView, parseView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
+import { drawnView, type Style, styleWords, viewSearch } from "@grabient/engine/view.ts";
 import { PAGE, TEXT } from "../../lib/cache.ts";
 import { collectionCard } from "../../lib/page-meta.ts";
 import { json } from "../../lib/responses.ts";
+import { addressParams, viewAt } from "../files/address.ts";
+import { resolvePalette } from "../files/resolve.ts";
 import { AGENT_DATA } from "./agents.ts";
-import { legacySeed } from "./legacy.ts";
 import { isoDay } from "./text.ts";
 
 /* A palette or a collection as Markdown at its address plus .md, for an agent that reads text. A palette's is the
@@ -96,17 +97,18 @@ export async function markdownFile(
   reads: MarkdownReads
 ): Promise<Response> {
   const base = origin.replace(/\/$/, "");
-  const palette = decodePalette(legacySeed(name) ?? name);
-  if (palette) {
-    const seed = encodePalette(palette);
-    const view = parseView(new URL(request.url).searchParams);
+  const found = resolvePalette(name);
+  if (found) {
+    const { seed, palette } = found;
+    // the view as the file's cache key reads it (files/keys.ts), so one key never holds two files
+    const view = viewAt(addressParams(new URL(request.url).searchParams), palette.anchors.length);
     const { written, heldBy } = await reads
       .paletteWords(seed)
       .catch(() => ({ written: null, heldBy: [] }));
     const text = paletteMarkdown(seed, base, view, written, heldBy);
     if (text !== null) return new Response(text, { headers: markdown(`${base}/${seed}`, TEXT) });
   }
-  if (!palette && reads.isCollection(name)) {
+  if (!found && reads.isCollection(name)) {
     const doc = await reads.collection(name);
     /* a collection changes as palettes join it: its Markdown follows within five minutes, as its page does */
     return doc

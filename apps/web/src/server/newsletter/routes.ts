@@ -8,6 +8,7 @@ import * as v from "valibot";
 import { Choice, Press, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
 import { PAGE } from "../../lib/cache.ts";
 import { json as publicJson } from "../../lib/responses.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { ISSUES } from "./issues/index.ts";
 import { isSubscribed, issueFoot, readerOf, setSubscribed, tokenOwner } from "./list.ts";
 import { beforeOf, draftsAmong, languageOf, publishedIssues } from "./page.ts";
@@ -18,10 +19,6 @@ import { sendIssue, unsendable } from "./send.ts";
 
 const CHOICE_BODY_MAX = 256;
 const BAD_LINK = msg("This link isn't valid.");
-
-/** The site's origin, which an issue's links and pictures are read from. */
-const originOf = (env: Pick<Env, "PUBLIC_ORIGIN" | "BETTER_AUTH_URL">, request: Request) =>
-  env.BETTER_AUTH_URL ?? env.PUBLIC_ORIGIN ?? new URL(request.url).origin;
 
 const methodNotAllowed = () => json({ error: "Method not allowed" }, 405);
 
@@ -48,7 +45,7 @@ async function admin(request: Request, env: Env, options: { write: boolean }) {
 /** `GET /api/newsletter?before=&lang=`: published issues, two at a time, kept at the edge five minutes. */
 export function issuesResponse(request: Request, env: Env): Response {
   const params = new URL(request.url).searchParams;
-  const page = publishedIssues(originOf(env, request), languageOf(params), beforeOf(params));
+  const page = publishedIssues(publicOrigin(env, request), languageOf(params), beforeOf(params));
   return publicJson(page, { headers: PAGE });
 }
 
@@ -58,7 +55,7 @@ export async function draftsResponse(request: Request, env: Env): Promise<Respon
   const session = await admin(request, env, { write: false });
   if (session instanceof Response) return session;
   const lang = languageOf(new URL(request.url).searchParams);
-  return json({ issues: draftsAmong(ISSUES, originOf(env, request), lang) });
+  return json({ issues: draftsAmong(ISSUES, publicOrigin(env, request), lang) });
 }
 
 /** `GET /api/me/newsletter`: whether the account gets the newsletter. `PUT { subscribed }` changes it from Settings. The
@@ -112,7 +109,7 @@ export async function testResponse(request: Request, env: Env): Promise<Response
   if (session instanceof Response) return session;
   const problem = await unsendable(env);
   if (problem) return json({ error: problem }, 503);
-  const origin = originOf(env, request);
+  const origin = publicOrigin(env, request);
   const reader = await readerOf(env, origin, session.user.id);
   if (!reader)
     return json({ error: msg("Turn on the newsletter in Settings to send a test.") }, 409);

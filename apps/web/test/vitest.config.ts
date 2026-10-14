@@ -1,10 +1,11 @@
 import { fileURLToPath } from "node:url";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
+import solid from "@solidjs/vite-plugin";
 import { defineConfig } from "vitest/config";
 
-/* The Worker's integration tests, in workerd with the bindings cloudflare.config.ts gives local development: D1, KV, R2
-   and the RateLimiter Durable Object, all simulated. test/worker.ts stands in for the app's entry, so these tests load
-   the server modules alone. Each file applies the migrations to its database first. */
+/* The Worker's integration tests, in workerd with the bindings local development has (test/cloudflare.config.ts): D1,
+   KV, R2 and the RateLimiter Durable Object, all simulated. test/worker.ts stands in for the app's entry, so these
+   tests load the server modules alone. Each file applies the migrations to its database first. */
 
 const web = fileURLToPath(new URL("..", import.meta.url));
 
@@ -13,8 +14,10 @@ export default defineConfig({
   // the MCP view is built by its own plugin (src/mcp-view/build.ts); the tests serve a page of the same shape
   resolve: { alias: { "virtual:mcp-view": `${web}/test/mcp-view-page.ts` } },
   plugins: [
+    // a route file loads the router, whose components are compiled for the server here as the build compiles them
+    solid({ ssr: true }),
     cloudflareTest(async () => ({
-      experimental: { newConfig: true },
+      experimental: { newConfig: { configPath: "test/cloudflare.config.ts" } },
       main: "test/worker.ts",
       remoteBindings: false,
       miniflare: {
@@ -30,6 +33,8 @@ export default defineConfig({
   ],
   test: {
     name: "worker",
+    // said so Solid's plugin does not ask for a browser's: the pool runs every test in workerd
+    environment: "node",
     include: ["test/**/*.test.ts"],
     setupFiles: ["test/setup.ts"],
     // workerd cannot read Vitest's module cache from disk.
