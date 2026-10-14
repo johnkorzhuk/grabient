@@ -124,7 +124,8 @@ async function route(
   const address = path + url.search;
   const at = (to: string, language = locale) => new URL(localizePath(to, language), url).toString();
 
-  // an empty first segment is no address of the site's, and a URL would read it as another host's (//host/path)
+  // an empty first segment is no address of the site's, which a URL reads as another host (//host/path), and the app
+  // has no server functions for Start's endpoint to call
   if (path.startsWith("//") || serverFunctionPath(path)) {
     return json({ error: msg("Not found") }, { status: 404 });
   }
@@ -154,8 +155,8 @@ async function route(
     }
   }
   if (canonical !== null) return redirect(at(canonical));
-  // Start renders a page for any method, so another than GET and HEAD is refused before it renders, but the newsletter's
-  // way out, whose address takes the press as a POST
+  // Start renders a page whatever the method, so a page is refused any method but GET and HEAD before it renders. The
+  // newsletter's way out takes its press as a POST.
   if (page && !read && !(request.method === "POST" && path.startsWith("/unsubscribe/"))) {
     return notAllowed();
   }
