@@ -293,10 +293,10 @@ export function Palettes(props: { place: ListPlace }) {
     offline,
     named: asked => searchedName(asked) ?? asked
   });
-  const curation = createCuration({
-    seeds: () => (saved ? [] : items().map(item => item.kseed)),
-    say: page.say
-  });
+  /* none on Saved: every palette there is the account's own like, which curation never changes */
+  const curation = saved
+    ? null
+    : createCuration({ seeds: () => items().map(item => item.kseed), say: page.say });
 
   const searchHref = (to: string, linked?: URLSearchParams) =>
     listHref("palettes", order(), frame(), withView({ ...params(), words: to }, linked));
@@ -630,7 +630,7 @@ export function Palettes(props: { place: ListPlace }) {
                             />
                           </Show>
                         }
-                        lead={curation.presses(item, { view: true, scopes: true })}
+                        lead={curation?.presses(item, { view: true, scopes: true })}
                       />
                     )}
                   />

@@ -3,6 +3,7 @@ import { expect, type Page, test } from "@playwright/test";
 /* The gallery's lists as a signed-out reader meets them: what a page asks the server, the cards the server drew that
    wait for the reader, the selection, a heart and Saved. They read the palettes `pnpm db:setup` loads. */
 
+const SEED = "kS7CQ31Do6asvY-";
 const hydrated = (page: Page) => page.waitForFunction(() => !("$_TSR" in window));
 const here = (page: Page) => {
   const url = new URL(page.url());
@@ -134,6 +135,60 @@ test("a card's plus starts the selection, and its screen stands in the page's pl
   // the press is a step of the page's undo
   await page.keyboard.press("Control+z");
   await expect(page.getByRole("button", { name: /^Selection/ })).toHaveCount(0);
+});
+
+/** A browser new to an account, which the session, the copy's sync and Saved's search answer as the server would:
+    one like, of an admin's. Says each read of Saved. */
+async function signedIn(page: Page): Promise<string[]> {
+  const user = {
+    id: "e2e-admin",
+    name: "Admin",
+    email: "admin@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "admin",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const view = { style: "linearGradient", steps: 7, angle: 90 } as const;
+  const at = Date.UTC(2026, 9, 1);
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: user.id }, user } })
+  );
+  // the copy's first sync lands after the page has asked for Saved, as it does over a network
+  await page.route("**/api/me/sync", async route => {
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    await route.fulfill({
+      json: {
+        ...{ cursor: 1, reset: true, lastMutation: 0, admin: true },
+        ...{ likes: [{ seed: SEED, ...view, at, likes: 3 }], unliked: [], collections: [] },
+        ...{ removed: [], results: [] }
+      }
+    });
+  });
+  const read: string[] = [];
+  await page.route("**/api/saved?*", route => {
+    read.push(new URL(route.request().url()).search);
+    return route.fulfill({
+      json: {
+        items: [{ kseed: SEED, ...view, likes: 3, createdAt: at }],
+        ...{ total: 1, page: 1, totalPages: 1, query: "blue", tier: "vocabulary" },
+        fetchedAt: Date.now()
+      }
+    });
+  });
+  return read;
+}
+
+test("Saved offers an admin no curation: every palette there is their own like", async ({
+  page
+}) => {
+  await signedIn(page);
+  await page.goto("/palettes/saved?q=blue");
+  await card(page, 0).hover();
+  await expect(card(page, 0).getByRole("link", { name: "Edit" })).toBeVisible();
+  await expect(
+    card(page, 0).getByRole("button", { name: /^(Set view|Delete palette)/ })
+  ).toHaveCount(0);
 });
 
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {
