@@ -105,6 +105,23 @@ async function reach(page: Page, target: Locator): Promise<number> {
 
 /** A press as the width's reader makes it: a click, or a finger's tap. */
 const press = (link: Locator, width: Width) => (width.touch ? link.tap() : link.click());
+/** A press where `target` stands, as a pointer or a finger meets it. The header and its menus stay at the top as the
+    page scrolls, and a locator's own scroll into view would move the page to where they would stand unstuck. */
+async function pressAt(page: Page, target: Locator, width: Width) {
+  const box = await target.boundingBox();
+  if (!box) throw new Error("nothing to press");
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  await (width.touch ? page.touchscreen.tap(x, y) : page.mouse.click(x, y));
+}
+/** An item of the account's menu, from the header's corner. */
+async function fromMenu(page: Page, item: string, width: Width) {
+  await pressAt(
+    page,
+    page.locator("header").getByRole("button", { name: /^(Sign in|Your account)$/ }),
+    width
+  );
+  await pressAt(page, page.getByRole("menuitem", { name: item }), width);
+}
 
 const editor = (page: Page) => page.getByRole("complementary", { name: "Editor" });
 
@@ -416,6 +433,57 @@ for (const width of WIDTHS)
     });
   });
 
+for (const width of WIDTHS)
+  test.describe(`on ${width.name}`, () => {
+    test.use({ viewport: width.viewport, hasTouch: width.touch, isMobile: width.touch });
+    test("the sign-in sheet, Settings, About and the newsletter open from the frame's menu and links, and Back returns to the list", async ({
+      page
+    }) => {
+      const broken = watch(page);
+      await open(page, "/palettes");
+      const heading = (await page.locator("main h1").first().textContent()) ?? "";
+      const depth = await reach(page, cardOf(page, await linkAt(page, EDIT, 8)));
+      const before = await rhythm(page);
+      /** Back from `from`, as many pages as were opened, to the list as it was left. */
+      const back = async (from: string, pages = 1) => {
+        for (let left = pages; left > 0; left--) await page.goBack();
+        await expect(page.locator("main h1").first(), from).toHaveText(heading);
+        await expect.poll(() => page.evaluate(() => scrollY), { message: from }).toBe(depth);
+        // the header, taller over a brand page, eases back to a list's height
+        await expect.poll(() => rhythm(page), { message: from }).toEqual(before);
+      };
+
+      await fromMenu(page, "Sign in", width);
+      await expect(page).toHaveURL(/\/login\?redirect=%2Fpalettes$/);
+      await expect(page.locator("main h1")).toHaveText("Sign in");
+      await expect(page.getByRole("button", { name: "Send link" })).toBeEnabled();
+      expect(await styled(page)).toBe(true);
+      await back("the sign-in sheet");
+
+      await fromMenu(page, "Settings", width);
+      await expect(page).toHaveURL(/\/settings$/);
+      await expect(page.locator("main h1")).toHaveText("Settings");
+      await expect(page.locator('#privacy [role="switch"]').first()).toBeVisible();
+      await back("Settings");
+
+      await fromMenu(page, "About", width);
+      await expect(page).toHaveURL(/\/about$/);
+      await expect(page.locator("main h1")).toHaveText("About Grabient");
+      await press(
+        page
+          .getByRole("navigation", { name: "About and account" })
+          .getByRole("link", { name: "Newsletter" }),
+        width
+      );
+      await expect(page).toHaveTitle("Newsletter | Grabient");
+      await expect(page.locator("main article[data-issue]").first()).toBeVisible();
+      expect(await styled(page)).toBe(true);
+      await back("the newsletter", 2);
+      expect(await sameDocument(page)).toBe(true);
+      expect(broken).toEqual([]);
+    });
+  });
+
 type Item = { kseed: string; style: string; steps: number; angle: number };
 const like =
   (liked: boolean) =>
@@ -497,7 +565,7 @@ test.describe("signed in as verify-ada", () => {
       }) => {
         const broken = watch(page);
         const said = page.locator("main p[aria-live]").first();
-        const menu = () => press(page.getByRole("button", { name: "Your account" }), width);
+
         await open(page, "/palettes/rising");
         const heading = (await page.locator("main h1").first().textContent()) ?? "";
 
@@ -542,8 +610,7 @@ test.describe("signed in as verify-ada", () => {
         await expect(page.getByRole("button", { name: "Close selection" })).toHaveCount(0);
 
         // where her collections are, from the frame's menu
-        await menu();
-        await press(page.getByRole("menuitem", { name: "Your collections" }), width);
+        await fromMenu(page, "Your collections", width);
         await expect(page).toHaveURL(/\/collections\/saved$/);
         const made = page.getByRole("region", { name: title });
         await expect(made).toContainText("2 palettes");
@@ -561,8 +628,7 @@ test.describe("signed in as verify-ada", () => {
         ).toBeVisible();
 
         // and her own private collection opens from the same menu
-        await menu();
-        await press(page.getByRole("menuitem", { name: "Your collections" }), width);
+        await fromMenu(page, "Your collections", width);
         await expect(page.getByRole("region", { name: "My blues" })).toBeVisible();
         await expect(page.getByRole("region", { name: title })).toHaveCount(0);
         await press(page.getByRole("link", { name: "My blues" }), width);
