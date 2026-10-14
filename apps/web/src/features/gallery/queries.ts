@@ -4,14 +4,17 @@ import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
 import * as v from "valibot";
+import { offline } from "../../app/connection.ts";
 import { DEFAULT_FRAME, type ListSort, RISING_FRAMES, type RisingFrame } from "../../lib/orders.ts";
 import { getJson, READ_TIMEOUT } from "../../lib/query.ts";
-import { publicCollections } from "../../server/collections/search.ts";
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
 import { searchPool } from "../../server/gallery/search.ts";
+import { viewNow } from "../account/state.ts";
+import { COLLECTION_LIMIT } from "../collections/params.ts";
+import { collectionsQuery } from "../collections/queries.ts";
+import type { CollectionPage } from "../collections/types.ts";
 import { SEARCH_POOL } from "../search/queries.ts";
-import { COLLECTION_LIMIT, CollectionPage } from "./collections.ts";
 import { HomeHead, PalettePage, SavedPage, SearchAnswer } from "./schema.ts";
 
 /* Every read the gallery's pages make, one queryOptions each, shared by the routes' loaders and the pages. The server
@@ -35,7 +38,8 @@ export const own = <T>(data: T): T => structuredClone(data);
 
 /** A read that failed: why, in the reader's language, and on the server the status the page answers with. */
 export type Failed = { failed: string; status?: number };
-export const failed = (data: object): data is Failed => "failed" in data;
+export const failed = <T extends object>(data: T): data is Extract<T, { failed: string }> =>
+  "failed" in data;
 
 const PUBLIC_TTL = 300_000;
 const RISING_TTL = 60_000;
@@ -168,41 +172,19 @@ export const homeHeadQuery = (words: string) =>
     select: (data: HomeHead | Failed) => own(data)
   });
 
-export type CollectionOrder = "hot" | "popular";
+const ownPage = (data: CollectionPage | Failed) => own(data);
 
-const readCollections = createIsomorphicFn()
-  .server(
-    async (
-      order: CollectionOrder,
-      words: string,
-      page: number,
-      _signal: AbortSignal
-    ): Promise<CollectionPage | Failed> =>
-      publicCollections(env, { query: words, sort: order, page, limit: COLLECTION_LIMIT })
-  )
-  .client((order: CollectionOrder, words: string, page: number, signal: AbortSignal) => {
-    const params = new URLSearchParams({
-      sort: order,
-      page: String(page),
-      limit: String(COLLECTION_LIMIT)
-    });
-    if (words) params.set("q", words);
-    return attempt(
-      () => getJson(`/api/collections?${params}`, CollectionPage, signal),
-      signal,
-      msg("Couldn't load collections.")
-    );
-  });
-
-/** A page of the collections list: the home's feed in the hot order, or searched, the popular one. */
-export const collectionsPageQuery = (order: CollectionOrder, words: string, page: number) =>
-  queryOptions({
-    queryKey: ["collections", order, words, COLLECTION_LIMIT, page] as const,
-    queryFn: ({ signal }) => readCollections(order, words, page, signal),
-    staleTime: freshFor(PUBLIC_TTL),
-    reconcile: "slug",
-    select: (data: CollectionPage | Failed) => own(data)
-  });
+/** A page of the collections list as the home's feed reads it: the hot order, or searched, the popular one. It is the
+    collections list's own read, so a press on Collections lands on pages the tab holds. */
+export const homeCollectionsQuery = (words: string, page: number) => ({
+  ...collectionsQuery({
+    sort: words ? "popular" : "hot",
+    query: words,
+    page,
+    limit: COLLECTION_LIMIT
+  }),
+  select: ownPage
+});
 
 export interface SavedKey {
   owner: string;
@@ -212,11 +194,24 @@ export interface SavedKey {
 }
 
 /** A page of the account's saved palettes. Only the browser asks for it, as the account it is signed in as: the key
-    names the owner, so another account's page never shows across a sign-in. */
+    names the owner, so another account's page never shows across a sign-in. The account's copy answers where it can,
+    at once and with no connection, with the likes not yet sent; words are the server's to rank while there is one. */
 export const savedQuery = (key: SavedKey) =>
   queryOptions({
     queryKey: ["saved", key.owner, key.words, key.limit, key.page] as const,
-    queryFn: ({ signal }) => {
+    queryFn: async ({ signal }): Promise<SavedPage | Failed> => {
+      /* loaded with the list it draws: no other page of the gallery needs the copy's model */
+      const { savedReady, savedPageOf } = await import("../account/saved.ts");
+      if (await savedReady()) {
+        const copied = savedPageOf(
+          viewNow(),
+          { page: key.page, limit: key.limit, query: key.words },
+          offline()
+        );
+        /* a like's count is as old as the sync that brought it, so every count is asked for again */
+        if (copied)
+          return { ...copied, items: [...copied.items], fetchedAt: Date.now(), countsAt: 0 };
+      }
       const params = new URLSearchParams({ page: String(key.page), limit: String(key.limit) });
       if (key.words) params.set("q", key.words);
       return attempt(

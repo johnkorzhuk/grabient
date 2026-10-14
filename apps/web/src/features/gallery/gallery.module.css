@@ -1,22 +1,19 @@
-/* The gallery's pages: a column with the search at its head, the lists' row, then the feed and the line under it. A
-   page is a `page` container, which the components' own layouts query. */
+/* The gallery's pages: a column with the search at its head, the lists' row, then the feed and the line under it, on
+   the frame's own ground, so the water shows behind it. */
 .page {
-  container: page / inline-size;
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
   gap: var(--space-s6);
-  min-height: 100vh;
+  min-width: 0;
   padding-block: var(--space-s16) var(--space-s8);
   padding-inline: var(--size-gutter);
-  background-color: var(--color-bg);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  font-weight: var(--font-medium);
-  font-size: var(--font-fs3);
-  line-height: var(--font-lh-ui);
-  @media (max-width: 800px) {
+  @container page (max-width: 800px) {
     padding-block: var(--space-s10) var(--space-s16);
     padding-inline: var(--space-s4);
+  }
+  &[hidden] {
+    display: none;
   }
 }
 .find {
@@ -50,11 +47,23 @@
   min-height: var(--size-control-big);
   margin-bottom: var(--space-s8);
 }
+/* a list under its row: its title, its cards, the mark and the line, with no space of the page's between them */
+.list {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 .stack {
   display: flex;
   flex-direction: column;
   gap: var(--space-s16);
   min-width: 0;
+}
+/* the palettes a search's colors make, a section's space above the list they lead */
+.made {
+  .list > & {
+    padding-bottom: var(--space-s8);
+  }
 }
 /* the way in, where the palettes cannot answer */
 .empty {
@@ -63,6 +72,17 @@
   align-items: flex-start;
   gap: var(--space-s4);
   padding-block: var(--space-s10);
+}
+/* the collections offered where the palettes cannot answer: their name, then their cards on the list's own grid */
+.offer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-s4);
+  padding-bottom: var(--space-s10);
+}
+/* a card's place on the grid, with no box of its own */
+.cell {
+  display: contents;
 }
 /* the mark the next page waits on: a hairline above the line, watched from a screen away */
 .mark {

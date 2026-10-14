@@ -1,6 +1,8 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "vitest";
-import { drawnAs, hexesOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
+import { hexesOf } from "../../lib/palette.ts";
+import { AS_SAVED, drawnIn } from "../list/appearance.ts";
+import { madeItems, nameOf, ownOf, paletteHref, picturedAs, relativeAge } from "./drawing.ts";
 import { sortSearch } from "./sort.ts";
 
 const helpers = JSON.parse(
@@ -35,23 +37,35 @@ test("a search sorts as both sides do, ties by the seed's code points", () => {
   }
 });
 
-test("a palette drawn in a list's view, never with fewer steps than its keyframes, and its editor in that view", () => {
-  const own = { seed: "kS7Q8Yy5S_SChv0", style: "linearGradient" as const, steps: 7, angle: 90 };
-  expect(
-    drawnAs(own, { style: "radialSwatches", steps: 3, angle: "auto", size: "auto" })
-  ).toMatchObject({
-    style: "radialSwatches",
-    angle: 90
-  });
-  const drawn = drawnAs(own, { style: "auto", steps: "auto", angle: 45, size: "auto" });
-  expect(hexesOf(drawn.seed, drawn.steps)).toHaveLength(drawn.steps);
-  expect(paletteHref(drawn, "1200x630")).toBe("/kS7Q8Yy5S_SChv0?angle=45&size=1200x630");
+test("a list's palette leads to its editor in the view the list draws it in, at the reader's size", () => {
+  const own = ownOf({ kseed: "kS7Q8Yy5S_SChv0", style: "linearGradient", steps: 7, angle: 90 });
+  const drawn = drawnIn(own, { ...AS_SAVED, angle: 45 });
+  expect(hexesOf(drawn)).toHaveLength(drawn.steps);
+  expect(paletteHref(drawn, { width: 1200, height: 630 })).toBe(
+    "/kS7Q8Yy5S_SChv0?angle=45&size=1200x630"
+  );
+  expect(paletteHref(drawn, null)).toBe("/kS7Q8Yy5S_SChv0?angle=45");
+});
+
+test("a palette is named by its colors in the view it is drawn in, the same each time it is asked", () => {
+  const own = ownOf({ kseed: "kS7Q8Yy5S_SChv0", style: "linearGradient", steps: 7, angle: 90 });
+  const name = nameOf(own);
+  expect(name).not.toBe("");
+  expect(nameOf({ ...own })).toBe(name);
+  expect(nameOf({ ...own, style: "linearSwatches" })).not.toBe("");
+});
+
+test("the palettes a search's colors make tell no age and hold no likes", () => {
+  const made = madeItems(["#ff6b6b", "#4ecdc4"]);
+  expect(made.length).toBeGreaterThan(0);
+  expect(made.every(item => item.likes === 0 && item.createdAt === 0)).toBe(true);
+  expect(madeItems([])).toEqual([]);
 });
 
 test("a picture draws what the control is setting over the address's view, and the style it previews", () => {
   const own = { seed: "kS7Q8Yy5S_SChv0", style: "linearGradient" as const, steps: 7, angle: 90 };
-  const view = { style: "radialSwatches", steps: 9, angle: "auto", size: "auto" } as const;
-  expect(picturedAs(own, view, null, null)).toEqual(drawnAs(own, view));
+  const view = { ...AS_SAVED, style: "radialSwatches", steps: 9 } as const;
+  expect(picturedAs(own, view, null, null)).toEqual(drawnIn(own, view));
   expect(picturedAs(own, view, { steps: 12, angle: 45 }, "angularGradient")).toEqual({
     ...own,
     style: "angularGradient",
