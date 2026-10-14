@@ -63,7 +63,8 @@ test.each([
   ["/sitemap-pages.xml", "/sitemap-{$name}.xml/", "application/xml; charset=utf-8"],
   ["/search/blue.json?limit=1", "/search/{$words}.json", "application/json"],
   ["/palettes/blue.json?limit=1", "/palettes/{$words}.json", "application/json"],
-  ["/api/palettes/search?q=blue&limit=1", "/api/palettes_/search", "application/json"]
+  ["/api/palettes/search?q=blue&limit=1", "/api/palettes_/search", "application/json"],
+  ["/api/popular-searches?q=bl", "/api/popular-searches", "application/json"]
 ])("%s reaches %s", async (address, route, type) => {
   expect(await reach(address)).toEqual({ route, type, status: 200 });
 });

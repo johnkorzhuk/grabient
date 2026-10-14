@@ -42,6 +42,7 @@ import { Route as ApiNewsletterRouteImport } from './routes/api/newsletter'
 import { Route as ApiPaletteRouteImport } from './routes/api/palette'
 import { Route as ApiPaletteDotjsonRouteImport } from './routes/api/palette[.]json'
 import { Route as ApiPalettesRouteImport } from './routes/api/palettes'
+import { Route as ApiPopularSearchesRouteImport } from './routes/api/popular-searches'
 import { Route as ApiSavedRouteImport } from './routes/api/saved'
 import { Route as ApiSearchColorsRouteImport } from './routes/api/search-colors'
 import { Route as ApiSearchSuggestionsRouteImport } from './routes/api/search-suggestions'
@@ -279,6 +280,11 @@ const ApiPaletteDotjsonRoute = ApiPaletteDotjsonRouteImport.update({
 const ApiPalettesRoute = ApiPalettesRouteImport.update({
   id: '/api/palettes',
   path: '/api/palettes',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPopularSearchesRoute = ApiPopularSearchesRouteImport.update({
+  id: '/api/popular-searches',
+  path: '/api/popular-searches',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSavedRoute = ApiSavedRouteImport.update({
@@ -707,6 +713,7 @@ export interface FileRoutesByFullPath {
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
+  '/api/popular-searches': typeof ApiPopularSearchesRoute
   '/api/saved': typeof ApiSavedRoute
   '/api/search-colors': typeof ApiSearchColorsRoute
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
@@ -814,6 +821,7 @@ export interface FileRoutesByTo {
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
+  '/api/popular-searches': typeof ApiPopularSearchesRoute
   '/api/saved': typeof ApiSavedRoute
   '/api/search-colors': typeof ApiSearchColorsRoute
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
@@ -922,6 +930,7 @@ export interface FileRoutesById {
   '/api/palette': typeof ApiPaletteRoute
   '/api/palette.json': typeof ApiPaletteDotjsonRoute
   '/api/palettes': typeof ApiPalettesRoute
+  '/api/popular-searches': typeof ApiPopularSearchesRoute
   '/api/saved': typeof ApiSavedRoute
   '/api/search-colors': typeof ApiSearchColorsRoute
   '/api/search-suggestions': typeof ApiSearchSuggestionsRoute
@@ -1031,6 +1040,7 @@ export interface FileRouteTypes {
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
+    | '/api/popular-searches'
     | '/api/saved'
     | '/api/search-colors'
     | '/api/search-suggestions'
@@ -1138,6 +1148,7 @@ export interface FileRouteTypes {
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
+    | '/api/popular-searches'
     | '/api/saved'
     | '/api/search-colors'
     | '/api/search-suggestions'
@@ -1245,6 +1256,7 @@ export interface FileRouteTypes {
     | '/api/palette'
     | '/api/palette.json'
     | '/api/palettes'
+    | '/api/popular-searches'
     | '/api/saved'
     | '/api/search-colors'
     | '/api/search-suggestions'
@@ -1353,6 +1365,7 @@ export interface RootRouteChildren {
   ApiPaletteRoute: typeof ApiPaletteRoute
   ApiPaletteDotjsonRoute: typeof ApiPaletteDotjsonRoute
   ApiPalettesRoute: typeof ApiPalettesRoute
+  ApiPopularSearchesRoute: typeof ApiPopularSearchesRoute
   ApiSavedRoute: typeof ApiSavedRoute
   ApiSearchColorsRoute: typeof ApiSearchColorsRoute
   ApiSearchSuggestionsRoute: typeof ApiSearchSuggestionsRoute
@@ -1659,6 +1672,13 @@ declare module '@tanstack/solid-router' {
       path: '/api/palettes'
       fullPath: '/api/palettes'
       preLoaderRoute: typeof ApiPalettesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/popular-searches': {
+      id: '/api/popular-searches'
+      path: '/api/popular-searches'
+      fullPath: '/api/popular-searches'
+      preLoaderRoute: typeof ApiPopularSearchesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/saved': {
@@ -2201,6 +2221,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPaletteRoute: ApiPaletteRoute,
   ApiPaletteDotjsonRoute: ApiPaletteDotjsonRoute,
   ApiPalettesRoute: ApiPalettesRoute,
+  ApiPopularSearchesRoute: ApiPopularSearchesRoute,
   ApiSavedRoute: ApiSavedRoute,
   ApiSearchColorsRoute: ApiSearchColorsRoute,
   ApiSearchSuggestionsRoute: ApiSearchSuggestionsRoute,

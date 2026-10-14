@@ -101,7 +101,7 @@ test("an address past its minute of misses is turned away before any search", as
 });
 
 test("the edge keys a search by what its handler reads, whichever of its addresses asked", () => {
-  const [json, colors] = searchKeyRules;
+  const [json, colors, tags] = searchKeyRules;
   const key = (params: string, path = "/api/search.json") =>
     json.query?.(new URLSearchParams(params), path).toString();
   expect(
@@ -117,6 +117,8 @@ test("the edge keys a search by what its handler reads, whichever of its address
   expect(colors.query?.(new URLSearchParams("q=Ocean&x=1"), "/api/search-colors").toString()).toBe(
     "q=ocean"
   );
+  expect(tags.match("/api/search-suggestions") && tags.match("/api/popular-searches")).toBe(true);
+  expect(tags.path).toBe("/api/search-suggestions");
 });
 
 test("the status says what this isolate answers from", async () => {

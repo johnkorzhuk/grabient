@@ -2,7 +2,9 @@
      GET/HEAD /api/search.json, /api/palettes/search, /search/{q}.json, /palettes/{q}.json   edge-cached
      GET      /api/search/status                what this isolate answers from (never kept)
      GET      /api/search-colors                a search's colors (an hour)
-   The tags' answer is tags.ts's. None reads the session; the pipeline adds their CORS. An account's own search is account.ts. */
+   The tags' answer is tags.ts's, at /api/search-suggestions and at its first address, /api/popular-searches. None
+   reads the session, and the pipeline adds the CORS of those any site may read. An account's own search is
+   account.ts. */
 import { msg } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
@@ -20,6 +22,7 @@ import { type Background, snapshotStatus } from "./snapshot.ts";
 import { tagsKey } from "./tags.ts";
 
 const SEARCH_PATH = /^\/(?:api\/search\.json|api\/palettes\/search|(?:search|palettes)\/.+\.json)$/;
+const TAGS = "/api/search-suggestions";
 
 /** The edge cache's keys for these answers: what the handlers read of the query, normalized, so junk parameters and
     spellings of one search share an entry, whichever of its addresses asked. Only a search by a palette names
@@ -45,7 +48,11 @@ export const searchKeyRules: readonly KeyRule[] = [
     match: path => path === "/api/search-colors",
     query: params => new URLSearchParams({ q: listWords(params.get("q")) })
   },
-  { match: path => path === "/api/search-suggestions", query: tagsKey }
+  {
+    match: path => path === TAGS || path === "/api/popular-searches",
+    path: TAGS,
+    query: tagsKey
+  }
 ];
 
 /** A search's answer status: limited 429 with the wait, unavailable 503, else 200. */
