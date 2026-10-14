@@ -186,6 +186,10 @@ export const tagsQuery = (query: string) =>
     staleTime: PUBLIC_TTL
   });
 
+/* The account's own pages are kept a minute, for a list returned to; any change to its collections (a pick, an edit, one
+   made or deleted, here, on another page or in another tab) starts them anew. */
+let ownChanges = 0;
+
 /** A page of the account's own collections: from its copy where the copy can say, else the server's. A search a reader
     made (`model`) goes to the server online, which also reads what the words mean; one typed is read by its letters. */
 export const ownQuery = (owner: string, key: CollectionListParams, model = true) =>
@@ -241,7 +245,9 @@ let states = 0;
 export const forgetStates = () => void states++;
 let ownAddresses: string | null = null;
 if (!isServer)
-  onAccountChange(() => {
+  onAccountChange(change => {
+    if (change.reset || change.collections.size || change.removed.size || change.moved.size)
+      ownChanges++;
     const user = keptUserId();
     if (!user || !engineNow()?.copyReady(user)) return;
     const now = [...viewNow().collections.keys()].sort().join(" ");
