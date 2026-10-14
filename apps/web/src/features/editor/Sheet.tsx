@@ -53,9 +53,10 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
+import { keepOrder, keptOrder, type SimilarOrder } from "./order.ts";
 import type { PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
-import { rememberOrder, type Similar, similarOrder, similarQuery } from "./similar.ts";
+import { type Similar, similarQuery } from "./similar.ts";
 
 /* The editor's sheet: the palette's name, the collections that hold it, which of its colors read on which and on the
    reader's own text colors, its path through the color solid, the palette as text, and the palettes like it. All but
@@ -64,6 +65,13 @@ import { rememberOrder, type Similar, similarOrder, similarQuery } from "./simil
    part of the window and the palette has rested: a palette opened and edited on the first screen asks the server
    nothing however many edits it takes. */
 
+/* Rising's frames as its press says them: short after its name, in full to a reader who listens. The lists' row says
+   the same (the design system's ListNav), which is a component and would bring its styles with it. */
+const FRAMES: Readonly<Record<RisingFrame, { short: string; name: string }>> = {
+  "1w": { short: msg("1w", "frame"), name: msg("Rising, 1 week") },
+  "3m": { short: msg("3m", "frame"), name: msg("Rising, 3 months") },
+  "1y": { short: msg("1y", "frame"), name: msg("Rising, 1 year") }
+};
 /* how many of the palettes like this one are drawn */
 const SHOWN = 12;
 /* the sheet has the window's lower two fifths: the reader has left the first screen for it */
@@ -133,6 +141,8 @@ export function Sheet(props: {
   editor: PaletteEditor;
   rest: Rest;
   facts: () => PaletteData["facts"];
+  /** Rising's frames as the server told this document, where it drew the page */
+  frames: PaletteData["frames"];
   heading: () => string | undefined;
   opened: () => string;
   taken: () => Taken;
@@ -204,40 +214,48 @@ export function Sheet(props: {
     }
   );
 
-  /* The order is the reader's, kept for the tab: the most liked first, or the rising in a frame. Rising's frames are
-     the ones an admin has left on, asked for only once Rising is the order and the sheet is in the window; Rising
-     pressed while it is the order moves to the next of them. The answer holds every palette like this one, so an order
-     sorts what the page holds and asks nothing. */
+  /* The order is the reader's, the one the lists are in, kept for the tab: the most liked first, or the rising in a
+     frame. Rising's frames are the ones an admin has left on: the document's own where the server drew this page, a
+     list's where the reader came from one, and otherwise asked for once the sheet is in the window. Rising pressed
+     while it is the order moves to the next of them. The answer holds every palette like this one, so an order sorts
+     what the page holds and asks nothing. */
+  const [order, setOrder] = createSignal(keptOrder());
+  const told = untrack(() => props.frames);
+  if (told && !queries.getQueryData(framesQuery().queryKey))
+    queries.setQueryData(framesQuery().queryKey, [...told]);
   const [offered, setOffered] = createSignal<readonly RisingFrame[]>(
     queries.getQueryData(framesQuery().queryKey) ?? [DEFAULT_FRAME]
   );
-  createEffect(
-    () => inView() && similarOrder().sort === "rising",
-    rising => {
-      if (rising)
-        void queries.fetchQuery(framesQuery()).then(setOffered, () => {
-          /* the week's frame stands */
-        });
-    }
-  );
+  createEffect(inView, seen => {
+    if (seen && !queries.getQueryData(framesQuery().queryKey))
+      void queries.fetchQuery(framesQuery()).then(setOffered, () => {
+        /* the week's frame stands */
+      });
+  });
   const frame = () => {
-    const kept = similarOrder().frame;
+    const kept = order().frame;
     return offered().includes(kept) ? kept : DEFAULT_FRAME;
   };
   const pickOrder = (next: string) => {
-    const now = similarOrder();
-    if (next !== "rising") rememberOrder({ ...now, sort: "popular" });
-    else if (now.sort !== "rising") rememberOrder({ ...now, sort: "rising" });
-    else rememberOrder({ sort: "rising", frame: nextFrame(frame(), offered()) });
+    const now = order();
+    const picked: SimilarOrder =
+      next !== "rising"
+        ? { ...now, sort: "popular" }
+        : now.sort !== "rising"
+          ? { ...now, sort: "rising" }
+          : { sort: "rising", frame: nextFrame(frame(), offered()) };
+    setOrder(picked);
+    keepOrder(picked);
   };
-  /* a frame's short name, which the lists' own row says after Rising */
-  const short = (f: RisingFrame) => t(f, { $context: "frame" });
+  /* Rising's name and a frame's short one, as the lists' own row says them */
+  const rising = () => t("Rising", { $context: "order" });
+  const short = (f: RisingFrame) => t(FRAMES[f].short, { $context: "frame" });
   const like = createMemo(() => {
     const got = answer();
     return got
       ? sortSearch(
           got.items.filter(item => item.kseed !== e.seed()),
-          similarOrder().sort,
+          order().sort,
           frame()
         ).slice(0, SHOWN)
       : null;
@@ -295,8 +313,7 @@ export function Sheet(props: {
     const query = new URLSearchParams({ q: e.seed() });
     for (const [name, value] of Object.entries(viewParams(listed())))
       if (value !== undefined) query.set(name, String(value));
-    const list =
-      similarOrder().sort === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
+    const list = order().sort === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
     return `${list}?${query}`;
   };
   const title = () =>
@@ -428,14 +445,19 @@ export function Sheet(props: {
       order={
         <Segmented
           aria-label={t("Order")}
-          value={similarOrder().sort}
+          value={order().sort}
           options={[
             { value: "popular", label: t("Popular", { $context: "order" }) },
             {
               value: "rising",
-              label: t("Rising", { $context: "order" }),
+              label: rising(),
+              /* its name starts with the words it shows, then says the frame in full */
               ...(offered().length > 1
-                ? { detail: short(frame()), forms: offered().map(short) }
+                ? {
+                    detail: short(frame()),
+                    forms: offered().map(short),
+                    name: `${rising()} ${short(frame())}, ${t(FRAMES[frame()].name)}`
+                  }
                 : {})
             }
           ]}

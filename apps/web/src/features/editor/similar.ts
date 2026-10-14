@@ -1,8 +1,5 @@
 import { DEFAULT_LOCALE, type Locale } from "@grabient/i18n";
-import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
-import { createSignal } from "solid-js";
-import { DEFAULT_FRAME, isFrame, type RisingFrame } from "../../lib/orders.ts";
 import { getJson } from "../../lib/query.ts";
 import { SearchAnswer } from "../search/bodies.ts";
 import { SEARCH_POOL } from "../search/queries.ts";
@@ -29,35 +26,3 @@ export const similarQuery = (seed: string, locale: Locale) =>
       ),
     staleTime: 5 * 60_000
   });
-
-/** The order the reader reads them in: the most liked first, or the rising in one of Rising's frames. */
-export interface SimilarOrder {
-  sort: "popular" | "rising";
-  frame: RisingFrame;
-}
-
-/* The reader's order is the tab's: the palette opened next shows its own in it, and a reload keeps it. */
-const KEY = "grabient-order";
-function kept(): SimilarOrder {
-  let said: Partial<SimilarOrder> | null = null;
-  try {
-    said = isServer ? null : JSON.parse(sessionStorage.getItem(KEY) ?? "null");
-  } catch {
-    /* nothing kept, or storage refused: Popular */
-  }
-  return {
-    sort: said?.sort === "rising" ? "rising" : "popular",
-    frame: isFrame(said?.frame) ? said.frame : DEFAULT_FRAME
-  };
-}
-const [order, setOrder] = createSignal(kept());
-
-export const similarOrder = order;
-export function rememberOrder(next: SimilarOrder): void {
-  setOrder(next);
-  try {
-    sessionStorage.setItem(KEY, JSON.stringify(next));
-  } catch {
-    /* the page still remembers it */
-  }
-}

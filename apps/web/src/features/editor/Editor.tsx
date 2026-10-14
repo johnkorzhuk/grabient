@@ -239,6 +239,7 @@ export default function Editor(props: { data: PaletteData }) {
         save={save}
         rest={rest}
         facts={() => (e.seed() === first.page.seed ? first.facts : null)}
+        frames={first.frames}
         heading={() =>
           e.seed() === first.page.seed &&
           e.style() === first.page.view.style &&
@@ -268,6 +269,7 @@ interface PageProps {
   save: PaletteSave;
   rest: Rest;
   facts: () => PaletteData["facts"];
+  frames: PaletteData["frames"];
   /** the server's heading, while the palette and view are the page's own */
   heading: () => string | undefined;
   opened: () => string;
@@ -410,6 +412,7 @@ function Page(props: PageProps) {
               editor={e}
               rest={props.rest}
               facts={props.facts}
+              frames={props.frames}
               heading={props.heading}
               opened={props.opened}
               taken={() => props.taken(stageSize())}
