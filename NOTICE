@@ -1,0 +1,14 @@
+Grabient
+Copyright 2017-2026 the Grabient authors
+
+This product includes software and data made by others, each under its own license. Every build writes them in
+full to /licenses.md on the site (apps/web/scripts/licenses.ts).
+
+- Poppins, the typeface the site is set in: Copyright 2020 The Poppins Project Authors, SIL Open Font License,
+  Version 1.1 (apps/web/public/fonts/OFL.txt).
+- Color Names (color-name-list) by David Aerne: the precise color names in swatch files and palette files, MIT
+  License.
+- Unicode CLDR annotations: the search's words for emoji are chosen with Unicode's names and keywords for them,
+  Unicode License v3 (apps/web/scripts/search/cldr-license.txt).
+- The XKCD color survey by Randall Munroe: color words the search knows, in the public domain (CC0).
+- The JavaScript packages the browser's code bundles, each under its own license, listed with it in /licenses.md.

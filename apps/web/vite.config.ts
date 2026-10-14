@@ -4,6 +4,7 @@ import solid from "@solidjs/vite-plugin";
 import { tanstackStart } from "@tanstack/solid-start/plugin/vite";
 import { defineConfig, type Rolldown } from "vite";
 import { colorNames } from "./scripts/color-names.ts";
+import { LICENSES, licenses } from "./scripts/licenses.ts";
 import { serviceWorker } from "./scripts/service-worker.ts";
 import { mcpView } from "./src/mcp-view/build.ts";
 import { draftsStayPrivate } from "./src/server/newsletter/private.ts";
@@ -71,6 +72,8 @@ export default defineConfig({
   environments: {
     client: {
       build: {
+        // every package the browser's code bundles, with its license, beside the data the site serves (licenses.ts)
+        license: { fileName: LICENSES },
         rolldownOptions: { output: { codeSplitting: { groups: startChunks() } } }
       }
     },
@@ -100,6 +103,7 @@ export default defineConfig({
     draftsStayPrivate(),
     // The precise color names swatch files carry, one file the browser and the Worker read when a file needs them.
     colorNames(),
+    licenses(),
     cloudflare({ viteEnvironment: { name: "ssr" }, remoteBindings: false }),
     tanstackStart({
       // Worker-only code never reaches the browser: the build fails on an import of it from code the client runs.
