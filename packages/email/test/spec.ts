@@ -1,4 +1,4 @@
-/* What an email is built from, as the design document lists it: each part, what it is for and how it is called.
+/* What an email is built from: each part, what it is for and how it is called, held to what the package exports.
    sample.ts draws one of each. */
 export interface PartSpec {
   id: string;

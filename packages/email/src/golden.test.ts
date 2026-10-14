@@ -1,18 +1,18 @@
 import { describe, expect, test } from "vitest";
-import { fixture, fixtureJson, meaning, ORIGIN } from "../test/support.ts";
-import { insetStyles } from "./document.ts";
-import { headFault, pickHead, seedStops } from "./head.ts";
-import { confirmDeletion, signInCode, signInLink } from "./letters.ts";
-import { headAddress, pictureAddress, VIEW } from "./palette.ts";
-import { blurb } from "./partner.ts";
 import {
   sampleAccount,
   sampleBlurbs,
   sampleIssue,
   sampleMcpIssue,
   samplePartnerIssue
-} from "./sample.ts";
-import { PARTS } from "./spec.ts";
+} from "../test/sample.ts";
+import { PARTS } from "../test/spec.ts";
+import { fixture, fixtureJson, meaning, ORIGIN } from "../test/support.ts";
+import { insetStyles } from "./document.ts";
+import { headFault, pickHead, seedStops } from "./head.ts";
+import { confirmDeletion, signInCode, signInLink } from "./letters.ts";
+import { headAddress, pictureAddress, VIEW } from "./palette.ts";
+import { blurb } from "./partner.ts";
 import { BRAND, HEAD_CID, HEAD_FILES, SCHEMES, SIZE } from "./theme.ts";
 
 /* The emails grabient4 sent, captured: each must say the same in HTML (the gradients' colors, not how many decimals
@@ -60,7 +60,7 @@ describe("each email says what grabient4's said", () => {
   });
 });
 
-test("the constants a sender and the design document read", () => {
+test("the constants a sender reads", () => {
   const constants = fixtureJson<Record<string, unknown>>("constants.json");
   expect({ SIZE, BRAND, HEAD_FILES, HEAD_CID, VIEW, SCHEMES }).toEqual({
     SIZE: constants.SIZE,
@@ -72,7 +72,7 @@ test("the constants a sender and the design document read", () => {
   });
 });
 
-test("the parts the design document lists", () => {
+test("the parts list, as grabient4 wrote it", () => {
   expect(PARTS).toEqual(fixtureJson("parts.json"));
 });
 

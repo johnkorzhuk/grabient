@@ -1,5 +1,5 @@
 /* @grabient/email: the emails Grabient sends, as HTML and plain text. Pure strings: no Solid, no DOM, no Cloudflare
-   types. The parts list and the samples are their own modules (`@grabient/email/spec.ts`, `@grabient/email/sample.ts`). */
+   types. The parts list and the samples live with the tests (test/spec.ts, test/sample.ts). */
 export { insetStyles, type Letter, type SheetColors, specimen } from "./document.ts";
 export { pickHead } from "./head.ts";
 export {
