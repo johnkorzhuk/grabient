@@ -560,6 +560,75 @@ test("a palette removed with the keyboard leaves the focus on its Undo, which gi
   await expect(remove).toBeFocused();
 });
 
+test("a private collection renamed on its page is the account's own at its new address", async ({
+  page
+}) => {
+  const { preview, ...words } = summary;
+  const blues = {
+    ...words,
+    id: "e2e-blues",
+    slug: "@e2e-ada/my-blues",
+    title: "My blues",
+    visibility: "private",
+    owner: { kind: "user", name: "e2e-ada", display: "ada" },
+    url: "/@e2e-ada/my-blues",
+    preview,
+    items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+  };
+  await signIn(page, "ada", false, [blues]);
+  const renamed = {
+    ...blues,
+    slug: "@e2e-ada/deep-blues",
+    title: "Deep blues",
+    url: "/@e2e-ada/deep-blues"
+  };
+  await page.route(
+    url => url.pathname === `/api/collections/${encodeURIComponent(blues.slug)}`,
+    route =>
+      route.request().method() === "PATCH"
+        ? route.fulfill({
+            json: { collection: renamed, moved: { from: blues.slug, to: renamed.slug } }
+          })
+        : route.fallback()
+  );
+  // the server holds it at its new address, and says so to its owner
+  await page.route(
+    url => url.pathname === `/api/me/collections/${encodeURIComponent(renamed.slug)}/state`,
+    route =>
+      route.fulfill({
+        json: {
+          owned: true,
+          canCurate: false,
+          canDelete: true,
+          copy: null,
+          votes: {},
+          collection: renamed
+        }
+      })
+  );
+  // the public read of an account's address, which can only refuse a private one
+  const asked: string[] = [];
+  page.on("request", request => {
+    const { pathname } = new URL(request.url());
+    if (request.method() === "GET" && pathname.startsWith("/api/collections/%40"))
+      asked.push(pathname);
+  });
+  await page.goto(blues.url);
+  await hydrated(page);
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const title = page.getByRole("textbox", { name: "Title" });
+  await title.fill("Deep blues");
+  // the page at the new address reads its state once it stands, after anything its address read
+  const stands = page.waitForResponse(answer =>
+    answer.url().includes(`/api/me/collections/${encodeURIComponent(renamed.slug)}/state`)
+  );
+  await title.press("Enter");
+  await stands;
+  await expect(page).toHaveURL(/\/@e2e-ada\/deep-blues$/);
+  await expect(page.locator("main h1")).toHaveText("Deep blues");
+  expect(asked).toEqual([]);
+});
+
 test("a title entered on Saved at once opens the account's collection", async ({ page }) => {
   const { preview, ...words } = summary;
   await signIn(page, "ada", false, [

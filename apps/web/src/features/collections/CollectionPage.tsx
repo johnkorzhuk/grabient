@@ -70,7 +70,7 @@ import { Notes } from "./Notes.tsx";
 import { listBack, recallList, rememberOrder } from "./navigation.ts";
 import { collectionGone, forgetPalette, paletteGone, recallCollection } from "./overlay.ts";
 import { listSearch, pageSearch } from "./params.ts";
-import { collectionQuery, forgetStates, stateQuery } from "./queries.ts";
+import { collectionQuery, type Found, forgetStates, stateQuery } from "./queries.ts";
 import type { Visibility } from "./schema.ts";
 import type { CollectionDocument, CollectionItem, CopyStanding, ViewerState } from "./types.ts";
 
@@ -147,7 +147,10 @@ export function CollectionPage(props: {
   createEffect(
     () => {
       const who = account()?.id;
-      return who ? { by: reader(), who, slug: props.slug } : null;
+      /* an address the account's collection moved from leads on to it, where its state is read */
+      return who && !ownCollectionMoved(props.slug)
+        ? { by: reader(), who, slug: props.slug }
+        : null;
     },
     asked => {
       if (!asked || untrack(turning)) return;
@@ -199,6 +202,13 @@ export function CollectionPage(props: {
   const readAt = () => data()?.fetchedAt ?? Date.now();
   const now = () => minuteOf(readAt());
 
+  /* the account's private collection its title just moved is its own at the new address, which the copy has not heard
+     of yet: the copy and the private read fill the page there, and the public read could only refuse it */
+  const ownAt = (moved: CollectionDocument) => {
+    if (moved.visibility !== "private" || moved.slug === props.slug) return;
+    const own: Found = { doc: null, own: true, fetchedAt: Date.now() };
+    client.setQueryData(collectionQuery(moved.slug).queryKey, own);
+  };
   /* a collection the server moved (a new title, who sees it, a new username) is followed to its new address; a move of
      the page's own press waits for the press's writes to end, so every press lands on one page */
   const follow = (slug: string) => {
@@ -666,6 +676,7 @@ export function CollectionPage(props: {
                     const answer = await changeCollection(current().slug, words);
                     serverWrote();
                     setOwn(answer.collection);
+                    ownAt(answer.collection);
                     follow(answer.collection.slug);
                   }}
                 />
