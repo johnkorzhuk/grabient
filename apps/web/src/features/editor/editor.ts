@@ -33,10 +33,11 @@ import { type Locks, type Opened, SEED_SHAPE, type SeedPage } from "./address.ts
 import { createEdits, type EditsSnapshot } from "./edits.ts";
 import * as ops from "./ops.ts";
 
-/* The editor's state over one palette page: the palette, how it is drawn, what Random keeps, which keyframes are held,
+/* The editor's state over one palette: the palette, how it is drawn, what Random keeps, which keyframes are held,
    what a press under the pointer would show, and the palette's undo. Every palette goes in through `canonical`, so
    what the editor holds is what its seed decodes to and the screen, the address and a reload agree bit for bit.
-   Made by the editor's page in the browser, for as long as it is mounted; a new address lands in it (`arrive`). */
+   Made by the editor's page, for as long as it is mounted, where a new address lands in it (`arrive`); and by a figure
+   over a palette of its own (About's), whose undo is its own. */
 
 /** A stop as the screen paints it: its hex always (the label and what files write), and its Display-P3 color where
     the screen shows more than sRGB, which painting prefers. */
@@ -87,8 +88,12 @@ function createWide() {
 
 export function createPaletteEditor(
   start: SeedPage,
-  saved?: { edits?: unknown; opened?: unknown }
+  saved?: { edits?: unknown; opened?: unknown },
+  /** a figure's own palette, never a page's: nothing done to it is counted, said on the page's line or remembered for
+      the tab, and its undo walks its own edits alone */
+  own = false
 ) {
+  const track = own ? () => {} : trackTool;
   const [palette, setPalette] = createSignal(start.palette);
   const [steps, setSteps] = createSignal(start.view.steps);
   const [style, setStyle] = createSignal(start.view.style);
@@ -166,17 +171,18 @@ export function createPaletteEditor(
       return read();
     };
   /* the page's undo walks these edits with its steps while the editor is open */
-  onSettled(() => {
-    walkEdits({
-      position: tracked(edits.position),
-      canUndo: tracked(edits.canUndo),
-      canRedo: tracked(edits.canRedo),
-      undo: edits.undo,
-      redo: edits.redo,
-      dropRedo: edits.dropRedo
+  if (!own)
+    onSettled(() => {
+      walkEdits({
+        position: tracked(edits.position),
+        canUndo: tracked(edits.canUndo),
+        canRedo: tracked(edits.canRedo),
+        undo: edits.undo,
+        redo: edits.redo,
+        dropRedo: edits.dropRedo
+      });
+      return () => walkEdits(null);
     });
-    return () => walkEdits(null);
-  });
 
   /* A press closes every gesture under way, and the gesture a pointer made ends when the last pointer lifts, once the
      release itself has been handled. */
@@ -228,7 +234,7 @@ export function createPaletteEditor(
     const { P, before, after } = put(next);
     const was = edits.position();
     edits.edit(stepOf(encodePalette(P), before, after), alone);
-    if (edits.position() > was) edited();
+    if (!own && edits.position() > was) edited();
   }
   const now = () => untrack(palette);
   const nowHeld = () => untrack(held);
@@ -242,15 +248,17 @@ export function createPaletteEditor(
   /* the view: never a step of the undo, never a history entry. A part the reader sets is theirs for the tab, as a
      list's is: the next page that draws palettes takes it. */
   const markSet = (part: keyof Opened["set"]) => {
-    trackTool(part);
+    track(part);
     setOpened(o => ({ ...o, set: { ...o.set, [part]: true } }));
   };
-  const remember = (patch: Partial<ListView>) => rememberView({ ...rememberedView(), ...patch });
+  const remember = (patch: Partial<ListView>) => {
+    if (!own) rememberView({ ...rememberedView(), ...patch });
+  };
   /* a change told once a page as the tool that made it (analytics.ts) */
   const tool =
     <A extends unknown[]>(name: string, run: (...args: A) => void) =>
     (...args: A) => {
-      trackTool(name);
+      track(name);
       run(...args);
     };
 
@@ -297,12 +305,12 @@ export function createPaletteEditor(
 
     /* the keyframes' numbers and the plots */
     nudge(i: number, axis: Axis, v: number, start = now()) {
-      trackTool("plot");
+      track("plot");
       write(ops.nudgedTo(start, nowHeld(), i, axis, v));
     },
     heldMean: (axis: "l" | "c") => ops.heldMean(palette(), held(), axis),
     setHeldMean(axis: "l" | "c", v: number) {
-      trackTool(axis === "l" ? "lightness" : "chroma");
+      track(axis === "l" ? "lightness" : "chroma");
       write(ops.setHeldMean(now(), nowHeld(), axis, v));
     },
     /** a keyframe held alone as a hex: typed, a step of its own; picked, part of the picker's gesture */
@@ -310,7 +318,7 @@ export function createPaletteEditor(
       const i = lead();
       const next = i >= 0 ? hexKeyframe(now(), i, hex) : null;
       if (!next) return false;
-      trackTool(alone ? "hex" : "picker");
+      track(alone ? "hex" : "picker");
       write(next, alone);
       return true;
     },
@@ -338,17 +346,19 @@ export function createPaletteEditor(
     ),
 
     /* the presses */
+    /** a palette put in whole, as a step of its own: a figure's Reset */
+    set: (next: Palette) => write(next, true),
     addKeyframe() {
       const next = addKeyframe(now(), nowHeld());
       if (!next) return;
-      trackTool("add_keyframe");
+      track("add_keyframe");
       write(next.palette, true);
       setHold(next.held);
     },
     removeKeyframes() {
       const next = removeKeyframes(now(), nowHeld());
       if (!next) return;
-      trackTool("remove_keyframe");
+      track("remove_keyframe");
       write(next.palette, true);
       setHold(next.held);
     },
@@ -357,15 +367,15 @@ export function createPaletteEditor(
     straightened: () => ops.straightened(palette(), held()),
     straighten() {
       if (!ops.canStraighten(now(), nowHeld())) return;
-      trackTool("straighten");
+      track("straighten");
       write(ops.straightened(now(), nowHeld()), true);
-      toast(t("Lightness straightened."));
+      if (!own) toast(t("Lightness straightened."));
     },
     canReverse: () => ops.canReverse(held()),
     reversed: () => ops.reversed(palette(), held()),
     reverse() {
       if (!ops.canReverse(nowHeld())) return;
-      trackTool("reverse");
+      track("reverse");
       write(ops.reversed(now(), nowHeld()), true);
     },
     inverted: () => ops.inverted(palette(), held()),
@@ -381,19 +391,19 @@ export function createPaletteEditor(
       const kept = untrack(locks);
       if (!ops.canRandom(kept, ops.isPartial(nowHeld(), untrack(K)))) return;
       const next = ops.rolled(now(), nowHeld(), kept);
-      trackTool("random");
+      track("random");
       if (!next.kept) setHold([]);
       write(next.palette, true);
     },
 
-    /* the undo: the palette's edits walked with the page's steps (app/undo.ts) */
-    canUndo: () => nextUndo() !== null,
-    canRedo: () => nextRedo() !== null,
-    undo: tool("undo", () => void undoPage()),
-    redo: tool("redo", () => void redoPage()),
+    /* the undo: a page's walks the palette's edits with the page's steps (app/undo.ts), a figure's its own alone */
+    canUndo: own ? tracked(edits.canUndo) : () => nextUndo() !== null,
+    canRedo: own ? tracked(edits.canRedo) : () => nextRedo() !== null,
+    undo: own ? edits.undo : tool("undo", () => void undoPage()),
+    redo: own ? edits.redo : tool("redo", () => void redoPage()),
     /** the palette an undo would bring back, for a hover to show; none when it takes back a step, which is no palette */
-    undoValue: tracked(() => (nextUndo() === "edit" ? decoded(edits.undoValue()) : null)),
-    redoValue: tracked(() => (nextRedo() === "edit" ? decoded(edits.redoValue()) : null)),
+    undoValue: tracked(() => (own || nextUndo() === "edit" ? decoded(edits.undoValue()) : null)),
+    redoValue: tracked(() => (own || nextRedo() === "edit" ? decoded(edits.redoValue()) : null)),
     snapshot: (): EditsSnapshot => edits.snapshot(),
 
     /* the view */
@@ -417,7 +427,7 @@ export function createPaletteEditor(
     /** Parts of the view let go (all three with none named): as the page opened, steps kept to the keyframes, and
         the tab given back what it remembered then. */
     letViewGo(...parts: (keyof Opened["set"])[]) {
-      trackTool("reset_view");
+      track("reset_view");
       const was = untrack(opened);
       const all = parts.length ? parts : (["style", "steps", "angle"] as const);
       if (all.includes("style")) setStyle(was.style);
