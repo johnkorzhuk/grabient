@@ -374,6 +374,8 @@ test("each undo and redo of a pick says what it did, and a new collection goes b
   );
   await page.goto("/palettes");
   await hydrated(page);
+  // the account's copy has heard from the server, so the checklist names its collections
+  await page.waitForLoadState("networkidle");
   const card = page.locator("main article").first();
   await card.getByRole("button", { name: "Add to selection" }).focus();
   await page.keyboard.press("Enter");
