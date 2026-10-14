@@ -2,8 +2,9 @@ import { dominantColors } from "@grabient/engine/dominant.ts";
 import { localHref, msg, t } from "@grabient/i18n";
 import type { CollectChoice } from "@grabient/ui/CollectList.tsx";
 import type { CardCollect } from "@grabient/ui/CollectPress.tsx";
-import { createSignal } from "solid-js";
+import { createSignal, getOwner, onCleanup } from "solid-js";
 import { signInUnavailable } from "../../app/connection.ts";
+import { toast } from "../../app/toast.ts";
 import { record } from "../../app/undo.ts";
 import { shownError } from "../../lib/query.ts";
 import {
@@ -136,7 +137,13 @@ async function unmake(at: { slug: string; title: string }, wanted: string) {
   }
 }
 
-export function createChecklists(say: (message: string, error?: boolean) => void) {
+export function createChecklists(pageSays: (message: string, error?: boolean) => void) {
+  /* a step outlives its page: Back brings its entry back with a new page, where an undo or a redo of it is said on the
+     frame's toast */
+  let gone = false;
+  if (getOwner()) onCleanup(() => (gone = true));
+  const say = (message: string, error?: boolean) =>
+    gone ? toast(message) : pageSays(message, error);
   const [own, setOwn] = createSignal<
     readonly (CollectChoice & { keys?: ReadonlySet<string> })[] | null
   >(null);
