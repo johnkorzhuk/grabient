@@ -231,6 +231,7 @@ for (const viewport of [
     tag: "@served"
   }, async ({ page }) => {
     await page.setViewportSize(viewport);
+    const asked = calls(page);
     const liked = card(page, 0).locator(`a[href^="/${SEED}"]`);
     await signedIn(page);
     await page.goto("/palettes/saved");
@@ -247,6 +248,13 @@ for (const viewport of [
     await page.getByRole("menuitem", { name: "Saved palettes" }).click();
     await expect.poll(() => here(page)).toBe("/palettes/saved");
     await expect(liked).toBeVisible();
+    // searched, its tags are a read that fails, which the page reports to nobody
+    await page.goto("/palettes/saved?q=blue");
+    await expect
+      .poll(() => asked.some(path => path.startsWith("/api/search-suggestions?q=blue")))
+      .toBe(true);
+    await page.waitForLoadState("networkidle");
+    expect(asked.filter(path => path === "/api/client-error")).toEqual([]);
   });
 
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {

@@ -1,5 +1,11 @@
-import { expect, test } from "vitest";
-import { ownStack, pageOf } from "./error-report.ts";
+import { expect, onTestFinished, test, vi } from "vitest";
+import { ownStack, pageOf, reportCaught } from "./error-report.ts";
+
+// the browser's paths: Node resolves Solid's server build, where isServer is true
+vi.mock("@solidjs/web", async original => ({
+  ...(await original<typeof import("@solidjs/web")>()),
+  isServer: false
+}));
 
 test("a page is named by its kind, or by a palette's or a public collection's address", () => {
   expect(pageOf("/")).toBe("home");
@@ -23,4 +29,20 @@ test("a stack keeps the site's own frames, as paths without their queries", () =
     "at f (/assets/main-abc.js:12:4)\nat h (/assets/page.js:3:9)"
   );
   expect(ownStack(undefined, "https://grabient.com")).toBe("");
+});
+
+test("an error met with no connection is neither sent nor counted, and is sent once the connection is back", () => {
+  onTestFinished(() => void vi.unstubAllGlobals());
+  const sent: string[] = [];
+  vi.stubGlobal("location", new URL("https://grabient.com/palettes/saved?q=blue"));
+  vi.stubGlobal("fetch", (_path: string, init: RequestInit) => {
+    sent.push(JSON.parse(String(init.body)).message);
+    return Promise.resolve(new Response(null, { status: 204 }));
+  });
+  vi.stubGlobal("navigator", { onLine: false });
+  reportCaught(new TypeError("Failed to fetch"));
+  expect(sent).toEqual([]);
+  vi.stubGlobal("navigator", { onLine: true });
+  reportCaught(new TypeError("Failed to fetch"));
+  expect(sent).toEqual(["Failed to fetch"]);
 });
