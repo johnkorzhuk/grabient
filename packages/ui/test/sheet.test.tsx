@@ -123,6 +123,10 @@ describe("the sheet's panes", () => {
     ));
     expect(mine).toContain('aria-label="Add text color"');
     expect(mine).toContain('aria-label="Change #333333"');
+    // the reader's own colors stand a step apart from the palette's, their grounds a block of their own
+    expect(count(html, 'data-apart=""')).toBe(0);
+    expect(count(mine, 'data-apart=""')).toBe(1);
+    expect([count(mine, 'data-first=""'), count(mine, 'data-last=""')]).toEqual([2, 2]);
   });
 });
 

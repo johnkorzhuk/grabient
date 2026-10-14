@@ -4679,6 +4679,24 @@
       "apps/web/src/pages/KList.tsx:250"
     ]
   },
+  "WCAG AA": {
+    "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's level for text (4.5:1 and up). WCAG and AA are the W3C's names: keep them as written.",
+    "refs": [
+      "packages/ui/src/ContrastGrid.tsx:63"
+    ]
+  },
+  "WCAG AA Large": {
+    "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's level for large text only (3:1 to 4.5:1). Keep WCAG and AA; Large means large text, 24px and up.",
+    "refs": [
+      "packages/ui/src/ContrastGrid.tsx:65"
+    ]
+  },
+  "WCAG AAA": {
+    "note": "The tag after a ratio on the line under Text contrast: the contrast reaches WCAG's enhanced level for text (7:1 and up). WCAG and AAA are the W3C's names: keep them as written.",
+    "refs": [
+      "packages/ui/src/ContrastGrid.tsx:61"
+    ]
+  },
   "What Grabient collects when you browse, sign in and save palettes, who can see it, who it's shared with, how long it's kept and how to delete it.": {
     "note": "Privacy page description in search results; the list is the page's sections. At most 160 characters.",
     "refs": [
@@ -5401,6 +5419,12 @@
     "note": "Color name, as in a palette name: \"navy, blue and lavender\".",
     "refs": [
       "packages/design/src/colornames.data.ts:6"
+    ]
+  },
+  "sample\u0004Aa": {
+    "note": "Sample text set in each cell of Text contrast, in a text color on one of the palette's colors, to show how it reads; also on the line under the grid at two sizes. Two letters of your language's own script that show its letter shapes, as Latin's capital and small A do.",
+    "refs": [
+      "packages/ui/src/ContrastGrid.tsx:68"
     ]
   },
   "seamless {colors}": {
