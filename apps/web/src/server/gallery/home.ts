@@ -22,6 +22,8 @@ export interface HeadAnswer {
   kept: boolean;
   /** 429 when an allowance ran out, 503 when the search files are missing */
   status: number;
+  /** the seconds to wait when an allowance ran out, where the search says */
+  retryAfter?: number;
 }
 
 export async function homeHead(env: Env, request: Request, words: string): Promise<HeadAnswer> {
@@ -29,7 +31,7 @@ export async function homeHead(env: Env, request: Request, words: string): Promi
     const { items } = await listPalettes(env, { sort: "hot", limit: HOT_PALETTES, count: false });
     return { head: { palettes: items, fetchedAt: Date.now() }, kept: true, status: 200 };
   }
-  const answer = await searchPool(env, request, words);
+  const { retryAfter, ...answer } = await searchPool(env, request, words);
   return {
     head: {
       query: words,
@@ -41,7 +43,8 @@ export async function homeHead(env: Env, request: Request, words: string): Promi
       fetchedAt: Date.now()
     },
     kept: !answer.limited && !answer.unkept && answer.tier !== "unavailable",
-    status: answer.limited ? 429 : answer.tier === "unavailable" ? 503 : 200
+    status: answer.limited ? 429 : answer.tier === "unavailable" ? 503 : 200,
+    ...(retryAfter ? { retryAfter } : {})
   };
 }
 

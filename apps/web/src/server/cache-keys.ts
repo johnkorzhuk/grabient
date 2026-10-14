@@ -45,14 +45,16 @@ const RULES: readonly KeyRule[] = [
       path.startsWith("/favicon/"),
     query: none
   },
-  // the home as data: its words as the lists write them, its page and the language of its collections
+  // the home as data: its words as the lists write them, or words refused, which nothing is kept under; its page and
+  // the language of its collections
   {
     match: path => path === "/api/hot",
     query: params => {
-      const q = listWords(params.get("q"));
+      const asked = params.get("q") ?? "";
+      const q = listWords(asked);
       const lang = params.get("lang");
       return new URLSearchParams({
-        ...(q ? { q } : {}),
+        ...(q ? { q } : asked.trim() ? { refused: "1" } : {}),
         page: String(homePage(params)),
         ...(isLocale(lang) && lang !== DEFAULT_LOCALE ? { lang } : {})
       });

@@ -13,7 +13,7 @@ import { askedLocale } from "../../server/mcp/admin/translations.ts";
 /* The home as data, for anyone: its page, the hottest palettes or with `q` the best answers to the words, and the
    page of collections beneath them in the language `lang` names. The edge keeps it by those three; a read it misses
    counts against the reader's address. An answer the search could not give in full is never kept, and says so with
-   its status. */
+   its status and how long to wait. */
 export const Route = createFileRoute("/api/hot")({
   server: {
     handlers: {
@@ -39,7 +39,13 @@ export const Route = createFileRoute("/api/hot")({
         const kept = answer.kept && !collections.unkept && answer.status === 200;
         return json(
           { page, ...answer.head, collections },
-          { status: answer.status, headers: kept ? PAGE : {} }
+          {
+            status: answer.status,
+            headers: {
+              ...(kept ? PAGE : {}),
+              ...(answer.retryAfter ? { "Retry-After": String(answer.retryAfter) } : {})
+            }
+          }
         );
       }
     }

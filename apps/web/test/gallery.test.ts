@@ -2,11 +2,21 @@ import { all, first, run } from "@grabient/server/db/d1.ts";
 import { beforeEach, describe, expect, it } from "vitest";
 import corpus from "../public/corpus-k.json" with { type: "json" };
 import golden from "../src/features/gallery/fixtures/list-pages.json" with { type: "json" };
+import { type HeadAnswer, homeHead } from "../src/server/gallery/home.ts";
 import { likeCounts, likeInput, savedPage, setLike } from "../src/server/gallery/likes.ts";
 import { forgetGalleryCount, listPalettes } from "../src/server/gallery/list.ts";
 import { rescore } from "../src/server/gallery/rescore.ts";
 import { risen } from "../src/server/gallery/scores.ts";
-import { bodyOf, get, makeAccount, makeAdmin, ORIGIN, testEnv, unique } from "./helpers.ts";
+import {
+  address,
+  bodyOf,
+  get,
+  makeAccount,
+  makeAdmin,
+  ORIGIN,
+  testEnv,
+  unique
+} from "./helpers.ts";
 
 /* The gallery against D1 with every migration: its lists, likes as the server applies them, and the six-hour pass.
    The list tests read the gallery whole, so each starts from the fifty palettes grabient4's goldens were made with. */
@@ -155,6 +165,33 @@ describe("the home as data", () => {
       collections: { query: "blue", sort: "popular", page: 1 }
     });
     expect(Object.keys(searched.body)).toEqual(expect.arrayContaining(["palettes", "tier"]));
+  });
+
+  it("refuses words no search takes, and keeps nothing of the refusal", async () => {
+    const refused = await hot("?q=%00%01");
+    expect([refused.response.status, refused.body]).toEqual([
+      400,
+      { error: "Invalid search query." }
+    ]);
+    expect(refused.response.headers.get("Cache-Control")).toBe("no-store");
+  });
+
+  it("says how long to wait once the search's allowance for an address is spent", async () => {
+    const AI = {
+      run: async (_: string, input: { text: string[] }) => ({
+        data: input.text.map(() => Array.from({ length: 768 }, (_, i) => Math.sin(i)))
+      })
+    } as unknown as Ai;
+    const env = { ...testEnv(), AI };
+    const ip = address();
+    let answer: HeadAnswer | undefined;
+    for (let i = 0; i < 30 && answer?.status !== 429; i++) {
+      // words no vocabulary holds, which only the model reads
+      const words = unique("zxq").replace(/[^a-z]/g, "");
+      answer = await homeHead(env, get("/api/hot", { ip }), words);
+    }
+    expect(answer).toMatchObject({ status: 429, kept: false, head: { limited: true } });
+    expect(answer?.retryAfter).toBeGreaterThan(0);
   });
 });
 
