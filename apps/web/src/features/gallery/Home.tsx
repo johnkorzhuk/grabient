@@ -22,6 +22,7 @@ import {
   createEffect,
   createMemo,
   For,
+  isHydrating,
   Loading,
   NoHydration,
   onSettled,
@@ -123,6 +124,16 @@ export function Home(props: { params: ListParams }) {
       return client.fetchQuery(homeCollectionsQuery(words(), n));
     }
   });
+  /* The page after the last is read ahead, so it joins from memory: at once on a home reached inside the app, and
+     after each page that joins. A document's own first page asks for nothing the reader has not neared. */
+  const reached = !isHydrating();
+  createEffect(
+    () => (feed.more() ? (feed.joined().at(-1) ?? standingFirst())?.page : undefined),
+    last => {
+      if (last !== undefined && (reached || feed.joined().length))
+        void client.prefetchQuery(homeCollectionsQuery(words(), last + 1));
+    }
+  );
   /* every collection on the feed once, in the order the pages came, less what this tab deleted; each with when its
      page was read */
   const loaded = createMemo(() => {
