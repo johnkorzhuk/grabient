@@ -234,8 +234,8 @@ export default function Editor(props: { data: PaletteData }) {
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
   /* the heart: the count for everyone, the press for an account, saved in the view on screen; signed out it leads to
-     sign in, and a refusal says why. The page's own palette counts from what the server read with it until a newer
-     count comes, so it never shows none, offline too */
+     sign in, and a refusal says why. The page's own palette shows the count the server read with it until a newer
+     one comes, offline too */
   const heart: Heart = {
     liked: () => liked(e.seed()),
     count: () => likeCount(e.seed(), e.seed() === first.page.seed ? (first.facts?.likes ?? 0) : 0),

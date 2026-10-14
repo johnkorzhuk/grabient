@@ -16,7 +16,7 @@ export interface PaletteFacts {
   /** in English: a palette's written words are its author's */
   written?: { title: string; description?: string };
   heldBy: { slug: string; title: string; english?: string; colors: readonly string[] }[];
-  /** 0 for a palette the gallery does not hold */
+  /** how many like it: 0 for a palette the gallery does not hold */
   likes: number;
 }
 
