@@ -1,5 +1,6 @@
 import { encodePalette } from "@grabient/engine";
 import { handleAuth } from "@grabient/server/auth/gate.ts";
+import { authFor } from "@grabient/server/auth/library.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
 import { describe, expect, it } from "vitest";
 import type { SyncOp, SyncResponse } from "../src/features/account/wire.ts";
@@ -392,6 +393,41 @@ describe("the sync", () => {
       { id: 3, ok: true, slug }
     ]);
     expect(back.body.retryAfter).toBeUndefined();
+  });
+
+  it("keeps the browser's cookie as long as the session it extends", async () => {
+    const env = testEnv();
+    const ada = await makeAccount(env);
+    const day = 86_400_000;
+    // a session last extended two days ago, due for its daily extension
+    await env.DB.prepare("UPDATE auth_session SET expires_at = ? WHERE user_id = ?")
+      .bind(Date.now() + 5 * day, ada.id)
+      .run();
+    const daysLeft = async () => {
+      const row = await env.DB.prepare("SELECT expires_at FROM auth_session WHERE user_id = ?")
+        .bind(ada.id)
+        .first<{ expires_at: number }>();
+      return Math.round((Number(row?.expires_at) - Date.now()) / day);
+    };
+    // an answer that sets no cookie leaves the session as it stands
+    const check = await checkUsername(
+      post("/api/settings/username/check", { username: "tidepool" }, { cookie: ada.cookie }),
+      env
+    );
+    expect([check.status, check.headers.getSetCookie(), await daysLeft()]).toEqual([200, [], 5]);
+    const answer = await handleSync(
+      post(
+        "/api/me/sync",
+        { client: client(), cursor: null, mutations: [] },
+        { cookie: ada.cookie }
+      ),
+      env
+    );
+    expect(answer.status).toBe(200);
+    const { name } = (await authFor(env).$context).authCookies.sessionToken;
+    const token = answer.headers.getSetCookie().find(cookie => cookie.startsWith(`${name}=`));
+    expect(token).toMatch(/Max-Age=604800/);
+    expect(await daysLeft()).toBe(7);
   });
 
   it("sends everything to a browser behind what was pruned", async () => {

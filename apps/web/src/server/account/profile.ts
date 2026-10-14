@@ -1,8 +1,7 @@
 import { msg } from "@grabient/i18n";
 import { deleteAvatars } from "@grabient/server/auth/account-data.ts";
 import { json, overLimit, readBytes, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
-import { authFor } from "@grabient/server/auth/library.ts";
-import { getSession, type Session } from "@grabient/server/auth/session.ts";
+import { getSession, renewSession, type Session } from "@grabient/server/auth/session.ts";
 import { first, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { readUsername } from "../../features/account/username.ts";
@@ -29,14 +28,7 @@ async function writer(request: Request, env: Env): Promise<Session | Response> {
 /* The library keeps a signed five-minute copy of the session in a cookie: after a profile write it is read again with
    that copy set aside, and the cookies it sets go with the answer, so the copy never shows the old name or picture. */
 async function withFreshSession(request: Request, env: Env, body: unknown): Promise<Response> {
-  const read = await authFor(env).api.getSession({
-    headers: request.headers,
-    query: { disableCookieCache: true },
-    asResponse: true
-  });
-  const headers = new Headers();
-  for (const cookie of read.headers.getSetCookie()) headers.append("Set-Cookie", cookie);
-  return json(body, 200, headers);
+  return json(body, 200, (await renewSession(env, request.headers)).cookies);
 }
 
 const takenBy = (env: Env, name: string, userId: string) =>
