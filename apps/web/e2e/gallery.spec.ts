@@ -199,6 +199,23 @@ test("Saved offers an admin no curation: every palette there is their own like",
   ).toHaveCount(0);
 });
 
+test("a press between Saved and the public lists keeps the focus on the choice pressed", async ({
+  page
+}) => {
+  await signedIn(page);
+  await page.goto("/palettes");
+  await hydrated(page);
+  const order = page.getByRole("navigation", { name: "Order" });
+  await order.getByRole("button", { name: "Saved" }).focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => here(page)).toBe("/palettes/saved");
+  await expect(order.getByRole("button", { name: "Saved" })).toBeFocused();
+  await order.getByRole("link", { name: "Popular" }).focus();
+  await page.keyboard.press("Enter");
+  await expect.poll(() => here(page)).toBe("/palettes");
+  await expect(order.getByRole("link", { name: "Popular" })).toBeFocused();
+});
+
 test("signed out, Saved offers the way in and asks for nothing of an account", async ({ page }) => {
   const asked = calls(page);
   await page.goto("/palettes/saved?q=blue");

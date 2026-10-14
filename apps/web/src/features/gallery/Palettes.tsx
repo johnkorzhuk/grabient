@@ -85,6 +85,9 @@ const TOOL = {
 /** The collections offered where the palettes cannot answer: twelve asked for, eight shown. */
 const OFFER_ASKED = 12;
 const OFFER_SHOWN = 8;
+/* An order pressed between Saved and the public lists, which are pages of their own: the choice leaves with the page
+   it was pressed on, and the page that replaces it gives the focus back to its own. A press in the browser alone. */
+let pressed: Order | null = null;
 
 export function Palettes(props: { place: ListPlace }) {
   const client = useQueryClient();
@@ -400,8 +403,18 @@ export function Palettes(props: { place: ListPlace }) {
       trackSignInPrompt("saved");
       return go(loginHref(target));
     }
+    if ((to === "saved") !== saved) pressed = to;
     go(target);
   };
+  let row!: HTMLDivElement;
+  onSettled(() => {
+    const was = pressed;
+    pressed = null;
+    const at = document.activeElement;
+    // the row's last chosen choice is its order's, after its section's
+    if (was === order() && (!at || at === document.body || at.id === "main"))
+      [...row.querySelectorAll<HTMLElement>('[aria-current="page"]')].at(-1)?.focus();
+  });
   const nextHref = () => {
     const last = feed.joined().at(-1) ?? standing();
     return localHref(
@@ -437,7 +450,7 @@ export function Palettes(props: { place: ListPlace }) {
             onImage={file => void searchImage(file)}
           />
           <h1 class={styles.hidden}>{heading(metaPage(props.place))}</h1>
-          <div class={styles.row}>
+          <div class={styles.row} ref={row}>
             <ListNav
               section="palettes"
               order={order()}
