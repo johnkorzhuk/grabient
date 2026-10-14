@@ -13,8 +13,9 @@
     padding-inline: var(--space-s1);
     padding-bottom: var(--space-s1);
   }
-  /* a spelling is notation (oklch, hex, GLSL): set as code, a step under the kinds above it */
-  .spelling {
+  /* a spelling is notation (oklch, hex, GLSL): set as code, a step under the kinds above it. Said from its row, so it
+     holds over a tab's own type wherever that rule loads, before this one or after */
+  .spellings > .spelling {
     font-family: var(--font-mono);
     font-weight: var(--font-medium);
     font-size: var(--font-fs1);

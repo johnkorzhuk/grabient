@@ -87,8 +87,7 @@ export function ColorPicker(props: ColorPickerProps) {
     const rgb = hexToSrgb(hex);
     if (!rgb) return;
     const [h, s, v] = srgbToOkhsv(rgb);
-    const [h0, s0] = hsv();
-    setHsv([s > 1e-4 && v > 1e-4 ? h : h0, v > 1e-4 ? s : s0, v]);
+    setHsv(([h0, s0]) => [s > 1e-4 && v > 1e-4 ? h : h0, v > 1e-4 ? s : s0, v]);
     /* where it stands now, so the hex it sent last, brought back by a redo, moves it again */
     sent = hex.toLowerCase();
   };

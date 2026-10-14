@@ -1,9 +1,9 @@
 @layer components {
-  /* What scrolls, then the side beside it. `--head` is the header's height: the tokens' until the page has measured
-     it, since a narrow window's is shorter. `--dock-h` is the strip's; `--peek` is the sheet's name row, which shows
-     under the first screen. */
+  /* What scrolls, then the side beside it. `--head` is the header's height, the same at every width. `--dock-h` is
+     the strip's, by its rows; `--peek` is the sheet's name row, which shows under the first screen. */
   .page {
     --head: calc(var(--size-top) + var(--size-hairline));
+    --dock-h: var(--size-strip);
     --peek: var(--size-editor-peek);
     /* the press at the corner of what scrolls stands clear of the side, and in the name's row at rest */
     --corner-end: var(--size-editor-panel);
@@ -14,7 +14,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) var(--size-editor-panel);
     align-items: start;
-    /* the selection's export screen stands in its place, and it waits, kept as it was */
+    /* the selection's export screen takes its place, and it waits, kept as it was */
     &[hidden] {
       display: none;
     }
@@ -28,12 +28,17 @@
       --corner-rest: hidden;
     }
     @media (max-width: 900px) {
+      --dock-h: var(--size-strip-short);
       --peek: 0px;
       --corner-end: 0px;
       --corner-rest: hidden;
       display: flex;
       flex-direction: column;
       align-items: stretch;
+    }
+    /* a long run of stops takes two rows, which the strip marks itself */
+    &:has(.bar [data-two]) {
+      --dock-h: calc(2 * var(--size-strip-two));
     }
     &[data-alone] {
       --corner-end: 0px;
@@ -73,18 +78,12 @@
     place-items: center;
     height: max(
       calc(var(--size-touch) * 5),
-      calc(
-        100svh -
-        var(--head) -
-        var(--dock-h, var(--size-strip)) -
-        var(--rail-h, 0px) -
-        var(--peek)
-      )
+      calc(100svh - var(--head) - var(--dock-h) - var(--rail-h, 0px) - var(--peek))
     );
     @media (max-width: 900px) {
       height: max(
         calc(var(--size-touch) * 2 + var(--space-s4) * 3),
-        calc(100svh - var(--head) - var(--size-strip-short) - env(safe-area-inset-bottom, 0px))
+        calc(100svh - var(--head) - var(--dock-h) - env(safe-area-inset-bottom, 0px))
       );
     }
     &:focus-within,
@@ -155,38 +154,43 @@
     inset-inline-end: max(var(--space-s4), env(safe-area-inset-right));
     align-items: center;
   }
-  /* the heart: glass over the picture, the page's own on paper */
-  .like {
+  /* on paper the heart has no box: hung by its own padding, so the heart keeps the space the row's other gaps keep */
+  .hung {
     display: inline-flex;
-    align-items: center;
+    margin-inline-start: calc(-1 * (var(--space-s2) + var(--size-hairline)));
+  }
+  /* the check, and under it Add to collection once the palette is in the selection, as on a card. Where the picture
+     has no room for a third row of presses, and in the sheet's head, Add to collection stands before the check, which
+     keeps the corner. */
+  .stack {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
     gap: var(--space-s2);
-    height: var(--size-control-big);
-    padding-inline: var(--space-s3);
-    border: 1px solid var(--color-art-edge);
-    border-radius: var(--radius-control);
-    background: var(--color-art);
-    color: var(--color-on-art);
+    &[data-flat] {
+      flex-direction: row-reverse;
+      align-items: flex-start;
+    }
+    @container (max-height: 167px) {
+      flex-direction: row-reverse;
+      align-items: flex-start;
+    }
     @media (pointer: coarse) {
-      height: var(--size-touch);
-    }
-    &:hover {
-      background: var(--color-art-hover);
-    }
-    &[aria-pressed="true"] {
-      color: var(--color-like);
-    }
-    &[data-paper] {
-      border-color: transparent;
-      background: transparent;
-      color: var(--color-ink);
-      &:hover {
-        background: var(--color-paper2);
+      @container (max-height: 179px) {
+        flex-direction: row-reverse;
+        align-items: flex-start;
       }
     }
   }
-  .count {
-    font-variant-numeric: tabular-nums;
-    font-size: var(--font-fs2);
+  /* a phone's way into the selection, floating at the page's corner, comes in once the page has moved */
+  .floats {
+    transition:
+      opacity var(--motion-fast) var(--motion-ease),
+      visibility var(--motion-fast) var(--motion-ease);
+    &[data-away] {
+      opacity: 0;
+      visibility: hidden;
+    }
   }
 
   /* the strip: the first screen's foot, then the page's bar under the header */
@@ -351,5 +355,76 @@
     flex-shrink: 0;
     border-radius: var(--radius-circle);
     box-shadow: var(--color-rim);
+  }
+
+  /* The editor's first screen as the boot draws it (Boot.tsx), shown while the page boots (boot.ts) and never after:
+     the same parts in the same places. Beside the page the first screen is a column the window's height under the
+     header, so the sheet's name row takes the height its name needs and the picture the rest, as the editor measures
+     them. A spacer under it scrolls the page as the editor's does, so a scrollbar that takes room is in both. */
+  .boot {
+    :root:not([data-seed-boot]) &,
+    :root[data-seed-boot="bare"] & {
+      display: none;
+    }
+    & .paint,
+    & .fitted {
+      background: var(--art);
+      @media (color-gamut: p3) {
+        @supports (color: color(display-p3 1 0 0)) {
+          background: var(--art-p3);
+        }
+      }
+    }
+    & .railDock {
+      display: none;
+    }
+    @media (min-width: 901px) {
+      & .first {
+        display: flex;
+        flex-direction: column;
+        height: calc(100svh - var(--head));
+        overflow: clip;
+      }
+      & .first > .stage {
+        flex: 1 0 0;
+        height: auto;
+        min-height: calc(var(--size-touch) * 5);
+      }
+      /* the side put away, as the reader left it (boot.ts reads it): the rail takes its place */
+      :root[data-seed-boot="away"] & {
+        grid-template-columns: minmax(0, 1fr);
+        & .side {
+          display: none;
+        }
+        & .railDock {
+          display: block;
+        }
+      }
+    }
+    /* the sheet's name row alone: the rest of the sheet is under the first screen */
+    & .named {
+      flex: none;
+      min-height: 0;
+      & > * > * {
+        grid-template-rows: auto;
+      }
+    }
+    @media (max-width: 900px) {
+      & .first {
+        display: contents;
+      }
+      & .side,
+      & .named {
+        display: none;
+      }
+    }
+    @media (max-height: 560px) {
+      & .named {
+        display: none;
+      }
+    }
+  }
+  .more {
+    height: 100vh;
   }
 }

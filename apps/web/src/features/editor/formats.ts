@@ -19,12 +19,21 @@ import {
 } from "@grabient/engine/view.ts";
 import { copyText } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
-import { downloadFile, svgToPngBlob } from "@grabient/ui/figure.ts";
+import { svgToPngBlob } from "@grabient/ui/figure.ts";
+import { colorFormat } from "../../lib/color-format.ts";
+import { copyImage, downloadFile } from "../../lib/files.ts";
 import { seedAddress } from "./address.ts";
 
-/* What the editor's strips hand over: the palette on screen copied, saved as a file, or as the address of the file the
-   site serves for it. A copy and a download of one format hold the same palette; CSS alone differs, since a copy is the
-   declaration to paste into a rule and a download is the file the site serves, which works on its own. */
+/* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves
+   for it. A copy and a download of one format hold the same palette; CSS alone differs, since a copy is the
+   declaration to paste into a rule and a download is the file the site serves, which works on its own. Every CSS spells
+   its colors as the reader chose in Settings. */
+
+/* A strip's formats over a picture: Copy hands over the address, the CSS and the pictures, Download saves the files the
+   site serves (the Markdown in the address's place), and Copy link copies those files' addresses. A format keeps its
+   place as the mode turns, so only the first chip changes. */
+export const STRIP_COPY: readonly Format[] = ["url", "css", "svg", "png"];
+export const STRIP_FILES: readonly Format[] = ["md", "css", "svg", "png"];
 
 /** The palette as it is taken: its view, its stops, and the pixels a picture of it is made at. */
 export interface Taken {
@@ -46,28 +55,21 @@ const view = (p: Taken) => ({ style: p.style, steps: p.steps, angle: p.angle });
 const pageUrl = (p: Taken) =>
   origin() + seedAddress({ seed: p.seed, view: { ...view(p), size: p.size } });
 const svgText = (p: Taken) => artworkSvg(p.stops, view(p), p.seed, origin(), p.pixels);
-/* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none */
+/* the file's address the site serves, at the pixels the stage shows once the reader set a size; Auto names none, and
+   OKLCH, the spelling the file has by itself, is named by no parameter */
 function fileUrl(p: Taken, f: Format): string {
   const query = new URLSearchParams(viewSearch(view(p)).slice(1));
   if ((f === "png" || f === "svg") && sizeParam(p.size)) {
     query.set("w", String(p.pixels.width));
     query.set("h", String(p.pixels.height));
   }
+  if (f === "css" && colorFormat() !== "oklch") query.set("colors", colorFormat());
   const ending = isSwatchFormat(f) ? SWATCH_FILES[f].extension : f;
   return `${origin()}/${p.seed}.${ending}${query.size ? `?${query}` : ""}`;
 }
 
 async function writeImage(png: Promise<Blob>): Promise<void> {
-  if (!navigator.clipboard?.write || typeof ClipboardItem === "undefined")
-    throw new Error(NO_IMAGE_CLIPBOARD);
-  /* Safari allows a write only when it starts inside the press: ClipboardItem takes the picture's promise */
-  try {
-    await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
-  } catch (error) {
-    throw (error as { name?: string } | null)?.name === "NotAllowedError"
-      ? new Error(NO_IMAGE_CLIPBOARD)
-      : error;
-  }
+  if (!(await copyImage(png))) throw new Error(NO_IMAGE_CLIPBOARD);
 }
 const written = async (text: string) => {
   if (!(await copyText(text))) throw new Error();
@@ -84,7 +86,7 @@ export async function copyFormat(f: Format, p: Taken): Promise<void> {
   if (f === "png") return writeImage(svgToPngBlob(svgText(p), 1));
   return written(
     f === "css"
-      ? cssBlock(p.stops, p.style, p.angle, "oklch")
+      ? cssBlock(p.stops, p.style, p.angle, colorFormat())
       : f === "svg"
         ? svgText(p)
         : pageUrl(p)
@@ -115,7 +117,9 @@ export async function saveFormat(f: Format, p: Taken): Promise<void> {
     const address = origin() + seedAddress({ seed: p.seed, view: view(p) });
     return downloadFile(
       `${name}.css`,
-      new Blob([paletteCss(p.stops, view(p), address)], { type: "text/css;charset=utf-8" })
+      new Blob([paletteCss(p.stops, view(p), address, colorFormat())], {
+        type: "text/css;charset=utf-8"
+      })
     );
   }
   if (f === "svg")

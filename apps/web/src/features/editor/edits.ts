@@ -11,7 +11,7 @@ import * as v from "valibot";
 
 const QUIET_MS = 400;
 /** the steps kept behind the present one; the oldest go first */
-export const EDITS_LIMIT = 100;
+const EDITS_LIMIT = 100;
 
 export interface EditsSnapshot {
   steps: string[];
@@ -42,7 +42,7 @@ export function readSnapshot(saved: unknown): EditsSnapshot | null {
 /** The key whose binding is making an edit, and whether it is a held key's repeat. */
 export type KeyPress = { code: string; repeat: boolean } | null;
 
-export interface EditsOptions {
+interface EditsOptions {
   first: string;
   /** the steps a history entry kept, taken when they end on `first` */
   saved?: unknown;
@@ -179,4 +179,3 @@ export function createEdits(opts: EditsOptions) {
     }
   };
 }
-export type Edits = ReturnType<typeof createEdits>;

@@ -1,6 +1,8 @@
 import { expect, test } from "vitest";
 import {
   canonicalSeedAddress,
+  isSeed,
+  openedFrom,
   readSeedPage,
   sameAddress,
   seedAddress,
@@ -45,4 +47,26 @@ test("the router's search object keeps the canonical order", () => {
   expect(page && seedSearch(page)).toEqual({ steps: 9, angle: 45, lock: "hue", selection: "" });
   expect(page && Object.keys(seedSearch(page))).toEqual(["steps", "angle", "lock", "selection"]);
   expect(page && seedAddress(page)).toBe(`/${SEED}?steps=9&angle=45&lock=hue&selection`);
+});
+
+test("a seed is what decodes to a palette, never what only has a seed's shape", () => {
+  expect(isSeed(SEED)).toBe(true);
+  expect(isSeed(EIGHT)).toBe(true);
+  // a collection's address may begin with k and be as long as a seed
+  expect(isSeed("kerala-flower-carpet")).toBe(false);
+  expect(isSeed("ocean-gradients")).toBe(false);
+  expect(isSeed("_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa")).toBe(false);
+  expect(isSeed("")).toBe(false);
+});
+
+test("a card hands on the parts its page set, over the palette's own view", () => {
+  const own = { style: "linearGradient", steps: 7, angle: 90 } as const;
+  expect(openedFrom(own, { style: "auto", steps: "auto", angle: "auto" })).toBeUndefined();
+  expect(openedFrom(own, { style: "radialSwatches", steps: "auto", angle: 45 })).toEqual({
+    opened: { ...own, set: { style: true, steps: false, angle: true } }
+  });
+  // a part set to what the palette already has is still the reader's: Reset lets it go
+  expect(openedFrom(own, { style: "auto", steps: 7, angle: "auto" })).toEqual({
+    opened: { ...own, set: { style: false, steps: true, angle: false } }
+  });
 });

@@ -1,4 +1,8 @@
 @layer components {
+  /* the presses before an editor holds them stand in the header's row as the editor's own do */
+  .still {
+    display: contents;
+  }
   /* the panel press stands where the side stands beside the page */
   .desk {
     display: inline-flex;

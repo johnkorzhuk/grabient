@@ -4,10 +4,20 @@
    entry in place as the palette changes. */
 import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
 import { LOCKS, type Lock } from "@grabient/engine/edits.ts";
-import { type ParamReader, parseView, type View, viewSearch } from "@grabient/engine/view.ts";
+import {
+  type ParamReader,
+  parseView,
+  type Style,
+  type StyleChoice,
+  type View,
+  viewSearch
+} from "@grabient/engine/view.ts";
+import type { HistoryState } from "@tanstack/solid-router";
 
 /** A seed's shape in an address. Whether it decodes is the codec's to say. */
 export const SEED_SHAPE = /^k[A-Za-z0-9_-]{8,49}$/;
+/** Whether an address's one segment is a palette's seed: a collection's slug can have the shape, and never decodes. */
+export const isSeed = (id: string): boolean => SEED_SHAPE.test(id) && decodePalette(id) !== null;
 
 /** What Random keeps (ops.ts): `lock` names the locks closed while no keyframe is held, `unlock` the ones a hold has
     opened, since a hold starts with every lock closed. */
@@ -97,4 +107,33 @@ export function canonicalSeedAddress(address: string): string | null {
   if (!page) return null;
   const canonical = seedAddress(page);
   return sameAddress(canonical, address) ? address : canonical;
+}
+
+/** What a page opened with, kept in its history entry: the palette's view then, which of its parts the reader has set
+    since (As saved in the header's corner reads it, and a set part goes for every palette the page draws), and what
+    the tab remembered for each then, which a part let go gives back to it. */
+export interface Opened {
+  style: Style;
+  steps: number;
+  angle: number;
+  set: { style: boolean; steps: boolean; angle: boolean };
+  chosen?: { style: StyleChoice; steps: number | "auto"; angle: number | "auto" };
+}
+
+/** What a card hands the editor as it opens a palette in place, the new entry's state (`navigate({ href, state })`):
+    the palette's own view, and the parts the page it stood on set over it. Its address already draws it that way;
+    this says the parts are the reader's, so the palette's page reads them as set and Reset returns it to its own.
+    Nothing where the page set none. */
+export function openedFrom(
+  own: Pick<View, "style" | "steps" | "angle">,
+  view: { style: StyleChoice; steps: number | "auto"; angle: number | "auto" }
+): (HistoryState & { opened: Opened }) | undefined {
+  const set = {
+    style: view.style !== "auto",
+    steps: view.steps !== "auto",
+    angle: view.angle !== "auto"
+  };
+  return set.style || set.steps || set.angle
+    ? { opened: { style: own.style, steps: own.steps, angle: own.angle, set } }
+    : undefined;
 }

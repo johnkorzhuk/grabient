@@ -20,8 +20,8 @@ import { StopStrip } from "@grabient/ui/StopStrip.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createEffect, createSignal, type Element, For, onSettled, useContext } from "solid-js";
 import { ShellContext } from "../../app/shell.ts";
+import { Actions, AxisRow } from "../editor/Controls.tsx";
 import styles from "./About.module.css";
-import { Actions, AxisRow } from "./Controls.tsx";
 import { createFigure, type Figure } from "./figure.ts";
 
 /* /about: the formula as an article, with figures drawn by the engine in the code block's frame (FigurePane), each
@@ -109,13 +109,13 @@ function KeyframesFigure(props: { figure: Figure; onPress: (e: PointerEvent) => 
             removeLabel={t(f.multi() ? msg("Remove keyframes") : msg("Remove keyframe"))}
           />
           <Rule />
-          <AxisRow figure={f} axis="l" height={PLOT_H} />
+          <AxisRow editor={f} axis="l" height={PLOT_H} />
           <Rule />
-          <AxisRow figure={f} axis="c" height={PLOT_H} />
+          <AxisRow editor={f} axis="c" height={PLOT_H} />
           <Rule />
-          <AxisRow figure={f} axis="h" height={PLOT_H} />
+          <AxisRow editor={f} axis="h" height={PLOT_H} />
           <Rule />
-          <Actions figure={f} />
+          <Actions editor={f} />
         </div>
       </FigurePane>
     </div>
@@ -212,7 +212,7 @@ function GamutFigure() {
     >
       <div class={styles.stack}>
         <Band hexes={hexesOf(f.shown(), 64)} />
-        <AxisRow figure={f} axis="c" height={PLOT_H} locks={false} />
+        <AxisRow editor={f} axis="c" height={PLOT_H} locks={false} />
       </div>
     </FigurePane>
   );
@@ -376,7 +376,7 @@ function waterFollows(f: Figure) {
   };
 }
 
-/* the editor's keys over the first figure while the page is open: undo and redo are the figure's own, over the page's */
+/* the editor's keys over the first figure while the page is open: the figure's own undo takes the page's place */
 function figureKeys(f: Figure): Binding[] {
   const row = (id: string, run: (i: number) => void, when?: () => boolean): Binding => {
     const r = keyRow(id)!;

@@ -13,13 +13,14 @@ import { Icon } from "@grabient/ui/Icon.tsx";
 import { Keyframes } from "@grabient/ui/Keyframes.tsx";
 import { keyRow } from "@grabient/ui/keymap.ts";
 import { matches, rowKeys, typing } from "@grabient/ui/keys.ts";
+import { Like } from "@grabient/ui/Like.tsx";
 import { reducesNow } from "@grabient/ui/motion.ts";
 import { createHold } from "@grabient/ui/press.ts";
 import { SizeControl } from "@grabient/ui/SizeControl.tsx";
 import { StopStrip } from "@grabient/ui/StopStrip.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
-import { space } from "@grabient/ui/tokens.ts";
-import { useLocation, useNavigate, useRouter } from "@tanstack/solid-router";
+import { size, space } from "@grabient/ui/tokens.ts";
+import { useLocation, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -33,11 +34,11 @@ import {
   untrack,
   useContext
 } from "solid-js";
+import { signInUnavailable } from "../../app/connection.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { toast } from "../../app/toast.ts";
-import { likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
-import { account, loginHref } from "../account/session.ts";
-import { trackSignInPrompt } from "../analytics/analytics.ts";
+import { countDue, likeCount, liked, readLikeCounts, toggleLike } from "../account/likes.ts";
+import { shownError } from "../account/session.ts";
 import { useInEditor } from "../palette-use/use.ts";
 import { createSelectionScreen } from "../selection/SelectionScreen.tsx";
 import {
@@ -47,15 +48,24 @@ import {
   selection,
   toggle as toggleSelected
 } from "../selection/selection.ts";
+import { endBoot } from "./boot.ts";
 import { Actions, AxisRow } from "./Controls.tsx";
 import { Corner, type Panel } from "./Corner.tsx";
 import styles from "./Editor.module.css";
 import { holdCorner } from "./EditorCorner.tsx";
 import { createPaletteEditor, type PaletteEditor } from "./editor.ts";
-import { copyFormat, copyLink, NO_IMAGE_CLIPBOARD, saveFormat, type Taken } from "./formats.ts";
+import {
+  copyFormat,
+  copyLink,
+  NO_IMAGE_CLIPBOARD,
+  STRIP_COPY,
+  STRIP_FILES,
+  saveFormat,
+  type Taken
+} from "./formats.ts";
 import { followAddress } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
-import type { PaletteData } from "./page.ts";
+import { NARROW, type PaletteData, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
 
@@ -68,10 +78,13 @@ import { createPaletteSave, type PaletteSave } from "./save.ts";
    the picture and the strip. Under 900px there is no room for a side: the controls follow the strip in the page's
    own scroll. */
 
-const NARROW = 900;
-/* The sheet, under the first screen, comes once the first screen stands: its code arrives apart, and its panes are
-   made in a task of their own, so the controls answer sooner. */
-const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
+/* a window this low or lower shows nothing of the sheet under the first screen (the styles' own max-height) */
+const LOW = 560;
+/* The account's collections come with the first palette selected: no page needs them before. */
+const AddToCollection = lazy(() =>
+  import("./Collect.tsx").then(m => ({ default: m.AddToCollection }))
+);
+const SaveSelection = lazy(() => import("./Collect.tsx").then(m => ({ default: m.SaveSelection })));
 /* the plots' height where the controls follow the strip, and the least and most beside the page */
 const PLOT_FLOW = 132;
 const PLOT_LEAST = 96;
@@ -82,14 +95,18 @@ const OVER_KEYS = 1 / 3;
 const TYPING_ROOM = "60dvh";
 const LIFT_GAP = space.s4;
 
-/* The stage strip's formats: Copy hands over the address, the CSS and the pictures, Download saves the files the
-   site serves (the Markdown in the address's place), and Copy link copies those files' addresses. A format keeps its
-   place as the mode turns (FormatStrip), so only the first chip changes. */
-const COPY: Format[] = ["url", "css", "svg", "png"];
-const FILES: Format[] = ["md", "css", "svg", "png"];
+/** Whether the window answers a media query, followed while the calling component is mounted. */
+function createMedia(query: string) {
+  const media = matchMedia(query);
+  const [matches, setMatches] = createSignal(media.matches);
+  const follow = (event: MediaQueryListEvent) => setMatches(event.matches);
+  media.addEventListener("change", follow);
+  onCleanup(() => media.removeEventListener("change", follow));
+  return matches;
+}
 
 /** The side's panel: shown or put away, kept in this browser. A window 900px wide or less has no side to put away. */
-function createPanel(): Panel {
+function createPanel(narrow: () => boolean): Panel {
   const KEY = "grabient-panel";
   const stored = () => {
     try {
@@ -98,12 +115,7 @@ function createPanel(): Panel {
       return true;
     }
   };
-  const query = matchMedia(`(max-width: ${NARROW}px)`);
   const [pref, setPref] = createSignal(stored());
-  const [narrow, setNarrow] = createSignal(query.matches);
-  const follow = (e: MediaQueryListEvent) => setNarrow(e.matches);
-  query.addEventListener("change", follow);
-  onCleanup(() => query.removeEventListener("change", follow));
   const open = () => pref() || narrow();
   return {
     open,
@@ -123,7 +135,6 @@ function createPanel(): Panel {
 /** The editor over the palette the route names. It mounts in the browser over the page the server sent. */
 export default function Editor(props: { data: PaletteData }) {
   const router = useRouter();
-  const navigate = useNavigate();
   const location = useLocation();
   const shell = useContext(ShellContext);
   const first = untrack(() => props.data);
@@ -133,7 +144,9 @@ export default function Editor(props: { data: PaletteData }) {
   );
   const rest = createRest();
   rest.opened(first.page.seed);
-  const panel = createPanel();
+  /* the styles' own answers, so the parts drawn and the rules that lay them out never disagree */
+  const narrow = createMedia(`(max-width: ${NARROW}px)`);
+  const panel = createPanel(narrow);
   holdCorner(() => <Corner editor={e} panel={panel} />);
   const address = followAddress(e, router, location, page => rest.opened(page.seed));
   const save = createPaletteSave({
@@ -147,7 +160,14 @@ export default function Editor(props: { data: PaletteData }) {
   });
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   /* the selection's export screen, in the page's place while the address says `selection` */
-  const chosen = createSelectionScreen({ note: toast });
+  const chosen = createSelectionScreen({
+    note: toast,
+    save: () => (
+      <Loading>
+        <SaveSelection />
+      </Loading>
+    )
+  });
   /* The frame keeps the keys and the palettes a page hands in last, so these come after the screen's and stand for
      both: while the screen stands the editor's keys rest, Escape closes it and the bar carries the selection. */
   shell.keys(() => [
@@ -179,10 +199,12 @@ export default function Editor(props: { data: PaletteData }) {
       root.style.overscrollBehaviorY = was;
     };
   });
-  /* how many like the palette on screen, asked once it has rested: a held key makes many palettes a second */
+  /* how many like the palette on screen, asked once it has rested: a held key makes many palettes a second. A count
+     read lately, as a palette an undo returns to has, is no ask and lengthens no wait. */
   createEffect(e.seed, seed => {
     rest.is(seed);
     const timer = setTimeout(() => {
+      if (!countDue(seed)) return;
       rest.asked(seed);
       void readLikeCounts([seed]).catch(() => {});
     }, rest.left());
@@ -190,6 +212,7 @@ export default function Editor(props: { data: PaletteData }) {
   });
   /* the check's state is this browser's selection, read once the page is live */
   onSettled(loadSelection);
+  onSettled(endBoot);
 
   /* the palette as a copy or a download takes it */
   const taken = (stage: Size): Taken => ({
@@ -203,22 +226,16 @@ export default function Editor(props: { data: PaletteData }) {
   });
   const used = (action: "copy" | "download", format: string) =>
     useInEditor(action, format, e.openedSeed(), drawn());
-  /* the heart: the count for everyone, the press for an account; signed out it leads to sign in */
-  const heart = {
+  /* the heart: the count for everyone, the press for an account, saved in the view on screen; signed out it leads to
+     sign in, and a refusal says why */
+  const heart: Heart = {
     liked: () => liked(e.seed()),
-    count: () => likeCount(e.seed(), 0),
-    async toggle() {
-      if (!account()) {
-        trackSignInPrompt("like");
-        void navigate({ href: loginHref() });
-        return;
-      }
+    count: () => likeCount(e.seed()),
+    toggle() {
       const { seed, ...view } = drawn();
-      try {
-        await toggleLike(seed, !liked(seed), { view });
-      } catch (error) {
-        toast(error instanceof Error ? error.message : t("Couldn't save the palette."));
-      }
+      toggleLike(seed, !liked(seed), { view }).catch((reason: unknown) =>
+        toast(shownError(reason, msg("Couldn't save the palette.")))
+      );
     }
   };
   return (
@@ -226,9 +243,11 @@ export default function Editor(props: { data: PaletteData }) {
       <Page
         editor={e}
         panel={panel}
+        narrow={narrow}
         save={save}
         rest={rest}
         facts={() => (e.seed() === first.page.seed ? first.facts : null)}
+        frames={first.frames}
         heading={() =>
           e.seed() === first.page.seed &&
           e.style() === first.page.view.style &&
@@ -250,14 +269,17 @@ export default function Editor(props: { data: PaletteData }) {
 interface Heart {
   liked: () => boolean;
   count: () => number;
-  toggle: () => Promise<void>;
+  toggle: () => void;
 }
 interface PageProps {
   editor: PaletteEditor;
   panel: Panel;
+  /** the window has no room for a side: the controls follow the strip */
+  narrow: () => boolean;
   save: PaletteSave;
   rest: Rest;
   facts: () => PaletteData["facts"];
+  frames: PaletteData["frames"];
   /** the server's heading, while the palette and view are the page's own */
   heading: () => string | undefined;
   opened: () => string;
@@ -273,14 +295,13 @@ function Page(props: PageProps) {
   let page!: HTMLElement;
   let stage: HTMLElement | undefined;
   let rail: HTMLElement | undefined;
-  const [width, setWidth] = createSignal(innerWidth);
-  /* the header's height once measured; the styles hold the tokens' until then */
-  const [head, setHead] = createSignal<number | null>(null);
-  const [dockH, setDockH] = createSignal(72);
   const [band, setBand] = createSignal<number | null>(null);
   /* the stage's own pixels: Auto's size, and what an auto side follows */
   const [stageSize, setStageSize] = createSignal<Size>({ width: 800, height: 400 });
-  const narrow = () => width() <= NARROW;
+  const narrow = props.narrow;
+  /* a window too low for the sheet's name under the first screen: the styles put its row away, and the height the
+     sheet reports for it must not bring it back */
+  const low = createMedia(`(max-height: ${LOW}px)`);
   /* the side stands beside the page, or its rows follow the strip */
   const sided = () => props.panel.open() || narrow();
   const railed = () => !props.panel.open() && !narrow();
@@ -294,32 +315,25 @@ function Page(props: PageProps) {
   const reach = () => (stage?.offsetHeight ?? 0) + (rail?.offsetHeight ?? 0);
   onSettled(() => {
     let frame = 0;
-    let resized = false;
+    /* a press over the picture and the gap under it: as tall as a finger needs where a finger is the pointer */
+    const lift =
+      (matchMedia("(pointer: coarse)").matches ? size.touch : size.controlBig) + space.s2;
     const read = () => {
       frame = 0;
-      /* the page hidden behind the selection's screen has no box to measure */
-      if (resized && page.clientWidth) {
-        setWidth(page.clientWidth);
-        setHead(page.getBoundingClientRect().top + scrollY);
-      }
-      resized = false;
       const y = scrollY;
       const far = reach();
       setMoved(y > 1);
-      setRaised(y >= 48);
+      setRaised(y >= lift);
       setDocked(far > 0 && y >= far - 1);
       setNearer(far > 0 && y > far / 2);
     };
     const soon = () => {
       frame ||= requestAnimationFrame(read);
     };
-    /* The observer's first report, after the first layout, reads the page and its scroll, so nothing here forces a
-       layout. It is read in the next frame: a write in the observer's own callback lays the page out again while the
-       browser is still telling of the last layout, which it reports as an error. */
-    const sizes = new ResizeObserver(() => {
-      resized = true;
-      soon();
-    });
+    /* The observer's first report, after the first layout, reads the scroll, so nothing here forces a layout; a
+       page that changes size has another reach. It is read in the next frame: a write in the observer's own callback
+       lays the page out again while the browser is still telling of the last layout, which it reports as an error. */
+    const sizes = new ResizeObserver(soon);
     sizes.observe(page);
     addEventListener("scroll", soon, { passive: true });
     return () => {
@@ -329,8 +343,12 @@ function Page(props: PageProps) {
     };
   });
   const go = (top: number) => scrollTo({ top, behavior: reducesNow() ? "auto" : "smooth" });
-  const [late, setLate] = createSignal(false);
+  /* What stands under the first screen comes once the first screen stands. Beside the page the sheet's name shows
+     under the picture and sizes it, so there the sheet is the first screen's own and comes with it, its code with the
+     editor's (page.ts). */
+  const [late, setLate] = createSignal(!untrack(narrow));
   onSettled(() => {
+    if (untrack(late)) return;
     if (typeof requestIdleCallback === "function") {
       const id = requestIdleCallback(() => setLate(true), { timeout: 1000 });
       return () => cancelIdleCallback(id);
@@ -347,11 +365,7 @@ function Page(props: PageProps) {
       data-alone={sided() ? undefined : ""}
       data-railed={railed() ? "" : undefined}
       data-beside-scrollbar=""
-      style={{
-        "--dock-h": `${dockH()}px`,
-        ...(head() !== null ? { "--head": `${head()}px` } : {}),
-        ...(band() !== null && !narrow() ? { "--peek": `${band()}px` } : {})
-      }}
+      style={band() !== null && !narrow() && !low() ? { "--peek": `${band()}px` } : undefined}
     >
       {/* the parts stand in the order they are read and the keyboard walks them: beside the page the side comes first;
           where its rows follow the strip, after the strip */}
@@ -377,9 +391,6 @@ function Page(props: PageProps) {
             out={docked()}
             ref={el => {
               rail = el;
-              onCleanup(() => {
-                rail = undefined;
-              });
             }}
           />
         </Show>
@@ -387,7 +398,6 @@ function Page(props: PageProps) {
           editor={e}
           narrow={narrow()}
           marked={sided()}
-          onHeight={setDockH}
           onCopy={() => props.used("copy", "hex")}
         />
         {/* where the controls follow the strip they are under the first screen, and come with the sheet */}
@@ -400,6 +410,7 @@ function Page(props: PageProps) {
               editor={e}
               rest={props.rest}
               facts={props.facts}
+              frames={props.frames}
               heading={props.heading}
               opened={props.opened}
               taken={() => props.taken(stageSize())}
@@ -408,7 +419,7 @@ function Page(props: PageProps) {
               clear={docked()}
               onBand={height => setBand(height)}
               actions={<Tools editor={e} heart={props.heart} paper />}
-              selection={props.chosen.button()}
+              selection={props.chosen.press()}
             />
           </Loading>
         </Show>
@@ -421,14 +432,20 @@ function Page(props: PageProps) {
         onDown={() => go(reach())}
         onUp={() => go(0)}
       />
-      {props.chosen.float()}
+      {/* a phone's sheet has the way into the selection at the page's corner, as a list has, once the page has moved:
+          at rest the picture's own presses hold it */}
+      <span class={styles.floats} data-away={moved() ? undefined : ""} inert={!moved()}>
+        {props.chosen.float()}
+      </span>
     </main>
   );
 }
 
-/** The palette's own presses: the heart and the check that puts it in the selection, and over the picture the way into
-    the selection once it holds something. Over the picture they are glass and wait for a tap on a touch screen; in
-    the sheet's head they are the page's own. */
+/** The palette's own presses: the heart, the way into the selection once it holds something, and the check that puts
+    the palette in it, with Add to collection under the check once it is in. Over the picture they are glass, and on a
+    touch screen the heart and the plus wait for a tap on it; Selection, and the check that says the palette is in it,
+    stay, as a card keeps its check. In the sheet's head they are the page's own, without the way into the selection,
+    which its list's row has. */
 function Tools(props: {
   editor: PaletteEditor;
   heart: Heart;
@@ -438,29 +455,23 @@ function Tools(props: {
   const e = props.editor;
   const drawn = () => ({ seed: e.seed(), style: e.style(), steps: e.steps(), angle: e.angle() });
   const chosen = () => selected(drawn());
-  const likeTip = tooltip(() => t(props.heart.liked() ? msg("Unlike") : msg("Like")));
   return (
     <>
-      <span class={props.paper ? undefined : styles.waits}>
-        <button
-          ref={likeTip}
-          type="button"
-          class={styles.like}
-          data-paper={props.paper ? "" : undefined}
-          aria-pressed={props.heart.liked() ? "true" : "false"}
-          aria-label={t("{count, plural, one {Like, #} other {Like, #}}", {
-            count: props.heart.count()
-          })}
-          onClick={() => void props.heart.toggle()}
-        >
-          <Icon name="heart" fill={props.heart.liked()} size={16} />
-          <span class={styles.count}>{props.heart.count()}</span>
-        </button>
+      <span class={props.paper ? styles.hung : styles.waits}>
+        <Like
+          variant={props.paper ? "plain" : "art"}
+          size="lg"
+          count={props.heart.count()}
+          liked={props.heart.liked()}
+          onToggle={props.heart.toggle}
+          disabled={signInUnavailable()}
+        />
       </span>
-      <Show when={props.chosen}>
-        {chosen => <span class={styles.waits}>{chosen().button()}</span>}
-      </Show>
-      <span class={chosen() || props.paper ? undefined : styles.waits}>
+      {props.chosen?.press()}
+      <span
+        class={[styles.stack, { [styles.waits]: !props.paper && !chosen() }]}
+        data-flat={props.paper ? "" : undefined}
+      >
         <Button
           variant={chosen() ? "primary" : props.paper ? "secondary" : "art"}
           icon
@@ -475,6 +486,11 @@ function Tools(props: {
         >
           <Icon name={chosen() ? "check" : "plus"} size={15} />
         </Button>
+        <Show when={chosen()}>
+          <Loading>
+            <AddToCollection palette={drawn} size="lg" />
+          </Loading>
+        </Show>
       </span>
     </>
   );
@@ -633,10 +649,10 @@ function Stage(
           <FormatStrip
             size="lg"
             variant="art"
-            copy={COPY}
-            download={FILES}
+            copy={STRIP_COPY}
+            download={STRIP_FILES}
             swatches={SWATCH_CHIPS}
-            link={FILES}
+            link={STRIP_FILES}
             onCopy={copy}
             onDownload={f => void download(f)}
             onLink={link}
@@ -653,10 +669,12 @@ function Rail(props: {
   editor: PaletteEditor;
   panel: Panel;
   out: boolean;
-  ref: (el: HTMLElement) => void;
+  /** the rail's box while it stands, for the page to measure */
+  ref: (el: HTMLElement | undefined) => void;
 }) {
   const e = props.editor;
   let rail!: HTMLDivElement;
+  onCleanup(() => props.ref(undefined));
   const reveal = () =>
     queueMicrotask(() => {
       if (e.held().length && !props.panel.open()) props.panel.toggle();
@@ -765,28 +783,10 @@ function Strip(props: {
   narrow: boolean;
   /** the held keyframes are marked on it, except while the rail beside it shows them */
   marked: boolean;
-  onHeight: (height: number) => void;
   onCopy: () => void;
 }) {
   const e = props.editor;
-  let bar!: HTMLDivElement;
   const calm = createFlashGuard(e.shownStops, lights);
-  /* told in the next frame: the page sizes its first screen by this height, and a write in the observer's own callback
-     lays the page out again inside it */
-  onSettled(() => {
-    let frame = 0;
-    const sizes = new ResizeObserver(() => {
-      frame ||= requestAnimationFrame(() => {
-        frame = 0;
-        props.onHeight(Math.round(bar.getBoundingClientRect().height));
-      });
-    });
-    sizes.observe(bar);
-    return () => {
-      sizes.disconnect();
-      cancelAnimationFrame(frame);
-    };
-  });
   const marks = () =>
     props.marked
       ? e.held().map(i => {
@@ -795,7 +795,7 @@ function Strip(props: {
         })
       : [];
   return (
-    <div ref={bar} class={styles.bar}>
+    <div class={styles.bar}>
       <StopStrip
         stops={calm()}
         marks={marks()}
@@ -808,7 +808,7 @@ function Strip(props: {
 }
 
 /** The side: the keyframes, the three axes and the actions, then the hex of a keyframe held alone. */
-function Side(props: PageProps & { narrow: boolean }) {
+function Side(props: Omit<PageProps, "narrow"> & { narrow: boolean }) {
   const e = props.editor;
   let side!: HTMLElement;
   let rows: HTMLDivElement | undefined;

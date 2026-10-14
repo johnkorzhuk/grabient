@@ -1,14 +1,18 @@
+import { env } from "cloudflare:workers";
 import type { ParamReader } from "@grabient/engine/view.ts";
 import { locale } from "@grabient/i18n";
 import { createIsomorphicFn } from "@tanstack/solid-start";
+import { lazy } from "solid-js";
+import { DEFAULT_FRAME, type RisingFrame } from "../../lib/orders.ts";
 import { heading, headOf, type PageMeta, pageMeta } from "../../lib/page-meta.ts";
 import { type PaletteFacts, paletteFacts } from "../../server/editor/facts.ts";
+import { framesOffered } from "../../server/gallery/home.ts";
 import { readSeedPage, type SeedPage } from "./address.ts";
 import { metaPage, STATIC_CSS } from "./StaticPalette.tsx";
 
 /* A palette's page as its route reads it. The server reads what only the database knows of the palette, once, for the
-   page it renders (its title, the static page crawlers read, its Markdown); a palette the browser opens or makes
-   later is named by its colors, and asks the server nothing. */
+   page it renders (its title, the static page crawlers read, its Markdown), and which of Rising's frames are on; a
+   palette the browser opens or makes later is named by its colors, and asks the server nothing. */
 
 /** The router's search object as an address reads it: a number the router parsed is its digits again. */
 export const searchReader = (search: Readonly<Record<string, unknown>>): ParamReader => ({
@@ -27,15 +31,21 @@ export const searchReader = (search: Readonly<Record<string, unknown>>): ParamRe
    the browser opens or makes later is named there, as it is drawn. */
 const read = createIsomorphicFn()
   .server(async (page: SeedPage) => {
-    const facts = await paletteFacts(page.seed, page.palette, locale());
+    const [facts, frames] = await Promise.all([
+      paletteFacts(page.seed, page.palette, locale()),
+      /* a flag's read is the isolate's own, kept a few seconds: the week's alone where it fails */
+      framesOffered(env).catch((): RisingFrame[] => [DEFAULT_FRAME])
+    ]);
     const meta = metaPage(page, facts);
-    return { facts, meta: pageMeta(meta), heading: heading(meta) };
+    return { facts, frames, meta: pageMeta(meta), heading: heading(meta) };
   })
   .client(async (_page: SeedPage) => ({ facts: null }));
 
 export interface PaletteData {
   page: SeedPage;
   facts: PaletteFacts | null;
+  /** Rising's frames an admin has left on, as the server told the document: the sheet's order says them */
+  frames?: RisingFrame[];
   /** the page's metadata and heading as the server wrote them */
   meta?: PageMeta;
   heading?: string;
@@ -57,5 +67,17 @@ export const paletteHead = (data: PaletteData) => ({
   styles: [{ children: STATIC_CSS }]
 });
 
-/** The editor's code, asked for as soon as a palette's page starts: the static page stands until it has come. */
-export const loadEditor = () => import("./Editor.tsx");
+/** A window this wide or less has no room for a side: the controls follow the strip, under the first screen. */
+export const NARROW = 900;
+
+/** The sheet, under the first screen. */
+export const Sheet = lazy(() => import("./Sheet.tsx").then(m => ({ default: m.Sheet })));
+
+/** The editor's code, asked for as soon as a palette's page starts. Beside the page the sheet's name shows under the
+    picture and sizes it, so there the sheet's code comes with the editor's, and the first screen is whole from its
+    first frame. */
+export const loadEditor = () =>
+  Promise.all([
+    import("./Editor.tsx"),
+    matchMedia(`(min-width: ${NARROW + 1}px)`).matches ? Sheet.preload() : null
+  ]).then(([editor]) => editor);

@@ -155,3 +155,48 @@ export function StopStrip(props: {
     </div>
   );
 }
+
+/** The strip as the server draws it, before any script runs: the same chips, rows and hexes, at whatever width it
+    stands, laid out by the styles alone, as layoutStops lays them out. A stop's `paint` is its color on a wide-gamut
+    screen, which the styles take there. Nothing on it is pressed. */
+export function StillStrip(props: { stops: readonly StripStop[] }) {
+  /* one row, and for a run long enough to stand in two (layoutStops' rule) the two, which the styles choose between */
+  const variants = createMemo(() => {
+    const one = layoutStops(props.stops, 0, true);
+    return props.stops.length >= 12 ? [one, layoutStops(props.stops, 640)] : [one];
+  });
+  return (
+    <div class={[styles.strip, styles.still]} style={{ "--units": props.stops.length }} dir="ltr">
+      <For each={variants()}>
+        {lay => (
+          <div
+            class={styles.variant}
+            data-rows={lay.rows.length}
+            style={{ "--least": Math.min(...lay.rows.flat().map(cell => cell.span)) }}
+          >
+            {lay.rows.map((row, r) => (
+              <div class={styles.row} data-back={r > 0 ? "" : undefined}>
+                {row.map((cell, i) => (
+                  <span
+                    class={styles.chip}
+                    data-ink={cell.ink}
+                    data-seam={(r > 0 ? i < row.length - 1 : i > 0) ? "" : undefined}
+                    style={{
+                      "--span": String(cell.span),
+                      "--hex": cell.hex,
+                      "--paint": cell.paint
+                    }}
+                  >
+                    <span class={styles.fit}>
+                      <span class={styles.label}>{cell.hex}</span>
+                    </span>
+                  </span>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </For>
+    </div>
+  );
+}
