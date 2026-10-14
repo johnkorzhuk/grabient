@@ -37,7 +37,7 @@ export const Route = createFileRoute("/palettes/rising/{-$frame}")({
         robots: loaderData?.robots
       })
     ),
-  staticData: { corner: ListAppearance },
+  staticData: { corner: ListAppearance, translated: true },
   component: function RisingRoute() {
     const search = Route.useSearch();
     answerWith(untrack(Route.useLoaderData())?.status);

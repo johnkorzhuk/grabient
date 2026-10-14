@@ -24,7 +24,7 @@ export const Route = createFileRoute("/palettes/")({
         robots: loaderData?.robots
       })
     ),
-  staticData: { corner: ListAppearance },
+  staticData: { corner: ListAppearance, translated: true },
   component: function PopularRoute() {
     const search = Route.useSearch();
     answerWith(untrack(Route.useLoaderData())?.status);

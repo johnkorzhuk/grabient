@@ -24,7 +24,7 @@ export const Route = createFileRoute("/")({
         robots: loaderData?.robots
       })
     ),
-  staticData: { corner: ListAppearance },
+  staticData: { corner: ListAppearance, translated: true },
   component: function HomeRoute() {
     const search = Route.useSearch();
     answerWith(untrack(Route.useLoaderData())?.status);
