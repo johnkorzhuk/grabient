@@ -43,6 +43,7 @@ import styles from "./Shell.module.css";
 import type { Shell as ShellApi } from "./shell.ts";
 import { pageFrom, ShellContext } from "./shell.ts";
 import { Toast } from "./Toast.tsx";
+import { walkSelection } from "./undo.ts";
 import { createWater } from "./water.ts";
 
 /* The frame every page stands in, mounted once and kept as pages change under it: the water behind the page, the
@@ -118,6 +119,8 @@ export function Shell() {
     syncColorFormat();
     recallView();
     watchConnection();
+    /* while the address holds the selection over the page, an undo walks only the steps made in it */
+    walkSelection(() => new URLSearchParams(location().searchStr).has("selection"));
     const leave = watchNavigation(router);
     let frameId = 0;
     const read = () => {
