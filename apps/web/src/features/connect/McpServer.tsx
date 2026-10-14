@@ -36,7 +36,7 @@ const TO_ASK = [
 const EXAMPLE = { first: "#14213d", second: "#fca311" };
 
 export function McpServerPage(props: {
-  /** the site's public origin, the same on both sides (readOrigin) */
+  /** the site's public origin, the same on both sides whatever host the page was reached on (siteOrigin) */
   origin: string;
   /** the brand pages' frame: their navigation, the way home, the footer and the language menu */
   nav?: readonly FrameLink[];

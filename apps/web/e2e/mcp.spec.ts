@@ -62,3 +62,27 @@ test("a person who opens /mcp in a browser lands on the page that says how to co
   expect(new URL(page.url()).pathname).toBe("/mcp-server");
   await expect(page.locator("main h1")).toBeVisible();
 });
+
+test("the page that says how to connect names the site's public address, whatever host it was reached on", async ({
+  page,
+  baseURL
+}) => {
+  /* the server writes the deploy's public origin into every page's canonical link, as www.grabient.com's pages name
+     grabient.com */
+  await page.route("**/about", async route => {
+    const answer = await route.fetch();
+    const html = (await answer.text()).replace(/<link rel="canonical"[^>]*>/, tag =>
+      tag.replaceAll(baseURL ?? "", "https://grabient.test")
+    );
+    await route.fulfill({ response: answer, body: html });
+  });
+  await page.goto("/about");
+  await page.waitForFunction(() => !("$_TSR" in window));
+  await page.getByRole("navigation").getByRole("link", { name: "MCP" }).click();
+  await expect(page).toHaveURL(/\/mcp-server$/);
+  await expect(page.locator("main code").first()).toHaveText("https://grabient.test/mcp");
+  await expect(page.getByRole("link", { name: "Add to Claude" })).toHaveAttribute(
+    "href",
+    /connectorUrl=https%3A%2F%2Fgrabient\.test%2Fmcp$/
+  );
+});
