@@ -753,6 +753,49 @@ test.describe("signed in as verify-ada", () => {
         expect(broken).toEqual([]);
       });
 
+      test("a heart pressed on another page is on Saved when she comes back, and one taken back is gone from it", async ({
+        page
+      }) => {
+        const broken = watch(page);
+        /** To the list in the app, as she presses its order, once its own page stands. */
+        const to = async (name: "Popular" | "Saved") => {
+          await press(
+            page
+              .getByRole("navigation", { name: "Order" })
+              .getByRole(name === "Saved" ? "button" : "link", { name: new RegExp(`^${name}`) }),
+            width
+          );
+          await expect(page.getByRole("heading", { name, level: 2 })).toBeVisible();
+          await expect(cards(page).first()).toBeVisible();
+        };
+        await open(page, "/palettes/saved");
+        await expect(cards(page).first()).toBeVisible();
+        await to("Popular");
+        const href = await linkAt(page, EDIT, 2);
+        if ((await herLikes(api)).has(itemAt(href).kseed))
+          await sync(api, likes([itemAt(href)], false));
+        const name = (await cardOf(page, href).getAttribute("aria-label")) ?? "";
+        const heart = cardOf(page, href).getByRole("button", { name: /^Like/ });
+        await press(heart, width);
+        await expect(heart).toHaveAttribute("aria-pressed", "true");
+
+        await to("Saved");
+        await expect(cards(page).first()).toHaveAttribute("aria-label", name);
+        await open(page, "/palettes/saved");
+        await expect(cards(page).first()).toHaveAttribute("aria-label", name);
+
+        await to("Popular");
+        await expect(heart).toHaveAttribute("aria-pressed", "true");
+        await press(heart, width);
+        await expect(heart).toHaveAttribute("aria-pressed", "false");
+        await to("Saved");
+        await expect(page.locator(`main article[aria-label="${name}"]`)).toHaveCount(0);
+        await open(page, "/palettes/saved");
+        await expect(cards(page).first()).toBeVisible();
+        await expect(page.locator(`main article[aria-label="${name}"]`)).toHaveCount(0);
+        expect(broken).toEqual([]);
+      });
+
       for (const list of OWN)
         test(`from ${list.name}, what she opens lands whole and Back returns to the list as it was`, ({
           page

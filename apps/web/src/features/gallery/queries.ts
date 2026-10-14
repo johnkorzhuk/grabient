@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { msg, t } from "@grabient/i18n";
+import { isServer } from "@solidjs/web";
 import { queryOptions } from "@tanstack/solid-query";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { getRequest } from "@tanstack/solid-start/server";
@@ -18,7 +19,7 @@ import {
 import { listQuery, publicList } from "../../server/gallery/cache.ts";
 import { framesOffered, homeHead } from "../../server/gallery/home.ts";
 import { searchPool } from "../../server/gallery/search.ts";
-import { viewNow } from "../account/state.ts";
+import { onAccountChange, viewNow } from "../account/state.ts";
 import { COLLECTION_LIMIT } from "../collections/params.ts";
 import { collectionsQuery } from "../collections/queries.ts";
 import type { CollectionPage } from "../collections/types.ts";
@@ -165,12 +166,22 @@ export interface SavedKey {
   page: number;
 }
 
+/* Saved's pages are kept a minute, for a list returned to; a like made or taken back anywhere (on any page, in another
+   tab, on another device) starts them anew. */
+let likesMoved = 0;
+if (!isServer)
+  onAccountChange(change => {
+    if (change.likes.size) likesMoved++;
+  });
+/** How many times the account's likes have moved in this tab: a read of Saved begun before the last move is old. */
+export const likesSeen = () => likesMoved;
+
 /** A page of the account's saved palettes. Only the browser asks for it, as the account it is signed in as: the key
     names the owner, so another account's page never shows across a sign-in. The account's copy answers where it can,
     at once and with no connection, with the likes not yet sent; words are the server's to rank while there is one. */
 export const savedQuery = (key: SavedKey) =>
   queryOptions({
-    queryKey: ["saved", key.owner, key.words, key.limit, key.page] as const,
+    queryKey: ["saved", key.owner, likesMoved, key.words, key.limit, key.page] as const,
     queryFn: async ({ signal }): Promise<SavedPage | Failed> => {
       /* loaded with the list it draws: no other page of the gallery needs the copy's model */
       const { savedReady, savedPageOf } = await import("../account/saved.ts");
