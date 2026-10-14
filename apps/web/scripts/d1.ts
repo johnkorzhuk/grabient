@@ -243,7 +243,9 @@ async function main(): Promise<void> {
       const at = local(DATABASES[mode].id);
       await migrate(at);
       const written = changed(await run(gallery(), at));
-      console.log(`The local ${mode} gallery holds the shipped palettes (${written} rows written).`);
+      console.log(
+        `The local ${mode} gallery holds the shipped palettes (${written} rows written).`
+      );
     }
   } else if (command === "migrate") {
     await migrate(target(values.remote, values.mode));
