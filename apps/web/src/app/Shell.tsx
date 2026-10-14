@@ -89,7 +89,7 @@ export function Shell() {
   };
 
   /* the tab's icon wears what the page paints (tab-icon.ts). The server wrote the first one, so the code that draws
-     it is asked for when a page first changes it */
+     it is asked for when a page first changes it; where no connection brings it, the icon stays as it is */
   createEffect(
     () => ({
       frame: frame(),
@@ -98,7 +98,11 @@ export function Shell() {
       seeds: drawn().map(palette => palette.seed)
     }),
     tab => {
-      void import("./tab-icon.ts").then(icon => icon.showIcon(tab));
+      if (import.meta.env.SSR) return;
+      void import("./tab-icon.ts").then(
+        icon => icon.showIcon(tab),
+        () => {}
+      );
     },
     { defer: true }
   );
