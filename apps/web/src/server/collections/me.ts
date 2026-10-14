@@ -14,6 +14,7 @@ import {
   normalizeNote
 } from "../../features/collections/schema.ts";
 import type { ViewerState } from "../../features/collections/types.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { copyStanding, syncCopy } from "./copies.ts";
 import {
   addSitePalettes,
@@ -30,7 +31,6 @@ import {
   isAdmin,
   methodNotAllowed,
   notFound,
-  originOf,
   overWork,
   reader,
   refused,
@@ -89,7 +89,7 @@ export async function mineAnswer(
     request,
     ctx
   });
-  const origin = originOf(env, request);
+  const origin = publicOrigin(env, request);
   return json({ ...page, items: page.items.map(item => withUrl(origin, item)) });
 }
 
@@ -130,7 +130,7 @@ async function ownedAnswer(request: Request, env: Env, slug: string): Promise<Re
   const record = await collectionRecord(env, slug);
   const may = record ? await standing(env, record, who) : null;
   const doc = may && (may.owned || may.canCurate) ? await collectionBySlug(env, slug, true) : null;
-  return doc && may ? json({ ...withUrl(originOf(env, request), doc), ...may }) : notFound();
+  return doc && may ? json({ ...withUrl(publicOrigin(env, request), doc), ...may }) : notFound();
 }
 
 /** GET …/{slug}/state: everything a signed-in reader's page needs of a collection beyond what everyone sees, in one
@@ -151,7 +151,10 @@ async function stateAnswer(request: Request, env: Env, slug: string): Promise<Re
     may.owned || may.canCurate ? collectionBySlug(env, slug, true) : null
   ]);
   const state: ViewerState = { ...may, copy, votes, ...(notes ? { notes } : {}) };
-  return json({ ...state, ...(doc ? { collection: withUrl(originOf(env, request), doc) } : {}) });
+  return json({
+    ...state,
+    ...(doc ? { collection: withUrl(publicOrigin(env, request), doc) } : {})
+  });
 }
 
 /** POST …/update and …/reset: the account's saved copy, from its source. */
@@ -170,7 +173,7 @@ async function syncAnswer(
   if (!result.ok) return refused(result, 409);
   const doc = await collectionBySlug(env, record.slug, true);
   return doc
-    ? json({ collection: withUrl(originOf(env, request), doc), copy: result.copy })
+    ? json({ collection: withUrl(publicOrigin(env, request), doc), copy: result.copy })
     : notFound();
 }
 
@@ -236,7 +239,7 @@ async function changed(request: Request, env: Env, record: CollectionRecord, ext
   const owned = record.owner.kind === "user";
   return json({
     collection: {
-      ...withUrl(originOf(env, request), doc),
+      ...withUrl(publicOrigin(env, request), doc),
       owned,
       canCurate: !owned,
       canDelete: true

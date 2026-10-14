@@ -12,6 +12,7 @@ import { collectionParams } from "../../features/collections/params.ts";
 import { validateCollection } from "../../features/collections/schema.ts";
 import { NO_STORE } from "../../lib/cache.ts";
 import { askedLocale, localizeCollections } from "../mcp/admin/translations.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { copyStanding, forkCollection, heldCopy } from "./copies.ts";
 import {
   addressed,
@@ -21,7 +22,6 @@ import {
   isAdmin,
   methodNotAllowed,
   notFound,
-  originOf,
   PUBLIC_JSON,
   publicJson,
   refused,
@@ -69,7 +69,7 @@ export async function listAnswer(
     request,
     ctx
   });
-  const origin = originOf(env, request);
+  const origin = publicOrigin(env, request);
   const items = await localizeCollections(env, askedLocale(url), page.items);
   return Response.json(
     { ...page, items: items.map(item => withUrl(origin, item)) },
@@ -97,7 +97,7 @@ export async function createAnswer(request: Request, env: Env): Promise<Response
   if (await ownCollectionsFull(env, owner.id)) return collectionsFull();
   const admin = await isAdmin(env, owner.id);
   const input = admin ? valid.input : { ...valid.input, visibility: "private" as const };
-  const origin = originOf(env, request);
+  const origin = publicOrigin(env, request);
   if (input.visibility === "public") {
     const own = slugifyTitle(input.title);
     const free = isCollectionSlug(own) && !(await collectionRecord(env, own));
@@ -156,7 +156,7 @@ export async function collectionAnswer(request: Request, env: Env): Promise<Resp
     const found = await collectionBySlug({ DB: replica(env) }, at.slug);
     if (!found) return json({ error: "Not found" }, 404);
     const [doc] = await localizeCollections(env, askedLocale(url), [found]);
-    return publicJson(withUrl(originOf(env, request), doc!));
+    return publicJson(withUrl(publicOrigin(env, request), doc!));
   }
   if (request.method === "PATCH") return changeAnswer(request, env, at.slug);
   if (request.method === "DELETE") return deleteAnswer(request, env, at.slug);
@@ -176,7 +176,7 @@ async function saveAnswer(request: Request, env: Env, slug: string): Promise<Res
   const { collection, made } = await forkCollection(env, record, owner);
   return json(
     {
-      collection: withUrl(originOf(env, request), collection),
+      collection: withUrl(publicOrigin(env, request), collection),
       made,
       copy: await copyStanding(env, record, owner)
     },
@@ -221,7 +221,7 @@ async function changeAnswer(request: Request, env: Env, slug: string): Promise<R
   const doc = await collectionBySlug(env, now, true);
   if (!doc) return notFound();
   return json({
-    collection: withUrl(originOf(env, request), doc),
+    collection: withUrl(publicOrigin(env, request), doc),
     ...(to ? { moved: { from: slug, to } } : {})
   });
 }
