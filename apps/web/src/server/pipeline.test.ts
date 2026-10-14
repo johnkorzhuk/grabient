@@ -434,6 +434,17 @@ test("campaign tags never reach Start and ride every same-origin redirect", asyn
   expect(location(started)).toBe("/x?gclid=g");
 });
 
+test("campaign tags come off an address and onto a redirect with the rest of it written as it came", async () => {
+  // the selection's bare word, written `selection=`, is another spelling of the list, which leads to its own
+  const listed = await get("/palettes?q=sea&selection&utm_source=news");
+  expect([listed.status, asked[0]?.url]).toEqual([
+    200,
+    "https://grabient.test/palettes?q=sea&selection"
+  ]);
+  const moved = await get("/ja/palettes/?q=sea+sky&selection&gclid=g");
+  expect(location(moved)).toBe("/ja/palettes?q=sea+sky&selection&gclid=g");
+});
+
 test("only a server route takes another method than GET and HEAD", async () => {
   // a page is refused before it renders, so no method makes it draw or search again
   for (const [path, method] of [

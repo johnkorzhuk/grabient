@@ -91,11 +91,11 @@ export async function handle(
       }
     );
   }
-  const tracking = new URLSearchParams();
-  for (const [name, value] of url.searchParams)
-    if (TRACKING_PARAM.test(name)) tracking.append(name, value);
-  for (const name of new Set(tracking.keys())) url.searchParams.delete(name);
-  if (tracking.size) request = new Request(url, request);
+  const { rest, tracking } = splitTracking(url.search);
+  if (tracking) {
+    url.search = rest;
+    request = new Request(url, request);
+  }
   const { locale, path } = splitLocale(url.pathname);
   let response: Response;
   try {
@@ -183,6 +183,25 @@ async function route(
     : edgeCached(request, cacheKey(url, path, locale), ctx, render);
 }
 
+/** A query's campaign tags and the rest of it, each pair as it came: a query written again would spell the
+    selection's bare word `selection=`, which is another address of the page to its canonical rule. */
+function splitTracking(search: string): { rest: string; tracking: string } {
+  const rest: string[] = [];
+  const tracking: string[] = [];
+  for (const pair of search.slice(1).split("&")) {
+    if (!pair) continue;
+    const name = pair.split("=", 1)[0] ?? "";
+    let said = name;
+    try {
+      said = decodeURIComponent(name.replaceAll("+", " "));
+    } catch {
+      // a name that is no escape is read as it came
+    }
+    (TRACKING_PARAM.test(said) ? tracking : rest).push(pair);
+  }
+  return { rest: rest.length ? `?${rest.join("&")}` : "", tracking: tracking.join("&") };
+}
+
 /** The refusal of a list, a search or the home past the address's sixty reads a minute in this isolate, or null. */
 async function overListing(env: Env, request: Request): Promise<Response | null> {
   const counted = await checkLimits(env, [
@@ -231,7 +250,7 @@ function finish(
   path: string,
   env: Env,
   answered: Response,
-  tracking: URLSearchParams
+  tracking: string
 ): Response {
   const response = new Response(request.method === "HEAD" ? null : answered.body, answered);
   const headers = response.headers;
@@ -248,13 +267,11 @@ function finish(
   // a refusal that names no wait: the allowances that refuse without one count by the minute
   if (response.status === 429 && !headers.has("Retry-After")) headers.set("Retry-After", "60");
   const location =
-    tracking.size && response.status >= 300 && response.status < 400
-      ? headers.get("Location")
-      : null;
+    tracking && response.status >= 300 && response.status < 400 ? headers.get("Location") : null;
   if (location) {
     const to = new URL(location, url);
     if (to.origin === url.origin) {
-      for (const [name, value] of tracking) to.searchParams.append(name, value);
+      to.search = to.search ? `${to.search}&${tracking}` : tracking;
       headers.set("Location", to.toString());
     }
   }
