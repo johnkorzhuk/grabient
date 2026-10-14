@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { accountHandle, mergeStatements, moveUnder } from "./merge.ts";
+import { mergeStatements } from "./merge.ts";
 import type { Row, Snapshot } from "./snapshot.ts";
 import { lite, production } from "./testing.ts";
 
@@ -11,33 +11,29 @@ const users = () => source.production.rows("auth_user");
 let made = 0;
 const makeId = () => `new${String(++made).padStart(17, "0")}`;
 
-describe("addresses", () => {
-  it.each([
-    [{ id: "AbCdEf1234567890", username: null }, "_abcdef1234"],
-    [{ id: "x", username: " Ada_L " }, "ada_l"],
-    [{ id: "id-with-dashes_and.dots", username: "" }, "_idwithdash"]
-  ])("names %j's handle %s", (user, handle) => {
-    expect(accountHandle(user)).toBe(handle);
-  });
-
-  it("moves a private address under a handle, the first free number where it is taken", () => {
-    const taken = new Set(["@ada/warm-sunsets", "@ada/warm-sunsets-2"]);
-    expect(moveUnder("@bob/warm-sunsets-3", "ada", slug => taken.has(slug))).toBe(
-      "@ada/warm-sunsets-3"
-    );
-    expect(moveUnder("@bob/blue", "ada", slug => taken.has(slug))).toBe("@ada/blue");
-    expect(moveUnder(`@bob/${"x".repeat(78)}`, "a_very_long_username_of_thirty", () => false)).toBe(
-      `@a_very_long_username_of_thirty/${"x".repeat(44)}`
-    );
-  });
-});
-
 describe("the merge", () => {
   it("refuses a grabient-lite admin production has no account for", () => {
     const strangers = users().filter(user => user.role !== "admin");
     expect(() => mergeStatements(source.lite, { users: strangers, collections: [] })).toThrow(
       /admin/
     );
+  });
+
+  it("moves a private collection under its owner's handle in the target, as a username change would", () => {
+    const merge = mergeStatements(source.lite, { users: users(), collections: [] }, makeId);
+    // production holds this account without a username, and gives another's username to nobody twice
+    expect(merge.slugs.get("@johnk/blue")).toBe("@_pj12345678/blue");
+    expect(merge.slugs.get("@johnny/mine")).toMatch(/^@_[a-z0-9]{1,10}\/mine$/);
+    expect(merge.slugs.has("@john/warm-sunsets")).toBe(false);
+    const held: Row = {
+      id: "other",
+      slug: "@_pj12345678/blue",
+      owner_kind: "user",
+      owner_id: "PJ1234567890xyz"
+    };
+    // where the handle already holds the address, the first free one of the collection's title (here "@johnk/blue")
+    const taken = mergeStatements(source.lite, { users: users(), collections: [held] }, makeId);
+    expect(taken.slugs.get("@johnk/blue")).toBe("@_pj12345678/johnk-blue");
   });
 
   it("gives a collection whose address the target holds the next free one", () => {

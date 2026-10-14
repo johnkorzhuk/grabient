@@ -1,85 +1,20 @@
-/* The hot and rising scores of a database, as the six-hour pass writes them, so a copy orders its lists rightly from
-   its first request. The three score functions have the signatures U03 gives server/order/scores.ts and stand in for
-   it until that module lands, which this file then imports instead. */
+/* The hot and rising scores of a database, as the six-hour pass writes them (src/server/gallery/scores.ts), so a copy
+   orders its lists rightly from its first request. The pass corrects what drifted, a few hundred rows at a time; this
+   scores every row at once, as statements. */
+import { RISING_FRAMES, type RisingFrame } from "../../src/lib/orders.ts";
+import {
+  collectionHot,
+  LIKE_WINDOW,
+  NEW_WINDOW,
+  paletteHot,
+  RISE_COLUMN,
+  RISE_WINDOW,
+  risingScores
+} from "../../src/server/gallery/scores.ts";
 import { literal, type Value } from "./d1.ts";
 import type { Row } from "./snapshot.ts";
 
-const DAY = 86_400_000;
-const LIKE_DAYS = 14;
-const NEW_DAYS = 7;
-const NEW_WEIGHT = 0.5;
-/** How far back the pass reads likes for the hot score, and new palettes and joins. */
-const LIKE_WINDOW = 90 * DAY;
-const NEW_WINDOW = 60 * DAY;
-/** How far back a like or an arrival lifts a rising score at all. */
-const RISE_WINDOW = 720 * DAY;
-const COLLECTION_ITEMS = 12;
-
-export type Frame = "1w" | "3m" | "1y";
-const HALF: Record<Frame, number> = { "1w": 2 * DAY, "3m": 45 * DAY, "1y": 180 * DAY };
-const FRAMES = Object.keys(HALF) as Frame[];
-/** Each frame's column. */
-export const RISE_COLUMN: Record<Frame, string> = {
-  "1w": "rising",
-  "3m": "rising_3m",
-  "1y": "rising_1y"
-};
-
-const decay = (age: number, days: number) => (age <= 0 ? 1 : Math.exp(-age / (days * DAY)));
-const round = (value: number) => Math.round(value * 10_000) / 10_000;
-const newest = (times: readonly number[]) => [...times].sort((a, b) => b - a);
-
-/** The likes of the last weeks, each fading with a 14-day constant, and half a like of newness fading over a week. */
-export function paletteHot(likeTimes: readonly number[], createdAt: number, now: number): number {
-  let score = createdAt > 0 ? NEW_WEIGHT * decay(now - createdAt, NEW_DAYS) : 0;
-  for (const at of likeTimes) score += decay(now - at, LIKE_DAYS);
-  return round(score);
-}
-
-/** A frame's half-lives since 1970, as a natural logarithm: what its stored scores are measured against. */
-export const riseClock = (frame: Frame, now: number) => (Math.LN2 * now) / HALF[frame];
-
-/** The rising score of what gained likes at `times` and holds `total` now: the newest counts against the total less
-    itself, the next against one fewer, each halving every half-life; an arrival at `publishedAt` adds half a like.
-    Kept as a logarithm with each like weighed by its own time, so time alone never moves it. 0 is no score. */
-export function risingScore(
-  times: readonly number[],
-  total: number,
-  now: number,
-  frame: Frame = "1w",
-  publishedAt = 0
-): number {
-  const since = now - RISE_WINDOW;
-  const half = HALF[frame];
-  let sum = publishedAt >= since ? NEW_WEIGHT * 0.5 ** (Math.max(0, now - publishedAt) / half) : 0;
-  const sorted = newest(times);
-  for (let k = 0; k < sorted.length && sorted[k]! >= since; k++) {
-    sum += 0.5 ** (Math.max(0, now - sorted[k]!) / half) / (Math.max(0, total - k - 1) + 1);
-  }
-  return sum > 0 ? riseClock(frame, now) + Math.log(sum) : 0;
-}
-
-/** A collection's hot score: its twelve hottest palettes at half weight, the palettes that joined it lately, the
-    copies saved of it lately, and its newness from when it was made public. */
-export function collectionHot(
-  input: {
-    itemHot: readonly number[];
-    joinedAt: readonly number[];
-    copiedAt: readonly number[];
-    publishedAt: number;
-  },
-  now: number
-): number {
-  let score = input.publishedAt > 0 ? NEW_WEIGHT * decay(now - input.publishedAt, NEW_DAYS) : 0;
-  for (const hot of newest(input.itemHot).slice(0, COLLECTION_ITEMS)) score += 0.5 * hot;
-  for (const at of newest(input.joinedAt).slice(0, COLLECTION_ITEMS)) {
-    score += 0.25 * decay(now - at, NEW_DAYS);
-  }
-  for (const at of input.copiedAt) score += decay(now - at, LIKE_DAYS);
-  return round(score);
-}
-
-type Scored = { hot: number } & Record<Frame, number>;
+type Scored = { hot: number } & Record<RisingFrame, number>;
 
 export interface ScoreInput {
   /** Every like's palette and time. */
@@ -193,7 +128,7 @@ export function scores(input: ScoreInput, now: number) {
     const recent = times.filter(at => at >= now - LIKE_WINDOW);
     palettes.set(palette.seed, {
       hot: paletteHot(recent, palette.created_at, now),
-      ...rising(times, palette.likes_count, now)
+      ...risingScores(times, palette.likes_count, now)
     });
   }
 
@@ -240,16 +175,11 @@ export function scores(input: ScoreInput, now: number) {
         },
         now
       ),
-      ...rising(risenAt, collection.likes_sum + collection.fork_count, now, publishedAt)
+      ...risingScores(risenAt, collection.likes_sum + collection.fork_count, now, publishedAt)
     });
   }
   return { palettes, collections };
 }
-
-const rising = (times: readonly number[], total: number, now: number, publishedAt = 0) =>
-  Object.fromEntries(
-    FRAMES.map(frame => [frame, risingScore(times, total, now, frame, publishedAt)])
-  ) as Record<Frame, number>;
 
 /** Statements that give `table` these scores and every other row none, a hundred rows a statement. */
 export function scoreStatements(
@@ -257,17 +187,17 @@ export function scoreStatements(
   key: "seed" | "id",
   scored: ReadonlyMap<string, Scored>
 ): string[] {
-  const columns = ["hot", ...FRAMES.map(frame => RISE_COLUMN[frame])];
+  const columns = ["hot", ...RISING_FRAMES.map(frame => RISE_COLUMN[frame])];
   const out = [
     `UPDATE ${table} SET ${columns.map(c => `${c} = 0`).join(", ")} WHERE ${columns.map(c => `${c} <> 0`).join(" OR ")}`
   ];
-  const rows = [...scored].filter(([, s]) => s.hot || FRAMES.some(frame => s[frame]));
+  const rows = [...scored].filter(([, s]) => s.hot || RISING_FRAMES.some(frame => s[frame]));
   for (let i = 0; i < rows.length; i += 100) {
     const part = rows.slice(i, i + 100);
     const cases = (value: (s: Scored) => number) =>
       `CASE ${key} ${part.map(([id, s]) => `WHEN ${literal(id)} THEN ${value(s)}`).join(" ")} END`;
     out.push(
-      `UPDATE ${table} SET hot = ${cases(s => s.hot)}, ${FRAMES.map(
+      `UPDATE ${table} SET hot = ${cases(s => s.hot)}, ${RISING_FRAMES.map(
         frame => `${RISE_COLUMN[frame]} = ${cases(s => s[frame])}`
       ).join(", ")} WHERE ${key} IN (${part.map(([id]) => literal(id)).join(",")})`
     );
