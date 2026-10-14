@@ -98,7 +98,8 @@ export function pageView(source: ListSource, n: number) {
   return { ...options, select: (data: unknown) => shape(own(data)) };
 }
 
-/* Saved's page `n` from the account's copy, where it can say at once: a return draws it in its first frame */
+/* Saved's page `n` from the account's copy, where it can say at once: a return draws it in its first frame, and
+   every page it restores is read from the copy as it stands now */
 const fromCopy = (source: ListSource, n: number): Page | undefined =>
   source.kind === "saved"
     ? savedNow({
@@ -109,8 +110,10 @@ const fromCopy = (source: ListSource, n: number): Page | undefined =>
       })
     : undefined;
 
-/** Page `n` as the cache holds it now; none when it holds nothing of it, or only a failure. */
+/** Page `n` as the account's copy or the cache holds it now; none when they hold nothing of it, or only a failure. */
 export function keptPage(client: QueryClient, source: ListSource, n: number): Page | undefined {
+  const copied = fromCopy(source, n);
+  if (copied) return copied;
   const { options, shape } = pageQuery(source, n);
   const data = client.getQueryData(options.queryKey as readonly unknown[]);
   if (!data) return undefined;

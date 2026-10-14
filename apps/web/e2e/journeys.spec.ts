@@ -633,7 +633,7 @@ for (const width of WIDTHS)
       expect(broken).toEqual([]);
     });
 
-    test("signed in, Saved two pages deep comes Back after a heart pressed elsewhere with its cards in its first frame", async ({
+    test("signed in, Saved two pages deep comes Back after a heart pressed elsewhere with every palette she likes, from its first frame", async ({
       page,
       context,
       baseURL,
@@ -668,7 +668,8 @@ for (const width of WIDTHS)
       await press(heart, width);
       await expect(heart).toHaveAttribute("aria-pressed", "true");
 
-      // Back, on a phone's slower processor: each frame Saved draws holds its cards
+      /* Back, on a phone's slower processor: each frame Saved draws holds its cards, and both its pages hold every
+         palette she likes */
       const cdp = await page.context().newCDPSession(page);
       await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
       const drawn = () => page.evaluate(() => (window as unknown as { saved: number[] }).saved);
@@ -685,6 +686,7 @@ for (const width of WIDTHS)
       await page.goBack();
       await expect.poll(async () => (await drawn()).length).toBe(30);
       expect(await drawn()).not.toContain(0);
+      await expect(feed).toHaveAttribute("data-count", "26");
       expect(broken).toEqual([]);
     });
 
