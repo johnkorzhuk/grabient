@@ -26,7 +26,6 @@ import { signInUnavailable, unreachable } from "../../app/connection.ts";
 import { SiteFooter } from "../../app/Frames.tsx";
 import { toast } from "../../app/toast.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
-import { heading } from "../../lib/page-meta.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { shownError } from "../../lib/query.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
@@ -58,6 +57,7 @@ import {
 import type { PaletteData } from "./page.ts";
 import type { Rest } from "./rest.ts";
 import { type Similar, similarQuery } from "./similar.ts";
+import { paletteTitle } from "./title.ts";
 
 /* The editor's sheet: the palette's name, the collections that hold it, which of its colors read on which and on the
    reader's own text colors, its path through the color solid, the palette as text, and the palettes like it. All but
@@ -315,16 +315,7 @@ export function Sheet(props: {
     const list = sort() === "rising" ? framePath("/palettes/rising", frame()) : "/palettes";
     return `${list}?${query}`;
   };
-  const title = () =>
-    props.heading() ||
-    heading({
-      kind: "palette",
-      seed: e.seed(),
-      palette: e.palette(),
-      view: view(),
-      ...(props.facts()?.written ? { written: props.facts()?.written } : {})
-    }) ||
-    t("Palette editor");
+  const title = () => paletteTitle(e, props.heading(), props.facts());
 
   /* the clock the cards' ages are told against */
   const now = Date.now();

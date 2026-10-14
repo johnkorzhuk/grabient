@@ -757,6 +757,31 @@ test.describe("on a phone", () => {
     await expect(page.getByRole("spinbutton", { name: "Hue" })).toBeAttached();
   });
 
+  test("the palette's name stands at the picture's foot as the first screen's largest paint, and gives way to the presses a tap brings", async ({
+    page
+  }) => {
+    // the page's largest paint as a reader's Chrome reports it, the element's class read as it is reported
+    await page.addInitScript(() => {
+      const seen: string[] = [];
+      Object.assign(window, { largestPaints: seen });
+      new PerformanceObserver(list => {
+        for (const entry of list.getEntries())
+          seen.push(String((entry as PerformanceEntry & { element?: Element }).element?.className));
+      }).observe({ type: "largest-contentful-paint", buffered: true });
+    });
+    await open(page, `/${SEED}?steps=8`);
+    const caption = page.locator('main#main [class*="_caption_"]');
+    await expect(caption).toBeVisible();
+    expect(await caption.textContent()).toBe((await page.title()).replace(/ \| Grabient$/, ""));
+    await expect
+      .poll(() =>
+        page.evaluate(() => (window as { largestPaints?: string[] }).largestPaints?.at(-1) ?? "")
+      )
+      .toMatch(/_caption_/);
+    await page.getByRole("img", { name: "The gradient" }).tap();
+    await expect(caption).toHaveCSS("opacity", "0");
+  });
+
   test("the way into the selection floats at the page's corner only once the page has moved", async ({
     page
   }) => {
