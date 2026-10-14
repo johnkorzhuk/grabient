@@ -144,19 +144,25 @@ export function switchTheme(apply: () => void, from?: RevealFrom, reduced = redu
     return true;
   }
   const root = document.documentElement;
-  if (!reduced) {
-    const at = center(from);
-    const far = Math.hypot(Math.max(at.x, innerWidth - at.x), Math.max(at.y, innerHeight - at.y));
-    /* the edge runs a third of the way to the farthest corner: wide enough that no line is seen crossing the page */
-    const soft = Math.max(160, far / 3);
-    root.style.setProperty("--theme-x", `${at.x}px`);
-    root.style.setProperty("--theme-y", `${at.y}px`);
-    root.style.setProperty("--theme-soft", `${soft}px`);
-    root.style.setProperty("--theme-end", `${far + soft}px`);
-  }
+  const at = center(from);
+  const far = Math.hypot(Math.max(at.x, innerWidth - at.x), Math.max(at.y, innerHeight - at.y));
+  /* the edge runs a third of the way to the farthest corner: wide enough that no line is seen crossing the page */
+  const soft = Math.max(160, far / 3);
+  /* The mask's origin and edge, and the attribute its rules ask for, are set with the theme in the transition's update,
+     before its layers are made: set before the old picture is taken, they would restyle the whole page once more
+     first, which a list's hundreds of cards make long. */
+  const update = () => {
+    if (!reduced) {
+      root.style.setProperty("--theme-x", `${at.x}px`);
+      root.style.setProperty("--theme-y", `${at.y}px`);
+      root.style.setProperty("--theme-soft", `${soft}px`);
+      root.style.setProperty("--theme-end", `${far + soft}px`);
+    }
+    root.dataset.themeSwitch = reduced ? "dissolve" : "arrive";
+    apply();
+  };
   running = true;
   setChanging(true);
-  root.dataset.themeSwitch = reduced ? "dissolve" : "arrive";
   let guard: ReturnType<typeof setTimeout> | undefined;
   const done = () => {
     clearTimeout(guard);
@@ -167,7 +173,7 @@ export function switchTheme(apply: () => void, from?: RevealFrom, reduced = redu
   };
   let transition: Transition;
   try {
-    transition = doc.startViewTransition.call(doc, apply);
+    transition = doc.startViewTransition.call(doc, update);
   } catch {
     done();
     apply();

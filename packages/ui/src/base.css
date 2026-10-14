@@ -225,7 +225,7 @@
 
   /* The theme's change (theme.ts). The old picture lies still beneath; the new one is masked by a radial gradient
      whose radius runs from nothing to past the page's farthest corner, its edge --theme-soft wide. The origin and the
-     end are set on html before the transition starts, so its first frame is already masked. The dissolve keeps the
+     end are set on html with the theme, in the transition's update, so its first frame is already masked. The dissolve keeps the
      browser's crossfade at the token's length. Both are scoped to the switch's own attribute, so any other view
      transition keeps its own. */
   html[data-theme-switch="arrive"]::view-transition-old(root),
