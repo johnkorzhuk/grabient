@@ -1,4 +1,4 @@
-import { type Element, For, NoHydration, Show } from "solid-js";
+import { type Element, For, NoHydration, Show, untrack } from "solid-js";
 import styles from "./GroupFeed.module.css";
 import { createHeights, createWindow, type WindowRoom } from "./window.ts";
 
@@ -47,9 +47,10 @@ export function GroupFeed<T>(props: {
     >
       <For each={shown()} keyed={props.key}>
         {item => {
-          const measure = measured.measure(() => props.key(item()));
+          /* the feed keeps a group by its key, so a group's key is its own for good */
+          const key = untrack(() => props.key(item()));
           return (
-            <div ref={measure} data-group={props.key(item())}>
+            <div ref={measured.measure(key)} data-group={key}>
               {props.group(item)}
             </div>
           );

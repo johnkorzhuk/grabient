@@ -131,10 +131,14 @@ export function Home(props: { params: ListParams }) {
      after each page that joins. A document's own first page asks for nothing the reader has not neared. */
   const reached = !isHydrating();
   createEffect(
-    () => (feed.more() ? (feed.joined().at(-1) ?? standingFirst())?.page : undefined),
-    last => {
-      if (last !== undefined && (reached || feed.joined().length))
-        void client.prefetchQuery(homeCollectionsQuery(words(), last + 1));
+    () => {
+      const last = (feed.joined().at(-1) ?? standingFirst())?.page;
+      return feed.more() && last !== undefined && (reached || feed.joined().length)
+        ? homeCollectionsQuery(words(), last + 1)
+        : null;
+    },
+    ahead => {
+      if (ahead) void client.prefetchQuery(ahead);
     }
   );
   /* every collection on the feed once, in the order the pages came, less what this tab deleted; each with when its

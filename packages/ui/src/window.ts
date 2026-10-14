@@ -202,14 +202,14 @@ export function createHeights(kept: Map<string, number>) {
       version();
       return kept.get(key);
     },
-    measure: (key: () => string) => {
+    measure: (key: string) => {
       let el: Element | undefined;
       onCleanup(() => {
         if (el) observer?.unobserve(el);
       });
       return (node: HTMLElement) => {
         el = node;
-        keys.set(node, key());
+        keys.set(node, key);
         observer?.observe(node);
       };
     }
