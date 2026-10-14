@@ -1,5 +1,6 @@
 import type { ParsedLocation, useRouter } from "@tanstack/solid-router";
 import { createEffect, onCleanup, untrack } from "solid-js";
+import { TRACKING_PARAM } from "../../lib/links.ts";
 import { readSeedPage, type SeedPage, sameAddress, seedAddress, seedSearch } from "./address.ts";
 import type { PaletteEditor } from "./editor.ts";
 import { searchReader } from "./page.ts";
@@ -9,10 +10,11 @@ import { searchReader } from "./page.ts";
    keeps the palette's undo and what the page opened with, so Back, Forward and a reload bring them back.
 
    The address is written at most once per WRITE_MS, the first of a burst at once and the last always: Safari refuses a
-   page more than a hundred history calls in thirty seconds, and a drag makes that many in two. A press lands the last
-   write before anything it leads to, and so does leaving the page. Another address arriving (Back, Forward, a link
-   to another palette) is the editor's to take in, and a write waiting for its turn is dropped with the entry it
-   was for. */
+   page more than a hundred history calls in thirty seconds, and a drag or a run of presses makes that many in a few.
+   A press on a link or on the way into the selection lands the last write before it is followed, and so does leaving
+   the page. Another address arriving (Back, Forward, a link to another palette) is the editor's to take in, and a
+   write waiting for its turn is dropped with the entry it was for. The campaign tags a reader landed with stay on
+   their entry through its rewrites, where a copy of the address and analytics read them. */
 const WRITE_MS = 350;
 
 type Router = ReturnType<typeof useRouter>;
@@ -34,6 +36,12 @@ export const pageAt = (location: ParsedLocation): SeedPage | null =>
   readSeedPage(
     location.pathname.slice(1),
     searchReader(location.search as Record<string, unknown>)
+  );
+const tagsAt = (location: ParsedLocation) =>
+  Object.fromEntries(
+    Object.entries(location.search as Record<string, unknown>).filter(([name]) =>
+      TRACKING_PARAM.test(name)
+    )
   );
 
 export function followAddress(
@@ -68,7 +76,7 @@ export function followAddress(
     void router.navigate({
       to: "/$id",
       params: { id: page.seed },
-      search: seedSearch(page),
+      search: { ...seedSearch(page), ...tagsAt(location()) },
       replace: true,
       resetScroll: false,
       state: prev => ({ ...prev, ...e.entry() })
@@ -94,34 +102,49 @@ export function followAddress(
 
   createEffect(location, at => {
     const page = pageAt(at);
-    if (!page) return;
+    /* the page left for another, which may still be loading: a write waiting would land on that one's entry */
+    if (!page) {
+      cancel();
+      return;
+    }
     const address = seedAddress(page);
+    /* an address written another way than the canonical (a link from elsewhere) is rewritten in place */
+    let write = !sameAddress(address, at.pathname + at.searchStr);
     if (address !== shown) {
       cancel();
       shown = address;
-      arrived(page);
-      e.arrive(page, at.state as EntryState);
+      /* The selection opening over this palette, closing, or setting the size it exports at: the same page, whose
+         undo and record stay, so a step taken in the selection is walked in its place among the edits. The
+         selection's entry keeps them as the page's does, for a reload there. */
+      const selecting = untrack(e.selecting);
+      if (page.seed === untrack(e.seed) && (page.selection || selecting)) {
+        write ||= page.selection && !selecting;
+        e.take(page);
+      } else {
+        arrived(page);
+        e.arrive(page, at.state as EntryState);
+      }
     }
-    /* an address written another way than the canonical (a link from elsewhere) is rewritten in place */
-    if (!sameAddress(address, at.pathname + at.searchStr)) {
+    if (write) {
       latest = address;
       writeSoon();
     }
   });
 
-  /* a drag's last value is in the address the moment it lets go, a press on a link writes it before the link is
-     followed, and a page being left writes what it has not */
-  const lift = () => {
-    if (latest) setTimeout(flush, 0);
+  /* A press that leads to another entry (a link, the way into the selection) writes what waits first: the entry it
+     leaves keeps the router's address, and the selection's is made from it. Other presses, a drag's end among them,
+     wait their turn, since a run of presses would otherwise write once each. A page being left writes what it has
+     not. */
+  const leaving = (event: Event) => {
+    if (event.target instanceof Element && event.target.closest("a[href], [data-selection]"))
+      flush();
   };
-  addEventListener("pointerup", lift, true);
-  addEventListener("click", flush, true);
+  addEventListener("click", leaving, true);
   addEventListener("pagehide", flush);
   /* the page left for another: its address was written as the press that left it landed */
   onCleanup(() => {
     cancel();
-    removeEventListener("pointerup", lift, true);
-    removeEventListener("click", flush, true);
+    removeEventListener("click", leaving, true);
     removeEventListener("pagehide", flush);
   });
   return {
@@ -131,6 +154,12 @@ export function followAddress(
     keep() {
       latest ??= shown;
       writeSoon();
+    },
+    /** The address bar shows the palette now, out of turn: for what reads it there (U copies it). The router hands
+        the browser its writes a moment later, unless told to now. */
+    settle() {
+      flush();
+      router.history.flush();
     }
   };
 }

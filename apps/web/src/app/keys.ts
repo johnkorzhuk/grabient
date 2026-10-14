@@ -14,6 +14,14 @@ import { redo, undo } from "./undo.ts";
    address to settle. Typing is never taken. */
 const UNDO = keyRow("undo")!;
 
+/** Copies the page's address as the address bar shows it, and says whether it could. */
+export function copyAddress(): void {
+  void copyText(location.href).then(ok => {
+    announce(t(ok ? msg("Copied") : msg("Couldn't copy. Select the text and copy it.")));
+    if (ok) trackEvent("copy_link", { surface: "key" });
+  });
+}
+
 /** Binds the site's keys and `page()` for as long as the caller is mounted. `rows` is the ? list while it is open. */
 export function createSiteKeys(page: () => readonly Binding[]) {
   const [rows, setRows] = createSignal<readonly KeyRow[] | null>(null);
@@ -23,12 +31,7 @@ export function createSiteKeys(page: () => readonly Binding[]) {
         const next = toggleTheme();
         if (next) trackEvent("change_setting", { setting: "theme", value: next });
       },
-      copyUrl: () => {
-        void copyText(location.href).then(ok => {
-          announce(t(ok ? msg("Copied") : msg("Couldn't copy. Select the text and copy it.")));
-          if (ok) trackEvent("copy_link", { surface: "key" });
-        });
-      }
+      copyUrl: copyAddress
     }),
     {
       id: "undo",

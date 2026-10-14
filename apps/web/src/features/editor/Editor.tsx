@@ -63,9 +63,9 @@ import {
   saveFormat,
   type Taken
 } from "./formats.ts";
-import { followAddress } from "./history.ts";
+import { followAddress, pageAt } from "./history.ts";
 import { editorBindings, keyOf } from "./keys.ts";
-import { NARROW, type PaletteData, Sheet } from "./page.ts";
+import { keepFacts, NARROW, type PaletteData, Sheet } from "./page.ts";
 import { createRest, type Rest } from "./rest.ts";
 import { createPaletteSave, type PaletteSave } from "./save.ts";
 
@@ -138,8 +138,10 @@ export default function Editor(props: { data: PaletteData }) {
   const location = useLocation();
   const shell = useContext(ShellContext)!;
   const first = untrack(() => props.data);
+  keepFacts(first);
+  /* what Random keeps and the selection are the address's alone: the route's data never carries them */
   const e = createPaletteEditor(
-    first.page,
+    pageAt(untrack(location)) ?? first.page,
     untrack(location).state as { edits?: unknown; opened?: unknown }
   );
   const rest = createRest();
@@ -171,17 +173,22 @@ export default function Editor(props: { data: PaletteData }) {
   /* The frame keeps the keys and the palettes a page hands in last, so these come after the screen's and stand for
      both: while the screen stands the editor's keys rest, Escape closes it and the bar carries the selection. */
   shell.keys(() => [
-    ...editorBindings(e, { live: () => !chosen.open(), togglePanel: panel.toggle, save }),
+    ...editorBindings(e, {
+      live: () => !chosen.open(),
+      togglePanel: panel.toggle,
+      save,
+      settle: address.settle
+    }),
     { key: "Escape", label: msg("Close selection"), run: chosen.close, when: chosen.open }
   ]);
   shell.paint(() => (chosen.open() ? selection() : [drawn()]));
 
   /* an admin's Save from inside a field (a hex being typed), where the page's keys rest: the field lets go, which
-     commits it, then Save; never the browser's own Save page */
+     commits it, then Save; never the browser's own Save page. The selection's fields have no palette to save. */
   onSettled(() => {
     const saveRow = keyRow("save");
     const onKey = (event: KeyboardEvent) => {
-      if (!save.admin() || !typing(event.target) || !saveRow) return;
+      if (!save.admin() || chosen.open() || !typing(event.target) || !saveRow) return;
       if (!rowKeys(saveRow).some(k => matches(event, k))) return;
       event.preventDefault();
       (event.target as HTMLElement).blur();
@@ -787,7 +794,6 @@ function Strip(props: {
   onCopy: () => void;
 }) {
   const e = props.editor;
-  const calm = createFlashGuard(e.shownStops, lights);
   const marks = () =>
     props.marked
       ? e.held().map(i => {
@@ -797,8 +803,9 @@ function Strip(props: {
       : [];
   return (
     <div class={styles.bar}>
+      {/* the strip guards its own paint against flashing, as the picture does */}
       <StopStrip
-        stops={calm()}
+        stops={e.shownStops()}
         marks={marks()}
         reading={e.reading()}
         short={props.narrow}
@@ -822,10 +829,7 @@ function Side(props: Omit<PageProps, "narrow"> & { narrow: boolean }) {
     const list = e.shownStops();
     return at === null || !list.length ? null : list[stopNear(list.length, at)];
   });
-  const [lastRead, setLastRead] = createSignal<ReturnType<typeof read>>(null);
-  createEffect(read, stop => {
-    if (stop) setLastRead(stop);
-  });
+  const lastRead = createMemo<ReturnType<typeof read>>(prev => read() ?? prev ?? null);
   /* The plots share what the window leaves the side under its other rows, read from the rows themselves, so a plot's
      own height takes no part in it. In a window too low for the plots at their least the side scrolls its rows. */
   const [plotH, setPlotH] = createSignal(160);

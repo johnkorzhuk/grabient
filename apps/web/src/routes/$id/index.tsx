@@ -12,6 +12,7 @@ import { loadEditor, paletteData, paletteHead, searchReader } from "../../featur
 import { StaticPalette } from "../../features/editor/StaticPalette.tsx";
 import { ListAppearance } from "../../features/list/ListAppearance.tsx";
 import { NO_STORE, PAGE, PALETTE_PAGE } from "../../lib/cache.ts";
+import { BROWSER_ONLY, TRACKING_PARAM } from "../../lib/links.ts";
 import { pageHead } from "../../lib/page-meta.ts";
 import { answerWith, searchOf } from "../../lib/route.ts";
 
@@ -36,8 +37,16 @@ export const Route = createFileRoute("/$id/")({
     if (params.status !== "success") return true;
     return isSeed(params.value.id) ? "data-only" : !OLD_SEED.test(params.value.id);
   },
-  // the view rides the address: a page is read again as it changes, from the address alone
-  loaderDeps: ({ search }) => ({ search: search as Record<string, unknown> }),
+  /* The view rides the address: a page is read again as it changes, from the address alone. The browser's own words
+     (the selection, what Random keeps) and a landing's campaign tags change nothing the server reads, and the edge
+     keeps one document for all of them: the browser reads that document's page as its own. */
+  loaderDeps: ({ search }) => ({
+    search: Object.fromEntries(
+      Object.entries(search as Record<string, unknown>).filter(
+        ([name]) => !BROWSER_ONLY.includes(name) && !TRACKING_PARAM.test(name)
+      )
+    )
+  }),
   loader: async ({ context, params, deps, location }) => {
     const palette = await paletteData(params.id, deps.search);
     if (palette) {
@@ -53,7 +62,8 @@ export const Route = createFileRoute("/$id/")({
       const collection = await loadCollection(context.queryClient, {
         slug: params.id,
         order: "popular",
-        searchStr: searchOf(deps.search),
+        // words that are no collection lead to their search with the selection still open
+        searchStr: searchOf(location.search as Record<string, unknown>),
         publicHref: location.publicHref
       });
       /* what the collections' loader hands the frame stands where the frame reads it */

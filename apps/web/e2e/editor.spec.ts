@@ -210,6 +210,43 @@ test("another spelling of an address answers with the canonical one", async ({ r
   expect(to.pathname + to.search).toBe(`/${SEED}?lock=lightness,hue`);
 });
 
+test("the document the edge keeps for an address is the same page for its lock words and campaign tags", async ({
+  page,
+  request
+}) => {
+  const plain = "/kQ4RjAYQ6_g?steps=6&angle=180";
+  const kept = await (await request.get(plain)).text();
+  const title = /<title[^>]*>([^<]*)<\/title>/.exec(kept)?.[1] ?? "";
+  for (const words of ["&lock=hue", "&utm_source=news"]) {
+    const address = plain + words;
+    await page.route(
+      url => url.pathname + url.search === address,
+      route => route.fulfill({ body: kept, contentType: "text/html; charset=utf-8" })
+    );
+    await open(page, address);
+    await page.waitForTimeout(1000);
+    await expect(page).toHaveTitle(title);
+    expect(here(page)).toBe(address);
+  }
+  await open(page, `${plain}&lock=hue`);
+  await expect(
+    page.getByRole("complementary", { name: "Editor" }).getByRole("button", { name: "Lock hue" })
+  ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("a change of view keeps the title the server wrote for the palette", async ({ page }) => {
+  await open(page, "/kQ4RjAYQ6_g?steps=6&angle=180");
+  const title = await page.title();
+  await page.keyboard.press("]");
+  await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?angle=180");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveTitle(title);
+  await page.keyboard.press("[");
+  await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=180");
+  await page.waitForTimeout(500);
+  await expect(page).toHaveTitle(title);
+});
+
 test("random leads to a new palette at the view asked for", async ({ request }) => {
   const answer = await request.get("/random?style=radialGradient", { maxRedirects: 0 });
   expect(answer.status()).toBe(302);
@@ -241,6 +278,95 @@ test("edits rewrite the address in place, and the undo walks them both ways", as
   expect(await entries(page)).toBe(before);
 });
 
+test("a burst of presses writes the address at most once a rhythm, and the last press lands", async ({
+  page
+}) => {
+  // Safari refuses a page more than a hundred history calls in thirty seconds
+  await page.addInitScript(() => {
+    const calls: number[] = [];
+    Object.assign(window, { historyCalls: calls });
+    for (const name of ["replaceState", "pushState"] as const) {
+      const real = History.prototype[name];
+      History.prototype[name] = function (this: History, ...args: [unknown, string, string?]) {
+        calls.push(performance.now());
+        return real.apply(this, args);
+      };
+    }
+  });
+  await open(page);
+  const invert = await page.getByRole("button", { name: "Invert" }).boundingBox();
+  if (!invert) throw new Error("no Invert press");
+  const calls = () =>
+    page.evaluate(() => [...(window as unknown as { historyCalls: number[] }).historyCalls]);
+  const before = (await calls()).length;
+  for (let i = 0; i < 15; i++) {
+    await page.mouse.click(invert.x + invert.width / 2, invert.y + invert.height / 2);
+    await page.waitForTimeout(40);
+  }
+  // an odd count of inverts is the palette inverted once
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  const writes = (await calls()).slice(before);
+  expect(writes.length).toBeGreaterThan(1);
+  for (let i = 1; i < writes.length; i++)
+    expect(writes[i]! - writes[i - 1]!).toBeGreaterThanOrEqual(300);
+});
+
+test("a press that leads to another entry lands the edit still waiting in the entry it leaves", async ({
+  page
+}) => {
+  await open(page);
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  const terms = page.getByRole("link", { name: "Terms" });
+  for (const leave of [
+    () => presses.getByRole("button", { name: /^Selection/ }).click(),
+    () => terms.click()
+  ]) {
+    await page.keyboard.press("i");
+    await expect.poll(() => here(page)).not.toContain("kS7CQ31Do6asvY-");
+    const inverted = here(page);
+    // the address was written a moment ago, so the next edit's waits its turn
+    await page.keyboard.press("e");
+    await leave();
+    await expect.poll(() => here(page)).not.toBe(inverted);
+    await page.goBack();
+    await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+    await expect.poll(() => here(page)).toBe("/kSqF5vKzob4kSRW");
+    // back where the walk began, for the next press
+    await page.keyboard.press("ControlOrMeta+z");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => here(page)).toBe(`/${SEED}`);
+  }
+});
+
+test("U copies the address as the last edit leaves it", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await open(page);
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).not.toBe(`/${SEED}`);
+  const inverted = here(page);
+  // the address was written a moment ago, so the next edit's waits its turn
+  await page.keyboard.press("e");
+  await page.keyboard.press("u");
+  await expect.poll(() => here(page)).not.toBe(inverted);
+  await expect
+    .poll(() => page.evaluate(() => navigator.clipboard.readText()))
+    .toBe(new URL(here(page), page.url()).href);
+});
+
+test("the campaign tags a reader landed with stay in the address through its edits", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?utm_source=news&steps=9`);
+  await page.waitForTimeout(500);
+  expect(here(page)).toBe(`/${SEED}?utm_source=news&steps=9`);
+  await page.keyboard.press("i");
+  await expect.poll(() => new URL(page.url()).pathname).toBe("/kSEiS3qzo6dQvY-");
+  const params = new URL(page.url()).searchParams;
+  expect(params.get("steps")).toBe("9");
+  expect(params.get("utm_source")).toBe("news");
+});
+
 test("the view's keys change the address, never the undo or the history", async ({ page }) => {
   await open(page);
   const before = await entries(page);
@@ -249,6 +375,33 @@ test("the view's keys change the address, never the undo or the history", async 
   await expect.poll(() => here(page)).toBe(`/${SEED}?steps=8&angle=105`);
   expect(await entries(page)).toBe(before);
   await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
+});
+
+test("a radial palette's Appearance names and offers its angle, as every style's does", async ({
+  page
+}) => {
+  await open(page, `/${SEED}?style=radialGradient`);
+  await page.keyboard.press(".");
+  await expect.poll(() => here(page)).toBe(`/${SEED}?style=radialGradient&angle=105`);
+  const appearance = page.getByRole("button", { name: /^Appearance:/ });
+  await expect(appearance).toHaveAccessibleName("Appearance: As saved, 105°");
+  await appearance.click();
+  await expect(page.locator('#appearance-menu input[aria-label="Angle"]')).toHaveValue("105°");
+});
+
+test("an entry's record of a view no address could carry is no record", async ({ page }) => {
+  await open(page, `/${SEED}?steps=9`);
+  // the browser hands back whatever a history entry kept
+  await page.evaluate(() => {
+    const opened = { style: "bogus", steps: 9999, angle: 9999, set: { style: true, angle: true } };
+    History.prototype.replaceState.call(history, { ...history.state, opened }, "");
+  });
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Appearance:/ })).toHaveAccessibleName(
+    "Appearance: As saved"
+  );
+  expect(here(page)).toBe(`/${SEED}?steps=9`);
 });
 
 test("a drag on a number is one step, however long it rests", async ({ page }) => {
@@ -289,6 +442,41 @@ test("Back leaves an edited palette in one press, and Forward brings it back wit
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
   await page.keyboard.press("ControlOrMeta+z");
   await expect.poll(() => here(page)).toBe(first);
+});
+
+test("Back with an edit's address still waiting lands on the page it leaves for", async ({
+  page,
+  request
+}) => {
+  const listed = (await (await request.get("/api/collections")).json()) as {
+    items: { slug: string }[];
+  };
+  const collection = `/${listed.items[0]?.slug}`;
+  await page.goto(collection);
+  // started, so the palette opens in the page
+  await page.waitForFunction(() => !("$_TSR" in window));
+  await page.locator("main article a[aria-label='Edit']").first().focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  // a document of its own, so Back reads the collection again, and slowly
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await page.route("**/api/collections/**", async route => {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    await route.continue();
+  });
+  const before = await entries(page);
+  const opened = here(page);
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).not.toBe(opened);
+  // the address was written a moment ago, so the next edit's waits its turn
+  await page.keyboard.press("i");
+  await page.evaluate(() => history.back());
+  await expect(page.getByRole("complementary", { name: "Editor" })).toHaveCount(0, {
+    timeout: 10_000
+  });
+  expect(here(page)).toBe(collection);
+  expect(await entries(page)).toBe(before);
 });
 
 test("the sheet asks for the palettes like this one only once it is in view", async ({ page }) => {
@@ -395,6 +583,112 @@ test("the selection's export screen takes the page's place, and Escape closes it
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
 });
 
+test("a step taken in the selection is the first an undo takes back once it closes", async ({
+  page
+}) => {
+  await open(page);
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  await page.keyboard.press("e");
+  const edited = "/kSqF5vKzob4kSRW";
+  await expect.poll(() => here(page)).toBe(edited);
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  const selection = page.getByRole("button", { name: /^Selection/ }).first();
+  await expect(selection).toHaveAccessibleName("Selection 2");
+  await selection.click();
+  await page.getByRole("button", { name: "Remove palette 1" }).first().click();
+  await page.keyboard.press("Escape");
+  await expect.poll(() => here(page)).toBe(edited);
+  await expect(selection).toHaveAccessibleName("Selection 1");
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(selection).toHaveAccessibleName("Selection 2");
+  expect(here(page)).toBe(edited);
+  // the edits are next, in the order they were made
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(selection).toHaveAccessibleName("Selection 1");
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+});
+
+test("the selection's entry keeps the palette's undo, so a reload there loses none of it", async ({
+  page
+}) => {
+  await open(page);
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  await page.keyboard.press("e");
+  await expect.poll(() => here(page)).toBe("/kSqF5vKzob4kSRW");
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await presses.getByRole("button", { name: /^Selection/ }).click();
+  await expect.poll(() => page.evaluate(() => !!history.state?.edits)).toBe(true);
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Close selection" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+});
+
+test("an admin's Mod+S in the selection's fields saves no palette", async ({ page }) => {
+  // an admin's session and account copy, and a palette in the gallery, as the server would answer them
+  const admin = {
+    id: "e2e-admin",
+    name: "Admin",
+    email: "admin@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "admin",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  const asked: string[] = [];
+  await page.route("**/api/me/**", route => route.fulfill({ status: 401, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: admin.id }, user: admin } })
+  );
+  await page.route("**/api/me/sync", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        reset: true,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: true
+      }
+    })
+  );
+  await page.route("**/api/me/palettes/*", route => {
+    const seed = new URL(route.request().url()).pathname.split("/").at(-1) ?? "";
+    asked.push(`${route.request().method()} ${seed}`);
+    return route.fulfill({ json: { seed, gallery: {}, collections: [], liked: false } });
+  });
+  await open(page);
+  await expect(page.getByRole("button", { name: "Save", exact: true })).toBeVisible();
+  await page.keyboard.press("i");
+  await expect.poll(() => here(page)).toBe("/kSEiS3qzo6dQvY-");
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await presses.getByRole("button", { name: /^Selection/ }).click();
+  await page.getByRole("complementary", { name: "Export" }).getByLabel("Width").click();
+  await page.keyboard.press("ControlOrMeta+s");
+  await page.waitForTimeout(1000);
+  // the palette's standing is asked once, for the palette the page opened on
+  expect(asked).toEqual([`GET ${SEED}`]);
+  // in the editor's own fields it is Save
+  await page.getByRole("button", { name: "Close selection" }).click();
+  const side = page.getByRole("complementary", { name: "Editor" });
+  await side.getByRole("option").first().click();
+  await side.getByLabel("Hex color").click();
+  await page.keyboard.press("ControlOrMeta+s");
+  await expect.poll(() => asked).toEqual([`GET ${SEED}`, `PUT ${SEED}`]);
+});
+
 test("About's first figure is the editor's own controls over a palette of its own, with its own undo", async ({
   page
 }) => {
@@ -429,6 +723,26 @@ test("About's first figure is the editor's own controls over a palette of its ow
   await expect(reset).toBeHidden();
   await undo.click();
   await expect(chips).toHaveCount(6);
+});
+
+test("About's keys leave select all to the article, turn no hue and take no keyframe without a hold", async ({
+  page
+}) => {
+  await page.goto("/about");
+  const chips = page.getByRole("listbox", { name: "Keyframes" }).first().getByRole("option");
+  await expect(chips).toHaveCount(5);
+  const before = await chips.allTextContents();
+  await page.getByRole("heading", { level: 1 }).click();
+  await page.keyboard.press("ControlOrMeta+a");
+  expect(await page.evaluate(() => getSelection()?.toString().length ?? 0)).toBeGreaterThan(100);
+  await expect(page.locator('[role="option"][aria-selected="true"]')).toHaveCount(0);
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Delete");
+  await page.keyboard.press("Backspace");
+  await page.keyboard.press(".");
+  await page.keyboard.press(",");
+  await expect(chips).toHaveCount(5);
+  expect(await chips.allTextContents()).toEqual(before);
 });
 
 test.describe("on a phone", () => {

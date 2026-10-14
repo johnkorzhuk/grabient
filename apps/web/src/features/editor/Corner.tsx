@@ -1,5 +1,4 @@
 import { gradientCss } from "@grabient/engine/css.ts";
-import type { Style } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
 import { APPEARANCE_OPTIONS, Appearance, styleLabel } from "@grabient/ui/Appearance.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
@@ -15,9 +14,6 @@ export interface Panel {
   toggle: () => void;
 }
 
-/* a radial picture turns no way: its angle steps aside */
-const turns = (style: Style) => !style.startsWith("radial");
-
 /** The header's corner on a palette's page: the press that puts the side away and brings it back, and how the palette
     is drawn. It reads As saved with no tile chosen and Steps and Angle on Auto until the reader sets one; a style,
     steps or an angle set here is the reader's, and goes for every palette the page draws. */
@@ -31,7 +27,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
       ...(set().steps
         ? [t("{count, plural, one {# step} other {# steps}}", { count: e.steps() })]
         : []),
-      ...(set().angle && turns(e.style()) ? [`${e.angle()}°`] : [])
+      ...(set().angle ? [`${e.angle()}°`] : [])
     ].join(" · ");
   const panelName = () => t(props.panel.open() ? msg("Hide panel") : msg("Show panel"));
   return (
@@ -63,7 +59,7 @@ export function Corner(props: { editor: PaletteEditor; panel: Panel }) {
           auto: true,
           style: set().style ? e.style() : "auto",
           steps: set().steps ? e.steps() : "auto",
-          angle: !turns(e.style()) ? null : set().angle ? e.angle() : "auto",
+          angle: set().angle ? e.angle() : "auto",
           stepsMin: Math.max(3, e.K()),
           bg: style => gradientCss(paint(), style, e.angle()),
           onStyle: style => {

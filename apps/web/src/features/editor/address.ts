@@ -13,6 +13,7 @@ import {
   viewSearch
 } from "@grabient/engine/view.ts";
 import type { HistoryState } from "@tanstack/solid-router";
+import { TRACKING_PARAM } from "../../lib/links.ts";
 
 /** A seed's shape in an address. Whether it decodes is the codec's to say. */
 export const SEED_SHAPE = /^k[A-Za-z0-9_-]{8,49}$/;
@@ -85,13 +86,16 @@ export function seedSearch(page: Addressed): Record<string, string | number> {
   return out;
 }
 
-/** Whether two addresses say the same thing: one path, and the same parameters in the same order once decoded. */
+/** Whether two addresses say the same thing: one path, and the same parameters in the same order once decoded.
+    Campaign tags and click ids say where a reader came from, nothing of the page. */
 export function sameAddress(a: string, b: string): boolean {
   const [pathA, queryA = ""] = a.split("?");
   const [pathB, queryB = ""] = b.split("?");
   if (pathA !== pathB) return false;
-  const left = [...new URLSearchParams(queryA)];
-  const right = [...new URLSearchParams(queryB)];
+  const said = (query: string) =>
+    [...new URLSearchParams(query)].filter(([name]) => !TRACKING_PARAM.test(name));
+  const left = said(queryA);
+  const right = said(queryB);
   return (
     left.length === right.length &&
     left.every(([k, v], i) => k === right[i][0] && v === right[i][1])

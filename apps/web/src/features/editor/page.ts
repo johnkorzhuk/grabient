@@ -26,6 +26,14 @@ export const searchReader = (search: Readonly<Record<string, unknown>>): ParamRe
   }
 });
 
+/* The facts the server read for the palette the document came with, which the browser keeps for that palette: the page
+   is read again with each change of view, and its written title outlasts the change. Only the browser writes it. */
+let documentFacts: { seed: string; facts: PaletteFacts } | null = null;
+/** The editor hands in the data it opened with: the server's facts, where the document came with them. */
+export function keepFacts(data: PaletteData) {
+  if (data.facts) documentFacts = { seed: data.page.seed, facts: data.facts };
+}
+
 /* The server reads the facts and names the palette once, for the head and the static page, and the page carries
    them: naming a palette takes a phone a moment, which the browser starting on the page spends on nothing. A palette
    the browser opens or makes later is named there, as it is drawn. */
@@ -39,7 +47,9 @@ const read = createIsomorphicFn()
     const meta = metaPage(page, facts);
     return { facts, frames, meta: pageMeta(meta), heading: heading(meta) };
   })
-  .client(async (_page: SeedPage) => ({ facts: null }));
+  .client(async (page: SeedPage) => ({
+    facts: documentFacts?.seed === page.seed ? documentFacts.facts : null
+  }));
 
 export interface PaletteData {
   page: SeedPage;

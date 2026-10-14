@@ -125,7 +125,6 @@ function KeyframesFigure(props: { figure: Figure; onPress: (e: PointerEvent) => 
 /** The same palette in steps, as the editor's strip draws them, its keyframes marked. */
 function StepsFigure(props: { figure: Figure; onPress: (e: PointerEvent) => void }) {
   const f = props.figure;
-  const steps = createFlashGuard(() => hexesOf(f.palette(), f.steps()), lights);
   const marks = () =>
     f.anchorStops().map((stop, i) => ({ t: f.K() > 1 ? i / (f.K() - 1) : 0, paint: stop.hex }));
   return (
@@ -151,7 +150,8 @@ function StepsFigure(props: { figure: Figure; onPress: (e: PointerEvent) => void
           />
         }
       >
-        <StopStrip stops={steps().map(hex => ({ hex }))} marks={marks()} />
+        {/* the strip guards its own paint against flashing */}
+        <StopStrip stops={hexesOf(f.palette(), f.steps()).map(hex => ({ hex }))} marks={marks()} />
       </FigurePane>
     </div>
   );
@@ -376,21 +376,21 @@ function waterFollows(f: Figure) {
   };
 }
 
-/* the editor's keys over the first figure while the page is open: the figure's own undo takes the page's place */
+/* the editor's keys over the first figure while the page is open, the figure's own undo in the page's place. Select
+   all stays the article's, the figure has no angle to rotate, and the keys that remove keyframes wait for a hold. */
 function figureKeys(f: Figure): Binding[] {
   const row = (id: string, run: (i: number) => void, when?: () => boolean): Binding => {
     const r = keyRow(id)!;
     return { id, key: r.keys, label: r.label, scope: r.scope, run, when };
   };
+  const held = () => f.selection().length > 0;
   return [
     row("random", f.random, f.canRandom),
     row("invert", f.invert),
     row("reverse", f.reverse, f.canReverse),
-    row("selectAll", f.holdAll),
-    row("remove", f.removeKeyframes, () => f.K() > K_MIN),
-    row("letGo", f.letGo, () => f.selection().length > 0),
+    row("remove", f.removeKeyframes, held),
+    row("letGo", f.letGo, held),
     row("stops", i => f.setSteps(f.steps() + (i === 0 ? -1 : 1))),
-    row("rotate", i => f.setHueStart((((f.hueStart() + (i === 0 ? -15 : 15)) % 360) + 360) % 360)),
     row("undo", i => (i === 0 ? f.undo() : f.redo()))
   ];
 }
