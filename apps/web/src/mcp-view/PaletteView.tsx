@@ -209,7 +209,10 @@ export function PaletteView(props: PaletteViewProps) {
       );
     } else if (isSwatchFormat(format)) {
       /* the swatch files that are text, written as the site writes them */
-      const palette = swatchPalette(tile.seed, tile, props.origin, named(tile), language());
+      const palette = swatchPalette(tile.seed, tile, props.origin, {
+        name: named(tile),
+        language: language()
+      });
       const file = palette ? swatchFile(format, [palette]) : "";
       text = typeof file === "string" ? file : "";
       label = format === "tokens" ? "Tokens" : format.toUpperCase();

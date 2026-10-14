@@ -7,9 +7,7 @@ import {
   withEmoji
 } from "@grabient/search/lexicon.ts";
 import { loadTower, type Tower } from "@grabient/search/tower.ts";
-import type { Env } from "@grabient/server/env.ts";
-
-export type AssetsEnv = Pick<Env, "ASSETS">;
+import { type AssetsEnv, asset, once } from "../assets.ts";
 
 export interface Vocabulary {
   version: string;
@@ -22,29 +20,9 @@ export interface Vocabulary {
   kinds: [number, string][];
 }
 
-/** A search file as the deploy serves it. The binding reads the path alone; the host is one `vite dev` serves, which
-    answers the binding from its own files and refuses a host it does not know. */
-export async function searchAsset(env: AssetsEnv, name: string): Promise<Response> {
-  const response = await env.ASSETS.fetch(`http://assets.localhost/search/${name}`);
-  if (!response.ok) throw new Error(`search/${name} is missing`);
-  return response;
-}
-
-/* Kept by the binding: an isolate keeps its bindings from request to request. */
-function once<T>(load: (env: AssetsEnv) => Promise<T>): (env: AssetsEnv) => Promise<T | null> {
-  const held = new WeakMap<Fetcher, Promise<T | null>>();
-  return env => {
-    let loading = held.get(env.ASSETS);
-    if (!loading) {
-      loading = load(env).catch(() => {
-        held.delete(env.ASSETS);
-        return null;
-      });
-      held.set(env.ASSETS, loading);
-    }
-    return loading;
-  };
-}
+/** A search file as the deploy serves it. */
+export const searchAsset = (env: AssetsEnv, name: string): Promise<Response> =>
+  asset(env, `/search/${name}`);
 
 export const loadVocabulary = once(async (env): Promise<Vocabulary> => {
   const [head, vectors, lex, emoji] = await Promise.all([

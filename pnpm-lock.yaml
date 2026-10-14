@@ -199,6 +199,9 @@ importers:
       cf:
         specifier: 'catalog:'
         version: 1.0.0-beta.16(@types/node@26.6.5)
+      color-name-list:
+        specifier: 14.51.0
+        version: 14.51.0
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1661,6 +1664,10 @@ packages:
 
   cjs-module-lexer@1.2.3:
     resolution: {integrity: sha512-0TNiGstbQmCFwt4akjjBg5pLRTSyj/PkWQ1ZoO2zntmg9yLqSRxwEa4iCfQLGjqhiqBfOJa7W/E8wfGrTDmlZQ==}
+
+  color-name-list@14.51.0:
+    resolution: {integrity: sha512-z+1f72qycJijBEmd88ee836dGeZV8ztePIlPAhk/iavlmfPRG6BrWsJyZGvKkHC32ZW+5dpHbWEEP4y+jjVZIQ==}
+    engines: {node: ^22.14.0 || >=24.10.0, npm: '>=10.2.0'}
 
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
@@ -3583,6 +3590,8 @@ snapshots:
       readdirp: 5.1.1
 
   cjs-module-lexer@1.2.3: {}
+
+  color-name-list@14.51.0: {}
 
   convert-source-map@2.0.0: {}
 

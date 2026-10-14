@@ -8,7 +8,14 @@ import { downloadFile } from "@grabient/ui/copy.ts";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
 import { svgToPngBlob } from "@grabient/ui/figure.ts";
 import { colorFormat } from "../../lib/color-format.ts";
-import { copyImage, fileAddress, saveFile, swatchesOf, writeText } from "../../lib/files.ts";
+import {
+  copyImage,
+  copySwatches,
+  fileAddress,
+  saveFile,
+  swatchesOf,
+  writeText
+} from "../../lib/files.ts";
 import { seedAddress } from "./address.ts";
 
 /* What the editor's strips hand over: a palette copied, saved as a file, or as the address of the file the site serves
@@ -52,11 +59,8 @@ async function writeImage(png: Promise<Blob>): Promise<void> {
 
 /** The format onto the clipboard. */
 export async function copyFormat(f: Format, p: Taken): Promise<void> {
-  if (isSwatchFormat(f)) {
-    const file = swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) })]);
-    if (typeof file !== "string") throw new Error();
-    return writeText(file);
-  }
+  if (isSwatchFormat(f))
+    return copySwatches(names => swatchFile(f, [swatchesOf({ seed: p.seed, ...view(p) }, names)]));
   if (f === "png") return writeImage(svgToPngBlob(svgText(p), 1));
   return writeText(
     f === "css"

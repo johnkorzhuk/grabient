@@ -11,6 +11,7 @@ import { reducedMotion, syncMotion } from "@grabient/ui/motion.ts";
 import { PageRoot } from "@grabient/ui/PageRoot.tsx";
 import { Shader } from "@grabient/ui/Shader.tsx";
 import { SkipLink, SkipTarget } from "@grabient/ui/SkipLink.tsx";
+import { swatchesOpen } from "@grabient/ui/swatch-book.ts";
 import { ThemeIcon } from "@grabient/ui/ThemeIcon.tsx";
 import {
   setThemeOrigin,
@@ -31,6 +32,7 @@ import {
   recallView
 } from "../features/list/appearance.ts";
 import { syncColorFormat } from "../lib/color-format.ts";
+import { preciseNames } from "../lib/color-names.ts";
 import type { Drawn } from "../lib/palette.ts";
 import { hexesOf } from "../lib/palette.ts";
 import { AccountMenu } from "./AccountMenu.tsx";
@@ -113,6 +115,11 @@ export function Shell() {
     },
     { defer: true }
   );
+
+  /* the swatch files open on a strip: the colors' precise names are read now, so the file pressed next has them */
+  createEffect(swatchesOpen, open => {
+    if (open) void preciseNames();
+  });
 
   /* the page has scrolled under the header: a brand header takes its surface, so the wordmark never sits on the text */
   const [scrolled, setScrolled] = createSignal(false);

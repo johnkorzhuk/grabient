@@ -11,11 +11,12 @@ import type { Env } from "@grabient/server/env.ts";
 import { PAGE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
 import { collectionForFiles, isCollectionSlug } from "../collections/files.ts";
+import { colorNames } from "./names.ts";
 
 /** The collection at `name` as a swatch file, or null when the name has no collection's shape: it is then no file at
     all. */
 export async function collectionFile(
-  env: Pick<Env, "DB">,
+  env: Pick<Env, "DB"> & Partial<Pick<Env, "ASSETS">>,
   name: string,
   origin: string,
   format: SwatchFormat
@@ -23,7 +24,10 @@ export async function collectionFile(
   if (!isCollectionSlug(name)) return null;
   const doc = await collectionForFiles(env, name);
   if (!doc) return json({ error: "No collection has this address." }, { status: 404 });
-  const palettes = doc.items.flatMap(item => swatchPalette(item.seed, item, origin) ?? []);
+  const names = await colorNames(env);
+  const palettes = doc.items.flatMap(
+    item => swatchPalette(item.seed, item, origin, { names }) ?? []
+  );
   return new Response(swatchFile(format, palettes, doc.title), {
     headers: { ...PAGE, "X-Robots-Tag": "noindex", "Content-Type": SWATCH_FILES[format].type }
   });

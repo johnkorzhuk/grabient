@@ -18,6 +18,7 @@ import { DEFAULT_LOCALE, inLocale, msg, t } from "@grabient/i18n";
 import type { CodeSource } from "@grabient/ui/PaletteCode.tsx";
 import { createSignal } from "solid-js";
 import { colorFormat } from "../../lib/color-format.ts";
+import { namesNow, preciseNames } from "../../lib/color-names.ts";
 import type { PaletteFacts } from "../../server/editor/facts.ts";
 import type { Rest } from "./rest.ts";
 
@@ -83,7 +84,11 @@ export function codeSources(
   const stops = sampleStops(P, v.steps);
   const n = stops.length;
   const bands = isSwatchStyle(v.style);
-  const swatch = () => swatchPalette(seed, v, origin());
+  /* precisely named once the names are read, which asking for a swatch file's text starts */
+  const swatch = () => {
+    void preciseNames();
+    return swatchPalette(seed, v, origin(), { names: namesNow() });
+  };
   const markdown = () => {
     const address = `/${seed}.md${viewSearch(v)}`;
     const had = files().get(address);

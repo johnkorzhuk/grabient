@@ -9,6 +9,7 @@ import { srgbName } from "./colorname.ts";
 import { sampleStops } from "./curve.ts";
 import { ENGLISH, type Language, sentence } from "./message.ts";
 import { seedName } from "./name.ts";
+import type { Namer } from "./precise-names.ts";
 import { isSwatchStyle, type View, viewSearch } from "./view.ts";
 
 export type SwatchFormat = "ase" | "gpl" | "grd" | "tokens";
@@ -34,20 +35,25 @@ export interface SwatchPalette {
 }
 
 /** A palette in a view as a swatch file holds it: steps never under its keyframes, each color named by its place and
-    the name people give it, the palette named as its card names it unless a name is given. Words are said in
-    `language`; the Worker's files are English. Null for a seed that is no palette. */
+    its precise name (`names`, precise-names.ts), or without those the broad name people give it, the palette named as
+    its card names it unless a name is given. Words are said in `language`; the Worker's files are English. Null for a
+    seed that is no palette. */
 export function swatchPalette(
   seed: string,
   view: Pick<View, "style" | "steps" | "angle">,
   origin: string,
-  name?: string,
-  language: Language = ENGLISH
+  {
+    name,
+    language = ENGLISH,
+    names
+  }: { name?: string; language?: Language; names?: Namer | null } = {}
 ): SwatchPalette | null {
   const P = decodePalette(seed);
   if (!P) return null;
   const steps = Math.max(view.steps, P.anchors.length);
   const colors = sampleStops(P, steps).map(s => s.hex);
   const say = (hex: string) =>
+    names?.(hex) ??
     sentence(language.t(srgbName(hexBytes(hex).map(v => v / 255))), language.locale);
   return {
     name: name || seedName(seed, view.style, steps, language) || seed,

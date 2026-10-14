@@ -18,10 +18,11 @@ import { json } from "../../lib/responses.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
+import { colorNames } from "./names.ts";
 import { resolvePalette } from "./resolve.ts";
 
 export type FileFormat = "svg" | "css" | "json" | SwatchFormat;
-export type FileEnv = Pick<Env, "DB"> & Partial<Pick<Env, "PUBLIC_ORIGIN">>;
+export type FileEnv = Pick<Env, "DB"> & Partial<Pick<Env, "PUBLIC_ORIGIN" | "ASSETS">>;
 
 const DATA = { "X-Robots-Tag": "noindex" };
 
@@ -71,7 +72,8 @@ async function paletteFile(
     case "json":
       return Response.json(paletteJson(seed, origin, view), { headers: { ...FILE, ...DATA } });
     default: {
-      return new Response(swatchFile(format, [swatchPalette(seed, view, origin)!]), {
+      const names = await colorNames(env);
+      return new Response(swatchFile(format, [swatchPalette(seed, view, origin, { names })!]), {
         headers: { ...FILE, ...DATA, "Content-Type": SWATCH_FILES[format].type }
       });
     }
