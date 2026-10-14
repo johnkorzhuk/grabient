@@ -338,3 +338,61 @@ test("a signed-in reader's one look at a public collection is counted once", asy
   await page.waitForTimeout(1000);
   expect(seen).toHaveLength(1);
 });
+
+test("each undo and redo of a pick says what it did, and a new collection goes back through the copy offline", async ({
+  page
+}) => {
+  const { preview, ...words } = summary;
+  const blues = {
+    ...words,
+    id: "e2e-blues",
+    slug: "@e2e-ada/my-blues",
+    title: "My blues",
+    visibility: "private",
+    owner: { kind: "user", name: "e2e-ada", display: "ada" },
+    url: "/@e2e-ada/my-blues",
+    preview,
+    items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+  };
+  await signIn(page, "ada", false, [blues]);
+  // the checklist may ask before the copy has heard from the server
+  await page.route(
+    url => url.pathname === "/api/me/collections",
+    route =>
+      route.fulfill({
+        json: {
+          query: "",
+          sort: "newest",
+          page: 1,
+          limit: 96,
+          total: 1,
+          totalPages: 1,
+          fetchedAt: Date.now(),
+          items: [{ ...words, ...blues, items: undefined }]
+        }
+      })
+  );
+  await page.goto("/palettes");
+  await hydrated(page);
+  const card = page.locator("main article").first();
+  await card.getByRole("button", { name: "Add to selection" }).focus();
+  await page.keyboard.press("Enter");
+  await card.getByRole("button", { name: "Add to collection" }).click();
+  const list = page.getByRole("dialog", { name: "Add to collection" });
+  const said = page.locator("main p[aria-live]").first();
+  await list.getByRole("button", { name: /My blues/ }).click();
+  await expect(said).toHaveText("Added to My blues.");
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(said).toHaveText("Removed from My blues.");
+  await page.keyboard.press("ControlOrMeta+Shift+z");
+  await expect(said).toHaveText("Added to My blues.");
+  await list.getByRole("button", { name: "New collection" }).click();
+  const title = list.getByRole("textbox", { name: "Title" });
+  await expect(title).toBeFocused();
+  await title.fill("Review temp");
+  await title.press("Enter");
+  await expect(said).toHaveText("Added to Review temp.");
+  await page.context().setOffline(true);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(said).toHaveText("Review temp deleted.");
+});
