@@ -161,6 +161,17 @@ test.describe("while the editor's code loads", () => {
     );
   });
 
+  test("an editor whose own code fails to load leaves the static page, whole", async ({ page }) => {
+    await page.route(
+      /\/(assets\/Editor-[^/]+\.js|src\/features\/editor\/Editor\.tsx)(\?|$)/,
+      route => route.abort()
+    );
+    await page.goto(`/${SEED}`);
+    await expect(page.locator(".palette-static")).toBeVisible({ timeout: 30_000 });
+    await expect(page.locator("html")).not.toHaveAttribute("data-seed-boot");
+    await expect(page.getByRole("complementary", { name: "Editor" })).toHaveCount(0);
+  });
+
   test.describe("without JavaScript", () => {
     test.use({ javaScriptEnabled: false });
     test("the static page is whole", async ({ page }) => {
