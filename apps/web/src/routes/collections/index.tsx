@@ -17,7 +17,7 @@ export const Route = createFileRoute("/collections/")({
       listPlace("popular", undefined, searchOf(match.search)),
       loaderData
     ),
-  staticData: { corner: ListAppearance },
+  staticData: { corner: ListAppearance, translated: true },
   component: function PopularCollections() {
     const search = Route.useSearch();
     const loaded = Route.useLoaderData();

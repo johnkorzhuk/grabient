@@ -30,7 +30,7 @@ export const Route = createFileRoute("/collections/rising/{-$frame}")({
       listPlace("rising", params.frame, searchOf(match.search)),
       loaderData
     ),
-  staticData: { corner: ListAppearance },
+  staticData: { corner: ListAppearance, translated: true },
   component: function RisingCollections() {
     const search = Route.useSearch();
     const params = Route.useParams();
