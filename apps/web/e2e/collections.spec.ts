@@ -480,3 +480,48 @@ test("Saved shows a pick made on another page when the reader comes back", async
   await expect(page).toHaveURL(/\/collections\/saved$/);
   await expect(blues).toContainText("2 palettes");
 });
+
+test("a fit vote made on a collection's page is there when the reader comes back", async ({
+  page
+}) => {
+  await signIn(page, "reader", false);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({
+      json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+    })
+  );
+  // the server keeps the reader's votes
+  const votes: Record<string, string> = {};
+  await page.route(`**/api/me/collections/${SLUG}/state*`, route =>
+    route.fulfill({
+      json: { owned: false, canCurate: false, canDelete: false, copy: null, votes }
+    })
+  );
+  await page.route(`**/api/me/collections/${SLUG}/votes`, route => {
+    const { seed, vote } = route.request().postDataJSON() as { seed: string; vote: string };
+    votes[seed] = vote;
+    return route.fulfill({ json: { seed, vote } });
+  });
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const good = page
+    .locator("main article")
+    .first()
+    .getByRole("button", { name: /^Good fit/ });
+  await expect(good).toHaveAttribute("aria-pressed", "false");
+  await good.click();
+  await expect(good).toHaveAttribute("aria-pressed", "true");
+  await expect.poll(() => votes[SEED]).toBe("up");
+  await page.locator("main a", { hasText: "Collections" }).first().click();
+  await expect(page).toHaveURL(/\/collections\/rising$/);
+  await page.goBack();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  await expect(good).toHaveAttribute("aria-pressed", "true");
+});
