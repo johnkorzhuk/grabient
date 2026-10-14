@@ -3,6 +3,10 @@ import { devices, expect, type Page, test } from "@playwright/test";
 /* The editor at a palette's address: the static page the server sends, the editor the browser draws over it, the
    address that follows each edit in place, the undo the entry keeps, and what the page asks the server. */
 
+/* The first tests meet a dev server that has transformed nothing yet, and they run beside each other: each has a
+   minute. */
+test.describe.configure({ timeout: 60_000 });
+
 const SEED = "kS7CQ31Do6asvY-";
 const here = (page: Page) => {
   const url = new URL(page.url());
@@ -119,9 +123,10 @@ test("Back leaves an edited palette in one press, and Forward brings it back wit
 });
 
 test("the sheet asks for the palettes like this one only once it is in view", async ({ page }) => {
-  const asks: string[] = [];
+  const asks: URL[] = [];
   page.on("request", r => {
-    if (r.url().includes("/api/palettes/search")) asks.push(r.url());
+    const url = new URL(r.url());
+    if (url.pathname === "/api/search.json") asks.push(url);
   });
   await open(page);
   // edits on the first screen ask nothing
@@ -131,8 +136,73 @@ test("the sheet asks for the palettes like this one only once it is in view", as
   expect(asks).toEqual([]);
   await page.mouse.move(200, 200);
   await page.mouse.wheel(0, 2000);
-  await expect.poll(() => asks.length, { timeout: 10_000 }).toBe(1);
-  expect(asks[0]).toContain(`q=${new URL(page.url()).pathname.slice(1)}`);
+  // the sheet's own code comes with the scroll, which a dev server transforms as it is asked for
+  await expect.poll(() => asks.length, { timeout: 30_000 }).toBe(1);
+  expect(asks[0]?.searchParams.get("query")).toBe(new URL(page.url()).pathname.slice(1));
+});
+
+test("the order of the palettes like this one is kept for the tab, in the lists' own record", async ({
+  page
+}) => {
+  await open(page);
+  const order = page.getByRole("radiogroup", { name: "Order" });
+  await order.scrollIntoViewIfNeeded();
+  await expect(order.getByRole("radio", { name: "Popular" })).toBeChecked();
+  await order.getByRole("radio", { name: /^Rising/ }).click();
+  await expect(order.getByRole("radio", { name: /^Rising/ })).toBeChecked();
+  const kept = await page.evaluate(() => sessionStorage.getItem("grabient-order"));
+  expect(JSON.parse(kept ?? "null")).toMatchObject({ order: "rising" });
+  await page.reload();
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  const again = page.getByRole("radiogroup", { name: "Order" });
+  await again.scrollIntoViewIfNeeded();
+  await expect(again.getByRole("radio", { name: /^Rising/ })).toBeChecked();
+});
+
+test("a palette in the selection offers Add to collection under its check", async ({ page }) => {
+  await open(page);
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await expect(presses.getByRole("button", { name: /^Like/ })).toBeVisible();
+  await expect(presses.getByLabel("Add to collection")).toHaveCount(0);
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  await expect(presses.getByRole("button", { name: "Remove from selection" })).toBeVisible();
+  const collect = presses.getByLabel("Add to collection");
+  await expect(collect).toBeVisible();
+  const check = await presses.getByRole("button", { name: "Remove from selection" }).boundingBox();
+  const under = await collect.boundingBox();
+  if (!check || !under) throw new Error("no check or no press under it");
+  expect(under.y).toBeGreaterThanOrEqual(check.y + check.height);
+  expect(Math.abs(under.x - check.x)).toBeLessThanOrEqual(1);
+});
+
+test("the header's bar carries the palette from the server's render", async ({ request }) => {
+  const html = await (await request.get(`/${SEED}`)).text();
+  const first = /palette-static[\s\S]*?(#[0-9a-f]{6})/.exec(html)?.[1];
+  expect(first).toBeTruthy();
+  const header = html.slice(html.indexOf("<header"), html.indexOf("</header>"));
+  expect(header).toContain(first);
+});
+
+test("an old link no map holds is fitted in the browser, and its address becomes the palette's", async ({
+  page,
+  request
+}) => {
+  const old = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?style=angularGradient";
+  // the server never fits one: to a crawler it is no page
+  expect((await request.get(old, { maxRedirects: 0 })).status()).toBe(404);
+  await page.goto(old);
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  expect(here(page)).toBe("/kYq5wTxGc3MlDuPtT7O58281NAs8?style=angularGradient");
+});
+
+test("an old id nobody can read is a page not found, never a page named by the id", async ({
+  page
+}) => {
+  const answer = await page.goto("/_abc1234");
+  expect(answer?.status()).toBe(404);
+  await expect(page.getByRole("heading", { level: 1, name: "Page not found" })).toBeVisible();
+  await expect(page.getByText("_abc1234")).toHaveCount(0);
+  await expect(page.getByRole("complementary", { name: "Editor" })).toHaveCount(0);
 });
 
 test("the selection's export screen stands in the page's place, and Escape closes it", async ({
@@ -166,5 +236,34 @@ test.describe("on a phone", () => {
     if (!side || !art) throw new Error("no side or picture");
     expect(side.y).toBeGreaterThanOrEqual(art.y + art.height);
     await expect(page.getByRole("spinbutton", { name: "Hue" })).toBeAttached();
+  });
+
+  test("the way into the selection floats at the page's corner only once the page has moved", async ({
+    page
+  }) => {
+    await open(page);
+    // a tap on the picture shows its presses to a finger
+    await page.getByRole("img", { name: "The gradient" }).tap();
+    await page.getByRole("button", { name: "Add to selection" }).first().tap();
+    const floating = page.locator("main > span").getByRole("button", {
+      name: /^Selection/,
+      includeHidden: true
+    });
+    await expect(floating).toHaveCount(1);
+    // at rest the picture's own presses hold the way in
+    await expect(floating).toBeHidden();
+    await expect(
+      page
+        .getByRole("group", { name: "Palette actions" })
+        .first()
+        .getByRole("button", {
+          name: /^Selection/
+        })
+    ).toBeVisible();
+    await page.evaluate(() => scrollTo(0, 400));
+    await expect(floating).toBeVisible();
+    await expect(floating).toBeInViewport();
+    await page.evaluate(() => scrollTo(0, 0));
+    await expect(floating).toBeHidden();
   });
 });
