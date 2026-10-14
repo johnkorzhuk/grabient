@@ -12,6 +12,7 @@ import {
   sameOrigin
 } from "./http.ts";
 import { authFor, google } from "./library.ts";
+import { reviewerPasswordResponse } from "./reviewer.ts";
 import { accountRole, reviewerAddress } from "./roles.ts";
 import { getSession } from "./session.ts";
 
@@ -25,6 +26,8 @@ const LINK = "/api/auth/sign-in/magic-link";
 const CODE = "/api/auth/email-otp/send-verification-otp";
 const CODE_SIGN_IN = "/api/auth/sign-in/email-otp";
 const PASSWORD_SIGN_IN = "/api/auth/sign-in/email";
+// The site's own route, which the library never sees: the reviewers' account sends the password it will sign in with.
+const PASSWORD_SET = "/api/auth/reviewer-password";
 const DELETE = "/api/auth/delete-user";
 
 // The session, Google's way back, a sign-in link opened, and the library's error address, which leads to sign-in.
@@ -83,10 +86,9 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
     });
   }
   if (method !== "GET" && method !== "POST") return json({ error: "Method not allowed" }, 405);
-  const open =
-    method === "GET"
-      ? READS.has(path)
-      : WRITES.has(path) || (path === PASSWORD_SIGN_IN && Boolean(env.REVIEWER_EMAIL));
+  const reviewers =
+    (path === PASSWORD_SIGN_IN || path === PASSWORD_SET) && Boolean(env.REVIEWER_EMAIL);
+  const open = method === "GET" ? READS.has(path) : WRITES.has(path) || reviewers;
   if (!open) return json({ error: "Not found" }, 404);
   const who = clientAddress(request) ?? "local";
   if (method === "GET") {
@@ -155,6 +157,12 @@ export async function handleAuth(request: Request, env: Env): Promise<Response> 
       if (limited) return limited;
     }
     request = withBody(request, { email: body.email, password: body.password });
+  } else if (path === PASSWORD_SET) {
+    if (typeof body?.password !== "string") return invalidBody();
+    // Setting one hashes it as a try at signing in does, so it spends the same allowance of the address.
+    const limited = await overLimit(env, [[`password:${who}`, "passwordSignIn"]]);
+    if (limited) return limited;
+    return reviewerPasswordResponse(env, request.headers, body.password);
   } else if (path === DELETE) {
     const session = await getSession(env, request.headers, { fresh: true });
     if (!session) return json({ error: "Sign in to continue." }, 401);

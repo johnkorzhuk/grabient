@@ -65,6 +65,15 @@ test("a brand page's links are the app's own navigation, and focus lands on the 
   expect(await page.evaluate(() => "sameDocument" in window)).toBe(true);
 });
 
+test("an address with a parameter that has no value answers with its page", async ({ request }) => {
+  // an account's pages are never kept at the edge, so each of these is rendered
+  for (const address of ["/login?redirect=", "/settings?tab=", "/palettes/saved?selection"]) {
+    const answer = await request.get(address, { maxRedirects: 0 });
+    expect(answer.status(), address).toBe(200);
+  }
+  expect((await request.get("/about?x=", { maxRedirects: 0 })).status()).toBe(200);
+});
+
 test("an API address answers in its own way whatever the method, never with a page", async ({
   request
 }) => {

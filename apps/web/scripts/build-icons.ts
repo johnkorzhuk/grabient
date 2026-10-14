@@ -12,10 +12,11 @@
 import { writeFile } from "node:fs/promises";
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { drawnView } from "@grabient/engine/view.ts";
+import { MARK_FIXED, markSvg, markTileSvg } from "@grabient/ui/mark.ts";
 import { color } from "@grabient/ui/tokens.ts";
 import { chromium } from "@playwright/test";
-import { DEFAULT_SEED, emailHead } from "../src/server/images/cards.ts";
-import { MARK_FIXED, markSvg, markTileSvg } from "../src/server/images/mark.ts";
+import { DEFAULT_SEED } from "../src/lib/page-meta.ts";
+import { emailHead } from "../src/server/images/cards.ts";
 import { drawCard, keyframeColors, lookOf } from "../src/server/images/paint.ts";
 
 const web = new URL("../public/", import.meta.url);

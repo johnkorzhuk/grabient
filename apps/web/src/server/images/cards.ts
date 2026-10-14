@@ -4,15 +4,12 @@
 import { decodePalette } from "@grabient/engine/codec.ts";
 import { hexBytes } from "@grabient/engine/color.ts";
 import { viewSearch } from "@grabient/engine/view.ts";
+import { MARK_FIXED } from "@grabient/ui/mark.ts";
 import { type Saved, viewAt } from "../files/address.ts";
 import type { Resolved } from "../files/resolve.ts";
-import { MARK_FIXED } from "./mark.ts";
 import { drawCard, drawPicture, keyframeColors, type Look, lookOf } from "./paint.ts";
 import { answerPicture, type Keep, type PictureEnv } from "./serve.ts";
 import { cardSize, pictureSize } from "./size.ts";
-
-/** The palette a share card shows when its address names none. */
-export const DEFAULT_SEED = "kS7Q8Yy5S_SChv0";
 
 export function paletteCard(
   request: Request,

@@ -20,6 +20,7 @@ import {
   msg,
   t
 } from "@grabient/i18n";
+import { DEFAULT_FRAME, framePath, type RisingFrame } from "./orders.ts";
 
 /* A page's metadata: its title, the description a search result shows under it, its canonical address, whether search
    engines index it, its share card, the same page in the other languages and its structured data. One function makes
@@ -35,13 +36,15 @@ import {
 export const PRODUCTION_ORIGIN = "https://grabient.com";
 /** A search result cuts a description past 160 characters, and Bing flags pages that share one or say under 110. */
 export const DESCRIPTION_MAX = 160;
-/** The version of what share cards draw. A change to a card's picture takes a new one, so no cache keeps the old. */
-export const OG_VERSION = "k4";
+/** The version of everything a picture draws. A change to what any picture draws takes a new one: kept pictures are
+    named by it, and a card's address carries it, so a network that keeps cards by address asks again. */
+export const CARD_VERSION = "k4";
+/** The palette of the site's own card: what a share card shows when its address names none. */
+export const DEFAULT_SEED = "kS7Q8Yy5S_SChv0";
 /** Grabient's code. */
 export const GITHUB_REPO = "https://github.com/johnkorzhuk/grabient";
 
 export type Order = "popular" | "rising";
-export type Frame = "1w" | "3m" | "1y";
 /** The view a list's address sets. What it leaves out or says `auto` for, each palette draws in its own. */
 export interface ListView {
   style?: Style | "auto";
@@ -76,12 +79,19 @@ export type Page = Facts &
   (
     | { kind: FixedKind; query?: string; page?: number }
     | { kind: "home"; query?: string; page?: number; view?: ListView }
-    | { kind: "list"; order: Order; frame?: Frame; page?: number; limit?: number; view?: ListView }
+    | {
+        kind: "list";
+        order: Order;
+        frame?: RisingFrame;
+        page?: number;
+        limit?: number;
+        view?: ListView;
+      }
     | {
         kind: "search";
         query: string;
         order: Order;
-        frame?: Frame;
+        frame?: RisingFrame;
         page?: number;
         limit?: number;
         view?: ListView;
@@ -89,7 +99,7 @@ export type Page = Facts &
     | {
         kind: "collections";
         order: Order;
-        frame?: Frame;
+        frame?: RisingFrame;
         query?: string;
         page?: number;
         limit?: number;
@@ -190,9 +200,9 @@ function listQuery(p: { query?: string; page?: number; limit?: number }): string
   return q.size ? `?${q}` : "";
 }
 /** Rising read over a longer frame than the week's is the same list again, so its address stays out of the index. */
-const longFrame = (frame?: Frame) => !!frame && frame !== "1w";
-const listPath = (base: string, order: Order, frame?: Frame) =>
-  order === "popular" ? base : `${base}/rising${longFrame(frame) ? `/${frame}` : ""}`;
+const longFrame = (frame?: RisingFrame) => !!frame && frame !== DEFAULT_FRAME;
+const listPath = (base: string, order: Order, frame?: RisingFrame) =>
+  order === "popular" ? base : framePath(`${base}/rising`, frame);
 
 /** Words cut to `max` characters: after the last sentence that fits when it is longer than `sentence`, else at a word,
     marked with an ellipsis. */
@@ -231,11 +241,6 @@ export const paletteName = (P: Palette, view?: Partial<Pick<View, "style" | "ste
   readingName(readPalette(P, view?.style, view?.steps), language());
 /** The same name inside a sentence: "Palettes like navy to lavender". */
 const paletteInline = (P: Palette) => readingPhrase(readPalette(P), language());
-/** What a search is for, as a page says it: its words, or the name of the palette it searches by. */
-export function searchedFor(query: string): string {
-  const like = decodePalette(query);
-  return like ? paletteInline(like) : query;
-}
 /** A search's subject as a title says it: its words without the nouns the title adds itself. */
 function subjectOf(query: string): string {
   const bare = query
@@ -444,7 +449,7 @@ function cardUrl(
 ): string {
   const url = new URL(path, origin);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-  url.searchParams.set("v", OG_VERSION);
+  url.searchParams.set("v", CARD_VERSION);
   for (const key of ["style", "steps", "angle"] as const) {
     const value = view?.[key];
     if (value != null && value !== "auto") url.searchParams.set(key, String(value));
@@ -453,9 +458,9 @@ function cardUrl(
   return url.toString();
 }
 /** A list's card is drawn in its page's order: Rising's with its frame when that is not the week's. */
-const rising = (frame?: Frame): Record<string, string> => ({
+const rising = (frame?: RisingFrame): Record<string, string> => ({
   sort: "rising",
-  ...(longFrame(frame) ? { frame: frame as string } : {})
+  ...(frame && longFrame(frame) ? { frame } : {})
 });
 /** One collection's card, as its page and the sitemap name it. */
 export const collectionCard = (
@@ -614,7 +619,7 @@ function palettePage(
     ]
   );
   meta.image = absolute(
-    `/api/og?seed=${seed}&v=${OG_VERSION}${viewSearch(view).replace("?", "&")}`,
+    `/api/og?seed=${seed}&v=${CARD_VERSION}${viewSearch(view).replace("?", "&")}`,
     origin
   );
   meta.imageAlt = t("{name} color palette", { name });

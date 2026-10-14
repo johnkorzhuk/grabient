@@ -4,6 +4,7 @@ import {
   type Letter,
   type PaletteView,
   pickHead,
+  SIZE,
   signInCode,
   signInLink
 } from "@grabient/email";
@@ -15,22 +16,25 @@ import {
   splitLocale
 } from "@grabient/i18n";
 import { all } from "@grabient/server/db/d1.ts";
-import { type Email, sendEmail } from "@grabient/server/email/send.ts";
+import {
+  type AccountEmail,
+  type Email,
+  sendEmail,
+  setAccountMailer
+} from "@grabient/server/email/send.ts";
 import type { Env } from "@grabient/server/env.ts";
+import { emailHead } from "../../images/cards.ts";
 
 /* The three emails an account receives, as the Worker sends them: in the language of the page that asked, wearing one
    of the Rising list's first palettes, and carrying its head. An account email is opened the moment it comes, and a
    mail app asks for a picture only once the email is open, so a head named by an address comes in after the words: the
-   picture goes out attached instead, under the id the email names. The caller counts the email's limits first. */
+   picture goes out attached instead, under the id the email names. The caller counts the email's limits first.
+
+   Sign-in (packages/server) sends its emails through here: the Worker's entry imports this module as it starts. */
 
 /** Draws an account email's head: the palette in its view with the wordmark and no chips at `SIZE.heads.sheet`, or the
     brand's gradient left to right when there is none. The card painter gives it. */
 export type HeadPainter = (palette: PaletteView | undefined) => Promise<Uint8Array>;
-
-export type AccountEmail =
-  | { kind: "sign-in-link"; url: string }
-  | { kind: "sign-in-code"; code: string }
-  | { kind: "deletion"; url: string };
 
 /** The language an email is written in: the page it was asked from (the request's Referer names it, /ja/login), else the
     language the reader chose, else the one their browser asks for. */
@@ -104,7 +108,7 @@ export async function sendAccountEmail(
         content: head
       }
     ];
-    const carried: Email & { attachments: EmailAttachment[] } = { to, ...write(true), attachments };
+    const carried: Email = { to, ...write(true), attachments };
     try {
       await sendEmail(env, carried);
       return;
@@ -117,3 +121,11 @@ export async function sendAccountEmail(
   }
   await sendEmail(env, { to, ...write(false) });
 }
+
+const [HEAD_WIDTH, HEAD_HEIGHT] = SIZE.heads.sheet;
+setAccountMailer((env, to, email, request) =>
+  sendAccountEmail(env, to, email, {
+    request,
+    paint: palette => emailHead(palette, HEAD_WIDTH, HEAD_HEIGHT)
+  })
+);

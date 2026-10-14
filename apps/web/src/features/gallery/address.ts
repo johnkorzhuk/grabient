@@ -129,6 +129,18 @@ export function galleryPlace(path: string, search: string): GalleryPlace | null 
   return null;
 }
 
+/** A palette list whatever its cards are drawn in: its order and frame, or the account whose Saved it is, then its
+    words, its page size and the page its address names. A feed keeps the pages that joined under it, so a change of
+    view or of the selection keeps them. */
+export function listIdentity(place: Exclude<GalleryPlace, { kind: "home" }>, owner = ""): string {
+  const { words, limit, page } = place.params;
+  return JSON.stringify(
+    place.kind === "list"
+      ? ["list", place.order, place.frame, words, limit, page]
+      : ["saved", owner, words, limit, page]
+  );
+}
+
 /** The path a place lives at. */
 export const placePath = (place: GalleryPlace): string =>
   place.kind === "home"

@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, test } from "vitest";
 import { framePath, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { listWords } from "../../lib/words.ts";
-import { canonicalGallery, galleryPlace, type ListParams, listSearch } from "./address.ts";
+import {
+  canonicalGallery,
+  galleryPlace,
+  type ListParams,
+  listIdentity,
+  listSearch
+} from "./address.ts";
 
 /* grabient4's reading of these addresses (krouter.ts), the forms its pages, links and caches were written in */
 interface GoldenParams {
@@ -80,6 +86,34 @@ describe("gallery addresses", () => {
 
   test.each(golden.queries)("the words of $raw", ({ raw, list }) => {
     expect(listWords(raw)).toBe(list);
+  });
+
+  test("a list is the same list in any view, and another by its order, frame, words, size, page or owner", () => {
+    const identity = (address: string, owner?: string) => {
+      const [path, search] = split(address);
+      const place = galleryPlace(path!, search!);
+      if (!place || place.kind === "home") throw new Error(`${address} is no palette list`);
+      return listIdentity(place, owner);
+    };
+    const searched = identity("/palettes?q=blue");
+    expect(
+      identity("/palettes?q=blue&style=radialGradient&steps=5&angle=45&size=800x600&selection")
+    ).toBe(searched);
+    for (const other of [
+      "/palettes",
+      "/palettes?q=red",
+      "/palettes?q=blue&page=2",
+      "/palettes?q=blue&limit=48",
+      "/palettes/rising?q=blue",
+      "/palettes/saved?q=blue"
+    ]) {
+      expect(identity(other), other).not.toBe(searched);
+    }
+    expect(identity("/palettes/rising/3m")).not.toBe(identity("/palettes/rising"));
+    expect(identity("/palettes/saved?style=linearSwatches&steps=9", "ada")).toBe(
+      identity("/palettes/saved", "ada")
+    );
+    expect(identity("/palettes/saved", "ada")).not.toBe(identity("/palettes/saved", "grace"));
   });
 
   test("Rising's frames in turn, and their addresses", () => {

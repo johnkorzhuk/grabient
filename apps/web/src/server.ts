@@ -1,5 +1,6 @@
 import "./server/i18n.ts";
 import "./server/seo/origin.ts";
+import "./server/email/letters/account.ts";
 import type { Env as AppEnv, Env } from "@grabient/server/env.ts";
 import { getRequestEvent } from "@solidjs/web";
 import {
@@ -63,9 +64,9 @@ const start = createStartHandler(
 
 export default {
   fetch: (request, env, ctx) => handle(request, env, ctx, async request => start(request)),
-  async scheduled(controller, env, ctx) {
+  async scheduled(controller, env) {
     const job = JOBS[controller.cron];
     if (!job) throw new Error(`No job runs on the schedule ${controller.cron}`);
-    await job(env, ctx);
+    await job(env);
   }
 } satisfies ExportedHandler<Env>;

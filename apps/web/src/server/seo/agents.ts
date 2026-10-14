@@ -1,4 +1,5 @@
 import { LIMITS, type LimitName } from "@grabient/server/limits/config.ts";
+import { DEFAULT_SEED } from "../../lib/page-meta.ts";
 
 /* What agents and programs read: the guide at /llms.txt in the llmstxt.org form (a title, a summary, then sections
    of links), the whole reference at /llms-full.txt, the MCP server's card, and the catalog at
@@ -21,15 +22,14 @@ export interface Mcp {
   registryName: string;
 }
 
-/** The palette the guide shows its patterns with, the one the share card draws when none is named. */
-const EXAMPLE_SEED = "kS7Q8Yy5S_SChv0";
 /** The card's address: the server's own, and /server-card. */
 export const cardPath = (mcp: Pick<Mcp, "path">) => `${mcp.path}/server-card`;
 /** A limit's number as the site counts to it. */
 const allowed = (name: LimitName) => LIMITS[name].requests.toLocaleString("en-US");
 
 function guide(base: string, mcp: Mcp): string {
-  const seed = EXAMPLE_SEED;
+  // the guide shows its patterns with the palette of the site's own card
+  const seed = DEFAULT_SEED;
   return `# Grabient
 
 > Grabient is a free CSS gradient generator and color palette library at ${base}. A palette is 2 to 8 OKLCH keyframes held in a short seed, and the seed is the palette's address. An agent can search palettes by words, colors or a seed, read any palette as JSON, Markdown, CSS, SVG, PNG or a swatch file design apps import, and give a person a permanent link that opens in the editor, with no key and no sign-in. The MCP server makes, changes and saves palettes for a person signed in with a free Grabient account.
