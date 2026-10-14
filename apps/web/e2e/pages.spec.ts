@@ -335,3 +335,40 @@ test("the account menu opens the lists in the reader's view, and a visitor's Col
     await expect(page).toHaveURL(to);
   }
 });
+
+test("back from Google with an app's request kept in the tab, the sheet is the app's from its first paint", async ({
+  context
+}) => {
+  for (const kept of ["/oauth/authorize?r=x", "/settings", null]) {
+    const page = await context.newPage();
+    // the app never starts: the sheet is the server's document and its head's mark alone
+    await page.route("**/*", route =>
+      route.request().resourceType() === "script" ? route.abort() : route.continue()
+    );
+    if (kept)
+      await page.addInitScript(
+        to => sessionStorage.setItem("grabient-sign-in-return", `${Date.now()} ${to}`),
+        kept
+      );
+    await page.goto("/login?error=access_denied");
+    const app = kept?.startsWith("/oauth/") ?? false;
+    const sheet = page.locator("main");
+    await expect(sheet.getByText("Connect an app to your account."), String(kept)).toBeVisible({
+      visible: app
+    });
+    await expect(sheet.getByText("Save your favorite palettes.")).toBeVisible({ visible: !app });
+    await expect(sheet.getByRole("button", { name: "Send code" })).toBeVisible({ visible: app });
+    await expect(sheet.locator('[name="code"]')).toBeVisible({ visible: app });
+    await page.close();
+  }
+  // started, the sheet says why it is back and keeps the app's request in its address
+  const page = await context.newPage();
+  await page.addInitScript(() =>
+    sessionStorage.setItem("grabient-sign-in-return", `${Date.now()} /oauth/authorize?r=x`)
+  );
+  await page.goto("/login?error=access_denied");
+  await started(page);
+  await expect(page.getByRole("alert")).toHaveText("Google sign-in failed.");
+  await expect(page).toHaveURL(/\/login\?redirect=%2Foauth%2Fauthorize%3Fr%3Dx$/);
+  await expect(page.locator('main [name="code"]')).toBeVisible();
+});

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/solid-router";
-import { LoginPage } from "../features/account/LoginPage.tsx";
+import { connectingScript, LoginPage } from "../features/account/LoginPage.tsx";
 import { NO_STORE } from "../lib/cache.ts";
 import { pageHead } from "../lib/page-meta.ts";
 
@@ -13,7 +13,7 @@ export const Route = createFileRoute("/login")({
     error: search.error === undefined ? undefined : String(search.error)
   }),
   headers: () => NO_STORE,
-  head: () => pageHead({ kind: "login" }),
+  head: () => ({ ...pageHead({ kind: "login" }), scripts: [{ children: connectingScript }] }),
   component: Login
 });
 
