@@ -6,11 +6,10 @@ import { signInUnavailable } from "../../app/connection.ts";
 import { type Drawn, hexesOf } from "../../lib/palette.ts";
 import { likeCount, liked, noteCounts, readLikeCounts, toggleLike } from "../account/likes.ts";
 import { shownError } from "../account/session.ts";
-import { nameOf } from "../gallery/drawing.ts";
+import { nameOf, paletteHref, picturedAs } from "../gallery/drawing.ts";
 import { AppearanceContext, drawnIn, type ListView } from "../list/appearance.ts";
 import { type UseAt, type UsePlace, useOpened } from "../palette-use/use.ts";
 import { roomNote, selected, toggle } from "../selection/selection.ts";
-import { paletteHref, picturedAs } from "./drawing.ts";
 import { cardTools } from "./tools.tsx";
 
 /** A palette of a collection as its card, on the collection's page and in a list's group: drawn in the page's view
