@@ -4,9 +4,17 @@
     flex-direction: column;
     gap: var(--space-s16);
     min-width: 0;
+    /* the room of the groups the window leaves undrawn, above and below */
+    padding-block: var(--before, 0) var(--after, 0);
   }
   /* the server's still groups stand in the column as its own until the window starts */
   .still {
     display: contents;
+  }
+  /* without scripts no window draws the rest, so the room kept for them is let go */
+  @media (scripting: none) {
+    .feed {
+      padding-block: 0;
+    }
   }
 }

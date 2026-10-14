@@ -43,7 +43,7 @@ export function GroupFeed<T>(props: {
       ref={win.ref}
       class={styles.feed}
       data-count={props.items.length}
-      style={{ "padding-top": `${win.before()}px`, "padding-bottom": `${win.after()}px` }}
+      style={{ "--before": `${win.before()}px`, "--after": `${win.after()}px` }}
     >
       <For each={shown()} keyed={props.key}>
         {item => {

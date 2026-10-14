@@ -210,7 +210,7 @@ describe("the feeds on the server", () => {
       />
     ));
     expect(tags(markup, "i").map(i => i["data-g"])).toEqual(["g0", "g1"]);
-    expect(tag(markup, "div").style).toBe(`padding-top:0px;padding-bottom:${8 * (500 + 64)}px`);
+    expect(tag(markup, "div").style).toBe(`--before:0px;--after:${8 * (500 + 64)}px`);
   });
 
   test("a group shows its title as the way to it, its count and its cards", () => {
