@@ -2,7 +2,6 @@ import { isPagePath } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { createFileRoute, notFound, redirect, useMatch, useParams } from "@tanstack/solid-router";
 import { Errored, Loading, lazy, Match, Show, Switch, untrack } from "solid-js";
-import { reportCaught } from "../../app/error-report.ts";
 import { isCollectionSlug } from "../../features/collections/address.ts";
 import { CollectionRoute } from "../../features/collections/CollectionRoute.tsx";
 import {
@@ -136,11 +135,10 @@ function Address() {
     <Switch>
       <Match when={data().palette}>
         {palette => (
-          /* an editor whose code does not come, or that throws as it mounts, leaves the static page, whole; the
-             failure is reported from here, since the window never hears of one a boundary took */
+          /* an editor whose code does not come, or that throws as it mounts, leaves the static page, whole (the
+             document's onError reports what a boundary takes, client.tsx) */
           <Errored
-            fallback={error => {
-              reportCaught(error);
+            fallback={() => {
               endBoot();
               return <StaticPalette data={palette()} />;
             }}
