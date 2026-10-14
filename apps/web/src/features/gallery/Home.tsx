@@ -50,7 +50,7 @@ import { type ListParams, listHref, listSearch, withView } from "./address.ts";
 import { createCuration } from "./curate.tsx";
 import { homePaint, madeItems, minuteOf, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
-import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
+import { createFeed, FIRST_SCREEN, inPlace, joinNext, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
@@ -268,11 +268,13 @@ export function Home(props: { params: ListParams }) {
     (signInForMore() && !feed.more() ? t("Sign in to search with all your words.") : "") ||
     (!standingHead() || groups().length
       ? ""
-      : !words()
-        ? t("No collections yet.")
-        : !palettes().length && !signInToSearch()
-          ? t("No results.")
-          : "");
+      : pastEnd()
+        ? t("Page {page} doesn't exist.", { page: String(params().page) })
+        : !words()
+          ? t("No collections yet.")
+          : !palettes().length && !signInToSearch()
+            ? t("No results.")
+            : "");
   const searchHref = (to: string, linked?: URLSearchParams) =>
     `/${listSearch(withView({ ...params(), words: to, page: 1, selection: false }, linked))}`;
   /* a section opens its list in the order the reader chose last, searched for the home's words; with no connection,
@@ -282,6 +284,11 @@ export function Home(props: { params: ListParams }) {
       ...params(),
       words: asked
     });
+  /* an old link to a page past the feed's end: said so, with the way to its first page */
+  const pastEnd = () => {
+    const read = standingFirst();
+    return !!read && !read.items.length && params().page > Math.max(1, read.totalPages);
+  };
   const nextHref = () => {
     const last = feed.joined().at(-1) ?? standingFirst();
     return localHref(
@@ -488,9 +495,23 @@ export function Home(props: { params: ListParams }) {
               </Button>
             </Show>
             <Show when={signInForMore() && !feed.more()}>{signIn("sm")}</Show>
+            <Show when={pastEnd()}>
+              <Button
+                size="sm"
+                href={localHref(`/${listSearch(params(), { page: 1, selection: false })}`)}
+              >
+                {t("First page")}
+              </Button>
+            </Show>
             {/* a link for readers without scripts; a plain press asks for the page in place */}
             <Show when={feed.more() && !feed.loading() && !feed.reason()}>
-              <Button size="sm" href={nextHref()} onClick={e => inPlace(e, () => void feed.next())}>
+              <Button
+                size="sm"
+                href={nextHref()}
+                onClick={e =>
+                  inPlace(e, () => void joinNext(() => feed.next(), "main section[aria-label]"))
+                }
+              >
                 {t("More collections")}
               </Button>
             </Show>

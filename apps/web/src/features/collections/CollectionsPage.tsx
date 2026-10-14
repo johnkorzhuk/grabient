@@ -38,7 +38,7 @@ import { type Failed, failed } from "../../lib/query.ts";
 import { account, isAdmin, loginHref, sessionReady } from "../account/session.ts";
 import { trackEvent } from "../analytics/analytics.ts";
 import { minuteOf, relativeAge } from "../gallery/drawing.ts";
-import { createFeed, inPlace } from "../gallery/feed.ts";
+import { createFeed, inPlace, joinNext } from "../gallery/feed.ts";
 import { ListHeading } from "../gallery/ListHeading.tsx";
 import { framesQuery } from "../gallery/queries.ts";
 import { searchAnswered, searchedHere } from "../search/count.ts";
@@ -372,12 +372,19 @@ export function CollectionsPage(props: {
     );
   };
 
+  /* an old link to a page past the list's end: said so, with the way to its first page, as the palettes list does */
+  const pastEnd = () => {
+    const read = head();
+    return !!read && !read.items.length && place().page > Math.max(1, read.totalPages);
+  };
   const emptyNote = () =>
-    place().query
-      ? t("No results.")
-      : mine()
-        ? t("No collections yet.")
-        : t("No public collections yet.");
+    pastEnd()
+      ? t("Page {page} doesn't exist.", { page: String(place().page) })
+      : place().query
+        ? t("No results.")
+        : mine()
+          ? t("No collections yet.")
+          : t("No public collections yet.");
   const message = () =>
     headError() ||
     feed.reason() ||
@@ -507,6 +514,21 @@ export function CollectionsPage(props: {
                     {t("Retry")}
                   </Button>
                 </Show>
+                <Show when={pastEnd()}>
+                  <Button
+                    size="sm"
+                    href={localHref(
+                      listPath(place().order, place().frame) +
+                        listSearch({
+                          query: place().query,
+                          view: place().view,
+                          limit: place().limit
+                        })
+                    )}
+                  >
+                    {t("First page")}
+                  </Button>
+                </Show>
                 {/* the gallery's palettes for the same words, in the same view */}
                 <Show when={mine() && head() && !items().length}>
                   <Button size="sm" href={localHref(`/palettes${here()}`)} disabled={offline()}>
@@ -518,7 +540,9 @@ export function CollectionsPage(props: {
                   <Button
                     size="sm"
                     href={nextHref()}
-                    onClick={e => inPlace(e, () => void feed.next())}
+                    onClick={e =>
+                      inPlace(e, () => void joinNext(() => feed.next(), "main section[aria-label]"))
+                    }
                   >
                     {t("More collections")}
                   </Button>

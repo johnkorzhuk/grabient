@@ -52,7 +52,7 @@ import { type GalleryPlace, listHref, listIdentity, listSearch, withView } from 
 import { createCuration } from "./curate.tsx";
 import { madeItems, minuteOf, paintOf, picturedAs, relativeAge } from "./drawing.ts";
 import { Find } from "./Find.tsx";
-import { createFeed, FIRST_SCREEN, inPlace, preloadHref } from "./feed.ts";
+import { createFeed, FIRST_SCREEN, inPlace, joinNext, preloadHref } from "./feed.ts";
 import { GalleryCard } from "./GalleryCard.tsx";
 import styles from "./gallery.module.css";
 import { ListHeading } from "./ListHeading.tsx";
@@ -293,7 +293,8 @@ export function Palettes(props: { place: ListPlace }) {
     go(searchHref(colors));
   };
   const searchPoints = (colors: string | null) => {
-    if (colors && colors !== words()) go(searchHref(colors), true);
+    if (colors && colors !== words())
+      void navigate({ href: searchHref(colors), replace: true });
   };
   /* a search by colors leads with the palettes the colors make, a picture's as its points move */
   const made = createMemo(() =>
@@ -621,7 +622,9 @@ export function Palettes(props: { place: ListPlace }) {
                   <Button
                     size="sm"
                     href={nextHref()}
-                    onClick={e => inPlace(e, () => void feed.next())}
+                    onClick={e =>
+                      inPlace(e, () => void joinNext(() => feed.next(), "main article"))
+                    }
                   >
                     {t("More palettes")}
                   </Button>
