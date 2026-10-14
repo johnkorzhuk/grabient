@@ -15,6 +15,7 @@ import { parseSize, parseView } from "@grabient/engine/view.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { FILE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
+import { publicOrigin } from "../seo/site.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { collectionFile } from "./collection-files.ts";
 import { resolvePalette } from "./resolve.ts";
@@ -42,8 +43,7 @@ async function paletteFile(
   name: string,
   format: FileFormat
 ): Promise<Response> {
-  const url = new URL(request.url);
-  const origin = env.PUBLIC_ORIGIN ?? url.origin;
+  const origin = publicOrigin(env, request);
   const found = resolvePalette(name);
   if (!found) {
     // Of these files a collection has the swatch files alone.
@@ -54,7 +54,7 @@ async function paletteFile(
     );
   }
   const { seed, palette } = found;
-  const params = addressParams(url.searchParams);
+  const params = addressParams(new URL(request.url).searchParams);
   const view = viewAt(params, palette.anchors.length);
   const stops = () => sampleStops(palette, view.steps);
   switch (format) {
