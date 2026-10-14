@@ -105,7 +105,6 @@
 
   @container page (max-width: 960px) {
     .bar:not([data-brand]) {
-      min-height: 0;
       padding-block: var(--space-s3);
       padding-inline: var(--space-s4);
     }
