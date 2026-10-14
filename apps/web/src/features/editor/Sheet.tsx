@@ -219,8 +219,8 @@ export function Sheet(props: {
      Rising's frames are the ones an admin has left on: the document's own where the server drew this page, a list's
      where the reader came from one, and otherwise asked for once the sheet is in the window. Rising pressed while it
      is the order moves to the next of them. The answer holds every palette like this one, so an order sorts what the
-     page holds and asks nothing. */
-  recallOrder();
+     page holds and asks nothing. The tab's record is read once the sheet is live, as a list reads it. */
+  onSettled(recallOrder);
   const sort = () => (readerOrder().order === "rising" ? "rising" : "popular");
   const told = untrack(() => props.frames);
   if (told && !queries.getQueryData(framesQuery().queryKey))
