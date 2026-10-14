@@ -54,6 +54,10 @@ export const SearchAnswer = v.object({
 });
 export type SearchAnswer = v.InferOutput<typeof SearchAnswer>;
 
+/** How many palettes the home's head holds: the hottest, or searched, the best answers. */
+export const HOT_PALETTES = 24;
+export const SEARCH_PALETTES = 60;
+
 /** The head of the home: the hottest palettes, or the best answers to its words. */
 export const HomeHead = v.object({
   palettes: v.array(SearchItem),
