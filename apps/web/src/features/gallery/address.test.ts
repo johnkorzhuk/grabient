@@ -119,6 +119,15 @@ describe("gallery addresses", () => {
     expect(identity("/palettes/saved", "ada")).not.toBe(identity("/palettes/saved", "grace"));
   });
 
+  test("Rising's frames in turn, and their addresses", () => {
+    for (const [frame, next, offered] of golden.frames.nextFrame) {
+      expect([nextFrame(frame), nextFrame(frame, ["1w", "1y"])]).toEqual([next, offered]);
+    }
+    expect([framePath("/palettes/rising"), framePath("/palettes/rising", "3m")]).toEqual(
+      golden.frames.framePath
+    );
+  });
+
   test("a list's link keeps the words and the view, and starts at the list's first page", () => {
     const at = (address: string) => {
       const [path, search] = split(address);
@@ -158,14 +167,5 @@ describe("gallery addresses", () => {
       size: { width: 800, height: 600 }
     });
     expect(withView(params)).toBe(params);
-  });
-
-  test("Rising's frames in turn, and their addresses", () => {
-    for (const [frame, next, offered] of golden.frames.nextFrame) {
-      expect([nextFrame(frame), nextFrame(frame, ["1w", "1y"])]).toEqual([next, offered]);
-    }
-    expect([framePath("/palettes/rising"), framePath("/palettes/rising", "3m")]).toEqual(
-      golden.frames.framePath
-    );
   });
 });
