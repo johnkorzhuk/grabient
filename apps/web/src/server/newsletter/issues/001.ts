@@ -19,11 +19,11 @@ import { decodePalette } from "@grabient/engine";
 
 /* No. 1, October 2026: collections, and that a palette's CSS is at its own address. */
 const PICKS = [
-  pick("kYuXkT47BBu6sxXjqsk1ilF8Onws", "radialGradient", 32, 0, "Coral lagoon"),
-  pick("kW8RUxaqO8dmsPXbqE2x6zBg", "linearSwatches", 5, 135, "Peach orchard"),
-  pick("kWzVMw17K7kq5vM-LD1shs7Y", "linearGradient", 32, 180, "Desert dusk"),
-  pick("kW6hdK6pbElaRxXeH9QcJFBI", "radialSwatches", 5, 0, "Pistachio macaron"),
-  pick("kW0ibSWiTBMytwpBMkKMyhAQ", "angularGradient", 32, 315, "Orchid velvet")
+  pick("kWMS7qPZ68084TQkCrUnaNBo", "linearGradient", 40, 135, "Witching hour"),
+  pick("kU9ClB669AFIzOk9Lj2g", "radialGradient", 32, 0, "Harvest moon"),
+  pick("kWziAlUZi-bxAvSmqr2kRe7g", "angularSwatches", 32, 0, "Black cherry"),
+  pick("kUby9y5jE3PaQwI4IDlg", "angularSwatches", 24, 60, "Turning leaves"),
+  pick("kUkSoUPQrBKiNOiSm75A", "linearSwatches", 13, 90, "Dark academia")
 ];
 /* Each collection's card draws palettes it holds, each a wedge of its own about the middle and one ring more than the
    last. The site draws a palette in no fewer steps than its keyframes, so the rings start at the most keyframes among
