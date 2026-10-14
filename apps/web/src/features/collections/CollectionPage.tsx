@@ -26,6 +26,7 @@ import {
 } from "solid-js";
 import { marked, offline, signInUnavailable, unreachable } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import list from "../../app/list.module.css";
 import { ShellContext } from "../../app/shell.ts";
 import { isNextUndo, record, type Step, undo } from "../../app/undo.ts";
 import { hexesOf } from "../../lib/palette.ts";
@@ -550,12 +551,12 @@ export function CollectionPage(props: {
           same cards */}
       <main
         id="main"
-        class={styles.page}
-        data-away={sel.open() ? "" : undefined}
+        class={list.column}
+        hidden={sel.open()}
         aria-busy={provisional() || unknown() ? "true" : "false"}
       >
         {/* the lists' band above the row: the way back where their search stands, the tags where theirs stand */}
-        <div class={styles.band}>
+        <div class={list.find}>
           <div class={styles.back}>
             <Button size="sm" href={localHref(back())} disabled={unreachable(back())}>
               <Icon name="back" size={13} /> {t("Collections")}
@@ -601,7 +602,7 @@ export function CollectionPage(props: {
         >
           {current => (
             <>
-              <div class={styles.row}>
+              <div class={list.row}>
                 <div class={styles.order}>
                   <Segmented
                     aria-label={t("Order")}

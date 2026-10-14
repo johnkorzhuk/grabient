@@ -29,6 +29,7 @@ import {
 } from "solid-js";
 import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import list from "../../app/list.module.css";
 import { ShellContext } from "../../app/shell.ts";
 import { record } from "../../app/undo.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
@@ -409,8 +410,8 @@ export function CollectionsPage(props: {
           same groups at the same depth */}
       <main
         id="main"
-        class={styles.page}
-        data-away={sel.open() ? "" : undefined}
+        class={list.column}
+        hidden={sel.open()}
         aria-busy={navigating() ? "true" : "false"}
       >
         <Find
@@ -420,7 +421,7 @@ export function CollectionsPage(props: {
           onImage={file => void searchImage(file)}
         />
         <h1 class={styles.hidden}>{heading(listMeta(place()))}</h1>
-        <div class={styles.nav}>
+        <div class={list.row}>
           <ListNav
             section="collections"
             order={place().order}

@@ -1,31 +1,7 @@
-/* The collections' pages: a collection's own, and the lists of them. Each is a column on the lists' gutter, its parts
-   a row's gap apart. The band above a collection's row stands where the lists' search stands, so the row, the title
-   and the cards land where the lists have them. The frame's page (AppPage) stands around it. */
+/* The collections' pages: a collection's own, and the lists of them. They stand in the frame's list layout
+   (app/list.module.css), whose parts hold every distance above the cards: a collection's way back and its tags fill
+   the part a list's search and tags fill, so its row, its title and its cards land where the lists have theirs. */
 @layer components {
-  .page {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-s6);
-    min-width: 0;
-    padding-block: var(--space-s16) var(--space-s8);
-    padding-inline: var(--size-gutter);
-    /* on a phone the foot keeps room for the floating Selection press */
-    @container page (max-width: 800px) {
-      padding-block: var(--space-s10) var(--space-s16);
-      padding-inline: var(--space-s4);
-    }
-    /* mounted and out of sight while the selection's export screen stands in for it */
-    &[data-away] {
-      display: none;
-    }
-  }
-  .band,
-  .find {
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-s4);
-    margin-bottom: var(--space-s8);
-  }
   .back {
     display: flex;
     align-items: center;
@@ -39,15 +15,6 @@
     flex-direction: column;
     gap: var(--space-s3);
     max-width: var(--size-prose);
-  }
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-s4);
-    min-height: var(--size-control-big);
-    margin-bottom: var(--space-s4);
   }
   /* the width of the lists' two sections, so a choice here is the size of one there; full width on a phone */
   .order {
@@ -69,14 +36,9 @@
   }
   /* the title line, as a list's heading and a collection's group stand it: the name, then what the collection says */
   .heading {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: last baseline;
+    composes: heading from "../../app/list.module.css";
     justify-content: space-between;
     gap: var(--space-s2) var(--space-s4);
-    min-width: 0;
-    min-height: var(--size-control-big);
-    margin-bottom: var(--space-s8);
     @container page (max-width: 800px) {
       flex-wrap: wrap;
     }
@@ -196,15 +158,6 @@
     align-items: center;
     gap: var(--space-s4);
     min-height: var(--space-s10);
-  }
-  .nav {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--space-s4);
-    min-height: var(--size-control-big);
-    margin-bottom: var(--space-s4);
   }
   /* the picture a search by image was made from, a section's space above the collections */
   .picture {

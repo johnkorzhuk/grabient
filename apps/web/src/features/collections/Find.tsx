@@ -4,6 +4,7 @@ import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/solid-quer
 import { useNavigate } from "@tanstack/solid-router";
 import { createEffect, createSignal, Errored, Loading, onCleanup } from "solid-js";
 import { listUnavailable, marked, offline } from "../../app/connection.ts";
+import list from "../../app/list.module.css";
 import { paletteId } from "../../lib/words.ts";
 import { account } from "../account/session.ts";
 import { arrivedWhole, FIELD_MAX, readField, typedWords } from "../gallery/field.ts";
@@ -11,7 +12,6 @@ import { countSearch, tagPressed } from "../search/count.ts";
 import { SearchField } from "../search/SearchField.tsx";
 import { SearchTags } from "../search/SearchTags.tsx";
 import { collectionHref, type PaletteOrder } from "./address.ts";
-import styles from "./collections.module.css";
 import { collectionGone } from "./overlay.ts";
 import { type ListPlace, pageSearch } from "./params.ts";
 import { failed, ownQuery, tagsQuery } from "./queries.ts";
@@ -146,7 +146,7 @@ export function Find(props: {
   };
 
   return (
-    <div class={styles.find}>
+    <div class={list.find}>
       <SearchField
         value={typed()}
         placeholder={t("Search collections")}
