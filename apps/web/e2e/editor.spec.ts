@@ -311,6 +311,34 @@ test("a burst of presses writes the address at most once a rhythm, and the last 
     expect(writes[i]! - writes[i - 1]!).toBeGreaterThanOrEqual(300);
 });
 
+test("a press that leads to another entry lands the edit still waiting in the entry it leaves", async ({
+  page
+}) => {
+  await open(page);
+  const presses = page.getByRole("group", { name: "Palette actions" }).first();
+  await presses.getByRole("button", { name: "Add to selection" }).click();
+  const terms = page.getByRole("link", { name: "Terms" });
+  for (const leave of [
+    () => presses.getByRole("button", { name: /^Selection/ }).click(),
+    () => terms.click()
+  ]) {
+    await page.keyboard.press("i");
+    await expect.poll(() => here(page)).not.toContain("kS7CQ31Do6asvY-");
+    const inverted = here(page);
+    // the address was written a moment ago, so the next edit's waits its turn
+    await page.keyboard.press("e");
+    await leave();
+    await expect.poll(() => here(page)).not.toBe(inverted);
+    await page.goBack();
+    await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+    await expect.poll(() => here(page)).toBe("/kSqF5vKzob4kSRW");
+    // back where the walk began, for the next press
+    await page.keyboard.press("ControlOrMeta+z");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => here(page)).toBe(`/${SEED}`);
+  }
+});
+
 test("U copies the address as the last edit leaves it", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await open(page);
