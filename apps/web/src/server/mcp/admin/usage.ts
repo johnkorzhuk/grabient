@@ -6,7 +6,7 @@ import type { Deployment, Env } from "@grabient/server/env.ts";
    events.analyticsEngine, a lower bound on the time, and sums already weighed by each point's sample interval. */
 
 /** The datasets cloudflare.config.ts binds as USAGE. A Preview writes none. */
-const DATASETS: Partial<Record<Deployment, string>> = {
+export const DATASETS: Partial<Record<Deployment, string>> = {
   production: "grabient_usage",
   staging: "grabient_staging_usage",
   development: "grabient_dev_usage"

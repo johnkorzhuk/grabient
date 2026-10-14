@@ -233,6 +233,9 @@ describe("the owner's alerts", () => {
       watched: 0
     });
     expect((await signInDigest({ ...env, DEPLOYMENT: "preview" })).skipped).toBeTruthy();
+    // each deploy that counts reads its own dataset, the one the usage report reads
+    await signInDigest({ ...env, DEPLOYMENT: "development" });
+    expect(queries.at(-1)).toContain('FROM events.analyticsEngine."grabient_dev_usage"');
   });
 });
 

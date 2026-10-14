@@ -1,5 +1,6 @@
 import { CONTACT_EMAIL } from "@grabient/email/addresses.ts";
-import type { Deployment, Env } from "@grabient/server/env.ts";
+import type { Env } from "@grabient/server/env.ts";
+import { DATASETS } from "../mcp/admin/usage.ts";
 
 /* Emails to the site's own address from the six-hour job, about what nobody would otherwise see until an app failed to
    connect. At most one a day of each kind, by a marker in OAUTH_KV kept two days. English and never translated: they go
@@ -74,11 +75,6 @@ export function documentAlert(env: Env, check: DocumentNotice, now = Date.now())
   );
 }
 
-/** The datasets the deploys write their usage counts to (cloudflare.config.ts, USAGE). */
-const DATASETS: Partial<Record<Deployment, string>> = {
-  production: "grabient_usage",
-  staging: "grabient_staging_usage"
-};
 const WATCHED = new Set(["refresh_token_mismatch", "kv_rate_limited"]);
 type Row = Record<string, unknown>;
 
