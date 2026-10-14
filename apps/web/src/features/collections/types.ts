@@ -19,7 +19,9 @@ export const CollectionPreviewSchema = v.object({
   angle: v.number(),
   createdAt: v.optional(v.number()),
   likes: v.optional(v.number()),
-  position: v.optional(v.number())
+  position: v.optional(v.number()),
+  /** the week's rising score, in a list that opens its collections rising first */
+  rising: v.optional(v.number())
 });
 export type CollectionPreview = v.InferOutput<typeof CollectionPreviewSchema>;
 
