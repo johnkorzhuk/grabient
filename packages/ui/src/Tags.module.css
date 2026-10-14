@@ -96,7 +96,8 @@
     display: inline-flex;
     flex-shrink: 0;
     &:hover,
-    &:has(:focus-visible) {
+    &:has(:focus-visible),
+    &[data-open] {
       --bloom: 1;
     }
     /* a tag that cannot be followed now shows no colors */
