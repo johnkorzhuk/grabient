@@ -8,12 +8,13 @@
     /* the line beneath steps up in ink while the picture is lit: the like reads --card-line */
     --card-line: var(--color-ink3);
     &:has(.art:hover),
-    &:has(.art:focus-within) {
+    &:has(.art :focus-visible) {
       --card-line: var(--color-ink2);
     }
   }
   /* one height at every width: a wider column is a wider picture. Its tools take the pointer only while shown, and are
-     hidden by their opacity so Tab still reaches them and focus shows them */
+     hidden by their opacity so Tab still reaches them and the keyboard's focus shows them; a press of the mouse leaves
+     its focus on the press, and the tools go with the pointer */
   .art {
     position: relative;
     isolation: isolate;
@@ -21,7 +22,7 @@
     border-radius: var(--radius-surface);
     --show: 0;
     --pe: none;
-    &:focus-within,
+    &:has(:focus-visible),
     &[data-open],
     &:has([role="dialog"]) {
       --show: 1;

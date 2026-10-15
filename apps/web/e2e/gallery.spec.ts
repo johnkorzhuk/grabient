@@ -81,6 +81,26 @@ test("a card the server drew answers focus and a press that reach it before the 
   await expect.poll(() => here(page)).toBe("/login?redirect=/palettes");
 });
 
+test("a card's tools leave with the pointer after a press of the mouse, and stay with the keyboard's focus", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  const card = page.locator("main article").first();
+  const art = card.locator('[class*="_art_"]').first();
+  const shown = () => art.evaluate(el => getComputedStyle(el).getPropertyValue("--show").trim());
+  await card.hover();
+  await card.getByRole("button", { name: "Add to selection" }).click();
+  await expect.poll(shown).toBe("1");
+  // the press keeps the focus, and the tools go with the pointer all the same
+  await page.mouse.move(4, 4);
+  await expect.poll(shown).toBe("0");
+  // the keyboard's focus shows them where the pointer is not
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect.poll(shown).toBe("1");
+});
+
 test("Tab leads from the last live card into the next, live by then", async ({ page }) => {
   await page.goto("/palettes/rising");
   await hydrated(page);
