@@ -81,23 +81,24 @@ export async function handle(
   app: App
 ): Promise<Response> {
   const url = new URL(request.url);
+  const { locale, path } = splitLocale(url.pathname);
   const wrong = misdeployed(env, url.hostname);
   if (wrong) {
     console.error("misdeployed: refusing to serve grabient.com,", wrong);
-    return new Response(
+    const refused = new Response(
       `This deploy is not configured for grabient.com: ${wrong}. Deploy with \`cf deploy --mode production\`.\n`,
       {
         status: 503,
         headers: { ...NO_STORE, "Content-Type": "text/plain; charset=utf-8", "Retry-After": "300" }
       }
     );
+    return counted(env, path, refused);
   }
   const { rest, tracking } = splitTracking(url.search);
   if (tracking) {
     url.search = rest;
     request = new Request(url, request);
   }
-  const { locale, path } = splitLocale(url.pathname);
   let response: Response;
   try {
     response = await route(request, url, locale, path, env, ctx, app);
@@ -107,8 +108,11 @@ export async function handle(
     console.error(error);
     response = json({ error: msg("Something went wrong. Try again.") }, { status: 500 });
   }
-  const answered = finish(request, url, path, env, response, tracking);
-  // an answer the site could not give, which the owner's alert counts (alerts/alerts.ts)
+  return counted(env, path, finish(request, url, path, env, response, tracking));
+}
+
+/** The answer, counted when the site could not give it: the owner's alert reads the count (alerts/alerts.ts). */
+function counted(env: Env, path: string, answered: Response): Response {
   if (answered.status >= 500) countUsage(env, "failure", String(answered.status), kindOf(path));
   return answered;
 }

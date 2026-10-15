@@ -96,6 +96,8 @@ test("grabient.com is answered only by the deploy made for it", async () => {
   expect(await response.text()).toBe(
     'This deploy is not configured for grabient.com: DEPLOYMENT is "staging", not "production". Deploy with `cf deploy --mode production`.\n'
   );
+  // counted as any answer the site could not give, so the owner's alert hears of it
+  expect(counted).toEqual(["failure 503 page"]);
 });
 
 describe("the language in the address", () => {
