@@ -180,6 +180,27 @@ const checked = (copy: Snapshot) =>
     staging: source.staging
   });
 const failed = (checks: Check[]) => checks.filter(c => c.status === "fail").map(c => c.name);
+/** The first column of each row a query finds. */
+const values = (built: DatabaseSync, sql: string) =>
+  (built.prepare(sql).all() as Record<string, unknown>[]).map(r => Object.values(r)[0]);
+
+/** A build from a grabient-lite and a staging loaded from it after `base`, each changed since as given, checked. */
+async function built(onStaging: Changes, onLite: Changes, base: Changes = []) {
+  const sources = { production: await production(), lite: await lite(base) };
+  const source: Sources = {
+    production: sources.production,
+    lite: await lite([...base, ...onLite]),
+    staging: await stagingOf(sources, onStaging)
+  };
+  const { db } = await copyOf(source, BUILT);
+  const checks = verify(await snapshotOf(db, 1000), source.production, source.lite, {
+    aliases: ALIASES,
+    originals: ORIGINALS,
+    now: BUILT,
+    staging: source.staging
+  });
+  return { db, checks, work: stagingWork(source.staging, source.production, source.lite, ALIASES) };
+}
 
 beforeAll(async () => {
   const sources = { production: await production(), lite: await lite([greens]) };
@@ -398,35 +419,17 @@ describe("Grabient's collections the queue runs on both sides", () => {
     ],
     175_000
   ];
-  async function built(onStaging: Changes, onLite: Changes) {
-    const base: Changes = [[[queued("q9", O, "due", null)], 9_000]];
-    const sources = { production: await production(), lite: await lite(base) };
-    const source: Sources = {
-      production: sources.production,
-      lite: await lite([...base, ...onLite]),
-      staging: await stagingOf(sources, onStaging)
-    };
-    const work = stagingWork(source.staging, source.production, source.lite, ALIASES);
-    const { db } = await copyOf(source, BUILT);
-    const checks = verify(await snapshotOf(db, 1000), source.production, source.lite, {
-      aliases: ALIASES,
-      originals: ORIGINALS,
-      now: BUILT,
-      staging: source.staging
-    });
-    const seeds = (
-      db
-        .prepare("SELECT seed FROM k_collection_items WHERE collection_id = 'c1' ORDER BY position")
-        .all() as { seed: string }[]
-    ).map(r => r.seed);
-    const records = (
-      db.prepare("SELECT id FROM k_admin_actions WHERE id = 'a-remove'").all() as { id: string }[]
-    ).map(r => r.id);
-    return { work, checks, seeds, records };
-  }
+  const base: Changes = [[[queued("q9", O, "due", null)], 9_000]];
+  const c1 = (built: DatabaseSync) =>
+    values(
+      built,
+      "SELECT seed FROM k_collection_items WHERE collection_id = 'c1' ORDER BY position"
+    );
+  const recorded = (built: DatabaseSync) =>
+    values(built, "SELECT id FROM k_admin_actions WHERE id = 'a-remove'");
 
   it("keeps the palette the admin took out on staging out, and every palette either queue added", async () => {
-    const { work, checks, seeds, records } = await built(
+    const { db, work, checks } = await built(
       [
         removedC,
         [ran("q9", O, 2, 190_200), 190_200],
@@ -435,19 +438,20 @@ describe("Grabient's collections the queue runs on both sides", () => {
       [
         [ran("q9", O, 2, 190_000), 190_000],
         [[queued("q10", D, "due", null), ...ran("q10", D, 3, 195_000)], 195_000]
-      ]
+      ],
+      base
     );
     /* A stands, C stays out, the job both ran adds O once, his B joins when he added it, and D from grabient-lite's
        own job after it */
-    expect(seeds).toEqual([A, O, B, D]);
-    expect(records).toEqual(["a-remove"]);
+    expect(c1(db)).toEqual([A, O, B, D]);
+    expect(recorded(db)).toEqual(["a-remove"]);
     expect(work.conflicts).toEqual([]);
     expect(work.left).toEqual([]);
     expect(failed(checks)).toEqual([]);
   });
 
   it("lets grabient-lite's admin's later curation of the collection stand, and names the conflict", async () => {
-    const { work, checks, seeds, records } = await built(
+    const { db, work, checks } = await built(
       [removedC],
       [
         [
@@ -459,10 +463,11 @@ describe("Grabient's collections the queue runs on both sides", () => {
           ],
           200_000
         ]
-      ]
+      ],
+      base
     );
-    expect(seeds).toEqual([C]);
-    expect(records).toEqual([]);
+    expect(c1(db)).toEqual([C]);
+    expect(recorded(db)).toEqual([]);
     expect(work.conflicts).toEqual([
       {
         kind: "collection",
@@ -473,6 +478,78 @@ describe("Grabient's collections the queue runs on both sides", () => {
         stands: "grabient-lite"
       }
     ]);
+    expect(failed(checks)).toEqual([]);
+  });
+});
+
+describe("a like of a palette an admin deleted from the gallery", () => {
+  const X = "kWxxxxxxxx";
+  /* grabient-lite's gallery holds X at the load, so staging's does too */
+  const inGallery: Changes = [[[palette(X, 9_960)], 9_960]];
+  /* the delete the site makes: every like of the palette, the palette, and the record */
+  const deleted = (id: string, actor: string, seed: string, at: number): Changes[number] => [
+    [
+      `DELETE FROM k_likes WHERE palette_id = '${seed}'`,
+      `DELETE FROM k_palettes WHERE seed = '${seed}'`,
+      `INSERT INTO k_admin_actions (id, actor_id, action, seed, created_at)
+       VALUES ('${id}', '${actor}', 'delete', '${seed}', ${at})`
+    ],
+    at
+  ];
+  const likeOf = (built: DatabaseSync, seed: string) =>
+    values(built, `SELECT created_at FROM k_likes WHERE user_id = 'PA' AND palette_id = '${seed}'`);
+  const paletteOf = (built: DatabaseSync, seed: string) =>
+    values(built, `SELECT seed FROM k_palettes WHERE seed = '${seed}'`);
+
+  it("goes with grabient-lite's later delete, which took every like of the palette", async () => {
+    const { db, work, checks } = await built(
+      [[[liked("PA", X, 100_000)], 100_000]],
+      [deleted("a-delete", "LA", X, 150_000)],
+      inGallery
+    );
+    expect(likeOf(db, X)).toEqual([]);
+    expect(paletteOf(db, X)).toEqual([]);
+    expect(work.conflicts).toEqual([
+      {
+        kind: "like",
+        key: X,
+        staging: 100_000,
+        other: 150_000,
+        source: "grabient-lite",
+        stands: "grabient-lite"
+      }
+    ]);
+    expect(failed(checks)).toEqual([]);
+  });
+
+  it("stands without its palette when saved after grabient-lite's delete, as the site saves one", async () => {
+    const { db, work, checks } = await built(
+      [[[liked("PA", X, 150_000)], 150_000]],
+      [deleted("a-delete", "LA", X, 100_000)],
+      inGallery
+    );
+    expect(likeOf(db, X)).toEqual([150_000]);
+    expect(paletteOf(db, X)).toEqual([]);
+    expect(work.palettes).toEqual([]);
+    expect(failed(checks)).toEqual([]);
+  });
+
+  it("stands without its palette after a delete on staging alone, with the delete's record", async () => {
+    const Y = "kYyyyyyyyy";
+    const { db, work, checks } = await built(
+      [
+        [[palette(Y, 100_000), liked("PA", Y, 100_000)], 100_000],
+        deleted("s-delete", "PA", Y, 110_000),
+        [[liked("PA", Y, 120_000)], 120_000]
+      ],
+      []
+    );
+    expect(likeOf(db, Y)).toEqual([120_000]);
+    expect(paletteOf(db, Y)).toEqual([]);
+    expect(values(db, "SELECT id FROM k_admin_actions WHERE id = 's-delete'")).toEqual([
+      "s-delete"
+    ]);
+    expect(work.left).toEqual([]);
     expect(failed(checks)).toEqual([]);
   });
 });

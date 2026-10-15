@@ -11,7 +11,9 @@
 
    What, each by the rule that the later change wins:
    - a like, per account and palette: staging's like or unlike stands unless grabient-lite or production changed that
-     like later. A palette a carried like brought into staging's gallery comes with it.
+     like later, as an admin's delete of the palette from grabient-lite's gallery changes every like of it. A palette a
+     carried like brought into staging's gallery comes with it, and a like saved after an admin deleted its palette
+     stays without it, as the site saves one.
    - a collection, with its words, address and palettes in order, or its deletion: the admin's own, unless
      grabient-lite changed it later, and each of Grabient's an admin curated (on the record, through an app, or by
      adding palettes by hand), unless an admin changed it on grabient-lite later. The queues' runs are nobody's change,
@@ -24,7 +26,7 @@
    Everything else an admin did on staging since its load stays there and is named: fit and search votes, reviews, the
    gallery's own curation, and the admins' apps' work beyond collections. Each acts on the gallery or on the agents'
    record, which grabient-lite holds until the cutover. */
-import { insertRows, literal, name, type Value } from "./d1.ts";
+import { insertRows, literal, type Value } from "./d1.ts";
 import { freeSlug, handleOf, takenBy, underHandle, update } from "./merge.ts";
 import { STYLES } from "./palettes.ts";
 import type { Row, Snapshot } from "./snapshot.ts";
@@ -411,14 +413,22 @@ export function stagingWork(
     ...production.rows("palettes").flatMap(p => aliases.get(String(p.id)) ?? []),
     ...lite.rows("k_palettes").map(p => String(p.seed))
   ]);
+  /* an admin's delete of a palette from the gallery took every like of it, and a like saved after it stays without
+     the palette, as the site saves one: with the delete's record where only staging holds it */
+  const liteDeletes = new Map<string, number>();
+  for (const r of lite.rows("k_admin_actions"))
+    if (r.action === "delete") touch(liteDeletes, String(r.seed), r.created_at);
+  const keptOut = new Set<string>();
   for (const [key, at] of likeTimes) {
     const [user, seed] = key.split(" ") as [string, string];
     const who = admins.get(user)!;
     const mine = stagingLikes.get(key) ?? null;
     const theirs = who.lite ? liteLikes.get(`${who.lite} ${seed}`) : undefined;
-    const liteAt = who.lite
-      ? latest(liteLog.get(`like ${who.lite} ${seed}`), theirs?.created_at)
-      : undefined;
+    const liteAt = latest(
+      who.lite ? liteLog.get(`like ${who.lite} ${seed}`) : undefined,
+      theirs?.created_at,
+      liteDeletes.get(seed)
+    );
     const productionAt = productionLikes.get(`${who.target} ${seed}`);
     const source: Source =
       productionAt !== undefined && (liteAt === undefined || productionAt > liteAt)
@@ -436,11 +446,13 @@ export function stagingWork(
       stands,
       liked: stands === "staging" ? !!mine : stands === "production" || !!theirs
     });
-    const palette = stands === "staging" && mine && !held.has(seed) ? gallery.get(seed) : undefined;
+    if (stands !== "staging" || !mine || held.has(seed) || liteDeletes.has(seed)) continue;
+    const palette = gallery.get(seed);
     if (palette)
       work.palettes.push(
         Object.fromEntries(GALLERY.map(column => [column, palette[column] ?? null]))
       );
+    else keptOut.add(seed);
   }
 
   /* notes, the record and the apps' log of the changes carried, and the newsletter's leads */
@@ -451,14 +463,20 @@ export function stagingWork(
       work.notes.push({ ...note, collection_id: collection, author_id: target(note.author_id) });
   }
   const isCarried = (id: string | null) => id !== null && carried.has(id);
+  /** Whether the build takes a record: a note's while its collection is there, a delete's that keeps a carried like's
+      palette out of the gallery, and the rest of a collection whose staging version stands. */
+  const takes = (r: Row) => {
+    if (r.action === "note") return inBuild(r.collection_id) !== null;
+    if (r.action === "delete") return keptOut.has(String(r.seed));
+    return !JUDGED.includes(String(r.action)) && isCarried(idOf(r.collection_id));
+  };
   for (const r of records) {
-    const id = idOf(r.collection_id);
-    if (
-      r.action === "note"
-        ? inBuild(r.collection_id)
-        : !JUDGED.includes(String(r.action)) && isCarried(id)
-    )
-      work.records.push({ ...r, actor_id: target(r.actor_id), collection_id: id });
+    if (takes(r))
+      work.records.push({
+        ...r,
+        actor_id: target(r.actor_id),
+        collection_id: idOf(r.collection_id)
+      });
     else
       work.left.push({
         table: "k_admin_actions",
@@ -574,13 +592,7 @@ export function workStatements(
   return {
     slugs,
     statements: [
-      /* a palette a carried like brought in, as a like brings it: never one an admin deleted */
-      ...work.palettes.map(
-        p => `INSERT INTO k_palettes (${GALLERY.map(name).join(", ")})
-SELECT ${GALLERY.map(c => literal(p[c] ?? null)).join(", ")}
-WHERE NOT EXISTS (SELECT 1 FROM k_admin_actions WHERE seed = ${literal(p.seed)} AND action = 'delete')
-ON CONFLICT(seed) DO NOTHING`
-      ),
+      ...insertRows("k_palettes", GALLERY, work.palettes, "ON CONFLICT(seed) DO NOTHING"),
       ...insertRows(
         "k_likes",
         columns("k_likes"),

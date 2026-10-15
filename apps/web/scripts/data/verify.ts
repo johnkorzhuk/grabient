@@ -119,9 +119,15 @@ const PRIVATE = [
   "k_palette_edits",
   "k_search_unread"
 ];
-/** Rows that point at another table without a foreign key: each must find its row. */
-const POINTERS: [string, string, string][] = [
-  ["k_likes.palette_id", "k_palettes", "seed"],
+/** Rows that point at another table without a foreign key: each must find its row, or be one the fourth names. A like
+    saved after an admin deleted its palette from the gallery stays without it, as the site saves one. */
+const POINTERS: [string, string, string, string?][] = [
+  [
+    "k_likes.palette_id",
+    "k_palettes",
+    "seed",
+    "SELECT seed FROM k_admin_actions WHERE action = 'delete'"
+  ],
   ["k_queue.actor", "k_personas", "user_id"],
   ["k_collection_notes.author_id", "auth_user", "id"],
   ["k_collection_votes.user_id", "auth_user", "id"],
@@ -172,11 +178,11 @@ function orphans(db: DatabaseSync): string[] {
   const loose = all<{ table: string; parent: string }>("PRAGMA foreign_key_check").map(
     r => `${r.table} → ${r.parent}`
   );
-  for (const [from, table, column] of POINTERS) {
+  for (const [from, table, column, unless] of POINTERS) {
     const [source, field] = from.split(".") as [string, string];
     loose.push(
       ...all<{ v: Value }>(
-        `SELECT DISTINCT "${field}" AS v FROM "${source}" WHERE "${field}" IS NOT NULL AND "${field}" NOT IN (SELECT "${column}" FROM "${table}")`
+        `SELECT DISTINCT "${field}" AS v FROM "${source}" WHERE "${field}" IS NOT NULL AND "${field}" NOT IN (SELECT "${column}" FROM "${table}")${unless ? ` AND "${field}" NOT IN (${unless})` : ""}`
       ).map(r => `${from} ${r.v}`)
     );
   }
@@ -345,19 +351,11 @@ export function verify(
       .flatMap(p => (aliases.has(String(p.id)) ? [aliases.get(String(p.id))!] : []))
   );
   const originals = (options.originals ?? readOriginals()).filter(o => !o.legacy).map(o => o.kseed);
-  /* a palette a carried like brings in joins the gallery unless an admin deleted it */
-  const deletedSeeds = new Set(
-    lite
-      .rows("k_admin_actions")
-      .filter(r => r.action === "delete")
-      .map(r => r.seed)
-  );
-  const brought = work.palettes.filter(p => !deletedSeeds.has(p.seed));
   const gallery = new Set([
     ...kseeds,
     ...originals,
     ...lite.rows("k_palettes").map(p => String(p.seed)),
-    ...brought.map(p => String(p.seed))
+    ...work.palettes.map(p => String(p.seed))
   ]);
   const productionUsers = new Set(production.rows("auth_user").map(u => String(u.id)));
   const likeKeys = new Set([
@@ -515,7 +513,7 @@ export function verify(
         const differ = likeColumns.filter(c => !same(held[c], like.row![c]));
         return differ.length ? [`the like of ${like.seed} differs in ${differ.join(", ")}`] : [];
       }),
-      ...brought.flatMap(p =>
+      ...work.palettes.flatMap(p =>
         inGallery.has(String(p.seed)) ? [] : [`palette ${p.seed} is missing`]
       ),
       ...carried.flatMap(c => {
@@ -542,7 +540,7 @@ export function verify(
     work.loadedAt === null
       ? "staging was never loaded"
       : `since its load at ${new Date(work.loadedAt).toISOString().slice(0, 19)} UTC: ` +
-          `${plural(work.likes.length, "like")} changed, ${plural(brought.length, "palette")} brought in, ` +
+          `${plural(work.likes.length, "like")} changed, ${plural(work.palettes.length, "palette")} brought in, ` +
           `${plural(carried.length, "collection")} as staging left ${carried.length === 1 ? "it" : "them"}, ` +
           `${plural(work.notes.length, "note")}, ${plural(work.leads.length, "lead")}, ` +
           `${plural(work.records.length + work.contributions.length, "record")} of them`
