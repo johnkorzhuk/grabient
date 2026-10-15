@@ -41,6 +41,7 @@ function Opened(props: { collect: CardCollect; small: boolean; id: string; onClo
       data-small={props.small ? "" : undefined}
       role="dialog"
       aria-label={t("Add to collection")}
+      data-keys="own"
       id={props.id}
     >
       <CollectPiece c={c} onClose={props.onClose} small={props.small} />

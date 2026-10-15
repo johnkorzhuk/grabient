@@ -227,6 +227,7 @@ export function SizeControl(props: {
           class={styles.sheet}
           role="dialog"
           aria-label={t("Preview size")}
+          data-keys="own"
           onPointerLeave={off}
           onFocusOut={e => {
             if (focusLeft(e, host)) close();

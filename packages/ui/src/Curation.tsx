@@ -231,7 +231,7 @@ export function Curation(props: {
         </span>
       </Show>
       <Show when={open()}>
-        <div class={styles.sheet} role="dialog" aria-labelledby={id}>
+        <div class={styles.sheet} role="dialog" aria-labelledby={id} data-keys="own">
           {/* Enter in a field confirms, as a form's submit does */}
           <form
             class={styles.form}

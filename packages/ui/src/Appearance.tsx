@@ -196,6 +196,7 @@ export function AppearanceMenu(props: AppearanceProps) {
       id={props.onClose ? "appearance-menu" : undefined}
       class={styles.menu}
       data-floating={props.floating ? "" : undefined}
+      data-keys={props.floating ? "own" : undefined}
       onPointerLeave={off}
       onFocusOut={e => {
         if (props.floating && focusLeft(e, root, button())) props.onClose?.();
