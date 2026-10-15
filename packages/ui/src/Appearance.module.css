@@ -177,8 +177,13 @@
     &:focus-visible {
       --tile-focus: 1px;
     }
+    /* the chosen tile's ring is drawn on its picture, whose colors forced colors leave alone: there in the system's
+       mark for what is chosen */
     &[aria-pressed="true"] {
       --tile-ring: var(--color-rim), 0 0 0 2px var(--color-ink);
+      @media (forced-colors: active) {
+        --tile-ring: 0 0 0 2px Highlight;
+      }
     }
   }
   .art {

@@ -49,10 +49,15 @@
         min-height: var(--size-touch);
       }
     }
+    /* forced colors take the fill away: the chosen row wears the system's mark */
     &[data-current],
     &[data-current]:hover {
       --fill: var(--color-paper3);
       color: var(--color-ink);
+      @media (forced-colors: active) {
+        background-color: Highlight;
+        color: HighlightText;
+      }
     }
     /* a row that cannot be chosen now: a disabled button's look, and nothing lights */
     &:disabled,

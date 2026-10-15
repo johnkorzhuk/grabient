@@ -27,9 +27,14 @@
     &:focus-visible {
       outline-width: 1px;
     }
+    /* forced colors take the fill away: the page's own link wears the system's mark */
     &[aria-current] {
       --fill: var(--color-paper3);
       color: var(--color-ink);
+      @media (forced-colors: active) {
+        background-color: Highlight;
+        color: HighlightText;
+      }
     }
     &[aria-disabled="true"] {
       opacity: 0.4;
