@@ -102,7 +102,12 @@ export const Route = createFileRoute("/$id/")({
   },
   /* Only the server's answer for a page the browser draws alone shows this: a navigation in the browser keeps the page
      it leaves until the next has loaded, as the lists do. What it draws stands still while the editor's code comes
-     (boot.ts), so the editor takes its place the moment it can. */
+     (boot.ts), so the editor takes its place the moment it can. Its code rides in the page's own chunk, which only
+     this route's pages load. */
+  codeSplitGroupings: [
+    ["component", "pendingComponent"],
+    ["errorComponent", "notFoundComponent"]
+  ],
   pendingComponent: Static,
   pendingMs: Number.POSITIVE_INFINITY,
   pendingMinMs: 0,
