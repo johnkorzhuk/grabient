@@ -201,6 +201,69 @@ test("the editor lays itself out without an error to report", async ({ page }) =
   expect(reports).toEqual([]);
 });
 
+test("the strip of a palette of many colors goes to two rows and back as the window narrows and widens, without an error to report", async ({
+  page
+}) => {
+  const reports: string[] = [];
+  page.on("request", request => {
+    if (request.url().endsWith("/api/client-error")) reports.push(request.postData() ?? "");
+  });
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await open(page, `/${SEED}?steps=20`);
+  // two rows stand taller than one: the strip's own size changes with what it reads of its width
+  const strip = page.getByRole("group", { name: "Palette colors" });
+  await expect(strip).not.toHaveAttribute("data-two");
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  await expect(strip).toHaveAttribute("data-two", "");
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await expect(strip).not.toHaveAttribute("data-two");
+  await page.waitForTimeout(500);
+  expect(reports).toEqual([]);
+});
+
+test("the strip and the plots come back from the selection's export screen at their own size, from its first frame", async ({
+  page
+}) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await open(page, `/${SEED}?steps=20`);
+  const strip = page.getByRole("group", { name: "Palette colors" });
+  await expect(strip).not.toHaveAttribute("data-two");
+  await page
+    .getByRole("group", { name: "Palette actions" })
+    .first()
+    .getByRole("button", { name: "Add to selection" })
+    .click();
+  await page
+    .getByRole("button", { name: /^Selection/ })
+    .first()
+    .click();
+  await expect(page.getByRole("button", { name: "Close selection" })).toBeVisible();
+  // each frame as it is painted: an observer made after the page's own reports after theirs, just before the paint
+  await page.evaluate(() => {
+    const painted: string[] = [];
+    Object.assign(window, { painted });
+    const strip = document.querySelector('main [role="group"][aria-label="Palette colors"]');
+    const plots = [...document.querySelectorAll('main svg[role="img"][width]')];
+    const sizes = new ResizeObserver(() => {
+      if (!strip?.getClientRects().length) return;
+      const rows = strip.hasAttribute("data-two") ? "two rows" : "one row";
+      const fit = plots.filter(
+        plot =>
+          Number(plot.getAttribute("width")) ===
+          Math.round(plot.parentElement?.getBoundingClientRect().width ?? 0)
+      );
+      painted.push(`${rows}, ${fit.length} of ${plots.length} plots fit`);
+    });
+    if (strip) sizes.observe(strip);
+  });
+  await page.keyboard.press("Escape");
+  await expect(strip).toBeVisible();
+  await page.waitForTimeout(300);
+  const painted = await page.evaluate(() => (window as unknown as { painted: string[] }).painted);
+  expect(painted.length).toBeGreaterThan(0);
+  expect(painted.filter(frame => frame !== "one row, 3 of 3 plots fit")).toEqual([]);
+});
+
 test("another spelling of an address answers with the canonical one", async ({ request }) => {
   const answer = await request.get(`/${SEED}?angle=90&steps=7&lock=hue,lightness`, {
     maxRedirects: 0

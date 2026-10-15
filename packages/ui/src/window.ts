@@ -189,6 +189,7 @@ export function createWindow(o: WindowOptions) {
 export function createHeights(kept: Map<string, number>) {
   const [version, setVersion] = createSignal(0);
   const keys = new WeakMap<Element, string>();
+  let frame = 0;
   const observer = isServer
     ? null
     : new ResizeObserver(entries => {
@@ -203,9 +204,18 @@ export function createHeights(kept: Map<string, number>) {
         }
         // a bound on what is kept: a long session meets thousands of groups
         if (kept.size > 2000) kept.clear();
-        if (changed) setVersion(n => n + 1);
+        /* the column is laid out by the new heights in the next frame, as the window reads its own: blocks drawn or
+           dropped inside this delivery resize the column the window observes, which the browser reports as a loop */
+        if (changed && !frame)
+          frame = requestAnimationFrame(() => {
+            frame = 0;
+            setVersion(n => n + 1);
+          });
       });
-  onCleanup(() => observer?.disconnect());
+  onCleanup(() => {
+    observer?.disconnect();
+    if (frame) cancelAnimationFrame(frame);
+  });
   return {
     /** a block's measured height, or none yet */
     of: (key: string): number | undefined => {

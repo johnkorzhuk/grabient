@@ -493,6 +493,55 @@ async function drag(page: Page, target: Locator, by: number, width: Width) {
   for (let step = 1; step <= 8; step++) await touch("touchMove", (by * step) / 8);
   await touch("touchEnd");
 }
+/** A reader's first move down a page, `by` pixels, as the width's reader makes it: a finger set down low on the screen
+    and drawn up it, held still before it lifts so the page does not fling on, or a mouse that comes over the page and
+    turns its wheel. */
+async function swipe(page: Page, by: number, width: Width) {
+  const [x, y] = [width.viewport.width / 2, width.viewport.height - 100];
+  if (!width.touch) {
+    await page.mouse.move(x, y);
+    await page.mouse.wheel(0, by);
+    return;
+  }
+  const cdp = await page.context().newCDPSession(page);
+  const touch = (type: "touchStart" | "touchMove" | "touchEnd", up?: number) =>
+    cdp.send("Input.dispatchTouchEvent", {
+      type,
+      touchPoints: up === undefined ? [] : [{ x, y: y - up }]
+    });
+  await touch("touchStart", 0);
+  for (let step = 1; step <= 8; step++) await touch("touchMove", (by * step) / 8);
+  await page.waitForTimeout(300);
+  await touch("touchEnd");
+}
+/** From the next document on: the ResizeObserver loops the window hears, which the page reports as its own errors,
+    and the groups of a feed that the page's observers were told the sizes of, by key. */
+const observed = (page: Page) =>
+  page.addInitScript(() => {
+    const loops: string[] = [];
+    const measured = new Set<string>();
+    Object.assign(window, { loops, measured });
+    addEventListener("error", event => {
+      if (event.message.startsWith("ResizeObserver")) loops.push(event.message);
+    });
+    const Native = window.ResizeObserver;
+    window.ResizeObserver = class extends Native {
+      constructor(callback: ResizeObserverCallback) {
+        super((entries, observer) => {
+          for (const entry of entries) {
+            const key = entry.target.getAttribute("data-group");
+            if (key) measured.add(key);
+          }
+          callback(entries, observer);
+        });
+      }
+    };
+  });
+const observations = (page: Page) =>
+  page.evaluate(() => {
+    const seen = window as unknown as { loops: string[]; measured: Set<string> };
+    return { loops: seen.loops, measured: [...seen.measured] };
+  });
 const seedOf = (page: Page) => new URL(page.url()).pathname.slice(1);
 /** The palette's seed once its address has taken an edit's last change: it follows them at most every 350 ms. */
 async function edited(page: Page, was: string) {
@@ -812,6 +861,31 @@ for (const width of WIDTHS)
       }
       expect(broken).toEqual([]);
     });
+
+    /* The first move starts the list's window at the top of the page: it draws the groups near the reader by their
+       estimated heights, measures them, and lays the column out again by what it measured. On a phone a card is
+       taller than the estimate, so that second layout drops a group the first one drew. */
+    for (const list of ["/collections", "/collections/rising"])
+      test(`${list} lays out the groups a reader's first swipe brings by their measured heights, with nothing to report`, {
+        tag: "@served"
+      }, async ({ page }) => {
+        const broken = watch(page);
+        await observed(page);
+        await open(page, list);
+        await expect(page.locator("main [data-group]").first()).toBeVisible();
+        await swipe(page, 600, width);
+        await settled(page);
+        await page.waitForLoadState("networkidle");
+        const drawn = await page
+          .locator("main [data-group]")
+          .evaluateAll(groups => groups.map(group => group.getAttribute("data-group")));
+        const { loops, measured } = await observations(page);
+        // each group drawn where she stands was measured
+        expect(drawn.length).toBeGreaterThan(0);
+        expect(measured).toEqual(expect.arrayContaining(drawn));
+        expect(loops).toEqual([]);
+        expect(broken).toEqual([]);
+      });
 
     test("the sign-in sheet, Settings, About and the newsletter open from the frame's menu and links, and Back returns to the list", async ({
       page
