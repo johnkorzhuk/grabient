@@ -7,6 +7,30 @@ vi.mock("@solidjs/web", async original => ({
   isServer: false
 }));
 
+/* The browser's error event, as far as a report reads it: Node 24, which the build runs on, has none, and Node 25's
+   would make the tests pass on one machine alone. */
+class BrowserErrorEvent extends Event {
+  readonly error: unknown;
+  readonly message: string;
+  readonly filename: string;
+  readonly lineno: number;
+  readonly colno: number;
+  constructor(type: string, init: ErrorEventInit = {}) {
+    super(type, init);
+    this.error = init.error;
+    this.message = init.message ?? "";
+    this.filename = init.filename ?? "";
+    this.lineno = init.lineno ?? 0;
+    this.colno = init.colno ?? 0;
+  }
+}
+
+/** A window that takes the page's listeners, and the error event it dispatches. */
+function stubWindow() {
+  vi.stubGlobal("window", new EventTarget());
+  vi.stubGlobal("ErrorEvent", BrowserErrorEvent);
+}
+
 test("a page is named by its kind, or by a palette's or a public collection's address", () => {
   expect(pageOf("/")).toBe("home");
   expect(pageOf("/ja/palettes/rising")).toBe("palettes");
@@ -56,7 +80,7 @@ test("a report names the error's type in its own words, however the page met it"
     sent.push(JSON.parse(String(init.body)));
     return Promise.resolve(new Response(null, { status: 204 }));
   });
-  vi.stubGlobal("window", new EventTarget());
+  stubWindow();
   installErrorReports();
   reportCaught(new RangeError("Invalid array length"));
   // the window's words lead with the type, and Chrome's with "Uncaught": the error's own are sent
@@ -96,7 +120,7 @@ async function pageLoad(address: string) {
     sent.push(JSON.parse(String(init.body)));
     return Promise.resolve(new Response(null, { status: 204 }));
   });
-  vi.stubGlobal("window", new EventTarget());
+  stubWindow();
   reporter.installErrorReports();
   return { ...reporter, sent };
 }
