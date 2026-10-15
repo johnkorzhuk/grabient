@@ -1,0 +1,5 @@
+{
+  "name": "collections-promo",
+  "private": true,
+  "description": "The collections promo's composition. Its packages are the kit's (../../package.json); this file marks the Remotion project's root, where remotion.config.ts and src/index.ts are found."
+}

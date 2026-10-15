@@ -1,0 +1,18 @@
+{
+  "name": "grabient-promo",
+  "private": true,
+  "packageManager": "pnpm@10.34.6",
+  "description": "Grabient's promo videos and GIFs: the real site captured frame by frame, the site's own water and wordmark drawn behind it, composed in Remotion. Not part of the app's workspace: setup.sh installs it on its own.",
+  "dependencies": {
+    "@remotion/cli": "4.0.535",
+    "@remotion/fonts": "4.0.535",
+    "playwright-core": "1.64.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "remotion": "4.0.535"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.7",
+    "typescript": "5.9.3"
+  }
+}

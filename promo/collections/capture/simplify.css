@@ -1,0 +1,40 @@
+/* The promo's simplified page, v2: the grid of palette cards alone, on no ground. Injected before the page's scripts
+   run (capture.mjs); every part that stays is the site's own, untouched. The promo draws the water and the wordmark
+   itself (harness/) and stands these frames over them. */
+
+/* the page's ground and its grain go: the frames are transparent where the page shows its ground */
+html {
+  background: transparent !important;
+}
+body::before {
+  display: none !important;
+}
+/* the site's water keeps running unseen, so the page is as it is with the water live (a lit card's glow at 40%, the
+   water carrying the rest) */
+div[aria-hidden="true"]:has(> canvas) {
+  visibility: hidden !important;
+}
+/* the header keeps its place unseen: the promo's wordmark stands where the header draws the site's */
+header {
+  visibility: hidden !important;
+}
+/* the list's chrome over the grid: the search and its tags, the lists' and orders' tabs with the selection's press, and
+   the list's heading */
+main > div:has(> search),
+main > div:has(nav[aria-label="Order"]),
+main > span[class*="_float_"],
+main > div > div:has(> h2) {
+  display: none !important;
+}
+/* and under it: the list's end (status line, More palettes), the footer and Back to top */
+main > div > div:has(> a[href*="page="]),
+main > div > div[class*="_mark_"],
+main > div > div[class*="_status_"],
+footer,
+div:has(> button[aria-label="Back to top"]) {
+  display: none !important;
+}
+/* the page's own ground (PageRoot) */
+div:has(> header) {
+  background-color: transparent !important;
+}

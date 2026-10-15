@@ -1,0 +1,5 @@
+# The promo kit is its own small workspace, apart from the app's (../pnpm-workspace.yaml does not reach it): its packages
+# install here alone, laid out flat as npm lays them out, so the scripts find Remotion's ffmpeg at
+# node_modules/@remotion/compositor-linux-x64-gnu and the kit's .mjs files resolve playwright-core from here.
+packages: []
+nodeLinker: hoisted

@@ -1,0 +1,3 @@
+# the kit's Python tools (kit/tools): blending, encoding checks and contact sheets
+numpy==2.4.2
+pillow==12.3.0

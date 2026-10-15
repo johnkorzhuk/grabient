@@ -1,0 +1,96 @@
+{
+ "note": "Popular's first page in the promo preview's data (grid/replace.sql applied): the first eight are what the page paints, the bar's cycle",
+ "hero": {
+  "seed": "kWs2um4jE-G62O7xwb3bkk-4",
+  "style": "linearGradient",
+  "steps": 5,
+  "angle": 90,
+  "likes": 59
+ },
+ "page": [
+  {
+   "seed": "kY4mpDazO-mUuu_fuLqXU49dvVP6",
+   "style": "linearGradient",
+   "steps": 6,
+   "angle": 45,
+   "likes": 93
+  },
+  {
+   "seed": "kc-zpNeqM_WwiupeubyU06-8nTP_DzcBvUdAQ",
+   "style": "linearGradient",
+   "steps": 8,
+   "angle": 135,
+   "likes": 88
+  },
+  {
+   "seed": "kamzkm1gtFdWRyrLHcJuB9B6KaQgOlEGg",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 90,
+   "likes": 82
+  },
+  {
+   "seed": "kWs2um4jE-G62O7xwb3bkk-4",
+   "style": "linearGradient",
+   "steps": 5,
+   "angle": 90,
+   "likes": 59
+  },
+  {
+   "seed": "kSyQDAzZa8zgZxS",
+   "style": "angularSwatches",
+   "steps": 15,
+   "angle": 210,
+   "likes": 50
+  },
+  {
+   "seed": "kcgI_BPOBA0BgwZI1sK2LpDueoxrwLsS764_g",
+   "style": "linearGradient",
+   "steps": 8,
+   "angle": 45,
+   "likes": 47
+  },
+  {
+   "seed": "kUzkiw66E-e4YQltnUXg",
+   "style": "linearGradient",
+   "steps": 5,
+   "angle": 45,
+   "likes": 44
+  },
+  {
+   "seed": "kY70SMeJm-3mdOrzGrr66E6eWrPS",
+   "style": "linearGradient",
+   "steps": 6,
+   "angle": 345,
+   "likes": 43
+  },
+  {
+   "seed": "kW1Dy4bJpCPCcxRwoMHbiQ_w",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 180,
+   "likes": 39
+  },
+  {
+   "seed": "kW0B2lbAbMXISxv1E0NeJVCg",
+   "style": "linearGradient",
+   "steps": 7,
+   "angle": 225,
+   "likes": 37
+  },
+  {
+   "seed": "kUtmXN5yfCHMZwV4hzmA",
+   "style": "linearGradient",
+   "steps": 6,
+   "angle": 315,
+   "likes": 35
+  },
+  {
+   "seed": "kWxm745Do_WgvQBvGkHdZDG4",
+   "style": "linearGradient",
+   "steps": 5,
+   "angle": 45,
+   "likes": 34
+  }
+ ]
+}

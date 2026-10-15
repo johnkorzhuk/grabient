@@ -15,7 +15,8 @@
       "!**/fixtures",
       "!packages/i18n/messages",
       "!packages/search/model-check.json",
-      "!packages/search/train"
+      "!packages/search/train",
+      "!promo"
     ]
   },
   "formatter": {

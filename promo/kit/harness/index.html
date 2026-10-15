@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Promo water</title>
+    <script src="/shim.js"></script>
+    <style>
+      /* the wordmark's picture: no ground and no grain, only the wordmark and the water in its bar */
+      html[data-mark-layer] {
+        background: transparent !important;
+      }
+      html[data-mark-layer] body::before {
+        display: none !important;
+      }
+      /* the harness moves the wordmark itself, a frame at a time */
+      *,
+      *::before,
+      *::after {
+        transition: none !important;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

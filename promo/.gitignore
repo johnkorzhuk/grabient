@@ -1,0 +1,11 @@
+# installed or made here, never kept: packages, browsers and gifski (setup.sh), the harness's build, each composition's
+# synced data and its link to the frames (render.sh), and this machine's own settings
+node_modules/
+.tools/
+env.local.sh
+kit/fonts/NotoColorEmoji.ttf
+kit/harness/node_modules
+kit/harness/dist/
+kit/harness/.vite/
+*/remotion/src/data/
+*/remotion/public/frames
