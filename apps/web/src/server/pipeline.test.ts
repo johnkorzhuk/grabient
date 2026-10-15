@@ -578,19 +578,15 @@ test("a refusal that names no wait of its own says a minute", async () => {
   expect((await get("/api/me/search?q=x", {}, waits)).headers.get("Retry-After")).toBe("7");
 });
 
-test("a failure is a 500 no cache keeps, logged with its stack", async () => {
+test("a failure is a 500 no cache keeps, and its error is logged as it was thrown", async () => {
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const boom = new Error("boom");
   const response = await get("/about", {}, () => {
-    throw new Error("boom");
+    throw boom;
   });
   expect(response.status).toBe(500);
   expect(await response.json()).toEqual({ error: "Something went wrong. Try again." });
   expect(response.headers.get("Cache-Control")).toBe("no-store");
-  expect(log).toHaveBeenCalledWith(
-    "Request failed",
-    "GET",
-    "/about",
-    "Error: boom",
-    expect.stringContaining("at ")
-  );
+  // Workers Issues groups it by its name and words, whatever the address, and reads its stack
+  expect(log).toHaveBeenCalledExactlyOnceWith(boom);
 });

@@ -101,10 +101,9 @@ export async function handle(
   try {
     response = await route(request, url, locale, path, env, ctx, app);
   } catch (error) {
-    // the message and the first lines of the stack, or a production 500 cannot be told from another
-    const stack =
-      error instanceof Error ? (error.stack ?? "").split("\n").slice(1, 6).join("\n") : "";
-    console.error("Request failed", request.method, url.pathname, String(error), stack);
+    /* the error alone, as Workers Issues reads one: an issue for each error whatever the address, its stack read as
+       source, and the request beside it */
+    console.error(error);
     response = json({ error: msg("Something went wrong. Try again.") }, { status: 500 });
   }
   return finish(request, url, path, env, response, tracking);
