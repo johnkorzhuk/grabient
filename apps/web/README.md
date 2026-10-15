@@ -100,6 +100,16 @@ account's pages and the pages whose words are in the code with no connection; `S
 `src/server/jobs.ts` has one function per trigger in `cloudflare.config.ts`. A feature adds its step to the job, in
 the order the job needs; a failed step is logged, the rest run, and the run fails at the end.
 
+## Errors
+
+A failure is logged as the error itself, `console.error(error)`: Workers Issues groups errors by their name and message
+alone, and reads a logged error's stack as source from the maps each deploy uploads (`environments.ssr.build.sourcemap`
+in `vite.config.ts`; the browser's build makes none). Pages report their errors to `/api/client-error`
+(`src/app/error-report.ts`), which logs each as an error named for the browser, its type and the script it was thrown
+in, so one error is one issue on every page, browser and deploy (`src/server/client-errors`). Nothing logged names a
+reader. Every answer of 500 or more is counted, and the ten-minute job emails the site's address when the last ten
+minutes hold ten of them or 25 browser errors, at most once a day for each (`src/server/alerts/alerts.ts`).
+
 ## The MCP directories
 
 Claude's and OpenAI's directories and the MCP Registry list the server at https://grabient.com/mcp. The registry reads
