@@ -3,7 +3,12 @@ import { run } from "@grabient/server/db/d1.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
-import { alertOwner, documentAlert, signInDigest } from "../src/server/alerts/alerts.ts";
+import {
+  alertOwner,
+  documentAlert,
+  failingAlert,
+  signInDigest
+} from "../src/server/alerts/alerts.ts";
 import { contactResponse } from "../src/server/contact/contact.ts";
 import { emailLocale, sendAccountEmail } from "../src/server/email/letters/account.ts";
 import {
@@ -236,6 +241,67 @@ describe("the owner's alerts", () => {
     // each deploy that counts reads its own dataset, the one the usage report reads
     await signInDigest({ ...env, DEPLOYMENT: "development" });
     expect(queries.at(-1)).toContain('FROM events.analyticsEngine."grabient_dev_usage"');
+  });
+
+  it("say the site is failing past what a passing fault makes, once a day for each way it fails", async () => {
+    const queries: string[] = [];
+    let rows: Record<string, unknown>[] = [];
+    const env = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: {
+        query: async ({ query }) => {
+          queries.push(query);
+          return { data: rows };
+        }
+      }
+    });
+    const day = Date.UTC(2026, 9, 20, 3);
+    // nine answers that failed, and fewer browser errors than two readers' browsers send
+    rows = [
+      { event: "failure", a: "500", b: "page", n: 9 },
+      { event: "client-error", a: "palettes", b: "Chrome 131", n: 20 },
+      { event: "client-error", a: "seed", b: "Safari 18 mobile", n: 4 }
+    ];
+    expect(await failingAlert(env, day)).toEqual({
+      counted: { failure: 9, "client-error": 24 },
+      emailed: []
+    });
+    expect(env.EMAIL.sent).toEqual([]);
+    expect(queries[0]).toContain('FROM events.analyticsEngine."grabient_usage"');
+    expect(queries[0]).toContain("timestamp > NOW() - INTERVAL '10' MINUTE");
+    expect(queries[0]).toContain("SUM(double1) AS n");
+
+    rows = [
+      { event: "failure", a: "500", b: "page", n: 30.4 },
+      { event: "failure", a: "503", b: "api/collections", n: 7 },
+      { event: "client-error", a: "palettes", b: "Chrome 131", n: 26 }
+    ];
+    expect(await failingAlert(env, day)).toEqual({
+      counted: { failure: 37, "client-error": 26 },
+      emailed: ["failure", "client-error"]
+    });
+    const [answers, browsers] = env.EMAIL.sent;
+    expect(answers?.subject).toBe("Grabient: answers are failing");
+    expect(answers?.text).toContain(
+      "the site could not give these answers, by status and kind of address, 37 in all:\n- 500, page: 30\n- 503, api/collections: 7"
+    );
+    expect(answers?.text).toContain(
+      "https://dash.cloudflare.com/?to=/:account/workers/services/view/grabient-production/production/issues"
+    );
+    expect(browsers?.subject).toBe("Grabient: pages are failing in readers' browsers");
+    expect(browsers?.text).toContain("- palettes, Chrome 131: 26");
+    // still failing ten minutes later: the day's alerts have gone
+    expect((await failingAlert(env, day + 600_000)).emailed).toEqual([]);
+    expect(env.EMAIL.sent).toHaveLength(2);
+    expect((await failingAlert(env, day + 86_400_000)).emailed).toEqual([
+      "failure",
+      "client-error"
+    ]);
+
+    expect(await failingAlert({ ...env, ANALYTICS: undefined }, day)).toMatchObject({
+      skipped: "This deploy has no usage counts to read",
+      emailed: []
+    });
   });
 });
 

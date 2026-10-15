@@ -2,7 +2,7 @@ import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { pruneExpired, pruneSync } from "./account/changes.ts";
-import { documentAlert, signInDigest } from "./alerts/alerts.ts";
+import { documentAlert, failingAlert, signInDigest } from "./alerts/alerts.ts";
 import { rescore } from "./gallery/rescore.ts";
 import { applyQueue } from "./mcp/admin/queue.ts";
 import { checkClientDocuments, purgeOAuth } from "./oauth/upkeep.ts";
@@ -39,9 +39,14 @@ export async function runSteps(job: string, steps: Steps, env: Env) {
 /** A step's report when it did something, else nothing to log. */
 const when = <T>(did: unknown, report: T): T | undefined => (did ? report : undefined);
 
-/** Every ten minutes. IndexNow follows the queue, so the palettes it just published are on this pass's list, and the
-    search snapshot comes last, built again only when something public changed. */
+/** Every ten minutes. The owner hears first if the site is failing, before any step that a failing database could
+    hold. IndexNow follows the queue, so the palettes it just published are on this pass's list, and the search
+    snapshot comes last, built again only when something public changed. */
 export const TEN_MINUTES: Steps = {
+  "failing site": async env => {
+    const check = await failingAlert(env);
+    return when(check.skipped || check.emailed.length, check);
+  },
   "github stars": async env => {
     const stars = await refreshStars(env);
     return when(stars.asked, stars);
