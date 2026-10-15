@@ -7,8 +7,8 @@ import styles from "./Tooltip.module.css";
    DELAY; while one is open, moving to another tipped control moves it at once. Visible keyboard focus opens it too,
    touch never does (a finger cannot rest), and Escape, a scroll or a resize closes it. The pointer may move onto the
    bubble and it stays, so it can be read at any zoom. While it shows, the control it names is described by it
-   (aria-describedby). A press closes it, since what it named is done; a press that turns its control in place
-   (`turns`: a toggle, a mode that steps on) keeps it open, saying the control's new name. */
+   (aria-describedby). A press closes it, the keyboard's too, since what it named is done; a press that turns its
+   control in place (`turns`: a toggle, a mode that steps on) keeps it open, saying the control's new name. */
 const DELAY = 700;
 /* the room between two tipped controls: leaving one and reaching the next, or the bubble, inside this keeps it */
 const GRACE = 120;
@@ -145,9 +145,10 @@ function listen(
     if (current === el && !options?.turns) close();
   };
   /* the press turned the control: the open bubble says its new name in the next frame, once the page's own handler
-     has run and its writes have landed; a control with no name now lets it go */
+     has run and its writes have landed; a control with no name now lets it go. Any other press closes it */
   const turned = () => {
-    if (current !== el || !options?.turns) return;
+    if (current !== el) return;
+    if (!options?.turns) return close();
     cancelAnimationFrame(again);
     again = requestAnimationFrame(() => {
       if (current !== el) return;
