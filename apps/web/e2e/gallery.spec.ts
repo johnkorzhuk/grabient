@@ -19,6 +19,29 @@ function calls(page: Page): string[] {
   return asked;
 }
 const card = (page: Page, at: number) => page.locator("main article").nth(at);
+/** Searches by a picture of four colors, one to each quarter, and answers the picture its colors are read from. */
+async function searchByQuarters(page: Page) {
+  const png = await page.evaluate(() => {
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = 200;
+    const pen = canvas.getContext("2d")!;
+    for (const [i, color] of ["#2f5fd0", "#39a64b", "#d93a3a", "#e8c534"].entries()) {
+      pen.fillStyle = color;
+      pen.fillRect((i % 2) * 100, Math.floor(i / 2) * 100, 100, 100);
+    }
+    return canvas.toDataURL("image/png").split(",")[1]!;
+  });
+  await page.locator('input[type="file"]').setInputFiles({
+    name: "quarters.png",
+    mimeType: "image/png",
+    buffer: Buffer.from(png, "base64")
+  });
+  return page.getByRole("group", { name: "Your image" });
+}
+const middle = (box: { x: number; y: number; width: number; height: number }) => ({
+  x: box.x + box.width / 2,
+  y: box.y + box.height / 2
+});
 const like = (page: Page, at: number) => card(page, at).locator('button[aria-label^="Like"]');
 /** Whether a card is the server's own markup, which no handler is bound to. */
 const still = (page: Page, at: number) =>
@@ -410,6 +433,32 @@ test("the home leads to the lists in the order the tab read last", async ({ page
   ).toHaveAttribute("href", "/palettes/rising");
 });
 
+test("a color dragged on a picture searched by is let go where it lands: a click on the picture then leaves it, and a double-click adds one", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  const picture = await searchByQuarters(page);
+  const colors = picture.getByRole("button", { name: /^Color \d+,/ });
+  const first = colors.first();
+  await expect(first).toBeVisible();
+  await expect(colors).toHaveCount(4);
+  const frame = await picture.locator("img").boundingBox();
+  const was = await first.boundingBox();
+  if (!frame || !was) throw new Error("no picture");
+  const at = middle(was);
+  await page.mouse.move(at.x, at.y);
+  await page.mouse.down();
+  await page.mouse.move(at.x + 15, at.y + 10, { steps: 5 });
+  await page.mouse.up();
+  await expect(first).toHaveAttribute("aria-pressed", "false");
+  const dropped = await first.boundingBox();
+  await page.mouse.click(frame.x + frame.width * 0.9, frame.y + frame.height * 0.9);
+  await page.mouse.dblclick(frame.x + frame.width * 0.1, frame.y + frame.height * 0.85);
+  await expect(colors).toHaveCount(5);
+  expect(await first.boundingBox()).toEqual(dropped);
+});
+
 test.describe("on a phone", () => {
   const { viewport, deviceScaleFactor, isMobile, hasTouch, userAgent } = devices["Pixel 7"];
   test.use({ viewport, deviceScaleFactor, isMobile, hasTouch, userAgent });
@@ -419,23 +468,7 @@ test.describe("on a phone", () => {
   }) => {
     await page.goto("/palettes");
     await hydrated(page);
-    // a picture of four colors, one to each quarter
-    const png = await page.evaluate(() => {
-      const canvas = document.createElement("canvas");
-      canvas.width = canvas.height = 200;
-      const pen = canvas.getContext("2d")!;
-      for (const [i, color] of ["#2f5fd0", "#39a64b", "#d93a3a", "#e8c534"].entries()) {
-        pen.fillStyle = color;
-        pen.fillRect((i % 2) * 100, Math.floor(i / 2) * 100, 100, 100);
-      }
-      return canvas.toDataURL("image/png").split(",")[1]!;
-    });
-    await page.locator('input[type="file"]').setInputFiles({
-      name: "quarters.png",
-      mimeType: "image/png",
-      buffer: Buffer.from(png, "base64")
-    });
-    const picture = page.getByRole("group", { name: "Your image" });
+    const picture = await searchByQuarters(page);
     const first = picture.getByRole("button", { name: /^Color 1,/ });
     await expect(first).toBeVisible();
     const named = await first.getAttribute("aria-label");
@@ -443,10 +476,6 @@ test.describe("on a phone", () => {
     const was = await first.boundingBox();
     if (!frame || !was) throw new Error("no picture");
     // the far corner of the quarter across from the point's own, where no other point stands
-    const middle = (box: { x: number; y: number; width: number; height: number }) => ({
-      x: box.x + box.width / 2,
-      y: box.y + box.height / 2
-    });
     const at = middle(was);
     const to = {
       x: frame.x + frame.width * (at.x < middle(frame).x ? 0.92 : 0.08),

@@ -1,6 +1,7 @@
 import { t } from "@grabient/i18n";
 import type { Sample } from "@grabient/search/picture.ts";
 import { Button } from "@grabient/ui/Button.tsx";
+import { SLOP } from "@grabient/ui/press.ts";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, For, onSettled, Show } from "solid-js";
 import styles from "./Sampler.module.css";
@@ -78,22 +79,28 @@ export function Sampler(props: {
     const r = frame.getBoundingClientRect();
     return [clamp((e.clientX - r.left) / r.width), clamp((e.clientY - r.top) / r.height)] as const;
   };
-  /* the pointer a drag follows, by its id, which may be any integer */
-  let drag: { i: number; pid: number } | null = null;
+  /* the pointer a drag follows, by its id, which may be any integer, where it came down and whether it went past a
+     press's slop */
+  let drag: { i: number; pid: number; x: number; y: number; far: boolean } | null = null;
   const down = (i: number, e: PointerEvent & { currentTarget: HTMLButtonElement }) => {
     if (e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag = { i, pid: e.pointerId };
+    drag = { i, pid: e.pointerId, x: e.clientX, y: e.clientY, far: false };
     setChosen(i);
     setDragging(true);
     e.currentTarget.focus({ preventScroll: true });
   };
   const move = (e: PointerEvent) => {
-    if (drag && e.pointerId === drag.pid) props.onMove(drag.i, ...at(e));
+    if (!drag || e.pointerId !== drag.pid) return;
+    drag.far ||= Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > SLOP;
+    props.onMove(drag.i, ...at(e));
   };
+  /* a point pressed stays chosen for the picture's next press to move it there; one dragged is let go where it lands,
+     so a click on the picture after it lets nothing go and a double-click adds a point */
   const release = (e: PointerEvent) => {
     if (!drag || e.pointerId !== drag.pid) return;
+    if (drag.far) setChosen(null);
     drag = null;
     setDragging(false);
     props.onRelease();
