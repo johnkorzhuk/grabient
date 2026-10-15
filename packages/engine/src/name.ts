@@ -62,7 +62,8 @@ const GRID_L = 51;
 const GRID_H = 72;
 let gamut: Float32Array | null = null;
 function gamutChroma(L: number, H: number): number {
-  const g = (gamut ??= new Float32Array(GRID_L * GRID_H).fill(Number.NaN));
+  gamut ??= new Float32Array(GRID_L * GRID_H).fill(Number.NaN);
+  const g = gamut;
   const x = Math.min(GRID_L - 1, Math.max(0, L * (GRID_L - 1)));
   const y = onWheel(H) / 5;
   const i = Math.min(GRID_L - 2, Math.floor(x));
