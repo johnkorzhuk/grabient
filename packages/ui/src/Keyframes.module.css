@@ -13,6 +13,8 @@
     touch-action: pan-y;
   }
   .chip {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     position: relative;
     flex: 1 1 0;
     min-width: 0;

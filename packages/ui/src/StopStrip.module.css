@@ -41,6 +41,8 @@
     }
   }
   .chip {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     position: relative;
     display: flex;
     flex-grow: var(--span);

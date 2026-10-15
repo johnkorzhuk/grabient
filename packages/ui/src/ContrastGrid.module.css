@@ -44,6 +44,8 @@
     width: var(--space-s6);
   }
   .coin {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     width: var(--space-s3);
     height: var(--space-s3);
     border-radius: var(--radius-circle);
@@ -130,6 +132,7 @@
     }
   }
   .cell {
+    forced-color-adjust: none;
     display: grid;
     place-items: center;
     min-width: 0;
@@ -219,6 +222,7 @@
     color: var(--color-ink3);
   }
   .chip {
+    forced-color-adjust: none;
     flex-shrink: 0;
     width: var(--space-s3);
     height: var(--space-s3);

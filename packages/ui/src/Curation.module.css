@@ -53,6 +53,8 @@
   }
   /* the picture as the view would draw it, a card's own picture in miniature */
   .picture {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     height: calc(var(--size-control-big) + var(--space-s4));
     border-radius: var(--radius-tight);
   }

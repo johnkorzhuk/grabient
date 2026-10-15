@@ -65,6 +65,8 @@
   /* A coin arrives as a tooltip does: a fade and a few pixels of travel, down and out from the middle, never past its
      place, and nothing scales. The middle first, the rest a beat behind; leaving, they fade together. */
   .coin {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     --from: calc(var(--i) * (var(--coin) + var(--gap)) * -0.3);
     flex-shrink: 0;
     width: var(--coin);

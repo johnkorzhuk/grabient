@@ -45,6 +45,8 @@
     }
   }
   .tile {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     min-width: 0;
     min-height: 0;
   }

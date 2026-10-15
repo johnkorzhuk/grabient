@@ -97,11 +97,14 @@
     }
   }
   .paint {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     position: absolute;
     inset: 0;
   }
   /* a chosen size: that shape inside the stage, never larger than its pixels, clear of the presses over and under it */
   .fitted {
+    forced-color-adjust: none;
     width: min(
       100cqw -
       2 *
@@ -262,6 +265,7 @@
     background-repeat: repeat-x;
   }
   .handle {
+    forced-color-adjust: none;
     position: absolute;
     top: 50%;
     left: var(--x);
@@ -381,6 +385,7 @@
     }
   }
   .readSwatch {
+    forced-color-adjust: none;
     width: var(--space-s5);
     height: var(--space-s5);
     flex-shrink: 0;

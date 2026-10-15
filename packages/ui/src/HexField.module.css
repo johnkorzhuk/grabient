@@ -57,6 +57,8 @@
   }
   /* open, the chip is ringed in ink, as a held keyframe's chip is */
   .chip {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     width: var(--space-s5);
     height: var(--space-s5);
     border-radius: var(--radius-tight);

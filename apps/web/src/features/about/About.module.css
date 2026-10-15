@@ -53,6 +53,8 @@
 }
 /* the gradient as the editor's picture draws it, with an edge so a pale end keeps it */
 .band {
+  /* a palette's colors are the content: forced colors leave them as they are */
+  forced-color-adjust: none;
   display: block;
   width: 100%;
   height: var(--size-strip-short);

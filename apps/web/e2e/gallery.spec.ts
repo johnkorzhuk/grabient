@@ -102,6 +102,32 @@ test("the search field is named in the browser's own tree, empty and with words 
   expect(await name()).toBe("Search palettes");
 });
 
+test("forced colors leave every palette its own colors: the cards, the stage, the strip, the chips and the tiles", async ({
+  page
+}) => {
+  await page.emulateMedia({ forcedColors: "active" });
+  await page.goto("/palettes");
+  await hydrated(page);
+  const painted = async (paint: ReturnType<Page["locator"]>) => {
+    await expect(paint).toHaveCSS("forced-color-adjust", "none");
+    expect(await paint.evaluate(el => getComputedStyle(el).backgroundImage)).not.toBe("none");
+  };
+  await painted(page.locator("main article [role=img]").first());
+  await page.goto(`/${SEED}`);
+  await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
+  await painted(page.getByRole("img", { name: "The gradient" }));
+  await expect(
+    page.getByRole("group", { name: "Palette colors" }).getByRole("button").first()
+  ).toHaveCSS("forced-color-adjust", "none");
+  const chip = page.getByRole("option", { name: /^Keyframe 1,/ });
+  await expect(chip).toHaveCSS("forced-color-adjust", "none");
+  expect(await chip.evaluate(el => getComputedStyle(el).backgroundColor)).not.toBe(
+    await page.evaluate(() => getComputedStyle(document.documentElement).backgroundColor)
+  );
+  await page.getByRole("button", { name: /^Appearance/ }).click();
+  await painted(page.locator("#appearance-menu button[aria-label='Radial'] > span").first());
+});
+
 test("a card the server drew answers focus and a press that reach it before the reader moves", async ({
   page
 }) => {

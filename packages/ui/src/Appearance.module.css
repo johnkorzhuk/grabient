@@ -53,6 +53,7 @@
     }
   }
   .swatch {
+    forced-color-adjust: none;
     flex-shrink: 0;
     width: var(--space-s6);
     height: var(--space-s6);
@@ -181,6 +182,8 @@
     }
   }
   .art {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     display: block;
     width: 100%;
     height: var(--size-tile);

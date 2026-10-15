@@ -80,6 +80,8 @@
     }
   }
   .band {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     position: absolute;
     top: 50%;
     inset-inline: 0;
@@ -91,6 +93,7 @@
   }
   /* a thumb is the color it stands on, ringed in white with a dark hairline, so it shows on any color */
   .thumb {
+    forced-color-adjust: none;
     position: absolute;
     top: var(--y);
     left: var(--x);
