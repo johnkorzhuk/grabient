@@ -11,6 +11,7 @@ import { collectionParams } from "../../features/collections/params.ts";
 import { validateCollection } from "../../features/collections/schema.ts";
 import { NO_STORE } from "../../lib/cache.ts";
 import { askedLocale, localizeCollections } from "../mcp/admin/translations.ts";
+import { tagColors } from "../search/tags.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { copyStanding, forkCollection, heldCopy } from "./copies.ts";
 import {
@@ -152,8 +153,12 @@ export async function collectionAnswer(request: Request, env: Env): Promise<Resp
   if (request.method === "GET") {
     const found = await collectionBySlug({ DB: replica(env) }, at.slug);
     if (!found) return json({ error: "Not found" }, 404);
-    const [doc] = await localizeCollections(env, askedLocale(url), [found]);
-    return publicJson(withUrl(publicOrigin(env, request), doc!));
+    // the colors are read from the tags as written, which a translation keeps in their order
+    const [[doc], colors] = await Promise.all([
+      localizeCollections(env, askedLocale(url), [found]),
+      tagColors(env, found.tags)
+    ]);
+    return publicJson(withUrl(publicOrigin(env, request), { ...doc!, tagColors: colors }));
   }
   if (request.method === "PATCH") return changeAnswer(request, env, at.slug);
   if (request.method === "DELETE") return deleteAnswer(request, env, at.slug);

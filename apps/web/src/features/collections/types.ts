@@ -67,7 +67,10 @@ export type CollectionItem = v.InferOutput<typeof CollectionItemSchema>;
 
 export const CollectionDocumentSchema = v.object({
   ...SummaryEntries,
-  items: v.array(CollectionItemSchema)
+  items: v.array(CollectionItemSchema),
+  /** each tag's colors, in the tags' order: what a search of its words shows. The reads a page is drawn from bring
+      them; the account's copy and a write's answer bring none */
+  tagColors: v.optional(v.array(v.array(v.string())))
 });
 export type CollectionDocument = v.InferOutput<typeof CollectionDocumentSchema>;
 

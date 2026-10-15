@@ -4,12 +4,15 @@ import { setFlag } from "@grabient/server/flags/flags.ts";
 import * as v from "valibot";
 import { beforeAll, describe, expect, it } from "vitest";
 import { sortCollectionItems } from "../src/features/collections/address.ts";
+import { collectionItem } from "../src/features/collections/schema.ts";
 import type { CollectionDocument, CollectionPage } from "../src/features/collections/types.ts";
 import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
 import { collectionsHolding } from "../src/server/collections/read.ts";
-import { moveAccountAddresses } from "../src/server/collections/write.ts";
+import { createCollection, moveAccountAddresses } from "../src/server/collections/write.ts";
+import { keepTranslations } from "../src/server/mcp/admin/translations.ts";
+import { suggestionsFor } from "../src/server/search/tags.ts";
 import {
   type Account,
   bodyOf,
@@ -460,6 +463,50 @@ describe("saved copies", () => {
     expect([gone.status, (await bodyOf<{ error: string }>(gone)).error]).toEqual([
       404,
       "The original collection is gone."
+    ]);
+  });
+});
+
+describe("a collection's colors", () => {
+  /** one of Grabient's own, public, with these tags */
+  const grabients = (tags: string[]) =>
+    createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Harbor lights"),
+        description: "",
+        tags,
+        visibility: "public",
+        items: items(3).map(item => collectionItem(item)!)
+      }
+    );
+  /** the colors the palettes' search row shows for these words */
+  const rowColors = async (words: string) => {
+    const [tag] = await suggestionsFor(env, new URLSearchParams({ q: words, limit: "1" }));
+    expect(tag?.query).toBe(words);
+    return tag!.colors;
+  };
+
+  it("come with a page's read for each tag, as the search row shows its words, in the tags' order in any language", async () => {
+    const blue = await rowColors("blue");
+    expect(blue.length).toBeGreaterThan(0);
+    const { slug } = await grabients(["blue", "gradients", "zzqx"]);
+    const english = await bodyOf<CollectionDocument>(
+      await collectionAnswer(get(`/api/collections/${slug}`), env)
+    );
+    // a word of form and a word the vocabulary does not read show none, as in the row
+    expect([english.tags, english.tagColors]).toEqual([
+      ["blue", "gradients", "zzqx"],
+      [blue, [], []]
+    ]);
+    await keepTranslations(env, "es", [], [{ tag: "blue", word: "azul", note: "" }]);
+    const spanish = await bodyOf<CollectionDocument>(
+      await collectionAnswer(get(`/api/collections/${slug}?lang=es`), env)
+    );
+    expect([spanish.tags, spanish.tagColors]).toEqual([
+      ["azul", "gradients", "zzqx"],
+      [blue, [], []]
     ]);
   });
 });

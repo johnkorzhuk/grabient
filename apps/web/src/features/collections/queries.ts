@@ -16,6 +16,7 @@ import {
   localizeDocument,
   translatedLocale
 } from "../../server/mcp/admin/translations.ts";
+import { tagColors } from "../../server/search/tags.ts";
 import {
   ownCollectionMoved,
   ownCollectionsPage,
@@ -80,8 +81,16 @@ const readCollection = createIsomorphicFn()
         private: (await collectionVisibility(db, slug)) === "private",
         fetchedAt: Date.now()
       };
-    const { doc: shown, languages } = await localizeDocument(env, asked(), doc);
-    return { doc: shown, ...(languages.length ? { languages } : {}), fetchedAt: Date.now() };
+    // the colors are read from the tags as written, which a translation keeps in their order
+    const [{ doc: shown, languages }, colors] = await Promise.all([
+      localizeDocument(env, asked(), doc),
+      tagColors(env, doc.tags)
+    ]);
+    return {
+      doc: { ...shown, tagColors: colors },
+      ...(languages.length ? { languages } : {}),
+      fetchedAt: Date.now()
+    };
   })
   .client(async (slug: string, signal?: AbortSignal): Promise<Found | Failed> => {
     /* The account's own is read as its own, from the browser's copy: at once when the copy is open, and asked beside

@@ -83,6 +83,13 @@ async function searchFiles(env: SnapshotEnv): Promise<Files | null> {
     : null;
 }
 
+/** A collection's tags' colors, in the tags' order: the colors the same words' tag shows in the search rows, none for
+    words the vocabulary does not read, and none at all without the search files. */
+export async function tagColors(env: SnapshotEnv, tags: readonly string[]): Promise<string[][]> {
+  const files = tags.length ? await searchFiles(env) : null;
+  return tags.map(tag => (files ? colorsOf(files, listWords(tag)) : []));
+}
+
 /** The row at rest, as tags; none without the search files, since a tag that finds nothing is no tag. */
 export async function popularSearches(env: TagEnv, limit = 24): Promise<SearchTag[]> {
   const files = await searchFiles(env);
