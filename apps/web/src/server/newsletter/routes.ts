@@ -1,23 +1,35 @@
 import { newsletter } from "@grabient/email";
-import { msg } from "@grabient/i18n";
+import { DEFAULT_LOCALE, LOCALES, localizePath, msg } from "@grabient/i18n";
 import { json, overLimit, readJson, sameOrigin } from "@grabient/server/auth/http.ts";
 import { accountRole } from "@grabient/server/auth/roles.ts";
 import { getSession, type Session } from "@grabient/server/auth/session.ts";
 import type { Env } from "@grabient/server/env.ts";
 import * as v from "valibot";
-import { Choice, Press, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
+import { Choice, LeadChoice, Press, UNSUBSCRIBE_TOKEN } from "../../features/newsletter/input.ts";
 import { PAGE } from "../../lib/cache.ts";
 import { json as publicJson } from "../../lib/responses.ts";
+import { cacheKey } from "../cache-keys.ts";
+import { forget } from "../edge-cache.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { ISSUES } from "./issues/index.ts";
+import { asRun, chooseLead, leadOptions } from "./lead.ts";
 import { isSubscribed, issueFoot, readerOf, setSubscribed, tokenOwner } from "./list.ts";
-import { beforeOf, draftsAmong, languageOf, publishedIssues } from "./page.ts";
+import {
+  beforeOf,
+  draftsAmong,
+  drawn,
+  forgetFacts,
+  issueFacts,
+  languageOf,
+  publishedIssues
+} from "./page.ts";
 import { sendIssue, unsendable } from "./send.ts";
 
 /* The newsletter's answers. The public one is the published issues; every other is one account's and never kept
    (`json` from auth/http.ts is private, no-store). An error names its English with msg() for the page to translate. */
 
 const CHOICE_BODY_MAX = 256;
+const LEAD_BODY_MAX = 256;
 const BAD_LINK = msg("This link isn't valid.");
 
 const methodNotAllowed = () => json({ error: "Method not allowed" }, 405);
@@ -43,9 +55,14 @@ async function admin(request: Request, env: Env, options: { write: boolean }) {
 }
 
 /** `GET /api/newsletter?before=&lang=`: published issues, two at a time, kept at the edge five minutes. */
-export function issuesResponse(request: Request, env: Env): Response {
+export async function issuesResponse(request: Request, env: Env): Promise<Response> {
   const params = new URL(request.url).searchParams;
-  const page = publishedIssues(publicOrigin(env, request), languageOf(params), beforeOf(params));
+  const page = await publishedIssues(
+    env,
+    publicOrigin(env, request),
+    languageOf(params),
+    beforeOf(params)
+  );
   return publicJson(page, { headers: PAGE });
 }
 
@@ -55,7 +72,63 @@ export async function draftsResponse(request: Request, env: Env): Promise<Respon
   const session = await admin(request, env, { write: false });
   if (session instanceof Response) return session;
   const lang = languageOf(new URL(request.url).searchParams);
-  return json({ issues: draftsAmong(ISSUES, publicOrigin(env, request), lang) });
+  const facts = await issueFacts(env);
+  return json({ issues: draftsAmong(ISSUES, publicOrigin(env, request), lang, facts) });
+}
+
+/* The pages that show the published issues, as this data center keeps them: /newsletter in every language and the
+   newest page of its API. A choice of lead lets go of them here; the others keep theirs out their five minutes. */
+const issuePages = (origin: string) =>
+  LOCALES.flatMap(locale => [
+    cacheKey(new URL(origin + localizePath("/newsletter", locale)), "/newsletter", locale),
+    cacheKey(
+      new URL(`${origin}/api/newsletter${locale === DEFAULT_LOCALE ? "" : `?lang=${locale}`}`),
+      "/api/newsletter",
+      DEFAULT_LOCALE
+    )
+  ]);
+
+/** `GET /api/me/newsletter/lead?issue=&seed=&lang=`: an issue's sheet led by one of the palettes it offers (the one
+    chosen unless `seed` names another), with every one it offers, named, and the one chosen. `POST { issue, seed }`
+    chooses the lead, for the page and every issue sent from then on. An admin's alone. */
+export async function leadResponse(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET" && request.method !== "POST") return methodNotAllowed();
+  const write = request.method === "POST";
+  const session = await admin(request, env, { write });
+  if (session instanceof Response) return session;
+  const url = new URL(request.url);
+  const origin = publicOrigin(env, request);
+  const asked = write
+    ? v.safeParse(LeadChoice, await readJson(request, LEAD_BODY_MAX))
+    : v.safeParse(LeadChoice, {
+        issue: Number(url.searchParams.get("issue")),
+        seed: url.searchParams.get("seed") ?? undefined
+      });
+  if (!asked.success) return json({ error: 'Send { "issue": a number, "seed": a palette }.' }, 400);
+  const issue = ISSUES.find(held => held.number === asked.output.issue);
+  if (!issue) return json({ error: msg("Not found") }, 404);
+  const options = leadOptions(issue, issue.write(origin));
+  const seed = asked.output.seed;
+  if (seed !== undefined && !options.some(option => option.seed === seed)) {
+    return json({ error: "That palette is not one this issue offers to lead with." }, 400);
+  }
+  if (write && seed !== undefined) {
+    await chooseLead(env, issue.number, seed, session.user.id);
+    forgetFacts();
+    await forget(issuePages(url.origin));
+  }
+  const facts = await issueFacts(env);
+  const chosen = facts.leads.get(issue.number) ?? null;
+  const shown = seed ?? chosen ?? options[0].seed;
+  return json({
+    options: options.map(option => ({
+      seed: option.seed,
+      name: facts.names.get(option.seed) ?? ""
+    })),
+    chosen,
+    shown,
+    html: drawn(issue, origin, languageOf(url.searchParams), facts, shown).html
+  });
 }
 
 /** `GET /api/me/newsletter`: whether the account gets the newsletter. `PUT { subscribed }` changes it from Settings. The
@@ -119,7 +192,7 @@ export async function testResponse(request: Request, env: Env): Promise<Response
   ]);
   if (limited) return limited;
   const newest = ISSUES.reduce((a, b) => (b.number > a.number ? b : a));
-  const words = newest.write(origin);
+  const words = asRun(newest, origin, await issueFacts(env));
   try {
     await sendIssue(
       env,

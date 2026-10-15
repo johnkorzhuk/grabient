@@ -108,6 +108,7 @@ import { Route as ApiMeCollectionsIndexRouteImport } from './routes/api/me/colle
 import { Route as ApiMeCollectionsSplatRouteImport } from './routes/api/me/collections/$'
 import { Route as ApiMeNewsletterIndexRouteImport } from './routes/api/me/newsletter/index'
 import { Route as ApiMeNewsletterDraftsRouteImport } from './routes/api/me/newsletter/drafts'
+import { Route as ApiMeNewsletterLeadRouteImport } from './routes/api/me/newsletter/lead'
 import { Route as ApiMeNewsletterTestRouteImport } from './routes/api/me/newsletter/test'
 import { Route as ApiMePalettesIndexRouteImport } from './routes/api/me/palettes/index'
 import { Route as ApiMePalettesSplatRouteImport } from './routes/api/me/palettes/$'
@@ -640,6 +641,11 @@ const ApiMeNewsletterDraftsRoute = ApiMeNewsletterDraftsRouteImport.update({
   path: '/api/me/newsletter/drafts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMeNewsletterLeadRoute = ApiMeNewsletterLeadRouteImport.update({
+  id: '/api/me/newsletter/lead',
+  path: '/api/me/newsletter/lead',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMeNewsletterTestRoute = ApiMeNewsletterTestRouteImport.update({
   id: '/api/me/newsletter/test',
   path: '/api/me/newsletter/test',
@@ -784,6 +790,7 @@ export interface FileRoutesByFullPath {
   '/api/png/': typeof ApiPngIndexRoute
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
+  '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
@@ -893,6 +900,7 @@ export interface FileRoutesByTo {
   '/api/png': typeof ApiPngIndexRoute
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
+  '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
@@ -1003,6 +1011,7 @@ export interface FileRoutesById {
   '/api/png/': typeof ApiPngIndexRoute
   '/api/me/collections/$': typeof ApiMeCollectionsSplatRoute
   '/api/me/newsletter/drafts': typeof ApiMeNewsletterDraftsRoute
+  '/api/me/newsletter/lead': typeof ApiMeNewsletterLeadRoute
   '/api/me/newsletter/test': typeof ApiMeNewsletterTestRoute
   '/api/me/palettes/$': typeof ApiMePalettesSplatRoute
   '/api/me/site-collections/holding': typeof ApiMeSiteCollectionsHoldingRoute
@@ -1114,6 +1123,7 @@ export interface FileRouteTypes {
     | '/api/png/'
     | '/api/me/collections/$'
     | '/api/me/newsletter/drafts'
+    | '/api/me/newsletter/lead'
     | '/api/me/newsletter/test'
     | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
@@ -1223,6 +1233,7 @@ export interface FileRouteTypes {
     | '/api/png'
     | '/api/me/collections/$'
     | '/api/me/newsletter/drafts'
+    | '/api/me/newsletter/lead'
     | '/api/me/newsletter/test'
     | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
@@ -1332,6 +1343,7 @@ export interface FileRouteTypes {
     | '/api/png/'
     | '/api/me/collections/$'
     | '/api/me/newsletter/drafts'
+    | '/api/me/newsletter/lead'
     | '/api/me/newsletter/test'
     | '/api/me/palettes/$'
     | '/api/me/site-collections/holding'
@@ -1442,6 +1454,7 @@ export interface RootRouteChildren {
   ApiPngIndexRoute: typeof ApiPngIndexRoute
   ApiMeCollectionsSplatRoute: typeof ApiMeCollectionsSplatRoute
   ApiMeNewsletterDraftsRoute: typeof ApiMeNewsletterDraftsRoute
+  ApiMeNewsletterLeadRoute: typeof ApiMeNewsletterLeadRoute
   ApiMeNewsletterTestRoute: typeof ApiMeNewsletterTestRoute
   ApiMePalettesSplatRoute: typeof ApiMePalettesSplatRoute
   ApiMeSiteCollectionsHoldingRoute: typeof ApiMeSiteCollectionsHoldingRoute
@@ -2149,6 +2162,13 @@ declare module '@tanstack/solid-router' {
       preLoaderRoute: typeof ApiMeNewsletterDraftsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/me/newsletter/lead': {
+      id: '/api/me/newsletter/lead'
+      path: '/api/me/newsletter/lead'
+      fullPath: '/api/me/newsletter/lead'
+      preLoaderRoute: typeof ApiMeNewsletterLeadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/me/newsletter/test': {
       id: '/api/me/newsletter/test'
       path: '/api/me/newsletter/test'
@@ -2317,6 +2337,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPngIndexRoute: ApiPngIndexRoute,
   ApiMeCollectionsSplatRoute: ApiMeCollectionsSplatRoute,
   ApiMeNewsletterDraftsRoute: ApiMeNewsletterDraftsRoute,
+  ApiMeNewsletterLeadRoute: ApiMeNewsletterLeadRoute,
   ApiMeNewsletterTestRoute: ApiMeNewsletterTestRoute,
   ApiMePalettesSplatRoute: ApiMePalettesSplatRoute,
   ApiMeSiteCollectionsHoldingRoute: ApiMeSiteCollectionsHoldingRoute,

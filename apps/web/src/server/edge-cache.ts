@@ -58,3 +58,10 @@ export async function edgeCached(
   response.headers.set(STATUS, "MISS");
   return response;
 }
+
+/** Lets go of what this data center keeps under each key; the others keep theirs until it expires. */
+export async function forget(keys: readonly string[]): Promise<void> {
+  const cache = edgeCache();
+  if (!cache) return;
+  await Promise.all(keys.map(key => cache.delete(new Request(key)).catch(() => false)));
+}

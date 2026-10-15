@@ -2,6 +2,7 @@ import {
   button,
   collections,
   type Issue,
+  image,
   LEDE,
   mono,
   pick,
@@ -19,11 +20,22 @@ import { decodePalette } from "@grabient/engine";
 
 /* No. 1, October 2026: collections, and that a palette's CSS is at its own address. */
 const PICKS = [
-  pick("kWMS7qPZ68084TQkCrUnaNBo", "linearGradient", 40, 135, "Witching hour"),
-  pick("kU9ClB669AFIzOk9Lj2g", "radialGradient", 32, 0, "Harvest moon"),
-  pick("kWziAlUZi-bxAvSmqr2kRe7g", "angularSwatches", 32, 0, "Black cherry"),
-  pick("kUby9y5jE3PaQwI4IDlg", "angularSwatches", 24, 60, "Turning leaves"),
-  pick("kUkSoUPQrBKiNOiSm75A", "linearSwatches", 13, 90, "Dark academia")
+  pick("kWMS7qPZ68084TQkCrUnaNBo", "linearGradient", 40, 135),
+  pick("kU9ClB669AFIzOk9Lj2g", "radialGradient", 32, 0),
+  pick("kWziAlUZi-bxAvSmqr2kRe7g", "angularSwatches", 32, 0),
+  pick("kUby9y5jE3PaQwI4IDlg", "angularSwatches", 24, 60),
+  pick("kUkSoUPQrBKiNOiSm75A", "linearSwatches", 13, 90)
+];
+/* More October palettes from the Rising list an admin may lead with instead, each in the view liked. */
+const LEADS = [
+  view("kWOCz5KKDAjWoQRGJML1qDCQ", "linearGradient", 32, 90),
+  view("kYsDwc0aBB0MgwQwnD_H429piQMm", "linearGradient", 32, 180),
+  view("kWOhzJKp1B1CxzXoNkIdZ_Bo", "linearGradient", 7, 180),
+  view("kW1lA1Wy67USpu2xnjjopO8Y", "linearGradient", 7, 180),
+  view("kWVCNaQ5-_topPfnrj3dB9AI", "linearGradient", 7, 90),
+  view("kUhTMb0ypEriFL8wEqsA", "radialGradient", 64, 0),
+  view("kYMSMAK6vBj9BwLMx0EWrvCW6uQ4", "radialSwatches", 6, 180),
+  view("kUp2HtvK3CCcjw-fkEWA", "radialGradient", 32, 0)
 ];
 /* Each collection's card draws palettes it holds, each a wedge of its own about the middle and one ring more than the
    last. The site draws a palette in no fewer steps than its keyframes, so the rings start at the most keyframes among
@@ -84,13 +96,14 @@ export const october: Issue = {
   number: 1,
   month: "2026-10",
   published: "2026-10-08",
+  leads: LEADS,
   write: origin => ({
     subject: "Rising in October, and collections",
     issue: "No. 1 · October 2026",
     title: "Rising in October",
     lede: LEDE,
     ahead: "In this issue: collections, and a quick tip.",
-    liked: [...PICKS, ...LIKED],
+    liked: [...PICKS, ...LEADS, ...LIKED],
     picks: PICKS,
     more: rising(origin),
     body: [

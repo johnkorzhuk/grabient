@@ -21,11 +21,11 @@ import {
    connectors names Grabient: Claude's one-click link and the address work today. LISTED names the apps that do, and
    adds the sentence that says so. */
 const PICKS = [
-  pick("ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g", "linearGradient", 32, 135, "Deep end"),
-  pick("kWk5ENVro_-Mpv_wGb_-we_4", "linearSwatches", 5, 90, "Strawberry milk"),
-  pick("kWelD3zS9AVgeu3fEbQ8xAyQ", "angularSwatches", 5, 135, "Paper pinwheel"),
-  pick("kY4B0o4Bi5UyavQ9GLvL5s9SQVvk", "radialGradient", 32, 90, "Porch light"),
-  pick("kWkEqj3Z87moauRiHzrShc_A", "radialSwatches", 6, 270, "Tide pool")
+  pick("ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g", "linearGradient", 32, 135),
+  pick("kWk5ENVro_-Mpv_wGb_-we_4", "linearSwatches", 5, 90),
+  pick("kWelD3zS9AVgeu3fEbQ8xAyQ", "angularSwatches", 5, 135),
+  pick("kY4B0o4Bi5UyavQ9GLvL5s9SQVvk", "radialGradient", 32, 90),
+  pick("kWkEqj3Z87moauRiHzrShc_A", "radialSwatches", 6, 270)
 ];
 const STEEL_PAN: Shelf = {
   title: "Steel pan poster",

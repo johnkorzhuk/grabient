@@ -23,6 +23,21 @@ export type IssuesPage = v.InferOutput<typeof IssuesPage>;
 /** The drafts, an admin's alone. */
 export const Drafts = v.object({ issues: v.array(PageIssue) });
 
+/** An admin's choice of an issue's lead: a palette the issue offers. Without a seed it asks for the one chosen. */
+export const LeadChoice = v.object({
+  issue: v.pipe(v.number(), v.integer(), v.minValue(1)),
+  seed: v.optional(v.pipe(v.string(), v.maxLength(64)))
+});
+
+/** An issue's sheet with the lead it was drawn with, the palettes it offers to lead with, and the one chosen. */
+export const LeadSheet = v.object({
+  options: v.array(v.object({ seed: v.string(), name: v.string() })),
+  chosen: v.nullable(v.string()),
+  shown: v.string(),
+  html: v.string()
+});
+export type LeadSheet = v.InferOutput<typeof LeadSheet>;
+
 /** An account's choice, as Settings reads and writes it. */
 export const Choice = v.object({ subscribed: v.boolean() });
 
