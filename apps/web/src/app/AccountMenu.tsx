@@ -56,9 +56,11 @@ export function AccountMenu(props: {
     const away = (e: PointerEvent) => {
       if (open() && !host.contains(e.target as Node)) setOpen(false);
     };
-    /* Escape steps back out of the languages first, then closes, the keyboard back on the button */
+    /* Escape steps back out of the languages first, then closes, the keyboard back on the button; with the keyboard
+       elsewhere it only closes */
     const onEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || !open()) return;
+      if (!host.contains(document.activeElement)) return close();
       e.stopPropagation();
       if (choosing()) back();
       else {
@@ -156,14 +158,17 @@ export function AccountMenu(props: {
       ...all.map((item, i) => (i ? item : { ...item, group: true }))
     ];
   };
-  /* a press on Language keeps the menu open on the languages; any other close puts the account's rows back */
+  /* a press on Language keeps the menu open on the languages; any other close puts the account's rows back, and the
+     keyboard on the button if it was in the menu */
   const close = () => {
     if (keep) {
       keep = false;
       return;
     }
+    const inside = host.contains(document.activeElement) && document.activeElement !== trigger;
     setOpen(false);
     setChoosing(false);
+    if (inside) trigger.focus({ preventScroll: true });
   };
   const back = () => {
     setChoosing(false);
