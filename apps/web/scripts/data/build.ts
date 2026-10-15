@@ -9,7 +9,7 @@
      3. the plan: the palette import (palettes.ts), grabient-lite's contributor work (merge.ts), what the admins did on
         staging since its load (staging-work.ts), the counts made whole, the sign-in cleanup production needs, and the
         scores (scores.ts).
-     4. the full build read back into .data/full and checked against both sources (verify.ts).
+     4. the full build read back into .data/full and checked against its three sources (verify.ts).
      5. staging's copy (stagingStatements), made from the full build in memory, loaded into a local D1 of its own as
         load.ts loads staging, read back into .data/local and checked against the full build.
 
