@@ -1,6 +1,5 @@
 import type { DatabaseSync } from "node:sqlite";
 import { beforeAll, describe, expect, it } from "vitest";
-import type { Snapshot } from "./snapshot.ts";
 import {
   ALIASES,
   B,
@@ -10,13 +9,15 @@ import {
   ORIGINALS,
   production,
   run,
-  snapshotOf
+  type Sources,
+  snapshotOf,
+  unloaded
 } from "./testing.ts";
 import { type Check, verify } from "./verify.ts";
 
-let source: { production: Snapshot; lite: Snapshot };
+let source: Sources;
 beforeAll(async () => {
-  source = { production: await production(), lite: await lite() };
+  source = { production: await production(), lite: await lite(), staging: await unloaded() };
 });
 
 /** The copy with `tamper` done to it, checked. */
@@ -27,7 +28,8 @@ async function checked(tamper: (db: DatabaseSync) => void = () => {}) {
   return verify(copy, source.production, source.lite, {
     aliases: ALIASES,
     originals: ORIGINALS,
-    now: NOW
+    now: NOW,
+    staging: source.staging
   });
 }
 const failed = (checks: Check[]) => checks.filter(c => c.status === "fail").map(c => c.name);
@@ -82,7 +84,8 @@ describe("verify", () => {
     const checks = verify({ ...copy, schema }, source.production, source.lite, {
       aliases: ALIASES,
       originals: ORIGINALS,
-      now: NOW
+      now: NOW,
+      staging: source.staging
     });
     expect(failed(checks)).toEqual([]);
   });
@@ -96,6 +99,7 @@ describe("verify", () => {
           aliases: ALIASES,
           originals: ORIGINALS,
           now: NOW,
+          staging: source.staging,
           local
         })
       );

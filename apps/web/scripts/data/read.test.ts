@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { pageSql, readDatabase } from "./read.ts";
+import { pageSql, RECORDS, readDatabase } from "./read.ts";
 import { reads } from "./snapshot.ts";
-import { insert, memory, PRODUCTION_SCHEMA } from "./testing.ts";
+import { insert, memory, migrate, PRODUCTION_SCHEMA } from "./testing.ts";
 
 describe("the read", () => {
   it("reads whether a link holds a Google token or a password, never the value", async () => {
@@ -69,5 +69,29 @@ describe("the read", () => {
     ).toBe(true);
     expect(asked.filter(sql => sql.includes('FROM "auth_user"'))).toHaveLength(3);
     expect(meta.mostRowsRead).toBeLessThanOrEqual(2);
+  });
+
+  it("reads the tables that record changes after the rest, and dates the read by the database's clock", async () => {
+    const db = memory(PRODUCTION_SCHEMA);
+    migrate(db);
+    const asked: string[] = [];
+    const read = reads(db);
+    /* a database whose clock is not this machine's */
+    const { meta } = await readDatabase(
+      sql => {
+        asked.push(sql);
+        return sql.includes("julianday('now')")
+          ? Promise.resolve({ columns: ["now"], rows: [[1_234_567]] })
+          : read(sql);
+      },
+      { name: "memory", id: "memory" },
+      2
+    );
+    const when = (table: string) =>
+      asked.flatMap((sql, i) => (sql.includes(`FROM "${table}"`) ? [i] : []));
+    const rest = Object.keys(meta.tables).filter(table => !RECORDS.includes(table));
+    expect(RECORDS.every(table => table in meta.tables)).toBe(true);
+    expect(Math.min(...RECORDS.flatMap(when))).toBeGreaterThan(Math.max(...rest.flatMap(when)));
+    expect(meta.readAt).toBe(1_234_567);
   });
 });

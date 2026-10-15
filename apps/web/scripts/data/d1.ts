@@ -1,5 +1,5 @@
-/* D1 for the data scripts, through cf and only here. Production and grabient-lite are read with single SELECT
-   statements; the remote database these scripts may write is grabient-staging alone, named by its id in
+/* D1 for the data scripts, through cf and only here. Production, grabient-lite and grabient-staging are read with
+   single SELECT statements; the remote database these scripts may write is grabient-staging alone, named by its id in
    cloudflare.config.ts, and the local copies kept under apps/web/.data. */
 import { spawn } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";

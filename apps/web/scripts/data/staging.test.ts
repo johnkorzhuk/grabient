@@ -3,10 +3,22 @@ import { beforeAll, describe, expect, it } from "vitest";
 import { loadStatements } from "./load.ts";
 import type { Snapshot } from "./snapshot.ts";
 import { stagingCopy } from "./staging.ts";
-import { A, B, copyOf, lite, memory, NOW, production, run, snapshotOf } from "./testing.ts";
+import {
+  A,
+  B,
+  copyOf,
+  lite,
+  memory,
+  NOW,
+  production,
+  run,
+  type Sources,
+  snapshotOf,
+  unloaded
+} from "./testing.ts";
 import { type Check, verifyStaging } from "./verify.ts";
 
-let source: { production: Snapshot; lite: Snapshot };
+let source: Sources;
 let full: Snapshot;
 let copy: Snapshot;
 let db: DatabaseSync;
@@ -15,7 +27,7 @@ const all = (sql: string) => db.prepare(sql).all() as Record<string, unknown>[];
 const column = (sql: string) => all(sql).map(row => Object.values(row)[0]);
 
 beforeAll(async () => {
-  source = { production: await production(), lite: await lite() };
+  source = { production: await production(), lite: await lite(), staging: await unloaded() };
   full = await snapshotOf((await copyOf(source)).db, 1000);
   copy = await stagingCopy(full, source.lite, NOW);
   /* loaded as load.ts loads grabient-staging */

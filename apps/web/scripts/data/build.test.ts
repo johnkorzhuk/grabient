@@ -1,7 +1,6 @@
 import type { DatabaseSync } from "node:sqlite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { planStatements } from "./build.ts";
-import type { Snapshot } from "./snapshot.ts";
 import {
   A,
   ALIASES,
@@ -14,17 +13,19 @@ import {
   ORIGINALS,
   production,
   run,
-  snapshotOf
+  type Sources,
+  snapshotOf,
+  unloaded
 } from "./testing.ts";
 
-let source: { production: Snapshot; lite: Snapshot };
+let source: Sources;
 let db: DatabaseSync;
 let plan: string[];
 const one = (sql: string) => db.prepare(sql).get() as Record<string, unknown>;
 const all = (sql: string) => db.prepare(sql).all() as Record<string, unknown>[];
 
 beforeAll(async () => {
-  source = { production: await production(), lite: await lite() };
+  source = { production: await production(), lite: await lite(), staging: await unloaded() };
   ({ db, plan } = await copyOf(source));
 });
 
@@ -158,7 +159,7 @@ describe("the copy of production", () => {
 
   it("changes nothing when a plan is made again from the copy, as a second run at the cutover is", async () => {
     const before = await snapshotOf(db, 1000);
-    run(db, planStatements(before, source.lite, ALIASES, ORIGINALS).statements);
+    run(db, planStatements(before, source.lite, source.staging, ALIASES, ORIGINALS).statements);
     const after = await snapshotOf(db, 1000);
     for (const table of Object.keys(before.meta.tables)) {
       if (table === "k_sync_log") continue;

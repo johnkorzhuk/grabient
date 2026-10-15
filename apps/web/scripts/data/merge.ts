@@ -66,8 +66,38 @@ export const handleOf = (user: Row): string =>
     username: typeof user.username === "string" ? user.username : null
   });
 
-const update = (columns: readonly string[]) =>
+export const update = (columns: readonly string[]) =>
   columns.map(column => `${name(column)} = excluded.${name(column)}`).join(", ");
+
+/** Whether a collection other than `id` holds an address, by the target's addresses and their collections. */
+export const takenBy =
+  (holders: ReadonlyMap<string, string>, id: string) =>
+  (slug: string): boolean => {
+    const holder = holders.get(slug);
+    return holder !== undefined && holder !== id;
+  };
+
+/** A private address under the owner's handle in the target, as a username change moves it: the same address under
+    the new handle, else the title's first free one. Any other address stays. */
+export function underHandle(
+  slug: string,
+  title: string,
+  handle: string | undefined,
+  taken: (slug: string) => boolean
+): string {
+  if (!handle || !slug.startsWith("@") || slug.startsWith(`@${handle}/`)) return slug;
+  const wanted = `@${handle}/${slug.slice(slug.indexOf("/") + 1)}`;
+  return isCollectionSlug(wanted) && !taken(wanted) ? wanted : privateSlug(title, handle, taken);
+}
+
+/** The address, or where another collection holds it, the first free one with a number after it. */
+export function freeSlug(slug: string, taken: (slug: string) => boolean): string {
+  if (!taken(slug)) return slug;
+  const stem = slug.slice(0, SLUG_MAX - 5).replace(/-+$/, "");
+  let n = 2;
+  while (taken(`${stem}-${n}`)) n++;
+  return `${stem}-${n}`;
+}
 
 export interface Merge {
   statements: string[];
@@ -145,31 +175,17 @@ export function mergeStatements(lite: Snapshot, target: Target, makeId = newId):
       drop("k_collections");
       continue;
     }
-    let slug = String(c.slug);
     const handle = c.owner_kind === "user" ? handles.get(owner) : undefined;
-    /** Whether another collection than `id` holds the address. */
-    const taken = (id: string) => (candidate: string) => {
-      const holder = slugOwners.get(candidate);
-      return holder !== undefined && holder !== id;
-    };
-    if (handle && slug.startsWith("@") && !slug.startsWith(`@${handle}/`)) {
-      // as a username change moves it: the same address under the new handle, else its title's first free one
-      const wanted = `@${handle}/${slug.slice(slug.indexOf("/") + 1)}`;
-      const held = taken(String(c.id));
-      slug =
-        isCollectionSlug(wanted) && !held(wanted)
-          ? wanted
-          : privateSlug(String(c.title), handle, held);
-    }
+    let slug = underHandle(
+      String(c.slug),
+      String(c.title),
+      handle,
+      takenBy(slugOwners, String(c.id))
+    );
     let id = String(c.id);
     const there = targetIds.get(id);
     if (there && (there.slug !== slug || there.owner_id !== owner)) id = makeId();
-    if (taken(id)(slug)) {
-      const stem = slug.slice(0, SLUG_MAX - 5).replace(/-+$/, "");
-      let n = 2;
-      while (taken(id)(`${stem}-${n}`)) n++;
-      slug = `${stem}-${n}`;
-    }
+    slug = freeSlug(slug, takenBy(slugOwners, id));
     slugOwners.set(slug, id);
     collections.set(String(c.id), id);
     if (slug !== c.slug) slugs.set(String(c.slug), slug);
