@@ -51,8 +51,8 @@ function Opened(props: { collect: CardCollect; small: boolean; id: string; onClo
 /** Add to collection, for the palette at hand: a press on glass over its picture, under the check that says the palette
     is in the selection, on a card and on the editor's stage alike. Pressed, it stays one piece: it turns to Close where
     it stands, joined to the end of New collection, and the account's collections hang under the two. Close, a press
-    elsewhere, the keyboard leaving it or Escape puts the press back, and the keyboard with it. Signed out, it leads to
-    sign in. */
+    elsewhere, the keyboard leaving it or Escape puts the press back, and the keyboard with it. A title being typed
+    takes the first Escape, which gives the field back to New collection. Signed out, it leads to sign in. */
 export function CollectPress(props: {
   collect: CardCollect;
   /** the height of the check it stands under: sm over a card's picture, lg on the editor's stage */
@@ -78,6 +78,8 @@ export function CollectPress(props: {
     };
     const onEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || !open() || composing(e)) return;
+      const at = e.target;
+      if (at instanceof HTMLInputElement && at.name === "title" && host.contains(at)) return;
       e.stopPropagation();
       close(host.contains(document.activeElement));
     };
