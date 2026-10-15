@@ -1,5 +1,6 @@
-/* Reads a database into a snapshot (snapshot.ts): its schema, then every table a page at a time in rowid order, each
-   page one SELECT that reads at most PAGE rows, so a read never holds the database for long.
+/* Reads a database into a snapshot (snapshot.ts): its schema, then every table a page at a time in rowid order, the
+   ones that record changes last, each page one SELECT that reads at most PAGE rows, so a read never holds the database
+   for long.
 
      node scripts/data/read.ts production|lite|staging       a remote database, by its id in d1.ts
      node scripts/data/read.ts local [--persist <dir>]        the local copy build.ts makes (.data/build)
@@ -43,6 +44,9 @@ export const UNREAD: Record<string, string> = {
 export const BLANK: Record<string, readonly string[]> = {
   auth_account: ["access_token", "refresh_token", "id_token", "password"]
 };
+/** The tables that record changes to the rest, read after them: a change made while the others are read leaves its
+    record in the snapshot, dated after the read began. */
+export const RECORDS = ["k_sync_log", "k_admin_actions", "k_contributions", "k_queue"];
 
 export const SOURCES: Record<string, Database> = {
   production: PRODUCTION,
@@ -93,8 +97,12 @@ async function readTable(
   }
 }
 
-/** Reads the whole database through `read` (SQL in, rows out), `page` rows a read. */
+/** Reads the whole database through `read` (SQL in, rows out), `page` rows a read. The read is dated by the
+    database's own clock, which its triggers and the Worker date its rows by. */
 export async function readDatabase(read: Select, db: Database, page = PAGE) {
+  const clock = await read(
+    "SELECT CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER) AS now"
+  );
   const schema = (
     await read("SELECT type, name, tbl_name, sql FROM sqlite_master ORDER BY rowid")
   ).rows.map(([type, entry, tbl, sql]) => ({
@@ -117,32 +125,35 @@ export async function readDatabase(read: Select, db: Database, page = PAGE) {
     database: db.name,
     id: db.id,
     local: Boolean(db.persist),
-    readAt: Date.now(),
+    readAt: Number(clock.rows[0]?.[0]),
     mostRowsRead: 0,
     tables: {}
   };
   const tables = new Map<string, Row[]>();
-  const queue = [...columns.keys()];
-  const worker = async () => {
-    for (let table = queue.shift(); table; table = queue.shift()) {
-      const skipped = UNREAD[table];
-      const { rows, total, most } = await readTable(
-        read,
-        table,
-        columns.get(table)!,
-        Boolean(skipped),
-        page
-      );
-      meta.mostRowsRead = Math.max(meta.mostRowsRead, most);
-      meta.tables[table] = {
-        columns: columns.get(table)!,
-        rows: total,
-        ...(skipped && { skipped })
-      };
-      if (!skipped) tables.set(table, rows);
-    }
+  const readAll = async (queue: string[]) => {
+    const worker = async () => {
+      for (let table = queue.shift(); table; table = queue.shift()) {
+        const skipped = UNREAD[table];
+        const { rows, total, most } = await readTable(
+          read,
+          table,
+          columns.get(table)!,
+          Boolean(skipped),
+          page
+        );
+        meta.mostRowsRead = Math.max(meta.mostRowsRead, most);
+        meta.tables[table] = {
+          columns: columns.get(table)!,
+          rows: total,
+          ...(skipped && { skipped })
+        };
+        if (!skipped) tables.set(table, rows);
+      }
+    };
+    await Promise.all(Array.from({ length: AT_ONCE }, worker));
   };
-  await Promise.all(Array.from({ length: AT_ONCE }, worker));
+  await readAll([...columns.keys()].filter(table => !RECORDS.includes(table)));
+  await readAll([...columns.keys()].filter(table => RECORDS.includes(table)));
   meta.tables = Object.fromEntries(
     Object.entries(meta.tables).sort(([a], [b]) => a.localeCompare(b))
   );

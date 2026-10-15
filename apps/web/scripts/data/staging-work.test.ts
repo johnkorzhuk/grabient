@@ -1,7 +1,8 @@
 import type { DatabaseSync } from "node:sqlite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { planStatements } from "./build.ts";
-import type { Snapshot } from "./snapshot.ts";
+import { readDatabase } from "./read.ts";
+import { reads, type Snapshot } from "./snapshot.ts";
 import { sinceLoad, stagingWork, type Work, workReport } from "./staging-work.ts";
 import {
   A,
@@ -19,6 +20,7 @@ import {
   run,
   type Sources,
   snapshotOf,
+  stagingDb,
   stagingOf,
   unloaded
 } from "./testing.ts";
@@ -231,6 +233,31 @@ describe("staging's work", () => {
       ])
     );
     expect(() => sinceLoad(pruned)).toThrow(/pruned/);
+  });
+
+  it("stops when an admin changed staging while it was read, since the change may be half in the read", async () => {
+    const sources = { production: await production(), lite: await lite() };
+    const staging = await stagingDb(sources);
+    const read = reads(staging);
+    let changed = false;
+    const { meta, schema, tables } = await readDatabase(
+      async sql => {
+        const answer = await read(sql);
+        /* the admin likes a palette just after the read went past the likes */
+        if (!changed && sql.includes('FROM "k_likes"')) {
+          changed = true;
+          run(staging, [liked("PA", O, Date.now())]);
+        }
+        return answer;
+      },
+      { name: "staging", id: "memory" },
+      1000
+    );
+    const half: Snapshot = { dir: "", meta, schema, rows: table => tables.get(table) ?? [] };
+    expect(half.rows("k_likes").some(l => l.user_id === "PA" && l.palette_id === O)).toBe(false);
+    expect(() => stagingWork(half, sources.production, sources.lite, ALIASES)).toThrow(
+      /while it was read/
+    );
   });
 
   it("carries a like and an unlike made on staging, the like with where it was pressed", () => {

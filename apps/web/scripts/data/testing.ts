@@ -455,11 +455,13 @@ export async function copyOf(source: Sources, now = NOW) {
 
 /** grabient-staging as load.ts loads it with the copy built from production and grabient-lite, its log ending at
     LOADED, then changed by `changes`. */
-export async function stagingOf(source: Omit<Sources, "staging">, changes: Changes = []) {
+export async function stagingDb(source: Omit<Sources, "staging">, changes: Changes = []) {
   const built = await copyOf({ ...source, staging: await unloaded() });
   const copy = await stagingCopy(await snapshotOf(built.db, 1000), source.lite, NOW);
   const db = memory(loadStatements(copy));
   run(db, [`UPDATE k_sync_log SET at = ${LOADED} - (SELECT MAX(id) FROM k_sync_log) + id`]);
   for (const [statements, at] of changes) change(db, statements, at);
-  return snapshotOf(db, 1000);
+  return db;
 }
+export const stagingOf = async (source: Omit<Sources, "staging">, changes: Changes = []) =>
+  snapshotOf(await stagingDb(source, changes), 1000);

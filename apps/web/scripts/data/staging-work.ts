@@ -295,6 +295,20 @@ export function stagingWork(
   const admin = (id: Value | undefined) => admins.get(String(id));
   const target = (id: Value | undefined) => admin(id)?.target ?? id ?? null;
 
+  /* a change an admin made while staging was read may be in some of its tables and not in others; its record, read
+     last, is dated after the read began */
+  const during = [
+    ...staging.rows("k_sync_log").flatMap(r => (admin(r.account_id) ? [Number(r.at)] : [])),
+    ...["k_admin_actions", "k_contributions"].flatMap(table =>
+      staging.rows(table).flatMap(r => (admin(r.actor_id) ? [Number(r.created_at)] : []))
+    )
+  ].filter(at => at >= staging.meta.readAt);
+  if (during.length)
+    throw new Error(
+      `An admin changed staging at ${new Date(Math.min(...during)).toISOString()}, while it was read: ` +
+        "stop working there and read it again."
+    );
+
   /* what each side's log says changed: likes by account and palette, the accounts' own collections by id */
   const likeTimes = new Map<string, number>();
   const collectionTimes = new Map<string, number>();
