@@ -201,6 +201,26 @@ test("the editor lays itself out without an error to report", async ({ page }) =
   expect(reports).toEqual([]);
 });
 
+test("the strip of a palette of many colors goes to two rows and back as the window narrows and widens, without an error to report", async ({
+  page
+}) => {
+  const reports: string[] = [];
+  page.on("request", request => {
+    if (request.url().endsWith("/api/client-error")) reports.push(request.postData() ?? "");
+  });
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await open(page, `/${SEED}?steps=20`);
+  // two rows stand taller than one: the strip's own size changes with what it reads of its width
+  const strip = page.getByRole("group", { name: "Palette colors" });
+  await expect(strip).not.toHaveAttribute("data-two");
+  await page.setViewportSize({ width: 1400, height: 1000 });
+  await expect(strip).toHaveAttribute("data-two", "");
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await expect(strip).not.toHaveAttribute("data-two");
+  await page.waitForTimeout(500);
+  expect(reports).toEqual([]);
+});
+
 test("another spelling of an address answers with the canonical one", async ({ request }) => {
   const answer = await request.get(`/${SEED}?angle=90&steps=7&lock=hue,lightness`, {
     maxRedirects: 0
