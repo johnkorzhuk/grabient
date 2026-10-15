@@ -31,13 +31,14 @@ export const focusLeft = (
 };
 
 /** Runs `act`, and if it takes the control the keyboard is on off the page, gives the keyboard to the neighbor `next`
-    finds once the page has changed, so it never falls back to the page's start. */
+    finds once the page has changed, so it never falls back to the page's start. A neighbor out of view is scrolled
+    into it, so its ring is seen. */
 export function keepKeyboard(act: () => void, next: () => HTMLElement | null | undefined): void {
   const had = document.activeElement;
   act();
   if (!had || had === document.body) return;
   flush();
-  if (!had.isConnected) next()?.focus({ preventScroll: true });
+  if (!had.isConnected) next()?.focus();
 }
 
 /** Whether a key goes to a field being typed in inside `root`, which takes Escape to put its text back first. */
