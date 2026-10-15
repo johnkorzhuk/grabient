@@ -179,3 +179,134 @@ for (const [path, read] of [
     expect(asked).toEqual([read]);
   });
 }
+
+/* With no connection, on the build a deploy serves. A list the service worker never kept opens from its shell: its own
+   frame, with why it cannot be read in the list's place, until the connection returns and the list is read where it
+   stands. So does a collection, at each of its orders. The collections' reads are answered here once the connection is
+   back, so the tests stand whatever the local database holds. */
+const GROUP = "e2e-gradients";
+const group = {
+  slug: GROUP,
+  title: "End to end gradients",
+  description: "",
+  tags: ["blue"],
+  visibility: "public",
+  owner: { kind: "agent", name: "grabient" },
+  itemCount: 1,
+  createdAt: 1_700_000_000_000,
+  updatedAt: 1_700_000_000_000,
+  saves: 0
+};
+const member = {
+  style: "linearGradient",
+  steps: 7,
+  angle: 90,
+  createdAt: 1_700_000_000_000,
+  likes: 0
+};
+/** The collections' reads, answered with the one collection. */
+async function answerCollections(page: Page) {
+  await page.route(
+    url => url.pathname === "/api/collections",
+    route => {
+      const asked = new URL(route.request().url()).searchParams;
+      return route.fulfill({
+        json: {
+          ...{ query: asked.get("q") ?? "", sort: asked.get("sort"), page: 1, limit: 24 },
+          ...{ total: 1, totalPages: 1, fetchedAt: Date.now() },
+          items: [{ ...group, preview: [{ seed: SEED, ...member, position: 0 }] }]
+        }
+      });
+    }
+  );
+  await page.route(
+    url => url.pathname === `/api/collections/${GROUP}`,
+    route => route.fulfill({ json: { ...group, items: [{ kseed: SEED, ...member, position: 0 }] } })
+  );
+}
+/** The worker in charge of a page it never kept any list from, and the connection cut. */
+async function cutOff(page: Page) {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto("/about");
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.context().setOffline(true);
+}
+
+for (const [path, why] of [
+  ["/", "This list opens offline once you've seen it online."],
+  ["/?q=blue", "This list opens offline once you've seen it online."],
+  ["/palettes", "This list opens offline once you've seen it online."],
+  ["/palettes/rising", "This list opens offline once you've seen it online."],
+  ["/palettes?q=blue", "This list opens offline once you've seen it online."],
+  ["/collections", "This list opens offline once you've seen it online."],
+  ["/collections/rising", "This list opens offline once you've seen it online."],
+  ["/collections?q=blue", "This list opens offline once you've seen it online."],
+  [`/${GROUP}`, "This collection opens offline once you've seen it online."],
+  [`/${GROUP}/rising`, "This collection opens offline once you've seen it online."]
+] as const)
+  test(`with no connection ${path}, never kept, stands in its frame saying why, and reads its list once the connection returns`, {
+    tag: "@served"
+  }, async ({ page }) => {
+    const reports = reported(page);
+    await cutOff(page);
+    await page.goto(path);
+    const main = page.locator("main");
+    await expect(main.getByText("You're offline.")).toBeVisible();
+    await expect(main.getByText(why)).toBeVisible();
+    await expect(main).not.toContainText(/Something went wrong|Couldn't load/);
+    await expect(main.getByRole("button", { name: "Retry" })).toHaveCount(0);
+    // its frame: the search, the lists' row and the list's heading; a collection's orders and its title's place
+    const frame = path.startsWith(`/${GROUP}`)
+      ? [main.getByRole("navigation", { name: "Order" }), main.locator("h1").first()]
+      : [
+          page.getByRole("searchbox"),
+          main.getByRole("navigation", { name: "Lists" }),
+          ...(path.startsWith("/collections") ? [] : [main.locator("h2").first()])
+        ];
+    const tops = () =>
+      Promise.all(frame.map(async part => Math.round((await part.boundingBox())?.y ?? -1)));
+    const drawn = await tops();
+    let loads = 0;
+    page.on("load", () => loads++);
+    await answerCollections(page);
+    await page.context().setOffline(false);
+    await expect(main.locator("article").first()).toBeVisible();
+    await expect(main.getByText("You're offline.")).toHaveCount(0);
+    // the live page stands where its frame stood, and nothing loaded it again
+    expect(await tops()).toEqual(drawn);
+    expect(loads).toBe(0);
+    expect(reports).toEqual([]);
+  });
+
+test("with no connection the page in view, refreshed after a new build's worker takes over, opens whole", {
+  tag: "@served"
+}, async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto("/palettes");
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  // a page the last build's worker kept as it loaded
+  await page.goto("/palettes");
+  await expect(page.locator("main article").first()).toBeVisible();
+  /* The next build takes over: its worker installs, and as it activates deletes the last build's files, shell and pages,
+     while the page in view still runs the last build's scripts. The browser's check for a new worker passes through no
+     route, so the same worker stands in under a second address, once the last build's caches are gone. */
+  await page.evaluate(async () => {
+    for (const key of await caches.keys())
+      if (/^grabient-(assets|shells|pages)-/.test(key)) await caches.delete(key);
+    const taken = new Promise(resolve =>
+      navigator.serviceWorker.addEventListener("controllerchange", resolve, { once: true })
+    );
+    await navigator.serviceWorker.register("/sw.js?next");
+    await taken;
+    const worker = navigator.serviceWorker.controller;
+    if (worker && worker.state !== "activated")
+      await new Promise(resolve =>
+        worker.addEventListener("statechange", () => worker.state === "activated" && resolve(null))
+      );
+  });
+  await page.context().setOffline(true);
+  await page.reload();
+  await expect(page.locator("main article").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Popular", level: 2 })).toBeVisible();
+  await expect(page.locator("main").getByText("You're offline.")).toHaveCount(0);
+});
