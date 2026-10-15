@@ -12,10 +12,12 @@
    What, each by the rule that the later change wins:
    - a like, per account and palette: staging's like or unlike stands unless grabient-lite or production changed that
      like later. A palette a carried like brought into staging's gallery comes with it.
-   - a collection, with its words, address and palettes in order, or its deletion: the admin's own, and each of
-     Grabient's an admin curated (on the record, through an app, or by adding palettes by hand), unless grabient-lite
-     changed it later. One of Grabient's is matched by its address, since each site's queue makes its own. The record
-     of those changes comes with them.
+   - a collection, with its words, address and palettes in order, or its deletion: the admin's own, unless
+     grabient-lite changed it later, and each of Grabient's an admin curated (on the record, through an app, or by
+     adding palettes by hand), unless an admin changed it on grabient-lite later. The queues' runs are nobody's change,
+     so one of Grabient's is grabient-lite's version, its queue's runs and all, with the palettes the admin touched as
+     staging holds them. It is matched by its address, since each site's queue makes its own. The record of those
+     changes comes with them.
    - a note an admin wrote, and the newsletter's lead an admin chose, per issue.
    A like or a collection changed on both sides since the load is a conflict, named with both times.
 
@@ -126,6 +128,128 @@ const keyed = <T>(rows: readonly T[], key: (row: T) => string) =>
   new Map(rows.map(row => [key(row), row]));
 const view = (item: Row) => `${item.seed} ${item.style} ${item.steps} ${item.angle}`;
 
+/** A collection's version on `site`: the same id, or for one of Grabient's the same address, since each site's queue
+    makes its own. */
+function twins(site: Snapshot) {
+  const ids = keyed(site.rows("k_collections"), c => String(c.id));
+  const agents = keyed(
+    site.rows("k_collections").filter(c => c.owner_kind === "agent"),
+    c => String(c.slug)
+  );
+  return (id: string, slug?: Value, kind?: Value) =>
+    ids.get(id) ?? (kind === "agent" ? agents.get(String(slug)) : undefined);
+}
+
+/** Each collection's palettes on `site`, in order. */
+function itemsOf(site: Snapshot) {
+  const out = Map.groupBy(site.rows("k_collection_items"), item => String(item.collection_id));
+  for (const list of out.values()) list.sort((a, b) => Number(a.position) - Number(b.position));
+  return out;
+}
+
+/** The admins' changes of one collection since the load: the last one's time, the palettes they touched, and the one
+    each edit made of a palette. */
+interface Curation {
+  at: number;
+  seeds: Set<string>;
+  into: Map<string, string>;
+}
+
+/** What the admins did to `site`'s collections since the load, by each collection's id there, with their record and
+    their apps' log. Grabient's are curated on the record, through an app, or by adding palettes by hand, which the
+    record leaves out. What the site's queue added is the queue's, and a palette `other` holds there in that view was
+    no change. */
+function curation(
+  site: Snapshot,
+  other: Snapshot,
+  loaded: number,
+  isAdmin: (id: Value | undefined) => boolean
+) {
+  const since = (row: Row, column: string) => Number(row[column] ?? 0) > loaded;
+  const records = site
+    .rows("k_admin_actions")
+    .filter(r => since(r, "created_at") && isAdmin(r.actor_id));
+  const contributions = site
+    .rows("k_contributions")
+    .filter(r => since(r, "created_at") && isAdmin(r.actor_id));
+  const changes = new Map<string, Curation>();
+  const change = (id: string, at: Value | undefined, ...seeds: (Value | undefined)[]) => {
+    const c = changes.get(id) ?? { at: 0, seeds: new Set(), into: new Map() };
+    c.at = Math.max(c.at, Number(at));
+    for (const seed of seeds) if (seed !== null && seed !== undefined) c.seeds.add(String(seed));
+    changes.set(id, c);
+    return c;
+  };
+  for (const r of records) {
+    if (r.collection_id === null || JUDGED.includes(String(r.action))) continue;
+    const into =
+      r.action === "edit"
+        ? (JSON.parse(String(r.after ?? "{}")) as { seed?: string }).seed
+        : undefined;
+    const c = change(String(r.collection_id), r.created_at, r.seed, into);
+    if (into) c.into.set(String(r.seed), into);
+  }
+  const collections = keyed(site.rows("k_collections"), c => String(c.id));
+  const addresses = new Map([...collections.values()].map(c => [String(c.slug), String(c.id)]));
+  for (const r of contributions) {
+    const id = COLLECTION_TOOLS.includes(String(r.tool)) && addresses.get(String(r.target));
+    if (id) change(id, r.created_at);
+  }
+  const queued = new Set<string>();
+  for (const q of site.rows("k_queue")) {
+    if (q.kind !== "collection" || q.status !== "done" || !since(q, "done_at")) continue;
+    const payload = JSON.parse(String(q.payload)) as { slug?: string; items?: { seed?: string }[] };
+    for (const item of payload.items ?? []) queued.add(`${payload.slug} ${item.seed}`);
+  }
+  const twin = twins(other);
+  const held = new Map([...itemsOf(other)].map(([id, list]) => [id, new Set(list.map(view))]));
+  for (const item of site.rows("k_collection_items")) {
+    const c = collections.get(String(item.collection_id));
+    if (c?.owner_kind !== "agent" || !since(item, "created_at")) continue;
+    if (queued.has(`${c.slug} ${item.seed}`)) continue;
+    const there = twin(String(c.id), c.slug, c.owner_kind);
+    if (!there || !held.get(String(there.id))?.has(view(item)))
+      change(String(c.id), item.created_at, item.seed);
+  }
+  return { records, contributions, changes };
+}
+
+/** One of Grabient's collections as grabient-lite holds it, its queue's runs included, with the palettes the admin's
+    changes on staging touched as staging holds them: each where grabient-lite's version holds it, so one taken out goes
+    and one drawn another way or edited into another keeps its place, and the rest after what grabient-lite's version
+    held by the time they joined, as on one site. */
+function replayed(lite: readonly Row[], staging: readonly Row[], change: Curation, loaded: number) {
+  const touched = Map.groupBy(
+    staging.filter(item => change.seeds.has(String(item.seed))),
+    item => String(item.seed)
+  );
+  const kept: Row[] = [];
+  const take = (seed: string | undefined) => {
+    if (seed === undefined) return;
+    kept.push(...(touched.get(seed) ?? []));
+    touched.delete(seed);
+  };
+  for (const item of lite) {
+    const seed = String(item.seed);
+    if (!change.seeds.has(seed)) kept.push(item);
+    else {
+      take(seed);
+      take(change.into.get(seed));
+    }
+  }
+  const added = [...touched.values()]
+    .flat()
+    .sort((a, b) => Number(a.position) - Number(b.position));
+  const out: Row[] = [];
+  for (const item of kept) {
+    const at = Number(item.created_at);
+    while (added.length && at > loaded && at > Number(added[0]!.created_at))
+      out.push(added.shift()!);
+    out.push(item);
+  }
+  return [...out, ...added].map((item, position) => ({ ...item, position }));
+}
+
 /** The admins' work on staging since its load, each change decided against grabient-lite and production. */
 export function stagingWork(
   staging: Snapshot,
@@ -182,49 +306,18 @@ export function stagingWork(
   const liteLog = new Map<string, number>();
   for (const row of lite.rows("k_sync_log")) touch(liteLog, logged(row), row.at);
 
-  /* Grabient's collections an admin curated: on the record, through an app, or palettes added by hand, which the
-     record leaves out; palettes staging's queue added are the queue's */
+  /* Grabient's collections the admins curated on each side; the queue's runs on either are nobody's change */
   const collections = keyed(staging.rows("k_collections"), c => String(c.id));
   const addresses = new Map([...collections.values()].map(c => [String(c.slug), String(c.id)]));
   const liteCollections = keyed(lite.rows("k_collections"), c => String(c.id));
-  const liteAgents = keyed(
-    lite.rows("k_collections").filter(c => c.owner_kind === "agent"),
-    c => String(c.slug)
+  const liteOf = twins(lite);
+  const liteAdmins = new Set(
+    lite.rows("auth_user").flatMap(user => (user.role === "admin" ? [String(user.id)] : []))
   );
-  const liteOf = (id: string, slug?: Value, kind?: Value) =>
-    liteCollections.get(id) ?? (kind === "agent" ? liteAgents.get(String(slug)) : undefined);
-  const liteItems = new Map<string, Set<string>>();
-  for (const item of lite.rows("k_collection_items")) {
-    const id = String(item.collection_id);
-    liteItems.set(id, (liteItems.get(id) ?? new Set()).add(view(item)));
-  }
-  const records = staging
-    .rows("k_admin_actions")
-    .filter(r => since(r, "created_at") && admin(r.actor_id));
-  const contributions = staging
-    .rows("k_contributions")
-    .filter(r => since(r, "created_at") && admin(r.actor_id));
-  for (const r of records)
-    if (r.collection_id !== null && !JUDGED.includes(String(r.action)))
-      touch(collectionTimes, String(r.collection_id), r.created_at);
-  for (const r of contributions) {
-    const id = COLLECTION_TOOLS.includes(String(r.tool)) && addresses.get(String(r.target));
-    if (id) touch(collectionTimes, id, r.created_at);
-  }
-  const queued = new Set<string>();
-  for (const q of staging.rows("k_queue")) {
-    if (q.kind !== "collection" || q.status !== "done" || !since(q, "done_at")) continue;
-    const payload = JSON.parse(String(q.payload)) as { slug?: string; items?: { seed?: string }[] };
-    for (const item of payload.items ?? []) queued.add(`${payload.slug} ${item.seed}`);
-  }
-  for (const item of staging.rows("k_collection_items")) {
-    const c = collections.get(String(item.collection_id));
-    if (c?.owner_kind !== "agent" || !since(item, "created_at")) continue;
-    if (queued.has(`${c.slug} ${item.seed}`)) continue;
-    const there = liteOf(String(c.id), c.slug, c.owner_kind);
-    if (!there || !liteItems.get(String(there.id))?.has(view(item)))
-      touch(collectionTimes, String(c.id), item.created_at);
-  }
+  const onStaging = curation(staging, lite, loaded, id => !!admin(id));
+  const onLite = curation(lite, staging, loaded, id => liteAdmins.has(String(id)));
+  const { records, contributions } = onStaging;
+  for (const [id, change] of onStaging.changes) touch(collectionTimes, id, change.at);
 
   /* collections: staging's version or its deletion, unless grabient-lite changed the collection later */
   const deleted = new Map(
@@ -239,15 +332,13 @@ export function stagingWork(
   const ids = new Map<string, string>();
   for (const [id, at] of collectionTimes) {
     const mine = collections.get(id) ?? null;
-    const theirs = mine
-      ? liteOf(id, mine.slug, mine.owner_kind)
-      : liteOf(id, deleted.get(id), deleted.has(id) ? "agent" : "user");
+    const agent = mine ? mine.owner_kind === "agent" : deleted.has(id);
+    const theirs = liteOf(id, mine?.slug ?? deleted.get(id), agent ? "agent" : "user");
     const there = theirs ? String(theirs.id) : id;
-    const other = latest(
-      liteLog.get(`collection ${there}`),
-      theirs?.updated_at,
-      liteDeleted.get(there)
-    );
+    /* one of Grabient's counts grabient-lite's admins' changes alone: its queue's runs rewrite updated_at */
+    const other = agent
+      ? latest(onLite.changes.get(there)?.at, liteDeleted.get(there))
+      : latest(liteLog.get(`collection ${there}`), theirs?.updated_at, liteDeleted.get(there));
     const stands: Source = other === undefined || at >= other ? "staging" : "grabient-lite";
     if (other !== undefined && other > loaded)
       work.conflicts.push({
@@ -280,25 +371,30 @@ export function stagingWork(
     if (change) return change.row ? there : null;
     return liteCollections.has(there) ? there : null;
   };
-  const items = new Map<string, Row[]>();
-  for (const item of staging.rows("k_collection_items")) {
-    const id = String(item.collection_id);
-    items.set(id, [...(items.get(id) ?? []), item]);
-  }
+  const items = itemsOf(staging);
+  const liteItems = itemsOf(lite);
   for (const change of work.collections) {
     const row = change.row;
     if (!row) continue;
+    const id = String(from.get(change.id));
     const forked = inBuild(row.forked_from);
+    /* one of Grabient's that grabient-lite holds takes the admin's curation on top of grabient-lite's version */
+    const theirs =
+      row.owner_kind === "agent" && change.stands === "staging" && liteCollections.get(change.id);
     change.row = {
       ...row,
       id: change.id,
       owner_id: row.owner_kind === "user" ? target(row.owner_id) : row.owner_id,
       forked_from: forked,
-      forked_base: forked ? row.forked_base : null
+      forked_base: forked ? row.forked_base : null,
+      ...(theirs && { updated_at: Math.max(Number(row.updated_at), Number(theirs.updated_at)) })
     };
-    change.items = (items.get(String(from.get(change.id))) ?? [])
-      .sort((a, b) => Number(a.position) - Number(b.position))
-      .map(item => ({ ...item, collection_id: change.id }));
+    const own = items.get(id) ?? [];
+    change.items = (
+      theirs
+        ? replayed(liteItems.get(change.id) ?? [], own, onStaging.changes.get(id)!, loaded)
+        : own
+    ).map(item => ({ ...item, collection_id: change.id }));
   }
 
   /* likes: staging's like or unlike, unless grabient-lite or production changed that like later */

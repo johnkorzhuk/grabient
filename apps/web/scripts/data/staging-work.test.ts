@@ -378,6 +378,105 @@ describe("staging's work", () => {
   });
 });
 
+describe("Grabient's collections the queue runs on both sides", () => {
+  /* a job both sites' queues hold from the load, and one grabient-lite's queue was given since */
+  const queued = (id: string, seed: string, status: string, done: number | null) =>
+    `INSERT INTO k_queue (id, key, agent, kind, payload, due_at, status, created_at, done_at)
+     VALUES ('${id}', 'collection:${id}', 'grabient', 'collection', '{"slug":"warm-sunsets","items":[{"seed":"${seed}"}]}',
+       190000, '${status}', 9000, ${done})`;
+  const ran = (id: string, seed: string, position: number, at: number) => [
+    items(item("c1", position, seed, at)),
+    `UPDATE k_collections SET item_count = item_count + 1, updated_at = ${at} WHERE id = 'c1'`,
+    `UPDATE k_queue SET status = 'done', done_at = ${at} WHERE id = '${id}'`
+  ];
+  const removedC: Changes[number] = [
+    [
+      `DELETE FROM k_collection_items WHERE collection_id = 'c1' AND seed = '${C}'`,
+      "UPDATE k_collections SET item_count = 1, updated_at = 175000 WHERE id = 'c1'",
+      `INSERT INTO k_admin_actions (id, actor_id, action, seed, collection_id, slug, title, before, created_at)
+       VALUES ('a-remove', 'PA', 'remove', '${C}', 'c1', 'warm-sunsets', 'warm-sunsets', '{"position":1}', 175000)`
+    ],
+    175_000
+  ];
+  async function built(onStaging: Changes, onLite: Changes) {
+    const base: Changes = [[[queued("q9", O, "due", null)], 9_000]];
+    const sources = { production: await production(), lite: await lite(base) };
+    const source: Sources = {
+      production: sources.production,
+      lite: await lite([...base, ...onLite]),
+      staging: await stagingOf(sources, onStaging)
+    };
+    const work = stagingWork(source.staging, source.production, source.lite, ALIASES);
+    const { db } = await copyOf(source, BUILT);
+    const checks = verify(await snapshotOf(db, 1000), source.production, source.lite, {
+      aliases: ALIASES,
+      originals: ORIGINALS,
+      now: BUILT,
+      staging: source.staging
+    });
+    const seeds = (
+      db
+        .prepare("SELECT seed FROM k_collection_items WHERE collection_id = 'c1' ORDER BY position")
+        .all() as { seed: string }[]
+    ).map(r => r.seed);
+    const records = (
+      db.prepare("SELECT id FROM k_admin_actions WHERE id = 'a-remove'").all() as { id: string }[]
+    ).map(r => r.id);
+    return { work, checks, seeds, records };
+  }
+
+  it("keeps the palette the admin took out on staging out, and every palette either queue added", async () => {
+    const { work, checks, seeds, records } = await built(
+      [
+        removedC,
+        [ran("q9", O, 2, 190_200), 190_200],
+        [[items(item("c1", 3, B, 192_000))], 192_000]
+      ],
+      [
+        [ran("q9", O, 2, 190_000), 190_000],
+        [[queued("q10", D, "due", null), ...ran("q10", D, 3, 195_000)], 195_000]
+      ]
+    );
+    /* A stands, C stays out, the job both ran adds O once, his B joins when he added it, and D from grabient-lite's
+       own job after it */
+    expect(seeds).toEqual([A, O, B, D]);
+    expect(records).toEqual(["a-remove"]);
+    expect(work.conflicts).toEqual([]);
+    expect(work.left).toEqual([]);
+    expect(failed(checks)).toEqual([]);
+  });
+
+  it("lets grabient-lite's admin's later curation of the collection stand, and names the conflict", async () => {
+    const { work, checks, seeds, records } = await built(
+      [removedC],
+      [
+        [
+          [
+            `DELETE FROM k_collection_items WHERE collection_id = 'c1' AND seed = '${A}'`,
+            "UPDATE k_collections SET item_count = 1, updated_at = 200000 WHERE id = 'c1'",
+            `INSERT INTO k_admin_actions (id, actor_id, action, seed, collection_id, slug, title, created_at)
+             VALUES ('a-lite', 'LA', 'remove', '${A}', 'c1', 'warm-sunsets', 'warm-sunsets', 200000)`
+          ],
+          200_000
+        ]
+      ]
+    );
+    expect(seeds).toEqual([C]);
+    expect(records).toEqual([]);
+    expect(work.conflicts).toEqual([
+      {
+        kind: "collection",
+        key: "warm-sunsets",
+        staging: 175_000,
+        other: 200_000,
+        source: "grabient-lite",
+        stands: "grabient-lite"
+      }
+    ]);
+    expect(failed(checks)).toEqual([]);
+  });
+});
+
 describe("verify, with staging's work", () => {
   it("passes the build, warning of the conflicts and what stays on staging", async () => {
     const checks = checked(await snapshotOf(db, 1000));
