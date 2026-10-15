@@ -1,6 +1,6 @@
 /* The build's size budgets: what a reader's phone downloads before a page can run, and what the Worker loads. Read
-   from the output of `vite build --mode staging`; ci:build runs it after the build, so a deploy over budget stops before
-   it deploys. Prints every figure beside its budget and exits 1 when one is over.
+   from a build's output, staging's or production's; ci:build and deploy:production run it after their build, so a
+   deploy over budget stops before it deploys. Prints every figure beside its budget and exits 1 when one is over.
      node scripts/budget.ts [output folder, .cloudflare/output by default]
    Each budget is the trimmed figure and about 5% more, so a real regression fails and a small change does not. A
    change that needs more raises its budget here, in the same commit, saying why. */

@@ -11,7 +11,7 @@
     "db:setup": "node scripts/d1.ts setup",
     "deploy:staging": "node scripts/d1.ts migrate --mode staging --remote && cf deploy --prebuilt --mode staging --no-provision",
     "deploy:preview": "node scripts/d1.ts migrate --mode previews --remote && cf previews deploy --no-provision",
-    "deploy:production": "GRABIENT_RELEASE=production vite build --mode production && node scripts/d1.ts migrate --mode production --remote && cf deploy --prebuilt --mode production --no-provision"
+    "deploy:production": "GRABIENT_RELEASE=production vite build --mode production && node scripts/budget.ts && node scripts/d1.ts migrate --mode production --remote && cf deploy --prebuilt --mode production --no-provision"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "1.2.3",

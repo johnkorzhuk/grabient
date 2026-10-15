@@ -42,7 +42,7 @@ pnpm e2e          # the Playwright tests, against vite dev on a free port
 pnpm i18n check   # the English messages against the code, and every translation against its English
 ```
 
-A deploy runs `pnpm ci:build`, which is `pnpm check` and then the build.
+A deploy runs `pnpm check`, the build and the size budgets (`apps/web/scripts/budget.ts`) before it deploys.
 
 ## Layout
 
