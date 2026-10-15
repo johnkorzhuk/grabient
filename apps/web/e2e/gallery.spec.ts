@@ -86,6 +86,22 @@ test("the footer under a list that grows as it scrolls is reached by the keyboar
   expect(asked.filter(path => path.startsWith("/api/palettes"))).toEqual([]);
 });
 
+test("the search field is named in the browser's own tree, empty and with words in it", async ({
+  page
+}) => {
+  await page.goto("/palettes");
+  await hydrated(page);
+  // Chrome's computed name, which a screen reader and voice control are given
+  const cdp = await page.context().newCDPSession(page);
+  const name = async () => {
+    const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+    return nodes.find(node => node.role?.value === "searchbox")?.name?.value;
+  };
+  expect(await name()).toBe("Search palettes");
+  await page.getByRole("searchbox").fill("sunset");
+  expect(await name()).toBe("Search palettes");
+});
+
 test("a card the server drew answers focus and a press that reach it before the reader moves", async ({
   page
 }) => {

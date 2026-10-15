@@ -1,5 +1,6 @@
 import { t } from "@grabient/i18n";
 import { BarRim } from "@grabient/ui/BarRim.tsx";
+import hidden from "@grabient/ui/hidden.module.css";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { tooltip } from "@grabient/ui/Tooltip.tsx";
 import { createEffect, createUniqueId, Show, untrack } from "solid-js";
@@ -79,7 +80,7 @@ export function SearchField(props: {
           props.onSubmit?.(input.value.trim());
         }}
       >
-        <label for={id} hidden>
+        <label for={id} class={hidden.text}>
           {label()}
         </label>
         {/* a picture dropped on the field goes to the page; the field and its presses are the controls */}
