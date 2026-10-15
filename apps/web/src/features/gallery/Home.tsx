@@ -260,7 +260,7 @@ export function Home(props: { params: ListParams }) {
   const searched = createMemo(() =>
     searchedTitle(words(), made(), params(), look.draft(), look.peek())
   );
-  /* a read that failed with no connection says so in its place, and is made again as the connection returns */
+  /* reads that failed with no connection are said in the head's place, and made again as the connection returns */
   const headUnread = createOfflineList({
     failed: () => failed(head.data),
     readAt: () => head.dataUpdatedAt,
