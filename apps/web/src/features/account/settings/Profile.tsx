@@ -24,9 +24,9 @@ import { readUsername, USERNAME_MAX } from "../username.ts";
 import styles from "./Settings.module.css";
 
 /* The account's picture and username. The username's rules are the Worker's own (username.ts), so the field says what
-   the server would refuse, in the reader's language, and asks the server whether the name is free half a second after
-   the last keystroke. A picture is cropped to a square and drawn at 256 by 256 as WebP in the browser, and sent with
-   the name when Save is pressed. */
+   the server would refuse, in the reader's language, under itself, where it is the field's description, and asks the
+   server whether the name is free half a second after the last keystroke. A picture is cropped to a square and drawn
+   at 256 by 256 as WebP in the browser, and sent with the name when Save is pressed. */
 
 const AVATAR_SIDE = 256;
 const AVATAR_FILE_MAX = 5 * 1024 * 1024;
@@ -83,6 +83,8 @@ export function Profile(props: {
   const [typed, setTyped] = createSignal<string | null>(null);
   const [status, setStatus] = createSignal("");
   const [failed, setFailed] = createSignal(false);
+  /* what the field itself says is wrong with the name typed, in its help line's place */
+  const [nameError, setNameError] = createSignal("");
   const [checking, setChecking] = createSignal(false);
   const [available, setAvailable] = createSignal(true);
   const [saving, setSaving] = createSignal(false);
@@ -121,6 +123,7 @@ export function Profile(props: {
   const check = (value: string) => {
     setTyped(value);
     say("");
+    setNameError("");
     setAvailable(true);
     setChecking(false);
     clearTimeout(checkTimer);
@@ -129,7 +132,7 @@ export function Profile(props: {
     if (name === current()) return;
     const broken = problem(name);
     if (broken) {
-      say(broken, true);
+      setNameError(broken);
       return;
     }
     setChecking(true);
@@ -140,11 +143,11 @@ export function Profile(props: {
         });
         if (turn !== asked) return;
         setAvailable(answer.available);
-        say(answer.available ? "" : t("That username is taken."), !answer.available);
+        setNameError(answer.available ? "" : t("That username is taken."));
       } catch {
         if (turn !== asked) return;
         setAvailable(false);
-        say(t("Couldn't check the username. Try again."), true);
+        setNameError(t("Couldn't check the username. Try again."));
       } finally {
         if (turn === asked) setChecking(false);
       }
@@ -286,9 +289,9 @@ export function Profile(props: {
             value={typed() ?? props.name()}
             autocomplete="username"
             maxlength={USERNAME_MAX}
-            invalid={failed()}
+            invalid={!!nameError()}
             disabled={!account() || offline()}
-            help={t("Letters, numbers, underscores and hyphens.")}
+            help={nameError() || t("Letters, numbers, underscores and hyphens.")}
             onInput={check}
           />
           <div class={styles.actions}>
