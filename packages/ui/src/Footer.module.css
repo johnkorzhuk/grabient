@@ -9,6 +9,18 @@
     &[data-noted] {
       row-gap: var(--space-s2);
     }
+    /* the selection's press and the way back up over it, a gap above the screen's foot */
+    &[data-floats] {
+      @container page (max-width: 800px) {
+        padding-bottom: calc(
+          var(--space-s4) +
+          2 *
+          var(--size-touch) +
+          var(--space-s3) +
+          env(safe-area-inset-bottom, 0px)
+        );
+      }
+    }
   }
   .note {
     flex-basis: 100%;

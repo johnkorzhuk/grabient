@@ -427,7 +427,7 @@ export function CollectionsPage(props: {
   const placeholders = () => <For each={[0, 1]}>{() => <CollectionGroupPlaceholder />}</For>;
 
   return (
-    <AppPage feed bare={sel.open()}>
+    <AppPage feed floats bare={sel.open()}>
       {/* the page stays mounted and out of sight while the export screen takes its place, so Close returns to the
           same groups at the same depth */}
       <main

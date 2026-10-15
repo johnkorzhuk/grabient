@@ -328,7 +328,7 @@ export function Home(props: { params: ListParams }) {
 
   return (
     <GalleryContext value={page}>
-      <AppPage feed bare={page.chosen.open()}>
+      <AppPage feed floats bare={page.chosen.open()}>
         {/* the page stays mounted and out of sight under the export screen, so Close returns to the same depth */}
         <main id="main" class={styles.page} hidden={page.chosen.open()}>
           <Find

@@ -101,7 +101,8 @@
 @layer base {
   /* The page's color stays on html: the grain, the backdrop and the water sit at negative z-index, and a body
      background would paint over them. Below the header, at most 84px tall, a control the keyboard reaches stays in
-     view. */
+     view, and on a phone above the presses that float at the screen's foot: the selection's and the way back up over
+     it. */
   html {
     background-color: var(--color-bg);
     color: var(--color-ink);
@@ -113,6 +114,15 @@
     scroll-padding-top: 92px;
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+    @media (max-width: 800px) {
+      scroll-padding-bottom: calc(
+        var(--space-s4) +
+        2 *
+        var(--size-touch) +
+        var(--space-s3) +
+        env(safe-area-inset-bottom, 0px)
+      );
+    }
   }
   body {
     background: transparent;

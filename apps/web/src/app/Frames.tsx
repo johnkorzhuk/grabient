@@ -27,14 +27,15 @@ export function Languages() {
   return <LanguageMenu path={shell.here} follow={shell.translated()} disabled={offline()} />;
 }
 
-/** The links at the foot of a page, then the language menu. */
-export function SiteFooter(props: { page?: FooterPage; note?: Element }) {
+/** The links at the foot of a page, then the language menu; `floats` leaves room for a phone's floating presses. */
+export function SiteFooter(props: { page?: FooterPage; note?: Element; floats?: boolean }) {
   const site = siteFacts();
   return (
     <Footer
       links={footerLinks(props.page ?? null, site().stars, localHref)}
       languages={<Languages />}
       note={props.note}
+      floats={props.floats}
     />
   );
 }
@@ -44,8 +45,13 @@ let feeds = 0;
 /** An app route's page: its content, then the footer, which rests at the bottom of the screen when the page is
     short. `feed`: a windowed list places its rows itself, and the browser's scroll anchoring would pull the reader up
     as a page joins its end, so anchoring is off while one stands. `bare`: the export screen stands in for the page,
-    with no footer under it. */
-export function AppPage(props: { feed?: boolean; bare?: boolean; children: Element }) {
+    with no footer under it. `floats`: the page floats presses at a phone's foot. */
+export function AppPage(props: {
+  feed?: boolean;
+  bare?: boolean;
+  floats?: boolean;
+  children: Element;
+}) {
   onSettled(() => {
     if (!props.feed) return;
     /* counted, since a feed can settle before the one it replaces is gone */
@@ -58,7 +64,7 @@ export function AppPage(props: { feed?: boolean; bare?: boolean; children: Eleme
     <div class={styles.page}>
       {props.children}
       <Show when={!props.bare}>
-        <SiteFooter />
+        <SiteFooter floats={props.floats} />
       </Show>
     </div>
   );

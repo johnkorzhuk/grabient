@@ -629,7 +629,7 @@ export function CollectionPage(props: {
   const place = () => ({ surface: "collection" as const });
 
   return (
-    <AppPage bare={sel.open()}>
+    <AppPage floats bare={sel.open()}>
       {/* the page stays mounted and out of sight while the export screen takes its place, so Close returns to the
           same cards */}
       <main

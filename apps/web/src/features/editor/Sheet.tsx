@@ -507,7 +507,7 @@ export function Sheet(props: {
           />
         )
       }
-      foot={<SiteFooter />}
+      foot={<SiteFooter floats />}
     >
       <Show
         when={like()}
