@@ -14,7 +14,6 @@
   .host {
     --fade: var(--space-s16);
     --hole: 0.45;
-    --live: 1;
     --mask: linear-gradient(
       to right,
       transparent 0,
@@ -48,10 +47,6 @@
     @container page (max-width: 640px) {
       margin-inline: calc(-1 * var(--space-s4));
       padding-inline: var(--space-s4);
-    }
-    /* a row being dragged opens no colors */
-    &[data-dragging] {
-      --live: 0;
     }
   }
   /* centered while it fits; a tag's height whatever it holds, so tags arriving or leaving move nothing beneath */
@@ -91,66 +86,23 @@
     }
   }
   .tag {
-    --bloom: 0;
-    position: relative;
     display: inline-flex;
     flex-shrink: 0;
-    &:hover,
-    &:has(:focus-visible),
-    &[data-open] {
-      --bloom: 1;
+    /* a row being dragged opens no colors */
+    .host[data-dragging] & {
+      --coins: 0;
     }
-    /* a tag that cannot be followed now shows no colors */
-    &[data-quiet] {
-      --bloom: 0;
+    /* At either end of a row that scrolls, a phone's edge would cut coins wider than their tag: they stay inside the
+       row, centered under the tag while they fit and from its outer edge once they are wider. */
+    .row[data-scrolls] > &:first-child > [data-coins] {
+      left: auto;
+      inset-inline-start: max(0px, 50% - var(--across) / 2);
+      translate: none;
     }
-  }
-  /* under the tag and behind the row, as wide as the coins and a little more */
-  .bloom {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    z-index: -1;
-    width: calc(var(--w) + var(--space-s6));
-    height: var(--space-s8);
-    transform: translateX(-50%);
-    pointer-events: none;
-  }
-  /* the colors' own faint light, so the coins read as lit and nothing reads as a glow */
-  .light {
-    position: absolute;
-    inset-block: var(--space-s2);
-    inset-inline: var(--space-s3);
-    border-radius: var(--radius-circle);
-    filter: blur(var(--size-blur-frost));
-    opacity: calc(var(--bloom) * var(--live) * 0.3);
-    transition: opacity var(--motion-fast) var(--motion-ease);
-    @starting-style {
-      opacity: 0;
-    }
-  }
-  /* A coin arrives as the tooltip does: a fade and a few pixels of travel, down from the tag and out from the middle,
-     never past its place, and nothing scales. The middle first, the rest a beat behind; leaving, they fade together. */
-  .coin {
-    position: absolute;
-    top: var(--space-s2);
-    left: calc(50% - 8px);
-    width: 16px;
-    height: 16px;
-    border-radius: var(--radius-circle);
-    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
-    opacity: calc(var(--bloom) * var(--live));
-    transform: translate(
-      calc(var(--x) * (0.7 + 0.3 * var(--bloom))),
-      calc((var(--bloom) - 1) * var(--space-s1))
-    );
-    transition:
-      transform var(--motion-base) var(--motion-ease),
-      opacity var(--motion-fast) var(--motion-ease);
-    transition-delay: calc(var(--bloom) * var(--d) * 25ms);
-    @starting-style {
-      opacity: 0;
-      transform: translate(calc(var(--x) * 0.7), calc(-1 * var(--space-s1)));
+    .row[data-scrolls] > &:last-child > [data-coins] {
+      left: auto;
+      inset-inline-end: max(0px, 50% - var(--across) / 2);
+      translate: none;
     }
   }
   /* there only while that side has more, and only where a pointer can rest on them */

@@ -1,3 +1,4 @@
+import { DOMINANT_PALETTES } from "@grabient/engine/dominant.ts";
 import { msg } from "@grabient/i18n";
 import { all, first, run } from "@grabient/server/db/d1.ts";
 import { itemKey } from "../../features/collections/address.ts";
@@ -16,6 +17,7 @@ import {
   type CollectionRecord,
   collectionBySlug,
   collectionRecord,
+  colorsOf,
   ownedBy,
   type Reader,
   recordById
@@ -254,9 +256,11 @@ async function copyPair(
 const standingOf = ({ copy, source, base }: CopyPair): CopyStanding => {
   const mine = contentOf(copy.input);
   const theirs = contentOf(source.input);
+  /* the source's colors as its tag and its link elsewhere show them: its first palettes in its own order */
+  const lead = source.input.items.slice(0, DOMINANT_PALETTES).map(item => item.seed);
   return {
     slug: copy.slug,
-    source: { slug: source.slug, title: source.input.title },
+    source: { slug: source.slug, title: source.input.title, colors: colorsOf(lead.join(" ")) },
     behind: !sameContent(mergeCopy(base, theirs, mine), mine),
     differs: !sameContent(mine, theirs)
   };

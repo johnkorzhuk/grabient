@@ -4,12 +4,19 @@ import { setFlag } from "@grabient/server/flags/flags.ts";
 import * as v from "valibot";
 import { beforeAll, describe, expect, it } from "vitest";
 import { sortCollectionItems } from "../src/features/collections/address.ts";
-import type { CollectionDocument, CollectionPage } from "../src/features/collections/types.ts";
+import { collectionItem } from "../src/features/collections/schema.ts";
+import type {
+  CollectionDocument,
+  CollectionPage,
+  CopyStanding
+} from "../src/features/collections/types.ts";
 import { SearchAnswer } from "../src/features/gallery/schema.ts";
 import { collectionAnswer, createAnswer, listAnswer } from "../src/server/collections/api.ts";
 import { mineAnswer, mineAt, votesBySlugAnswer } from "../src/server/collections/me.ts";
 import { collectionsHolding } from "../src/server/collections/read.ts";
-import { moveAccountAddresses } from "../src/server/collections/write.ts";
+import { createCollection, moveAccountAddresses } from "../src/server/collections/write.ts";
+import { keepTranslations } from "../src/server/mcp/admin/translations.ts";
+import { suggestionsFor } from "../src/server/search/tags.ts";
 import {
   type Account,
   bodyOf,
@@ -461,6 +468,78 @@ describe("saved copies", () => {
       404,
       "The original collection is gone."
     ]);
+  });
+});
+
+describe("a collection's colors", () => {
+  /** one of Grabient's own, public, with these tags */
+  const grabients = (tags: string[]) =>
+    createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Harbor lights"),
+        description: "",
+        tags,
+        visibility: "public",
+        items: items(3).map(item => collectionItem(item)!)
+      }
+    );
+  /** the colors the palettes' search row shows for these words */
+  const rowColors = async (words: string) => {
+    const [tag] = await suggestionsFor(env, new URLSearchParams({ q: words, limit: "1" }));
+    expect(tag?.query).toBe(words);
+    return tag!.colors;
+  };
+
+  it("come with a page's read for each tag, as the search row shows its words, in the tags' order in any language", async () => {
+    const blue = await rowColors("blue");
+    expect(blue.length).toBeGreaterThan(0);
+    const { slug } = await grabients(["blue", "gradients", "zzqx"]);
+    const english = await bodyOf<CollectionDocument>(
+      await collectionAnswer(get(`/api/collections/${slug}`), env)
+    );
+    // a word of form and a word the vocabulary does not read show none, as in the row
+    expect([english.tags, english.tagColors]).toEqual([
+      ["blue", "gradients", "zzqx"],
+      [blue, [], []]
+    ]);
+    await keepTranslations(env, "es", [], [{ tag: "blue", word: "azul", note: "" }]);
+    const spanish = await bodyOf<CollectionDocument>(
+      await collectionAnswer(get(`/api/collections/${slug}?lang=es`), env)
+    );
+    expect([spanish.tags, spanish.tagColors]).toEqual([
+      ["azul", "gradients", "zzqx"],
+      [blue, [], []]
+    ]);
+  });
+
+  it("name a saved copy's source with the colors it shows elsewhere, and the copy's page has its tags' too", async () => {
+    const source = await grabients(["blue"]);
+    const reader = await makeAccount(env);
+    const saved = await bodyOf<{ collection: Doc; copy: CopyStanding }>(
+      await collectionAnswer(
+        send("POST", `/api/collections/${at(source.slug)}/copies`, {}, { cookie: reader.cookie }),
+        env
+      )
+    );
+    // what the source's link shows on the sheet of a palette it holds
+    const held = (await collectionsHolding(env, SEEDS[0]!, 24)).find(c => c.slug === source.slug);
+    expect(held?.colors.length).toBeGreaterThan(0);
+    expect(saved.copy.source).toEqual({
+      slug: source.slug,
+      title: source.title,
+      colors: held!.colors
+    });
+    // the copy's own page: the account's copy holds no colors, so its read brings them
+    const state = await bodyOf<{ copy: CopyStanding; collection: CollectionDocument }>(
+      await mineAt(
+        get(`/api/me/collections/${at(saved.collection.slug)}/state`, { cookie: reader.cookie }),
+        env
+      )
+    );
+    expect(state.copy.source.colors).toEqual(held!.colors);
+    expect(state.collection.tagColors).toEqual([await rowColors("blue")]);
   });
 });
 

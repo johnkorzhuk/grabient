@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createSignal, For, Show } from "solid-js";
+import { Coins, coinHost } from "./Coins.tsx";
 import styles from "./CollectList.module.css";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
@@ -311,7 +312,7 @@ export function CollectRows(props: { c: Collect; small?: boolean; flush?: boolea
               </Show>
               <button
                 type="button"
-                class={[rows.row, styles.row]}
+                class={[rows.row, styles.row, coinHost]}
                 data-small={props.small ? "" : undefined}
                 data-flush={props.flush ? "" : undefined}
                 data-held={c.has(row()) === true ? "" : undefined}
@@ -329,11 +330,7 @@ export function CollectRows(props: { c: Collect; small?: boolean; flush?: boolea
                 <span class={styles.title} dir="auto">
                   {row().title}
                 </span>
-                <span class={styles.coins} aria-hidden="true">
-                  <For each={(row().colors ?? []).slice(0, 5)} keyed={false}>
-                    {hex => <span class={styles.coin} style={{ background: hex() }} />}
-                  </For>
-                </span>
+                <Coins variant="row" colors={row().colors} />
                 <span class={[rows.detail, styles.count]}>{row().count}</span>
               </button>
             </>

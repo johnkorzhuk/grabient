@@ -9,6 +9,7 @@ import { BarRim } from "../src/BarRim.tsx";
 import { Button } from "../src/Button.tsx";
 import { CodeLines } from "../src/CodeBlock.tsx";
 import { CodeTabs } from "../src/CodeTabs.tsx";
+import { Coins } from "../src/Coins.tsx";
 import { CopyButton } from "../src/CopyButton.tsx";
 import { CopyLine } from "../src/CopyLine.tsx";
 import { BarLight } from "../src/contexts.ts";
@@ -603,6 +604,28 @@ describe("content", () => {
         "svg"
       )["data-moving"]
     ).toBe("");
+  });
+
+  test("coins show a tag's or a collection's first five colors in order, and are never read", () => {
+    const colors = ["#101010", "#303030", "#505050", "#707070", "#909090", "#b0b0b0"];
+    const markup = html(() => <Coins variant="tag" colors={colors} />);
+    const [box, ...coins] = tags(markup, "span");
+    expect(box).toMatchObject({ "data-coins": "tag", "aria-hidden": "true" });
+    expect(coins.map(c => /background:\s*([^;]+)/.exec(c.style ?? "")?.[1])).toEqual(
+      colors.slice(0, 5)
+    );
+    expect(
+      tag(
+        html(() => <Coins colors={["#ff0000"]} />),
+        "span"
+      )["data-coins"]
+    ).toBe("link");
+    expect(
+      tags(
+        html(() => <Coins variant="row" />),
+        "span"
+      )
+    ).toHaveLength(1);
   });
 
   test("the wordmark is one image named Grabient, its bar the stops in order", () => {

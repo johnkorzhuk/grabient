@@ -14,6 +14,7 @@ import {
   normalizeNote
 } from "../../features/collections/schema.ts";
 import type { ViewerState } from "../../features/collections/types.ts";
+import { tagColors } from "../search/tags.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { copyStanding, syncCopy } from "./copies.ts";
 import {
@@ -146,16 +147,22 @@ async function stateAnswer(request: Request, env: Env, slug: string): Promise<Re
   /* standing read the role for one of Grabient's the reader does not own: it is read once */
   const asked = record.owner.kind === "agent" && !may.owned;
   const admin = may.canCurate || (!asked && (await isAdmin(env, who.id)));
-  const [copy, votes, notes, doc] = await Promise.all([
+  /* the collection as they may see it comes with its tags' colors: their copy, which their page is drawn from, holds
+     none */
+  const seen = may.owned || may.canCurate;
+  const [copy, votes, notes, doc, colors] = await Promise.all([
     copyStanding(env, record, who),
     ownFitVotes(env, record.id, who.id),
     admin ? listNotes(env, record.id) : undefined,
-    may.owned || may.canCurate ? collectionBySlug(env, slug, true) : null
+    seen ? collectionBySlug(env, slug, true) : null,
+    seen ? tagColors(env, record.input.tags) : []
   ]);
   const state: ViewerState = { ...may, copy, votes, ...(notes ? { notes } : {}) };
   return json({
     ...state,
-    ...(doc ? { collection: withUrl(publicOrigin(env, request), doc) } : {})
+    ...(doc
+      ? { collection: withUrl(publicOrigin(env, request), { ...doc, tagColors: colors }) }
+      : {})
   });
 }
 

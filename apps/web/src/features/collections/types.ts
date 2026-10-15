@@ -67,7 +67,10 @@ export type CollectionItem = v.InferOutput<typeof CollectionItemSchema>;
 
 export const CollectionDocumentSchema = v.object({
   ...SummaryEntries,
-  items: v.array(CollectionItemSchema)
+  items: v.array(CollectionItemSchema),
+  /** each tag's colors, in the tags' order: what a search of its words shows. The reads a page is drawn from bring
+      them; the account's copy and a write's answer bring none */
+  tagColors: v.optional(v.array(v.array(v.string())))
 });
 export type CollectionDocument = v.InferOutput<typeof CollectionDocumentSchema>;
 
@@ -99,7 +102,8 @@ export const SuggestSchema = v.object({ items: v.array(CollectionHitSchema) });
 /** How a collection stands with the account's saved copy of it, or the account's own copy with its source. */
 export const CopyStandingSchema = v.object({
   slug: v.string(),
-  source: v.object({ slug: v.string(), title: v.string() }),
+  /** the collection it was saved from, with the colors its first palettes give it */
+  source: v.object({ slug: v.string(), title: v.string(), colors: v.array(v.string()) }),
   /** the source changed in ways Update would bring in */
   behind: v.boolean(),
   /** the copy is not its source as it stands: Reset would change it */
