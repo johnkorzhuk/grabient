@@ -127,6 +127,9 @@
     align-items: center;
     gap: var(--space-s2);
     height: var(--size-control-sm);
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
     margin: 0;
     padding-inline: var(--space-s2);
     border: 0;
