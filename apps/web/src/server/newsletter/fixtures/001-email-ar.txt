@@ -1,4 +1,4 @@
-Witching hour, Linear
+Smoky aubergine ember beam, Linear
 https://grabient.test/ar/kWMS7qPZ68084TQkCrUnaNBo?steps=40&angle=135
 #230722 #685386 #cc6708 #312532 #37022d
 
@@ -10,16 +10,16 @@ Five palettes from the Rising list, picked by hand.
 
 In this issue: collections, and a quick tip.
 
-Harvest moon, Radial
+Golden rust ember glow, Radial
 https://grabient.test/ar/kU9ClB669AFIzOk9Lj2g?style=radialGradient&steps=32&angle=0
 
-Black cherry, Angular bands
+Ember Sunset Bloom, Angular bands
 https://grabient.test/ar/kWziAlUZi-bxAvSmqr2kRe7g?style=angularSwatches&steps=32&angle=0
 
-Turning leaves, Angular bands
+Leaf green marigold and ivory fan, Angular bands
 https://grabient.test/ar/kUby9y5jE3PaQwI4IDlg?style=angularSwatches&steps=24&angle=60
 
-Dark academia, Linear bands
+Dusty rose charcoal bands, Linear bands
 https://grabient.test/ar/kUkSoUPQrBKiNOiSm75A?style=linearSwatches&steps=13
 
 See all rising palettes: https://grabient.test/palettes/rising
@@ -27,6 +27,8 @@ See all rising palettes: https://grabient.test/palettes/rising
 Introducing collections
 
 Group the palettes that belong together. Select a few in any list and press Save.
+
+[A palette added to collections from its card in the list] https://grabient.test/collections
 
 Find a collection by a color or a mood, and save it to your account.
 

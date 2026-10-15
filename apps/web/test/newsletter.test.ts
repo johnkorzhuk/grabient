@@ -9,6 +9,7 @@ import {
   choiceResponse,
   draftsResponse,
   issuesResponse,
+  leadResponse,
   testResponse,
   unsubscribeResponse
 } from "../src/server/newsletter/routes.ts";
@@ -431,7 +432,7 @@ describe("an admin's test issue", () => {
 describe("the issues' answers", () => {
   it("give everyone the published issues, two at a time, kept at the edge", async () => {
     const env = newsletterEnv();
-    const answer = issuesResponse(get("/api/newsletter"), env);
+    const answer = await issuesResponse(get("/api/newsletter"), env);
     expect(answer.headers.get("CDN-Cache-Control")).toBe("max-age=300");
     const body = await bodyOf<{ issues: { number: number; title: string }[]; next: number | null }>(
       answer
@@ -442,11 +443,11 @@ describe("the issues' answers", () => {
         .sort((a, b) => b - a)
         .slice(0, 2)
     );
-    expect(await bodyOf(issuesResponse(get("/api/newsletter?before=1"), env))).toEqual({
+    expect(await bodyOf(await issuesResponse(get("/api/newsletter?before=1"), env))).toEqual({
       issues: [],
       next: null
     });
-    expect(await bodyOf(issuesResponse(get("/api/newsletter?before=x"), env))).toEqual(body);
+    expect(await bodyOf(await issuesResponse(get("/api/newsletter?before=x"), env))).toEqual(body);
   });
 
   it("give an admin alone the drafts, never kept", async () => {
@@ -480,5 +481,103 @@ describe("the issues' answers", () => {
     expect(
       (await draftsResponse(get("/api/me/newsletter/drafts", { cookie: admin.cookie }), env)).status
     ).toBe(403);
+  });
+});
+
+describe("an issue's lead", () => {
+  const october = ISSUES.find(issue => issue.number === 1);
+  const picks = october?.write(ORIGIN).picks?.map(chosen => chosen.seed) ?? [];
+  const extra = october?.leads?.[0]?.seed ?? "";
+  const read = (env: TestEnv, query: string, cookie?: string) =>
+    leadResponse(get(`/api/me/newsletter/lead?${query}`, cookie ? { cookie } : {}), env);
+  const choose = (env: TestEnv, body: unknown, cookie: string, origin?: string | null) =>
+    leadResponse(json("POST", "/api/me/newsletter/lead", body, { cookie, origin }), env);
+  /* the lead the issue's head links to, on a page of it */
+  const ledWith = (html: string) =>
+    /data-part="lead"[^>]*>\s*<a [^>]*href="https:\/\/[^/]+\/(k[\w-]+)/.exec(html)?.[1];
+  afterEach(async () => {
+    await run(newsletterEnv().DB, "DELETE FROM k_newsletter_leads");
+  });
+
+  it("is an admin's alone, from the site, among the palettes the issue offers", async () => {
+    const env = newsletterEnv();
+    const user = await makeAccount(env);
+    const admin = await makeAdmin(env);
+    expect((await read(env, "issue=1")).status).toBe(401);
+    expect((await read(env, "issue=1", user.cookie)).status).toBe(403);
+    expect((await choose(env, { issue: 1, seed: extra }, user.cookie)).status).toBe(403);
+    expect(
+      (await choose(env, { issue: 1, seed: extra }, admin.cookie, "https://evil.test")).status
+    ).toBe(403);
+    expect(
+      (
+        await leadResponse(
+          json("PUT", "/api/me/newsletter/lead", {}, { cookie: admin.cookie }),
+          env
+        )
+      ).status
+    ).toBe(405);
+    expect((await read(env, "issue=x", admin.cookie)).status).toBe(400);
+    expect((await read(env, "issue=99", admin.cookie)).status).toBe(404);
+    expect((await read(env, "issue=1&seed=kNotOffered000000", admin.cookie)).status).toBe(400);
+    expect((await choose(env, { issue: 1, seed: "kNotOffered000000" }, admin.cookie)).status).toBe(
+      400
+    );
+    expect(await first(env.DB, "SELECT seed FROM k_newsletter_leads")).toBeNull();
+  });
+
+  it("draws the issue under each palette it offers, named as its page is, and the one chosen leads it", async () => {
+    const env = newsletterEnv();
+    const admin = await makeAdmin(env);
+    await run(
+      env.DB,
+      `INSERT INTO k_palette_texts (seed, title, embed, created_at, updated_at) VALUES (?, ?, '', 0, 0)
+       ON CONFLICT (seed) DO UPDATE SET title = excluded.title`,
+      picks[2],
+      "Ember Sunset Bloom"
+    );
+    try {
+      const shown = await read(env, "issue=1", admin.cookie);
+      expect(shown.headers.get("Cache-Control")).toBe("private, no-store");
+      const sheet = await bodyOf<{
+        options: { seed: string; name: string }[];
+        chosen: string | null;
+        shown: string;
+        html: string;
+      }>(shown);
+      expect(sheet.options.map(option => option.seed)).toEqual([
+        ...picks,
+        ...(october?.leads ?? []).map(option => option.seed)
+      ]);
+      expect(sheet.options[2].name).toBe("Ember Sunset Bloom");
+      expect(sheet.options.every(option => option.name.length > 0)).toBe(true);
+      expect([sheet.chosen, sheet.shown, ledWith(sheet.html)]).toEqual([null, picks[0], picks[0]]);
+      const other = await bodyOf<{ shown: string; html: string }>(
+        await read(env, `issue=1&seed=${extra}`, admin.cookie)
+      );
+      expect([other.shown, ledWith(other.html)]).toEqual([extra, extra]);
+
+      const chosen = await choose(env, { issue: 1, seed: extra }, admin.cookie);
+      expect(await bodyOf(chosen)).toMatchObject({ chosen: extra, shown: extra });
+      expect(await first(env.DB, "SELECT issue, seed, chosen_by FROM k_newsletter_leads")).toEqual({
+        issue: 1,
+        seed: extra,
+        chosen_by: admin.id
+      });
+      const page = await bodyOf<{ issues: { number: number; html: string }[] }>(
+        await issuesResponse(get("/api/newsletter"), env)
+      );
+      expect(ledWith(page.issues.find(issue => issue.number === 1)?.html ?? "")).toBe(extra);
+      // a pick chosen trades places with the first
+      await choose(env, { issue: 1, seed: picks[2] }, admin.cookie);
+      const traded = await bodyOf<{ issues: { number: number; html: string }[] }>(
+        await issuesResponse(get("/api/newsletter"), env)
+      );
+      const html = traded.issues.find(issue => issue.number === 1)?.html ?? "";
+      expect(ledWith(html)).toBe(picks[2]);
+      expect(html).toContain(`href="${ORIGIN}/${picks[0]}`);
+    } finally {
+      await run(env.DB, "DELETE FROM k_palette_texts WHERE seed = ? AND embed = ''", picks[2]);
+    }
   });
 });

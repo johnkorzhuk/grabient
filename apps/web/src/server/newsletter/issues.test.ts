@@ -4,14 +4,27 @@ import { localizePath } from "@grabient/i18n";
 import { describe, expect, test } from "vitest";
 import { meaning } from "../../../../../packages/email/test/support.ts";
 import { ISSUES } from "./issues/index.ts";
+import { asRun, type IssueFacts, leadOptions, ledBy, NO_FACTS, nameOf } from "./lead.ts";
 import { issueFoot } from "./list.ts";
-import { beforeOf, draftsAmong, issuesKey, languageOf, publishedPage } from "./page.ts";
+import { beforeOf, draftsAmong, drawn, issuesKey, languageOf, publishedPage } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
 
 const ORIGIN = "https://grabient.test";
 const fixture = (name: string) =>
   readFileSync(new URL(`./fixtures/${name}`, import.meta.url), "utf8");
 const byNumber = (n: number) => ISSUES.find(issue => issue.number === n) as Issue;
+/* No. 1's picks under the titles staging's gallery gave them; No. 2's go by their colors */
+const FACTS: IssueFacts = {
+  leads: new Map(),
+  names: new Map([
+    ["kWMS7qPZ68084TQkCrUnaNBo", "Smoky aubergine ember beam"],
+    ["kU9ClB669AFIzOk9Lj2g", "Golden rust ember glow"],
+    ["kWziAlUZi-bxAvSmqr2kRe7g", "Ember Sunset Bloom"],
+    ["kUby9y5jE3PaQwI4IDlg", "Leaf green marigold and ivory fan"],
+    ["kUkSoUPQrBKiNOiSm75A", "Dusty rose charcoal bands"]
+  ])
+};
+const run = (n: number, facts = FACTS) => asRun(byNumber(n), ORIGIN, facts);
 /* a reader's foot, with the sample token that names no account */
 const footFor = (locale: "en" | "ar") =>
   issueFoot({
@@ -31,7 +44,7 @@ describe("the issues", () => {
   test.each(ISSUES.map(issue => [issue.number, issue] as const))(
     "No. %i can be made, as an email under Gmail's clip and as a page that says the same",
     (_, issue) => {
-      const words = issue.write(ORIGIN);
+      const words = asRun(issue, ORIGIN, FACTS);
       const letter = newsletter({ ...words, ...footFor("en"), origin: ORIGIN });
       expect(Buffer.byteLength(letter.html)).toBeLessThan(102 * 1024);
       expect(letter.text).toContain(words.title);
@@ -44,11 +57,7 @@ describe("the issues", () => {
     ["002-email-en", 2, "en"],
     ["002-email-ar", 2, "ar"]
   ] as const)("%s is the email the issue sends", (name, number, locale) => {
-    const letter = newsletter({
-      ...byNumber(number).write(ORIGIN),
-      ...footFor(locale),
-      origin: ORIGIN
-    });
+    const letter = newsletter({ ...run(number), ...footFor(locale), origin: ORIGIN });
     expect(letter.text).toBe(fixture(`${name}.txt`));
     expect(meaning(letter.html)).toBe(meaning(fixture(`${name}.html`)));
   });
@@ -57,12 +66,12 @@ describe("the issues", () => {
     ["002-page-en", 2]
   ] as const)("%s is the sheet /newsletter shows", (name, number) => {
     const foot = issueFoot({ locale: "en", unsubscribe: `${ORIGIN}/unsubscribe` });
-    const page = issuePage({ ...byNumber(number).write(ORIGIN), ...foot, origin: ORIGIN });
+    const page = issuePage({ ...run(number), ...foot, origin: ORIGIN });
     expect(page.text).toBe(fixture(`${name}.txt`));
     expect(meaning(page.html)).toBe(meaning(fixture(`${name}.html`)));
   });
   test("No. 2's one press into another app is Claude's own add-connector link", () => {
-    const letter = newsletter({ ...byNumber(2).write(ORIGIN), ...footFor("en"), origin: ORIGIN });
+    const letter = newsletter({ ...run(2), ...footFor("en"), origin: ORIGIN });
     const outside = [...letter.text.matchAll(/https:\/\/\S+/g)]
       .map(m => m[0].replace(/\)$/, ""))
       .filter(href => !href.startsWith(ORIGIN));
@@ -118,7 +127,11 @@ describe("the issues as pages", () => {
     expect(issue.html).toMatch(
       /<span data-part="head" role="img" aria-label="Grabient"[^>]*><svg /
     );
-    expect(issue.html).not.toMatch(/<img\b|<h1\b|\/api\/og\?|class="[^"]*\bwash\b/);
+    // a palette is drawn, never a picture: the only pictures are the issue's own files
+    expect(issue.html).not.toMatch(/<h1\b|\/api\/og\?|class="[^"]*\bwash\b/);
+    for (const [picture] of issue.html.matchAll(/<img\b[^>]*>/g)) {
+      expect(picture).toMatch(new RegExp(`src="${ORIGIN}/email/[\\w-]+\\.(?:gif|png)"`));
+    }
     expect(issue.html).toContain(`<a class="ink" href="${ORIGIN}/unsubscribe"`);
     expect(issue.html).not.toMatch(/unsubscribe\/[0-9a-f]/);
   });
@@ -137,6 +150,50 @@ describe("the issues as pages", () => {
     expect([languageOf(params("lang=ja")), languageOf(params("lang=xx"))]).toEqual(["ja", "en"]);
     expect(issuesKey(params("lang=en&before=012&junk=1")).toString()).toBe("");
     expect(issuesKey(params("junk=1&lang=ja&before=3")).toString()).toBe("before=3&lang=ja");
+  });
+});
+
+describe("an issue's lead", () => {
+  const october = byNumber(1);
+  const words = october.write(ORIGIN);
+  const seeds = (content: { picks?: readonly { seed: string }[] }) =>
+    (content.picks ?? []).map(chosen => chosen.seed);
+  const [first, second, third] = seeds(words);
+  const extra = october.leads?.[0]?.seed ?? "";
+  test("offers the picks, then the issue's own leads, each once", () => {
+    const offered = leadOptions(october, words).map(option => option.seed);
+    expect(offered.slice(0, 5)).toEqual(seeds(words));
+    expect(offered.slice(5)).toEqual((october.leads ?? []).map(option => option.seed));
+    expect(new Set(offered).size).toBe(offered.length);
+  });
+  test("a pick chosen trades places with the first, and an offered palette takes the first's place", () => {
+    expect(seeds(ledBy(october, words, third)).slice(0, 3)).toEqual([third, second, first]);
+    expect(seeds(ledBy(october, words, extra))).toEqual([extra, ...seeds(words).slice(1)]);
+    expect(ledBy(october, words, first)).toBe(words);
+    expect(ledBy(october, words, "kNotOffered00000")).toBe(words);
+    expect(ledBy(october, words, undefined)).toBe(words);
+  });
+  test("leads with the admin's choice, and every palette it offers may lead", () => {
+    const chosen = asRun(october, ORIGIN, { ...FACTS, leads: new Map([[1, extra]]) });
+    expect(chosen.picks?.[0]).toMatchObject({ seed: extra, note: "Linear" });
+    for (const option of leadOptions(october, words)) {
+      const page = drawn(october, ORIGIN, "en", FACTS, option.seed).html;
+      expect(page).toMatch(/<td dir="ltr" data-part="lead"/);
+      expect(page).toContain(`href="${ORIGIN}/${option.seed}`);
+    }
+  });
+  test("names each pick as its page does: the title written for it, else its colors' name", () => {
+    const named = run(1);
+    expect(named.picks?.map(chosen => chosen.name)).toEqual([...FACTS.names.values()]);
+    const plain = asRun(october, ORIGIN, NO_FACTS);
+    expect(plain.picks?.[0]?.name).toBe(
+      nameOf({ seed: first, style: "linearGradient", steps: 40, angle: 135 })
+    );
+    expect(plain.picks?.[0]?.name).toMatch(/^[A-Z][a-z]/);
+    // a title the colors contradict is passed over, as the palette's page passes it over
+    const view = { seed: first, style: "linearGradient", steps: 40, angle: 135 } as const;
+    expect(nameOf(view, "Bright lime and cyan")).toBe(nameOf(view));
+    expect(nameOf(view, "Smoky aubergine ember beam")).toBe("Smoky aubergine ember beam");
   });
 });
 

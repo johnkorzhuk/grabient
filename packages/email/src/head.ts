@@ -258,7 +258,12 @@ export function paletteHead(ctx: Ctx, of: PaletteView, options: HeadOptions): Ht
       );
   return h(
     "td",
-    { dir: "ltr", ...viewGround(show, { "border-radius": ROUND }) },
+    {
+      dir: "ltr",
+      // on a page, the lead's head is where an admin's arrows for another lead stand
+      ...(ctx.web && options.size === "lead" ? { "data-part": "lead" } : {}),
+      ...viewGround(show, { "border-radius": ROUND })
+    },
     pictureLink(art, options.href ?? pageAddress(ctx, show), options.named ? {} : undefined)
   );
 }

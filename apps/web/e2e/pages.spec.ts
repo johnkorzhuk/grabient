@@ -92,6 +92,93 @@ test("the newsletter's newest issue comes with the document, in a tree of its ow
   expect(errors).toEqual([]);
 });
 
+test("an admin goes through the palettes an issue may lead with, over its lead, and the check makes one its lead", async ({
+  page
+}) => {
+  const errors = watch(page);
+  const admin = {
+    id: "e2e-admin",
+    name: "admin",
+    email: "admin@grabient.test",
+    emailVerified: true,
+    image: null,
+    username: "e2e-admin",
+    createdAt: Date.UTC(2026, 6, 15)
+  };
+  await page.route("**/api/me/**", route => route.fulfill({ status: 404, json: {} }));
+  await page.route("**/api/auth/get-session*", route =>
+    route.fulfill({ json: { session: { id: "e2e", userId: admin.id }, user: admin } })
+  );
+  await page.route("**/api/me/sync*", route =>
+    route.fulfill({
+      json: {
+        cursor: 1,
+        likes: [],
+        unliked: [],
+        collections: [],
+        removed: [],
+        lastMutation: 0,
+        results: [],
+        admin: true,
+        account: admin
+      }
+    })
+  );
+  await page.route("**/api/me/newsletter/drafts*", route =>
+    route.fulfill({ json: { issues: [] } })
+  );
+  /* the server's answers for an admin, each drawing the issue's own sheet as the public answer has it */
+  const options = [
+    { seed: "kAlphaAlphaAlpha", name: "Alpha" },
+    { seed: "kBetaBetaBetaBeta", name: "Beta" }
+  ];
+  const asked: string[] = [];
+  let chose: unknown = null;
+  await page.route("**/api/me/newsletter/lead*", async route => {
+    const published = await (await page.request.get("/api/newsletter")).json();
+    const html = published.issues[0].html;
+    if (route.request().method() === "POST") {
+      chose = route.request().postDataJSON();
+      const seed = (chose as { seed: string }).seed;
+      return route.fulfill({ json: { options, chosen: seed, shown: seed, html } });
+    }
+    const shown = new URL(route.request().url()).searchParams.get("seed") ?? options[0].seed;
+    asked.push(shown);
+    return route.fulfill({ json: { options, chosen: null, shown, html } });
+  });
+  await page.goto("/newsletter");
+  await started(page);
+  const picker = page
+    .locator('main article[data-issue="1"]')
+    .getByRole("group", { name: "Lead palette" });
+  await expect(picker).toContainText("Alpha");
+  await expect(picker).toContainText("1 of 2");
+  // the controls stand over the lead's own picture
+  const lead = await page.evaluate(() => {
+    const host = document.querySelector('main article[data-issue="1"] [class*="sheet"]');
+    const box = host?.shadowRoot?.querySelector('[data-part="lead"]')?.getBoundingClientRect();
+    return box && { x: box.x, y: box.y, width: box.width, height: box.height };
+  });
+  const over = await picker.boundingBox();
+  expect(lead).toBeTruthy();
+  for (const side of ["x", "y", "width", "height"] as const)
+    expect(Math.abs((over?.[side] ?? 0) - (lead?.[side] ?? 0))).toBeLessThan(1);
+  await picker.getByRole("button", { name: "Next lead" }).click();
+  await expect(picker).toContainText("Beta");
+  await expect(picker).toContainText("2 of 2");
+  const check = picker.getByRole("button", { name: "Lead with this palette" });
+  await expect(check).toHaveAttribute("aria-pressed", "false");
+  await check.click();
+  await expect(check).toHaveAttribute("aria-pressed", "true");
+  expect(chose).toEqual({ issue: 1, seed: "kBetaBetaBetaBeta" });
+  // the keyboard goes along the leads, and a sheet already drawn is not asked for again
+  await picker.getByRole("button", { name: "Next lead" }).press("ArrowLeft");
+  await expect(picker).toContainText("Alpha");
+  await expect(check).toHaveAttribute("aria-pressed", "false");
+  expect(asked).toEqual(["kAlphaAlphaAlpha", "kBetaBetaBetaBeta"]);
+  expect(errors).toEqual([]);
+});
+
 test("an unsubscribe address answers its press, and one with no token says where else to go", async ({
   page
 }) => {

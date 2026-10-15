@@ -124,6 +124,8 @@ export interface Issue {
   published?: string;
   /** what it says, with the site's address for its links */
   write(origin: string): IssueContent;
+  /** palettes beyond its picks that an admin may lead it with instead of its first, each in a view liked */
+  leads?: readonly Required<PaletteView>[];
 }
 
 /** A palette in the view an admin liked it in. */
@@ -138,16 +140,10 @@ export const view = (
   steps,
   angle
 });
-/** A pick: a liked palette under a name written for the issue, its style's name at the end of the row. */
-export const pick = (
-  seed: string,
-  style: Style,
-  steps: number,
-  angle: number,
-  name: string
-): PaletteOptions => ({
+/** A pick: a liked palette in its view, its style's name at the end of its row. The site names it when it draws the
+    issue, as the palette's own page is named. */
+export const pick = (seed: string, style: Style, steps: number, angle: number): PaletteOptions => ({
   ...view(seed, style, steps, angle),
-  name,
   note: STYLE_LABELS[style]
 });
 /** A collection as an issue shows one: its title, its address, what it holds, and five of its palettes as tiles or its

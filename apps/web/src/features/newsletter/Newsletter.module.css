@@ -39,6 +39,88 @@
     content-visibility: auto;
     contain-intrinsic-size: auto 2400px;
   }
+  /* the sheet, with an admin's controls over its lead where it has them */
+  .stage {
+    position: relative;
+  }
+  /* an admin's choice of lead, over the lead's picture: the arrows at its sides, the check at its top corner and the
+     palette's name at its foot, each on glass, and nothing over the rest of the picture takes the pointer */
+  .lead {
+    --hit: var(--size-control-sm);
+    --edge: var(--space-s3);
+    position: absolute;
+    min-inline-size: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    container-type: inline-size;
+    pointer-events: none;
+    & > * {
+      pointer-events: auto;
+    }
+    @media (pointer: coarse) {
+      --hit: var(--size-touch);
+    }
+  }
+  .side {
+    position: absolute;
+    top: 50%;
+    translate: 0 -50%;
+    &[data-side="before"] {
+      inset-inline-start: var(--edge);
+    }
+    &[data-side="after"] {
+      inset-inline-end: var(--edge);
+    }
+    /* a narrow picture has no room for them beside the check: they stand at its foot, either side of the name */
+    @container (max-width: 480px) {
+      top: auto;
+      bottom: var(--edge);
+      translate: none;
+    }
+  }
+  .check {
+    position: absolute;
+    top: var(--edge);
+    inset-inline-end: var(--edge);
+  }
+  .which {
+    position: absolute;
+    bottom: var(--edge);
+    inset-inline-start: var(--edge);
+    display: flex;
+    gap: var(--space-s2);
+    max-width: calc(100% - 2 * var(--edge));
+    margin: 0;
+    padding: var(--space-s1) var(--space-s3);
+    border: var(--size-hairline) solid var(--color-art-edge);
+    border-radius: var(--radius-control);
+    background-color: var(--color-art);
+    -webkit-backdrop-filter: blur(var(--size-blur-frost));
+    backdrop-filter: blur(var(--size-blur-frost));
+    color: var(--color-on-art);
+    font-size: var(--font-fs2);
+    font-weight: var(--font-medium);
+    line-height: var(--font-lh-tight);
+    align-items: center;
+    white-space: nowrap;
+    & > [dir] {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    & > svg {
+      flex-shrink: 0;
+    }
+    @container (max-width: 480px) {
+      inset-inline-start: calc(var(--edge) + var(--hit) + var(--space-s2));
+      max-width: calc(100% - 2 * (var(--edge) + var(--hit) + var(--space-s2)));
+      min-height: var(--hit);
+    }
+    & > :last-child {
+      flex-shrink: 0;
+      opacity: 0.7;
+    }
+  }
   .mark {
     height: var(--size-hairline);
   }

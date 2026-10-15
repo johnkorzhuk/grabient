@@ -1,7 +1,7 @@
 import { type Locale, locale } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { createIsomorphicFn } from "@tanstack/solid-start";
-import { onSettled, untrack } from "solid-js";
+import { createEffect, onSettled, untrack } from "solid-js";
 import { sheetForDocument } from "../../server/newsletter/document.ts";
 import type { PageIssue } from "./input.ts";
 import styles from "./Newsletter.module.css";
@@ -17,7 +17,12 @@ const documentSheet = createIsomorphicFn()
 /* The browser's copy of each sheet the document brought, for when the page is drawn again after a navigation. */
 const brought = new Map<string, string>();
 
-export function IssueSheet(props: { issue: PageIssue }) {
+export function IssueSheet(props: {
+  issue: PageIssue;
+  /** a sheet shown in place of the issue's own: the issue under another lead, as an admin goes through them */
+  shown?: string;
+  ref?: (host: HTMLDivElement) => void;
+}) {
   let host!: HTMLDivElement;
   const key = untrack(() => `${locale()} ${props.issue.number}`);
   onSettled(() => {
@@ -32,9 +37,24 @@ export function IssueSheet(props: { issue: PageIssue }) {
     (kept ?? host.attachShadow({ mode: "open" })).innerHTML =
       props.issue.html ?? brought.get(key) ?? template?.innerHTML ?? "";
   });
+  createEffect(
+    () => props.shown,
+    shown => {
+      if (shown !== undefined && host.shadowRoot) host.shadowRoot.innerHTML = shown;
+    }
+  );
   const markup = () =>
     isServer
       ? `<template shadowrootmode="open">${props.issue.html ?? documentSheet(locale(), props.issue.number) ?? ""}</template>`
       : "";
-  return <div ref={host} class={styles.sheet} innerHTML={markup()} />;
+  return (
+    <div
+      ref={el => {
+        host = el;
+        props.ref?.(el);
+      }}
+      class={styles.sheet}
+      innerHTML={markup()}
+    />
+  );
 }

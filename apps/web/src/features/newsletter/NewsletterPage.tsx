@@ -3,9 +3,10 @@ import { Button } from "@grabient/ui/Button.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useInfiniteQuery, useQuery } from "@tanstack/solid-query";
-import { Errored, For, Loading, onSettled, Show } from "solid-js";
+import { createSignal, Errored, For, Loading, onSettled, Show } from "solid-js";
 import { IssueSheet } from "./IssueSheet.tsx";
 import type { PageIssue } from "./input.ts";
+import { LeadPicker } from "./LeadPicker.tsx";
 import { monthOf } from "./month.ts";
 import styles from "./Newsletter.module.css";
 import { issuesQuery, readDrafts } from "./queries.ts";
@@ -19,7 +20,9 @@ import { issuesQuery, readDrafts } from "./queries.ts";
 const AHEAD = "0px 0px 1200px 0px";
 const NO_DRAFTS: readonly PageIssue[] = [];
 
-function Sheet(props: { issue: PageIssue }) {
+function Sheet(props: { issue: PageIssue; admin: boolean }) {
+  const [shown, setShown] = createSignal<string>();
+  const [host, setHost] = createSignal<HTMLDivElement>();
   return (
     /* an issue's title is its author's words */
     <article class={styles.issue} aria-label={props.issue.title} data-issue={props.issue.number}>
@@ -28,7 +31,12 @@ function Sheet(props: { issue: PageIssue }) {
           <time datetime={props.issue.month}>{monthOf(props.issue.month)}</time>
         </Text>
       </div>
-      <IssueSheet issue={props.issue} />
+      <div class={styles.stage}>
+        <IssueSheet issue={props.issue} shown={shown()} ref={setHost} />
+        <Show when={props.admin}>
+          <LeadPicker number={props.issue.number} host={host} onShow={setShown} />
+        </Show>
+      </div>
     </article>
   );
 }
@@ -115,7 +123,7 @@ export function NewsletterPage(props: {
             <Text variant="lede">{t("Only admins see this section.")}</Text>
           </div>
           <For each={shown()} keyed={issue => issue.number}>
-            {issue => <Sheet issue={issue()} />}
+            {issue => <Sheet issue={issue()} admin={props.admin} />}
           </For>
         </section>
       </Show>
@@ -144,7 +152,7 @@ export function NewsletterPage(props: {
               </div>
             </Show>
             <For each={published()} keyed={issue => issue.number}>
-              {issue => <Sheet issue={issue()} />}
+              {issue => <Sheet issue={issue()} admin={props.admin} />}
             </For>
           </section>
           <Show when={issues.hasNextPage}>

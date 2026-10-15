@@ -4,6 +4,7 @@
    in LIKED, which stands in for the admins' likes. The sample foot's unsubscribe token is 64 zeros, which names no
    account. */
 import { encodePalette } from "@grabient/engine";
+import type { Style } from "@grabient/engine/view.ts";
 import type { Locale } from "@grabient/i18n";
 import type { Letter } from "../src/document.ts";
 import {
@@ -50,34 +51,39 @@ interface Shown {
   brand?: boolean;
 }
 
+/* a sample's picks carry names written for it; a real issue's are the site's, given as the site draws it */
+const named = (seed: string, style: Style, steps: number, angle: number, name: string) => ({
+  ...pick(seed, style, steps, angle),
+  name
+});
 const RISING_ONE = [
-  pick("kYuXkT47BBu6sxXjqsk1ilF8Onws", "radialGradient", 32, 0, "Coral lagoon"),
-  pick("kW8RUxaqO8dmsPXbqE2x6zBg", "linearSwatches", 5, 135, "Peach orchard"),
-  pick("kWzVMw17K7kq5vM-LD1shs7Y", "linearGradient", 32, 180, "Desert dusk"),
-  pick("kW6hdK6pbElaRxXeH9QcJFBI", "radialSwatches", 5, 0, "Pistachio macaron"),
-  pick("kW0ibSWiTBMytwpBMkKMyhAQ", "angularGradient", 32, 315, "Orchid velvet")
+  named("kYuXkT47BBu6sxXjqsk1ilF8Onws", "radialGradient", 32, 0, "Coral lagoon"),
+  named("kW8RUxaqO8dmsPXbqE2x6zBg", "linearSwatches", 5, 135, "Peach orchard"),
+  named("kWzVMw17K7kq5vM-LD1shs7Y", "linearGradient", 32, 180, "Desert dusk"),
+  named("kW6hdK6pbElaRxXeH9QcJFBI", "radialSwatches", 5, 0, "Pistachio macaron"),
+  named("kW0ibSWiTBMytwpBMkKMyhAQ", "angularGradient", 32, 315, "Orchid velvet")
 ];
 const RISING_TWO = [
-  pick("ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g", "linearGradient", 32, 135, "Deep end"),
-  pick("kWk5ENVro_-Mpv_wGb_-we_4", "linearSwatches", 5, 90, "Strawberry milk"),
-  pick("kWelD3zS9AVgeu3fEbQ8xAyQ", "angularSwatches", 5, 135, "Paper pinwheel"),
-  pick("kY4B0o4Bi5UyavQ9GLvL5s9SQVvk", "radialGradient", 32, 90, "Porch light"),
-  pick("kWkEqj3Z87moauRiHzrShc_A", "radialSwatches", 6, 270, "Tide pool")
+  named("ka7hulaKRBFTAwVATkDrrvAENJP5aNz7g", "linearGradient", 32, 135, "Deep end"),
+  named("kWk5ENVro_-Mpv_wGb_-we_4", "linearSwatches", 5, 90, "Strawberry milk"),
+  named("kWelD3zS9AVgeu3fEbQ8xAyQ", "angularSwatches", 5, 135, "Paper pinwheel"),
+  named("kY4B0o4Bi5UyavQ9GLvL5s9SQVvk", "radialGradient", 32, 90, "Porch light"),
+  named("kWkEqj3Z87moauRiHzrShc_A", "radialSwatches", 6, 270, "Tide pool")
 ];
 const RISING_THREE = [
-  pick("kcPDTIpSY_bCowC-IkCy47BdeHz9hIEL5i_Ag", "linearGradient", 32, 180, "Midnight wheat"),
-  pick("kWsY8L7ztIve4QXauNFR0nBo", "angularSwatches", 5, 45, "Beach ball"),
-  pick("kW8hpGbo259ciu7COz-u8BAQ", "radialGradient", 32, 225, "Raspberry cream"),
-  pick("kUSRnguCHF0suRLoI8Tg", "linearSwatches", 12, 105, "Canyon layers"),
-  pick("kWvi6O7Ju42qqu5aL7zQ6w84", "radialSwatches", 6, 45, "Oasis")
+  named("kcPDTIpSY_bCowC-IkCy47BdeHz9hIEL5i_Ag", "linearGradient", 32, 180, "Midnight wheat"),
+  named("kWsY8L7ztIve4QXauNFR0nBo", "angularSwatches", 5, 45, "Beach ball"),
+  named("kW8hpGbo259ciu7COz-u8BAQ", "radialGradient", 32, 225, "Raspberry cream"),
+  named("kUSRnguCHF0suRLoI8Tg", "linearSwatches", 12, 105, "Canyon layers"),
+  named("kWvi6O7Ju42qqu5aL7zQ6w84", "radialSwatches", 6, 45, "Oasis")
 ];
 const POPULAR = [
-  pick("kYVQPiMh1BUYpwNao8EaBDD2iRyu", "linearSwatches", 6, 135, "Mulberry ribbons"),
-  pick("kWUUi8uac_tCiv7gmT7YhM8g", "radialGradient", 32, 45, "Blue iris"),
-  pick("kcTSHHsBdOEctwjdMsIa7NDG8tw9opsWWy_GQ", "linearGradient", 32, 135, "Neon dawn"),
-  pick("kYOBzgLZxBMYfwTUH8Dzh_ADmdv0", "radialSwatches", 6, 270, "Nightshade")
+  named("kYVQPiMh1BUYpwNao8EaBDD2iRyu", "linearSwatches", 6, 135, "Mulberry ribbons"),
+  named("kWUUi8uac_tCiv7gmT7YhM8g", "radialGradient", 32, 45, "Blue iris"),
+  named("kcTSHHsBdOEctwjdMsIa7NDG8tw9opsWWy_GQ", "linearGradient", 32, 135, "Neon dawn"),
+  named("kYOBzgLZxBMYfwTUH8Dzh_ADmdv0", "radialSwatches", 6, 270, "Nightshade")
 ];
-const LEAD = { ...pick("kU-g958yvENOmxwpkD_g", "radialGradient", 32, 0, "Ice cave"), chips: true };
+const LEAD = { ...named("kU-g958yvENOmxwpkD_g", "radialGradient", 32, 0, "Ice cave"), chips: true };
 const LIMINAL: Shelf = {
   title: "Liminal Hours",
   slug: "liminal-hours-n5jqs8ak",
