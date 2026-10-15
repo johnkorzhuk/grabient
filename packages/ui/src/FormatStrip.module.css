@@ -129,10 +129,10 @@
       border-radius: var(--radius-control);
       font-size: var(--font-fs2);
     }
-    /* a finger gets the touch size on the strips it reaches, where an icon alone is a fingertip wide since chips stand
-       edge to edge; the small strip, a card's and a pane's, keeps its size */
+    /* a finger gets the touch size on every strip it reaches, where an icon alone is a fingertip wide since chips stand
+       edge to edge; a card's small strip is a pointer's alone */
     @media (pointer: coarse) {
-      :is([data-size="md"], [data-size="lg"]) & {
+      [data-size] & {
         height: var(--size-touch);
         min-width: var(--size-touch);
       }
@@ -161,7 +161,7 @@
         width: var(--size-control-big);
       }
       @media (pointer: coarse) {
-        :is([data-size="md"], [data-size="lg"]) & {
+        [data-size] & {
           width: var(--size-touch);
         }
       }
