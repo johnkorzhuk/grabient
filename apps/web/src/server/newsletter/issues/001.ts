@@ -115,8 +115,8 @@ export const october: Issue = {
           "."
         ]),
         image({
-          src: `${origin}/email/collections.gif`,
-          alt: "A palette added to collections from its card in the list",
+          src: `${origin}/email/collections-2.gif`,
+          alt: "A palette added to two collections from its card, then carried into the bar of Grabient's logo",
           width: 534,
           height: 300,
           href: `${origin}/collections`
