@@ -14,8 +14,10 @@ export function SaveToCollection(props: {
   signIn?: string;
   /** the account's collections, each saying whether it holds the selection; null while they are read */
   own?: readonly CollectChoice[] | null;
-  /** read them: once the side is drawn, and again after each write */
+  /** read them: once the side is drawn, and again after each write unless `onChanged` is given */
   onOwn?: () => void;
+  /** read them again after a write, each where it stands */
+  onChanged?: () => void;
   onToggle: (slug: string, on: boolean) => Promise<void>;
   onNew: (title: string) => Promise<void>;
   /** the side needs the server and there is none */
@@ -42,7 +44,7 @@ export function SaveToCollection(props: {
           own={props.own ?? null}
           onToggle={props.onToggle}
           onNew={props.onNew}
-          onChanged={props.onOwn}
+          onChanged={props.onChanged ?? props.onOwn}
           disabled={props.disabled}
         />
       </Show>

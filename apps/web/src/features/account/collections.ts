@@ -1,5 +1,11 @@
 import { t } from "@grabient/i18n";
-import { accountHandle, collectionHref, itemKey, privateSlug } from "../collections/address.ts";
+import {
+  accountHandle,
+  collectionHref,
+  itemKey,
+  privateSlug,
+  sortCollectionItems
+} from "../collections/address.ts";
 import { minePage, type View } from "./model.ts";
 import { account, accountForCopy, copyEngine, engineNow, keptUserId } from "./session.ts";
 import { movedCollection, viewNow } from "./state.ts";
@@ -80,7 +86,8 @@ export async function ownCollectionsPage(
   return view && minePage(view, { page: params.page ?? 1, limit: params.limit ?? 24, query });
 }
 /** The account's collections from the copy, the latest changed first, with the palettes each holds in each view:
-    what Add to collection and the export column's Save offer. Null when the copy cannot say. */
+    what Add to collection and the export column's Save offer. Each one's seeds come in the order its page opens in,
+    which its colors are read from. Null when the copy cannot say. */
 export function ownCollectionsHolding() {
   const view = viewIfReady();
   return (
@@ -91,7 +98,7 @@ export function ownCollectionsHolding() {
         slug: doc.slug,
         title: doc.title,
         count: doc.items.length,
-        seeds: doc.items.map(item => item.kseed),
+        seeds: sortCollectionItems(doc.items).map(item => item.kseed),
         keys: new Set(
           doc.items.map(item =>
             itemKey({ seed: item.kseed, style: item.style, steps: item.steps, angle: item.angle })

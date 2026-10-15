@@ -376,9 +376,14 @@ export function colorsOf(seeds: string | null): string[] {
   colorsBySeeds.set(key, colors);
   return colors;
 }
-/** A collection's first palettes by position, space separated, as a column of a query over collections `c`. */
-export const LEAD_SEEDS = `(SELECT group_concat(seed, ' ') FROM (SELECT p.seed FROM k_collection_items p
-  WHERE p.collection_id = c.id ORDER BY p.position LIMIT ${DOMINANT_PALETTES}))`;
+/** The first palettes of the collection whose id is `id` (a column or a `?`), space separated, in the order its page
+    opens in: the most liked first, its own order settling a tie (sortCollectionItems). Its colors are read from these,
+    so a collection shows the same colors wherever it is named, and they are the colors its page opens on. */
+export const leadSeedsOf = (id: string) => `(SELECT group_concat(seed, ' ') FROM (SELECT i.seed
+  FROM k_collection_items i LEFT JOIN k_palettes k ON k.seed = i.seed WHERE i.collection_id = ${id}
+  ORDER BY COALESCE(k.likes_count, 0) DESC, i.position LIMIT ${DOMINANT_PALETTES}))`;
+/** The same, as a column of a query over collections `c`. */
+export const LEAD_SEEDS = leadSeedsOf("c.id");
 
 /** The public collections that hold a palette, each once however many views of it it holds, the most saved first:
     where a palette's page leads on to. */

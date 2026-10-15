@@ -109,7 +109,7 @@ export function PaletteCard(props: PaletteCardProps) {
   const arm = () => setArmed(true);
   onSettled(() => (armed() ? undefined : whenIdle(arm)));
   const art = () => gradientCss(props.stops, props.style, props.angle);
-  /* the water takes the glow in while a mouse or a pen is in the picture or focus is within it */
+  /* the water takes the glow in while a mouse or a pen is in the picture or the keyboard's focus is within it */
   let over = false;
   let within = false;
   /* read as the event finds them: a focus that leaves as a route takes the card away runs inside Solid's commit */
@@ -160,11 +160,11 @@ export function PaletteCard(props: PaletteCardProps) {
           shine(e.currentTarget);
         }}
         onFocusIn={e => {
-          within = true;
+          within = e.target instanceof Element && e.target.matches(":focus-visible");
           shine(e.currentTarget);
         }}
         onFocusOut={e => {
-          within = inside(e);
+          within &&= inside(e);
           shine(e.currentTarget);
         }}
         onPointerDown={e => {

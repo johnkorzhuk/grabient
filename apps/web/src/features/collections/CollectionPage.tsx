@@ -532,6 +532,7 @@ export function CollectionPage(props: {
       <SaveToCollection
         own={saving.own}
         onOwn={saving.onOwn}
+        onChanged={saving.onChanged}
         onToggle={saving.onToggle}
         onNew={saving.onNew}
         signIn={saving.signIn}

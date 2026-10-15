@@ -1,6 +1,5 @@
 import { env } from "cloudflare:workers";
 import { decodePalette, encodePalette, type Palette } from "@grabient/engine";
-import { DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts";
 import { titleFaults } from "@grabient/engine/name.ts";
 import { DEFAULT_LOCALE, type Locale, messageKey, msg } from "@grabient/i18n";
 import { all, replica } from "@grabient/server/db/d1.ts";
@@ -8,6 +7,7 @@ import type { Env } from "@grabient/server/env.ts";
 import type { PaletteFacts } from "../../features/editor/facts.ts";
 import { PALETTE_PAGE } from "../../lib/cache.ts";
 import { json } from "../../lib/responses.ts";
+import { colorsOf, LEAD_SEEDS } from "../collections/read.ts";
 
 /* What only the database knows of a palette, for its page: the words written for it that its colors bear out, the
    public collections that hold it, the most saved first, each titled in the page's language where it is translated,
@@ -19,10 +19,9 @@ import { json } from "../../lib/responses.ts";
 
 const HELD_MAX = 6;
 
-/* each collection's first palettes come with it for its colors; CROSS JOIN keeps SQLite on the items' seed index */
-const HOLDING = `SELECT c.slug, c.title, c.description, t.title AS said, t.source,
-    (SELECT group_concat(seed, ' ') FROM (SELECT p.seed FROM k_collection_items p WHERE p.collection_id = c.id
-      ORDER BY p.position LIMIT ${DOMINANT_PALETTES})) AS seeds
+/* each collection's first palettes come with it for its colors, in the order its page opens in; CROSS JOIN keeps
+   SQLite on the items' seed index */
+const HOLDING = `SELECT c.slug, c.title, c.description, t.title AS said, t.source, ${LEAD_SEEDS} AS seeds
   FROM k_collection_items i CROSS JOIN k_collections c ON c.id = i.collection_id
   LEFT JOIN k_translations t ON t.kind = 'collection' AND t.key = c.id AND t.locale = ?
   WHERE i.seed = ? AND c.visibility = 'public'
@@ -84,7 +83,7 @@ export async function paletteFacts(
         slug: row.slug,
         title: current ? (row.said as string) : row.title,
         ...(current ? { english: row.title } : {}),
-        colors: dominantColors((row.seeds ?? "").split(" ").filter(Boolean))
+        colors: colorsOf(row.seeds)
       };
     }),
     ...(counted === undefined ? {} : { likes: counted }),
