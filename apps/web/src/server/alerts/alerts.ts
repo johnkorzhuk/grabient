@@ -80,7 +80,8 @@ type Row = Record<string, unknown>;
 type Counted = Pick<Env, "ANALYTICS" | "DEPLOYMENT" | "EMAIL" | "EMAIL_FROM" | "OAUTH_KV">;
 
 /** What a query of the deploy's own counts answers. The binding weighs a sum by each point's sample interval itself,
-    and knows no column of that name. */
+    and knows no column of that name. A dataset no point has reached yet answers no rows, so a query that fails is its
+    step failing: it throws, and the step fails where Workers Issues shows it. */
 async function rowsOf(analytics: NonNullable<Env["ANALYTICS"]>, query: string): Promise<Row[]> {
   const answer = (await analytics.query({ query })) as { data?: unknown } | null;
   return Array.isArray(answer?.data) ? (answer.data as Row[]) : [];
@@ -102,18 +103,8 @@ export async function signInDigest(
   const since = "timestamp > NOW() - INTERVAL '6' HOUR";
   const from = `events.analyticsEngine."${dataset}"`;
   const rows = (query: string) => rowsOf(analytics, query);
-  let errors: Row[];
-  try {
-    errors = await rows(`SELECT blob3 AS category, blob4 AS reason, SUM(double1) AS n
-      FROM ${from} WHERE blob1 = 'oauth' AND blob2 = 'error' AND ${since} GROUP BY category, reason ORDER BY n DESC`);
-  } catch (error) {
-    // a dataset appears with its first point: until then there is nothing to read
-    return {
-      skipped: `${dataset}: ${error instanceof Error ? error.message : error}`,
-      watched: 0,
-      emailed: false
-    };
-  }
+  const errors = await rows(`SELECT blob3 AS category, blob4 AS reason, SUM(double1) AS n
+    FROM ${from} WHERE blob1 = 'oauth' AND blob2 = 'error' AND ${since} GROUP BY category, reason ORDER BY n DESC`);
   const watched = errors.filter(row => WATCHED.has(String(row.reason)));
   if (!watched.length) return { watched: 0, emailed: false };
   const refused = await rows(`SELECT blob3 AS grant, blob5 AS client, SUM(double1) AS n
@@ -167,8 +158,6 @@ export async function failingAlert(
   if (!analytics || !dataset) {
     return { skipped: "This deploy has no usage counts to read", counted, emailed: [] };
   }
-  /* a dataset no point has reached yet answers no rows, so a query that fails is the check failing: it throws, and the
-     step fails where Workers Issues shows it */
   const rows = await rowsOf(
     analytics,
     `SELECT blob1 AS event, blob2 AS a, blob3 AS b, SUM(double1) AS n FROM events.analyticsEngine."${dataset}"

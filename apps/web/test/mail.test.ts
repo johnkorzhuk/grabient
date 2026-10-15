@@ -255,6 +255,11 @@ describe("the owner's alerts", () => {
     // each deploy that counts reads its own dataset, the one the usage report reads
     await signInDigest({ ...env, DEPLOYMENT: "development" });
     expect(queries.at(-1)).toContain('FROM events.analyticsEngine."grabient_dev_usage"');
+    // a query the binding rejects fails the step
+    const refused = new Error("Analytics SQL is unavailable");
+    await expect(
+      signInDigest({ ...env, ANALYTICS: { query: () => Promise.reject(refused) } })
+    ).rejects.toBe(refused);
   });
 
   it("say the site is failing past what a passing fault makes, once a day for each way it fails", async () => {
