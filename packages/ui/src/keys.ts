@@ -63,6 +63,14 @@ export function typing(target: EventTarget | null): boolean {
   );
 }
 
+/** Whether a key is a menu's, a sheet's or a list's that stands over the page (`data-keys="menu"`): while it has the
+    focus, a key pressed without Ctrl, ⌘ or Alt is its own or nothing, and a chord (an undo) is still the page's. */
+export const menuKey = (e: KeyboardEvent): boolean =>
+  !e.ctrlKey &&
+  !e.metaKey &&
+  !e.altKey &&
+  !!(e.target as HTMLElement | null)?.closest?.('[data-keys="menu"]');
+
 /** Whether a key belongs to an input method that is still composing (Japanese, Chinese, Korean). Safari sends the Enter
     that takes a candidate after compositionend, with keyCode 229. */
 export const composing = (e: KeyboardEvent): boolean => e.isComposing || e.keyCode === 229;
@@ -419,7 +427,7 @@ export function installKeys(
   if (isServer) return () => {};
   loadKeyOverrides();
   const onKey = (e: KeyboardEvent) => {
-    if (typing(e.target) || composing(e)) return;
+    if (typing(e.target) || composing(e) || menuKey(e)) return;
     const p = platform();
     const active = bindings().filter(b => b.when?.() ?? true);
     if (score(e, "?", p)) {

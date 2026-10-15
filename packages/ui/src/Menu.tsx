@@ -97,9 +97,9 @@ export function MenuFace(props: { item: MenuItem }) {
 
 /** A list of choices on glass, one stop for Tab. Focus moves into it as it opens, onto the chosen row or the first,
     so the arrows start there; Home and End take the first and the last, and a letter the next row it starts. Tab, or
-    focus leaving the menu and its button, closes it; Shift+Tab leaves the keyboard on the button. Its keys are its own
-    while it stands (data-keys): the page's wait. The choices a row opened (`back`) lead back to the rows they came
-    from by a Back row and by the arrow toward the line's start. */
+    focus leaving the menu and its button, closes it; Shift+Tab leaves the keyboard on the button. A key without a
+    modifier is its own while it stands (data-keys), and the page's wait. The choices a row opened (`back`) lead back to
+    the rows they came from by a Back row and by the arrow toward the line's start. */
 export function MenuList(props: {
   items: readonly MenuItem[];
   value?: string;
@@ -168,7 +168,7 @@ export function MenuList(props: {
       ref={list}
       role="menu"
       aria-label={props.label}
-      data-keys="own"
+      data-keys="menu"
       class={styles.menu}
       data-up={props.up ? "" : undefined}
       data-align={props.align ?? "start"}

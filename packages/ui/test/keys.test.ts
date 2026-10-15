@@ -6,6 +6,7 @@ import {
   composing,
   conflictOf,
   keyProblem,
+  menuKey,
   type Platform,
   pick,
   score,
@@ -460,5 +461,16 @@ describe("typing", () => {
     expect(
       typing(el("SPAN", { closest: (s: string) => (s === '[data-keys="own"]' ? {} : null) }))
     ).toBe(true);
+  });
+});
+
+describe("menuKey", () => {
+  const inMenu = { closest: (s: string) => (s === '[data-keys="menu"]' ? {} : null) };
+  const at = (e: KeyboardEvent, target: object) => ({ ...e, target }) as unknown as KeyboardEvent;
+  test("a menu over the page keeps the keys pressed alone, and leaves the page its chords", () => {
+    expect(menuKey(at(ev("e", "KeyE"), inMenu))).toBe(true);
+    expect(menuKey(at(ev("?", "Slash", { shift: true }), inMenu))).toBe(true);
+    expect(menuKey(at(ev("z", "KeyZ", { ctrl: true }), inMenu))).toBe(false);
+    expect(menuKey(at(ev("e", "KeyE"), { closest: () => null }))).toBe(false);
   });
 });
