@@ -187,6 +187,39 @@ test("a collection opened from a list keeps the list's summary when its own read
   await expect(page.locator("main")).toContainText("Couldn't load this collection.");
 });
 
+test("a press on a collection's other order leaves the focus on it, in the page it leads to", async ({
+  page
+}) => {
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: { ...words, items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p })) }
+      })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  await expect(page).toHaveURL(new RegExp(`/${SLUG}/rising$`));
+  // the list stands until the collection has drawn
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  const order = page.locator("main").getByRole("navigation", { name: "Order" });
+  await order.getByRole("link", { name: /^Popular/ }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${SLUG}$`));
+  await expect(order.getByRole("link", { name: /^Popular/ })).toBeFocused();
+  await order.getByRole("link", { name: /^Rising/ }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page).toHaveURL(new RegExp(`/${SLUG}/rising$`));
+  await expect(order.getByRole("link", { name: /^Rising/ })).toBeFocused();
+});
+
 test("each page's head holds one block of structured data, its own", async ({ page }) => {
   await page.route(
     url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",

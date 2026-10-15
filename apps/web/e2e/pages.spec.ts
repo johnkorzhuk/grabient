@@ -179,6 +179,25 @@ test("an admin goes through the palettes an issue may lead with, over its lead, 
   expect(errors).toEqual([]);
 });
 
+test("with no connection a page whose code was never kept says it is offline, and offers Retry once the connection returns", {
+  tag: "@served"
+}, async ({ page }) => {
+  await page.setViewportSize({ width: 1600, height: 1000 });
+  await page.goto("/about");
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.context().setOffline(true);
+  await page.goto("/contact");
+  const main = page.locator("main");
+  await expect(main.getByRole("heading", { name: "You're offline." })).toBeVisible();
+  await expect(main).toContainText("This page opens offline once you've seen it online.");
+  await expect(main).not.toContainText("Something went wrong");
+  await expect(main.getByRole("button", { name: "Retry" })).toHaveCount(0);
+  await page.context().setOffline(false);
+  await expect(main.getByRole("button", { name: "Retry" })).toBeVisible({ timeout: 15_000 });
+  await main.getByRole("button", { name: "Retry" }).click();
+  await expect(page.getByRole("heading", { name: "Contact" })).toBeVisible();
+});
+
 test("an unsubscribe address answers its press, and one with no token says where else to go", async ({
   page
 }) => {
