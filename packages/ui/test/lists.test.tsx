@@ -84,19 +84,16 @@ describe("PaletteCard", () => {
     expect(markup).not.toContain("blur");
   });
 
-  test("its plus adds it to the selection, and a check takes it out", () => {
+  test("its plus adds it to the selection, and a check takes it out, each named for what it does", () => {
     const off = html(() => <PaletteCard {...card()} onSelect={noop} />);
-    expect(tags(off, "button")[0]).toMatchObject({
-      "aria-pressed": "false",
-      "aria-label": "Add to selection"
-    });
+    expect(tags(off, "button")[0]).toMatchObject({ "aria-label": "Add to selection" });
     const on = html(() => (
       <PaletteCard {...card({ selected: true, collect: <i data-collect="" /> })} />
     ));
-    expect(tags(on, "button")[0]).toMatchObject({
-      "aria-pressed": "true",
-      "aria-label": "Remove from selection"
-    });
+    expect(tags(on, "button")[0]).toMatchObject({ "aria-label": "Remove from selection" });
+    // the name says it, so no pressed state stands beside it
+    for (const markup of [off, on])
+      expect(tags(markup, "button")[0]).not.toHaveProperty("aria-pressed");
     expect(on).toContain("data-collect");
   });
 
