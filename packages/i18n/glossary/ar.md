@@ -75,6 +75,7 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | angle | الزاوية | Plural الزوايا. Not used for corners. |
 | keyframe | إطار رئيسي، pl. إطارات رئيسية | Adobe's Arabic word for keyframe; kept because the product keeps the animation word. Add keyframe / Remove keyframe / Remove keyframes: أضف إطارًا رئيسيًا / أزل إطارًا رئيسيًا / أزل الإطارات الرئيسية. |
 | hold / held / let go (keyframes) | ثبّت / المثبّت، المثبّتة / ألغِ التثبيت (with an object: ألغِ تثبيت …) | Holding a keyframe keeps it from a redraw and makes it what the controls act on. Not حدّد, which is the selection's verb, and not حرّر: that verb stays Edit's (تحرير, المحرر), which Let go does not share, and ثبّت / ألغِ التثبيت is the pin/unpin pair Arabic apps already use. |
+| lock / unlock (the Lightness, Chroma and Hue locks) | أقفل / ألغِ القفل (with an object: ألغِ قفل …) | A lock keeps its value through عشوائي: أقفل الإضاءة; while closed, its tip is ألغِ قفل الإضاءة, as Unlike is ألغِ الإعجاب. Not ثبّت, which holds keyframes. |
 | lightness | الإضاءة | The L of OKLCH. |
 | chroma | الكروما | The color-science term (Munsell and CIE texts in Arabic use الكروما). Not التشبع, which is saturation. |
 | hue | الصبغة | The color-science term. Not تدرج اللون (Adobe's word), which would collide with تدرج (gradient), nor درجة اللون, which collides with degrees. |
@@ -110,10 +111,11 @@ around it: يتراوح عدد أحرفه بين 1 و{max}، ما لا يزيد 
 | shortcuts | اختصارات لوحة المفاتيح; the page, its nav link and the ? list: الاختصارات | Show shortcuts: اعرض الاختصارات; Change shortcuts: غيّر الاختصارات; Change key: غيّر المفتاح. |
 | sign in / sign out | تسجيل الدخول / تسجيل الخروج | Verbal nouns: they are also headings and menu items. |
 | account / settings | الحساب / الإعدادات | |
-| Offline | غير متصل | You're offline.: أنت غير متصل. |
+| Offline | غير متصل | You're offline.: أنت غير متصل. What opens offline once seen online: تُفتح هذه الصفحة دون اتصال بعد أن تزورها مرة وأنت متصل. |
 | app / connect / disconnect / Allow (the consent page's press) | تطبيق، pl. تطبيقات / اربط، مرتبط / ألغِ الربط / اسمح | An app is linked to the account (ربط), as Arabic apps say of accounts: التطبيقات المرتبطة. The MCP page says اختر «اسمح», so the consent page's press is اسمح. A custom connector is موصّل مخصص, an MCP server خادم MCP. Connect again from your app: أعد الربط من تطبيقك. |
 | agent | وكيل، pl. وكلاء | وكلاء Grabient. |
 | admin | مشرف، pl. المشرفون | The word Arabic group and community apps use for an admin. The Settings section is الإشراف; Admin tools is أدوات المشرف: الانتقاء (curation)، التصويت (votes)، الملاحظات للوكلاء، النشر (publishing). Agent notes are an admin's notes for the agents, so ملاحظات للوكلاء, never ملاحظات الوكلاء, which reads as the agents' own. |
+| issue / lead palette (the newsletter's, admins only) | عدد، pl. أعداد / اللوحة الافتتاحية | The palette an issue opens with. Lead with this palette: افتتح العدد بهذه اللوحة; its arrows: اللوحة الافتتاحية السابقة / التالية. Not الرئيسية, which is Home's word and the keyframe's. |
 | tag | وسم، pl. وسوم | |
 | gallery | المعرض | |
 | No results. | لا توجد نتائج. | Also a heading. Other empty states say لا توجد … the same way (لا توجد لوحات.). |

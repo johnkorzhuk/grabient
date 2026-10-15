@@ -20,6 +20,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | angle | زاویه | |
 | keyframe | کی‌فریم | Judgment: the word Persian motion and UI designers use (After Effects, Figma tutorials); فریم کلیدی reads as a textbook calque. |
 | hold / held / let go (keyframes) | نگه‌داشتن / نگه‌داشته / رها کردن | Kept apart from the palette selection (انتخاب‌ها): "the held keyframes" is کی‌فریم‌های نگه‌داشته. |
+| lock / unlock (the Lightness, Chroma and Hue locks) | قفل کردن / باز کردن قفل | A lock keeps its value through تصادفی: قفل کردن روشنایی; while closed, its tip is باز کردن قفل روشنایی. Kept apart from hold (نگه‌داشتن), and not برداشتن قفل: برداشتن is remove. |
 | reverse / invert / negative | وارونه / معکوس / نگاتیو | Keep apart; never swap. |
 | lightness | روشنایی | The L of OKLCH. Not درخشندگی (brightness). |
 | straighten | صاف کردن | Straighten lightness is صاف کردن روشنایی; done, روشنایی صاف شد. |
@@ -56,6 +57,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | not found | پیدا نشد | Never اینجا نیست. |
 | reduce motion (Settings) | کاهش حرکت | The Settings section and its button, which steps through سیستم، روشن، خاموش. Its lines say حرکت for motion, پویانمایی‌ها for animations (not انیمیشن; the About's "as in animation" is مانند پویانمایی) and دستگاه for the device: `از دستگاه شما پیروی می‌کند: خاموش`. |
 | admin / Admin tools | مدیر / ابزارهای مدیر | The person is مدیر (plural مدیران), not ادمین; the Settings section only an admin sees is مدیریت. What its switch shows: گزینش (curation)، رأی‌ها، یادداشت‌ها برای عامل‌ها، انتشار (publishing). |
+| issue / lead palette (the newsletter's, admins only) | شماره / پالت اصلی | The palette an issue opens with. Lead with this palette: تنظیم به‌عنوان پالت اصلی; its arrows: پالت اصلی قبلی / پالت اصلی بعدی. |
 | undo / redo (the editor's, context `edit`) | واگرد / ازنو | The standard pair in Persian software, and the key bindings' own (`واگرد / ازنو`); ازنو is one word. Their tooltips are the same names, then the key. |
 | Save to (Save's side of the export column) | ذخیره در | The column's toggle is `ذخیره یا خروجی`. Under ذخیره در stand مجموعه جدید and the reader's collections; a press puts the selection in one (`به {title} افزوده شد`) or takes it out (`از {title} برداشته شد`). |
 | size presets (export) | این صفحه‌نمایش، فوق‌عریض، `{device} داخلی` / `{device} بیرونی` | This screen is the reader's own: a screen is صفحه‌نمایش, never صفحه alone, which is a page. A foldable's inner and cover screens are داخلی and بیرونی after the device's own name, the pair the Persian tech press uses (نمایشگر داخلی، نمایشگر بیرونی); نمایشگر goes unsaid, as "screen" does in the English, so the label fits the size button. 1080p, 1440p and 4K stay as written. |
@@ -67,7 +69,7 @@ and add a row when a new product word gets its translation. Persian reads right 
 | No results. | نتیجه‌ای پیدا نشد. | The empty search, in the words of not found. |
 | Couldn't … / Invalid … (errors) | … نشد. / … نامعتبر است. | `ذخیره نشد.`، `پالت‌ها بارگذاری نشدند.`، `درخواست نامعتبر است.` Try again is دوباره تلاش کنید; Try again later بعداً دوباره تلاش کنید. |
 | clear (empties a field or the selection) | پاک کردن | |
-| offline / sync | آفلاین / همگام‌سازی | |
+| offline / sync | آفلاین / همگام‌سازی | What opens offline once seen online: `این صفحه پس از یک بار دیدن به‌صورت آنلاین، آفلاین هم باز می‌شود.` |
 | reader (a person using the site) | بازدیدکننده | Plural بازدیدکنندگان. |
 | address (of a page or a collection) | نشانی | A server's or an email address is آدرس: `کپی آدرس`. |
 | mood / theme (what a search names) | حال‌وهوا / موضوع | Theme here is a subject, such as sunset; never پوسته. |

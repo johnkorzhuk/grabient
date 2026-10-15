@@ -18,6 +18,7 @@ every time, and add a row when a new product word gets its translation.
 | angle | 角度 | |
 | keyframe | 关键帧 | |
 | hold / held (keyframes) | 选中 | "The held keyframes" is 选中的关键帧; "Hold all keyframes" 选中全部关键帧, "Let go of keyframes" 取消选中关键帧. 按住 would read as a physical press. |
+| lock / unlock (the editor's Lightness, Chroma and Hue locks) | 锁定 / 解锁 | 锁定明度, 解锁明度, as 锁定图层 in design tools. Kept apart from 选中, which holds keyframes. |
 | lightness | 明度 | The L of OKLCH. Photoshop's 色相/饱和度/明度. Not 亮度 (luminance). |
 | chroma | 彩度 | The color-science term (CIE LCh, Munsell). Never 饱和度 (saturation) or 色度 (chromaticity). |
 | hue | 色相 | |
@@ -49,6 +50,7 @@ every time, and add a row when a new product word gets its translation.
 | tag | 标签 | |
 | mood | 氛围 | In search hints: 颜色、氛围或主题. |
 | No results. | 无结果。 | The empty search, also a heading. With its hint: 无结果。试试颜色、氛围或主题。 |
+| offline / online | 离线 / 在线 | "You're offline." is 你已离线。; why a page shows nothing yet: 在线查看过此页面后，即可离线打开。 |
 | Undo / Redo (the editor's) | 撤销 / 重做 | The editor's buttons and keys. Their tooltips are the same names. A vote taken back is 撤销 too. |
 | Reverse / Invert | 反转 / 反相 | The editor's presses; 反相 is Photoshop's Invert. A tooltip is the name, then its key: 反转 · E. |
 | Straighten lightness | 拉直明度 | Its status lines: 明度已拉直。, 没有可拉直的内容。 |
@@ -60,6 +62,8 @@ every time, and add a row when a new product word gets its translation.
 | saturation / brightness | 饱和度 / 亮度 | The S and B of the picker's square, as in Photoshop's HSB picker: 饱和度和亮度. Never the palette's 彩度 or 明度. |
 | reduce motion | 减弱动态效果 | The Settings section and its button, Apple's word for the same setting. The button steps through 跟随系统, 开, 关. Motion is 动态效果 and animations are 动画; 减弱 always keeps its object (要求减弱动态效果). |
 | admin / Admin tools | 管理员 / 管理员工具 | The Settings section only an admin sees, and its switch. What it shows: 策展、投票、给智能体的备注和公开选项; publishing is 公开, as in 设为公开. |
+| Saving / Email (the Site features switches) | 保存 / 邮件 | The Email switch is about mail sent, so 邮件, not 邮箱 (the Email field). |
+| newsletter issue / lead palette (admins) | 期 / 头条调色板 | The palette an issue opens with, as a WeChat push's 头条: 设为头条, 上一个候选, 下一个候选, and where the one shown stands, 第 {at} 个，共 {count} 个. |
 | Save to | 保存到 | The label over the reader's collections when saving the selection, with 新建合集. Adding to one confirms 已添加到“{title}”。 |
 | size presets | 此屏幕 / 超宽屏 / 内屏 / 外屏 | This screen, Ultrawide, and a foldable's two screens as Chinese phone makers name them: `{device} 内屏`, `{device} 外屏`. Device names stay as the makers write them. |
 | message (Contact page) | 留言 | The field on the Contact page (联系我们) and what it sends: 无法发送留言。 |

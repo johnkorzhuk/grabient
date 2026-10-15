@@ -40,6 +40,7 @@ How Russian says Grabient's own words. Read `README.md` first for what each word
 | keyframe | ключевая точка | Not «ключевой кадр»: there is no time axis, and the curve runs through points. Keeps "key". |
 | hold / held / let go (keyframes) | выделить / выделенные / снять выделение | Canvas selection words. Kept apart from «выбранное» (the selection of palettes). |
 | random | наугад (button), случайная (adjective) | Not «случайно», which reads first as "by accident." |
+| lock / unlock (the Lightness, Chroma and Hue locks) | зафиксировать / снять фиксацию | A lock keeps a value through «Наугад»: «Зафиксировать светлоту»; while closed, its tip is «Снять фиксацию светлоты». Not «заблокировать», which reads as a field that can't be edited, and not «закрепить», the 3D view's keep. |
 | lightness | светлота | The colorimetric term (CIE L*), not «яркость», which is the color picker's HSB brightness. |
 | chroma | хрома | The color-science term for chroma, as in CIE LCh and CIECAM. «Насыщенность» is saturation, the color picker's HSB S, never chroma; «хрома» is also the letter C that OKLCH-literate developers already read. |
 | hue | тон | Short for «цветовой тон». «Путь тона» for hue travel. |
@@ -83,7 +84,9 @@ How Russian says Grabient's own words. Read `README.md` first for what each word
 | tag | тег | |
 | No results. | Ничего не найдено. | What Russian search pages say. |
 | busy (sign-in, search) | перегружен | «Поиск сейчас перегружен. Попробуйте позже.» |
-| offline | нет сети | «Нет сети», «Вы не в сети.» |
+| offline | нет сети | «Нет сети», «Вы не в сети.» What opens offline once seen online: «будет открываться без сети, когда вы посмотрите её в сети». |
+| Email (the Site features switch) | Почта | The site's sign-in and contact email, apart from the address field, which stays «Email». |
+| issue / lead palette (the newsletter's, admins only) | выпуск / главная палитра выпуска | «Сделать эту палитру главной»; the arrows go through the options: «Предыдущий вариант», «Следующий вариант». |
 | text contrast / text color | контраст текста / цвет текста | «Контраст текста» names the pane; «Добавить цвет текста», as Google Docs names a text's color. |
 | color picker | выбор цвета | Not Photoshop's «палитра цветов»: «палитра» is Grabient's palette. |
 | Pick color (the eyedropper) | взять цвет | What Russian designers say of the eyedropper («взять цвет пипеткой»); the tool itself is «пипетка». |

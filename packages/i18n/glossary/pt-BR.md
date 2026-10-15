@@ -25,6 +25,7 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | hue | matiz (m.) | The color wheel is the "círculo cromático". |
 | travel (hue travel) | percurso; to travel: percorrer | "O percurso do matiz"; "um arco-íris completo percorre 360°". Not "viagem". |
 | hold / let go (keyframes) | fixar / soltar | "quadros-chave fixados". Not "selecionar": that belongs to the selection. |
+| lock / unlock (the editor's Lightness, Chroma and Hue locks) | bloquear / desbloquear | "Bloquear croma", "Desbloquear croma". Photoshop's verb. Not "fixar", which holds keyframes. |
 | keep (the color space) | fixar | "Clique para fixar", the same verb as holding keyframes: "manter" needs an object ("manter o quê?"). |
 | show / hide | mostrar / ocultar | "Mostrar painel", "Ocultar painel", "Ocultar espaço de cores". Not "esconder". Full screen is "tela cheia". |
 | Reverse / Invert | Inverter ordem / Inverter | Tooltips "Inverter ordem · E", "Inverter · I". Invert makes the negative, Photoshop's Inverter; Reverse adds "ordem" to stay apart from it. Never "Reverter", which means revert. |
@@ -57,7 +58,7 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | mood | clima | "uma cor, um clima ou um tema". |
 | No results. | Nenhum resultado. | The empty search, also its heading. |
 | busy (a service) | sobrecarregado | "A busca está sobrecarregada." Not "ocupado". |
-| offline | off-line | "Você está off-line." |
+| offline / online | off-line / on-line | "Você está off-line."; "fica disponível off-line depois que você a acessa on-line". |
 | tag | tag (f.) | "as tags". The tags themselves are data and stay in English. |
 | gamut | gama | Adobe's word ("dentro da gama", "mapeado à gama"). |
 | email | e-mail | |
@@ -71,6 +72,7 @@ How Grabient says its own words in Brazilian Portuguese. Read `README.md` first;
 | Save to (where the selection goes) | Salvar em: Nova coleção / Suas coleções | The export column's head is "Salvar ou exportar". A status says where the palettes went with the neutral participle, whatever the count: "Adicionado a {title}", "Removido de {title}". |
 | size presets | Esta tela, Ultrawide, "{device} interna" / "{device} externa" | "Esta tela" is the reader's own screen. "Ultrawide" stays: Brazilian stores and tech press say "monitor ultrawide". A foldable's inner and cover screens are its "tela interna" and "tela externa"; the label leaves out "tela" because the English already fills the menu's row. |
 | public gallery | galeria pública | |
+| newsletter issue / lead palette (admins) | edição / paleta de abertura | The palette an issue opens with, as a magazine's "foto de abertura": "Abrir a edição com esta paleta", "Próxima paleta de abertura". |
 | Analytics / Session replay (the consent switches) | Análise / Gravação de sessão | Lowercase in a sentence ("quando a análise está ativada"), capitalized where the text names the switch. |
 | sign-in link / sign-in code | link de acesso / código de acesso | "Seu código de acesso ao Grabient", "como links de acesso". |
 | Text contrast (the pane) | Contraste de texto | The grid of text colors over each of the palette's colors. |
