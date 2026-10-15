@@ -113,6 +113,13 @@ export const publishedIssues = async (
 ): Promise<DrawnPage> =>
   publishedPage(ISSUES, origin, locale, before ?? undefined, await issueFacts(env));
 
+/** The issue among these that goes out next: the first with no day yet, else the newest published, so a test always has
+    one to send. */
+export function nextIssue(issues: readonly Issue[]): Issue {
+  const ordered = [...issues].sort((a, b) => a.number - b.number);
+  return ordered.find(issue => !issue.published) ?? (ordered.at(-1) as Issue);
+}
+
 /** Every issue among these with no day yet, newest first: an admin's to read. */
 export const draftsAmong = (
   issues: readonly Issue[],

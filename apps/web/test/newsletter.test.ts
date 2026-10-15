@@ -367,7 +367,7 @@ describe("an admin's test issue", () => {
     expect(sent).toEqual([]);
   });
 
-  it("sends the issue about to go out to the admin alone, with their own foot and a mail app's unsubscribe button", async () => {
+  it("sends the issue that goes out next to the admin alone, with their own foot and a mail app's unsubscribe button", async () => {
     const sent = resend();
     const env = newsletterEnv();
     const admin = await makeAdmin(env);
@@ -394,8 +394,10 @@ describe("an admin's test issue", () => {
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click"
       }
     });
-    const newest = ISSUES.reduce((a, b) => (b.number > a.number ? b : a)).write(ORIGIN);
-    expect(body.subject).toBe(`[Test] ${newest.subject}`);
+    // the first issue with no day yet: No. 1 went out in October
+    const next = [...ISSUES].sort((a, b) => a.number - b.number).find(issue => !issue.published);
+    expect(next?.number).toBe(2);
+    expect(body.subject).toBe(`[Test] ${next?.write(ORIGIN).subject}`);
     for (const part of ["head", "chips", "issue", "palettes", "collection", "button", "foot"]) {
       expect(body.html).toContain(`data-part="${part}"`);
     }

@@ -6,7 +6,7 @@ import { meaning } from "../../../../../packages/email/test/support.ts";
 import { ISSUES } from "./issues/index.ts";
 import { asRun, type IssueFacts, leadOptions, ledBy, NO_FACTS, nameOf } from "./lead.ts";
 import { issueFoot } from "./list.ts";
-import { draftsAmong, drawn, publishedPage } from "./page.ts";
+import { draftsAmong, drawn, nextIssue, publishedPage } from "./page.ts";
 import { draftWords, leaks } from "./private.ts";
 import { beforeOf, issuesKey, languageOf } from "./query.ts";
 
@@ -112,6 +112,15 @@ describe("the issues as pages", () => {
     expect([two.issues.map(issue => issue.number), two.next]).toEqual([[1], null]);
     expect(publishedPage(four, ORIGIN, "en", 1)).toEqual({ issues: [], next: null });
   });
+  test("the issue that goes out next, which an admin's test sends, is the first with no day, else the newest", () => {
+    expect(nextIssue(four).number).toBe(4);
+    // a draft written ahead waits behind the one before it
+    expect(nextIssue([...four, made(6), made(5)]).number).toBe(4);
+    expect(nextIssue(four.filter(issue => issue.published)).number).toBe(3);
+    // as the issues stand: No. 1 went out in October, so No. 2 is next
+    expect(nextIssue(ISSUES)).toBe(byNumber(2));
+  });
+
   test("drafts are the issues with no day, newest first", () => {
     expect(draftsAmong(four, ORIGIN).map(issue => [issue.number, issue.month])).toEqual([
       [4, "2026-04"]
