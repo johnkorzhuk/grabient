@@ -605,7 +605,8 @@ test("an old link the Worker does not fit is fitted in the browser, and its addr
   page,
   request
 }) => {
-  // past its address's minute of fits an old link is the app's page, which the browser fits; vite dev keeps no answer
+  // past its address's minute of fits (`oldLinkFit`) an old link is the app's page, which the browser fits; vite dev
+  // keeps no answer, so each ask is a fit
   const from = {
     "CF-Connecting-IP": `2001:db8:${Math.floor(Math.random() * 0xffff).toString(16)}::1`
   };
