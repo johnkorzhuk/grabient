@@ -12,11 +12,13 @@ production deploy; campaign tags come off the address and ride every redirect; t
 a page loses its trailing slash (301), a prefix on an API or a file is 404, and a reader arriving from elsewhere is
 sent to their language (302); the canonical address (301) comes from the rules in `src/server/canonical.ts`; private
 and app addresses (`src/server/paths.ts`) go to Start directly with `no-store`, and every other GET goes through the
-edge cache (`src/server/edge-cache.ts`). Every answer then gets the security headers, `X-Robots-Tag` outside
-production, CORS on public files and `Server-Timing: build`. Any status but 200 and 304 is `no-store`.
+edge cache (`src/server/edge-cache.ts`), where an old `_` link no map holds is answered with a 301 to the palette
+fitted to it (`src/server/seo/legacy-fit.ts`). Every answer then gets the security headers, `X-Robots-Tag` outside
+production, CORS on public files and `Server-Timing: build`. Any status but 200, 304 and a 301 that names its lifetime
+is `no-store`.
 
-The edge cache keeps a GET's 200 that has a positive `CDN-Cache-Control` max-age, no `private` or `no-store`, no
-`Set-Cookie` and no `Vary`, under its path in its language, the query that decides it and the build
+The edge cache keeps a GET's 200 or 301 that has a positive `CDN-Cache-Control` max-age, no `private` or `no-store`,
+no `Set-Cookie` and no `Vary`, under its path in its language, the query that decides it and the build
 (`src/server/cache-keys.ts`). A page that renders an error answers 500, which nothing keeps.
 
 ## Pages
