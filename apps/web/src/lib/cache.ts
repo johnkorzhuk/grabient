@@ -1,6 +1,7 @@
 /* How long each kind of answer may be kept: `Cache-Control` for the browser, `CDN-Cache-Control` for the Worker's
-   edge cache (server/edge-cache.ts), which keeps only a public 200 with a positive lifetime. A page or a route declares
-   its class with `headers: () => PAGE`; the Worker answers every other status, and every private address, no-store. */
+   edge cache (server/edge-cache.ts), which keeps only a public 200 or 301 with a positive lifetime. A page or a route
+   declares its class with `headers: () => PAGE`; the Worker answers every other status but such a 301, and every
+   private address, no-store. */
 
 /** A page links one build's scripts, which the next deploy replaces, so a browser asks again every time. */
 const REVALIDATE = "public, max-age=0, must-revalidate";

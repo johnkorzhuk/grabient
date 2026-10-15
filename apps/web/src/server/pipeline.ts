@@ -19,7 +19,7 @@ import { json, redirect, withHeaders } from "../lib/responses.ts";
 import { cacheKey } from "./cache-keys.ts";
 import { canonicalRedirect } from "./canonical.ts";
 import { isCrawler } from "./crawlers.ts";
-import { edgeCached } from "./edge-cache.ts";
+import { edgeCached, keepFor } from "./edge-cache.ts";
 import { countFile } from "./files/count.ts";
 import {
   connectPath,
@@ -254,14 +254,16 @@ function finish(
 ): Response {
   const response = new Response(request.method === "HEAD" ? null : answered.body, answered);
   const headers = response.headers;
-  /* Only a 200 may be kept anywhere; a 304 keeps the policy of what it confirms. A temporary redirect whose handler
-     keeps it from the edge may still name minutes for the browser: what stands in for a picture that is not drawn now
-     (images/serve.ts), so a page of them does not ask again for each. */
+  /* Only a 200 may be kept anywhere, and a permanent redirect the edge may keep, which leads to one place for good; a
+     304 keeps the policy of what it confirms. A temporary redirect whose handler keeps it from the edge may still name
+     minutes for the browser: what stands in for a picture that is not drawn now (images/serve.ts), so a page of them
+     does not ask again for each. */
+  const forGood = response.status === 301 && keepFor(response) !== null;
   const standIn =
     response.status === 302 &&
     headers.get("CDN-Cache-Control") === "no-store" &&
     /^public, max-age=\d+$/.test(headers.get("Cache-Control") ?? "");
-  if (response.status !== 200 && response.status !== 304 && !standIn) {
+  if (response.status !== 200 && response.status !== 304 && !forGood && !standIn) {
     for (const [name, value] of Object.entries(NO_STORE)) headers.set(name, value);
   }
   // a refusal that names no wait: the allowances that refuse without one count by the minute

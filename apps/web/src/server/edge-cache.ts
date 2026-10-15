@@ -1,8 +1,8 @@
 /* The Worker's own cache in front of Start: the Cache API of the data center that runs it. It keeps only a public
-   200 to a GET, with a positive lifetime in `CDN-Cache-Control` (else `Cache-Control`), no `private` or `no-store`, no
-   `Set-Cookie` and no `Vary`. The Cache API reads a lifetime from `Cache-Control`, so the kept copy carries the edge's
-   and holds the browser's aside for a hit to put back. A HEAD reads what a GET kept and keeps nothing. A cache that
-   cannot be read or written is passed by. */
+   200 or 301 to a GET, with a positive lifetime in `CDN-Cache-Control` (else `Cache-Control`), no `private` or
+   `no-store`, no `Set-Cookie` and no `Vary`. The Cache API reads a lifetime from `Cache-Control`, so the kept copy
+   carries the edge's and holds the browser's aside for a hit to put back. A HEAD reads what a GET kept and keeps nothing.
+   A cache that cannot be read or written is passed by. */
 
 const BROWSER_POLICY = "X-Grabient-Browser-Cache";
 const STATUS = "X-Grabient-Cache";
@@ -10,11 +10,12 @@ const STATUS = "X-Grabient-Cache";
 const edgeCache = () => (globalThis as { caches?: { default?: Cache } }).caches?.default;
 
 /** The edge lifetime a response asks for, in seconds, when it may be kept at all. */
-function keepFor(response: Response): number | null {
-  if (response.status !== 200 || response.headers.has("Set-Cookie") || response.headers.has("Vary"))
+export function keepFor(response: Response): number | null {
+  const { status, headers } = response;
+  if ((status !== 200 && status !== 301) || headers.has("Set-Cookie") || headers.has("Vary"))
     return null;
-  const browser = response.headers.get("Cache-Control") ?? "";
-  const edge = response.headers.get("CDN-Cache-Control") ?? browser;
+  const browser = headers.get("Cache-Control") ?? "";
+  const edge = headers.get("CDN-Cache-Control") ?? browser;
   if (/private|no-store/i.test(`${edge},${browser}`)) return null;
   const seconds = Number(/(?:^|[,\s])max-age=(\d+)/.exec(edge)?.[1] ?? 0);
   return seconds > 0 ? seconds : null;

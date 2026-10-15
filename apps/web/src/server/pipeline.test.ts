@@ -335,6 +335,31 @@ describe("the edge cache", () => {
     expect(asked).toHaveLength(2);
   });
 
+  test("keeps a permanent redirect that names its lifetime, and gives the browser its own", async () => {
+    const moved = () =>
+      new Response(null, {
+        status: 301,
+        headers: {
+          Location: "/kS7Q8Yy5S_SChv0",
+          "Cache-Control": "public, max-age=86400",
+          "CDN-Cache-Control": "max-age=2592000"
+        }
+      });
+    const answers = [await get("/about", {}, moved), await get("/about", {}, moved)];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "MISS"],
+      [301, "/kS7Q8Yy5S_SChv0", "public, max-age=86400", "HIT"]
+    ]);
+    expect(asked).toHaveLength(1);
+  });
+
   test("keeps every address of one file under one key, which no stray parameter enters", async () => {
     const png = () => new Response("png", { headers: { ...PAGE, "Content-Type": "image/png" } });
     await get("/api/png?seed=kS7Q8Yy5S_SChv0&junk=1", {}, png);
@@ -541,7 +566,7 @@ test("every answer carries the site's headers", async () => {
   expect(file.headers.get("Access-Control-Allow-Origin")).toBe("*");
 });
 
-test("no browser keeps a redirect, but for the minutes a picture's stand-in names", async () => {
+test("no browser keeps a redirect the edge may not keep, but for the minutes a picture's stand-in names", async () => {
   const to = (headers: Record<string, string>) => () =>
     new Response(null, { status: 302, headers: { Location: "/grabient.png", ...headers } });
   const standIn = await get(
