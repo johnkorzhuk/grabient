@@ -88,7 +88,7 @@ test("a screen taller than the first page asks for the next one once, and draws 
   expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(tall);
 });
 
-test("the footer under a list that grows as it scrolls is reached by the keyboard and stays in view", async ({
+test("the footer under a list that grows as it scrolls is reached by the keyboard and stays in view, until a wheel moves on", async ({
   page
 }) => {
   const asked = calls(page);
@@ -107,6 +107,13 @@ test("the footer under a list that grows as it scrolls is reached by the keyboar
   }
   await expect(footer.locator(":focus")).toHaveCount(1);
   expect(asked.filter(path => path.startsWith("/api/palettes"))).toEqual([]);
+  // a wheel is the reader going on by other means: the list grows again under the focus left in the footer
+  await page.mouse.move(600, 400);
+  await page.mouse.wheel(0, -2000);
+  await page.mouse.wheel(0, 4000);
+  await expect
+    .poll(() => asked.find(path => path.startsWith("/api/palettes")))
+    .toBe("/api/palettes?sort=popular&page=2&limit=24");
 });
 
 test("the search field is named in the browser's own tree, empty and with words in it", async ({

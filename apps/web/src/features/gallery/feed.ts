@@ -98,11 +98,14 @@ export function createFeed<P extends FeedPage>(o: {
   };
   /* The keyboard in what stands past the feed, the footer: a page joining would push it out of view, so the feed waits
      until the keyboard comes back up into it, and a group drawn at its own height as the window reaches it leaves the
-     focus in view. A press of the pointer there leaves no such focus: the page goes on growing under it. */
+     focus in view. Only while the reader goes by keys: a press of the pointer or a finger, or a wheel, lets the page go
+     on growing under the focus, wherever it stands. */
   let held = false;
+  let keyed = true;
   const past = () => {
     const at = document.activeElement;
     return (
+      keyed &&
       !!mark &&
       !!at?.matches(":focus-visible") &&
       !!(mark.compareDocumentPosition(at) & Node.DOCUMENT_POSITION_FOLLOWING)
@@ -127,7 +130,18 @@ export function createFeed<P extends FeedPage>(o: {
         look();
       }
     };
+    const key = () => {
+      keyed = true;
+    };
+    const point = () => {
+      keyed = false;
+      back();
+    };
+    const quiet = { capture: true, passive: true };
     document.addEventListener("focusin", back);
+    document.addEventListener("keydown", key, true);
+    document.addEventListener("pointerdown", point, quiet);
+    document.addEventListener("wheel", point, quiet);
     const grown = new ResizeObserver(() => {
       if (!past()) return;
       const at = document.activeElement as HTMLElement;
@@ -139,6 +153,9 @@ export function createFeed<P extends FeedPage>(o: {
       watcher?.disconnect();
       grown.disconnect();
       document.removeEventListener("focusin", back);
+      document.removeEventListener("keydown", key, true);
+      document.removeEventListener("pointerdown", point, quiet);
+      document.removeEventListener("wheel", point, quiet);
     };
   });
 
