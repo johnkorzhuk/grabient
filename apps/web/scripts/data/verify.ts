@@ -575,7 +575,7 @@ export function verify(
         `${c.kind} ${c.key}: staging ${new Date(c.staging).toISOString()}, ${c.source} ` +
         `${new Date(c.other).toISOString()}, ${c.stands}'s stands`
     ),
-    "no like or collection changed on both sides since staging's load",
+    "no like, collection or fit vote changed on both sides since staging's load",
     "warn"
   );
   check(

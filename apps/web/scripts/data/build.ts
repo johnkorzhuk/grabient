@@ -245,7 +245,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       `\n  from staging since its load at ${fromStaging.loadedAt ?? "(never loaded)"}: ${fromStaging.likes} likes, ` +
       `${fromStaging.unlikes} unlikes, ${fromStaging.palettes.length} palettes new to the gallery, collections ` +
       `${changes("made")} made, ${changes("changed")} changed, ${changes("deleted")} deleted, ` +
-      `${fromStaging.notes.length} notes, ${fromStaging.leads.length} leads; ` +
+      `${fromStaging.notes.length} notes, ${fromStaging.votes.length} fit votes, ${fromStaging.leads.length} leads; ` +
       `${fromStaging.conflicts.length} conflicts, ${fromStaging.left.length} changes left on staging`
   );
 
