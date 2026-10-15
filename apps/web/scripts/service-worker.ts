@@ -5,13 +5,17 @@ import { type Plugin, type Rolldown, transformWithOxc } from "vite";
 
 /* Writes /sw.js into the browser's build: src/sw/service-worker.ts with this build's files, which it keeps at install,
    the languages' first segments, and an id named by the files, so a build that changed nothing leaves the installed
-   worker as it is. It keeps every script and style a page that opens with no connection (app/connection.ts,
-   opensOffline) may load, at once or on demand; another page's own files are kept as they are first fetched. With
-   SW=off it writes a worker that takes itself and its caches out of every browser that has one. */
+   worker as it is. It keeps every script and style a page the shell draws with no connection may load, at once or on
+   demand: the pages that open offline (app/connection.ts, opensOffline), and the lists, which say there that they
+   cannot be read. Another page's own files are kept as they are first fetched. With SW=off it writes a worker that
+   takes itself and its caches out of every browser that has one. */
 
 const SOURCE = new URL("../src/sw/service-worker.ts", import.meta.url);
 const FONTS = new URL("../public/fonts/", import.meta.url);
 const OFFLINE_ROUTES = [
+  "routes/index.tsx",
+  "routes/palettes/{-$order}.{-$frame}.tsx",
+  "routes/collections/{-$order}.{-$frame}.tsx",
   "routes/palettes/saved.tsx",
   "routes/collections/saved.tsx",
   "routes/@{$handle}/$slug/index.tsx",

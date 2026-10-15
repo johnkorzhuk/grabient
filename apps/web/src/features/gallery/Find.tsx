@@ -46,7 +46,7 @@ const tagsView = (words: string, home: boolean) => ({
     words,
     words ? { limit: home ? TYPED / 2 : TYPED } : { both: home, limit: AT_REST }
   ),
-  select: (tags: Suggested) => own(tags)
+  select: (tags: Suggested | null) => own(tags)
 });
 const titledView = (words: string) => ({
   ...collectionTagsQuery(words),

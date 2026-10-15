@@ -27,9 +27,15 @@ import {
   untrack,
   useContext
 } from "solid-js";
-import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
+import {
+  createOfflineList,
+  listUnavailable,
+  offline,
+  signInUnavailable
+} from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
 import list from "../../app/list.module.css";
+import { OfflineList } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
@@ -140,10 +146,18 @@ export function CollectionsPage(props: {
     const data = headData();
     return data && "items" in data ? data : null;
   };
-  const headError = () => {
+  const failure = () => {
     const data = headData();
     return failed(data) ? data.failed : "";
   };
+  /* a public list that could not be read with no connection says so in its place, and is read as the connection
+     returns; the account's own are its copy's to answer */
+  const unread = createOfflineList({
+    failed: () => !mine() && !!failure(),
+    readAt: () => publicList.dataUpdatedAt,
+    read: retry
+  });
+  const headError = () => (unread() ? "" : failure());
   const [note, setNote] = createSignal("");
   const [fieldError, setFieldError] = createSignal("");
 
@@ -472,7 +486,10 @@ export function CollectionsPage(props: {
             }
           >
             <Loading fallback={placeholders()}>
-              <Show when={head() || headError()} fallback={placeholders()}>
+              <Show
+                when={head() || headError()}
+                fallback={unread() ? <OfflineList ways={["collections"]} /> : placeholders()}
+              >
                 <GroupFeed
                   items={items()}
                   key={c => c.slug}

@@ -30,23 +30,32 @@ const LAST_BUILD = html([
 ]);
 const source = await workerSource(CONFIG);
 
-type Site = Record<string, string | Error>;
-/** A worker with empty caches, answering from `site`: a path's body, an Error for no connection, or nothing (404). */
-function install(site: Site, code = source) {
+type Site = Record<string, string | Error | { private: string }>;
+/** A worker with empty caches, answering from `site`: a path's body, one kept by no cache, an Error for no connection,
+    or nothing (404). `windows` are the pages the browser has open. */
+function install(site: Site, code = source, windows: string[] = []) {
   const stores = new Map<string, Map<string, Response>>();
+  const fetched: string[] = [];
   const keyOf = (request: string | { url: string }) =>
     new URL(typeof request === "string" ? request : request.url, ORIGIN).href;
   const reach = async (request: string | { url: string }) => {
     const url = new URL(keyOf(request));
+    fetched.push(url.pathname + url.search);
     const body = site[url.pathname];
     if (body instanceof Error) throw new TypeError("Failed to fetch");
     if (body === undefined) return new Response("", { status: 404 });
     const type = url.pathname.startsWith("/assets/")
       ? "text/javascript"
       : "text/html; charset=utf-8";
-    return new Response(body, { status: 200, headers: { "Content-Type": type } });
+    if (typeof body === "string") {
+      return new Response(body, { status: 200, headers: { "Content-Type": type } });
+    }
+    return new Response(body.private, {
+      status: 200,
+      headers: { "Content-Type": type, "Cache-Control": "no-store" }
+    });
   };
-  const open = (name: string) => {
+  const cache = (name: string) => {
     if (!stores.has(name)) stores.set(name, new Map());
     const store = stores.get(name)!;
     const keep = (request: string | { url: string }, response: Response) => {
@@ -67,10 +76,10 @@ function install(site: Site, code = source) {
     };
   };
   const caches = {
-    open: async (name: string) => open(name),
+    open: async (name: string) => cache(name),
     match: async (request: string | { url: string }) => {
       for (const name of stores.keys()) {
-        const hit = await open(name).match(request);
+        const hit = await cache(name).match(request);
         if (hit) return hit;
       }
       return undefined;
@@ -79,7 +88,7 @@ function install(site: Site, code = source) {
     delete: async (name: string) => stores.delete(name)
   };
   const listeners: Record<string, (event: object) => void> = {};
-  const worker = { skipped: false, unregistered: false, stores };
+  const worker = { skipped: false, unregistered: false, stores, fetched };
   const self = {
     location: new URL("/sw.js", ORIGIN),
     addEventListener: (type: string, listener: (event: object) => void) => {
@@ -88,7 +97,10 @@ function install(site: Site, code = source) {
     skipWaiting: async () => {
       worker.skipped = true;
     },
-    clients: { claim: async () => {}, matchAll: async () => [] },
+    clients: {
+      claim: async () => {},
+      matchAll: async () => windows.map(path => ({ url: ORIGIN + path }))
+    },
     registration: {
       unregister: async () => {
         worker.unregistered = true;
@@ -120,8 +132,8 @@ function install(site: Site, code = source) {
         request: { method: "GET", url: ORIGIN + path, mode: "navigate" },
         preloadResponse: Promise.resolve(undefined)
       }),
-    shell: async () => (await open(SHELLS).match(`${ORIGIN}/palettes/saved`))?.text(),
-    open
+    shell: async () => (await cache(SHELLS).match(`${ORIGIN}/palettes/saved`))?.text(),
+    open: cache
   });
 }
 const files = (shell: string | Error, extra: Site = {}): Site => ({
@@ -187,6 +199,49 @@ describe("the service worker", () => {
     const response = await worker.visit("/collections/saved");
     expect(await response?.text()).toBe(THIS_BUILD);
     expect(response?.headers.get("Server-Timing")).toMatch(/offline/);
+  });
+
+  it("keeps each open page again as it takes over, with the files it names, a request for each", async () => {
+    const list = html([...CONFIG.assets, "/assets/list-b2.js"]);
+    const site = files(THIS_BUILD, {
+      "/palettes": list,
+      "/fr/palettes": list,
+      "/fr/palettes/saved": THIS_BUILD,
+      "/assets/list-b2.js": "file",
+      "/collections/saved": { private: THIS_BUILD },
+      "/blog": LAST_BUILD
+    });
+    const worker = install(site, source, [
+      "/palettes?utm_source=x",
+      "/palettes",
+      "/fr/palettes",
+      "/collections/saved",
+      "/blog"
+    ]);
+    // the last build's pages, which name files this build does not have
+    const last = new Map([[`${ORIGIN}/palettes`, new Response(LAST_BUILD)]]);
+    worker.stores.set("grabient-pages-b1", last);
+    await worker.install();
+    worker.fetched.length = 0;
+    await worker.activate();
+    expect(worker.stores.has("grabient-pages-b1")).toBe(false);
+    expect(worker.fetched).toEqual([
+      "/fr/palettes/saved",
+      "/palettes",
+      "/assets/list-b2.js",
+      "/fr/palettes",
+      "/collections/saved",
+      "/blog"
+    ]);
+    const kept = await worker.open(`grabient-pages-${CONFIG.build}`).keys();
+    expect(kept.map(page => page.url)).toEqual([`${ORIGIN}/palettes`, `${ORIGIN}/fr/palettes`]);
+    // a refresh with no connection opens the page in view, whose file is kept
+    site["/palettes"] = new Error("offline");
+    site["/assets/list-b2.js"] = new Error("offline");
+    const response = await worker.visit("/palettes");
+    expect(await response?.text()).toBe(list);
+    expect(response?.headers.get("Server-Timing")).toMatch(/offline/);
+    expect(await worker.open("grabient-runtime").match("/assets/list-b2.js")).toBeDefined();
   });
 
   it("keeps a public page it opened, and answers it offline", async () => {

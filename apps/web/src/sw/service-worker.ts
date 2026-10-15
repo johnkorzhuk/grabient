@@ -72,21 +72,43 @@ async function trim(cache: Cache, kept: number) {
   for (const key of keys.slice(0, Math.max(0, keys.length - kept))) await cache.delete(key);
 }
 
-/** The shell in a language, and the files it names (its links and scripts, and the messages its head asks for), kept
-    once per build: whole or not at all, since a shell without its files opens blank offline. While a deploy spreads, the address can still answer with the last build's page,
-    whose files this build deletes when it takes over: that one is left for the next page to try. */
+async function keepPage(key: string, page: Response) {
+  const pages = await caches.open(PAGES);
+  await pages.put(key, page);
+  await trim(pages, PAGES_KEPT);
+}
+
+/** Keeps the files a document names (its links and scripts, and the messages its head asks for), and says whether the
+    document is this build's, so it is kept whole or not at all: one without its files opens blank offline. While a
+    deploy spreads, the address can still answer with the last build's document, whose files this build deletes when it
+    takes over: that one is left for the next page to try. */
+async function keptFiles(page: Response): Promise<boolean> {
+  const html = await page.clone().text();
+  const named = [...new Set([...html.matchAll(/"(\/(?:assets|fonts)\/[^"]+)"/g)].map(m => m[1]!))];
+  if (!named.some(path => path.startsWith("/assets/") && CONFIG.assets.includes(path)))
+    return false;
+  const runtime = await caches.open(RUNTIME);
+  for (const path of named) if (!(await caches.match(path))) await runtime.add(path);
+  return true;
+}
+
+/** A page as the network answers it now, for no account: a public page never reads the session. */
+const fetchPage = (url: string) => fetch(url, { credentials: "omit", cache: "no-store" });
+
+/** The shell in a language, kept once per build. */
 async function keepShell(segment: string) {
   const shells = await caches.open(SHELLS);
   const url = shellUrl(segment);
   if (await shells.match(url)) return;
-  const response = await fetch(url, { credentials: "omit", cache: "no-store" });
-  if (!response.ok) return;
-  const html = await response.clone().text();
-  const named = [...new Set([...html.matchAll(/"(\/(?:assets|fonts)\/[^"]+)"/g)].map(m => m[1]!))];
-  if (!named.some(path => path.startsWith("/assets/") && CONFIG.assets.includes(path))) return;
-  const runtime = await caches.open(RUNTIME);
-  for (const path of named) if (!(await caches.match(path))) await runtime.add(path);
-  await shells.put(url, response);
+  const response = await fetchPage(url);
+  if (response.ok && (await keptFiles(response))) await shells.put(url, response);
+}
+
+/** An open page, kept again by a new build: the page in view runs the last build's scripts and has loaded none of
+    this build's, so its files are kept with it, and a refresh with no connection right after a deploy opens it. */
+async function keepAgain(key: string) {
+  const response = await fetchPage(key);
+  if (keepable(response) && (await keptFiles(response))) await keepPage(key, response);
 }
 
 sw.addEventListener("install", event => {
@@ -110,10 +132,15 @@ sw.addEventListener("activate", event => {
       }
       await sw.registration.navigationPreload?.enable();
       await sw.clients.claim();
-      // the shell in each language the open pages are in
-      for (const client of await sw.clients.matchAll({ type: "window" })) {
-        await keepShell(segmentOf(new URL(client.url).pathname)).catch(() => {});
+      /* the shell in each language the open pages are in, then each open page again: a request for each, never one for
+         every page the last build kept */
+      const open = (await sw.clients.matchAll({ type: "window" })).map(
+        client => new URL(client.url)
+      );
+      for (const segment of new Set(open.map(url => segmentOf(url.pathname)))) {
+        await keepShell(segment).catch(() => {});
       }
+      for (const key of new Set(open.map(pageKey))) await keepAgain(key).catch(() => {});
     })()
   );
 });
@@ -132,16 +159,8 @@ function answeredOffline(response: Response): Response {
 async function navigate(event: Fetching, url: URL): Promise<Response> {
   try {
     const response = (await event.preloadResponse) ?? (await fetch(event.request));
-    if (keepable(response)) {
-      const copy = response.clone();
-      event.waitUntil(
-        (async () => {
-          const pages = await caches.open(PAGES);
-          await pages.put(pageKey(url), copy);
-          await trim(pages, PAGES_KEPT);
-        })()
-      );
-    }
+    // the page's files are kept as it loads them
+    if (keepable(response)) event.waitUntil(keepPage(pageKey(url), response.clone()));
     if (response.ok) event.waitUntil(keepShell(segmentOf(url.pathname)).catch(() => {}));
     return response;
   } catch (error) {
