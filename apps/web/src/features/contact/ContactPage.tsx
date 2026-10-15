@@ -28,6 +28,10 @@ export function ContactPage() {
   const [busy, setBusy] = createSignal(false);
   /* the fields the check found wrong */
   const [wrong, setWrong] = createSignal<readonly string[]>([]);
+  /* the words follow what was typed: Solid writes a field's value again whenever another of its states changes (an
+     error shown), which would empty it */
+  const [email, setEmail] = createSignal("");
+  const [message, setMessage] = createSignal("");
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     if (busy()) return;
@@ -55,6 +59,8 @@ export function ContactPage() {
       await api("/api/contact", input.output);
       setSaid(t("Sent. Thanks."));
       form.reset();
+      setEmail("");
+      setMessage("");
     } catch (error) {
       setFailed(true);
       setSaid(shownError(error, UNSENT));
@@ -81,6 +87,8 @@ export function ContactPage() {
           inputmode="email"
           maxlength={EMAIL_MAX}
           placeholder={t("name@example.com")}
+          value={email()}
+          onInput={setEmail}
           invalid={wrong().includes("email")}
           help={
             wrong().includes("email")
@@ -95,6 +103,8 @@ export function ContactPage() {
           maxlength={MESSAGE_MAX}
           required
           placeholder={t("What happened")}
+          value={message()}
+          onInput={setMessage}
           invalid={wrong().includes("message")}
           help={wrong().includes("message") ? t("Write 5 to 5,000 characters.") : undefined}
         />
