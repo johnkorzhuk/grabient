@@ -93,7 +93,7 @@ test("the Worker's modules go up with their maps, and a reader is sent none", {
   tag: "@served"
 }, async ({ page, request }) => {
   // the build this project serves, as `cf deploy --prebuilt` uploads it: each map in the Worker's bundle goes up with
-  // the module that names it; Start's generated manifest is data with no source to map
+  // the module that names it; Start's generated manifest and the bundler's runtime helpers have no source to map
   const output = new URL("../.cloudflare/output/v0/workers/default/", import.meta.url);
   const bundle = new URL("bundle/", output);
   const files = readdirSync(bundle, { recursive: true }).map(String);
@@ -104,7 +104,12 @@ test("the Worker's modules go up with their maps, and a reader is sent none", {
       const code = readFileSync(new URL(file, bundle), "utf8").trimEnd();
       return !files.includes(`${file}.map`) || !code.endsWith(`//# sourceMappingURL=${name}.map`);
     });
-  expect(unmapped).toEqual([expect.stringMatching(/^assets\/_tanstack-start-manifest_v-/)]);
+  expect(unmapped).toContainEqual(expect.stringMatching(/^assets\/_tanstack-start-manifest_v-/));
+  expect(
+    unmapped.filter(
+      file => !/^assets\/(?:_tanstack-start-manifest_v-|rolldown-runtime-)/.test(file)
+    )
+  ).toEqual([]);
   const main = JSON.parse(readFileSync(new URL("index.js.map", bundle), "utf8"));
   expect(main.sources).toContainEqual(expect.stringMatching(/src\/server\/pipeline\.ts$/));
   // the files the site serves are the browser's, and none of them is a map
