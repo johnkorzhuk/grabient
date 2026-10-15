@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { beforeAll, describe, expect, it } from "vitest";
 import { planStatements } from "./build.ts";
 import type { Snapshot } from "./snapshot.ts";
-import { sinceLoad, stagingWork, type Work } from "./staging-work.ts";
+import { sinceLoad, stagingWork, type Work, workReport } from "./staging-work.ts";
 import {
   A,
   ALIASES,
@@ -333,6 +333,24 @@ describe("staging's work", () => {
     expect(
       one(`SELECT vote FROM k_collection_votes WHERE collection_id = 'c1' AND seed = '${A}'`)
     ).toEqual({ vote: 1 });
+  });
+
+  it("reports what it carries, the count a loaded copy waits on", () => {
+    const reported = workReport(work, new Map());
+    expect(reported).toMatchObject({
+      loadedAt: new Date(LOADED).toISOString(),
+      carried: 13,
+      likes: 2,
+      unlikes: 1,
+      likesChangedLaterElsewhere: 1
+    });
+    expect(reported.collections.map(c => [c.address ?? c.id, c.change, c.stands])).toEqual([
+      ["@john/staging-picks", "made", "staging"],
+      ["@john/warm-sunsets", "changed", "staging"],
+      ["@john/greens", "changed", "grabient-lite"],
+      ["c6", "deleted", "staging"],
+      ["warm-sunsets", "changed", "staging"]
+    ]);
   });
 
   it("makes every count whole again after it", () => {
