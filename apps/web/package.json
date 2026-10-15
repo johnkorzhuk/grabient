@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build --mode staging",
+    "budget": "node scripts/budget.ts",
     "typecheck": "tsc -p .",
     "e2e": "playwright test -c e2e",
     "db:setup": "node scripts/d1.ts setup",
