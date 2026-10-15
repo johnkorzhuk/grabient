@@ -297,6 +297,33 @@ describe("an old grabient.com link", () => {
     expect(asked).toEqual([]);
   });
 
+  test("its old share card leads to the fitted palette's card at its view, kept by the seed and the view alone", async () => {
+    const card = `/api/og?seed=${FITTED.slice(1)}&v=k4&style=angularGradient`;
+    const answers = [
+      await get(`/api/og?seed=${OLD.slice(1)}&v=16&style=angularGradient`),
+      await get(`/api/og?style=angularGradient&junk=1&seed=${OLD.slice(1)}`)
+    ];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, card, "public, max-age=86400", "MISS"],
+      [301, card, "public, max-age=86400", "HIT"]
+    ]);
+    expect([asked, [...cache.kept.keys()]]).toEqual([
+      [],
+      [`https://grabient.test/api/og?__build=b1&seed=${OLD.slice(1)}&style=angularGradient`]
+    ]);
+    // the card of an old seed a map holds is drawn by its route
+    const png = () => new Response("png", { headers: { ...PAGE, "Content-Type": "image/png" } });
+    await get("/api/og?seed=_gQxgJrgI8f-cgENf8Gf3_f5vf1hgBDf-wgBu&v=16", {}, png);
+    expect(asked).toHaveLength(1);
+  });
+
   test("one the Worker will not fit is the app's to answer, whose page the reader's browser fits", async () => {
     // the site's day of fits is spent
     const spent = {

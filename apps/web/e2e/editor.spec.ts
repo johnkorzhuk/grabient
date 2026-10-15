@@ -588,6 +588,19 @@ test("an old link no map holds lands on its palette with no JavaScript, by a red
   expect(html).toMatch(/<h1 dir="auto">[^<]+<\/h1>/);
 });
 
+test("the share card an old page named leads to its palette's card", {
+  tag: "@served"
+}, async ({ request }) => {
+  const card = `/api/og?seed=${OLD.slice(1).replace("?", "&v=16&")}`;
+  const moved = await request.get(card, { maxRedirects: 0 });
+  expect([moved.status(), addressOf(moved.headers().location ?? "")]).toEqual([
+    301,
+    `/api/og?seed=${FITTED.slice(1).replace("?", "&v=k4&")}`
+  ]);
+  const drawn = await request.get(card);
+  expect([drawn.status(), drawn.headers()["content-type"]]).toEqual([200, "image/png"]);
+});
+
 test("an old link the Worker does not fit is fitted in the browser, and its address becomes the palette's", async ({
   page,
   request

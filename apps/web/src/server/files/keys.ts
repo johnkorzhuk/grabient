@@ -10,6 +10,7 @@ import { CARD_VERSION, DEFAULT_SEED } from "../../lib/page-meta.ts";
 import { listWords } from "../../lib/words.ts";
 import { montageOrder, montagePicks, picksKey, pictureWords } from "../images/montages.ts";
 import { CARD, cardSize, montageSize, pictureSize } from "../images/size.ts";
+import { oldFit } from "../seo/legacy-fit.ts";
 import { addressParams, fileName, viewAt } from "./address.ts";
 import { svgSize } from "./palette-files.ts";
 import { resolvePalette } from "./resolve.ts";
@@ -109,8 +110,13 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   const file = namedFile(path, params);
   if (!file) return null;
   const found = resolvePalette(file.name);
-  // A name that is no palette is a collection's file, which reads no query, or no file at all.
-  if (!found) return { path, query: new URLSearchParams(), acrossBuilds: false };
+  /* A name that is no palette is a collection's file, which reads no query, or no file at all, but an old seed no map
+     holds: its card is the fit's redirect, which the seed and the view decide (seo/legacy-fit.ts). */
+  if (!found) {
+    const old = file.format === "og" ? oldFit(path, search) : null;
+    const query = new URLSearchParams(old ? viewSearch(old.view, [`seed=${old.seed}`]) : "");
+    return { path, query, acrossBuilds: false };
+  }
   const { seed, palette } = found;
   if (file.format === "old") return picture("/api/og", new URLSearchParams({ seed }), CARD);
   const view = viewAt(params, palette.anchors.length);
