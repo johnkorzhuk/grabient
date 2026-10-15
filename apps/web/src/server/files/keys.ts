@@ -110,8 +110,8 @@ export function fileCacheKey(path: string, search: URLSearchParams): FileKey | n
   const file = namedFile(path, params);
   if (!file) return null;
   const found = resolvePalette(file.name);
-  /* A name that is no palette is a collection's file, which reads no query, or no file at all, but an old seed no map
-     holds: its card is the fit's redirect, which the seed and the view decide (seo/legacy-fit.ts). */
+  /* A name that is no palette is a collection's file, which reads no query, or no file at all. An old seed no map holds
+     names a card the Worker fits, whose redirect the seed and the view decide (seo/legacy-fit.ts). */
   if (!found) {
     const old = file.format === "og" ? oldFit(path, search) : null;
     const query = new URLSearchParams(old ? viewSearch(old.view, [`seed=${old.seed}`]) : "");
