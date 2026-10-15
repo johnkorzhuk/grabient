@@ -193,7 +193,8 @@ export function CollectHead(props: {
             <button
               ref={back}
               type="button"
-              class={[styles.make, { [joined.start!]: ended() }]}
+              class={styles.make}
+              data-joined={ended() ? "" : undefined}
               data-flush={props.onClose ? undefined : ""}
               data-small={props.small ? "" : undefined}
               data-over={props.over ? "" : undefined}
@@ -213,7 +214,8 @@ export function CollectHead(props: {
               named = true;
               setTimeout(() => el.focus({ preventScroll: true }), 0);
             }}
-            class={[styles.make, styles.field, joined.start]}
+            class={[styles.make, styles.field]}
+            data-joined=""
             data-flush={props.onClose ? undefined : ""}
             data-small={props.small ? "" : undefined}
             data-over={props.over ? "" : undefined}

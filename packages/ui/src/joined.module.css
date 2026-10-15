@@ -39,10 +39,12 @@
     appearance: none;
     border: 1px solid var(--color-edge2);
     border-inline-start-width: 0;
+    /* a size sets the corners' radius alone; which corners take it standing apart and a hung list decide */
+    --corner: var(--radius-control);
     border-start-start-radius: 0;
     border-end-start-radius: 0;
-    border-start-end-radius: var(--radius-control);
-    border-end-end-radius: var(--radius-control);
+    border-start-end-radius: var(--corner);
+    border-end-end-radius: var(--corner);
     background-color: var(--color-paper-solid);
     color: var(--color-ink3);
     cursor: pointer;
@@ -62,7 +64,7 @@
     /* standing apart, beside what it acts on, with its own edge all round */
     &[data-apart] {
       border-inline-start-width: 1px;
-      border-radius: var(--radius-control);
+      border-radius: var(--corner);
     }
     /* a list hangs joined under the pair: the lower corners give way, and their edge is the line over it */
     &[data-over] {
@@ -87,10 +89,9 @@
     }
     /* over a card's picture the pair takes the small press's height and corners */
     &[data-size="sm"] {
+      --corner: var(--radius-tight);
       width: var(--size-control-sm);
       height: var(--size-control-sm);
-      border-start-end-radius: var(--radius-tight);
-      border-end-end-radius: var(--radius-tight);
       outline-offset: -4px;
       @media (pointer: coarse) {
         width: var(--size-touch);

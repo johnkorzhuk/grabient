@@ -456,6 +456,47 @@ test("a pick leaves each of the account's collections where the checklist drew i
   await expect(rows).toHaveText([/^My blues/, /^Warm evenings/]);
 });
 
+test("Add to collection open over a card is one piece: square where its parts meet, round at its outer corners", async ({
+  page
+}) => {
+  await signIn(page, "ada", false, [blues]);
+  await page.goto("/palettes");
+  await hydrated(page);
+  // the account's copy has heard from the server, so the checklist names its collections
+  await page.waitForLoadState("networkidle");
+  const card = page.locator("main article").first();
+  await card.getByRole("button", { name: "Add to selection" }).focus();
+  await page.keyboard.press("Enter");
+  await card.getByRole("button", { name: "Add to collection" }).click();
+  const list = page.getByRole("dialog", { name: "Add to collection" });
+  await expect(list.getByRole("button", { name: /My blues/ })).toBeVisible();
+  /* each corner in the order start-start, start-end, end-end, end-start: round, or square */
+  const corners = (part: Locator) =>
+    part.evaluate(el => {
+      const s = getComputedStyle(el);
+      return [
+        s.borderStartStartRadius,
+        s.borderStartEndRadius,
+        s.borderEndEndRadius,
+        s.borderEndStartRadius
+      ].map(radius => (radius === "0px" ? "square" : "round"));
+    });
+  // New collection meets the close press at its end and the list under it
+  expect(await corners(list.getByRole("button", { name: "New collection" }))).toEqual([
+    "round",
+    "square",
+    "square",
+    "square"
+  ]);
+  // the close press meets New collection at its start and the list under it
+  expect(await corners(list.getByRole("button", { name: "Close" }))).toEqual([
+    "square",
+    "round",
+    "square",
+    "square"
+  ]);
+});
+
 test("a crawler's search of the collections whose words were read in part is kept by no cache", async ({
   request
 }) => {
