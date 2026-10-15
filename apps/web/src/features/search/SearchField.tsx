@@ -31,6 +31,8 @@ export function SearchField(props: {
   const id = createUniqueId();
   let input!: HTMLInputElement;
   let picker!: HTMLInputElement;
+  let image: HTMLButtonElement | undefined;
+  let clearer!: HTMLButtonElement;
   let composing = false;
   const filled = () => (props.value ?? "") !== "";
   const clearable = () => filled() && !props.disabled;
@@ -42,6 +44,10 @@ export function SearchField(props: {
       if (!composing && input.value !== words) input.value = words;
     }
   );
+  /* the picture press gives its place to Clear once its picture's colors fill the field, and its focus with it */
+  createEffect(filled, now => {
+    if (now && image && document.activeElement === image) clearer.focus();
+  });
 
   const clear = () => {
     input.value = "";
@@ -130,7 +136,7 @@ export function SearchField(props: {
             {/* offline it keeps its place, dimmed with the field, since reading a picture leads to a search */}
             <button
               type="button"
-              ref={tooltip(() => t("Search by image"))}
+              ref={[el => (image = el), tooltip(() => t("Search by image"))]}
               class={styles.press}
               data-idle={filled() ? "" : undefined}
               aria-label={t("Search by image")}
@@ -143,6 +149,7 @@ export function SearchField(props: {
             </button>
           </Show>
           <button
+            ref={clearer}
             type="button"
             class={styles.press}
             data-idle={clearable() ? undefined : ""}
