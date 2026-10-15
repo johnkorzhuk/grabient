@@ -32,6 +32,7 @@ import {
   uncachedPath
 } from "./paths.ts";
 import { countLegacy } from "./seo/legacy.ts";
+import { fittedRedirect, oldFit } from "./seo/legacy-fit.ts";
 import { indexed, NOINDEX } from "./seo/site.ts";
 
 /* The Worker's pipeline around the app, in this order:
@@ -41,8 +42,9 @@ import { indexed, NOINDEX } from "./seo/site.ts";
       (404), and an arrival's language (302, before any cache, so the English answer stays shared).
    4. The canonical address, from the rules features add (canonical.ts): 301.
    5. An address of the MCP server or the authorization server is the app's to answer as it stands. A private one is
-      answered directly and never kept; every other GET goes through the edge cache. A list, a search or the home that
-      no cache holds reads the database or runs the search: an address may make sixty of those a minute.
+      answered directly and never kept; every other GET goes through the edge cache. An old link no map holds is
+      answered there with its fit (seo/legacy-fit.ts). A list, a search or the home that no cache holds reads the
+      database or runs the search: an address may make sixty of those a minute.
    6. The headers every answer carries.
    Everything after step 3 reads the path without the language, and every address handed out gets it back. */
 
@@ -174,6 +176,15 @@ async function route(
   if (connectPath(path)) return app(request);
   if (privatePath(path)) return withHeaders(await answer(request, app), NO_STORE);
   countFile(env, request, path);
+  // an old link the Worker does not fit is the app's to answer, whose page the reader's browser fits; under `vite dev`
+  // nothing is kept
+  const old = read ? oldFit(path, url.searchParams) : null;
+  if (old) {
+    const fit = async () => (await fittedRedirect(env, request, old, at)) ?? answer(request, app);
+    return env.DEPLOYMENT === "development"
+      ? fit()
+      : edgeCached(request, cacheKey(url, path, locale), ctx, fit);
+  }
   // under `vite dev` nothing is kept or counted: a page kept from before an edit would hydrate against the edited code
   if (!read || env.DEPLOYMENT === "development") return answer(request, app);
   const render = async () =>

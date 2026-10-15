@@ -257,11 +257,62 @@ describe("an old grabient.com link", () => {
     expect(checked).toBeGreaterThan(6000);
   });
 
-  test("an old id no map holds is its own page, for the reader's browser to fit", async () => {
-    const response = await get("/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa");
-    expect(response.status).toBe(200);
-    expect(asked).toHaveLength(1);
-    expect(counted).toEqual(["legacy fitted reader"]);
+  const OLD = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa";
+  const FITTED = "/kYq5wTxGc3MlDuPtT7O58281NAs8";
+
+  test("an old seed no map holds leads to the palette its colors fit, at its view, by a redirect the edge keeps", async () => {
+    const crawler = { headers: { "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1)" } };
+    const answers = [
+      await get(`${OLD}?style=angularGradient`),
+      await get(`${OLD}?style=angularGradient`, crawler)
+    ];
+    expect(
+      answers.map(response => [
+        response.status,
+        location(response),
+        response.headers.get("Cache-Control"),
+        response.headers.get("X-Grabient-Cache")
+      ])
+    ).toEqual([
+      [301, `${FITTED}?style=angularGradient`, "public, max-age=86400", "MISS"],
+      [301, `${FITTED}?style=angularGradient`, "public, max-age=86400", "HIT"]
+    ]);
+    expect([asked, [...cache.kept.keys()]]).toEqual([
+      [],
+      [`https://grabient.test${OLD}?__build=b1&style=angularGradient`]
+    ]);
+    expect(counted).toEqual(["legacy fitted reader", "legacy fitted crawler"]);
+  });
+
+  test("in the request's language, from the one address of its seed and view", async () => {
+    const japanese = await get(`/ja${OLD}`);
+    expect([japanese.status, location(japanese)]).toEqual([301, `/ja${FITTED}`]);
+    // its editor's address, and a query its page does not read, lead first to that address, which no cache keeps
+    const edit = await get(`${OLD}/edit?page=2&angle=90&steps=5`);
+    expect([edit.status, location(edit), edit.headers.get("Cache-Control")]).toEqual([
+      301,
+      `${OLD}?steps=5`,
+      "no-store"
+    ]);
+    expect(asked).toEqual([]);
+  });
+
+  test("one the Worker will not fit is the app's to answer, whose page the reader's browser fits", async () => {
+    // the site's day of fits is spent
+    const spent = {
+      idFromName: (name: string) => name,
+      get: () => ({
+        fetch: async () =>
+          Response.json(
+            { success: false, limit: 1, remaining: 0, reset: Date.now() / 1000 + 60, results: [] },
+            { status: 429 }
+          )
+      })
+    };
+    const worker = { ...env, RATE_LIMITER: spent } as unknown as Env;
+    const response = await get(OLD, {}, () => page(404), worker);
+    expect([response.status, asked.length, cache.kept.size]).toEqual([404, 1, 0]);
+    expect(counted).toEqual(["legacy fitted reader", "limit oldLinkFitDaily site"]);
   });
 });
 

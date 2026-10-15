@@ -8,10 +8,11 @@ import { devices, expect, type Page, type Route, test } from "@playwright/test";
 test.describe.configure({ timeout: 60_000 });
 
 const SEED = "kS7CQ31Do6asvY-";
-const here = (page: Page) => {
-  const url = new URL(page.url());
+const addressOf = (href: string) => {
+  const url = new URL(href);
   return url.pathname + url.search;
 };
+const here = (page: Page) => addressOf(page.url());
 const entries = (page: Page) => page.evaluate(() => history.length);
 
 /** Opens a palette's page and waits for the editor to stand where the static page was. */
@@ -561,16 +562,49 @@ test("the header's bar carries the palette from the server's render", async ({ r
   expect(header).toContain(first);
 });
 
-test("an old link no map holds is fitted in the browser, and its address becomes the palette's", async ({
+const OLD = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?style=angularGradient";
+const FITTED = "/kYq5wTxGc3MlDuPtT7O58281NAs8?style=angularGradient";
+
+test("an old link no map holds lands on its palette with no JavaScript, by a redirect the edge keeps", {
+  tag: "@served"
+}, async ({ request }) => {
+  const asked = () => request.get(OLD, { maxRedirects: 0 });
+  const moved = [await asked(), await asked()];
+  expect(
+    moved.map(answer => [
+      answer.status(),
+      addressOf(answer.headers().location ?? ""),
+      answer.headers()["cache-control"],
+      answer.headers()["x-grabient-cache"]
+    ])
+  ).toEqual([
+    [301, FITTED, "public, max-age=86400", "MISS"],
+    [301, FITTED, "public, max-age=86400", "HIT"]
+  ]);
+  const landed = await request.get(OLD);
+  expect([landed.status(), addressOf(landed.url())]).toEqual([200, FITTED]);
+  const html = await landed.text();
+  expect(html).toContain('class="palette-static"');
+  expect(html).toMatch(/<h1 dir="auto">[^<]+<\/h1>/);
+});
+
+test("an old link the Worker does not fit is fitted in the browser, and its address becomes the palette's", async ({
   page,
   request
 }) => {
-  const old = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?style=angularGradient";
-  // the server never fits one: to a crawler it is no page
-  expect((await request.get(old, { maxRedirects: 0 })).status()).toBe(404);
-  await page.goto(old);
+  // past its address's minute of fits an old link is the app's page, which the browser fits; vite dev keeps no answer
+  const from = {
+    "CF-Connecting-IP": `2001:db8:${Math.floor(Math.random() * 0xffff).toString(16)}::1`
+  };
+  let status = 301;
+  for (let tries = 0; status === 301 && tries < 200; tries++) {
+    status = (await request.get(OLD, { headers: from, maxRedirects: 0 })).status();
+  }
+  expect(status).toBe(404);
+  await page.setExtraHTTPHeaders(from);
+  await page.goto(OLD);
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
-  expect(here(page)).toBe("/kYq5wTxGc3MlDuPtT7O58281NAs8?style=angularGradient");
+  expect(here(page)).toBe(FITTED);
 });
 
 test("an old id nobody can read is a page not found, never a page named by the id", async ({

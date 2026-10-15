@@ -83,9 +83,9 @@ gray or near gray carries the running hue, so black, white or an off-white never
 ## Old links
 
 Old grabient.com addresses hold `_` seeds, cosine palettes read bit for bit as the original engine read them, or
-lz-string ids that grabient.com answered with their `_` form (`legacy.ts`). A request resolves them only through the
-migration maps (`legacyTarget`). A link the maps miss is fitted to keyframes in the visitor's browser
-(`legacy-import.ts`, the only module that loads the fitter).
+lz-string ids that grabient.com answered with their `_` form (`legacy.ts`). The migration maps resolve them first
+(`legacyTarget`). A link the maps miss is fitted to keyframes (`legacy-import.ts`, the only module that loads the
+fitter): by the Worker within a budget of the fit's work, else in the visitor's browser. Both give the same seed.
 
 ## Modules
 

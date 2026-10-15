@@ -21,6 +21,12 @@ export const FILE = {
   "Cache-Control": "public, max-age=2592000",
   "CDN-Cache-Control": "max-age=604800"
 } as const;
+/** Where an old link no map holds leads, which its fit decides for good: a month at the edge, and a day in the
+    browser, so a map that comes to hold the link leads there within the day. */
+export const FITTED = {
+  "Cache-Control": "public, max-age=86400",
+  "CDN-Cache-Control": "max-age=2592000"
+} as const;
 /** Text for agents and crawlers (robots.txt, llms.txt, Markdown). */
 export const TEXT = {
   "Cache-Control": "public, max-age=3600",
