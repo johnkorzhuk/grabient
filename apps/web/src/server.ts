@@ -9,7 +9,6 @@ import {
   defineHandlerCallback
 } from "@tanstack/solid-start/server";
 import { NO_STORE } from "./lib/cache.ts";
-import { JOBS } from "./server/jobs.ts";
 import { handle } from "./server/pipeline.ts";
 
 export { RateLimiter } from "@grabient/server/limits/rate-limiter.ts";
@@ -82,6 +81,8 @@ const start = createStartHandler(
 export default {
   fetch: (request, env, ctx) => handle(request, env, ctx, async request => start(request)),
   async scheduled(controller, env) {
+    // the jobs' steps load with a trigger's run: an isolate that answers requests never needs them
+    const { JOBS } = await import("./server/jobs.ts");
     const job = JOBS[controller.cron];
     if (!job) throw new Error(`No job runs on the schedule ${controller.cron}`);
     await job(env);
