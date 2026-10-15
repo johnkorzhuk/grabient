@@ -73,7 +73,7 @@ export function CollectionGroup<T>(props: {
               onPointerEnter={() => props.onIntent?.()}
               onFocus={() => props.onIntent?.()}
             >
-              {props.title}
+              <span class={styles.words}>{props.title}</span>
             </a>
           </Show>
         </Text>

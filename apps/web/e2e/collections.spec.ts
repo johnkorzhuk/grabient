@@ -31,7 +31,7 @@ const summary = {
   ]
 };
 /** Rising's first page, holding the one collection. */
-const rising = (route: Route) =>
+const risingWith = (collection: object) => (route: Route) =>
   route.fulfill({
     json: {
       query: "",
@@ -41,9 +41,10 @@ const rising = (route: Route) =>
       total: 1,
       totalPages: 1,
       fetchedAt: Date.now(),
-      items: [summary]
+      items: [collection]
     }
   });
+const rising = risingWith(summary);
 
 /** A private collection of the account's own, as its copy holds it. */
 const blues = {
@@ -874,9 +875,14 @@ test("a collection's words edited by keyboard take the focus into the title and 
 test("a collection's title in a list, cut short at its line's end, shows its whole ring to the keyboard", async ({
   page
 }) => {
+  const long = {
+    ...summary,
+    title:
+      "End to end gradients, a collection whose title keeps going well past the end of its line on any screen at all, so it is cut"
+  };
   await page.route(
     url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
-    rising
+    risingWith(long)
   );
   await page.goto("/collections");
   await hydrated(page);
@@ -887,6 +893,23 @@ test("a collection's title in a list, cut short at its line's end, shows its who
   await page.keyboard.press("Tab");
   await expect(title).toBeFocused();
   await expect(title).toHaveCSS("outline-width", "1px");
+  // the title is cut short, inside the link: the first box its words run past is the link's own, so its ring stands
+  // around the words that show
+  expect(
+    await title.evaluate(link => {
+      const text = document.createTreeWalker(link, NodeFilter.SHOW_TEXT).nextNode()!;
+      const words = document.createRange();
+      words.selectNodeContents(text);
+      const end = words.getBoundingClientRect().right;
+      for (let box = text.parentElement; box; box = box.parentElement)
+        if (
+          getComputedStyle(box).overflowX !== "visible" &&
+          end > box.getBoundingClientRect().right + 1
+        )
+          return link.contains(box);
+      return false;
+    })
+  ).toBe(true);
   // the ring stands past the link by its offset and width; no box around it may cut it
   const cut = await title.evaluate(link => {
     const own = getComputedStyle(link);

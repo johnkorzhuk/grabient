@@ -16,8 +16,12 @@
     min-width: 0;
     min-height: var(--size-control-big);
   }
-  /* the title is the link: a faint underline fades in under the pointer, and a ring shows for the keyboard */
+  /* the title is the link: a faint underline fades in under the pointer, and a ring shows for the keyboard. Its words
+     are cut inside it, so a title cut short at the line's end keeps the ring around the words that show */
   .title {
+    display: inline-flex;
+    max-width: 100%;
+    vertical-align: top;
     color: var(--color-ink);
     text-decoration-line: underline;
     text-decoration-thickness: 2px;
@@ -33,6 +37,9 @@
     &:focus-visible {
       outline-width: 1px;
     }
+  }
+  .words {
+    composes: cut from "./Text.module.css";
   }
   .facts {
     display: flex;
