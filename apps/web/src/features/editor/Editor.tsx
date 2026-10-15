@@ -99,7 +99,7 @@ const SaveSelection = lazy(() => import("./Collect.tsx").then(m => ({ default: m
 const PLOT_FLOW = 132;
 const PLOT_LEAST = 96;
 const PLOT_MOST = 220;
-/* how soon after a press that turned the palette its new name is that press's to say: an undo of the page lands later */
+/* how soon after a press that turned the palette its new name is the press's to say: a page's undo lands later */
 const TURN_SAID_MS = 1500;
 /* a field typed in on a touch screen: how far down the window it may stand and be over any keyboard, the room the side
    gives its rows to rise there (more than any keyboard is tall), and the least a row keeps under the side's top */
@@ -182,7 +182,7 @@ export default function Editor(props: { data: PaletteData }) {
       </Loading>
     )
   });
-  /* the side put away by its key with the keyboard in it: the keyboard goes to the header's press that brings it back */
+  /* the side put away by its key with the keyboard in it: the keyboard goes to the header's press to bring it back */
   const togglePanel = () =>
     keepKeyboard(panel.toggle, () =>
       document.querySelector<HTMLElement>(`button[aria-label="${CSS.escape(t("Show panel"))}"]`)

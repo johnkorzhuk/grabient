@@ -22,8 +22,8 @@ import {
 
 export { CAM0, type Cam };
 
-/* The color solid, live: the scene on a canvas. A drag turns it, and so does a press elsewhere on the scene, a step at a
-   time, which needs no drag; resting on the parked solid in the corner flies it home, and a click (a tap) keeps it
+/* The color solid, live: the scene on a canvas. A drag turns it, and so does a press elsewhere on the scene, a step at
+   a time, which needs no drag; resting on the parked solid in the corner flies it home, and a click (a tap) keeps it
    there. A finger that starts sideways orbits and one that starts up or down scrolls the page, since on a phone the
    scene is a third of the sheet. A press on the path holds the keyframe nearest it (Shift extends, Ctrl or Cmd adds, a
    finger's long press adds), a press that runs along it takes the run between, and the scene never turns meanwhile.

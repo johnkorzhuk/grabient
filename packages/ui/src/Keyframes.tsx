@@ -15,12 +15,13 @@ export type PickMode = "one" | "only" | "range" | "toggle";
 export const pickModeOf = (e: MouseEvent | KeyboardEvent): PickMode =>
   e.shiftKey ? "range" : e.metaKey || e.ctrlKey ? "toggle" : "one";
 
-/* The keyframes at the head of the panel: a chip each in its own color, the held ones ringed in ink, the one the numbers
-   read carrying a caret, and at the end the count between the presses that change it. A click holds one alone, Shift
-   extends, Ctrl or Cmd adds, and a press that sweeps across the chips holds the run it crossed. A finger's tap is the
-   click, its long press Ctrl or Cmd, its slide along the row the sweep, and up or down it scrolls the page holding
+/* The keyframes at the head of the panel: a chip each in its own color, the held ones ringed in ink, the one the
+   numbers read carrying a caret, and at the end the count between the presses that change it. A click holds one alone,
+   Shift extends, Ctrl or Cmd adds, and a press that sweeps across the chips holds the run it crossed. A finger's tap is
+   the click, its long press Ctrl or Cmd, its slide along the row the sweep, and up or down it scrolls the page holding
    nothing. The arrows, Home and End hold the chip they reach, Shift extends, and with Ctrl or Cmd they only move, for
-   Ctrl or Cmd with Space or Enter to add the chip reached or let it go. Left to right in every language, as the palette and the arrows run. */
+   Ctrl or Cmd with Space or Enter to add the chip reached or let it go. Left to right in every language, as the palette
+   and the arrows run. */
 export function Keyframes(props: {
   /** one per keyframe: its hex, and the wider paint where the screen shows it */
   stops: readonly { hex: string; paint?: string }[];

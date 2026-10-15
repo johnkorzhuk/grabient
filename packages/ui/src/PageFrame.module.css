@@ -35,8 +35,8 @@
   .page[data-login][data-noted] > .frame {
     --foot: calc(var(--size-touch) + var(--space-s6) + var(--space-s4) + var(--space-s8));
   }
-  /* sign-in's words stand on the water, with a frost too faint to count in the dark sheet: its labels take the secondary
-     ink, so they keep 4.5:1 whatever the water shows */
+  /* sign-in's words stand on the water, with a frost too faint to count in the dark sheet: its labels take the
+     secondary ink, so they keep 4.5:1 whatever the water shows */
   .page[data-login] {
     --color-ink3: var(--color-ink2);
   }

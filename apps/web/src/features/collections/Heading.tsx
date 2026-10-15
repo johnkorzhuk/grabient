@@ -18,12 +18,12 @@ import { ownerLabel } from "./drawing.ts";
 import { DESCRIPTION_MAX, TITLE_MAX } from "./schema.ts";
 import type { CollectionDocument, CopyStanding } from "./types.ts";
 
-/* A collection's heading: its title, with the description as the title's tooltip and in a paragraph for a screen
-   reader (the title takes the keyboard's focus and a tap to show it, as the age does its date), then the byline: Private, who made it (or, on the owner's saved copy, where it was saved from, whose colors
-   open under the pointer), its age and how many palettes it holds. The owner of an account's collection edits its
-   words here: the title and the description take the heading's place, Enter saves and Escape lets them be. The
-   keyboard goes into the title as they open and back to Edit as they close, and the title stays the page's heading
-   for a reader who listens. */
+/* A collection's heading: its title, with the description as the title's tooltip and in a paragraph for a screen reader
+   (the title takes the keyboard's focus and a tap to show it, as the age does its date), then the byline: Private, who
+   made it (or, on the owner's saved copy, where it was saved from, whose colors open under the pointer), its age and
+   how many palettes it holds. The owner of an account's collection edits its words here: the title and the description
+   take the heading's place, Enter saves and Escape lets them be. The keyboard goes into the title as they open and back
+   to Edit as they close, and the title stays the page's heading for a reader who listens. */
 
 export function Heading(props: {
   doc: CollectionDocument;

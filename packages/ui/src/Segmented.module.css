@@ -59,8 +59,8 @@
     &:focus-visible {
       outline-width: 1px;
     }
-    /* the ring on the chosen one is drawn in its own label's ink: the ring's usual ink is the fill's. Forced colors take
-       the fill away, so the chosen one wears the system's own mark for what is chosen */
+    /* the ring on the chosen one is drawn in its own label's ink: the ring's usual ink is the fill's. Forced colors
+       take the fill away, so the chosen one wears the system's own mark for what is chosen */
     &[aria-checked="true"],
     &[aria-current="page"] {
       --fill: var(--color-ink);
