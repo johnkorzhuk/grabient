@@ -159,13 +159,17 @@ export function AccountMenu(props: {
     ];
   };
   /* a press on Language keeps the menu open on the languages; any other close puts the account's rows back, and the
-     keyboard on the button if it was in the menu */
+     keyboard on the button if it was in the menu. A row that leads to another page leaves the keyboard to the page it
+     lands on, as a link does */
+  let leaving = false;
   const close = () => {
     if (keep) {
       keep = false;
       return;
     }
-    const inside = host.contains(document.activeElement) && document.activeElement !== trigger;
+    const inside =
+      !leaving && host.contains(document.activeElement) && document.activeElement !== trigger;
+    leaving = false;
     setOpen(false);
     setChoosing(false);
     if (inside) trigger.focus({ preventScroll: true });
@@ -176,7 +180,10 @@ export function AccountMenu(props: {
       host.querySelector<HTMLElement>('[role="menu"] [data-value="language"]')?.focus()
     );
   };
-  const go = (to: string) => void router.navigate({ href: localHref(to) });
+  const go = (to: string) => {
+    leaving = true;
+    void router.navigate({ href: localHref(to) });
+  };
   /* the lists open in the reader's view, as the wordmark's home does, and a visitor's Collections in the order the
      reader chose last */
   const listed = (to: string) => {
