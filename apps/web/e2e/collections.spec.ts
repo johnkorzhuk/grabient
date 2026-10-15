@@ -372,6 +372,51 @@ test("a signed-in reader's one look at a public collection is counted once", asy
   expect(seen).toHaveLength(1);
 });
 
+test("Save on someone else's collection says it saved, the keyboard on the Saved link that takes its place", async ({
+  page
+}) => {
+  await signIn(page, "reader", false);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  const items = preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }));
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({ json: { ...words, items } })
+  );
+  const copy = {
+    ...words,
+    slug: "@e2e-reader/e2e-gradients",
+    visibility: "private",
+    owner: { kind: "user", name: "e2e-reader" },
+    items
+  };
+  await page.route(`**/api/collections/${SLUG}/copies`, route =>
+    route.fulfill({
+      json: {
+        collection: copy,
+        made: true,
+        copy: {
+          slug: copy.slug,
+          source: { slug: SLUG, title: summary.title, colors: [] },
+          behind: false,
+          differs: false
+        }
+      }
+    })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  await page.getByRole("button", { name: "Save", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("link", { name: "Saved", exact: true })).toBeFocused();
+  await expect(page.locator("main").getByRole("status")).toHaveText("Saved.");
+});
+
 test("each undo and redo of a pick says what it did, and a new collection goes back through the copy offline", async ({
   page
 }) => {

@@ -2,7 +2,7 @@ import { localHref, msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createEffect, createSignal, type Element, onSettled, Show } from "solid-js";
+import { createEffect, createSignal, type Element, flush, onSettled, Show } from "solid-js";
 import { offline } from "../../app/connection.ts";
 import { record } from "../../app/undo.ts";
 import type { Drawn } from "../../lib/palette.ts";
@@ -73,19 +73,28 @@ export function Actions(props: {
   };
 
   /* Save: the account's private copy, made once; signed out, the press leads to sign in and back. A copy made here is
-     a step of the page's undo, taken back while it is unchanged since */
+     a step of the page's undo, taken back while it is unchanged since. It says so, and the keyboard that pressed it
+     goes on to Saved, which stands in its place */
+  let row!: HTMLDivElement;
+  const savedName = () => t("Saved", { $context: "collection" });
   const [saving, setSaving] = createSignal(false);
   const save = async () => {
     if (!account()) {
       if (sessionReady()) location.assign(localHref(loginHref()));
       return;
     }
+    const pressed = row.contains(document.activeElement);
     setSaving(true);
     props.say("");
     try {
       const answer = await saveCopy(props.slug);
       props.onCopy(answer.copy);
       serverWrote();
+      props.say(t("Saved."));
+      if (pressed) {
+        flush();
+        row.querySelector<HTMLElement>(`a[aria-label="${CSS.escape(savedName())}"]`)?.focus();
+      }
       /* a copy the account held already, saved in another tab, is not this press's to take back */
       if (!answer.made) return;
       trackEvent("copy_collection", { slug: props.slug, copy: answer.collection.slug });
@@ -267,7 +276,7 @@ export function Actions(props: {
   );
 
   return (
-    <div class={styles.actions}>
+    <div ref={row} class={styles.actions}>
       {props.selection}
       <Button
         icon
@@ -288,6 +297,7 @@ export function Actions(props: {
             <Button
               icon
               size="lg"
+              keep
               aria-label={t(saving() ? msg("Saving…") : msg("Save"))}
               tip={t("Save")}
               disabled={
@@ -305,8 +315,8 @@ export function Actions(props: {
                 icon
                 size="lg"
                 href={localHref(collectionHref(held().slug))}
-                aria-label={t("Saved", { $context: "collection" })}
-                tip={t("Saved", { $context: "collection" })}
+                aria-label={savedName()}
+                tip={savedName()}
               >
                 <Icon name="bookmark" size={15} fill />
               </Button>
