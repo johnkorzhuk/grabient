@@ -25,6 +25,7 @@ export function CopyButton(props: {
 }) {
   const [copied, mark] = createDone();
   const done = () => props.state === "copied" || copied() !== null;
+  const label = () => (done() ? t("Copied") : (props["aria-label"] ?? t("Copy")));
   const copy = async () => {
     const text = props.text;
     props.onCopy?.(text);
@@ -37,12 +38,7 @@ export function CopyButton(props: {
     } else announce(t("Couldn't copy. Select the text and copy it."));
   };
   return (
-    <button
-      type="button"
-      class={styles.press}
-      aria-label={done() ? t("Copied") : (props["aria-label"] ?? t("Copy"))}
-      onClick={() => void copy()}
-    >
+    <button type="button" class={styles.press} aria-label={label()} onClick={() => void copy()}>
       <Icon name={done() ? "check" : "copy"} size={14} />
       <span class={styles.words} data-compact={props.compact ? "" : undefined} aria-hidden="true">
         <span class={styles.word} data-unseen={done() ? "" : undefined}>

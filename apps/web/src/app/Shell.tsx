@@ -56,6 +56,9 @@ import { createWater } from "./water.ts";
 const PAINTED = 8;
 const THEME = keyRow("theme")!;
 
+/** The header's word for a page with no connection. */
+const offlineStatus = () => (offline() ? t("Offline") : undefined);
+
 export function Shell() {
   const router = useRouter();
   const matches = useMatches();
@@ -186,7 +189,7 @@ export function Shell() {
               moves={!!page().options.moving}
               rule
               home={home()}
-              status={offline() ? t("Offline") : undefined}
+              status={offlineStatus()}
               barRef={el => {
                 bar = el;
               }}

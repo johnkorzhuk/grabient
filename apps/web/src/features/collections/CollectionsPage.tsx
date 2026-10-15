@@ -92,6 +92,9 @@ const INITIAL = 3;
 /* an own list not read yet: no page, and none to join */
 const UNREAD: Failed = { failed: "" };
 
+/** Why a palette stays where a person liked it: no curation takes it out. */
+const likedBlock = (deletable?: boolean) => (deletable ? undefined : t("Liked by someone"));
+
 export function CollectionsPage(props: {
   place: ListPlace;
   /** the server saw no session with the request: Saved draws the way in from its first paint */
@@ -298,7 +301,7 @@ export function CollectionsPage(props: {
             <Curation
               mode="delete"
               icon="trash"
-              blocked={deletable.of(seed()) ? undefined : t("Liked by someone")}
+              blocked={likedBlock(deletable.of(seed()))}
               stops={hexesOf(preview())}
               view={inputOf(preview())}
               onConfirm={result =>

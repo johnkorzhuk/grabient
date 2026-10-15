@@ -110,6 +110,9 @@ interface Removal {
   step: Step;
 }
 
+/** Why a palette stays where a person liked it: no curation takes it out. */
+const likedBlock = (deletable?: boolean) => (deletable ? undefined : t("Liked by someone"));
+
 export function CollectionPage(props: {
   slug: string;
   order: PaletteOrder;
@@ -808,9 +811,7 @@ export function CollectionPage(props: {
                                   <Curation
                                     mode="view"
                                     icon="sliders"
-                                    blocked={
-                                      deletable.of(seed()) ? undefined : t("Liked by someone")
-                                    }
+                                    blocked={likedBlock(deletable.of(seed()))}
                                     stops={hexesOf(inputOf(item()))}
                                     view={inputOf(item())}
                                     stopsAt={steps => hexesOf({ seed: seed(), steps })}
@@ -825,9 +826,7 @@ export function CollectionPage(props: {
                                   <Curation
                                     mode="delete"
                                     icon="trash"
-                                    blocked={
-                                      deletable.of(seed()) ? undefined : t("Liked by someone")
-                                    }
+                                    blocked={likedBlock(deletable.of(seed()))}
                                     stops={hexesOf(inputOf(item()))}
                                     view={inputOf(item())}
                                     onConfirm={result =>

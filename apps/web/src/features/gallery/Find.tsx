@@ -68,6 +68,9 @@ export interface FieldTool {
   words: string;
 }
 
+/** The row's word before its tags at rest: none while the field holds words. */
+const restingLead = (typed: string) => (typed.trim() ? undefined : t("Popular"));
+
 export function Find(props: {
   surface: Extract<SearchPage, "home" | "palettes">;
   placeholder: string;
@@ -100,7 +103,7 @@ export function Find(props: {
      connection, the ones that need the server disabled */
   const row = (shown: () => Suggested) => (
     <Tags
-      lead={typed().trim() ? undefined : t("Popular")}
+      lead={restingLead(typed())}
       tags={marked(
         shown().map(tag => ({
           label: tag.label,

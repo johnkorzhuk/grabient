@@ -38,6 +38,9 @@ const TOOL = {
   words: "Words such as ocean, retro or app background, or a Grabient palette link or seed."
 };
 
+/** The row's word before its tags at rest: none while the field holds words. */
+const restingLead = (typed: string) => (typed.trim() ? undefined : t("Popular"));
+
 export function Find(props: {
   place: ListPlace;
   /** the address that lists these words in the page's order and view; "" lets go of them */
@@ -172,7 +175,7 @@ export function Find(props: {
       <Errored fallback={() => <Tags tags={[]} />}>
         <Loading fallback={<Tags tags={[]} loading={!offline()} />}>
           <Tags
-            lead={typed().trim() ? undefined : t("Popular")}
+            lead={restingLead(typed())}
             tags={shown()}
             onPick={(tag, index) => tagPressed(tag, index, "collections")}
           />

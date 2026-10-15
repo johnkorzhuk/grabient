@@ -138,6 +138,10 @@ const copied = (work: Promise<void>): Promise<boolean> =>
     }
   );
 
+/** A card's name for a palette: what its colors are called in its view, else the word for one. */
+const sheetName = (seed: string, view: { style: Parameters<typeof seedName>[1]; steps: number }) =>
+  seedName(seed, view.style, view.steps, { t, locale: locale() }) || t("Palette");
+
 export function Sheet(props: {
   editor: PaletteEditor;
   rest: Rest;
@@ -359,10 +363,7 @@ export function Sheet(props: {
     return (
       <PaletteCard
         seed={seed()}
-        name={
-          seedName(seed(), palette().style, palette().steps, { t, locale: locale() }) ||
-          t("Palette")
-        }
+        name={sheetName(seed(), palette())}
         stops={hexesOf(palette())}
         style={palette().style}
         angle={palette().angle}

@@ -470,7 +470,7 @@ export function Palettes(props: { place: ListPlace }) {
           <div class={styles.list} aria-busy={updating() ? "true" : "false"}>
             <Show when={held() || made().length}>
               <Made
-                title={held() ? t("From your image") : t("From your colors")}
+                title={t(held() ? msg("From your image") : msg("From your colors"))}
                 items={made()}
                 picture={
                   <Show when={held()}>

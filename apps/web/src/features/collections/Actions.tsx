@@ -33,6 +33,9 @@ const TURNED_MS = 1800;
 /* a turn of who sees it that moved the collection: the page drawn anew at its new address says what the press did */
 const [carried, carry] = createDone<{ slug: string; to: Visibility }>(TURNED_MS);
 
+/** A press's name while it stands as itself: armed or at work, its own words name it. */
+const unarmed = (armed: boolean, name: string) => (armed ? undefined : t(name));
+
 export function Actions(props: {
   slug: string;
   doc: CollectionDocument;
@@ -322,7 +325,7 @@ export function Actions(props: {
               <Button
                 size="lg"
                 icon={!resetArmed() && !syncing()}
-                aria-label={resetArmed() || syncing() ? undefined : t("Reset")}
+                aria-label={unarmed(resetArmed() || !!syncing(), msg("Reset"))}
                 tip={t("Reset")}
                 disabled={!held().differs || !!syncing() || offline()}
                 onClick={() => void sync("reset")}
@@ -358,7 +361,7 @@ export function Actions(props: {
           size="lg"
           icon={!armed() && !deleting()}
           danger
-          aria-label={armed() || deleting() ? undefined : t("Delete collection")}
+          aria-label={unarmed(armed() || deleting(), msg("Delete collection"))}
           tip={t("Delete collection")}
           disabled={deleting() || (offline() && !ownsCollection(props.slug))}
           onClick={() => void remove()}
