@@ -56,19 +56,13 @@ interface Sample {
   family: string;
   lab: Triple;
 }
-/* the most chroma sRGB holds at each lightness and hue, on a grid of 0.02 by 5°, made once */
+/* the most chroma sRGB holds at each lightness and hue, on a grid of 0.02 by 5°: each cell measured the first time a
+   color falls beside it, so a page's first name measures a few cells rather than the whole grid */
 const GRID_L = 51;
 const GRID_H = 72;
 let gamut: Float32Array | null = null;
 function gamutChroma(L: number, H: number): number {
-  if (!gamut) {
-    gamut = new Float32Array(GRID_L * GRID_H);
-    for (let i = 0; i < GRID_L; i++) {
-      for (let j = 0; j < GRID_H; j++)
-        gamut[i * GRID_H + j] = fitChroma(i / (GRID_L - 1), 0.4, j * 5);
-    }
-  }
-  const g = gamut;
+  const g = (gamut ??= new Float32Array(GRID_L * GRID_H).fill(Number.NaN));
   const x = Math.min(GRID_L - 1, Math.max(0, L * (GRID_L - 1)));
   const y = onWheel(H) / 5;
   const i = Math.min(GRID_L - 2, Math.floor(x));
@@ -76,7 +70,11 @@ function gamutChroma(L: number, H: number): number {
   const fx = x - i;
   const fy = y - Math.floor(y);
   const k = (j + 1) % GRID_H;
-  const at = (a: number, b: number) => g[a * GRID_H + b];
+  const at = (a: number, b: number) => {
+    const cell = a * GRID_H + b;
+    if (Number.isNaN(g[cell])) g[cell] = fitChroma(a / (GRID_L - 1), 0.4, b * 5);
+    return g[cell];
+  };
   return (
     (at(i, j) * (1 - fx) + at(i + 1, j) * fx) * (1 - fy) +
     (at(i, k) * (1 - fx) + at(i + 1, k) * fx) * fy
