@@ -1,4 +1,4 @@
-import { devices, expect, type Page, type Route, test } from "@playwright/test";
+import { devices, expect, type Locator, type Page, type Route, test } from "@playwright/test";
 
 /* The editor at a palette's address: the static page the server sends, the editor the browser draws over it, the
    address that follows each edit in place, the undo the entry keeps, and what the page asks the server. */
@@ -967,39 +967,78 @@ test.describe("on a phone", () => {
     await expect(last).toBeInViewport({ ratio: 1 });
   });
 
-  test("two fingers spread on the panel's controls zoom the page and change nothing", async ({
+  test("two fingers spread on the panel's controls zoom the page and change nothing, on one control or two", async ({
     page
   }) => {
-    const controls = [
-      (p: Page) => p.getByRole("spinbutton", { name: "Chroma" }),
-      (p: Page) => p.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ }),
-      (p: Page) => p.locator('svg[role="img"][aria-label="Chroma"]'),
-      (p: Page) => p.getByRole("complementary", { name: "Editor" }).getByRole("listbox")
+    type Point = { x: number; y: number };
+    const box = async (control: Locator) => {
+      const at = await control.boundingBox();
+      if (!at) throw new Error("no control");
+      return at;
+    };
+    const middle = async (control: Locator): Promise<Point> => {
+      const at = await box(control);
+      return { x: at.x + at.width / 2, y: at.y + at.height / 2 };
+    };
+    const field = (name: string) => (p: Page) => p.getByRole("spinbutton", { name, exact: true });
+    const plot = (p: Page) => p.locator('svg[role="img"][aria-label="Chroma"]');
+    /* the control brought into view, and where the two fingers land: a little apart on one control, or on two that
+       stand side by side, or the Chroma field and the plot under it, the plot's finger sliding across it as they part */
+    const one =
+      (control: (p: Page) => Locator) =>
+      async (p: Page): Promise<[Point, Point]> => {
+        const at = await middle(control(p));
+        return [
+          { x: at.x - 16, y: at.y },
+          { x: at.x + 16, y: at.y }
+        ];
+      };
+    const chroma = (p: Page) => p.getByRole("spinbutton", { name: "Chroma" });
+    const start = (p: Page) => p.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ });
+    const pinches: [(p: Page) => Locator, (p: Page) => Promise<[Point, Point]>][] = [
+      [chroma, one(chroma)],
+      [start, one(start)],
+      [plot, one(plot)],
+      [
+        p => p.getByRole("complementary", { name: "Editor" }).getByRole("listbox"),
+        one(p => p.getByRole("complementary", { name: "Editor" }).getByRole("listbox"))
+      ],
+      [field("Hue"), async p => [await middle(field("Hue")(p)), await middle(field("Travel")(p))]],
+      [
+        plot,
+        async p => {
+          const at = await box(plot(p));
+          return [
+            { x: at.x + at.width * 0.4, y: at.y - 30 },
+            { x: at.x + at.width * 0.6, y: at.y + at.height / 2 }
+          ];
+        }
+      ]
     ];
-    for (const control of controls) {
+    for (const [shown, fingers] of pinches) {
       await open(page);
-      const target = control(page);
-      await target.evaluate(el => el.scrollIntoView({ block: "center" }));
-      const box = await target.boundingBox();
-      if (!box) throw new Error("no control");
+      await shown(page).evaluate(el => el.scrollIntoView({ block: "center" }));
+      const [a, b] = await fingers(page);
       const before = here(page);
       const fields = await page
         .getByRole("spinbutton")
         .evaluateAll(all => all.map(field => (field as HTMLInputElement).value));
-      // both fingers land at once, then move apart along the row
+      // both fingers land at once, then move apart along the line between them
       const cdp = await page.context().newCDPSession(page);
-      const x = box.x + box.width / 2;
-      const y = box.y + box.height / 2;
+      const span = Math.hypot(b.x - a.x, b.y - a.y);
+      const ux = (b.x - a.x) / span;
+      const uy = (b.y - a.y) / span;
       const at = (d: number) => [
-        { x: x - d, y, id: 1 },
-        { x: x + d, y, id: 2 }
+        { x: a.x - ux * d, y: a.y - uy * d, id: 1 },
+        { x: b.x + ux * d, y: b.y + uy * d, id: 2 }
       ];
-      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(16) });
-      for (let d = 22; d <= 100; d += 6)
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(0) });
+      for (let d = 6; d <= 84; d += 6)
         await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(d) });
       await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
       await expect.poll(() => page.evaluate(() => visualViewport?.scale ?? 1)).toBeGreaterThan(1.2);
-      expect(here(page)).toBe(before);
+      // what the fingers moved before the page took them goes back once they lift
+      await expect.poll(() => here(page)).toBe(before);
       expect(
         await page
           .getByRole("spinbutton")

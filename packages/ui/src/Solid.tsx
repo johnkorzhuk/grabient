@@ -47,6 +47,8 @@ export function Solid(props: {
   onSelect?: (i: number, mode: PickMode) => void;
   /** a press that went on along the path, from the keyframe it began at to the one nearest now */
   onSweep?: (from: number, to: number) => void;
+  /** a run the page took, for a scroll or a pinch's zoom: the keyframes held before it, to hold again */
+  onRestore?: (selection: readonly number[]) => void;
   height?: number;
   onHover?: (t: number | null) => void;
   /** the solid kept home by a click; the press that lets it go is the host's */
@@ -69,9 +71,16 @@ export function Solid(props: {
   /* the scene as drawn last: the path and the bay as they stand on screen, for a press to be judged against */
   let last: SceneResult | null = null;
   const pickable = () => !!(props.onSelect || props.onSweep);
-  /* a press that landed on the path: the keyframe it holds, how, and the run since (`to`, once `live`) */
-  let pick: { i: number; mode: PickMode; wasHeld: boolean; to: number; live: boolean } | null =
-    null;
+  /* a press that landed on the path: the keyframe it holds, how, and the run since (`to`, once `live`), with the hold
+     the run found */
+  let pick: {
+    i: number;
+    mode: PickMode;
+    wasHeld: boolean;
+    to: number;
+    live: boolean;
+    before?: readonly number[];
+  } | null = null;
   let hullK = 0;
   let hullTarget = 0;
   let hullHot = false;
@@ -311,6 +320,7 @@ export function Solid(props: {
         }
         if (pick.live && to !== pick.to) {
           pick.to = to;
+          pick.before ??= props.selection?.slice() ?? [];
           props.onSweep?.(pick.i, to);
         }
         hover = [on.x, on.y];
@@ -356,11 +366,13 @@ export function Solid(props: {
       paint();
     }
   };
-  /* the page took the finger for a scroll: no orbit, and no tap to keep the solid */
+  /* the page took the finger, for a scroll or a pinch's zoom: no orbit, no tap to keep the solid, and a run it swept
+     goes back */
   function letGo(id: number) {
     if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
     if (pick) {
       hold.cancel();
+      if (pick.before) props.onRestore?.(pick.before);
       pick = null;
     }
     pointer = null;

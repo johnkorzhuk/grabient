@@ -987,6 +987,7 @@ function Side(props: Omit<PageProps, "narrow"> & { narrow: boolean }) {
             lead={e.lead() >= 0 ? e.lead() : undefined}
             onPick={e.pick}
             onSweep={e.sweep}
+            onRestore={e.restore}
             min={K_MIN}
             max={K_MAX}
             onAdd={() => e.addKeyframe()}

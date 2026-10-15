@@ -66,6 +66,8 @@ export interface PlotProps {
   onPick: (i: number, mode: PickMode) => void;
   /** a keyframe dragged to a value on this axis, from the palette the drag began on */
   onNudge: (i: number, axis: Axis, value: number, from: Palette) => void;
+  /** a press the page took, for a scroll or a pinch's zoom: the keyframes held before it, to hold again */
+  onRestore?: (selection: readonly number[]) => void;
   /** nothing held, a drag on the line moves the whole palette along the axis: it begins, then how far it has gone in
       the axis's units, since it began and since the move before */
   onWholeStart?: () => void;
@@ -233,7 +235,7 @@ export function Plot(props: PlotProps) {
   /* a press that drags no value. A mouse's holds its keyframe as it lands; a finger's holds nothing until it lifts
      (`late`), since one that goes on to scroll was no press. One that goes on across the plot is a sweep and holds the
      run it reaches (`to`): a mouse's once it reaches another keyframe (`slop` null), a finger's once it has gone
-     `slop` sideways, which no scroll does */
+     `slop` sideways, which no scroll does. `before` is the hold the press found */
   let press: {
     i: number;
     pointer: number;
@@ -243,6 +245,7 @@ export function Plot(props: PlotProps) {
     late: boolean;
     slop: number | null;
     to: number;
+    before: readonly number[];
   } | null = null;
   const [band, setBand] = createSignal<readonly [number, number] | null>(null);
   /* nothing held, a drag on the line: the whole palette along this axis */
@@ -262,16 +265,30 @@ export function Plot(props: PlotProps) {
   const letGo = (e: PointerEvent) => {
     if (svg.hasPointerCapture(e.pointerId)) svg.releasePointerCapture(e.pointerId);
   };
-  /* a second finger is a pinch, the page's to zoom: whatever the first began lets go, a keyframe it dragged back where
-     it was */
+  /* the page took a pointer, for a scroll or a pinch's zoom, or the plot lost it: its press ends, a keyframe it dragged
+     going back to where it was and a run it swept to the hold before it */
+  const giveBack = (pointer: number) => {
+    if (svg.hasPointerCapture(pointer)) svg.releasePointerCapture(pointer);
+    if (press?.pointer === pointer) {
+      if (press.to >= 0) props.onRestore?.(press.before);
+      press = null;
+      setBand(null);
+    }
+    if (drag?.pointer === pointer) {
+      if (drag.moved) props.onNudge(drag.i, props.axis, drag.value, drag.from);
+      drag = null;
+      setFrozen(null);
+    }
+    if (all?.pointer === pointer) {
+      all = null;
+      setFrozen(null);
+    }
+  };
+  /* a second finger is a pinch, the page's to zoom: the first finger's press goes back */
   const pinched = (e: PointerEvent) => {
     const first = drag?.pointer ?? press?.pointer;
     if (e.pointerType !== "touch" || first === undefined || first === e.pointerId) return false;
-    if (svg.hasPointerCapture(first)) svg.releasePointerCapture(first);
-    if (drag?.moved) props.onNudge(drag.i, props.axis, drag.value, drag.from);
-    drag = press = null;
-    setBand(null);
-    setFrozen(null);
+    giveBack(first);
     return true;
   };
   const down = (e: PointerEvent) => {
@@ -327,7 +344,8 @@ export function Plot(props: PlotProps) {
       mode,
       late: finger,
       slop: finger ? SLOP : null,
-      to: -1
+      to: -1,
+      before: props.selection.slice()
     };
     if (finger) return;
     /* a mouse's sweep goes on past the plot's ends, and its release is heard wherever it is */
@@ -369,7 +387,8 @@ export function Plot(props: PlotProps) {
         mode: "one",
         late: false,
         slop: 4,
-        to: -1
+        to: -1,
+        before: props.selection.slice()
       };
       all = null;
       setFrozen(null);
@@ -423,19 +442,6 @@ export function Plot(props: PlotProps) {
         props.onPick(p.i, p.late ? p.mode : "one");
     }
   };
-  /* the page took the finger for a scroll, or the pointer was taken from the plot: nothing is held or dragged; a run
-     already swept stands */
-  const cancel = (e: PointerEvent) => {
-    if (press && e.pointerId === press.pointer) {
-      press = null;
-      setBand(null);
-    }
-    if ((drag && e.pointerId === drag.pointer) || (all && e.pointerId === all.pointer)) {
-      drag = null;
-      all = null;
-      setFrozen(null);
-    }
-  };
   onSettled(() => {
     const stop = watchSize(host, () => setWidth(host.clientWidth || 480));
     /* a finger on a held keyframe drags it; the page keeps every other touch, and two fingers, which it may zoom with
@@ -477,8 +483,8 @@ export function Plot(props: PlotProps) {
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
-        onPointerCancel={cancel}
-        onLostPointerCapture={cancel}
+        onPointerCancel={e => giveBack(e.pointerId)}
+        onLostPointerCapture={e => giveBack(e.pointerId)}
         onPointerLeave={() => {
           if (!drag && !all && !press) props.onHover?.(null);
         }}

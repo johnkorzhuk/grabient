@@ -334,6 +334,8 @@ export function createPaletteEditor(
     },
     holdAll: () => setHold(ops.run(0, untrack(K) - 1)),
     letGo: () => setHold([]),
+    /** a hold given back: the page took a press that changed it, for a scroll or a pinch's zoom */
+    restore: (selection: readonly number[]) => setHold([...selection]),
 
     /* the keyframes' numbers and the plots */
     nudge(i: number, axis: Axis, v: number, start = now()) {

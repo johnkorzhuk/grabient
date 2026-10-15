@@ -240,6 +240,7 @@ export function AxisRow(props: {
         onPick={e.pick}
         onSweep={e.sweep}
         onNudge={(i, axis, v, from) => e.nudge(i, axis, v, from)}
+        onRestore={e.restore}
         onWholeStart={() => {
           peak = e.chromaPeak();
           hue = e.hueStart();

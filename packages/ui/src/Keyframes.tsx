@@ -32,6 +32,8 @@ export function Keyframes(props: {
   onPick: (i: number, mode: PickMode) => void;
   /** a press that swept from one chip to another */
   onSweep?: (from: number, to: number) => void;
+  /** a sweep the page took, for a scroll or a pinch's zoom: the keyframes held before it, to hold again */
+  onRestore?: (selection: readonly number[]) => void;
   min: number;
   max: number;
   onAdd: () => void;
@@ -49,6 +51,8 @@ export function Keyframes(props: {
     const el = document.elementFromPoint(x, y)?.closest<HTMLElement>("[data-i]");
     return el && strip.contains(el) ? Number(el.dataset.i) : -1;
   };
+  /* the hold a sweep found, once it has changed it */
+  let before: readonly number[] | null = null;
   const sweepFrom = (i: number, id: number) => {
     from = last = i;
     pointer = id;
@@ -62,12 +66,7 @@ export function Keyframes(props: {
   const down = (e: PointerEvent, i: number) => {
     if (e.pointerType === "touch") {
       /* a second finger is a pinch, the page's to zoom: the first holds nothing */
-      if (finger || pointer !== null) {
-        finger = null;
-        hold.cancel();
-        release();
-        return;
-      }
+      if (finger || pointer !== null) return giveBack();
       finger = { i, x0: e.clientX };
       hold.down(e);
       return;
@@ -89,6 +88,7 @@ export function Keyframes(props: {
     const j = chipAt(e.clientX, e.clientY);
     if (j >= 0 && j !== last) {
       last = j;
+      before ??= props.selection.slice();
       props.onSweep?.(from, j);
     }
   };
@@ -96,6 +96,7 @@ export function Keyframes(props: {
     if (pointer !== null && strip.hasPointerCapture(pointer)) strip.releasePointerCapture(pointer);
     pointer = null;
     from = -1;
+    before = null;
   };
   const up = (e: PointerEvent) => {
     if (finger) {
@@ -106,13 +107,16 @@ export function Keyframes(props: {
     }
     if (e.pointerId === pointer) release();
   };
-  /* the page took the finger for a scroll: nothing was held, and nothing is */
+  /* the page took the finger, for a scroll or a pinch's zoom wherever its other finger landed: nothing is held, and a
+     run it swept goes back */
+  function giveBack() {
+    finger = null;
+    hold.cancel();
+    if (before) props.onRestore?.(before);
+    release();
+  }
   const cancel = (e: PointerEvent) => {
-    if (finger) {
-      finger = null;
-      hold.cancel();
-    }
-    if (e.pointerId === pointer) release();
+    if (finger || e.pointerId === pointer) giveBack();
   };
   const walk = (e: KeyboardEvent, i: number) => {
     if ((e.key === " " || e.key === "Enter") && (e.ctrlKey || e.metaKey)) {

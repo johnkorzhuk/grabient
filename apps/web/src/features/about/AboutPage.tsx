@@ -102,6 +102,7 @@ function KeyframesFigure(props: { figure: Figure; onPress: (e: PointerEvent) => 
             lead={f.lead() >= 0 ? f.lead() : undefined}
             onPick={f.pick}
             onSweep={f.sweep}
+            onRestore={f.restore}
             min={K_MIN}
             max={K_MAX}
             onAdd={f.addKeyframe}
