@@ -85,6 +85,7 @@ export function Profile(props: {
   const [failed, setFailed] = createSignal(false);
   /* what the field itself says is wrong with the name typed, in its help line's place */
   const [nameError, setNameError] = createSignal("");
+  const nameHelp = () => nameError() || t("Letters, numbers, underscores and hyphens.");
   const [checking, setChecking] = createSignal(false);
   const [available, setAvailable] = createSignal(true);
   const [saving, setSaving] = createSignal(false);
@@ -291,7 +292,7 @@ export function Profile(props: {
             maxlength={USERNAME_MAX}
             invalid={!!nameError()}
             disabled={!account() || offline()}
-            help={nameError() || t("Letters, numbers, underscores and hyphens.")}
+            help={nameHelp()}
             onInput={check}
           />
           <div class={styles.actions}>

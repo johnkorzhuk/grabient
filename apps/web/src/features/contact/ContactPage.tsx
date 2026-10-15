@@ -32,6 +32,8 @@ export function ContactPage() {
      error shown), which would empty it */
   const [email, setEmail] = createSignal("");
   const [message, setMessage] = createSignal("");
+  const messageHelp = () =>
+    wrong().includes("message") ? t("Write 5 to 5,000 characters.") : undefined;
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     if (busy()) return;
@@ -90,11 +92,11 @@ export function ContactPage() {
           value={email()}
           onInput={setEmail}
           invalid={wrong().includes("email")}
-          help={
+          help={t(
             wrong().includes("email")
-              ? t("Use a valid email, or leave it empty.")
-              : t("Only if you want a reply.")
-          }
+              ? msg("Use a valid email, or leave it empty.")
+              : msg("Only if you want a reply.")
+          )}
         />
         <Textarea
           label={t("Message")}
@@ -106,7 +108,7 @@ export function ContactPage() {
           value={message()}
           onInput={setMessage}
           invalid={wrong().includes("message")}
-          help={wrong().includes("message") ? t("Write 5 to 5,000 characters.") : undefined}
+          help={messageHelp()}
         />
         <label class={styles.honey} aria-hidden="true">
           Website

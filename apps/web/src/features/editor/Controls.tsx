@@ -259,12 +259,13 @@ export function AxisRow(props: {
 function Travel(props: { editor: PaletteEditor }) {
   const e = props.editor;
   const range = () => (e.whole() ? e.travelRange() : e.travelSpan() ? e.spanTravelRange() : null);
+  const why = () => (e.whole() || e.travelSpan() ? "" : t("No next keyframe"));
   return (
     <span class={styles.field}>
       <Scrub
         small
         label={t("Travel")}
-        tip={e.whole() || e.travelSpan() ? "" : t("No next keyframe")}
+        tip={why()}
         min={range()?.lo ?? -1}
         max={range()?.hi ?? 1}
         step={1}
