@@ -118,6 +118,24 @@
       min-height: var(--size-touch);
     }
   }
+  /* the link holds its words, cut at the line's end, so its ring stands around them whole; under a finger its press
+     reaches the row's height */
+  .to {
+    position: relative;
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+    @media (pointer: coarse) {
+      &::before {
+        content: "";
+        position: absolute;
+        inset-inline: 0;
+        top: 50%;
+        height: var(--size-touch);
+        translate: 0 -50%;
+      }
+    }
+  }
   /* the figures as panes of one frame: the path's column as wide as a scene of its height needs, giving way before the
      code's tabs would break onto a second line */
   .figures {
