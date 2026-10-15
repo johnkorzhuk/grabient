@@ -29,6 +29,22 @@ test("the stop strip fuses, breaks into rows and sizes its labels as before", ()
   }
 });
 
+test("a single row laid out at the width it scrolls past sizes its labels for its own height", () => {
+  const stops = ["#112233", "#445566", "#778899", "#aabbcc", "#ddeeff", "#ff0000", "#00ff00"].map(
+    hex => ({
+      hex
+    })
+  );
+  // a phone's row of 52px has no room for these hexes; the 72px row of a figure stands them upright
+  expect(layoutStops(stops, 308, true)).toMatchObject({ two: false, size: 7, show: false });
+  expect(layoutStops(stops, 308, true, false)).toMatchObject({
+    two: false,
+    vertical: true,
+    size: 13,
+    show: true
+  });
+});
+
 test("the plots' data is as before, worked out once per palette", () => {
   for (const c of colors.curves) {
     const P = decodePalette(c.seed) as Palette;

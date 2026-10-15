@@ -28,11 +28,13 @@ function inkFor(hex: string): StripCell["ink"] {
   return (L + 0.05) / 0.05 >= 1.05 / (L + 0.05) ? "onLight" : "onDark";
 }
 
-/** `oneRow` keeps a single row at any width: a phone on its side. */
+/** `oneRow` keeps a single row at any width: a phone on its side. `short` sizes the labels for a phone's row, which a
+    single row on a phone is; a row kept single at a width it scrolls past keeps its own height. */
 export function layoutStops(
   stops: readonly StripStop[],
   width: number,
-  oneRow = false
+  oneRow = false,
+  short = oneRow
 ): StripLayout {
   const cells: StripCell[] = [];
   for (const s of stops) {
@@ -61,7 +63,7 @@ export function layoutStops(
   if (nrows === 2 && rows[1].length)
     rows[1][rows[1].length - 1].span += cols - rows[1].reduce((a, c) => a + c.span, 0);
   const unit = width / cols;
-  const rowHeight = two ? 56 : oneRow ? 52 : 72;
+  const rowHeight = two ? 56 : short ? 52 : 72;
   const narrow = Math.min(...rows.flat().map(c => c.span * unit));
   const run = 7 * 7.4;
   const fit = (along: number, across: number) =>

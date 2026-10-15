@@ -49,11 +49,12 @@ export function StopStrip(props: {
     shown => shown.map(s => luminance(s.hex))
   );
   /* every chip reads the layout, and a hundred stops would lay out hundreds of times an edit without the memo. Rows
-     that scroll are laid out at the width they take, so the labels fit the chips as they stand */
+     that scroll are laid out at the width they take, in as many rows and at the height they stand at, so the labels
+     fit the chips as they stand */
   const lay = createMemo(() => {
     const at = layoutStops(stops(), width(), !!props.short);
     const room = Math.ceil(stops().length / at.rows.length) * least();
-    return room > width() ? layoutStops(stops(), room, !!props.short || !at.two) : at;
+    return room > width() ? layoutStops(stops(), room, !at.two, !!props.short) : at;
   });
   const cols = () => Math.ceil(stops().length / lay().rows.length);
   /* the chip being read as one key, so a reading that moves within a chip changes nothing */
