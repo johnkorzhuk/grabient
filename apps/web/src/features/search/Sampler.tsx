@@ -8,9 +8,9 @@ import styles from "./Sampler.module.css";
 /* A picture and the points its colors are read from, in the palette's order, with a line through them as the blend
    runs. A point is dragged or stepped with the arrow keys, or pressed and then the picture where it should go, which
    needs no drag; the page reads the color under it again (`onMove`) and searches once it rests (`onRelease`). A
-   double-click on the picture adds a point there (`onAdd`), and Delete, Backspace or a double-click on a point takes it
-   out (`onRemove`). The picture is shown whole; on a list's grid it is two columns wide, so the palettes made from it
-   stand beside it. */
+   double-click on the picture adds a point there (`onAdd`), as + or Insert on a point adds one beside it, and Delete,
+   Backspace or a double-click on a point takes it out (`onRemove`). The picture is shown whole; on a list's grid it is
+   two columns wide, so the palettes made from it stand beside it. */
 
 /* arrows step a point a hundredth of the picture, a tenth with Shift, the same way in every language: a picture is
    never mirrored */
@@ -126,6 +126,12 @@ export function Sampler(props: {
       const p = props.points[i];
       setChosen(i);
       props.onMove(i, clamp(p.x + step[0] * by), clamp(p.y + step[1] * by));
+    } else if ((e.key === "+" || e.key === "Insert") && props.onAdd) {
+      /* halfway to the next point, or to the one before the last */
+      e.preventDefault();
+      const p = props.points[i];
+      const q = props.points[i + 1] ?? props.points[i - 1] ?? p;
+      props.onAdd((p.x + q.x) / 2, (p.y + q.y) / 2);
     } else if (e.key === "Escape") setChosen(null);
     else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
