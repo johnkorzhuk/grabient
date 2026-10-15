@@ -48,25 +48,31 @@ export interface RankOptions {
   allowed?: (row: number) => boolean;
 }
 
+/** Whether these options allow a row. */
+function allows(snapshot: Snapshot, options: RankOptions): (row: number) => boolean {
+  const wanted = options.filter?.length
+    ? new Set(
+        options.filter.map(name => snapshot.harmonies.indexOf(name)).filter(code => code >= 0)
+      )
+    : null;
+  return row =>
+    (!wanted || wanted.has(snapshot.harmony[row])) && (!options.allowed || options.allowed(row));
+}
+
 /** The rows these options allow, best first, ties by row. */
 export function rankedRows(
   snapshot: Snapshot,
   scores: Float32Array,
   options: RankOptions = {}
 ): number[] {
-  const wanted = options.filter?.length
-    ? new Set(
-        options.filter.map(name => snapshot.harmonies.indexOf(name)).filter(code => code >= 0)
-      )
-    : null;
+  const allowed = allows(snapshot, options);
   const rows: number[] = [];
-  for (let i = 0; i < scores.length; i++) {
-    if ((!wanted || wanted.has(snapshot.harmony[i])) && (!options.allowed || options.allowed(i)))
-      rows.push(i);
-  }
+  for (let i = 0; i < scores.length; i++) if (allowed(i)) rows.push(i);
   return rows.sort((a, b) => scores[b] - scores[a] || a - b);
 }
 
+/** The first `limit` palettes of rankedRows's order. A tag's colors want a dozen, which one pass over the rows finds
+    without sorting them all. */
 export function snapshotPalettes(
   snapshot: Snapshot,
   vector: readonly number[],
@@ -74,9 +80,18 @@ export function snapshotPalettes(
   options: RankOptions = {}
 ): Candidate[] {
   const scores = paletteScores(snapshot, vector);
-  return rankedRows(snapshot, scores, options)
-    .slice(0, limit)
-    .map(i => ({ seed: snapshot.seeds[i], score: scores[i] }));
+  const allowed = allows(snapshot, options);
+  const best: number[] = [];
+  for (let i = 0; i < scores.length; i++) {
+    if (!allowed(i)) continue;
+    // rows come in order, so a row ties behind every row it ties with
+    let at = best.length;
+    while (at > 0 && scores[i] > scores[best[at - 1]!]) at--;
+    if (at >= limit) continue;
+    best.splice(at, 0, i);
+    if (best.length > limit) best.pop();
+  }
+  return best.map(i => ({ seed: snapshot.seeds[i], score: scores[i] }));
 }
 
 export function snapshotCollections(
