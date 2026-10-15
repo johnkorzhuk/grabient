@@ -14,9 +14,10 @@ import { CARD_VERSION } from "../../lib/page-meta.ts";
 import { addressParams } from "../files/address.ts";
 import { legacySeed } from "./legacy.ts";
 
-/* How many times a fit may measure its error (engine/fit.ts). Every old link an index has shown takes 1,410 to 1,700,
-   but a flat strip (black, or one color), which takes 4,892; a measure takes 20 to 50 µs, so a fit costs 30 to 80 ms
-   of CPU and never much more than 0.3 s, a tenth of what a request may spend. */
+/* How many times a fit may measure its error (engine/fit.ts). Every old link an index has shown takes 1,410 to 1,700
+   measures, a flat strip (black, or one color) 4,892. In workerd a measure takes about 25 µs: a fit costs 40 to 80 ms
+   of CPU, a flat strip's about 120 ms, twice that in a new isolate, and none can pass about 0.3 s, a tenth of what a
+   request may spend. */
 const FIT_BUDGET = 6000;
 
 /** An old seed no map holds, the view its address asks for, and whether the address is its share card's. */
