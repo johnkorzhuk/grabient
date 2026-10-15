@@ -2,7 +2,7 @@ import { decodePalette } from "@grabient/engine";
 import { delocalizePath } from "@grabient/i18n";
 import { isServer } from "@solidjs/web";
 import { onlineManager } from "@tanstack/solid-query";
-import { createSignal } from "solid-js";
+import { createEffect, createMemo, createSignal, untrack } from "solid-js";
 import { account } from "../features/account/session.ts";
 import {
   accountView,
@@ -79,6 +79,25 @@ export function opensOffline(href: string): boolean {
   // an address of one word, or an account's two, may be a collection: the account's own opens
   const slug = words[0]?.startsWith("@") ? words.slice(0, 2).join("/") : words.join("/");
   return !!user && (accountView().collections.has(slug) || hintedCollection(user, slug));
+}
+
+/** Whether a page's list stands unread for want of a connection: from when the page is offline with its last read
+    failed until another read lands. The connection's return makes that read, so the page needs no reload, and says
+    why in the list's place until the list is there. */
+export function createOfflineList(list: {
+  /** the list's last read failed */
+  failed: () => boolean;
+  /** when its last read landed, failed or not */
+  readAt: () => number;
+  read: () => void;
+}): () => boolean {
+  createEffect(offline, (now, was) => {
+    if (!now && was && untrack(list.failed)) list.read();
+  });
+  const unread = createMemo<number>(held =>
+    list.failed() && (offline() || held === list.readAt()) ? list.readAt() : 0
+  );
+  return () => unread() > 0;
 }
 
 /** A list that cannot be shown now: offline, every list but the account's own, and with no account all of them. */

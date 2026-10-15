@@ -31,8 +31,14 @@ import {
   Show,
   useContext
 } from "solid-js";
-import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
+import {
+  createOfflineList,
+  listUnavailable,
+  offline,
+  signInUnavailable
+} from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import { OfflineList } from "../../app/OfflineList.tsx";
 import { heading } from "../../lib/page-meta.ts";
 import { account, isAdmin, sessionReady } from "../account/session.ts";
 import { trackEvent, trackSignInPrompt } from "../analytics/analytics.ts";
@@ -254,8 +260,19 @@ export function Home(props: { params: ListParams }) {
   const searched = createMemo(() =>
     searchedTitle(words(), made(), params(), look.draft(), look.peek())
   );
-  const headError = () => (failed(head.data) ? head.data.failed : "");
-  const firstError = () => (failed(first.data) ? first.data.failed : "");
+  /* a read that failed with no connection says so in its place, and is made again as the connection returns */
+  const headUnread = createOfflineList({
+    failed: () => failed(head.data),
+    readAt: () => head.dataUpdatedAt,
+    read: () => void head.refetch()
+  });
+  const firstUnread = createOfflineList({
+    failed: () => failed(first.data),
+    readAt: () => first.dataUpdatedAt,
+    read: () => void first.refetch()
+  });
+  const headError = () => (!headUnread() && failed(head.data) ? head.data.failed : "");
+  const firstError = () => (!firstUnread() && failed(first.data) ? first.data.failed : "");
   /* A head standing while it is read again, for other words or in place once it is old. Until the read lands, the
      query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
   const updating = () => navigating() || isPending(() => head.data);
@@ -361,7 +378,10 @@ export function Home(props: { params: ListParams }) {
                   <PaletteGridPlaceholder count={words() ? SEARCH_PALETTES : HOT_PALETTES} />
                 }
               >
-                <Show when={palettes().length}>
+                <Show
+                  when={palettes().length}
+                  fallback={headUnread() && <OfflineList ways={["palettes", "collections"]} />}
+                >
                   <PaletteFeed
                     items={palettes()}
                     key={item => item.kseed}

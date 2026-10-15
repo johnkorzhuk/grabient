@@ -30,8 +30,14 @@ import {
   untrack,
   useContext
 } from "solid-js";
-import { listUnavailable, offline, signInUnavailable } from "../../app/connection.ts";
+import {
+  createOfflineList,
+  listUnavailable,
+  offline,
+  signInUnavailable
+} from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import { OfflineList } from "../../app/OfflineList.tsx";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
 import { hexesOf } from "../../lib/palette.ts";
@@ -169,7 +175,7 @@ export function Palettes(props: { place: ListPlace }) {
     const read = own();
     return read && read.of === ownKey() ? read.page : undefined;
   };
-  const headError = () => {
+  const failure = () => {
     const read = head();
     return read && failed(read) ? read.failed : "";
   };
@@ -183,6 +189,14 @@ export function Palettes(props: { place: ListPlace }) {
   });
   const standing = () => stood()?.page;
   const retry = () => (listed ? void listed.refetch() : readOwn(asked(), true));
+  /* a public list that could not be read with no connection says so in its place, and is read as the connection
+     returns; Saved is the account's copy's to answer */
+  const unread = createOfflineList({
+    failed: () => !!listed && !!failure(),
+    readAt: () => listed?.dataUpdatedAt ?? 0,
+    read: retry
+  });
+  const headError = () => (unread() ? "" : failure());
 
   const page = createGalleryPage({
     path: () => listHref("palettes", order(), frame(), params()).split("?")[0]!,
@@ -554,7 +568,13 @@ export function Palettes(props: { place: ListPlace }) {
               <Loading fallback={<PaletteGridPlaceholder count={params().limit} />}>
                 <Show
                   when={standing() || headError()}
-                  fallback={<PaletteGridPlaceholder count={params().limit} />}
+                  fallback={
+                    unread() ? (
+                      <OfflineList ways={["palettes"]} />
+                    ) : (
+                      <PaletteGridPlaceholder count={params().limit} />
+                    )
+                  }
                 >
                   <PaletteFeed
                     items={items()}

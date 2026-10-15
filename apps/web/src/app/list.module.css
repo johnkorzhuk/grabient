@@ -63,4 +63,10 @@
     gap: var(--space-s4);
     padding-block: var(--space-s10);
   }
+  /* the pages that do open, under an empty state's words */
+  .ways {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s3);
+  }
 }
