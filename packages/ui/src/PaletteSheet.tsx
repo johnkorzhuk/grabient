@@ -129,7 +129,8 @@ export function PaletteSheet(props: {
                       aria-disabled={c().href ? undefined : "true"}
                       dir="auto"
                     >
-                      <Text variant="ui" truncate>
+                      {/* the words in the link's full ink, as every link among words is drawn */}
+                      <Text variant="ui" strong truncate>
                         {c().title}
                       </Text>
                     </a>
