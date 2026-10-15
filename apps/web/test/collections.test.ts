@@ -1,5 +1,6 @@
 import { encodePalette } from "@grabient/engine";
 import { DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts";
+import { messageKey } from "@grabient/i18n";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
@@ -513,6 +514,83 @@ describe("a collection's colors", () => {
     expect([spanish.tags, spanish.tagColors]).toEqual([
       ["azul", "gradients", "zzqx"],
       [blue, [], []]
+    ]);
+  });
+
+  it("come in the page's language with an admin's state of one of Grabient's, as everyone's read gives them", async () => {
+    // a palette no test likes, which an admin may draw another way
+    const seed = "kWkEqj3Z87moauRiHzrShc_A";
+    const source = await createCollection(
+      env,
+      { kind: "agent", id: "grabient" },
+      {
+        title: unique("Harbor lights"),
+        description: "",
+        tags: ["blue", "gradients"],
+        visibility: "public",
+        items: [collectionItem({ seed, style: "linearGradient", steps: 7, angle: 90 })!]
+      }
+    );
+    const { id } = (await env.DB.prepare("SELECT id FROM k_collections WHERE slug = ?")
+      .bind(source.slug)
+      .first<{ id: string }>())!;
+    await keepTranslations(
+      env,
+      "uk",
+      [
+        {
+          id,
+          slug: source.slug,
+          source: messageKey(`${source.title}\n${source.description}`),
+          title: "Вогні гавані",
+          description: "",
+          note: ""
+        }
+      ],
+      [{ tag: "blue", word: "синій", note: "" }]
+    );
+    const state = async (query: string) =>
+      bodyOf<{ canCurate: boolean; collection?: CollectionDocument }>(
+        await mineAt(
+          get(`/api/me/collections/${at(source.slug)}/state${query}`, { cookie: admin.cookie }),
+          env
+        )
+      );
+    // the page's own read in Ukrainian, and the admin's state read beside it, say the same
+    const everyone = await bodyOf<CollectionDocument>(
+      await collectionAnswer(get(`/api/collections/${source.slug}?lang=uk`), env)
+    );
+    const uk = await state("?lang=uk");
+    expect(uk.canCurate).toBe(true);
+    expect([uk.collection?.title, uk.collection?.tags]).toEqual([
+      "Вогні гавані",
+      ["синій", "gradients"]
+    ]);
+    expect([uk.collection?.title, uk.collection?.tags, uk.collection?.tagColors]).toEqual([
+      everyone.title,
+      everyone.tags,
+      everyone.tagColors
+    ]);
+    const english = await state("");
+    expect([english.collection?.title, english.collection?.tags]).toEqual([
+      source.title,
+      ["blue", "gradients"]
+    ]);
+    // an admin's press answers with the collection in the page's language too, so the page stays in it
+    const redrawn = await bodyOf<{ collection: CollectionDocument }>(
+      await mineAt(
+        send(
+          "PATCH",
+          `/api/me/collections/${at(source.slug)}/items/${seed}?lang=uk`,
+          { angle: 45, reasons: ["form"] },
+          { cookie: admin.cookie }
+        ),
+        env
+      )
+    );
+    expect([redrawn.collection.title, redrawn.collection.items[0]?.angle]).toEqual([
+      "Вогні гавані",
+      45
     ]);
   });
 

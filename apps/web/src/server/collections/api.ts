@@ -222,8 +222,10 @@ async function changeAnswer(request: Request, env: Env, slug: string): Promise<R
     });
   const doc = await collectionBySlug(env, now, true);
   if (!doc) return notFound();
+  /* in the page's language, as the page that pressed shows it: one of Grabient's is translated, an account's own never */
+  const [shown] = await localizeCollections(env, askedLocale(new URL(request.url)), [doc]);
   return json({
-    collection: withUrl(publicOrigin(env, request), doc),
+    collection: withUrl(publicOrigin(env, request), shown ?? doc),
     ...(to ? { moved: { from: slug, to } } : {})
   });
 }

@@ -14,6 +14,7 @@ import {
   normalizeNote
 } from "../../features/collections/schema.ts";
 import type { ViewerState } from "../../features/collections/types.ts";
+import { askedLocale, localizeCollections } from "../mcp/admin/translations.ts";
 import { tagColors } from "../search/tags.ts";
 import { publicOrigin } from "../seo/site.ts";
 import { copyStanding, syncCopy } from "./copies.ts";
@@ -134,9 +135,10 @@ async function ownedAnswer(request: Request, env: Env, slug: string): Promise<Re
   return doc && may ? json({ ...withUrl(publicOrigin(env, request), doc), ...may }) : notFound();
 }
 
-/** GET …/{slug}/state: everything a signed-in reader's page needs of a collection beyond what everyone sees, in one
-    read: whether it is theirs or theirs to curate (with the collection as they may see it), their saved copy's
-    standing, their fit votes and an admin's notes. A private collection of someone else's is not found. */
+/** GET …/{slug}/state?lang=: everything a signed-in reader's page needs of a collection beyond what everyone sees, in
+    one read: whether it is theirs or theirs to curate (with the collection as they may see it, in the page's language
+    as everyone's read gives it), their saved copy's standing, their fit votes and an admin's notes. A private
+    collection of someone else's is not found. */
 async function stateAnswer(request: Request, env: Env, slug: string): Promise<Response> {
   const who = await reader(env, request);
   if (who instanceof Response) return who;
@@ -158,10 +160,16 @@ async function stateAnswer(request: Request, env: Env, slug: string): Promise<Re
     seen ? tagColors(env, record.input.tags) : []
   ]);
   const state: ViewerState = { ...may, copy, votes, ...(notes ? { notes } : {}) };
+  /* one of Grabient's in the page's language where it is translated, as the public read gives it, or its page would
+     turn to English once this read lands; an account's own is never translated, so the words its owner edits are its
+     own. The colors are read from the tags as written, which a translation keeps in their order. */
+  const [shown] = doc
+    ? await localizeCollections(env, askedLocale(new URL(request.url)), [doc])
+    : [];
   return json({
     ...state,
-    ...(doc
-      ? { collection: withUrl(publicOrigin(env, request), { ...doc, tagColors: colors }) }
+    ...(shown
+      ? { collection: withUrl(publicOrigin(env, request), { ...shown, tagColors: colors }) }
       : {})
   });
 }
@@ -246,9 +254,11 @@ async function changed(request: Request, env: Env, record: CollectionRecord, ext
   const doc = await collectionBySlug(env, record.slug, true);
   if (!doc) return notFound();
   const owned = record.owner.kind === "user";
+  /* in the page's language, as the page that pressed shows it: one of Grabient's is translated, an account's own never */
+  const [shown] = await localizeCollections(env, askedLocale(new URL(request.url)), [doc]);
   return json({
     collection: {
-      ...withUrl(publicOrigin(env, request), doc),
+      ...withUrl(publicOrigin(env, request), shown ?? doc),
       owned,
       canCurate: !owned,
       canDelete: true

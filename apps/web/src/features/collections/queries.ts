@@ -270,7 +270,7 @@ if (!isServer)
     None where it could not be read, which the next visit asks for again. */
 export const stateQuery = (owner: string, slug: string) =>
   queryOptions({
-    queryKey: ["collection-state", owner, slug, states] as const,
+    queryKey: ["collection-state", owner, slug, states, locale()] as const,
     queryFn: ({ signal }) =>
       readState(slug, signal).catch(error => (signal.aborted ? Promise.reject(error) : null)),
     staleTime: query => (query.state.data === null ? 0 : PRIVATE_TTL)

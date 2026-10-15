@@ -18,6 +18,12 @@ const at = (slug: string) => encodeURIComponent(slug);
 
 /** The language a public answer is asked in, for Grabient's translated collections. */
 export const langQuery = (): string => (locale() === "en" ? "" : `lang=${locale()}`);
+/* an address whose answer carries a collection, asked in the page's language: one of Grabient's comes translated, as
+   the page shows it, so a press's answer never turns the page to English */
+const inLanguage = (path: string): string => {
+  const q = langQuery();
+  return q ? `${path}${path.includes("?") ? "&" : "?"}${q}` : path;
+};
 
 /** A JSON call to the collections API, answered by `schema`: the answer, or an Error saying why in the reader's words. */
 export async function call<S extends v.GenericSchema>(
@@ -91,10 +97,11 @@ const Choices = v.object({
   )
 });
 
+/** A signed-in reader's standing on a collection, the collection itself in the page's language where they may see it. */
 export const readState = (slug: string, signal?: AbortSignal) =>
   call(
     "GET",
-    `/api/me/collections/${at(slug)}/state`,
+    inLanguage(`/api/me/collections/${at(slug)}/state`),
     v.object({ ...ViewerStateSchema.entries, collection: v.optional(CollectionDocumentSchema) }),
     undefined,
     signal
@@ -124,7 +131,7 @@ export const changeCollection = (
     visibility?: Visibility;
     items?: readonly CollectionItemInput[];
   }
-) => call("PATCH", `/api/collections/${at(slug)}`, Changed, patch);
+) => call("PATCH", inLanguage(`/api/collections/${at(slug)}`), Changed, patch);
 export const deleteCollection = (slug: string, why?: object) =>
   call("DELETE", `/api/collections/${at(slug)}`, Deleted, why ?? {});
 export const saveCopy = (slug: string) =>
@@ -147,22 +154,28 @@ const itemPath = (slug: string, seed: string) =>
 
 /** One palette out of a collection, in its view: the owner's, with the token an undo sends; an admin's, on the record. */
 export const removePalette = (slug: string, item: CollectionItemInput, why?: object) =>
-  call("DELETE", itemPath(slug, item.seed) + viewQuery(item), Changed, why ?? {});
+  call("DELETE", inLanguage(itemPath(slug, item.seed) + viewQuery(item)), Changed, why ?? {});
 /** The undo of a removal, from its token. */
 export const restorePalette = (slug: string, seed: string, restore: string) =>
-  call("PUT", itemPath(slug, seed), Changed, { restore });
+  call("PUT", inLanguage(itemPath(slug, seed)), Changed, { restore });
 /** An admin draws one of Grabient's palettes another way. */
 export const setPaletteView = (
   slug: string,
   from: CollectionItemInput,
   view: { style: string; steps: number; angle: number },
   why: object
-) => call("PATCH", itemPath(slug, from.seed) + viewQuery(from), Changed, { ...view, ...why });
+) =>
+  call("PATCH", inLanguage(itemPath(slug, from.seed) + viewQuery(from)), Changed, {
+    ...view,
+    ...why
+  });
 /** An admin's palettes into one of Grabient's collections, each with the token its undo sends. */
 export const addSitePalettes = (slug: string, items: readonly CollectionItemInput[]) =>
   call("POST", `/api/me/collections/${at(slug)}/items`, Added, { items });
 export const unaddSitePalette = (slug: string, item: CollectionItemInput, token: string) =>
-  call("DELETE", itemPath(slug, item.seed) + viewQuery(item), Changed, { added: token });
+  call("DELETE", inLanguage(itemPath(slug, item.seed) + viewQuery(item)), Changed, {
+    added: token
+  });
 export const readSiteCollections = () => call("GET", "/api/me/site-collections", Choices);
 export const readSiteHolding = (items: readonly CollectionItemInput[]) =>
   call(
