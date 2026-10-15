@@ -298,17 +298,27 @@ test("the document the edge keeps for an address is the same page for its lock w
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("a change of view keeps the title the server wrote for the palette", async ({ page }) => {
+test("a palette is called by the title written for it while it is drawn as it was saved, by its colors in any other view", async ({
+  page,
+  request
+}) => {
+  const facts = (await (await request.get("/api/palette-facts?seed=kQ4RjAYQ6_g")).json()) as {
+    written?: { title: string; view: unknown };
+  };
+  expect(facts.written?.view).toEqual({ style: "linearGradient", steps: 6, angle: 180 });
+  const written = `${facts.written?.title} | Grabient`;
   await open(page, "/kQ4RjAYQ6_g?steps=6&angle=180");
-  const title = await page.title();
+  await expect(page).toHaveTitle(written);
   await page.keyboard.press("]");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?angle=180");
-  await page.waitForTimeout(500);
-  await expect(page).toHaveTitle(title);
+  await expect(page).toHaveTitle(/ linear gradient \| Grabient$/);
+  // the way back to the view it was saved in finds the title the server wrote still known
   await page.keyboard.press("[");
   await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=180");
-  await page.waitForTimeout(500);
-  await expect(page).toHaveTitle(title);
+  await expect(page).toHaveTitle(written);
+  await page.keyboard.press(".");
+  await expect.poll(() => here(page)).toBe("/kQ4RjAYQ6_g?steps=6&angle=195");
+  await expect(page).not.toHaveTitle(written);
 });
 
 test("random leads to a new palette at the view asked for", async ({ request }) => {
