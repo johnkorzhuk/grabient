@@ -91,6 +91,24 @@ test("a pointer's gesture waits for its release however long it rests", () => {
   expect(e.snapshot()).toEqual({ steps: ["a", "c"], at: 1, base: 0 });
 });
 
+test("a gesture taken back puts the subject where it began and leaves no step", () => {
+  const applied: [string, string, boolean][] = [];
+  const e = createEdits({
+    first: "a",
+    apply: (value, edit, back) => applied.push([value, edit, back])
+  });
+  e.edit("b", true);
+  e.edit("c");
+  e.edit("d");
+  e.revert();
+  expect(applied).toEqual([["b", "d", true]]);
+  expect(e.snapshot()).toEqual({ steps: ["a", "b"], at: 1, base: 0 });
+  // with no gesture under way there is nothing to take back
+  e.revert();
+  expect(applied).toHaveLength(1);
+  expect(e.canRedo()).toBe(false);
+});
+
 test("stored steps are read only when they are steps", () => {
   expect(readSnapshot({ steps: ["a", "b"], at: 1 })).toEqual({ steps: ["a", "b"], at: 1, base: 0 });
   expect(readSnapshot({ steps: [], at: 0 })).toBeNull();

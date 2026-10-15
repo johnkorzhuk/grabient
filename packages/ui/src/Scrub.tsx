@@ -118,14 +118,8 @@ export function Scrub(props: ScrubProps) {
     pointer = null;
   };
   const down = (e: PointerEvent) => {
-    /* a second finger is a pinch, the page's to zoom: the drag lets go, and what it moved goes back */
-    if (pointer !== null && e.pointerId !== pointer) {
-      release();
-      drag.up();
-      tapped = false;
-      if (dragged) props.onInput(start);
-      return;
-    }
+    /* a second finger is a pinch, the page's to zoom */
+    if (pointer !== null && e.pointerId !== pointer) return cancel();
     if (edit) {
       /* a second click soon after the one that started typing resets */
       if (
@@ -187,13 +181,15 @@ export function Scrub(props: ScrubProps) {
     e.preventDefault();
     type(true);
   };
-  /* the page took the finger for a scroll: no tap, and the keyboard stays down */
-  const cancel = () => {
+  /* the page took the finger, for a scroll or a pinch's zoom wherever its other finger landed: no tap, the keyboard
+     stays down, and what the drag moved goes back */
+  function cancel() {
     tapped = false;
     if (pointer === null) return;
     release();
     drag.up();
-  };
+    if (dragged) props.onInput(start);
+  }
   const keys = (e: KeyboardEvent) => {
     if (composing(e)) return;
     if (e.key === "Enter") done(true);

@@ -119,6 +119,19 @@ export function createEdits(opts: EditsOptions) {
       opts.apply(steps[at], steps[at], false);
       changed();
     },
+    /** The gesture under way is taken back: the subject returns to where it began, and no step stands for it. */
+    revert() {
+      clearTimeout(timer);
+      timer = undefined;
+      if (!gesture) return;
+      gesture = false;
+      press = null;
+      const edit = steps[at];
+      steps.splice(at, 1);
+      at--;
+      opts.apply(steps[at], edit, true);
+      changed();
+    },
     /** The subject is now `value`: a step of its own with `alone` (a press), otherwise part of the gesture under way. */
     edit(value: string, alone = false) {
       const key = keyPress();

@@ -185,14 +185,27 @@ export function createPaletteEditor(
     });
 
   /* A press closes every gesture under way, and the gesture a pointer made ends when the last pointer lifts, once the
-     release itself has been handled. */
+     release itself has been handled. One the page took from a pointer, for a scroll or a pinch's zoom wherever its
+     fingers landed, ends where it began: whatever the controls wrote goes back. */
   if (!isServer) {
+    let taken = false;
+    let ending: ReturnType<typeof setTimeout> | undefined;
+    const end = () => {
+      clearTimeout(ending);
+      if (taken) edits.revert();
+      else edits.close();
+      taken = false;
+    };
     const down = (e: PointerEvent) => {
-      if (!pointers.size) edits.close();
+      if (!pointers.size) end();
       pointers.add(e.pointerId);
     };
     const lift = (e: PointerEvent) => {
-      if (pointers.delete(e.pointerId) && !pointers.size) setTimeout(edits.close, 0);
+      if (pointers.delete(e.pointerId) && !pointers.size) ending = setTimeout(end, 0);
+    };
+    const cancel = (e: PointerEvent) => {
+      if (pointers.has(e.pointerId)) taken = true;
+      lift(e);
     };
     /* a release outside the window can go unreported: a pointer moving with no button down has lifted */
     const moved = (e: PointerEvent) => {
@@ -200,19 +213,20 @@ export function createPaletteEditor(
     };
     const away = () => {
       pointers.clear();
-      edits.close();
+      end();
     };
     addEventListener("pointerdown", down, true);
     addEventListener("pointerup", lift, true);
-    addEventListener("pointercancel", lift, true);
+    addEventListener("pointercancel", cancel, true);
     addEventListener("pointermove", moved, true);
     addEventListener("blur", away);
     onCleanup(() => {
       removeEventListener("pointerdown", down, true);
       removeEventListener("pointerup", lift, true);
-      removeEventListener("pointercancel", lift, true);
+      removeEventListener("pointercancel", cancel, true);
       removeEventListener("pointermove", moved, true);
       removeEventListener("blur", away);
+      clearTimeout(ending);
       edits.close();
     });
   }
