@@ -80,8 +80,10 @@ export default defineConfig({
       }
     },
     ssr: {
-      // The Worker parses less on a cold start.
-      build: { minify: true },
+      /* The Worker parses less on a cold start. Its maps sit beside its modules, and `cf deploy` uploads each map it
+         finds there, so Workers Issues and the live logs read its stacks as source. The browser's build makes none:
+         a reader downloads nothing more. */
+      build: { minify: true, sourcemap: true },
       /* Discovered on the first request instead, Solid's runtime is optimized again and the module runner keeps both
          copies: the router's context splits and rendering fails until a restart. */
       optimizeDeps: {

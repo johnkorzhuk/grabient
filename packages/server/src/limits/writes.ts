@@ -1,6 +1,6 @@
 import { json, overLimit } from "../auth/http.ts";
 import type { Env } from "../env.ts";
-import { flagOff } from "../flags/flags.ts";
+import { flagOff, pausedBy } from "../flags/flags.ts";
 import type { LimitCheck, LimitEnv } from "./check.ts";
 import { limitOf } from "./config.ts";
 
@@ -41,7 +41,10 @@ export async function writeRefusal(
   checks: readonly LimitCheck[]
 ): Promise<Response | null> {
   if (await savingPaused(env)) {
-    return json({ error: "Couldn't save." }, 503, { "Retry-After": String(SAVING_RETRY_SECONDS) });
+    return json({ error: "Couldn't save." }, 503, {
+      "Retry-After": String(SAVING_RETRY_SECONDS),
+      ...pausedBy("saving")
+    });
   }
   return overLimit(env, workChecks(env, role, checks));
 }

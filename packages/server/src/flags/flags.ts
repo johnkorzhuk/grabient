@@ -57,6 +57,13 @@ export async function flagOff(env: Pick<Env, "DB">, name: FlagName): Promise<boo
   return off.has(name) || off.has("all");
 }
 
+/** The header of an answer refused because an admin turned its feature off, naming the flag. The refusal is on
+    purpose, so the Worker's pipeline counts no failure for it. */
+export const PAUSED = "X-Grabient-Paused";
+
+/** The headers of an answer refused while an admin has `name` off. */
+export const pausedBy = (name: FlagName) => ({ [PAUSED]: name });
+
 export interface FlagState {
   name: FlagName;
   on: boolean;

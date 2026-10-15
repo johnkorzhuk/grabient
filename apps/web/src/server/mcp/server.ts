@@ -1,7 +1,7 @@
 import { insufficientScope, type OAuthResourceContext } from "@cloudflare/workers-oauth-provider";
 import { NO_STORE, readBytes } from "@grabient/server/auth/http.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { flagOff } from "@grabient/server/flags/flags.ts";
+import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import {
   checkLimits,
@@ -180,7 +180,8 @@ export async function serveMcp(request: Request, env: Env, ctx: Background): Pro
   if (request.method !== "OPTIONS") {
     if (await flagOff(env, "mcp")) {
       return refused(request, { error: "The MCP server is paused." }, 503, {
-        "Retry-After": "300"
+        "Retry-After": "300",
+        ...pausedBy("mcp")
       });
     }
     // an Origin that is no origin is refused; any real one is allowed, a desktop app's own scheme too, since a token

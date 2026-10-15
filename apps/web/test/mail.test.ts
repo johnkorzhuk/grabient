@@ -1,9 +1,14 @@
 import { addCatalog, messageKey, translate } from "@grabient/i18n";
 import { run } from "@grabient/server/db/d1.ts";
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ja from "../../../packages/i18n/messages/ja.json";
-import { alertOwner, documentAlert, signInDigest } from "../src/server/alerts/alerts.ts";
+import {
+  alertOwner,
+  documentAlert,
+  failingAlert,
+  signInDigest
+} from "../src/server/alerts/alerts.ts";
 import { contactResponse } from "../src/server/contact/contact.ts";
 import { emailLocale, sendAccountEmail } from "../src/server/email/letters/account.ts";
 import {
@@ -89,6 +94,11 @@ describe("the contact form", () => {
     expect(
       await refused(post("/api/contact", message), { ...env, RATE_LIMITER: undefined })
     ).toEqual([503, "Contact is temporarily unavailable."]);
+    // no switch refused it: a failure the owner's alert counts
+    const unbound = { ...env, RATE_LIMITER: undefined };
+    expect(
+      (await contactResponse(post("/api/contact", message), unbound)).headers.has(PAUSED)
+    ).toBe(false);
     const bare = new Request(`${ORIGIN}/api/contact`, {
       method: "POST",
       headers: { Origin: ORIGIN, "Content-Type": "application/json" },
@@ -118,8 +128,9 @@ describe("the contact form", () => {
         503,
         { error: "Contact is temporarily unavailable." }
       ]);
+      expect(answer.headers.get(PAUSED)).toBe("email");
       expect(await alertOwner(env, unique("kind"), "Grabient: a test", ["A line."])).toBe(true);
-      expect(env.EMAIL.sent.map(sent => sent.subject)).toEqual(["Grabient: a test"]);
+      expect(env.EMAIL.sent.map(sent => sent.subject)).toEqual(["[development] Grabient: a test"]);
     } finally {
       await setFlag(env, "email", true, unique("admin"));
     }
@@ -152,7 +163,7 @@ describe("the contact form", () => {
 
 describe("the owner's alerts", () => {
   it("go to the site's address at most once a day for each kind", async () => {
-    const env = testEnv();
+    const env = testEnv({ DEPLOYMENT: "production" });
     const key = unique("kind");
     const day = Date.UTC(2026, 9, 13, 8);
     expect(await alertOwner(env, key, "Grabient: a test", ["One.", "Two."], day)).toBe(true);
@@ -169,6 +180,20 @@ describe("the owner's alerts", () => {
     expect(await alertOwner({ ...env, OAUTH_KV: undefined }, unique("kind"), "S", ["T"])).toBe(
       false
     );
+  });
+
+  it("name the deploy they come from in the subject, unless it is production", async () => {
+    for (const [deployment, subject] of [
+      ["production", "Grabient: answers are failing"],
+      ["staging", "[staging] Grabient: answers are failing"],
+      ["preview", "[preview] Grabient: answers are failing"]
+    ] as const) {
+      const env = testEnv({ DEPLOYMENT: deployment });
+      expect(await alertOwner(env, unique("kind"), "Grabient: answers are failing", ["T"])).toBe(
+        true
+      );
+      expect([deployment, env.EMAIL.last.subject]).toEqual([deployment, subject]);
+    }
   });
 
   it("never stop the job when one cannot be sent, and try again next time", async () => {
@@ -189,13 +214,13 @@ describe("the owner's alerts", () => {
     expect(
       await documentAlert(env, { clientId, fields: ["redirect_uris"], notify: "changed" })
     ).toBe(true);
-    expect(env.EMAIL.last.subject).toBe("Grabient: a saved client document changed");
+    expect(env.EMAIL.last.subject).toBe("[development] Grabient: a saved client document changed");
     expect(env.EMAIL.last.text).toContain("Fields that differ: redirect_uris.");
     expect(
       await documentAlert(env, { clientId, fields: [], why: "HTTP 503", notify: "unreachable" })
     ).toBe(true);
     expect(env.EMAIL.last.subject).toBe(
-      "Grabient: a client document has been unreachable for a week"
+      "[development] Grabient: a client document has been unreachable for a week"
     );
     expect(env.EMAIL.last.text).toContain("(HTTP 503 the last time)");
   });
@@ -236,6 +261,92 @@ describe("the owner's alerts", () => {
     // each deploy that counts reads its own dataset, the one the usage report reads
     await signInDigest({ ...env, DEPLOYMENT: "development" });
     expect(queries.at(-1)).toContain('FROM events.analyticsEngine."grabient_dev_usage"');
+    // a query the binding rejects fails the step
+    const refused = new Error("Analytics SQL is unavailable");
+    await expect(
+      signInDigest({ ...env, ANALYTICS: { query: () => Promise.reject(refused) } })
+    ).rejects.toBe(refused);
+  });
+
+  it("say the site is failing past what a passing fault makes, once a day for each way it fails", async () => {
+    const queries: string[] = [];
+    let rows: Record<string, unknown>[] = [];
+    const env = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: {
+        query: async ({ query }) => {
+          queries.push(query);
+          return { data: rows };
+        }
+      }
+    });
+    const day = Date.UTC(2026, 9, 20, 3);
+    // nine answers that failed, and fewer browser errors than two readers' browsers send
+    rows = [
+      { event: "failure", a: "500", b: "page", n: 9 },
+      { event: "client-error", a: "palettes", b: "Chrome 131", n: 20 },
+      { event: "client-error", a: "seed", b: "Safari 18 mobile", n: 4 }
+    ];
+    expect(await failingAlert(env, day)).toEqual({
+      counted: { failure: 9, "client-error": 24 },
+      emailed: []
+    });
+    expect(env.EMAIL.sent).toEqual([]);
+    expect(queries[0]).toContain('FROM events.analyticsEngine."grabient_usage"');
+    expect(queries[0]).toContain("timestamp > NOW() - INTERVAL '10' MINUTE");
+    expect(queries[0]).toContain("SUM(double1) AS n");
+
+    rows = [
+      { event: "failure", a: "500", b: "page", n: 30.4 },
+      { event: "failure", a: "503", b: "api/collections", n: 7 },
+      { event: "client-error", a: "palettes", b: "Chrome 131", n: 26 }
+    ];
+    expect(await failingAlert(env, day)).toEqual({
+      counted: { failure: 37, "client-error": 26 },
+      emailed: ["failure", "client-error"]
+    });
+    const [answers, browsers] = env.EMAIL.sent;
+    expect(answers?.subject).toBe("Grabient: answers are failing");
+    expect(answers?.text).toContain(
+      "the site could not give these answers, by status and kind of address, 37 in all:\n- 500, page: 30\n- 503, api/collections: 7"
+    );
+    expect(answers?.text).toContain(
+      "https://dash.cloudflare.com/?to=/:account/workers/services/view/grabient-production/production/issues"
+    );
+    expect(browsers?.subject).toBe("Grabient: pages are failing in readers' browsers");
+    expect(browsers?.text).toContain("- palettes, Chrome 131: 26");
+    // still failing ten minutes later: the day's alerts have gone
+    expect((await failingAlert(env, day + 600_000)).emailed).toEqual([]);
+    expect(env.EMAIL.sent).toHaveLength(2);
+    expect((await failingAlert(env, day + 86_400_000)).emailed).toEqual([
+      "failure",
+      "client-error"
+    ]);
+
+    expect(await failingAlert({ ...env, ANALYTICS: undefined }, day)).toMatchObject({
+      skipped: "This deploy has no usage counts to read",
+      emailed: []
+    });
+  });
+
+  it("find nothing failing in a dataset no point has reached, and fail their step when the counts cannot be read", async () => {
+    // production's dataset before its first point answers as a quiet ten minutes do
+    const quiet = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: { query: async () => ({ data: [] }) }
+    });
+    expect(await failingAlert(quiet)).toEqual({
+      counted: { failure: 0, "client-error": 0 },
+      emailed: []
+    });
+    // the binding rejects a query it cannot answer: the step fails, and Workers Issues shows the run that failed
+    const refused = Object.assign(new Error("Analytics SQL is unavailable"), { retryable: true });
+    const down = testEnv({
+      DEPLOYMENT: "production",
+      ANALYTICS: { query: () => Promise.reject(refused) }
+    });
+    await expect(failingAlert(down)).rejects.toBe(refused);
+    expect(down.EMAIL.sent).toEqual([]);
   });
 });
 

@@ -1,7 +1,7 @@
 import type { OAuthAuthorizationServer } from "@cloudflare/workers-oauth-provider";
 import { NO_STORE, readBytes } from "@grabient/server/auth/http.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { flagOff } from "@grabient/server/flags/flags.ts";
+import { flagOff, pausedBy } from "@grabient/server/flags/flags.ts";
 import { checkLimits, type LimitCheck } from "@grabient/server/limits/check.ts";
 import { countUsage } from "@grabient/server/usage/count.ts";
 import { clientKind } from "./clients.ts";
@@ -122,7 +122,8 @@ export async function register(
   if (request.method !== "POST") return server.fetch(request, env, ctx);
   if (await flagOff(env, "mcp")) {
     return oauthError(request, "temporarily_unavailable", "Connecting apps is paused.", 503, {
-      "Retry-After": "300"
+      "Retry-After": "300",
+      ...pausedBy("mcp")
     });
   }
   const limited = await overOAuthLimit(request, env, registerLimits(requester(request)));

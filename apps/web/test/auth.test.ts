@@ -2,7 +2,7 @@ import { deleteAccount } from "@grabient/server/auth/deletion.ts";
 import { handleAuth } from "@grabient/server/auth/gate.ts";
 import { authFor } from "@grabient/server/auth/library.ts";
 import { getSession } from "@grabient/server/auth/session.ts";
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { describe, expect, it } from "vitest";
 import {
   address,
@@ -261,6 +261,7 @@ describe("email while an admin has it off", () => {
         "300",
         { error: "Email sign-in is busy. Try again later." }
       ]);
+      expect(link.headers.get(PAUSED)).toBe("email");
       const google = testEnv({ GOOGLE_CLIENT_ID: "client", GOOGLE_CLIENT_SECRET: "secret" });
       const code = await handleAuth(post(CODE, { email, type: "sign-in" }), google);
       expect([code.status, await code.json()]).toEqual([

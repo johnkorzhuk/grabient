@@ -9,8 +9,10 @@ import {
   splitLocale
 } from "@grabient/i18n";
 import type { Env } from "@grabient/server/env.ts";
+import { PAUSED } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
+import { countUsage } from "@grabient/server/usage/count.ts";
 import { BUILD } from "../lib/build.ts";
 import { NO_STORE } from "../lib/cache.ts";
 import { TRACKING_PARAM } from "../lib/links.ts";
@@ -80,34 +82,50 @@ export async function handle(
   app: App
 ): Promise<Response> {
   const url = new URL(request.url);
+  const { locale, path } = splitLocale(url.pathname);
   const wrong = misdeployed(env, url.hostname);
   if (wrong) {
     console.error("misdeployed: refusing to serve grabient.com,", wrong);
-    return new Response(
+    const refused = new Response(
       `This deploy is not configured for grabient.com: ${wrong}. Deploy with \`cf deploy --mode production\`.\n`,
       {
         status: 503,
         headers: { ...NO_STORE, "Content-Type": "text/plain; charset=utf-8", "Retry-After": "300" }
       }
     );
+    return counted(env, path, refused);
   }
   const { rest, tracking } = splitTracking(url.search);
   if (tracking) {
     url.search = rest;
     request = new Request(url, request);
   }
-  const { locale, path } = splitLocale(url.pathname);
   let response: Response;
   try {
     response = await route(request, url, locale, path, env, ctx, app);
   } catch (error) {
-    // the message and the first lines of the stack, or a production 500 cannot be told from another
-    const stack =
-      error instanceof Error ? (error.stack ?? "").split("\n").slice(1, 6).join("\n") : "";
-    console.error("Request failed", request.method, url.pathname, String(error), stack);
+    /* the error alone, as Workers Issues reads one: an issue for each error whatever the address, its stack read as
+       source, and the request beside it */
+    console.error(error);
     response = json({ error: msg("Something went wrong. Try again.") }, { status: 500 });
   }
-  return finish(request, url, path, env, response, tracking);
+  return counted(env, path, finish(request, url, path, env, response, tracking));
+}
+
+/** The answer, counted when the site could not give it: the owner's alert reads the count (alerts/alerts.ts). A
+    feature an admin turned off refuses on purpose, which is no failure. */
+function counted(env: Env, path: string, answered: Response): Response {
+  if (answered.status >= 500 && !answered.headers.has(PAUSED)) {
+    countUsage(env, "failure", String(answered.status), kindOf(path));
+  }
+  return answered;
+}
+
+/** A failed address by its kind, from a few: a page, an API by its name, the MCP server or a file. */
+function kindOf(path: string): string {
+  if (isPagePath(path)) return "page";
+  const api = /^\/api\/([\w-]+)/.exec(path)?.[1];
+  return api ? `api/${api}` : connectPath(path) ? "mcp" : "file";
 }
 
 async function route(

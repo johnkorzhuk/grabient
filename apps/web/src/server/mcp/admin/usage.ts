@@ -20,7 +20,8 @@ const USAGE_COLUMNS = {
   legacy: ["resolved", "who"],
   image: ["picture", "answeredBy"],
   "client-error": ["page", "browser"],
-  file: ["format", "from", "who"]
+  file: ["format", "from", "who"],
+  failure: ["status", "kind"]
 } as const;
 type UsageEventName = keyof typeof USAGE_COLUMNS;
 /** Every event the dataset holds, in the order a report lists them. */

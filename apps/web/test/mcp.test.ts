@@ -5,7 +5,7 @@ import { randomPalette } from "@grabient/engine/random.ts";
 import { anchorsFromHexes } from "@grabient/engine/spec.ts";
 import { all, run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
-import { setFlag } from "@grabient/server/flags/flags.ts";
+import { PAUSED, setFlag } from "@grabient/server/flags/flags.ts";
 import { clientAddress } from "@grabient/server/limits/address.ts";
 import { checkLimits } from "@grabient/server/limits/check.ts";
 import { describe, expect, it } from "vitest";
@@ -265,8 +265,9 @@ describe("the MCP server's door", () => {
       expect([
         paused.response.status,
         paused.body,
-        paused.response.headers.get("Retry-After")
-      ]).toEqual([503, { error: "The MCP server is paused." }, "300"]);
+        paused.response.headers.get("Retry-After"),
+        paused.response.headers.get(PAUSED)
+      ]).toEqual([503, { error: "The MCP server is paused." }, "300", "mcp"]);
     } finally {
       await setFlag(env, "mcp", true, admin.id);
     }

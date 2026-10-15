@@ -1,3 +1,4 @@
+import { readdirSync, readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 
 const PAGES = [
@@ -86,4 +87,41 @@ test("an API address answers in its own way whatever the method, never with a pa
   const contact = await request.get("/api/contact");
   expect(contact.status()).toBe(405);
   expect(contact.headers()["content-type"]).toContain("application/json");
+});
+
+test("the Worker's modules go up with their maps, and a reader is sent none", {
+  tag: "@served"
+}, async ({ page, request }) => {
+  // the build this project serves, as `cf deploy --prebuilt` uploads it: each map in the Worker's bundle goes up with
+  // the module that names it; Start's generated manifest is data with no source to map
+  const output = new URL("../.cloudflare/output/v0/workers/default/", import.meta.url);
+  const bundle = new URL("bundle/", output);
+  const files = readdirSync(bundle, { recursive: true }).map(String);
+  const unmapped = files
+    .filter(file => file.endsWith(".js"))
+    .filter(file => {
+      const name = file.split("/").at(-1);
+      const code = readFileSync(new URL(file, bundle), "utf8").trimEnd();
+      return !files.includes(`${file}.map`) || !code.endsWith(`//# sourceMappingURL=${name}.map`);
+    });
+  expect(unmapped).toEqual([expect.stringMatching(/^assets\/_tanstack-start-manifest_v-/)]);
+  const main = JSON.parse(readFileSync(new URL("index.js.map", bundle), "utf8"));
+  expect(main.sources).toContainEqual(expect.stringMatching(/src\/server\/pipeline\.ts$/));
+  // the files the site serves are the browser's, and none of them is a map
+  const served = readdirSync(new URL("assets/", output), { recursive: true }).map(String);
+  expect(served.filter(file => file.endsWith(".map"))).toEqual([]);
+
+  const scripts: string[] = [];
+  page.on("response", response => {
+    // the site's own files: a worker the page makes from a blob has no address to ask
+    if (response.request().resourceType() === "script" && response.url().startsWith("http"))
+      scripts.push(response.url());
+  });
+  await page.goto("/palettes");
+  await page.waitForFunction(() => !("$_TSR" in window));
+  expect(scripts.length).toBeGreaterThan(0);
+  for (const script of scripts) {
+    expect(await (await request.get(script)).text()).not.toContain("sourceMappingURL");
+    expect((await request.get(`${script}.map`)).status()).toBe(404);
+  }
 });

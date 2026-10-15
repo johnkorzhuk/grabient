@@ -19,7 +19,8 @@ import { ShellContext } from "./shell.ts";
     account's own lists, which open, until the connection returns and Retry can load it. */
 export function ErrorPage(props: ErrorComponentProps) {
   if (isServer) {
-    console.error("Page failed", props.error);
+    // the error alone, as Workers Issues reads one (server/pipeline.ts)
+    console.error(props.error);
     const event = getRequestEvent();
     if (event) event.locals.renderFailed = true;
   } else reportCaught(props.error);

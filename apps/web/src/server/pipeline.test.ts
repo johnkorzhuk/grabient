@@ -4,6 +4,8 @@ vi.hoisted(() => Object.assign(globalThis, { __BUILD_ID__: "b1" }));
 
 import { decodePalette, encodePalette } from "@grabient/engine";
 import type { Env } from "@grabient/server/env.ts";
+import { pausedBy } from "@grabient/server/flags/flags.ts";
+import type { FlagName } from "@grabient/server/flags/names.ts";
 import migrated from "../../data/legacy-k.json" with { type: "json" };
 import links from "../../data/legacy-links.json" with { type: "json" };
 import { PAGE } from "../lib/cache.ts";
@@ -96,6 +98,8 @@ test("grabient.com is answered only by the deploy made for it", async () => {
   expect(await response.text()).toBe(
     'This deploy is not configured for grabient.com: DEPLOYMENT is "staging", not "production". Deploy with `cf deploy --mode production`.\n'
   );
+  // counted as any answer the site could not give, so the owner's alert hears of it
+  expect(counted).toEqual(["failure 503 page"]);
 });
 
 describe("the language in the address", () => {
@@ -578,19 +582,37 @@ test("a refusal that names no wait of its own says a minute", async () => {
   expect((await get("/api/me/search?q=x", {}, waits)).headers.get("Retry-After")).toBe("7");
 });
 
-test("a failure is a 500 no cache keeps, logged with its stack", async () => {
+test("a failure is a 500 no cache keeps, and its error is logged as it was thrown", async () => {
   const log = vi.spyOn(console, "error").mockImplementation(() => {});
+  const boom = new Error("boom");
   const response = await get("/about", {}, () => {
-    throw new Error("boom");
+    throw boom;
   });
   expect(response.status).toBe(500);
   expect(await response.json()).toEqual({ error: "Something went wrong. Try again." });
   expect(response.headers.get("Cache-Control")).toBe("no-store");
-  expect(log).toHaveBeenCalledWith(
-    "Request failed",
-    "GET",
-    "/about",
-    "Error: boom",
-    expect.stringContaining("at ")
-  );
+  // Workers Issues groups it by its name and words, whatever the address, and reads its stack
+  expect(log).toHaveBeenCalledExactlyOnceWith(boom);
+  expect(counted).toEqual(["failure 500 page"]);
+});
+
+test("each answer the site could not give is counted by its status and the kind of address alone", async () => {
+  const unavailable = () => Response.json({ error: "Try again later." }, { status: 503 });
+  await get("/api/collections/ocean-gradients", {}, unavailable);
+  await get("/mcp", { method: "POST" }, unavailable);
+  await get("/kS7Q8Yy5S_SChv0.png", {}, unavailable);
+  await get("/palettes", {}, () => page(404));
+  expect(counted.filter(point => point.startsWith("failure"))).toEqual([
+    "failure 503 api/collections",
+    "failure 503 mcp",
+    "failure 503 file"
+  ]);
+});
+
+test("an answer refused while an admin has its feature off is no failure", async () => {
+  const paused = (name: FlagName) => () =>
+    Response.json({ error: "Paused." }, { status: 503, headers: pausedBy(name) });
+  await get("/mcp", { method: "POST" }, paused("mcp"));
+  await get("/api/png/query?query=red", {}, paused("share-images"));
+  expect(counted.filter(point => point.startsWith("failure"))).toEqual([]);
 });

@@ -28,8 +28,10 @@ test("every schedule in cloudflare.config.ts has its job, to the character", () 
 });
 
 test("each job runs these steps, in this order", () => {
-  // IndexNow lists what the queue just published; the snapshot is built from what both left
+  // the owner hears of a failing site before anything a failing database holds; IndexNow lists what the queue just
+  // published; the snapshot is built from what both left
   expect(Object.keys(TEN_MINUTES)).toEqual([
+    "failing site",
     "github stars",
     "seeding queue",
     "indexnow",
@@ -142,7 +144,8 @@ test("every six hours: what is past keeping goes, the Popular tags and the score
 });
 
 test("every ten minutes: the star count is kept and the search's snapshot is built from what is public", async () => {
-  const env = testEnv();
+  // counts that show nothing failing: the check has nothing to say
+  const env = testEnv({ ANALYTICS: { query: async () => ({ data: [] }) } });
   await run(
     env.DB,
     `INSERT OR IGNORE INTO k_palettes (seed, style, steps, angle, created_at)
