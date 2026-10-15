@@ -96,19 +96,48 @@ export function createFeed<P extends FeedPage>(o: {
       watcher.observe(mark);
     }
   };
+  /* The keyboard in what stands past the feed, the footer: a page joining would push it out of view, so the feed waits
+     until the keyboard comes back up into it, and a group drawn at its own height as the window reaches it leaves the
+     focus in view. */
+  let held = false;
+  const past = () => {
+    const at = document.activeElement;
+    return (
+      !!mark && !!at && !!(mark.compareDocumentPosition(at) & Node.DOCUMENT_POSITION_FOLLOWING)
+    );
+  };
   onSettled(() => {
     watcher = new IntersectionObserver(
       entries => {
-        if (entries.some(entry => entry.isIntersecting)) {
-          void next().then(joined => {
-            if (joined) look();
-          });
-        }
+        if (!entries.some(entry => entry.isIntersecting)) return;
+        held = past();
+        if (held) return;
+        void next().then(joined => {
+          if (joined) look();
+        });
       },
       { rootMargin: AHEAD }
     );
     if (mark) watcher.observe(mark);
-    return () => watcher?.disconnect();
+    const back = () => {
+      if (held && !past()) {
+        held = false;
+        look();
+      }
+    };
+    document.addEventListener("focusin", back);
+    const grown = new ResizeObserver(() => {
+      if (!past()) return;
+      const at = document.activeElement as HTMLElement;
+      const box = at.getBoundingClientRect();
+      if (box.top < 0 || box.bottom > innerHeight) at.scrollIntoView({ block: "nearest" });
+    });
+    grown.observe(document.documentElement);
+    return () => {
+      watcher?.disconnect();
+      grown.disconnect();
+      document.removeEventListener("focusin", back);
+    };
   });
 
   return {

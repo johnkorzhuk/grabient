@@ -65,6 +65,27 @@ test("a screen taller than the first page asks for the next one once, and draws 
   expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBe(tall);
 });
 
+test("the footer under a list that grows as it scrolls is reached by the keyboard and stays in view", async ({
+  page
+}) => {
+  const asked = calls(page);
+  await page.goto("/palettes");
+  await hydrated(page);
+  // from the page's first stop, Shift+Tab goes round to its last: the footer's
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  const footer = page.locator("footer");
+  await expect(footer.locator(":focus")).toHaveCount(1);
+  for (let press = 0; press < 3; press++) {
+    await page.waitForTimeout(800);
+    await expect(page.locator(":focus")).toBeInViewport();
+    await page.keyboard.press("Shift+Tab");
+  }
+  await expect(footer.locator(":focus")).toHaveCount(1);
+  expect(asked.filter(path => path.startsWith("/api/palettes"))).toEqual([]);
+});
+
 test("a card the server drew answers focus and a press that reach it before the reader moves", async ({
   page
 }) => {
