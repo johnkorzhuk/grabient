@@ -114,6 +114,13 @@ export const october: Issue = {
           strong("Save"),
           "."
         ]),
+        image({
+          src: `${origin}/email/collections.gif`,
+          alt: "A palette added to collections from its card in the list",
+          width: 534,
+          height: 300,
+          href: `${origin}/collections`
+        }),
         text("Find a collection by a color or a mood, and save it to your account."),
         button({ href: `${origin}/collections`, label: "Browse collections" })
       ),
