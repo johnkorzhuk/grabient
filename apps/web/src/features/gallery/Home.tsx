@@ -5,6 +5,7 @@ import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionGroup, shownAt } from "@grabient/ui/CollectionGroup.tsx";
 import { Fit } from "@grabient/ui/Fit.tsx";
 import { GroupFeed } from "@grabient/ui/GroupFeed.tsx";
+import hidden from "@grabient/ui/hidden.module.css";
 import { ListNav } from "@grabient/ui/ListNav.tsx";
 import { PaletteFeed } from "@grabient/ui/PaletteFeed.tsx";
 import { columnsAt } from "@grabient/ui/PaletteGrid.tsx";
@@ -276,6 +277,9 @@ export function Home(props: { params: ListParams }) {
   /* A head standing while it is read again, for other words or in place once it is old. Until the read lands, the
      query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
   const updating = () => navigating() || isPending(() => head.data);
+  /* a signed-out search whose words need an account: the block over the grid says No results, and the line says it
+     unseen, where a screen reader hears what a search found */
+  const said = () => (signInToSearch() ? <span class={hidden.text}>{t("No results.")}</span> : "");
   const message = () =>
     (updating() ? (words() ? t("Searching…") : t("Updating…")) : "") ||
     headError() ||
@@ -502,7 +506,7 @@ export function Home(props: { params: ListParams }) {
             <Status
               error={!!headError() || !!firstError() || !!feed.reason() || !!page.line()?.error}
             >
-              {message()}
+              {message() || said()}
             </Status>
             <Show when={headError()}>
               <Button size="sm" onClick={() => void head.refetch()}>

@@ -4,6 +4,7 @@ import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionCard } from "@grabient/ui/CollectionCard.tsx";
 import { Fit } from "@grabient/ui/Fit.tsx";
+import hidden from "@grabient/ui/hidden.module.css";
 import { ListNav, type Order } from "@grabient/ui/ListNav.tsx";
 import { PaletteFeed } from "@grabient/ui/PaletteFeed.tsx";
 import { PaletteGrid } from "@grabient/ui/PaletteGrid.tsx";
@@ -368,6 +369,9 @@ export function Palettes(props: { place: ListPlace }) {
   /* The cards standing while their list is read: another list, or this one again once it is old. Until the read lands,
      the query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
   const updating = () => navigating() || (!!listed && isPending(() => listed.data));
+  /* a signed-out search whose words need an account: the block over the grid says No results, and the line says it
+     unseen, where a screen reader hears what a search found */
+  const said = () => (signInToSearch() ? <span class={hidden.text}>{t("No results.")}</span> : "");
   /* the placeholders say a cold list is on its way; the line speaks only for what the cards cannot */
   const message = () =>
     (updating() ? t("Updating…") : "") ||
@@ -609,7 +613,7 @@ export function Palettes(props: { place: ListPlace }) {
               <div class={styles.mark} ref={feed.mark} aria-hidden="true" />
               <div class={styles.status}>
                 <Status error={!!headError() || !!feed.reason() || !!page.line()?.error}>
-                  {message()}
+                  {message() || said()}
                 </Status>
                 <Show when={headError()}>
                   <Button size="sm" onClick={retry}>
