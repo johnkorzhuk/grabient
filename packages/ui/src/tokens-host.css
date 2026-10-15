@@ -49,7 +49,7 @@
     --color-sheen: rgba(255, 255, 255, 0.07);
     --color-ring: var(--color-ring-primary, rgba(236, 236, 234, 0.45));
     --color-accent: #f0a531;
-    --color-danger: var(--color-text-danger, #d45454);
+    --color-danger: var(--color-text-danger, #e46b6b);
     --color-like: #d63b34;
     --color-star: #f0a531;
     --color-shadow: var(--shadow-lg, 0 24px 48px -28px rgba(0, 0, 0, 0.85));
@@ -94,7 +94,7 @@
     --color-sheen: rgba(255, 255, 255, 0.9);
     --color-ring: var(--color-ring-primary, rgba(23, 23, 27, 0.5));
     --color-accent: #a35f04;
-    --color-danger: var(--color-text-danger, #c43d3d);
+    --color-danger: var(--color-text-danger, #ae3030);
     --color-like: #c9332c;
     --color-shadow: var(--shadow-lg, 0 24px 48px -28px rgba(30, 30, 40, 0.35));
     --color-shadow-pop: var(
