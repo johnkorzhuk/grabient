@@ -1,12 +1,14 @@
 /* Builds production as the rebuild will hold it after the cutover, in a local D1 that cf simulates, from the
-   snapshots read.ts made of production (.data/production) and grabient-lite (.data/lite), and then staging's copy of it:
+   snapshots read.ts made of production (.data/production), grabient-lite (.data/lite) and grabient-staging
+   (.data/staging), and then staging's copy of it:
 
      1. production's own schema and migration history, then its rows: every account and Google link, its palettes,
         likes and the old app's records. Sessions and sign-in links are left out, Google's tokens are NULL.
      2. the repository's migrations, applied by cf as a deploy applies them: 0000_baseline finds production's tables
         there, 0022 to 0054 build on them and transform their rows.
-     3. the plan: the palette import (palettes.ts), grabient-lite's contributor work (merge.ts), the counts made whole,
-        the sign-in cleanup production needs, and the scores (scores.ts).
+     3. the plan: the palette import (palettes.ts), grabient-lite's contributor work (merge.ts), what the admins did on
+        staging since its load (staging-work.ts), the counts made whole, the sign-in cleanup production needs, and the
+        scores (scores.ts).
      4. the full build read back into .data/full and checked against both sources (verify.ts).
      5. staging's copy (stagingStatements), made from the full build in memory, loaded into a local D1 of its own as
         load.ts loads staging, read back into .data/local and checked against the full build.
@@ -52,6 +54,7 @@ import {
   writeSnapshot
 } from "./snapshot.ts";
 import { stagingCopy } from "./staging.ts";
+import { stagingWork, workReport, workStatements } from "./staging-work.ts";
 import { report, verify, verifyStaging } from "./verify.ts";
 
 export const BUILD = resolve(DATA, "build");
@@ -85,22 +88,34 @@ export function baseStatements(production: Snapshot): string[] {
 }
 
 /** The plan but its scores, which need the rows it leaves: what a database at production's schema after the
-    migrations takes to hold production's palettes and likes and grabient-lite's work. */
+    migrations takes to hold production's palettes and likes, grabient-lite's work and the admins' work on staging. */
 export function planStatements(
   production: Snapshot,
   lite: Snapshot,
+  staging: Snapshot,
   aliases: ReadonlyMap<string, string>,
   originals: readonly Original[]
 ) {
-  const merge = mergeStatements(lite, {
-    users: production.rows("auth_user"),
-    collections: production.rows("k_collections")
-  });
+  const users = production.rows("auth_user");
+  const merge = mergeStatements(lite, { users, collections: production.rows("k_collections") });
+  const work = stagingWork(staging, production, lite, aliases);
+  /* every address the target holds once grabient-lite's work is in, with its collection */
+  const holders = new Map([
+    ...production.rows("k_collections").map(c => [String(c.slug), String(c.id)] as const),
+    ...lite.rows("k_collections").flatMap(c => {
+      const id = merge.collections.get(String(c.id));
+      return id ? [[merge.slugs.get(String(c.slug)) ?? String(c.slug), id] as const] : [];
+    })
+  ]);
+  const carried = workStatements(work, staging, { users, holders });
   return {
     merge,
+    work,
+    moved: carried.slugs,
     statements: [
       ...importStatements(aliases, originals),
       ...merge.statements,
+      ...carried.statements,
       ...likeCountStatements(),
       ...collectionRepairs(),
       ...authCleanup()
@@ -154,10 +169,12 @@ const done = (n: number, of: number) => process.stdout.write(`\r  ${n} of ${of} 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const production = readSnapshot(resolve(DATA, "production"));
   const lite = readSnapshot(resolve(DATA, "lite"));
+  const staging = readSnapshot(resolve(DATA, "staging"));
   const aliases = readAliases();
   const at = (ms: number) => new Date(ms).toISOString().slice(0, 16).replace("T", " ");
   console.log(
-    `Production read at ${at(production.meta.readAt)} UTC, grabient-lite at ${at(lite.meta.readAt)} UTC.`
+    `Production read at ${at(production.meta.readAt)} UTC, grabient-lite at ${at(lite.meta.readAt)} UTC, ` +
+      `grabient-staging at ${at(staging.meta.readAt)} UTC.`
   );
   rmSync(BUILD, { recursive: true, force: true });
   const db = local(BUILD);
@@ -169,8 +186,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   const migrations = await migrate(db);
   console.log(`  ${migrations.length} applied: ${migrations[0]} to ${migrations.at(-1)}`);
 
-  step("3. The plan: the palette import, grabient-lite's work, the counts, the scores");
-  const { merge, statements } = planStatements(production, lite, aliases, readOriginals());
+  step("3. The plan: the palette import, grabient-lite's work, staging's, the counts, the scores");
+  const { merge, work, moved, statements } = planStatements(
+    production,
+    lite,
+    staging,
+    aliases,
+    readOriginals()
+  );
   await execute(db, statements, done);
   const now = Date.now();
   const scoring = await scoreDatabase((...read) => selectAll(db, ...read), now);
@@ -186,10 +209,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     );
   }
   const missing = unmapped(production.rows("palettes"), aliases);
+  const fromStaging = workReport(work, moved);
   const summary: Record<string, unknown> = {
     builtAt: now,
     production: production.meta.readAt,
     lite: lite.meta.readAt,
+    stagingRead: staging.meta.readAt,
     migrations,
     paletteIdsWithoutSeed: missing.map(palette => palette.id),
     accounts: Object.fromEntries(merge.users),
@@ -198,12 +223,15 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     addressesMoved: Object.fromEntries(merge.slugs),
     moved: merge.moved,
     dropped: merge.dropped,
-    left: LEFT
+    left: LEFT,
+    fromStaging
   };
   const writeReport = () =>
     writeFileSync(resolve(PLAN, "report.json"), `${JSON.stringify(summary, null, 1)}\n`);
   writeReport();
   const mapped = [...merge.users].filter(([, to]) => !merge.created.includes(to)).length;
+  const changes = (kind: string) =>
+    fromStaging.collections.filter(c => c.stands === "staging" && c.change === kind).length;
   console.log(
     `\n  ${plan.length} statements in ${requests(plan).length} requests, written to ${PLAN}` +
       `\n  accounts: ${mapped} of grabient-lite's are production's by email, ${merge.created.length} made` +
@@ -211,7 +239,14 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       (missing.length
         ? `\n  ${missing.length} production palettes have no seed in the data maps and stay out: ${missing.map(p => p.id).join(", ")}`
         : "") +
-      (Object.keys(merge.dropped).length ? `\n  left behind: ${JSON.stringify(merge.dropped)}` : "")
+      (Object.keys(merge.dropped).length
+        ? `\n  left behind: ${JSON.stringify(merge.dropped)}`
+        : "") +
+      `\n  from staging since its load at ${fromStaging.loadedAt ?? "(never loaded)"}: ${fromStaging.likes} likes, ` +
+      `${fromStaging.unlikes} unlikes, ${fromStaging.palettes.length} palettes new to the gallery, collections ` +
+      `${changes("made")} made, ${changes("changed")} changed, ${changes("deleted")} deleted, ` +
+      `${fromStaging.notes.length} notes, ${fromStaging.leads.length} leads; ` +
+      `${fromStaging.conflicts.length} conflicts, ${fromStaging.left.length} changes left on staging`
   );
 
   step("4. The full build, read back and checked against its sources");
@@ -223,9 +258,9 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   step("5. Staging's copy, loaded into a local D1 of its own, read back and checked");
   const copy = await stagingCopy(full, lite, now);
   rmSync(BUILD, { recursive: true, force: true });
-  const staging = local(BUILD);
-  await execute(staging, loadStatements(copy), done);
-  const back = await readDatabase(reader(staging), staging, 5000);
+  const copyDb = local(BUILD);
+  await execute(copyDb, loadStatements(copy), done);
+  const back = await readDatabase(reader(copyDb), copyDb, 5000);
   writeSnapshot(LOCAL, back.meta, back.schema, back.tables);
   summary.staging = Object.fromEntries(
     Object.entries(copy.meta.tables).map(([table, t]) => [table, t.rows])

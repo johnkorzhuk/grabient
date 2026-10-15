@@ -1,15 +1,18 @@
 /* The data scripts' tests run the pipeline in memory: a production with the old app's schema, a grabient-lite built
-   by the repository's migrations, both read into snapshots as read.ts reads D1, and the copy build.ts makes of them,
-   in node:sqlite with foreign keys on as D1 has them. */
+   by the repository's migrations, a grabient-staging loaded from an earlier copy and changed since, all read into
+   snapshots as read.ts reads D1, and the copy build.ts makes of them, in node:sqlite with foreign keys on as D1 has
+   them. */
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { baseStatements, planStatements } from "./build.ts";
 import { type Database, insertRows, MIGRATIONS } from "./d1.ts";
+import { loadStatements } from "./load.ts";
 import type { Original } from "./palettes.ts";
 import { readDatabase } from "./read.ts";
 import { scoreDatabase } from "./scores.ts";
 import { type Row, reads, type Snapshot } from "./snapshot.ts";
+import { stagingCopy } from "./staging.ts";
 import { migrationFiles } from "./verify.ts";
 
 /** Production's schema at the old app's last migration, as its sqlite_master holds it. */
@@ -63,6 +66,16 @@ export async function snapshotOf(db: DatabaseSync, page = 3): Promise<Snapshot> 
   return { dir: "", meta, schema, rows: table => tables.get(table) ?? [] };
 }
 
+/** A change as the site writes it, its triggers and all, with the log rows it wrote dated `at`. */
+export function change(db: DatabaseSync, statements: readonly string[], at: number) {
+  const { id } = db.prepare("SELECT COALESCE(MAX(id), 0) AS id FROM k_sync_log").get() as {
+    id: number;
+  };
+  run(db, statements);
+  db.prepare("UPDATE k_sync_log SET at = ? WHERE id > ?").run(at, id);
+}
+export type Changes = readonly (readonly [statements: readonly string[], at: number])[];
+
 /* Seeds whose second letter gives their keyframes: E four, A two, G five, C three. */
 export const A = "kEaaaaaaaa";
 export const B = "kAbbbbbbbb";
@@ -78,6 +91,8 @@ export const ORIGINALS: Original[] = [
   { kseed: A, createdAt: 500, legacy: "_old1" }
 ];
 export const NOW = 10_000;
+/** When the copy loaded into staging was written: its log ends here, and staging's own changes come later. */
+export const LOADED = 20_000;
 
 const user = (id: string, email: string, extra: Row = {}): Row => ({
   id,
@@ -172,8 +187,9 @@ export async function production() {
 
 /** grabient-lite: the same people under other ids, a persona, accounts production lacks; Grabient's collection and
     accounts' ones, a reader's public one among them, with likes, notes, votes, the record, the queue, texts,
-    translations, switches, and the tags and search counts. */
-export async function lite() {
+    translations, switches, and the tags and search counts. Its log is dated before the build; `later` changes it
+    after staging's load. */
+export async function lite(later: Changes = []) {
   const db = memory(PRODUCTION_SCHEMA);
   migrate(db);
   const item = (
@@ -404,15 +420,26 @@ export async function lite() {
     k_search_unread: [{ day: 1, page: "palettes", words: "jellyfish", count: 1 }],
     k_palette_use: [{ day: 1, seed: A, action: "copy", surface: "home", count: 1 }]
   });
+  run(db, ["UPDATE k_sync_log SET at = 9000"]);
+  for (const [statements, at] of later) change(db, statements, at);
   return snapshotOf(db);
 }
 
-/** The copy build.ts makes of the two, with its plan, in memory. */
-export async function copyOf(source: { production: Snapshot; lite: Snapshot }) {
+export interface Sources {
+  production: Snapshot;
+  lite: Snapshot;
+  staging: Snapshot;
+}
+
+/** A staging no copy was ever loaded into. */
+export const unloaded = () => snapshotOf(memory());
+
+/** The copy build.ts makes of the three, with its plan, in memory, scored at `now`. */
+export async function copyOf(source: Sources, now = NOW) {
   const db = memory();
   run(db, baseStatements(source.production));
   migrate(db);
-  const plan = planStatements(source.production, source.lite, ALIASES, ORIGINALS);
+  const plan = planStatements(source.production, source.lite, source.staging, ALIASES, ORIGINALS);
   run(db, plan.statements);
   const read = reads(db);
   const select = async (table: string, columns: readonly string[], where: string) => {
@@ -421,7 +448,18 @@ export async function copyOf(source: { production: Snapshot; lite: Snapshot }) {
     );
     return rows.map(values => Object.fromEntries(names.map((n, i) => [n, values[i] ?? null])));
   };
-  const scoring = await scoreDatabase(select, NOW);
+  const scoring = await scoreDatabase(select, now);
   run(db, scoring);
-  return { db, plan: [...plan.statements, ...scoring], merge: plan.merge };
+  return { db, plan: [...plan.statements, ...scoring], merge: plan.merge, work: plan.work };
+}
+
+/** grabient-staging as load.ts loads it with the copy built from production and grabient-lite, its log ending at
+    LOADED, then changed by `changes`. */
+export async function stagingOf(source: Omit<Sources, "staging">, changes: Changes = []) {
+  const built = await copyOf({ ...source, staging: await unloaded() });
+  const copy = await stagingCopy(await snapshotOf(built.db, 1000), source.lite, NOW);
+  const db = memory(loadStatements(copy));
+  run(db, [`UPDATE k_sync_log SET at = ${LOADED} - (SELECT MAX(id) FROM k_sync_log) + id`]);
+  for (const [statements, at] of changes) change(db, statements, at);
+  return snapshotOf(db, 1000);
 }

@@ -1,11 +1,15 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import { dropStatements, loadStatements } from "./load.ts";
 import type { Snapshot } from "./snapshot.ts";
-import { copyOf, lite, memory, production, run, snapshotOf } from "./testing.ts";
+import { copyOf, lite, memory, production, run, snapshotOf, unloaded } from "./testing.ts";
 
 let copy: Snapshot;
 beforeAll(async () => {
-  const { db } = await copyOf({ production: await production(), lite: await lite() });
+  const { db } = await copyOf({
+    production: await production(),
+    lite: await lite(),
+    staging: await unloaded()
+  });
   copy = await snapshotOf(db, 1000);
 });
 
