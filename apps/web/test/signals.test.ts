@@ -171,15 +171,22 @@ describe("palette use", () => {
 });
 
 describe("client errors", () => {
-  it("are logged without the reader, and always answered 204", async () => {
+  it("are logged as errors of their own without the reader, and always answered 204", async () => {
     const env = testEnv();
     const logged = vi.spyOn(console, "error").mockImplementation(() => {});
-    const report = { message: "x is undefined", source: "/assets/a.js", line: 3, page: "palettes" };
+    const report = {
+      name: "TypeError",
+      message: "x is undefined",
+      source: "/assets/a-B9ach0AE.js",
+      line: 3,
+      page: "palettes"
+    };
     expect((await clientErrorResponse(post("/api/client-error", report), env)).status).toBe(204);
-    expect(logged).toHaveBeenCalledWith(
-      "client error",
-      expect.stringContaining('"at":"/assets/a.js:3:?"')
-    );
+    expect(logged).toHaveBeenCalledOnce();
+    const [error] = logged.mock.calls[0] ?? [];
+    expect(error).toBeInstanceOf(Error);
+    expect(error).toMatchObject({ name: "Browser TypeError in a.js", message: "x is undefined" });
+    expect((error as Error).stack).toContain("at /assets/a-B9ach0AE.js:3:?");
     logged.mockClear();
     expect(
       (
