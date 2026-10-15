@@ -11,9 +11,9 @@ import { tooltip } from "./Tooltip.tsx";
    copying to downloading to links and back, with a dot for each mode over it while the pointer or the keyboard is on
    it; then a chip per format, an icon and its name; and at the end the swatch book, which opens the swatch files the
    mode takes in the formats' place and turns to Back. A format keeps its place in every mode (placesOf) and each chip
-   holds the names its place can take, so as the mode turns nothing moves but what changes. A chip confirms on itself:
-   its icon is a check for a moment. The names are the formats' own, never translated. The strip runs the way of the
-   place it stands in. */
+   holds the names its place can take, so as the mode turns nothing moves but what changes; it is named for what it does
+   (Copy CSS, Download PNG). A chip confirms on itself: its icon is a check for a moment. The formats' names are their
+   own, never translated. The strip runs the way of the place it stands in. */
 export type Format =
   | "css"
   | "svg"
@@ -262,7 +262,13 @@ export function FormatStrip(props: FormatStripProps) {
                 }
               >
                 {f => (
-                  <button ref={tip} type="button" class={styles.chip} onClick={() => void act(f())}>
+                  <button
+                    ref={tip}
+                    type="button"
+                    class={styles.chip}
+                    aria-label={t(CHIP[mode()], { format: LABEL[f()] })}
+                    onClick={() => void act(f())}
+                  >
                     <Icon name={done() === f() ? "check" : ICON[f()]} size={glyph()} />
                     {name(f(), place())}
                   </button>

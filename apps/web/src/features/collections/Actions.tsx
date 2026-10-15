@@ -2,7 +2,7 @@ import { localHref, msg, t } from "@grabient/i18n";
 import { Button } from "@grabient/ui/Button.tsx";
 import { createDone } from "@grabient/ui/done.ts";
 import { Icon } from "@grabient/ui/Icon.tsx";
-import { createEffect, createSignal, type Element, onSettled, Show } from "solid-js";
+import { createEffect, createSignal, type Element, flush, onSettled, Show } from "solid-js";
 import { offline } from "../../app/connection.ts";
 import { record } from "../../app/undo.ts";
 import type { Drawn } from "../../lib/palette.ts";
@@ -26,7 +26,8 @@ import type { CollectionDocument, CopyStanding } from "./types.ts";
 /* The presses at the end of a collection's row: the selection's own, then every palette into the selection or out of
    it; Save (someone else's collection), Saved and Update while the source moved on; on the owner's saved copy Update
    or Reset; an admin's own made public or private; Delete. Reset and Delete ask twice: the first press arms them for
-   four seconds. With no connection the presses that need the server keep their places, disabled. */
+   four seconds, and Escape or the focus leaving lets them rest. With no connection the presses that need the server
+   keep their places, disabled. */
 
 const ARM_MS = 4000;
 const TURNED_MS = 1800;
@@ -73,19 +74,28 @@ export function Actions(props: {
   };
 
   /* Save: the account's private copy, made once; signed out, the press leads to sign in and back. A copy made here is
-     a step of the page's undo, taken back while it is unchanged since */
+     a step of the page's undo, taken back while it is unchanged since. It says so, and the keyboard that pressed it
+     goes on to Saved, which stands in its place */
+  let row!: HTMLDivElement;
+  const savedName = () => t("Saved", { $context: "collection" });
   const [saving, setSaving] = createSignal(false);
   const save = async () => {
     if (!account()) {
       if (sessionReady()) location.assign(localHref(loginHref()));
       return;
     }
+    const pressed = row.contains(document.activeElement);
     setSaving(true);
     props.say("");
     try {
       const answer = await saveCopy(props.slug);
       props.onCopy(answer.copy);
       serverWrote();
+      props.say(t("Saved."));
+      if (pressed) {
+        flush();
+        row.querySelector<HTMLElement>(`a[aria-label="${CSS.escape(savedName())}"]`)?.focus();
+      }
       /* a copy the account held already, saved in another tab, is not this press's to take back */
       if (!answer.made) return;
       trackEvent("copy_collection", { slug: props.slug, copy: answer.collection.slug });
@@ -251,6 +261,16 @@ export function Actions(props: {
     }
   };
 
+  /* an armed press is the one with the focus: Escape, or the focus leaving it, lets it rest */
+  const disarm = () => {
+    if (!armed() && !resetArmed()) return false;
+    clearTimeout(armTimer);
+    clearTimeout(resetTimer);
+    setArmed(false);
+    setResetArmed(false);
+    return true;
+  };
+
   const updateName = () =>
     t(synced() ? msg("Updated") : syncing() ? msg("Updating…") : msg("Update"));
   const UpdatePress = () => (
@@ -267,13 +287,20 @@ export function Actions(props: {
   );
 
   return (
-    <div class={styles.actions}>
+    /* biome-ignore lint/a11y/noStaticElementInteractions: Escape and the focus leaving come up from its presses */
+    <div
+      ref={row}
+      class={styles.actions}
+      onFocusOut={disarm}
+      onKeyDown={e => {
+        if (e.key === "Escape" && disarm()) e.stopPropagation();
+      }}
+    >
       {props.selection}
       <Button
         icon
         size="lg"
         turns
-        aria-pressed={allChosen()}
         aria-label={t(allChosen() ? msg("Remove all from selection") : msg("Add all to selection"))}
         tip={t(allChosen() ? msg("Remove all from selection") : msg("Add all to selection"))}
         disabled={!props.palettes.length}
@@ -288,6 +315,7 @@ export function Actions(props: {
             <Button
               icon
               size="lg"
+              keep
               aria-label={t(saving() ? msg("Saving…") : msg("Save"))}
               tip={t("Save")}
               disabled={
@@ -305,8 +333,8 @@ export function Actions(props: {
                 icon
                 size="lg"
                 href={localHref(collectionHref(held().slug))}
-                aria-label={t("Saved", { $context: "collection" })}
-                tip={t("Saved", { $context: "collection" })}
+                aria-label={savedName()}
+                tip={savedName()}
               >
                 <Icon name="bookmark" size={15} fill />
               </Button>

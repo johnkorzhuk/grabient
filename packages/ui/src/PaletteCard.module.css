@@ -52,6 +52,8 @@
     transition: opacity var(--motion-fast) var(--motion-ease);
   }
   .paint {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     position: absolute;
     inset: 0;
     border-radius: var(--radius-surface);

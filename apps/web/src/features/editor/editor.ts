@@ -187,14 +187,27 @@ export function createPaletteEditor(
     });
 
   /* A press closes every gesture under way, and the gesture a pointer made ends when the last pointer lifts, once the
-     release itself has been handled. */
+     release itself has been handled. One the page took from a pointer, for a scroll or a pinch's zoom wherever its
+     fingers landed, ends where it began: whatever the controls wrote goes back. */
   if (!isServer) {
+    let taken = false;
+    let ending: ReturnType<typeof setTimeout> | undefined;
+    const end = () => {
+      clearTimeout(ending);
+      if (taken) edits.revert();
+      else edits.close();
+      taken = false;
+    };
     const down = (e: PointerEvent) => {
-      if (!pointers.size) edits.close();
+      if (!pointers.size) end();
       pointers.add(e.pointerId);
     };
     const lift = (e: PointerEvent) => {
-      if (pointers.delete(e.pointerId) && !pointers.size) setTimeout(edits.close, 0);
+      if (pointers.delete(e.pointerId) && !pointers.size) ending = setTimeout(end, 0);
+    };
+    const cancel = (e: PointerEvent) => {
+      if (pointers.has(e.pointerId)) taken = true;
+      lift(e);
     };
     /* a release outside the window can go unreported: a pointer moving with no button down has lifted */
     const moved = (e: PointerEvent) => {
@@ -202,19 +215,20 @@ export function createPaletteEditor(
     };
     const away = () => {
       pointers.clear();
-      edits.close();
+      end();
     };
     addEventListener("pointerdown", down, true);
     addEventListener("pointerup", lift, true);
-    addEventListener("pointercancel", lift, true);
+    addEventListener("pointercancel", cancel, true);
     addEventListener("pointermove", moved, true);
     addEventListener("blur", away);
     onCleanup(() => {
       removeEventListener("pointerdown", down, true);
       removeEventListener("pointerup", lift, true);
-      removeEventListener("pointercancel", lift, true);
+      removeEventListener("pointercancel", cancel, true);
       removeEventListener("pointermove", moved, true);
       removeEventListener("blur", away);
+      clearTimeout(ending);
       edits.close();
     });
   }
@@ -267,6 +281,15 @@ export function createPaletteEditor(
     <A extends unknown[]>(name: string, run: (...args: A) => void) =>
     (...args: A) => {
       track(name);
+      run(...args);
+    };
+  /* when a press last turned the palette into another at once (Random, Reverse, Invert, an undo or a redo), for the
+     page to say what it became */
+  let turned = 0;
+  const turning =
+    <A extends unknown[]>(run: (...args: A) => void) =>
+    (...args: A) => {
+      turned = performance.now();
       run(...args);
     };
   /* how an address draws the palette, what Random keeps and whether the selection has the stage */
@@ -391,13 +414,16 @@ export function createPaletteEditor(
     },
     canReverse: () => ops.canReverse(held()),
     reversed: () => ops.reversed(palette(), held()),
-    reverse() {
+    reverse: turning(() => {
       if (!ops.canReverse(nowHeld())) return;
       track("reverse");
       write(ops.reversed(now(), nowHeld()), true);
-    },
+    }),
     inverted: () => ops.inverted(palette(), held()),
-    invert: tool("invert", () => write(ops.inverted(now(), nowHeld()), true)),
+    invert: tool(
+      "invert",
+      turning(() => write(ops.inverted(now(), nowHeld()), true))
+    ),
     locked: (k: Lock) => ops.keptLocks(locks(), partial()).includes(k),
     toggleLock: tool("lock", (k: Lock) =>
       setLocks(l => ops.toggledLocks(l, ops.isPartial(nowHeld(), untrack(K)), k))
@@ -405,20 +431,22 @@ export function createPaletteEditor(
     canRandom: () => ops.canRandom(locks(), partial()),
     /** Random keeps the keyframe count. A partial hold keeps its keyframes held for the next roll; a new palette lets
         them go, since the keyframes held are not the ones now on screen. */
-    random() {
+    random: turning(() => {
       const kept = untrack(locks);
       if (!ops.canRandom(kept, ops.isPartial(nowHeld(), untrack(K)))) return;
       const next = ops.rolled(now(), nowHeld(), kept);
       track("random");
       if (!next.kept) setHold([]);
       write(next.palette, true);
-    },
+    }),
 
     /* the undo: a page's walks the palette's edits with the page's steps (app/undo.ts), a figure's its own alone */
     canUndo: own ? tracked(edits.canUndo) : () => nextUndo() !== null,
     canRedo: own ? tracked(edits.canRedo) : () => nextRedo() !== null,
-    undo: own ? edits.undo : tool("undo", () => void undoPage()),
-    redo: own ? edits.redo : tool("redo", () => void redoPage()),
+    undo: turning(own ? edits.undo : tool("undo", () => void undoPage())),
+    redo: turning(own ? edits.redo : tool("redo", () => void redoPage())),
+    /** when a press last turned the palette into another at once */
+    turnedAt: () => turned,
     /** the palette an undo would bring back, for a hover to show; none when it takes back a step, which is no palette */
     undoValue: tracked(() => (own || nextUndo() === "edit" ? decoded(edits.undoValue()) : null)),
     redoValue: tracked(() => (own || nextRedo() === "edit" ? decoded(edits.redoValue()) : null)),

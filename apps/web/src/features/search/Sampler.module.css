@@ -23,7 +23,7 @@
     border-radius: var(--radius-surface);
     background-color: var(--color-paper2);
     user-select: none;
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
     @container list (min-width: 728px) {
       height: var(--size-card);
     }
@@ -38,6 +38,24 @@
     pointer-events: none;
   }
   /* the order of the blend: a light line over a dark one, seen on any picture */
+  /* what a press on the picture does while a point is chosen: on the art's glass at its top, taking no press */
+  .hint {
+    position: absolute;
+    top: var(--space-s3);
+    inset-inline-start: var(--space-s3);
+    max-width: calc(100% - 2 * var(--space-s3));
+    margin: 0;
+    padding: var(--space-s1) var(--space-s3);
+    border: var(--size-hairline) solid var(--color-art-edge);
+    border-radius: var(--radius-control);
+    background-color: var(--color-art);
+    -webkit-backdrop-filter: blur(var(--size-blur-frost));
+    backdrop-filter: blur(var(--size-blur-frost));
+    color: var(--color-on-art);
+    font-size: var(--font-fs2);
+    line-height: var(--font-lh-ui);
+    pointer-events: none;
+  }
   .path {
     position: absolute;
     inset: 0;
@@ -109,6 +127,9 @@
     align-items: center;
     gap: var(--space-s2);
     height: var(--size-control-sm);
+    @media (pointer: coarse) {
+      height: var(--size-touch);
+    }
     margin: 0;
     padding-inline: var(--space-s2);
     border: 0;

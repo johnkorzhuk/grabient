@@ -123,16 +123,17 @@ export function PaletteSheet(props: {
               <For each={props.collections} keyed={false}>
                 {c => (
                   <span class={[styles.link, coinHost]} data-quiet={c().href ? undefined : ""}>
-                    <Text variant="ui" truncate>
-                      <a
-                        class={link.inline}
-                        href={c().href ? localHref(c().href) : undefined}
-                        aria-disabled={c().href ? undefined : "true"}
-                        dir="auto"
-                      >
+                    <a
+                      class={[link.inline, styles.to]}
+                      href={c().href ? localHref(c().href) : undefined}
+                      aria-disabled={c().href ? undefined : "true"}
+                      dir="auto"
+                    >
+                      {/* the words in the link's full ink, as every link among words is drawn */}
+                      <Text variant="ui" strong truncate>
                         {c().title}
-                      </a>
-                    </Text>
+                      </Text>
+                    </a>
                     <Coins colors={c().colors} />
                   </span>
                 )}

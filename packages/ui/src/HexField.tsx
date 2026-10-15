@@ -8,10 +8,11 @@ import { composing } from "./keys.ts";
 import { tooltip } from "./Tooltip.tsx";
 
 /* A color as hex: its name at the start, the value in mono at the end, on the input recipe with the bar's rim. Enter or
-   leaving commits a six-digit hex, and anything else goes back to the color it had. With a picker (`onPick`) a swatch
-   of the color leads the box, as a fill's does in a design tool, and a press on it pops the color picker up over the
-   page, beside the panel the field stands in (`beside`) or hung from the swatch, so nothing moves. Left to right in
-   every language. */
+   leaving commits a six-digit hex, and anything else goes back to the color it had. Enter and Escape keep the keyboard
+   on the field, read only and passing the page its keys until a key that types takes it again, as a number field does;
+   in a field a finger opened they put the phone's keyboard away. With a picker (`onPick`) a swatch of the color leads
+   the box, as a fill's does in a design tool, and a press on it pops the color picker up over the page, beside the
+   panel the field stands in (`beside`) or hung from the swatch, so nothing moves. Left to right in every language. */
 export function HexField(props: {
   /** its name; Hex by default */
   label?: string;
@@ -31,11 +32,17 @@ export function HexField(props: {
   const [open, setOpen] = createSignal(false);
   const tip = tooltip(() => t("Color picker"));
   createEffect(
-    () => props.value,
-    hex => {
-      if (document.activeElement !== input) input.value = hex;
+    () => [props.value, editing()] as const,
+    ([hex, typing]) => {
+      if (!typing) input.value = hex;
     }
   );
+  const take = () => {
+    input.readOnly = false;
+    setEditing(true);
+  };
+  /* a finger's tap opened the typing */
+  let finger = false;
   /* the hex on screen is the keyframe's color rounded to 8 bits, so text that never changed is not written back:
      tabbing through would move the keyframe to its rounding */
   const commit = () => {
@@ -86,17 +93,34 @@ export function HexField(props: {
             label: props.label
           })}
           defaultValue={props.value}
+          onPointerDown={e => {
+            finger = e.pointerType === "touch";
+          }}
           onFocus={() => {
-            setEditing(true);
+            take();
             input.select();
           }}
-          onBlur={commit}
+          onBlur={() => {
+            if (editing()) commit();
+            input.readOnly = false;
+            finger = false;
+          }}
           onKeyDown={e => {
             if (composing(e)) return;
-            if (e.key === "Enter") input.blur();
-            else if (e.key === "Escape") {
-              input.value = props.value;
-              input.blur();
+            if (!editing()) {
+              /* a key that types, its character landing in the field it takes */
+              if (e.ctrlKey || e.metaKey || e.altKey) return;
+              if (e.key.length !== 1 && e.key !== "Backspace" && e.key !== "Delete") return;
+              take();
+              input.select();
+            } else if (e.key === "Enter" || e.key === "Escape") {
+              e.stopPropagation();
+              if (e.key === "Escape") input.value = props.value;
+              /* a finger's field lets go, which puts the phone's keyboard away and commits */
+              if (finger) return input.blur();
+              commit();
+              input.readOnly = true;
+              input.select();
             }
           }}
         />

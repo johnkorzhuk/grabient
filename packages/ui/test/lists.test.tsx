@@ -74,29 +74,26 @@ describe("PaletteCard", () => {
     expect(swatches).toContain('aria-label="Navy, blue and lavender swatches"');
   });
 
-  test("leads to its editor, and keeps its hover tools out of the server's markup", () => {
+  test("leads to its editor, named for its palette, and keeps its hover tools out of the server's markup", () => {
     const markup = html(() => <PaletteCard {...card({ tools: () => <i data-strip="" /> })} />);
     expect(tag(markup, "a")).toMatchObject({
       href: "/kS7Q8Yy5S_SChv0?steps=3",
-      "aria-label": "Edit"
+      "aria-label": "Edit Navy, blue and lavender"
     });
     expect(markup).not.toContain("data-strip");
     expect(markup).not.toContain("blur");
   });
 
-  test("its plus adds it to the selection, and a check takes it out", () => {
+  test("its plus adds it to the selection, and a check takes it out, each named for what it does", () => {
     const off = html(() => <PaletteCard {...card()} onSelect={noop} />);
-    expect(tags(off, "button")[0]).toMatchObject({
-      "aria-pressed": "false",
-      "aria-label": "Add to selection"
-    });
+    expect(tags(off, "button")[0]).toMatchObject({ "aria-label": "Add to selection" });
     const on = html(() => (
       <PaletteCard {...card({ selected: true, collect: <i data-collect="" /> })} />
     ));
-    expect(tags(on, "button")[0]).toMatchObject({
-      "aria-pressed": "true",
-      "aria-label": "Remove from selection"
-    });
+    expect(tags(on, "button")[0]).toMatchObject({ "aria-label": "Remove from selection" });
+    // the name says it, so no pressed state stands beside it
+    for (const markup of [off, on])
+      expect(tags(markup, "button")[0]).not.toHaveProperty("aria-pressed");
     expect(on).toContain("data-collect");
   });
 
@@ -106,7 +103,7 @@ describe("PaletteCard", () => {
     ));
     expect(tag(markup, "article")["aria-label"]).toBe("Navy, blue and lavender palette, removed");
     expect(markup).toContain("data-undo");
-    expect(markup).not.toContain('aria-label="Edit"');
+    expect(markup).not.toContain('aria-label="Edit ');
     expect(tags(markup, "div").some(d => d.inert === "")).toBe(true);
   });
 });

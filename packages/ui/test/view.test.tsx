@@ -130,7 +130,15 @@ describe("the export column, on the server", () => {
   test("the preview draws nothing until it has a room", () => {
     const html = renderToString(() => (
       <ExportPreview
-        items={[{ id: "a", stops: ["#000000", "#ffffff"], style: "linearGradient", angle: 90 }]}
+        items={[
+          {
+            id: "a",
+            name: "Black and white",
+            stops: ["#000000", "#ffffff"],
+            style: "linearGradient",
+            angle: 90
+          }
+        ]}
         settings={EXPORT_DEFAULTS}
       />
     ));

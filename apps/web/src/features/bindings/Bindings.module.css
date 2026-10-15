@@ -69,11 +69,16 @@
   line-height: var(--font-lh-none);
   white-space: nowrap;
 }
-/* a key that can change: a press drawn as the chip */
+/* a key that can change: a press drawn as the chip, a finger's size under a coarse pointer */
 .press {
   margin: 0;
   outline: 0 solid var(--color-ring);
   outline-offset: 2px;
+  @media (pointer: coarse) {
+    justify-content: center;
+    height: var(--size-touch);
+    min-width: var(--size-touch);
+  }
   &:hover {
     background-color: var(--color-paper3);
   }

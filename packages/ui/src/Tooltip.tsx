@@ -1,17 +1,23 @@
 import { isServer } from "@solidjs/web";
 import { type Element, onCleanup, onSettled } from "solid-js";
+import { createHold } from "./press.ts";
 import styles from "./Tooltip.module.css";
 
 /* One line under a control after the pointer rests on it, for what the control cannot say itself: an icon's name, its
    key. One bubble for the page, appended to the body so no frame, scroll or transform clips it. The first opens after
    DELAY; while one is open, moving to another tipped control moves it at once. Visible keyboard focus opens it too,
-   touch never does (a finger cannot rest), and Escape, a scroll or a resize closes it. The pointer may move onto the
-   bubble and it stays, so it can be read at any zoom. While it shows, the control it names is described by it
-   (aria-describedby). A press closes it, since what it named is done; a press that turns its control in place
-   (`turns`: a toggle, a mode that steps on) keeps it open, saying the control's new name. */
+   and Escape, a scroll or a resize closes it. A finger cannot rest: its long press opens it, and the lift that ends
+   that press presses nothing, except on a link, whose long press is the browser's own. Words that do nothing when
+   pressed (a title, an age) open and close it at a tap, and take the keyboard's focus to show it (tabindex). The
+   pointer may move onto the bubble and it stays, so it can be read at any zoom. While it shows, the control it names
+   is described by it (aria-describedby). A press closes it, the keyboard's too, since what it named is done; a press
+   that turns its control in place (`turns`: a toggle, a mode that steps on) keeps it open, saying the control's new
+   name. */
 const DELAY = 700;
 /* the room between two tipped controls: leaving one and reaching the next, or the bubble, inside this keeps it */
 const GRACE = 120;
+/* how long a bubble a long press opened stays once the finger lifts, to be read */
+const LINGER = 1500;
 const GAP = 8;
 const EDGE = 8;
 const ID = "grabient-tip";
@@ -49,9 +55,9 @@ function close() {
   removeEventListener("resize", close);
   removeEventListener("keydown", onKey);
 }
-const closeSoon = () => {
+const closeSoon = (ms = GRACE) => {
   clearTimeout(closing);
-  closing = setTimeout(close, GRACE);
+  closing = setTimeout(close, ms);
 };
 const stay = () => {
   clearTimeout(closing);
@@ -65,7 +71,7 @@ function layer(): HTMLElement {
   bubble.setAttribute("role", "tooltip");
   bubble.className = styles.bubble;
   bubble.addEventListener("pointerenter", stay);
-  bubble.addEventListener("pointerleave", closeSoon);
+  bubble.addEventListener("pointerleave", () => closeSoon());
   // appendChild: the Worker's types give Element an append of their own, and the app checks both
   document.body.appendChild(bubble);
   return bubble;
@@ -138,16 +144,36 @@ function listen(
   };
   const leave = () => {
     cancel();
-    if (current === el) closeSoon();
+    if (current === el) closeSoon(longed ? LINGER : GRACE);
   };
-  const press = () => {
+  /* words, which a tap opens; a control, whose press is its own; a link, which keeps its long press */
+  const still = !el.matches("a[href], button, input, select, textarea, label");
+  const link = el.matches("a[href]");
+  let finger = false;
+  /* a finger down on a host whose long press opens the bubble, and whether it has */
+  let holding = false;
+  let longed = false;
+  const hold = createHold(() => {
+    longed = true;
+    open();
+  });
+  const press = (e: PointerEvent) => {
     cancel();
+    longed = false;
+    finger = e.pointerType === "touch";
+    holding = finger && !link;
+    if (holding) hold.down(e);
+    if (finger && still) return;
     if (current === el && !options?.turns) close();
+  };
+  const lift = (e: PointerEvent) => {
+    holding = false;
+    if (e.type === "pointerup") hold.up(e);
+    else hold.cancel();
   };
   /* the press turned the control: the open bubble says its new name in the next frame, once the page's own handler
      has run and its writes have landed; a control with no name now lets it go */
   const turned = () => {
-    if (current !== el || !options?.turns) return;
     cancelAnimationFrame(again);
     again = requestAnimationFrame(() => {
       if (current !== el) return;
@@ -156,6 +182,21 @@ function listen(
       else close();
     });
   };
+  const click = (e: MouseEvent) => {
+    if (longed) {
+      longed = false;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      return;
+    }
+    if (finger && still) {
+      if (current === el) close();
+      else open();
+    } else if (current === el) {
+      if (options?.turns) turned();
+      else close();
+    }
+  };
   const focus = () => {
     if (el.matches(":focus-visible")) arm();
   };
@@ -163,13 +204,24 @@ function listen(
     ["pointerenter", enter],
     ["pointerleave", leave],
     ["pointerdown", press],
-    ["click", turned],
+    ["pointermove", (e: PointerEvent) => hold.move(e)],
+    ["pointerup", lift],
+    ["pointercancel", lift],
+    /* the long press's own menu and word selection give way to the bubble */
+    [
+      "contextmenu",
+      (e: Event) => {
+        if (holding || longed) e.preventDefault();
+      }
+    ],
+    ["click", click],
     ["focus", focus],
     ["blur", leave]
   ] as const;
   for (const [type, fn] of events) el.addEventListener(type, fn as EventListener);
   return () => {
     cancel();
+    hold.cancel();
     cancelAnimationFrame(again);
     if (current === el) close();
     for (const [type, fn] of events) el.removeEventListener(type, fn as EventListener);

@@ -1,17 +1,18 @@
 @layer components {
+  /* the picture in the middle of its room, or from its start where it is larger, the room scrolling */
   .host {
     position: absolute;
     inset: 0;
     display: flex;
-    align-items: center;
-    justify-content: center;
     min-width: 0;
     min-height: 0;
+    overflow: auto;
   }
   /* the clear ground a file's empty places are, as a checkerboard */
   .ground {
     display: flex;
     flex-shrink: 0;
+    margin: auto;
     align-items: center;
     justify-content: center;
     overflow: hidden;
@@ -28,6 +29,8 @@
     box-sizing: border-box;
   }
   .cell {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     position: relative;
     min-width: 0;
     min-height: 0;

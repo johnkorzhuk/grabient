@@ -441,8 +441,9 @@ function wedgeGround(show: Shown): string {
 /* how far a wedge reaches past its end, under the next one drawn over it: two clipped sides meeting on a pixel would each
    cover it in part and let the ground through as a dark seam. The first reaches back under the last. */
 const UNDER = 0.01;
-/** On a page the browser draws the card itself: each wedge a layer clipped to its angle, and one palette the whole. It
-    is one picture to a reader who listens, named as the email's image is, which names the link it stands in. */
+/** On a page the browser draws the card itself: each wedge a layer clipped to its angle, and one palette the whole, in
+    a box of its own rounded corners. It is one picture to a reader who listens, named as the email's image is, which
+    names the link it stands in. */
 function cardBlock(shows: readonly Shown[], label: string): Html {
   const n = shows.length;
   const start = firstWedge(n);
@@ -454,7 +455,9 @@ function cardBlock(shows: readonly Shown[], label: string): Html {
       style: {
         position: "relative",
         width: "100%",
-        "aspect-ratio": `${CARD.width} / ${CARD.height}`
+        "aspect-ratio": `${CARD.width} / ${CARD.height}`,
+        "border-radius": px(RADIUS.surface),
+        overflow: "hidden"
       }
     },
     shows.map((show, k) =>
@@ -483,7 +486,16 @@ function cardOf(ctx: Ctx, card: NonNullable<CollectionOptions["card"]>, alt: str
     ctx.gateSeed?.(show.seed);
     return show;
   });
-  if (ctx.web) return rounded(pictureLink(cardBlock(shows, alt), href));
+  /* on a page the link is the rounded box itself, so the ring a focus draws around it stands whole */
+  if (ctx.web)
+    return h(
+      "a",
+      {
+        href: address(href),
+        style: { display: "block", "text-decoration": "none", "border-radius": px(RADIUS.surface) }
+      },
+      cardBlock(shows, alt)
+    );
   const picks = shows.map(({ seed, view }) => [seed, view.style, view.steps, view.angle].join("~"));
   const src = `${ctx.origin}/api/og/collection?slug=${encodeURIComponent(card.slug)}&pick=${picks.join(",")}`;
   const width = ctx.measure;

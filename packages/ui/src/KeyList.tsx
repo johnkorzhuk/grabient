@@ -13,8 +13,8 @@ const MODIFIERS = new Set(["Shift", "Control", "Alt", "Meta", "CapsLock", "AltGr
 
 /** The keys that work here, on glass at the bottom center, opened by ?. One group per place a key works, each row the
     keys as chips and a few words of what they do; a pair that does one thing both ways shares a row. It takes the
-    keyboard and gives it back where it was. ? or Escape closes it and goes no further; any other key or a press
-    anywhere closes it and still does what it does. */
+    keyboard and gives it back where it was, over a panel left open beneath it (data-over). ? or Escape closes it and
+    goes no further; any other key or a press anywhere closes it and still does what it does. */
 export function KeyList(props: {
   rows: readonly KeyRow[];
   onClose: () => void;
@@ -72,7 +72,14 @@ export function KeyList(props: {
     return out;
   };
   return (
-    <div ref={sheet} class={styles.sheet} role="dialog" aria-label={t("Shortcuts")} tabindex="-1">
+    <div
+      ref={sheet}
+      class={styles.sheet}
+      role="dialog"
+      aria-label={t("Shortcuts")}
+      tabindex="-1"
+      data-over=""
+    >
       <div class={styles.groups}>
         <For each={groups()} keyed={false}>
           {group => (

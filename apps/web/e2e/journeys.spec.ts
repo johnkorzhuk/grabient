@@ -188,32 +188,38 @@ async function linkAt(page: Page, selector: string, at: number): Promise<string>
     them is no handle. */
 const cardOf = (page: Page, href: string) =>
   page
-    .locator("main article", { has: page.locator(`a[aria-label='Edit'][href="${href}"]`) })
+    .locator("main article", { has: page.locator(`a[aria-label^='Edit '][href="${href}"]`) })
     .filter({ visible: true })
     .first();
-const EDIT = "main article a[aria-label='Edit']";
+const EDIT = "main article a[aria-label^='Edit ']";
 /** The palettes a list draws, in its order. */
-const cards = (page: Page) => page.locator("main article:has(a[aria-label='Edit'])");
+const cards = (page: Page) => page.locator("main article:has(a[aria-label^='Edit '])");
 
 /** Every card a list draws, on screen or below it, as where its Edit leads and whether its press named `name` is
-    pressed, to the eye or to a screen reader. */
-const pressedOn = (page: Page, name: RegExp) =>
+    pressed, to the eye or to a screen reader: by its pressed state, or by its name where the name says it (`on`). */
+const pressedOn = (page: Page, name: RegExp, on?: RegExp) =>
   page.evaluate(
-    ([source, flags]) => {
+    ([source, flags, onSource]) => {
       const named = new RegExp(source, flags);
+      const onNamed = onSource === null ? null : new RegExp(onSource);
       return [...document.querySelectorAll("main article")]
         .filter(card => card.checkVisibility())
         .flatMap(card => {
-          const edit = card.querySelector("a[aria-label='Edit']")?.getAttribute("href");
+          const edit = card.querySelector("a[aria-label^='Edit ']")?.getAttribute("href");
           const press = [...card.querySelectorAll("button")].find(button =>
             named.test(button.getAttribute("aria-label") ?? "")
           );
-          return edit && press
-            ? [[edit, press.getAttribute("aria-pressed") === "true"] as const]
-            : [];
+          if (!edit || !press) return [];
+          const label = press.getAttribute("aria-label") ?? "";
+          return [
+            [
+              edit,
+              onNamed ? onNamed.test(label) : press.getAttribute("aria-pressed") === "true"
+            ] as const
+          ];
         });
     },
-    [name.source, name.flags]
+    [name.source, name.flags, on?.source ?? null] as const
   );
 /** The cards whose heart says other than her account: each palette she likes has its heart pressed, and every other
     one not. */
@@ -224,7 +230,7 @@ const misdrawn = async (page: Page, liked: ReadonlySet<string>) =>
 /** The cards whose selection press says other than this browser's selection: each palette chosen, in the view its
     list draws it in, shows its check, and every other one its plus. */
 const misselected = async (page: Page, chosen: ReadonlySet<string>) =>
-  (await pressedOn(page, /selection$/)).flatMap(([href, on]) =>
+  (await pressedOn(page, /selection$/, /^Remove from selection$/)).flatMap(([href, on]) =>
     on === chosen.has(href) ? [] : [`${href} ${on}`]
   );
 /** This browser's selection, as another tab leaves it: these palettes, each in the view its Edit leads to. */
@@ -263,7 +269,7 @@ async function scrollToCard(page: Page, href: string): Promise<Locator> {
   await reach(page, card);
   return card;
 }
-const GROUP_EDIT = "main section article a[aria-label='Edit']";
+const GROUP_EDIT = "main section article a[aria-label^='Edit ']";
 /* A card past a list's first row, or in the home's first collections: the server drew it, and it stands still until the
    reader moves. */
 const STILL: { name: string; address: string; cards: [string, number][] }[] = [
@@ -327,7 +333,7 @@ const OPENERS = {
     const href = await linkAt(page, EDIT, 8);
     // the focus comes as a screen reader's cursor brings it, the page following it down
     await cardOf(page, href)
-      .locator("a[aria-label='Edit']")
+      .locator("a[aria-label^='Edit ']")
       .evaluate(el => (el as HTMLElement).focus());
     const depth = await settled(page);
     await page.keyboard.press("Enter");
@@ -340,7 +346,7 @@ const OPENERS = {
     // a mouse finds Edit over the picture; a finger's tap on the picture shows it
     if (width.touch) await card.getByRole("img").first().tap();
     else await card.hover();
-    await press(card.locator("a[aria-label='Edit']"), width);
+    await press(card.locator("a[aria-label^='Edit ']"), width);
     return { href, depth };
   },
   async title(page: Page, width: Width): Promise<Opened> {
@@ -702,7 +708,7 @@ for (const width of WIDTHS)
       // up to the picture, whose presses a finger's tap on it shows
       await page.evaluate(() => scrollTo(0, 0));
       if (width.touch) await page.getByRole("img", { name: "The gradient" }).tap();
-      await press(page.getByRole("button", { name: "URL", exact: true }).first(), width);
+      await press(page.getByRole("button", { name: "Copy URL", exact: true }).first(), width);
       await expect
         .poll(
           async () => new URL(await page.evaluate(() => navigator.clipboard.readText())).pathname
@@ -968,7 +974,7 @@ for (const list of ["/palettes", "/bright-gradients"])
     // a palette like it, from the sheet's own list, opens in place
     await page.mouse.move(200, 200);
     await page.mouse.wheel(0, 2000);
-    const like = page.locator(`a[aria-label='Edit']:not([href*='${opened}'])`).first();
+    const like = page.locator(`a[aria-label^='Edit ']:not([href*='${opened}'])`).first();
     await expect(like).toBeAttached({ timeout: 30_000 });
     const to = new URL((await like.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
     await like.evaluate(el => (el as HTMLElement).focus());
@@ -1020,7 +1026,7 @@ async function calledWhole(context: BrowserContext, page: Page) {
 /** The seed a card's Edit opens. */
 const seedAt = async (card: Locator) =>
   new URL(
-    (await card.locator("a[aria-label='Edit']").getAttribute("href")) ?? "",
+    (await card.locator("a[aria-label^='Edit ']").getAttribute("href")) ?? "",
     "https://grabient.test"
   ).pathname.slice(1);
 
@@ -1035,7 +1041,7 @@ test("a palette whose card the pointer reached opens called what the server know
   await card.getByRole("img").first().hover();
   await expect.poll(() => facts.has(seed)).toBe(true);
   await listen(page);
-  await card.locator("a[aria-label='Edit']").click();
+  await card.locator("a[aria-label^='Edit ']").click();
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
   const whole = await calledWhole(context, page);
   await expect.poll(() => called(page)).toEqual(whole);
@@ -1049,7 +1055,7 @@ test("a palette whose facts are slow to come opens at once, called by its colors
   await open(page, "/palettes");
   // the editor's code, which the first palette opened waits for, is in
   await cards(page).first().getByRole("img").first().hover();
-  await cards(page).first().locator("a[aria-label='Edit']").click();
+  await cards(page).first().locator("a[aria-label^='Edit ']").click();
   await expect(page.getByRole("img", { name: "The gradient" })).toBeVisible();
   await page.goBack();
   const card = cards(page).nth(3);
@@ -1081,7 +1087,7 @@ test("a palette whose facts are slow to come opens at once, called by its colors
     )
   );
   await card.getByRole("img").first().hover();
-  await card.locator("a[aria-label='Edit']").click();
+  await card.locator("a[aria-label^='Edit ']").click();
   // the press waits a moment at most for the answer it asked for as the pointer came
   await expect
     .poll(() => page.evaluate(() => (window as { opened?: number }).opened ?? Infinity))
@@ -1100,7 +1106,7 @@ test("an undo, Back or Forward to a palette the tab knows calls it that from the
   const card = cards(page).nth(2);
   const opened = await seedAt(card);
   await card.getByRole("img").first().hover();
-  await card.locator("a[aria-label='Edit']").click();
+  await card.locator("a[aria-label^='Edit ']").click();
   await expect.poll(() => seedOf(page)).toBe(opened);
   const own = await calledWhole(context, page);
   await expect.poll(() => called(page)).toEqual(own);
@@ -1118,7 +1124,7 @@ test("an undo, Back or Forward to a palette the tab knows calls it that from the
   // one like it, from the sheet's own list, then Back to the palette and Forward to it
   await page.mouse.move(200, 200);
   await page.mouse.wheel(0, 2000);
-  const like = page.locator(`a[aria-label='Edit']:not([href*='${opened}'])`).first();
+  const like = page.locator(`a[aria-label^='Edit ']:not([href*='${opened}'])`).first();
   await expect(like).toBeAttached({ timeout: 30_000 });
   const to = new URL((await like.getAttribute("href")) ?? "", page.url()).pathname.slice(1);
   await like.evaluate(el => (el as HTMLElement).focus());

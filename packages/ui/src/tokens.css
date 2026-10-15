@@ -52,6 +52,7 @@
     --size-control-sm: 28px; /* A small button: the copy chips over a card, a tag */
     --size-control-big: 40px; /* Form inputs and primary actions */
     --size-touch: 44px; /* Minimum target on coarse pointers */
+    --size-target: 24px; /* Minimum target on any pointer, as WCAG 2.2 sets it */
     --size-logo: 48px; /* Wordmark height on desktop */
     --size-logo-phone: 38px; /* Wordmark height under 960px */
     --size-gutter: 48px; /* Side margin of the app routes; 16px on a phone */
@@ -155,7 +156,7 @@
       0.45
     ); /* Focus: 3:1 against the page and paper in both themes */
     --color-accent: #f0a531; /* Chroma amber: measurements, redlines, the one accent */
-    --color-danger: #d45454; /* Errors and destructive actions */
+    --color-danger: #e46b6b; /* Errors and destructive actions */
     --color-like: #d63b34; /* The heart, once a palette is liked */
     --color-star: #f0a531; /* The star beside the code's count on GitHub */
     --color-shadow: 0 24px 48px -28px rgba(0, 0, 0, 0.85); /* A frame lifted off the canvas */
@@ -198,7 +199,7 @@
     --color-sheen: rgba(255, 255, 255, 0.9);
     --color-ring: rgba(23, 23, 27, 0.5);
     --color-accent: #a35f04;
-    --color-danger: #c43d3d;
+    --color-danger: #ae3030;
     --color-like: #c9332c;
     --color-shadow: 0 24px 48px -28px rgba(30, 30, 40, 0.35);
     --color-shadow-pop: 0 18px 40px -16px rgba(30, 30, 40, 0.28), 0 2px 8px rgba(30, 30, 40, 0.08);

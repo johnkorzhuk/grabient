@@ -56,9 +56,11 @@ export function AccountMenu(props: {
     const away = (e: PointerEvent) => {
       if (open() && !host.contains(e.target as Node)) setOpen(false);
     };
-    /* Escape steps back out of the languages first, then closes, the keyboard back on the button */
+    /* Escape steps back out of the languages first, then closes, the keyboard back on the button; with the keyboard
+       elsewhere it only closes */
     const onEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || !open()) return;
+      if (!host.contains(document.activeElement)) return close();
       e.stopPropagation();
       if (choosing()) back();
       else {
@@ -156,14 +158,21 @@ export function AccountMenu(props: {
       ...all.map((item, i) => (i ? item : { ...item, group: true }))
     ];
   };
-  /* a press on Language keeps the menu open on the languages; any other close puts the account's rows back */
+  /* a press on Language keeps the menu open on the languages; any other close puts the account's rows back, and the
+     keyboard on the button if it was in the menu. A row that leads to another page leaves the keyboard to the page it
+     lands on, as a link does */
+  let leaving = false;
   const close = () => {
     if (keep) {
       keep = false;
       return;
     }
+    const inside =
+      !leaving && host.contains(document.activeElement) && document.activeElement !== trigger;
+    leaving = false;
     setOpen(false);
     setChoosing(false);
+    if (inside) trigger.focus({ preventScroll: true });
   };
   const back = () => {
     setChoosing(false);
@@ -171,7 +180,10 @@ export function AccountMenu(props: {
       host.querySelector<HTMLElement>('[role="menu"] [data-value="language"]')?.focus()
     );
   };
-  const go = (to: string) => void router.navigate({ href: localHref(to) });
+  const go = (to: string) => {
+    leaving = true;
+    void router.navigate({ href: localHref(to) });
+  };
   /* the lists open in the reader's view, as the wordmark's home does, and a visitor's Collections in the order the
      reader chose last */
   const listed = (to: string) => {

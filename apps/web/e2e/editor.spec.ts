@@ -1,4 +1,4 @@
-import { devices, expect, type Page, type Route, test } from "@playwright/test";
+import { devices, expect, type Locator, type Page, type Route, test } from "@playwright/test";
 
 /* The editor at a palette's address: the static page the server sends, the editor the browser draws over it, the
    address that follows each edit in place, the undo the entry keeps, and what the page asks the server. */
@@ -532,6 +532,49 @@ test("a plot's dot dragged to a new value holds its keyframe while it moves, the
   await expect(chips.nth(0)).toHaveAttribute("aria-selected", "true");
 });
 
+test("a number or a hex entered or put back keeps the keyboard on its field, whose arrows go on stepping", async ({
+  page
+}) => {
+  await open(page);
+  const start = page.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ });
+  await start.focus();
+  await page.keyboard.type("0.8");
+  await page.keyboard.press("Enter");
+  await expect(start).toBeFocused();
+  const entered = await start.inputValue();
+  await page.keyboard.press("ArrowUp");
+  await expect(start).not.toHaveValue(entered);
+  const stepped = await start.inputValue();
+  // a key that types takes the field again, and Escape puts its number back
+  await page.keyboard.type("0.3");
+  await expect(start).toHaveValue("0.3");
+  await page.keyboard.press("Escape");
+  await expect(start).toBeFocused();
+  await expect(start).toHaveValue(stepped);
+  // a keyframe held alone has its hex, which does the same
+  await page.getByRole("option", { name: /^Keyframe 2,/ }).click();
+  const hex = page.getByRole("textbox", { name: "Hex color" });
+  await hex.focus();
+  await page.keyboard.type("#336699");
+  await page.keyboard.press("Enter");
+  await expect(hex).toBeFocused();
+  await expect(hex).toHaveValue("#336699");
+  await page.keyboard.type("#ff0000");
+  await page.keyboard.press("Escape");
+  await expect(hex).toBeFocused();
+  await expect(hex).toHaveValue("#336699");
+  // in the Appearance menu the second Escape closes it, and its press has the keyboard back
+  const appearance = page.getByRole("button", { name: /^Appearance/ });
+  await appearance.click();
+  const steps = page.getByRole("spinbutton", { name: "Steps" });
+  await steps.focus();
+  await page.keyboard.press("Escape");
+  await expect(steps).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(steps).toBeHidden();
+  await expect(appearance).toBeFocused();
+});
+
 test("Back leaves an edited palette in one press, and Forward brings it back with its undo", async ({
   page
 }) => {
@@ -563,7 +606,7 @@ test("Back with an edit's address still waiting lands on the page it leaves for"
   await page.goto(collection);
   // started, so the palette opens in the page
   await page.waitForFunction(() => !("$_TSR" in window));
-  await page.locator("main article a[aria-label='Edit']").first().focus();
+  await page.locator("main article a[aria-label^='Edit ']").first().focus();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("complementary", { name: "Editor" })).toBeVisible();
   // a document of its own, so Back reads the collection again, and slowly
@@ -788,7 +831,12 @@ test("a step taken in the selection is the first an undo takes back once it clos
   const selection = page.getByRole("button", { name: /^Selection/ }).first();
   await expect(selection).toHaveAccessibleName("Selection 2");
   await selection.click();
-  await page.getByRole("button", { name: "Remove palette 1" }).first().click();
+  await page
+    .getByRole("group", { name: "Export preview" })
+    .first()
+    .getByRole("button", { name: /^Remove .+ from selection$/ })
+    .first()
+    .click();
   await page.keyboard.press("Escape");
   await expect.poll(() => here(page)).toBe(edited);
   await expect(selection).toHaveAccessibleName("Selection 1");
@@ -999,5 +1047,145 @@ test.describe("on a phone", () => {
     await expect(floating).toBeInViewport();
     await page.evaluate(() => scrollTo(0, 0));
     await expect(floating).toBeHidden();
+  });
+
+  test("every color keeps a target's width on the strip: sixteen stand whole, and more scroll sideways in one row, fading where more wait", async ({
+    page
+  }) => {
+    const strip = page.getByRole("group", { name: "Palette colors" });
+    const chips = strip.getByRole("button");
+    const fading = () =>
+      strip.evaluate(el => ({
+        less: getComputedStyle(el).getPropertyValue("--less"),
+        more: getComputedStyle(el).getPropertyValue("--more"),
+        mask: getComputedStyle(el).maskImage !== "none"
+      }));
+    await open(page, `/${SEED}?style=linearSwatches&steps=16`);
+    await expect(chips).toHaveCount(16);
+    for (const chip of await chips.all()) await expect(chip).toBeInViewport({ ratio: 1 });
+    expect((await fading()).mask).toBe(false);
+
+    await open(page, `/${SEED}?style=linearSwatches&steps=24`);
+    await expect(chips.first()).toBeVisible();
+    const boxes = await chips.evaluateAll(all =>
+      all.map(chip => {
+        const box = chip.getBoundingClientRect();
+        return { width: box.width, top: box.top };
+      })
+    );
+    expect(boxes.length).toBeGreaterThan(16);
+    expect(Math.min(...boxes.map(box => box.width))).toBeGreaterThanOrEqual(24);
+    expect(new Set(boxes.map(box => Math.round(box.top))).size).toBe(1);
+    await expect.poll(fading).toEqual({ less: "0", more: "1", mask: true });
+    // the last color comes into view as the keyboard reaches it, and a press copies that one
+    await chips.first().focus();
+    await page.keyboard.press("End");
+    const last = chips.last();
+    await expect(last).toBeFocused();
+    await expect(last).toBeInViewport({ ratio: 1 });
+    await expect.poll(fading).toEqual({ less: "1", more: "0", mask: true });
+  });
+
+  test("About's strips stand whole on a phone, and the steps figure keeps its hexes upright as it scrolls past its room", async ({
+    page
+  }) => {
+    await page.goto("/about");
+    const strips = page.getByRole("group", { name: "Palette colors" });
+    await expect(strips).toHaveCount(3);
+    for (const strip of await strips.all()) {
+      await strip.scrollIntoViewIfNeeded();
+      for (const chip of await strip.getByRole("button").all())
+        await expect(chip).toBeInViewport({ ratio: 1 });
+    }
+    const steps = strips.first();
+    const hexes = steps.locator("button > span:not([data-hide])");
+    await expect(hexes).toHaveCount(7);
+    await page.getByRole("spinbutton", { name: "Steps", exact: true }).focus();
+    await page.keyboard.type("24");
+    await page.keyboard.press("Enter");
+    await expect(steps.getByRole("button")).toHaveCount(24);
+    await expect(hexes).toHaveCount(24);
+    await expect(hexes.first()).toHaveAttribute("data-vertical", "");
+  });
+
+  test("two fingers spread on the panel's controls zoom the page and change nothing, on one control or two", async ({
+    page
+  }) => {
+    type Point = { x: number; y: number };
+    const box = async (control: Locator) => {
+      const at = await control.boundingBox();
+      if (!at) throw new Error("no control");
+      return at;
+    };
+    const middle = async (control: Locator): Promise<Point> => {
+      const at = await box(control);
+      return { x: at.x + at.width / 2, y: at.y + at.height / 2 };
+    };
+    const field = (name: string) => (p: Page) => p.getByRole("spinbutton", { name, exact: true });
+    const plot = (p: Page) => p.locator('svg[role="img"][aria-label="Chroma"]');
+    /* the control brought into view, and where the two fingers land: a little apart on one control, or on two that
+       stand side by side, or the Chroma field and the plot under it, the plot's finger sliding across it as they part */
+    const one =
+      (control: (p: Page) => Locator) =>
+      async (p: Page): Promise<[Point, Point]> => {
+        const at = await middle(control(p));
+        return [
+          { x: at.x - 16, y: at.y },
+          { x: at.x + 16, y: at.y }
+        ];
+      };
+    const chroma = (p: Page) => p.getByRole("spinbutton", { name: "Chroma" });
+    const start = (p: Page) => p.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ });
+    const pinches: [(p: Page) => Locator, (p: Page) => Promise<[Point, Point]>][] = [
+      [chroma, one(chroma)],
+      [start, one(start)],
+      [plot, one(plot)],
+      [
+        p => p.getByRole("complementary", { name: "Editor" }).getByRole("listbox"),
+        one(p => p.getByRole("complementary", { name: "Editor" }).getByRole("listbox"))
+      ],
+      [field("Hue"), async p => [await middle(field("Hue")(p)), await middle(field("Travel")(p))]],
+      [
+        plot,
+        async p => {
+          const at = await box(plot(p));
+          return [
+            { x: at.x + at.width * 0.4, y: at.y - 30 },
+            { x: at.x + at.width * 0.6, y: at.y + at.height / 2 }
+          ];
+        }
+      ]
+    ];
+    for (const [shown, fingers] of pinches) {
+      await open(page);
+      await shown(page).evaluate(el => el.scrollIntoView({ block: "center" }));
+      const [a, b] = await fingers(page);
+      const before = here(page);
+      const fields = await page
+        .getByRole("spinbutton")
+        .evaluateAll(all => all.map(field => (field as HTMLInputElement).value));
+      // both fingers land at once, then move apart along the line between them
+      const cdp = await page.context().newCDPSession(page);
+      const span = Math.hypot(b.x - a.x, b.y - a.y);
+      const ux = (b.x - a.x) / span;
+      const uy = (b.y - a.y) / span;
+      const at = (d: number) => [
+        { x: a.x - ux * d, y: a.y - uy * d, id: 1 },
+        { x: b.x + ux * d, y: b.y + uy * d, id: 2 }
+      ];
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: at(0) });
+      for (let d = 6; d <= 84; d += 6)
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: at(d) });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await expect.poll(() => page.evaluate(() => visualViewport?.scale ?? 1)).toBeGreaterThan(1.2);
+      // what the fingers moved before the page took them goes back once they lift
+      await expect.poll(() => here(page)).toBe(before);
+      expect(
+        await page
+          .getByRole("spinbutton")
+          .evaluateAll(all => all.map(field => (field as HTMLInputElement).value))
+      ).toEqual(fields);
+      await cdp.detach();
+    }
   });
 });

@@ -4,6 +4,7 @@ import { Button } from "@grabient/ui/Button.tsx";
 import { EXPORT_DEFAULTS, ExportPanel, type ExportSettings } from "@grabient/ui/ExportPanel.tsx";
 import { ExportPreview } from "@grabient/ui/ExportPreview.tsx";
 import type { Format } from "@grabient/ui/FormatStrip.tsx";
+import hidden from "@grabient/ui/hidden.module.css";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { SIZE_PRESETS, screenSize, sizePresetOf } from "@grabient/ui/sizes.ts";
 import { Text } from "@grabient/ui/Text.tsx";
@@ -22,6 +23,7 @@ import {
 import { rewriteInPlace, rewriteQuietly, SELECTION_MARK } from "../../app/navigation.ts";
 import { ShellContext } from "../../app/shell.ts";
 import { hexesOf } from "../../lib/palette.ts";
+import { nameOf } from "../gallery/drawing.ts";
 import { inOrder, rememberedView, rememberView } from "../list/appearance.ts";
 import { useTaken } from "../palette-use/use.ts";
 import { copySelection, downloadSelection } from "./export.ts";
@@ -314,6 +316,7 @@ export function createSelectionScreen(page: {
   const previews = createMemo(() =>
     selection().map(item => ({
       id: item.id,
+      name: nameOf(item),
       stops: hexesOf(item),
       style: item.style,
       angle: item.angle
@@ -376,11 +379,16 @@ export function createSelectionScreen(page: {
     /** the end of the page's row of lists: Selection, once something is in it */
     button: () => <span class={styles.end}>{press()}</span>,
     /** a phone's: the same, floating at the foot of the screen */
-    float: () => <span class={styles.float}>{press()}</span>,
+    float: () => (
+      <span class={styles.float} data-floor={selection().length && !open() ? "" : undefined}>
+        {press()}
+      </span>
+    ),
     /** the export screen while the selection stands, in the page's content's place */
     screen: () => (
       <Show when={open()}>
         <main class={styles.screen} data-beside-scrollbar="">
+          <h1 class={hidden.text}>{t("Selection")}</h1>
           <div class={styles.stage}>
             <div class={styles.fit}>
               <ExportPreview

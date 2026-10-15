@@ -4,8 +4,10 @@ import { gradientCss } from "@grabient/engine/css.ts";
 import { stopNear } from "@grabient/engine/strip.ts";
 import { resolveSize, type Size } from "@grabient/engine/view.ts";
 import { msg, t } from "@grabient/i18n";
+import { announce } from "@grabient/ui/announce.ts";
 import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
+import { keepKeyboard } from "@grabient/ui/dismiss.ts";
 import { type Format, FormatStrip, SWATCH_CHIPS } from "@grabient/ui/FormatStrip.tsx";
 import { createFlashGuard } from "@grabient/ui/flash.ts";
 import { HexField } from "@grabient/ui/HexField.tsx";
@@ -97,6 +99,8 @@ const SaveSelection = lazy(() => import("./Collect.tsx").then(m => ({ default: m
 const PLOT_FLOW = 132;
 const PLOT_LEAST = 96;
 const PLOT_MOST = 220;
+/* how soon after a press that turned the palette its new name is the press's to say: a page's undo lands later */
+const TURN_SAID_MS = 1500;
 /* a field typed in on a touch screen: how far down the window it may stand and be over any keyboard, the room the side
    gives its rows to rise there (more than any keyboard is tall), and the least a row keeps under the side's top */
 const OVER_KEYS = 1 / 3;
@@ -178,12 +182,17 @@ export default function Editor(props: { data: PaletteData }) {
       </Loading>
     )
   });
+  /* the side put away by its key with the keyboard in it: the keyboard goes to the header's press to bring it back */
+  const togglePanel = () =>
+    keepKeyboard(panel.toggle, () =>
+      document.querySelector<HTMLElement>(`button[aria-label="${CSS.escape(t("Show panel"))}"]`)
+    );
   /* The frame keeps the keys and the palettes a page hands in last, so these come after the screen's and stand for
      both: while the screen stands the editor's keys rest, Escape closes it and the bar carries the selection. */
   shell.keys(() => [
     ...editorBindings(e, {
       live: () => !chosen.open(),
-      togglePanel: panel.toggle,
+      togglePanel,
       save,
       settle: address.settle
     }),
@@ -277,6 +286,29 @@ export default function Editor(props: { data: PaletteData }) {
       );
     }
   };
+  const facts = () =>
+    factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null);
+  /* the server's heading is the page's while its palette and view are: a written title names the palette in the view
+     it was saved in alone, so the angle counts too */
+  const heading = () =>
+    e.seed() === first.page.seed &&
+    e.style() === first.page.view.style &&
+    e.steps() === first.page.view.steps &&
+    e.angle() === first.page.view.angle
+      ? first.heading
+      : undefined;
+  /* a press that turned the palette into another at once tells a screen reader, once, the name the page shows for it
+     now; a drag's palettes are named only as they are drawn */
+  let said = 0;
+  createEffect(
+    () => [e.seed(), heading(), facts()],
+    () => {
+      const at = e.turnedAt();
+      if (at === said || performance.now() - at >= TURN_SAID_MS) return;
+      said = at;
+      announce(untrack(() => paletteName(e, heading(), facts())));
+    }
+  );
   return (
     <>
       <Page
@@ -285,20 +317,9 @@ export default function Editor(props: { data: PaletteData }) {
         narrow={narrow}
         save={save}
         rest={rest}
-        facts={() =>
-          factsOf(e.seed()) ?? (e.seed() === props.data.page.seed ? props.data.facts : null)
-        }
+        facts={facts}
         frames={first.frames}
-        heading={() =>
-          /* the server's heading is the page's while its palette and view are: a written title names the palette in
-             the view it was saved in alone, so the angle counts too */
-          e.seed() === first.page.seed &&
-          e.style() === first.page.view.style &&
-          e.steps() === first.page.view.steps &&
-          e.angle() === first.page.view.angle
-            ? first.heading
-            : undefined
-        }
+        heading={heading}
         opened={e.openedSeed}
         taken={taken}
         used={used}
@@ -521,7 +542,6 @@ function Tools(props: {
           variant={chosen() ? "primary" : props.paper ? "secondary" : "art"}
           icon
           size="lg"
-          aria-pressed={chosen()}
           aria-label={t(chosen() ? msg("Remove from selection") : msg("Add to selection"))}
           tip={t(chosen() ? msg("Remove from selection") : msg("Add to selection"))}
           onClick={() => {
@@ -780,10 +800,19 @@ function Rail(props: {
                 t("Keyframe {number} · {hex}", { number: i + 1, hex: stop().hex })
               )}
               onKeyDown={event => {
-                const d = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
-                if (!d) return;
+                const to =
+                  event.key === "ArrowRight"
+                    ? i + 1
+                    : event.key === "ArrowLeft"
+                      ? i - 1
+                      : event.key === "Home"
+                        ? 0
+                        : event.key === "End"
+                          ? e.K() - 1
+                          : null;
+                if (to === null) return;
                 event.preventDefault();
-                const j = Math.max(0, Math.min(e.K() - 1, i + d));
+                const j = Math.max(0, Math.min(e.K() - 1, to));
                 handOn(j);
                 e.pick(j, event.shiftKey ? "range" : "only");
                 reveal();
@@ -961,6 +990,7 @@ function Side(props: Omit<PageProps, "narrow"> & { narrow: boolean }) {
             lead={e.lead() >= 0 ? e.lead() : undefined}
             onPick={e.pick}
             onSweep={e.sweep}
+            onRestore={e.restore}
             min={K_MIN}
             max={K_MAX}
             onAdd={() => e.addKeyframe()}

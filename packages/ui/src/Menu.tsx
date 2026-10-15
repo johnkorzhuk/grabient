@@ -95,9 +95,11 @@ export function MenuFace(props: { item: MenuItem }) {
   );
 }
 
-/** A list of choices on glass. Focus moves into it as it opens, onto the chosen row or the first, so the arrows start
-    there; Home and End take the first and the last. Focus leaving the menu and its button closes it. The choices a row
-    opened (`back`) lead back to the rows they came from by a Back row and by the arrow toward the line's start. */
+/** A list of choices on glass, one stop for Tab. Focus moves into it as it opens, onto the chosen row or the first,
+    so the arrows start there; Home and End take the first and the last, and a letter the next row it starts. Tab, or
+    focus leaving the menu and its button, closes it; Shift+Tab leaves the keyboard on the button. A key without a
+    modifier is its own while it stands (data-keys), and the page's wait. The choices a row opened (`back`) lead back to
+    the rows they came from by a Back row and by the arrow toward the line's start. */
 export function MenuList(props: {
   items: readonly MenuItem[];
   value?: string;
@@ -149,12 +151,24 @@ export function MenuList(props: {
       go(() => props.back?.onBack());
     else if (e.key === (rtl ? "ArrowLeft" : "ArrowRight") && all[at]?.hasAttribute("data-more"))
       go(() => all[at].click());
+    else if (e.key === "Tab") {
+      /* the opener closes it and takes the keyboard back, which Tab then moves on from */
+      if (e.shiftKey) e.preventDefault();
+      props.onClose();
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const letter = e.key.toLocaleLowerCase();
+      const next = [...all.slice(at + 1), ...all.slice(0, at + 1)].find(row =>
+        row.textContent?.trim().toLocaleLowerCase().startsWith(letter)
+      );
+      if (next) go(() => next.focus());
+    }
   };
   return (
     <div
       ref={list}
       role="menu"
       aria-label={props.label}
+      data-keys="menu"
       class={styles.menu}
       data-up={props.up ? "" : undefined}
       data-align={props.align ?? "start"}
@@ -168,6 +182,7 @@ export function MenuList(props: {
             <button
               type="button"
               role="menuitem"
+              tabindex={-1}
               class={styles.row}
               onClick={() => back().onBack()}
             >
@@ -202,6 +217,7 @@ export function MenuList(props: {
                   <button
                     type="button"
                     role={choice() ? "menuitemradio" : "menuitem"}
+                    tabindex={-1}
                     class={styles.row}
                     aria-checked={choice() ? (on() ? "true" : "false") : undefined}
                     aria-haspopup={item().more ? "menu" : undefined}
@@ -239,6 +255,7 @@ export function MenuList(props: {
               >
                 <a
                   role="menuitem"
+                  tabindex={-1}
                   class={styles.row}
                   href={item().href}
                   target="_blank"
@@ -330,8 +347,14 @@ export function MenuButton(props: {
         setSub(null);
       }
     };
+    /* Escape closes it wherever the keyboard is, and takes the keyboard back only from inside it */
     const onEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || !open()) return;
+      if (!host.contains(document.activeElement)) {
+        setOpen(false);
+        setSub(null);
+        return;
+      }
       e.stopPropagation();
       if (sub()) back();
       else {

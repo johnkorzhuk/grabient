@@ -1,6 +1,6 @@
 import { createSignal, createUniqueId, For, onSettled, Show } from "solid-js";
 import { Button } from "./Button.tsx";
-import { pressOutside, typingIn } from "./dismiss.ts";
+import { focusLeft, pressOutside, typingIn } from "./dismiss.ts";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
 import { composing } from "./keys.ts";
@@ -31,7 +31,8 @@ export type { Size, SizeChoice };
 /* The preview's size: a glass button that opens a sheet with Width and Height over the size presets. A maker's row
    opens its devices in the list's place under Back. Resting on a row previews that size; a press commits it, and the
    chosen row pressed again returns to Auto. Width and Height read Auto a step under their floor, and an Auto side
-   follows the other at the stage's shape. */
+   follows the other at the stage's shape. The presets are one stop for Tab, on the chosen row, and the keyboard
+   leaving the sheet puts it away. */
 export function SizeControl(props: {
   /** the size the reader set, or null for Auto; a side may be auto */
   value: SizeChoice | null;
@@ -226,7 +227,11 @@ export function SizeControl(props: {
           class={styles.sheet}
           role="dialog"
           aria-label={t("Preview size")}
+          data-keys="menu"
           onPointerLeave={off}
+          onFocusOut={e => {
+            if (focusLeft(e, host)) close();
+          }}
         >
           <div class={styles.pair}>
             {field("width", t("Width"))}
@@ -270,6 +275,7 @@ export function SizeControl(props: {
                       <button
                         type="button"
                         role="option"
+                        tabindex={(lit() ?? current()[0]?.value) === r().value ? 0 : -1}
                         class={[rows.row, rows.spread]}
                         aria-selected={lit() === r().value ? "true" : "false"}
                         data-current={lit() === r().value ? "" : undefined}

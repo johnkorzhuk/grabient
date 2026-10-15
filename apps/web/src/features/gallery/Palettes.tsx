@@ -4,6 +4,7 @@ import { BackToTop } from "@grabient/ui/BackToTop.tsx";
 import { Button } from "@grabient/ui/Button.tsx";
 import { CollectionCard } from "@grabient/ui/CollectionCard.tsx";
 import { Fit } from "@grabient/ui/Fit.tsx";
+import hidden from "@grabient/ui/hidden.module.css";
 import { ListNav, type Order } from "@grabient/ui/ListNav.tsx";
 import { PaletteFeed } from "@grabient/ui/PaletteFeed.tsx";
 import { PaletteGrid } from "@grabient/ui/PaletteGrid.tsx";
@@ -11,12 +12,7 @@ import { PaletteGridPlaceholder } from "@grabient/ui/PalettePlaceholder.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { type UndefinedInitialDataOptions, useQuery, useQueryClient } from "@tanstack/solid-query";
-import {
-  useElementScrollRestoration,
-  useNavigate,
-  useRouter,
-  useRouterState
-} from "@tanstack/solid-router";
+import { useElementScrollRestoration, useNavigate, useRouter } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -37,6 +33,7 @@ import {
   signInUnavailable
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
+import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { DEFAULT_FRAME, nextFrame, type RisingFrame } from "../../lib/orders.ts";
 import { heading } from "../../lib/page-meta.ts";
@@ -100,7 +97,7 @@ export function Palettes(props: { place: ListPlace }) {
   const router = useRouter();
   const go = (href: string, replace = false) => void navigate({ href, replace });
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
-  const navigating = useRouterState({ select: state => state.status === "pending" });
+  const navigating = useNavigating();
   const params = () => props.place.params;
   const words = () => params().words;
   /* a route's list is one kind for as long as its page stands */
@@ -368,6 +365,9 @@ export function Palettes(props: { place: ListPlace }) {
   /* The cards standing while their list is read: another list, or this one again once it is old. Until the read lands,
      the query holds its data and every line that reads it, so this is said first, from the read on its way alone. */
   const updating = () => navigating() || (!!listed && isPending(() => listed.data));
+  /* a signed-out search whose words need an account: the block over the grid says No results, and the line says it
+     unseen, where a screen reader hears what a search found */
+  const said = () => (signInToSearch() ? <span class={hidden.text}>{t("No results.")}</span> : "");
   /* the placeholders say a cold list is on its way; the line speaks only for what the cards cannot */
   const message = () =>
     (updating() ? t("Updating…") : "") ||
@@ -434,7 +434,7 @@ export function Palettes(props: { place: ListPlace }) {
 
   return (
     <GalleryContext value={page}>
-      <AppPage feed bare={page.chosen.open()}>
+      <AppPage feed floats bare={page.chosen.open()}>
         {/* the page stays mounted and out of sight under the export screen, so Close returns to the same depth */}
         <main id="main" class={styles.page} hidden={page.chosen.open()}>
           <Find
@@ -609,7 +609,7 @@ export function Palettes(props: { place: ListPlace }) {
               <div class={styles.mark} ref={feed.mark} aria-hidden="true" />
               <div class={styles.status}>
                 <Status error={!!headError() || !!feed.reason() || !!page.line()?.error}>
-                  {message()}
+                  {message() || said()}
                 </Status>
                 <Show when={headError()}>
                   <Button size="sm" onClick={retry}>

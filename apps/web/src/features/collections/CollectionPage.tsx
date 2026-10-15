@@ -110,6 +110,11 @@ interface Removal {
   step: Step;
 }
 
+/* Words saved under a new title move the collection to a new address, where its page is drawn anew: the heading drawn
+   there takes back the keyboard the form had. The page it leads to has this long to be drawn. */
+const RENAMED_MS = 4000;
+let renamed: { slug: string; at: number } | null = null;
+
 /** Why a palette stays where a person liked it: no curation takes it out. */
 const likedBlock = (deletable?: boolean) => (deletable ? undefined : t("Liked by someone"));
 
@@ -124,6 +129,13 @@ export function CollectionPage(props: {
   const navigate = useNavigate();
   const router = useRouter();
   const shell = useContext(ShellContext)!;
+  /* drawn at the address a rename on the page before it moved the collection to */
+  const landed = untrack(() => {
+    const was = renamed;
+    if (!was || was.slug !== props.slug || performance.now() - was.at > RENAMED_MS) return false;
+    renamed = null;
+    return true;
+  });
   const found = useQuery(() => collectionQuery(props.slug));
   const [note, setNote] = createSignal("");
   const [error, setError] = createSignal(false);
@@ -629,7 +641,7 @@ export function CollectionPage(props: {
   const place = () => ({ surface: "collection" as const });
 
   return (
-    <AppPage bare={sel.open()}>
+    <AppPage floats bare={sel.open()}>
       {/* the page stays mounted and out of sight while the export screen takes its place, so Close returns to the
           same cards */}
       <main
@@ -749,12 +761,17 @@ export function CollectionPage(props: {
                   now={now()}
                   admin={isAdmin()}
                   editable={owned() && current().owner.kind === "user"}
+                  landed={landed}
                   onWords={async words => {
                     const answer = await changeCollection(current().slug, words);
                     serverWrote();
                     setOwn(answer.collection);
                     ownAt(answer.collection);
-                    follow(answer.collection.slug);
+                    const to = answer.collection.slug;
+                    if (to === props.slug) return false;
+                    renamed = { slug: to, at: performance.now() };
+                    follow(to);
+                    return true;
                   }}
                 />
                 <PaletteGrid>

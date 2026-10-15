@@ -10,18 +10,24 @@ import { Stars } from "./Stars.tsx";
     then the language menu. In a full-height column it falls to the bottom of the screen when the content is short and
     follows the content when it is long. A link to another site opens in a new tab, the external glyph leading it. A
     note (the sign-in sheet's terms) is a line of its own beneath, so a line that wraps on a phone pushes nothing into
-    the language menu. */
+    the language menu. On a page that floats presses at a phone's foot (`floats`) it leaves them room under it, so at
+    the page's end they cover none of its links. */
 export function Footer(props: {
   links: readonly FrameLink[];
   /** the language menu, last in the row */
   languages?: Element;
   note?: Element;
+  floats?: boolean;
 }) {
   /* resolved once: each read of an element prop would build it again */
   const note = children(() => props.note);
   const noted = () => note.toArray().length > 0;
   return (
-    <footer class={styles.footer} data-noted={noted() ? "" : undefined}>
+    <footer
+      class={styles.footer}
+      data-noted={noted() ? "" : undefined}
+      data-floats={props.floats ? "" : undefined}
+    >
       <For each={props.links} keyed={false}>
         {link => (
           <Show

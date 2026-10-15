@@ -31,7 +31,7 @@ const summary = {
   ]
 };
 /** Rising's first page, holding the one collection. */
-const rising = (route: Route) =>
+const risingWith = (collection: object) => (route: Route) =>
   route.fulfill({
     json: {
       query: "",
@@ -41,9 +41,10 @@ const rising = (route: Route) =>
       total: 1,
       totalPages: 1,
       fetchedAt: Date.now(),
-      items: [summary]
+      items: [collection]
     }
   });
+const rising = risingWith(summary);
 
 /** A private collection of the account's own, as its copy holds it. */
 const blues = {
@@ -370,6 +371,51 @@ test("a signed-in reader's one look at a public collection is counted once", asy
   await expect.poll(() => seen.length).toBe(1);
   await page.waitForTimeout(1000);
   expect(seen).toHaveLength(1);
+});
+
+test("Save on someone else's collection says it saved, the keyboard on the Saved link that takes its place", async ({
+  page
+}) => {
+  await signIn(page, "reader", false);
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  const items = preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }));
+  await page.route(`**/api/collections/${SLUG}`, route =>
+    route.fulfill({ json: { ...words, items } })
+  );
+  const copy = {
+    ...words,
+    slug: "@e2e-reader/e2e-gradients",
+    visibility: "private",
+    owner: { kind: "user", name: "e2e-reader" },
+    items
+  };
+  await page.route(`**/api/collections/${SLUG}/copies`, route =>
+    route.fulfill({
+      json: {
+        collection: copy,
+        made: true,
+        copy: {
+          slug: copy.slug,
+          source: { slug: SLUG, title: summary.title, colors: [] },
+          behind: false,
+          differs: false
+        }
+      }
+    })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  await expect(page.locator("main h1")).toHaveText(summary.title);
+  await page.getByRole("button", { name: "Save", exact: true }).focus();
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("link", { name: "Saved", exact: true })).toBeFocused();
+  await expect(page.locator("main").getByRole("status")).toHaveText("Saved.");
 });
 
 test("each undo and redo of a pick says what it did, and a new collection goes back through the copy offline", async ({
@@ -779,8 +825,10 @@ test("a private collection renamed on its page is the account's own at its new a
   });
   await page.goto(blues.url);
   await hydrated(page);
-  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByRole("button", { name: "Edit My blues", exact: true }).focus();
+  await page.keyboard.press("Enter");
   const title = page.getByRole("textbox", { name: "Title" });
+  await expect(title).toBeFocused();
   await title.fill("Deep blues");
   // the page at the new address reads its state once it stands, after anything its address read
   const stands = page.waitForResponse(answer =>
@@ -791,6 +839,98 @@ test("a private collection renamed on its page is the account's own at its new a
   await expect(page).toHaveURL(/\/@e2e-ada\/deep-blues$/);
   await expect(page.locator("main h1")).toHaveText("Deep blues");
   expect(asked).toEqual([]);
+  // the keyboard the form had is on Edit at the new address, and a reader who listens hears the words were saved
+  await expect(page.getByRole("button", { name: "Edit Deep blues", exact: true })).toBeFocused();
+  await expect(page.locator("[data-announce]")).toHaveText("Saved.");
+});
+
+test("a collection's words edited by keyboard take the focus into the title and back to Edit, under the page's heading", async ({
+  page
+}) => {
+  await signIn(page, "ada", false, [blues]);
+  await page.goto(blues.url);
+  await hydrated(page);
+  const edit = page.getByRole("button", { name: "Edit My blues", exact: true });
+  const title = page.getByRole("textbox", { name: "Title" });
+  await edit.focus();
+  await page.keyboard.press("Enter");
+  await expect(title).toBeFocused();
+  await expect(page.getByRole("heading", { level: 1, name: "My blues" })).toHaveCount(1);
+  await page.keyboard.press("Escape");
+  await expect(edit).toBeFocused();
+  // Cancel comes after the title and the description, and gives the keyboard back
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("button", { name: "Cancel" })).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(edit).toBeFocused();
+  // words saved as they were close the form the same way
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("Enter");
+  await expect(title).toBeHidden();
+  await expect(edit).toBeFocused();
+});
+
+test("a collection's title in a list, cut short at its line's end, shows its whole ring to the keyboard", async ({
+  page
+}) => {
+  const long = {
+    ...summary,
+    title:
+      "End to end gradients, a collection whose title keeps going well past the end of its line on any screen at all, so it is cut"
+  };
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    risingWith(long)
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  const title = page.locator(`main a[href="/${SLUG}/rising"]`);
+  await title.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(title).toBeFocused();
+  await expect(title).toHaveCSS("outline-width", "1px");
+  // the title is cut short, inside the link: the first box its words run past is the link's own, so its ring stands
+  // around the words that show
+  expect(
+    await title.evaluate(link => {
+      const text = document.createTreeWalker(link, NodeFilter.SHOW_TEXT).nextNode()!;
+      const words = document.createRange();
+      words.selectNodeContents(text);
+      const end = words.getBoundingClientRect().right;
+      for (let box = text.parentElement; box; box = box.parentElement)
+        if (
+          getComputedStyle(box).overflowX !== "visible" &&
+          end > box.getBoundingClientRect().right + 1
+        )
+          return link.contains(box);
+      return false;
+    })
+  ).toBe(true);
+  // the ring stands past the link by its offset and width; no box around it may cut it
+  const cut = await title.evaluate(link => {
+    const own = getComputedStyle(link);
+    const out = Number.parseFloat(own.outlineOffset) + Number.parseFloat(own.outlineWidth);
+    const r = link.getBoundingClientRect();
+    const cuts: string[] = [];
+    for (let box = link.parentElement; box; box = box.parentElement) {
+      const s = getComputedStyle(box);
+      if (s.overflowX === "visible" && s.overflowY === "visible") continue;
+      const b = box.getBoundingClientRect();
+      if (
+        r.left - out < b.left ||
+        r.top - out < b.top ||
+        r.right + out > b.right ||
+        r.bottom + out > b.bottom
+      )
+        cuts.push(box.tagName);
+    }
+    return cuts;
+  });
+  expect(cut).toEqual([]);
 });
 
 test("a title entered on Saved at once opens the account's collection", async ({ page }) => {

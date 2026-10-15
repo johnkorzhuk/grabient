@@ -6,7 +6,7 @@ import { createEffect, createSignal, type Element, onSettled, Show } from "solid
 import { BarRim } from "./BarRim.tsx";
 import { Button } from "./Button.tsx";
 import styles from "./ColorPicker.module.css";
-import { pressOutside } from "./dismiss.ts";
+import { focusLeft, pressOutside } from "./dismiss.ts";
 import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import { composing, matches } from "./keys.ts";
@@ -332,8 +332,7 @@ export function ColorPicker(props: ColorPickerProps) {
   };
   /* the keyboard leaving the panel for the page puts it away */
   const leave = (e: FocusEvent) => {
-    const next = e.relatedTarget as Node | null;
-    if (next && !host.contains(next) && !props.anchor?.contains(next)) props.onClose?.();
+    if (focusLeft(e, host, props.anchor)) props.onClose?.();
   };
   const key = (e: KeyboardEvent) => {
     /* Tab past either end goes on from the press, as if the panel stood beside it: back to the press, or on to what

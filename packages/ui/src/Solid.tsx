@@ -22,13 +22,20 @@ import {
 
 export { CAM0, type Cam };
 
-/* The color solid, live: the scene on a canvas. A drag turns it; resting on the parked solid in the corner flies it
-   home, and a click (a tap) keeps it there. A finger that starts sideways orbits and one that starts up or down scrolls
-   the page, since on a phone the scene is a third of the sheet. A press on the path holds the keyframe nearest it (Shift
-   extends, Ctrl or Cmd adds, a finger's long press adds), a press that runs along it takes the run between, and the
-   scene never turns meanwhile. The theme's colors are read through four probes. The scene is kept as a picture, drawn
-   again only when the camera, the palette, the flight, the size or the theme changes, and only while some of it is in
-   the window; a pointer's ring and reading are drawn over it. */
+/* The color solid, live: the scene on a canvas. A drag turns it, and so does a press elsewhere on the scene, a step at
+   a time, which needs no drag; resting on the parked solid in the corner flies it home, and a click (a tap) keeps it
+   there. A finger that starts sideways orbits and one that starts up or down scrolls the page, since on a phone the
+   scene is a third of the sheet. A press on the path holds the keyframe nearest it (Shift extends, Ctrl or Cmd adds, a
+   finger's long press adds), a press that runs along it takes the run between, and the scene never turns meanwhile.
+   The keyboard turns it too: the arrows turn and tilt it (Shift by more), Home sets it as it stood, and Enter or Space
+   keeps the solid home or lets it go. The theme's colors are read through four probes. The scene is kept as a picture,
+   drawn again only when the camera, the palette, the flight, the size or the theme changes, and only while some of it
+   is in the window; a pointer's ring and reading are drawn over it. */
+
+/* a key's turn and tilt, in radians, and a press's turn */
+const TURN = Math.PI / 12;
+const TILT = 0.1;
+const PRESS_TURN = Math.PI / 6;
 export function Solid(props: {
   palette: Palette;
   wide?: boolean;
@@ -40,6 +47,8 @@ export function Solid(props: {
   onSelect?: (i: number, mode: PickMode) => void;
   /** a press that went on along the path, from the keyframe it began at to the one nearest now */
   onSweep?: (from: number, to: number) => void;
+  /** a run the page took, for a scroll or a pinch's zoom: the keyframes held before it, to hold again */
+  onRestore?: (selection: readonly number[]) => void;
   height?: number;
   onHover?: (t: number | null) => void;
   /** the solid kept home by a click; the press that lets it go is the host's */
@@ -62,9 +71,16 @@ export function Solid(props: {
   /* the scene as drawn last: the path and the bay as they stand on screen, for a press to be judged against */
   let last: SceneResult | null = null;
   const pickable = () => !!(props.onSelect || props.onSweep);
-  /* a press that landed on the path: the keyframe it holds, how, and the run since (`to`, once `live`) */
-  let pick: { i: number; mode: PickMode; wasHeld: boolean; to: number; live: boolean } | null =
-    null;
+  /* a press that landed on the path: the keyframe it holds, how, and the run since (`to`, once `live`), with the hold
+     the run found */
+  let pick: {
+    i: number;
+    mode: PickMode;
+    wasHeld: boolean;
+    to: number;
+    live: boolean;
+    before?: readonly number[];
+  } | null = null;
   let hullK = 0;
   let hullTarget = 0;
   let hullHot = false;
@@ -166,6 +182,7 @@ export function Solid(props: {
     if (tapAt) {
       tapAt = null;
       if (hullHot) setKept(!kept());
+      else turn(PRESS_TURN, 0);
       /* a finger's tap left no hover: the next frame draws the scene without the reading it was judged by */
       if (!hover) {
         hullHot = false;
@@ -214,6 +231,26 @@ export function Solid(props: {
       if (now && !raf) raf = requestAnimationFrame(draw);
     }
   );
+  /* the camera turned and tilted by this much, the tilt kept between flat and overhead */
+  const turn = (yaw: number, pitch: number) => {
+    cam = { yaw: cam.yaw + yaw, pitch: Math.max(0.05, Math.min(1.5, cam.pitch + pitch)) };
+    props.onView?.({ cam });
+    paint();
+  };
+  const key = (e: KeyboardEvent) => {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    const by = e.shiftKey ? 3 : 1;
+    if (e.key === "ArrowLeft") turn(-TURN * by, 0);
+    else if (e.key === "ArrowRight") turn(TURN * by, 0);
+    else if (e.key === "ArrowUp") turn(0, -TILT * by);
+    else if (e.key === "ArrowDown") turn(0, TILT * by);
+    else if (e.key === "Home") turn(CAM0.yaw - cam.yaw, CAM0.pitch - cam.pitch);
+    else if (e.key === "Enter" || e.key === " ") {
+      setKept(!kept());
+      paint();
+    } else return;
+    e.preventDefault();
+  };
   let pointer: number | null = null;
   let x0 = 0;
   let y0 = 0;
@@ -243,6 +280,8 @@ export function Solid(props: {
   });
   const down = (e: PointerEvent) => {
     if (e.pointerType === "mouse" && e.button !== 0) return;
+    /* a second finger is a pinch, the page's to zoom: the first turns and holds nothing */
+    if (pointer !== null && e.pointerId !== pointer) return letGo(pointer);
     pointer = e.pointerId;
     x0 = e.clientX;
     y0 = e.clientY;
@@ -281,6 +320,7 @@ export function Solid(props: {
         }
         if (pick.live && to !== pick.to) {
           pick.to = to;
+          pick.before ??= props.selection?.slice() ?? [];
           props.onSweep?.(pick.i, to);
         }
         hover = [on.x, on.y];
@@ -294,13 +334,9 @@ export function Solid(props: {
       if (!moved && (finger ? Math.hypot(dx, dy) > SLOP : Math.abs(dx) + Math.abs(dy) > 2))
         moved = true;
       if (moved) {
-        cam = {
-          yaw: cam.yaw + dx * 0.01,
-          pitch: Math.max(0.05, Math.min(1.5, cam.pitch + dy * 0.01))
-        };
+        turn(dx * 0.01, dy * 0.01);
         x0 = e.clientX;
         y0 = e.clientY;
-        props.onView?.({ cam });
       }
     }
     hover = at(e);
@@ -330,17 +366,21 @@ export function Solid(props: {
       paint();
     }
   };
-  /* the page took the finger for a scroll: no orbit, and no tap to keep the solid */
-  const cancel = (e: PointerEvent) => {
-    if (e.pointerId !== pointer) return;
-    if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+  /* the page took the finger, for a scroll or a pinch's zoom: no orbit, no tap to keep the solid, and a run it swept
+     goes back */
+  function letGo(id: number) {
+    if (canvas.hasPointerCapture(id)) canvas.releasePointerCapture(id);
     if (pick) {
       hold.cancel();
+      if (pick.before) props.onRestore?.(pick.before);
       pick = null;
     }
     pointer = null;
     hover = null;
     paint();
+  }
+  const cancel = (e: PointerEvent) => {
+    if (e.pointerId === pointer) letGo(e.pointerId);
   };
   return (
     <div ref={host} class={styles.host} dir="ltr">
@@ -375,6 +415,15 @@ export function Solid(props: {
         class={styles.canvas}
         role="img"
         aria-label={t("The palette in the color space")}
+        tabindex={0}
+        onKeyDown={key}
+        onMouseDown={e => {
+          /* Tab reaches the scene, a press leaves the keyboard where a press on the page would: Space and the arrows
+             go on scrolling the page after a click */
+          e.preventDefault();
+          const held = document.activeElement;
+          if (held instanceof HTMLElement && held !== canvas) held.blur();
+        }}
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}

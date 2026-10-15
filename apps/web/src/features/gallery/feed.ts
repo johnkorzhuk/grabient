@@ -96,19 +96,67 @@ export function createFeed<P extends FeedPage>(o: {
       watcher.observe(mark);
     }
   };
+  /* The keyboard in what stands past the feed, the footer: a page joining would push it out of view, so the feed waits
+     until the keyboard comes back up into it, and a group drawn at its own height as the window reaches it leaves the
+     focus in view. Only while the reader goes by keys: a press of the pointer or a finger, or a wheel, lets the page go
+     on growing under the focus, wherever it stands. */
+  let held = false;
+  let keyed = true;
+  const past = () => {
+    const at = document.activeElement;
+    return (
+      keyed &&
+      !!mark &&
+      !!at?.matches(":focus-visible") &&
+      !!(mark.compareDocumentPosition(at) & Node.DOCUMENT_POSITION_FOLLOWING)
+    );
+  };
   onSettled(() => {
     watcher = new IntersectionObserver(
       entries => {
-        if (entries.some(entry => entry.isIntersecting)) {
-          void next().then(joined => {
-            if (joined) look();
-          });
-        }
+        if (!entries.some(entry => entry.isIntersecting)) return;
+        held = past();
+        if (held) return;
+        void next().then(joined => {
+          if (joined) look();
+        });
       },
       { rootMargin: AHEAD }
     );
     if (mark) watcher.observe(mark);
-    return () => watcher?.disconnect();
+    const back = () => {
+      if (held && !past()) {
+        held = false;
+        look();
+      }
+    };
+    const key = () => {
+      keyed = true;
+    };
+    const point = () => {
+      keyed = false;
+      back();
+    };
+    const quiet = { capture: true, passive: true };
+    document.addEventListener("focusin", back);
+    document.addEventListener("keydown", key, true);
+    document.addEventListener("pointerdown", point, quiet);
+    document.addEventListener("wheel", point, quiet);
+    const grown = new ResizeObserver(() => {
+      if (!past()) return;
+      const at = document.activeElement as HTMLElement;
+      const box = at.getBoundingClientRect();
+      if (box.top < 0 || box.bottom > innerHeight) at.scrollIntoView({ block: "nearest" });
+    });
+    grown.observe(document.documentElement);
+    return () => {
+      watcher?.disconnect();
+      grown.disconnect();
+      document.removeEventListener("focusin", back);
+      document.removeEventListener("keydown", key, true);
+      document.removeEventListener("pointerdown", point, quiet);
+      document.removeEventListener("wheel", point, quiet);
+    };
   });
 
   return {

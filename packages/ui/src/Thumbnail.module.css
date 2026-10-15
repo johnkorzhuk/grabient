@@ -1,5 +1,7 @@
 @layer components {
   .thumb {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     display: inline-block;
     vertical-align: top;
     width: var(--size-tile);

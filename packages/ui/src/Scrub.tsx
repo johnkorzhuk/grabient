@@ -10,8 +10,10 @@ import { tooltip } from "./Tooltip.tsx";
 
 /* The number field: its name inside the box at the start, its value at the end. A drag anywhere on it scrubs (Shift
    coarse, Alt fine), a click types (Enter or leaving commits, Escape puts the number back), the arrows step and a
-   double-click resets. A finger's tap types from its touchend, where every phone opens the keyboard; a finger that goes
-   on to scroll the page leaves the field alone. A hairline along the foot shows the value in its range, from zero.
+   double-click resets. Enter and Escape keep the keyboard on the field, which then passes the page its keys until a key
+   that types takes it again. A finger's tap types from its touchend, where every phone opens the keyboard, and its
+   Enter puts the keyboard away; a finger that goes on to scroll the page leaves the field alone. A hairline along the
+   foot shows the value in its range, from zero.
    With `onLock`, a lock is joined to its end past a line the two share, a toggle the drag never reaches. The field
    reads left to right in every language, as its drag does. */
 export interface ScrubProps {
@@ -43,6 +45,8 @@ export interface ScrubProps {
   onLock?: () => void;
   /** the lock stands apart from the field, since it keeps more than this number */
   lockApart?: boolean;
+  /** what the field says on rest, focus or a long press: why it stands dimmed */
+  tip?: string;
   onInput: (v: number) => void;
 }
 
@@ -52,10 +56,13 @@ const TAP_FALLBACK_MS = 300;
 export function Scrub(props: ScrubProps) {
   let root!: HTMLDivElement;
   let input!: HTMLInputElement;
+  const tipped = "tip" in props ? tooltip(() => props.tip) : undefined;
   const [editing, setEditing] = createSignal(false);
   /* synchronous truth: a signal written now reads its old value until the write settles, and a blur right after Enter
      must already see the field as done */
   let edit = false;
+  /* a finger's tap opened the typing: its end puts the phone's keyboard away */
+  let finger = false;
   const fmt = (v: number) =>
     (props.fmt ?? (x => fixed(x, props.grain && props.grain < 1 ? 2 : 0)))(v);
   const parse = (s: string) => (props.parse ?? Number.parseFloat)(numeral(s));
@@ -88,10 +95,11 @@ export function Scrub(props: ScrubProps) {
     const text = input.value;
     setEdit(false);
     if (apply && text.trim() !== fmt(props.value).trim()) commit(parse(text));
-    input.blur();
+    if (finger) input.blur();
     input.value = fmt(props.value);
   };
-  const type = () => {
+  const type = (byFinger = false) => {
+    finger = byFinger;
     setEdit(true);
     input.focus();
     input.setSelectionRange(0, input.value.length);
@@ -99,6 +107,9 @@ export function Scrub(props: ScrubProps) {
 
   const drag = scrubDrag(() => (span() ? span() / 180 : step() * 2));
   let dragValue = 0;
+  /* the value the drag began from, and whether it has moved it */
+  let start = 0;
+  let dragged = false;
   let pointer: number | null = null;
   let lastTap = 0;
   let tapped = false;
@@ -107,6 +118,8 @@ export function Scrub(props: ScrubProps) {
     pointer = null;
   };
   const down = (e: PointerEvent) => {
+    /* a second finger is a pinch, the page's to zoom */
+    if (pointer !== null && e.pointerId !== pointer) return cancel();
     if (edit) {
       /* a second click soon after the one that started typing resets */
       if (
@@ -123,6 +136,8 @@ export function Scrub(props: ScrubProps) {
     }
     e.preventDefault();
     dragValue = props.origin ?? props.value;
+    start = props.value;
+    dragged = false;
     pointer = e.pointerId;
     tapped = false;
     drag.down(e);
@@ -132,6 +147,7 @@ export function Scrub(props: ScrubProps) {
     if (pointer === null) return;
     drag.move(e, dv => {
       dragValue = clamp(dragValue + dv);
+      dragged = true;
       commit(dragValue);
     });
   };
@@ -146,7 +162,7 @@ export function Scrub(props: ScrubProps) {
     setTimeout(() => {
       if (tapped && root.isConnected) {
         tapped = false;
-        type();
+        type(true);
       }
     }, TAP_FALLBACK_MS);
   };
@@ -163,23 +179,35 @@ export function Scrub(props: ScrubProps) {
     if (!tapped) return;
     tapped = false;
     e.preventDefault();
-    type();
+    type(true);
   };
-  /* the page took the finger for a scroll: no tap, and the keyboard stays down */
-  const cancel = () => {
+  /* the page took the finger, for a scroll or a pinch's zoom wherever its other finger landed: no tap, the keyboard
+     stays down, and what the drag moved goes back */
+  function cancel() {
     tapped = false;
     if (pointer === null) return;
     release();
     drag.up();
-  };
+    if (dragged) props.onInput(start);
+  }
   const keys = (e: KeyboardEvent) => {
     if (composing(e)) return;
     if (e.key === "Enter") done(true);
     else if (e.key === "Escape") {
       if (!edit) return;
+      e.stopPropagation();
       input.value = fmt(props.value);
-      setEdit(false);
-      input.blur();
+      done(false);
+    } else if (
+      !edit &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey &&
+      (e.key.length === 1 || e.key === "Backspace" || e.key === "Delete")
+    ) {
+      /* a key that types, its character landing in the field it takes */
+      setEdit(true);
+      input.select();
     } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
       const by = (e.key === "ArrowUp" ? 1 : -1) * (e.shiftKey ? 10 : e.altKey ? 0.1 : 1) * step();
@@ -231,7 +259,10 @@ export function Scrub(props: ScrubProps) {
         <span class={styles.label}>{props.label}</span>
         {/* a spin button, so a screen reader says what an arrow's step comes to */}
         <input
-          ref={input}
+          ref={el => {
+            input = el;
+            tipped?.(el);
+          }}
           class={styles.input}
           type="text"
           role="spinbutton"
@@ -255,6 +286,7 @@ export function Scrub(props: ScrubProps) {
           onBlur={() => done(true)}
           onFocus={() => {
             if (edit) return;
+            finger = false;
             setEdit(true);
             input.select();
           }}

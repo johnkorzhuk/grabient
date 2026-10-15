@@ -4,11 +4,15 @@
     min-width: 0;
     user-select: none;
     -webkit-user-select: none;
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
+  /* the ring stands inside the scene, which its pane cuts at its edge */
   .canvas {
     display: block;
     width: 100%;
+    &:focus-visible {
+      outline-offset: calc(-1 * var(--size-hairline));
+    }
   }
   /* the theme's inks, read off these by the canvas */
   .probe {

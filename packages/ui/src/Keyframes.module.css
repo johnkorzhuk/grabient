@@ -10,9 +10,11 @@
     flex-grow: 1;
     gap: var(--space-s2);
     min-width: 0;
-    touch-action: pan-y;
+    touch-action: pan-y pinch-zoom;
   }
   .chip {
+    /* a palette's colors are the content: forced colors leave them as they are */
+    forced-color-adjust: none;
     position: relative;
     flex: 1 1 0;
     min-width: 0;

@@ -52,7 +52,7 @@ export function Text(props: {
       data-danger={props.danger ? "" : undefined}
       data-truncate={props.truncate ? "" : undefined}
     >
-      {props.children}
+      {props.truncate ? <span class={styles.cut}>{props.children}</span> : props.children}
     </Dynamic>
   );
 }

@@ -1,3 +1,4 @@
+import { keepKeyboard } from "@grabient/ui/dismiss.ts";
 import { keyRow } from "@grabient/ui/keymap.ts";
 import { type Binding, rowKeys, showKey } from "@grabient/ui/keys.ts";
 import { copyAddress } from "../../app/keys.ts";
@@ -6,6 +7,11 @@ import type { PaletteSave } from "./save.ts";
 
 /* The editor's keys, beside the ones every page has. Each names its row of the key map, so a key the reader changed on
    the Shortcuts page applies here and the ? list shows it. Typing is never taken: that is the dispatcher's rule. */
+
+/* a keyframe's chip among the side's, or the one its Tab stops on */
+const chip = (i: number) =>
+  document.querySelector<HTMLElement>(`aside [role="listbox"] [data-i="${i}"]`) ??
+  document.querySelector<HTMLElement>('aside [role="listbox"] [tabindex="0"]');
 
 const row = (id: string) => {
   const found = keyRow(id);
@@ -50,10 +56,29 @@ export function editorBindings(
     bind("panel", o.togglePanel),
     /* over a row of keyframes, select all means those, never the page's text */
     bind("selectAll", () => e.holdAll()),
-    /* with nothing held the keys do nothing: taking away a keyframe no one picked would surprise */
-    bind("remove", () => e.removeKeyframes(), held),
+    /* with nothing held the keys do nothing: taking away a keyframe no one picked would surprise. The keyboard on what
+       goes with the keyframes or with their hold moves to the chips, on the keyframe the numbers read */
+    bind(
+      "remove",
+      () =>
+        keepKeyboard(
+          () => e.removeKeyframes(),
+          () => chip(e.lead())
+        ),
+      held
+    ),
     /* with nothing held Escape is not the editor's, so whatever else is open takes it */
-    bind("letGo", () => e.letGo(), held),
+    bind(
+      "letGo",
+      () => {
+        const at = e.lead();
+        keepKeyboard(
+          () => e.letGo(),
+          () => chip(at)
+        );
+      },
+      held
+    ),
     bind("stops", i => e.setSteps(e.steps() + (i ? 1 : -1))),
     bind("rotate", i => e.setAngle((e.angle() + (i ? 15 : 345)) % 360)),
     /* the editor's own undo, never the browser's Back: it walks the edits with the page's steps and stays here */

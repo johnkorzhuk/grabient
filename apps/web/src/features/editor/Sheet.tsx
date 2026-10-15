@@ -499,6 +499,7 @@ export function Sheet(props: {
             selection={e.held()}
             onSelect={e.pick}
             onSweep={e.sweep}
+            onRestore={e.restore}
             onHover={e.setReading}
             seed={e.seed()}
             style={e.style()}
@@ -507,7 +508,7 @@ export function Sheet(props: {
           />
         )
       }
-      foot={<SiteFooter />}
+      foot={<SiteFooter floats />}
     >
       <Show
         when={like()}

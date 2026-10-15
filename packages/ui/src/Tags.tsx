@@ -327,6 +327,20 @@ export function Tags<T extends Tag>(props: {
     }
   );
 
+  /* an arrow that goes as the row reaches its end with the keyboard on it hands the keyboard to the other arrow, or to
+     the row's own stop */
+  let earlier!: HTMLSpanElement;
+  let later!: HTMLSpanElement;
+  createEffect(
+    () => [before(), after()] as const,
+    ([back, on]) => {
+      const at = document.activeElement;
+      if (!((!on && later.contains(at)) || (!back && earlier.contains(at)))) return;
+      const other = on ? later : back ? earlier : null;
+      (other?.querySelector("button") ?? row.querySelector<HTMLElement>('[tabindex="0"]'))?.focus();
+    }
+  );
+
   return (
     <div class={styles.wrap}>
       <div
@@ -392,6 +406,7 @@ export function Tags<T extends Tag>(props: {
         </div>
       </div>
       <span
+        ref={earlier}
         class={styles.arrow}
         data-side="before"
         data-on={before() && !ghosts() ? "" : undefined}
@@ -406,7 +421,12 @@ export function Tags<T extends Tag>(props: {
           <Icon name="chevronLeft" size={14} />
         </Button>
       </span>
-      <span class={styles.arrow} data-side="after" data-on={after() && !ghosts() ? "" : undefined}>
+      <span
+        ref={later}
+        class={styles.arrow}
+        data-side="after"
+        data-on={after() && !ghosts() ? "" : undefined}
+      >
         <Button variant="ghost" icon size="sm" aria-label={t("More tags")} onClick={() => page(1)}>
           <Icon name="chevronRight" size={14} />
         </Button>

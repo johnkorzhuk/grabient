@@ -1,13 +1,15 @@
 import { t } from "@grabient/i18n";
 import type { Sample } from "@grabient/search/picture.ts";
 import { Button } from "@grabient/ui/Button.tsx";
+import { SLOP } from "@grabient/ui/press.ts";
 import { Text } from "@grabient/ui/Text.tsx";
 import { createSignal, For, onSettled, Show } from "solid-js";
 import styles from "./Sampler.module.css";
 
 /* A picture and the points its colors are read from, in the palette's order, with a line through them as the blend
-   runs. A point is dragged or stepped with the arrow keys; the page reads the color under it again (`onMove`) and
-   searches once it rests (`onRelease`). A double-click on the picture adds a point there (`onAdd`), and Delete,
+   runs. A point is dragged or stepped with the arrow keys, or pressed and then the picture where it should go, which
+   needs no drag; the page reads the color under it again (`onMove`) and searches once it rests (`onRelease`). A
+   double-click on the picture adds a point there (`onAdd`), as + or Insert on a point adds one beside it, and Delete,
    Backspace or a double-click on a point takes it out (`onRemove`). The picture is shown whole; on a list's grid it is
    two columns wide, so the palettes made from it stand beside it. */
 
@@ -77,30 +79,54 @@ export function Sampler(props: {
     const r = frame.getBoundingClientRect();
     return [clamp((e.clientX - r.left) / r.width), clamp((e.clientY - r.top) / r.height)] as const;
   };
-  /* the pointer a drag follows, by its id, which may be any integer */
-  let drag: { i: number; pid: number } | null = null;
+  /* the pointer a drag follows, by its id, which may be any integer, where it came down and whether it went past a
+     press's slop */
+  let drag: { i: number; pid: number; x: number; y: number; far: boolean } | null = null;
   const down = (i: number, e: PointerEvent & { currentTarget: HTMLButtonElement }) => {
     if (e.button !== 0) return;
     e.preventDefault();
     e.currentTarget.setPointerCapture(e.pointerId);
-    drag = { i, pid: e.pointerId };
+    drag = { i, pid: e.pointerId, x: e.clientX, y: e.clientY, far: false };
     setChosen(i);
     setDragging(true);
     e.currentTarget.focus({ preventScroll: true });
   };
   const move = (e: PointerEvent) => {
-    if (drag && e.pointerId === drag.pid) props.onMove(drag.i, ...at(e));
+    if (!drag || e.pointerId !== drag.pid) return;
+    drag.far ||= Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > SLOP;
+    props.onMove(drag.i, ...at(e));
   };
+  /* a point pressed stays chosen for the picture's next press to move it there; one dragged is let go where it lands,
+     so a click on the picture after it lets nothing go and a double-click adds a point */
   const release = (e: PointerEvent) => {
     if (!drag || e.pointerId !== drag.pid) return;
+    if (drag.far) setChosen(null);
     drag = null;
     setDragging(false);
     props.onRelease();
   };
   const onPoint = (e: MouseEvent) => !!(e.target as Element).closest("button");
+  /* the press that moved the chosen point there is no half of a double-click that adds one */
+  let placed = false;
+  const place = (e: MouseEvent) => {
+    if (onPoint(e)) return;
+    const i = chosen();
+    if (i === null) {
+      if (e.detail === 1) placed = false;
+      return;
+    }
+    placed = true;
+    setChosen(null);
+    props.onMove(i, ...at(e));
+    props.onRelease();
+  };
+  /* the keyboard on the last point, which goes with it, moves to the one before; on any other it stays where it is, the
+     next point taking that place */
   const remove = (i: number) => {
     if (!props.onRemove) return;
     setChosen(null);
+    if (i === props.points.length - 1 && buttons[i] === document.activeElement)
+      buttons[i - 1]?.focus({ preventScroll: true });
     props.onRemove(i);
   };
   const key = (i: number, e: KeyboardEvent) => {
@@ -111,6 +137,12 @@ export function Sampler(props: {
       const p = props.points[i];
       setChosen(i);
       props.onMove(i, clamp(p.x + step[0] * by), clamp(p.y + step[1] * by));
+    } else if ((e.key === "+" || e.key === "Insert") && props.onAdd) {
+      /* halfway to the next point, or to the one before the last */
+      e.preventDefault();
+      const p = props.points[i];
+      const q = props.points[i + 1] ?? props.points[i - 1] ?? p;
+      props.onAdd((p.x + q.x) / 2, (p.y + q.y) / 2);
     } else if (e.key === "Escape") setChosen(null);
     else if (e.key === "Delete" || e.key === "Backspace") {
       e.preventDefault();
@@ -132,7 +164,7 @@ export function Sampler(props: {
         style={{ "aspect-ratio": `${props.width} / ${props.height}` }}
         aria-label={props.label}
       >
-        {/* a press on the picture lets the chosen point go; a double-click adds one there */}
+        {/* a press on the picture moves the chosen point there; a double-click adds one there */}
         {/* biome-ignore lint/a11y/noStaticElementInteractions: a pointer's shortcut; the points and their keys do the rest */}
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: the points take the keys, each its own press */}
         <div
@@ -144,16 +176,21 @@ export function Sampler(props: {
             width: `${box().width}px`,
             height: `${box().height}px`
           }}
-          onClick={e => {
-            if (!onPoint(e)) setChosen(null);
+          onPointerDown={e => {
+            /* the chosen point keeps the focus, and the choice with it, until the press lands */
+            if (chosen() !== null && !onPoint(e)) e.preventDefault();
           }}
+          onClick={place}
           onDblClick={e => {
-            if (onPoint(e) || !props.onAdd) return;
+            if (onPoint(e) || !props.onAdd || placed) return;
             e.preventDefault();
             props.onAdd(...at(e));
           }}
         >
           <img class={styles.picture} src={props.src} alt="" draggable={false} />
+          <Show when={chosen() !== null && !dragging()}>
+            <p class={styles.hint}>{t("Press the picture to move this color there.")}</p>
+          </Show>
           <svg
             class={styles.path}
             viewBox="0 0 100 100"

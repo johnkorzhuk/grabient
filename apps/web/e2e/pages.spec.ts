@@ -447,7 +447,7 @@ test("Settings keeps the still water under reduced motion, as the other brand pa
   }
 });
 
-test("the account menu opens the lists in the reader's view, and a visitor's Collections in the order chosen last", async ({
+test("the account menu opens the lists in the reader's view, a visitor's Collections in the order chosen last, and leaves the keyboard to the page", async ({
   page
 }) => {
   const menu = (row: string) => async () => {
@@ -459,6 +459,11 @@ test("the account menu opens the lists in the reader's view, and a visitor's Col
   await started(page);
   await menu("Collections")();
   await expect(page).toHaveURL(/\/collections\/rising\?style=linearSwatches&steps=5$/);
+  // the page a row leads to takes the keyboard, as a link's does: Space pages down and leaves the menu shut
+  await expect(page.locator("main")).toBeFocused();
+  await page.keyboard.press("Space");
+  await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0);
+  await expect(page.getByRole("menu")).toHaveCount(0);
 
   // signed in: the session answers for a reader, whose copy never syncs here
   const reader = {

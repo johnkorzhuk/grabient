@@ -28,6 +28,7 @@ export function SolidPane(props: {
   selection?: readonly number[];
   onSelect?: (i: number, mode: PickMode) => void;
   onSweep?: (from: number, to: number) => void;
+  onRestore?: (selection: readonly number[]) => void;
   onHover?: (t: number | null) => void;
   /** for the figure it copies: the palette's seed, and how its picture is drawn */
   seed?: string;
@@ -131,6 +132,7 @@ export function SolidPane(props: {
           selection={props.selection}
           onSelect={props.onSelect}
           onSweep={props.onSweep}
+          onRestore={props.onRestore}
           height={tall()}
           onHover={props.onHover}
           kept={kept()}

@@ -40,10 +40,12 @@ export function Select(props: {
     const outside = (e: PointerEvent) => {
       if (open() && !host.contains(e.target as Node)) setOpen(false);
     };
+    /* Escape closes it, and takes the keyboard back to the field only from inside the menu */
     const onEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || !open()) return;
-      e.stopPropagation();
       setOpen(false);
+      if (!host.contains(document.activeElement)) return;
+      e.stopPropagation();
       trigger.focus();
     };
     document.addEventListener("pointerdown", outside, true);
@@ -109,7 +111,11 @@ export function Select(props: {
             value={props.value}
             label={props["aria-label"] ?? props.label ?? t("Options")}
             onPick={pick}
-            onClose={() => setOpen(false)}
+            onClose={() => {
+              const inside = host.contains(document.activeElement);
+              setOpen(false);
+              if (inside) trigger.focus({ preventScroll: true });
+            }}
           />
         </Show>
       </div>

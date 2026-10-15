@@ -156,13 +156,16 @@ export function ExportPanel(props: {
         </Button>
       </div>
       <div class={styles.row}>
-        <Text variant="ui">
-          {rich(
-            "{count, plural, one {<n>#</n> selected} other {<n>#</n> selected}}",
-            { n: digits => <Text variant="num">{digits}</Text> },
-            { count: props.count }
-          )}
-        </Text>
+        {/* the count says itself as palettes leave the selection */}
+        <span aria-live="polite" aria-atomic="true">
+          <Text variant="ui">
+            {rich(
+              "{count, plural, one {<n>#</n> selected} other {<n>#</n> selected}}",
+              { n: digits => <Text variant="num">{digits}</Text> },
+              { count: props.count }
+            )}
+          </Text>
+        </span>
         <Button variant="ghost" size="sm" disabled={!props.count} onClick={() => props.onClear?.()}>
           {t("Clear")}
         </Button>

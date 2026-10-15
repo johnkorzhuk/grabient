@@ -37,7 +37,7 @@ export const STATIC_CSS = [
   "[data-picture]{width:100%;aspect-ratio:2/1;border-radius:var(--radius-surface);box-shadow:var(--color-shadow)}",
   "[data-stops]{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:var(--space-s2) var(--space-s4);font-family:var(--font-mono);font-size:var(--font-fs2)}",
   "[data-stops] li{display:flex;align-items:center;gap:var(--space-s2)}",
-  "[data-stops] span{width:var(--space-s5);height:var(--space-s5);border-radius:var(--radius-circle);box-shadow:var(--color-rim)}",
+  "[data-stops] span{width:var(--space-s5);height:var(--space-s5);border-radius:var(--radius-circle);box-shadow:var(--color-rim);forced-color-adjust:none}",
   ".palette-static pre{margin:0;padding:var(--space-s4);border-radius:var(--radius-control);background:var(--color-paper-solid);font-family:var(--font-mono);font-size:var(--font-fs2);white-space:pre-wrap;overflow-wrap:anywhere}",
   "[data-links]{display:flex;flex-wrap:wrap;gap:var(--space-s2) var(--space-s4)}",
   "}"

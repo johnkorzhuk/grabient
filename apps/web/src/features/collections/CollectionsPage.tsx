@@ -15,7 +15,7 @@ import { SaveToCollection } from "@grabient/ui/SaveToCollection.tsx";
 import { Status } from "@grabient/ui/Status.tsx";
 import { Text } from "@grabient/ui/Text.tsx";
 import { useQuery, useQueryClient } from "@tanstack/solid-query";
-import { useElementScrollRestoration, useNavigate, useRouterState } from "@tanstack/solid-router";
+import { useElementScrollRestoration, useNavigate } from "@tanstack/solid-router";
 import {
   createEffect,
   createMemo,
@@ -35,6 +35,7 @@ import {
 } from "../../app/connection.ts";
 import { AppPage } from "../../app/Frames.tsx";
 import list from "../../app/list.module.css";
+import { useNavigating } from "../../app/navigation.ts";
 import { OfflineList } from "../../app/OfflineList.tsx";
 import { ShellContext } from "../../app/shell.ts";
 import { DEFAULT_FRAME, framePath, nextFrame, type Order } from "../../lib/orders.ts";
@@ -105,7 +106,7 @@ export function CollectionsPage(props: {
   const shell = useContext(ShellContext)!;
   const go = (href: string) => void navigate({ href });
   const restoring = useElementScrollRestoration({ getElement: () => window })?.scrollY;
-  const navigating = useRouterState({ select: state => state.status === "pending" });
+  const navigating = useNavigating();
   const place = () => props.place;
   const mine = () => place().order === "saved";
   const signedOut = () => mine() && (sessionReady() ? !account() : !!props.signedOut);
@@ -427,7 +428,7 @@ export function CollectionsPage(props: {
   const placeholders = () => <For each={[0, 1]}>{() => <CollectionGroupPlaceholder />}</For>;
 
   return (
-    <AppPage feed bare={sel.open()}>
+    <AppPage feed floats bare={sel.open()}>
       {/* the page stays mounted and out of sight while the export screen takes its place, so Close returns to the
           same groups at the same depth */}
       <main
