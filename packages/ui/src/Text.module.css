@@ -75,8 +75,12 @@
     &[data-danger] {
       color: var(--color-danger);
     }
+    /* the cut stands a ring's room out from the words, so a focused link among them keeps its whole ring, and the
+       margin takes the room back, so nothing moves */
     &[data-truncate] {
       min-width: 0;
+      margin: calc(-1 * var(--space-s2)) calc(-1 * var(--space-s1));
+      padding: var(--space-s2) var(--space-s1);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;

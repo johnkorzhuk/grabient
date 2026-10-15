@@ -821,6 +821,45 @@ test("a collection's words edited by keyboard take the focus into the title and 
   await expect(edit).toBeFocused();
 });
 
+test("a collection's title in a list, cut short at its line's end, shows its whole ring to the keyboard", async ({
+  page
+}) => {
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  const title = page.locator(`main a[href="/${SLUG}/rising"]`);
+  await title.focus();
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Tab");
+  await expect(title).toBeFocused();
+  await expect(title).toHaveCSS("outline-width", "1px");
+  // the ring stands past the link by its offset and width; no box around it may cut it
+  const cut = await title.evaluate(link => {
+    const own = getComputedStyle(link);
+    const out = Number.parseFloat(own.outlineOffset) + Number.parseFloat(own.outlineWidth);
+    const r = link.getBoundingClientRect();
+    const cuts: string[] = [];
+    for (let box = link.parentElement; box; box = box.parentElement) {
+      const s = getComputedStyle(box);
+      if (s.overflowX === "visible" && s.overflowY === "visible") continue;
+      const b = box.getBoundingClientRect();
+      if (
+        r.left - out < b.left ||
+        r.top - out < b.top ||
+        r.right + out > b.right ||
+        r.bottom + out > b.bottom
+      )
+        cuts.push(box.tagName);
+    }
+    return cuts;
+  });
+  expect(cut).toEqual([]);
+});
+
 test("a title entered on Saved at once opens the account's collection", async ({ page }) => {
   await signIn(page, "ada", false, [blues]);
   await page.goto("/collections/saved");
