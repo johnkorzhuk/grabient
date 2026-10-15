@@ -1,4 +1,3 @@
-import { DOMINANT_PALETTES } from "@grabient/engine/dominant.ts";
 import { msg } from "@grabient/i18n";
 import { all, first, run } from "@grabient/server/db/d1.ts";
 import { itemKey } from "../../features/collections/address.ts";
@@ -18,6 +17,7 @@ import {
   collectionBySlug,
   collectionRecord,
   colorsOf,
+  leadSeedsOf,
   ownedBy,
   type Reader,
   recordById
@@ -215,6 +215,8 @@ interface CopyPair {
   copy: CollectionRecord;
   source: CollectionRecord;
   base: CollectionContent;
+  /** the source's first palettes in the order its page opens in, which its colors are read from */
+  lead: string | null;
 }
 /** A saved collection and its source, while the account may still read the source: a public one, or its own. A copy
     saved before copies kept their source reads it from when the source's palettes joined: those there when the copy
@@ -228,9 +230,10 @@ async function copyPair(
   if (!copy.forkedFrom || !ownedBy(copy, owner)) return null;
   const source = known?.id === copy.forkedFrom ? known : await recordById(env, copy.forkedFrom);
   if (!source || (source.input.visibility !== "public" && !ownedBy(source, owner))) return null;
-  const kept = await first<{ forked_base: string | null }>(
+  const kept = await first<{ forked_base: string | null; lead: string | null }>(
     env.DB,
-    "SELECT forked_base FROM k_collections WHERE id = ?",
+    `SELECT forked_base, ${leadSeedsOf("?")} AS lead FROM k_collections WHERE id = ?`,
+    source.id,
     copy.id
   );
   let base = baseOf(kept?.forked_base);
@@ -251,16 +254,15 @@ async function copyPair(
       items: source.input.items.filter(item => then.has(itemKey(item)))
     };
   }
-  return { copy, source, base };
+  return { copy, source, base, lead: kept?.lead ?? null };
 }
-const standingOf = ({ copy, source, base }: CopyPair): CopyStanding => {
+const standingOf = ({ copy, source, base, lead }: CopyPair): CopyStanding => {
   const mine = contentOf(copy.input);
   const theirs = contentOf(source.input);
-  /* the source's colors as its tag and its link elsewhere show them: its first palettes in its own order */
-  const lead = source.input.items.slice(0, DOMINANT_PALETTES).map(item => item.seed);
   return {
     slug: copy.slug,
-    source: { slug: source.slug, title: source.input.title, colors: colorsOf(lead.join(" ")) },
+    // the source's colors as its tag and its link elsewhere show them
+    source: { slug: source.slug, title: source.input.title, colors: colorsOf(lead) },
     behind: !sameContent(mergeCopy(base, theirs, mine), mine),
     differs: !sameContent(mine, theirs)
   };
@@ -314,6 +316,6 @@ export async function syncCopy(
   else await updateCollection(env, copy.id, input, { forkedBase: baseText(theirs), owner });
   return {
     ok: true,
-    copy: standingOf({ copy: { ...copy, input }, source: pair.source, base: theirs })
+    copy: standingOf({ ...pair, copy: { ...copy, input }, base: theirs })
   };
 }

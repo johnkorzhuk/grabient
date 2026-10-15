@@ -1,3 +1,5 @@
+import { encodePalette } from "@grabient/engine";
+import { DOMINANT_PALETTES, dominantColors } from "@grabient/engine/dominant.ts";
 import { run } from "@grabient/server/db/d1.ts";
 import type { Env } from "@grabient/server/env.ts";
 import { setFlag } from "@grabient/server/flags/flags.ts";
@@ -540,6 +542,54 @@ describe("a collection's colors", () => {
     );
     expect(state.copy.source.colors).toEqual(held!.colors);
     expect(state.collection.tagColors).toEqual([await rowColors("blue")]);
+  });
+});
+
+describe("a collection's colors, read in the order its page opens in", () => {
+  it("are the colors of its most liked palettes, the same on a palette's sheet and on a copy saved from it", async () => {
+    // twelve quiet blues by position, then a red the most liked of all, which the page opens with
+    const blue = (i: number) =>
+      encodePalette({
+        anchors: [
+          { l: 0.3 + i * 0.03, c: 0.08, h: 240 },
+          { l: 0.6, c: 0.06, h: 230 + i }
+        ]
+      });
+    const red = encodePalette({
+      anchors: [
+        { l: 0.55, c: 0.2, h: 25 },
+        { l: 0.65, c: 0.19, h: 30 }
+      ]
+    });
+    const seeds = [...Array.from({ length: DOMINANT_PALETTES }, (_, i) => blue(i)), red];
+    for (const [i, seed] of seeds.entries()) {
+      await run(
+        env.DB,
+        `INSERT OR REPLACE INTO k_palettes (seed, style, steps, angle, likes_count, created_at, rising)
+         VALUES (?, 'linearGradient', 7, 90, ?, 1600000000000, 0)`,
+        seed,
+        seed === red ? 50 : i
+      );
+    }
+    const made = await make(admin, {
+      title: unique("Blues and a red"),
+      visibility: "public",
+      items: seeds.map(seed => ({ seed, style: "linearGradient", steps: 7, angle: 90 }))
+    });
+    const slug = made.body.collection.slug;
+    const opened = [red, ...seeds.slice(0, DOMINANT_PALETTES).reverse()];
+    const colors = dominantColors(opened);
+    expect(colors).not.toEqual(dominantColors(seeds));
+    const held = (await collectionsHolding(env, red, 24)).find(c => c.slug === slug);
+    expect(held?.colors).toEqual(colors);
+    const reader = await makeAccount(env);
+    const saved = await bodyOf<{ copy: CopyStanding }>(
+      await collectionAnswer(
+        send("POST", `/api/collections/${at(slug)}/copies`, {}, { cookie: reader.cookie }),
+        env
+      )
+    );
+    expect(saved.copy.source.colors).toEqual(colors);
   });
 });
 
