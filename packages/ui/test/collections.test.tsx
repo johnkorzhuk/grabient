@@ -173,7 +173,7 @@ describe("the checklist", () => {
 });
 
 describe("Curation", () => {
-  test("keeps a press it does not offer in place, saying why", () => {
+  test("keeps a press it does not offer in place, in the keyboard's reach, saying why", () => {
     const markup = html(() => (
       <Curation
         mode="delete"
@@ -185,7 +185,7 @@ describe("Curation", () => {
       />
     ));
     const press = tags(markup, "button")[0];
-    expect(press).toMatchObject({ "aria-label": "Delete palette", disabled: "" });
+    expect(press).toMatchObject({ "aria-label": "Delete palette", "aria-disabled": "true" });
     expect(text(markup)).toContain("Liked by someone");
   });
 });
