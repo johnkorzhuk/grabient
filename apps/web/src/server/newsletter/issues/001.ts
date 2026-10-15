@@ -115,7 +115,7 @@ export const october: Issue = {
           "."
         ]),
         image({
-          src: `${origin}/email/collections-3.gif`,
+          src: `${origin}/email/collections-4.gif`,
           alt: "A palette liked and added to two collections from its card, then turned into the bar of Grabient's logo",
           width: 534,
           height: 300,
