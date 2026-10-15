@@ -1,4 +1,4 @@
-import { expect, type Page, type Route, test } from "@playwright/test";
+import { expect, type Locator, type Page, type Route, test } from "@playwright/test";
 
 /* The collections' pages as a reader meets them. The lists, collections and accounts a test moves through are answered
    here, so the tests stand whatever the local database holds. */
@@ -795,4 +795,58 @@ test("a collection's tags on a page in another language search the words they sh
   await tag.click();
   await expect(page).toHaveURL(/\/de\/collections\/rising\?q=blaue\+stunde$/);
   await expect(page.getByRole("searchbox")).toHaveValue("blaue stunde");
+});
+
+/** The coins beside a link: its host's, which open under the link's pointer or keyboard focus. */
+const coinsBy = (link: Locator) => link.locator("xpath=..").locator("[data-coins] > span");
+/** Every coin at one opacity once its motion ends. */
+const coinsAt = async (coins: Locator, opacity: string) => {
+  for (const coin of await coins.all()) await expect(coin).toHaveCSS("opacity", opacity);
+};
+
+test("a collection's tags show their colors under the pointer and keyboard focus, and nothing moves", async ({
+  page
+}) => {
+  await page.route(
+    url => url.pathname === "/api/collections" && url.searchParams.get("sort") === "rising",
+    rising
+  );
+  const { preview, ...words } = summary;
+  await page.route(
+    url => url.pathname === `/api/collections/${SLUG}`,
+    route =>
+      route.fulfill({
+        json: {
+          ...words,
+          tags: ["blue", "zzqx"],
+          // the colors each tag's words show in the palettes' search row: none for words it does not read
+          tagColors: [["#1d3b8a", "#4a90d9", "#a7d3f2"], []],
+          items: preview.map(({ seed, ...p }) => ({ kseed: seed, ...p }))
+        }
+      })
+  );
+  await page.goto("/collections");
+  await hydrated(page);
+  await page.locator('main a[href="/collections/rising"]').click();
+  await page.locator(`main a[href="/${SLUG}/rising"]`).click();
+  const row = page.getByRole("toolbar", { name: "Tags" });
+  const blue = row.getByRole("link", { name: "blue" });
+  const coins = coinsBy(blue);
+  await expect(coins).toHaveCount(3);
+  await expect(coinsBy(row.getByRole("link", { name: "zzqx" }))).toHaveCount(0);
+  await coinsAt(coins, "0");
+  const before = [await blue.boundingBox(), await row.boundingBox()];
+  await blue.hover();
+  await coinsAt(coins, "1");
+  expect(await coins.evaluateAll(all => all.map(c => getComputedStyle(c).backgroundColor))).toEqual(
+    ["rgb(29, 59, 138)", "rgb(74, 144, 217)", "rgb(167, 211, 242)"]
+  );
+  expect([await blue.boundingBox(), await row.boundingBox()]).toEqual(before);
+  await page.mouse.move(0, 0);
+  await coinsAt(coins, "0");
+  // the row is one stop for the keyboard, after the way back
+  await page.locator("main").getByRole("link", { name: "Collections" }).focus();
+  await page.keyboard.press("Tab");
+  await expect(blue).toBeFocused();
+  await coinsAt(coins, "1");
 });

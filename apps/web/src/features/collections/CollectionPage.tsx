@@ -545,11 +545,20 @@ export function CollectionPage(props: {
     sel.open() ? selection() : palettes().length ? palettes().slice(0, PAINTED) : null
   );
 
+  /* a tag's colors, as a read of the collection brought them: the account's copy and a write's answer bring none, so a
+     tag they show takes the colors a read gave the same words */
+  const colorsOf = (tag: string) => {
+    const read = [doc(), state()?.collection, data()?.doc].find(
+      d => d?.tagColors && d.tags.includes(tag)
+    );
+    return read?.tagColors?.[read.tags.indexOf(tag)];
+  };
   /* the collection's tags, each the collections list searched for it in the page's order */
   const tags = () =>
     marked(
       (doc()?.tags ?? []).map(tag => ({
         label: tag,
+        colors: colorsOf(tag),
         href: localHref(
           `/collections${props.order === "rising" ? "/rising" : ""}${listSearch({ query: listWords(tag), view: props.view })}`
         )
