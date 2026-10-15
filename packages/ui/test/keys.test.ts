@@ -447,9 +447,10 @@ describe("typing", () => {
       closest: () => null,
       ...extra
     }) as unknown as EventTarget;
-  test("a field keeps its keys, a range input does not", () => {
+  test("a field keeps its keys, a range input and a number field at rest do not", () => {
     expect(typing(el("INPUT", { type: "text" }))).toBe(true);
     expect(typing(el("INPUT", { type: "range" }))).toBe(false);
+    expect(typing(el("INPUT", { type: "text", readOnly: true }))).toBe(false);
     expect(typing(el("TEXTAREA"))).toBe(true);
     expect(typing(el("SELECT"))).toBe(true);
     expect(typing(el("DIV", { isContentEditable: true }))).toBe(true);

@@ -487,6 +487,49 @@ test("a drag on a number is one step, however long it rests", async ({ page }) =
   await expect(page.getByRole("button", { name: "Undo" })).toBeDisabled();
 });
 
+test("a number or a hex entered or put back keeps the keyboard on its field, whose arrows go on stepping", async ({
+  page
+}) => {
+  await open(page);
+  const start = page.getByRole("spinbutton", { name: /^(Lightness start|Start)$/ });
+  await start.focus();
+  await page.keyboard.type("0.8");
+  await page.keyboard.press("Enter");
+  await expect(start).toBeFocused();
+  const entered = await start.inputValue();
+  await page.keyboard.press("ArrowUp");
+  await expect(start).not.toHaveValue(entered);
+  const stepped = await start.inputValue();
+  // a key that types takes the field again, and Escape puts its number back
+  await page.keyboard.type("0.3");
+  await expect(start).toHaveValue("0.3");
+  await page.keyboard.press("Escape");
+  await expect(start).toBeFocused();
+  await expect(start).toHaveValue(stepped);
+  // a keyframe held alone has its hex, which does the same
+  await page.getByRole("option", { name: /^Keyframe 2,/ }).click();
+  const hex = page.getByRole("textbox", { name: "Hex color" });
+  await hex.focus();
+  await page.keyboard.type("#336699");
+  await page.keyboard.press("Enter");
+  await expect(hex).toBeFocused();
+  await expect(hex).toHaveValue("#336699");
+  await page.keyboard.type("#ff0000");
+  await page.keyboard.press("Escape");
+  await expect(hex).toBeFocused();
+  await expect(hex).toHaveValue("#336699");
+  // in the Appearance menu the second Escape closes it, and its press has the keyboard back
+  const appearance = page.getByRole("button", { name: /^Appearance/ });
+  await appearance.click();
+  const steps = page.getByRole("spinbutton", { name: "Steps" });
+  await steps.focus();
+  await page.keyboard.press("Escape");
+  await expect(steps).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(steps).toBeHidden();
+  await expect(appearance).toBeFocused();
+});
+
 test("Back leaves an edited palette in one press, and Forward brings it back with its undo", async ({
   page
 }) => {

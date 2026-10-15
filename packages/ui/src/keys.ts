@@ -47,7 +47,8 @@ export function platform(): Platform {
 }
 
 /** Whether a key belongs to what has focus: a field being typed in, or an element that keeps its keys while
-    focused (`data-keys="own"`), such as a block of code, whose select all is its own text. */
+    focused (`data-keys="own"`), such as a block of code, whose select all is its own text. A number field at rest is
+    read only, and passes its keys on. */
 export function typing(target: EventTarget | null): boolean {
   const el = target as HTMLElement | null;
   if (!el?.tagName) return false;
@@ -55,7 +56,9 @@ export function typing(target: EventTarget | null): boolean {
     el.isContentEditable ||
     el.tagName === "TEXTAREA" ||
     el.tagName === "SELECT" ||
-    (el.tagName === "INPUT" && (el as HTMLInputElement).type !== "range") ||
+    (el.tagName === "INPUT" &&
+      (el as HTMLInputElement).type !== "range" &&
+      !(el as HTMLInputElement).readOnly) ||
     !!el.closest('[data-keys="own"]')
   );
 }
