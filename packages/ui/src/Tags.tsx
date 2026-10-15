@@ -1,5 +1,6 @@
 import { createEffect, createSignal, For, onSettled, Show } from "solid-js";
 import { Button } from "./Button.tsx";
+import { Coins, coinHost } from "./Coins.tsx";
 import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import { reducedMotion } from "./motion.ts";
@@ -7,9 +8,9 @@ import styles from "./Tags.module.css";
 import { Text } from "./Text.tsx";
 
 /* The row of searches under the search field, each a small press of words. At rest a tag wears no color; under the
-   pointer or keyboard focus its colors arrive beneath it as a tooltip does, one to five coins, the middle one first,
-   and leave together. The coins are not in the server's markup: nobody sees them at rest, so they mount once the
-   browser is idle after the page settles, or as soon as the pointer or focus reaches the row.
+   pointer or keyboard focus its colors arrive beneath it as coins (Coins.tsx). The coins are not in the server's
+   markup: nobody sees them at rest, so they mount once the browser is idle after the page settles, or as soon as the
+   pointer or focus reaches the row.
 
    One row, a little wider than the field, that never wraps and scrolls sideways: centered while it fits, from its
    start once it does not, edge to edge on a phone. An edge with more beyond it fades, and on a fine pointer carries an
@@ -27,20 +28,12 @@ export interface Tag {
   disabled?: boolean;
 }
 
-/** a coin, the distance from one to the next, and the most a tag opens */
-const COIN = 16;
-const STEP = 19;
-const MOST = 5;
 /** the scroll over which an edge's fade arrives, the quiet that ends a wheel gesture, and a glide's pace */
 const FADE = 64;
 const GESTURE = 250;
 const GLIDE = 90;
 /** the widths of the blocks that stand in for tags on their way */
 const GHOSTS = [64, 88, 56, 76, 96, 60, 84, 72, 92, 52];
-
-const coinsOf = (tag: Tag) => (tag.colors ?? []).slice(0, MOST);
-const lightOf = (colors: readonly string[]) =>
-  colors.length > 1 ? `linear-gradient(90deg, ${colors.join(", ")})` : colors[0];
 
 export function Tags<T extends Tag>(props: {
   /** a word before the tags */
@@ -370,7 +363,7 @@ export function Tags<T extends Tag>(props: {
           <For each={props.tags} keyed={false}>
             {(tag, index) => (
               <span
-                class={styles.tag}
+                class={[styles.tag, coinHost]}
                 data-quiet={tag().disabled ? "" : undefined}
                 data-open={props.open === index || props.state ? "" : undefined}
               >
@@ -388,32 +381,10 @@ export function Tags<T extends Tag>(props: {
                 </Button>
                 <Show
                   when={
-                    (armed() || props.open !== undefined || props.state) && coinsOf(tag()).length
+                    (armed() || props.open !== undefined || props.state) && tag().colors?.length
                   }
                 >
-                  <span
-                    class={styles.bloom}
-                    style={{ "--w": `${COIN + (coinsOf(tag()).length - 1) * STEP}px` }}
-                    aria-hidden="true"
-                  >
-                    <span class={styles.light} style={{ background: lightOf(coinsOf(tag())) }} />
-                    <For each={coinsOf(tag())} keyed={false}>
-                      {(coin, i) => {
-                        // how far from the middle coin: its place, and its turn to open
-                        const from = () => i - (coinsOf(tag()).length - 1) / 2;
-                        return (
-                          <span
-                            class={styles.coin}
-                            style={{
-                              background: coin(),
-                              "--x": `${from() * STEP}px`,
-                              "--d": String(Math.abs(from()))
-                            }}
-                          />
-                        );
-                      }}
-                    </For>
-                  </span>
+                  <Coins variant="tag" colors={tag().colors} />
                 </Show>
               </span>
             )}

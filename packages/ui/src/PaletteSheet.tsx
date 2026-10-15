@@ -1,4 +1,5 @@
 import { children, createUniqueId, type Element, For, onSettled, Show } from "solid-js";
+import { Coins, coinHost } from "./Coins.tsx";
 import { ContrastGrid, type GridColor } from "./ContrastGrid.tsx";
 import { FigurePane } from "./FigurePane.tsx";
 import { Icon } from "./Icon.tsx";
@@ -121,7 +122,7 @@ export function PaletteSheet(props: {
               </span>
               <For each={props.collections} keyed={false}>
                 {c => (
-                  <span class={styles.link} data-off={c().href ? undefined : ""}>
+                  <span class={[styles.link, coinHost]} data-quiet={c().href ? undefined : ""}>
                     <Text variant="ui" truncate>
                       <a
                         class={link.inline}
@@ -132,11 +133,7 @@ export function PaletteSheet(props: {
                         {c().title}
                       </a>
                     </Text>
-                    <span class={styles.coins} aria-hidden="true">
-                      <For each={(c().colors ?? []).slice(0, 5)} keyed={false}>
-                        {hex => <span class={styles.coin} style={{ background: hex() }} />}
-                      </For>
-                    </span>
+                    <Coins colors={c().colors} />
                   </span>
                 )}
               </For>

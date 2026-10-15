@@ -132,11 +132,6 @@
   }
   /* a row: its mark at the start, its colors under the pointer or the keyboard, which keep their room at rest */
   .row {
-    --coins: 0;
-    &:hover,
-    &:focus-visible {
-      --coins: 1;
-    }
     &[data-held] {
       color: var(--color-ink);
     }
@@ -160,20 +155,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     line-height: var(--font-lh-ui);
-  }
-  .coins {
-    display: flex;
-    flex-shrink: 0;
-    gap: calc(2 * var(--size-hairline));
-    margin-inline-start: auto;
-  }
-  .coin {
-    width: 10px;
-    height: 10px;
-    border-radius: var(--radius-circle);
-    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
-    opacity: var(--coins);
-    transition: opacity var(--motion-fast) var(--motion-ease);
   }
   .count {
     min-width: var(--space-s5);

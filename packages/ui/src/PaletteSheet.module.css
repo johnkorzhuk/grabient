@@ -90,7 +90,7 @@
     min-width: 0;
   }
   /* the collections that hold the palette, after a collection's glyph, each a link; under the pointer or the keyboard
-     one floats its colors under its name as coins, which take no room */
+     one floats its colors under its name as coins, which take no room, a little into the link's own height */
   .links {
     display: flex;
     flex-wrap: wrap;
@@ -105,20 +105,11 @@
     flex-shrink: 0;
   }
   .link {
-    position: relative;
+    --below: calc(-1 * var(--space-s1));
     display: inline-flex;
     align-items: center;
     max-width: 100%;
     min-height: var(--size-control);
-    --coins: 0;
-    &:hover,
-    &:has(:focus-visible) {
-      --coins: 1;
-    }
-    /* a link that leads nowhere now shows none */
-    &[data-off] {
-      --coins: 0;
-    }
     & a[aria-disabled="true"] {
       opacity: 0.4;
       cursor: default;
@@ -126,24 +117,6 @@
     @media (pointer: coarse) {
       min-height: var(--size-touch);
     }
-  }
-  /* centered under the name, as a tag's are: the same either way, so set from the left */
-  .coins {
-    position: absolute;
-    top: calc(100% - var(--space-s1));
-    left: 50%;
-    display: flex;
-    gap: calc(2 * var(--size-hairline));
-    translate: -50% 0;
-    pointer-events: none;
-  }
-  .coin {
-    width: var(--space-s3);
-    height: var(--space-s3);
-    border-radius: var(--radius-circle);
-    box-shadow: inset 0 0 0 var(--size-hairline) var(--color-edge2);
-    opacity: var(--coins);
-    transition: opacity var(--motion-fast) var(--motion-ease);
   }
   /* the figures as panes of one frame: the path's column as wide as a scene of its height needs, giving way before the
      code's tabs would break onto a second line */
