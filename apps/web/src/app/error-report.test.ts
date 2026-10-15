@@ -137,3 +137,28 @@ test("a report names where in a script, and never the page's own address, which 
   ]);
   expect(JSON.stringify(page.sent)).not.toContain("warm-sunsets");
 });
+
+test("an error is told in its own words, and a value with none in the window's, else as it reads", async () => {
+  const page = await pageLoad("https://grabient.com/palettes");
+  // its own words, though it cannot be read as text
+  class Unreadable extends Error {
+    override toString(): string {
+      throw new Error("No text");
+    }
+  }
+  page.reportCaught(new Unreadable("Kept in its own words"));
+  page.reportCaught("A thrown string");
+  // a string thrown from a script: the window's words for it
+  window.dispatchEvent(
+    new ErrorEvent("error", {
+      error: "Busy",
+      message: "Uncaught Busy",
+      filename: "https://grabient.com/assets/index-DMi2wf-V.js"
+    })
+  );
+  expect(page.sent).toMatchObject([
+    { name: "Error", message: "Kept in its own words" },
+    { message: "A thrown string" },
+    { message: "Uncaught Busy", source: "/assets/index-DMi2wf-V.js" }
+  ]);
+});
