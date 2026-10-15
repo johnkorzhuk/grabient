@@ -22,9 +22,9 @@ export interface PreviewItem {
 
 /* The selection as its image will be: the grid exportLayout describes, each palette at its size in its own style and
    angle with the corners, on a clear ground, scaled down to the room it is given and never up, nor below a target's
-   size a cell, where the room scrolls. Every cell is a way out
-   of the selection, named for its palette, with a minus at its middle where there is room for one; the keyboard on the
-   last one taken out goes to the one before it. Left to right in every language, as the file runs. */
+   size a cell, where the room scrolls. Every cell is a way out of the selection, named for its palette, with a minus
+   at its middle where there is room for one; the keyboard on the last one taken out goes to the one before it. Left to
+   right in every language, as the file runs. */
 export function ExportPreview(props: {
   items: readonly PreviewItem[];
   settings: ExportSettings;
@@ -40,16 +40,15 @@ export function ExportPreview(props: {
     watchSize(host, () => setRoom({ width: host.clientWidth, height: host.clientHeight }))
   );
   const layout = createMemo(() => exportLayout(props.items.length, props.settings, props.autoSize));
-  /* the least side a cell keeps, a target's, a finger's on a touch screen: past it the picture is drawn no smaller,
-     and its room scrolls */
-  const least = () => (matchMedia("(pointer: coarse)").matches ? size.touch : size.target);
+  /* a cell keeps a target's side on every pointer: past it the picture is drawn no smaller, and its room scrolls. A
+     finger's side would hide most of a phone's picture from about twenty palettes */
   const k = createMemo(() => {
     const d = layout().dims;
     const c = layout().cell;
     const r = room();
     if (!r.width || !r.height) return 0;
     const fit = Math.min(1, r.width / Math.max(1, d.width), r.height / Math.max(1, d.height));
-    return Math.max(fit, Math.min(1, least() / Math.max(1, Math.min(c.w, c.h))));
+    return Math.max(fit, Math.min(1, size.target / Math.max(1, Math.min(c.w, c.h))));
   });
   const px = (v: number) => `${Math.max(0, v * k())}px`;
   const cell = () => layout().cell;
