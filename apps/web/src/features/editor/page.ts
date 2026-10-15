@@ -4,52 +4,19 @@ import { DEFAULT_LOCALE, locale } from "@grabient/i18n";
 import { createIsomorphicFn } from "@tanstack/solid-start";
 import { createStore, lazy } from "solid-js";
 import { DEFAULT_FRAME, type RisingFrame } from "../../lib/orders.ts";
-import { heading, headOf, type Page, type PageMeta, pageMeta } from "../../lib/page-meta.ts";
+import { heading, headOf, type PageMeta, pageMeta } from "../../lib/page-meta.ts";
 import { getJson } from "../../lib/query.ts";
 import { paletteFacts } from "../../server/editor/facts.ts";
 import { framesOffered } from "../../server/gallery/home.ts";
 import { isSeed, readSeedPage, type SeedPage } from "./address.ts";
-import { BOOT_MARK } from "./boot.ts";
 import { PaletteFacts } from "./facts.ts";
+import { metaPage, STATIC_CSS } from "./StaticPalette.tsx";
 
 /* A palette's page as its route reads it. The server reads what only the database knows of the palette, once, for the
    page it renders (its title, the static page crawlers read, its Markdown), and which of Rising's frames are on. A
    palette the browser opens later has the same facts in English, the only language its written words are worn in,
    asked for as a reader reaches its card, or else as its page opens; one an edit makes is named by its colors and asks
    the server nothing. */
-
-/** The page as its metadata reads it. */
-export const metaPage = (
-  page: SeedPage,
-  facts: PaletteFacts | null
-): Extract<Page, { kind: "palette" }> => ({
-  kind: "palette",
-  seed: page.seed,
-  palette: page.palette,
-  view: page.view,
-  ...(facts?.written ? { written: facts.written } : {}),
-  heldBy: facts?.heldBy ?? []
-});
-
-/** The static page's styles, in its head: only a palette's page draws it, and a stylesheet of its own would hold the
-    first paint of every page back. The values are the design system's tokens. While the page boots the static page
-    is hidden (boot.ts). */
-const STATIC_CSS = [
-  "@layer components{",
-  `html[${BOOT_MARK}] .palette-static{display:none}`,
-  ".palette-static{max-width:var(--size-prose);margin-inline:auto;padding:var(--space-s8) var(--space-s4);display:flex;flex-direction:column;gap:var(--space-s4)}",
-  ".palette-static>a:first-child{color:var(--color-ink2);font-size:var(--font-fs2)}",
-  ".palette-static h1{margin:0;font-size:var(--font-fs6);font-weight:var(--font-bold);line-height:var(--font-lh-tight);letter-spacing:var(--font-ls-title)}",
-  ".palette-static h2{margin:var(--space-s4) 0 0;font-size:var(--font-fs4)}",
-  ".palette-static p{margin:0;line-height:var(--font-lh-prose)}",
-  "[data-picture]{width:100%;aspect-ratio:2/1;border-radius:var(--radius-surface);box-shadow:var(--color-shadow)}",
-  "[data-stops]{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:var(--space-s2) var(--space-s4);font-family:var(--font-mono);font-size:var(--font-fs2)}",
-  "[data-stops] li{display:flex;align-items:center;gap:var(--space-s2)}",
-  "[data-stops] span{width:var(--space-s5);height:var(--space-s5);border-radius:var(--radius-circle);box-shadow:var(--color-rim)}",
-  ".palette-static pre{margin:0;padding:var(--space-s4);border-radius:var(--radius-control);background:var(--color-paper-solid);font-family:var(--font-mono);font-size:var(--font-fs2);white-space:pre-wrap;overflow-wrap:anywhere}",
-  "[data-links]{display:flex;flex-wrap:wrap;gap:var(--space-s2) var(--space-s4)}",
-  "}"
-].join("");
 
 /** The router's search object as an address reads it: a number the router parsed is its digits again. */
 export const searchReader = (search: Readonly<Record<string, unknown>>): ParamReader => ({

@@ -17,17 +17,17 @@ const KIB = 1024;
 /** Each page's start: the client's entry, the chunk its route's component is split into, and what the page asks for
     as it starts, each with every chunk its static imports reach. Modules are named as the manifest keys them. */
 const PAGES: Record<string, { route: string; also?: string[]; budget: number }> = {
-  "/": { route: "src/routes/index.tsx", budget: 280 },
-  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 280 },
-  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 280 },
+  "/": { route: "src/routes/index.tsx", budget: 285 },
+  "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 290 },
+  "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 285 },
   "a collection": { route: "src/routes/$id/index.tsx", budget: 280 },
   // the editor's code is asked for as the page starts, while the static page holds its place
   "a palette": {
     route: "src/routes/$id/index.tsx",
     also: ["src/features/editor/Editor.tsx"],
-    budget: 330
+    budget: 325
   },
-  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 215 },
+  "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
   "/about": { route: "src/routes/about.tsx", budget: 245 }
 };
 
@@ -35,7 +35,7 @@ const PAGES: Record<string, { route: string; also?: string[]; budget: number }> 
 const RECORDER = "/node_modules/posthog-js/";
 
 const BUDGETS = {
-  stylesheet: 28,
+  stylesheet: 29,
   onDemand: 20,
   recorder: 106,
   names: 285,

@@ -3,10 +3,45 @@ import { sampleStops } from "@grabient/engine/curve.ts";
 import { isFixedSize, viewSearch } from "@grabient/engine/view.ts";
 import { localHref, t } from "@grabient/i18n";
 import { For, Show } from "solid-js";
-import { heading, pageMeta } from "../../lib/page-meta.ts";
+import { heading, type Page, pageMeta } from "../../lib/page-meta.ts";
+import type { SeedPage } from "./address.ts";
 import { Boot } from "./Boot.tsx";
-import { BOOT_SCRIPT } from "./boot.ts";
-import { metaPage, type PaletteData } from "./page.ts";
+import { BOOT_MARK, BOOT_SCRIPT } from "./boot.ts";
+import type { PaletteFacts } from "./facts.ts";
+import type { PaletteData } from "./page.ts";
+
+/** The page as its metadata reads it. */
+export const metaPage = (
+  page: SeedPage,
+  facts: PaletteFacts | null
+): Extract<Page, { kind: "palette" }> => ({
+  kind: "palette",
+  seed: page.seed,
+  palette: page.palette,
+  view: page.view,
+  ...(facts?.written ? { written: facts.written } : {}),
+  heldBy: facts?.heldBy ?? []
+});
+
+/** The static page's styles, in its head: only a palette's page draws it, and a stylesheet of its own would hold the
+    first paint of every page back. The values are the design system's tokens. While the page boots the static page
+    is hidden (boot.ts). */
+export const STATIC_CSS = [
+  "@layer components{",
+  `html[${BOOT_MARK}] .palette-static{display:none}`,
+  ".palette-static{max-width:var(--size-prose);margin-inline:auto;padding:var(--space-s8) var(--space-s4);display:flex;flex-direction:column;gap:var(--space-s4)}",
+  ".palette-static>a:first-child{color:var(--color-ink2);font-size:var(--font-fs2)}",
+  ".palette-static h1{margin:0;font-size:var(--font-fs6);font-weight:var(--font-bold);line-height:var(--font-lh-tight);letter-spacing:var(--font-ls-title)}",
+  ".palette-static h2{margin:var(--space-s4) 0 0;font-size:var(--font-fs4)}",
+  ".palette-static p{margin:0;line-height:var(--font-lh-prose)}",
+  "[data-picture]{width:100%;aspect-ratio:2/1;border-radius:var(--radius-surface);box-shadow:var(--color-shadow)}",
+  "[data-stops]{margin:0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:var(--space-s2) var(--space-s4);font-family:var(--font-mono);font-size:var(--font-fs2)}",
+  "[data-stops] li{display:flex;align-items:center;gap:var(--space-s2)}",
+  "[data-stops] span{width:var(--space-s5);height:var(--space-s5);border-radius:var(--radius-circle);box-shadow:var(--color-rim)}",
+  ".palette-static pre{margin:0;padding:var(--space-s4);border-radius:var(--radius-control);background:var(--color-paper-solid);font-family:var(--font-mono);font-size:var(--font-fs2);white-space:pre-wrap;overflow-wrap:anywhere}",
+  "[data-links]{display:flex;flex-wrap:wrap;gap:var(--space-s2) var(--space-s4)}",
+  "}"
+].join("");
 
 /** A palette's page as the server sends it, for crawlers and readers without JavaScript; the editor takes its place in
     the browser. It says what the palette is, shows it and the CSS that draws it, and leads on: to the collections that
