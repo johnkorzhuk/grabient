@@ -3,7 +3,7 @@ import { For, onSettled, Show } from "solid-js";
 import styles from "./Appearance.module.css";
 import { BarRim } from "./BarRim.tsx";
 import { Button } from "./Button.tsx";
-import { pressOutside, typingIn } from "./dismiss.ts";
+import { focusLeft, pressOutside, typingIn } from "./dismiss.ts";
 import { Icon } from "./Icon.tsx";
 import { msg, t } from "./i18n.ts";
 import joined from "./joined.module.css";
@@ -140,7 +140,9 @@ export function AppearanceMenu(props: AppearanceProps) {
   let root!: HTMLDivElement;
   const auto = () => !!props.auto;
   const off = () => props.onPeek?.(null);
-  /* Escape and Close hand the keyboard back to the button that opened the menu; a press elsewhere leaves it be */
+  /* Escape and Close hand the keyboard back to the button that opened the menu; a press elsewhere, or the keyboard
+     leaving it for the page, leaves it be */
+  const button = () => document.querySelector('[aria-controls="appearance-menu"]');
   const closeBack = () => {
     const inside = root.contains(document.activeElement);
     props.onClose?.();
@@ -164,7 +166,7 @@ export function AppearanceMenu(props: AppearanceProps) {
     document.addEventListener("keydown", onEscape, true);
     const away = props.floating
       ? pressOutside(
-          () => [root, document.querySelector('[aria-controls="appearance-menu"]')],
+          () => [root, button()],
           () => props.onClose?.()
         )
       : () => {};
@@ -195,6 +197,9 @@ export function AppearanceMenu(props: AppearanceProps) {
       class={styles.menu}
       data-floating={props.floating ? "" : undefined}
       onPointerLeave={off}
+      onFocusOut={e => {
+        if (props.floating && focusLeft(e, root, button())) props.onClose?.();
+      }}
     >
       <div class={styles.head}>
         <Text variant="h3">{t("Appearance")}</Text>

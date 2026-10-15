@@ -2,6 +2,7 @@ import { createSignal, createUniqueId, onSettled, Show } from "solid-js";
 import { Button } from "./Button.tsx";
 import { type CollectChoice, CollectPiece, createCollect } from "./CollectList.tsx";
 import styles from "./CollectPress.module.css";
+import { focusLeft } from "./dismiss.ts";
 import { Icon } from "./Icon.tsx";
 import { t } from "./i18n.ts";
 import { composing } from "./keys.ts";
@@ -50,7 +51,8 @@ function Opened(props: { collect: CardCollect; small: boolean; id: string; onClo
 /** Add to collection, for the palette at hand: a press on glass over its picture, under the check that says the palette
     is in the selection, on a card and on the editor's stage alike. Pressed, it stays one piece: it turns to Close where
     it stands, joined to the end of New collection, and the account's collections hang under the two. Close, a press
-    elsewhere or Escape puts the press back, and the keyboard with it. Signed out, it leads to sign in. */
+    elsewhere, the keyboard leaving it or Escape puts the press back, and the keyboard with it. Signed out, it leads to
+    sign in. */
 export function CollectPress(props: {
   collect: CardCollect;
   /** the height of the check it stands under: sm over a card's picture, lg on the editor's stage */
@@ -75,10 +77,9 @@ export function CollectPress(props: {
       if (open() && !host.contains(e.target as Node)) close(false);
     };
     const onEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && open() && !composing(e)) {
-        e.stopPropagation();
-        close();
-      }
+      if (e.key !== "Escape" || !open() || composing(e)) return;
+      e.stopPropagation();
+      close(host.contains(document.activeElement));
     };
     document.addEventListener("pointerdown", away, true);
     document.addEventListener("keydown", onEscape, true);
@@ -88,7 +89,14 @@ export function CollectPress(props: {
     };
   });
   return (
-    <span ref={host} class={styles.host} data-size={props.size ?? "sm"}>
+    <span
+      ref={host}
+      class={styles.host}
+      data-size={props.size ?? "sm"}
+      onFocusOut={e => {
+        if (open() && focusLeft(e, host)) close(false);
+      }}
+    >
       <Show
         when={open()}
         fallback={

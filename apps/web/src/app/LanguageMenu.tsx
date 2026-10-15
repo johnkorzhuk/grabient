@@ -1,4 +1,5 @@
 import { LOCALE_INFO, type Locale, locale, localizePath, MENU_ORDER, t } from "@grabient/i18n";
+import { focusLeft } from "@grabient/ui/dismiss.ts";
 import { Flag } from "@grabient/ui/Flag.tsx";
 import { Icon } from "@grabient/ui/Icon.tsx";
 import { createSignal, createUniqueId, For, onSettled, Show, untrack } from "solid-js";
@@ -46,10 +47,11 @@ export function LanguageMenu(props: {
     const away = (e: PointerEvent) => {
       if (open() && !host.contains(e.target as Node)) close();
     };
+    /* Escape closes it, and takes the keyboard back to the button only from inside the menu */
     const onEscape = (e: KeyboardEvent) => {
       if (open() && e.key === "Escape") {
         e.preventDefault();
-        close(true);
+        close(host.contains(document.activeElement));
       }
     };
     document.addEventListener("pointerdown", away);
@@ -61,7 +63,13 @@ export function LanguageMenu(props: {
   });
   const here = () => LOCALE_INFO[locale()];
   return (
-    <div ref={host} class={styles.host}>
+    <div
+      ref={host}
+      class={styles.host}
+      onFocusOut={e => {
+        if (open() && focusLeft(e, host)) close();
+      }}
+    >
       <button
         ref={trigger}
         type="button"
