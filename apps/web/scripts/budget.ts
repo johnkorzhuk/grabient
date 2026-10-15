@@ -15,28 +15,32 @@ const KB = 1000;
 const KIB = 1024;
 
 /** Each page's start: the client's entry, the chunk its route's component is split into, and what the page asks for
-    as it starts, each with every chunk its static imports reach. Modules are named as the manifest keys them. */
+    as it starts with no input, each with every chunk its static imports reach. Modules are named as the manifest keys
+    them. */
 const PAGES: Record<string, { route: string; also?: string[]; budget: number }> = {
   "/": { route: "src/routes/index.tsx", budget: 285 },
   "/palettes": { route: "src/routes/palettes/{-$order}.{-$frame}.tsx", budget: 290 },
   "/collections": { route: "src/routes/collections/{-$order}.{-$frame}.tsx", budget: 285 },
   "a collection": { route: "src/routes/$id/index.tsx", budget: 280 },
-  // the editor's code is asked for as the page starts, while the static page holds its place
+  /* the editor's code is asked for as the page starts, while the static page holds its place, and its sheet's with it
+     beside the page or once the first screen stands on a phone */
   "a palette": {
     route: "src/routes/$id/index.tsx",
-    also: ["src/features/editor/Editor.tsx"],
-    budget: 325
+    also: ["src/features/editor/Editor.tsx", "src/features/editor/Sheet.tsx"],
+    budget: 350
   },
   "/newsletter": { route: "src/routes/newsletter.tsx", budget: 225 },
-  "/about": { route: "src/routes/about.tsx", budget: 245 }
+  "/about": { route: "src/routes/about.tsx", budget: 250 }
 };
+/** What every page asks for as it starts: the tab's icon, drawn again as the page first changes what it paints. */
+const EVERY_PAGE = ["src/app/tab-icon.ts"];
 
 /** The session recorder, loaded only where a reader allows a replay: measured on its own, so it hides no other chunk. */
 const RECORDER = "/node_modules/posthog-js/";
 
 const BUDGETS = {
   stylesheet: 29,
-  onDemand: 20,
+  onDemand: 12,
   recorder: 106,
   names: 285,
   worker: 1480,
@@ -88,7 +92,7 @@ const componentOf = (route: string) => {
   return key;
 };
 for (const [page, { route, also = [], budget }] of Object.entries(PAGES)) {
-  const files = closure(client, [entry, componentOf(route), ...also]);
+  const files = closure(client, [entry, componentOf(route), ...EVERY_PAGE, ...also]);
   for (const file of files) started.add(file);
   const size = [...files].reduce((sum, file) => sum + clientGzip(file), 0);
   rows.push({ name: `start JS, ${page}`, size, budget, unit: KB });
