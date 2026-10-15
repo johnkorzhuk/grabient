@@ -75,7 +75,9 @@ its path to `privatePath`; one any site may fetch, to `publicFile`. A file besid
 
 Worker-only code lives in `src/server/` and reads its bindings with `import { env } from "cloudflare:workers"`. The
 browser's build fails on an import of it from code the browser runs; an import used only inside
-`createIsomorphicFn().server()` or a server handler is removed from the browser's build.
+`createIsomorphicFn().server()` or a server handler is removed from the browser's build. Every request through Start
+first loads every route's module, so a handler whose work no page shares (the MCP server, the authorization server,
+an account's connections) imports it inside the handler, and only its own requests load it.
 
 ## Accounts and the offline copy
 
