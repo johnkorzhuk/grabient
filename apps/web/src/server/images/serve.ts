@@ -66,7 +66,8 @@ const standIn = (request: Request, address: string) =>
       ...ANY_SITE
     }
   });
-const siteCard = (request: Request) => standIn(request, "/grabient.png");
+/** The site's card, standing in for a share card that is not drawn now. */
+export const siteCard = (request: Request) => standIn(request, "/grabient.png");
 
 /** While an admin has drawing turned off: the site's card for a share card, the palette's SVG for its own picture, a
     refusal for a picture of several palettes; null while it is on. A picture a cache holds is still served, so this

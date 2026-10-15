@@ -1,8 +1,9 @@
 /* Old `_` links no map holds, fitted on the Worker as the reader's browser fits them (engine/legacy-import.ts), so a
    crawler, a link preview and an old page's share card land on the palette too. A fit is deterministic, so its 301 is
    kept at the edge and by the browser (lib/cache.ts): each old seed and view is fitted once in a data center for each
-   deploy. The address's minute and the site's day bound how many fits run, and a budget how long each runs. A fit any
-   of these refuses leaves the address to the app: a page the reader's browser fits, or a card that is not found. */
+   deploy. The address's minute and the site's day bound how many fits run, and a budget how long each runs. When one of
+   these refuses a fit, the app answers the old page, which the reader's browser fits, and the old card is the site's
+   card (images/serve.ts), never a blank preview. */
 import { encodePalette } from "@grabient/engine/codec.ts";
 import { decodeLegacySeed } from "@grabient/engine/legacy.ts";
 import { importLegacy } from "@grabient/engine/legacy-import.ts";

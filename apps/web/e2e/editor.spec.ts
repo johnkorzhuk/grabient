@@ -564,6 +564,8 @@ test("the header's bar carries the palette from the server's render", async ({ r
 
 const OLD = "/_gH0gH0gH0gH0gH0gH0gPogPogPogAAgFNgKa?style=angularGradient";
 const FITTED = "/kYq5wTxGc3MlDuPtT7O58281NAs8?style=angularGradient";
+// the share card the old page named
+const OLD_CARD = `/api/og?seed=${OLD.slice(1).replace("?", "&v=16&")}`;
 
 test("an old link no map holds lands on its palette with no JavaScript, by a redirect the edge keeps", {
   tag: "@served"
@@ -594,17 +596,16 @@ test("an old link no map holds lands on its palette with no JavaScript, by a red
 test("the share card an old page named leads to its palette's card", {
   tag: "@served"
 }, async ({ request }) => {
-  const card = `/api/og?seed=${OLD.slice(1).replace("?", "&v=16&")}`;
-  const moved = await request.get(card, { maxRedirects: 0 });
+  const moved = await request.get(OLD_CARD, { maxRedirects: 0 });
   expect([moved.status(), addressOf(moved.headers().location ?? "")]).toEqual([
     301,
     `/api/og?seed=${FITTED.slice(1).replace("?", "&v=k4&")}`
   ]);
-  const drawn = await request.get(card);
+  const drawn = await request.get(OLD_CARD);
   expect([drawn.status(), drawn.headers()["content-type"]]).toEqual([200, "image/png"]);
 });
 
-test("an old link the Worker does not fit is fitted in the browser, and its address becomes the palette's", async ({
+test("an old link the Worker does not fit is fitted in the browser, and its share card is the site's card", async ({
   page,
   request
 }) => {
@@ -618,6 +619,15 @@ test("an old link the Worker does not fit is fitted in the browser, and its addr
     status = (await request.get(OLD, { headers: from, maxRedirects: 0 })).status();
   }
   expect(status).toBe(404);
+  // a link preview of the old page still shows a picture
+  const card = await request.get(OLD_CARD, { headers: from, maxRedirects: 0 });
+  expect([
+    card.status(),
+    addressOf(card.headers().location ?? ""),
+    card.headers()["cache-control"]
+  ]).toEqual([302, "/grabient.png", "public, max-age=300"]);
+  const shown = await request.get(OLD_CARD, { headers: from });
+  expect([shown.status(), shown.headers()["content-type"]]).toEqual([200, "image/png"]);
   await page.setExtraHTTPHeaders(from);
   // the server still answers the page, so the palette it lands on is the browser's fit
   expect((await page.goto(OLD))?.status()).toBe(404);

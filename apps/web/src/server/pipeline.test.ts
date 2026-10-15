@@ -324,7 +324,7 @@ describe("an old grabient.com link", () => {
     expect(asked).toHaveLength(1);
   });
 
-  test("one the Worker will not fit is the app's to answer, whose page the reader's browser fits", async () => {
+  test("one the Worker will not fit: its page is the app's, which the reader's browser fits, and its card the site's", async () => {
     // the site's day of fits is spent
     const spent = {
       idFromName: (name: string) => name,
@@ -339,7 +339,20 @@ describe("an old grabient.com link", () => {
     const worker = { ...env, RATE_LIMITER: spent } as unknown as Env;
     const response = await get(OLD, {}, () => page(404), worker);
     expect([response.status, asked.length, cache.kept.size]).toEqual([404, 1, 0]);
-    expect(counted).toEqual(["legacy fitted reader", "limit oldLinkFitDaily site"]);
+    // a link preview of the old page shows the site's card for a few minutes, as for a card that is not drawn now
+    const card = await get(`/api/og?seed=${OLD.slice(1)}&v=16`, {}, () => page(404), worker);
+    expect([
+      card.status,
+      location(card),
+      card.headers.get("Cache-Control"),
+      card.headers.get("CDN-Cache-Control")
+    ]).toEqual([302, "/grabient.png", "public, max-age=300", "no-store"]);
+    expect([asked.length, cache.kept.size]).toEqual([1, 0]);
+    expect(counted).toEqual([
+      "legacy fitted reader",
+      "limit oldLinkFitDaily site",
+      "limit oldLinkFitDaily site"
+    ]);
   });
 });
 

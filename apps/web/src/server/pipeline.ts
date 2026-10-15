@@ -21,6 +21,7 @@ import { canonicalRedirect } from "./canonical.ts";
 import { isCrawler } from "./crawlers.ts";
 import { edgeCached, keepFor } from "./edge-cache.ts";
 import { countFile } from "./files/count.ts";
+import { siteCard } from "./images/serve.ts";
 import {
   connectPath,
   consentPath,
@@ -176,11 +177,13 @@ async function route(
   if (connectPath(path)) return app(request);
   if (privatePath(path)) return withHeaders(await answer(request, app), NO_STORE);
   countFile(env, request, path);
-  // an old link the Worker does not fit is the app's to answer, whose page the reader's browser fits; under `vite dev`
-  // nothing is kept
+  // an old page the Worker does not fit is the app's to answer, whose page the reader's browser fits, and an old card
+  // is the site's card, never a blank preview; under `vite dev` nothing is kept
   const old = read ? oldFit(path, url.searchParams) : null;
   if (old) {
-    const fit = async () => (await fittedRedirect(env, request, old, at)) ?? answer(request, app);
+    const fit = async () =>
+      (await fittedRedirect(env, request, old, at)) ??
+      (old.card ? siteCard(request) : answer(request, app));
     return env.DEPLOYMENT === "development"
       ? fit()
       : edgeCached(request, cacheKey(url, path, locale), ctx, fit);
